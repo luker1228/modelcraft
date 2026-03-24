@@ -17,7 +17,8 @@ This is the ModelCraft project with separate frontend and backend codebases:
 
 ## Use @ References for Documentation
 
-- Refer to @docs/architecture.md for system flow.
+> Refer to @docs/architecture.md for system flow.
+or
 - Refer to @docs/state-management.md before editing state.
 
 Please refer to the respective documentation for detailed coding styles, patterns, and conventions for each component.
