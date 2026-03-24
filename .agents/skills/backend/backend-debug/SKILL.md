@@ -60,8 +60,8 @@ just logs
 
 | 错误特征 | 可能原因 | 定位方向 |
 |---------|---------|---------|
-| `sql: no rows in result set` | 查询返回空，代码未处理 | 找对应的 DB 查询，检查是否应用了 `errors.Is(err, gorm.ErrRecordNotFound)` |
-| `unsupported Scan, storing []uint8` | GORM 扫描类型不匹配 | 查目标结构体字段类型，改为扫描到原生类型 |
+| `sql: no rows in result set` | 查询返回空，代码未处理 | 找对应的 DB 查询，检查是否应用了 `errors.Is(err, sql.ErrNoRows)` |
+| `unsupported Scan, storing []uint8` | sqlc 扫描类型不匹配 | 查目标结构体字段类型，改为扫描到原生类型 |
 | `[REPO_NOT_FOUND]` | 仓库层未找到记录 | 找 repository 实现，检查查询条件 |
 | `nil pointer dereference` | 未检查空指针 | 找返回指针的地方，补 nil 检查 |
 | `context deadline exceeded` | 超时 | 检查是否有慢查询或死锁 |
