@@ -1,0 +1,82 @@
+[
+  {
+    "query": "把 prototypes/cluster/index.html 里的 .card 组件还原成 React TSX，要求和原型完全一致",
+    "should_trigger": true
+  },
+  {
+    "query": "我改了 prototypes/org-settings/index.html 里的表单样式，现在帮我把对应的 React 页面 src/app/org/[orgName]/settings/page.tsx 也更新一下，字体大小和间距要和原型一样",
+    "should_trigger": true
+  },
+  {
+    "query": "实现 sidebar-nav-item 这个组件，参考 prototypes/shared/layout-styles.css 里的样式，gap、字号、active 颜色要精确",
+    "should_trigger": true
+  },
+  {
+    "query": "帮我把 prototypes/team/team-management-prototype.html 翻译成 React，之前 AI 翻译出来字体大小和原型差好多",
+    "should_trigger": true
+  },
+  {
+    "query": "写一个 BasicInfoCard 组件，样式来自 layout-styles.css，按钮高度 36px，输入框 34px，form-row gap 24px",
+    "should_trigger": true
+  },
+  {
+    "query": "把下面这段 HTML 还原成 React：<div class=\"card\"><div class=\"card-header\"><span class=\"card-header-title\">集群配置</span></div></div>，class 要精确映射到 Tailwind",
+    "should_trigger": true
+  },
+  {
+    "query": "我发现之前 AI 实现的页面和原型差距很大，btn-primary 用了 bg-blue-600 但原型是 #2563eb，form-row 用了 gap-4 但原型是 gap-6，帮我修一下",
+    "should_trigger": true
+  },
+  {
+    "query": "实现 workspace/workspace-simple.html 原型里的项目列表卡片，要确保 badge 样式、text-xs、padding 和原型 CSS 一致",
+    "should_trigger": true
+  },
+  {
+    "query": "写 React 组件还原这个 prototype 表单，要求 form-label 用正确字号、form-hint 颜色对、required 星号红色",
+    "should_trigger": true
+  },
+  {
+    "query": "prototype 里的 topbar 高度是 56px，帮我把 AppLayout.tsx 里 topbar 的高度改成和原型一致",
+    "should_trigger": true
+  },
+  {
+    "query": "帮我给 src/app/login/page.tsx 加一个 dark mode 支持",
+    "should_trigger": false
+  },
+  {
+    "query": "src/components/layout/AppLayout.tsx 里 sidebar 折叠时有个 bug，点击 toggle 按钮没反应，帮我查一下",
+    "should_trigger": false
+  },
+  {
+    "query": "把 globals.css 里的主色从 #2563eb 换成 #7c3aed，所有用到主色的地方都要更新",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我给 workspace 页面加一个搜索框，用户可以按项目名过滤",
+    "should_trigger": false
+  },
+  {
+    "query": "用 Tailwind 写一个响应式 grid 布局，移动端 1 列，平板 2 列，桌面 3 列",
+    "should_trigger": false
+  },
+  {
+    "query": "把这个 API 调用从 REST 改成 GraphQL：fetch('/api/clusters')",
+    "should_trigger": false
+  },
+  {
+    "query": "给 model-editor 页面加一个 loading skeleton，数据加载中时显示占位符",
+    "should_trigger": false
+  },
+  {
+    "query": "帮我在 Tailwind config 里添加一个自定义 breakpoint sm2: 480px",
+    "should_trigger": false
+  },
+  {
+    "query": "我想用 framer-motion 给侧边栏折叠加一个平滑动画，怎么实现？",
+    "should_trigger": false
+  },
+  {
+    "query": "把 src/app/org/[orgName]/workspace/page.tsx 里的 useState 改成 useReducer，状态逻辑太复杂了",
+    "should_trigger": false
+  }
+]

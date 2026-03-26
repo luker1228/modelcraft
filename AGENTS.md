@@ -6,10 +6,28 @@ This document provides guidelines for AI agents working with this project.
 
 This is the ModelCraft project with separate frontend and backend codebases:
 
-- **Backend (Go)**: Code in `./modelcraft-go`. See [AGENTS.md](modelcraft-go/AGENTS.md)  
+- **Backend (Go)**: Code in `./modelcraft-go`. See [AGENTS.md](modelcraft-go/AGENTS.md)
   @./modelcraft-go/AGENTS.md
-- **Frontend**: Code in `./modelcraft-front`. See [AGENTS.md](modelcraft-front/AGENTS.md)  
+- **Frontend**: Code in `./modelcraft-front`. See [AGENTS.md](modelcraft-front/AGENTS.md)
   @./modelcraft-front/AGENTS.md
+
+## AI Metadata
+
+Aggregated documentation for both subprojects is available under `./ai-metadata/`:
+
+- **Backend**: Refer to @./ai-metadata/backend/README.md for the backend knowledge base.
+- **Frontend**: Refer to @./ai-metadata/front/development/README.md for the frontend knowledge base.
+
+## Git Rules
+
+- Never use `git commit --no-verify`. Pre-commit hooks must always run. If a hook fails, fix the underlying issue instead of bypassing it.
+
+Subproject commits must be made before committing in the root project. Always commit changes in `./modelcraft-go` or `./modelcraft-front` first, then commit in the root.
+
+Each subproject has its own pre-commit hook:
+
+- **Backend** (`./modelcraft-go`): runs `just lint`. If it fails, run `just lint-fix` to auto-fix, then re-verify with `just lint`.
+- **Frontend** (`./modelcraft-front`): runs `npx lint-staged` via Husky. If it fails, fix the reported lint errors manually and re-commit.
 
 ## No Absolute Paths
 
@@ -22,3 +40,43 @@ or
 - Refer to @docs/state-management.md before editing state.
 
 Please refer to the respective documentation for detailed coding styles, patterns, and conventions for each component.
+
+## Single Source of Truth
+
+**`AGENTS.md` is the single source of truth** for AI agent configuration in this project.
+
+All agent-specific directories (`.claude`, `.codebuddy`) are **symlinks** that point to `./.agents/`:
+
+```
+.claude/commands  -> .agents/commands
+.claude/hooks     -> .agents/hooks
+.claude/rules     -> .agents/rules
+.claude/skills    -> .agents/skills
+
+.codebuddy/commands -> .agents/commands
+.codebuddy/hooks    -> .agents/hooks
+.codebuddy/rules    -> .agents/rules
+.codebuddy/skills   -> .agents/skills
+```
+
+**Rules:**
+- Edit content only in `./.agents/` — never edit through the symlink paths.
+- Each subproject (`modelcraft-go/`, `modelcraft-front/`) follows the same symlink structure independently.
+
+## Writing Rules
+
+When creating or editing rules, use the frontmatter format with `paths` to scope the rule to specific files:
+
+```markdown
+---
+paths:
+  - "src/api/**/*.ts"
+  - "src/services/**/*.ts"
+---
+
+# Rule Title
+
+Rule content here...
+```
+
+This ensures rules are only loaded when relevant files are being edited, improving performance and context relevance.

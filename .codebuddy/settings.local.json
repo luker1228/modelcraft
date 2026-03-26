@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir:*)",
+      "Bash(env:*)",
+      "Bash(pgrep:*)",
+      "Bash(gofumpt:*)",
+      "Bash(staticcheck:*)",
+      "Bash(gofmt:*)",
+      "Bash(goimports:*)",
+      "Bash(sqlc version:*)",
+      "Bash(sqlc generate:*)",
+      "Bash(perl:*)",
+      "Bash(head:*)",
+      "Bash(ss:*)",
+      "Bash(netstat:*)",
+      "Bash(git stash:*)",
+      "Bash(PYTHONPATH=tests pytest:*)",
+      "Bash(ENV_FILE=.env.autotest python:*)",
+      "WebFetch(domain:docs.sqlc.dev)",
+      "WebFetch(domain:9.135.32.8)"
+    ]
+  }
+}

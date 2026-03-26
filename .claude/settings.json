@@ -1,0 +1,114 @@
+{
+  "enabledPlugins": {
+    "code-simplifier@claude-plugins-official": true
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 $CLAUDE_PROJECT_DIR/.agents/hooks/check-documentation.py",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.agents/hooks/task-lint.sh",
+            "timeout": 120
+          }
+        ]
+      }
+    ]
+  },
+  "permissions": {
+    "allow": [
+      "Bash(npm run *)",
+      "Bash(npm list:*)",
+      "Bash(npm init:*)",
+      "Bash(npm install:*)",
+      "Bash(node:*)",
+      "Bash(git commit *)",
+      "Bash(git * main)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git checkout:*)",
+      "Bash(* --version)",
+      "Bash(* --help *)",
+      "Bash(openspec:*)",
+      "Bash(openspec list:*)",
+      "Bash(openspec proposal:*)",
+      "Bash(openspec --help:*)",
+      "Bash(openspec change --help:*)",
+      "Bash(openspec validate:*)",
+      "Bash(openspec show:*)",
+      "Bash(openspec archive:*)",
+      "Bash(openspec spec list:*)",
+      "Bash(openspec scaffold:*)",
+      "Bash(mysql:*)",
+      "Bash(go test:*)",
+      "Bash(go get:*)",
+      "Bash(go doc:*)",
+      "Bash(go build:*)",
+      "Bash(go run:*)",
+      "Bash(go fmt:*)",
+      "Bash(go list:*)",
+      "Bash(go install:*)",
+      "Bash(golangci-lint version:*)",
+      "Bash(golangci-lint run:*)",
+      "Bash(task:*)",
+      "Bash(task build)",
+      "Bash(task test-user-setup)",
+      "Bash(just *)",
+      "Bash(python:*)",
+      "Bash(python3:*)",
+      "Bash(python -m pytest:*)",
+      "Bash(pip install:*)",
+      "Bash(pip show:*)",
+      "Bash(pytest:*)",
+      "Bash(curl:*)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(wc:*)",
+      "Bash(wc -l:*)",
+      "Bash(grep:*)",
+      "Bash(find:*)",
+      "Bash(rg:*)",
+      "Bash(sed:*)",
+      "Bash(xargs:*)",
+      "Bash(jq:*)",
+      "Bash(ln:*)",
+      "Bash(cd:*)",
+      "Bash(bash:*)",
+      "Bash(chmod:*)",
+      "Bash(pkill:*)",
+      "Bash(lsof:*)",
+      "Bash(echo:*)",
+      "Bash(source:*)",
+      "Bash(unzip -l:*)",
+      "Bash(docker cp:*)",
+      "Bash(docker exec:*)",
+      "Bash(apt-get install:*)",
+      "Bash(yum install:*)",
+      "Bash(apk add:*)",
+      "Bash(./tests/verify_test_user_setup.sh:*)",
+      "Bash(./prepare_commit.sh:*)",
+      "WebSearch",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:casdoor.org)",
+      "WebFetch(domain:casdoor.github.io)",
+      "WebFetch(domain:localhost)"
+    ],
+    "deny": [
+      "Bash(git push *)"
+    ]
+  }
+}

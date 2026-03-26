@@ -1,0 +1,40 @@
+{
+  "skill_name": "design-token-extractor",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "请把下面的 prototype HTML 还原为 React TSX 组件（只输出组件代码，不需要解释）：\n\n<div class=\"card\">\n  <div class=\"card-header\">\n    <svg data-lucide=\"info\" class=\"lucide lucide-info\" width=\"24\" height=\"24\"></svg>\n    <span class=\"card-header-title\">基本信息</span>\n  </div>\n  <div class=\"card-body\">\n    <div class=\"form-row\">\n      <div class=\"form-label-group\">\n        <div class=\"form-label\">显示名称<span class=\"req\">*</span></div>\n      </div>\n      <div class=\"form-control\">\n        <input type=\"text\" class=\"form-input\" value=\"电商数据库\">\n      </div>\n    </div>\n    <div class=\"form-row\">\n      <div class=\"form-label-group\">\n        <div class=\"form-label\">描述</div>\n        <div class=\"form-hint\">输入简短描述</div>\n      </div>\n      <div class=\"form-control\">\n        <input type=\"text\" class=\"form-input\" placeholder=\"输入描述...\">\n      </div>\n    </div>\n  </div>\n  <div class=\"card-footer\">\n    <button class=\"btn btn-outline\">取消</button>\n    <button class=\"btn btn-primary\">保存</button>\n  </div>\n</div>",
+      "expected_output": "React TSX 组件，关键 class 精确：card-header-title 用 text-sm font-semibold（不是 text-xl），form-input 用 h-[34px]（不是 h-9），form-row gap 用 gap-6（不是 gap-4），btn-primary 用 h-9 bg-[#2563eb]，icon strokeWidth={1.5}",
+      "assertions": [
+        { "id": "a1", "description": "card-header-title 使用 text-sm 而非 text-xl/text-lg", "type": "string_not_present", "value": "text-xl" },
+        { "id": "a2", "description": "form-input 使用精确高度 h-[34px] 而非 h-9", "type": "string_present", "value": "h-[34px]" },
+        { "id": "a3", "description": "form-row 使用 gap-6（24px）而非 gap-4（16px）", "type": "string_present", "value": "gap-6" },
+        { "id": "a4", "description": "按钮使用品牌色 #2563eb 而非 bg-blue-600", "type": "string_present", "value": "#2563eb" },
+        { "id": "a5", "description": "icon 有 strokeWidth={1.5}", "type": "string_present", "value": "strokeWidth={1.5}" }
+      ]
+    },
+    {
+      "id": 2,
+      "prompt": "请把下面的 prototype HTML 还原为 React TSX（只输出组件代码）：\n\n<div class=\"sidebar\">\n  <div class=\"sidebar-content\">\n    <div class=\"sidebar-section-label\">工作区</div>\n    <a class=\"sidebar-nav-item active\" href=\"#\">\n      <svg data-lucide=\"layout-dashboard\" width=\"16\" height=\"16\"></svg>\n      总览\n    </a>\n    <a class=\"sidebar-nav-item\" href=\"#\">\n      <svg data-lucide=\"database\" width=\"16\" height=\"16\"></svg>\n      数据模型\n    </a>\n    <a class=\"sidebar-nav-item\" href=\"#\">\n      <svg data-lucide=\"settings\" width=\"16\" height=\"16\"></svg>\n      设置\n    </a>\n  </div>\n</div>",
+      "expected_output": "React 侧边栏组件，sidebar-nav-item 使用 py-2 px-3 gap-3 text-sm font-medium rounded-[6px]，active 状态用 bg-[#dadee5]，icon 16x16 strokeWidth={1.5}",
+      "assertions": [
+        { "id": "b1", "description": "nav-item 使用 gap-3（12px）而非 gap-2（8px）", "type": "string_present", "value": "gap-3" },
+        { "id": "b2", "description": "active 状态使用正确颜色 #dadee5 或 bg-[#dadee5]", "type": "string_present", "value": "dadee5" },
+        { "id": "b3", "description": "icon 有 strokeWidth={1.5}", "type": "string_present", "value": "strokeWidth={1.5}" },
+        { "id": "b4", "description": "nav-item font-size 使用 text-sm（14px）", "type": "string_present", "value": "text-sm" }
+      ]
+    },
+    {
+      "id": 3,
+      "prompt": "请把下面的 prototype HTML 按钮组还原为 React TSX（只输出组件代码）：\n\n<div style=\"display:flex;gap:8px;\">\n  <button class=\"btn-ghost\">\n    <svg data-lucide=\"x\" width=\"16\" height=\"16\"></svg>\n    取消\n  </button>\n  <button class=\"btn-secondary\">\n    <svg data-lucide=\"eye\" width=\"16\" height=\"16\"></svg>\n    预览\n  </button>\n  <button class=\"btn-primary\">\n    <svg data-lucide=\"save\" width=\"16\" height=\"16\"></svg>\n    保存更改\n  </button>\n</div>",
+      "expected_output": "三个按钮，高度均为 h-9（36px），font-size text-sm，font-weight font-medium，gap-2 between icon and text，btn-primary 用 bg-[#2563eb] hover:bg-[#1d4ed8]，icon strokeWidth={1.5}",
+      "assertions": [
+        { "id": "c1", "description": "按钮高度使用 h-9（36px）", "type": "string_present", "value": "h-9" },
+        { "id": "c2", "description": "btn-primary 使用 bg-[#2563eb]", "type": "string_present", "value": "#2563eb" },
+        { "id": "c3", "description": "btn-primary hover 使用 hover:bg-[#1d4ed8]", "type": "string_present", "value": "#1d4ed8" },
+        { "id": "c4", "description": "icon 有 strokeWidth={1.5}", "type": "string_present", "value": "strokeWidth={1.5}" },
+        { "id": "c5", "description": "字号使用 text-sm（14px）而非 text-xs（12px）", "type": "string_not_present", "value": "text-xs" }
+      ]
+    }
+  ]
+}
