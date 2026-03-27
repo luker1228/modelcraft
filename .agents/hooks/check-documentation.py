@@ -13,7 +13,7 @@ import sys
 import os
 
 # 受保护文件模式（不允许写入）
-PROTECTED_PATTERNS = [".env", "package-lock.json", "node_modules/"]
+PROTECTED_PATTERNS = [".env", "package-lock.json", "node_modules/", ".golangci.yml"]
 
 # 允许新建 .md 文件的目录前缀
 ALLOWED_MD_DIRS = [".plan/", ".agents/", "ai-metadata/","docs/", "openspec/"]
