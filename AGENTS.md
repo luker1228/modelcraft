@@ -6,32 +6,34 @@ This document provides guidelines for AI agents working with this project.
 
 This is the ModelCraft project with separate frontend and backend codebases:
 
-- **Backend (Go)**: Code in `./modelcraft-go`. See [AGENTS.md](modelcraft-go/AGENTS.md)
-  @./modelcraft-go/AGENTS.md
+- **Backend (Go)**: Code in `./modelcraft-backend`. See [AGENTS.md](modelcraft-backend/AGENTS.md)
+  @./modelcraft-backend/AGENTS.md
 - **Frontend**: Code in `./modelcraft-front`. See [AGENTS.md](modelcraft-front/AGENTS.md)
   @./modelcraft-front/AGENTS.md
 
 ## AI Metadata
 
-Aggregated documentation for both subprojects is available under `./ai-metadata/`:
+`ai-metadata/` 是项目中**唯一的**知识文档存放位置，不存在其他知识文档目录。
 
-- **Backend**: Refer to @./ai-metadata/backend/README.md for the backend knowledge base.
-- **Frontend**: Refer to @./ai-metadata/front/development/README.md for the frontend knowledge base.
+知识按模块组织：
+
+- **Backend**: @./ai-metadata/backend/README.md
+- **Frontend**: @./ai-metadata/front/development/README.md
 
 ## Git Rules
 
 - Never use `git commit --no-verify`. Pre-commit hooks must always run. If a hook fails, fix the underlying issue instead of bypassing it.
 
-Subproject commits must be made before committing in the root project. Always commit changes in `./modelcraft-go` or `./modelcraft-front` first, then commit in the root.
+Subproject commits must be made before committing in the root project. Always commit changes in `./modelcraft-backend` or `./modelcraft-front` first, then commit in the root.
 
 Each subproject has its own pre-commit hook:
 
-- **Backend** (`./modelcraft-go`): runs `just lint`. If it fails, run `just lint-fix` to auto-fix, then re-verify with `just lint`.
+- **Backend** (`./modelcraft-backend`): runs `just lint`. If it fails, run `just lint-fix` to auto-fix, then re-verify with `just lint`.
 - **Frontend** (`./modelcraft-front`): runs `npx lint-staged` via Husky. If it fails, fix the reported lint errors manually and re-commit.
 
 ## No Absolute Paths
 
-- Do not use absolute paths (e.g., `/root/modelcraft_project/...`). Always use relative paths (e.g., `./modelcraft-go/...`) when referencing files or directories.
+- Do not use absolute paths (e.g., `/root/modelcraft_project/...`). Always use relative paths (e.g., `./modelcraft-backend/...`) when referencing files or directories.
 
 ## Use @ References for Documentation
 
@@ -61,7 +63,7 @@ All agent-specific directories (`.claude`, `.codebuddy`) are **symlinks** that p
 
 **Rules:**
 - Edit content only in `./.agents/` — never edit through the symlink paths.
-- Each subproject (`modelcraft-go/`, `modelcraft-front/`) follows the same symlink structure independently.
+- Each subproject (`modelcraft-backend/`, `modelcraft-front/`) follows the same symlink structure independently.
 
 ## Writing Rules
 

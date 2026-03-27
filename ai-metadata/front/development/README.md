@@ -143,7 +143,7 @@ import { Header } from './Header'
 
 - [项目根目录 AGENTS.md](../../AGENTS.md) - 项目整体说明
 - [前端 AGENTS.md](../../modelcraft-front/AGENTS.md) - 前端详细文档
-- [后端 AGENTS.md](../../modelcraft-go/AGENTS.md) - 后端详细文档
+- [后端 AGENTS.md](../../modelcraft-backend/AGENTS.md) - 后端详细文档
 
 ## 🔧 工具和命令
 
