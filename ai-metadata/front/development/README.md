@@ -142,8 +142,18 @@ import { Header } from './Header'
 ### 项目文档
 
 - [项目根目录 AGENTS.md](../../AGENTS.md) - 项目整体说明
-- [前端 AGENTS.md](../../modelcraft-front/AGENTS.md) - 前端详细文档
 - [后端 AGENTS.md](../../modelcraft-backend/AGENTS.md) - 后端详细文档
+- [前端 AGENTS.md](../../modelcraft-front/AGENTS.md) - 前端详细文档
+- [API Contract 共享规范](../../ai-metadata/backend/development/contract-sync.md) - API Contract 同步机制
+
+### API Contract
+
+前端 `contract/` 目录通过 **git subtree** 从后端共享，**禁止直接修改**。
+
+```bash
+# 拉取后端最新的 API Contract
+git subtree pull --prefix=contract contracts main --squash
+```
 
 ## 🔧 工具和命令
 

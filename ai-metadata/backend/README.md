@@ -49,6 +49,10 @@ ai-metadata/backend/
 
 参考 @./development/sqlc-custom-types.md 了解 sqlc 自定义类型的使用方式，避免手动处理类型转换。
 
+### 修改 API Contract 时
+
+参考 @./development/contract-sync.md 了解 API Contract 的共享机制。后端 `api/` 是唯一真相源，修改后需通过 `git subtree push` 推送到共享仓库。
+
 ### 编写或调试日志时
 
 参考 @./development/logging.md，确保使用 `logfacade` 而非标准库，以及 `logfacade.Stack()` 仅在接口层使用。

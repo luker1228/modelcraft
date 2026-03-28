@@ -19,6 +19,7 @@
 | [context-handling.md](./context-handling.md) | Context 处理规范 | Context 使用 |
 | [comments.md](./comments.md) | 注释规范 | 代码注释 |
 | [sqlc-custom-types.md](./sqlc-custom-types.md) | sqlc 自定义类型规范 | 自定义类型实现 |
+| [contract-sync.md](./contract-sync.md) | API Contract 共享规范 ⭐ | 修改 `api/` 目录时 |
 
 ## 🏛️ 架构分层
 

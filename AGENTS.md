@@ -20,6 +20,15 @@ This is the ModelCraft project with separate frontend and backend codebases:
 - **Backend**: @./ai-metadata/backend/README.md
 - **Frontend**: @./ai-metadata/front/development/README.md
 
+## API Contract 共享
+
+后端 `api/` 目录是 API Contract 的**唯一真相源**，通过 **git subtree** 与前端 `contract/` 目录共享。
+
+- 详见 @./ai-metadata/backend/development/contract-sync.md
+- 后端修改 `api/` 后，执行 `git subtree push --prefix=api contracts main` 推送到共享仓库
+- 前端执行 `git subtree pull --prefix=contract contracts main --squash` 拉取更新
+- **前端禁止直接修改 `contract/` 目录**
+
 ## Git Rules
 
 - Never use `git commit --no-verify`. Pre-commit hooks must always run. If a hook fails, fix the underlying issue instead of bypassing it.
