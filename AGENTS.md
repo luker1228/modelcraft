@@ -20,20 +20,67 @@ This is the ModelCraft project with separate frontend and backend codebases:
 - **Backend**: @./ai-metadata/backend/README.md
 - **Frontend**: @./ai-metadata/front/development/README.md
 
-## API Contract 共享
+## Git 仓库结构
 
-后端 `api/` 目录是 API Contract 的**唯一真相源**，通过 **git subtree** 与前端 `contract/` 目录共享。
+本项目采用 **git submodule** + **git subtree** 混合管理。
 
-- 详见 @./ai-metadata/backend/development/contract-sync.md
-- 后端修改 `api/` 后，执行 `git subtree push --prefix=api contracts main` 推送到共享仓库
-- 前端执行 `git subtree pull --prefix=contract contracts main --squash` 拉取更新
-- **前端禁止直接修改 `contract/` 目录**
+### Submodule（子项目）
+
+根仓库通过 submodule 引入两个子项目：
+
+| 子模块 | 路径 | 远程仓库 | 追踪分支 |
+|--------|------|----------|----------|
+| Backend (Go) | `./modelcraft-backend` | `modelcraft-go` (main) | `main` |
+| Frontend (Next.js) | `./modelcraft-front` | `modelcraft-front` | 默认 |
+
+```bash
+# 克隆项目（含子模块）
+git clone --recurse-submodules <repo-url>
+
+# 已有仓库拉取子模块
+git submodule update --init --recursive
+
+# 更新子模块到远程最新
+git submodule update --remote
+```
+
+### Subtree（API Contract 共享）
+
+后端 `api/` 目录是 API Contract 的**唯一真相源**，通过 **git subtree** 与前端共享：
+
+```
+modelcraft-backend/api/          ← 唯一真相源（后端仓库）
+        │
+        │  git subtree push --prefix=api
+        ▼
+modelcraft-api-contracts        ← 共享仓库 (contracts remote)
+        │
+        │  git subtree add/pull --prefix=contract
+        ▼
+modelcraft-front/contract/      ← 前端消费端（只读）
+```
+
+| 项目 | Remote 名称 | Subtree 前缀 | Squash |
+|------|-------------|-------------|--------|
+| Backend | `contracts` | `api/` | 否 |
+| Frontend | `contracts` | `contract/` | 是 |
+
+共享仓库: `https://git.woa.com/lukemxjia/modelcraft-api-contracts.git`
+
+> 详见 @./ai-metadata/backend/development/contract-sync.md
+
+### 提交顺序
+
+1. **子项目内提交** — 在 `./modelcraft-backend` 或 `./modelcraft-front` 中提交代码变更
+2. **subtree push（如需）** — 后端修改 API 后执行 `git subtree push --prefix=api contracts main`
+3. **subtree pull（如需）** — 前端执行 `git subtree pull --prefix=contract contracts main --squash`
+4. **根项目提交** — 回到根项目，`git add modelcraft-backend modelcraft-front` 后提交子模块引用
 
 ## Git Rules
 
 - Never use `git commit --no-verify`. Pre-commit hooks must always run. If a hook fails, fix the underlying issue instead of bypassing it.
-
-Subproject commits must be made before committing in the root project. Always commit changes in `./modelcraft-backend` or `./modelcraft-front` first, then commit in the root.
+- **前端禁止直接修改 `contract/`** — 所有变更必须通过 subtree pull 获取。
+- **先 push 再 pull** — 后端必须先 `subtree push`，前端才能 `subtree pull`。
 
 Each subproject has its own pre-commit hook:
 
