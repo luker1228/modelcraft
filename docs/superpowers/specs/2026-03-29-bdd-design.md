@@ -126,12 +126,46 @@ export interface ModelCraftWorld extends World {
 | Project GraphQL | `/graphql/org/{orgName}/project/{projectSlug}/` | `projectClient` |
 | REST (OpenAPI) | `/api/auth/*`、`/api/org/*` | `restClient` |
 
+#### 认证流程
+
+```
+POST /api/auth/login
+Body: { username: string, password: string }
+Response: { token: string }
+
+所有后续请求（GraphQL + REST）均附带：
+Authorization: Bearer <token>
+```
+
+#### GraphQL 错误位置
+
+后端使用 **payload 级别的联合错误类型**，错误不在顶层 `errors` 数组，而在 mutation/query 的返回 payload 中：
+
+```json
+{
+  "data": {
+    "createModel": {
+      "error": {
+        "__typename": "ModelAlreadyExists",
+        "errorCode": "CONFLICT.MODEL",
+        "message": "..."
+      },
+      "model": null
+    }
+  }
+}
+```
+
+`common.steps.ts` 中的 `Then 应该返回错误 "..."` 步骤应从 `lastResponse` 的 payload `error.errorCode` 字段提取错误码，**不检查顶层 `errors` 数组**。
+
 ```typescript
 // support/graphql-client.ts
 export class GraphQLClient {
   constructor(private type: 'org' | 'project') {}
 
   setAuth(token: string) { /* 设置 Bearer token */ }
+  // setContext() 在 Background step 中调用（登录后、创建 project 后）
+  // 每个 Scenario 的 World 实例独立，setContext 不会跨场景污染
   setContext(orgName: string, projectSlug?: string) { /* 设置 URL 参数 */ }
 
   async query<T>(document: string, variables?: Record<string, unknown>): Promise<T>
@@ -147,7 +181,7 @@ Feature: 模型管理
 
   Background:
     Given 我以管理员身份登录
-    And 存在组织 "test-org"
+    And 组织 "test-org" 已存在于测试环境中
     And 存在项目 "test-project"
 
   Scenario: 成功创建模型
@@ -173,20 +207,22 @@ Feature: 模型管理
 
 **边界值策略**：`Scenario Outline + Examples` 一张表覆盖所有非法输入，替代 Python 中重复的测试函数。
 
+**组织（Org）的约定**：`TEST_ORG_NAME`（默认 `test-org`）是**预先在测试环境中创建好的固定组织**，测试不负责创建或销毁它。`Background` 中的 `And 组织 "test-org" 已存在于测试环境中` 步骤仅做断言验证（确认 org 可达），不调用创建 API。
+
 ### 4.4 数据清理策略
 
 ```typescript
 // support/hooks.ts
-After(async function (this: ModelCraftWorld) {
-  // 通过 API 逆向操作清理，不直接操作数据库
-  if (this.currentProjectSlug) {
-    await this.orgClient.deleteProject(this.currentProjectSlug)
-  }
-})
-
-// @smoke 标记的场景保留数据，方便调试
+// 每个 Scenario 后清理当前场景创建的数据（@smoke 场景除外，保留数据方便调试）
 After({ tags: 'not @smoke' }, async function (this: ModelCraftWorld) {
-  // 清理逻辑
+  // 通过 API 逆向操作清理，不直接操作数据库
+  // 使用 orgClient.mutate() 调用 deleteProject mutation
+  if (this.currentProjectSlug) {
+    await this.orgClient.mutate(DELETE_PROJECT_MUTATION, {
+      orgName: this.currentOrgName,
+      projectSlug: this.currentProjectSlug,
+    })
+  }
 })
 ```
 
@@ -194,6 +230,13 @@ After({ tags: 'not @smoke' }, async function (this: ModelCraftWorld) {
 - 只通过 API 清理数据，不直接操作数据库
 - 每个 Scenario 完全独立，可任意顺序执行
 - `factory.ts` 生成带时间戳的唯一名称，避免并发冲突
+
+```typescript
+// fixtures/factory.ts
+import { randomUUID } from 'crypto'
+export const uniqueName = (prefix: string) => `${prefix}-${randomUUID().slice(0, 8)}`
+// 示例：uniqueName('project') → 'project-a3f2b1c0'（并发安全）
+```
 
 ---
 
@@ -211,18 +254,49 @@ After({ tags: 'not @smoke' }, async function (this: ModelCraftWorld) {
 
 ## 6. 运行方式
 
+> **注意**：`loader: ['tsx']` 是 Cucumber v11 的 ESM loader 写法，需要 `package.json` 中**不设置** `"type": "module"`（即 CJS 模式），或根据项目 module 格式选择对应的 tsx 调用方式。
+
+```javascript
+// cucumber.js
+module.exports = {
+  default: {
+    loader: ['tsx'],
+    require: [
+      'step-definitions/**/*.ts',
+      'support/**/*.ts',
+    ],
+    paths: ['features/**/*.feature'],
+    format: [
+      'progress',
+      '@cucumber/html-formatter:reports/test-report.html',
+    ],
+  },
+}
+```
+
+```json
+// package.json scripts
+{
+  "scripts": {
+    "test": "cucumber-js",
+    "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html",
+    "test:smoke": "cucumber-js --tags @smoke"
+  }
+}
+```
+
 ```bash
 # 安装依赖
 cd tests-bdd && npm install
 
-# 运行所有场景
+# 运行所有场景（后端需已启动）
 npm test
 
 # 运行指定 feature
 npm test -- features/model/manage-model.feature
 
 # 只运行冒烟测试
-npm test -- --tags @smoke
+npm run test:smoke
 
 # 生成 HTML 报告
 npm run test:report
@@ -248,7 +322,7 @@ TEST_ORG_NAME=test-org
 - [ ] 边界值通过 `Scenario Outline` 覆盖，不需要额外的测试代码
 - [ ] 每个 Scenario 独立运行，无顺序依赖
 - [ ] Python 集成测试可完全废弃
-- [ ] CI 中独立运行，不阻塞 Go 单元测试
+- [ ] CI 中独立运行，不阻塞 Go 单元测试（前提：后端服务已在 `API_BASE_URL` 就绪）
 
 ---
 
