@@ -23,10 +23,20 @@
 
 ### 范围
 
-- ✅ API 级别（GraphQL + REST），**不涉及浏览器**
-- ✅ 完整链路：认证 → 业务操作 → 结果验证
+- ✅ API 级别（Project GraphQL + REST 登录），**不涉及浏览器**
+- ✅ 完整链路：认证 → Project GraphQL 业务操作 → 结果验证
 - ✅ 完全替代 Python 集成测试（包括边界值场景）
+- ❌ 不测试 Org/Project 的 CRUD（org 和 project 均为预设 fixture）
 - ❌ 不替代 Go 单元测试（Domain 层 95% 覆盖率保持不变）
+
+### 固定 Fixture 约定
+
+| Fixture | 说明 |
+|---------|------|
+| `TEST_ORG_NAME` | 测试环境预建的组织，测试不创建/删除 |
+| `TEST_PROJECT_SLUG` | 测试环境预建的项目，测试不创建/删除 |
+
+所有 Feature 文件的 `Background` 只做 **登录** 操作，org 和 project 直接从环境变量读取使用。
 
 ---
 
@@ -48,37 +58,32 @@
 ```
 tests-bdd/                           # 根项目级别，独立于前后端
 ├── features/                        # Gherkin 场景文件（业务可读）
-│   ├── auth/
-│   │   └── login.feature
-│   ├── project/
-│   │   └── manage-project.feature
 │   ├── model/
 │   │   └── manage-model.feature
 │   ├── field/
 │   │   └── manage-field.feature
-│   ├── cluster/
-│   │   └── manage-cluster.feature
-│   └── enum/
-│       └── manage-enum.feature
+│   ├── enum/
+│   │   └── manage-enum.feature
+│   └── logical-foreign-key/
+│       └── manage-lfk.feature
 ├── step-definitions/                # Step 实现（TypeScript）
-│   ├── auth.steps.ts
-│   ├── project.steps.ts
+│   ├── auth.steps.ts                # Given 我以管理员身份登录
 │   ├── model.steps.ts
 │   ├── field.steps.ts
-│   ├── cluster.steps.ts
 │   ├── enum.steps.ts
-│   └── common.steps.ts              # 通用 Given/Then（如断言错误码）
+│   ├── lfk.steps.ts
+│   └── common.steps.ts              # 通用 Then（如断言错误码）
 ├── support/
 │   ├── world.ts                     # 共享状态（每 Scenario 独立实例）
-│   ├── hooks.ts                     # Before/After 钩子（数据清理）
-│   ├── graphql-client.ts            # GraphQL 客户端（Org + Project 两个 endpoint）
-│   └── rest-client.ts               # REST 客户端（Auth/Org API）
+│   ├── hooks.ts                     # After 钩子（清理测试创建的数据）
+│   ├── graphql-client.ts            # Project GraphQL 客户端
+│   └── rest-client.ts               # REST 客户端（仅用于登录）
 ├── fixtures/
-│   └── factory.ts                   # 测试数据工厂（生成唯一名称等）
+│   └── factory.ts                   # 测试数据工厂（生成唯一名称）
 ├── cucumber.js                      # Cucumber 配置
 ├── tsconfig.json
 ├── package.json
-└── .env.test                        # 测试环境配置（API base URL、测试账号）
+└── .env.test                        # 测试环境配置
 ```
 
 ---
@@ -94,16 +99,17 @@ tests-bdd/                           # 根项目级别，独立于前后端
 export interface ModelCraftWorld extends World {
   // 客户端
   restClient: RestClient
-  orgClient: GraphQLClient        // /graphql/org/{orgName}/
   projectClient: GraphQLClient    // /graphql/org/{orgName}/project/{projectSlug}/
 
-  // 认证状态
+  // 认证状态（登录后填入）
   token: string | null
-  currentOrgName: string | null
 
-  // 当前操作上下文
-  currentProjectSlug: string | null
-  currentClusterName: string | null
+  // 从环境变量读取的固定 fixture（不由测试创建）
+  orgName: string       // process.env.TEST_ORG_NAME
+  projectSlug: string   // process.env.TEST_PROJECT_SLUG
+
+  // 当前 Scenario 创建的资源（用于 After 钩子清理）
+  createdModelNames: string[]
 
   // 最近操作结果（供 Then 断言）
   lastResponse: unknown
@@ -112,19 +118,19 @@ export interface ModelCraftWorld extends World {
 ```
 
 **设计原则**：
+- `orgName` / `projectSlug` 从环境变量读取，不由测试管理
+- `createdModelNames` 等列表在 After 钩子中逐一清理
 - `lastResponse` / `lastError` 解耦 `When` 和 `Then`，不需要在 Step 之间传参
-- 两个 GraphQL client 对应项目里两个不同 endpoint（Org GraphQL / Project GraphQL）
-- 客户端自动从 `world.token` 读取认证信息
+- `projectClient` 在登录后调用 `setAuth(token)` 完成初始化
 
 ### 4.2 客户端设计
 
-项目有三条 API 通道，客户端需分别封装：
+当前阶段只需两个客户端：
 
-| 通道 | 路径 | 封装 |
-|------|------|------|
-| Org GraphQL | `/graphql/org/{orgName}/` | `orgClient` |
-| Project GraphQL | `/graphql/org/{orgName}/project/{projectSlug}/` | `projectClient` |
-| REST (OpenAPI) | `/api/auth/*`、`/api/org/*` | `restClient` |
+| 客户端 | 用途 | endpoint |
+|--------|------|----------|
+| `restClient` | 登录，获取 token | `POST /api/auth/login` |
+| `projectClient` | 所有业务操作 | `/graphql/org/{orgName}/project/{projectSlug}/` |
 
 #### 认证流程
 
@@ -133,13 +139,13 @@ POST /api/auth/login
 Body: { username: string, password: string }
 Response: { token: string }
 
-所有后续请求（GraphQL + REST）均附带：
+所有后续请求均附带：
 Authorization: Bearer <token>
 ```
 
 #### GraphQL 错误位置
 
-后端使用 **payload 级别的联合错误类型**，错误不在顶层 `errors` 数组，而在 mutation/query 的返回 payload 中：
+后端使用 **payload 级别的联合错误类型**，错误不在顶层 `errors` 数组，而在 mutation 返回的 payload 中：
 
 ```json
 {
@@ -156,17 +162,16 @@ Authorization: Bearer <token>
 }
 ```
 
-`common.steps.ts` 中的 `Then 应该返回错误 "..."` 步骤应从 `lastResponse` 的 payload `error.errorCode` 字段提取错误码，**不检查顶层 `errors` 数组**。
+`common.steps.ts` 中的 `Then 应该返回错误 "..."` 步骤从 `lastResponse` 的 payload `error.errorCode` 提取，**不检查顶层 `errors` 数组**。
 
 ```typescript
 // support/graphql-client.ts
 export class GraphQLClient {
-  constructor(private type: 'org' | 'project') {}
+  // URL 在构造时从环境变量组装：
+  // ${API_BASE_URL}/graphql/org/${orgName}/project/${projectSlug}/
+  constructor(orgName: string, projectSlug: string) {}
 
-  setAuth(token: string) { /* 设置 Bearer token */ }
-  // setContext() 在 Background step 中调用（登录后、创建 project 后）
-  // 每个 Scenario 的 World 实例独立，setContext 不会跨场景污染
-  setContext(orgName: string, projectSlug?: string) { /* 设置 URL 参数 */ }
+  setAuth(token: string) { /* 设置 Bearer token，登录后调用一次 */ }
 
   async query<T>(document: string, variables?: Record<string, unknown>): Promise<T>
   async mutate<T>(document: string, variables?: Record<string, unknown>): Promise<T>
@@ -181,11 +186,10 @@ Feature: 模型管理
 
   Background:
     Given 我以管理员身份登录
-    And 组织 "test-org" 已存在于测试环境中
-    And 存在项目 "test-project"
+    # org 和 project 从环境变量读取，无需在此声明
 
   Scenario: 成功创建模型
-    When 我在项目中创建名为 "User" 的模型
+    When 我创建名为 "User" 的模型
     Then 模型 "User" 应该存在于项目中
 
   Scenario: 创建重名模型时报错
@@ -194,7 +198,7 @@ Feature: 模型管理
     Then 应该返回错误 "CONFLICT.MODEL"
 
   Scenario Outline: 创建非法名称的模型时报错
-    When 我在项目中创建名为 "<name>" 的模型
+    When 我创建名为 "<name>" 的模型
     Then 应该返回错误 "PARAM_INVALID.MODEL"
 
     Examples:
@@ -207,35 +211,34 @@ Feature: 模型管理
 
 **边界值策略**：`Scenario Outline + Examples` 一张表覆盖所有非法输入，替代 Python 中重复的测试函数。
 
-**组织（Org）的约定**：`TEST_ORG_NAME`（默认 `test-org`）是**预先在测试环境中创建好的固定组织**，测试不负责创建或销毁它。`Background` 中的 `And 组织 "test-org" 已存在于测试环境中` 步骤仅做断言验证（确认 org 可达），不调用创建 API。
-
 ### 4.4 数据清理策略
+
+org 和 project 是固定 fixture，**不清理**。每个 Scenario 只清理自己创建的资源（model、field、enum、lfk）。
 
 ```typescript
 // support/hooks.ts
-// 每个 Scenario 后清理当前场景创建的数据（@smoke 场景除外，保留数据方便调试）
 After({ tags: 'not @smoke' }, async function (this: ModelCraftWorld) {
-  // 通过 API 逆向操作清理，不直接操作数据库
-  // 使用 orgClient.mutate() 调用 deleteProject mutation
-  if (this.currentProjectSlug) {
-    await this.orgClient.mutate(DELETE_PROJECT_MUTATION, {
-      orgName: this.currentOrgName,
-      projectSlug: this.currentProjectSlug,
+  // 清理当前 Scenario 创建的 model（逆序删除，field/enum 随 model 级联删除）
+  for (const modelName of this.createdModelNames.reverse()) {
+    await this.projectClient.mutate(DELETE_MODEL_MUTATION, {
+      modelName,
     })
   }
+  this.createdModelNames = []
 })
 ```
 
 **原则**：
-- 只通过 API 清理数据，不直接操作数据库
+- 只通过 API 清理，不直接操作数据库
 - 每个 Scenario 完全独立，可任意顺序执行
-- `factory.ts` 生成带时间戳的唯一名称，避免并发冲突
+- `@smoke` 标记的场景保留数据，方便调试
 
 ```typescript
 // fixtures/factory.ts
 import { randomUUID } from 'crypto'
+// 生成并发安全的唯一名称，避免多次运行冲突
 export const uniqueName = (prefix: string) => `${prefix}-${randomUUID().slice(0, 8)}`
-// 示例：uniqueName('project') → 'project-a3f2b1c0'（并发安全）
+// 示例：uniqueName('User') → 'User-a3f2b1c0'
 ```
 
 ---
@@ -246,7 +249,7 @@ export const uniqueName = (prefix: string) => `${prefix}-${randomUUID().slice(0,
 |----------|------|------------|
 | Go 单元测试（Domain 层） | 282 个，95% 覆盖率 | **保留**，职责不变 |
 | Python 集成测试 | `modelcraft-backend/tests/` | **逐步废弃**，由 BDD 完全替代 |
-| BDD 验收测试 | 无 | **新建**，覆盖所有用户故事 + 边界值 |
+| BDD 验收测试 | 无 | **新建**，覆盖 Project GraphQL 所有用户故事 + 边界值 |
 
 **迁移策略**：先建 BDD，场景覆盖 Python 测试后，再删除对应 Python 测试文件。
 
@@ -254,7 +257,7 @@ export const uniqueName = (prefix: string) => `${prefix}-${randomUUID().slice(0,
 
 ## 6. 运行方式
 
-> **注意**：`loader: ['tsx']` 是 Cucumber v11 的 ESM loader 写法，需要 `package.json` 中**不设置** `"type": "module"`（即 CJS 模式），或根据项目 module 格式选择对应的 tsx 调用方式。
+> **注意**：`loader: ['tsx']` 是 Cucumber v11 的 loader 写法，`package.json` 不设置 `"type": "module"`（CJS 模式）。
 
 ```javascript
 // cucumber.js
@@ -311,15 +314,16 @@ npm run test:report
 API_BASE_URL=http://localhost:8080
 TEST_ADMIN_USERNAME=test-admin
 TEST_ADMIN_PASSWORD=test-password
-TEST_ORG_NAME=test-org
+TEST_ORG_NAME=test-org          # 预建组织，测试不修改
+TEST_PROJECT_SLUG=test-project  # 预建项目，测试不修改
 ```
 
 ---
 
 ## 8. 成功标准
 
-- [ ] 所有核心业务域（auth、project、model、field、cluster、enum）有 Feature 文件
-- [ ] 边界值通过 `Scenario Outline` 覆盖，不需要额外的测试代码
+- [ ] 所有 Project GraphQL 业务域（model、field、enum、logical_foreign_key）有 Feature 文件
+- [ ] 边界值通过 `Scenario Outline` 覆盖，不需要额外测试代码
 - [ ] 每个 Scenario 独立运行，无顺序依赖
 - [ ] Python 集成测试可完全废弃
 - [ ] CI 中独立运行，不阻塞 Go 单元测试（前提：后端服务已在 `API_BASE_URL` 就绪）
@@ -328,6 +332,8 @@ TEST_ORG_NAME=test-org
 
 ## 9. 不在范围内
 
+- Org / Project CRUD（由固定 fixture 覆盖，不测试）
+- Org GraphQL endpoint
 - 浏览器 E2E 测试（Playwright/Cypress）
 - 前端组件测试
 - 性能测试
