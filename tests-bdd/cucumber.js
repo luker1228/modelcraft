@@ -1,4 +1,3 @@
-// CJS mode: use requireModule + require (do NOT mix ESM loader)
 module.exports = {
   default: {
     requireModule: ['tsx/cjs'],
@@ -8,8 +7,8 @@ module.exports = {
     ],
     paths: ['features/**/*.feature'],
     format: [
-      'progress',
-      'json:reports/test-report.json',
+      'progress-bar',
+      'html:reports/test-report.html',
     ],
   },
 }
