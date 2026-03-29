@@ -1,0 +1,23 @@
+{
+  "name": "modelcraft-bdd-tests",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "cucumber-js",
+    "test:model": "cucumber-js features/model",
+    "test:field": "cucumber-js features/field",
+    "test:enum": "cucumber-js features/enum",
+    "test:lfk": "cucumber-js features/logical-foreign-key",
+    "test:smoke": "cucumber-js --tags @smoke",
+    "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html"
+  },
+  "dependencies": {
+    "@cucumber/cucumber": "^11.0.0",
+    "@cucumber/html-formatter": "^21.0.0",
+    "@jest/globals": "^29.0.0",
+    "dotenv": "^16.0.0",
+    "graphql-request": "^6.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
