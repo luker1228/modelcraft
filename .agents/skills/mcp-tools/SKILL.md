@@ -11,4 +11,4 @@ description: >
 | MCP 服务 | 用途 | 工具前缀 |
 |----------|------|----------|
 | **gongfeng** | 工蜂代码管理平台：项目/分支/Issue/MR/代码评审 | `mcp__gongfeng__` |
-| **chrom-dev-tools** | 浏览器开发工具（待补充） | 待确认 |
+| **chrome-devtools** | 浏览器开发工具（页面交互、截图、网络请求、控制台、性能分析、内存快照等）。主要被前端使用，依赖 Chrome 浏览器运行 | `mcp__chrome-devtools__` |
