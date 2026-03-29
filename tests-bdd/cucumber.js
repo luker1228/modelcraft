@@ -8,9 +8,8 @@ module.exports = {
     ],
     paths: ['features/**/*.feature'],
     format: [
-      'progress-bar',
-      '@cucumber/html-formatter:reports/test-report.html',
+      'progress',
+      'json:reports/test-report.json',
     ],
-    publishQuiet: true,
   },
 }
