@@ -1,6 +1,6 @@
 // tests-bdd/step-definitions/field.steps.ts
 import { Given, When, Then } from '@cucumber/cucumber'
-import { expect } from '@jest/globals'
+import { expect } from 'expect'
 import { ModelCraftWorld } from '../support/world'
 
 const ADD_FIELDS = `

@@ -1,6 +1,6 @@
 // tests-bdd/step-definitions/common.steps.ts
 import { Then } from '@cucumber/cucumber'
-import { expect } from '@jest/globals'
+import { expect } from 'expect'
 import { ModelCraftWorld } from '../support/world'
 
 /**
