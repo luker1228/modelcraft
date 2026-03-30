@@ -20,11 +20,12 @@
 │                 · Casdoor OAuth2 交互                             │
 │                 · 签发 Access Token（用共享 JWT_SECRET）           │
 │                 · Refresh Token Cookie 生命周期管理               │
+│                 · 零数据库访问                                    │
 │                         ↕  (内网)                                │
 │                    Go Backend                                    │
 │                 · 验证 Access Token 签名                          │
 │                 · 实时查 Casbin 权限 → 注入 Context               │
-│                 · Refresh Token DB 存储                           │
+│                 · Refresh Token 生成 + DB 存储 + 轮换             │
 │                 · user sync（BFF 登录时调用）                     │
 ├──────────────────────────────────────────────────────────────────┤
 │  CLI / CI/CD                                                     │
@@ -39,12 +40,13 @@
 | Casdoor OAuth2 交互 | BFF（Go 完全不知道 Casdoor） |
 | Access Token 签发 | BFF |
 | Access Token 验证 | Go Backend（用共享 JWT_SECRET） |
-| Refresh Token 生成 | BFF |
-| Refresh Token Cookie 管理 | BFF |
-| Refresh Token DB 存储 | Go Backend |
+| Refresh Token 生成 | Go Backend |
+| Refresh Token Cookie 管理 | BFF（只管 Cookie，不碰 DB） |
+| Refresh Token DB 存储 + 轮换 | Go Backend |
 | user 查/创（sync） | Go Backend（BFF 提供 externalId） |
 | 权限查询（Casbin） | Go Backend 实时查，BFF 不感知 |
 | API Key 全套逻辑 | Go Backend |
+| 数据库访问 | **仅 Go Backend**，BFF 零 DB 访问 |
 
 BFF 和 Go Backend 之间**只共享一个秘密**：`JWT_SECRET`（用于签发和验签 Access Token）。
 
@@ -59,16 +61,16 @@ BFF 和 Go Backend 之间**只共享一个秘密**：`JWT_SECRET`（用于签发
 
 4. BFF → Casdoor: 用 code 换 Casdoor token
 5. BFF: 从 Casdoor token 提取 { externalId, email, name }
-6. BFF → Go: POST /api/users/sync { externalId, email, name }
-              Go: 查/创 user → 返回 { userId }
+
+6. BFF → Go: POST /api/auth/login { externalId, email, name }
+              Go: 查/创 user
+              Go: 生成 Refresh Token（32字节 CSPRNG → 64位 hex）
+              Go: 写入 refresh_tokens 表
+              Go → BFF: { userId, refreshToken, expiresAt }
 
 7. BFF: 用 JWT_SECRET 签发 Access Token { userId, exp: now+1h }
-8. BFF: 生成 Refresh Token（32字节 CSPRNG → 64位 hex）
-9. BFF → Go: POST /api/auth/refresh-tokens { userId, tokenHash: SHA256(token) }
-              Go: 写入 refresh_tokens 表
-
-10. BFF: Set-Cookie refresh_token=<token>; HttpOnly; Secure; SameSite=Strict; Max-Age=604800
-11. BFF → 浏览器: { accessToken, expiresIn: 3600 }
+8. BFF: Set-Cookie refresh_token=<token>; HttpOnly; Secure; SameSite=Strict; Max-Age=604800; Path=/bff/auth
+9. BFF → 浏览器: { accessToken, expiresIn: 3600 }
 ```
 
 ### Access Token 自动续期（用户无感知）
@@ -78,13 +80,11 @@ Access Token 过期（1h后）
   → 浏览器检测到 401
   → POST /bff/auth/refresh（无 Body，Cookie 自动携带）
       BFF: 从 httpOnly Cookie 读取 Refresh Token
-      BFF → Go: POST /api/auth/refresh { tokenHash: SHA256(token) }
-              Go: 验证 → 轮换（旧 revoked，签发新 tokenHash 写 DB）
-              Go → BFF: { newTokenHash, userId }
+      BFF → Go: POST /api/auth/refresh { refreshToken }
+              Go: 验证 → 轮换（旧 token revoked，生成新 Refresh Token 写 DB）
+              Go → BFF: { userId, refreshToken: <新token>, expiresAt }
       BFF: 用 JWT_SECRET 签发新 Access Token
-      BFF: 生成新 Refresh Token hex
-      BFF → Go: POST /api/auth/refresh-tokens { userId, tokenHash }
-      BFF: 更新 httpOnly Cookie
+      BFF: 更新 httpOnly Cookie（新 Refresh Token）
       BFF → 浏览器: { accessToken, expiresIn: 3600 }
   → 浏览器重试原始请求
   → 用户毫无感知
@@ -106,7 +106,7 @@ Access Token 过期（1h后）
 
 ## 2. 数据模型
 
-> 所有表均在 Go Backend 的 MySQL 中，BFF 不直接访问数据库。
+> 所有表均在 Go Backend 的 MySQL 中，**BFF 不直接访问数据库**。
 
 ### refresh_tokens 表
 
@@ -212,44 +212,37 @@ Set-Cookie: refresh_token=f7a2bc9d...; HttpOnly; Secure; SameSite=Strict; Max-Ag
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `POST` | `/api/users/sync` | 登录时同步用户，返回 userId |
-| `POST` | `/api/auth/refresh-tokens` | 存储新 Refresh Token hash |
+| `POST` | `/api/auth/login` | 登录：sync user + 生成 Refresh Token + 写 DB |
 | `POST` | `/api/auth/refresh` | 验证并轮换 Refresh Token |
 | `POST` | `/api/auth/logout` | 吊销指定 Refresh Token |
 
-#### POST /api/users/sync
+#### POST /api/auth/login
 
 **请求：**
 ```json
 { "externalId": "casdoor_user_id", "email": "user@example.com", "name": "Alice" }
 ```
 
-**响应：**
+**响应（成功）：**
 ```json
-{ "userId": "uuid-xxx" }
+{ "userId": "uuid-xxx", "refreshToken": "f7a2bc9d...（64位 hex）", "expiresAt": "2026-04-06T10:00:00Z" }
 ```
 
-#### POST /api/auth/refresh-tokens
+Refresh Token 格式：32 字节 CSPRNG → hex 编码 → 64 位字符串，DB 中只存 SHA256 hash。
 
-**请求：**
-```json
-{ "userId": "uuid-xxx", "tokenHash": "sha256hex...", "expiresAt": "2026-04-06T10:00:00Z" }
-```
-
-**响应：** HTTP 204
+**响应（失败）：** HTTP 502
 
 #### POST /api/auth/refresh
 
 **请求：**
 ```json
-{ "tokenHash": "sha256hex..." }
+{ "refreshToken": "f7a2bc9d...（64位 hex）" }
 ```
 
 **响应（成功）：**
 ```json
-{ "userId": "uuid-xxx" }
+{ "userId": "uuid-xxx", "refreshToken": "e8b3cd0e...（新的 64位 hex）", "expiresAt": "2026-04-06T10:00:00Z" }
 ```
-（Go 负责轮换旧 token，BFF 随后生成新 token 并单独调用 `/api/auth/refresh-tokens` 存储）
 
 **响应（失败）：** HTTP 401
 
@@ -257,7 +250,7 @@ Set-Cookie: refresh_token=f7a2bc9d...; HttpOnly; Secure; SameSite=Strict; Max-Ag
 
 **请求：**
 ```json
-{ "tokenHash": "sha256hex..." }
+{ "refreshToken": "f7a2bc9d..." }
 ```
 
 **响应：** HTTP 204
@@ -342,7 +335,7 @@ union UpdateApiKeyError = ApiKeyNotFound | InvalidInput
 | Refresh Token 有效期 | 7 天（滑动过期） |
 | Refresh Token 存储（客户端） | httpOnly + Secure + SameSite=Strict Cookie，Path=/bff/auth |
 | Refresh Token 存储（服务端） | MySQL hash，不存明文 |
-| Refresh Token 格式 | 32 字节 CSPRNG → hex 编码 → 64 位字符串 |
+| Refresh Token 格式 | 32 字节 CSPRNG → hex 编码 → 64 位字符串（Go 生成） |
 | Refresh Token 策略 | 轮换：每次 refresh 旧 token 立即 revoked，生成新 token |
 | JWT 签名 | HMAC-SHA256，密钥 `JWT_SECRET`（环境变量，最低 32 字节，BFF 和 Go 共享） |
 | API Key 格式 | `mc_` + 40位 Base62（CSPRNG，约 238 bit 熵） |
@@ -353,7 +346,7 @@ union UpdateApiKeyError = ApiKeyNotFound | InvalidInput
 已轮换的 Refresh Token 被再次使用是盗用强信号：
 
 ```
-BFF → Go: POST /api/auth/refresh（携带已 revoked 的 tokenHash）
+BFF → Go: POST /api/auth/refresh（携带已 revoked 的 token）
   Go: 检测到 revoked_at IS NOT NULL
   Go: 吊销该 user_id 下所有 Refresh Token（全设备强制下线）
   Go: 写入审计日志（event=REUSE_DETECTED）
@@ -412,16 +405,18 @@ WHERE revoked_at IS NOT NULL AND revoked_at < NOW() - INTERVAL 90 DAY;
 |------|---------|
 | Casdoor 集成 | **完全移除**，Go 不再知道 Casdoor 存在 |
 | Access Token 签发 | **移至 BFF**，Go 只验证 |
-| Refresh Token | 从无状态 JWT 改为 DB hash 存储，格式改为不透明 hex |
-| 新增内部端点 | `/api/users/sync`、`/api/auth/refresh-tokens`、`/api/auth/refresh`、`/api/auth/logout` |
+| Refresh Token | 从无状态 JWT 改为 DB hash 存储，格式改为不透明 hex，**由 Go 生成** |
+| `/api/auth/token` | 拆分为 `/api/auth/login`（含 user sync + token 生成） |
+| `/api/auth/refresh` | 保留路径，内部改为有状态轮换逻辑 |
+| `/api/auth/logout` | 新增：吊销指定 Refresh Token |
 
 ### Next.js BFF 变更
 
 | 项目 | 变更内容 |
 |------|---------|
 | Casdoor OAuth2 | 保留，集中在 BFF |
-| `/bff/auth/token` | 新增：完整登录流程（sync user → 签发 token） |
-| `/bff/auth/refresh` | 新增：从 Cookie 读 token，转发 Go，更新 Cookie |
+| `/bff/auth/token` | 新增：Casdoor 换码 → 调 Go login → 设置 Cookie |
+| `/bff/auth/refresh` | 新增：从 Cookie 读 token → 调 Go refresh → 更新 Cookie |
 | `/bff/auth/logout` | 新增：清除 Cookie + 通知 Go 吊销 |
 | Access Token 存储 | localStorage → 内存 |
 | Refresh Token 存储 | localStorage → httpOnly Cookie（JS 不可见） |
