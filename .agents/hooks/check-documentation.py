@@ -16,7 +16,7 @@ import os
 PROTECTED_PATTERNS = [".env", "package-lock.json", "node_modules/", ".golangci.yml"]
 
 # 允许新建 .md 文件的目录前缀
-ALLOWED_MD_DIRS = [".plan/", ".agents/", "ai-metadata/","docs/", "openspec/"]
+ALLOWED_MD_DIRS = [".plan/", ".agents/", ".claude-internal/", "ai-metadata/","docs/", "openspec/"]
 
 def main():
     try:
