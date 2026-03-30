@@ -263,13 +263,16 @@ Refresh Token 格式：32 字节 CSPRNG → hex 编码 → 64 位字符串，DB 
 
 ```graphql
 type Query {
-  apiKeys: [ApiKey!]!
+  apiKeys: [ApiKey!]! @hasPermission(action: "apikey:read")
 }
 
 type Mutation {
   createApiKey(input: CreateApiKeyInput!): CreateApiKeyPayload!
+    @hasPermission(action: "apikey:create")
   revokeApiKey(id: ID!): RevokeApiKeyPayload!
+    @hasPermission(action: "apikey:delete")
   updateApiKey(id: ID!, input: UpdateApiKeyInput!): UpdateApiKeyPayload!
+    @hasPermission(action: "apikey:update")
 }
 
 type ApiKey {
@@ -426,7 +429,7 @@ WHERE revoked_at IS NOT NULL AND revoked_at < NOW() - INTERVAL 90 DAY;
 | 项目 | 说明 |
 |------|------|
 | Access Token 结构 | JWT，payload 只含 userId |
-| Casbin 权限逻辑 | Go 中间件实时查，完全不变 |
+| Casbin 权限逻辑 | Go 中间件实时查，完全不变，BFF 完全不感知 |
 | Go 中间件注入 userId 到 Context | 接口不变，业务层无感知 |
 | BFF 并发 refresh 防护 | 单例 Promise 保持不变 |
 | API Key 直连 Go Backend | CLI 不经过 BFF |
