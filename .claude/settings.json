@@ -13,6 +13,15 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.agents/hooks/rtk-rewrite.sh"
+          }
+        ]
       }
     ],
     "PostToolUse": [

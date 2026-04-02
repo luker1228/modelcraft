@@ -56,6 +56,29 @@ FieldDefinition
 └── ... （枚举关联、外键关联等）
 ```
 
+**FieldDefinition 是 DataModel 的子资源，没有独立 ID。**
+
+- 字段通过 `(modelID, fieldName)` 二元组标识，不存在全局唯一的 `id` 字段
+- 字段无法脱离模型独立存在，也无法作为独立缓存实体（如 Apollo Client 的 normalized cache）
+
+**GraphQL Mutation 返回规则**：所有对字段的写操作（`updateField`、`removeField`、`deprecateField`、`undeprecateField` 等）均返回父级 `Model`，而不是 `Field`。
+
+原因：
+1. `Field` 没有 `id`，客户端无法通过它更新缓存
+2. 返回带 `id` 的 `Model` 才能让 Apollo Client 通过缓存键自动合并更新整个模型状态
+3. 所有字段操作均保持一致的返回类型，调用方无需区分处理
+
+```graphql
+# ✅ 正确：字段操作返回父级 Model
+updateField(modelID: ID!, fieldName: String!, input: UpdateFieldInput!): Model
+removeField(modelID: ID!, fieldName: String!): Model
+deprecateField(modelID: ID!, fieldName: String!): Model
+undeprecateField(modelID: ID!, fieldName: String!): Model
+
+# ❌ 错误：字段无独立 id，返回 Field 无法被客户端缓存更新
+updateField(...): Field
+```
+
 ### EnumDefinition — 枚举类型
 
 ```
