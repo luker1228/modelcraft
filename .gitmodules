@@ -1,7 +1,0 @@
-[submodule "modelcraft-backend"]
-	path = modelcraft-backend
-	url = https://git.woa.com/lukemxjia/modelcraft-go.git
-	branch = main
-[submodule "modelcraft-front"]
-	path = modelcraft-front
-	url = https://git.woa.com/lukemxjia/modelcraft-front.git
