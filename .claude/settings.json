@@ -35,6 +35,26 @@
           }
         ]
       }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.agents/hooks/notify-wecom.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.agents/hooks/notify-wecom-stop.sh"
+          }
+        ]
+      }
     ]
   },
   "permissions": {
