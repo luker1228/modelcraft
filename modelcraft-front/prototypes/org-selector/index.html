@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>选择组织 - ModelCraft</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="../shared/layout-styles.css" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      background: var(--bg-primary);
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* ===== Topbar ===== */
+    .page-topbar {
+      height: 56px;
+      background: white;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      flex-shrink: 0;
+    }
+
+    .topbar-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .brand-logo svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+      stroke-width: 1.5;
+    }
+
+    .brand-name {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .topbar-user-btn {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.2s ease;
+      background: none;
+      border: none;
+      font-family: inherit;
+    }
+
+    .topbar-user-btn:hover {
+      background: var(--bg-primary);
+    }
+
+    .user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .user-name {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      max-width: 120px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .topbar-user-btn svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+      stroke-width: 1.5;
+    }
+
+    /* ===== Page Content ===== */
+    .page-content {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 32px 24px;
+    }
+
+    /* ===== Page Header ===== */
+    .page-header {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px 24px;
+      margin-bottom: 16px;
+    }
+
+    .page-header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    .page-header-info h1 {
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 4px 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .page-header-info h1 svg {
+      width: 18px;
+      height: 18px;
+      color: var(--primary);
+      stroke-width: 1.5;
+    }
+
+    .page-header-info p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    .page-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      color: var(--text-secondary);
+    }
+
+    .btn-icon:hover {
+      background: white;
+      border-color: #d1d5db;
+      color: var(--text-primary);
+    }
+
+    .btn-icon svg {
+      width: 15px;
+      height: 15px;
+      stroke-width: 1.5;
+    }
+
+    /* Search */
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-wrapper svg {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 14px;
+      height: 14px;
+      color: var(--text-tertiary);
+      stroke-width: 1.5;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 36px;
+      padding: 0 12px 0 32px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      color: var(--text-primary);
+      background: var(--bg-primary);
+      outline: none;
+      transition: all 0.2s ease;
+      font-family: inherit;
+    }
+
+    .search-input:focus {
+      border-color: var(--primary);
+      background: white;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    .search-input::placeholder {
+      color: var(--text-tertiary);
+    }
+
+    /* ===== Org Grid ===== */
+    .org-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 12px;
+    }
+
+    /* ===== Org Card ===== */
+    .org-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .org-card:hover {
+      border-color: #bfdbfe;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .org-card-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .org-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .org-icon svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+      stroke-width: 1.5;
+    }
+
+    .org-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .org-name {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .org-handle {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      font-family: 'SF Mono', 'Fira Code', monospace;
+    }
+
+    .org-enter-btn {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.2s ease;
+    }
+
+    .org-enter-btn svg {
+      width: 13px;
+      height: 13px;
+      color: var(--text-secondary);
+      stroke-width: 1.5;
+    }
+
+    .org-card:hover .org-enter-btn {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+
+    .org-card:hover .org-enter-btn svg {
+      color: white;
+    }
+
+    .org-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .org-role {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .org-role svg {
+      width: 12px;
+      height: 12px;
+      stroke-width: 1.5;
+    }
+
+    .org-role-owner {
+      background: var(--primary-light);
+      color: var(--primary);
+    }
+
+    .org-role-member {
+      background: #f3f4f6;
+      color: var(--text-secondary);
+    }
+
+    .org-joined {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ===== Empty State ===== */
+    .empty-state {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 64px 24px;
+      text-align: center;
+    }
+
+    .empty-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      border: 1px solid var(--border);
+      background: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+    }
+
+    .empty-icon svg {
+      width: 22px;
+      height: 22px;
+      color: var(--text-tertiary);
+      stroke-width: 1.5;
+    }
+
+    .empty-state h3 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 6px;
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0 0 20px;
+      max-width: 340px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    /* ===== Loading State ===== */
+    .loading-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg-primary);
+    }
+
+    .loading-box {
+      text-align: center;
+    }
+
+    .spinner {
+      width: 36px;
+      height: 36px;
+      border: 2px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      margin: 0 auto 12px;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 14px;
+      color: var(--text-secondary);
+    }
+
+    /* ===== Dropdown (simulated) ===== */
+    .dropdown-overlay {
+      display: none;
+      position: fixed;
+      top: 56px;
+      right: 24px;
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      width: 220px;
+      z-index: 100;
+      padding: 4px;
+    }
+
+    .dropdown-overlay.open {
+      display: block;
+    }
+
+    .dropdown-header {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 4px;
+    }
+
+    .dropdown-header .name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .dropdown-header .email {
+      font-size: 12px;
+      color: var(--text-secondary);
+      margin-top: 1px;
+    }
+
+    .dropdown-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      color: var(--destructive);
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    .dropdown-item:hover {
+      background: var(--bg-primary);
+    }
+
+    .dropdown-item svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.5;
+    }
+
+    /* View switcher */
+    .view-tabs {
+      display: flex;
+      gap: 2px;
+      background: var(--bg-primary);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 2px;
+    }
+
+    .view-tab {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 28px;
+      border-radius: 4px;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-tertiary);
+      transition: all 0.15s;
+    }
+
+    .view-tab.active {
+      background: white;
+      color: var(--text-primary);
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+    }
+
+    .view-tab svg {
+      width: 14px;
+      height: 14px;
+      stroke-width: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ===== Topbar ===== -->
+  <div class="page-topbar">
+    <div class="topbar-brand">
+      <div class="brand-logo">
+        <i data-lucide="boxes"></i>
+      </div>
+      <span class="brand-name">ModelCraft</span>
+    </div>
+
+    <div style="position: relative;">
+      <button class="topbar-user-btn" onclick="toggleDropdown()">
+        <div class="user-avatar">张</div>
+        <span class="user-name">张三</span>
+        <i data-lucide="chevron-down"></i>
+      </button>
+
+      <!-- User Dropdown -->
+      <div class="dropdown-overlay" id="userDropdown">
+        <div class="dropdown-header">
+          <div class="name">张三</div>
+          <div class="email">zhangsan@company.com</div>
+        </div>
+        <div class="dropdown-item">
+          <i data-lucide="log-out"></i>
+          退出登录
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== Main Content ===== -->
+  <div class="page-content">
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-top">
+        <div class="page-header-info">
+          <h1>
+            <i data-lucide="building-2"></i>
+            选择组织
+          </h1>
+          <p>您有权访问 3 个组织，请选择一个继续</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn-icon" title="刷新">
+            <i data-lucide="refresh-cw"></i>
+          </button>
+          <button class="btn-secondary" onclick="alert('跳转创建组织页')">
+            <i data-lucide="plus"></i>
+            创建组织
+          </button>
+        </div>
+      </div>
+
+      <!-- Search -->
+      <div class="search-wrapper">
+        <i data-lucide="search"></i>
+        <input type="text" class="search-input" placeholder="搜索组织名称...">
+      </div>
+    </div>
+
+    <!-- Org Grid -->
+    <div class="org-grid">
+
+      <!-- Card 1: Owner -->
+      <div class="org-card" onclick="alert('进入组织：my-workspace')">
+        <div class="org-card-header">
+          <div class="org-icon">
+            <i data-lucide="building-2"></i>
+          </div>
+          <div class="org-info">
+            <div class="org-name">张三的工作空间</div>
+            <div class="org-handle">@my-workspace-421</div>
+          </div>
+          <div class="org-enter-btn">
+            <i data-lucide="arrow-right"></i>
+          </div>
+        </div>
+        <div class="org-card-footer">
+          <span class="org-role org-role-owner">
+            <i data-lucide="shield-check"></i>
+            Owner
+          </span>
+          <span class="org-joined">2024年1月15日</span>
+        </div>
+      </div>
+
+      <!-- Card 2: Member -->
+      <div class="org-card" onclick="alert('进入组织：acme-corp')">
+        <div class="org-card-header">
+          <div class="org-icon">
+            <i data-lucide="building-2"></i>
+          </div>
+          <div class="org-info">
+            <div class="org-name">Acme Corporation</div>
+            <div class="org-handle">@acme-corp-839</div>
+          </div>
+          <div class="org-enter-btn">
+            <i data-lucide="arrow-right"></i>
+          </div>
+        </div>
+        <div class="org-card-footer">
+          <span class="org-role org-role-member">
+            <i data-lucide="user"></i>
+            Member
+          </span>
+          <span class="org-joined">2024年3月8日</span>
+        </div>
+      </div>
+
+      <!-- Card 3: Admin -->
+      <div class="org-card" onclick="alert('进入组织：data-team')">
+        <div class="org-card-header">
+          <div class="org-icon">
+            <i data-lucide="building-2"></i>
+          </div>
+          <div class="org-info">
+            <div class="org-name">数据分析团队</div>
+            <div class="org-handle">@data-team-557</div>
+          </div>
+          <div class="org-enter-btn">
+            <i data-lucide="arrow-right"></i>
+          </div>
+        </div>
+        <div class="org-card-footer">
+          <span class="org-role org-role-owner">
+            <i data-lucide="shield-check"></i>
+            Admin
+          </span>
+          <span class="org-joined">2024年5月20日</span>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- ===== State: Empty (hidden by default) ===== -->
+  <!--
+  <div class="page-content">
+    <div class="page-header">...</div>
+    <div class="empty-state">
+      <div class="empty-icon"><i data-lucide="building-2"></i></div>
+      <h3>暂无组织</h3>
+      <p>创建您的第一个组织以开始使用 ModelCraft 构建数据驱动的应用</p>
+      <button class="btn-primary">
+        <i data-lucide="plus"></i>
+        创建组织
+      </button>
+    </div>
+  </div>
+  -->
+
+  <script>
+    lucide.createIcons();
+
+    function toggleDropdown() {
+      const el = document.getElementById('userDropdown');
+      el.classList.toggle('open');
+    }
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.topbar-user-btn') && !e.target.closest('#userDropdown')) {
+        document.getElementById('userDropdown').classList.remove('open');
+      }
+    });
+  </script>
+</body>
+</html>

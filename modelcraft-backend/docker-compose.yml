@@ -1,0 +1,185 @@
+version: '3.8'
+
+services:
+  # ModelCraft 应用服务
+  modelcraft:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: modelcraft-app
+    ports:
+      - "8080:8080"
+    environment:
+      # Server Configuration
+      # See docs/DOCKER_DEPLOYMENT.md for detailed configuration guide
+      - GIN_MODE=${GIN_MODE:-release}
+      - PORT=${PORT:-8080}
+
+      # Database Configuration
+      # REQUIRED: DB_PASSWORD must be set via .env file or environment variable
+      # See .env.docker.example for all configuration options
+      - DB_HOST=${DB_HOST:-modelcraft-mysql}
+      - DB_PORT=${DB_PORT:-3306}
+      - DB_USERNAME=${DB_USERNAME:-modelcraft}
+      - DB_PASSWORD=${DB_PASSWORD}  # REQUIRED
+      - DB_DATABASE=${DB_DATABASE:-modelcraft}
+      - DB_MIGRATE_ON_STARTUP=${DB_MIGRATE_ON_STARTUP:-true}
+
+      # Redis Configuration (Optional)
+      - REDIS_HOST=${REDIS_HOST:-modelcraft-redis}
+      - REDIS_PORT=${REDIS_PORT:-6379}
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
+
+      # Security Configuration
+      # REQUIRED: JWT_SECRET and CRYPTO_AES_KEY must be set
+      - JWT_SECRET=${JWT_SECRET}  # REQUIRED
+      - CRYPTO_AES_KEY=${CRYPTO_AES_KEY}  # REQUIRED: Must be exactly 32 bytes
+
+      # Logger Configuration
+      - LOGGER_LEVEL=${LOGGER_LEVEL:-info}
+      - LOGGER_OUTPUT_PATH=${LOGGER_OUTPUT_PATH:-stdout}
+
+      # Timezone
+      - TZ=${TZ:-Asia/Shanghai}
+    volumes:
+      - ./data:/app/data
+      - ./configs:/app/configs
+      - ./logs:/app/logs
+    depends_on:
+      - modelcraft-mysql
+      - modelcraft-redis
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MySQL Database Service
+  modelcraft-mysql:
+    image: mysql:8.0
+    container_name: modelcraft-mysql
+    environment:
+      # MySQL uses DB_PASSWORD from .env file
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-default_root_password}
+      MYSQL_DATABASE: ${DB_DATABASE:-modelcraft}
+      MYSQL_USER: ${DB_USERNAME:-modelcraft}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-default_password}
+    ports:
+      - "${MYSQL_PORT:-6033}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/schema/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+    # Note: To use external MySQL, start with: docker compose up --scale modelcraft-mysql=0
+
+  # Redis Cache Service
+  modelcraft-redis:
+    image: redis:7-alpine
+    container_name: modelcraft-redis
+    ports:
+      - "${REDIS_PORT_HOST:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$$REDIS_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Casdoor Authentication Service
+  casdoor:
+    image: casbin/casdoor:latest
+    container_name: modelcraft-casdoor
+    ports:
+      - "${CASDOOR_PORT:-8000}:8000"
+    environment:
+      - RUNNING_IN_DOCKER=true
+    volumes:
+      - ./casdoor/conf:/conf
+      - casdoor_data:/var/lib/casdoor
+    depends_on:
+      casdoor-db:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/get-account"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Casdoor Database Service
+  casdoor-db:
+    image: mysql:8.0
+    container_name: modelcraft-casdoor-db
+    environment:
+      MYSQL_ROOT_PASSWORD: ${CASDOOR_DB_PASSWORD:-casdoor_password}
+      MYSQL_DATABASE: ${CASDOOR_DB_NAME:-casdoor}
+      MYSQL_USER: ${CASDOOR_DB_USERNAME:-casdoor}
+      MYSQL_PASSWORD: ${CASDOOR_DB_PASSWORD:-casdoor_password}
+    volumes:
+      - casdoor_mysql_data:/var/lib/mysql
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${CASDOOR_DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Optional: phpMyAdmin Database Management Tool
+  # Start with: docker compose --profile tools up
+  modelcraft-phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: modelcraft-phpmyadmin
+    environment:
+      PMA_HOST: modelcraft-mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8081:80"
+    depends_on:
+      modelcraft-mysql:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    profiles:
+      - tools  # Must be explicitly specified: docker compose --profile tools up
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  casdoor_mysql_data:
+    driver: local
+  casdoor_data:
+    driver: local
+
+networks:
+  modelcraft-network:
+    driver: bridge

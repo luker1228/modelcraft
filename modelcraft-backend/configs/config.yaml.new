@@ -1,0 +1,61 @@
+server:
+  port: "8080"
+  mode: "debug"
+
+# 平台数据库配置（设计时数据库）
+# IMPORTANT: 敏感信息通过环境变量或 .env 文件覆盖
+database:
+  type: "mysql"
+  # MySQL配置 - 支持环境变量覆盖：DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, DB_DATABASE
+  host: "localhost"  # 默认本地开发，Docker 环境需要覆盖为服务名
+  port: 3306
+  username: "root"
+  password: ""  # MUST override via DB_PASSWORD environment variable or .env file
+  database: "modelcraft"
+  charset: "utf8mb4"
+  # 连接池配置
+  max_open_conns: 100
+  max_idle_conns: 10
+  conn_max_lifetime: 3600
+  log_level: "info"
+  # 是否在启动时自动迁移数据库（默认true）
+  migrate_on_startup: true
+
+redis:
+  host: "localhost"  # Docker 环境需要覆盖为服务名
+  port: 6379
+  password: ""  # Override via REDIS_PASSWORD if needed
+
+# JWT 配置
+jwt:
+  secret: ""  # MUST override via JWT_SECRET environment variable or .env file (用于 ModelCraft JWT 签名)
+  expiration: 3600  # Token 过期时间（秒），默认 1 小时
+  issuer: "modelcraft"  # JWT 发行者，必须为 "modelcraft"
+
+# 认证配置
+auth:
+  # 设计时 API 认证配置（GraphQL Design API + REST API）
+  design:
+    # 是否启用认证（开发环境可设为false，生产环境必须为true）
+    enabled: false  # Set to true in production
+    # JWT 公钥路径（用于验证 Casdoor JWT token）
+    jwt_public_key_path: ""  # Path to RSA public key file (PEM format)
+    # 或者直接配置公钥内容（通过环境变量）
+    jwt_public_key: ""  # Override via CASDOOR_JWT_PUBLIC_KEY
+    # 是否跳过JWT验证（仅用于开发）
+    skip_jwt_validation: false  # Set to false in production
+
+  # 运行态 GraphQL API 认证配置
+  runtime:
+    # 是否启用认证（开发环境可设为false，生产环境必须为true）
+    enabled: true
+    # 是否允许特定项目跳过认证（用于迁移期间，生产环境应为空数组）
+    optional_for_projects: []  # e.g., ["default"] to allow unauthenticated access for default project
+
+  # 双令牌认证迁移配置
+  migration:
+    # 是否接受 Casdoor JWT（向后兼容，迁移完成后可设为 false）
+    accept_casdoor_jwt: true
+    # 是否接受 ModelCraft JWT（新功能，默认启用）
+    accept_modelcraft_jwt: true
+EOF && mv configs/config.yaml.new configs/config.yaml

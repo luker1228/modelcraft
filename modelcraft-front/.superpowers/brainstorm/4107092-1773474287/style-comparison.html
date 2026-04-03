@@ -1,0 +1,126 @@
+<h2>设计风格对比：当前 vs 目标风格</h2>
+<p class="subtitle">左侧是当前的毛玻璃+渐变风格，右侧是 Supabase/shadcn 的克制风格 + B端蓝色品牌色</p>
+
+<div class="split">
+  <!-- 当前风格 -->
+  <div class="mockup">
+    <div class="mockup-header">当前风格：毛玻璃 + 渐变</div>
+    <div class="mockup-body" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 30%, #eef2ff 60%); padding: 20px; min-height: 400px;">
+      <!-- 装饰光斑 -->
+      <div style="position: absolute; top: 20px; left: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%); border-radius: 50%; filter: blur(20px);"></div>
+      
+      <!-- Logo -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="position: relative;">
+          <div style="position: absolute; inset: 0; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 12px; filter: blur(8px); opacity: 0.5;"></div>
+          <div style="position: relative; width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+            <span style="color: white; font-size: 18px;">✦</span>
+          </div>
+        </div>
+        <span style="font-weight: 700; font-size: 20px; background: linear-gradient(90deg, #1e293b, #475569); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ModelCraft</span>
+      </div>
+      
+      <!-- 卡片 -->
+      <div style="background: rgba(255,255,255,0.8); backdrop-filter: blur(8px); border: 1px solid rgba(226,232,240,0.6); border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <h4 style="font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">项目名称</h4>
+            <p style="font-size: 13px; color: #475569; margin: 0;">项目描述文字</p>
+          </div>
+          <span style="background: linear-gradient(90deg, #d1fae5, #ccfbf1); color: #047857; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px;">活跃</span>
+        </div>
+      </div>
+      
+      <!-- 按钮 -->
+      <button style="width: 100%; height: 40px; background: linear-gradient(90deg, #2563eb, #4f46e5); color: white; font-weight: 600; border: none; border-radius: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); cursor: pointer;">
+        创建项目
+      </button>
+      
+      <p style="font-size: 11px; color: #94a3b8; margin-top: 16px; text-align: center;">
+        ✨ 带有渐变、光晕、毛玻璃效果
+      </p>
+    </div>
+  </div>
+  
+  <!-- 目标风格 -->
+  <div class="mockup">
+    <div class="mockup-header">目标风格：克制 + B端蓝色</div>
+    <div class="mockup-body" style="background: #fafafa; padding: 20px; min-height: 400px;">
+      <!-- Logo -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 36px; height: 36px; background: #2563eb; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+          <span style="color: white; font-size: 16px;">✦</span>
+        </div>
+        <span style="font-weight: 600; font-size: 18px; color: #111827;">ModelCraft</span>
+      </div>
+      
+      <!-- 卡片 -->
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <h4 style="font-weight: 600; color: #111827; margin: 0 0 4px 0;">项目名称</h4>
+            <p style="font-size: 13px; color: #6b7280; margin: 0;">项目描述文字</p>
+          </div>
+          <span style="background: #ecfdf5; color: #059669; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px;">活跃</span>
+        </div>
+      </div>
+      
+      <!-- 按钮 -->
+      <button style="width: 100%; height: 40px; background: #2563eb; color: white; font-weight: 500; border: none; border-radius: 6px; cursor: pointer;">
+        创建项目
+      </button>
+      
+      <p style="font-size: 11px; color: #9ca3af; margin-top: 16px; text-align: center;">
+        ◻️ 纯色、清晰边界、功能导向
+      </p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: #f1f5f9; border-radius: 8px;">
+  <h4 style="margin: 0 0 12px 0; color: #334155;">关键差异分析</h4>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px;">
+    <div>
+      <p style="margin: 0 0 4px 0; font-weight: 600; color: #0f172a;">当前风格的问题</p>
+      <ul style="margin: 0; padding-left: 16px; color: #64748b;">
+        <li>毛玻璃效果模糊边界，降低可读性</li>
+        <li>渐变色过多，视觉复杂度高</li>
+        <li>光晕/阴影装饰性元素过多</li>
+        <li>更像消费级产品，不够专业严谨</li>
+      </ul>
+    </div>
+    <div>
+      <p style="margin: 0 0 4px 0; font-weight: 600; color: #0f172a;">目标风格的优势</p>
+      <ul style="margin: 0; padding-left: 16px; color: #64748b;">
+        <li>清晰的边界和层次感</li>
+        <li>蓝色品牌色统一、专业</li>
+        <li>功能导向，信息传达高效</li>
+        <li>B端产品该有的克制和专业感</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top: 20px;">
+  <div class="option" data-choice="agree" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>认同这个方向</h3>
+      <p>朝 Supabase/shadcn 的克制风格调整，保持蓝色品牌色</p>
+    </div>
+  </div>
+  <div class="option" data-choice="partial" onclick="toggleSelect(this)">
+    <div class="letter">~</div>
+    <div class="content">
+      <h3>部分认同，需要调整</h3>
+      <p>大致方向对，但有些细节需要讨论</p>
+    </div>
+  </div>
+  <div class="option" data-choice="different" onclick="toggleSelect(this)">
+    <div class="letter">✗</div>
+    <div class="content">
+      <h3>想法不同</h3>
+      <p>我对设计风格有其他想法</p>
+    </div>
+  </div>
+</div>

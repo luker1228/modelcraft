@@ -1,0 +1,213 @@
+# Cluster related types, inputs, queries and mutations
+
+# ============================================
+# Error interface (shared)
+# ============================================
+
+# Error interface for typed error handling
+interface Error {
+  message: String!
+}
+
+# ============================================
+# Cluster Error Types
+# ============================================
+
+# Cluster-specific error types
+type ClusterAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type ClusterAlreadyExistsForProject implements Error {
+  message: String!
+  suggestion: String
+}
+
+type ClusterNotFound implements Error {
+  message: String!
+}
+
+type InvalidClusterInput implements Error {
+  message: String!
+  suggestion: String
+}
+
+type DatabaseConnectionFailed implements Error {
+  message: String!
+  suggestion: String
+}
+
+type ProjectNotFound implements Error {
+  message: String!
+}
+
+# Error unions for cluster operations
+union GetClusterError = ClusterNotFound | ProjectNotFound
+union UpdateClusterError = ClusterNotFound | InvalidClusterInput | DatabaseConnectionFailed | ProjectNotFound
+union DeleteClusterError = ClusterNotFound | ProjectNotFound
+union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
+
+# ============================================
+# Cluster Payload Types
+# ============================================
+
+type GetClusterPayload {
+  cluster: DatabaseCluster
+  error: GetClusterError
+}
+
+type UpdateClusterPayload {
+  cluster: DatabaseCluster
+  error: UpdateClusterError
+}
+
+type DeleteClusterPayload {
+  success: Boolean!
+  error: DeleteClusterError
+}
+
+type TestConnectionPayload {
+  success: Boolean!
+  connectionTime: Float # Connection time in milliseconds
+  error: TestConnectionError
+}
+
+# ============================================
+# Database Cluster Types
+# ============================================
+
+# Database connection information type
+type DatabaseConnectionInfo {
+  host: String!
+  port: Int64!
+  username: String!
+  password: String! # Will be masked in responses
+}
+
+# Database type
+type Database {
+  name: String!
+}
+
+# Table info type
+type TableInfo {
+  name: String!
+}
+
+# Table list connection for pagination
+type TableListConnection {
+  items: [TableInfo!]!
+  totalCount: Int!
+}
+
+# Database connection for pagination
+type DatabaseConnection {
+  edges: [DatabaseEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# Database edge for pagination
+type DatabaseEdge {
+  node: Database!
+  cursor: String!
+}
+
+# DatabaseCluster type implementing Node interface
+type DatabaseCluster implements Node {
+  id: ID!
+  projectSlug: String! # Project slug (orgName from context)
+  title: String!
+  description: String!
+  connectionInfo: DatabaseConnectionInfo!
+  connectionTimeout: Int!
+  status: ClusterStatus!
+  version: Int!
+  createdAt: String!
+  updatedAt: String!
+  deletedAt: String
+}
+
+# Cluster status enum
+enum ClusterStatus {
+  ACTIVE
+  DISABLED
+}
+
+# ============================================
+# Cluster Input Types
+# ============================================
+
+# Database connection input type
+input DatabaseConnectionInput {
+  host: String!
+  port: Int!
+  username: String!
+  password: String!
+  connectionTimeout: Int
+}
+
+# Cluster connection input (used when creating a project)
+input ClusterConnectionInput {
+  title: String!
+  description: String
+  connectionInfo: DatabaseConnectionInput!
+}
+
+# Update cluster connection input (used when updating project's cluster)
+input UpdateClusterConnectionInput {
+  title: String
+  description: String
+  connectionInfo: DatabaseConnectionInput
+  skipConnectionTest: Boolean # Default false; set true to skip connection validation
+}
+
+# List databases input type
+input ListDatabasesInput {
+  offset: Int
+  limit: Int
+  search: String # Search by database name
+}
+
+# List tables input type
+input ListTablesInput {
+  databaseName: String!
+  excludeExisting: Boolean
+  limit: Int
+  offset: Int
+}
+
+# Test database connection input type (supports both existing cluster and direct connection info)
+input TestDatabaseConnectionInput {
+  connectionInfo: DatabaseConnectionInput # Optional: test direct connection info
+}
+
+# ============================================
+# ProjectStatus Enum
+# ============================================
+
+# ProjectStatus enum
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+# ============================================
+# Queries
+# ============================================
+
+extend type Query {
+  databaseCluster: GetClusterPayload! @hasPermission(action: "project:read")
+  listDatabases(input: ListDatabasesInput!): DatabaseConnection! @hasPermission(action: "project:read")
+  listTables(input: ListTablesInput!): TableListConnection! @hasPermission(action: "project:read")
+}
+
+# ============================================
+# Mutations
+# ============================================
+
+extend type Mutation {
+  updateProjectCluster(input: UpdateClusterConnectionInput!): UpdateClusterPayload! @hasPermission(action: "project:update")
+  testDatabaseConnection(input: TestDatabaseConnectionInput!): TestConnectionPayload! @hasPermission(action: "project:read")
+}

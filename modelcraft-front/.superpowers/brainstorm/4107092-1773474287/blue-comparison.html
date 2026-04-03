@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blue Color Comparison</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background: #fafafa;
+      color: #111827;
+      line-height: 1.5;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 12px;
+    }
+
+    .subtitle {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 40px;
+    }
+
+    .comparison-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin-bottom: 40px;
+    }
+
+    .option-card {
+      background: white;
+      border: 2px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 24px;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .option-card:hover {
+      border-color: #d1d5db;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    .option-card input[type="radio"] {
+      margin-right: 12px;
+      cursor: pointer;
+      width: 20px;
+      height: 20px;
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+
+    .option-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .color-swatch-large {
+      width: 100%;
+      height: 100px;
+      border-radius: 8px;
+      margin-bottom: 16px;
+      border: 1px solid #e5e7eb;
+    }
+
+    .color-info {
+      margin-bottom: 20px;
+    }
+
+    .color-code {
+      font-family: monospace;
+      font-size: 13px;
+      background: #f3f4f6;
+      padding: 8px 12px;
+      border-radius: 4px;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .color-desc {
+      font-size: 13px;
+      color: #6b7280;
+    }
+
+    .components-demo {
+      margin-bottom: 20px;
+    }
+
+    .components-demo-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .demo-items {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      font-family: inherit;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 8px 16px;
+      height: 36px;
+      white-space: nowrap;
+    }
+
+    .btn-primary {
+      color: white;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary:hover {
+      opacity: 0.9;
+    }
+
+    .card-demo {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 6px;
+      padding: 12px;
+      font-size: 13px;
+    }
+
+    .card-demo strong {
+      display: block;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .card-demo span {
+      color: #6b7280;
+    }
+
+    .badge-demo {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+      color: white;
+    }
+
+    .comparison-section {
+      margin-top: 40px;
+      padding-top: 40px;
+      border-top: 1px solid #e5e7eb;
+    }
+
+    .side-by-side {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 20px;
+    }
+
+    .preview-section {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+    }
+
+    .preview-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 16px;
+      text-transform: uppercase;
+    }
+
+    .spacer {
+      height: 12px;
+    }
+
+    @media (max-width: 768px) {
+      .side-by-side {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Primary Blue Color Selection</h1>
+    <p class="subtitle">Choose the blue that feels most modern and right for ModelCraft's B2B brand</p>
+
+    <div class="comparison-grid">
+      <!-- Option 1: Current (Too Dark) -->
+      <div class="option-card">
+        <div class="option-header">
+          <label style="display: flex; align-items: center; width: 100%;">
+            <input type="radio" name="blue" value="#1e40af">
+            <span class="option-title">Current: Deep Navy</span>
+          </label>
+        </div>
+        <div class="color-swatch-large" style="background: #1e40af;"></div>
+        <div class="color-info">
+          <div class="color-code">#1e40af</div>
+          <div class="color-desc">Too dark, feels old. Not modern enough.</div>
+        </div>
+        <div class="components-demo">
+          <div class="components-demo-title">Components</div>
+          <div class="demo-items">
+            <button class="btn-primary" style="background: #1e40af;">Button</button>
+            <div class="badge-demo" style="background: #1e40af;">Active</div>
+            <div class="card-demo">
+              <strong style="color: #1e40af;">Card</strong>
+              <span>Description</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 2: Bright Sky Blue -->
+      <div class="option-card">
+        <div class="option-header">
+          <label style="display: flex; align-items: center; width: 100%;">
+            <input type="radio" name="blue" value="#0284c7">
+            <span class="option-title">Bright Sky Blue</span>
+          </label>
+        </div>
+        <div class="color-swatch-large" style="background: #0284c7;"></div>
+        <div class="color-info">
+          <div class="color-code">#0284c7</div>
+          <div class="color-desc">Modern, vibrant, similar to Supabase. Good energy.</div>
+        </div>
+        <div class="components-demo">
+          <div class="components-demo-title">Components</div>
+          <div class="demo-items">
+            <button class="btn-primary" style="background: #0284c7;">Button</button>
+            <div class="badge-demo" style="background: #0284c7;">Active</div>
+            <div class="card-demo">
+              <strong style="color: #0284c7;">Card</strong>
+              <span>Description</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 3: Balanced Blue -->
+      <div class="option-card">
+        <div class="option-header">
+          <label style="display: flex; align-items: center; width: 100%;">
+            <input type="radio" name="blue" value="#2563eb">
+            <span class="option-title">Softer Blue</span>
+          </label>
+        </div>
+        <div class="color-swatch-large" style="background: #2563eb;"></div>
+        <div class="color-info">
+          <div class="color-code">#2563eb</div>
+          <div class="color-desc">Balanced between professional and modern. Safe choice.</div>
+        </div>
+        <div class="components-demo">
+          <div class="components-demo-title">Components</div>
+          <div class="demo-items">
+            <button class="btn-primary" style="background: #2563eb;">Button</button>
+            <div class="badge-demo" style="background: #2563eb;">Active</div>
+            <div class="card-demo">
+              <strong style="color: #2563eb;">Card</strong>
+              <span>Description</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 4: Even Brighter -->
+      <div class="option-card">
+        <div class="option-header">
+          <label style="display: flex; align-items: center; width: 100%;">
+            <input type="radio" name="blue" value="#0369a1">
+            <span class="option-title">Even Brighter</span>
+          </label>
+        </div>
+        <div class="color-swatch-large" style="background: #0369a1;"></div>
+        <div class="color-info">
+          <div class="color-code">#0369a1</div>
+          <div class="color-desc">Saturated sky blue, more energetic and vivid.</div>
+        </div>
+        <div class="components-demo">
+          <div class="components-demo-title">Components</div>
+          <div class="demo-items">
+            <button class="btn-primary" style="background: #0369a1;">Button</button>
+            <div class="badge-demo" style="background: #0369a1;">Active</div>
+            <div class="card-demo">
+              <strong style="color: #0369a1;">Card</strong>
+              <span>Description</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 5: Ultra Bright (Sky/Cyan style) -->
+      <div class="option-card">
+        <div class="option-header">
+          <label style="display: flex; align-items: center; width: 100%;">
+            <input type="radio" name="blue" value="#0ea5e9">
+            <span class="option-title">Ultra Bright Sky</span>
+          </label>
+        </div>
+        <div class="color-swatch-large" style="background: #0ea5e9;"></div>
+        <div class="color-info">
+          <div class="color-code">#0ea5e9</div>
+          <div class="color-desc">Very bright, fresh, modern. Closer to cyan.</div>
+        </div>
+        <div class="components-demo">
+          <div class="components-demo-title">Components</div>
+          <div class="demo-items">
+            <button class="btn-primary" style="background: #0ea5e9;">Button</button>
+            <div class="badge-demo" style="background: #0ea5e9;">Active</div>
+            <div class="card-demo">
+              <strong style="color: #0ea5e9;">Card</strong>
+              <span>Description</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Option 6: Medium-Bright -->
+      <div class="option-card">
+        <div class="option-header">
+          <label style="display: flex; align-items: center; width: 100%;">
+            <input type="radio" name="blue" value="#1d4ed8">
+            <span class="option-title">Medium Bright</span>
+          </label>
+        </div>
+        <div class="color-swatch-large" style="background: #1d4ed8;"></div>
+        <div class="color-info">
+          <div class="color-code">#1d4ed8</div>
+          <div class="color-desc">Between current and bright options. Good balance.</div>
+        </div>
+        <div class="components-demo">
+          <div class="components-demo-title">Components</div>
+          <div class="demo-items">
+            <button class="btn-primary" style="background: #1d4ed8;">Button</button>
+            <div class="badge-demo" style="background: #1d4ed8;">Active</div>
+            <div class="card-demo">
+              <strong style="color: #1d4ed8;">Card</strong>
+              <span>Description</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="comparison-section">
+      <h2 style="font-size: 20px; font-weight: 600; margin-bottom: 24px;">Full Page Context</h2>
+      <p style="color: #6b7280; margin-bottom: 20px;">See how each blue looks in a real page context</p>
+
+      <div class="side-by-side">
+        <!-- Context 1: Bright Sky (#0284c7) -->
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 12px; text-transform: uppercase;">Bright Sky Blue (#0284c7)</div>
+          <div class="preview-section">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <div style="width: 32px; height: 32px; background: #0284c7; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">✦</div>
+              <span style="font-weight: 600; color: #111827;">ModelCraft</span>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">Project Name</div>
+              <div style="font-size: 13px; color: #6b7280;">Project description here</div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <div style="background: #dbeafe; color: #0284c7; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;">Active</div>
+              <div style="background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;">Draft</div>
+            </div>
+            <button style="background: #0284c7; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 500; cursor: pointer; width: 100%;">Create Project</button>
+          </div>
+        </div>
+
+        <!-- Context 2: Balanced Blue (#2563eb) -->
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 12px; text-transform: uppercase;">Softer Blue (#2563eb)</div>
+          <div class="preview-section">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <div style="width: 32px; height: 32px; background: #2563eb; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">✦</div>
+              <span style="font-weight: 600; color: #111827;">ModelCraft</span>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">Project Name</div>
+              <div style="font-size: 13px; color: #6b7280;">Project description here</div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <div style="background: #dbeafe; color: #2563eb; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;">Active</div>
+              <div style="background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;">Draft</div>
+            </div>
+            <button style="background: #2563eb; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 500; cursor: pointer; width: 100%;">Create Project</button>
+          </div>
+        </div>
+
+        <!-- Context 3: Ultra Bright (#0ea5e9) -->
+        <div>
+          <div style="font-size: 12px; font-weight: 600; color: #6b7280; margin-bottom: 12px; text-transform: uppercase;">Ultra Bright Sky (#0ea5e9)</div>
+          <div class="preview-section">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 16px;">
+              <div style="width: 32px; height: 32px; background: #0ea5e9; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600;">✦</div>
+              <span style="font-weight: 600; color: #111827;">ModelCraft</span>
+            </div>
+            <div style="margin-bottom: 16px;">
+              <div style="font-weight: 600; color: #111827; margin-bottom: 4px;">Project Name</div>
+              <div style="font-size: 13px; color: #6b7280;">Project description here</div>
+            </div>
+            <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+              <div style="background: #cffafe; color: #0ea5e9; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;">Active</div>
+              <div style="background: #fef3c7; color: #d97706; padding: 4px 12px; border-radius: 4px; font-size: 12px; font-weight: 500;">Draft</div>
+            </div>
+            <button style="background: #0ea5e9; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-weight: 500; cursor: pointer; width: 100%;">Create Project</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

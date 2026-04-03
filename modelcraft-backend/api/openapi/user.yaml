@@ -1,0 +1,82 @@
+# User-related API endpoints
+openapi: 3.1.0
+info:
+  title: ModelCraft User API
+  version: 1.0.0
+
+paths:
+  /api/user/memberships:
+    get:
+      summary: Get current user's organization memberships
+      description: Returns a list of organizations the authenticated user is a member of, including role and join date information. Returns at most 100 memberships.
+      operationId: getUserMemberships
+      tags:
+        - User
+      responses:
+        '200':
+          description: List of user memberships
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetMembershipsResponse'
+        '401':
+          description: Unauthorized - Invalid or missing JWT token
+          content:
+            application/json:
+              schema:
+                $ref: './common.yaml#/schemas/UnauthorizedError'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: './common.yaml#/schemas/SystemError'
+
+components:
+  schemas:
+    GetMembershipsResponse:
+      type: object
+      required:
+        - requestId
+        - memberships
+      properties:
+        requestId:
+          type: string
+          description: Unique request identifier
+          example: "req-12345678-1234-1234-1234-123456789012"
+        memberships:
+          type: array
+          items:
+            $ref: '#/components/schemas/MembershipInfo'
+          description: List of organization memberships
+
+    MembershipInfo:
+      type: object
+      required:
+        - orgId
+        - orgName
+        - displayName
+        - role
+        - joinedAt
+      properties:
+        orgId:
+          type: string
+          description: Organization UUID
+          example: "550e8400-e29b-41d4-a716-446655440000"
+        orgName:
+          type: string
+          description: Organization slug (unique identifier)
+          example: "modelcraft"
+        displayName:
+          type: string
+          description: Organization display name
+          example: "ModelCraft"
+        role:
+          type: string
+          description: User's role in the organization
+          example: "owner"
+        joinedAt:
+          type: integer
+          format: int64
+          description: Join timestamp in milliseconds (Unix epoch)
+          example: 1708435200000

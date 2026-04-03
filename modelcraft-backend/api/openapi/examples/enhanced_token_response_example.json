@@ -1,0 +1,32 @@
+{
+  "requestId": "req-123e4567-e89b-12d3-a456-426614174000",
+  "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJtb2RlbGNyYWZ0Iiwic3ViIjoiNDg3MTAxZDYtOTJiYi00NTllLWI0ZjEtNDI2MjU1MTI2ZDI3IiwiYXVkIjpbIm1vZGVsY3JhZnQiXSwiZXhwIjoxNzM5NzM1NzAwLCJpYXQiOjE3Mzk3MzIxMDAsIm5iZiI6MTczOTczMjEwMCwidXNlcl9pZCI6IjQ4NzEwMWQ2LTkyYmItNDU5ZS1iNGYxLTQyNjI1NTEyNmQyNyIsImV4dGVybmFsX2lkIjoidGVzdC1pbnRlZ3JhdGlvbiIsIm5hbWUiOiJKb2huIERvZSIsImVtYWlsIjoiam9obi5kb2VAZXhhbXBsZS5jb20iLCJvcmdhbml6YXRpb24iOiJtb2RlbGNyYWZ0Iiwicm9sZXMiOlsib3duZXIiXSwicGVybWlzc2lvbnMiOlsibW9kZWw6cmVhZCIsIm1vZGVsOndyaXRlIiwibW9kZWw6ZGVsZXRlIiwiY2x1c3RlcjptYW5hZ2UiLCJwcm9qZWN0OmNyZWF0ZSIsInByb2plY3Q6dXBkYXRlIiwicHJvamVjdDpkZWxldGUiXX0.signature_here",
+  "tokenType": "Bearer",
+  "expiresIn": 3600,
+  "refreshToken": "",
+  "user": {
+    "id": "487101d6-92bb-459e-b4f1-426255126d27",
+    "externalId": "test-integration",
+    "name": "John Doe",
+    "email": "john.doe@example.com"
+  },
+  "organization": {
+    "name": "modelcraft"
+  },
+  "roles": [
+    {
+      "id": 1,
+      "name": "owner",
+      "displayName": "Owner"
+    }
+  ],
+  "permissions": [
+    "model:read",
+    "model:write",
+    "model:delete",
+    "cluster:manage",
+    "project:create",
+    "project:update",
+    "project:delete"
+  ]
+}

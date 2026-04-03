@@ -1,0 +1,145 @@
+### HTTP request with GraphQL mutation - Create Project with Cluster
+GRAPHQL http://localhost:8080/org/modelcraft/design/graphql
+
+mutation CreateProject($input: CreateProjectInput!) {
+    createProject(input: $input) {
+        project {
+            id
+            name
+            title
+            description
+            status
+            cluster {
+                id
+                name
+                title
+                connectionInfo {
+                    host
+                    port
+                    username
+                }
+                status
+                createdAt
+            }
+            createdAt
+            updatedAt
+        }
+        error {
+            __typename
+            ... on ProjectAlreadyExists { message suggestion }
+            ... on InvalidProjectInput { message suggestion }
+            ... on DatabaseConnectionFailed { message suggestion }
+        }
+    }
+}
+
+{
+  "input": {
+    "name": "dev-project",
+    "title": "Dev Project",
+    "description": "Development project",
+    "clusterInput": {
+      "name": "dev-cluster",
+      "title": "Dev Cluster",
+      "connectionInfo": {
+        "host": "localhost",
+        "port": 3306,
+        "username": "root",
+        "password": "your-password-here"
+      }
+    },
+    "skipConnectionTest": false
+  }
+}
+
+###
+
+### HTTP request with GraphQL mutation - Update Project Cluster
+GRAPHQL http://localhost:8080/org/modelcraft/design/graphql
+
+mutation UpdateProjectCluster($projectName: String!, $input: UpdateClusterConnectionInput!) {
+    updateProjectCluster(projectName: $projectName, input: $input) {
+        cluster {
+            id
+            name
+            title
+            connectionInfo {
+                host
+                port
+                username
+            }
+            updatedAt
+        }
+        error {
+            __typename
+            ... on ClusterNotFound { message }
+            ... on ProjectNotFound { message }
+            ... on DatabaseConnectionFailed { message suggestion }
+        }
+    }
+}
+
+{
+  "projectName": "dev-project",
+  "input": {
+    "title": "Updated Cluster Title",
+    "connectionInfo": {
+      "host": "new-host",
+      "port": 3306,
+      "username": "root",
+      "password": "new-password"
+    },
+    "skipConnectionTest": false
+  }
+}
+
+###
+
+### HTTP request with GraphQL query - Get Cluster by Project
+GRAPHQL http://localhost:8080/org/modelcraft/design/graphql
+
+query GetCluster($projectName: String!) {
+    databaseCluster(projectName: $projectName) {
+        cluster {
+            id
+            name
+            title
+            connectionInfo {
+                host
+                port
+                username
+            }
+            status
+        }
+        error {
+            __typename
+            ... on ClusterNotFound { message }
+            ... on ProjectNotFound { message }
+        }
+    }
+}
+
+{
+  "projectName": "dev-project"
+}
+
+###
+
+### List Databases in a Project's Cluster
+POST http://localhost:8080/org/modelcraft/design/graphql
+Content-Type: application/json
+
+{
+  "query": "query ListDatabases($input: ListDatabasesInput!) { listDatabases(input: $input) { edges { node { name charset collation size tables } cursor } pageInfo { hasNextPage hasPreviousPage startCursor endCursor } totalCount } }",
+  "variables": {
+    "input": {
+      "projectName": "dev-project",
+      "name": "dev-cluster",
+      "offset": 0,
+      "limit": 20,
+      "search": ""
+    }
+  }
+}
+
+###

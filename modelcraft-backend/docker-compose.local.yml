@@ -1,0 +1,106 @@
+# Docker Compose for Local Development
+# This file contains ONLY third-party services (MySQL, Redis, Casdoor)
+# The ModelCraft application should be run natively using `go run cmd/server/main.go`
+
+version: '3.8'
+
+services:
+  # MySQL Database Service for Local Development (shared by ModelCraft and Casdoor)
+  modelcraft-mysql-local:
+    image: mysql:8.0
+    container_name: modelcraft-mysql-local
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-modelcraft123}
+      MYSQL_DATABASE: ${DB_DATABASE:-modelcraft}
+    ports:
+      # Use port 3307 for local development to avoid conflicts with existing MySQL
+      - "3307:3306"
+    volumes:
+      - mysql_local_data:/var/lib/mysql
+      - ./db/schema/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - modelcraft-local-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # Redis Cache Service for Local Development
+  modelcraft-redis-local:
+    image: redis:7-alpine
+    container_name: modelcraft-redis-local
+    ports:
+      # Use standard port 6379 for local development
+      - "6379:6379"
+    volumes:
+      - redis_local_data:/data
+    networks:
+      - modelcraft-local-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$$REDIS_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # Casdoor Authentication Service for Local Development
+  casdoor-local:
+    image: casbin/casdoor:latest
+    container_name: modelcraft-casdoor-local
+    ports:
+      - "${CASDOOR_PORT:-8000}:8000"
+    environment:
+      - RUNNING_IN_DOCKER=true
+    volumes:
+      - ./casdoor/conf:/conf
+      - casdoor_local_data:/var/lib/casdoor
+    depends_on:
+      modelcraft-mysql-local:
+        condition: service_healthy
+    networks:
+      - modelcraft-local-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/get-account"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: phpMyAdmin Database Management Tool
+  # Start with: docker compose -f docker-compose.local.yml --profile tools up
+  modelcraft-phpmyadmin-local:
+    image: phpmyadmin/phpmyadmin
+    container_name: modelcraft-phpmyadmin-local
+    environment:
+      PMA_HOST: modelcraft-mysql-local
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-modelcraft123}
+    ports:
+      - "8081:80"
+    depends_on:
+      modelcraft-mysql-local:
+        condition: service_healthy
+    networks:
+      - modelcraft-local-network
+    restart: unless-stopped
+    profiles:
+      - tools  # Must be explicitly specified: docker compose -f docker-compose.local.yml --profile tools up
+
+volumes:
+  mysql_local_data:
+    driver: local
+  redis_local_data:
+    driver: local
+  casdoor_local_data:
+    driver: local
+
+networks:
+  modelcraft-local-network:
+    driver: bridge

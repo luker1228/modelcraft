@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>团队管理 - ModelCraft 原型图</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Shared Layout Styles -->
+  <link href="../shared/layout-styles.css" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="layout">
+    <!-- ===== Topbar ===== -->
+    <header class="topbar">
+      <!-- Left: Org Selector -->
+      <div class="topbar-left">
+        <button class="topbar-org-selector">
+          <div class="topbar-logo">
+            <i data-lucide="sparkles"></i>
+          </div>
+        </button>
+      </div>
+
+      <!-- Center: Breadcrumb -->
+      <div class="topbar-center">
+        <nav class="topbar-breadcrumb">
+          <span style="font-weight: 500; color: var(--text-primary);">luke11的工作空间</span>
+          <span class="topbar-breadcrumb-separator">/</span>
+          <span style="color: var(--text-primary);">团队</span>
+        </nav>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="topbar-right">
+        <button class="topbar-btn" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+        <button class="topbar-btn" title="通知">
+          <i data-lucide="bell"></i>
+          <span class="topbar-btn-badge"></span>
+        </button>
+        <button class="topbar-btn" title="刷新">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+        <button class="topbar-btn" title="帮助">
+          <i data-lucide="help-circle"></i>
+        </button>
+
+        <div class="topbar-divider"></div>
+
+        <button class="topbar-user">
+          <div class="topbar-user-avatar">张</div>
+          <i data-lucide="chevron-down"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Main Area ===== -->
+    <div class="main-area">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-content">
+          <div class="sidebar-section">
+            <nav>
+              <a href="#" class="sidebar-nav-item">
+                <i data-lucide="folder-open"></i>
+                <span>项目</span>
+              </a>
+              <a href="#" class="sidebar-nav-item active">
+                <i data-lucide="users"></i>
+                <span>团队</span>
+              </a>
+              <a href="#" class="sidebar-nav-item">
+                <i data-lucide="settings"></i>
+                <span>组织设置</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+
+        <!-- Footer: Toggle Button -->
+        <div class="sidebar-footer">
+          <button class="sidebar-toggle">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 24px;">
+          
+          <!-- Page Header -->
+          <div style="margin-bottom: 32px;">
+            <h1 style="font-size: 24px; font-weight: 600; color: var(--text-primary);">团队成员</h1>
+          </div>
+
+          <!-- Members Table Container -->
+          <div style="background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;" class="animate-fade-in">
+            <!-- Table -->
+            <div style="overflow-x: auto;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>用户名</th>
+                    <th>用户 ID</th>
+                    <th>角色</th>
+                    <th>状态</th>
+                    <th>加入时间</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Member Row 1 (Owner) -->
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 9999px; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                          L
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">Luke Zhang</span>
+                      </div>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-secondary);">luke11dgzkj</td>
+                    <td>
+                      <span class="badge-primary">所有者</span>
+                    </td>
+                    <td>
+                      <span class="badge-success">ACTIVE</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-01-15</td>
+                  </tr>
+
+                  <!-- Member Row 2 (Admin) -->
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 9999px; background: #8b5cf6; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                          S
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">Sarah Chen</span>
+                      </div>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-secondary);">sarah_chen</td>
+                    <td>
+                      <span class="badge-neutral">管理员</span>
+                    </td>
+                    <td>
+                      <span class="badge-success">ACTIVE</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-02-20</td>
+                  </tr>
+
+                  <!-- Member Row 3 (Member) -->
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 9999px; background: #10b981; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                          J
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">John Doe</span>
+                      </div>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-secondary);">john_doe_123</td>
+                    <td>
+                      <span class="badge-neutral">成员</span>
+                    </td>
+                    <td>
+                      <span class="badge-success">ACTIVE</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-01</td>
+                  </tr>
+
+                  <!-- Member Row 4 (Invited) -->
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 9999px; background: #f59e0b; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                          A
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">Alice Wang</span>
+                      </div>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-secondary);">alice_wang</td>
+                    <td>
+                      <span class="badge-neutral">成员</span>
+                    </td>
+                    <td>
+                      <span class="badge-warning">INVITED</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-10</td>
+                  </tr>
+
+                  <!-- Member Row 5 (Member) -->
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 9999px; background: #64748b; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                          M
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">Mike Johnson</span>
+                      </div>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-secondary);">mike_johnson</td>
+                    <td>
+                      <span class="badge-neutral">成员</span>
+                    </td>
+                    <td>
+                      <span class="badge-success">ACTIVE</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-02-28</td>
+                  </tr>
+
+                  <!-- Member Row 6 (Admin) -->
+                  <tr>
+                    <td>
+                      <div style="display: flex; align-items: center; gap: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 9999px; background: #ec4899; display: flex; align-items: center; justify-content: center; color: white; font-weight: 600; font-size: 14px; flex-shrink: 0;">
+                          E
+                        </div>
+                        <span style="font-weight: 600; color: var(--text-primary);">Emma Wilson</span>
+                      </div>
+                    </td>
+                    <td style="font-family: monospace; color: var(--text-secondary);">emma_wilson</td>
+                    <td>
+                      <span class="badge-neutral">管理员</span>
+                    </td>
+                    <td>
+                      <span class="badge-success">ACTIVE</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-01-20</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Table Footer -->
+            <div style="border-top: 1px solid var(--border); padding: 16px 24px;">
+              <div style="font-size: 13px; color: var(--text-secondary);">
+                共 <span style="font-weight: 600; color: var(--text-primary);">6</span> 名成员
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

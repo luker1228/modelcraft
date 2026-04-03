@@ -1,0 +1,176 @@
+# Auth Domain - paths + schemas
+
+paths:
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Login with external user info (called by BFF after Casdoor OAuth)
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/LoginResponse"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
+  /api/auth/login-url:
+    get:
+      operationId: getLoginURL
+      summary: Get Casdoor login URL
+      tags: [Auth]
+      security: []
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Login URL returned
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/GetLoginURLResponse"
+
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Logout (revoke refresh token)
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/RefreshTokenRequest"
+      responses:
+        "204":
+          description: Logout successful
+
+  /api/auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh tokens using refresh token (rotation)
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: Token refresh successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/RefreshResponse"
+        "401":
+          description: Invalid, expired, or reused refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/UnauthorizedError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
+schemas:
+  # -- Auth domain errors --
+  UnauthorizedError:
+    type: object
+    properties:
+      error:
+        type: string
+
+  # -- Auth request types --
+  LoginRequest:
+    type: object
+    required:
+      - externalId
+      - email
+      - name
+    properties:
+      externalId:
+        type: string
+        description: External authentication provider user ID
+      email:
+        type: string
+        description: User email address
+      name:
+        type: string
+        description: User display name
+
+  RefreshTokenRequest:
+    type: object
+    required:
+      - refreshToken
+    properties:
+      refreshToken:
+        type: string
+        description: Refresh token obtained during initial authentication
+
+  # -- Auth response types --
+  LoginResponse:
+    type: object
+    required:
+      - userId
+      - refreshToken
+      - expiresAt
+    properties:
+      userId:
+        type: string
+        description: ModelCraft internal user UUID
+      refreshToken:
+        type: string
+        description: Opaque refresh token (store in httpOnly cookie)
+      expiresAt:
+        type: string
+        format: date-time
+        description: Refresh token expiration time
+
+  RefreshResponse:
+    type: object
+    required:
+      - userId
+      - refreshToken
+      - expiresAt
+    properties:
+      userId:
+        type: string
+        description: ModelCraft internal user UUID
+      refreshToken:
+        type: string
+        description: New opaque refresh token (replaces the old one)
+      expiresAt:
+        type: string
+        format: date-time
+        description: New refresh token expiration time
+
+  GetLoginURLResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        properties:
+          loginUrl:
+            type: string

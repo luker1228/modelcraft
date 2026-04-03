@@ -1,0 +1,31 @@
+# Base types and interfaces
+scalar Int64
+scalar Date
+scalar Time
+
+# Permission directive for operation-level authorization
+directive @hasPermission(action: String!) on FIELD_DEFINITION
+
+# Node interface for Relay specification
+interface Node {
+  id: ID!
+}
+
+# Pagination types
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Common queries
+type Query {
+  hello: String!
+  ping: String!
+  node(id: ID!): Node
+}
+
+type Mutation {
+  pong: String!
+}

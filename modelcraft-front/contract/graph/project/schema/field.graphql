@@ -1,0 +1,163 @@
+# Field-related types, inputs and mutations
+
+# SchemaType enum - 基础类型，决定查询操作（仅查询返回，输入时自动推导）
+enum SchemaType {
+  STRING
+  NUMBER
+  BOOLEAN
+  ARRAY
+  OBJECT
+}
+
+# FormatType enum - 格式类型，影响MySQL映射
+enum FormatType {
+  # 基于STRING
+  STRING
+  UUID  # UUIDV7格式（天然有序）
+  DATE
+  DATETIME
+  TIME
+
+  # 基于NUMBER
+  NUMBER
+  INTEGER
+  DECIMAL
+
+  # 基于BOOLEAN
+  BOOLEAN
+  RELATION
+
+  # 枚举类型
+  ENUM        # 单选枚举
+  ENUM_ARRAY  # 多选枚举
+  ENUM_LABEL  # 枚举标签（虚拟字段）
+}
+
+# Field type
+type Field {
+  name: String!
+  title: String!
+  
+  # 两层类型定义
+  schemaType: SchemaType!  # 自动从format推导
+  format: FormatType!
+  storageHint: String!
+  
+  nonNull: Boolean!
+  required: Boolean!
+  isUnique: Boolean!
+  isPrimary: Boolean!
+  isDeprecated: Boolean!
+  description: String
+  validationConfig: ValidationConfig
+  relateFkId: String       # RELATION 格式字段引用的逻辑外键 ID（nullable）
+  belongsToFkId: String    # FK 列字段引用的逻辑外键 ID（nullable）
+  enum: EnumDefinition  # 关联的枚举详情（查询时加载）
+  dbColumn: DbColumnInfo  # 实际数据库列信息（仅当 withActualSchema=true 时填充）
+  createdAt: String!
+  updatedAt: String!
+}
+
+# DbColumnInfo - 实际数据库列信息
+type DbColumnInfo {
+  columnType: String!                      # 实际 MySQL 列类型含长度（如 VARCHAR(256)、BIGINT、TEXT）
+  columnLength: Int64                      # 字符最大长度（仅适用于字符串类型，其他类型为 null）
+  unique: Boolean!                         # 是否有 UNIQUE 约束
+  nonNull: Boolean!                        # 是否为 NOT NULL
+  isPrimaryKey: Boolean!                   # 是否为 PRIMARY KEY
+  defaultValue: String                     # 默认值（如果有），NULL 表示无默认值
+  constraints: [ActualConstraintType!]!    # 实际约束：UNIQUE 和/或 NOT_NULL
+  foreignKey: ActualForeignKey             # 外键约束信息，无则为 null
+  conflicts: [FieldConflict!]!             # 设计时定义与实际 DB 的冲突
+}
+
+# ActualConstraintType - 实际约束类型
+enum ActualConstraintType {
+  UNIQUE
+  NOT_NULL
+}
+
+# ActualForeignKey - 实际外键信息
+type ActualForeignKey {
+  referencedTable: String!     # 引用的表名
+  referencedColumn: String!    # 引用的列名
+  constraintName: String!      # FK 约束名称（用于组合复合 FK）
+}
+
+# FieldConflict - 字段冲突信息
+type FieldConflict {
+  aspect: FieldConflictAspect!  # 冲突类型
+  expected: String!             # 设计时的值
+  actual: String!               # 实际 DB 的值
+}
+
+# FieldConflictAspect - 字段冲突方面
+enum FieldConflictAspect {
+  PRIMARY_MISMATCH     # PRIMARY KEY 约束不匹配
+  UNIQUE_MISMATCH      # UNIQUE 约束不匹配
+  NOT_NULL_MISMATCH    # NOT NULL 约束不匹配
+}
+
+# ValidationConfig types
+type ValidationConfig {
+  minLength: Int64
+  maxLength: Int64
+  pattern: String
+  minimum: Float
+  maximum: Float
+}
+
+# ValidationConfig Input
+input ValidationConfigInput {
+  minLength: Int64
+  maxLength: Int64
+  pattern: String
+  minimum: Float
+  maximum: Float
+}
+
+# EnumConfig Input - 枚举字段配置
+input EnumConfigInput {
+  enumName: String!
+  options: [EnumOptionInput!]
+  description: String
+  connectEnum: Boolean!
+}
+
+# EnumLabelConfig Input - 枚举标签虚拟字段配置
+input EnumLabelConfigInput {
+  sourceField: String!  # 源字段名称（枚举字段）
+}
+
+input AddFieldInput {
+  name: String!
+  title: String!
+  format: FormatType!  # 替换type，从format自动推导schemaType
+  storageHint: String  # 新增，可选
+  nonNull: Boolean = false #mongodb not support to set
+  required: Boolean = false
+  isUnique: Boolean = false
+  description: String
+  validationConfig: ValidationConfigInput
+  relateFkId: String               # RELATION 格式字段引用的逻辑外键 ID（可选）
+  enumConfig: EnumConfigInput          # 新增枚举配置
+  enumLabelConfig: EnumLabelConfigInput  # 枚举标签虚拟字段配置
+}
+
+input UpdateFieldInput {
+  title: String
+  description: String
+  validationConfig: ValidationConfigInput
+}
+
+# Field queries
+extend type Query {
+  fields(modelID: ID!): [Field!]! @hasPermission(action: "model:read")
+}
+
+# Field mutations
+extend type Mutation {
+  addFields(modelID: ID!, input: [AddFieldInput!]!): Model @hasPermission(action: "model:update")
+  updateField(modelID: ID!, fieldName: String!, input: UpdateFieldInput!): Model @hasPermission(action: "model:update")
+  removeField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
+}

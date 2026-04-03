@@ -1,0 +1,128 @@
+# Enum-related types, inputs and mutations
+
+# ============================================
+# Enum Error Types
+# ============================================
+
+# Enum-specific error types
+type EnumAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type EnumNotFound implements Error {
+  message: String!
+}
+
+type InvalidEnumInput implements Error {
+  message: String!
+  suggestion: String
+}
+
+type CannotDeleteReferencedEnum implements Error {
+  message: String!
+  suggestion: String
+}
+
+# Error unions for each mutation and query
+union GetEnumError = EnumNotFound | ProjectNotFound
+union CreateEnumError = EnumAlreadyExists | InvalidEnumInput | ProjectNotFound
+union UpdateEnumError = EnumNotFound | InvalidEnumInput | ProjectNotFound
+union DeleteEnumError = EnumNotFound | CannotDeleteReferencedEnum | ProjectNotFound
+
+# ============================================
+# Enum Payload Types
+# ============================================
+
+type GetEnumPayload {
+  enum: EnumDefinition
+  error: GetEnumError
+}
+
+type CreateEnumPayload {
+  enum: EnumDefinition
+  error: CreateEnumError
+}
+
+type UpdateEnumPayload {
+  enum: EnumDefinition
+  error: UpdateEnumError
+}
+
+type DeleteEnumPayload {
+  success: Boolean!
+  error: DeleteEnumError
+}
+
+# ============================================
+# Enum Types
+# ============================================
+
+# EnumOption type - 枚举选项
+# code 在同一枚举内必须唯一，label 可以重复
+type EnumOption {
+  code: String!  # 唯一标识，同一枚举内不可重复
+  label: String!  # 显示名称，同一枚举内可以重复
+  order: Int!
+  description: String
+}
+
+# EnumDefinition type - 枚举定义
+type EnumDefinition {
+  id: ID!
+  projectSlug: String!  # Project slug (orgName from context)
+  name: String!
+  displayName: String!
+  description: String
+  options: [EnumOption!]!
+  isMultiSelect: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# EnumOption input - 枚举选项输入（code 在同一枚举内必须唯一，label 可以重复）
+input EnumOptionInput {
+  code: String!  # 唯一标识，同一枚举内不可重复
+  label: String!  # 显示名称，同一枚举内可以重复
+  order: Int!
+  description: String
+}
+
+# CreateEnumInput - 创建枚举输入
+input CreateEnumInput {
+  name: String!
+  displayName: String!
+  description: String
+  options: [EnumOptionInput!]!
+}
+
+# UpdateEnumInput - 更新枚举输入
+input UpdateEnumInput {
+  displayName: String
+  description: String
+  options: [EnumOptionInput!]
+}
+
+# Enum queries
+extend type Query {
+  # 获取单个枚举定义
+  enum(name: String!): GetEnumPayload! @hasPermission(action: "enum:read")
+
+  # 列出所有枚举定义
+  enums: [EnumDefinition!]! @hasPermission(action: "enum:read")
+
+  # 获取枚举的引用字段列表
+  enumReferences(name: String!): [String!]! @hasPermission(action: "enum:read")
+}
+
+# Enum mutations
+extend type Mutation {
+  # 创建枚举定义
+  createEnum(input: CreateEnumInput!): CreateEnumPayload! @hasPermission(action: "enum:create")
+
+  # 更新枚举定义
+  updateEnum(name: String!, input: UpdateEnumInput!): UpdateEnumPayload! @hasPermission(action: "enum:update")
+
+  # 删除枚举定义
+  deleteEnum(name: String!): DeleteEnumPayload! @hasPermission(action: "enum:delete")
+}

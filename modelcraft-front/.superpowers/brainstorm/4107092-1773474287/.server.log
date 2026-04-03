@@ -1,0 +1,15 @@
+{"type":"server-started","port":50084,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:50084","screen_dir":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/style-comparison.html"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/style-comparison-v2.html"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/design-system-demo.html"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/blue-comparison.html"}
+{"type":"screen-updated","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/design-system-demo.html"}
+{"type":"screen-updated","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/design-system-demo.html"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/red-comparison.html"}
+{"type":"screen-updated","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/design-system-demo.html"}
+{"type":"screen-updated","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/design-system-demo.html"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/design-system-demo-v2.html"}
+{"type":"screen-added","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/table-editor-demo.html"}
+{"type":"screen-updated","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/table-editor-demo.html"}
+{"type":"screen-updated","file":"/root/modelcraft_project/modelcraft-front/.superpowers/brainstorm/4107092-1773474287/table-editor-demo.html"}
+{"type":"server-stopped","reason":"idle timeout"}

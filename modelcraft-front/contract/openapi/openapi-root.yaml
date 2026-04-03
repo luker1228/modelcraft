@@ -1,0 +1,104 @@
+openapi: "3.0.3"
+info:
+  title: ModelCraft REST API
+  description: |
+    REST API for tenant management (Auth & Organization) in the ModelCraft platform.
+
+    Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively
+    via GraphQL at /org/{orgName}/design/graphql. This OpenAPI spec covers only identity and
+    tenant-management endpoints.
+  version: "2.1.0"
+
+servers:
+  - url: http://localhost:8080
+    description: Local development server
+
+security:
+  - BearerAuth: []
+
+paths:
+  # ========================
+  # Auth Endpoints
+  # ========================
+  /api/auth/token:
+    $ref: "auth.yaml#/paths/~1api~1auth~1token"
+  /api/auth/login-url:
+    $ref: "auth.yaml#/paths/~1api~1auth~1login-url"
+  /api/auth/logout:
+    $ref: "auth.yaml#/paths/~1api~1auth~1logout"
+  /api/auth/refresh:
+    $ref: "auth.yaml#/paths/~1api~1auth~1refresh"
+
+  # ========================
+  # User Endpoints
+  # ========================
+  /api/user/memberships:
+    $ref: "user.yaml#/paths/~1api~1user~1memberships"
+
+  # ========================
+  # Organization Endpoints
+  # ========================
+  /api/org/init:
+    $ref: "org.yaml#/paths/~1api~1org~1init"
+
+  # ========================
+  # Webhook Endpoints
+  # ========================
+  /api/webhook/casdoor:
+    $ref: "webhook.yaml#/paths/~1api~1webhook~1casdoor"
+
+components:
+  securitySchemes:
+    BearerAuth:
+      $ref: "common.yaml#/securitySchemes/BearerAuth"
+
+  schemas:
+    # -- Common --
+    BaseResponse:
+      $ref: "common.yaml#/schemas/BaseResponse"
+    SystemError:
+      $ref: "common.yaml#/schemas/SystemError"
+    AuthenticationFailedError:
+      $ref: "common.yaml#/schemas/AuthenticationFailedError"
+    UnauthorizedError:
+      $ref: "common.yaml#/schemas/UnauthorizedError"
+
+    # -- Auth --
+    AuthInvalidInputError:
+      $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+    TokenRequest:
+      $ref: "auth.yaml#/schemas/TokenRequest"
+    RefreshTokenRequest:
+      $ref: "auth.yaml#/schemas/RefreshTokenRequest"
+    ExchangeTokenResponse:
+      $ref: "auth.yaml#/schemas/ExchangeTokenResponse"
+    GetLoginURLResponse:
+      $ref: "auth.yaml#/schemas/GetLoginURLResponse"
+    LogoutResponse:
+      $ref: "auth.yaml#/schemas/LogoutResponse"
+
+    # -- User --
+    GetMembershipsResponse:
+      $ref: "user.yaml#/components/schemas/GetMembershipsResponse"
+    MembershipInfo:
+      $ref: "user.yaml#/components/schemas/MembershipInfo"
+
+    # -- Organization --
+    OrgInvalidInputError:
+      $ref: "org.yaml#/schemas/OrgInvalidInputError"
+    OrgAlreadyExistsError:
+      $ref: "org.yaml#/schemas/OrgAlreadyExistsError"
+    InitOrganizationRequest:
+      $ref: "org.yaml#/schemas/InitOrganizationRequest"
+    InitOrganizationResponse:
+      $ref: "org.yaml#/schemas/InitOrganizationResponse"
+
+    # -- Webhook --
+    WebhookInvalidPayloadError:
+      $ref: "webhook.yaml#/schemas/WebhookInvalidPayloadError"
+    CasdoorWebhookPayload:
+      $ref: "webhook.yaml#/schemas/CasdoorWebhookPayload"
+    CasdoorExtendedUser:
+      $ref: "webhook.yaml#/schemas/CasdoorExtendedUser"
+    HandleWebhookResponse:
+      $ref: "webhook.yaml#/schemas/HandleWebhookResponse"

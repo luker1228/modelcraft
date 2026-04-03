@@ -1,0 +1,114 @@
+# Webhook Domain - paths + schemas
+
+paths:
+  /api/webhook/casdoor:
+    post:
+      operationId: handleCasdoorWebhook
+      summary: Handle Casdoor webhook events
+      tags: [Webhook]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "webhook.yaml#/schemas/CasdoorWebhookPayload"
+      responses:
+        "200":
+          description: Webhook processed
+          content:
+            application/json:
+              schema:
+                $ref: "webhook.yaml#/schemas/HandleWebhookResponse"
+        "400":
+          description: Invalid payload
+          content:
+            application/json:
+              schema:
+                $ref: "webhook.yaml#/schemas/WebhookInvalidPayloadError"
+        "401":
+          description: Invalid webhook secret
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/AuthenticationFailedError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
+schemas:
+  # -- Webhook domain errors --
+  WebhookInvalidPayloadError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - PARAM_INVALID.WEBHOOK
+          message:
+            type: string
+
+  # -- Webhook types --
+  CasdoorWebhookPayload:
+    type: object
+    properties:
+      id:
+        type: integer
+      owner:
+        type: string
+      name:
+        type: string
+      organization:
+        type: string
+      user:
+        type: string
+      action:
+        type: string
+      object:
+        type: string
+        description: JSON string of user object
+      response:
+        type: string
+      extendedUser:
+        $ref: "webhook.yaml#/schemas/CasdoorExtendedUser"
+
+  CasdoorExtendedUser:
+    type: object
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+      displayName:
+        type: string
+      email:
+        type: string
+      phone:
+        type: string
+      owner:
+        type: string
+
+  # -- Webhook response types --
+  HandleWebhookResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        properties:
+          userID:
+            type: string
+          action:
+            type: string

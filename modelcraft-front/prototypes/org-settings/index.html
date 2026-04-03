@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>组织设置 - ModelCraft 原型图</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Shared Layout Styles -->
+  <link href="../shared/layout-styles.css" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Page Specific Styles -->
+  <style>
+    /* Settings Section */
+    .settings-section {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      margin-bottom: 24px;
+    }
+
+    .settings-section-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .settings-section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .settings-section-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
+    .settings-section-body {
+      padding: 24px;
+    }
+
+    /* Form Row */
+    .form-row {
+      display: flex;
+      align-items: start;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+
+    .form-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .form-label-col {
+      flex: 0 0 200px;
+      padding-top: 8px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .form-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    .form-control-col {
+      flex: 1;
+      max-width: 500px;
+    }
+
+    .form-control {
+      width: 100%;
+    }
+
+    .form-control-hint {
+      font-size: 12px;
+      color: var(--text-tertiary);
+      margin-top: 6px;
+    }
+
+    /* Avatar Upload */
+    .avatar-upload {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .avatar-preview {
+      width: 80px;
+      height: 80px;
+      border-radius: 8px;
+      background: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 600;
+      color: white;
+      flex-shrink: 0;
+    }
+
+    .avatar-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* Danger Zone */
+    .danger-zone {
+      background: white;
+      border: 1px solid var(--destructive-light);
+      border-radius: 8px;
+    }
+
+    .danger-zone .settings-section-header {
+      border-bottom-color: var(--destructive-light);
+    }
+
+    .danger-zone .settings-section-title {
+      color: var(--destructive);
+    }
+
+    /* Action Footer */
+    .settings-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-top: 24px;
+      border-top: 1px solid var(--border);
+    }
+
+    .settings-footer-hint {
+      font-size: 13px;
+      color: var(--text-tertiary);
+    }
+
+    .settings-footer-actions {
+      display: flex;
+      gap: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ===== Topbar ===== -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-org-selector">
+          <div class="topbar-logo">
+            <i data-lucide="sparkles"></i>
+          </div>
+        </button>
+      </div>
+
+      <div class="topbar-center">
+        <nav class="topbar-breadcrumb">
+          <span style="font-weight: 500; color: var(--text-primary);">luke11的工作空间</span>
+          <span class="topbar-breadcrumb-separator">/</span>
+          <span style="color: var(--text-primary);">组织设置</span>
+        </nav>
+      </div>
+
+      <div class="topbar-right">
+        <button class="topbar-btn" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+        <button class="topbar-btn" title="通知">
+          <i data-lucide="bell"></i>
+          <span class="topbar-btn-badge"></span>
+        </button>
+        <button class="topbar-btn" title="刷新">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+        <button class="topbar-btn" title="帮助">
+          <i data-lucide="help-circle"></i>
+        </button>
+
+        <div class="topbar-divider"></div>
+
+        <button class="topbar-user">
+          <div class="topbar-user-avatar">张</div>
+          <i data-lucide="chevron-down"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Main Area ===== -->
+    <div class="main-area">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-content">
+          <div class="sidebar-section">
+            <nav>
+              <a href="#" class="sidebar-nav-item">
+                <i data-lucide="folder-open"></i>
+                <span>项目</span>
+              </a>
+              <a href="#" class="sidebar-nav-item">
+                <i data-lucide="users"></i>
+                <span>团队</span>
+              </a>
+              <a href="#" class="sidebar-nav-item active">
+                <i data-lucide="settings"></i>
+                <span>组织设置</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button class="sidebar-toggle">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div style="max-width: 900px; margin: 0 auto; padding: 24px;">
+          
+          <!-- Page Header -->
+          <div style="margin-bottom: 32px;">
+            <h1 style="font-size: 24px; font-weight: 600; color: var(--text-primary);">组织设置</h1>
+          </div>
+
+          <!-- General Settings -->
+          <div class="settings-section animate-fade-in">
+            <div class="settings-section-header">
+              <h2 class="settings-section-title">基本信息</h2>
+              <p class="settings-section-description">管理组织的基本信息和标识</p>
+            </div>
+            <div class="settings-section-body">
+              <!-- Organization Name -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">组织名称</label>
+                  <p class="form-hint">显示给成员的组织名称</p>
+                </div>
+                <div class="form-control-col">
+                  <input type="text" class="form-control" value="luke11的工作空间" />
+                  <p class="form-control-hint">此名称将显示在所有页面的顶部</p>
+                </div>
+              </div>
+
+              <!-- Organization Slug -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">组织标识</label>
+                  <p class="form-hint">用于 URL 的唯一标识</p>
+                </div>
+                <div class="form-control-col">
+                  <input type="text" class="form-control" value="luke11dgzkj" disabled style="background: var(--bg-primary); color: var(--text-tertiary); cursor: not-allowed;" />
+                  <p class="form-control-hint">组织标识创建后不可更改</p>
+                </div>
+              </div>
+
+              <!-- Organization Avatar -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">组织头像</label>
+                  <p class="form-hint">显示在导航栏的图标</p>
+                </div>
+                <div class="form-control-col">
+                  <div class="avatar-upload">
+                    <div class="avatar-preview">L</div>
+                    <div class="avatar-actions">
+                      <button class="btn-secondary" style="height: 32px; padding: 6px 12px; font-size: 13px;">
+                        <i data-lucide="upload"></i>
+                        上传图片
+                      </button>
+                      <button class="btn-ghost" style="height: 32px; padding: 6px 12px; font-size: 13px; color: var(--text-tertiary);">
+                        移除
+                      </button>
+                    </div>
+                  </div>
+                  <p class="form-control-hint">建议尺寸：256x256 像素，支持 JPG、PNG 格式</p>
+                </div>
+              </div>
+
+              <!-- Organization Description -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">组织描述</label>
+                  <p class="form-hint">简短的组织介绍</p>
+                </div>
+                <div class="form-control-col">
+                  <textarea class="form-control" rows="3" placeholder="输入组织描述..."></textarea>
+                  <p class="form-control-hint">向成员介绍您的组织</p>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="settings-footer">
+                <p class="settings-footer-hint">更改将立即生效</p>
+                <div class="settings-footer-actions">
+                  <button class="btn-secondary">取消</button>
+                  <button class="btn-primary">保存更改</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Member Permissions -->
+          <div class="settings-section animate-fade-in">
+            <div class="settings-section-header">
+              <h2 class="settings-section-title">成员权限</h2>
+              <p class="settings-section-description">配置组织成员的默认权限</p>
+            </div>
+            <div class="settings-section-body">
+              <!-- Default Role -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">默认角色</label>
+                  <p class="form-hint">新成员加入时的默认角色</p>
+                </div>
+                <div class="form-control-col">
+                  <select class="form-control" style="cursor: pointer;">
+                    <option value="member" selected>成员</option>
+                    <option value="viewer">观察者</option>
+                  </select>
+                  <p class="form-control-hint">管理员需要手动设置</p>
+                </div>
+              </div>
+
+              <!-- Allow Member Invite -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">成员邀请</label>
+                  <p class="form-hint">允许成员邀请新成员</p>
+                </div>
+                <div class="form-control-col">
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer;" checked />
+                    <span style="font-size: 14px; color: var(--text-primary);">允许所有成员邀请新成员</span>
+                  </label>
+                  <p class="form-control-hint">取消勾选后，只有管理员可以邀请新成员</p>
+                </div>
+              </div>
+
+              <!-- Allow Project Creation -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">项目创建</label>
+                  <p class="form-hint">允许成员创建新项目</p>
+                </div>
+                <div class="form-control-col">
+                  <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                    <input type="checkbox" style="width: 16px; height: 16px; cursor: pointer;" checked />
+                    <span style="font-size: 14px; color: var(--text-primary);">允许所有成员创建项目</span>
+                  </label>
+                  <p class="form-control-hint">取消勾选后，只有管理员可以创建项目</p>
+                </div>
+              </div>
+
+              <!-- Save Button -->
+              <div class="settings-footer">
+                <p class="settings-footer-hint">更改将立即生效</p>
+                <div class="settings-footer-actions">
+                  <button class="btn-secondary">取消</button>
+                  <button class="btn-primary">保存更改</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Billing Settings -->
+          <div class="settings-section animate-fade-in">
+            <div class="settings-section-header">
+              <h2 class="settings-section-title">订阅与账单</h2>
+              <p class="settings-section-description">管理组织的订阅计划和账单信息</p>
+            </div>
+            <div class="settings-section-body">
+              <!-- Current Plan -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">当前计划</label>
+                  <p class="form-hint">您正在使用的订阅计划</p>
+                </div>
+                <div class="form-control-col">
+                  <div style="display: flex; align-items: center; gap: 12px; padding: 16px; background: var(--bg-primary); border: 1px solid var(--border); border-radius: 6px;">
+                    <div style="flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                        <span style="font-size: 16px; font-weight: 600; color: var(--text-primary);">免费计划</span>
+                        <span class="badge-neutral">当前</span>
+                      </div>
+                      <p style="font-size: 13px; color: var(--text-secondary);">最多 5 个成员，3 个项目</p>
+                    </div>
+                    <button class="btn-secondary" style="height: 32px; padding: 6px 12px; font-size: 13px;">
+                      升级计划
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Usage Stats -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">使用情况</label>
+                  <p class="form-hint">当前用量统计</p>
+                </div>
+                <div class="form-control-col">
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <!-- Members Usage -->
+                    <div>
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 13px; color: var(--text-secondary);">成员数量</span>
+                        <span style="font-size: 13px; font-weight: 500; color: var(--text-primary);">3 / 5</span>
+                      </div>
+                      <div style="height: 6px; background: var(--bg-primary); border-radius: 3px; overflow: hidden;">
+                        <div style="width: 60%; height: 100%; background: var(--primary);"></div>
+                      </div>
+                    </div>
+                    <!-- Projects Usage -->
+                    <div>
+                      <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+                        <span style="font-size: 13px; color: var(--text-secondary);">项目数量</span>
+                        <span style="font-size: 13px; font-weight: 500; color: var(--text-primary);">2 / 3</span>
+                      </div>
+                      <div style="height: 6px; background: var(--bg-primary); border-radius: 3px; overflow: hidden;">
+                        <div style="width: 66%; height: 100%; background: var(--primary);"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Danger Zone -->
+          <div class="settings-section danger-zone animate-fade-in">
+            <div class="settings-section-header">
+              <h2 class="settings-section-title">危险区域</h2>
+              <p class="settings-section-description">这些操作不可逆，请谨慎操作</p>
+            </div>
+            <div class="settings-section-body">
+              <!-- Transfer Ownership -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label">转移所有权</label>
+                  <p class="form-hint">将组织转移给其他成员</p>
+                </div>
+                <div class="form-control-col">
+                  <button class="btn-secondary" style="height: 36px;">
+                    转移组织
+                  </button>
+                  <p class="form-control-hint">转移后，您将失去所有者权限</p>
+                </div>
+              </div>
+
+              <!-- Delete Organization -->
+              <div class="form-row">
+                <div class="form-label-col">
+                  <label class="form-label" style="color: var(--destructive);">删除组织</label>
+                  <p class="form-hint">永久删除此组织及所有数据</p>
+                </div>
+                <div class="form-control-col">
+                  <button class="btn-secondary" style="height: 36px; color: var(--destructive); border-color: var(--destructive-light);">
+                    <i data-lucide="trash-2"></i>
+                    删除组织
+                  </button>
+                  <p class="form-control-hint" style="color: var(--destructive);">此操作无法撤销，所有项目和成员数据将被永久删除</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

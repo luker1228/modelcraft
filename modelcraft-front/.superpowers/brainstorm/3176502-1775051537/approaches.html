@@ -1,0 +1,81 @@
+<h2>动态表单 — 3 种方案对比</h2>
+<p class="subtitle">选择你倾向的实现方向（可点击卡片查看详情）</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>轻量改造（推荐）</h3>
+      <p>在现有 DynamicModelTable 内部，将手写 if-else 表单替换为 <code>DynamicFormField</code> 组件，同时在字段 mutation 加上 <code>refetchQueries</code>。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优点</h4>
+          <ul>
+            <li>改动范围小，风险低</li>
+            <li>复用现有 schema-transformer.ts</li>
+            <li>不引入新依赖</li>
+            <li>1-2天可完成</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>缺点</h4>
+          <ul>
+            <li>DynamicModelTable 文件已经很大，继续增大</li>
+            <li>RELATION 选择器需要自己写</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>独立表单模块</h3>
+      <p>将表单逻辑完全抽离到独立的 <code>ModelRecordForm</code> 模块，包含 <code>DynamicFormField</code>、<code>RelationPicker</code>、<code>useFormSchema</code> hook，DynamicModelTable 只负责表格展示。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优点</h4>
+          <ul>
+            <li>职责清晰，表格与表单解耦</li>
+            <li>表单可在其他地方复用</li>
+            <li>文件结构更清晰</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>缺点</h4>
+          <ul>
+            <li>需要明确接口设计</li>
+            <li>3-4天完成</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="c" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>引入 Formily / react-hook-form</h3>
+      <p>引入成熟的 schema-driven 表单库（如 Formily），JSON Schema 直接驱动表单渲染，项目中已有 schema-transformer 可对接。</p>
+      <div class="pros-cons">
+        <div class="pros">
+          <h4>优点</h4>
+          <ul>
+            <li>功能强大（联动、条件显示）</li>
+            <li>schema-transformer.ts 已有 Formily 相关逻辑</li>
+          </ul>
+        </div>
+        <div class="cons">
+          <h4>缺点</h4>
+          <ul>
+            <li>引入重型依赖</li>
+            <li>学习成本高</li>
+            <li>当前需求不需要联动等复杂特性</li>
+            <li>5-7天完成</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

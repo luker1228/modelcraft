@@ -1,0 +1,298 @@
+<!--
+  =====================================================
+  TopBar Component (Updated)
+  =====================================================
+  用于所有页面的顶部导航栏
+
+  使用方式：通过 iframe 或直接复制 HTML 到页面
+
+  Props:
+  - breadcrumbs: 面包屑导航数组
+  - showSearch: 是否显示搜索按钮 (default: true)
+  - showNotification: 是否显示通知按钮 (default: true)
+
+  设计规范：
+  - 高度: 56px
+  - 背景: white
+  - 边框: 1px solid #e5e7eb (bottom)
+  - 按钮: 32x32px, hover: #fafafa
+  - 三段式布局：左侧组织选择器、中间面包屑、右侧操作按钮
+  - 左侧区域宽度与 Sidebar 对齐：264px (展开) / 64px (折叠)
+  =====================================================
+-->
+<style>
+  :root {
+    --sidebar-width: 264px;
+    --sidebar-collapsed-width: 64px;
+  }
+
+  .topbar {
+    height: 56px;
+    background: white;
+    border-bottom: 1px solid #e5e7eb;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    flex-shrink: 0;
+  }
+
+  /* Left Section - Org Selector (matches sidebar width) */
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    width: var(--sidebar-width);
+    flex-shrink: 0;
+  }
+
+  .topbar.collapsed .topbar-left {
+    width: var(--sidebar-collapsed-width);
+  }
+
+  .topbar-org-selector {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    background: none;
+    border: none;
+    text-align: left;
+    width: 100%;
+  }
+
+  .topbar-org-selector:hover {
+    background-color: #fafafa;
+  }
+
+  .topbar-logo {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .topbar-logo svg {
+    width: 16px;
+    height: 16px;
+    color: white;
+    stroke-width: 1.5;
+  }
+
+  .topbar-org-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .topbar-org-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .topbar-org-name-text {
+    font-size: 14px;
+    font-weight: 600;
+    color: #111827;
+  }
+
+  .topbar-org-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 10px;
+    font-weight: 500;
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  .topbar-org-context {
+    font-size: 12px;
+    color: #9ca3af;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Center Section - Breadcrumb */
+  .topbar-center {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding-left: 16px;
+  }
+
+  .topbar-breadcrumb {
+    display: flex;
+    align-items: center;
+    font-size: 14px;
+  }
+
+  .topbar-breadcrumb-org-icon {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    background: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 600;
+    color: white;
+  }
+
+  .topbar-breadcrumb-separator {
+    margin: 0 8px;
+    color: #d1d5db;
+  }
+
+  /* Right Section - Actions */
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .topbar-btn {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    transition: all 0.15s;
+    color: #6b7280;
+    background: none;
+    border: none;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .topbar-btn:hover {
+    background-color: #fafafa;
+    color: #111827;
+  }
+
+  .topbar-btn svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 1.5;
+  }
+
+  .topbar-btn-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 6px;
+    height: 6px;
+    border-radius: 9999px;
+    background: #ef4444;
+  }
+
+  .topbar-divider {
+    width: 1px;
+    height: 20px;
+    background: #e5e7eb;
+    margin: 0 8px;
+  }
+
+  .topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    background: none;
+    border: none;
+  }
+
+  .topbar-user:hover {
+    background-color: #fafafa;
+  }
+
+  .topbar-user-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 9999px;
+    background: #2563eb;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: white;
+  }
+
+  .topbar-user svg {
+    width: 16px;
+    height: 16px;
+    color: #9ca3af;
+    stroke-width: 1.5;
+  }
+
+  /* Collapsed state - hide org info */
+  .topbar.collapsed .topbar-org-info {
+    display: none;
+  }
+</style>
+
+<!-- TopBar - Expanded State -->
+<header class="topbar" id="topbar-component">
+  <!-- Left: Org Selector -->
+  <div class="topbar-left">
+    <button class="topbar-org-selector">
+      <div class="topbar-logo">
+        <i data-lucide="sparkles"></i>
+      </div>
+      <div class="topbar-org-info">
+        <div class="topbar-org-name">
+          <span class="topbar-org-name-text">ModelCraft Team</span>
+          <span class="topbar-org-badge">FREE</span>
+        </div>
+        <div class="topbar-org-context">工作空间</div>
+      </div>
+    </button>
+  </div>
+
+  <!-- Center: Breadcrumb -->
+  <div class="topbar-center">
+    <nav class="topbar-breadcrumb">
+      <div class="topbar-breadcrumb-org-icon">M</div>
+      <span style="margin-left: 6px; font-weight: 500; color: #111827;">ModelCraft Team</span>
+      <span class="topbar-breadcrumb-separator">/</span>
+      <span style="color: #111827;">所有项目</span>
+    </nav>
+  </div>
+
+  <!-- Right: Actions -->
+  <div class="topbar-right">
+    <button class="topbar-btn" title="搜索">
+      <i data-lucide="search"></i>
+    </button>
+    <button class="topbar-btn" title="通知">
+      <i data-lucide="bell"></i>
+      <span class="topbar-btn-badge"></span>
+    </button>
+    <button class="topbar-btn" title="刷新">
+      <i data-lucide="refresh-cw"></i>
+    </button>
+    <button class="topbar-btn" title="帮助">
+      <i data-lucide="help-circle"></i>
+    </button>
+
+    <div class="topbar-divider"></div>
+
+    <button class="topbar-user">
+      <div class="topbar-user-avatar">张</div>
+      <i data-lucide="chevron-down"></i>
+    </button>
+  </div>
+</header>

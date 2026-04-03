@@ -1,0 +1,76 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+# 明确指定包发现规则，避免多个顶级包目录的冲突
+# 注意：这是一个Go项目，此配置仅用于可选的Python测试依赖
+packages = []  # 不安装任何Python包，仅安装依赖
+
+[project]
+name = "modelcraft-go-tests"
+version = "1.0.0"
+description = "Optional Python test dependencies for ModelCraft Go project"
+readme = "README.md"
+authors = [
+    {name = "ModelCraft Team"}
+]
+requires-python = ">=3.8,<3.12"
+# 将所有依赖设为可选，用户可以选择性安装
+dependencies = []
+
+[project.optional-dependencies]
+# 测试依赖（可选安装）
+test = [
+    "pytest==7.4.0",
+    "requests==2.31.0",
+    "pytest-html==3.2.0",
+    "python-dotenv==1.0.0",
+    "faker==19.6.2",
+    "gql>=3.0.0",
+    "requests-toolbelt>=0.10.0",
+    "pymysql>=1.1.0"
+]
+# 开发依赖（可选安装）
+dev = [
+    "black",
+    "flake8",
+    "mypy",
+    "pytest-cov"
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--verbose",
+    "--tb=short",
+    "--strict-markers",
+    "--strict-config"
+]
+markers = [
+    "integration: integration tests",
+    "unit: unit tests",
+    "slow: tests that take a long time to run"
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py38']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | build
+  | dist
+)/
+'''

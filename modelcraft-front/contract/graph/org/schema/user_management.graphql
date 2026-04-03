@@ -1,0 +1,173 @@
+# User, Organization, and Role management types, inputs, queries and mutations
+
+# ============================================
+# Organization Types
+# ============================================
+
+# Organization status enum
+enum OrganizationStatus {
+  ACTIVE
+  SUSPENDED
+  DELETED
+}
+
+# Organization type
+type Organization {
+  id: ID!
+  name: String!
+  displayName: String
+  ownerID: String!
+  status: OrganizationStatus!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ============================================
+# Role Types
+# ============================================
+
+# Role type representing RBAC role with permissions
+type Role {
+  id: ID!
+  name: String!
+  description: String
+  permissions: [String!]!
+  isSystem: Boolean!
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ============================================
+# Organization Member Types
+# ============================================
+
+# Membership status enum
+enum MembershipStatus {
+  ACTIVE
+  SUSPENDED
+  INVITED
+}
+
+# OrganizationMember represents a user's membership in an organization
+type OrganizationMember {
+  id: ID!
+  userID: String!
+  userName: String!
+  orgID: String!
+  role: Role!
+  status: MembershipStatus!
+  joinedAt: String
+  createdAt: String!
+}
+
+# Current user info (from JWT claims + database)
+type CurrentUser {
+  id: String!
+  externalID: String!
+  email: String!
+  name: String!
+  organization: Organization
+  role: Role
+  permissions: [String!]!
+}
+
+# ============================================
+# Error Types
+# ============================================
+
+type OrganizationNotFound implements Error {
+  message: String!
+}
+
+type RoleNotFound implements Error {
+  message: String!
+}
+
+type RoleAlreadyExists implements Error {
+  message: String!
+}
+
+type InvalidRoleInput implements Error {
+  message: String!
+  suggestion: String
+}
+
+type CannotDeleteSystemRole implements Error {
+  message: String!
+}
+
+# Error unions
+union GetOrganizationError = OrganizationNotFound
+union CreateRoleError = RoleAlreadyExists | InvalidRoleInput
+union DeleteRoleError = RoleNotFound | CannotDeleteSystemRole
+
+# ============================================
+# Payload Types
+# ============================================
+
+type GetOrganizationPayload {
+  organization: Organization
+  error: GetOrganizationError
+}
+
+type UpdateOrganizationPayload {
+  organization: Organization
+  error: GetOrganizationError
+}
+
+type CreateRolePayload {
+  role: Role
+  error: CreateRoleError
+}
+
+type DeleteRolePayload {
+  success: Boolean!
+  error: DeleteRoleError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input UpdateOrganizationInput {
+  displayName: String
+}
+
+input CreateRoleInput {
+  name: String!
+  description: String
+  permissions: [String!]!
+}
+
+# ============================================
+# Queries
+# ============================================
+
+extend type Query {
+  # Get the current authenticated user's info
+  me: CurrentUser!
+
+  # Get organizations the current user belongs to
+  myOrganizations: [Organization!]!
+
+  # Get members of the current organization
+  organizationMembers: [OrganizationMember!]! @hasPermission(action: "user:list")
+
+  # List all available roles
+  roles: [Role!]! @hasPermission(action: "role:read")
+}
+
+# ============================================
+# Mutations
+# ============================================
+
+extend type Mutation {
+  # Update organization display name (Owner/Admin only)
+  updateOrganization(input: UpdateOrganizationInput!): UpdateOrganizationPayload! @hasPermission(action: "organization:update")
+
+  # Create a custom role (Owner only)
+  createRole(input: CreateRoleInput!): CreateRolePayload! @hasPermission(action: "role:manage")
+
+  # Delete a custom role (Owner only, system roles cannot be deleted)
+  deleteRole(id: ID!): DeleteRolePayload! @hasPermission(action: "role:manage")
+}

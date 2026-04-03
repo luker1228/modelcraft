@@ -1,0 +1,145 @@
+# Querier 接口完整方法签名列表 (125个方法)
+
+## 1. CREATE 操作 (约15个)
+ArchiveProject(ctx context.Context, arg ArchiveProjectParams) error
+CreateDatabaseCluster(ctx context.Context, arg CreateDatabaseClusterParams) error
+CreateEnumDefinition(ctx context.Context, arg CreateEnumDefinitionParams) error
+CreateFieldDefinition(ctx context.Context, arg CreateFieldDefinitionParams) error
+CreateFieldEnumAssociation(ctx context.Context, arg CreateFieldEnumAssociationParams) error
+CreateLogicalForeignKey(ctx context.Context, arg CreateLogicalForeignKeyParams) error
+CreateMembership(ctx context.Context, arg CreateMembershipParams) error
+CreateModel(ctx context.Context, arg CreateModelParams) error
+CreateModelGroup(ctx context.Context, arg CreateModelGroupParams) error
+CreateOrganization(ctx context.Context, arg CreateOrganizationParams) error
+CreatePermission(ctx context.Context, arg CreatePermissionParams) error
+CreateProject(ctx context.Context, arg CreateProjectParams) error
+CreateRole(ctx context.Context, arg CreateRoleParams) (sql.Result, error)
+CreateUser(ctx context.Context, arg CreateUserParams) error
+CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (sql.Result, error)
+
+## 2. GET 操作 (按ID获取) (约25个)
+GetAPIKeyByHash(ctx context.Context, keyHash string) (ApiKey, error)
+GetAPIKeyByID(ctx context.Context, id string) (ApiKey, error)
+GetAllModels(ctx context.Context) ([]Model, error)
+GetDatabaseClusterByID(ctx context.Context, arg GetDatabaseClusterByIDParams) (DatabaseCluster, error)
+GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDatabaseClusterByProjectKeyParams) (DatabaseCluster, error)
+GetEnumByID(ctx context.Context, id string) (ModelEnum, error)
+GetEnumByName(ctx context.Context, arg GetEnumByNameParams) (ModelEnum, error)
+GetEnumReferencesByName(ctx context.Context, arg GetEnumReferencesByNameParams) ([]GetEnumReferencesByNameRow, error)
+GetEnumsByNames(ctx context.Context, arg GetEnumsByNamesParams) ([]ModelEnum, error)
+GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByModelIDAndNameParams) (FieldDefinition, error)
+GetFieldEnumAssociationByField(ctx context.Context, arg GetFieldEnumAssociationByFieldParams) (ModelFieldEnumAssociation, error)
+GetFieldEnumAssociationsByEnumName(ctx context.Context, arg GetFieldEnumAssociationsByEnumNameParams) ([]ModelFieldEnumAssociation, error)
+GetFieldEnumAssociationsByModelID(ctx context.Context, modelID string) ([]ModelFieldEnumAssociation, error)
+GetFieldsByModelID(ctx context.Context, modelID string) ([]FieldDefinition, error)
+GetLogicalForeignKeyByID(ctx context.Context, id string) (LogicalForeignKey, error)
+GetMembershipByID(ctx context.Context, id string) (UserOrganization, error)
+GetMembershipByUserAndOrg(ctx context.Context, arg GetMembershipByUserAndOrgParams) (UserOrganization, error)
+GetModelByID(ctx context.Context, id string) (Model, error)
+GetModelByName(ctx context.Context, arg GetModelByNameParams) (Model, error)
+GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
+GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
+GetOrganizationByName(ctx context.Context, name string) (Organization, error)
+GetProjectByClusterID(ctx context.Context, arg GetProjectByClusterIDParams) (Project, error)
+GetProjectBySlugAndOrg(ctx context.Context, arg GetProjectBySlugAndOrgParams) (Project, error)
+GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
+GetRoleByID(ctx context.Context, id int64) (Role, error)
+GetRoleByName(ctx context.Context, name string) (Role, error)
+GetRoleByNameAndOrg(ctx context.Context, arg GetRoleByNameAndOrgParams) (Role, error)
+GetSystemRoleByName(ctx context.Context, name string) (Role, error)
+GetTailFieldDisplayOrder(ctx context.Context, modelID string) (string, error)
+GetTailModelGroupDisplayOrder(ctx context.Context, arg GetTailModelGroupDisplayOrderParams) (string, error)
+GetUserByExternalID(ctx context.Context, externalID string) (User, error)
+GetUserByID(ctx context.Context, id string) (User, error)
+GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
+
+## 3. LIST 操作 (约15个)
+ListAPIKeysByUserID(ctx context.Context, userID string) ([]ApiKey, error)
+ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
+ListDatabaseClustersUpdatedAfter(ctx context.Context, arg ListDatabaseClustersUpdatedAfterParams) ([]DatabaseCluster, error)
+ListEnums(ctx context.Context, arg ListEnumsParams) ([]ModelEnum, error)
+ListMembershipsByOrg(ctx context.Context, orgName string) ([]UserOrganization, error)
+ListMembershipsByUser(ctx context.Context, userID string) ([]UserOrganization, error)
+ListMembershipsWithOrgDetails(ctx context.Context, arg ListMembershipsWithOrgDetailsParams) ([]ListMembershipsWithOrgDetailsRow, error)
+ListMembershipsWithUserName(ctx context.Context, orgName string) ([]ListMembershipsWithUserNameRow, error)
+ListModelGroupsByProject(ctx context.Context, arg ListModelGroupsByProjectParams) ([]ModelGroup, error)
+ListModels(ctx context.Context, arg ListModelsParams) ([]Model, error)
+ListOrganizationsByUser(ctx context.Context, userID string) ([]Organization, error)
+ListPermissionsByRole(ctx context.Context, roleID int64) ([]RolePermission, error)
+ListPermissionsByRoleAndOrg(ctx context.Context, arg ListPermissionsByRoleAndOrgParams) ([]RolePermission, error)
+ListProjects(ctx context.Context) ([]Project, error)
+ListProjectsByOrg(ctx context.Context, orgName string) ([]Project, error)
+ListRoleUsers(ctx context.Context, arg ListRoleUsersParams) ([]UserRole, error)
+ListRoles(ctx context.Context) ([]Role, error)
+ListRolesByOrg(ctx context.Context, orgName string) ([]Role, error)
+ListRolesByOrgIncludeSystem(ctx context.Context, orgName string) ([]Role, error)
+ListUserRoles(ctx context.Context, arg ListUserRolesParams) ([]UserRole, error)
+
+## 4. UPDATE 操作 (约13个)
+UpdateAPIKey(ctx context.Context, arg UpdateAPIKeyParams) error
+UpdateAPIKeyLastUsed(ctx context.Context, id string) error
+UpdateDatabaseClusterWithVersion(ctx context.Context, arg UpdateDatabaseClusterWithVersionParams) (sql.Result, error)
+UpdateEnum(ctx context.Context, arg UpdateEnumParams) error
+UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.Result, error)
+UpdateFieldDisplayOrder(ctx context.Context, arg UpdateFieldDisplayOrderParams) error
+UpdateFieldsStatus(ctx context.Context, arg UpdateFieldsStatusParams) error
+UpdateMembership(ctx context.Context, arg UpdateMembershipParams) error
+UpdateModel(ctx context.Context, arg UpdateModelParams) (sql.Result, error)
+UpdateModelDeploymentStatus(ctx context.Context, arg UpdateModelDeploymentStatusParams) error
+UpdateModelGroup(ctx context.Context, arg UpdateModelGroupParams) error
+UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)
+UpdateModelsGroupID(ctx context.Context, arg UpdateModelsGroupIDParams) error
+UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) error
+UpdateProject(ctx context.Context, arg UpdateProjectParams) error
+UpdateRole(ctx context.Context, arg UpdateRoleParams) error
+
+## 5. DELETE 操作 (约15个)
+DeleteDatabaseCluster(ctx context.Context, arg DeleteDatabaseClusterParams) error
+DeleteEnum(ctx context.Context, arg DeleteEnumParams) error
+DeleteExpiredRefreshTokens(ctx context.Context) error
+DeleteFieldEnumAssociation(ctx context.Context, arg DeleteFieldEnumAssociationParams) error
+DeleteFieldEnumAssociationsByModelID(ctx context.Context, modelID string) error
+DeleteFieldsByModelID(ctx context.Context, modelID string) error
+DeleteFieldsByNames(ctx context.Context, arg DeleteFieldsByNamesParams) (sql.Result, error)
+DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID string) error
+DeleteMembership(ctx context.Context, id string) error
+DeleteModel(ctx context.Context, id string) error
+DeleteModelGroup(ctx context.Context, id string) error
+DeletePermission(ctx context.Context, arg DeletePermissionParams) error
+DeletePermissionsByRole(ctx context.Context, roleID int64) error
+DeleteRevokedAPIKeys(ctx context.Context) error
+DeleteRole(ctx context.Context, id int64) error
+DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
+DeleteUserRolesByRole(ctx context.Context, roleID int64) error
+
+## 6. COUNT 操作 (约4个)
+CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
+CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
+CountMembershipsByUser(ctx context.Context, userID string) (int64, error)
+CountModels(ctx context.Context, arg CountModelsParams) (int64, error)
+
+## 7. EXISTS 操作 (约5个)
+ExistsDatabaseClusterByProjectKey(ctx context.Context, arg ExistsDatabaseClusterByProjectKeyParams) (int64, error)
+ExistsEnumByName(ctx context.Context, arg ExistsEnumByNameParams) (int64, error)
+ExistsFieldByName(ctx context.Context, arg ExistsFieldByNameParams) (int64, error)
+ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
+ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
+ExistsUserByExternalID(ctx context.Context, externalID string) (int64, error)
+
+## 8. FIND 操作 (返回[]行) (约5个)
+FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID sql.NullString) ([]FindFieldsByBelongsToFKIDRow, error)
+FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.NullString) ([]FindFieldsByRelateFKIDRow, error)
+FindIDByExternalID(ctx context.Context, externalID string) (string, error)
+FindLogicalForeignKeysByModelID(ctx context.Context, modelID string) ([]LogicalForeignKey, error)
+FindLogicalForeignKeysByPairID(ctx context.Context, pairID string) ([]LogicalForeignKey, error)
+FindLogicalForeignKeysByRefModelID(ctx context.Context, refModelID string) ([]LogicalForeignKey, error)
+FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
+
+## 9. 其他操作 (约22个)
+InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) error
+InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
+InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
+RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) error
+RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
+RevokeRefreshToken(ctx context.Context, id string) error
+

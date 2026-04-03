@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layout 原型 - ModelCraft</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind.config.js"></script>
+  <link href="../shared/tailwind-base.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    body {
+      font-family: var(--font-inter), system-ui, sans-serif;
+      background: #fafafa;
+      min-height: 100vh;
+    }
+
+    h1, h2, h3 {
+      font-family: var(--font-space-grotesk), system-ui, sans-serif;
+      letter-spacing: -0.025em;
+    }
+
+    .page-container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 24px;
+    }
+
+    .page-title {
+      font-size: 32px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .page-description {
+      font-size: 16px;
+      color: #6b7280;
+      margin-bottom: 48px;
+      max-width: 600px;
+    }
+
+    .section-title {
+      font-size: 14px;
+      font-weight: 500;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    .layout-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 24px;
+      margin-bottom: 48px;
+    }
+
+    @media (max-width: 640px) {
+      .layout-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .layout-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      overflow: hidden;
+      transition: all 0.2s;
+    }
+
+    .layout-card:hover {
+      border-color: #dbeafe;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    }
+
+    .layout-card-preview {
+      height: 200px;
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .layout-card-preview iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      transform: scale(0.5);
+      transform-origin: top left;
+      width: 200%;
+      height: 200%;
+    }
+
+    .layout-card-content {
+      padding: 16px;
+    }
+
+    .layout-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .layout-card-title svg {
+      width: 16px;
+      height: 16px;
+      color: #2563eb;
+    }
+
+    .layout-card-description {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    .layout-card-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #2563eb;
+      text-decoration: none;
+      transition: color 0.15s;
+    }
+
+    .layout-card-link:hover {
+      color: #1d4ed8;
+    }
+
+    .layout-card-link svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .info-box {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px;
+      display: flex;
+      gap: 12px;
+    }
+
+    .info-box-icon {
+      width: 20px;
+      height: 20px;
+      color: #2563eb;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .info-box-content {
+      flex: 1;
+    }
+
+    .info-box-title {
+      font-size: 14px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 4px;
+    }
+
+    .info-box-text {
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.5;
+    }
+
+    .info-box-text code {
+      background: #f3f4f6;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 13px;
+      font-family: var(--font-fira-code), monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="page-container">
+    <h1 class="page-title">Layout 原型</h1>
+    <p class="page-description">
+      顶部打通布局的两种状态：展开状态显示完整导航，折叠状态只显示图标。
+    </p>
+
+    <div class="section-title">布局状态</div>
+    <div class="layout-grid">
+      <!-- Expanded State -->
+      <a href="expanded.html" class="layout-card">
+        <div class="layout-card-preview">
+          <iframe src="expanded.html" loading="lazy"></iframe>
+        </div>
+        <div class="layout-card-content">
+          <div class="layout-card-title">
+            <i data-lucide="panel-left-open"></i>
+            展开状态
+          </div>
+          <p class="layout-card-description">
+            Sidebar 宽度 200px，显示完整导航文字。面包屑显示：组织名 / 页面
+          </p>
+          <span class="layout-card-link">
+            查看原型
+            <i data-lucide="arrow-right"></i>
+          </span>
+        </div>
+      </a>
+
+      <!-- Collapsed State -->
+      <a href="collapsed.html" class="layout-card">
+        <div class="layout-card-preview">
+          <iframe src="collapsed.html" loading="lazy"></iframe>
+        </div>
+        <div class="layout-card-content">
+          <div class="layout-card-title">
+            <i data-lucide="panel-left-close"></i>
+            折叠状态
+          </div>
+          <p class="layout-card-description">
+            Sidebar 宽度 64px，只显示图标。面包屑保持完整层级显示
+          </p>
+          <span class="layout-card-link">
+            查看原型
+            <i data-lucide="arrow-right"></i>
+          </span>
+        </div>
+      </a>
+    </div>
+
+    <!-- Info Box -->
+    <div class="info-box">
+      <i data-lucide="info" class="info-box-icon"></i>
+      <div class="info-box-content">
+        <div class="info-box-title">布局说明</div>
+        <div class="info-box-text">
+          顶部栏贯穿整个页面宽度，分为三个区域：左侧品牌/组织选择器（显示 ModelCraft）、中间面包屑导航（组织名 / 页面）、右侧操作按钮。
+          Sidebar 宽度为 <code>200px</code>（展开）或 <code>64px</code>（折叠），
+          选中状态使用 <code>#dadee5</code> 背景色。
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

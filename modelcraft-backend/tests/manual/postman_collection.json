@@ -1,0 +1,292 @@
+{
+  "info": {
+    "name": "ModelCraft API",
+    "description": "ModelCraft API 手动测试集合",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080",
+      "type": "string"
+    },
+    {
+      "key": "modelId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "fieldId",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "模型管理",
+      "item": [
+        {
+          "name": "创建模型",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"用户模型\",\n  \"identifier\": \"user\",\n  \"description\": \"用户信息管理\",\n  \"storageType\": \"mysql\",\n  \"editable\": true,\n  \"deletable\": false,\n  \"tags\": [\"用户\", \"核心\"],\n  \"createdBy\": \"admin\",\n  \"fields\": [\n    {\n      \"key\": \"username\",\n      \"name\": \"用户名\",\n      \"type\": \"string\",\n      \"required\": true,\n      \"maxLength\": 50\n    },\n    {\n      \"key\": \"email\",\n      \"name\": \"邮箱\",\n      \"type\": \"string\",\n      \"format\": \"email\",\n      \"required\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/models",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models"]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.resourceId) {",
+                  "        pm.collectionVariables.set('modelId', response.resourceId);",
+                  "        console.log('模型ID已保存:', response.resourceId);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "查询模型列表",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/models",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models"]
+            }
+          }
+        },
+        {
+          "name": "获取单个模型",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}"]
+            }
+          }
+        },
+        {
+          "name": "更新模型",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"更新后的用户模型\",\n  \"description\": \"更新后的描述\",\n  \"tags\": [\"用户\", \"核心\", \"更新\"]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}"]
+            }
+          }
+        },
+        {
+          "name": "删除模型",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "字段管理",
+      "item": [
+        {
+          "name": "添加字段",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"key\": \"age\",\n  \"name\": \"年龄\",\n  \"description\": \"用户年龄\",\n  \"type\": \"number\",\n  \"format\": \"integer\",\n  \"required\": false,\n  \"minimum\": 0,\n  \"maximum\": 150\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}/fields",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}", "fields"]
+            }
+          }
+        },
+        {
+          "name": "更新字段",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"更新后的年龄\",\n  \"description\": \"更新后的用户年龄描述\",\n  \"required\": true,\n  \"minimum\": 18\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}/fields/{{fieldId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}", "fields", "{{fieldId}}"]
+            }
+          }
+        },
+        {
+          "name": "删除字段",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}/fields/{{fieldId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}", "fields", "{{fieldId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "数据验证",
+      "item": [
+        {
+          "name": "验证模型数据",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"test@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}", "validate"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schema 管理",
+      "item": [
+        {
+          "name": "导出模型 Schema",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}/schema",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}", "schema"]
+            }
+          }
+        },
+        {
+          "name": "导入模型 Schema",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"version\": \"1.0\",\n  \"fields\": [\n    {\n      \"key\": \"newField\",\n      \"name\": \"新字段\",\n      \"type\": \"string\",\n      \"required\": false\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/models/{{modelId}}/schema",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "models", "{{modelId}}", "schema"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "字段类型查询",
+      "item": [
+        {
+          "name": "获取字段类型",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/types",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "types"]
+            }
+          }
+        },
+        {
+          "name": "获取字段格式",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/formats",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "formats"]
+            }
+          }
+        },
+        {
+          "name": "验证字段定义",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fields\": [\n    {\n      \"key\": \"testField\",\n      \"name\": \"测试字段\",\n      \"type\": \"string\",\n      \"required\": true\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/fields/validate",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "fields", "validate"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "continuous-learning-v2": {
+      "source": "affaan-m/everything-claude-code",
+      "sourceType": "github",
+      "computedHash": "4dcd3e7122e967221334d1124a132492d11bcb0ccb5d222fbf03398dc9d51f35"
+    }
+  }
+}

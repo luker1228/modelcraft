@@ -1,0 +1,1269 @@
+# justfile - ModelCraft 项目命令运行器
+# 
+# 使用方法:
+#   just              # 显示所有可用命令
+#   just <recipe>     # 执行命令
+#   just --list       # 列出所有命令及参数
+#   just --help       # 显示帮助
+
+set dotenv-load        # 自动加载 .env 文件
+set shell := ["bash", "-cu"]  # 使用 bash，遇错即停
+
+# ========================
+# 📋 变量定义
+# ========================
+
+BINARY_NAME := "modelcraft"
+DOCKER_IMAGE := "modelcraft:latest"
+SERVER_PATH := "./cmd/server"
+GQLGEN_VERSION := "v0.17.83"
+MIGRATE_SCRIPT := "./scripts/migrate.sh"
+SAFE_QUERIER_GOWRAP_SCRIPT := "./scripts/generate-safe-logical-fk-querier.sh"
+
+# 数据库配置 (从环境变量读取，带默认值)
+DB_USER := env_var_or_default("DB_USER", "root")
+DB_PASSWORD := env_var_or_default("DB_PASSWORD", "password")
+DB_HOST := env_var_or_default("DB_HOST", "127.0.0.1")
+DB_PORT := env_var_or_default("DB_PORT", "3306")
+DB_NAME := env_var_or_default("DB_NAME", "modelcraft")
+DB_URL := "mysql://" + DB_USER + ":" + DB_PASSWORD + "@" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
+DB_DEV_URL := "mysql://" + DB_USER + ":" + DB_PASSWORD + "@" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME + "_dev"
+
+# ========================
+# 🏗️ 应用构建与运行
+# ========================
+
+# 构建应用
+[doc("Build the application")]
+build:
+    go build -o bin/{{BINARY_NAME}} {{SERVER_PATH}}
+
+# 生产环境构建
+[doc("Production build")]
+build-prod:
+    CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/{{BINARY_NAME}} {{SERVER_PATH}}
+
+# 跨平台构建
+[doc("Build for all platforms (Linux, macOS, Windows)")]
+build-all:
+    #!/usr/bin/env bash
+    GOOS=linux GOARCH=amd64 go build -o bin/{{BINARY_NAME}}-linux-amd64 {{SERVER_PATH}}
+    GOOS=darwin GOARCH=amd64 go build -o bin/{{BINARY_NAME}}-darwin-amd64 {{SERVER_PATH}}
+    GOOS=darwin GOARCH=arm64 go build -o bin/{{BINARY_NAME}}-darwin-arm64 {{SERVER_PATH}}
+    GOOS=windows GOARCH=amd64 go build -o bin/{{BINARY_NAME}}-windows-amd64.exe {{SERVER_PATH}}
+
+# 运行应用
+[doc("Run the application in background. Use --force or force=true to stop existing processes first")]
+run *FLAGS:
+    #!/usr/bin/env bash
+    # 解析参数: 支持 --force 和 force=true 两种语法
+    FORCE_MODE=false
+    for arg in {{FLAGS}}; do
+        if [ "$arg" = "--force" ] || [ "$arg" = "force=true" ]; then
+            FORCE_MODE=true
+            break
+        fi
+    done
+    
+    # Force 模式：先停止现有进程
+    if [ "$FORCE_MODE" = "true" ]; then
+        echo "🔪 Force mode: Stopping existing processes..."
+        # 方式 1: 通过端口号查找并杀掉进程
+        if lsof -ti:8080 > /dev/null 2>&1; then
+            lsof -ti:8080 | xargs kill -9 2>/dev/null || fuser -k 8080/tcp 2>/dev/null
+            echo "✅ Stopped process on port 8080"
+        fi
+        # 方式 2: 杀掉匹配的 go run 进程
+        if pgrep -f "go run.*cmd/server" > /dev/null; then
+            pkill -9 -f "go run.*cmd/server"
+            echo "✅ Stopped go run processes"
+        fi
+        # 方式 3: 杀掉二进制文件进程
+        pkill -f {{BINARY_NAME}} 2>/dev/null && echo "✅ Stopped {{BINARY_NAME}} binary"
+        sleep 1
+    fi
+    
+    echo "🚀 Starting application..."
+    mkdir -p logs
+    echo "📝 Log output: logs/server.log"
+    nohup sh -c "LOG_OUTPUT_PATH=logs/server.log go run {{SERVER_PATH}}" > logs/server.log 2>&1 &
+    PID=$!
+    echo "✅ Application started in background"
+    echo "   PID: $PID"
+    echo "   Logs: tail -f logs/server.log"
+    echo "   Or use: just logs"
+    sleep 2
+    if ps -p $PID > /dev/null; then
+        echo "✅ Process is running"
+    else
+        echo "⚠️  Process may have exited, check logs/server.log"
+    fi
+
+# 停止服务
+[doc("Stop background server")]
+stop:
+    #!/usr/bin/env bash
+    echo "🛑 正在停止服务..."
+    if lsof -ti:8080 > /dev/null 2>&1; then
+        lsof -ti:8080 | xargs kill -9 2>/dev/null || fuser -k 8080/tcp 2>/dev/null
+        echo "✅ 服务已停止 (端口 8080)"
+    else
+        echo "ℹ️  端口 8080 上没有运行的进程"
+    fi
+
+# 热重载开发模式
+[doc("Run with hot reload (requires Air)")]
+dev:
+    air -c .air.toml
+
+# 重启服务
+[doc("Restart server")]
+restart: stop build run
+
+# 查看服务状态
+[doc("Check server status")]
+status:
+    #!/usr/bin/env bash
+    echo "🔍 检查服务状态..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # 主要判断依据: 健康检查接口
+    if curl -sf http://localhost:8080/health > /dev/null 2>&1; then
+        echo "✅ 服务正在运行"
+        echo ""
+        
+        # 显示进程信息
+        if pgrep -f "go run.*cmd/server" > /dev/null 2>&1; then
+            PID=$(pgrep -f "go run.*cmd/server" | head -1)
+            echo "📋 进程信息:"
+            echo "   类型: go run (开发模式)"
+            echo "   PID: $PID"
+        elif pgrep -f {{BINARY_NAME}} > /dev/null 2>&1; then
+            PID=$(pgrep -f {{BINARY_NAME}} | head -1)
+            echo "📋 进程信息:"
+            echo "   类型: 二进制文件"
+            echo "   PID: $PID"
+        fi
+        
+        # 显示端口信息
+        if lsof -i:8080 > /dev/null 2>&1; then
+            echo ""
+            echo "🌐 端口: 8080 (正在监听)"
+        fi
+        
+        # 健康检查详情
+        echo ""
+        echo "🏥 健康检查: ✅ 通过"
+        echo "   URL: http://localhost:8080/health"
+        
+    else
+        echo "❌ 服务未运行"
+        echo ""
+        
+        # 检查是否有进程但健康检查失败
+        if pgrep -f "go run.*cmd/server" > /dev/null 2>&1 || pgrep -f {{BINARY_NAME}} > /dev/null 2>&1; then
+            echo "⚠️  发现进程但健康检查失败，服务可能正在启动或异常"
+            if pgrep -f "go run.*cmd/server" > /dev/null 2>&1; then
+                PID=$(pgrep -f "go run.*cmd/server" | head -1)
+                echo "   PID: $PID"
+            fi
+            echo ""
+            echo "💡 建议:"
+            echo "   - 查看日志: just logs"
+            echo "   - 重启服务: just run --force"
+        else
+            echo "💡 启动服务: just run"
+        fi
+    fi
+
+# 查看日志
+[doc("View server logs")]
+logs:
+    tail -f logs/server.log
+
+# 按 reqId 查看日志
+[doc("Show logs for a specific request ID")]
+log-cat reqId:
+    #!/usr/bin/env bash
+    if [ -z "{{reqId}}" ]; then
+        echo "❌ 请指定 reqId，例如: just log-cat VM-32-8-tencentos/FjPXpJqnCU-000001"
+        exit 1
+    fi
+    # 提取 reqId 值（支持 "reqId=xxx" 格式）
+    reqIdRaw="{{reqId}}"
+    reqIdValue="${reqIdRaw#reqId=}"
+    echo "🔍 查找 request_id: $reqIdValue"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    grep "\"$reqIdValue\"" logs/server.log | jq '.' || echo "No logs found for this request ID"
+
+# 清理构建产物
+[doc("Clean build artifacts")]
+clean:
+    go clean
+    rm -f bin/{{BINARY_NAME}}
+
+# ========================
+# 🔧 依赖与工具安装
+# ========================
+
+# 安装依赖
+[doc("Install dependencies")]
+deps:
+    go mod tidy
+    go mod download
+
+# 安装所有开发工具
+[doc("Install all development tools")]
+install-tools: install-gofumpt install-golangci-lint install-goimports
+    echo "✅ 所有开发工具安装完成"
+
+# 安装 gqlgen
+[private]
+install-gqlgen:
+    #!/usr/bin/env bash
+    if ! command -v gqlgen > /dev/null 2>&1; then
+        echo "gqlgen 未安装，正在安装..."
+        go install github.com/99designs/gqlgen@{{GQLGEN_VERSION}}
+    fi
+    echo "gqlgen 工具已就绪"
+
+# 安装 gofumpt
+[private]
+install-gofumpt:
+    #!/usr/bin/env bash
+    if ! command -v gofumpt > /dev/null 2>&1; then
+        echo "gofumpt 未安装，正在安装..."
+        go install mvdan.cc/gofumpt@latest
+    fi
+    echo "gofumpt 工具已就绪"
+
+# 安装 golangci-lint
+[private]
+install-golangci-lint:
+    #!/usr/bin/env bash
+    if ! command -v golangci-lint > /dev/null 2>&1; then
+        echo "golangci-lint 未安装，正在安装..."
+        go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    fi
+    echo "golangci-lint 工具已就绪"
+
+# 安装 goimports
+[private]
+install-goimports:
+    #!/usr/bin/env bash
+    if ! command -v goimports > /dev/null 2>&1; then
+        echo "goimports 未安装，正在安装..."
+        go install golang.org/x/tools/cmd/goimports@latest
+    fi
+    echo "goimports 工具已就绪"
+
+# 安装 sqlc
+[private]
+install-sqlc:
+    #!/usr/bin/env bash
+    if ! command -v sqlc > /dev/null 2>&1; then
+        echo "sqlc 未安装，正在安装..."
+        go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+    fi
+    echo "sqlc 工具已就绪"
+
+# 安装 atlas
+[private]
+install-atlas:
+    #!/usr/bin/env bash
+    if ! command -v atlas > /dev/null 2>&1; then
+        echo "atlas 未安装，正在安装..."
+        curl -sSf https://atlasgo.sh | sh
+    fi
+    echo "atlas 工具已就绪"
+
+# 安装 go-test-coverage
+[private]
+install-go-test-coverage:
+    #!/usr/bin/env bash
+    if ! command -v go-test-coverage > /dev/null 2>&1; then
+        echo "go-test-coverage 未安装，正在安装..."
+        go install github.com/vladopajic/go-test-coverage/v2@latest
+    fi
+    echo "go-test-coverage 工具已就绪"
+
+# ========================
+# 📊 代码生成
+# ========================
+
+# 生成 GraphQL 代码
+[doc("Generate GraphQL code")]
+generate-gql: install-gqlgen
+    echo "📊 生成 GraphQL 代码..."
+    go run github.com/99designs/gqlgen generate
+    echo "✅ GraphQL 代码生成完成"
+
+# 合并并生成 OpenAPI 代码
+[doc("Bundle modular OpenAPI spec into single file")]
+bundle-oapi:
+    echo "合并 OpenAPI 模块化 spec..."
+    redocly bundle api/openapi/openapi-root.yaml -o api/openapi/openapi.yaml
+    echo "OpenAPI spec 合并完成"
+
+# 生成 OpenAPI 代码
+[doc("Bundle and generate OpenAPI server code from spec")]
+generate-oapi:
+    echo "合并 OpenAPI 模块化 spec..."
+    redocly bundle api/openapi/openapi-root.yaml -o api/openapi/openapi.yaml
+    echo "生成 OpenAPI 服务端代码..."
+    oapi-codegen --config api/openapi/oapi-codegen.yaml api/openapi/openapi.yaml
+    echo "✅ OpenAPI 代码生成完成"
+
+# 清理 GraphQL 生成的代码 never should be used (commented out)
+
+# 生成 sqlc 代码
+[doc("Generate Go code from SQL queries using sqlc")]
+generate-sqlc: install-sqlc
+    echo "📊 生成 sqlc 代码..."
+    sqlc generate
+    echo "✅ sqlc 代码生成完成"
+
+# 通用 safe querier 生成（gowrap）
+[doc("Generate safe querier wrapper using gowrap (generic)")]
+generate-safe-querier package_path="./internal/infrastructure/repository" interface_name="logicalFKQuerier" output_file="internal/infrastructure/repository/safe_logical_foreign_key_querier.go" wrapper_name="safeLogicalFKQuerier" constructor_name="newSafeLogicalFKQuerier" delegate_type="dbgen.Querier":
+    chmod +x {{SAFE_QUERIER_GOWRAP_SCRIPT}}
+    {{SAFE_QUERIER_GOWRAP_SCRIPT}} \
+      --package-path "{{package_path}}" \
+      --interface-name "{{interface_name}}" \
+      --output-file "{{output_file}}" \
+      --wrapper-name "{{wrapper_name}}" \
+      --constructor-name "{{constructor_name}}" \
+      --delegate-type "{{delegate_type}}"
+    echo "✅ Safe querier 生成完成"
+
+# 生成 logical foreign key safe querier（gowrap）
+[doc("Generate safe logical FK querier using gowrap")]
+generate-safe-logical-fk-querier:
+    just --justfile justfile --working-directory . generate-safe-querier
+    echo "✅ Safe logical FK querier 生成完成"
+
+# 清理 sqlc 生成的代码
+[doc("Clean generated sqlc code")]
+clean-sqlc:
+    echo "清理生成的 sqlc 代码..."
+    rm -f internal/infrastructure/dbgen/*.go
+    echo "✅ sqlc 代码清理完成"
+
+# ========================
+# 🎨 代码质量
+# ========================
+
+# 运行 linter
+[doc("Run linter")]
+lint: install-golangci-lint
+    echo "🔍 运行 golangci-lint 代码检查..."
+    golangci-lint run
+
+# 运行 linter 并自动修复
+[doc("Run linter with auto-fix")]
+lint-fix: install-golangci-lint
+    echo "运行 golangci-lint 代码检查并自动修复..."
+    golangci-lint run --fix
+
+# 检查包依赖
+[doc("Check package dependencies (depguard only)")]
+check-pkg-dep: install-golangci-lint
+    echo "检查包依赖使用规范..."
+    golangci-lint run --disable-all --enable=depguard
+
+# 运行所有检查
+[doc("Run all checks")]
+check-all: lint test-unit
+    echo "✅ 所有代码检查完成"
+
+# ========================
+# 🧪 测试 - Go 单元测试
+# ========================
+
+# 运行单元测试
+[doc("Run Go unit tests")]
+test-unit:
+    echo "🧪 运行单元测试..."
+    rtk go test -v -race -timeout=5m -coverprofile=coverage.out ./...
+    echo "✅ 测试完成"
+
+# 运行测试并生成覆盖率报告
+[doc("Run tests with coverage report")]
+test-unit-coverage:
+    echo "🧪 运行单元测试并生成覆盖率报告..."
+    rtk go test -v -race -timeout=5m -coverprofile=coverage.out -covermode=atomic ./...
+    go tool cover -html=coverage.out -o coverage.html
+    echo "✅ 测试完成，覆盖率报告已生成 coverage.html"
+    go tool cover -func=coverage.out | grep total | awk '{print "📊 总覆盖率: " $3}'
+
+# 测试指定包
+[doc("Run tests for specific package")]
+test-unit-pkg pkg:
+    #!/usr/bin/env bash
+    if [ -z "{{pkg}}" ]; then
+        echo "❌ 请指定包路径，例如: just test-unit-pkg ./internal/domain/project"
+        exit 1
+    fi
+    echo "🧪 测试包: {{pkg}}"
+    rtk go test -v -race -timeout=5m {{pkg}}
+
+# 清理测试缓存
+[doc("Clean test cache and coverage files")]
+test-unit-clean:
+    echo "🧹 清理测试缓存和覆盖率文件..."
+    go clean -testcache
+    rm -f coverage.out coverage.html coverage-badge.svg
+    echo "✅ 清理完成"
+
+# ========================
+# 🧪 测试 - 覆盖率检查
+# ========================
+
+# 运行覆盖率检查 (domain 层)
+[doc("Run coverage check for domain layer (requires 95% coverage)")]
+test-coverage skip_tests="TestUpdateManyInputWithNilWhere|TestDeleteManyInputWithNilWhere": install-go-test-coverage
+    #!/usr/bin/env bash
+    echo "🧪 运行 Domain 层测试..."
+    rtk go test ./internal/domain/... -coverprofile=coverage.out -covermode=atomic -coverpkg=./internal/domain/... -skip "{{skip_tests}}"
+    echo ""
+    echo "📊 检查覆盖率阈值（要求 95%）..."
+    go-test-coverage --config=.testcoverage.yml
+
+# 全项目覆盖率检查
+[doc("Run full project coverage check")]
+test-coverage-all: install-go-test-coverage
+    echo "🧪 运行全项目测试..."
+    rtk go test ./... -coverprofile=coverage.out -covermode=atomic -coverpkg=./...
+    echo ""
+    echo "📊 检查覆盖率阈值..."
+    go-test-coverage --config=.testcoverage.yml
+
+# 生成 HTML 覆盖率报告
+[doc("Generate HTML report and check coverage (requires 95%)")]
+test-coverage-html: install-go-test-coverage
+    echo "🧪 运行测试..."
+    rtk go test ./internal/domain/... -coverprofile=coverage.out -covermode=atomic -coverpkg=./internal/domain/...
+    echo "📊 生成 HTML 报告..."
+    go tool cover -html=coverage.out -o coverage.html
+    echo "✅ 报告已生成 coverage.html"
+    echo ""
+    echo "📊 检查覆盖率阈值（要求 95%）..."
+    go-test-coverage --config=.testcoverage.yml
+
+# 生成覆盖率徽章
+[doc("Generate coverage badge (requires 95%)")]
+test-coverage-badge: install-go-test-coverage
+    echo "🧪 运行测试..."
+    rtk go test ./internal/domain/... -coverprofile=coverage.out -covermode=atomic -coverpkg=./internal/domain/...
+    echo "📊 生成覆盖率徽章..."
+    go-test-coverage --config=.testcoverage.yml --badge-file-name=coverage-badge.svg
+    echo "✅ 徽章已生成 coverage-badge.svg"
+    echo ""
+    echo "📊 检查覆盖率阈值（要求 95%）..."
+    ./scripts/check-domain-coverage.sh coverage.out
+
+# 自动补充测试直到达到 95% 覆盖率
+[doc("Automatically fix test coverage until it reaches 95%")]
+test-coverage-auto-fix max_iterations="10" package="":
+    #!/usr/bin/env bash
+    echo "🤖 自动补充单元测试..."
+    if [ -n "{{package}}" ]; then
+        ./scripts/auto-fix-coverage.sh --max-iterations {{max_iterations}} --package {{package}}
+    else
+        ./scripts/auto-fix-coverage.sh --max-iterations {{max_iterations}}
+    fi
+
+# 默认测试命令
+[doc("Run Go unit tests (alias)")]
+test: test-unit
+
+# ========================
+# 👤 测试用户管理
+# ========================
+
+# 创建测试用户
+[doc("Create test-integration user with owner role")]
+test-user-setup:
+    echo "👤 Creating test-integration user with owner role..."
+    cd tests && python common/test_user_setup.py
+    echo ""
+    echo "✅ Test user setup completed!"
+
+# 清理测试用户
+[doc("Remove test-integration user")]
+test-user-cleanup user_id="487101d6-92bb-459e-b4f1-426255126d27":
+    echo "🧹 Removing test user..."
+    cd tests && python common/test_user_setup.py --cleanup --user-id {{user_id}}
+    echo ""
+    echo "✅ Test user cleanup completed!"
+
+# ========================
+# 🐳 Docker 命令
+# ========================
+
+# 构建 Docker 镜像
+[doc("Build Docker image")]
+docker-build:
+    docker build -t {{DOCKER_IMAGE}} .
+
+# 运行 Docker 容器
+[doc("Run Docker container")]
+docker-run:
+    docker run -p 8080:8080 {{DOCKER_IMAGE}}
+
+# 启动 Docker Compose 服务
+[doc("Start Docker Compose services")]
+docker-compose-up:
+    docker-compose up -d
+
+# 停止 Docker Compose 服务
+[doc("Stop Docker Compose services")]
+docker-compose-down:
+    docker-compose down
+
+# 查看 Docker Compose 日志
+[doc("View Docker Compose logs")]
+docker-compose-logs:
+    docker-compose logs -f
+
+# 构建 Docker Compose 服务
+[doc("Build Docker Compose services")]
+docker-compose-build:
+    docker-compose build
+
+# 重启 Docker Compose 服务
+[doc("Restart Docker Compose services")]
+docker-compose-restart:
+    docker-compose restart
+
+# 构建并启动所有服务
+[doc("Build and start all services")]
+docker-up: docker-compose-build docker-compose-up
+    echo "Docker 环境已启动"
+    echo "应用地址 http://localhost:8080"
+    echo "健康检查 http://localhost:8080/health"
+    echo "phpMyAdmin http://localhost:8081"
+
+# 清理 Docker 环境
+[doc("Clean Docker environment")]
+docker-clean:
+    docker-compose down -v
+    docker system prune -f
+
+# 查看 Docker 状态
+[doc("View Docker service status")]
+docker-status:
+    docker-compose ps
+
+# 进入应用容器
+[doc("Access application container shell")]
+docker-shell:
+    docker-compose exec modelcraft sh
+
+# 查看应用日志
+[doc("View application logs")]
+docker-app-logs:
+    docker-compose logs -f modelcraft
+
+# 查看数据库日志
+[doc("View database logs")]
+docker-db-logs:
+    docker-compose logs -f mysql
+
+# ========================
+# 🚀 部署管理
+# ========================
+
+# 管理基础设施 (MySQL, Redis)
+[doc("Manage infrastructure: start|status|stop|restart")]
+deploy-infra action="start":
+    #!/usr/bin/env bash
+    set -e
+    
+    show_env() {
+        if [ -L ".env" ]; then
+            ENV_TARGET=$(readlink .env)
+            ENV_NAME=$(echo "$ENV_TARGET" | sed 's/.env.//')
+            echo "📌 Environment: $ENV_NAME"
+        elif [ -f ".env" ]; then
+            echo "📌 Environment: .env (regular file)"
+        else
+            echo "❌ No .env file found. Run: just env-switch <name>"
+            exit 1
+        fi
+    }
+    
+    case "{{action}}" in
+        start)
+            echo "🚀 Starting Infrastructure Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            show_env
+            echo ""
+            echo "📦 Starting MySQL, Redis..."
+            docker-compose -f docker-compose.local.yml up -d
+            echo ""
+            echo "⏳ Waiting for services to be healthy..."
+            sleep 8
+            echo ""
+            docker-compose -f docker-compose.local.yml ps
+            echo ""
+            echo "✅ Infrastructure services are running"
+            echo "   MySQL - localhost:3307"
+            echo "   Redis - localhost:6379"
+            ;;
+        status)
+            echo "📊 Infrastructure Status"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            show_env
+            echo ""
+            echo "🐳 Docker Services:"
+            docker-compose -f docker-compose.local.yml ps 2>/dev/null || echo "   No services running"
+            ;;
+        stop)
+            echo "🛑 Stopping Infrastructure Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            docker-compose -f docker-compose.local.yml down || true
+            echo "✅ Infrastructure services stopped"
+            ;;
+        restart)
+            echo "🔄 Restarting Infrastructure Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            docker-compose -f docker-compose.local.yml down || true
+            sleep 2
+            docker-compose -f docker-compose.local.yml up -d
+            echo "⏳ Waiting for services..."
+            sleep 8
+            docker-compose -f docker-compose.local.yml ps
+            echo "✅ Infrastructure services restarted"
+            ;;
+        *)
+            echo "❌ Invalid action: {{action}}"
+            echo "   Valid actions: start, status, stop, restart"
+            exit 1
+            ;;
+    esac
+
+# 管理应用服务
+[doc("Manage application services: start|status|stop|restart")]
+deploy-app action="start":
+    #!/usr/bin/env bash
+    set -e
+    
+    show_env() {
+        if [ -L ".env" ]; then
+            ENV_TARGET=$(readlink .env)
+            ENV_NAME=$(echo "$ENV_TARGET" | sed 's/.env.//')
+            echo "📌 Environment: $ENV_NAME"
+        elif [ -f ".env" ]; then
+            echo "📌 Environment: .env (regular file)"
+        else
+            echo "❌ No .env file found. Run: just env-switch <name>"
+            exit 1
+        fi
+    }
+    
+    # Check if Casdoor is configured
+    CASDOOR_ENABLED=false
+    if [ -f ".env" ] && grep -q "CASDOOR_ENDPOINT" .env 2>/dev/null; then
+        CASDOOR_ENABLED=true
+    fi
+    
+    case "{{action}}" in
+        start)
+            echo "🚀 Starting Application Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            show_env
+            echo ""
+            
+            # Start Casdoor if configured
+            if [ "$CASDOOR_ENABLED" = true ]; then
+                echo "🔐 Starting Casdoor..."
+                # TODO: Add Casdoor startup command when available
+                echo "   (Casdoor startup not yet configured)"
+            fi
+            
+            # Build and start ModelCraft
+            echo ""
+            echo "🏗️  Building ModelCraft..."
+            just build
+            echo ""
+            echo "🖥️  Starting ModelCraft server..."
+            mkdir -p logs
+            nohup go run {{SERVER_PATH}} > logs/server.log 2>&1 &
+            echo "   PID: $!"
+            sleep 3
+            
+            # Health check
+            if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+                echo ""
+                echo "✅ Application services are running"
+                echo "   ModelCraft - http://localhost:8080"
+            else
+                echo ""
+                echo "⚠️  Server may still be starting, check: just deploy-app status"
+            fi
+            ;;
+        status)
+            echo "📊 Application Status"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            show_env
+            echo ""
+            
+            # Casdoor status
+            if [ "$CASDOOR_ENABLED" = true ]; then
+                echo "🔐 Casdoor:"
+                if pgrep -f "casdoor" > /dev/null 2>&1; then
+                    echo "   Status: Running"
+                else
+                    echo "   Status: Not running"
+                fi
+            fi
+            
+            # ModelCraft status
+            echo ""
+            echo "🖥️  ModelCraft:"
+            if pgrep -f "modelcraft" > /dev/null 2>&1 || pgrep -f "go run.*cmd/server" > /dev/null 2>&1; then
+                echo "   Status: Running"
+                PID=$(pgrep -f "modelcraft" 2>/dev/null || pgrep -f "go run.*cmd/server" 2>/dev/null | head -1)
+                echo "   PID: $PID"
+                if curl -s http://localhost:8080/health > /dev/null 2>&1; then
+                    echo "   Health: OK"
+                    echo "   URL: http://localhost:8080"
+                else
+                    echo "   Health: Not responding"
+                fi
+            else
+                echo "   Status: Not running"
+            fi
+            ;;
+        stop)
+            echo "🛑 Stopping Application Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            # Stop ModelCraft
+            echo "Stopping ModelCraft..."
+            pkill -f "go run.*cmd/server/main.go" 2>/dev/null || true
+            pkill -f "modelcraft" 2>/dev/null || true
+            
+            # Stop Casdoor
+            if [ "$CASDOOR_ENABLED" = true ]; then
+                echo "Stopping Casdoor..."
+                pkill -f "casdoor" 2>/dev/null || true
+            fi
+            
+            echo "✅ Application services stopped"
+            ;;
+        restart)
+            echo "🔄 Restarting Application Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            
+            # Stop
+            pkill -f "go run.*cmd/server/main.go" 2>/dev/null || true
+            pkill -f "modelcraft" 2>/dev/null || true
+            pkill -f "casdoor" 2>/dev/null || true
+            sleep 2
+            
+            # Start (call self with start action)
+            just deploy-app
+            ;;
+        *)
+            echo "❌ Invalid action: {{action}}"
+            echo "   Valid actions: start, status, stop, restart"
+            exit 1
+            ;;
+    esac
+
+# 管理所有服务
+[doc("Manage all services: start|status|stop|restart")]
+deploy-all action="start":
+    #!/usr/bin/env bash
+    set -e
+    
+    case "{{action}}" in
+        start)
+            echo "🚀 Starting All Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            just deploy-infra
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            just deploy-app
+            echo ""
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "🎯 All services deployed!"
+            ;;
+        status)
+            echo "📊 Full Deployment Status"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            just deploy-infra status
+            echo ""
+            just deploy-app status
+            ;;
+        stop)
+            echo "🛑 Stopping All Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            just deploy-app stop
+            echo ""
+            just deploy-infra stop
+            echo ""
+            echo "✅ All services stopped"
+            ;;
+        restart)
+            echo "🔄 Restarting All Services..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            just deploy-all stop
+            sleep 2
+            just deploy-all
+            ;;
+        *)
+            echo "❌ Invalid action: {{action}}"
+            exit 1
+            ;;
+    esac
+
+# ========================
+# 🗄️ 数据库管理
+# ========================
+
+# 统一数据库管理命令
+[doc("Database management: create|drop|up|down|status|reset|lint|diff|login")]
+db action="up" env_file=".env" print_sql="0":
+    #!/usr/bin/env bash
+    set -e
+    
+    # 确保 atlas 已安装
+    ensure_atlas() {
+        if ! command -v atlas > /dev/null 2>&1; then
+            echo "atlas 未安装，正在安装..."
+            curl -sSf https://atlasgo.sh | sh
+        fi
+    }
+    
+    source scripts/db-env.sh "{{env_file}}"
+    
+    case "{{action}}" in
+        create)
+            echo "🗄️  Creating database if not exists: ${DB_NAME}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};"
+            mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME}_dev;"
+            echo "✅ Database ${DB_NAME} is ready"
+            ;;
+        drop)
+            echo "⚠️  Dropping database: ${DB_NAME}"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -e "DROP DATABASE IF EXISTS ${DB_NAME};"
+            echo "✅ Database ${DB_NAME} dropped successfully"
+            ;;
+        up)
+            ensure_atlas
+            # 先确保数据库存在
+            mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME};" 2>/dev/null || true
+            mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -e "CREATE DATABASE IF NOT EXISTS ${DB_NAME}_dev;" 2>/dev/null || true
+            
+            echo "🗄️  Applying schema..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📋 Database Connection Info:"
+            echo "   - DB_URL: ${DB_URL}"
+            echo "   - DB_DEV_URL: ${DB_DEV_URL}"
+            echo "   - Schema Dir: db/schema/mysql/"
+            echo ""
+            echo "📂 Schema files to apply:"
+            ls -1 db/schema/mysql/*.sql | while read file; do
+                echo "   - $(basename $file)"
+            done
+            echo ""
+            atlas schema apply -u "${DB_URL}" --to file://db/schema/mysql/ --dev-url "${DB_DEV_URL}" --auto-approve
+            echo ""
+            echo "✅ Schema apply completed"
+            ;;
+        down)
+            echo "⚠️  Manual rollback required"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "Review migration files in db/migrations/"
+            ;;
+        status)
+            echo "🗄️  Database Status"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "📋 Connection: ${DB_USER}@${DB_HOST}:${DB_PORT}/${DB_NAME}"
+            echo ""
+            
+            # 检查数据库是否存在
+            if mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -e "USE ${DB_NAME};" 2>/dev/null; then
+                echo "✅ Database exists: ${DB_NAME}"
+                echo ""
+                echo "📊 Tables:"
+                mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" -N -e "
+                    SELECT CONCAT('   ', table_name, ' (', table_rows, ' rows)')
+                    FROM information_schema.tables 
+                    WHERE table_schema = '${DB_NAME}' 
+                    ORDER BY table_name;" 2>/dev/null
+                echo ""
+                echo "📈 Schema files (db/schema/mysql/):"
+                ls -1 db/schema/mysql/*.sql 2>/dev/null | while read file; do
+                    echo "   - $(basename $file)"
+                done
+            else
+                echo "❌ Database does not exist: ${DB_NAME}"
+                echo ""
+                echo "💡 Run 'just db create' to create the database"
+            fi
+            ;;
+        reset)
+            ensure_atlas
+            echo "⚠️  Resetting database (drop and recreate)!"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            atlas schema clean -u "${DB_URL}" --auto-approve
+            just db up {{env_file}}
+            ;;
+        lint)
+            ensure_atlas
+            echo "🗄️  Linting migrations..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            atlas migrate lint --dir file://db/migrations/ --dev-url "${DB_DEV_URL}"
+            ;;
+        diff)
+            ensure_atlas
+            echo "🗄️  Creating migration diff..."
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            cd db
+            atlas migrate diff initial --to file://schema/ --dev-url "${DB_DEV_URL}"
+            ;;
+        login)
+            if command -v mysql > /dev/null 2>&1; then
+                mysql -h "${DB_HOST}" -P "${DB_PORT}" -u "${DB_USER}" "-p${DB_PASSWORD}" "${DB_NAME}"
+                exit 0
+            fi
+            echo "⚠️  mysql client not found on host."
+            echo "You can install it (e.g. apt-get install mysql-client) or use docker exec:"
+            echo "  docker exec -it modelcraft-mysql-local mysql -h \"${DB_HOST}\" -P \"${DB_PORT}\" -u \"${DB_USER}\" \"-p\${DB_PASSWORD}\" \"${DB_NAME}\""
+            exit 1
+            ;;
+        *)
+            echo "❌ Invalid action: {{action}}"
+            echo ""
+            echo "Usage: just db <action> [env_file=.env]"
+            echo ""
+            echo "Actions:"
+            echo "  create  - Create database if not exists"
+            echo "  drop    - Drop database"
+            echo "  up      - Apply migrations (default)"
+            echo "  down    - Rollback last migration"
+            echo "  status  - Check migration status"
+            echo "  reset   - Reset database (drop and recreate)"
+            echo "  lint    - Lint migrations"
+            echo "  diff    - Create new migration diff"
+            echo "  login   - Login to database"
+            echo ""
+            echo "Examples:"
+            echo "  just db              # Apply migrations (default)"
+            echo "  just db up           # Apply migrations"
+            echo "  just db status       # Check migration status"
+            echo "  just db reset        # Reset database"
+            echo "  just db login        # Login to database"
+            exit 1
+            ;;
+    esac
+
+# ========================
+# 🔌 端口管理
+# ========================
+
+# 杀掉指定端口的进程
+[doc("Kill process on specified port")]
+port-kill port="8080":
+    #!/usr/bin/env bash
+    echo "🔪 Killing process on port {{port}}..."
+    lsof -ti:{{port}} | xargs kill -9 2>/dev/null || fuser -k {{port}}/tcp 2>/dev/null || echo "Port {{port}} is already free"
+    echo "✅ Port {{port}} is now free"
+
+# 检查端口占用
+[doc("Check what's using specified port")]
+port-check port="8080":
+    #!/usr/bin/env bash
+    echo "🔍 Checking port {{port}}..."
+    lsof -i:{{port}} || echo "Port {{port}} is free"
+
+# ========================
+# 🔐 环境管理
+# ========================
+
+# 列出所有环境
+[doc("List all environment files (.env.A, .env.B, .env.C, etc.)")]
+env-list:
+    #!/usr/bin/env bash
+    echo "📋 Available environment files:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    for file in .env.*; do
+        if [ -f "$file" ]; then
+            env_name=$(echo "$file" | sed 's/.env.//')
+            echo "  📄 $env_name ($file)"
+        fi
+    done
+    if [ -f ".env.example" ]; then
+        echo "  📄 example (.env.example)"
+    fi
+    echo ""
+    if [ ! -f ".env" ]; then
+        echo "⚠️  No .env file found (no environment is active)"
+        echo "💡 Use 'just env-create <name>' to create a new environment"
+    else
+        echo "💡 Current active environment: just env-current"
+    fi
+
+# 创建新环境
+[doc("Create a new environment file from template")]
+env-create name template="":
+    #!/usr/bin/env bash
+    if [ -z "{{name}}" ]; then
+        echo "❌ Please specify environment name."
+        echo ""
+        echo "Usage: just env-create <name> [template=<template_file>]"
+        echo ""
+        echo "Examples:"
+        echo "  just env-create dev                              # Create .env.dev from .env.dev.example"
+        echo "  just env-create prod template=.env.dev.example   # Create .env.prod from .env.dev.example"
+        echo ""
+        echo "Available templates:"
+        for file in .env.*.example; do
+            if [ -f "$file" ]; then
+                echo "  - $file"
+            fi
+        done
+        exit 1
+    fi
+    
+    ENV_FILE=".env.{{name}}"
+    
+    # Determine template file
+    if [ -n "{{template}}" ]; then
+        TEMPLATE_FILE="{{template}}"
+    else
+        # Default template is .env.dev.example
+        TEMPLATE_FILE=".env.dev.example"
+    fi
+    
+    # Check if target already exists
+    if [ -f "$ENV_FILE" ]; then
+        echo "⚠️  Environment file already exists: $ENV_FILE"
+        echo ""
+        echo "💡 Use 'just env-switch {{name}}' to switch to this environment."
+        echo "   Or delete $ENV_FILE first if you want to recreate it."
+        exit 1
+    fi
+    
+    # Check template exists
+    if [ ! -f "$TEMPLATE_FILE" ]; then
+        echo "❌ Template file not found: $TEMPLATE_FILE"
+        echo ""
+        echo "Available templates:"
+        for file in .env.*.example; do
+            if [ -f "$file" ]; then
+                echo "  - $file"
+            fi
+        done
+        exit 1
+    fi
+    
+    echo "📝 Creating new environment: {{name}}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    echo "   Template: $TEMPLATE_FILE"
+    echo "   Target:   $ENV_FILE"
+    echo ""
+    
+    # Copy template to new env file
+    cp "$TEMPLATE_FILE" "$ENV_FILE"
+    
+    echo "✅ Environment file created: $ENV_FILE"
+    echo ""
+    echo "💡 Next steps:"
+    echo "   1. Edit $ENV_FILE to configure your environment"
+    echo "   2. Run 'just env-switch {{name}}' to activate it"
+
+# 显示当前环境
+[doc("Show currently active environment")]
+env-current:
+    #!/usr/bin/env bash
+    if [ ! -e ".env" ]; then
+        echo "⚠️  No .env file found. No environment is active."
+        echo ""
+        echo "💡 Use 'just env-switch <env>' to activate an environment."
+        exit 0
+    fi
+    
+    echo "🔍 Checking current environment..."
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Check if .env is a symlink
+    if [ -L ".env" ]; then
+        target=$(readlink .env)
+        if [[ "$target" == .env.* ]]; then
+            env_name=$(echo "$target" | sed 's/.env.//')
+            echo "✅ Current environment: $env_name"
+            echo "   Link: .env → $target"
+        else
+            echo "✅ Current environment: custom"
+            echo "   Link: .env → $target"
+        fi
+    else
+        echo "📝 .env is a regular file (not a symlink)."
+        echo "   This may have been created manually or with the old copy method."
+        echo ""
+        echo "💡 To convert to symlink mode, use: just env-switch <env>"
+    fi
+    
+    echo ""
+    echo "📄 .env file info:"
+    ls -lh .env | awk '{print "   " $0}'
+
+# 切换环境
+[doc("Switch to a different environment")]
+env-switch name create="":
+    #!/usr/bin/env bash
+    if [ -z "{{name}}" ]; then
+        echo "❌ Please specify environment name."
+        echo ""
+        echo "Usage: just env-switch <env_name> [create=true]"
+        echo ""
+        echo "Options:"
+        echo "  name        Environment name to switch to"
+        echo "  create=true Auto-create from template if not exists"
+        echo ""
+        echo "Available environments:"
+        for file in .env.*; do
+            if [ -f "$file" ] && [[ "$file" != *.example ]]; then
+                env_name=$(echo "$file" | sed 's/.env.//')
+                echo "  - $env_name"
+            fi
+        done
+        exit 1
+    fi
+    
+    ENV_FILE=".env.{{name}}"
+    
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "⚠️  Environment file not found: $ENV_FILE"
+        echo ""
+        
+        # Check if CREATE flag is set
+        if [ "{{create}}" = "true" ] || [ "{{create}}" = "1" ]; then
+            # Try to find a suitable template (default: .env.dev.example)
+            TEMPLATE=""
+            if [ -f ".env.dev.example" ]; then
+                TEMPLATE=".env.dev.example"
+            fi
+            
+            if [ -n "$TEMPLATE" ]; then
+                echo "📝 Creating environment from template: $TEMPLATE"
+                cp "$TEMPLATE" "$ENV_FILE"
+                echo "✅ Created: $ENV_FILE"
+                echo ""
+            else
+                echo "❌ No template found to create environment."
+                echo "   Please create .env.dev.example first."
+                exit 1
+            fi
+        else
+            echo "Available environments:"
+            for file in .env.*; do
+                if [ -f "$file" ] && [[ "$file" != *.example ]]; then
+                    env_name=$(echo "$file" | sed 's/.env.//')
+                    echo "  - $env_name"
+                fi
+            done
+            echo ""
+            echo "💡 To create this environment from template, run:"
+            echo "   just env-switch {{name}} create=true"
+            echo ""
+            echo "   Or create manually with:"
+            echo "   just env-create {{name}}"
+            exit 1
+        fi
+    fi
+    
+    echo "🔄 Switching environment to: {{name}}"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    
+    # Show current state
+    if [ -L ".env" ]; then
+        current_target=$(readlink .env)
+        echo "📌 Current: .env → $current_target"
+    elif [ -f ".env" ]; then
+        echo "📌 Current: .env (regular file)"
+    fi
+    
+    # Remove existing .env (works for both symlink and regular file)
+    rm -f .env
+    
+    # Create symlink
+    ln -s "$ENV_FILE" .env
+    
+    echo "✅ Environment switched to: {{name}}"
+    echo "   Link: .env → $ENV_FILE"
+    echo ""
+    echo "💡 The new environment is now active."
+    echo "   Use 'just env-current' to verify."
+
+# 对比环境差异
+[doc("Show differences between current .env and another")]
+env-diff name:
+    #!/usr/bin/env bash
+    if [ -z "{{name}}" ]; then
+        echo "❌ Please specify environment name."
+        echo "Usage: just env-diff <env_name>"
+        exit 1
+    fi
+    
+    ENV_FILE=".env.{{name}}"
+    
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "❌ Environment file not found: $ENV_FILE"
+        exit 1
+    fi
+    
+    if [ ! -f ".env" ]; then
+        echo "⚠️  No .env file found."
+        exit 1
+    fi
+    
+    echo "📊 Differences between .env and $ENV_FILE:"
+    echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+    diff -u --color=always "$ENV_FILE" .env || true
+    echo ""
+    echo "💡 Lines starting with '-' are in $ENV_FILE but not in .env"
+    echo "   Lines starting with '+' are in .env but not in $ENV_FILE"
+
+# 备份环境
+[doc("Create a backup of current .env file")]
+env-backup:
+    #!/usr/bin/env bash
+    if [ ! -f ".env" ]; then
+        echo "❌ No .env file found to backup."
+        exit 1
+    fi
+    
+    BACKUP=".env.backup.$(date +%Y%m%d_%H%M%S)"
+    cp .env "$BACKUP"
+    echo "✅ Backup created: $BACKUP"
+
+# 恢复环境
+[doc("Restore .env from a backup file")]
+env-restore file="":
+    #!/usr/bin/env bash
+    if [ -z "{{file}}" ]; then
+        echo "❌ Please specify backup file."
+        echo ""
+        echo "Available backups:"
+        ls -lht .env.backup.* 2>/dev/null || echo "  No backups found."
+        exit 1
+    fi
+    
+    if [ ! -f "{{file}}" ]; then
+        echo "❌ Backup file not found: {{file}}"
+        exit 1
+    fi
+    
+    cp "{{file}}" .env
+    echo "✅ Restored .env from {{file}}"

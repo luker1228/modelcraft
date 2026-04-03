@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ModelCraft — 登录</title>
+  <style>
+    /* ══════════════════════════════════════
+       ModelCraft · Custom Login Page
+       粘贴到 Casdoor → 自定义HTML，用于替换默认的登录页面样式
+       ══════════════════════════════════════ */
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #fafafa;
+    }
+
+    /* ── 脱离文档流，强制占满整个视口 ── */
+    .mc-root {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      z-index: 9999;
+      background: #fafafa;
+      overflow-y: auto;
+    }
+
+    /* ─────────────────────────────────────
+       左侧品牌区
+    ───────────────────────────────────── */
+    .mc-side {
+      width: 44%;
+      min-height: 100vh;
+      background: #ffffff;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 40px 44px;
+    }
+
+    .mc-brand { display: flex; align-items: center; gap: 10px; }
+    .mc-icon {
+      width: 36px; height: 36px;
+      background: #2563eb; border-radius: 7px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .mc-icon svg { width: 18px; height: 18px; stroke: #fff; stroke-width: 1.5; fill: none; }
+    .mc-name { font-size: 18px; font-weight: 600; color: #111827; }
+
+    .mc-hero {
+      flex: 1; display: flex; flex-direction: column;
+      justify-content: center; gap: 20px;
+    }
+    .mc-title { font-size: 28px; font-weight: 600; color: #111827; line-height: 1.3; }
+    .mc-desc { font-size: 14px; color: #6b7280; line-height: 1.7; max-width: 300px; }
+
+    .mc-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+    .mc-item { display: flex; align-items: center; gap: 10px; }
+    .mc-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+    .mc-item span { font-size: 13px; color: #374151; }
+
+    .mc-footer { font-size: 12px; color: #9ca3af; }
+
+    /* ─────────────────────────────────────
+       右侧表单区
+    ───────────────────────────────────── */
+    .mc-main {
+      flex: 1;
+      display: flex; align-items: center; justify-content: center;
+      padding: 32px 24px;
+    }
+
+    .mc-card {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 36px 40px;
+      width: 100%; max-width: 400px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    }
+
+    /* 卡片头部 */
+    .mc-card-logo {
+      width: 40px; height: 40px; background: #2563eb; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;
+    }
+    .mc-card-logo svg { width: 20px; height: 20px; stroke: #fff; stroke-width: 1.5; fill: none; }
+    .mc-card-title { text-align: center; font-size: 18px; font-weight: 600; color: #111827; margin-bottom: 4px; }
+    .mc-card-sub   { text-align: center; font-size: 13px; color: #6b7280; margin-bottom: 20px; }
+    .mc-divider    { border: none; border-top: 1px solid #e5e7eb; margin-bottom: 20px; }
+
+    /* 表单字段 */
+    .mc-field { margin-bottom: 14px; }
+    .mc-field label {
+      display: block; font-size: 13px; font-weight: 500;
+      color: #374151; margin-bottom: 5px;
+    }
+    .mc-field input[type="text"],
+    .mc-field input[type="password"] {
+      width: 100%; border: 1px solid #e5e7eb; border-radius: 6px;
+      padding: 8px 12px; font-size: 14px; color: #111827;
+      background: #ffffff; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: inherit;
+    }
+    .mc-field input:focus {
+      border-color: #2563eb;
+      box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+    }
+    .mc-field input::placeholder { color: #9ca3af; }
+
+    /* 密码行（右侧忘记密码） */
+    .mc-field-row {
+      display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;
+    }
+    .mc-field-row label { margin-bottom: 0; }
+    .mc-forgot { font-size: 12px; color: #2563eb; text-decoration: none; }
+    .mc-forgot:hover { text-decoration: underline; color: #1d4ed8; }
+
+    /* 记住我 */
+    .mc-remember {
+      display: flex; align-items: center; gap: 8px;
+      margin-bottom: 16px; margin-top: 2px;
+    }
+    .mc-remember input[type="checkbox"] {
+      width: 14px; height: 14px; accent-color: #2563eb; cursor: pointer;
+    }
+    .mc-remember label { font-size: 13px; color: #6b7280; cursor: pointer; }
+
+    /* 登录按钮 */
+    .mc-btn {
+      width: 100%; height: 36px;
+      background: #2563eb; color: #ffffff;
+      border: none; border-radius: 6px;
+      font-size: 14px; font-weight: 500;
+      cursor: pointer; font-family: inherit;
+      transition: background-color 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .mc-btn:hover:not(:disabled) { background: #1d4ed8; }
+    .mc-btn:disabled { background: #93c5fd; cursor: not-allowed; }
+
+    /* 加载 spinner */
+    .mc-spinner {
+      width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.4);
+      border-top-color: #ffffff; border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      display: none;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* 错误提示 */
+    .mc-error {
+      background: #fee2e2; border: 1px solid rgba(239,68,68,0.3);
+      border-radius: 6px; padding: 10px 14px;
+      font-size: 13px; color: #b91c1c;
+      margin-bottom: 14px; display: none;
+      display: flex; align-items: flex-start; gap: 8px;
+    }
+    .mc-error svg { width: 14px; height: 14px; stroke: #b91c1c; stroke-width: 1.5; fill: none; flex-shrink: 0; margin-top: 1px; }
+    .mc-error[hidden] { display: none !important; }
+
+    /* 注册引导 */
+    .mc-signup {
+      text-align: center; margin-top: 16px;
+      font-size: 13px; color: #6b7280;
+    }
+    .mc-signup a { color: #2563eb; text-decoration: none; }
+    .mc-signup a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <div class="mc-root">
+
+  <!-- ══ 左侧品牌区 ══ -->
+  <div class="mc-side">
+    <div class="mc-brand">
+      <div class="mc-icon">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
+      </div>
+      <span class="mc-name">ModelCraft</span>
+    </div>
+
+    <div class="mc-hero">
+      <h1 class="mc-title">可视化构建<br>数据模型</h1>
+      <p class="mc-desc">现代化的 Headless CMS，为开发者打造。设计模式、管理内容、部署 API。</p>
+      <div class="mc-list">
+        <div class="mc-item">
+          <div class="mc-dot" style="background:#2563eb"></div>
+          <span>多租户工作空间支持</span>
+        </div>
+        <div class="mc-item">
+          <div class="mc-dot" style="background:#059669"></div>
+          <span>OAuth2 / OIDC 企业级安全</span>
+        </div>
+        <div class="mc-item">
+          <div class="mc-dot" style="background:#d97706"></div>
+          <span>细粒度角色权限控制</span>
+        </div>
+      </div>
+    </div>
+
+    <p class="mc-footer">&copy; 2025 ModelCraft</p>
+  </div>
+
+  <!-- ══ 右侧登录表单 ══ -->
+  <div class="mc-main">
+    <div class="mc-card">
+
+      <div class="mc-card-logo">
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09Z"/></svg>
+      </div>
+      <div class="mc-card-title">欢迎回来</div>
+      <div class="mc-card-sub">登录以访问您的工作空间</div>
+      <hr class="mc-divider">
+
+      <!-- 错误提示 -->
+      <div class="mc-error" id="mc-error" hidden>
+        <svg viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z"/></svg>
+        <span id="mc-error-text">用户名或密码错误，请重试。</span>
+      </div>
+
+      <!-- 表单 -->
+      <form id="mc-form" onsubmit="handleLogin(event)">
+
+        <div class="mc-field">
+          <label for="mc-username">用户名</label>
+          <input type="text" id="mc-username" name="username"
+                 placeholder="请输入用户名或邮箱" autocomplete="username" required>
+        </div>
+
+        <div class="mc-field">
+          <div class="mc-field-row">
+            <label for="mc-password">密码</label>
+            <a href="/forget-password" class="mc-forgot">忘记密码？</a>
+          </div>
+          <input type="password" id="mc-password" name="password"
+                 placeholder="请输入密码" autocomplete="current-password" required>
+        </div>
+
+        <div class="mc-remember">
+          <input type="checkbox" id="mc-remember" name="autoSignin">
+          <label for="mc-remember">记住我</label>
+        </div>
+
+        <button type="submit" class="mc-btn" id="mc-btn">
+          <div class="mc-spinner" id="mc-spinner"></div>
+          <span id="mc-btn-text">登 录</span>
+        </button>
+
+      </form>
+
+      <div class="mc-signup">
+        没有账号？<a href="/signup">立即注册</a>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // ══════════════════════════════════════════════
+    //  ⚠️  修改这两个值为你的 Casdoor 应用配置
+    // ══════════════════════════════════════════════
+    const CASDOOR_APP  = 'modelcraft';   // Casdoor Application Name
+    const CASDOOR_ORG  = 'modelcraft';   // Casdoor Organization Name
+
+    // ── URL 中读取 redirectUrl（Casdoor 自动附带） ──
+    function getRedirectUrl() {
+      const params = new URLSearchParams(window.location.search);
+      return params.get('redirectUrl') || params.get('redirect_uri') || '/';
+    }
+
+    // ── 登录处理 ──
+    async function handleLogin(e) {
+      e.preventDefault();
+
+      const username  = document.getElementById('mc-username').value.trim();
+      const password  = document.getElementById('mc-password').value;
+      const autoSignin = document.getElementById('mc-remember').checked;
+
+      // UI → 加载态
+      setLoading(true);
+      hideError();
+
+      try {
+        const res = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',       // 携带 cookie（Casdoor session）
+          body: JSON.stringify({
+            username,
+            password,
+            autoSignin,
+            application: CASDOOR_APP,
+            organization: CASDOOR_ORG,
+            type: 'login',
+          }),
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.status === 'ok') {
+          // 登录成功 → 跳转
+          const redirectUrl = data.data || getRedirectUrl();
+          window.location.href = redirectUrl;
+        } else {
+          // 登录失败 → 显示错误
+          const msg = parseError(data);
+          showError(msg);
+          setLoading(false);
+        }
+
+      } catch (err) {
+        showError('网络异常，请检查连接后重试。');
+        setLoading(false);
+      }
+    }
+
+    // ── 解析 Casdoor 返回的错误信息 ──
+    function parseError(data) {
+      if (!data) return '登录失败，请重试。';
+      // Casdoor 常见错误 msg
+      const msg = data.msg || data.message || data.data || '';
+      if (msg.includes('Invalid username') || msg.includes('wrong password') || msg.includes('password'))
+        return '用户名或密码错误，请重试。';
+      if (msg.includes('locked') || msg.includes('banned'))
+        return '账号已被锁定，请联系管理员。';
+      if (msg.includes('not exist') || msg.includes('not found'))
+        return '用户不存在，请检查用户名。';
+      return msg || '登录失败，请重试。';
+    }
+
+    // ── UI 工具 ──
+    function setLoading(on) {
+      const btn     = document.getElementById('mc-btn');
+      const spinner = document.getElementById('mc-spinner');
+      const text    = document.getElementById('mc-btn-text');
+      btn.disabled        = on;
+      spinner.style.display = on ? 'block' : 'none';
+      text.textContent    = on ? '登录中...' : '登 录';
+    }
+
+    function showError(msg) {
+      const el = document.getElementById('mc-error');
+      document.getElementById('mc-error-text').textContent = msg;
+      el.removeAttribute('hidden');
+    }
+
+    function hideError() {
+      document.getElementById('mc-error').setAttribute('hidden', '');
+    }
+
+    // ── 输入时清除错误 ──
+    ['mc-username', 'mc-password'].forEach(id => {
+      document.getElementById(id).addEventListener('input', hideError);
+    });
+  </script>
+
+  </div><!-- /.mc-root -->
+
+</body>
+</html>

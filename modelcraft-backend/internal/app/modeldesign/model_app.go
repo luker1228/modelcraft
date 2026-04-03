@@ -1,0 +1,1090 @@
+package modeldesign
+
+import (
+	"context"
+	"fmt"
+	"modelcraft/internal/domain/cluster"
+	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/project"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/repository"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/bizutils"
+	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/lexorder"
+	"modelcraft/pkg/logfacade"
+	"strings"
+
+	"github.com/samber/lo"
+)
+
+// ModelDesignAppService 模型设计应用服务，负责模型在平台数据库和客户数据库之间的同步操作
+type ModelDesignAppService struct {
+	deployRepo    modeldesign.DeployRepo
+	modelRepo     modeldesign.ModelRepository
+	fkRepo        modeldesign.LogicalForeignKeyRepository
+	clusterRepo   cluster.DatabaseClusterRepository
+	txManager     repository.TxManager
+	enumAssocRepo modeldesign.FieldEnumAssociationRepository
+	enumRepo      modeldesign.EnumRepository
+}
+
+// NewModelDesignAppService 创建模型设计应用服务实例
+func NewModelDesignAppService(
+	deployRepo modeldesign.DeployRepo,
+	modelRepo modeldesign.ModelRepository,
+	clusterRepo cluster.DatabaseClusterRepository,
+	txManager repository.TxManager,
+) *ModelDesignAppService {
+	return &ModelDesignAppService{
+		txManager:   txManager,
+		deployRepo:  deployRepo,
+		modelRepo:   modelRepo,
+		clusterRepo: clusterRepo,
+	}
+}
+
+// WithFKRepo sets the logical foreign key repository dependency.
+func (s *ModelDesignAppService) WithFKRepo(
+	repo modeldesign.LogicalForeignKeyRepository,
+) *ModelDesignAppService {
+	s.fkRepo = repo
+	return s
+}
+
+// WithEnumAssocRepo sets the enum association repository dependency.
+// This is used for wiring during initialization.
+func (s *ModelDesignAppService) WithEnumAssocRepo(
+	repo modeldesign.FieldEnumAssociationRepository,
+) *ModelDesignAppService {
+	s.enumAssocRepo = repo
+	return s
+}
+
+// WithEnumRepo sets the enum repository dependency.
+// This is used for IsArray inference when adding ENUM fields.
+func (s *ModelDesignAppService) WithEnumRepo(
+	repo modeldesign.EnumRepository,
+) *ModelDesignAppService {
+	s.enumRepo = repo
+	return s
+}
+
+// getLogger 获取logger，优先使用context中的logger，降级到baseLogger
+func (s *ModelDesignAppService) getLogger(ctx context.Context) logfacade.Logger {
+	return logfacade.GetLogger(ctx)
+}
+
+// CreateModelSync 同步创建模型（平台DB+客户DB）
+func (s *ModelDesignAppService) CreateModelSync(
+	ctx context.Context,
+	cmd CreateModelCommand,
+) (*modeldesign.DataModel, error) {
+	// Get orgName from context
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get organization name: %w", err)
+	}
+	_, err = s.clusterRepo.GetByProjectKey(ctx, orgName, cmd.ProjectSlug)
+	if err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ClusterNotFound, cmd.ProjectSlug)
+	}
+	model, err := newModelFromCommand(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	fields := modeldesign.GetSystemFields()
+	model.AddFields(fields)
+	s.getLogger(ctx).Infof(ctx, "model: %s", bizutils.MarshalToStringIgnoreErr(model))
+	err = model.Validate()
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "模型规则校验失败")
+	}
+
+	var createdModel *modeldesign.DataModel
+	createdModel, err = s.transactionDeployModel(ctx, orgName, model)
+	if err != nil {
+		return nil, err
+	}
+	return createdModel, nil
+}
+
+// transactionDeployModel 在事务中部署模型
+func (s *ModelDesignAppService) transactionDeployModel(
+	ctx context.Context,
+	orgName string,
+	model *modeldesign.DataModel,
+) (*modeldesign.DataModel, error) {
+	// Check if the underlying table already exists in the client database before deploying.
+	tableExists, err := s.deployRepo.CheckTableExists(ctx, model)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check table existence: %w", err)
+	}
+	if tableExists {
+		return nil, bizerrors.NewErrorFromContext(
+			ctx,
+			bizerrors.ModelTableAlreadyExists,
+			model.ModelName,
+			model.DatabaseName,
+		)
+	}
+
+	var createdModel *modeldesign.DataModel
+	err = s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+		var txErr error
+		modelRepository := repository.NewSqlModelDesignRepository(q)
+		if txErr = modelRepository.Save(ctx, orgName, model); txErr != nil {
+			if shared.IsRepoError(txErr, shared.ErrTypeConstraint) {
+				resourceName := model.GetBizUniqueName()
+				return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, resourceName)
+			}
+			return txErr
+		}
+
+		opt := modeldesign.NewModelQueryOptions().WithFields()
+		createdModel, txErr = modelRepository.GetByID(ctx, model.ID, opt)
+		if txErr != nil {
+			return txErr
+		}
+		if createdModel == nil {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, createdModel.ID)
+		}
+
+		// 2. 部署到客户DB
+		txErr = s.deployRepo.DeployModelToCreate(ctx, createdModel)
+		if txErr != nil {
+			return fmt.Errorf("客户数据库部署失败: %w", txErr)
+		}
+		return nil
+	})
+	return createdModel, err
+}
+
+// UpdateModelMeta 更新模型元数据（仅平台DB）
+func (s *ModelDesignAppService) UpdateModelMeta(ctx context.Context, id string, cmd UpdateModelMetaCommand) error {
+	// 获取模型
+	model, repoErr := s.modelRepo.GetByID(ctx, id)
+	if repoErr != nil {
+		return repoErr
+	}
+	if model == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
+	}
+
+	// 更新模型元信息（title/description）
+	if err := model.Update(cmd.Title, cmd.Description); err != nil {
+		return fmt.Errorf("更新模型属性失败: %w", err)
+	}
+	if err := model.ValidateMeta(); err != nil {
+		return err
+	}
+
+	// 保存到数据库
+	if repoErr := s.modelRepo.Update(ctx, model); repoErr != nil {
+		return repoErr
+	}
+	return nil
+}
+
+// DeleteModelSync 同步删除模型。
+// 当 dropTable=true 时同时执行 DROP TABLE DDL；dropTable=false（默认）时只删除元数据，不删除底层表。
+func (s *ModelDesignAppService) DeleteModelSync(ctx context.Context, id, projectSlug string, dropTable bool) error {
+	logger := logfacade.GetLogger(ctx)
+	model, err := s.modelRepo.GetByID(ctx, id)
+	if err != nil {
+		logger.Infof(ctx, "err = %+v, %w, %T", err, err, err)
+		return err
+	}
+	if model == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
+	}
+	if dropTable {
+		err = s.deployRepo.DeployModelToDrop(ctx, model)
+		if err != nil {
+			return err
+		}
+	}
+	if err := s.modelRepo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// 4.10: 清理孤立的反向 FK 行（DB CASCADE 已删除本模型的 FK 行，
+	// 但 ref_model_id = deleted_model_id 的反向行可能残留）
+	if s.fkRepo != nil {
+		s.cleanOrphanedFKRows(ctx, id)
+	}
+	return nil
+}
+
+// cleanOrphanedFKRows removes orphaned FK rows left after model deletion.
+// DB CASCADE removes FK rows where model_id = deleted model, but rows where
+// ref_model_id = deleted model may remain as orphans.
+func (s *ModelDesignAppService) cleanOrphanedFKRows(ctx context.Context, modelID string) {
+	logger := logfacade.GetLogger(ctx)
+	orphans, err := s.fkRepo.FindByModel(ctx, modelID)
+	if err != nil {
+		logger.Warnf(ctx, "DeleteModelSync: failed to query orphaned FK rows for model %s: %v", modelID, err)
+		return
+	}
+	seen := make(map[string]bool)
+	for _, row := range orphans {
+		if seen[row.PairID] {
+			continue
+		}
+		seen[row.PairID] = true
+		if delErr := s.fkRepo.DeleteByPairID(ctx, row.PairID); delErr != nil {
+			logger.Warnf(ctx, "DeleteModelSync: failed to delete orphaned FK pair %s: %v", row.PairID, delErr)
+		}
+	}
+}
+
+// QueryModels 查询模型列表
+func (s *ModelDesignAppService) QueryModels(
+	ctx context.Context,
+	domainQuery modeldesign.ModelQuery,
+) ([]modeldesign.DataModel, int, error) {
+	// Validate and set defaults for query
+	if err := domainQuery.Validate(); err != nil {
+		return nil, 0, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, fmt.Sprintf("查询参数验证失败: %v", err))
+	}
+	domainQuery.SetDefaults()
+
+	// 查询模型列表
+	modelQueryResults, total, repoErr := s.modelRepo.Query(ctx, domainQuery)
+	if repoErr != nil {
+		return nil, 0, repoErr
+	}
+	return modelQueryResults, total, nil
+}
+
+// QueryModelsWithCommand 查询模型列表（从 Command 转换）
+func (s *ModelDesignAppService) QueryModelsWithCommand(
+	ctx context.Context,
+	cmd ModelQueryCommand,
+) ([]modeldesign.DataModel, int, error) {
+	// Get OrgName from context if not provided in command
+	orgName := cmd.OrgName
+	if orgName == "" {
+		var err error
+		orgName, err = ctxutils.GetOrgNameFromContext(ctx)
+		if err != nil {
+			return nil, 0, bizerrors.NewError(bizerrors.ParamInvalid, "orgName is required")
+		}
+	}
+
+	// 将Command转换为Domain查询对象
+	domainQuery := modeldesign.ModelQuery{
+		OrgName:      orgName,
+		ProjectSlug:  cmd.ProjectSlug,
+		DatabaseName: cmd.DatabaseName,
+		Name:         cmd.Name,
+		Title:        cmd.Title,
+		Status:       cmd.Status,
+		StorageType:  cmd.StorageType,
+		Page:         cmd.Page,
+		PageSize:     cmd.PageSize,
+	}
+	domainQuery.SetDefaults()
+
+	if err := domainQuery.Validate(); err != nil {
+		return nil, 0, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, fmt.Sprintf("查询参数验证失败: %v", err))
+	}
+
+	return s.QueryModels(ctx, domainQuery)
+}
+
+// AddFieldSync 同步添加字段（支持物理字段和关联字段）
+func (s *ModelDesignAppService) AddFieldSync(ctx context.Context, cmd AddFieldCommand) error {
+	logger := logfacade.GetLogger(ctx)
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get organization name: %w", err)
+	}
+	modelID := cmd.ModelID
+
+	opts := modeldesign.NewModelQueryOptions().WithFields()
+	model, err := s.modelRepo.GetByID(ctx, modelID, opts)
+	if err != nil {
+		return err
+	}
+	if model == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+
+	toAddFields := cmd.Fields
+	// 从 model 补全字段的 ModelID 和 ModelLocator，resolver 层无法提前得知这些信息
+	for _, field := range toAddFields {
+		field.ModelID = model.ID
+		field.ModelLocator = model.GetModelLocator()
+	}
+	fieldAbstracts := lo.SliceToMap(
+		toAddFields,
+		func(field *modeldesign.FieldDefinition) (string, *modeldesign.FieldType) {
+			return field.Name, field.Type
+		},
+	)
+	logger.Infof(ctx, "add fields: %s", bizutils.MarshalToStringIgnoreErr(fieldAbstracts))
+
+	// 交叉验证：检查要添加的字段是否与现有字段重复
+	fieldService := modeldesign.NewFieldService()
+	if err := fieldService.ValidateAddFieldsNotExist(
+		model.Fields,
+		fieldService.GetNamesFromFields(toAddFields)...,
+	); err != nil {
+		return err
+	}
+
+	var physicFields []*modeldesign.FieldDefinition
+	var relationFields []*modeldesign.FieldDefinition
+	var virtualFields []*modeldesign.FieldDefinition
+	for _, field := range toAddFields {
+		switch {
+		case field.IsRelationField():
+			relationFields = append(relationFields, field)
+		case field.IsEnumLabelField():
+			virtualFields = append(virtualFields, field)
+		default:
+			physicFields = append(physicFields, field)
+		}
+	}
+	// 添加本表字段
+	err = s.addPhysicFields(ctx, orgName, model, physicFields)
+	if err != nil {
+		return err
+	}
+	// 添加 RELATION 格式字段（新方式：通过 relate_fk_id 关联逻辑外键）
+	err = s.addRelationFields(ctx, orgName, model, relationFields)
+	if err != nil {
+		return err
+	}
+	// 添加虚拟字段（枚举标签字段）- 只保存到平台DB，不部署到客户DB
+	err = s.addVirtualFields(ctx, orgName, model, virtualFields)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// addPhysicFields 添加物理字段
+func (s *ModelDesignAppService) addPhysicFields(
+	ctx context.Context,
+	orgName string,
+	model *modeldesign.DataModel,
+	fieldEntitys []*modeldesign.FieldDefinition,
+) error {
+	if len(fieldEntitys) == 0 {
+		return nil
+	}
+	log := logfacade.GetLogger(ctx)
+	log.Infof(ctx, "add physic fields: %s", bizutils.MarshalToStringIgnoreErr(fieldEntitys))
+
+	// Infer IsArray from EnumDefinition.IsMultiSelect for ENUM fields
+	if err := s.inferEnumFieldIsArray(ctx, model, fieldEntitys); err != nil {
+		return err
+	}
+
+	for _, field := range fieldEntitys {
+		if err := field.Validate(); err != nil {
+			return err
+		}
+	}
+	if err := s.assignDisplayOrders(ctx, model.ID, fieldEntitys); err != nil {
+		return err
+	}
+	if err := s.modelRepo.AddFields(ctx, orgName, fieldEntitys); err != nil {
+		return err
+	}
+
+	err := s.deployRepo.DeployModelToAddFields(ctx, model, fieldEntitys)
+	if err != nil {
+		return fmt.Errorf("部署模型到客户DB失败: %w", err)
+	}
+	fieldService := modeldesign.NewFieldService()
+	updateReq := modeldesign.UpdateFieldsStatusRequest{
+		ModelId: model.ID,
+		Name:    fieldService.GetNamesFromFields(fieldEntitys),
+		Status:  modeldesign.FieldStatusToDelete,
+	}
+	if err := s.modelRepo.UpdateFieldsStatus(ctx, updateReq); err != nil {
+		return fmt.Errorf("更新字段状态失败: %w", err)
+	}
+
+	// 创建枚举字段的关联记录
+	for _, field := range fieldEntitys {
+		if field.IsEnumField() && field.EnumName != "" {
+			enumAssocRepo := s.enumAssocRepo
+			association := &modeldesign.FieldEnumAssociation{
+				ModelID:   model.ID,
+				FieldName: field.Name,
+				ProjectScope: project.ProjectScope{
+					OrgName:     model.OrgName,
+					ProjectSlug: model.ProjectSlug,
+				},
+				EnumName:     field.EnumName,
+				DatabaseName: model.DatabaseName,
+			}
+			if err := enumAssocRepo.Create(ctx, association); err != nil {
+				log.Errorf(ctx, "创建枚举关联失败: modelID=%s, fieldName=%s, enumName=%s, err=%v",
+					model.ID, field.Name, field.EnumName, err)
+				return fmt.Errorf("创建枚举关联失败: %w", err)
+			}
+			log.Infof(ctx, "创建枚举关联成功: modelID=%s, fieldName=%s, enumName=%s",
+				model.ID, field.Name, field.EnumName)
+		}
+	}
+
+	return nil
+}
+
+// inferEnumFieldIsArray infers and validates the IsArray field for ENUM format fields
+// based on the associated EnumDefinition.IsMultiSelect property.
+//
+// Rules:
+// 1. For ENUM format fields with an associated enum (EnumName != ""):
+//   - If enum.IsMultiSelect is true, field.IsArray is set to true
+//   - If enum.IsMultiSelect is false, field.IsArray must be false (error if true)
+//
+// 2. Non-ENUM fields are not affected by this logic.
+// 3. ENUM fields without EnumName are skipped (legacy inline enum values).
+func (s *ModelDesignAppService) inferEnumFieldIsArray(
+	ctx context.Context,
+	model *modeldesign.DataModel,
+	fields []*modeldesign.FieldDefinition,
+) error {
+	// Skip if enumRepo is not configured
+	if s.enumRepo == nil {
+		return nil
+	}
+
+	for _, field := range fields {
+		// Only process ENUM format fields with an associated enum
+		if !field.IsEnumField() || field.EnumName == "" {
+			continue
+		}
+
+		// Fetch the enum definition
+		enumDef, err := s.enumRepo.FindByName(model.OrgName, model.ProjectSlug, field.EnumName)
+		if err != nil {
+			return bizerrors.Wrapf(err, "failed to find enum '%s' for field '%s'", field.EnumName, field.Name)
+		}
+		if enumDef == nil {
+			return bizerrors.NewError(bizerrors.EnumNotFound, field.EnumName)
+		}
+
+		// Validate and infer IsArray based on enum.IsMultiSelect
+		if field.IsArray && !enumDef.IsMultiSelect {
+			// User requested IsArray=true, but enum does not support multi-select
+			return bizerrors.Errorf(
+				"field '%s': enum '%s' does not support multi-select, cannot set isArray=true",
+				field.Name, field.EnumName,
+			)
+		}
+
+		// Infer IsArray from enum.IsMultiSelect
+		field.IsArray = enumDef.IsMultiSelect
+	}
+
+	return nil
+}
+
+// addVirtualFields 添加虚拟字段（如枚举标签字段）
+// 虚拟字段只保存到平台DB，不部署到客户DB
+func (s *ModelDesignAppService) addVirtualFields(
+	ctx context.Context,
+	orgName string,
+	model *modeldesign.DataModel,
+	fieldEntitys []*modeldesign.FieldDefinition,
+) error {
+	if len(fieldEntitys) == 0 {
+		return nil
+	}
+	log := logfacade.GetLogger(ctx)
+	log.Infof(ctx, "add virtual fields: %s", bizutils.MarshalToStringIgnoreErr(fieldEntitys))
+	fieldService := modeldesign.NewFieldService()
+
+	for _, field := range fieldEntitys {
+		// 验证字段
+		if err := field.Validate(); err != nil {
+			return err
+		}
+
+		// 验证枚举标签字段配置（检查源字段存在且为枚举字段）
+		if err := fieldService.ValidateEnumLabelField(field, model); err != nil {
+			return err
+		}
+	}
+
+	// 保存字段到平台DB（直接标记为已部署，因为不需要部署到客户DB）
+	if err := s.assignDisplayOrders(ctx, model.ID, fieldEntitys); err != nil {
+		return err
+	}
+	if err := s.modelRepo.AddFields(ctx, orgName, fieldEntitys); err != nil {
+		return err
+	}
+
+	// 更新字段状态为已部署（虽然不部署到客户DB，但需要在平台DB中标记为可用）
+	updateReq := modeldesign.UpdateFieldsStatusRequest{
+		ModelId: model.ID,
+		Name:    fieldService.GetNamesFromFields(fieldEntitys),
+		Status:  modeldesign.FieldStatusDeploySuccess,
+	}
+	if err := s.modelRepo.UpdateFieldsStatus(ctx, updateReq); err != nil {
+		return fmt.Errorf("更新虚拟字段状态失败: %w", err)
+	}
+
+	log.Infof(ctx, "Successfully added virtual fields to model %s", model.ModelName)
+	return nil
+}
+
+// addRelationFields 添加 RELATION 格式字段（新方式：通过 relate_fk_id 关联逻辑外键）
+// RELATION 格式字段只保存到平台 DB，不部署到客户 DB（它是逻辑字段，不对应物理列）
+func (s *ModelDesignAppService) addRelationFields(
+	ctx context.Context,
+	orgName string,
+	model *modeldesign.DataModel,
+	toAddFields []*modeldesign.FieldDefinition,
+) error {
+	if len(toAddFields) == 0 {
+		return nil
+	}
+	log := logfacade.GetLogger(ctx)
+
+	// Build FK validator if fkRepo is available
+	var fkSvc *AddFieldFKService
+	if s.fkRepo != nil {
+		fkSvc = newAddFieldFKService(s.modelRepo, s.fkRepo)
+	}
+
+	fieldService := modeldesign.NewFieldService()
+	for _, field := range toAddFields {
+		// 验证 relate_fk_id（domain validate 已经保证 RELATION 格式必须有 relate_fk_id）
+		if err := field.Validate(); err != nil {
+			return err
+		}
+		// 额外验证：relate_fk_id 必须指向本模型的 FK 行
+		if fkSvc != nil {
+			if err := fkSvc.ValidateRelateFKID(ctx, model.ID, field.RelateFKID); err != nil {
+				return err
+			}
+		}
+		log.Infof(ctx, "addRelationFields: validated field %s with relate_fk_id=%v", field.Name, field.RelateFKID)
+	}
+
+	// 分配展示顺序并保存到平台 DB
+	if err := s.assignDisplayOrders(ctx, model.ID, toAddFields); err != nil {
+		return err
+	}
+	if err := s.modelRepo.AddFields(ctx, orgName, toAddFields); err != nil {
+		return err
+	}
+
+	// RELATION 字段标记为已部署（不需要物理部署）
+	updateReq := modeldesign.UpdateFieldsStatusRequest{
+		ModelId: model.ID,
+		Name:    fieldService.GetNamesFromFields(toAddFields),
+		Status:  modeldesign.FieldStatusDeploySuccess,
+	}
+	if err := s.modelRepo.UpdateFieldsStatus(ctx, updateReq); err != nil {
+		return fmt.Errorf("更新 RELATION 字段状态失败: %w", err)
+	}
+
+	log.Infof(ctx, "Successfully added %d RELATION fields to model %s", len(toAddFields), model.ModelName)
+	return nil
+}
+
+// UpdateFieldSync 同步更新字段元数据（仅平台DB）
+func (s *ModelDesignAppService) UpdateFieldSync(ctx context.Context, cmd UpdateFieldCommand) error {
+	modelID := cmd.ModelID
+	fieldName := cmd.FieldName
+
+	// 1. 获取字段信息（现在包含 project_slug）
+	field, err := s.modelRepo.GetFieldByModelID(ctx, modelID, fieldName)
+	if err != nil {
+		return err
+	}
+	if field == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldNotFound)
+	}
+
+	// 2. 更新字段属性
+	field.Update(cmd.Title, cmd.Description, cmd.ValidationConfig)
+
+	// 3. 验证字段（会验证 ModelLocator，现在包含 ProjectSlug）
+	if err := field.Validate(); err != nil {
+		return err
+	}
+
+	// 4. 保存到数据库
+	if err := s.modelRepo.UpdateField(ctx, field); err != nil {
+		return err
+	}
+	return nil
+}
+
+// DeprecateField 将字段标记为废弃（幂等：已废弃时直接成功）
+func (s *ModelDesignAppService) DeprecateField(ctx context.Context, cmd DeprecateFieldCommand) error {
+	field, err := s.modelRepo.GetFieldByModelID(ctx, cmd.ModelID, cmd.FieldName)
+	if err != nil {
+		return err
+	}
+	if field == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldNotFound)
+	}
+
+	field.Deprecate()
+
+	if err := s.modelRepo.UpdateField(ctx, field); err != nil {
+		return err
+	}
+	return nil
+}
+
+// UndeprecateField 解除字段的废弃状态（幂等：未废弃时直接成功）
+func (s *ModelDesignAppService) UndeprecateField(ctx context.Context, cmd UndeprecateFieldCommand) error {
+	field, err := s.modelRepo.GetFieldByModelID(ctx, cmd.ModelID, cmd.FieldName)
+	if err != nil {
+		return err
+	}
+	if field == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldNotFound)
+	}
+
+	field.Undeprecate()
+
+	if err := s.modelRepo.UpdateField(ctx, field); err != nil {
+		return err
+	}
+	return nil
+}
+
+// RemoveFieldSync 同步删除字段（平台DB+客户DB）
+func (s *ModelDesignAppService) RemoveFieldSync(
+	ctx context.Context,
+	cmd RemoveFieldCommand,
+) error {
+	logger := s.getLogger(ctx)
+	modelID := cmd.ModelID
+	fieldName := cmd.FieldName
+
+	option := &modeldesign.ModelQueryOptions{
+		GetFields: true,
+	}
+	dataModel, err := s.modelRepo.GetByID(ctx, modelID, option)
+	if err != nil {
+		return err
+	}
+	if dataModel == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound)
+	}
+
+	field := dataModel.GetField(fieldName)
+	if field == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldNotFound)
+	}
+
+	// Case 1: RELATION 格式字段（relate_fk_id 字段）——直接删除，无需物理部署
+	if field.IsRelationField() {
+		deleteReq := modeldesign.DeleteFieldRequest{
+			ModelId: modelID,
+			Name:    []string{fieldName},
+		}
+		return s.modelRepo.BulkDeleteFields(ctx, deleteReq)
+	}
+
+	// Case 2: FK 列字段（belongs_to_fk_id 字段）——需要检查是否有 RELATION 字段引用该 FK
+	if field.BelongsToFKID != nil && s.fkRepo != nil {
+		if err := s.removeFKPairIfUnreferenced(ctx, modelID, *field.BelongsToFKID); err != nil {
+			return err
+		}
+	}
+
+	if field.ParentRelationID != nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldHasDependencies)
+	}
+	updateReq := modeldesign.UpdateFieldsStatusRequest{
+		ModelId: modelID,
+		Name:    []string{fieldName},
+		Status:  modeldesign.FieldStatusToDelete,
+	}
+	if err := s.modelRepo.UpdateFieldsStatus(ctx, updateReq); err != nil {
+		return err
+	}
+	if err := s.deployRepo.DeployModelToRemoveFields(
+		ctx,
+		dataModel,
+		[]string{fieldName},
+	); err != nil {
+		return fmt.Errorf("部署模型到客户DB失败: %w", err)
+	}
+
+	if err := s.modelRepo.DeleteFields(ctx, modelID, []string{fieldName}); err != nil {
+		return err
+	}
+
+	logger.Infof(ctx, "成功删除字段: modelID=%s, fieldName=%s", modelID, fieldName)
+	return nil
+}
+
+// removeFKPairIfUnreferenced checks if the FK pair is still referenced by any RELATION fields.
+// If not referenced, it deletes the FK pair. Returns an error if the FK pair is still in use.
+func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, modelID, fkID string) error {
+	relateFields, err := s.fkRepo.FindByRelateField(ctx, fkID)
+	if err != nil {
+		return fmt.Errorf("RemoveFieldSync: check relate fields: %w", err)
+	}
+	if len(relateFields) > 0 {
+		return bizerrors.NewError(bizerrors.FKPairHasRelateFields, fkID)
+	}
+	// No RELATION field references this FK; find and delete the FK pair.
+	fkRows, err := s.fkRepo.FindByModel(ctx, modelID)
+	if err != nil {
+		return fmt.Errorf("RemoveFieldSync: find FK rows: %w", err)
+	}
+	for _, row := range fkRows {
+		if row.ID == fkID {
+			if err := s.fkRepo.DeleteByPairID(ctx, row.PairID); err != nil {
+				return fmt.Errorf("RemoveFieldSync: delete FK pair %s: %w", row.PairID, err)
+			}
+			break
+		}
+	}
+	return nil
+}
+
+// SyncModelSchemaResult 同步模型Schema结果
+type SyncModelSchemaResult struct {
+	Model         *modeldesign.DataModel
+	FieldsAdded   int
+	FieldsSkipped []string
+	FieldsDeleted int
+	DeletedFields []string
+}
+
+// GetModelByID 根据模型ID获取模型
+func (s *ModelDesignAppService) GetModelByID(
+	ctx context.Context,
+	id string,
+	getModelOpt *GetModelOptions,
+) (*modeldesign.DataModel, error) {
+	// 查询模型
+	var opt *modeldesign.ModelQueryOptions = modeldesign.NewModelQueryOptions()
+	if getModelOpt.GetFields {
+		opt = opt.WithFields()
+	}
+	modelQueryResult, err := s.modelRepo.GetByID(ctx, id, opt)
+	if err != nil {
+		return nil, err
+	}
+	if modelQueryResult == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
+	}
+	return modelQueryResult, nil
+}
+
+// GetFieldsByModelID 根据模型ID获取所有字段
+func (s *ModelDesignAppService) GetFieldsByModelID(
+	ctx context.Context,
+	cmd GetFieldsCommand,
+) ([]*modeldesign.FieldDefinition, error) {
+	// 查询模型，包含字段信息
+	fields, err := s.modelRepo.GetFieldsByModelID(ctx, cmd.ModelID)
+	if err != nil {
+		return nil, err
+	}
+	return fields, nil
+}
+
+// CreateModelFromSchema 从JSON Schema创建模型
+func (s *ModelDesignAppService) CreateModelFromSchema(
+	ctx context.Context,
+	projectSlug string,
+	schemaJSON string,
+	databaseName string,
+) (*modeldesign.DataModel, error) {
+	logger := s.getLogger(ctx)
+
+	// 验证cluster存在
+	// Get orgName from context
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "orgName is required")
+	}
+	_, err = s.clusterRepo.GetByProjectKey(ctx, orgName, projectSlug)
+	if err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ClusterNotFound, projectSlug)
+	}
+
+	// 解析schema - 模型名称从schema中提取或使用默认值
+	parser := modeldesign.NewJSONSchemaParser(ctx)
+	model, err := parser.ParseSchemaWithLoggerAndModelInfo(
+		schemaJSON,
+		logger,
+		"",
+		databaseName,
+	)
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "Failed to parse JSON Schema")
+	}
+
+	// 如果schema中没有提供模型名称，需要从其他地方获取或生成默认名称
+	if model.ModelName == "" {
+		// 这里可以根据需要从schema的title或其他信息生成模型名称
+		// 暂时使用schema的title作为模型名称，如果title也不存在则使用默认值
+		if model.Title != "" {
+			model.ModelName = strings.ToLower(strings.ReplaceAll(model.Title, " ", "_"))
+		} else {
+			model.ModelName = "unnamed_model"
+		}
+	}
+
+	// 检查模型名冲突
+	opts := modeldesign.NewModelQueryOptions()
+	existingModel, err := s.modelRepo.GetByName(
+		ctx,
+		databaseName,
+		model.ModelName,
+		projectSlug,
+		opts,
+	)
+	if err != nil {
+		return nil, err
+	}
+	if existingModel != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, model.GetBizUniqueName())
+	}
+
+	// 添加系统字段
+	systemFields := modeldesign.GetSystemFields()
+	model.AddFields(systemFields)
+
+	// 验证模型
+	if err := model.Validate(); err != nil {
+		return nil, bizerrors.Wrapf(err, "Model validation failed")
+	}
+
+	// 在事务中创建并部署模型
+	createdModel, err := s.transactionDeployModel(ctx, orgName, model)
+	if err != nil {
+		return nil, err
+	}
+
+	logger.Infof(ctx, "Successfully created model from schema: %s", model.GetBizUniqueName())
+	return createdModel, nil
+}
+
+// SyncModelSchemaFromJSON 从JSON Schema同步模型
+func (s *ModelDesignAppService) SyncModelSchemaFromJSON(
+	ctx context.Context,
+	modelID string,
+	schemaJSON string,
+	deleteExtraFields bool,
+) (*SyncModelSchemaResult, error) {
+	logger := s.getLogger(ctx)
+
+	// 1. 获取现有模型（包含字段）
+	opts := modeldesign.NewModelQueryOptions().WithFields()
+	existingModel, err := s.modelRepo.GetByID(ctx, modelID, opts)
+	if err != nil {
+		return nil, err
+	}
+	if existingModel == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+
+	// 2. 解析schema - 使用现有模型的集群和数据库信息
+	parser := modeldesign.NewJSONSchemaParser(ctx)
+	parsedModel, err := parser.ParseSchemaWithLoggerAndModelInfo(
+		schemaJSON,
+		logger,
+		existingModel.ModelName,
+		existingModel.DatabaseName,
+	)
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "Failed to parse JSON Schema")
+	}
+
+	// 3. 验证模型名称匹配（如果schema中提供了模型名称）
+	if parsedModel.ModelName != "" && parsedModel.ModelName != existingModel.ModelName {
+		return nil, bizerrors.NewErrorFromContext(
+			ctx,
+			bizerrors.ParamInvalid,
+			fmt.Sprintf(
+				"Schema model name mismatch: schema has '%s', model has '%s'",
+				parsedModel.ModelName,
+				existingModel.ModelName,
+			),
+		)
+	}
+
+	// 4. 比较字段差异
+	existingFieldNames := make(map[string]*modeldesign.FieldDefinition)
+	for _, field := range existingModel.Fields {
+		existingFieldNames[field.Name] = field
+	}
+
+	schemaFieldNames := make(map[string]*modeldesign.FieldDefinition)
+	for _, field := range parsedModel.Fields {
+		schemaFieldNames[field.Name] = field
+	}
+
+	// 5. 识别需要添加的字段
+	var fieldsToAdd []*modeldesign.FieldDefinition
+	var skippedFields []string
+	for _, schemaField := range parsedModel.Fields {
+		if existingField, exists := existingFieldNames[schemaField.Name]; exists {
+			// 字段已存在，检查类型是否冲突
+			if existingField.Type.Format != schemaField.Type.Format {
+				return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
+					fmt.Sprintf("Field '%s' type conflict: existing type %s, schema type %s",
+						schemaField.Name, existingField.Type.Format, schemaField.Type.Format))
+			}
+			skippedFields = append(skippedFields, schemaField.Name)
+		} else {
+			// 新字段，需要添加
+			schemaField.ModelID = modelID
+			fieldsToAdd = append(fieldsToAdd, schemaField)
+		}
+	}
+
+	result := &SyncModelSchemaResult{
+		Model:         existingModel,
+		FieldsAdded:   0,
+		FieldsSkipped: skippedFields,
+		FieldsDeleted: 0,
+		DeletedFields: []string{},
+	}
+
+	// 6. 添加新字段
+	if len(fieldsToAdd) > 0 {
+		addCmd := AddFieldCommand{
+			ModelID: modelID,
+			Fields:  fieldsToAdd,
+		}
+
+		if err := s.AddFieldSync(ctx, addCmd); err != nil {
+			return nil, bizerrors.Wrapf(err, "Failed to add fields")
+		}
+		result.FieldsAdded = len(fieldsToAdd)
+		logger.Infof(ctx, "Added %d fields to model %s", len(fieldsToAdd), modelID)
+	}
+
+	// 7. 删除额外字段（如果启用）
+	if deleteExtraFields {
+		deletedFields, err := s.deleteExtraFields(ctx, modelID, existingModel, schemaFieldNames, logger)
+		if err != nil {
+			return nil, err
+		}
+		result.FieldsDeleted = len(deletedFields)
+		result.DeletedFields = deletedFields
+	}
+
+	// 8. 重新获取更新后的模型
+	updatedModel, err := s.modelRepo.GetByID(ctx, modelID, opts)
+	if err != nil {
+		return nil, err
+	}
+	result.Model = updatedModel
+
+	logger.Infof(
+		ctx, "Successfully synced model schema: %s (added: %d, deleted: %d)",
+		modelID,
+		result.FieldsAdded,
+		result.FieldsDeleted,
+	)
+	return result, nil
+}
+
+func (s *ModelDesignAppService) collectFieldsToDelete(
+	ctx context.Context,
+	existingModel *modeldesign.DataModel,
+	schemaFieldNames map[string]*modeldesign.FieldDefinition,
+) ([]string, error) {
+	systemFieldNames := map[string]bool{
+		"id":        true,
+		"createdAt": true,
+		"updatedAt": true,
+	}
+
+	fieldsToDelete := make([]string, 0, len(existingModel.Fields))
+	for _, existingField := range existingModel.Fields {
+		// 跳过系统字段
+		if systemFieldNames[existingField.Name] {
+			continue
+		}
+
+		// 如果字段不在schema中，且不是系统字段
+		if _, inSchema := schemaFieldNames[existingField.Name]; inSchema {
+			continue
+		}
+
+		// 检查是否有依赖（关系字段）
+		if existingField.ParentRelationID != nil {
+			return nil, bizerrors.NewErrorFromContext(
+				ctx,
+				bizerrors.OperationDenied,
+				fmt.Sprintf(
+					"Cannot delete field '%s' because it has dependencies (referenced by relations)",
+					existingField.Name,
+				),
+			)
+		}
+		fieldsToDelete = append(fieldsToDelete, existingField.Name)
+	}
+
+	return fieldsToDelete, nil
+}
+
+func (s *ModelDesignAppService) deleteExtraFields(
+	ctx context.Context,
+	modelID string,
+	existingModel *modeldesign.DataModel,
+	schemaFieldNames map[string]*modeldesign.FieldDefinition,
+	logger logfacade.Logger,
+) ([]string, error) {
+	fieldsToDelete, err := s.collectFieldsToDelete(ctx, existingModel, schemaFieldNames)
+	if err != nil {
+		return nil, err
+	}
+	if len(fieldsToDelete) == 0 {
+		return nil, nil
+	}
+
+	for _, fieldName := range fieldsToDelete {
+		removeCmd := RemoveFieldCommand{
+			ModelID:   modelID,
+			FieldName: fieldName,
+		}
+		if err := s.RemoveFieldSync(ctx, removeCmd); err != nil {
+			return nil, bizerrors.Wrapf(err, "Failed to delete field '%s'", fieldName)
+		}
+	}
+
+	logger.Infof(ctx, "Deleted %d fields from model %s", len(fieldsToDelete), modelID)
+	return fieldsToDelete, nil
+}
+
+// assignDisplayOrders computes and assigns a display_order for each field by appending
+// them sequentially after the current tail order in the model. This ensures the new
+// fields appear last in the ordered list and maintains strict lexicographic ordering.
+func (s *ModelDesignAppService) assignDisplayOrders(
+	ctx context.Context,
+	modelID string,
+	fields []*modeldesign.FieldDefinition,
+) error {
+	tail, err := s.modelRepo.GetTailFieldDisplayOrder(ctx, modelID)
+	if err != nil {
+		return bizerrors.Wrapf(err, "get tail field display order for model %s", modelID)
+	}
+	prev := tail
+	for _, field := range fields {
+		order, err := lexorder.Midpoint(prev, "")
+		if err != nil {
+			return bizerrors.Wrapf(err, "compute display order for field %s", field.Name)
+		}
+		field.DisplayOrder = order
+		prev = order
+	}
+	return nil
+}

@@ -1,0 +1,193 @@
+run:
+  timeout: 5m
+  issues-exit-code: 1
+  tests: true
+  go: "1.25"
+
+output:
+  formats:
+    - format: colored-line-number
+  print-issued-lines: true
+  print-linter-name: true
+
+linters-settings:
+  goconst:
+    # 最小匹配长度
+    min-len: 3         # 字符串最小长度（默认3）
+    min-occurrences: 3 # 最小出现次数（默认3）
+    
+    # 忽略规则
+    ignore-calls: true # 忽略函数调用中的字符串（默认true）
+  # 行长度控制
+  lll:
+    line-length: 120 # 设置最大行宽度为120字符
+    tab-width: 4
+
+  # 函数长度控制
+  funlen:
+    lines: 120
+    statements: 60
+
+  # 函数复杂度控制
+  cyclop:
+    max-complexity: 30
+    package-average: 10.0
+    skip-tests: false
+
+  # 认知复杂度控制
+  gocognit:
+    min-complexity: 30
+
+  # 嵌套深度控制
+  nestif:
+    min-complexity: 4
+
+  # 参数数量控制
+  revive:
+    rules:
+      - name: argument-limit
+        disabled: true
+
+  # 代码批评
+  gocritic:
+    enabled-checks:
+      - nilValReturn
+
+  # 格式化增强
+  gofumpt:
+    extra-rules: true
+
+  # 变量命名规范
+  varnamelen:
+    min-name-length: 1
+    ignore-type-assert-ok: true
+    ignore-map-index-ok: true
+    ignore-chan-recv-ok: true
+    ignore-names:
+      - err
+      - id
+      - i
+      - j
+      - k
+      - v
+      - ok
+      - db
+      - tx
+      - ctx
+
+  # 依赖包使用限制
+  depguard:
+    rules:
+      main:
+        deny:
+          - pkg: "log"
+            desc: "Use modelcraft/pkg/logfacade instead of standard log package"
+        files:
+          - "!**/main.go"
+          - "!**/*_test.go"
+
+  # 错误处理检查
+  errcheck:
+    check-type-assertions: true
+    check-blank: false
+  # 未使用变量检查
+  unused:
+    check-exported: false
+
+  # 静态检查
+  staticcheck:
+    checks: ["all"]
+
+linters:
+  enable:
+    # 基础格式化
+    - goimports # 导入管理
+    - gofumpt # 增强格式化
+
+    # 行长度和复杂度控制
+    - lll # 行长度检查
+    - funlen # 函数长度检查
+    - cyclop # 循环复杂度检查
+    - gocognit # 认知复杂度检查
+    - nestif # 嵌套深度检查
+
+    # 代码质量
+    - revive # 代码风格检查
+    - staticcheck # 静态分析
+    - gosec # 安全检查
+    - errcheck # 错误处理检查
+    - unused # 未使用代码检查
+    - ineffassign # 无效赋值检查
+    - misspell # 拼写检查
+
+    # 变量和命名
+    - varnamelen # 变量名长度检查
+    - goconst # 常量检查
+    - gocritic # 代码批评
+
+    # 性能相关
+    - prealloc # 预分配检查
+    - bodyclose # HTTP响应体关闭检查
+
+    # 并发安全
+    - govet # Go官方检查工具
+
+    # 依赖包控制
+    - depguard # 依赖包使用限制
+
+    # nil 检查
+    - nilnil # 检测返回 (nil, nil) 的函数
+
+issues:
+  exclude-dirs:
+    - vendor
+    - .git
+  exclude-files:
+    - ".*\\.pb\\.go$"
+    - ".*_gen\\.go$"
+  exclude-rules:
+    # 排除测试文件的某些检查
+    - path: _test\.go
+      linters:
+        - funlen
+        - gocognit
+        - cyclop
+        - errcheck
+        - staticcheck
+        - goconst
+        - nilnil # 测试文件中的 mock 返回 (nil, nil) 是预期行为
+
+    # GraphQL resolver 中返回 (nil, nil) 是正确的语义行为，表示字段无值但无错误
+    - path: internal/domain/modelruntime/model_resolver\.go
+      linters:
+        - nilnil
+
+    # 排除测试文件中的硬编码凭证警告（测试用途，非生产凭证）
+    - path: _test\.go
+      text: "G101:"
+      linters:
+        - gosec
+
+    # 排除生成文件
+    - path: ".*\\.pb\\.go"
+      linters:
+        - lll
+        - gofumpt
+
+    # 排除特定错误消息
+    - text: "Line contains TODO/BUG/FIXME"
+      linters:
+        - godox
+
+    # 排除 G115 整数溢出警告（分页参数转换，实际使用不会溢出）
+    - text: "G115:"
+      linters:
+        - gosec
+
+  max-issues-per-linter: 0
+  max-same-issues: 0
+  new: false
+
+severity:
+  default-severity: error
+  case-sensitive: false

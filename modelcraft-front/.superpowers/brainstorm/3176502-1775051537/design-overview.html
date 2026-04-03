@@ -1,0 +1,140 @@
+<h2>动态表单设计方案</h2>
+<p class="subtitle">基于 RJSF + 列实时同步的完整设计</p>
+
+<style>
+.design-section { border: 1px solid var(--border); border-radius: 8px; padding: 16px; margin: 16px 0; background: var(--surface); }
+.design-section h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.badge { font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 500; }
+.badge-blue { background: #dbeafe; color: #1d4ed8; }
+.badge-green { background: #d1fae5; color: #065f46; }
+.badge-orange { background: #ffedd5; color: #c2410c; }
+.flow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 10px 0; }
+.flow-box { background: #1e293b; color: #e2e8f0; border-radius: 6px; padding: 6px 12px; font-family: monospace; font-size: 12px; white-space: nowrap; }
+.flow-arrow { color: var(--muted); font-size: 16px; }
+.flow-box.highlight { background: #1d4ed8; color: white; }
+.file-tree { font-family: monospace; font-size: 12px; line-height: 2; background: #0f172a; color: #e2e8f0; border-radius: 6px; padding: 14px 16px; }
+.file-new { color: #86efac; }
+.file-modified { color: #fde68a; }
+.file-unchanged { color: #94a3b8; }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 10px 0; }
+.mini-mockup { border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+.mini-header { background: #f1f5f9; padding: 8px 12px; font-size: 11px; font-weight: 600; color: #64748b; border-bottom: 1px solid var(--border); }
+.mini-body { padding: 12px; }
+.mock-field { margin: 8px 0; }
+.mock-label { font-size: 11px; color: #64748b; margin-bottom: 3px; }
+.mock-input { height: 28px; background: white; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: #94a3b8; }
+.mock-select { height: 28px; background: white; border: 1px solid #cbd5e1; border-radius: 4px; width: 100%; display: flex; align-items: center; justify-content: space-between; padding: 0 8px; font-size: 11px; color: #64748b; }
+.mock-date { background: white; border: 1px solid #cbd5e1; border-radius: 4px; height: 28px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: #64748b; gap: 6px; }
+.mock-relation { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; height: 28px; display: flex; align-items: center; padding: 0 8px; font-size: 11px; color: #1d4ed8; gap: 6px; }
+.mock-error { font-size: 10px; color: #dc2626; margin-top: 2px; }
+.tag-pill { display: inline-flex; align-items: center; gap: 4px; background: #dbeafe; color: #1d4ed8; border-radius: 12px; padding: 2px 8px; font-size: 11px; }
+</style>
+
+<!-- 1. 整体架构 -->
+<div class="design-section">
+  <h3>① 整体架构 <span class="badge badge-blue">数据流</span></h3>
+  <div class="flow">
+    <div class="flow-box">MODEL_JSON_SCHEMA_QUERY</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box highlight">RJSF &lt;Form&gt;</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">uiSchema（字段 UI 映射）</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">custom widgets</div>
+  </div>
+  <div class="flow" style="margin-top:6px">
+    <div class="flow-box">GET_MODEL fields[]</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box highlight">buildUiSchema()</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">RelationPicker widget</div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-box">EnumSelect widget</div>
+  </div>
+  <p style="font-size:12px;margin:10px 0 0;color:var(--muted)">
+    JSON Schema 驱动 RJSF 渲染结构和校验；uiSchema 由 fields[] 动态生成，控制每个字段用哪个 widget；自定义 widget 处理 RELATION、ENUM 等特殊类型。
+  </p>
+</div>
+
+<!-- 2. 文件结构 -->
+<div class="design-section">
+  <h3>② 新增/修改文件 <span class="badge badge-green">文件结构</span></h3>
+  <div class="file-tree">
+src/web/components/model-editor/
+├── <span class="file-new">ModelRecordForm/</span>                    <span style="color:#475569">← 新建目录</span>
+│   ├── <span class="file-new">index.tsx</span>                        <span style="color:#475569">← RJSF Form 封装，对外暴露</span>
+│   ├── <span class="file-new">buildUiSchema.ts</span>                 <span style="color:#475569">← fields[] → uiSchema 映射</span>
+│   ├── <span class="file-new">widgets/RelationPicker.tsx</span>       <span style="color:#475569">← RELATION 字段选择器</span>
+│   ├── <span class="file-new">widgets/EnumSelect.tsx</span>           <span style="color:#475569">← ENUM/ENUM_ARRAY 下拉</span>
+│   └── <span class="file-new">widgets/index.ts</span>                 <span style="color:#475569">← 导出所有 custom widgets</span>
+│
+├── <span class="file-modified">DynamicModelTable.tsx</span>            <span style="color:#fde68a">← 修改：替换手写表单 + 加 refetchQueries</span>
+└── <span class="file-unchanged">InsertFieldSheet.tsx</span>             <span style="color:#475569">← 加 refetchQueries（字段增删后刷新列）</span></div>
+</div>
+
+<!-- 3. 表单预览 -->
+<div class="design-section">
+  <h3>③ 表单渲染效果 <span class="badge badge-orange">UI 预览</span></h3>
+  <div class="two-col">
+    <div class="mini-mockup">
+      <div class="mini-header">新增记录 — Sheet 表单</div>
+      <div class="mini-body">
+        <div class="mock-field">
+          <div class="mock-label">title <span style="color:#dc2626">*</span> <span style="font-size:10px;color:#94a3b8">STRING</span></div>
+          <div class="mock-input">输入文字...</div>
+        </div>
+        <div class="mock-field">
+          <div class="mock-label">status <span style="font-size:10px;color:#94a3b8">ENUM</span></div>
+          <div class="mock-select"><span>请选择...</span><span>▾</span></div>
+        </div>
+        <div class="mock-field">
+          <div class="mock-label">created_at <span style="font-size:10px;color:#94a3b8">DATE</span></div>
+          <div class="mock-date">📅 <span>选择日期...</span></div>
+        </div>
+        <div class="mock-field">
+          <div class="mock-label">author <span style="font-size:10px;color:#94a3b8">RELATION → User</span></div>
+          <div class="mock-relation">🔗 <span>选择关联记录...</span></div>
+        </div>
+        <div class="mock-field">
+          <div class="mock-label">count <span style="font-size:10px;color:#94a3b8">INTEGER</span></div>
+          <div class="mock-input" style="color:#64748b">0</div>
+          <div class="mock-error">❌ 最小值为 1</div>
+        </div>
+      </div>
+    </div>
+    <div class="mini-mockup">
+      <div class="mini-header">列实时同步 — 字段变更后自动刷新</div>
+      <div class="mini-body" style="padding-top:20px">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px">
+          <div style="background:#d1fae5;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">1</div>
+          <div style="font-size:12px">用户在字段管理中<strong>删除 "gl" 字段</strong></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px">
+          <div style="background:#dbeafe;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">2</div>
+          <div style="font-size:12px"><code>REMOVE_FIELD</code> mutation 携带<br><code>refetchQueries: ['GetModel', 'ModelJsonSchema']</code></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:16px">
+          <div style="background:#fef3c7;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">3</div>
+          <div style="font-size:12px">Apollo 自动 refetch，表格列<strong>立即消失</strong></div>
+        </div>
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="background:#f3e8ff;border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0">4</div>
+          <div style="font-size:12px">新增字段同理，列<strong>立即出现</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 4. 关键决策 -->
+<div class="design-section">
+  <h3>④ 关键决策说明</h3>
+  <div style="font-size:12px;line-height:1.8">
+    <p><strong>JSON Schema 的不足如何补？</strong><br>
+    JSON Schema 缺少 ENUM 选项列表和 RELATION 目标模型信息。解决方案：<code>buildUiSchema()</code> 从 <code>GET_MODEL fields[]</code> 提取这些信息，注入到 uiSchema 的 <code>ui:options</code> 里，传给对应 widget。</p>
+    <p><strong>RJSF 主题？</strong><br>
+    使用 <code>@rjsf/shadcn</code>（shadcn 主题），与项目现有 UI 组件库保持一致，无需额外样式适配。</p>
+    <p><strong>RelationPicker 怎么实现？</strong><br>
+    作为 RJSF custom widget，内部调用 <code>buildFindManyQuery()</code> 查询关联模型的记录，显示为可搜索下拉框，选中后存储主键值。</p>
+  </div>
+</div>

@@ -1,0 +1,71 @@
+extend type Query {
+  apiKeys: [ApiKey!]! @hasPermission(action: "apikey:read")
+}
+
+extend type Mutation {
+  createApiKey(input: CreateApiKeyInput!): CreateApiKeyPayload!
+    @hasPermission(action: "apikey:create")
+  revokeApiKey(id: ID!): RevokeApiKeyPayload!
+    @hasPermission(action: "apikey:delete")
+  updateApiKey(id: ID!, input: UpdateApiKeyInput!): UpdateApiKeyPayload!
+    @hasPermission(action: "apikey:update")
+}
+
+type ApiKey {
+  id:          ID!
+  name:        String!
+  keyPrefix:   String!
+  lastUsedAt:  Time
+  expiresAt:   Time
+  revokedAt:   Time
+  createdAt:   Time!
+}
+
+type CreateApiKeyResult {
+  id:        ID!
+  name:      String!
+  key:       String!
+  keyPrefix: String!
+  createdAt: Time!
+}
+
+input CreateApiKeyInput {
+  name:      String!
+  expiresAt: Time
+}
+
+input UpdateApiKeyInput {
+  name:      String
+  expiresAt: Time
+}
+
+type CreateApiKeyPayload {
+  result: CreateApiKeyResult
+  error:  CreateApiKeyError
+}
+
+type RevokeApiKeyPayload {
+  apiKey: ApiKey
+  error:  RevokeApiKeyError
+}
+
+type UpdateApiKeyPayload {
+  apiKey: ApiKey
+  error:  UpdateApiKeyError
+}
+
+type ApiKeyLimitExceeded implements Error {
+  message: String!
+}
+
+type ApiKeyNotFound implements Error {
+  message: String!
+}
+
+type ApiKeyInvalidInput implements Error {
+  message: String!
+}
+
+union CreateApiKeyError = ApiKeyLimitExceeded | ApiKeyInvalidInput
+union RevokeApiKeyError = ApiKeyNotFound
+union UpdateApiKeyError = ApiKeyNotFound | ApiKeyInvalidInput

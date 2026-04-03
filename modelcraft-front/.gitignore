@@ -1,0 +1,11 @@
+node_modules
+.next
+dist
+.env.local
+.env*.local
+
+# Claude homunculus observations
+**/observations.jsonl
+observations.jsonl
+.gitnexus
+tsconfig.tsbuildinfo

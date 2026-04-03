@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Layout - 折叠状态 - ModelCraft Prototype</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind.config.js"></script>
+  <link href="../shared/tailwind-base.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <style>
+    /* ===== CSS Variables ===== */
+    :root {
+      --sidebar-width: 200px;
+      --sidebar-collapsed-width: 64px;
+      --topbar-height: 56px;
+    }
+
+    /* ===== Layout Container ===== */
+    .layout {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* ===== Topbar (Full Width) ===== */
+    .topbar {
+      height: var(--topbar-height);
+      background: white;
+      border-bottom: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      width: auto;
+      flex-shrink: 0;
+    }
+
+    .topbar-org-selector {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      background: none;
+      border: none;
+    }
+
+    .topbar-org-selector:hover {
+      background-color: #fafafa;
+    }
+
+    .topbar-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .topbar-logo svg {
+      width: 16px;
+      height: 16px;
+      color: white;
+      stroke-width: 1.5;
+    }
+
+    .topbar-center {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      padding-left: 16px;
+    }
+
+    .topbar-breadcrumb {
+      display: flex;
+      align-items: center;
+      font-size: 14px;
+    }
+
+    .topbar-breadcrumb-org-icon {
+      width: 20px;
+      height: 20px;
+      border-radius: 4px;
+      background: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .topbar-breadcrumb-separator {
+      margin: 0 8px;
+      color: #d1d5db;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .topbar-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: all 0.15s;
+      color: #6b7280;
+      background: none;
+      border: none;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .topbar-btn:hover {
+      background-color: #fafafa;
+      color: #111827;
+    }
+
+    .topbar-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.5;
+    }
+
+    .topbar-btn-badge {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 6px;
+      height: 6px;
+      border-radius: 9999px;
+      background: #ef4444;
+    }
+
+    .topbar-divider {
+      width: 1px;
+      height: 20px;
+      background: #e5e7eb;
+      margin: 0 8px;
+    }
+
+    .topbar-user {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      background: none;
+      border: none;
+    }
+
+    .topbar-user:hover {
+      background-color: #fafafa;
+    }
+
+    .topbar-user-avatar {
+      width: 28px;
+      height: 28px;
+      border-radius: 9999px;
+      background: #2563eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: white;
+    }
+
+    .topbar-user svg {
+      width: 16px;
+      height: 16px;
+      color: #9ca3af;
+      stroke-width: 1.5;
+    }
+
+    /* ===== Main Area (Sidebar + Content) ===== */
+    .main-area {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+
+    /* ===== Sidebar (Collapsed) ===== */
+    .sidebar {
+      width: var(--sidebar-collapsed-width);
+      background: white;
+      border-right: 1px solid #e5e7eb;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 8px;
+    }
+
+    .sidebar-section-label {
+      display: none;
+    }
+
+    .sidebar-nav-item {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      color: #6b7280;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      white-space: nowrap;
+    }
+
+    .sidebar-nav-item:hover {
+      background-color: #fafafa;
+      color: #111827;
+    }
+
+    .sidebar-nav-item.active {
+      background-color: #dadee5;
+      color: #111827;
+      font-weight: 600;
+    }
+
+    .sidebar-nav-item svg {
+      width: 16px;
+      height: 16px;
+      flex-shrink: 0;
+      stroke-width: 1.5;
+    }
+
+    .sidebar-nav-item span {
+      display: none;
+    }
+
+    .sidebar-footer {
+      height: 48px;
+      padding: 0 8px;
+      border-top: 1px solid #e5e7eb;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .sidebar-toggle {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background-color 0.15s;
+      color: #6b7280;
+      background: none;
+      border: none;
+    }
+
+    .sidebar-toggle:hover {
+      background-color: #fafafa;
+      color: #111827;
+    }
+
+    .sidebar-toggle svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.5;
+      transform: rotate(180deg);
+    }
+
+    /* ===== Main Content ===== */
+    .main-content {
+      flex: 1;
+      background: #fafafa;
+      overflow-y: auto;
+      padding: 24px;
+    }
+
+    /* ===== Demo Content ===== */
+    .demo-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    .demo-card {
+      background: white;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      transition: all 0.2s;
+    }
+
+    .demo-card:hover {
+      border-color: #dbeafe;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .demo-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+      margin-bottom: 8px;
+    }
+
+    .demo-card-description {
+      font-size: 14px;
+      color: #6b7280;
+      margin-bottom: 12px;
+    }
+
+    .demo-card-status {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 500;
+    }
+
+    .demo-card-status-active {
+      background: #ecfdf5;
+      color: #059669;
+    }
+
+    .demo-card-status-draft {
+      background: #fef3c7;
+      color: #d97706;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ===== Topbar (Full Width) ===== -->
+    <header class="topbar">
+      <!-- Left: Org Selector (Collapsed) -->
+      <div class="topbar-left">
+        <button class="topbar-org-selector">
+          <div class="topbar-logo">
+            <i data-lucide="sparkles"></i>
+          </div>
+        </button>
+      </div>
+
+      <!-- Center: Breadcrumb -->
+      <div class="topbar-center">
+        <nav class="topbar-breadcrumb">
+          <span style="font-weight: 500; color: #111827;">luke11的工作空间</span>
+          <span class="topbar-breadcrumb-separator">/</span>
+          <span style="color: #111827;">所有项目</span>
+        </nav>
+      </div>
+
+      <!-- Right: Actions -->
+      <div class="topbar-right">
+        <button class="topbar-btn" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+        <button class="topbar-btn" title="通知">
+          <i data-lucide="bell"></i>
+          <span class="topbar-btn-badge"></span>
+        </button>
+        <button class="topbar-btn" title="刷新">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+        <button class="topbar-btn" title="帮助">
+          <i data-lucide="help-circle"></i>
+        </button>
+
+        <div class="topbar-divider"></div>
+
+        <button class="topbar-user">
+          <div class="topbar-user-avatar">张</div>
+          <i data-lucide="chevron-down"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Main Area ===== -->
+    <div class="main-area">
+      <!-- Sidebar (Collapsed) -->
+      <aside class="sidebar">
+        <div class="sidebar-content">
+          <div class="sidebar-section">
+            <div class="sidebar-section-label">WORKSPACE</div>
+            <nav>
+              <a href="#" class="sidebar-nav-item active" title="项目">
+                <i data-lucide="folder-open"></i>
+                <span>项目</span>
+              </a>
+              <a href="#" class="sidebar-nav-item" title="团队">
+                <i data-lucide="users"></i>
+                <span>团队</span>
+              </a>
+              <a href="#" class="sidebar-nav-item" title="组织设置">
+                <i data-lucide="settings"></i>
+                <span>组织设置</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+
+        <!-- Footer: Toggle Button -->
+        <div class="sidebar-footer">
+          <button class="sidebar-toggle">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div class="demo-grid">
+          <div class="demo-card">
+            <h3 class="demo-card-title">电商平台项目</h3>
+            <p class="demo-card-description">完整的电商后台管理系统，包含商品、订单、用户管理等模块</p>
+            <span class="demo-card-status demo-card-status-active">活跃</span>
+          </div>
+          <div class="demo-card">
+            <h3 class="demo-card-title">博客系统</h3>
+            <p class="demo-card-description">支持 Markdown 编辑的现代博客平台</p>
+            <span class="demo-card-status demo-card-status-active">活跃</span>
+          </div>
+          <div class="demo-card">
+            <h3 class="demo-card-title">数据分析平台</h3>
+            <p class="demo-card-description">企业级数据可视化和分析工具</p>
+            <span class="demo-card-status demo-card-status-draft">草稿</span>
+          </div>
+          <div class="demo-card">
+            <h3 class="demo-card-title">用户管理系统</h3>
+            <p class="demo-card-description">统一的用户认证和权限管理服务</p>
+            <span class="demo-card-status demo-card-status-active">活跃</span>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

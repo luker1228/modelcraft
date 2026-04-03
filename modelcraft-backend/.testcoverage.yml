@@ -1,0 +1,95 @@
+# go-test-coverage 配置文件
+# 文档: https://github.com/vladopajic/go-test-coverage
+#
+# 用法:
+#   task test-coverage              # 运行 Domain 层覆盖率检查
+#   task test-coverage-all          # 运行全项目覆盖率检查
+#   task test-coverage-html         # 生成 HTML 报告
+#   task test-coverage-badge        # 生成覆盖率徽章
+#
+# 安装:
+#   go install github.com/vladopajic/go-test-coverage/v2@latest
+
+# (必须) 覆盖率文件路径
+profile: coverage.out
+
+# 覆盖率阈值设置 [0-100]
+threshold:
+  # 单个文件最低覆盖率 (可选，默认 0)
+  file: 0
+  
+  # 单个包最低覆盖率
+  # 注意: 必须设为非零值，否则 override 不会生效！
+  # 设为 1% 作为基础阈值，具体包的阈值通过 override 配置
+  package: 1
+  
+  # 项目总体最低覆盖率
+  # 当前: 39.1%, 目标: 逐步提升到 95%
+  total: 38
+
+# 针对特定路径的阈值覆盖 (正则表达式，按顺序匹配，首个匹配生效)
+# 注意: 路径可能是 "internal/domain/xxx" 或 "modelcraft/internal/domain/xxx"
+#       使用 (modelcraft/)?internal/domain/xxx 来同时匹配两种格式
+override:
+  # =============================================
+  # Domain 层 - 核心业务逻辑 (强制要求: 95%)
+  # =============================================
+  
+  # 所有 domain 包统一要求 95% 覆盖率
+  - path: ^(modelcraft/)?internal/domain/project
+    threshold: 95   # 当前: 97.8% ✅
+  
+  - path: ^(modelcraft/)?internal/domain/role
+    threshold: 95   # 当前: 98.3% ✅
+  
+  - path: ^(modelcraft/)?internal/domain/organization
+    threshold: 95   # 当前: 97.7% ✅
+  
+  - path: ^(modelcraft/)?internal/domain/permission
+    threshold: 95   # 当前: 100.0% ✅
+  
+  - path: ^(modelcraft/)?internal/domain/user
+    threshold: 95   # 当前: 100.0% ✅
+  
+  - path: ^(modelcraft/)?internal/domain/query
+    threshold: 95   # 当前: 100.0% ✅
+  
+  - path: ^(modelcraft/)?internal/domain/membership
+    threshold: 95   # 当前: 93.6% ⚠️ 需要提升
+  
+  - path: ^(modelcraft/)?internal/domain/cluster
+    threshold: 95   # 当前: 54.2% ⚠️ 需要提升
+  
+  - path: ^(modelcraft/)?internal/domain/modeldesign
+    threshold: 95   # 当前: 47.3% ⚠️ 需要提升
+  
+  - path: ^(modelcraft/)?internal/domain/modelruntime
+    threshold: 95   # 当前: 15.5% ⚠️ 需要提升
+  
+  - path: ^(modelcraft/)?internal/domain/auth
+    threshold: 95   # 当前: 0.0% ⚠️ 需要提升
+  
+  - path: ^(modelcraft/)?internal/domain/interceptor
+    threshold: 95   # 当前: 0.0% ⚠️ 需要提升
+  
+  - path: ^(modelcraft/)?internal/domain/shared
+    threshold: 95   # 当前: 0.0% ⚠️ 需要提升
+
+# 排除的文件/包 (正则表达式)
+exclude:
+  paths:
+    # 生成的代码
+    - \.pb\.go$
+    - _gen\.go$
+    - _mock\.go$
+    - /mocks/
+    
+    # 第三方代码
+    - /vendor/
+    
+    # 测试辅助代码
+    - /testutil/
+    - /testing/
+
+# 是否强制要求对 coverage-ignore 注释添加说明
+force-annotation-comment: false

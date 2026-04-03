@@ -1,0 +1,130 @@
+<h2>三个表单库深度对比</h2>
+<p class="subtitle">基于 ModelCraft 的实际需求分析</p>
+
+<style>
+.lib-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin: 20px 0; }
+.lib-card { border: 1px solid var(--border); border-radius: 8px; padding: 16px; background: var(--surface); }
+.lib-card.recommended { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb; }
+.lib-name { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
+.lib-tag { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-bottom: 12px; font-weight: 500; }
+.tag-light { background: #dbeafe; color: #1d4ed8; }
+.tag-heavy { background: #fce7f3; color: #be185d; }
+.tag-medium { background: #d1fae5; color: #065f46; }
+.tag-recommend { background: #fef3c7; color: #92400e; }
+.score-row { display: flex; justify-content: space-between; align-items: center; margin: 6px 0; font-size: 13px; }
+.score-bar { height: 6px; border-radius: 3px; background: #e5e7eb; flex: 1; margin: 0 10px; }
+.score-fill { height: 100%; border-radius: 3px; }
+.fill-blue { background: #2563eb; }
+.fill-purple { background: #7c3aed; }
+.fill-green { background: #059669; }
+.section-title { font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin: 12px 0 6px; }
+.fit-badge { font-size: 12px; padding: 4px 10px; border-radius: 12px; font-weight: 500; }
+.fit-high { background: #d1fae5; color: #065f46; }
+.fit-med { background: #fef3c7; color: #92400e; }
+.fit-low { background: #fee2e2; color: #991b1b; }
+.code-snippet { background: #1e293b; color: #e2e8f0; border-radius: 6px; padding: 10px 12px; font-family: monospace; font-size: 11px; line-height: 1.6; margin-top: 8px; white-space: pre; overflow-x: auto; }
+.highlight { color: #7dd3fc; }
+.highlight-green { color: #86efac; }
+.highlight-yellow { color: #fde68a; }
+.divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+.verdict { background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px; padding: 14px 16px; margin-top: 20px; }
+.verdict h3 { margin: 0 0 8px; font-size: 14px; color: #1d4ed8; }
+.verdict p { margin: 0; font-size: 13px; line-height: 1.6; }
+</style>
+
+<div class="lib-grid">
+
+  <!-- react-hook-form -->
+  <div class="lib-card">
+    <div class="lib-name">react-hook-form</div>
+    <span class="lib-tag tag-light">轻量 · 12KB</span>
+    <div class="section-title">评分</div>
+    <div class="score-row"><span>上手难度</span><div class="score-bar"><div class="score-fill fill-blue" style="width:90%"></div></div><span>易</span></div>
+    <div class="score-row"><span>动态表单支持</span><div class="score-bar"><div class="score-fill fill-blue" style="width:40%"></div></div><span>弱</span></div>
+    <div class="score-row"><span>Schema 驱动</span><div class="score-bar"><div class="score-fill fill-blue" style="width:20%"></div></div><span>无</span></div>
+    <div class="score-row"><span>生态/社区</span><div class="score-bar"><div class="score-fill fill-blue" style="width:95%"></div></div><span>★★★★★</span></div>
+
+    <div class="section-title">本质定位</div>
+    <p style="font-size:12px;line-height:1.6">表单<strong>状态管理 + 校验</strong>库。不管 UI 渲染，你还是要自己写每个字段的组件。</p>
+
+    <div class="section-title">接入方式</div>
+    <div class="code-snippet"><span class="highlight">// 你还是要手写字段渲染</span>
+{fields.map(field => (
+  <span class="highlight-green">// 自己判断类型 → 自己写组件</span>
+  field.type === 'date'
+    ? &lt;DatePicker {...register(field.name)} /&gt;
+    : &lt;Input {...register(field.name)} /&gt;
+))}</div>
+
+    <div class="section-title">与项目适配度</div>
+    <span class="fit-badge fit-med">中等适配</span>
+    <p style="font-size:12px;margin-top:6px;line-height:1.5">JSON Schema → UI 的映射还是要自己写。但校验、错误处理会更规范。只解决了一半问题。</p>
+  </div>
+
+  <!-- Formily -->
+  <div class="lib-card">
+    <div class="lib-name">Formily</div>
+    <span class="lib-tag tag-heavy">重量级 · 阿里出品</span>
+    <div class="section-title">评分</div>
+    <div class="score-row"><span>上手难度</span><div class="score-bar"><div class="score-fill fill-purple" style="width:25%"></div></div><span>难</span></div>
+    <div class="score-row"><span>动态表单支持</span><div class="score-bar"><div class="score-fill fill-purple" style="width:98%"></div></div><span>极强</span></div>
+    <div class="score-row"><span>Schema 驱动</span><div class="score-bar"><div class="score-fill fill-purple" style="width:95%"></div></div><span>原生支持</span></div>
+    <div class="score-row"><span>生态/社区</span><div class="score-bar"><div class="score-fill fill-purple" style="width:65%"></div></div><span>★★★☆☆</span></div>
+
+    <div class="section-title">本质定位</div>
+    <p style="font-size:12px;line-height:1.6">完整的<strong>低代码表单引擎</strong>。有自己的 schema 格式（不是标准 JSON Schema），需要转换。</p>
+
+    <div class="section-title">接入方式</div>
+    <div class="code-snippet"><span class="highlight">// 需要先把 JSON Schema 转为 Formily Schema</span>
+<span class="highlight-yellow">// schema-transformer.ts 里有这个逻辑</span>
+const formilySchema = transformToFormily(jsonSchema)
+
+&lt;SchemaField schema={formilySchema} /&gt;
+<span class="highlight">// ↑ 自动渲染所有字段</span></div>
+
+    <div class="section-title">与项目适配度</div>
+    <span class="fit-badge fit-med">中等适配</span>
+    <p style="font-size:12px;margin-top:6px;line-height:1.5">schema-transformer.ts 里有 Formily 相关代码，但引入的是一套完整生态，概念多、bundle 大，当前需求用不到 80% 的功能。</p>
+  </div>
+
+  <!-- RJSF -->
+  <div class="lib-card recommended">
+    <div class="lib-name">react-jsonschema-form</div>
+    <span class="lib-tag tag-recommend">⭐ 推荐 · 中量级</span>
+    <div class="section-title">评分</div>
+    <div class="score-row"><span>上手难度</span><div class="score-bar"><div class="score-fill fill-green" style="width:70%"></div></div><span>中等</span></div>
+    <div class="score-row"><span>动态表单支持</span><div class="score-bar"><div class="score-fill fill-green" style="width:85%"></div></div><span>强</span></div>
+    <div class="score-row"><span>Schema 驱动</span><div class="score-bar"><div class="score-fill fill-green" style="width:100%"></div></div><span>原生 JSON Schema</span></div>
+    <div class="score-row"><span>生态/社区</span><div class="score-bar"><div class="score-fill fill-green" style="width:80%"></div></div><span>★★★★☆</span></div>
+
+    <div class="section-title">本质定位</div>
+    <p style="font-size:12px;line-height:1.6"><strong>JSON Schema → 表单</strong>的直接映射。服务端返回什么 schema，前端直接渲染，零转换。</p>
+
+    <div class="section-title">接入方式</div>
+    <div class="code-snippet"><span class="highlight">// 服务端 JSON Schema 直接用！</span>
+const { data } = useQuery(MODEL_JSON_SCHEMA_QUERY)
+
+&lt;Form
+  schema={<span class="highlight-green">data.jsonSchema</span>}  <span class="highlight">← 直接传入</span>
+  uiSchema={uiSchema}   <span class="highlight">← 控制 UI 细节</span>
+  onSubmit={handleSubmit}
+  widgets={{ relation: RelationPicker }}
+/&gt;</div>
+
+    <div class="section-title">与项目适配度</div>
+    <span class="fit-badge fit-high">高度适配</span>
+    <p style="font-size:12px;margin-top:6px;line-height:1.5">项目已有 <code>MODEL_JSON_SCHEMA_QUERY</code>，返回标准 JSON Schema，RJSF 直接消费，<strong>无需任何转换层</strong>。自定义 widget 可插入 RelationPicker。</p>
+  </div>
+
+</div>
+
+<hr class="divider">
+
+<div class="verdict">
+  <h3>💡 综合结论</h3>
+  <p>
+    <strong>react-hook-form</strong>：只解决校验，UI 渲染还是要自己写，问题解决了一半。<br>
+    <strong>Formily</strong>：功能最强，但有自己的 schema 格式，需要写转换层，且项目目前用不到它的高级特性。<br>
+    <strong>RJSF</strong>：和项目已有的 JSON Schema 天然契合，直接对接服务端数据，支持自定义 widget（RelationPicker 就可以作为自定义 widget 插入），是三者中改动最少、收益最大的选择。
+  </p>
+</div>

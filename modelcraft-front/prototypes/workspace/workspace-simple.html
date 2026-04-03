@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workspace - ModelCraft 原型图</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Shared Layout Styles -->
+  <link href="../shared/layout-styles.css" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Page Specific Styles -->
+  <style>
+    /* Project Card */
+    .project-card {
+      background: white;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .project-card:hover {
+      border-color: var(--primary-light);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    .project-card-header {
+      display: flex;
+      align-items: start;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .project-card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+
+    .project-card-description {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .project-card-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .project-card-meta {
+      color: var(--text-tertiary);
+    }
+
+    /* Grid Layout */
+    .project-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 16px;
+    }
+
+    /* More Button */
+    .more-btn {
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      opacity: 0;
+      transition: all 0.2s ease;
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+
+    .project-card:hover .more-btn {
+      opacity: 1;
+    }
+
+    .more-btn:hover {
+      background: var(--bg-primary);
+    }
+
+    /* Search Input */
+    .search-wrapper {
+      position: relative;
+      flex: 1;
+      max-width: 400px;
+    }
+
+    .search-icon {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 16px;
+      height: 16px;
+      color: var(--text-tertiary);
+      stroke-width: 1.5;
+      pointer-events: none;
+    }
+
+    .search-input {
+      width: 100%;
+      height: 36px;
+      padding-left: 40px;
+      padding-right: 12px;
+    }
+
+    /* View Toggle */
+    .view-toggle {
+      display: flex;
+      align-items: center;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      overflow: hidden;
+    }
+
+    .view-toggle-btn {
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: white;
+      border: none;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .view-toggle-btn:hover {
+      background: var(--bg-primary);
+    }
+
+    .view-toggle-btn.active {
+      background: var(--primary);
+      color: white;
+    }
+
+    .view-toggle-btn svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 1.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <!-- ===== Topbar ===== -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="topbar-org-selector">
+          <div class="topbar-logo">
+            <i data-lucide="sparkles"></i>
+          </div>
+        </button>
+      </div>
+
+      <div class="topbar-center">
+        <nav class="topbar-breadcrumb">
+          <span style="font-weight: 500; color: var(--text-primary);">luke11的工作空间</span>
+          <span class="topbar-breadcrumb-separator">/</span>
+          <span style="color: var(--text-primary);">所有项目</span>
+        </nav>
+      </div>
+
+      <div class="topbar-right">
+        <button class="topbar-btn" title="搜索">
+          <i data-lucide="search"></i>
+        </button>
+        <button class="topbar-btn" title="通知">
+          <i data-lucide="bell"></i>
+          <span class="topbar-btn-badge"></span>
+        </button>
+        <button class="topbar-btn" title="刷新">
+          <i data-lucide="refresh-cw"></i>
+        </button>
+        <button class="topbar-btn" title="帮助">
+          <i data-lucide="help-circle"></i>
+        </button>
+
+        <div class="topbar-divider"></div>
+
+        <button class="topbar-user">
+          <div class="topbar-user-avatar">张</div>
+          <i data-lucide="chevron-down"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- ===== Main Area ===== -->
+    <div class="main-area">
+      <!-- Sidebar -->
+      <aside class="sidebar">
+        <div class="sidebar-content">
+          <div class="sidebar-section">
+            <nav>
+              <a href="#" class="sidebar-nav-item active">
+                <i data-lucide="folder-open"></i>
+                <span>项目</span>
+              </a>
+              <a href="#" class="sidebar-nav-item">
+                <i data-lucide="users"></i>
+                <span>团队</span>
+              </a>
+              <a href="#" class="sidebar-nav-item">
+                <i data-lucide="settings"></i>
+                <span>组织设置</span>
+              </a>
+            </nav>
+          </div>
+        </div>
+
+        <div class="sidebar-footer">
+          <button class="sidebar-toggle">
+            <i data-lucide="panel-left-close"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="main-content">
+        <div style="max-width: 1280px; margin: 0 auto; padding: 24px;">
+          
+          <!-- Page Header -->
+          <div style="margin-bottom: 32px;">
+            <h1 style="font-size: 24px; font-weight: 600; color: var(--text-primary);">所有项目</h1>
+          </div>
+
+          <!-- Toolbar -->
+          <div style="display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 24px;" class="animate-fade-in">
+            <!-- Search -->
+            <div class="search-wrapper">
+              <i data-lucide="search" class="search-icon"></i>
+              <input
+                type="text"
+                placeholder="搜索项目..."
+                class="search-input"
+              />
+            </div>
+
+            <!-- Actions -->
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <!-- View Toggle -->
+              <div class="view-toggle">
+                <button class="view-toggle-btn active" id="gridViewBtn" onclick="showGridView()">
+                  <i data-lucide="grid-3x3"></i>
+                </button>
+                <button class="view-toggle-btn" id="listViewBtn" onclick="showListView()">
+                  <i data-lucide="list"></i>
+                </button>
+              </div>
+
+              <!-- Create Project Button -->
+              <button class="btn-primary">
+                <i data-lucide="plus"></i>
+                创建项目
+              </button>
+            </div>
+          </div>
+
+          <!-- Projects Grid -->
+          <div id="gridView" class="project-grid animate-fade-in">
+            
+            <!-- Project Card 1 - Active -->
+            <div class="project-card">
+              <div class="project-card-header">
+                <div style="flex: 1;">
+                  <h3 class="project-card-title">电商平台项目</h3>
+                  <p class="project-card-description">一个完整的电商平台数据模型，包含商品、订单、用户等核心模块</p>
+                </div>
+                <button class="more-btn">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </div>
+              <div class="project-card-footer">
+                <span class="badge-success">活跃</span>
+                <span class="project-card-meta">更新于 2024-03-14</span>
+              </div>
+            </div>
+
+            <!-- Project Card 2 - Active -->
+            <div class="project-card">
+              <div class="project-card-header">
+                <div style="flex: 1;">
+                  <h3 class="project-card-title">博客系统</h3>
+                  <p class="project-card-description">支持 Markdown 的博客系统，包含文章、标签、评论功能</p>
+                </div>
+                <button class="more-btn">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </div>
+              <div class="project-card-footer">
+                <span class="badge-success">活跃</span>
+                <span class="project-card-meta">更新于 2024-03-12</span>
+              </div>
+            </div>
+
+            <!-- Project Card 3 - Draft -->
+            <div class="project-card">
+              <div class="project-card-header">
+                <div style="flex: 1;">
+                  <h3 class="project-card-title">CRM 系统</h3>
+                  <p class="project-card-description">客户关系管理系统，正在规划中</p>
+                </div>
+                <button class="more-btn">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </div>
+              <div class="project-card-footer">
+                <span class="badge-warning">草稿</span>
+                <span class="project-card-meta">更新于 2024-03-10</span>
+              </div>
+            </div>
+
+            <!-- Project Card 4 - Archived -->
+            <div class="project-card">
+              <div class="project-card-header">
+                <div style="flex: 1;">
+                  <h3 class="project-card-title">旧版商城</h3>
+                  <p class="project-card-description">已迁移到新版电商平台</p>
+                </div>
+                <button class="more-btn">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </div>
+              <div class="project-card-footer">
+                <span class="badge-neutral">已归档</span>
+                <span class="project-card-meta">更新于 2024-02-20</span>
+              </div>
+            </div>
+
+            <!-- Project Card 5 - Active -->
+            <div class="project-card">
+              <div class="project-card-header">
+                <div style="flex: 1;">
+                  <h3 class="project-card-title">API 网关</h3>
+                  <p class="project-card-description">统一 API 管理和网关配置</p>
+                </div>
+                <button class="more-btn">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </div>
+              <div class="project-card-footer">
+                <span class="badge-success">活跃</span>
+                <span class="project-card-meta">更新于 2024-03-08</span>
+              </div>
+            </div>
+
+            <!-- Project Card 6 - Active -->
+            <div class="project-card">
+              <div class="project-card-header">
+                <div style="flex: 1;">
+                  <h3 class="project-card-title">数据分析平台</h3>
+                  <p class="project-card-description">业务数据统计和分析仪表板</p>
+                </div>
+                <button class="more-btn">
+                  <i data-lucide="more-horizontal"></i>
+                </button>
+              </div>
+              <div class="project-card-footer">
+                <span class="badge-success">活跃</span>
+                <span class="project-card-meta">更新于 2024-03-05</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Projects List View -->
+          <div id="listView" style="display: none;" class="animate-fade-in">
+            <div style="background: white; border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+              <table>
+                <thead>
+                  <tr>
+                    <th>项目名称</th>
+                    <th>状态</th>
+                    <th>更新时间</th>
+                    <th style="text-align: right;">操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Row 1 - Active -->
+                  <tr>
+                    <td>
+                      <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">电商平台项目</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">一个完整的电商平台数据模型</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-success">活跃</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-14</td>
+                    <td style="text-align: right;">
+                      <button class="btn-ghost" style="padding: 6px; width: 32px; height: 32px;">
+                        <i data-lucide="more-horizontal"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 2 - Active -->
+                  <tr>
+                    <td>
+                      <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">博客系统</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">支持 Markdown 的博客系统</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-success">活跃</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-12</td>
+                    <td style="text-align: right;">
+                      <button class="btn-ghost" style="padding: 6px; width: 32px; height: 32px;">
+                        <i data-lucide="more-horizontal"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 3 - Draft -->
+                  <tr>
+                    <td>
+                      <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">CRM 系统</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">客户关系管理系统，正在规划中</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-warning">草稿</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-10</td>
+                    <td style="text-align: right;">
+                      <button class="btn-ghost" style="padding: 6px; width: 32px; height: 32px;">
+                        <i data-lucide="more-horizontal"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 4 - Archived -->
+                  <tr>
+                    <td>
+                      <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">旧版商城</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">已迁移到新版电商平台</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-neutral">已归档</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-02-20</td>
+                    <td style="text-align: right;">
+                      <button class="btn-ghost" style="padding: 6px; width: 32px; height: 32px;">
+                        <i data-lucide="more-horizontal"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 5 - Active -->
+                  <tr>
+                    <td>
+                      <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">API 网关</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">统一 API 管理和网关配置</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-success">活跃</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-08</td>
+                    <td style="text-align: right;">
+                      <button class="btn-ghost" style="padding: 6px; width: 32px; height: 32px;">
+                        <i data-lucide="more-horizontal"></i>
+                      </button>
+                    </td>
+                  </tr>
+
+                  <!-- Row 6 - Active -->
+                  <tr>
+                    <td>
+                      <div>
+                        <div style="font-weight: 600; color: var(--text-primary); margin-bottom: 2px;">数据分析平台</div>
+                        <div style="font-size: 12px; color: var(--text-secondary);">业务数据统计和分析仪表板</div>
+                      </div>
+                    </td>
+                    <td>
+                      <span class="badge-success">活跃</span>
+                    </td>
+                    <td style="color: var(--text-secondary);">2024-03-05</td>
+                    <td style="text-align: right;">
+                      <button class="btn-ghost" style="padding: 6px; width: 32px; height: 32px;">
+                        <i data-lucide="more-horizontal"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    lucide.createIcons();
+
+    function showGridView() {
+      document.getElementById('gridView').style.display = 'grid';
+      document.getElementById('listView').style.display = 'none';
+      document.getElementById('gridViewBtn').classList.add('active');
+      document.getElementById('listViewBtn').classList.remove('active');
+      lucide.createIcons();
+    }
+
+    function showListView() {
+      document.getElementById('listView').style.display = 'block';
+      document.getElementById('gridView').style.display = 'none';
+      document.getElementById('listViewBtn').classList.add('active');
+      document.getElementById('gridViewBtn').classList.remove('active');
+      lucide.createIcons();
+    }
+  </script>
+</body>
+</html>

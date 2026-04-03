@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - ModelCraft Prototype</title>
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="../shared/tailwind.config.js"></script>
+  <link href="../shared/tailwind-base.css" rel="stylesheet">
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <!--
+    =====================================================
+    原型说明
+    =====================================================
+    对应正式代码: src/app/login/page.tsx
+
+    设计师在此修改 UI，开发者基于此 HTML 实现 React 组件。
+    Tailwind 类名可直接复制到 React 代码中。
+
+    暗色模式: 在 <html> 标签添加 class="dark" 预览
+    =====================================================
+  -->
+
+  <div class="min-h-screen flex relative overflow-hidden bg-gray-50">
+    <!-- Left brand area -->
+    <div class="hidden lg:flex lg:w-1/2 relative z-10">
+      <div class="flex flex-col justify-between p-12 w-full max-w-2xl mx-auto">
+        <!-- Logo -->
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-lg bg-[#2563eb] flex items-center justify-center shadow-sm">
+            <i data-lucide="sparkles" class="w-6 h-6 text-white"></i>
+          </div>
+          <span class="font-semibold text-2xl text-gray-900">
+            ModelCraft
+          </span>
+        </div>
+
+        <!-- Middle content -->
+        <div class="space-y-8">
+          <div class="space-y-6">
+            <span class="inline-flex px-4 py-2 bg-[#dbeafe] text-[#2563eb] text-sm font-semibold rounded select-none">
+              ✨ 数据库能力即服务平台
+            </span>
+
+            <h1 class="text-5xl font-semibold leading-tight text-gray-900">
+              让数据库能力触手可及
+            </h1>
+
+            <p class="text-lg text-gray-600 leading-relaxed max-w-lg">
+              为开发者打造的数据库接口平台。HTTP 接口、行级权限、逻辑关联 —— 无需编写后端代码。
+            </p>
+          </div>
+
+          <!-- Feature cards -->
+          <div class="grid grid-cols-1 gap-4">
+            <!-- Feature 1 -->
+            <div class="group border border-gray-200 bg-white hover:border-[#dbeafe] hover:bg-white transition-all duration-200 hover:shadow-sm cursor-default rounded-lg p-4 flex items-start gap-4">
+              <div class="w-10 h-10 rounded-md flex items-center justify-center text-white flex-shrink-0 bg-[#2563eb]">
+                <i data-lucide="globe" class="w-5 h-5"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-gray-900 mb-1">数据库 HTTP 接口</h3>
+                <p class="text-sm text-gray-600">自动将数据库表暴露为 GraphQL API 接口</p>
+              </div>
+            </div>
+
+            <!-- Feature 2 -->
+            <div class="group border border-gray-200 bg-white hover:border-[#dbeafe] hover:bg-white transition-all duration-200 hover:shadow-sm cursor-default rounded-lg p-4 flex items-start gap-4">
+              <div class="w-10 h-10 rounded-md flex items-center justify-center text-white flex-shrink-0 bg-[#059669]">
+                <i data-lucide="shield-check" class="w-5 h-5"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-gray-900 mb-1">行级权限控制 (RLS)</h3>
+                <p class="text-sm text-gray-600">基于用户身份的细粒度数据访问策略</p>
+              </div>
+            </div>
+
+            <!-- Feature 3 -->
+            <div class="group border border-gray-200 bg-white hover:border-[#dbeafe] hover:bg-white transition-all duration-200 hover:shadow-sm cursor-default rounded-lg p-4 flex items-start gap-4">
+              <div class="w-10 h-10 rounded-md flex items-center justify-center text-white flex-shrink-0 bg-[#d97706]">
+                <i data-lucide="link" class="w-5 h-5"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <h3 class="font-semibold text-gray-900 mb-1">逻辑外键与枚举</h3>
+                <p class="text-sm text-gray-600">无需数据库约束，灵活定义关联关系与枚举类型</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between text-sm text-gray-500">
+          <span>&copy; 2024 ModelCraft. 保留所有权利</span>
+          <div class="flex gap-4">
+            <a href="#" class="hover:text-gray-700 transition-colors">隐私政策</a>
+            <a href="#" class="hover:text-gray-700 transition-colors">服务条款</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right login form -->
+    <div class="flex-1 flex items-center justify-center p-6 relative z-10">
+      <div class="w-full max-w-md border border-gray-200 bg-white shadow-sm rounded-lg">
+        <div class="p-8 sm:p-10">
+          <!-- Mobile logo -->
+          <div class="lg:hidden flex items-center gap-3 justify-center mb-8">
+            <div class="w-10 h-10 rounded-lg bg-[#2563eb] flex items-center justify-center">
+              <i data-lucide="sparkles" class="w-5 h-5 text-white"></i>
+            </div>
+            <span class="font-semibold text-xl text-gray-900">
+              ModelCraft
+            </span>
+          </div>
+
+          <!-- Form title -->
+          <div class="text-center lg:text-left mb-8">
+            <h2 class="text-3xl font-semibold text-gray-900 mb-2">
+              欢迎回来
+            </h2>
+            <p class="text-gray-600">登录以访问您的工作空间</p>
+          </div>
+
+          <!-- Login button -->
+          <button class="w-full h-11 bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-semibold border-0 rounded-md transition-all duration-200 cursor-pointer flex items-center justify-center">
+            <i data-lucide="shield" class="w-4 h-4 mr-2"></i>
+            使用 Casdoor 登录
+          </button>
+
+          <!-- Features list (mobile) -->
+          <div class="mt-8 space-y-4">
+            <hr class="border-gray-200">
+            <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide pt-2">
+              平台特性
+            </p>
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-md flex items-center justify-center text-white flex-shrink-0 bg-[#2563eb]">
+                <i data-lucide="globe" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900">数据库 HTTP 接口</p>
+                <p class="text-xs font-normal text-gray-600">自动将数据库表暴露为 GraphQL API 接口</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-md flex items-center justify-center text-white flex-shrink-0 bg-[#059669]">
+                <i data-lucide="shield-check" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900">行级权限控制 (RLS)</p>
+                <p class="text-xs font-normal text-gray-600">基于用户身份的细粒度数据访问策略</p>
+              </div>
+            </div>
+            <div class="flex items-start gap-3">
+              <div class="w-8 h-8 rounded-md flex items-center justify-center text-white flex-shrink-0 bg-[#d97706]">
+                <i data-lucide="link" class="w-4 h-4"></i>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900">逻辑外键与枚举</p>
+                <p class="text-xs font-normal text-gray-600">无需数据库约束，灵活定义关联关系与枚举类型</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="mt-8 space-y-4">
+            <hr class="border-gray-100">
+            <p class="text-xs text-center text-gray-600 leading-relaxed pt-2">
+              登录即表示您同意我们的
+              <a href="#" class="text-[#2563eb] hover:underline">服务条款</a>
+              和
+              <a href="#" class="text-[#2563eb] hover:underline">隐私政策</a>
+            </p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Initialize Lucide Icons -->
+  <script>
+    lucide.createIcons();
+  </script>
+</body>
+</html>

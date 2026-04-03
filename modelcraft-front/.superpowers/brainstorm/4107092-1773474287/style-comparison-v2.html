@@ -1,0 +1,129 @@
+<h2>Design Style Comparison: Current vs Target</h2>
+<p class="subtitle">Left: Current frosted glass + gradient style | Right: Supabase/shadcn restrained style + B2B blue brand color</p>
+
+<div class="split">
+  <!-- Current Style -->
+  <div class="mockup">
+    <div class="mockup-header">Current: Frosted Glass + Gradients</div>
+    <div class="mockup-body" style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 30%, #eef2ff 60%); padding: 20px; min-height: 420px; position: relative;">
+      <!-- Decorative blur elements -->
+      <div style="position: absolute; top: 20px; left: -20px; width: 120px; height: 120px; background: radial-gradient(circle, rgba(59,130,246,0.2) 0%, transparent 70%); border-radius: 50%; filter: blur(20px);"></div>
+      <div style="position: absolute; bottom: 40px; right: -30px; width: 100px; height: 100px; background: radial-gradient(circle, rgba(139,92,246,0.15) 0%, transparent 70%); border-radius: 50%; filter: blur(20px);"></div>
+      
+      <!-- Logo with glow -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px; position: relative;">
+        <div style="position: relative;">
+          <div style="position: absolute; inset: -4px; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 14px; filter: blur(8px); opacity: 0.5;"></div>
+          <div style="position: relative; width: 40px; height: 40px; background: linear-gradient(135deg, #2563eb, #4f46e5); border-radius: 12px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+            <span style="color: white; font-size: 18px;">&#10022;</span>
+          </div>
+        </div>
+        <span style="font-weight: 700; font-size: 20px; background: linear-gradient(90deg, #1e293b, #475569); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">ModelCraft</span>
+      </div>
+      
+      <!-- Card with frosted glass -->
+      <div style="background: rgba(255,255,255,0.8); backdrop-filter: blur(8px); border: 1px solid rgba(226,232,240,0.6); border-radius: 8px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); transition: all 0.3s;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <h4 style="font-weight: 700; color: #0f172a; margin: 0 0 4px 0;">Project Name</h4>
+            <p style="font-size: 13px; color: #475569; margin: 0;">Project description goes here</p>
+          </div>
+          <span style="background: linear-gradient(90deg, #d1fae5, #ccfbf1); color: #047857; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 9999px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">Active</span>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: #64748b;">Updated 2 hours ago</div>
+      </div>
+      
+      <!-- Gradient button -->
+      <button style="width: 100%; height: 40px; background: linear-gradient(90deg, #2563eb, #4f46e5); color: white; font-weight: 600; border: none; border-radius: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.3); cursor: pointer;">
+        Create Project
+      </button>
+      
+      <p style="font-size: 11px; color: #94a3b8; margin-top: 16px; text-align: center;">
+        Gradients, glows, frosted glass effects
+      </p>
+    </div>
+  </div>
+  
+  <!-- Target Style -->
+  <div class="mockup">
+    <div class="mockup-header">Target: Restrained + B2B Blue</div>
+    <div class="mockup-body" style="background: #fafafa; padding: 20px; min-height: 420px;">
+      <!-- Simple logo -->
+      <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+        <div style="width: 36px; height: 36px; background: #2563eb; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
+          <span style="color: white; font-size: 16px;">&#10022;</span>
+        </div>
+        <span style="font-weight: 600; font-size: 18px; color: #111827;">ModelCraft</span>
+      </div>
+      
+      <!-- Clean card -->
+      <div style="background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 12px;">
+        <div style="display: flex; justify-content: space-between; align-items: start;">
+          <div>
+            <h4 style="font-weight: 600; color: #111827; margin: 0 0 4px 0;">Project Name</h4>
+            <p style="font-size: 13px; color: #6b7280; margin: 0;">Project description goes here</p>
+          </div>
+          <span style="background: #ecfdf5; color: #059669; font-size: 11px; font-weight: 500; padding: 2px 8px; border-radius: 4px;">Active</span>
+        </div>
+        <div style="margin-top: 12px; font-size: 12px; color: #9ca3af;">Updated 2 hours ago</div>
+      </div>
+      
+      <!-- Solid button -->
+      <button style="width: 100%; height: 40px; background: #2563eb; color: white; font-weight: 500; border: none; border-radius: 6px; cursor: pointer;">
+        Create Project
+      </button>
+      
+      <p style="font-size: 11px; color: #9ca3af; margin-top: 16px; text-align: center;">
+        Solid colors, clear borders, functional focus
+      </p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top: 24px; padding: 16px; background: #f1f5f9; border-radius: 8px;">
+  <h4 style="margin: 0 0 12px 0; color: #334155;">Key Differences</h4>
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; font-size: 13px;">
+    <div>
+      <p style="margin: 0 0 8px 0; font-weight: 600; color: #0f172a;">Current Style Issues</p>
+      <ul style="margin: 0; padding-left: 16px; color: #64748b; line-height: 1.8;">
+        <li>Frosted glass blurs boundaries</li>
+        <li>Too many gradients increase visual noise</li>
+        <li>Glow/shadow decorations are excessive</li>
+        <li>Feels like consumer product, not B2B</li>
+      </ul>
+    </div>
+    <div>
+      <p style="margin: 0 0 8px 0; font-weight: 600; color: #0f172a;">Target Style Benefits</p>
+      <ul style="margin: 0; padding-left: 16px; color: #64748b; line-height: 1.8;">
+        <li>Clear boundaries and visual hierarchy</li>
+        <li>Unified blue brand color, professional</li>
+        <li>Function-driven, efficient communication</li>
+        <li>B2B-appropriate restraint</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top: 20px;">
+  <div class="option" data-choice="agree" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Agree with this direction</h3>
+      <p>Move towards Supabase/shadcn restrained style, keep blue brand color</p>
+    </div>
+  </div>
+  <div class="option" data-choice="partial" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>Partially agree, need adjustments</h3>
+      <p>Direction is right but some details need discussion</p>
+    </div>
+  </div>
+  <div class="option" data-choice="different" onclick="toggleSelect(this)">
+    <div class="letter">C</div>
+    <div class="content">
+      <h3>Different idea</h3>
+      <p>I have other thoughts on the design direction</p>
+    </div>
+  </div>
+</div>

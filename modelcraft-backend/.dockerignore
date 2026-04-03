@@ -1,0 +1,83 @@
+# Git 相关
+.git
+.gitignore
+.gitattributes
+
+# IDE 和编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 操作系统
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Go 相关
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+/vendor/
+.env.local
+.env.*.local
+
+# 日志文件
+*.log
+logs/
+/pkg/logfacade/logs
+
+# 数据库文件
+*.db
+*.sqlite
+*.sqlite3
+data/
+
+# 测试和文档
+tests/
+docs/
+*.md
+!README.md
+
+# Python 相关（测试文件）
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.pytest_cache/
+
+# 临时文件
+tmp/
+temp/
+.tmp/
+
+# 构建产物
+main
+modelcraft
+dist/
+build/
+
+# 开发工具配置
+.air.toml
+.golangci.yml
+Makefile
+
+# Claude 和 CodeBuddy 配置
+.claude/
+.codebuddy/
+
+# 其他
+*.tar.gz
+*.zip
+*.rar

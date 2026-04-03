@@ -1,0 +1,122 @@
+# Common types shared across all domains
+
+securitySchemes:
+  BearerAuth:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+
+parameters:
+  ResourceId:
+    name: id
+    in: path
+    required: true
+    schema:
+      type: string
+  ProjectId:
+    name: projectId
+    in: path
+    required: true
+    schema:
+      type: string
+
+schemas:
+  # ========== Base Envelope ==========
+  BaseResponse:
+    type: object
+    required:
+      - requestId
+    properties:
+      requestId:
+        type: string
+        description: Unique request trace ID
+        example: "req_550e8400e29b41d4"
+
+  # ========== Pagination ==========
+  Pagination:
+    type: object
+    required:
+      - page
+      - pageSize
+      - total
+      - totalPages
+    properties:
+      page:
+        type: integer
+        example: 1
+      pageSize:
+        type: integer
+        example: 20
+      total:
+        type: integer
+        example: 100
+      totalPages:
+        type: integer
+        example: 5
+
+  # ========== Common / System Errors ==========
+  SystemError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - SYSTEM_ERROR
+          message:
+            type: string
+          details:
+            type: object
+            additionalProperties: true
+
+  AuthenticationFailedError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - AUTHENTICATION_FAILED
+          message:
+            type: string
+
+  UnauthorizedError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - UNAUTHORIZED
+          message:
+            type: string

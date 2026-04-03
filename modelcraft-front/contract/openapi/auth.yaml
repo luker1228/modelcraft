@@ -1,0 +1,213 @@
+# Auth Domain - paths + schemas
+
+paths:
+  /api/auth/token:
+    post:
+      operationId: exchangeToken
+      summary: Exchange authorization code for JWT
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/TokenRequest"
+      responses:
+        "200":
+          description: Token exchange successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/ExchangeTokenResponse"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
+  /api/auth/login-url:
+    get:
+      operationId: getLoginURL
+      summary: Get Casdoor login URL
+      tags: [Auth]
+      security: []
+      parameters:
+        - name: state
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Login URL returned
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/GetLoginURLResponse"
+
+  /api/auth/logout:
+    post:
+      operationId: logout
+      summary: Logout
+      tags: [Auth]
+      security: []
+      responses:
+        "200":
+          description: Logout successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/LogoutResponse"
+
+  /api/auth/refresh:
+    post:
+      operationId: refreshToken
+      summary: Refresh access token using refresh token
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/RefreshTokenRequest"
+      responses:
+        "200":
+          description: Token refresh successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/ExchangeTokenResponse"
+        "401":
+          description: Invalid or expired refresh token
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
+schemas:
+  # -- Auth domain errors --
+  AuthInvalidInputError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - PARAM_INVALID.AUTH
+          message:
+            type: string
+
+  # -- Auth request types --
+  TokenRequest:
+    type: object
+    required:
+      - code
+    properties:
+      code:
+        type: string
+        description: Authorization code from OAuth flow
+
+  RefreshTokenRequest:
+    type: object
+    required:
+      - refreshToken
+    properties:
+      refreshToken:
+        type: string
+        description: Refresh token obtained during initial authentication
+
+  # -- Auth response types --
+  ExchangeTokenResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - accessToken
+          - tokenType
+          - expiresIn
+          - user
+        properties:
+          accessToken:
+            type: string
+            description: ModelCraft JWT with user identity
+            example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          tokenType:
+            type: string
+            description: Token type, always "Bearer"
+            example: "Bearer"
+          expiresIn:
+            type: integer
+            description: Token lifetime in seconds
+            example: 3600
+          refreshToken:
+            type: string
+            description: Refresh token for future token renewal (optional, reserved for future use)
+            example: ""
+          user:
+            $ref: "#/schemas/UserInfo"
+
+  UserInfo:
+    type: object
+    required:
+      - id
+      - externalId
+      - name
+      - email
+    properties:
+      id:
+        type: string
+        description: ModelCraft internal user UUID
+        example: "487101d6-92bb-459e-b4f1-426255126d27"
+      externalId:
+        type: string
+        description: External authentication provider user ID (e.g., Casdoor user ID)
+        example: "test-integration"
+      name:
+        type: string
+        description: User display name
+        example: "John Doe"
+      email:
+        type: string
+        description: User email address
+        example: "john.doe@example.com"
+
+  GetLoginURLResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        properties:
+          loginUrl:
+            type: string
+
+  LogoutResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        properties:
+          message:
+            type: string
