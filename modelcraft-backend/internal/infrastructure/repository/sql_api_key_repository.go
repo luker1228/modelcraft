@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
 	domainauth "modelcraft/internal/domain/auth"
@@ -20,14 +21,14 @@ func NewSqlAPIKeyRepository(q dbgen.Querier) domainauth.APIKeyRepository {
 
 // Save persists a new API key.
 func (r *SqlAPIKeyRepository) Save(ctx context.Context, key *domainauth.APIKey) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.InsertAPIKey(ctx, dbgen.InsertAPIKeyParams{
 			ID:        key.ID,
 			UserID:    key.UserID,
 			Name:      key.Name,
 			KeyHash:   key.KeyHash,
 			KeyPrefix: key.KeyPrefix,
-			ExpiresAt: PtrToNullTime(key.ExpiresAt),
+			ExpiresAt: sqlerr.PtrToNullTime(key.ExpiresAt),
 		})
 	})
 }
@@ -36,13 +37,13 @@ func (r *SqlAPIKeyRepository) Save(ctx context.Context, key *domainauth.APIKey) 
 // Returns (nil, nil) when not found.
 func (r *SqlAPIKeyRepository) FindByHash(ctx context.Context, hash string) (*domainauth.APIKey, error) {
 	var row dbgen.ApiKey
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetAPIKeyByHash(ctx, hash)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, nil //nolint:nilnil // Pattern B: not found is a valid state, caller checks bool/nil
 		}
 		return nil, err
@@ -55,13 +56,13 @@ func (r *SqlAPIKeyRepository) FindByHash(ctx context.Context, hash string) (*dom
 // Returns (nil, nil) when not found.
 func (r *SqlAPIKeyRepository) FindByID(ctx context.Context, id string) (*domainauth.APIKey, error) {
 	var row dbgen.ApiKey
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetAPIKeyByID(ctx, id)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, nil //nolint:nilnil // Pattern B: not found is a valid state, caller checks bool/nil
 		}
 		return nil, err
@@ -73,7 +74,7 @@ func (r *SqlAPIKeyRepository) FindByID(ctx context.Context, id string) (*domaina
 // ListByUserID lists active API keys for a user.
 func (r *SqlAPIKeyRepository) ListByUserID(ctx context.Context, userID string) ([]*domainauth.APIKey, error) {
 	var rows []dbgen.ApiKey
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListAPIKeysByUserID(ctx, userID)
 		return e
@@ -92,7 +93,7 @@ func (r *SqlAPIKeyRepository) ListByUserID(ctx context.Context, userID string) (
 // CountActiveByUserID counts active API keys for a user.
 func (r *SqlAPIKeyRepository) CountActiveByUserID(ctx context.Context, userID string) (int, error) {
 	var count int64
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		count, e = r.q.CountActiveAPIKeysByUserID(ctx, userID)
 		return e
@@ -105,7 +106,7 @@ func (r *SqlAPIKeyRepository) CountActiveByUserID(ctx context.Context, userID st
 
 // Revoke revokes an API key scoped by id and user.
 func (r *SqlAPIKeyRepository) Revoke(ctx context.Context, id, userID string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.RevokeAPIKey(ctx, dbgen.RevokeAPIKeyParams{ID: id, UserID: userID})
 	})
 }
@@ -118,10 +119,10 @@ func (r *SqlAPIKeyRepository) Update(
 	name string,
 	expiresAt *time.Time,
 ) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateAPIKey(ctx, dbgen.UpdateAPIKeyParams{
 			Name:      name,
-			ExpiresAt: PtrToNullTime(expiresAt),
+			ExpiresAt: sqlerr.PtrToNullTime(expiresAt),
 			ID:        id,
 			UserID:    userID,
 		})
@@ -130,14 +131,14 @@ func (r *SqlAPIKeyRepository) Update(
 
 // UpdateLastUsed updates last_used_at timestamp.
 func (r *SqlAPIKeyRepository) UpdateLastUsed(ctx context.Context, id string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateAPIKeyLastUsed(ctx, id)
 	})
 }
 
 // DeleteRevoked deletes stale revoked API keys.
 func (r *SqlAPIKeyRepository) DeleteRevoked(ctx context.Context) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteRevokedAPIKeys(ctx)
 	})
 }
@@ -149,10 +150,10 @@ func toDomainAPIKey(row dbgen.ApiKey) *domainauth.APIKey {
 		Name:       row.Name,
 		KeyHash:    row.KeyHash,
 		KeyPrefix:  row.KeyPrefix,
-		LastUsedAt: NullTimeToPtr(row.LastUsedAt),
-		ExpiresAt:  NullTimeToPtr(row.ExpiresAt),
+		LastUsedAt: sqlerr.NullTimeToPtr(row.LastUsedAt),
+		ExpiresAt:  sqlerr.NullTimeToPtr(row.ExpiresAt),
 		CreatedAt:  row.CreatedAt,
-		RevokedAt:  NullTimeToPtr(row.RevokedAt),
+		RevokedAt:  sqlerr.NullTimeToPtr(row.RevokedAt),
 	}
 }
 

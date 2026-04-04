@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
@@ -41,7 +42,7 @@ func EnumDefinitionToDomain(row dbgen.ModelEnum) (*modeldesign.EnumDefinition, e
 		DisplayName:   row.DisplayName,
 		Description:   row.Description.String,
 		Options:       options,
-		IsMultiSelect: NullBoolToBool(row.IsMultiSelect),
+		IsMultiSelect: sqlerr.NullBoolToBool(row.IsMultiSelect),
 		CreatedAt:     createdAt,
 		UpdatedAt:     updatedAt,
 	}, nil
@@ -62,7 +63,7 @@ func EnumDefinitionToCreateParams(ed *modeldesign.EnumDefinition) (dbgen.CreateE
 		DisplayName:   ed.DisplayName,
 		Description:   sql.NullString{String: ed.Description, Valid: ed.Description != ""},
 		Options:       json.RawMessage(optionsJSON),
-		IsMultiSelect: BoolToNullBool(ed.IsMultiSelect),
+		IsMultiSelect: sqlerr.BoolToNullBool(ed.IsMultiSelect),
 	}, nil
 }
 
@@ -140,7 +141,7 @@ func (r *SqlEnumRepository) Create(enum *modeldesign.EnumDefinition) error {
 		return bizerrors.Wrapf(err, "failed to convert enum to create params")
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateEnumDefinition(ctx, params)
 	})
 }
@@ -158,12 +159,12 @@ func (r *SqlEnumRepository) Update(enum *modeldesign.EnumDefinition) error {
 		return bizerrors.Wrapf(err, "failed to marshal enum options")
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateEnum(ctx, dbgen.UpdateEnumParams{
 			DisplayName:   enum.DisplayName,
 			Description:   sql.NullString{String: enum.Description, Valid: enum.Description != ""},
 			Options:       json.RawMessage(optionsJSON),
-			IsMultiSelect: BoolToNullBool(enum.IsMultiSelect),
+			IsMultiSelect: sqlerr.BoolToNullBool(enum.IsMultiSelect),
 			OrgName:       enum.OrgName,
 			ProjectSlug:   enum.ProjectSlug,
 			Name:          enum.Name,
@@ -182,7 +183,7 @@ func (r *SqlEnumRepository) Delete(orgName, projectSlug, name string) error {
 		return bizerrors.Errorf("enum is referenced by fields: %v", fieldNames)
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteEnum(context.Background(), dbgen.DeleteEnumParams{
 			OrgName:     orgName,
 			ProjectSlug: projectSlug,
@@ -197,7 +198,7 @@ func (r *SqlEnumRepository) FindByName(orgName, projectSlug, name string) (*mode
 	ctx := context.Background()
 
 	var row dbgen.ModelEnum
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetEnumByName(ctx, dbgen.GetEnumByNameParams{
 			OrgName:     orgName,
@@ -207,7 +208,7 @@ func (r *SqlEnumRepository) FindByName(orgName, projectSlug, name string) (*mode
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("enum not found: " + name)
 		}
 		return nil, err
@@ -222,13 +223,13 @@ func (r *SqlEnumRepository) FindByID(id string) (*modeldesign.EnumDefinition, er
 	ctx := context.Background()
 
 	var row dbgen.ModelEnum
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetEnumByID(ctx, id)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("enum not found by id: " + id)
 		}
 		return nil, err
@@ -242,7 +243,7 @@ func (r *SqlEnumRepository) List(orgName, projectSlug string) ([]*modeldesign.En
 	ctx := context.Background()
 
 	var rows []dbgen.ModelEnum
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListEnums(ctx, dbgen.ListEnumsParams{
 			OrgName:     orgName,
@@ -326,7 +327,7 @@ func (r *SqlFieldEnumAssociationRepository) Create(
 		return bizerrors.Wrapf(err, "invalid field enum association")
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateFieldEnumAssociation(ctx, FieldEnumAssociationToCreateParams(association))
 	})
 }
@@ -338,7 +339,7 @@ func (r *SqlFieldEnumAssociationRepository) FindByField(
 	modelID, fieldName string,
 ) (*modeldesign.FieldEnumAssociation, error) {
 	var row dbgen.ModelFieldEnumAssociation
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetFieldEnumAssociationByField(ctx, dbgen.GetFieldEnumAssociationByFieldParams{
 			ModelID:   modelID,
@@ -347,7 +348,7 @@ func (r *SqlFieldEnumAssociationRepository) FindByField(
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("field enum association not found: " + modelID + "." + fieldName)
 		}
 		return nil, err
@@ -397,7 +398,7 @@ func (r *SqlFieldEnumAssociationRepository) FindByModelID(
 
 // Delete removes a field-enum association identified by model ID and field name.
 func (r *SqlFieldEnumAssociationRepository) Delete(ctx context.Context, modelID, fieldName string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteFieldEnumAssociation(ctx, dbgen.DeleteFieldEnumAssociationParams{
 			ModelID:   modelID,
 			FieldName: fieldName,
@@ -407,7 +408,7 @@ func (r *SqlFieldEnumAssociationRepository) Delete(ctx context.Context, modelID,
 
 // DeleteByModelID removes all field-enum associations for a given model.
 func (r *SqlFieldEnumAssociationRepository) DeleteByModelID(ctx context.Context, modelID string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteFieldEnumAssociationsByModelID(ctx, modelID)
 	})
 }

@@ -8,6 +8,7 @@ import (
 	"modelcraft/internal/domain/permission"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 
 	bizerrors "modelcraft/pkg/bizerrors"
 )
@@ -70,7 +71,7 @@ func (r *SqlCasbinRoleRepository) CreateRole(ctx context.Context, role *permissi
 
 	var result sql.Result
 
-	if err := ExecWithErrorHandling(func() error {
+	if err := sqlerr.ExecWithErrorHandling(func() error {
 		var e error
 		result, e = r.q.CreateRole(ctx, params)
 		return e
@@ -93,13 +94,13 @@ func (r *SqlCasbinRoleRepository) CreateRole(ctx context.Context, role *permissi
 func (r *SqlCasbinRoleRepository) GetRoleByID(ctx context.Context, id int) (*permission.Role, error) {
 	var row dbgen.Role
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetRoleByID(ctx, int64(id))
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("role not found by id: " + fmt.Sprint(id))
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get role by id: %d", id)
@@ -115,7 +116,7 @@ func (r *SqlCasbinRoleRepository) GetRoleByNameAndOrg(
 ) (*permission.Role, error) {
 	var row dbgen.Role
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetRoleByNameAndOrg(ctx, dbgen.GetRoleByNameAndOrgParams{
 			Name:    name,
@@ -124,7 +125,7 @@ func (r *SqlCasbinRoleRepository) GetRoleByNameAndOrg(
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("role not found: " + name + " in org " + orgName)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get role by name %s and org %s", name, orgName)
@@ -140,7 +141,7 @@ func (r *SqlCasbinRoleRepository) ListRolesByOrg(
 ) ([]*permission.Role, error) {
 	var rows []dbgen.Role
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		if includeSystem {
 			rows, e = r.q.ListRolesByOrgIncludeSystem(ctx, orgName)
@@ -168,7 +169,7 @@ func (r *SqlCasbinRoleRepository) UpdateRole(ctx context.Context, role *permissi
 		ID:          int64(role.ID),
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateRole(ctx, params)
 	})
 }
@@ -176,7 +177,7 @@ func (r *SqlCasbinRoleRepository) UpdateRole(ctx context.Context, role *permissi
 // DeleteRole deletes a role by its integer ID.
 // Related user_roles and role_permissions are cascade-deleted by the database foreign key constraints.
 func (r *SqlCasbinRoleRepository) DeleteRole(ctx context.Context, id int) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteRole(ctx, int64(id))
 	})
 }
@@ -202,7 +203,7 @@ func (r *SqlCasbinPermissionRepository) AddPermission(
 		Act:     perm.Act,
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreatePermission(ctx, params)
 	})
 }
@@ -215,7 +216,7 @@ func (r *SqlCasbinPermissionRepository) RemovePermission(ctx context.Context, ro
 		Act:    act,
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeletePermission(ctx, params)
 	})
 }
@@ -226,7 +227,7 @@ func (r *SqlCasbinPermissionRepository) ListPermissionsByRole(
 ) ([]*permission.Permission, error) {
 	var rows []dbgen.RolePermission
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListPermissionsByRole(ctx, int64(roleID))
 		return e
@@ -248,7 +249,7 @@ func (r *SqlCasbinPermissionRepository) ListPermissionsByRoleAndOrg(
 ) ([]*permission.Permission, error) {
 	var rows []dbgen.RolePermission
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListPermissionsByRoleAndOrg(ctx, dbgen.ListPermissionsByRoleAndOrgParams{
 			RoleID:  int64(roleID),
@@ -270,7 +271,7 @@ func (r *SqlCasbinPermissionRepository) ListPermissionsByRoleAndOrg(
 // DeletePermissionsByRole removes all permission entries for the given role.
 // This is typically called as part of a role deletion workflow.
 func (r *SqlCasbinPermissionRepository) DeletePermissionsByRole(ctx context.Context, roleID int) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeletePermissionsByRole(ctx, int64(roleID))
 	})
 }
@@ -295,7 +296,7 @@ func (r *SqlCasbinUserRoleRepository) AssignRole(ctx context.Context, userRole *
 
 	var result sql.Result
 
-	if err := ExecWithErrorHandling(func() error {
+	if err := sqlerr.ExecWithErrorHandling(func() error {
 		var e error
 		result, e = r.q.CreateUserRole(ctx, params)
 		return e
@@ -323,7 +324,7 @@ func (r *SqlCasbinUserRoleRepository) RevokeRole(ctx context.Context, userID str
 		OrgName: orgName,
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteUserRole(ctx, params)
 	})
 }
@@ -334,7 +335,7 @@ func (r *SqlCasbinUserRoleRepository) ListUserRoles(
 ) ([]*permission.UserRole, error) {
 	var rows []dbgen.UserRole
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListUserRoles(ctx, dbgen.ListUserRolesParams{
 			UserID:  userID,
@@ -359,7 +360,7 @@ func (r *SqlCasbinUserRoleRepository) ListRoleUsers(
 ) ([]*permission.UserRole, error) {
 	var rows []dbgen.UserRole
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListRoleUsers(ctx, dbgen.ListRoleUsersParams{
 			RoleID:  int64(roleID),
@@ -385,7 +386,7 @@ func (r *SqlCasbinUserRoleRepository) GetUserRole(
 ) (*permission.UserRole, error) {
 	var row dbgen.UserRole
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetUserRole(ctx, dbgen.GetUserRoleParams{
 			UserID:  userID,
@@ -395,7 +396,7 @@ func (r *SqlCasbinUserRoleRepository) GetUserRole(
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("user role not found")
 		}
 		return nil, bizerrors.Wrapf(err,
@@ -409,7 +410,7 @@ func (r *SqlCasbinUserRoleRepository) GetUserRole(
 // DeleteUserRolesByRole removes all user-role bindings for the given role.
 // This is typically called as part of a role deletion workflow.
 func (r *SqlCasbinUserRoleRepository) DeleteUserRolesByRole(ctx context.Context, roleID int) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteUserRolesByRole(ctx, int64(roleID))
 	})
 }

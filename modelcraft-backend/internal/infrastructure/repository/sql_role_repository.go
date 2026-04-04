@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/domain/role"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"strconv"
 )
 
@@ -28,7 +29,7 @@ func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*role.Role,
 	}
 
 	var row dbgen.Role
-	err = QueryWithSQLErrorHandling(func() error {
+	err = sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetRoleByID(ctx, intID)
 		return e
@@ -43,7 +44,7 @@ func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*role.Role,
 // GetByName retrieves a role by its name.
 func (r *SqlRoleRepository) GetByName(ctx context.Context, name string) (*role.Role, error) {
 	var row dbgen.Role
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetRoleByName(ctx, name)
 		return e
@@ -58,7 +59,7 @@ func (r *SqlRoleRepository) GetByName(ctx context.Context, name string) (*role.R
 // GetSystemRoleByName retrieves a system role by its name (is_system=true).
 func (r *SqlRoleRepository) GetSystemRoleByName(ctx context.Context, name string) (*role.Role, error) {
 	var row dbgen.Role
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetSystemRoleByName(ctx, name)
 		return e
@@ -73,7 +74,7 @@ func (r *SqlRoleRepository) GetSystemRoleByName(ctx context.Context, name string
 // List retrieves all roles.
 func (r *SqlRoleRepository) List(ctx context.Context) ([]*role.Role, error) {
 	var rows []dbgen.Role
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListRoles(ctx)
 		return e
@@ -94,12 +95,12 @@ func (r *SqlRoleRepository) List(ctx context.Context) ([]*role.Role, error) {
 func (r *SqlRoleRepository) Create(ctx context.Context, entity *role.Role) error {
 	params := dbgen.CreateRoleParams{
 		Name:        entity.Name,
-		Description: PtrToNullStr(&entity.Description),
+		Description: sqlerr.PtrToNullStr(&entity.Description),
 		IsSystem:    entity.IsSystem,
 		OrgName:     "__SYSTEM__", // Default org for legacy roles
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		_, err := r.q.CreateRole(ctx, params)
 		return err
 	})
@@ -115,10 +116,10 @@ func (r *SqlRoleRepository) Update(ctx context.Context, entity *role.Role) error
 
 	params := dbgen.UpdateRoleParams{
 		ID:          intID,
-		Description: PtrToNullStr(&entity.Description),
+		Description: sqlerr.PtrToNullStr(&entity.Description),
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateRole(ctx, params)
 	})
 }
@@ -131,7 +132,7 @@ func (r *SqlRoleRepository) Delete(ctx context.Context, id string) error {
 		return nil
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteRole(ctx, intID)
 	})
 }

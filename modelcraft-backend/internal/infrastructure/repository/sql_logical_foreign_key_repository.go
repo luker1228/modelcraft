@@ -8,6 +8,8 @@ import (
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"time"
 )
 
@@ -31,7 +33,7 @@ type SqlLogicalForeignKeyRepository struct {
 
 // NewSqlLogicalForeignKeyRepository creates a SqlLogicalForeignKeyRepository.
 func NewSqlLogicalForeignKeyRepository(q dbgen.Querier) modeldesign.LogicalForeignKeyRepository {
-	return &SqlLogicalForeignKeyRepository{q: newSafeLogicalFKQuerier(q)}
+	return &SqlLogicalForeignKeyRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // Save creates a new logical foreign key record.
@@ -40,14 +42,14 @@ func (r *SqlLogicalForeignKeyRepository) Save(ctx context.Context, lf *modeldesi
 	if err != nil {
 		return fmt.Errorf("Save logical foreign key: %w", err)
 	}
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateLogicalForeignKey(ctx, params)
 	})
 }
 
 // DeleteByPairID deletes both rows of a FK pair atomically.
 func (r *SqlLogicalForeignKeyRepository) DeleteByPairID(ctx context.Context, pairID string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteLogicalForeignKeyByPairID(ctx, pairID)
 	})
 }
@@ -57,7 +59,7 @@ func (r *SqlLogicalForeignKeyRepository) GetByID(
 	ctx context.Context, id string,
 ) (*modeldesign.LogicalForeignKey, error) {
 	var row dbgen.LogicalForeignKey
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetLogicalForeignKeyByID(ctx, id)
 		return e
@@ -72,7 +74,7 @@ func (r *SqlLogicalForeignKeyRepository) FindByModel(
 	ctx context.Context, modelID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
 	var rows []dbgen.LogicalForeignKey
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.FindLogicalForeignKeysByModelID(ctx, modelID)
 		return e
@@ -87,7 +89,7 @@ func (r *SqlLogicalForeignKeyRepository) FindByPairID(
 	ctx context.Context, pairID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
 	var rows []dbgen.LogicalForeignKey
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.FindLogicalForeignKeysByPairID(ctx, pairID)
 		return e
@@ -104,7 +106,7 @@ func (r *SqlLogicalForeignKeyRepository) FindByBelongsToField(
 ) ([]*modeldesign.LogicalForeignKey, error) {
 	// First find the fields that reference this FK, then return the unique FK rows.
 	var fields []dbgen.FindFieldsByBelongsToFKIDRow
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		fields, e = r.q.FindFieldsByBelongsToFKID(ctx, sql.NullString{String: lfID, Valid: true})
 		return e
@@ -130,7 +132,7 @@ func (r *SqlLogicalForeignKeyRepository) FindByRelateField(
 	ctx context.Context, lfID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
 	var fields []dbgen.FindFieldsByRelateFKIDRow
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		fields, e = r.q.FindFieldsByRelateFKID(ctx, sql.NullString{String: lfID, Valid: true})
 		return e

@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 
 	bizerrors "modelcraft/pkg/bizerrors"
 )
@@ -23,7 +24,7 @@ func NewSqlModelRuntimeRepository(q dbgen.Querier) modelruntime.ModelRepository 
 func (r *SqlModelRuntimeRepository) GetByID(ctx context.Context, id string) (*modelruntime.RuntimeModel, error) {
 	row, err := r.q.GetModelByID(ctx, id)
 	if err != nil {
-		return nil, WrapSQLError(err)
+		return nil, sqlerr.WrapSQLError(err)
 	}
 
 	runtimeModel := DbgenModelToRuntimeModel(row)
@@ -46,7 +47,7 @@ func (r *SqlModelRuntimeRepository) GetByName(
 		ProjectSlug:  modelLocator.ProjectSlug,
 	})
 	if err != nil {
-		return nil, WrapSQLError(err)
+		return nil, sqlerr.WrapSQLError(err)
 	}
 
 	runtimeModel := DbgenModelToRuntimeModel(row)

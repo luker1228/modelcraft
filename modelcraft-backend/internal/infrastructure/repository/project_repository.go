@@ -6,6 +6,7 @@ import (
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 )
 
@@ -25,7 +26,7 @@ func ProjectToDomain(row dbgen.Project) *project.Project {
 		Title:       row.Title,
 		Description: row.Description.String,
 		LoginURL:    row.LoginUrl.String,
-		ClusterID:   NullStrToPtr(row.ClusterID),
+		ClusterID:   sqlerr.NullStrToPtr(row.ClusterID),
 		Status:      project.ProjectStatus(row.Status),
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
@@ -40,7 +41,7 @@ func ProjectToCreateParams(p *project.Project) dbgen.CreateProjectParams {
 		Title:       p.Title,
 		Description: sql.NullString{String: p.Description, Valid: p.Description != ""},
 		LoginUrl:    sql.NullString{String: p.LoginURL, Valid: p.LoginURL != ""},
-		ClusterID:   PtrToNullStr(p.ClusterID),
+		ClusterID:   sqlerr.PtrToNullStr(p.ClusterID),
 		Status:      string(p.Status),
 	}
 }
@@ -51,7 +52,7 @@ func ProjectToUpdateParams(p *project.Project) dbgen.UpdateProjectParams {
 		Title:       p.Title,
 		Description: sql.NullString{String: p.Description, Valid: p.Description != ""},
 		LoginUrl:    sql.NullString{String: p.LoginURL, Valid: p.LoginURL != ""},
-		ClusterID:   PtrToNullStr(p.ClusterID),
+		ClusterID:   sqlerr.PtrToNullStr(p.ClusterID),
 		Slug:        p.Slug,
 		OrgName:     p.OrgName,
 	}
@@ -69,7 +70,7 @@ func NewSqlProjectRepository(q dbgen.Querier) project.ProjectRepository {
 
 // Create creates a new project.
 func (r *SqlProjectRepository) Create(ctx context.Context, p *project.Project) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateProject(ctx, ProjectToCreateParams(p))
 	})
 }
@@ -78,7 +79,7 @@ func (r *SqlProjectRepository) Create(ctx context.Context, p *project.Project) e
 // Returns nil, shared.NewNotFoundError if not found.
 func (r *SqlProjectRepository) GetByNameAndOrg(ctx context.Context, slug, orgName string) (*project.Project, error) {
 	var row dbgen.Project
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var err error
 		row, err = r.q.GetProjectBySlugAndOrg(ctx, dbgen.GetProjectBySlugAndOrgParams{
 			Slug:    slug,
@@ -100,7 +101,7 @@ func (r *SqlProjectRepository) GetByClusterID(
 	ctx context.Context, orgName, clusterID string,
 ) (*project.Project, error) {
 	var row dbgen.Project
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetProjectByClusterID(ctx, dbgen.GetProjectByClusterIDParams{
 			OrgName:   orgName,
@@ -123,7 +124,7 @@ func (r *SqlProjectRepository) List(ctx context.Context, status *project.Project
 		return r.listByStatus(ctx, *status)
 	}
 	var rows []dbgen.Project
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var err error
 		rows, err = r.q.ListProjects(ctx)
 		return err
@@ -137,7 +138,7 @@ func (r *SqlProjectRepository) listByStatus(
 	ctx context.Context, status project.ProjectStatus,
 ) ([]*project.Project, error) {
 	var rows []dbgen.Project
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var err error
 		rows, err = r.q.ListProjects(ctx)
 		return err
@@ -158,7 +159,7 @@ func (r *SqlProjectRepository) ListByOrg(
 	ctx context.Context, orgName string, status *project.ProjectStatus,
 ) ([]*project.Project, error) {
 	var rows []dbgen.Project
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var err error
 		rows, err = r.q.ListProjectsByOrg(ctx, orgName)
 		return err
@@ -181,14 +182,14 @@ func (r *SqlProjectRepository) ListByOrg(
 
 // Update updates an existing project.
 func (r *SqlProjectRepository) Update(ctx context.Context, p *project.Project) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateProject(ctx, ProjectToUpdateParams(p))
 	})
 }
 
 // Archive archives a project (status → archived).
 func (r *SqlProjectRepository) Archive(ctx context.Context, slug, orgName string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.ArchiveProject(ctx, dbgen.ArchiveProjectParams{
 			Slug:    slug,
 			OrgName: orgName,
@@ -199,7 +200,7 @@ func (r *SqlProjectRepository) Archive(ctx context.Context, slug, orgName string
 // ExistsByName checks if a project slug exists in the org.
 func (r *SqlProjectRepository) ExistsByName(ctx context.Context, slug, orgName string) (bool, error) {
 	var count int64
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var err error
 		count, err = r.q.ExistsProjectBySlug(ctx, dbgen.ExistsProjectBySlugParams{
 			Slug:    slug,

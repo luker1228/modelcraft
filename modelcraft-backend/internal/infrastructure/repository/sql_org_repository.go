@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/domain/user"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
@@ -105,7 +106,7 @@ func (r *SqlOrganizationRepository) Create(ctx context.Context, org *organizatio
 		Status:      string(org.Status),
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateOrganization(ctx, params)
 	})
 }
@@ -115,13 +116,13 @@ func (r *SqlOrganizationRepository) Create(ctx context.Context, org *organizatio
 func (r *SqlOrganizationRepository) GetByName(ctx context.Context, name string) (*organization.Organization, error) {
 	var row dbgen.Organization
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetOrganizationByName(ctx, name)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("organization not found by name: " + name)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get organization by name: %s", name)
@@ -136,7 +137,7 @@ func (r *SqlOrganizationRepository) ListByUser(
 ) ([]*organization.Organization, error) {
 	var rows []dbgen.Organization
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListOrganizationsByUser(ctx, userID)
 		return e
@@ -161,7 +162,7 @@ func (r *SqlOrganizationRepository) Update(ctx context.Context, org *organizatio
 		Name:        org.Name,
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateOrganization(ctx, params)
 	})
 }
@@ -197,7 +198,7 @@ func (r *SqlUserRepository) Create(ctx context.Context, u *user.User) error {
 		DisplayName: sql.NullString{},
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateUser(ctx, params)
 	})
 }
@@ -207,13 +208,13 @@ func (r *SqlUserRepository) Create(ctx context.Context, u *user.User) error {
 func (r *SqlUserRepository) GetByID(ctx context.Context, id string) (*user.User, error) {
 	var row dbgen.User
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetUserByID(ctx, id)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("user not found by id: " + id)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get user by id: %s", id)
@@ -227,13 +228,13 @@ func (r *SqlUserRepository) GetByID(ctx context.Context, id string) (*user.User,
 func (r *SqlUserRepository) GetByExternalID(ctx context.Context, externalID string) (*user.User, error) {
 	var row dbgen.User
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetUserByExternalID(ctx, externalID)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("user not found by external id: " + externalID)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get user by external id: %s", externalID)
@@ -257,13 +258,13 @@ func (r *SqlUserRepository) ExistsByExternalID(ctx context.Context, externalID s
 func (r *SqlUserRepository) FindIDByExternalID(ctx context.Context, externalID string) (string, bool, error) {
 	var userID string
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		userID, e = r.q.FindIDByExternalID(ctx, externalID)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return "", false, nil
 		}
 		return "", false, bizerrors.Wrapf(err, "failed to find user id by external id: %s", externalID)
@@ -290,11 +291,11 @@ func (r *SqlMembershipRepository) Create(ctx context.Context, m *membership.Memb
 		OrgName:   m.OrgName,
 		Status:    string(m.Status),
 		InvitedBy: StrToNullStr(m.InvitedBy),
-		InvitedAt: PtrToNullTime(m.InvitedAt),
-		JoinedAt:  PtrToNullTime(m.JoinedAt),
+		InvitedAt: sqlerr.PtrToNullTime(m.InvitedAt),
+		JoinedAt:  sqlerr.PtrToNullTime(m.JoinedAt),
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateMembership(ctx, params)
 	})
 }
@@ -304,13 +305,13 @@ func (r *SqlMembershipRepository) Create(ctx context.Context, m *membership.Memb
 func (r *SqlMembershipRepository) GetByID(ctx context.Context, id string) (*membership.Membership, error) {
 	var row dbgen.UserOrganization
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetMembershipByID(ctx, id)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("membership not found by id: " + id)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get membership by id: %s", id)
@@ -326,7 +327,7 @@ func (r *SqlMembershipRepository) GetByUserAndOrg(
 ) (*membership.Membership, error) {
 	var row dbgen.UserOrganization
 
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetMembershipByUserAndOrg(ctx, dbgen.GetMembershipByUserAndOrgParams{
 			UserID:  userID,
@@ -335,7 +336,7 @@ func (r *SqlMembershipRepository) GetByUserAndOrg(
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("membership not found for user " + userID + " in org " + orgName)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get membership for user %s in org %s", userID, orgName)
@@ -348,7 +349,7 @@ func (r *SqlMembershipRepository) GetByUserAndOrg(
 func (r *SqlMembershipRepository) ListByOrg(ctx context.Context, orgName string) ([]*membership.Membership, error) {
 	var rows []dbgen.UserOrganization
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListMembershipsByOrg(ctx, orgName)
 		return e
@@ -371,7 +372,7 @@ func (r *SqlMembershipRepository) ListByOrgWithUserName(
 ) ([]*membership.MembershipWithUserName, error) {
 	var rows []dbgen.ListMembershipsWithUserNameRow
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListMembershipsWithUserName(ctx, orgName)
 		return e
@@ -407,7 +408,7 @@ func (r *SqlMembershipRepository) ListByOrgWithUserName(
 func (r *SqlMembershipRepository) ListByUser(ctx context.Context, userID string) ([]*membership.Membership, error) {
 	var rows []dbgen.UserOrganization
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListMembershipsByUser(ctx, userID)
 		return e
@@ -446,7 +447,7 @@ func (r *SqlMembershipRepository) ListByUserWithDetails(
 	}
 	var rows []dbgen.ListMembershipsWithOrgDetailsRow
 
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListMembershipsWithOrgDetails(ctx, dbgen.ListMembershipsWithOrgDetailsParams{
 			UserID: userID,
@@ -485,19 +486,19 @@ func (r *SqlMembershipRepository) Update(ctx context.Context, m *membership.Memb
 	params := dbgen.UpdateMembershipParams{
 		Status:    string(m.Status),
 		InvitedBy: StrToNullStr(m.InvitedBy),
-		InvitedAt: PtrToNullTime(m.InvitedAt),
-		JoinedAt:  PtrToNullTime(m.JoinedAt),
+		InvitedAt: sqlerr.PtrToNullTime(m.InvitedAt),
+		JoinedAt:  sqlerr.PtrToNullTime(m.JoinedAt),
 		ID:        m.ID,
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.UpdateMembership(ctx, params)
 	})
 }
 
 // Delete removes the membership identified by id from the database.
 func (r *SqlMembershipRepository) Delete(ctx context.Context, id string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteMembership(ctx, id)
 	})
 }

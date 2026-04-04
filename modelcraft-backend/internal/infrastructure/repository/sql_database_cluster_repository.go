@@ -6,6 +6,7 @@ import (
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
@@ -99,7 +100,7 @@ func NewSqlDatabaseClusterRepository(q dbgen.Querier) cluster.DatabaseClusterRep
 
 // Create persists a new database cluster.
 func (r *SqlDatabaseClusterRepository) Create(ctx context.Context, entity *cluster.DatabaseCluster) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateDatabaseCluster(ctx, DatabaseClusterToCreateParams(entity))
 	})
 }
@@ -110,7 +111,7 @@ func (r *SqlDatabaseClusterRepository) Update(
 	ctx context.Context, orgName, projectSlug string, entity *cluster.DatabaseCluster,
 ) error {
 	var result sql.Result
-	if err := ExecWithErrorHandling(func() error {
+	if err := sqlerr.ExecWithErrorHandling(func() error {
 		var e error
 		result, e = r.q.UpdateDatabaseClusterWithVersion(
 			ctx, DatabaseClusterToUpdateParams(orgName, projectSlug, entity),
@@ -140,7 +141,7 @@ func (r *SqlDatabaseClusterRepository) GetByID(
 	ctx context.Context, orgName, id string,
 ) (*cluster.DatabaseCluster, error) {
 	var row dbgen.DatabaseCluster
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetDatabaseClusterByID(ctx, dbgen.GetDatabaseClusterByIDParams{
 			ID:      id,
@@ -149,7 +150,7 @@ func (r *SqlDatabaseClusterRepository) GetByID(
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("database cluster not found: " + id)
 		}
 		return nil, err
@@ -163,7 +164,7 @@ func (r *SqlDatabaseClusterRepository) GetByProjectKey(
 	ctx context.Context, orgName, projectSlug string,
 ) (*cluster.DatabaseCluster, error) {
 	var row dbgen.DatabaseCluster
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetDatabaseClusterByProjectKey(ctx, dbgen.GetDatabaseClusterByProjectKeyParams{
 			OrgName:     orgName,
@@ -172,7 +173,7 @@ func (r *SqlDatabaseClusterRepository) GetByProjectKey(
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			msg := "database cluster not found for project: " + orgName + "/" + projectSlug
 			return nil, shared.NewNotFoundError(msg)
 		}
@@ -195,7 +196,7 @@ func (r *SqlDatabaseClusterRepository) List(
 	}
 
 	var rows []dbgen.DatabaseCluster
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListDatabaseClusters(ctx, dbgen.ListDatabaseClustersParams{
 			OrgName:     orgName,
@@ -215,7 +216,7 @@ func (r *SqlDatabaseClusterRepository) List(
 func (r *SqlDatabaseClusterRepository) Delete(
 	ctx context.Context, orgName, projectSlug, id string,
 ) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteDatabaseCluster(ctx, dbgen.DeleteDatabaseClusterParams{
 			ID:          id,
 			OrgName:     orgName,
@@ -229,7 +230,7 @@ func (r *SqlDatabaseClusterRepository) ExistsByProjectKey(
 	ctx context.Context, orgName, projectSlug string,
 ) (bool, error) {
 	var count int64
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		count, e = r.q.ExistsDatabaseClusterByProjectKey(ctx, dbgen.ExistsDatabaseClusterByProjectKeyParams{
 			OrgName:     orgName,
@@ -260,7 +261,7 @@ func (r *SqlDatabaseClusterRepository) ListUpdatedAfter(
 	}
 
 	var rows []dbgen.DatabaseCluster
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListDatabaseClustersUpdatedAfter(ctx, dbgen.ListDatabaseClustersUpdatedAfterParams{
 			UpdatedAt:   sql.NullTime{Time: updatedAfter, Valid: true},

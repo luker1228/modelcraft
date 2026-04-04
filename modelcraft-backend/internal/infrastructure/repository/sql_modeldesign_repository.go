@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
@@ -40,9 +41,9 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 			StorageType:      row.StorageType,
 			Version:          row.Version.Int64,
 			Status:           row.Status.String,
-			GroupID:          NullStrToPtr(row.GroupID),
+			GroupID:          sqlerr.NullStrToPtr(row.GroupID),
 			DeploymentStatus: modeldesign.DeploymentStatus(row.DeploymentStatus.String),
-			LastSyncAt:       NullTimeToPtr(row.LastSyncAt),
+			LastSyncAt:       sqlerr.NullTimeToPtr(row.LastSyncAt),
 			SyncError:        row.SyncError.String,
 			CreatedAt:        createdAt,
 			UpdatedAt:        updatedAt,
@@ -63,9 +64,9 @@ func ModelToCreateParams(m *modeldesign.DataModel, orgName string) dbgen.CreateM
 		DatabaseName:     m.DatabaseName,
 		Version:          sql.NullInt64{Int64: m.Version, Valid: m.Version != 0},
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
-		GroupID:          PtrToNullStr(m.GroupID),
+		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
-		LastSyncAt:       PtrToNullTime(m.LastSyncAt),
+		LastSyncAt:       sqlerr.PtrToNullTime(m.LastSyncAt),
 		SyncError:        sql.NullString{String: m.SyncError, Valid: m.SyncError != ""},
 	}
 }
@@ -76,7 +77,7 @@ func ModelToUpdateParams(m *modeldesign.DataModel) dbgen.UpdateModelParams {
 		Title:            m.Title,
 		Description:      sql.NullString{String: m.Description, Valid: m.Description != ""},
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
-		GroupID:          PtrToNullStr(m.GroupID),
+		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
 		Version:          sql.NullInt64{Int64: m.Version, Valid: m.Version != 0},
 		ID:               m.ID,
@@ -91,7 +92,7 @@ func ModelToUpdateWithVersionParams(
 		Title:            m.Title,
 		Description:      sql.NullString{String: m.Description, Valid: m.Description != ""},
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
-		GroupID:          PtrToNullStr(m.GroupID),
+		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
 		ID:               m.ID,
 		Version:          sql.NullInt64{Int64: originalVersion, Valid: true},
@@ -148,23 +149,23 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 			DatabaseName: row.DatabaseName,
 		},
 		Name:             row.Name,
-		ParentRelationID: NullStrToPtr(row.ParentRelationID),
+		ParentRelationID: sqlerr.NullStrToPtr(row.ParentRelationID),
 		EnumName:         row.EnumName.String,
 		Title:            row.Title,
 		Description:      row.Description.String,
 		Type:             fieldType,
-		NonNull:          NullBoolToBool(row.NonNull),
-		Required:         NullBoolToBool(row.Required),
-		IsUnique:         NullBoolToBool(row.IsUnique),
-		IsPrimary:        NullBoolToBool(row.IsPrimary),
-		IsDeprecated:     NullBoolToBool(row.IsDeprecated),
+		NonNull:          sqlerr.NullBoolToBool(row.NonNull),
+		Required:         sqlerr.NullBoolToBool(row.Required),
+		IsUnique:         sqlerr.NullBoolToBool(row.IsUnique),
+		IsPrimary:        sqlerr.NullBoolToBool(row.IsPrimary),
+		IsDeprecated:     sqlerr.NullBoolToBool(row.IsDeprecated),
 		Status:           modeldesign.StatusType(row.Status),
 		Validation:       validation,
 		DisplayOrder:     row.DisplayOrder,
 		Metadata:         metadata,
 		EnumLabelConfig:  enumLabelConfig,
-		BelongsToFKID:    NullStrToPtr(row.BelongsToFkID),
-		RelateFKID:       NullStrToPtr(row.RelateFkID),
+		BelongsToFKID:    sqlerr.NullStrToPtr(row.BelongsToFkID),
+		RelateFKID:       sqlerr.NullStrToPtr(row.RelateFkID),
 		CreatedAt:        createdAt,
 		UpdatedAt:        updatedAt,
 	}, nil
@@ -200,23 +201,23 @@ func FieldDefinitionToCreateParams(
 		ModelName:        fd.ModelLocator.ModelName,
 		DatabaseName:     fd.ModelLocator.DatabaseName,
 		Name:             fd.Name,
-		ParentRelationID: PtrToNullStr(fd.ParentRelationID),
+		ParentRelationID: sqlerr.PtrToNullStr(fd.ParentRelationID),
 		EnumName:         sql.NullString{String: fd.EnumName, Valid: fd.EnumName != ""},
 		Title:            fd.Title,
 		Description:      sql.NullString{String: fd.Description, Valid: fd.Description != ""},
 		Format:           string(fd.Type.Format),
-		NonNull:          BoolToNullBool(fd.NonNull),
-		Required:         BoolToNullBool(fd.Required),
-		IsUnique:         BoolToNullBool(fd.IsUnique),
-		IsPrimary:        BoolToNullBool(fd.IsPrimary),
-		IsDeprecated:     BoolToNullBool(fd.IsDeprecated),
+		NonNull:          sqlerr.BoolToNullBool(fd.NonNull),
+		Required:         sqlerr.BoolToNullBool(fd.Required),
+		IsUnique:         sqlerr.BoolToNullBool(fd.IsUnique),
+		IsPrimary:        sqlerr.BoolToNullBool(fd.IsPrimary),
+		IsDeprecated:     sqlerr.BoolToNullBool(fd.IsDeprecated),
 		Status:           string(fd.Status),
 		Validation:       ptrJSON(validationJSON),
 		DisplayOrder:     fd.DisplayOrder,
 		Metadata:         ptrJSON(metadataJSON),
 		EnumLabelConfig:  ptrJSON(enumLabelJSON),
-		RelateFkID:       PtrToNullStr(fd.RelateFKID),
-		BelongsToFkID:    PtrToNullStr(fd.BelongsToFKID),
+		RelateFkID:       sqlerr.PtrToNullStr(fd.RelateFKID),
+		BelongsToFkID:    sqlerr.PtrToNullStr(fd.BelongsToFKID),
 	}, nil
 }
 
@@ -242,11 +243,11 @@ func FieldDefinitionToUpdateParams(fd *modeldesign.FieldDefinition) (dbgen.Updat
 		Title:           fd.Title,
 		Description:     sql.NullString{String: fd.Description, Valid: fd.Description != ""},
 		Format:          string(fd.Type.Format),
-		NonNull:         BoolToNullBool(fd.NonNull),
-		Required:        BoolToNullBool(fd.Required),
-		IsUnique:        BoolToNullBool(fd.IsUnique),
-		IsPrimary:       BoolToNullBool(fd.IsPrimary),
-		IsDeprecated:    BoolToNullBool(fd.IsDeprecated),
+		NonNull:         sqlerr.BoolToNullBool(fd.NonNull),
+		Required:        sqlerr.BoolToNullBool(fd.Required),
+		IsUnique:        sqlerr.BoolToNullBool(fd.IsUnique),
+		IsPrimary:       sqlerr.BoolToNullBool(fd.IsPrimary),
+		IsDeprecated:    sqlerr.BoolToNullBool(fd.IsDeprecated),
 		Status:          string(fd.Status),
 		Validation:      ptrJSON(validationJSON),
 		DisplayOrder:    fd.DisplayOrder,
@@ -293,7 +294,7 @@ func NewSqlModelDesignRepository(q dbgen.Querier) modeldesign.ModelRepository {
 
 // Save creates a new model and its fields.
 func (r *SqlModelDesignRepository) Save(ctx context.Context, orgName string, model *modeldesign.DataModel) error {
-	if err := ExecWithErrorHandling(func() error {
+	if err := sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateModel(ctx, ModelToCreateParams(model, orgName))
 	}); err != nil {
 		return err
@@ -313,7 +314,7 @@ func (r *SqlModelDesignRepository) GetByID(
 	ctx context.Context, id string, options ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
 	var row dbgen.Model
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetModelByID(ctx, id)
 		return e
@@ -349,7 +350,7 @@ func (r *SqlModelDesignRepository) GetByName(
 	opts ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
 	var row dbgen.Model
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetModelByName(ctx, dbgen.GetModelByNameParams{
 			DatabaseName: databaseName,
@@ -385,7 +386,7 @@ func (r *SqlModelDesignRepository) GetByName(
 func (r *SqlModelDesignRepository) Update(ctx context.Context, model *modeldesign.DataModel) error {
 	result, err := r.q.UpdateModel(ctx, ModelToUpdateParams(model))
 	if err != nil {
-		return WrapSQLError(err)
+		return sqlerr.WrapSQLError(err)
 	}
 
 	rows, _ := result.RowsAffected()
@@ -398,7 +399,7 @@ func (r *SqlModelDesignRepository) Update(ctx context.Context, model *modeldesig
 
 // Delete removes a model by ID.
 func (r *SqlModelDesignRepository) Delete(ctx context.Context, id string) error {
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.DeleteModel(ctx, id)
 	})
 }
@@ -427,7 +428,7 @@ func (r *SqlModelDesignRepository) Query(
 	}
 
 	var rows []dbgen.Model
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.ListModels(ctx, dbgen.ListModelsParams{
 			ProjectSlug:  queryObj.ProjectSlug,
@@ -449,7 +450,7 @@ func (r *SqlModelDesignRepository) Query(
 	}
 
 	var total int64
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		total, e = r.q.CountModels(ctx, dbgen.CountModelsParams{
 			ProjectSlug:  queryObj.ProjectSlug,
@@ -479,7 +480,7 @@ func (r *SqlModelDesignRepository) Query(
 // GetAll returns all models without pagination.
 func (r *SqlModelDesignRepository) GetAll(ctx context.Context) ([]modeldesign.DataModel, error) {
 	var rows []dbgen.Model
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.GetAllModels(ctx)
 		return e
@@ -501,7 +502,7 @@ func (r *SqlModelDesignRepository) UpdateWithVersion(
 ) (int64, error) {
 	result, err := r.q.UpdateModelWithVersion(ctx, ModelToUpdateWithVersionParams(model, originalVersion))
 	if err != nil {
-		return 0, WrapSQLError(err)
+		return 0, sqlerr.WrapSQLError(err)
 	}
 
 	rows, _ := result.RowsAffected()
@@ -518,7 +519,7 @@ func (r *SqlModelDesignRepository) FindByDeploymentStatus(
 	}
 
 	var rows []dbgen.Model
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.FindModelsByDeploymentStatus(ctx, sqlStatuses)
 		return e
@@ -543,7 +544,7 @@ func (r *SqlModelDesignRepository) AddFields(
 		if err != nil {
 			return fmt.Errorf("AddFields: convert field %q: %w", field.Name, err)
 		}
-		if err := ExecWithErrorHandling(func() error {
+		if err := sqlerr.ExecWithErrorHandling(func() error {
 			return r.q.CreateFieldDefinition(ctx, params)
 		}); err != nil {
 			return err
@@ -558,13 +559,13 @@ func (r *SqlModelDesignRepository) GetTailFieldDisplayOrder(
 	ctx context.Context, modelID string,
 ) (string, error) {
 	var order string
-	err := QueryWithSQLErrorHandling(func() error {
+	err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		order, e = r.q.GetTailFieldDisplayOrder(ctx, modelID)
 		return e
 	})
 	if err != nil {
-		if IsNotFoundError(err) {
+		if sqlerr.IsNotFoundError(err) {
 			return "", nil
 		}
 		return "", bizerrors.Wrapf(err, "get tail field display order for model %s", modelID)
@@ -580,7 +581,7 @@ func (r *SqlModelDesignRepository) AddRelationField(
 	if err != nil {
 		return fmt.Errorf("AddRelationField: convert field: %w", err)
 	}
-	if err := ExecWithErrorHandling(func() error {
+	if err := sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.CreateFieldDefinition(ctx, params)
 	}); err != nil {
 		return err
@@ -595,7 +596,7 @@ func (r *SqlModelDesignRepository) GetFieldByModelID(
 	ctx context.Context, modelID, name string,
 ) (*modeldesign.FieldDefinition, error) {
 	var row dbgen.FieldDefinition
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		row, e = r.q.GetFieldByModelIDAndName(ctx, dbgen.GetFieldByModelIDAndNameParams{
 			ModelID: modelID,
@@ -631,7 +632,7 @@ func (r *SqlModelDesignRepository) UpdateField(
 
 	result, err := r.q.UpdateField(ctx, params)
 	if err != nil {
-		return WrapSQLError(err)
+		return sqlerr.WrapSQLError(err)
 	}
 
 	rows, _ := result.RowsAffected()
@@ -663,7 +664,7 @@ func (r *SqlModelDesignRepository) DeleteFields(
 		Names:   names,
 	})
 	if err != nil {
-		return WrapSQLError(err)
+		return sqlerr.WrapSQLError(err)
 	}
 
 	rows, _ := result.RowsAffected()
@@ -688,7 +689,7 @@ func (r *SqlModelDesignRepository) BulkDeleteFields(
 			Names:   req.Name,
 		})
 		if err != nil {
-			return WrapSQLError(err)
+			return sqlerr.WrapSQLError(err)
 		}
 
 		rows, _ := result.RowsAffected()
@@ -709,7 +710,7 @@ func (r *SqlModelDesignRepository) UpdateFieldsStatus(
 			continue
 		}
 
-		if err := ExecWithErrorHandling(func() error {
+		if err := sqlerr.ExecWithErrorHandling(func() error {
 			return r.q.UpdateFieldsStatus(ctx, dbgen.UpdateFieldsStatusParams{
 				Status:  string(req.Status),
 				ModelID: req.ModelId,
@@ -727,7 +728,7 @@ func (r *SqlModelDesignRepository) getFieldsForModel(
 	ctx context.Context, modelID string,
 ) ([]*modeldesign.FieldDefinition, error) {
 	var rows []dbgen.FieldDefinition
-	if err := QueryWithSQLErrorHandling(func() error {
+	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
 		var e error
 		rows, e = r.q.GetFieldsByModelID(ctx, modelID)
 		return e
