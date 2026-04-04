@@ -4,7 +4,7 @@ set -euo pipefail
 usage() {
 	cat <<'EOF'
 Usage:
-  ./scripts/generate-safe-logical-fk-querier.sh [options]
+  ./scripts/generate-safe-querier.sh [options]
 
 Options:
   --package-path <path>      Package path passed to gowrap -p
@@ -15,16 +15,16 @@ Options:
   --delegate-type <type>     Delegate field type (e.g. dbgen.Querier)
   -h, --help                 Show this help message
 
-Defaults target logicalFK safe querier generation.
+Defaults wrap the full dbgen.Querier interface.
 EOF
 }
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PACKAGE_PATH="./internal/infrastructure/repository"
-INTERFACE_NAME="logicalFKQuerier"
-OUTPUT_FILE="internal/infrastructure/repository/safe_logical_foreign_key_querier.go"
-WRAPPER_NAME="safeLogicalFKQuerier"
-CONSTRUCTOR_NAME="newSafeLogicalFKQuerier"
+PACKAGE_PATH="./internal/infrastructure/dbgen"
+INTERFACE_NAME="Querier"
+OUTPUT_FILE="internal/infrastructure/dbgenwrap/safe_querier_gen.go"
+WRAPPER_NAME="SafeQuerier"
+CONSTRUCTOR_NAME="NewSafeQuerier"
 DELEGATE_TYPE="dbgen.Querier"
 
 while [[ $# -gt 0 ]]; do
@@ -79,9 +79,9 @@ type ${WRAPPER_NAME} struct {
 	delegate ${DELEGATE_TYPE}
 }
 
-var _ ${INTERFACE_NAME} = (*${WRAPPER_NAME})(nil)
+var _ ${DELEGATE_TYPE} = (*${WRAPPER_NAME})(nil)
 
-func ${CONSTRUCTOR_NAME}(delegate ${DELEGATE_TYPE}) ${INTERFACE_NAME} {
+func ${CONSTRUCTOR_NAME}(delegate ${DELEGATE_TYPE}) ${DELEGATE_TYPE} {
 	return &${WRAPPER_NAME}{delegate: delegate}
 }
 

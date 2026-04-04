@@ -18,7 +18,7 @@ DOCKER_IMAGE := "modelcraft:latest"
 SERVER_PATH := "./cmd/server"
 GQLGEN_VERSION := "v0.17.83"
 MIGRATE_SCRIPT := "./scripts/migrate.sh"
-SAFE_QUERIER_GOWRAP_SCRIPT := "./scripts/generate-safe-logical-fk-querier.sh"
+SAFE_QUERIER_GOWRAP_SCRIPT := "./scripts/generate-safe-querier.sh"
 
 # 数据库配置 (从环境变量读取，带默认值)
 DB_USER := env_var_or_default("DB_USER", "root")
@@ -325,7 +325,7 @@ generate-sqlc: install-sqlc
 
 # 通用 safe querier 生成（gowrap）
 [doc("Generate safe querier wrapper using gowrap (generic)")]
-generate-safe-querier package_path="./internal/infrastructure/repository" interface_name="logicalFKQuerier" output_file="internal/infrastructure/repository/safe_logical_foreign_key_querier.go" wrapper_name="safeLogicalFKQuerier" constructor_name="newSafeLogicalFKQuerier" delegate_type="dbgen.Querier":
+generate-safe-querier package_path="./internal/infrastructure/dbgen" interface_name="Querier" output_file="internal/infrastructure/dbgenwrap/safe_querier_gen.go" wrapper_name="SafeQuerier" constructor_name="NewSafeQuerier" delegate_type="dbgen.Querier":
     chmod +x {{SAFE_QUERIER_GOWRAP_SCRIPT}}
     {{SAFE_QUERIER_GOWRAP_SCRIPT}} \
       --package-path "{{package_path}}" \

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/sqlerr"
 
 	domainauth "modelcraft/internal/domain/auth"
 )
@@ -31,7 +32,7 @@ func (r *SqlSecurityAuditLogRepository) Insert(ctx context.Context, log *domaina
 		detail = &raw
 	}
 
-	return ExecWithErrorHandling(func() error {
+	return sqlerr.ExecWithErrorHandling(func() error {
 		return r.q.InsertSecurityAuditLog(ctx, dbgen.InsertSecurityAuditLogParams{
 			ID:     log.ID,
 			UserID: log.UserID,
