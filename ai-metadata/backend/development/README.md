@@ -11,7 +11,6 @@
 | 文档 | 说明 | 适用场景 |
 |------|------|----------|
 | [architecture.md](./architecture.md) | 架构分层详解 | 理解整体架构 |
-| [code-style.md](./code-style.md) | 代码风格规范 | 所有 Go 代码 |
 | [repo-develop.md](./repo-develop.md) | Repository 层开发规范 ⭐ | `internal/infrastructure/**/*.go` |
 | [error-handling.md](./error-handling.md) | 错误处理规范 | 跨层错误处理 |
 | [logging.md](./logging.md) | 日志规范 | 日志记录 |
@@ -62,13 +61,6 @@ internal/
     ├── persistence/    # 数据持久化
     └── external/       # 外部服务
 ```
-
-## ✅ 代码风格要点
-
-1. **使用 gofumpt 格式化代码**
-2. **错误处理不使用 panic**
-3. **接口定义在使用方**
-4. **优先组合而非继承**
 
 ## 🎯 Repository 层开发 (重点)
 
