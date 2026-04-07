@@ -119,7 +119,7 @@ async function fetchMembershipsFromAPI(token: string): Promise<MembershipInfo[]>
     orgName: String(m.orgName),
     displayName: String(m.displayName),
     role: String(m.role),
-    joinedAt: new Date(String(m.joinedAt)).toISOString(),
+    joinedAt: (() => { try { const d = new Date(String(m.joinedAt)); return isNaN(d.getTime()) ? '' : d.toISOString() } catch { return '' } })(),
   }))
 
   return memberships

@@ -52,7 +52,7 @@ function buildFieldSelections(
       return field
     }
     if (isRelationField(field)) {
-      return { [field.name]: ['id'] }
+      return { [field.name]: ['id', 'name'] }
     }
     return field.name
   })

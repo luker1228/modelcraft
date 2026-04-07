@@ -120,7 +120,7 @@ export function ModelRecordTable({
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd])
 
-  const visibleFields = displayFields.slice(0, 6)
+  const visibleFields = displayFields
 
   return (
     <TooltipProvider>

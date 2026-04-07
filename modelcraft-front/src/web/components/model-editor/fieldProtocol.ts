@@ -24,12 +24,27 @@ export function shouldShowInForm(prop: SchemaProperty): boolean {
 export function renderCellValue(value: unknown, prop: SchemaProperty): string {
   if (value === null || value === undefined) return ''
 
+  // RELATION fields: schema explicitly marks them (x-relateFkId / x-belongsToFkId)
   if (prop.type === 'object' && (prop['x-relateFkId'] || prop['x-belongsToFkId'])) {
     if (typeof value === 'object' && value !== null) {
       const rel = value as Record<string, unknown>
       return String(rel.name ?? rel.id ?? '')
     }
     return ''
+  }
+
+  // Generic object fallback: any object value with id/name fields is treated as a relation
+  if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+    const rel = value as Record<string, unknown>
+    if (rel.name !== undefined || rel.id !== undefined) {
+      return String(rel.name ?? rel.id ?? '')
+    }
+    // For other objects, render as JSON
+    try {
+      return JSON.stringify(value).slice(0, 100)
+    } catch {
+      return '[object]'
+    }
   }
 
   return String(value).slice(0, 100)
