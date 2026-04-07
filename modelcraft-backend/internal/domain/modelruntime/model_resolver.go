@@ -988,6 +988,12 @@ func (r *graphqlModelResolver) createManyToOneResolverFromFK(
 					refModelName, referenceKey, fkStr, err)
 				return nil, nil
 			}
+			// 显式判断 nil：dataloader 未找到记录时返回 map[string]any(nil)，
+			// 若直接赋给 interface{} 会产生"有类型的 nil"，graphql-go 会将其当作
+			// 非 nil 对象解析，导致返回 {"id": null} 而非 null。
+			if result == nil {
+				return nil, nil
+			}
 			return result, nil
 		}, nil
 	}

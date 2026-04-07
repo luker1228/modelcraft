@@ -226,7 +226,6 @@ func TestCreateModelType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建 resolver
 			resolver := &graphqlModelResolver{
-				
 				model:              tt.model,
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
@@ -353,7 +352,6 @@ func TestCreateModelTypeWithRelations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建 resolver
 			resolver := &graphqlModelResolver{
-				
 				model:              tt.model,
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
@@ -400,7 +398,6 @@ func TestGenerateModelType(t *testing.T) {
 		}
 
 		resolver := &graphqlModelResolver{
-			
 			model:              model,
 			inputTypeGenerator: newInputTypeGenerator(),
 		}
@@ -514,7 +511,6 @@ func TestCreateField(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := &graphqlModelResolver{
-				
 				model:              &RuntimeModel{},
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
@@ -578,7 +574,6 @@ func TestCreateRelationFieldReverse(t *testing.T) {
 			})
 
 			resolver := &graphqlModelResolver{
-				
 				model:              &RuntimeModel{Name: tt.lf.ModelName},
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
@@ -668,7 +663,6 @@ func TestCreateOneToManyResolverFromFK(t *testing.T) {
 			mock := &mockClientDatabaseRepository{result: tt.mockResult}
 
 			resolver := &graphqlModelResolver{
-				
 				model:              &RuntimeModel{Name: tt.lf.ModelName},
 				inputTypeGenerator: newInputTypeGenerator(),
 			}

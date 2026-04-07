@@ -33,7 +33,6 @@ func newRelationBatchLoader(
 			ReferenceKey: referenceKey,
 			Values:       values,
 		})
-
 		if err != nil {
 			// 批量查询失败：所有 key 均返回错误
 			for i := range results {

@@ -8,8 +8,8 @@ import (
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
-	"modelcraft/internal/infrastructure/sqlerr"
 	"modelcraft/internal/infrastructure/dbgenwrap"
+	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 )
 

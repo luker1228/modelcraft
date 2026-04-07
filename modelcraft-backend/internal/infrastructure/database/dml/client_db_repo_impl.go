@@ -156,7 +156,6 @@ func (c *ClientDBRepoImpl) FindManyIn(ctx context.Context, input *modelruntime.F
 	)
 }
 
-
 // 参数:
 //   - ctx: 上下文
 //   - input: 查找多条记录的输入参数
