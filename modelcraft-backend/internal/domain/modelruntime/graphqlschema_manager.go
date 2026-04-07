@@ -36,12 +36,13 @@ func NewGraphqlSchemaManager(
 	return &GraphqlSchemaManager{modelRepo: modelRepo, lfkRepo: lfkRepo}
 }
 
-// NewSchemaFrom 根据运行时模型生成GraphQL Schema，包含Query和Mutation操作
+// NewSchemaFrom 根据运行时模型生成GraphQL Schema，包含Query和Mutation操作。
+// clientDB 参数已移除：Schema 构建不再依赖请求级 DB 连接，
+// 请求级状态通过 graphqlRequestContext 在每次 graphql.Do 时注入。
 func (m *GraphqlSchemaManager) NewSchemaFrom(ctx context.Context, model *RuntimeModel,
-	clientDB ClientDatabaseRepository,
 ) (*graphql.Schema, error) {
-	resolver := newGraphqlModelResolver(ctx, model, clientDB, m.modelRepo, m.lfkRepo)
-	schema, err := resolver.newGraphqlSchema()
+	resolver := newGraphqlModelResolver(ctx, model, m.modelRepo, m.lfkRepo)
+	schema, err := resolver.newGraphqlSchema(ctx)
 	if err != nil {
 		return nil, err
 	}

@@ -23,24 +23,22 @@ type graphqlEnumConfig struct {
 }
 
 // graphqlModelResolver GraphQL模型解析器实现，用于生成GraphQL Schema并处理查询和变更。
+// 无状态的 Schema 构建器：不持有任何 context，所有状态通过参数传递。
+// - Schema 构建阶段：ctx 作为参数透传（用于日志和 Repository 查询）
+// - 请求执行阶段：请求级状态通过 graphqlRequestContext 从 p.Context 读取
 type graphqlModelResolver struct {
-	ctx           context.Context
-	model         *RuntimeModel
-	enumConfigMap map[string]*graphqlEnumConfig
-	// 关联模型映射
-	clientRepo         ClientDatabaseRepository
+	model              *RuntimeModel
+	enumConfigMap      map[string]*graphqlEnumConfig
 	inputTypeGenerator *inputTypeGenerator
 	modelRepo          ModelRepository
 	lfkRepo            modeldesign.LogicalForeignKeyRepository
 }
 
-func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel, clientRepo ClientDatabaseRepository,
+func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel,
 	modelRepo ModelRepository, lfkRepo modeldesign.LogicalForeignKeyRepository,
 ) *graphqlModelResolver {
 	return &graphqlModelResolver{
-		ctx:                ctx,
 		model:              model,
-		clientRepo:         clientRepo,
 		modelRepo:          modelRepo,
 		lfkRepo:            lfkRepo,
 		inputTypeGenerator: newInputTypeGenerator(),
@@ -48,28 +46,28 @@ func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel, clientRep
 	}
 }
 
-func (m *graphqlModelResolver) newGraphqlSchema() (*graphql.Schema, error) {
-	logger := logfacade.GetLogger(m.ctx)
+func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.Schema, error) {
+	logger := logfacade.GetLogger(ctx)
 
-	modelType, err := m.createModelType()
+	modelType, err := m.createModelType(ctx)
 	if err != nil {
-		logger.Error(m.ctx, "createModelType_fail", logfacade.Err(err))
+		logger.Error(ctx, "createModelType_fail", logfacade.Err(err))
 		return nil, bizerrors.New("createModelType_fail")
 	}
-	rootQuery, err := m.createRootQuery(modelType)
+	rootQuery, err := m.createRootQuery(ctx, modelType)
 	if err != nil {
-		logger.Error(m.ctx, "createRootQuery_fail", logfacade.Err(err))
+		logger.Error(ctx, "createRootQuery_fail", logfacade.Err(err))
 		return nil, bizerrors.New("createRootQuery_fail")
 	}
 
-	baseModelType, err := m.generateModelTypeSkipRelation(m.model)
+	baseModelType, err := m.generateModelTypeSkipRelation(ctx, m.model)
 	if err != nil {
-		logger.Error(m.ctx, "generateModelTypeSkipRelation_fail", logfacade.Err(err))
+		logger.Error(ctx, "generateModelTypeSkipRelation_fail", logfacade.Err(err))
 		return nil, bizerrors.New("generateModelTypeSkipRelation_fail")
 	}
 	rootMutation, err := m.createRootMutation(baseModelType)
 	if err != nil {
-		logger.Error(m.ctx, "createRootMutation_fail", logfacade.Err(err))
+		logger.Error(ctx, "createRootMutation_fail", logfacade.Err(err))
 		return nil, bizerrors.New("createRootMutation_fail")
 	}
 	schema, err := graphql.NewSchema(graphql.SchemaConfig{
@@ -81,13 +79,14 @@ func (m *graphqlModelResolver) newGraphqlSchema() (*graphql.Schema, error) {
 }
 
 func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (interface{}, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	startTime := time.Now()
 
 	input, err := newFindUniqueInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.FindUnique(m.ctx, input)
+	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
 			result = nil
@@ -115,8 +114,6 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 }
 
 func (m *graphqlModelResolver) createFindUniqueField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
-
 	args, err := m.inputTypeGenerator.GenerateFindUniqueArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -129,18 +126,19 @@ func (m *graphqlModelResolver) createFindUniqueField(modelType graphql.Type) (*g
 		Type: resultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err2 := m.executeFindUnique(p)
 			if err2 != nil {
-				logger.Error(m.ctx, "find_unique_fail", logfacade.Err(err2))
+				logger.Error(p.Context, "find_unique_fail", logfacade.Err(err2))
 			} else {
-				logger.Infof(m.ctx, "find_unqiue_result=%+v", result)
+				logger.Infof(p.Context, "find_unqiue_result=%+v", result)
 			}
 			return result, err2
 		},
 	}, nil
 }
 
-func (m *graphqlModelResolver) createRootQuery(modelType graphql.Type) (*graphql.Object, error) {
+func (m *graphqlModelResolver) createRootQuery(ctx context.Context, modelType graphql.Type) (*graphql.Object, error) {
 	findUniqueFields, err := m.createFindUniqueField(modelType)
 	if err != nil {
 		return nil, err
@@ -153,11 +151,11 @@ func (m *graphqlModelResolver) createRootQuery(modelType graphql.Type) (*graphql
 	if err != nil {
 		return nil, err
 	}
-	aggregateField, err := m.createAggregateField()
+	aggregateField, err := m.createAggregateField(ctx)
 	if err != nil {
 		return nil, err
 	}
-	countField, err := m.createCountField()
+	countField, err := m.createCountField(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -175,13 +173,14 @@ func (m *graphqlModelResolver) createRootQuery(modelType graphql.Type) (*graphql
 }
 
 func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	startTime := time.Now()
 
 	input, err := newFindFirstInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.FindFirst(m.ctx, input)
+	result, err := rctx.ClientRepo.FindFirst(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
 			result = nil
@@ -209,7 +208,6 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 }
 
 func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args := m.inputTypeGenerator.GenerateFindFirstArgs(m.model)
 
 	// Create result wrapper type
@@ -221,7 +219,7 @@ func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*gr
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeFindFirst(p)
 			if err != nil {
-				logger.Error(m.ctx, "executeFindFirst fail", logfacade.Err(err))
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeFindFirst fail", logfacade.Err(err))
 			}
 			return result, err
 		},
@@ -229,13 +227,14 @@ func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*gr
 }
 
 func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[string]any, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	startTime := time.Now()
 
 	input, err := newFindManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.FindMany(m.ctx, input)
+	result, err := rctx.ClientRepo.FindMany(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
 			result = []map[string]any{}
@@ -254,7 +253,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 	// Calculate time cost
 	timeCost := int(time.Since(startTime).Milliseconds())
 
-	// Wrap result with metadata
 	return map[string]any{
 		FieldItems:      result,
 		FieldTotalCount: nil, // Not implemented yet
@@ -264,7 +262,6 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 }
 
 func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args := m.inputTypeGenerator.GenerateFindManyArgs(m.model)
 
 	// Create result wrapper type
@@ -276,7 +273,7 @@ func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*gra
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeFindMany(p)
 			if err != nil {
-				logger.Error(m.ctx, "executeFindMany fail", logfacade.Err(err))
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeFindMany fail", logfacade.Err(err))
 				return nil, err
 			}
 			return result, err
@@ -285,23 +282,23 @@ func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*gra
 }
 
 func (m *graphqlModelResolver) executeAggregate(p graphql.ResolveParams) (map[string]any, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newAggregateInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.Aggregate(m.ctx, input)
+	result, err := rctx.ClientRepo.Aggregate(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (m *graphqlModelResolver) createAggregateField() (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
+func (m *graphqlModelResolver) createAggregateField(ctx context.Context) (*graphql.Field, error) {
 	args := m.inputTypeGenerator.GenerateAggregateArgs(m.model)
 
 	// 创建聚合结果类型
-	aggregateResultType := m.createAggregateResultType()
+	aggregateResultType := m.createAggregateResultType(ctx)
 
 	return &graphql.Field{
 		Type: aggregateResultType,
@@ -309,7 +306,7 @@ func (m *graphqlModelResolver) createAggregateField() (*graphql.Field, error) {
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeAggregate(p)
 			if err != nil {
-				logger.Error(m.ctx, "executeAggregate fail", logfacade.Err(err))
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeAggregate fail", logfacade.Err(err))
 				return nil, err
 			}
 			return result, nil
@@ -317,12 +314,12 @@ func (m *graphqlModelResolver) createAggregateField() (*graphql.Field, error) {
 	}, nil
 }
 
-func (m *graphqlModelResolver) createAggregateResultType() *graphql.Object {
-	logger := logfacade.GetLogger(m.ctx)
+func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *graphql.Object {
+	logger := logfacade.GetLogger(ctx)
 
 	// 验证模型名称不为空
 	if m.model == nil || m.model.Name == "" {
-		logger.Error(m.ctx, "model name is empty when creating aggregate result type")
+		logger.Error(ctx, "model name is empty when creating aggregate result type")
 		// 返回一个空的聚合结果类型
 		return graphql.NewObject(graphql.ObjectConfig{
 			Name:        "EmptyAggregateResult",
@@ -340,7 +337,7 @@ func (m *graphqlModelResolver) createAggregateResultType() *graphql.Object {
 	for _, field := range m.model.Fields {
 		// 跳过空名称字段
 		if field.Name == "" {
-			logger.Warnf(m.ctx, "skip field with empty name in model %s", m.model.Name)
+			logger.Warnf(ctx, "skip field with empty name in model %s", m.model.Name)
 			continue
 		}
 		if isQueryableField(field) {
@@ -427,24 +424,23 @@ func (m *graphqlModelResolver) createAggregateResultType() *graphql.Object {
 
 // executeCount 执行count查询操作
 func (m *graphqlModelResolver) executeCount(p graphql.ResolveParams) (map[string]any, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newCountInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.Count(m.ctx, input)
+	result, err := rctx.ClientRepo.Count(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-// createCountField 创建count查询字段
-func (m *graphqlModelResolver) createCountField() (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
+func (m *graphqlModelResolver) createCountField(ctx context.Context) (*graphql.Field, error) {
 	args := m.inputTypeGenerator.GenerateCountArgs(m.model)
 
 	// 创建count结果类型（动态返回类型，根据是否有select参数）
-	countResultType := m.createCountResultType()
+	countResultType := m.createCountResultType(ctx)
 
 	return &graphql.Field{
 		Type: countResultType,
@@ -452,7 +448,7 @@ func (m *graphqlModelResolver) createCountField() (*graphql.Field, error) {
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeCount(p)
 			if err != nil {
-				logger.Error(m.ctx, "executeCount fail", logfacade.Err(err))
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeCount fail", logfacade.Err(err))
 				return nil, err
 			}
 			return result, nil
@@ -464,12 +460,12 @@ func (m *graphqlModelResolver) createCountField() (*graphql.Field, error) {
 // 支持两种返回格式：
 // 1. 简单计数：{ count: Int! }
 // 2. 字段级计数：{ fieldsCount: { _all: Int, field1: Int, ... } }
-func (m *graphqlModelResolver) createCountResultType() *graphql.Object {
-	logger := logfacade.GetLogger(m.ctx)
+func (m *graphqlModelResolver) createCountResultType(ctx context.Context) *graphql.Object {
+	logger := logfacade.GetLogger(ctx)
 
 	// 验证模型名称不为空
 	if m.model == nil || m.model.Name == "" {
-		logger.Error(m.ctx, "model name is empty when creating count result type")
+		logger.Error(ctx, "model name is empty when creating count result type")
 		// 返回一个空的计数结果类型
 		return graphql.NewObject(graphql.ObjectConfig{
 			Name:        "EmptyCountResult",
@@ -488,7 +484,7 @@ func (m *graphqlModelResolver) createCountResultType() *graphql.Object {
 		for _, field := range m.model.Fields {
 			// 跳过空名称字段
 			if field.Name == "" {
-				logger.Warnf(m.ctx, "skip field with empty name in model %s", m.model.Name)
+				logger.Warnf(ctx, "skip field with empty name in model %s", m.model.Name)
 				continue
 			}
 			if isQueryableField(field) {
@@ -526,7 +522,7 @@ func (m *graphqlModelResolver) createCountResultType() *graphql.Object {
 }
 
 // createField 创建GraphQL字段，支持普通字段、关系字段和虚拟字段
-func (r *graphqlModelResolver) createField(maxDepth int, field *RuntimeField, relateObjMaps map[string]*graphql.Object,
+func (r *graphqlModelResolver) createField(ctx context.Context, maxDepth int, field *RuntimeField, relateObjMaps map[string]*graphql.Object,
 ) (*graphql.Field, error) {
 	graphqlField := &graphql.Field{
 		Name:        field.Name,
@@ -542,18 +538,18 @@ func (r *graphqlModelResolver) createField(maxDepth int, field *RuntimeField, re
 	}
 
 	if field.IsRelationField() {
-		return r.createRelationField(maxDepth, field, relateObjMaps, graphqlField)
+		return r.createRelationField(ctx, maxDepth, field, relateObjMaps, graphqlField)
 	}
 
-	return r.createScalarField(field, graphqlField)
+	return r.createScalarField(ctx, field, graphqlField)
 }
 
 // createScalarField 创建标量字段
-func (r *graphqlModelResolver) createScalarField(field *RuntimeField, graphqlField *graphql.Field,
+func (r *graphqlModelResolver) createScalarField(ctx context.Context, field *RuntimeField, graphqlField *graphql.Field,
 ) (*graphql.Field, error) {
 	graphqlType, err := getGraphqlTypeBy(field.Type.Format)
 	if err != nil {
-		logfacade.GetLogger(r.ctx).Errorf(r.ctx, "failed to get GraphQL type for field %s: %w", field.Name, err)
+		logfacade.GetLogger(ctx).Errorf(ctx, "failed to get GraphQL type for field %s: %w", field.Name, err)
 		return nil, bizerrors.Errorf("failed to get GraphQL type for field %s format %s", field.Name, field.Type.Format)
 	}
 	graphqlField.Type = graphqlType
@@ -570,15 +566,15 @@ func (r *graphqlModelResolver) createEnumField(field *RuntimeField, graphqlField
 	graphqlField.Type = enumConfig.enumType
 	// 设置解析器，验证数据库返回的字符串值是否为有效的枚举值
 	graphqlField.Resolve = func(p graphql.ResolveParams) (interface{}, error) {
-		logger := logfacade.GetLogger(r.ctx)
+		logger := logfacade.GetLogger(p.Context)
 
 		// 获取父对象记录
 		record, ok := p.Source.(map[string]any)
 		if !ok {
-			logger.Warnf(r.ctx, "invalid source type for enum field %s", field.Name)
+			logger.Warnf(p.Context, "invalid source type for enum field %s", field.Name)
 			return nil, nil
 		}
-		logger.Infof(r.ctx, "process enum fields: %s, record=%s", field.Name, bizutils.MarshalToStringIgnoreErr(record))
+		logger.Infof(p.Context, "process enum fields: %s, record=%s", field.Name, bizutils.MarshalToStringIgnoreErr(record))
 
 		// 获取字段值
 		value, exists := record[field.Name]
@@ -589,26 +585,26 @@ func (r *graphqlModelResolver) createEnumField(field *RuntimeField, graphqlField
 		// 转换为字符串
 		strValue, err := cast.ToStringE(value)
 		if err != nil {
-			logger.Warnf(r.ctx, "enum field %s has invalid type: %T", field.Name, value)
+			logger.Warnf(p.Context, "enum field %s has invalid type: %T", field.Name, value)
 			return nil, bizerrors.Errorf("undefined enum: value %v is not a valid string", value)
 		}
 
 		// 检查值是否在枚举选项中
 		enumDefinition := field.Enum
 		if enumDefinition == nil {
-			logger.Warnf(r.ctx, "enum field %s has no enum definition", field.Name)
+			logger.Warnf(p.Context, "enum field %s has no enum definition", field.Name)
 			return nil, bizerrors.Errorf("undefined enum: enum definition not found for field %s", field.Name)
 		}
 
 		// 检查枚举选项中是否包含该值
 		if !enumDefinition.HasOptionCode(strValue) {
-			logger.Warnf(r.ctx, "enum field %s: value %s is not a valid option for enum %s", field.Name, strValue,
+			logger.Warnf(p.Context, "enum field %s: value %s is not a valid option for enum %s", field.Name, strValue,
 				enumDefinition.Name)
 			return nil,
 				bizerrors.Errorf("undefined enum: %s is not a valid value for enum %s", strValue, enumDefinition.Name)
 		}
 
-		logger.Infof(r.ctx, "enum field %s: value %s is valid for enum %s", field.Name, strValue, enumDefinition.Name)
+		logger.Infof(p.Context, "enum field %s: value %s is valid for enum %s", field.Name, strValue, enumDefinition.Name)
 		// 返回有效的枚举值（GraphQL 会自动解析为枚举类型）
 		return strValue, nil
 	}
@@ -706,12 +702,12 @@ func (r *graphqlModelResolver) getEnumConfig(field *RuntimeField) (*graphqlEnumC
 // createEnumLabelResolver 创建枚举标签解析器
 func (r *graphqlModelResolver) createEnumLabelResolver(sourceField *RuntimeField) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
-		logger := logfacade.GetLogger(r.ctx)
+		logger := logfacade.GetLogger(p.Context)
 
 		// 获取父对象记录
 		record, ok := p.Source.(map[string]any)
 		if !ok {
-			logger.Warn(r.ctx, "invalid source type for enum label field")
+			logger.Warn(p.Context, "invalid source type for enum label field")
 			return nil, nil
 		}
 
@@ -723,7 +719,7 @@ func (r *graphqlModelResolver) createEnumLabelResolver(sourceField *RuntimeField
 
 		// 获取关联的枚举定义
 		if sourceField.Enum == nil {
-			logger.Warnf(r.ctx, "source field %s has no enum definition", sourceField.Name)
+			logger.Warnf(p.Context, "source field %s has no enum definition", sourceField.Name)
 			return nil, nil
 		}
 
@@ -734,7 +730,7 @@ func (r *graphqlModelResolver) createEnumLabelResolver(sourceField *RuntimeField
 			// ENUM_ARRAY: 返回EnumLabel数组
 			codes, ok := normalizeEnumArrayCodes(sourceValue)
 			if !ok {
-				logger.Warnf(r.ctx, "enum array field %s has invalid type: %T", sourceField.Name, sourceValue)
+				logger.Warnf(p.Context, "enum array field %s has invalid type: %T", sourceField.Name, sourceValue)
 				return nil, nil
 			}
 
@@ -742,7 +738,7 @@ func (r *graphqlModelResolver) createEnumLabelResolver(sourceField *RuntimeField
 			for _, code := range codes {
 				opt, err := enumDef.GetOptionByCode(code)
 				if err != nil {
-					logger.Warnf(r.ctx, "enum option not found: code=%s, enum=%s", code, enumDef.Name)
+					logger.Warnf(p.Context, "enum option not found: code=%s, enum=%s", code, enumDef.Name)
 					// 跳过不存在的code
 					continue
 				}
@@ -754,13 +750,13 @@ func (r *graphqlModelResolver) createEnumLabelResolver(sourceField *RuntimeField
 		// ENUM: 返回单个EnumLabel
 		code, ok := normalizeEnumCode(sourceValue)
 		if !ok {
-			logger.Warnf(r.ctx, "enum field %s has invalid type: %T", sourceField.Name, sourceValue)
+			logger.Warnf(p.Context, "enum field %s has invalid type: %T", sourceField.Name, sourceValue)
 			return nil, nil
 		}
 
 		opt, err := enumDef.GetOptionByCode(code)
 		if err != nil {
-			logger.Warnf(r.ctx, "enum option not found: code=%s, enum=%s", code, enumDef.Name)
+			logger.Warnf(p.Context, "enum option not found: code=%s, enum=%s", code, enumDef.Name)
 			return nil, nil
 		}
 
@@ -798,6 +794,7 @@ func normalizeEnumCode(sourceValue any) (string, bool) {
 
 // createRelationField 创建关系字段（使用 LogicalForeignKey）
 func (r *graphqlModelResolver) createRelationField(
+	ctx context.Context,
 	maxDepth int,
 	field *RuntimeField,
 	relateObjMaps map[string]*graphql.Object,
@@ -808,13 +805,13 @@ func (r *graphqlModelResolver) createRelationField(
 	}
 
 	// 通过 relate_fk_id 查询 LogicalForeignKey（normal 方向：source=FK列, target=被引用列）
-	lf, err := r.lfkRepo.GetByID(r.ctx, *field.RelateFKID)
+	lf, err := r.lfkRepo.GetByID(ctx, *field.RelateFKID)
 	if err != nil {
 		return nil, bizerrors.Errorf("failed to get logical foreign key for field %s: %w", field.Name, err)
 	}
 
 	// 获取被引用模型
-	refModel, err := r.modelRepo.GetByID(r.ctx, lf.RefModelID)
+	refModel, err := r.modelRepo.GetByID(ctx, lf.RefModelID)
 	if err != nil {
 		return nil, bizerrors.Errorf("failed to get reference model %s: %w", lf.RefModelID, err)
 	}
@@ -822,7 +819,7 @@ func (r *graphqlModelResolver) createRelationField(
 	// 获取或创建被引用模型的 GraphQL 对象类型（以模型 Name 为 key 缓存）
 	referenceObj, exists := relateObjMaps[refModel.Name]
 	if !exists {
-		referenceObj, err = r.generateModelType(maxDepth-1, refModel, relateObjMaps)
+		referenceObj, err = r.generateModelType(ctx, maxDepth-1, refModel, relateObjMaps)
 		if err != nil {
 			return nil, bizerrors.Errorf("failed to generate model type for %s: %w", refModel.Name, err)
 		}
@@ -868,16 +865,17 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 	refModelName string,
 ) graphql.FieldResolveFn {
 	return func(p graphql.ResolveParams) (interface{}, error) {
-		logger := logfacade.GetLogger(r.ctx)
+		rctx, _ := getGraphqlRequestContext(p.Context)
+		logger := logfacade.GetLogger(p.Context)
 
 		// 获取父对象记录
 		record, ok := p.Source.(map[string]any)
 		if !ok {
-			logger.Warn(r.ctx, "invalid source type for one-to-many relation")
+			logger.Warn(p.Context, "invalid source type for one-to-many relation")
 			return []map[string]any{}, nil
 		}
 
-		logger.Infof(r.ctx, "resolving one-to-many relation: record=%+v", record)
+		logger.Infof(p.Context, "resolving one-to-many relation: record=%+v", record)
 
 		// 从当前记录中提取 SourceFields 的所有值
 		sourceValues := make([]any, 0, len(lf.SourceFields))
@@ -885,7 +883,7 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 			value, exists := record[sourceField]
 			if !exists || value == nil {
 				// 如果任意一个 SourceField 值为 nil，返回空数组
-				logger.Infof(r.ctx, "one-to-many relation: source field %s is nil or missing, returning empty array",
+				logger.Infof(p.Context, "one-to-many relation: source field %s is nil or missing, returning empty array",
 					sourceField)
 				return []map[string]any{}, nil
 			}
@@ -894,7 +892,7 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 
 		// 防御性检查：SourceFields 与 TargetFields 数量必须一致
 		if len(lf.TargetFields) != len(sourceValues) {
-			logger.Warnf(r.ctx, "one-to-many relation: FK field count mismatch: source=%d, target=%d",
+			logger.Warnf(p.Context, "one-to-many relation: FK field count mismatch: source=%d, target=%d",
 				len(sourceValues), len(lf.TargetFields))
 			return []map[string]any{}, nil
 		}
@@ -907,16 +905,16 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 			}
 		}
 
-		logger.Infof(r.ctx, "querying one-to-many relation: TableName=%s, WHERE=%+v",
+		logger.Infof(p.Context, "querying one-to-many relation: TableName=%s, WHERE=%+v",
 			lf.RefModelName, whereMap)
 
 		// 调用 FindMany 查询关联记录
-		results, err := r.clientRepo.FindMany(r.ctx, &FindManyInput{
+		results, err := rctx.ClientRepo.FindMany(p.Context, &FindManyInput{
 			TableName: lf.RefModelName,
 			Where:     whereMap,
 		})
 		if err != nil {
-			logger.Errorf(r.ctx, "failed to query one-to-many relation: %v", err)
+			logger.Errorf(p.Context, "failed to query one-to-many relation: %v", err)
 			return nil, err
 		}
 
@@ -928,61 +926,78 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 	}
 }
 
-// createManyToOneResolverFromFK 创建多对一关系解析器（基于 LogicalForeignKey）
+// createManyToOneResolverFromFK 创建多对一关系解析器（基于 LogicalForeignKey）。
+//
+// 使用 dataloader 解决 N+1 问题：
+//   - resolver 调用 loader.Load(ctx, fkValue) 返回一个 Thunk（函数闭包），不立即发 SQL
+//   - graphql-go 广度优先执行：同一层所有字段的 Load() 先全部被调用（收集 key）
+//   - 随后 graphql-go dethunk 时才逐一调用 Thunk，此时 dataloader 触发批量 IN 查询
+//   - 最终发出一条 WHERE referenceKey IN (k1, k2, ...) SQL，结果按 key 分发
 func (r *graphqlModelResolver) createManyToOneResolverFromFK(
 	lf *modeldesign.LogicalForeignKey,
 	refModelName string,
 ) graphql.FieldResolveFn {
-	return func(p graphql.ResolveParams) (interface{}, error) {
-		logger := logfacade.GetLogger(r.ctx)
+	foreignKey := lf.SourceFields[0]
+	referenceKey := lf.TargetFields[0]
 
-		// 获取父对象记录
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		rctx, _ := getGraphqlRequestContext(p.Context)
+		logger := logfacade.GetLogger(p.Context)
+
 		record, ok := p.Source.(map[string]any)
 		if !ok {
-			logger.Warn(r.ctx, "invalid source type for many-to-one relation")
+			logger.Warn(p.Context, "invalid source type for many-to-one relation")
 			return nil, nil
 		}
 
-		// lf.SourceFields 是当前模型的 FK 列，lf.TargetFields 是被引用模型的主键列
-		foreignKey := lf.SourceFields[0]
-		referenceKey := lf.TargetFields[0]
-
-		logger.Infof(r.ctx, "resolving many-to-one relation: record=%+v", record)
-
-		// 获取外键值
 		foreignKeyValue, exists := record[foreignKey]
 		if !exists || foreignKeyValue == nil {
 			return nil, nil
 		}
 
-		logger.Infof(r.ctx, "querying many-to-one relation: foreignKey=%s, referenceKey=%s, value=%v",
-			foreignKey, referenceKey, foreignKeyValue)
-
-		// 查询关联记录
-		result, err := r.clientRepo.FindFirst(r.ctx, &FindFirstInput{
-			TableName: refModelName,
-			Where: map[string]any{
-				referenceKey: foreignKeyValue,
-			},
-		})
-		if err != nil {
-			logger.Errorf(r.ctx, "failed to query many-to-one relation: %v", err)
-			return nil, err
+		fkStr, ok := toString(foreignKeyValue)
+		if !ok {
+			// 无法转为字符串 key，fallback 到单条查询
+			result, err := rctx.ClientRepo.FindFirst(p.Context, &FindFirstInput{
+				TableName: refModelName,
+				Where:     map[string]any{referenceKey: foreignKeyValue},
+			})
+			if err != nil {
+				if shared.IsNotFoundError(err) {
+					return nil, nil
+				}
+				return nil, err
+			}
+			return result, nil
 		}
 
-		if result == nil {
-			return nil, nil
-		}
+		// 从请求级 context 取 loader（懒初始化，同一请求内复用）
+		loader := rctx.getOrCreateLoader(refModelName, referenceKey)
 
-		return result, nil
+		// Load 不立即发 SQL，只是将 key 加入 batch 队列并返回 Thunk。
+		// graphql-go 将 resolver 返回的 func() interface{} 识别为 thunk，
+		// 先收集同层所有字段的 thunk，再统一 dethunk——
+		// 正是在 dethunk 阶段，dataloader 才触发批量 IN 查询。
+		thunk := loader.Load(p.Context, fkStr)
+
+		return func() (interface{}, error) {
+			result, err := thunk()
+			if err != nil {
+				// 悬空外键或批量查询失败，按 LEFT JOIN 语义返回 nil
+				logger.Warnf(p.Context, "many-to-one relation load failed (dangling FK?): table=%s key=%s val=%s err=%v",
+					refModelName, referenceKey, fkStr, err)
+				return nil, nil
+			}
+			return result, nil
+		}, nil
 	}
 }
 
-func (r *graphqlModelResolver) generateModelType(maxDepth int, model *RuntimeModel,
+func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth int, model *RuntimeModel,
 	relateObj map[string]*graphql.Object,
 ) (*graphql.Object, error) {
 	graphqlfields := graphql.Fields{}
-	logger := logfacade.GetLogger(r.ctx)
+	logger := logfacade.GetLogger(ctx)
 
 	// 验证模型名称不为空
 	if model == nil {
@@ -995,19 +1010,19 @@ func (r *graphqlModelResolver) generateModelType(maxDepth int, model *RuntimeMod
 	if len(model.Fields) == 0 {
 		return nil, bizerrors.Errorf("model %s has no fields", model.Name)
 	}
-	logger.Infof(r.ctx, "model: %+v", model)
+	logger.Infof(ctx, "model: %+v", model)
 	for _, field := range model.Fields {
 		// 验证字段名称不为空
 		if field.Name == "" {
 			return nil, bizerrors.Errorf("model %s has field with empty name", model.Name)
 		}
-		logger.Infof(r.ctx, "modelName=%s, field=%+v", model.Name, field)
+		logger.Infof(ctx, "modelName=%s, field=%+v", model.Name, field)
 		if field.IsRelationField() && maxDepth <= 0 {
 			continue
 		}
-		graphqlfield, err := r.createField(maxDepth, field, relateObj)
+		graphqlfield, err := r.createField(ctx, maxDepth, field, relateObj)
 		if err != nil {
-			logfacade.GetLogger(r.ctx).Errorf(r.ctx, "create graphql field err %s", field.Name)
+			logfacade.GetLogger(ctx).Errorf(ctx, "create graphql field err %s", field.Name)
 			return nil, err
 		}
 		if graphqlfield == nil {
@@ -1023,7 +1038,7 @@ func (r *graphqlModelResolver) generateModelType(maxDepth int, model *RuntimeMod
 	return modelType, nil
 }
 
-func (r *graphqlModelResolver) generateModelTypeSkipRelation(model *RuntimeModel) (*graphql.Object, error) {
+func (r *graphqlModelResolver) generateModelTypeSkipRelation(ctx context.Context, model *RuntimeModel) (*graphql.Object, error) {
 	graphqlfields := graphql.Fields{}
 
 	// 验证模型名称不为空
@@ -1042,7 +1057,7 @@ func (r *graphqlModelResolver) generateModelTypeSkipRelation(model *RuntimeModel
 		if field.IsRelationField() {
 			continue
 		}
-		graphqlfield, err := r.createField(0, field, map[string]*graphql.Object{})
+		graphqlfield, err := r.createField(ctx, 0, field, map[string]*graphql.Object{})
 		if err != nil {
 			return nil, err
 		}
@@ -1056,10 +1071,10 @@ func (r *graphqlModelResolver) generateModelTypeSkipRelation(model *RuntimeModel
 	return modelType, nil
 }
 
-func (r *graphqlModelResolver) createModelType() (*graphql.Object, error) {
+func (r *graphqlModelResolver) createModelType(ctx context.Context) (*graphql.Object, error) {
 	relationGraphqlObjMap := map[string]*graphql.Object{}
 	maxDepth := 1
-	obj, err := r.generateModelType(maxDepth, r.model, relationGraphqlObjMap)
+	obj, err := r.generateModelType(ctx, maxDepth, r.model, relationGraphqlObjMap)
 	if err != nil {
 		return nil, err
 	}
@@ -1179,6 +1194,7 @@ func (m *graphqlModelResolver) createRootMutation(modelType graphql.Type) (*grap
 }
 
 func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interface{}, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newCreateOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1198,7 +1214,7 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 	}
 	input.Id = cast.ToString(input.Data[FieldID])
 
-	id, err := m.clientRepo.CreateOne(m.ctx, input)
+	id, err := rctx.ClientRepo.CreateOne(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1212,7 +1228,7 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 
 	if hasCreatedObjField {
 		// 获取完整的创建对象
-		createdObj, err := m.clientRepo.FindUnique(m.ctx, &FindUniqueInput{
+		createdObj, err := rctx.ClientRepo.FindUnique(p.Context, &FindUniqueInput{
 			TableName: m.model.Name,
 			Where: map[string]any{
 				FieldID: id,
@@ -1227,7 +1243,6 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 }
 
 func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args, err := m.inputTypeGenerator.GenerateCreateOneArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -1250,11 +1265,12 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 		Type: createResultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeCreateOne(p)
 			if err != nil {
-				logger.Error(m.ctx, "createOne_fail", logfacade.Err(err))
+				logger.Error(p.Context, "createOne_fail", logfacade.Err(err))
 			} else {
-				logger.Infof(m.ctx, "createOne_result=%+v", result)
+				logger.Infof(p.Context, "createOne_result=%+v", result)
 			}
 			return result, err
 		},
@@ -1262,6 +1278,7 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 }
 
 func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interface{}, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newUpdateOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1271,7 +1288,7 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 	result := map[string]interface{}{
 		FieldSuccess: true,
 	}
-	updatedObj, err := m.clientRepo.UpdateOne(m.ctx, input)
+	updatedObj, err := rctx.ClientRepo.UpdateOne(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1287,7 +1304,6 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 }
 
 func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args, err := m.inputTypeGenerator.GenerateUpdateOneArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -1310,11 +1326,12 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 		Type: updateResultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeUpdateOne(p)
 			if err != nil {
-				err = handleErr(m.ctx, err)
+				err = handleErr(p.Context, err)
 			} else {
-				logger.Infof(m.ctx, "updateOne_result=%+v", result)
+				logger.Infof(p.Context, "updateOne_result=%+v", result)
 			}
 			return result, err
 		},
@@ -1322,6 +1339,7 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 }
 
 func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interface{}, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newDeleteOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1330,7 +1348,7 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 	result := map[string]interface{}{
 		FieldSuccess: true,
 	}
-	deleteResult, err := m.clientRepo.DeleteOne(m.ctx, input)
+	deleteResult, err := rctx.ClientRepo.DeleteOne(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1347,7 +1365,6 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 }
 
 func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args, err := m.inputTypeGenerator.GenerateDeleteOneArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -1369,11 +1386,12 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 		Type: deleteResultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeDeleteOne(p)
 			if err != nil {
-				logger.Error(m.ctx, "deleteOne_fail", logfacade.Err(err))
+				logger.Error(p.Context, "deleteOne_fail", logfacade.Err(err))
 			} else {
-				logger.Infof(m.ctx, "deleteOne_result=%+v", result)
+				logger.Infof(p.Context, "deleteOne_result=%+v", result)
 			}
 			return result, err
 		},
@@ -1381,8 +1399,9 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 }
 
 func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (interface{}, error) {
-	logger := logfacade.GetLogger(m.ctx)
-	logger.Infof(m.ctx, "type=%T", p.Args[FieldData])
+	rctx, _ := getGraphqlRequestContext(p.Context)
+	logger := logfacade.GetLogger(p.Context)
+	logger.Infof(p.Context, "type=%T", p.Args[FieldData])
 	input, err := newCreateManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1401,7 +1420,7 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 			}
 		}
 	}
-	result, err := m.clientRepo.CreateMany(m.ctx, input)
+	result, err := rctx.ClientRepo.CreateMany(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1409,7 +1428,6 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 }
 
 func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args, err := m.inputTypeGenerator.GenerateCreateManyArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -1434,11 +1452,12 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 		Type: createManyResultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeCreateMany(p)
 			if err != nil {
-				logger.Error(m.ctx, "createMany_fail", logfacade.Err(err))
+				logger.Error(p.Context, "createMany_fail", logfacade.Err(err))
 			} else {
-				logger.Infof(m.ctx, "createMany_success")
+				logger.Infof(p.Context, "createMany_success")
 			}
 			return result, err
 		},
@@ -1446,11 +1465,12 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 }
 
 func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (interface{}, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newUpdateManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.UpdateMany(m.ctx, input)
+	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1458,7 +1478,6 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 }
 
 func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args, err := m.inputTypeGenerator.GenerateUpdateManyArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -1479,11 +1498,12 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 		Type: updateManyResultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeUpdateMany(p)
 			if err != nil {
-				logger.Error(m.ctx, "updateMany_fail", logfacade.Err(err))
+				logger.Error(p.Context, "updateMany_fail", logfacade.Err(err))
 			} else {
-				logger.Infof(m.ctx, "updateMany_success")
+				logger.Infof(p.Context, "updateMany_success")
 			}
 			return result, err
 		},
@@ -1491,11 +1511,12 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 }
 
 func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (interface{}, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
 	input, err := newDeleteManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
 	}
-	result, err := m.clientRepo.DeleteMany(m.ctx, input)
+	result, err := rctx.ClientRepo.DeleteMany(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1503,7 +1524,6 @@ func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (inter
 }
 
 func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*graphql.Field, error) {
-	logger := logfacade.GetLogger(m.ctx)
 	args, err := m.inputTypeGenerator.GenerateDeleteManyArgs(m.model)
 	if err != nil {
 		return nil, err
@@ -1524,11 +1544,12 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 		Type: deleteManyResultType,
 		Args: args,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
 			result, err := m.executeDeleteMany(p)
 			if err != nil {
-				logger.Error(m.ctx, "deleteMany_fail", logfacade.Err(err))
+				logger.Error(p.Context, "deleteMany_fail", logfacade.Err(err))
 			} else {
-				logger.Infof(m.ctx, "deleteMany_success")
+				logger.Infof(p.Context, "deleteMany_success")
 			}
 			return result, err
 		},

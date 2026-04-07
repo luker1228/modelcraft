@@ -63,6 +63,10 @@ func (m *mockClientDatabaseRepository) DeleteMany(_ context.Context, _ *DeleteMa
 	return nil, nil
 }
 
+func (m *mockClientDatabaseRepository) FindManyIn(_ context.Context, _ *FindManyInInput) ([]map[string]any, error) {
+	return nil, nil
+}
+
 // TestCreateModelType 测试 createModelType 方法
 func TestCreateModelType(t *testing.T) {
 	tests := []struct {
@@ -222,13 +226,13 @@ func TestCreateModelType(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建 resolver
 			resolver := &graphqlModelResolver{
-				ctx:                context.Background(),
+				
 				model:              tt.model,
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
 
 			// 执行测试
-			obj, err := resolver.createModelType()
+			obj, err := resolver.createModelType(context.Background())
 
 			// 检查错误
 			if tt.wantErr {
@@ -349,13 +353,13 @@ func TestCreateModelTypeWithRelations(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// 创建 resolver
 			resolver := &graphqlModelResolver{
-				ctx:                context.Background(),
+				
 				model:              tt.model,
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
 
 			// 执行测试
-			obj, err := resolver.createModelType()
+			obj, err := resolver.createModelType(context.Background())
 
 			// 检查错误
 			if tt.wantErr {
@@ -396,13 +400,13 @@ func TestGenerateModelType(t *testing.T) {
 		}
 
 		resolver := &graphqlModelResolver{
-			ctx:                context.Background(),
+			
 			model:              model,
 			inputTypeGenerator: newInputTypeGenerator(),
 		}
 
 		relateObjMap := map[string]*graphql.Object{}
-		obj, err := resolver.generateModelType(1, model, relateObjMap)
+		obj, err := resolver.generateModelType(context.Background(), 1, model, relateObjMap)
 
 		require.NoError(t, err)
 		assert.NotNil(t, obj)
@@ -510,12 +514,12 @@ func TestCreateField(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			resolver := &graphqlModelResolver{
-				ctx:                context.Background(),
+				
 				model:              &RuntimeModel{},
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
 
-			field, err := resolver.createField(0, tt.field, tt.relateObj)
+			field, err := resolver.createField(context.Background(), 0, tt.field, tt.relateObj)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -574,7 +578,7 @@ func TestCreateRelationFieldReverse(t *testing.T) {
 			})
 
 			resolver := &graphqlModelResolver{
-				ctx:                context.Background(),
+				
 				model:              &RuntimeModel{Name: tt.lf.ModelName},
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
@@ -664,9 +668,8 @@ func TestCreateOneToManyResolverFromFK(t *testing.T) {
 			mock := &mockClientDatabaseRepository{result: tt.mockResult}
 
 			resolver := &graphqlModelResolver{
-				ctx:                context.Background(),
+				
 				model:              &RuntimeModel{Name: tt.lf.ModelName},
-				clientRepo:         mock,
 				inputTypeGenerator: newInputTypeGenerator(),
 			}
 
@@ -674,7 +677,7 @@ func TestCreateOneToManyResolverFromFK(t *testing.T) {
 			require.NotNil(t, resolveFn)
 
 			p := graphql.ResolveParams{
-				Context: context.Background(),
+				Context: WithGraphqlRequestContext(context.Background(), mock),
 				Source:  tt.source,
 			}
 

@@ -136,6 +136,22 @@ func convertFindManyInputToSQL(
 	return
 }
 
+func convertFindManyInInputToSQL(
+	ctx context.Context,
+	input *modelruntime.FindManyInInput,
+) (sql string, args []any, err error) {
+	if len(input.Values) == 0 {
+		err = bizerrors.Errorf("FindManyIn: values cannot be empty")
+		return
+	}
+	dialectWrapper := goqu.Dialect("mysql")
+	ds := dialectWrapper.Select("*").
+		From(input.TableName).
+		Where(goqu.C(input.ReferenceKey).In(input.Values...))
+	sql, args, err = ds.Prepared(true).ToSQL()
+	return
+}
+
 func convertUpdateManyInputToSQL(
 	ctx context.Context,
 	input *modelruntime.UpdateManyInput,

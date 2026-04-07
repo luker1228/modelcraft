@@ -116,7 +116,47 @@ func (c *ClientDBRepoImpl) FindFirst(ctx context.Context, input *modelruntime.Fi
 	)
 }
 
-// FindMany 查找多条记录
+// FindManyIn 通过 IN 条件批量查找关联记录，用于解决 N+1 问题。
+// 等价于：SELECT * FROM tableName WHERE referenceKey IN (values...)
+func (c *ClientDBRepoImpl) FindManyIn(ctx context.Context, input *modelruntime.FindManyInInput) ([]map[string]any, error) {
+	logger := logfacade.GetLogger(ctx)
+	return execute[*modelruntime.FindManyInInput, []map[string]any](
+		ctx, logger, input,
+		func() ([]map[string]any, error) {
+			sql, args, err := convertFindManyInInputToSQL(ctx, input)
+			if err != nil {
+				return nil, err
+			}
+			logger.Infof(ctx, "sql=%v args=%v", sql, args)
+
+			rows, err := c.stdDB.Queryx(sql, args...)
+			if err != nil {
+				logger.Error(ctx, "FindManyIn query fail", logfacade.Err(err))
+				return nil, err
+			}
+			defer rows.Close()
+
+			results := make([]map[string]any, 0, len(input.Values))
+			for rows.Next() {
+				record := make(map[string]any)
+				if err := rows.MapScan(record); err != nil {
+					logger.Error(ctx, "FindManyIn map scan fail", logfacade.Err(err))
+					return nil, err
+				}
+				results = append(results, convertBytesToString(record))
+			}
+			if err := rows.Err(); err != nil {
+				logger.Error(ctx, "FindManyIn rows iteration fail", logfacade.Err(err))
+				return nil, err
+			}
+
+			logger.Infof(ctx, "FindManyIn found %d records", len(results))
+			return results, nil
+		},
+	)
+}
+
+
 // 参数:
 //   - ctx: 上下文
 //   - input: 查找多条记录的输入参数

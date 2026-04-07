@@ -53,6 +53,17 @@ type FindManyInput struct {
 	Offset    uint
 }
 
+// FindManyInInput 通过 IN 条件批量查找关联记录的输入参数，用于解决 N+1 问题。
+// 等价于：SELECT * FROM TableName WHERE ReferenceKey IN (Values...)
+type FindManyInInput struct {
+	// TableName 目标表名
+	TableName string
+	// ReferenceKey 目标表中被 IN 匹配的字段名（如 "id"）
+	ReferenceKey string
+	// Values 需要匹配的值列表（去重后传入）
+	Values []any
+}
+
 func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyInput, error) {
 	where, err := getWhere(param.Args)
 	if err != nil {

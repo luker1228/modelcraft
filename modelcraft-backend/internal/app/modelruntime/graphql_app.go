@@ -23,7 +23,8 @@ type GraphqlAppService struct {
 	graphqlSchemaManager *modelruntime.GraphqlSchemaManager
 }
 
-// GetSchema 获取schema
+// GetSchema 获取或构建 GraphQL Schema。
+// Schema 仅包含类型结构，不持有请求级状态（clientRepo、dataloader），可安全缓存。
 func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, modelLocator *modeldesign.ModelLocator,
 ) (*graphql.Schema, error) {
 	logger := logfacade.GetLogger(ctx)
@@ -43,19 +44,9 @@ func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, model
 	if model == nil {
 		return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
 	}
-	clientSqlDB, err := repository.DefaultClusterManager.GetConnectionWithDatabase(
-		ctx,
-		orgName,
-		modelLocator.ProjectSlug,
-		modelLocator.DatabaseName,
-	)
-	if err != nil {
-		logger.Errorf(ctx, "get client sql db fail %w", err)
-		return nil, fmt.Errorf("获取客户端数据库失败 %s", modelLocator.DatabaseName)
-	}
-	clientRepo := dml.NewClientDB(clientSqlDB)
+
 	logger.Infof(ctx, "model=%s", bizutils.MarshalToStringIgnoreErr(model))
-	gschema, err = s.graphqlSchemaManager.NewSchemaFrom(ctx, model, clientRepo)
+	gschema, err = s.graphqlSchemaManager.NewSchemaFrom(ctx, model)
 	if err != nil {
 		logger.Errorf(ctx, "generate schema fail: %v", err)
 		return nil, fmt.Errorf("生成schema失败 %s", modelLocator.GetFullPath())
@@ -82,12 +73,26 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		return nil, err
 	}
 
+	// 创建请求级 DB 连接
+	clientSqlDB, err := repository.DefaultClusterManager.GetConnectionWithDatabase(
+		ctx, orgName, modelLocator.ProjectSlug, modelLocator.DatabaseName,
+	)
+	if err != nil {
+		logger.Errorf(ctx, "get client sql db fail: %v", err)
+		return nil, fmt.Errorf("获取客户端数据库失败 %s", databaseName)
+	}
+	clientRepo := dml.NewClientDB(clientSqlDB)
+
+	// 将请求级状态（clientRepo、dataloader map）注入 context，
+	// 所有 resolver 闭包通过 p.Context 读取，与 Schema 类型结构完全解耦。
+	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo)
+
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{
 		Schema:         *gschema,
 		RequestString:  cmd.Query,
 		VariableValues: cmd.Variables,
-		Context:        ctx,
+		Context:        reqCtx,
 	})
 	marshal, err := json.Marshal(result)
 	if err != nil {
