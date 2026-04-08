@@ -6,8 +6,8 @@ import {
   getToken,
   getUserInfoFromToken,
   removeToken,
-} from "@bff/auth/casdoor";
-import { refreshAccessToken } from "@bff/auth/public";
+  refreshAccessToken,
+} from "@bff/auth/public";
 import { useOrganizationStore } from "@shared/stores/organization";
 import { Button } from "@web/components/ui/button";
 import { Input } from "@web/components/ui/input";
@@ -72,15 +72,15 @@ export default function OrgSelectorPage() {
   const [loading, setLoading] = useState(true);
   const [creatingOrg, setCreatingOrg] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-  const [userInfo, setUserInfo] = useState<{ name: string; email: string } | null>(null);
+  const [userInfo, setUserInfo] = useState<{ name: string; phone: string } | null>(null);
   const { setCurrentOrg, setOrganizations, loadMemberships: loadMembershipsStore } = useOrganizationStore();
 
   useEffect(() => {
-    const createDefaultOrganization = async (token: string, userData: { name: string; email: string }) => {
+    const createDefaultOrganization = async (token: string, userData: { name: string; phone: string }) => {
       try {
         setCreatingOrg(true);
 
-        const userName = userData.name || userData.email.split('@')[0];
+        const userName = userData.name || userData.phone;
         const displayName = `${userName}的工作空间`;
 
         console.log("[OrgSelector] Creating default organization:", { displayName });
@@ -158,7 +158,7 @@ export default function OrgSelectorPage() {
 
       setUserInfo({
         name: userData.name,
-        email: userData.email,
+        phone: userData.phone,
       });
 
       try {
@@ -219,7 +219,7 @@ export default function OrgSelectorPage() {
     org.orgName.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const displayName = userInfo?.name || userInfo?.email || 'User';
+  const displayName = userInfo?.name || userInfo?.phone || 'User';
   const initial = displayName.charAt(0).toUpperCase();
 
   const isOwnerOrAdmin = (role: string) =>
@@ -278,7 +278,7 @@ export default function OrgSelectorPage() {
               <DropdownMenuLabel>
                 <div>
                   <div className="text-sm font-semibold text-[#111827]">{userInfo.name}</div>
-                  <div className="text-xs font-normal text-[#6b7280]">{userInfo.email}</div>
+                  <div className="text-xs font-normal text-[#6b7280]">{userInfo.phone}</div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />

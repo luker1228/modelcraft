@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, getUserInfoFromToken } from "@bff/auth/casdoor";
-import { refreshAccessToken } from "@bff/auth/public";
+import { getToken, getUserInfoFromToken, refreshAccessToken } from "@bff/auth/public";
 
 export default function Home() {
   const router = useRouter();

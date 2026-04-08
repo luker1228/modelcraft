@@ -21,12 +21,14 @@ export class TokenReuseError extends Error {
   }
 }
 
-// callGoLogin calls Go Backend /api/auth/login
-// Pass user info extracted from Casdoor token
+export interface GoRegisterResult {
+  userId: string
+}
+
+// callGoLogin calls Go Backend /api/auth/login with phone + password
 export async function callGoLogin(params: {
-  externalId: string
-  email: string
-  name: string
+  phone: string
+  password: string
 }): Promise<GoLoginResult> {
   const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/login`, {
     method: 'POST',
@@ -35,6 +37,20 @@ export async function callGoLogin(params: {
   })
   if (!res.ok) throw new Error(`Go login failed: ${res.status}`)
   return res.json() as Promise<GoLoginResult>
+}
+
+// callGoRegister calls Go Backend /api/auth/register with phone + password
+export async function callGoRegister(params: {
+  phone: string
+  password: string
+}): Promise<GoRegisterResult> {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/register`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params),
+  })
+  if (!res.ok) throw new Error(`Go register failed: ${res.status}`)
+  return res.json() as Promise<GoRegisterResult>
 }
 
 // callGoRefresh calls Go Backend /api/auth/refresh (token rotation)

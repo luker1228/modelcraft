@@ -17,15 +17,15 @@ import {
   getToken,
   removeToken,
   isAuthenticated,
-  UserInfo,
 } from '@bff/auth/public'
+import type { AuthUser } from '@/types/auth'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { useCurrentOrg } from '@web/stores'
 import { LogOut, Settings } from 'lucide-react'
 
 export function UserMenu() {
   const router = useRouter()
-  const [userInfo, setUserInfo] = useState<UserInfo | null>(null)
+  const [userInfo, setUserInfo] = useState<AuthUser | null>(null)
   const clearOrganization = useOrganizationStore((state) => state.clearOrganization)
   const currentOrg = useCurrentOrg()
 
@@ -68,7 +68,7 @@ export function UserMenu() {
         .join('')
         .toUpperCase()
         .slice(0, 2)
-    : userInfo.email[0].toUpperCase()
+    : (userInfo.phone || 'U')[0].toUpperCase()
 
   return (
     <DropdownMenu>
@@ -86,7 +86,7 @@ export function UserMenu() {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-semibold leading-none">{userInfo.name}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              {userInfo.email}
+              {userInfo.phone}
             </p>
           </div>
         </DropdownMenuLabel>

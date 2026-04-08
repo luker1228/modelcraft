@@ -50,7 +50,6 @@
     "ajv": "^8.12.0",
     "ajv-formats": "^2.1.1",
     "antd": "^5.22.6",
-    "casdoor-js-sdk": "^0.17.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "gql-query-builder": "^3.8.0",

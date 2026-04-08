@@ -2,8 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, removeToken } from "@bff/auth/casdoor";
-import { refreshAccessToken } from "@bff/auth/public";
+import { getToken, removeToken, refreshAccessToken } from "@bff/auth/public";
 import { Button } from "@web/components/ui/button";
 import { Input } from "@web/components/ui/input";
 import { Label } from "@web/components/ui/label";

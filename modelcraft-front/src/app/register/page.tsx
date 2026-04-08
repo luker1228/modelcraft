@@ -4,8 +4,8 @@ import NextLink from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
-import { loginFormSchema, type LoginFormValues } from '@/shared/validation/auth'
-import { useLogin } from '@/web/hooks/auth/use-auth-form'
+import { registerFormSchema, type RegisterFormValues } from '@/shared/validation/auth'
+import { useRegister } from '@/web/hooks/auth/use-auth-form'
 import { AuthLayout } from '@/web/components/features/auth/auth-layout'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -19,20 +19,20 @@ import {
   FormMessage,
 } from '@web/components/ui/form'
 
-export default function LoginPage() {
-  const { login, isLoading, error } = useLogin()
+export default function RegisterPage() {
+  const { register, isLoading, error } = useRegister()
 
-  const form = useForm<LoginFormValues>({
-    resolver: zodResolver(loginFormSchema),
-    defaultValues: { phone: '', password: '' },
+  const form = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerFormSchema),
+    defaultValues: { phone: '', password: '', confirmPassword: '' },
   })
 
   const handleSubmit = form.handleSubmit(async (values) => {
-    await login(values)
+    await register(values)
   })
 
   return (
-    <AuthLayout title="欢迎回来" subtitle="登录您的账号">
+    <AuthLayout title="创建账号" subtitle="注册新账号">
       <Form {...form}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Server error banner */}
@@ -63,7 +63,21 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>密码</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="请输入密码" {...field} />
+                  <PasswordInput placeholder="至少 8 位密码" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="confirmPassword"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>确认密码</FormLabel>
+                <FormControl>
+                  <PasswordInput placeholder="请再次输入密码" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -72,13 +86,13 @@ export default function LoginPage() {
 
           <Button type="submit" className="mt-1 h-10 w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-            登录
+            注册
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
-            还没有账号？{' '}
-            <NextLink href="/register" className="font-medium text-primary hover:underline">
-              立即注册
+            已有账号？{' '}
+            <NextLink href="/login" className="font-medium text-primary hover:underline">
+              立即登录
             </NextLink>
           </p>
         </form>

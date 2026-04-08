@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
-import { getToken, getUserInfoFromToken, removeToken, type UserInfo } from '@bff/auth/public'
+import { getToken, getUserInfoFromToken, removeToken } from '@bff/auth/public'
 import { refreshAccessToken } from '@bff/auth/public'
+import type { AuthUser } from '@/types/auth'
 import { useAuthStore } from '@shared/stores/auth-store'
 
 /**
@@ -14,7 +15,7 @@ import { useAuthStore } from '@shared/stores/auth-store'
  */
 export function useRequireAuth() {
   const [isLoading, setIsLoading] = useState(true)
-  const [user, setUser] = useState<UserInfo | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
 
   useEffect(() => {
     async function restoreSession() {
@@ -44,7 +45,7 @@ export function useRequireAuth() {
  * Get current user info without any redirect side effects.
  */
 export function useUser() {
-  const [user, setUser] = useState<UserInfo | null>(null)
+  const [user, setUser] = useState<AuthUser | null>(null)
 
   useEffect(() => {
     const token = getToken()

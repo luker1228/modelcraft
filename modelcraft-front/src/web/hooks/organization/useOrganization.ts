@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { getToken, getOrgNameFromToken } from '@bff/auth/public'
+import { getCurrentOrgName } from '@bff/auth/public'
 
 /**
  * Hook to get current organization name from URL params
@@ -46,10 +46,9 @@ export function useOrganization() {
  * ```
  */
 export function useUserOrganization() {
-  const token = getToken()
   const orgName = useMemo(() => {
-    return token ? getOrgNameFromToken(token) : null
-  }, [token])
+    return getCurrentOrgName()
+  }, [])
 
   return useMemo(() => ({
     orgName,

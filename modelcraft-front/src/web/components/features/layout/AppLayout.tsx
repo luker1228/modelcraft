@@ -73,7 +73,7 @@ export function AppLayout({
 
   const token = getToken()
   const userInfo = getUserInfoFromToken(token || '')
-  const displayName = userInfo?.name || userInfo?.email || 'User'
+  const displayName = userInfo?.name || userInfo?.phone || 'User'
 
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -287,7 +287,7 @@ export function AppLayout({
 
           <UserMenu
             userName={displayName}
-            userEmail={userInfo?.email}
+            userEmail={userInfo?.phone}
             onLogout={handleLogout}
           />
         </div>

@@ -43,7 +43,7 @@ import { saveUserPreferences } from "@web/routing/smart-redirect"
 import { cn } from "@/shared/utils"
 import type { Project } from "@/types"
 import type { ProjectFormValues } from "@web/components/features/project/ProjectDialog"
-import { getToken } from "@bff/auth/casdoor"
+import { getToken } from "@bff/auth/public"
 
 // Membership info from API response
 interface MembershipInfo {

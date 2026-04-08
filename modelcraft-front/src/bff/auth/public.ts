@@ -3,10 +3,9 @@ export {
   removeToken,
   getToken,
   getUserInfoFromToken,
-  getOrgNameFromToken,
   isAuthenticated,
   isTokenNearExpiry,
   refreshAccessToken,
-} from './casdoor'
-export type { UserInfo } from './casdoor'
+} from './auth-client'
+export type { AuthUser } from '@/types/auth'
 export { getOrgPath, getWelcomePath, getCurrentOrgName } from './token-utils'
