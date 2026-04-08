@@ -1,63 +1,53 @@
 ---
 name: contract-sync
-description: Sync Go backend API contracts (GraphQL schemas + OpenAPI specs) from modelcraft-go/api/ to modelcraft-front/contract/. Use when the user asks to sync contracts, copy API definitions, update frontend API contracts, or refresh the contract directory. Triggers on phrases like "sync contract", "copy api", "sync api", "update contracts".
+description: >
+  Sync API contracts from the Go backend to the frontend. Use this skill when:
+  - The user says "sync contract", "sync api", "update contract", "refresh contract"
+  - Backend GraphQL schema (.graphql files) or OpenAPI specs (.yaml) have changed and the frontend needs updating
+  - The user reports that `modelcraft-front/contract/` is out of date or missing files
+  - Before running frontend code generation that depends on the contract files
+  Do NOT trigger this skill for questions about what the contracts contain — only trigger on actual sync requests.
 ---
 
 # Contract Sync
 
-Keep `modelcraft-front/contract/` in sync with `modelcraft-go/api/` so the frontend has a local copy of API contracts without cross-repo imports.
+Copies API contracts from `modelcraft-backend/api/` into `modelcraft-front/contract/` so the frontend can use local schema files without reaching across submodule boundaries.
 
-## Source Structure
+> **Note:** In a git-subtree workflow this step is replaced by `git subtree pull`. This script is the local-dev alternative — use it when you just need a quick sync without committing.
 
-GraphQL is now split into two endpoint namespaces (`org` and `project`):
+## What Gets Synced
 
 ```
-modelcraft-go/api/
-├── graph/
-│   ├── org/schema/        # Org-scoped GraphQL endpoint
-│   │   ├── schema.graphql
-│   │   ├── base.graphql
-│   │   ├── project.graphql
-│   │   ├── user_management.graphql
-│   │   └── permission.graphql
-│   └── project/schema/    # Project-scoped GraphQL endpoint
-│       ├── schema.graphql
-│       ├── base.graphql
-│       ├── model.graphql
-│       ├── field.graphql
-│       ├── enum.graphql
-│       ├── cluster.graphql
-│       └── logical_foreign_key.graphql
-└── openapi/               # REST specs (.yaml) — auth, org, user, webhook
-    ├── openapi-root.yaml  # Entry point (references modules)
-    ├── common.yaml        # Shared schemas
-    ├── auth.yaml          # /api/auth/*
-    ├── org.yaml           # /api/org/*
-    ├── user.yaml          # /api/user/*
-    └── webhook.yaml       # /api/webhook/*
+modelcraft-backend/api/              →   modelcraft-front/contract/
+├── graph/org/schema/*.graphql       →   graph/org/schema/
+├── graph/project/schema/*.graphql   →   graph/project/schema/
+└── openapi/*.yaml                   →   openapi/
+    (openapi-root, auth, org, user, webhook, common)
 ```
 
-## Sync Workflow
+**Excluded** (backend-only, not needed by frontend):
+- `openapi/openapi.yaml` — generated bundle
+- `openapi/oapi-codegen.yaml` — Go codegen config
+- `openapi/examples/` — example payloads
+- `openapi/README.md` — backend maintenance notes
 
-Run the sync script:
+## How to Run
 
 ```bash
-bash .codebuddy/skills/contract-sync/scripts/sync-contracts.sh
+bash .agents/skills/front/contract-sync/scripts/sync-contracts.sh
 ```
 
-The script:
-1. Cleans `contract/` entirely (no stale files)
-2. Copies `graph/org/schema/*.graphql` → `contract/graph/org/schema/`
-3. Copies `graph/project/schema/*.graphql` → `contract/graph/project/schema/`
-4. Copies `openapi/` module YAMLs → `contract/openapi/`
-5. Excludes generated files: `openapi.yaml` (bundled), `oapi-codegen.yaml` (codegen config)
+The script auto-detects the monorepo root (the directory containing both `modelcraft-front/` and `modelcraft-backend/`), so it works regardless of which directory you run it from.
 
 ## After Sync
 
-Verify the contract directory contains the expected files:
+Check the result:
 
 ```bash
-find contract/ -type f
+find modelcraft-front/contract/ -type f | sort
 ```
 
-Expected output: `.graphql` files under `contract/graph/org/schema/` and `contract/graph/project/schema/`, plus module `.yaml` files under `contract/openapi/`.
+Expected files:
+- `graph/org/schema/` — 5–6 `.graphql` files (base, schema, project, user_management, permission, api_key, …)
+- `graph/project/schema/` — 6–7 `.graphql` files (base, schema, model, field, enum, cluster, logical_foreign_key, …)
+- `openapi/` — 6 `.yaml` files (openapi-root, auth, org, user, webhook, common)

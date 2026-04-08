@@ -12,23 +12,23 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-# Walk up to find modelcraft-front project root (contains package.json)
+# Walk up to find the monorepo root (contains modelcraft-front/ and modelcraft-backend/)
 _dir="$SCRIPT_DIR"
 while [ "$_dir" != "/" ]; do
-  if [ -f "$_dir/package.json" ]; then
-    PROJECT_ROOT="$_dir"
+  if [ -d "$_dir/modelcraft-front" ] && [ -d "$_dir/modelcraft-backend" ]; then
+    MONO_ROOT="$_dir"
     break
   fi
   _dir="$(cd "$_dir/.." && pwd)"
 done
-if [ -z "${PROJECT_ROOT:-}" ]; then
-  echo "Error: Cannot find project root (no package.json found)" >&2
+if [ -z "${MONO_ROOT:-}" ]; then
+  echo "Error: Cannot find monorepo root (directory with both modelcraft-front/ and modelcraft-backend/)" >&2
   exit 1
 fi
 
-MONO_ROOT="$(cd "$PROJECT_ROOT/.." && pwd)"
+PROJECT_ROOT="$MONO_ROOT/modelcraft-front"
 
-SRC="$MONO_ROOT/modelcraft-go/api"
+SRC="$MONO_ROOT/modelcraft-backend/api"
 DST="$PROJECT_ROOT/contract"
 
 # Ensure source exists

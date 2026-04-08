@@ -11,7 +11,7 @@ import { TEST_CLUSTER_CONNECTION } from '@web/graphql/mutations/cluster'
 import { UPDATE_PROJECT_CLUSTER } from '@web/graphql/mutations/project'
 import { cn } from '@/shared/utils'
 import { IdentityFormSection } from '@web/components/ui/identity-form-section'
-import { DatabaseConfigFields } from '@web/components/database/DatabaseConfigFields'
+import { DatabaseConfigFields } from '@web/components/features/database/DatabaseConfigFields'
 import {
   Database,
   CheckCircle,

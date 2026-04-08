@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import type { GraphQLErrorInfo, GraphQLErrorContext } from '@web/components/error/GraphQLErrorDialog'
+import type { GraphQLErrorInfo, GraphQLErrorContext } from '@web/components/common/GraphQLErrorDialog'
 
 interface ErrorState {
   // 状态

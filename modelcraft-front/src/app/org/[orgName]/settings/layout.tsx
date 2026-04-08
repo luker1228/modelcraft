@@ -1,8 +1,8 @@
 'use client'
 
 import { useParams, usePathname, useRouter } from 'next/navigation'
-import { useRequireAuth } from '@web/hooks/useAuth'
-import { AppLayout } from '@web/components/layout/AppLayout'
+import { useRequireAuth } from '@web/hooks/auth/useAuth'
+import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { cn } from '@/shared/utils'
 import { Users, Shield } from 'lucide-react'
 

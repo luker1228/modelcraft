@@ -4,7 +4,7 @@ import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery } from '@apollo/client'
 import { Users } from 'lucide-react'
-import { AppLayout } from '@web/components/layout/AppLayout'
+import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { Badge } from '@web/components/ui/badge'
 import {
   Table,
@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@web/components/ui/table'
 import { GET_ORGANIZATION_MEMBERS } from '@web/graphql/queries/user'
-import { useRequireAuth } from '@web/hooks/useAuth'
+import { useRequireAuth } from '@web/hooks/auth/useAuth'
 import type { OrganizationMember } from '@/types'
 
 interface MembersQueryData {

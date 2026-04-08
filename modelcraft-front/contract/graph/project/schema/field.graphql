@@ -28,8 +28,7 @@ enum FormatType {
   RELATION
 
   # 枚举类型
-  ENUM        # 单选枚举
-  ENUM_ARRAY  # 多选枚举
+  ENUM        # 单选或多选枚举（由 isArray 字段确定）
   ENUM_LABEL  # 枚举标签（虚拟字段）
 }
 
@@ -48,6 +47,7 @@ type Field {
   isUnique: Boolean!
   isPrimary: Boolean!
   isDeprecated: Boolean!
+  isArray: Boolean!  # true for multi-select enum fields, false for single-select
   description: String
   validationConfig: ValidationConfig
   relateFkId: String       # RELATION 格式字段引用的逻辑外键 ID（nullable）
@@ -137,6 +137,7 @@ input AddFieldInput {
   nonNull: Boolean = false #mongodb not support to set
   required: Boolean = false
   isUnique: Boolean = false
+  isArray: Boolean = false  # true for multi-select enum, false for single-select or non-enum fields
   description: String
   validationConfig: ValidationConfigInput
   relateFkId: String               # RELATION 格式字段引用的逻辑外键 ID（可选）
@@ -160,4 +161,19 @@ extend type Mutation {
   addFields(modelID: ID!, input: [AddFieldInput!]!): Model @hasPermission(action: "model:update")
   updateField(modelID: ID!, fieldName: String!, input: UpdateFieldInput!): Model @hasPermission(action: "model:update")
   removeField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
+
+  """
+  将字段标记为废弃。
+  废弃的字段仍然存在于数据库中，但标识为不推荐使用。
+  若字段已处于废弃状态，幂等返回成功。
+  状态转换：ACTIVE → DEPRECATED
+  """
+  deprecateField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
+
+  """
+  解除字段的废弃状态，恢复为正常可用。
+  若字段未处于废弃状态，幂等返回成功。
+  状态转换：DEPRECATED → ACTIVE
+  """
+  undeprecateField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
 }

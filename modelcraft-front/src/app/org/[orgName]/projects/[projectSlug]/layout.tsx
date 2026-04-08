@@ -2,12 +2,12 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { AppLayout } from '@web/components/layout/AppLayout'
-import { LoadingScreen } from '@web/components/layout/LoadingScreen'
-import { CopilotWrapper, AIAssistantButton } from '@web/components/copilot/CopilotProvider'
-import { RouteValidator } from '@web/components/guards/RouteValidator'
+import { AppLayout } from '@web/components/features/layout/AppLayout'
+import { LoadingScreen } from '@web/components/common/LoadingScreen'
+import { CopilotWrapper, AIAssistantButton } from '@web/components/features/copilot/CopilotProvider'
+import { RouteValidator } from '@web/components/common/RouteValidator'
 import { useAppStore } from '@web/stores/app'
-import { useRequireAuth } from '@web/hooks/useAuth'
+import { useRequireAuth } from '@web/hooks/auth/useAuth'
 import "@copilotkit/react-ui/styles.css"
 
 interface ProjectLayoutProps {

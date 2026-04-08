@@ -1,10 +1,10 @@
 # Auth Domain - paths + schemas
 
 paths:
-  /api/auth/token:
+  /api/auth/login:
     post:
-      operationId: exchangeToken
-      summary: Exchange authorization code for JWT
+      operationId: login
+      summary: Login with external user info (called by BFF after Casdoor OAuth)
       tags: [Auth]
       security: []
       requestBody:
@@ -12,20 +12,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "auth.yaml#/schemas/TokenRequest"
+              $ref: "auth.yaml#/schemas/LoginRequest"
       responses:
         "200":
-          description: Token exchange successful
+          description: Login successful
           content:
             application/json:
               schema:
-                $ref: "auth.yaml#/schemas/ExchangeTokenResponse"
-        "400":
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+                $ref: "auth.yaml#/schemas/LoginResponse"
         "500":
           description: Server error
           content:
@@ -56,21 +50,23 @@ paths:
   /api/auth/logout:
     post:
       operationId: logout
-      summary: Logout
+      summary: Logout (revoke refresh token)
       tags: [Auth]
       security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/RefreshTokenRequest"
       responses:
-        "200":
+        "204":
           description: Logout successful
-          content:
-            application/json:
-              schema:
-                $ref: "auth.yaml#/schemas/LogoutResponse"
 
   /api/auth/refresh:
     post:
       operationId: refreshToken
-      summary: Refresh access token using refresh token
+      summary: Refresh tokens using refresh token (rotation)
       tags: [Auth]
       security: []
       requestBody:
@@ -85,13 +81,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "auth.yaml#/schemas/ExchangeTokenResponse"
+                $ref: "auth.yaml#/schemas/RefreshResponse"
         "401":
-          description: Invalid or expired refresh token
+          description: Invalid, expired, or reused refresh token
           content:
             application/json:
               schema:
-                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+                $ref: "auth.yaml#/schemas/UnauthorizedError"
         "500":
           description: Server error
           content:
@@ -101,36 +97,29 @@ paths:
 
 schemas:
   # -- Auth domain errors --
-  AuthInvalidInputError:
+  UnauthorizedError:
     type: object
-    required:
-      - requestId
-      - error
     properties:
-      requestId:
-        type: string
       error:
-        type: object
-        required:
-          - code
-          - message
-        properties:
-          code:
-            type: string
-            enum:
-              - PARAM_INVALID.AUTH
-          message:
-            type: string
+        type: string
 
   # -- Auth request types --
-  TokenRequest:
+  LoginRequest:
     type: object
     required:
-      - code
+      - externalId
+      - email
+      - name
     properties:
-      code:
+      externalId:
         type: string
-        description: Authorization code from OAuth flow
+        description: External authentication provider user ID
+      email:
+        type: string
+        description: User email address
+      name:
+        type: string
+        description: User display name
 
   RefreshTokenRequest:
     type: object
@@ -142,59 +131,41 @@ schemas:
         description: Refresh token obtained during initial authentication
 
   # -- Auth response types --
-  ExchangeTokenResponse:
-    allOf:
-      - $ref: "common.yaml#/schemas/BaseResponse"
-      - type: object
-        required:
-          - accessToken
-          - tokenType
-          - expiresIn
-          - user
-        properties:
-          accessToken:
-            type: string
-            description: ModelCraft JWT with user identity
-            example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
-          tokenType:
-            type: string
-            description: Token type, always "Bearer"
-            example: "Bearer"
-          expiresIn:
-            type: integer
-            description: Token lifetime in seconds
-            example: 3600
-          refreshToken:
-            type: string
-            description: Refresh token for future token renewal (optional, reserved for future use)
-            example: ""
-          user:
-            $ref: "#/schemas/UserInfo"
-
-  UserInfo:
+  LoginResponse:
     type: object
     required:
-      - id
-      - externalId
-      - name
-      - email
+      - userId
+      - refreshToken
+      - expiresAt
     properties:
-      id:
+      userId:
         type: string
         description: ModelCraft internal user UUID
-        example: "487101d6-92bb-459e-b4f1-426255126d27"
-      externalId:
+      refreshToken:
         type: string
-        description: External authentication provider user ID (e.g., Casdoor user ID)
-        example: "test-integration"
-      name:
+        description: Opaque refresh token (store in httpOnly cookie)
+      expiresAt:
         type: string
-        description: User display name
-        example: "John Doe"
-      email:
+        format: date-time
+        description: Refresh token expiration time
+
+  RefreshResponse:
+    type: object
+    required:
+      - userId
+      - refreshToken
+      - expiresAt
+    properties:
+      userId:
         type: string
-        description: User email address
-        example: "john.doe@example.com"
+        description: ModelCraft internal user UUID
+      refreshToken:
+        type: string
+        description: New opaque refresh token (replaces the old one)
+      expiresAt:
+        type: string
+        format: date-time
+        description: New refresh token expiration time
 
   GetLoginURLResponse:
     allOf:
@@ -202,12 +173,4 @@ schemas:
       - type: object
         properties:
           loginUrl:
-            type: string
-
-  LogoutResponse:
-    allOf:
-      - $ref: "common.yaml#/schemas/BaseResponse"
-      - type: object
-        properties:
-          message:
             type: string

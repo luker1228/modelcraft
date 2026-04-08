@@ -465,23 +465,6 @@ export const UPDATE_FIELD = gql`
   }
 `
 
-// 废弃字段
-export const DEPRECATE_FIELD = gql`
-  mutation DeprecateField($modelID: ID!, $fieldName: String!) {
-    deprecateField(modelID: $modelID, fieldName: $fieldName) {
-      id
-    }
-  }
-`
-
-// 取消废弃字段
-export const UNDEPRECATE_FIELD = gql`
-  mutation UndeprecateField($modelID: ID!, $fieldName: String!) {
-    undeprecateField(modelID: $modelID, fieldName: $fieldName) {
-      id
-    }
-  }
-`
 
 // 删除字段
 export const REMOVE_FIELD = gql`

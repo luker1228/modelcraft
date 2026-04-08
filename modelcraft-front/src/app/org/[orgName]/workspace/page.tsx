@@ -15,12 +15,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@web/components/ui/dropdown-menu"
-import { ProjectCard, ProjectDialog, DeleteProjectDialog } from "@web/components/project"
-import { AppLayout } from "@web/components/layout/AppLayout"
+import { ProjectCard, ProjectDialog, DeleteProjectDialog } from "@web/components/features/project"
+import { AppLayout } from "@web/components/features/layout/AppLayout"
 import { useProjectStore } from "@web/stores/project"
 import { useAppStore } from "@web/stores"
 import { useOrganizationStore } from "@shared/stores/organization"
-import { useRequireAuth } from "@web/hooks/useAuth"
+import { useRequireAuth } from "@web/hooks/auth/useAuth"
 import { GET_PROJECTS } from "@web/graphql/queries/project"
 import {
   CREATE_PROJECT,
@@ -42,7 +42,7 @@ import { toast } from "sonner"
 import { saveUserPreferences } from "@web/routing/smart-redirect"
 import { cn } from "@/shared/utils"
 import type { Project } from "@/types"
-import type { ProjectFormValues } from "@web/components/project/ProjectDialog"
+import type { ProjectFormValues } from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@bff/auth/casdoor"
 
 // Membership info from API response

@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import { Inter, Space_Grotesk, Fira_Code } from 'next/font/google'
 import { ApolloWrapper } from '@web/providers/apollo-wrapper'
 import { QueryWrapper } from '@web/providers/query-wrapper'
-import { ErrorProvider } from '@web/components/providers/ErrorProvider'
+import { ErrorProvider } from '@web/components/features/providers/ErrorProvider'
 
 import { Toaster } from 'sonner'
 import '@/app/globals.css'

@@ -2,7 +2,7 @@
 
 import { useQuery } from '@apollo/client'
 import { GET_ORGANIZATION_MEMBERS } from '@web/graphql'
-import { MembersTable } from '@web/components/settings/MembersTable'
+import { MembersTable } from '@web/components/features/settings/MembersTable'
 import type { OrganizationMember } from '@/types'
 
 interface MembersQueryData {
