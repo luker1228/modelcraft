@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
@@ -289,14 +290,12 @@ type SqlModelDesignRepository struct {
 
 // NewSqlModelDesignRepository creates a SqlModelDesignRepository.
 func NewSqlModelDesignRepository(q dbgen.Querier) modeldesign.ModelRepository {
-	return &SqlModelDesignRepository{q: q}
+	return &SqlModelDesignRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // Save creates a new model and its fields.
 func (r *SqlModelDesignRepository) Save(ctx context.Context, orgName string, model *modeldesign.DataModel) error {
-	if err := sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.CreateModel(ctx, ModelToCreateParams(model, orgName))
-	}); err != nil {
+	if err := r.q.CreateModel(ctx, ModelToCreateParams(model, orgName)); err != nil {
 		return err
 	}
 
@@ -313,12 +312,8 @@ func (r *SqlModelDesignRepository) Save(ctx context.Context, orgName string, mod
 func (r *SqlModelDesignRepository) GetByID(
 	ctx context.Context, id string, options ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
-	var row dbgen.Model
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetModelByID(ctx, id)
-		return e
-	}); err != nil {
+	row, err := r.q.GetModelByID(ctx, id)
+	if err != nil {
 		return nil, err
 	}
 
@@ -349,16 +344,12 @@ func (r *SqlModelDesignRepository) GetByName(
 	databaseName, name, projectSlug string,
 	opts ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
-	var row dbgen.Model
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetModelByName(ctx, dbgen.GetModelByNameParams{
-			DatabaseName: databaseName,
-			Name:         name,
-			ProjectSlug:  projectSlug,
-		})
-		return e
-	}); err != nil {
+	row, err := r.q.GetModelByName(ctx, dbgen.GetModelByNameParams{
+		DatabaseName: databaseName,
+		Name:         name,
+		ProjectSlug:  projectSlug,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -386,7 +377,7 @@ func (r *SqlModelDesignRepository) GetByName(
 func (r *SqlModelDesignRepository) Update(ctx context.Context, model *modeldesign.DataModel) error {
 	result, err := r.q.UpdateModel(ctx, ModelToUpdateParams(model))
 	if err != nil {
-		return sqlerr.WrapSQLError(err)
+		return err
 	}
 
 	rows, _ := result.RowsAffected()
@@ -399,9 +390,7 @@ func (r *SqlModelDesignRepository) Update(ctx context.Context, model *modeldesig
 
 // Delete removes a model by ID.
 func (r *SqlModelDesignRepository) Delete(ctx context.Context, id string) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteModel(ctx, id)
-	})
+	return r.q.DeleteModel(ctx, id)
 }
 
 // Query returns a paginated, filtered list of models plus total count.
@@ -427,45 +416,37 @@ func (r *SqlModelDesignRepository) Query(
 		offset = 0
 	}
 
-	var rows []dbgen.Model
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListModels(ctx, dbgen.ListModelsParams{
-			ProjectSlug:  queryObj.ProjectSlug,
-			DatabaseName: queryObj.DatabaseName,
-			Column3:      nameFilter,
-			CONCAT:       nameArg,
-			Column5:      titleFilter,
-			CONCAT_2:     titleArg,
-			Column7:      nullableStatusFilter(statusArg),
-			Status:       statusArg,
-			Column9:      nullableStorageTypeFilter(storageTypeArg),
-			StorageType:  storageTypeArg,
-			Limit:        limit,
-			Offset:       offset,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListModels(ctx, dbgen.ListModelsParams{
+		ProjectSlug:  queryObj.ProjectSlug,
+		DatabaseName: queryObj.DatabaseName,
+		Column3:      nameFilter,
+		CONCAT:       nameArg,
+		Column5:      titleFilter,
+		CONCAT_2:     titleArg,
+		Column7:      nullableStatusFilter(statusArg),
+		Status:       statusArg,
+		Column9:      nullableStorageTypeFilter(storageTypeArg),
+		StorageType:  storageTypeArg,
+		Limit:        limit,
+		Offset:       offset,
+	})
+	if err != nil {
 		return nil, 0, err
 	}
 
-	var total int64
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		total, e = r.q.CountModels(ctx, dbgen.CountModelsParams{
-			ProjectSlug:  queryObj.ProjectSlug,
-			DatabaseName: queryObj.DatabaseName,
-			Column3:      nameFilter,
-			CONCAT:       nameArg,
-			Column5:      titleFilter,
-			CONCAT_2:     titleArg,
-			Column7:      nullableStatusFilter(statusArg),
-			Status:       statusArg,
-			Column9:      nullableStorageTypeFilter(storageTypeArg),
-			StorageType:  storageTypeArg,
-		})
-		return e
-	}); err != nil {
+	total, err := r.q.CountModels(ctx, dbgen.CountModelsParams{
+		ProjectSlug:  queryObj.ProjectSlug,
+		DatabaseName: queryObj.DatabaseName,
+		Column3:      nameFilter,
+		CONCAT:       nameArg,
+		Column5:      titleFilter,
+		CONCAT_2:     titleArg,
+		Column7:      nullableStatusFilter(statusArg),
+		Status:       statusArg,
+		Column9:      nullableStorageTypeFilter(storageTypeArg),
+		StorageType:  storageTypeArg,
+	})
+	if err != nil {
 		return nil, 0, err
 	}
 
@@ -479,12 +460,8 @@ func (r *SqlModelDesignRepository) Query(
 
 // GetAll returns all models without pagination.
 func (r *SqlModelDesignRepository) GetAll(ctx context.Context) ([]modeldesign.DataModel, error) {
-	var rows []dbgen.Model
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.GetAllModels(ctx)
-		return e
-	}); err != nil {
+	rows, err := r.q.GetAllModels(ctx)
+	if err != nil {
 		return nil, err
 	}
 
@@ -502,7 +479,7 @@ func (r *SqlModelDesignRepository) UpdateWithVersion(
 ) (int64, error) {
 	result, err := r.q.UpdateModelWithVersion(ctx, ModelToUpdateWithVersionParams(model, originalVersion))
 	if err != nil {
-		return 0, sqlerr.WrapSQLError(err)
+		return 0, err
 	}
 
 	rows, _ := result.RowsAffected()
@@ -518,12 +495,8 @@ func (r *SqlModelDesignRepository) FindByDeploymentStatus(
 		sqlStatuses[i] = sql.NullString{String: string(s), Valid: true}
 	}
 
-	var rows []dbgen.Model
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.FindModelsByDeploymentStatus(ctx, sqlStatuses)
-		return e
-	}); err != nil {
+	rows, err := r.q.FindModelsByDeploymentStatus(ctx, sqlStatuses)
+	if err != nil {
 		return nil, err
 	}
 
@@ -544,9 +517,7 @@ func (r *SqlModelDesignRepository) AddFields(
 		if err != nil {
 			return fmt.Errorf("AddFields: convert field %q: %w", field.Name, err)
 		}
-		if err := sqlerr.ExecWithErrorHandling(func() error {
-			return r.q.CreateFieldDefinition(ctx, params)
-		}); err != nil {
+		if err := r.q.CreateFieldDefinition(ctx, params); err != nil {
 			return err
 		}
 	}
@@ -558,12 +529,7 @@ func (r *SqlModelDesignRepository) AddFields(
 func (r *SqlModelDesignRepository) GetTailFieldDisplayOrder(
 	ctx context.Context, modelID string,
 ) (string, error) {
-	var order string
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		order, e = r.q.GetTailFieldDisplayOrder(ctx, modelID)
-		return e
-	})
+	order, err := r.q.GetTailFieldDisplayOrder(ctx, modelID)
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return "", nil
@@ -581,13 +547,7 @@ func (r *SqlModelDesignRepository) AddRelationField(
 	if err != nil {
 		return fmt.Errorf("AddRelationField: convert field: %w", err)
 	}
-	if err := sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.CreateFieldDefinition(ctx, params)
-	}); err != nil {
-		return err
-	}
-
-	return nil
+	return r.q.CreateFieldDefinition(ctx, params)
 }
 
 // GetFieldByModelID retrieves a single field definition by model ID and field name.
@@ -595,15 +555,11 @@ func (r *SqlModelDesignRepository) AddRelationField(
 func (r *SqlModelDesignRepository) GetFieldByModelID(
 	ctx context.Context, modelID, name string,
 ) (*modeldesign.FieldDefinition, error) {
-	var row dbgen.FieldDefinition
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetFieldByModelIDAndName(ctx, dbgen.GetFieldByModelIDAndNameParams{
-			ModelID: modelID,
-			Name:    name,
-		})
-		return e
-	}); err != nil {
+	row, err := r.q.GetFieldByModelIDAndName(ctx, dbgen.GetFieldByModelIDAndNameParams{
+		ModelID: modelID,
+		Name:    name,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -632,7 +588,7 @@ func (r *SqlModelDesignRepository) UpdateField(
 
 	result, err := r.q.UpdateField(ctx, params)
 	if err != nil {
-		return sqlerr.WrapSQLError(err)
+		return err
 	}
 
 	rows, _ := result.RowsAffected()
@@ -664,7 +620,7 @@ func (r *SqlModelDesignRepository) DeleteFields(
 		Names:   names,
 	})
 	if err != nil {
-		return sqlerr.WrapSQLError(err)
+		return err
 	}
 
 	rows, _ := result.RowsAffected()
@@ -689,7 +645,7 @@ func (r *SqlModelDesignRepository) BulkDeleteFields(
 			Names:   req.Name,
 		})
 		if err != nil {
-			return sqlerr.WrapSQLError(err)
+			return err
 		}
 
 		rows, _ := result.RowsAffected()
@@ -710,12 +666,10 @@ func (r *SqlModelDesignRepository) UpdateFieldsStatus(
 			continue
 		}
 
-		if err := sqlerr.ExecWithErrorHandling(func() error {
-			return r.q.UpdateFieldsStatus(ctx, dbgen.UpdateFieldsStatusParams{
-				Status:  string(req.Status),
-				ModelID: req.ModelId,
-				Names:   req.Name,
-			})
+		if err := r.q.UpdateFieldsStatus(ctx, dbgen.UpdateFieldsStatusParams{
+			Status:  string(req.Status),
+			ModelID: req.ModelId,
+			Names:   req.Name,
 		}); err != nil {
 			return err
 		}
@@ -727,12 +681,8 @@ func (r *SqlModelDesignRepository) UpdateFieldsStatus(
 func (r *SqlModelDesignRepository) getFieldsForModel(
 	ctx context.Context, modelID string,
 ) ([]*modeldesign.FieldDefinition, error) {
-	var rows []dbgen.FieldDefinition
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.GetFieldsByModelID(ctx, modelID)
-		return e
-	}); err != nil {
+	rows, err := r.q.GetFieldsByModelID(ctx, modelID)
+	if err != nil {
 		return nil, err
 	}
 

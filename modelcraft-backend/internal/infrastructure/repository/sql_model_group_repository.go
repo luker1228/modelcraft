@@ -7,6 +7,7 @@ import (
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
@@ -53,25 +54,18 @@ type SqlModelGroupRepository struct {
 
 // NewSqlModelGroupRepository creates a new SqlModelGroupRepository.
 func NewSqlModelGroupRepository(q dbgen.Querier) modeldesign.ModelGroupRepository {
-	return &SqlModelGroupRepository{q: q}
+	return &SqlModelGroupRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // Create persists a new group.
 func (r *SqlModelGroupRepository) Create(ctx context.Context, group *modeldesign.ModelGroup) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.CreateModelGroup(ctx, ModelGroupToCreateParams(group))
-	})
+	return r.q.CreateModelGroup(ctx, ModelGroupToCreateParams(group))
 }
 
 // FindByID retrieves a group by its unique identifier.
 // Returns nil, nil if the group does not exist.
 func (r *SqlModelGroupRepository) FindByID(ctx context.Context, id string) (*modeldesign.ModelGroup, error) {
-	var row dbgen.ModelGroup
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetModelGroupByID(ctx, id)
-		return e
-	})
+	row, err := r.q.GetModelGroupByID(ctx, id)
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("model group not found by id: " + id)
@@ -86,15 +80,10 @@ func (r *SqlModelGroupRepository) FindByID(ctx context.Context, id string) (*mod
 func (r *SqlModelGroupRepository) FindByName(
 	ctx context.Context, orgName, projectSlug, name string,
 ) (*modeldesign.ModelGroup, error) {
-	var row dbgen.ModelGroup
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetModelGroupByName(ctx, dbgen.GetModelGroupByNameParams{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-			Name:        name,
-		})
-		return e
+	row, err := r.q.GetModelGroupByName(ctx, dbgen.GetModelGroupByNameParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Name:        name,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -109,15 +98,11 @@ func (r *SqlModelGroupRepository) FindByName(
 func (r *SqlModelGroupRepository) ListByProject(
 	ctx context.Context, orgName, projectSlug string,
 ) ([]*modeldesign.ModelGroup, error) {
-	var rows []dbgen.ModelGroup
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListModelGroupsByProject(ctx, dbgen.ListModelGroupsByProjectParams{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListModelGroupsByProject(ctx, dbgen.ListModelGroupsByProjectParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -130,20 +115,16 @@ func (r *SqlModelGroupRepository) ListByProject(
 
 // Update persists changes to an existing group (name, display_order).
 func (r *SqlModelGroupRepository) Update(ctx context.Context, group *modeldesign.ModelGroup) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.UpdateModelGroup(ctx, dbgen.UpdateModelGroupParams{
-			Name:         group.Name,
-			DisplayOrder: group.DisplayOrder,
-			ID:           group.ID,
-		})
+	return r.q.UpdateModelGroup(ctx, dbgen.UpdateModelGroupParams{
+		Name:         group.Name,
+		DisplayOrder: group.DisplayOrder,
+		ID:           group.ID,
 	})
 }
 
 // Delete removes a group by ID.
 func (r *SqlModelGroupRepository) Delete(ctx context.Context, id string) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteModelGroup(ctx, id)
-	})
+	return r.q.DeleteModelGroup(ctx, id)
 }
 
 // UpdateModelsGroup sets group_id = newGroupID on all models currently assigned to groupID.
@@ -151,11 +132,9 @@ func (r *SqlModelGroupRepository) Delete(ctx context.Context, id string) error {
 func (r *SqlModelGroupRepository) UpdateModelsGroup(
 	ctx context.Context, groupID string, newGroupID *string,
 ) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.UpdateModelsGroupID(ctx, dbgen.UpdateModelsGroupIDParams{
-			GroupID:   sqlerr.PtrToNullStr(newGroupID),
-			GroupID_2: sql.NullString{String: groupID, Valid: true},
-		})
+	return r.q.UpdateModelsGroupID(ctx, dbgen.UpdateModelsGroupIDParams{
+		GroupID:   sqlerr.PtrToNullStr(newGroupID),
+		GroupID_2: sql.NullString{String: groupID, Valid: true},
 	})
 }
 
@@ -164,14 +143,9 @@ func (r *SqlModelGroupRepository) UpdateModelsGroup(
 func (r *SqlModelGroupRepository) GetTailDisplayOrder(
 	ctx context.Context, orgName, projectSlug string,
 ) (string, error) {
-	var order string
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		order, e = r.q.GetTailModelGroupDisplayOrder(ctx, dbgen.GetTailModelGroupDisplayOrderParams{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-		})
-		return e
+	order, err := r.q.GetTailModelGroupDisplayOrder(ctx, dbgen.GetTailModelGroupDisplayOrderParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {

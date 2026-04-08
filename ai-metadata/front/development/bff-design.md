@@ -195,6 +195,306 @@ flowchart TD
 
 ---
 
+## Mock 开发策略（MSW）
+
+前端开发阶段使用 **MSW（Mock Service Worker）** 在网络层拦截请求，BFF 代码无需感知 mock 存在，联调时关闭 MSW 即可，零修改 BFF 代码。
+
+### 为什么选 MSW
+
+- 在 Service Worker / Node 网络层拦截，BFF 代码保持干净
+- mock handler 从 GraphQL Schema 自动生成，保证与后端契约一致
+- 可模拟延迟、4xx/5xx、网络超时等真实场景
+- 联调时一行代码关闭，无需改动任何 BFF 实现
+
+### 目录结构
+
+```
+src/mocks/
+├── browser.ts          # 浏览器端 MSW worker 启动入口
+├── node.ts             # Node 端（测试）MSW server 启动入口
+├── handlers/
+│   ├── index.ts        # 汇总所有 handler
+│   ├── org/            # Org-Scoped GraphQL handlers
+│   │   └── generated.ts  # codegen 自动生成，禁止手动编辑
+│   └── project/        # Project-Scoped GraphQL handlers
+│       └── generated.ts  # codegen 自动生成，禁止手动编辑
+└── data/
+    ├── org/            # Org 域 mock 数据工厂
+    └── project/        # Project 域 mock 数据工厂
+```
+
+### 安装与配置
+
+```bash
+# 安装 MSW
+npm install msw --save-dev
+
+# 生成 Service Worker 文件（放入 public/）
+npx msw init public/ --save
+```
+
+`src/mocks/browser.ts`：
+
+```ts
+import { setupWorker } from 'msw/browser'
+import { handlers } from './handlers'
+
+export const worker = setupWorker(...handlers)
+```
+
+在 `src/app/layout.tsx`（或 `_app.tsx`）中启动：
+
+```ts
+// 只在开发环境 + mock 模式下启动
+if (process.env.NEXT_PUBLIC_API_MOCKING === 'enabled') {
+  const { worker } = await import('@/mocks/browser')
+  await worker.start({ onUnhandledRequest: 'bypass' })
+}
+```
+
+`.env.local` 中控制开关：
+
+```bash
+NEXT_PUBLIC_API_MOCKING=enabled   # 开发阶段
+# NEXT_PUBLIC_API_MOCKING=        # 联调 / 生产（留空或删除）
+```
+
+### codegen 生成 mock handlers
+
+`contract/` 目录更新后，运行 codegen 自动生成 MSW handler：
+
+```bash
+# 生成类型 + mock handlers（一次执行）
+npm run codegen
+```
+
+`codegen.ts` 配置示例：
+
+```ts
+// codegen.ts
+const config: CodegenConfig = {
+  generates: {
+    // 1. 生成 TypeScript 类型
+    'src/generated/graphql.ts': {
+      plugins: ['typescript', 'typescript-operations'],
+    },
+    // 2. 生成 MSW handlers（org 域）
+    'src/mocks/handlers/org/generated.ts': {
+      schema: 'contract/graph/org/schema/**/*.graphql',
+      plugins: ['typescript-msw'],
+    },
+    // 3. 生成 MSW handlers（project 域）
+    'src/mocks/handlers/project/generated.ts': {
+      schema: 'contract/graph/project/schema/**/*.graphql',
+      plugins: ['typescript-msw'],
+    },
+  },
+}
+```
+
+生成的 handler 只提供骨架，需在 `data/` 目录补充具体 mock 数据：
+
+```ts
+// src/mocks/data/project/model-factory.ts
+import { faker } from '@faker-js/faker'
+
+export function createMockModel(override = {}) {
+  return {
+    id: faker.string.uuid(),
+    name: faker.word.noun(),
+    displayName: faker.commerce.productName(),
+    description: faker.lorem.sentence(),
+    createdAt: faker.date.recent().toISOString(),
+    ...override,
+  }
+}
+```
+
+### handler 汇总
+
+```ts
+// src/mocks/handlers/index.ts
+import { orgHandlers } from './org/generated'
+import { projectHandlers } from './project/generated'
+
+export const handlers = [
+  ...orgHandlers,
+  ...projectHandlers,
+]
+```
+
+### 开发 → 联调切换流程
+
+```
+开发阶段
+  NEXT_PUBLIC_API_MOCKING=enabled
+  前端请求 → MSW 拦截 → mock 数据
+        ↓
+后端接口就绪，准备联调
+  .env.local 中删除或置空 NEXT_PUBLIC_API_MOCKING
+  前端请求 → BFF → 真实后端
+  （BFF 代码零修改）
+```
+
+### 注意事项
+
+- `src/mocks/handlers/*/generated.ts` 由 codegen 生成，**禁止手动编辑**
+- mock 数据工厂放在 `src/mocks/data/`，由 worker 负责维护
+- `contract/` 更新后必须重新运行 codegen，否则 mock 与 spec 可能不一致
+- mock handler 默认返回成功响应；错误场景（4xx/5xx）在 `data/` 中补充专用工厂函数
+
+---
+
+## Mock 开发策略（MSW）
+
+前端开发阶段使用 **MSW（Mock Service Worker）** 在网络层拦截请求，BFF 代码无需感知 mock 存在，联调时关闭 MSW 即可，零修改 BFF 代码。
+
+### 为什么选 MSW
+
+- 在 Service Worker / Node 网络层拦截，BFF 代码保持干净
+- mock handler 从 GraphQL Schema 自动生成，保证与后端契约一致
+- 可模拟延迟、4xx/5xx、网络超时等真实场景
+- 联调时一行代码关闭，无需改动任何 BFF 实现
+
+### 目录结构
+
+```
+src/mocks/
+├── browser.ts          # 浏览器端 MSW worker 启动入口
+├── node.ts             # Node 端（测试）MSW server 启动入口
+├── handlers/
+│   ├── index.ts        # 汇总所有 handler
+│   ├── org/            # Org-Scoped GraphQL handlers
+│   │   └── generated.ts  # codegen 自动生成，禁止手动编辑
+│   └── project/        # Project-Scoped GraphQL handlers
+│       └── generated.ts  # codegen 自动生成，禁止手动编辑
+└── data/
+    ├── org/            # Org 域 mock 数据工厂
+    └── project/        # Project 域 mock 数据工厂
+```
+
+### 安装与配置
+
+```bash
+# 安装 MSW
+npm install msw --save-dev
+
+# 生成 Service Worker 文件（放入 public/）
+npx msw init public/ --save
+```
+
+`src/mocks/browser.ts`：
+
+```ts
+import { setupWorker } from 'msw/browser'
+import { handlers } from './handlers'
+
+export const worker = setupWorker(...handlers)
+```
+
+在 `src/app/layout.tsx`（或 `_app.tsx`）中启动：
+
+```ts
+// 只在开发环境 + mock 模式下启动
+if (process.env.NEXT_PUBLIC_API_MOCKING === 'enabled') {
+  const { worker } = await import('@/mocks/browser')
+  await worker.start({ onUnhandledRequest: 'bypass' })
+}
+```
+
+`.env.local` 中控制开关：
+
+```bash
+NEXT_PUBLIC_API_MOCKING=enabled   # 开发阶段
+# NEXT_PUBLIC_API_MOCKING=        # 联调 / 生产（留空或删除）
+```
+
+### codegen 生成 mock handlers
+
+`contract/` 目录更新后，运行 codegen 自动生成 MSW handler：
+
+```bash
+# 生成类型 + mock handlers（一次执行）
+npm run codegen
+```
+
+`codegen.ts` 配置示例：
+
+```ts
+// codegen.ts
+const config: CodegenConfig = {
+  generates: {
+    // 1. 生成 TypeScript 类型
+    'src/generated/graphql.ts': {
+      plugins: ['typescript', 'typescript-operations'],
+    },
+    // 2. 生成 MSW handlers（org 域）
+    'src/mocks/handlers/org/generated.ts': {
+      schema: 'contract/graph/org/schema/**/*.graphql',
+      plugins: ['typescript-msw'],
+    },
+    // 3. 生成 MSW handlers（project 域）
+    'src/mocks/handlers/project/generated.ts': {
+      schema: 'contract/graph/project/schema/**/*.graphql',
+      plugins: ['typescript-msw'],
+    },
+  },
+}
+```
+
+生成的 handler 只提供骨架，需在 `data/` 目录补充具体 mock 数据：
+
+```ts
+// src/mocks/data/project/model-factory.ts
+import { faker } from '@faker-js/faker'
+
+export function createMockModel(override = {}) {
+  return {
+    id: faker.string.uuid(),
+    name: faker.word.noun(),
+    displayName: faker.commerce.productName(),
+    description: faker.lorem.sentence(),
+    createdAt: faker.date.recent().toISOString(),
+    ...override,
+  }
+}
+```
+
+### handler 汇总
+
+```ts
+// src/mocks/handlers/index.ts
+import { orgHandlers } from './org/generated'
+import { projectHandlers } from './project/generated'
+
+export const handlers = [
+  ...orgHandlers,
+  ...projectHandlers,
+]
+```
+
+### 开发 → 联调切换流程
+
+```
+开发阶段
+  NEXT_PUBLIC_API_MOCKING=enabled
+  前端请求 → MSW 拦截 → mock 数据
+        ↓
+后端接口就绪，准备联调
+  .env.local 中删除或置空 NEXT_PUBLIC_API_MOCKING
+  前端请求 → BFF → 真实后端
+  （BFF 代码零修改）
+```
+
+### 注意事项
+
+- `src/mocks/handlers/*/generated.ts` 由 codegen 生成，**禁止手动编辑**
+- mock 数据工厂放在 `src/mocks/data/`，由 worker 负责维护
+- `contract/` 更新后必须重新运行 codegen，否则 mock 与 spec 可能不一致
+- mock handler 默认返回成功响应；错误场景（4xx/5xx）在 `data/` 中补充专用工厂函数
+
+---
+
 ## 参考文档
 
 | 主题 | 文档 |

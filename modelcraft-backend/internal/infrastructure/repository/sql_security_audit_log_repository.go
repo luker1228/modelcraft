@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"modelcraft/internal/infrastructure/dbgen"
-	"modelcraft/internal/infrastructure/sqlerr"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 
 	domainauth "modelcraft/internal/domain/auth"
 )
@@ -17,7 +17,7 @@ type SqlSecurityAuditLogRepository struct {
 
 // NewSqlSecurityAuditLogRepository creates a SqlSecurityAuditLogRepository.
 func NewSqlSecurityAuditLogRepository(q dbgen.Querier) domainauth.SecurityAuditLogRepository {
-	return &SqlSecurityAuditLogRepository{q: q}
+	return &SqlSecurityAuditLogRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // Insert inserts a security audit log record.
@@ -32,13 +32,11 @@ func (r *SqlSecurityAuditLogRepository) Insert(ctx context.Context, log *domaina
 		detail = &raw
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.InsertSecurityAuditLog(ctx, dbgen.InsertSecurityAuditLogParams{
-			ID:     log.ID,
-			UserID: log.UserID,
-			Event:  string(log.Event),
-			Detail: detail,
-		})
+	return r.q.InsertSecurityAuditLog(ctx, dbgen.InsertSecurityAuditLogParams{
+		ID:     log.ID,
+		UserID: log.UserID,
+		Event:  string(log.Event),
+		Detail: detail,
 	})
 }
 

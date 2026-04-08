@@ -37,6 +37,10 @@ tool: *
 - 修复 Bug
 - 优化性能和代码质量
 - 填充 architect 留下的 `// TODO: worker 实现` 骨架
+- 实现 BFF 层模块（`src/bff/`）
+- 在接口 spec 就绪后运行 codegen，生成 TypeScript 类型和 MSW mock handlers
+- 维护 `src/mocks/data/` 中的 mock 数据工厂
+- 联调阶段关闭 MSW，验证 BFF 接真实后端是否正常
 
 **不做什么**：
 - 不决定文件放在哪个目录（由 architect 决定，或由用户指定）
@@ -401,8 +405,73 @@ const MAX_FIELD_COUNT = 100        // UPPER_SNAKE_CASE
 
 ---
 
+## BFF 层实现流程
+
+### 阶段一：接口 spec 就绪后（开发阶段）
+
+```bash
+# 1. contract/ 目录已通过 git subtree pull 更新
+# 2. 运行 codegen，生成类型 + MSW mock handlers
+npm run codegen
+
+# 3. 启动 mock 模式
+# .env.local
+NEXT_PUBLIC_API_MOCKING=enabled
+```
+
+### 阶段二：实现 BFF 模块
+
+新增 BFF 模块时遵循门面模式：
+
+```ts
+// src/bff/{module}/internal-impl.ts  ← 内部实现
+export function doSomethingInternal() { ... }
+
+// src/bff/{module}/public.ts  ← 唯一对外出口
+export { doSomethingInternal as doSomething } from './internal-impl'
+```
+
+禁止 Web Layer 跳过 `public.ts` 直接访问 BFF 内部文件。
+
+### 阶段三：补充 mock 数据工厂
+
+codegen 生成的 handler 只提供骨架，需在 `src/mocks/data/` 补充具体数据：
+
+```ts
+// src/mocks/data/project/model-factory.ts
+import { faker } from '@faker-js/faker'
+
+export function createMockModel(override = {}) {
+  return {
+    id: faker.string.uuid(),
+    name: faker.word.noun(),
+    displayName: faker.commerce.productName(),
+    ...override,
+  }
+}
+```
+
+### 阶段四：联调切换（后端接口就绪后）
+
+```bash
+# .env.local 中关闭 mock
+# NEXT_PUBLIC_API_MOCKING=enabled  ← 注释或删除此行
+
+# 重启开发服务器，BFF 自动指向真实后端
+# BFF 代码零修改
+npm run dev
+```
+
+联调验证清单：
+- [ ] 所有 GraphQL query / mutation 响应结构与 mock 一致
+- [ ] 认证 token 注入正常（检查 Network 请求头）
+- [ ] 错误场景（4xx/5xx）UI 处理正常
+
+---
+
 ## 完成检查清单
 
+### 组件实现
 - [ ] `'use client'` 已添加（使用 hook / 事件处理 / 浏览器 API 时）
 - [ ] 无 `any` 类型，所有 Props / 参数 / 返回值均有显式类型
 - [ ] loading / error / empty 三种状态均已处理
@@ -413,3 +482,11 @@ const MAX_FIELD_COUNT = 100        // UPPER_SNAKE_CASE
 - [ ] 无原始灰度颜色（`text-gray-*` 等）
 - [ ] 所有 shadcn 组件正确导入（不手写原生替代）
 - [ ] 导入顺序正确
+
+### BFF 与 Mock
+- [ ] `contract/` 更新后已重新运行 `npm run codegen`
+- [ ] `src/mocks/handlers/*/generated.ts` 未手动编辑（由 codegen 生成）
+- [ ] mock 数据工厂已在 `src/mocks/data/` 中补充
+- [ ] 开发阶段 `NEXT_PUBLIC_API_MOCKING=enabled` 已设置
+- [ ] 新增 BFF 模块时已创建 `public.ts` 门面，内部实现未直接暴露
+- [ ] 联调前已确认关闭 MSW（`.env.local` 中移除 `NEXT_PUBLIC_API_MOCKING`）

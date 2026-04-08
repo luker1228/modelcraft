@@ -8,6 +8,7 @@ import (
 	"modelcraft/internal/domain/permission"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 
 	bizerrors "modelcraft/pkg/bizerrors"
@@ -57,7 +58,7 @@ type SqlCasbinRoleRepository struct {
 
 // NewSqlCasbinRoleRepository creates a new SqlCasbinRoleRepository backed by the given sqlc Querier.
 func NewSqlCasbinRoleRepository(q dbgen.Querier) permission.RoleRepository {
-	return &SqlCasbinRoleRepository{q: q}
+	return &SqlCasbinRoleRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // CreateRole persists a new role to the database and populates role.ID with the generated primary key.
@@ -69,13 +70,8 @@ func (r *SqlCasbinRoleRepository) CreateRole(ctx context.Context, role *permissi
 		OrgName:     role.OrgName,
 	}
 
-	var result sql.Result
-
-	if err := sqlerr.ExecWithErrorHandling(func() error {
-		var e error
-		result, e = r.q.CreateRole(ctx, params)
-		return e
-	}); err != nil {
+	result, err := r.q.CreateRole(ctx, params)
+	if err != nil {
 		return bizerrors.Wrapf(err, "failed to create role: %s", role.Name)
 	}
 
@@ -92,13 +88,7 @@ func (r *SqlCasbinRoleRepository) CreateRole(ctx context.Context, role *permissi
 // GetRoleByID retrieves a role by its integer ID.
 // Returns nil, shared.NewNotFoundError when the role is not found.
 func (r *SqlCasbinRoleRepository) GetRoleByID(ctx context.Context, id int) (*permission.Role, error) {
-	var row dbgen.Role
-
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetRoleByID(ctx, int64(id))
-		return e
-	})
+	row, err := r.q.GetRoleByID(ctx, int64(id))
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("role not found by id: " + fmt.Sprint(id))
@@ -114,15 +104,9 @@ func (r *SqlCasbinRoleRepository) GetRoleByID(ctx context.Context, id int) (*per
 func (r *SqlCasbinRoleRepository) GetRoleByNameAndOrg(
 	ctx context.Context, name, orgName string,
 ) (*permission.Role, error) {
-	var row dbgen.Role
-
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetRoleByNameAndOrg(ctx, dbgen.GetRoleByNameAndOrgParams{
-			Name:    name,
-			OrgName: orgName,
-		})
-		return e
+	row, err := r.q.GetRoleByNameAndOrg(ctx, dbgen.GetRoleByNameAndOrgParams{
+		Name:    name,
+		OrgName: orgName,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -140,16 +124,13 @@ func (r *SqlCasbinRoleRepository) ListRolesByOrg(
 	ctx context.Context, orgName string, includeSystem bool,
 ) ([]*permission.Role, error) {
 	var rows []dbgen.Role
-
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		if includeSystem {
-			rows, e = r.q.ListRolesByOrgIncludeSystem(ctx, orgName)
-		} else {
-			rows, e = r.q.ListRolesByOrg(ctx, orgName)
-		}
-		return e
-	}); err != nil {
+	var err error
+	if includeSystem {
+		rows, err = r.q.ListRolesByOrgIncludeSystem(ctx, orgName)
+	} else {
+		rows, err = r.q.ListRolesByOrg(ctx, orgName)
+	}
+	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to list roles by org: %s", orgName)
 	}
 
@@ -169,17 +150,13 @@ func (r *SqlCasbinRoleRepository) UpdateRole(ctx context.Context, role *permissi
 		ID:          int64(role.ID),
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.UpdateRole(ctx, params)
-	})
+	return r.q.UpdateRole(ctx, params)
 }
 
 // DeleteRole deletes a role by its integer ID.
 // Related user_roles and role_permissions are cascade-deleted by the database foreign key constraints.
 func (r *SqlCasbinRoleRepository) DeleteRole(ctx context.Context, id int) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteRole(ctx, int64(id))
-	})
+	return r.q.DeleteRole(ctx, int64(id))
 }
 
 // SqlCasbinPermissionRepository is the sqlc-based implementation of permission.PermissionRepository.
@@ -189,7 +166,7 @@ type SqlCasbinPermissionRepository struct {
 
 // NewSqlCasbinPermissionRepository creates a new SqlCasbinPermissionRepository backed by the given sqlc Querier.
 func NewSqlCasbinPermissionRepository(q dbgen.Querier) permission.PermissionRepository {
-	return &SqlCasbinPermissionRepository{q: q}
+	return &SqlCasbinPermissionRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // AddPermission adds a permission entry for the given role within the specified organization.
@@ -203,9 +180,7 @@ func (r *SqlCasbinPermissionRepository) AddPermission(
 		Act:     perm.Act,
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.CreatePermission(ctx, params)
-	})
+	return r.q.CreatePermission(ctx, params)
 }
 
 // RemovePermission deletes the specific permission entry identified by roleID, obj, and act.
@@ -216,22 +191,15 @@ func (r *SqlCasbinPermissionRepository) RemovePermission(ctx context.Context, ro
 		Act:    act,
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeletePermission(ctx, params)
-	})
+	return r.q.DeletePermission(ctx, params)
 }
 
 // ListPermissionsByRole returns all permissions assigned to the given role, across all organizations.
 func (r *SqlCasbinPermissionRepository) ListPermissionsByRole(
 	ctx context.Context, roleID int,
 ) ([]*permission.Permission, error) {
-	var rows []dbgen.RolePermission
-
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListPermissionsByRole(ctx, int64(roleID))
-		return e
-	}); err != nil {
+	rows, err := r.q.ListPermissionsByRole(ctx, int64(roleID))
+	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to list permissions by role: %d", roleID)
 	}
 
@@ -247,16 +215,11 @@ func (r *SqlCasbinPermissionRepository) ListPermissionsByRole(
 func (r *SqlCasbinPermissionRepository) ListPermissionsByRoleAndOrg(
 	ctx context.Context, roleID int, orgName string,
 ) ([]*permission.Permission, error) {
-	var rows []dbgen.RolePermission
-
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListPermissionsByRoleAndOrg(ctx, dbgen.ListPermissionsByRoleAndOrgParams{
-			RoleID:  int64(roleID),
-			OrgName: orgName,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListPermissionsByRoleAndOrg(ctx, dbgen.ListPermissionsByRoleAndOrgParams{
+		RoleID:  int64(roleID),
+		OrgName: orgName,
+	})
+	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to list permissions by role %d and org %s", roleID, orgName)
 	}
 
@@ -271,9 +234,7 @@ func (r *SqlCasbinPermissionRepository) ListPermissionsByRoleAndOrg(
 // DeletePermissionsByRole removes all permission entries for the given role.
 // This is typically called as part of a role deletion workflow.
 func (r *SqlCasbinPermissionRepository) DeletePermissionsByRole(ctx context.Context, roleID int) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeletePermissionsByRole(ctx, int64(roleID))
-	})
+	return r.q.DeletePermissionsByRole(ctx, int64(roleID))
 }
 
 // SqlCasbinUserRoleRepository is the sqlc-based implementation of permission.UserRoleRepository.
@@ -283,7 +244,7 @@ type SqlCasbinUserRoleRepository struct {
 
 // NewSqlCasbinUserRoleRepository creates a new SqlCasbinUserRoleRepository backed by the given sqlc Querier.
 func NewSqlCasbinUserRoleRepository(q dbgen.Querier) permission.UserRoleRepository {
-	return &SqlCasbinUserRoleRepository{q: q}
+	return &SqlCasbinUserRoleRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // AssignRole persists a new user-role binding and populates userRole.ID with the generated primary key.
@@ -294,13 +255,8 @@ func (r *SqlCasbinUserRoleRepository) AssignRole(ctx context.Context, userRole *
 		OrgName: userRole.OrgName,
 	}
 
-	var result sql.Result
-
-	if err := sqlerr.ExecWithErrorHandling(func() error {
-		var e error
-		result, e = r.q.CreateUserRole(ctx, params)
-		return e
-	}); err != nil {
+	result, err := r.q.CreateUserRole(ctx, params)
+	if err != nil {
 		return bizerrors.Wrapf(err,
 			"failed to assign role %d to user %s in org %s", userRole.RoleID, userRole.UserID, userRole.OrgName,
 		)
@@ -324,25 +280,18 @@ func (r *SqlCasbinUserRoleRepository) RevokeRole(ctx context.Context, userID str
 		OrgName: orgName,
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteUserRole(ctx, params)
-	})
+	return r.q.DeleteUserRole(ctx, params)
 }
 
 // ListUserRoles returns all role bindings for the given user within the specified organization.
 func (r *SqlCasbinUserRoleRepository) ListUserRoles(
 	ctx context.Context, userID, orgName string,
 ) ([]*permission.UserRole, error) {
-	var rows []dbgen.UserRole
-
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListUserRoles(ctx, dbgen.ListUserRolesParams{
-			UserID:  userID,
-			OrgName: orgName,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListUserRoles(ctx, dbgen.ListUserRolesParams{
+		UserID:  userID,
+		OrgName: orgName,
+	})
+	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to list user roles for user %s in org %s", userID, orgName)
 	}
 
@@ -358,16 +307,11 @@ func (r *SqlCasbinUserRoleRepository) ListUserRoles(
 func (r *SqlCasbinUserRoleRepository) ListRoleUsers(
 	ctx context.Context, roleID int, orgName string,
 ) ([]*permission.UserRole, error) {
-	var rows []dbgen.UserRole
-
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListRoleUsers(ctx, dbgen.ListRoleUsersParams{
-			RoleID:  int64(roleID),
-			OrgName: orgName,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListRoleUsers(ctx, dbgen.ListRoleUsersParams{
+		RoleID:  int64(roleID),
+		OrgName: orgName,
+	})
+	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to list users for role %d in org %s", roleID, orgName)
 	}
 
@@ -384,16 +328,10 @@ func (r *SqlCasbinUserRoleRepository) ListRoleUsers(
 func (r *SqlCasbinUserRoleRepository) GetUserRole(
 	ctx context.Context, userID string, roleID int, orgName string,
 ) (*permission.UserRole, error) {
-	var row dbgen.UserRole
-
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetUserRole(ctx, dbgen.GetUserRoleParams{
-			UserID:  userID,
-			RoleID:  int64(roleID),
-			OrgName: orgName,
-		})
-		return e
+	row, err := r.q.GetUserRole(ctx, dbgen.GetUserRoleParams{
+		UserID:  userID,
+		RoleID:  int64(roleID),
+		OrgName: orgName,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -410,9 +348,7 @@ func (r *SqlCasbinUserRoleRepository) GetUserRole(
 // DeleteUserRolesByRole removes all user-role bindings for the given role.
 // This is typically called as part of a role deletion workflow.
 func (r *SqlCasbinUserRoleRepository) DeleteUserRolesByRole(ctx context.Context, roleID int) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteUserRolesByRole(ctx, int64(roleID))
-	})
+	return r.q.DeleteUserRolesByRole(ctx, int64(roleID))
 }
 
 // Compile-time interface satisfaction checks.

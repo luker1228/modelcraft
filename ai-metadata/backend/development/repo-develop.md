@@ -1,10 +1,3 @@
----
-description: Repository 层开发规范 - 用于 internal/infrastructure/*.go 开发
-globs: internal/infrastructure/**/*.go
-alwaysApply: false
-priority: high
----
-
 # Repository 层开发规范
 
 > **触发条件**: 当开发或修改 `internal/infrastructure/**/*.go` 文件时适用本规范。
@@ -19,6 +12,7 @@ import (
     "modelcraft/internal/domain/modeldesign"         // Domain 实体和接口
     "modelcraft/internal/domain/shared"              // Sentinel errors
     "modelcraft/internal/infrastructure/dbgen"       // sqlc 生成代码
+    "modelcraft/internal/infrastructure/sqlerr"      // 错误处理 & 类型转换
     "modelcraft/pkg/*"                       
 )
 
@@ -28,109 +22,131 @@ import (
     "modelcraft/internal/interfaces/graphql"         // ❌ Interfaces 层
 )
 ```
+
+### 2. Go Wrapper 架构
+
+Repository 层使用多层 Go Wrapper 处理横切关注点，避免在业务代码中重复处理：
+
+```
+Application 层
+    ↓ (调用 Repository 方法)
+Repository 实现 (sql_*_repository.go)
+    ├─ sqlerr 包 (错误分类、类型转换)
+    ├─ sqlcLogger wrapper (SQL 日志)
+    └─ TxManager wrapper (事务控制)
+    ↓
+dbgen.Querier (sqlc 生成的接口)
+    ↓
+*sql.DB / *sql.Tx (数据库驱动)
+```
+
+---
+
 ## 错误处理规范
 
-### 规则 1: RecordNotFound 的两种处理模式
+### 规则 1: Go Wrapper 已处理错误分类，Repository 直接返回
 
-#### 模式 A: 返回 `(value, error)` - 不存在时返回错误
+`sqlerr.QueryWithSQLErrorHandling` / `sqlerr.ExecWithErrorHandling` 已经完成了所有错误分类工作：
+- `sql.ErrNoRows` → 自动转换为 `shared.NotFoundError`
+- MySQL 错误码 → 自动转换为对应的 `shared.RepositoryError`
 
-**适用场景**: 必须存在的记录,不存在是错误情况 (如 `GetByID`)
+Repository 层**不需要手动检查 `IsNotFoundError`**，直接返回 wrapper 的结果即可。
+
+#### 模式 A: 返回 `(value, error)` — 不存在时由 wrapper 返回 NotFoundError
+
+**适用场景**: 必须存在的记录 (如 `GetByID`, `GetByName`)
 
 ```go
-// ✅ 正确: 直接返回错误 (包括 NotFoundError)
-func (r *SqlModelRepo) GetByID(ctx context.Context, id string) (*DataModel, error) {
-    var row dbgen.Model
-    err := QueryWithSQLErrorHandling(func() error {
+// ✅ 正确: wrapper 已处理所有错误分类，直接返回
+func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*Role, error) {
+    var row dbgen.Role
+    if err := sqlerr.QueryWithSQLErrorHandling(func() error {
         var e error
-        row, e = r.q.GetModelByID(ctx, id)
+        row, e = r.q.GetRoleByID(ctx, id)
+        return e
+    }); err != nil {
+        return nil, err  // ← wrapper 已将 sql.ErrNoRows 转为 NotFoundError，直接透传
+    }
+    return RoleToDomain(row), nil
+}
+
+// ❌ 错误: 手动检查 IsNotFoundError（与 wrapper 重复）
+func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*Role, error) {
+    var row dbgen.Role
+    err := sqlerr.QueryWithSQLErrorHandling(func() error {
+        var e error
+        row, e = r.q.GetRoleByID(ctx, id)
         return e
     })
     if err != nil {
-        // QueryWithSQLErrorHandling 已将 sql.ErrNoRows 转换为 shared.NewNotFoundError
-        // 直接返回,由 Application 层判断如何处理
-        return nil, err  // ← 关键: 所有错误(包括 NotFound)都直接返回
+        if sqlerr.IsNotFoundError(err) {
+            // ❌ 多余: wrapper 已经返回了 NotFoundError，无需再次检查和包装
+            return nil, shared.NewNotFoundError("role not found by id: " + id)
+        }
+        return nil, bizerrors.Wrapf(err, "failed to get role by id: %s", id)
     }
-    return toDomain(row), nil
+    return RoleToDomain(row), nil
 }
 
-// ❌ 错误: 检查 NotFound 后返回 (nil, nil)
-func (r *SqlModelRepo) GetByID(ctx context.Context, id string) (*DataModel, error) {
-    row, err := r.q.GetModelByID(ctx, id)
+// ❌ 错误: 绕过 wrapper，手动调用 sqlc 并检查错误
+func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*Role, error) {
+    row, err := r.q.GetRoleByID(ctx, id)
     if err != nil {
-        if shared.IsNotFoundError(err) {
-            // ❌ 不要返回 (nil, nil)，应该直接返回 error
-            return nil, nil
+        if errors.Is(err, sql.ErrNoRows) {
+            return nil, nil  // ❌ 不要返回 (nil, nil)
         }
         return nil, err
     }
-    return toDomain(row), nil
+    return RoleToDomain(row), nil
 }
 ```
 
-#### 模式 B: 返回 `(value, bool, error)` - 不存在是预期情况
+#### 模式 B: 返回 `(value, bool, error)` — 不存在是预期情况
 
-**适用场景**: 记录不存在是合法状态,不应视为错误 (如通过外部 ID 查询可能不存在的映射关系)
+**适用场景**: 记录不存在是合法状态，需要区分 "不存在" 和 "出错" (如查询可能不存在的映射关系)
+
+> 这是唯一需要在 Repository 层检查 `IsNotFoundError` 的场景 —— 因为需要将 NotFoundError 转换为 `(zero, false, nil)`。
 
 ```go
-// ✅ 正确: 经典 Go 模式 - 返回 (value, found, error)
-// FindIDByExternalID retrieves the internal user ID by external authentication provider ID.
-// Returns ("", false, nil) if no user matches the given externalID.
-// Returns ("", false, err) on system failure.
+// ✅ 正确: 拦截 NotFound 转为 (zero, false, nil)
 func (r *SqlUserRepo) FindIDByExternalID(ctx context.Context, externalID string) (string, bool, error) {
     var userID string
-    err := QueryWithSQLErrorHandling(func() error {
+
+    err := sqlerr.QueryWithSQLErrorHandling(func() error {
         var e error
-        userID, e = r.q.GetUserIDByExternalID(ctx, externalID)
+        userID, e = r.q.FindIDByExternalID(ctx, externalID)
         return e
     })
-    
-    if err != nil {
-        // 不存在是预期情况,不是错误
-        if shared.IsNotFoundError(err) {
-            return "", false, nil  // ← 关键: 返回 false 表示未找到,不返回 error
-        }
-        // 其他错误 (DB 故障等) 才返回 error
-        return "", false, err
-    }
-    
-    return userID, true, nil  // 找到记录
-}
 
-// Application 层使用示例
-func (uc *LoginUseCase) Execute(ctx context.Context, externalID string) error {
-    userID, found, err := uc.userRepo.FindIDByExternalID(ctx, externalID)
     if err != nil {
-        // 处理系统错误
-        return bizerrors.ConvertRepositoryError(ctx, err)
+        if sqlerr.IsNotFoundError(err) {
+            return "", false, nil  // ← 不存在是预期情况，不是错误
+        }
+        return "", false, bizerrors.Wrapf(err, "failed to find user id by external id: %s", externalID)
     }
-    if !found {
-        // 处理"未找到"的业务逻辑 (例如创建新用户)
-        return uc.createNewUser(ctx, externalID)
-    }
-    // 使用找到的 userID
-    return uc.processLogin(ctx, userID)
+
+    return userID, true, nil
 }
 ```
 
 **两种模式的选择标准**:
 
-| 场景 | 返回值 | 不存在时返回 | 示例 |
-|------|--------|------------|------|
-| **必须存在的记录** | `(value, error)` | `(nil, NotFoundError)` | `GetByID`, `GetByName` |
-| **可能不存在的查询** | `(value, bool, error)` | `(value, false, nil)` | `FindIDByExternalID`, `FindMapping` |
+| 场景 | 返回值 | 不存在时返回 | 是否检查 IsNotFoundError | 示例 |
+|------|--------|------------|------------------------|------|
+| **必须存在的记录** | `(value, error)` | `(nil, NotFoundError)` | 不检查，wrapper 直接返回 | `GetByID`, `GetByName` |
+| **可能不存在的查询** | `(value, bool, error)` | `(zero, false, nil)` | 检查，转为 false | `FindIDByExternalID` |
 
 **判断依据**: 
-- 记录不存在需要**返回业务错误**给前端 → 用模式 A
-- 记录不存在需要**执行后续逻辑**处理 → 用模式 B
-```
+- 记录不存在需要**返回业务错误**给前端 → 用模式 A（wrapper 自动处理）
+- 记录不存在需要**执行后续逻辑**处理 → 用模式 B（拦截 NotFound 转为 bool）
 
-### 规则 2: 使用 `shared.RepositoryError`,不使用 `*BusinessError`
+### 规则 2: 使用 `shared.RepositoryError`，不使用 `*BusinessError`
 
 ```go
-// ✅ 正确: 返回 RepositoryError
+// ✅ 正确: 返回 RepositoryError (通过 sqlerr 包装)
 func (r *SqlModelRepo) Save(ctx context.Context, model *DataModel) error {
     params := toCreateParams(model)
-    return ExecWithErrorHandling(func() error {
+    return sqlerr.ExecWithErrorHandling(func() error {
         return r.q.CreateModel(ctx, params)
     })
 }
@@ -146,64 +162,194 @@ func (r *SqlModelRepo) Save(ctx context.Context, model *DataModel) error {
 }
 ```
 
-### 规则 3: 使用辅助函数处理错误
+### 规则 3: 使用 `sqlerr` 包辅助函数处理错误
 
-项目提供了三个核心辅助函数 (`internal/infrastructure/repository/sql_error_analyzer.go`):
+错误处理辅助函数位于 `internal/infrastructure/sqlerr/sqlerr.go`：
 
 ```go
 // 1. WrapSQLError - 包装任意 SQL 错误
 err := r.q.CreateModel(ctx, params)
-return WrapSQLError(err)  // 自动分类错误类型
+return sqlerr.WrapSQLError(err)  // 自动分类错误类型
 
 // 2. ExecWithErrorHandling - 用于写操作 (INSERT/UPDATE/DELETE)
-return ExecWithErrorHandling(func() error {
+return sqlerr.ExecWithErrorHandling(func() error {
     return r.q.CreateModel(ctx, params)
 })
 
 // 3. QueryWithSQLErrorHandling - 用于读操作 (SELECT)
 var row dbgen.Model
-err := QueryWithSQLErrorHandling(func() error {
+err := sqlerr.QueryWithSQLErrorHandling(func() error {
     var e error
     row, e = r.q.GetModelByID(ctx, id)
     return e
 })
+
+// 4. WrapSQLErrorInPlace - 用于 named return + defer 场景
+func (r *SqlModelRepo) GetByID(ctx context.Context, id string) (result *DataModel, err error) {
+    defer sqlerr.WrapSQLErrorInPlace(&err)
+    // ... 直接使用 err，defer 会自动包装
+}
 ```
 
-**错误分类逻辑** (`AnalyzeSQLError`):
-- `sql.ErrNoRows` → `shared.ErrRecordNotFound` (sentinel error)
+**错误分类逻辑** (`sqlerr.AnalyzeSQLError`):
+- `sql.ErrNoRows` → `shared.NewNotFoundError` (sentinel error)
 - MySQL 错误 1062 (Duplicate entry) → `shared.ErrTypeDuplicatedKey`
 - MySQL 错误 1451/1452 (FK constraint) → `shared.ErrTypeConstraint`
-- 其他错误 → 根据错误消息模式匹配分类
+- MySQL 错误 1064 (Syntax error) → `shared.ErrTypeDML`
+- MySQL 错误 1146 (Table not found) → `shared.ErrTypeNotFound`
+- 连接/超时/死锁等 → 根据错误消息模式匹配分类
+
+### 规则 4: 模式 A 直接返回 wrapper 错误，不再手动包装
+
+由于 Go Wrapper 已完成错误分类，模式 A 的方法直接返回即可。
+模式 B 的方法因为需要区分 NotFound 和真实错误，仍需 `bizerrors.Wrapf` 包装非 NotFound 错误：
+
+```go
+// ✅ 模式 A: 直接返回 wrapper 错误
+func (r *SqlRoleRepository) GetByName(ctx context.Context, name string) (*Role, error) {
+    var row dbgen.Role
+    if err := sqlerr.QueryWithSQLErrorHandling(func() error {
+        var e error
+        row, e = r.q.GetRoleByName(ctx, name)
+        return e
+    }); err != nil {
+        return nil, err  // wrapper 已分类，直接返回
+    }
+    return RoleToDomain(row), nil
+}
+
+// ✅ 模式 B: 拦截 NotFound，非 NotFound 用 bizerrors.Wrapf 添加上下文
+func (r *SqlUserRepo) FindIDByExternalID(ctx context.Context, externalID string) (string, bool, error) {
+    // ...
+    if err != nil {
+        if sqlerr.IsNotFoundError(err) {
+            return "", false, nil
+        }
+        return "", false, bizerrors.Wrapf(err, "failed to find user id by external id: %s", externalID)
+    }
+    return userID, true, nil
+}
+```
+
+---
+
+## Go Wrapper 规范
+
+### sqlcLogger — SQL 日志 Wrapper
+
+`sqlcLogger` 是 `DBTX` 接口的 Go Wrapper 实现，对所有 SQL 操作透明地添加日志记录（`internal/infrastructure/repository/sqlc_logger.go`）。
+
+```go
+// 创建带日志的数据库连接
+loggedDB := NewSqlcLogger(db, SqlcLogInfo, 100*time.Millisecond)
+
+// 传给 sqlc 生成的 queries（对 Repository 透明）
+queries := dbgen.New(loggedDB)
+```
+
+**四个日志级别**（仿 GORM）:
+
+| 级别 | 行为 |
+|------|------|
+| `SqlcLogSilent` | 关闭所有日志 |
+| `SqlcLogError` | 仅记录错误查询 |
+| `SqlcLogWarn` | 记录错误 + 超过慢查询阈值的查询 |
+| `SqlcLogInfo` | 记录所有查询 |
+
+**特性**:
+- 实现 `DBTX` 接口（`ExecContext`、`QueryContext`、`QueryRowContext`、`PrepareContext`）
+- 自动记录耗时、参数、错误
+- `QueryRowContext` 因 `*sql.Row` 延迟执行特性，仅记录 dispatch
+- SQL 多行文本自动折叠为单行 (`cleanSQL`)
+
+**规则: Repository 代码不需要感知 sqlcLogger 的存在。日志由 Wrapper 自动处理。**
+
+### TxManager — 事务 Wrapper
+
+`TxManager` 提供事务管理的 Go Wrapper，采用 **显式 Querier 传递** 模式（`internal/infrastructure/repository/tx_manager.go`）：
+
+```go
+// 接口定义
+type TxManager interface {
+    WithTx(ctx context.Context, fn func(ctx context.Context, q dbgen.Querier) error) error
+}
+
+// 使用方式 (Application 层)
+func (s *ModelDesignAppService) CreateModel(ctx context.Context, cmd CreateModelCommand) error {
+    return s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+        // q 绑定到事务，Repository 无感知
+        modelRepo := repository.NewSqlModelDesignRepository(q)
+        
+        if err := modelRepo.Save(ctx, orgName, model); err != nil {
+            return err
+        }
+        // ... 更多操作，同一事务
+        return nil
+    })
+}
+```
+
+**特性**:
+- 自动 Begin/Commit/Rollback
+- panic recovery 时自动 Rollback
+- 回调函数接收绑定到事务的 `dbgen.Querier`
+- Repository 接收 `Querier` 接口，对事务/非事务无感知
+
+### ConnectionFactory — 连接工厂
+
+`ConnectionFactory` 持有数据库连接，用于统一构造 Repository（`internal/infrastructure/repository/connection_factory.go`）：
+
+```go
+type ConnectionFactory struct {
+    SqlDB *sql.DB
+}
+
+func NewConnectionFactory(sqlDB *sql.DB) *ConnectionFactory {
+    return &ConnectionFactory{SqlDB: sqlDB}
+}
+```
 
 ---
 
 ## Repository 接口实现规范
 
-### 规则 5: 接收 querier 接口,不直接依赖 `*sql.DB`
+### 规则 5: 接收 `Querier` 接口，不直接依赖 `*sql.DB`
 
 ```go
-// ✅ 正确: 使用 querier 接口 (支持事务和非事务)
-type SqlModelRepository struct {
+// ✅ 正确: 使用 Querier 接口 (支持事务和非事务)
+type SqlModelDesignRepository struct {
     q dbgen.Querier  // 接口，可以是 *sql.DB 或 *sql.Tx
 }
 
-func NewSqlModelRepository(q dbgen.Querier) modeldesign.ModelRepository {
-    return &SqlModelRepository{q: q}
+func NewSqlModelDesignRepository(q dbgen.Querier) modeldesign.ModelRepository {
+    return &SqlModelDesignRepository{q: q}
 }
 
 // ❌ 错误: 直接依赖 *sql.DB
-type SqlModelRepository struct {
+type SqlModelDesignRepository struct {
     db *sql.DB  // ❌ 无法支持事务
 }
 ```
 
-**好处**: Application 层可以传入 `*sql.Tx` 实现事务,Repository 层无感知。
+**好处**: TxManager 可传入绑定到事务的 Querier，Repository 层无感知。
+
+### 规则 6: 编译期接口满足检查
+
+每个 Repository 实现文件末尾必须添加编译期检查：
+
+```go
+// Compile-time interface satisfaction checks.
+var (
+    _ organization.OrganizationRepository = (*SqlOrganizationRepository)(nil)
+    _ user.UserRepository                 = (*SqlUserRepository)(nil)
+)
+```
 
 ---
 
-### 规则 8: 处理 `sql.Null*` 类型
+### 规则 7: 处理 `sql.Null*` 类型
 
-使用项目提供的辅助函数 (`internal/infrastructure/repository/sql_error_analyzer.go`):
+使用 `sqlerr` 包提供的辅助函数（`internal/infrastructure/sqlerr/sqlerr.go`）：
 
 ```go
 // ✅ 正确: 使用辅助函数
@@ -211,10 +357,10 @@ func toDomain(row dbgen.Model) *DataModel {
     return &DataModel{
         ID:          row.ID,
         Name:        row.Name,
-        Description: NullStrToPtr(row.Description),  // sql.NullString → *string
-        Version:     NullInt32ToPtr(row.Version),    // sql.NullInt32 → *int32
-        CreatedAt:   row.CreatedAt.Time,             // sql.NullTime → time.Time
-        IsActive:    NullBoolToBool(row.IsActive),   // sql.NullBool → bool (false for NULL)
+        Description: sqlerr.NullStrToPtr(row.Description),  // sql.NullString → *string
+        Version:     sqlerr.NullInt32ToPtr(row.Version),     // sql.NullInt32 → *int32
+        CreatedAt:   row.CreatedAt.Time,                     // sql.NullTime → time.Time
+        IsActive:    sqlerr.NullBoolToBool(row.IsActive),    // sql.NullBool → bool (false for NULL)
     }
 }
 
@@ -222,9 +368,9 @@ func toCreateParams(model *DataModel) dbgen.CreateModelParams {
     return dbgen.CreateModelParams{
         ID:          model.ID,
         Name:        model.Name,
-        Description: PtrToNullStr(model.Description),  // *string → sql.NullString
-        Version:     PtrToNullInt32(model.Version),    // *int32 → sql.NullInt32
-        IsActive:    BoolToNullBool(model.IsActive),   // bool → sql.NullBool
+        Description: sqlerr.PtrToNullStr(model.Description),  // *string → sql.NullString
+        Version:     sqlerr.PtrToNullInt32(model.Version),     // *int32 → sql.NullInt32
+        IsActive:    sqlerr.BoolToNullBool(model.IsActive),    // bool → sql.NullBool
     }
 }
 
@@ -239,13 +385,14 @@ func toDomain(row dbgen.Model) *DataModel {
 ```
 
 **提供的辅助函数**:
-- `NullStrToPtr` / `PtrToNullStr` - `sql.NullString` ↔ `*string`
-- `NullTimeToPtr` / `PtrToNullTime` - `sql.NullTime` ↔ `*time.Time`
-- `NullInt64ToPtr` / `PtrToNullInt64` - `sql.NullInt64` ↔ `*int64`
-- `NullInt32ToPtr` / `PtrToNullInt32` - `sql.NullInt32` ↔ `*int32`
-- `NullBoolToPtr` / `BoolToNullBool` - `sql.NullBool` ↔ `*bool` / `bool`
+- `NullStrToPtr` / `PtrToNullStr` — `sql.NullString` ↔ `*string`
+- `NullTimeToPtr` / `PtrToNullTime` — `sql.NullTime` ↔ `*time.Time`
+- `NullInt64ToPtr` / `PtrToNullInt64` — `sql.NullInt64` ↔ `*int64`
+- `NullInt32ToPtr` / `PtrToNullInt32` — `sql.NullInt32` ↔ `*int32`
+- `NullBoolToPtr` / `BoolToNullBool` — `sql.NullBool` ↔ `*bool` / `bool`
+- `NullBoolToBool` — `sql.NullBool` → `bool` (NULL 返回 `false`)
 
-### 规则 9: 处理 JSON 字段
+### 规则 8: 处理 JSON 字段
 
 ```go
 // ✅ 正确: JSON Marshal/Unmarshal with error handling
@@ -279,13 +426,13 @@ func toDomain(row dbgen.LogicalForeignKey) (*LogicalForeignKey, error) {
 
 ## 事务支持规范
 
-### 规则 10: Repository 不管理事务
+### 规则 9: Repository 不管理事务
 
 ```go
-// ✅ 正确: Repository 接收 querier，不关心是否在事务中
+// ✅ 正确: Repository 接收 Querier，不关心是否在事务中
 func (r *SqlModelRepo) Save(ctx context.Context, model *DataModel) error {
     params := toCreateParams(model)
-    return ExecWithErrorHandling(func() error {
+    return sqlerr.ExecWithErrorHandling(func() error {
         return r.q.CreateModel(ctx, params)  // r.q 可能是 *sql.DB 或 *sql.Tx
     })
 }
@@ -297,50 +444,87 @@ func (r *SqlModelRepo) SaveWithRelations(ctx context.Context, model *DataModel) 
         return err
     }
     defer tx.Rollback()
-    
     // ... 多个操作
-    
     return tx.Commit()
 }
 ```
 
-**事务由 Application 层管理**:
+**事务由 Application 层通过 TxManager 管理**:
 
 ```go
-// internal/app/modeldesign/model_usecase.go
-func (uc *CreateModelUseCase) Execute(ctx context.Context, input CreateModelInput) error {
-    tx, err := uc.db.BeginTx(ctx, nil)
-    if err != nil {
-        return err
-    }
-    defer tx.Rollback()
-    
-    queries := dbgen.New(tx)  // 使用事务创建 queries
-    
-    // Repository 无感知，只是接收了一个 querier
-    _, err = uc.modelRepo.Save(ctx, queries, model)
-    if err != nil {
-        return err
-    }
-    
-    return tx.Commit()
+// internal/app/modeldesign/model_app.go
+func (s *ModelDesignAppService) CreateModelWithFields(ctx context.Context, cmd CreateModelCommand) error {
+    return s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+        // 使用事务 Querier 创建 Repository
+        modelRepo := repository.NewSqlModelDesignRepository(q)
+        
+        // Repository 无感知，只是接收了一个 Querier
+        if err := modelRepo.Save(ctx, cmd.OrgName, model); err != nil {
+            return err
+        }
+        
+        // 同一事务中的更多操作...
+        return nil
+    })
+    // TxManager 自动 Commit 或 Rollback
 }
 ```
+
+---
+
+## RowsAffected 检查模式
+
+对于 UPDATE/DELETE 操作，检查受影响行数来判断记录是否存在：
+
+```go
+// ✅ 正确: 检查 RowsAffected
+func (r *SqlModelDesignRepository) Update(ctx context.Context, model *modeldesign.DataModel) error {
+    result, err := r.q.UpdateModel(ctx, ModelToUpdateParams(model))
+    if err != nil {
+        return sqlerr.WrapSQLError(err)
+    }
+
+    rows, _ := result.RowsAffected()
+    if rows == 0 {
+        return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "Model not found or not updated")
+    }
+
+    return nil
+}
+```
+
+---
 
 ## 检查清单
 
-开发 Repository 层时,请确认以下事项:
+开发 Repository 层时，请确认以下事项:
 
 - [ ] **选择正确的 RecordNotFound 处理模式**:
-  - [ ] 必须存在的记录 → 返回 `(value, error)`,不存在时返回 `NotFoundError`
-  - [ ] 可能不存在的查询 → 返回 `(value, bool, error)`,不存在时返回 `(value, false, nil)`
-- [ ] 使用 `ExecWithErrorHandling` / `QueryWithSQLErrorHandling` 包装 DB 操作
-- [ ] 返回 `shared.RepositoryError`,不返回 `*bizerrors.BusinessError`
-- [ ] Repository 层对于 `(value, error)` 模式不检查 `IsNotFoundError` (由 Application 层检查)
-- [ ] Repository 层对于 `(value, bool, error)` 模式检查 `IsNotFoundError` 并返回 `(value, false, nil)`
-- [ ] 接收 `querier` 接口,支持事务和非事务
-- [ ] 定义最小 `querier` 接口 (便于测试 mock)
-- [ ] 使用辅助函数处理 `sql.Null*` 类型 (`NullStrToPtr` 等)
-- [ ] 不在 Repository 层开启事务
-- [ ] 不打印错误日志 (只返回 error)
+  - [ ] 必须存在的记录 → 模式 A: `(value, error)`，wrapper 自动返回 NotFoundError，不手动检查
+  - [ ] 可能不存在的查询 → 模式 B: `(value, bool, error)`，拦截 NotFoundError 转为 `(zero, false, nil)`
+- [ ] 使用 `sqlerr.ExecWithErrorHandling` / `sqlerr.QueryWithSQLErrorHandling` 包装 DB 操作
+- [ ] 模式 A 直接返回 wrapper 错误，**不手动检查 `IsNotFoundError`**
+- [ ] 返回 `shared.RepositoryError`，不返回 `*bizerrors.BusinessError`
+- [ ] 接收 `dbgen.Querier` 接口，支持事务和非事务
+- [ ] 文件末尾添加编译期接口满足检查 (`var _ Interface = (*Impl)(nil)`)
+- [ ] 使用 `sqlerr` 包辅助函数处理 `sql.Null*` 类型
+- [ ] 不在 Repository 层开启事务（事务由 Application 层通过 TxManager 管理）
+- [ ] 不打印错误日志（日志由 sqlcLogger Wrapper 自动处理）
 - [ ] 方法命名遵循约定 (`GetByID`, `FindByXXX`, `Save` 等)
+- [ ] UPDATE/DELETE 操作检查 `RowsAffected`
+
+---
+
+## 参考索引
+
+| 主题 | 文件 |
+|------|------|
+| 错误分类 & 类型转换 | `internal/infrastructure/sqlerr/sqlerr.go` |
+| SQL 日志 Wrapper | `internal/infrastructure/repository/sqlc_logger.go` |
+| 事务管理 Wrapper | `internal/infrastructure/repository/tx_manager.go` |
+| 连接工厂 | `internal/infrastructure/repository/connection_factory.go` |
+| 数据库连接 | `internal/infrastructure/repository/sql_connection.go` |
+| Repository 错误辅助 | `internal/infrastructure/repository/error_helper.go` |
+| RepositoryError / Sentinel | `internal/domain/shared/repository_error.go` |
+| 模型设计 Repository 示例 | `internal/infrastructure/repository/sql_modeldesign_repository.go` |
+| 组织/用户 Repository 示例 | `internal/infrastructure/repository/sql_org_repository.go` |

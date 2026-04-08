@@ -1,110 +1,36 @@
-# API Contract 共享规范
+# GraphQL Schema 规范
 
-> **优先级: 中** - 定义后端与前端之间 API Contract 的共享机制和工作流程。
+> **优先级: 中** - 定义后端 GraphQL Schema 的组织结构和代码生成工作流。
 
 ## 概述
 
-后端 `api/` 目录是 API Contract 的**唯一真相源**，通过 **git subtree** 与前端共享，消除手动同步。
-
-## 架构
-
-```
-modelcraft-backend/api/          ← 唯一真相源（后端仓库）
-        │
-        │  git subtree push --prefix=api
-        ▼
-modelcraft-api-contracts        ← 共享仓库（git.woa.com/lukemxjia/modelcraft-api-contracts.git）
-        │
-        │  git subtree add/pull --prefix=contract
-        ▼
-modelcraft-front/contract/      ← 前端消费端（只读）
-```
-
-### 目录内容
-
-```
-api/  (backend: modelcraft-backend/api/)
-├── graph/
-│   ├── org/schema/              # Org 域 GraphQL Schema（5 个 .graphql 文件）
-│   │   ├── base.graphql
-│   │   ├── permission.graphql
-│   │   ├── project.graphql
-│   │   ├── schema.graphql
-│   │   └── user_management.graphql
-│   └── project/schema/          # Project 域 GraphQL Schema（7 个 .graphql 文件）
-│       ├── base.graphql
-│       ├── cluster.graphql
-│       ├── enum.graphql
-│       ├── field.graphql
-│       ├── logical_foreign_key.graphql
-│       ├── model.graphql
-│       └── schema.graphql
-└── openapi/                     # REST API OpenAPI 规范
-    ├── auth.yaml
-    ├── common.yaml
-    ├── openapi-root.yaml
-    ├── org.yaml
-    ├── user.yaml
-    ├── webhook.yaml
-    ├── oapi-codegen.yaml        # 后端专属：代码生成器配置
-    ├── openapi.yaml             # 后端专属：合并后的完整 spec
-    ├── examples/                # 后端专属：示例数据
-    └── README.md
-```
-
-### 共享仓库配置
-
-| 项目 | Remote 名称 | Subtree 前缀 | Squash |
-|------|-------------|-------------|--------|
-| Backend (`modelcraft-go`) | `contracts` | `api/` | 否 |
-| Frontend (`modelcraft-front`) | `contracts` | `contract/` | 是 |
-
-共享仓库 URL: `https://git.woa.com/lukemxjia/modelcraft-api-contracts.git`
+后端 `api/graph/` 目录是 GraphQL Schema 的**唯一真相源**，通过 `gqlgen` 生成 Go 代码。所有 Schema 修改必须先编辑 `.graphql` 文件，再运行代码生成。
 
 ---
 
-## 日常同步工作流
+## Schema 目录结构
 
-### 后端修改 API 后
-
-```bash
-# 1. 正常修改 api/ 下的文件并提交
-git add api/
-git commit -m "feat(api): update model.graphql with new fields"
-
-# 2. 推送到共享仓库
-git subtree push --prefix=api contracts main
 ```
-
-### 前端拉取更新
-
-```bash
-# 1. 从共享仓库拉取最新 contract
-git subtree pull --prefix=contract contracts main --squash
-
-# 2. 推送前端仓库
-git push origin main
-```
-
-### 根项目更新子模块
-
-```bash
-# 在根项目目录下
-git add modelcraft-backend modelcraft-front
-git commit -m "chore: update submodules (sync api contracts)"
+api/graph/
+├── org/schema/              # Org 域 GraphQL Schema
+│   ├── base.graphql         # 基础类型（Node、PageInfo 等）
+│   ├── permission.graphql   # 权限相关类型
+│   ├── project.graphql      # 项目 CRUD
+│   ├── schema.graphql       # 根 Query/Mutation
+│   └── user_management.graphql
+└── project/schema/          # Project 域 GraphQL Schema
+    ├── base.graphql
+    ├── cluster.graphql
+    ├── enum.graphql
+    ├── field.graphql
+    ├── logical_foreign_key.graphql
+    ├── model.graphql
+    └── schema.graphql       # 根 Query/Mutation
 ```
 
 ---
 
-## 关键规则
-
-1. **后端 `api/` 是唯一真相源** — 所有 API Contract 变更只能从后端发起
-2. **前端禁止直接修改 `contract/`** — 所有变更必须通过 subtree pull 获取
-3. **先 push 再 pull** — 后端必须先 `subtree push`，前端才能 `subtree pull`
-4. **Squash 策略** — 后端 push 不用 squash（保留历史），前端 pull 用 squash（保持前端历史整洁）
-5. **Squash 一致性** — 一旦开始某种 squash 策略，不能中途切换
-
-## GraphQL Schema 组织
+## 两套独立 Schema
 
 后端有**两套独立的 GraphQL Schema**，分别服务在不同 endpoint：
 
@@ -113,50 +39,52 @@ git commit -m "chore: update submodules (sync api contracts)"
 | Org GraphQL | `api/graph/org/schema/` | `/graphql/org/{orgName}/` | 项目/集群/用户/角色管理 |
 | Project GraphQL | `api/graph/project/schema/` | `/graphql/org/{orgName}/project/{projectSlug}/` | 模型/字段/枚举/外键/分组 |
 
-前端调用时**必须使用正确的 endpoint**：
-- Org 相关操作（项目/集群 CRUD）→ Org endpoint
-- Project 相关操作（模型/字段/枚举 CRUD）→ Project endpoint
+对应的 gqlgen 配置文件：
+
+| Schema | 配置文件 |
+|--------|---------|
+| Org GraphQL | `gqlgen.org.yml` |
+| Project GraphQL | `gqlgen.project.yml` |
 
 ---
 
-## 后端专属文件说明
+## 代码生成工作流
 
-共享仓库中包含以下后端专属文件，前端**不需要使用**但会随 subtree 一起拉取：
-
-| 文件 | 说明 |
-|------|------|
-| `openapi/oapi-codegen.yaml` | Go 代码生成器配置 |
-| `openapi/openapi.yaml` | 合并后的完整 OpenAPI spec（生成产物） |
-| `openapi/examples/` | 请求/响应示例数据 |
-| `openapi/README.md` | OpenAPI 模块说明 |
-
-## 首次设置（已完成）
-
-如需在新环境中重建 subtree，执行以下步骤：
-
-### 后端
+### 修改 Schema 后
 
 ```bash
-git remote add contracts https://git.woa.com/lukemxjia/modelcraft-api-contracts.git
-git subtree push --prefix=api contracts main
+# 1. 编辑 .graphql 文件（禁止直接编辑 generated/ 目录）
+vim api/graph/project/schema/model.graphql
+
+# 2. 运行代码生成
+just generate-gql
+
+# 3. 实现新增的 resolver 方法（生成后会提示未实现的接口）
 ```
 
-### 前端
+### 注意事项
 
-```bash
-git remote add contracts https://git.woa.com/lukemxjia/modelcraft-api-contracts.git
-git rm -r contract/
-git commit -m "chore: remove manually-synced contract directory"
-git subtree add --prefix=contract contracts main --squash
-```
+- **禁止运行 `just clean-gql`** — 会删除已实现的 resolver 代码
+- **禁止直接编辑 `internal/interfaces/graphql/generated/`** — 该目录为自动生成，手动修改会被覆盖
+- 每次 `just generate-gql` 只更新生成代码，不影响已实现的 resolver
+
+---
+
+## 关键规则
+
+1. **Schema 优先** — 先修改 `.graphql` 文件，再运行 `just generate-gql`，最后实现 resolver
+2. **生成代码只读** — `internal/interfaces/graphql/generated/` 禁止手动编辑
+3. **业务域隔离** — Org 和 Project 两套 Schema 独立，不跨 Schema 引用类型
+
+---
 
 ## 参考索引
 
 | 主题 | 文件 |
 |------|------|
-| 后端 API 目录 | `modelcraft-backend/api/` |
-| 前端 Contract 目录 | `modelcraft-front/contract/` |
-| 共享仓库 | `git.woa.com/lukemxjia/modelcraft-api-contracts.git` |
-| 后端 GraphQL 路由 | `internal/interfaces/http/routes.go` |
+| Org GraphQL Schema | `api/graph/org/schema/` |
+| Project GraphQL Schema | `api/graph/project/schema/` |
 | gqlgen Org 配置 | `gqlgen.org.yml` |
 | gqlgen Project 配置 | `gqlgen.project.yml` |
+| 生成的 Go 代码 | `internal/interfaces/graphql/generated/` |
+| Resolver 实现目录 | `internal/interfaces/graphql/` |

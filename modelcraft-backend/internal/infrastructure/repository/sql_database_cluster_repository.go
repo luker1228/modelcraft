@@ -6,6 +6,7 @@ import (
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 	"time"
 
@@ -95,14 +96,12 @@ type SqlDatabaseClusterRepository struct {
 // NewSqlDatabaseClusterRepository creates a new SqlDatabaseClusterRepository backed by the
 // provided sqlc Querier. Returns a cluster.DatabaseClusterRepository interface value.
 func NewSqlDatabaseClusterRepository(q dbgen.Querier) cluster.DatabaseClusterRepository {
-	return &SqlDatabaseClusterRepository{q: q}
+	return &SqlDatabaseClusterRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // Create persists a new database cluster.
 func (r *SqlDatabaseClusterRepository) Create(ctx context.Context, entity *cluster.DatabaseCluster) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.CreateDatabaseCluster(ctx, DatabaseClusterToCreateParams(entity))
-	})
+	return r.q.CreateDatabaseCluster(ctx, DatabaseClusterToCreateParams(entity))
 }
 
 // Update persists changes to an existing cluster using optimistic locking.
@@ -110,14 +109,10 @@ func (r *SqlDatabaseClusterRepository) Create(ctx context.Context, entity *clust
 func (r *SqlDatabaseClusterRepository) Update(
 	ctx context.Context, orgName, projectSlug string, entity *cluster.DatabaseCluster,
 ) error {
-	var result sql.Result
-	if err := sqlerr.ExecWithErrorHandling(func() error {
-		var e error
-		result, e = r.q.UpdateDatabaseClusterWithVersion(
-			ctx, DatabaseClusterToUpdateParams(orgName, projectSlug, entity),
-		)
-		return e
-	}); err != nil {
+	result, err := r.q.UpdateDatabaseClusterWithVersion(
+		ctx, DatabaseClusterToUpdateParams(orgName, projectSlug, entity),
+	)
+	if err != nil {
 		return err
 	}
 
@@ -140,14 +135,9 @@ func (r *SqlDatabaseClusterRepository) Update(
 func (r *SqlDatabaseClusterRepository) GetByID(
 	ctx context.Context, orgName, id string,
 ) (*cluster.DatabaseCluster, error) {
-	var row dbgen.DatabaseCluster
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetDatabaseClusterByID(ctx, dbgen.GetDatabaseClusterByIDParams{
-			ID:      id,
-			OrgName: orgName,
-		})
-		return e
+	row, err := r.q.GetDatabaseClusterByID(ctx, dbgen.GetDatabaseClusterByIDParams{
+		ID:      id,
+		OrgName: orgName,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -163,14 +153,9 @@ func (r *SqlDatabaseClusterRepository) GetByID(
 func (r *SqlDatabaseClusterRepository) GetByProjectKey(
 	ctx context.Context, orgName, projectSlug string,
 ) (*cluster.DatabaseCluster, error) {
-	var row dbgen.DatabaseCluster
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetDatabaseClusterByProjectKey(ctx, dbgen.GetDatabaseClusterByProjectKeyParams{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-		})
-		return e
+	row, err := r.q.GetDatabaseClusterByProjectKey(ctx, dbgen.GetDatabaseClusterByProjectKeyParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -195,17 +180,13 @@ func (r *SqlDatabaseClusterRepository) List(
 		statusFilter = sql.NullString{String: s, Valid: true}
 	}
 
-	var rows []dbgen.DatabaseCluster
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListDatabaseClusters(ctx, dbgen.ListDatabaseClustersParams{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-			Column3:     column3,
-			Status:      statusFilter,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListDatabaseClusters(ctx, dbgen.ListDatabaseClustersParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Column3:     column3,
+		Status:      statusFilter,
+	})
+	if err != nil {
 		return nil, err
 	}
 
@@ -216,12 +197,10 @@ func (r *SqlDatabaseClusterRepository) List(
 func (r *SqlDatabaseClusterRepository) Delete(
 	ctx context.Context, orgName, projectSlug, id string,
 ) error {
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteDatabaseCluster(ctx, dbgen.DeleteDatabaseClusterParams{
-			ID:          id,
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-		})
+	return r.q.DeleteDatabaseCluster(ctx, dbgen.DeleteDatabaseClusterParams{
+		ID:          id,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
 	})
 }
 
@@ -229,14 +208,9 @@ func (r *SqlDatabaseClusterRepository) Delete(
 func (r *SqlDatabaseClusterRepository) ExistsByProjectKey(
 	ctx context.Context, orgName, projectSlug string,
 ) (bool, error) {
-	var count int64
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		count, e = r.q.ExistsDatabaseClusterByProjectKey(ctx, dbgen.ExistsDatabaseClusterByProjectKeyParams{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-		})
-		return e
+	count, err := r.q.ExistsDatabaseClusterByProjectKey(ctx, dbgen.ExistsDatabaseClusterByProjectKeyParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
 	})
 	if err != nil {
 		return false, err
@@ -260,18 +234,14 @@ func (r *SqlDatabaseClusterRepository) ListUpdatedAfter(
 		column4 = projectSlug
 	}
 
-	var rows []dbgen.DatabaseCluster
-	if err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListDatabaseClustersUpdatedAfter(ctx, dbgen.ListDatabaseClustersUpdatedAfterParams{
-			UpdatedAt:   sql.NullTime{Time: updatedAfter, Valid: true},
-			Column2:     column2,
-			OrgName:     orgName,
-			Column4:     column4,
-			ProjectSlug: projectSlug,
-		})
-		return e
-	}); err != nil {
+	rows, err := r.q.ListDatabaseClustersUpdatedAfter(ctx, dbgen.ListDatabaseClustersUpdatedAfterParams{
+		UpdatedAt:   sql.NullTime{Time: updatedAfter, Valid: true},
+		Column2:     column2,
+		OrgName:     orgName,
+		Column4:     column4,
+		ProjectSlug: projectSlug,
+	})
+	if err != nil {
 		return nil, err
 	}
 

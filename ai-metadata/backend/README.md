@@ -43,6 +43,7 @@ ai-metadata/backend/
 - @./development/architecture.md — DDD 分层规则，明确各层依赖方向和禁止跨层
 - @./development/code-style.md — 命名约定、事务模式、协程使用
 - @./development/error-handling.md — 错误包体系、各层错误职责、RecordNotFound 处理
+- @./development/domain-development.md — Domain 层 Repository 接口设计规范，ctx 和 orgName 必传规则，租户隔离约束
 - @./development/repo-develop.md — Repository 层开发规范，RecordNotFound 两种模式的选择
 
 ### 修改数据库查询时

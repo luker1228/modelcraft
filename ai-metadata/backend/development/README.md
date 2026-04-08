@@ -11,6 +11,7 @@
 | 文档 | 说明 | 适用场景 |
 |------|------|----------|
 | [architecture.md](./architecture.md) | 架构分层详解 | 理解整体架构 |
+| [domain-development.md](./domain-development.md) | Domain 层开发规范 ⭐ | `internal/domain/**/*.go`，定义 Repository 接口时 |
 | [repo-develop.md](./repo-develop.md) | Repository 层开发规范 ⭐ | `internal/infrastructure/**/*.go` |
 | [error-handling.md](./error-handling.md) | 错误处理规范 | 跨层错误处理 |
 | [logging.md](./logging.md) | 日志规范 | 日志记录 |

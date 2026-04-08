@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/domain/role"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 	"strconv"
 )
@@ -16,7 +17,7 @@ type SqlRoleRepository struct {
 
 // NewSqlRoleRepository creates a new SqlRoleRepository backed by the given sqlc Querier.
 func NewSqlRoleRepository(q dbgen.Querier) role.RoleRepository {
-	return &SqlRoleRepository{q: q}
+	return &SqlRoleRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // GetByID retrieves a role by its UUID string.
@@ -28,12 +29,7 @@ func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*role.Role,
 		return nil, shared.NewNotFoundError("invalid role id format: " + id)
 	}
 
-	var row dbgen.Role
-	err = sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetRoleByID(ctx, intID)
-		return e
-	})
+	row, err := r.q.GetRoleByID(ctx, intID)
 	if err != nil {
 		return nil, err
 	}
@@ -43,12 +39,7 @@ func (r *SqlRoleRepository) GetByID(ctx context.Context, id string) (*role.Role,
 
 // GetByName retrieves a role by its name.
 func (r *SqlRoleRepository) GetByName(ctx context.Context, name string) (*role.Role, error) {
-	var row dbgen.Role
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetRoleByName(ctx, name)
-		return e
-	})
+	row, err := r.q.GetRoleByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -58,12 +49,7 @@ func (r *SqlRoleRepository) GetByName(ctx context.Context, name string) (*role.R
 
 // GetSystemRoleByName retrieves a system role by its name (is_system=true).
 func (r *SqlRoleRepository) GetSystemRoleByName(ctx context.Context, name string) (*role.Role, error) {
-	var row dbgen.Role
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		row, e = r.q.GetSystemRoleByName(ctx, name)
-		return e
-	})
+	row, err := r.q.GetSystemRoleByName(ctx, name)
 	if err != nil {
 		return nil, err
 	}
@@ -73,12 +59,7 @@ func (r *SqlRoleRepository) GetSystemRoleByName(ctx context.Context, name string
 
 // List retrieves all roles.
 func (r *SqlRoleRepository) List(ctx context.Context) ([]*role.Role, error) {
-	var rows []dbgen.Role
-	err := sqlerr.QueryWithSQLErrorHandling(func() error {
-		var e error
-		rows, e = r.q.ListRoles(ctx)
-		return e
-	})
+	rows, err := r.q.ListRoles(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -100,10 +81,8 @@ func (r *SqlRoleRepository) Create(ctx context.Context, entity *role.Role) error
 		OrgName:     "__SYSTEM__", // Default org for legacy roles
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		_, err := r.q.CreateRole(ctx, params)
-		return err
-	})
+	_, err := r.q.CreateRole(ctx, params)
+	return err
 }
 
 // Update updates an existing role.
@@ -119,9 +98,7 @@ func (r *SqlRoleRepository) Update(ctx context.Context, entity *role.Role) error
 		Description: sqlerr.PtrToNullStr(&entity.Description),
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.UpdateRole(ctx, params)
-	})
+	return r.q.UpdateRole(ctx, params)
 }
 
 // Delete removes a role by its ID.
@@ -132,9 +109,7 @@ func (r *SqlRoleRepository) Delete(ctx context.Context, id string) error {
 		return nil
 	}
 
-	return sqlerr.ExecWithErrorHandling(func() error {
-		return r.q.DeleteRole(ctx, intID)
-	})
+	return r.q.DeleteRole(ctx, intID)
 }
 
 // roleToDomain converts a dbgen.Role row to a domain Role entity.
