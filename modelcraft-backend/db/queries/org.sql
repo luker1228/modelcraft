@@ -20,8 +20,8 @@ WHERE name = ?;
 SELECT COUNT(*) FROM organizations WHERE name = ?;
 
 -- name: CreateUser :exec
-INSERT INTO users (id, external_id, name, phone, display_name, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO users (id, external_id, name, phone, password_hash, display_name, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = ? LIMIT 1;

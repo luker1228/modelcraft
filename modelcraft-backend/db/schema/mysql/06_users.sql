@@ -1,24 +1,26 @@
 -- =============================================================================
 -- 用户管理 (User Management)
 -- 包含：用户表、用户-组织关联表
--- 实现混合多租户认证：Casdoor 负责认证，ModelCraft 负责授权
+-- 混合认证：支持手机号+密码本地注册，同时兼容外部认证提供者（Casdoor）
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
 -- 1. 用户表 (Users)
--- 最小化设计：仅存储 ModelCraft 内部 UUID 和外部认证提供者 ID
--- 身份信息（邮箱、姓名、头像）来自 JWT Claims，避免同步复杂性
+-- 混合认证设计：支持手机号+密码本地注册登录，同时兼容外部认证提供者（Casdoor）
+-- external_id 可为 NULL（本地注册用户无外部 ID）
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `users` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '内部 UUID',
-  `external_id` VARCHAR(255) NOT NULL UNIQUE COMMENT '外部认证提供者用户 ID（来自 JWT.sub，通常为 Casdoor 用户 ID）',
-  `name` VARCHAR(255) NOT NULL UNIQUE COMMENT '用户姓名（来自 Casdoor）',
-  `phone` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '用户手机号（来自 Casdoor）',
+  `external_id` VARCHAR(255) NULL COMMENT '外部认证提供者用户 ID（来自 JWT.sub，Casdoor 用户有值，本地注册用户为 NULL）',
+  `name` VARCHAR(255) NOT NULL UNIQUE COMMENT '用户姓名',
+  `phone` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '用户手机号',
+  `password_hash` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'bcrypt 密码哈希（本地注册用户有值，Casdoor 用户为空）',
   `display_name` VARCHAR(255) COMMENT '用于 UI 显示的名称',
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
 
+  UNIQUE INDEX `uk_phone` (`phone`) COMMENT '手机号唯一约束（用于本地登录）',
   INDEX `idx_external_id` (`external_id`) COMMENT '按外部 ID 快速查找'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 

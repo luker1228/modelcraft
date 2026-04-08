@@ -7,17 +7,17 @@ info:
     Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively
     via GraphQL at /org/{orgName}/design/graphql. This OpenAPI spec covers only identity and
     tenant-management endpoints.
-  version: 2.1.0
+  version: 3.0.0
 servers:
   - url: http://localhost:8080
     description: Local development server
 security:
   - BearerAuth: []
 paths:
-  /api/auth/token:
+  /api/auth/register:
     post:
-      operationId: exchangeToken
-      summary: Exchange authorization code for JWT
+      operationId: register
+      summary: Register a new user with phone number and password
       tags:
         - Auth
       security: []
@@ -26,64 +26,90 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TokenRequest'
+              $ref: '#/components/schemas/RegisterRequest'
       responses:
-        '200':
-          description: Token exchange successful
+        '201':
+          description: Registration successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExchangeTokenResponse'
+                $ref: '#/components/schemas/RegisterResponse'
         '400':
-          description: Invalid request
+          description: Invalid input (phone format, password too short)
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/AuthInvalidInputError'
+        '409':
+          description: Phone number already registered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PhoneAlreadyRegisteredError'
         '500':
           description: Server error
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemError'
-  /api/auth/login-url:
-    get:
-      operationId: getLoginURL
-      summary: Get Casdoor login URL
+  /api/auth/login:
+    post:
+      operationId: login
+      summary: Login with phone number and password
       tags:
         - Auth
       security: []
-      parameters:
-        - name: state
-          in: query
-          required: false
-          schema:
-            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
       responses:
         '200':
-          description: Login URL returned
+          description: Login successful
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetLoginURLResponse'
+                $ref: '#/components/schemas/LoginResponse'
+        '400':
+          description: Invalid input (phone format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthInvalidInputError'
+        '401':
+          description: Authentication failed (phone not found or wrong password)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthenticationError'
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SystemError'
   /api/auth/logout:
     post:
       operationId: logout
-      summary: Logout
+      summary: Logout (revoke refresh token)
       tags:
         - Auth
       security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshTokenRequest'
       responses:
-        '200':
+        '204':
           description: Logout successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/LogoutResponse'
   /api/auth/refresh:
     post:
       operationId: refreshToken
-      summary: Refresh access token using refresh token
+      summary: Refresh tokens using refresh token (rotation)
       tags:
         - Auth
       security: []
@@ -99,13 +125,13 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExchangeTokenResponse'
+                $ref: '#/components/schemas/RefreshResponse'
         '401':
-          description: Invalid or expired refresh token
+          description: Invalid, expired, or reused refresh token
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AuthInvalidInputError'
+                $ref: '#/components/schemas/AuthenticationError'
         '500':
           description: Server error
           content:
@@ -318,14 +344,106 @@ components:
                 - PARAM_INVALID.AUTH
             message:
               type: string
-    TokenRequest:
+    PhoneAlreadyRegisteredError:
       type: object
       required:
-        - code
+        - requestId
+        - error
       properties:
-        code:
+        requestId:
           type: string
-          description: Authorization code from OAuth flow
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - CONFLICT.USER
+            message:
+              type: string
+    AuthenticationError:
+      type: object
+      required:
+        - requestId
+        - error
+      properties:
+        requestId:
+          type: string
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - AUTHENTICATION_FAILED
+            message:
+              type: string
+    RegisterRequest:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        phone:
+          type: string
+          description: 11-digit mainland China phone number
+          pattern: ^1[3-9]\d{9}$
+          example: '13800138000'
+        password:
+          type: string
+          description: Password (minimum 8 characters)
+          minLength: 8
+          example: mypassword123
+    RegisterResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          required:
+            - userId
+          properties:
+            userId:
+              type: string
+              description: Created user UUID
+    LoginRequest:
+      type: object
+      required:
+        - phone
+        - password
+      properties:
+        phone:
+          type: string
+          description: 11-digit mainland China phone number
+          pattern: ^1[3-9]\d{9}$
+          example: '13800138000'
+        password:
+          type: string
+          description: User password
+          example: mypassword123
+    LoginResponse:
+      allOf:
+        - $ref: '#/components/schemas/BaseResponse'
+        - type: object
+          required:
+            - userId
+            - refreshToken
+            - expiresAt
+          properties:
+            userId:
+              type: string
+              description: ModelCraft internal user UUID
+            refreshToken:
+              type: string
+              description: Opaque refresh token (store securely on client)
+            expiresAt:
+              type: string
+              format: date-time
+              description: Refresh token expiration time (7 days from now)
     RefreshTokenRequest:
       type: object
       required:
@@ -333,49 +451,26 @@ components:
       properties:
         refreshToken:
           type: string
-          description: Refresh token obtained during initial authentication
-    ExchangeTokenResponse:
+          description: Refresh token obtained during login
+    RefreshResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
           required:
-            - accessToken
-            - tokenType
-            - expiresIn
-            - user
+            - userId
+            - refreshToken
+            - expiresAt
           properties:
-            accessToken:
+            userId:
               type: string
-              description: ModelCraft JWT with user identity
-              example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-            tokenType:
-              type: string
-              description: Token type, always "Bearer"
-              example: Bearer
-            expiresIn:
-              type: integer
-              description: Token lifetime in seconds
-              example: 3600
+              description: ModelCraft internal user UUID
             refreshToken:
               type: string
-              description: Refresh token for future token renewal (optional, reserved for future use)
-              example: ''
-            user:
-              $ref: '#/components/schemas/UserInfo'
-    GetLoginURLResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseResponse'
-        - type: object
-          properties:
-            loginUrl:
+              description: New opaque refresh token (replaces the old one)
+            expiresAt:
               type: string
-    LogoutResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseResponse'
-        - type: object
-          properties:
-            message:
-              type: string
+              format: date-time
+              description: New refresh token expiration time
     GetMembershipsResponse:
       type: object
       required:
@@ -554,27 +649,3 @@ components:
               type: string
             action:
               type: string
-    UserInfo:
-      type: object
-      required:
-        - id
-        - externalId
-        - name
-        - email
-      properties:
-        id:
-          type: string
-          description: ModelCraft internal user UUID
-          example: 487101d6-92bb-459e-b4f1-426255126d27
-        externalId:
-          type: string
-          description: External authentication provider user ID (e.g., Casdoor user ID)
-          example: test-integration
-        name:
-          type: string
-          description: User display name
-          example: John Doe
-        email:
-          type: string
-          description: User email address
-          example: john.doe@example.com

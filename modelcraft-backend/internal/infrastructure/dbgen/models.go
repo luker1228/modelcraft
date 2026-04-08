@@ -407,12 +407,14 @@ type SecurityAuditLog struct {
 type User struct {
 	// 内部 UUID
 	ID string
-	// 外部认证提供者用户 ID（来自 JWT.sub，通常为 Casdoor 用户 ID）
-	ExternalID string
-	// 用户姓名（来自 Casdoor）
+	// 外部认证提供者用户 ID（来自 JWT.sub，Casdoor 用户有值，本地注册用户为 NULL）
+	ExternalID sql.NullString
+	// 用户姓名
 	Name string
-	// 用户手机号（来自 Casdoor）
+	// 用户手机号
 	Phone string
+	// bcrypt 密码哈希（本地注册用户有值，Casdoor 用户为空）
+	PasswordHash string
 	// 用于 UI 显示的名称
 	DisplayName sql.NullString
 	// 创建时间

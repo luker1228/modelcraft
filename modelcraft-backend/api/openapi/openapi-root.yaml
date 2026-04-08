@@ -7,7 +7,7 @@ info:
     Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively
     via GraphQL at /org/{orgName}/design/graphql. This OpenAPI spec covers only identity and
     tenant-management endpoints.
-  version: "2.1.0"
+  version: "3.0.0"
 
 servers:
   - url: http://localhost:8080
@@ -20,10 +20,10 @@ paths:
   # ========================
   # Auth Endpoints
   # ========================
-  /api/auth/token:
-    $ref: "auth.yaml#/paths/~1api~1auth~1token"
-  /api/auth/login-url:
-    $ref: "auth.yaml#/paths/~1api~1auth~1login-url"
+  /api/auth/register:
+    $ref: "auth.yaml#/paths/~1api~1auth~1register"
+  /api/auth/login:
+    $ref: "auth.yaml#/paths/~1api~1auth~1login"
   /api/auth/logout:
     $ref: "auth.yaml#/paths/~1api~1auth~1logout"
   /api/auth/refresh:
@@ -66,16 +66,22 @@ components:
     # -- Auth --
     AuthInvalidInputError:
       $ref: "auth.yaml#/schemas/AuthInvalidInputError"
-    TokenRequest:
-      $ref: "auth.yaml#/schemas/TokenRequest"
+    PhoneAlreadyRegisteredError:
+      $ref: "auth.yaml#/schemas/PhoneAlreadyRegisteredError"
+    AuthenticationError:
+      $ref: "auth.yaml#/schemas/AuthenticationError"
+    RegisterRequest:
+      $ref: "auth.yaml#/schemas/RegisterRequest"
+    RegisterResponse:
+      $ref: "auth.yaml#/schemas/RegisterResponse"
+    LoginRequest:
+      $ref: "auth.yaml#/schemas/LoginRequest"
+    LoginResponse:
+      $ref: "auth.yaml#/schemas/LoginResponse"
     RefreshTokenRequest:
       $ref: "auth.yaml#/schemas/RefreshTokenRequest"
-    ExchangeTokenResponse:
-      $ref: "auth.yaml#/schemas/ExchangeTokenResponse"
-    GetLoginURLResponse:
-      $ref: "auth.yaml#/schemas/GetLoginURLResponse"
-    LogoutResponse:
-      $ref: "auth.yaml#/schemas/LogoutResponse"
+    RefreshResponse:
+      $ref: "auth.yaml#/schemas/RefreshResponse"
 
     # -- User --
     GetMembershipsResponse:

@@ -60,13 +60,14 @@ func TestUserToDomain(t *testing.T) {
 
 	t.Run("all fields set", func(t *testing.T) {
 		row := dbgen.User{
-			ID:          "user-1",
-			ExternalID:  "ext-abc",
-			Name:        "Alice",
-			Phone:       "+8613800001111",
-			DisplayName: sql.NullString{String: "Alice Wonderland", Valid: true},
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			ID:           "user-1",
+			ExternalID:   sql.NullString{String: "ext-abc", Valid: true},
+			Name:         "Alice",
+			Phone:        "13800001111",
+			PasswordHash: "$2a$10$hash",
+			DisplayName:  sql.NullString{String: "Alice Wonderland", Valid: true},
+			CreatedAt:    now,
+			UpdatedAt:    now,
 		}
 
 		entity := repository.UserToDomain(row)
@@ -74,7 +75,8 @@ func TestUserToDomain(t *testing.T) {
 		assert.Equal(t, "user-1", entity.ID)
 		assert.Equal(t, "ext-abc", entity.ExternalID)
 		assert.Equal(t, "Alice", entity.Name)
-		assert.Equal(t, "+8613800001111", entity.Phone)
+		assert.Equal(t, "13800001111", entity.Phone.String())
+		assert.Equal(t, "$2a$10$hash", entity.PasswordHash)
 		assert.Equal(t, now, entity.CreatedAt)
 		assert.Equal(t, now, entity.UpdatedAt)
 	})
@@ -83,7 +85,7 @@ func TestUserToDomain(t *testing.T) {
 		// domain user.User has no DisplayName field; the converter should not error.
 		row := dbgen.User{
 			ID:         "user-2",
-			ExternalID: "ext-xyz",
+			ExternalID: sql.NullString{String: "ext-xyz", Valid: true},
 			Name:       "Bob",
 			Phone:      "",
 			CreatedAt:  now,

@@ -73,16 +73,17 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users (id, external_id, name, phone, display_name, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO users (id, external_id, name, phone, password_hash, display_name, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateUserParams struct {
-	ID          string
-	ExternalID  string
-	Name        string
-	Phone       string
-	DisplayName sql.NullString
+	ID           string
+	ExternalID   sql.NullString
+	Name         string
+	Phone        string
+	PasswordHash string
+	DisplayName  sql.NullString
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
@@ -91,6 +92,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.ExternalID,
 		arg.Name,
 		arg.Phone,
+		arg.PasswordHash,
 		arg.DisplayName,
 	)
 	return err
@@ -120,7 +122,7 @@ const existsUserByExternalID = `-- name: ExistsUserByExternalID :one
 SELECT COUNT(*) FROM users WHERE external_id = ?
 `
 
-func (q *Queries) ExistsUserByExternalID(ctx context.Context, externalID string) (int64, error) {
+func (q *Queries) ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error) {
 	row := q.db.QueryRowContext(ctx, existsUserByExternalID, externalID)
 	var count int64
 	err := row.Scan(&count)
@@ -131,7 +133,7 @@ const findIDByExternalID = `-- name: FindIDByExternalID :one
 SELECT id FROM users WHERE external_id = ? LIMIT 1
 `
 
-func (q *Queries) FindIDByExternalID(ctx context.Context, externalID string) (string, error) {
+func (q *Queries) FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error) {
 	row := q.db.QueryRowContext(ctx, findIDByExternalID, externalID)
 	var id string
 	err := row.Scan(&id)
@@ -206,10 +208,10 @@ func (q *Queries) GetOrganizationByName(ctx context.Context, name string) (Organ
 }
 
 const getUserByExternalID = `-- name: GetUserByExternalID :one
-SELECT id, external_id, name, phone, display_name, created_at, updated_at FROM users WHERE external_id = ? LIMIT 1
+SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at FROM users WHERE external_id = ? LIMIT 1
 `
 
-func (q *Queries) GetUserByExternalID(ctx context.Context, externalID string) (User, error) {
+func (q *Queries) GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error) {
 	row := q.db.QueryRowContext(ctx, getUserByExternalID, externalID)
 	var i User
 	err := row.Scan(
@@ -217,6 +219,7 @@ func (q *Queries) GetUserByExternalID(ctx context.Context, externalID string) (U
 		&i.ExternalID,
 		&i.Name,
 		&i.Phone,
+		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -225,7 +228,7 @@ func (q *Queries) GetUserByExternalID(ctx context.Context, externalID string) (U
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, external_id, name, phone, display_name, created_at, updated_at FROM users WHERE id = ? LIMIT 1
+SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at FROM users WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
@@ -236,6 +239,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.ExternalID,
 		&i.Name,
 		&i.Phone,
+		&i.PasswordHash,
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,

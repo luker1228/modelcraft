@@ -56,14 +56,8 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	s.authHandler.HandleLogin(w, r)
 }
 
-func (s *Server) GetLoginURL(w http.ResponseWriter, r *http.Request, params generated.GetLoginURLParams) {
-	// Set query parameter for handler
-	if params.State != nil {
-		q := r.URL.Query()
-		q.Set("state", *params.State)
-		r.URL.RawQuery = q.Encode()
-	}
-	s.authHandler.GetLoginURL(w, r)
+func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
+	s.authHandler.HandleRegister(w, r)
 }
 
 func (s *Server) Logout(w http.ResponseWriter, r *http.Request) {

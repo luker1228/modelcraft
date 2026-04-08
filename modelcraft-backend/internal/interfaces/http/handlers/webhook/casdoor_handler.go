@@ -156,7 +156,7 @@ func (h *CasdoorHandler) Handle(w http.ResponseWriter, r *http.Request) {
 
 	// Create user record
 	userID := uuid.New().String()
-	newUser, err := user.NewUser(userID, externalID, name, phone)
+	newUser, err := user.NewOAuthUser(userID, externalID, name, phone)
 	if err != nil {
 		logger.Error(ctx, "Failed to create user entity", logfacade.Err(err))
 		writeJSONError(w, http.StatusInternalServerError, "Failed to create user entity")

@@ -8,15 +8,17 @@ import (
 	"time"
 
 	domainauth "modelcraft/internal/domain/auth"
+	"modelcraft/internal/domain/shared"
 	domainUser "modelcraft/internal/domain/user"
 )
 
-// TokenService 处理认证令牌操作：登录、刷新、登出。
+// TokenService 处理认证令牌操作：注册、登录、刷新、登出。
 // 使用有状态的 DB 存储 Refresh Token（opaque token），支持轮换和盗用检测。
 type TokenService struct {
 	refreshTokenRepo domainauth.RefreshTokenRepository
 	userRepo         domainUser.UserRepository
 	auditLogRepo     domainauth.SecurityAuditLogRepository
+	passwordHasher   domainauth.PasswordHasher
 	refreshTTL       time.Duration
 }
 
@@ -25,6 +27,7 @@ func NewTokenService(
 	refreshTokenRepo domainauth.RefreshTokenRepository,
 	userRepo domainUser.UserRepository,
 	auditLogRepo domainauth.SecurityAuditLogRepository,
+	passwordHasher domainauth.PasswordHasher,
 	refreshTTL time.Duration,
 ) *TokenService {
 	if refreshTTL == 0 {
@@ -34,37 +37,86 @@ func NewTokenService(
 		refreshTokenRepo: refreshTokenRepo,
 		userRepo:         userRepo,
 		auditLogRepo:     auditLogRepo,
+		passwordHasher:   passwordHasher,
 		refreshTTL:       refreshTTL,
 	}
 }
 
-// Login 查找或创建用户，生成 Refresh Token 存入 DB，返回明文给 BFF。
+// Register 手机号+密码注册新用户。
+func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*RegisterResult, error) {
+	logger := logfacade.GetLogger(ctx)
+
+	// 1. 校验手机号格式
+	phone, err := domainUser.NewPhoneNumber(cmd.Phone)
+	if err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
+	}
+
+	// 2. 校验密码强度
+	if err := domainauth.ValidatePasswordStrength(cmd.Password); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
+	}
+
+	// 3. 检查手机号是否已注册
+	exists, err := s.userRepo.ExistsByPhone(ctx, cmd.Phone)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if exists {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, phone.Masked())
+	}
+
+	// 4. 哈希密码
+	hashedPassword, err := s.passwordHasher.Hash(ctx, cmd.Password)
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "hash password")
+	}
+
+	// 5. 生成用户 ID
+	id, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
+	}
+
+	// 6. 创建用户实体
+	u, err := domainUser.NewUser(id, phone, hashedPassword)
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
+	}
+
+	// 7. 持久化
+	if err := s.userRepo.Create(ctx, u); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	logger.Infof(ctx, "User registered: id=%s, phone=%s", u.ID, phone.Masked())
+	return &RegisterResult{UserID: u.ID}, nil
+}
+
+// Login 手机号+密码登录，生成 Refresh Token 存入 DB，返回明文给 BFF。
 func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	// 查找用户，不存在则创建
-	u, err := s.userRepo.GetByExternalID(ctx, cmd.ExternalID)
-	if err != nil {
-		// 非 NotFound 的系统错误
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if u == nil {
-		// 创建新用户
-		id, err := bizutils.GenerateUUIDV7()
-		if err != nil {
-			return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
-		}
-		u, err = domainUser.NewUser(id, cmd.ExternalID, cmd.Name, "")
-		if err != nil {
-			return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
-		}
-		if err := s.userRepo.Create(ctx, u); err != nil {
-			return nil, bizerrors.ConvertRepositoryError(ctx, err)
-		}
-		logger.Infof(ctx, "Created new user: id=%s, external_id=%s", u.ID, cmd.ExternalID)
+	// 1. 校验手机号格式
+	if _, err := domainUser.NewPhoneNumber(cmd.Phone); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
 	}
 
-	// 生成 opaque refresh token
+	// 2. 根据手机号查找用户
+	u, err := s.userRepo.GetByPhone(ctx, cmd.Phone)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "phone number not found")
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	// 3. 验证密码
+	if err := s.passwordHasher.Verify(ctx, cmd.Password, u.PasswordHash); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
+	}
+
+	// 4. 生成 opaque refresh token
 	plaintext, hash, err := GenerateRefreshToken()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate refresh token")
@@ -88,6 +140,61 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 	}
 
 	logger.Infof(ctx, "Login success: user_id=%s", u.ID)
+	return &LoginResult{
+		UserID:       u.ID,
+		RefreshToken: plaintext,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+// OAuthLogin 通过外部认证提供者（OAuth）登录。
+// Deprecated: 保留向后兼容，新流程使用 Login。
+func (s *TokenService) OAuthLogin(ctx context.Context, cmd OAuthLoginCommand) (*LoginResult, error) {
+	logger := logfacade.GetLogger(ctx)
+
+	// 查找用户，不存在则创建
+	u, err := s.userRepo.GetByExternalID(ctx, cmd.ExternalID)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if u == nil {
+		id, err := bizutils.GenerateUUIDV7()
+		if err != nil {
+			return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
+		}
+		u, err = domainUser.NewOAuthUser(id, cmd.ExternalID, cmd.Name, "")
+		if err != nil {
+			return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
+		}
+		if err := s.userRepo.Create(ctx, u); err != nil {
+			return nil, bizerrors.ConvertRepositoryError(ctx, err)
+		}
+		logger.Infof(ctx, "Created new OAuth user: id=%s, external_id=%s", u.ID, cmd.ExternalID)
+	}
+
+	plaintext, hash, err := GenerateRefreshToken()
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate refresh token")
+	}
+
+	tokenID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate token id")
+	}
+
+	expiresAt := time.Now().Add(s.refreshTTL)
+	token := &domainauth.RefreshToken{
+		ID:        tokenID,
+		UserID:    u.ID,
+		TokenHash: hash,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
+	if err := s.refreshTokenRepo.Save(ctx, token); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	logger.Infof(ctx, "OAuth login success: user_id=%s", u.ID)
 	return &LoginResult{
 		UserID:       u.ID,
 		RefreshToken: plaintext,

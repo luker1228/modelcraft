@@ -86,6 +86,10 @@ func (e *BusinessError) GetHTTPStatusCode() int {
 		return 403 // Forbidden
 	case ErrorTypeConflict:
 		return 409 // Conflict
+	case ErrorTypeAuthentication:
+		return 401 // Unauthorized (login failed)
+	case ErrorTypeUnauthorized:
+		return 401 // Unauthorized (missing/invalid credentials)
 	case ErrorTypeSystemError:
 		return 500 // Internal Server Error
 	default:

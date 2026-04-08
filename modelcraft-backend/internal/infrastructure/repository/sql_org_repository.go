@@ -40,13 +40,29 @@ func OrganizationToDomain(row dbgen.Organization) *organization.Organization {
 
 // UserToDomain converts a dbgen.User row to a domain User entity.
 func UserToDomain(row dbgen.User) *user.User {
+	var externalID string
+	if row.ExternalID.Valid {
+		externalID = row.ExternalID.String
+	}
+
+	// Reconstruct PhoneNumber value object from stored string.
+	// DB may store empty string for OAuth users, so we tolerate construction failure.
+	var phone user.PhoneNumber
+	if row.Phone != "" {
+		p, err := user.NewPhoneNumber(row.Phone)
+		if err == nil {
+			phone = p
+		}
+	}
+
 	return &user.User{
-		ID:         row.ID,
-		ExternalID: row.ExternalID,
-		Name:       row.Name,
-		Phone:      row.Phone,
-		CreatedAt:  row.CreatedAt,
-		UpdatedAt:  row.UpdatedAt,
+		ID:           row.ID,
+		ExternalID:   externalID,
+		Name:         row.Name,
+		Phone:        phone,
+		PasswordHash: row.PasswordHash,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
 	}
 }
 
@@ -176,10 +192,11 @@ func NewSqlUserRepository(q dbgen.Querier) user.UserRepository {
 // Create persists a new user to the database.
 func (r *SqlUserRepository) Create(ctx context.Context, u *user.User) error {
 	params := dbgen.CreateUserParams{
-		ID:         u.ID,
-		ExternalID: u.ExternalID,
-		Name:       u.Name,
-		Phone:      u.Phone,
+		ID:           u.ID,
+		ExternalID:   StrToNullStr(u.ExternalID),
+		Name:         u.Name,
+		Phone:        u.Phone.String(),
+		PasswordHash: u.PasswordHash,
 		// DisplayName is not part of the domain User entity; stored as NULL.
 		DisplayName: sql.NullString{},
 	}
@@ -204,7 +221,7 @@ func (r *SqlUserRepository) GetByID(ctx context.Context, id string) (*user.User,
 // GetByExternalID retrieves a user by the external authentication provider ID.
 // Returns nil, shared.NewNotFoundError when no user matches the given externalID.
 func (r *SqlUserRepository) GetByExternalID(ctx context.Context, externalID string) (*user.User, error) {
-	row, err := r.q.GetUserByExternalID(ctx, externalID)
+	row, err := r.q.GetUserByExternalID(ctx, StrToNullStr(externalID))
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("user not found by external id: " + externalID)
@@ -217,7 +234,7 @@ func (r *SqlUserRepository) GetByExternalID(ctx context.Context, externalID stri
 
 // ExistsByExternalID checks whether a user with the given external ID already exists.
 func (r *SqlUserRepository) ExistsByExternalID(ctx context.Context, externalID string) (bool, error) {
-	count, err := r.q.ExistsUserByExternalID(ctx, externalID)
+	count, err := r.q.ExistsUserByExternalID(ctx, StrToNullStr(externalID))
 	if err != nil {
 		return false, bizerrors.Wrapf(err, "failed to check user external id existence: %s", externalID)
 	}
@@ -228,7 +245,7 @@ func (r *SqlUserRepository) ExistsByExternalID(ctx context.Context, externalID s
 // FindIDByExternalID retrieves the internal user ID by external authentication provider ID.
 // Returns ("", false, nil) if no user matches the given externalID.
 func (r *SqlUserRepository) FindIDByExternalID(ctx context.Context, externalID string) (string, bool, error) {
-	userID, err := r.q.FindIDByExternalID(ctx, externalID)
+	userID, err := r.q.FindIDByExternalID(ctx, StrToNullStr(externalID))
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return "", false, nil
@@ -237,6 +254,52 @@ func (r *SqlUserRepository) FindIDByExternalID(ctx context.Context, externalID s
 	}
 
 	return userID, true, nil
+}
+
+// GetByPhone retrieves a user by phone number.
+// Returns nil, shared.NewNotFoundError when no user matches the given phone.
+func (r *SqlUserRepository) GetByPhone(ctx context.Context, phone string) (*user.User, error) {
+	row, err := r.q.GetUserByPhone(ctx, phone)
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("user not found by phone: " + phone)
+		}
+		return nil, bizerrors.Wrapf(err, "failed to get user by phone: %s", phone)
+	}
+
+	// Convert GetUserByPhoneRow to domain User.
+	var externalID string
+	if row.ExternalID.Valid {
+		externalID = row.ExternalID.String
+	}
+
+	var phoneVO user.PhoneNumber
+	if row.Phone != "" {
+		p, err := user.NewPhoneNumber(row.Phone)
+		if err == nil {
+			phoneVO = p
+		}
+	}
+
+	return &user.User{
+		ID:           row.ID,
+		ExternalID:   externalID,
+		Name:         row.Name,
+		Phone:        phoneVO,
+		PasswordHash: row.PasswordHash,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}, nil
+}
+
+// ExistsByPhone checks whether a user with the given phone number already exists.
+func (r *SqlUserRepository) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
+	exists, err := r.q.ExistsByPhone(ctx, phone)
+	if err != nil {
+		return false, bizerrors.Wrapf(err, "failed to check phone existence: %s", phone)
+	}
+
+	return exists, nil
 }
 
 // SqlMembershipRepository is the sqlc-based implementation of membership.MembershipRepository.

@@ -22,4 +22,10 @@ type UserRepository interface {
 	// Returns ("", false, nil) if no user matches the given externalID.
 	// Returns ("", false, err) on system failure.
 	FindIDByExternalID(ctx context.Context, externalID string) (string, bool, error)
+
+	// GetByPhone 根据手机号获取用户 (Pattern A: 不存在返回 NotFoundError)
+	GetByPhone(ctx context.Context, phone string) (*User, error)
+
+	// ExistsByPhone 检查手机号是否已被注册 (Pattern B: 不存在返回 false)
+	ExistsByPhone(ctx context.Context, phone string) (bool, error)
 }

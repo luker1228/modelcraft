@@ -36,6 +36,7 @@ import (
 	appRole "modelcraft/internal/app/role"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
 	domainUser "modelcraft/internal/domain/user"
+	infraAuth "modelcraft/internal/infrastructure/auth"
 
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
@@ -125,14 +126,6 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	groupRepository := repository.NewSqlModelGroupRepository(dbgen.New(loggingDB))
 	groupAppService := modeldesign.NewModelGroupAppService(groupRepository, modelRepository, txManager)
 
-	// Create auth handler
-	authConfig := authHandlers.Config{
-		CasdoorURL:   cfg.Auth.Casdoor.Endpoint,
-		ClientID:     cfg.Auth.Casdoor.ClientID,
-		ClientSecret: cfg.Auth.Casdoor.ClientSecret,
-		RedirectURI:  cfg.Auth.Casdoor.RedirectURI,
-	}
-
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
 	orgRepo := repository.NewSqlOrganizationRepository(dbgen.New(loggingDB))
@@ -176,15 +169,17 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	refreshTokenRepo := repository.NewSqlRefreshTokenRepository(dbgen.New(loggingDB))
 	auditLogRepo := repository.NewSqlSecurityAuditLogRepository(dbgen.New(loggingDB))
 
+	passwordHasher := infraAuth.NewBcryptPasswordHasher()
 	tokenService := auth.NewTokenService(
 		refreshTokenRepo,
 		userRepo,
 		auditLogRepo,
+		passwordHasher,
 		7*24*time.Hour, // refresh token TTL
 	)
 
 	// Create auth handler with token service
-	authHandler := authHandlers.NewHandler(authConfig, tokenService, logger)
+	authHandler := authHandlers.NewHandler(tokenService, logger)
 
 	// Create API key service
 	apiKeyRepo := repository.NewSqlAPIKeyRepository(dbgen.New(loggingDB))

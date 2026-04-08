@@ -66,6 +66,19 @@ func (m *mockUserRepo) FindIDByExternalID(ctx context.Context, externalID string
 	return args.String(0), args.Bool(1), args.Error(2)
 }
 
+func (m *mockUserRepo) GetByPhone(ctx context.Context, phone string) (*user.User, error) {
+	args := m.Called(ctx, phone)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.User), args.Error(1)
+}
+
+func (m *mockUserRepo) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
+	args := m.Called(ctx, phone)
+	return args.Bool(0), args.Error(1)
+}
+
 type mockOrgRepo struct{ mock.Mock }
 
 func (m *mockOrgRepo) Create(ctx context.Context, org *domainOrg.Organization) error {

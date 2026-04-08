@@ -53,7 +53,7 @@ type ChiRouterConfig struct {
 //	  ├── /org/*                                  → Gin mount (Gin handles JWT)
 //	  ├── /graphql/*                              → Gin mount (no auth currently)
 //	  └── /api/* (generated OpenAPI handler)      → Chi with conditional auth
-//	        ├── /api/auth/login-url, /token, /logout  → public (no auth)
+//	        ├── /api/auth/register, /login, /logout     → public (no auth)
 //	        ├── /api/webhook/casdoor                  → public (no auth)
 //	        └── everything else                       → JWT + Tenant middleware
 func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
@@ -148,7 +148,7 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 
 	// Paths that are public and should NOT require authentication
 	publicPaths := map[string]bool{
-		"/api/auth/login-url":  true,
+		"/api/auth/register":   true,
 		"/api/auth/login":      true,
 		"/api/auth/logout":     true,
 		"/api/auth/refresh":    true,

@@ -55,6 +55,24 @@ func (m *mockUserRepo) FindIDByExternalID(_ context.Context, externalID string) 
 	return "", false, nil
 }
 
+func (m *mockUserRepo) GetByPhone(_ context.Context, phone string) (*user.User, error) {
+	for _, u := range m.users {
+		if u.Phone.String() == phone {
+			return u, nil
+		}
+	}
+	return nil, nil
+}
+
+func (m *mockUserRepo) ExistsByPhone(_ context.Context, phone string) (bool, error) {
+	for _, u := range m.users {
+		if u.Phone.String() == phone {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 // --- Helper functions ---
 
 func makeWebhookRequest(handler http.HandlerFunc, payload interface{}, authHeader string) *httptest.ResponseRecorder {
@@ -121,8 +139,8 @@ func TestHandle_SignupWithExtendedUser(t *testing.T) {
 	if u.Name != "Luke Skywalker" {
 		t.Errorf("expected name='Luke Skywalker', got %s", u.Name)
 	}
-	if u.Phone != "13800138000" {
-		t.Errorf("expected phone='13800138000', got %s", u.Phone)
+	if u.Phone.String() != "13800138000" {
+		t.Errorf("expected phone='13800138000', got %s", u.Phone.String())
 	}
 }
 
@@ -439,8 +457,8 @@ func TestHandle_ProfileFromObjectJSON(t *testing.T) {
 	if u.Name != "Luke S" {
 		t.Errorf("expected name='Luke S' from object JSON, got %s", u.Name)
 	}
-	if u.Phone != "13900139000" {
-		t.Errorf("expected phone='13900139000' from object JSON, got %s", u.Phone)
+	if u.Phone.String() != "13900139000" {
+		t.Errorf("expected phone='13900139000' from object JSON, got %s", u.Phone.String())
 	}
 }
 

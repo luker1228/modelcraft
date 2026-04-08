@@ -1,10 +1,48 @@
 # Auth Domain - paths + schemas
 
 paths:
+  /api/auth/register:
+    post:
+      operationId: register
+      summary: Register a new user with phone number and password
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/RegisterResponse"
+        "400":
+          description: Invalid input (phone format, password too short)
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+        "409":
+          description: Phone number already registered
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/PhoneAlreadyRegisteredError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
   /api/auth/login:
     post:
       operationId: login
-      summary: Login with external user info (called by BFF after Casdoor OAuth)
+      summary: Login with phone number and password
       tags: [Auth]
       security: []
       requestBody:
@@ -20,32 +58,24 @@ paths:
             application/json:
               schema:
                 $ref: "auth.yaml#/schemas/LoginResponse"
+        "400":
+          description: Invalid input (phone format)
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+        "401":
+          description: Authentication failed (phone not found or wrong password)
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthenticationError"
         "500":
           description: Server error
           content:
             application/json:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
-
-  /api/auth/login-url:
-    get:
-      operationId: getLoginURL
-      summary: Get Casdoor login URL
-      tags: [Auth]
-      security: []
-      parameters:
-        - name: state
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Login URL returned
-          content:
-            application/json:
-              schema:
-                $ref: "auth.yaml#/schemas/GetLoginURLResponse"
 
   /api/auth/logout:
     post:
@@ -87,7 +117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "auth.yaml#/schemas/UnauthorizedError"
+                $ref: "auth.yaml#/schemas/AuthenticationError"
         "500":
           description: Server error
           content:
@@ -97,29 +127,102 @@ paths:
 
 schemas:
   # -- Auth domain errors --
-  UnauthorizedError:
+  AuthInvalidInputError:
     type: object
+    required:
+      - requestId
+      - error
     properties:
-      error:
+      requestId:
         type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - PARAM_INVALID.AUTH
+          message:
+            type: string
+
+  PhoneAlreadyRegisteredError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - CONFLICT.USER
+          message:
+            type: string
+
+  AuthenticationError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - AUTHENTICATION_FAILED
+          message:
+            type: string
 
   # -- Auth request types --
+  RegisterRequest:
+    type: object
+    required:
+      - phone
+      - password
+    properties:
+      phone:
+        type: string
+        description: "11-digit mainland China phone number"
+        pattern: "^1[3-9]\\d{9}$"
+        example: "13800138000"
+      password:
+        type: string
+        description: "Password (minimum 8 characters)"
+        minLength: 8
+        example: "mypassword123"
+
   LoginRequest:
     type: object
     required:
-      - externalId
-      - email
-      - name
+      - phone
+      - password
     properties:
-      externalId:
+      phone:
         type: string
-        description: External authentication provider user ID
-      email:
+        description: "11-digit mainland China phone number"
+        pattern: "^1[3-9]\\d{9}$"
+        example: "13800138000"
+      password:
         type: string
-        description: User email address
-      name:
-        type: string
-        description: User display name
+        description: "User password"
+        example: "mypassword123"
 
   RefreshTokenRequest:
     type: object
@@ -128,49 +231,56 @@ schemas:
     properties:
       refreshToken:
         type: string
-        description: Refresh token obtained during initial authentication
+        description: Refresh token obtained during login
 
   # -- Auth response types --
-  LoginResponse:
-    type: object
-    required:
-      - userId
-      - refreshToken
-      - expiresAt
-    properties:
-      userId:
-        type: string
-        description: ModelCraft internal user UUID
-      refreshToken:
-        type: string
-        description: Opaque refresh token (store in httpOnly cookie)
-      expiresAt:
-        type: string
-        format: date-time
-        description: Refresh token expiration time
-
-  RefreshResponse:
-    type: object
-    required:
-      - userId
-      - refreshToken
-      - expiresAt
-    properties:
-      userId:
-        type: string
-        description: ModelCraft internal user UUID
-      refreshToken:
-        type: string
-        description: New opaque refresh token (replaces the old one)
-      expiresAt:
-        type: string
-        format: date-time
-        description: New refresh token expiration time
-
-  GetLoginURLResponse:
+  RegisterResponse:
     allOf:
       - $ref: "common.yaml#/schemas/BaseResponse"
       - type: object
+        required:
+          - userId
         properties:
-          loginUrl:
+          userId:
             type: string
+            description: "Created user UUID"
+
+  LoginResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - userId
+          - refreshToken
+          - expiresAt
+        properties:
+          userId:
+            type: string
+            description: ModelCraft internal user UUID
+          refreshToken:
+            type: string
+            description: Opaque refresh token (store securely on client)
+          expiresAt:
+            type: string
+            format: date-time
+            description: Refresh token expiration time (7 days from now)
+
+  RefreshResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - userId
+          - refreshToken
+          - expiresAt
+        properties:
+          userId:
+            type: string
+            description: ModelCraft internal user UUID
+          refreshToken:
+            type: string
+            description: New opaque refresh token (replaces the old one)
+          expiresAt:
+            type: string
+            format: date-time
+            description: New refresh token expiration time

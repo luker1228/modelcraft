@@ -40,6 +40,20 @@ var (
 		EnMessage: "Authentication required: {0}",
 		ZhMessage: "认证失败: {0}",
 	}
+
+	// AuthenticationFailed 登录失败（手机号不存在、密码错误）
+	AuthenticationFailed = ErrorDefinition{
+		Code:      ErrorTypeAuthentication,
+		EnMessage: "Authentication failed: {0}",
+		ZhMessage: "认证失败: {0}",
+	}
+
+	// AuthParamInvalid 注册/登录参数校验失败
+	AuthParamInvalid = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".AUTH",
+		EnMessage: "Invalid auth parameter: {0}",
+		ZhMessage: "认证参数无效: {0}",
+	}
 )
 
 // 定义Model领域错误

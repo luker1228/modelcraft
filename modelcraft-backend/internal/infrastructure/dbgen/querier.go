@@ -46,15 +46,16 @@ type Querier interface {
 	DeleteRole(ctx context.Context, id int64) error
 	DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
 	DeleteUserRolesByRole(ctx context.Context, roleID int64) error
+	ExistsByPhone(ctx context.Context, phone string) (bool, error)
 	ExistsDatabaseClusterByProjectKey(ctx context.Context, arg ExistsDatabaseClusterByProjectKeyParams) (int64, error)
 	ExistsEnumByName(ctx context.Context, arg ExistsEnumByNameParams) (int64, error)
 	ExistsFieldByName(ctx context.Context, arg ExistsFieldByNameParams) (int64, error)
 	ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
-	ExistsUserByExternalID(ctx context.Context, externalID string) (int64, error)
+	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
 	FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID sql.NullString) ([]FindFieldsByBelongsToFKIDRow, error)
 	FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.NullString) ([]FindFieldsByRelateFKIDRow, error)
-	FindIDByExternalID(ctx context.Context, externalID string) (string, error)
+	FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error)
 	FindLogicalForeignKeysByModelID(ctx context.Context, modelID string) ([]LogicalForeignKey, error)
 	FindLogicalForeignKeysByPairID(ctx context.Context, pairID string) ([]LogicalForeignKey, error)
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, refModelID string) ([]LogicalForeignKey, error)
@@ -90,8 +91,9 @@ type Querier interface {
 	GetSystemRoleByName(ctx context.Context, name string) (Role, error)
 	GetTailFieldDisplayOrder(ctx context.Context, modelID string) (string, error)
 	GetTailModelGroupDisplayOrder(ctx context.Context, arg GetTailModelGroupDisplayOrderParams) (string, error)
-	GetUserByExternalID(ctx context.Context, externalID string) (User, error)
+	GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
+	GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
 	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
