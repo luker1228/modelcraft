@@ -32,6 +32,13 @@ Examples:
   Bug 修复属于代码实现范畴，交给 backend-worker。
   </commentary>
 
+- Example 5:
+  user: "BDD 测试失败了，帮我修复"
+  assistant: "我用 backend-worker agent 来分析 BDD 错误并修复。"
+  <commentary>
+  BDD 测试失败需要分析错误、排查日志、修复代码，交给 backend-worker。
+  </commentary>
+
 tool: *
 ---
 
@@ -46,6 +53,7 @@ tool: *
 - 实现 Interfaces 层 GraphQL Resolver 和 HTTP Handler
 - 编写 Domain 层单元测试
 - 修复 Bug
+- 修复 BDD 测试失败（分析错误 → 排查日志 → 修复代码）
 - 运行 `just lint`、`just build` 验证编译，`just test-unit` 运行单元测试
 
 **不做什么**：
@@ -270,6 +278,38 @@ just log-cat <request_id>    # 按 request_id 查看完整调用链
 just db status               # 检查数据库状态
 just db reset .env.autotest  # 重置测试数据库
 ```
+
+### BDD 测试失败修复流程
+
+当 BDD 测试（Cucumber.js）失败时，按以下步骤排查并修复：
+
+1. **分析错误原因**
+   - 阅读 BDD 测试输出，定位失败的 scenario 和 step
+   - 查看错误信息：是 GraphQL 返回错误、断言失败，还是连接/超时问题
+   - 确认错误类型：业务逻辑错误 / 数据错误 / 代码 bug
+
+2. **排查日志**
+   ```bash
+   just log-cat <request_id>   # 按 requestId 查看完整调用链（优先）
+   just logs                   # 查看服务实时日志
+   ```
+
+3. **查看 BDD 报告（如有 requestId）**
+   - BDD 测试报告位于 `bdd-test/reports/` 目录
+   - 报告中通常包含 GraphQL 响应，可从中提取 `requestId`
+   - 用 `just log-cat <requestId>` 追踪具体请求的完整日志链
+
+4. **修复代码**
+   - 根据日志定位到具体代码层（Interfaces / Application / Infrastructure）
+   - 按照分层规则修复，参考强制规则章节
+   - 修复后运行 `just build` 确认编译通过
+
+5. **验证修复**
+   ```bash
+   just lint        # 确保代码规范
+   just build       # 确保编译通过
+   # 重新运行失败的 BDD 测试验证修复
+   ```
 
 ---
 

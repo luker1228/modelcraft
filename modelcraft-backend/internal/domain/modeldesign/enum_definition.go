@@ -3,11 +3,15 @@ package modeldesign
 import (
 	"fmt"
 	"modelcraft/internal/domain/project"
+	"regexp"
 	"strings"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
 )
+
+// enumNamePattern matches valid enum names: must start with a letter, only letters, digits, and underscores.
+var enumNamePattern = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
 
 // EnumOption 枚举选项值对象
 type EnumOption struct {
@@ -53,6 +57,12 @@ func (ed *EnumDefinition) Validate() error {
 	}
 	if strings.TrimSpace(ed.Name) == "" {
 		return bizerrors.New("enum name cannot be empty")
+	}
+	if !enumNamePattern.MatchString(ed.Name) {
+		return bizerrors.Errorf(
+			"enum name %q is invalid: must start with a letter and contain only letters, digits, and underscores",
+			ed.Name,
+		)
 	}
 	if strings.TrimSpace(ed.DisplayName) == "" {
 		return bizerrors.New("enum display name cannot be empty")

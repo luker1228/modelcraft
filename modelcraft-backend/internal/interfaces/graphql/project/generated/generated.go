@@ -52,6 +52,11 @@ type ComplexityRoot struct {
 		ReferencedTable  func(childComplexity int) int
 	}
 
+	AddFieldsPayload struct {
+		Error func(childComplexity int) int
+		Model func(childComplexity int) int
+	}
+
 	CannotDeleteDeployedModel struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -516,7 +521,7 @@ type MutationResolver interface {
 	CreateEnum(ctx context.Context, input CreateEnumInput) (*CreateEnumPayload, error)
 	UpdateEnum(ctx context.Context, name string, input UpdateEnumInput) (*UpdateEnumPayload, error)
 	DeleteEnum(ctx context.Context, name string) (*DeleteEnumPayload, error)
-	AddFields(ctx context.Context, modelID string, input []*AddFieldInput) (*Model, error)
+	AddFields(ctx context.Context, modelID string, input []*AddFieldInput) (*AddFieldsPayload, error)
 	UpdateField(ctx context.Context, modelID string, fieldName string, input UpdateFieldInput) (*Model, error)
 	RemoveField(ctx context.Context, modelID string, fieldName string) (*Model, error)
 	DeprecateField(ctx context.Context, modelID string, fieldName string) (*Model, error)
@@ -592,6 +597,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ActualForeignKey.ReferencedTable(childComplexity), true
+
+	case "AddFieldsPayload.error":
+		if e.complexity.AddFieldsPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.AddFieldsPayload.Error(childComplexity), true
+	case "AddFieldsPayload.model":
+		if e.complexity.AddFieldsPayload.Model == nil {
+			break
+		}
+
+		return e.complexity.AddFieldsPayload.Model(childComplexity), true
 
 	case "CannotDeleteDeployedModel.message":
 		if e.complexity.CannotDeleteDeployedModel.Message == nil {
@@ -2995,9 +3013,17 @@ extend type Query {
   fields(modelID: ID!): [Field!]! @hasPermission(action: "model:read")
 }
 
+# AddFields error and payload types
+union AddFieldsError = InvalidModelInput
+
+type AddFieldsPayload {
+  model: Model
+  error: AddFieldsError
+}
+
 # Field mutations
 extend type Mutation {
-  addFields(modelID: ID!, input: [AddFieldInput!]!): Model @hasPermission(action: "model:update")
+  addFields(modelID: ID!, input: [AddFieldInput!]!): AddFieldsPayload! @hasPermission(action: "model:update")
   updateField(modelID: ID!, fieldName: String!, input: UpdateFieldInput!): Model @hasPermission(action: "model:update")
   removeField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
 
@@ -4021,6 +4047,90 @@ func (ec *executionContext) fieldContext_ActualForeignKey_constraintName(_ conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AddFieldsPayload_model(ctx context.Context, field graphql.CollectedField, obj *AddFieldsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AddFieldsPayload_model,
+		func(ctx context.Context) (any, error) {
+			return obj.Model, nil
+		},
+		nil,
+		ec.marshalOModel2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModel,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AddFieldsPayload_model(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AddFieldsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Model_id(ctx, field)
+			case "projectSlug":
+				return ec.fieldContext_Model_projectSlug(ctx, field)
+			case "name":
+				return ec.fieldContext_Model_name(ctx, field)
+			case "title":
+				return ec.fieldContext_Model_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Model_description(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_Model_databaseName(ctx, field)
+			case "storageType":
+				return ec.fieldContext_Model_storageType(ctx, field)
+			case "fields":
+				return ec.fieldContext_Model_fields(ctx, field)
+			case "group":
+				return ec.fieldContext_Model_group(ctx, field)
+			case "dbTable":
+				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Model_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Model_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Model", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _AddFieldsPayload_error(ctx context.Context, field graphql.CollectedField, obj *AddFieldsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_AddFieldsPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOAddFieldsError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAddFieldsError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_AddFieldsPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "AddFieldsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type AddFieldsError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9507,11 +9617,11 @@ func (ec *executionContext) _Mutation_addFields(ctx context.Context, field graph
 			directive1 := func(ctx context.Context) (any, error) {
 				action, err := ec.unmarshalNString2string(ctx, "model:update")
 				if err != nil {
-					var zeroVal *Model
+					var zeroVal *AddFieldsPayload
 					return zeroVal, err
 				}
 				if ec.directives.HasPermission == nil {
-					var zeroVal *Model
+					var zeroVal *AddFieldsPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
 				return ec.directives.HasPermission(ctx, nil, directive0, action)
@@ -9520,9 +9630,9 @@ func (ec *executionContext) _Mutation_addFields(ctx context.Context, field graph
 			next = directive1
 			return next
 		},
-		ec.marshalOModel2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModel,
+		ec.marshalNAddFieldsPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAddFieldsPayload,
 		true,
-		false,
+		true,
 	)
 }
 
@@ -9534,32 +9644,12 @@ func (ec *executionContext) fieldContext_Mutation_addFields(ctx context.Context,
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Model_id(ctx, field)
-			case "projectSlug":
-				return ec.fieldContext_Model_projectSlug(ctx, field)
-			case "name":
-				return ec.fieldContext_Model_name(ctx, field)
-			case "title":
-				return ec.fieldContext_Model_title(ctx, field)
-			case "description":
-				return ec.fieldContext_Model_description(ctx, field)
-			case "databaseName":
-				return ec.fieldContext_Model_databaseName(ctx, field)
-			case "storageType":
-				return ec.fieldContext_Model_storageType(ctx, field)
-			case "fields":
-				return ec.fieldContext_Model_fields(ctx, field)
-			case "group":
-				return ec.fieldContext_Model_group(ctx, field)
-			case "dbTable":
-				return ec.fieldContext_Model_dbTable(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Model_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Model_updatedAt(ctx, field)
+			case "model":
+				return ec.fieldContext_AddFieldsPayload_model(ctx, field)
+			case "error":
+				return ec.fieldContext_AddFieldsPayload_error(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Model", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type AddFieldsPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -15986,6 +16076,22 @@ func (ec *executionContext) unmarshalInputValidationConfigInput(ctx context.Cont
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _AddFieldsError(ctx context.Context, sel ast.SelectionSet, obj AddFieldsError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case InvalidModelInput:
+		return ec._InvalidModelInput(ctx, sel, &obj)
+	case *InvalidModelInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidModelInput(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _CreateEnumError(ctx context.Context, sel ast.SelectionSet, obj CreateEnumError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -16695,6 +16801,44 @@ func (ec *executionContext) _ActualForeignKey(ctx context.Context, sel ast.Selec
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var addFieldsPayloadImplementors = []string{"AddFieldsPayload"}
+
+func (ec *executionContext) _AddFieldsPayload(ctx context.Context, sel ast.SelectionSet, obj *AddFieldsPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, addFieldsPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("AddFieldsPayload")
+		case "model":
+			out.Values[i] = ec._AddFieldsPayload_model(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._AddFieldsPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -18629,7 +18773,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidModelInputImplementors = []string{"InvalidModelInput", "Error", "GetModelError", "CreateModelError", "UpdateModelError"}
+var invalidModelInputImplementors = []string{"InvalidModelInput", "AddFieldsError", "Error", "GetModelError", "CreateModelError", "UpdateModelError"}
 
 func (ec *executionContext) _InvalidModelInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidModelInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidModelInputImplementors)
@@ -19268,6 +19412,9 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_addFields(ctx, field)
 			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateField":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateField(ctx, field)
@@ -20860,6 +21007,20 @@ func (ec *executionContext) unmarshalNAddFieldInput2ᚖmodelcraftᚋinternalᚋi
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNAddFieldsPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAddFieldsPayload(ctx context.Context, sel ast.SelectionSet, v AddFieldsPayload) graphql.Marshaler {
+	return ec._AddFieldsPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAddFieldsPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAddFieldsPayload(ctx context.Context, sel ast.SelectionSet, v *AddFieldsPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AddFieldsPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -22417,6 +22578,13 @@ func (ec *executionContext) marshalOActualForeignKey2ᚖmodelcraftᚋinternalᚋ
 		return graphql.Null
 	}
 	return ec._ActualForeignKey(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOAddFieldsError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAddFieldsError(ctx context.Context, sel ast.SelectionSet, v AddFieldsError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._AddFieldsError(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v any) (bool, error) {

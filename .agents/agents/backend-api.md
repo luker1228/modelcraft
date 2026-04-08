@@ -1,17 +1,17 @@
 ---
-name: backend-api-protocol-designer
+name: backend-api
 description: Use this agent when explicitly asked to design backend API protocols/interfaces. Covers RESTful OpenAPI specifications for auth/org/webhook endpoints and GraphQL schemas for business logic. Use when planning new API endpoints, extending existing schemas, or reviewing API design consistency.
 
 Examples:
 
 - user: "我需要设计一个用户注册和登录的接口"
-  assistant: "让我使用 backend-api-protocol-designer agent 来为您设计 OAuth 认证接口。"
+  assistant: "让我使用 backend-api agent 来为您设计 OAuth 认证接口。"
 
 - user: "帮我设计一下订单管理的接口"
-  assistant: "这是业务相关的接口，让我使用 backend-api-protocol-designer agent 来设计 GraphQL schema。"
+  assistant: "这是业务相关的接口，让我使用 backend-api agent 来设计 GraphQL schema。"
 
 - user: "我要新增一个用户收藏功能，需要设计接口"
-  assistant: "让我使用 backend-api-protocol-designer agent 来设计接口。"
+  assistant: "让我使用 backend-api agent 来设计接口。"
 tool: *
 ---
 

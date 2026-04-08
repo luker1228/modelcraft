@@ -9,6 +9,10 @@ import (
 	"strconv"
 )
 
+type AddFieldsError interface {
+	IsAddFieldsError()
+}
+
 type CreateEnumError interface {
 	IsCreateEnumError()
 }
@@ -115,6 +119,11 @@ type AddFieldInput struct {
 	RelateFkID       *string                `json:"relateFkId,omitempty"`
 	EnumConfig       *EnumConfigInput       `json:"enumConfig,omitempty"`
 	EnumLabelConfig  *EnumLabelConfigInput  `json:"enumLabelConfig,omitempty"`
+}
+
+type AddFieldsPayload struct {
+	Model *Model         `json:"model,omitempty"`
+	Error AddFieldsError `json:"error,omitempty"`
 }
 
 type CannotDeleteDeployedModel struct {
@@ -532,6 +541,8 @@ type InvalidModelInput struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
 }
+
+func (InvalidModelInput) IsAddFieldsError() {}
 
 func (InvalidModelInput) IsError()                {}
 func (this InvalidModelInput) GetMessage() string { return this.Message }

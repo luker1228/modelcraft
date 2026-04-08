@@ -147,3 +147,19 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 		}
 	}
 }
+
+// ConvertToAddFieldsError converts business error to AddFieldsError union type
+func (a *ModelErrorAdapter) ConvertToAddFieldsError(err *bizerrors.BusinessError) generated.AddFieldsError {
+	if err == nil {
+		return nil
+	}
+
+	gqlErr := &generated.InvalidModelInput{
+		Message: err.Msg(),
+	}
+	if err.Detail() != "" {
+		detail := err.Detail()
+		gqlErr.Suggestion = &detail
+	}
+	return gqlErr
+}

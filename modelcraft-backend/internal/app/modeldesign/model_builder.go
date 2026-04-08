@@ -4,28 +4,46 @@ import (
 	"context"
 	"fmt"
 	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/pkg/bizerrors"
 	"regexp"
 	"time"
 
 	"github.com/google/uuid"
 )
 
-// request.Name的校验规则
-// 不能是数字开头，只能含有_和字母数字
-func validateModelName(name string) error {
+// validateModelDatabaseName 校验数据库表名格式
+// 允许以字母或下划线开头，只能包含字母、数字和下划线
+func validateModelDatabaseName(name string) error {
 	if name == "" {
-		return fmt.Errorf("模型名称不能为空")
+		return bizerrors.NewValidationError("模型数据库名称不能为空")
 	}
 
-	// 使用正则表达式校验
-	// ^[a-zA-Z_]开头，后面只能包含字母、数字和下划线
 	matched, err := regexp.MatchString(`^[a-zA-Z_][a-zA-Z0-9_]*$`, name)
+	if err != nil {
+		return fmt.Errorf("校验模型数据库名称时发生错误: %v", err)
+	}
+
+	if !matched {
+		return bizerrors.NewValidationError("模型数据库名称格式不正确：必须以字母或下划线开头，只能包含字母、数字和下划线")
+	}
+
+	return nil
+}
+
+// validateModelDisplayName 校验模型显示名称格式
+// 必须以字母开头，只能包含字母、数字和下划线（不允许下划线开头）
+func validateModelDisplayName(name string) error {
+	if name == "" {
+		return bizerrors.NewValidationError("模型名称不能为空")
+	}
+
+	matched, err := regexp.MatchString(`^[a-zA-Z][a-zA-Z0-9_]*$`, name)
 	if err != nil {
 		return fmt.Errorf("校验模型名称时发生错误: %v", err)
 	}
 
 	if !matched {
-		return fmt.Errorf("模型名称格式不正确：必须以字母或下划线开头，只能包含字母、数字和下划线")
+		return bizerrors.NewValidationError("模型名称格式不正确：必须以字母开头，只能包含字母、数字和下划线")
 	}
 
 	return nil
@@ -33,10 +51,10 @@ func validateModelName(name string) error {
 
 func newModelFromCommand(ctx context.Context, cmd CreateModelCommand) (*modeldesign.DataModel, error) {
 	now := time.Now()
-	if cmd.DatabaseName == "" {
-		return nil, fmt.Errorf("DatabaseName cant be blank")
+	if err := validateModelDisplayName(cmd.Name); err != nil {
+		return nil, err
 	}
-	if err := validateModelName(cmd.DatabaseName); err != nil {
+	if err := validateModelDatabaseName(cmd.DatabaseName); err != nil {
 		return nil, err
 	}
 

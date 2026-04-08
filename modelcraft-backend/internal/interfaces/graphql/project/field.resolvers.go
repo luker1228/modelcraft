@@ -6,6 +6,7 @@ package projectgraphql
 
 import (
 	"context"
+	"fmt"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
@@ -15,56 +16,69 @@ import (
 )
 
 // AddFields is the resolver for the addFields field.
-func (r *mutationResolver) AddFields(ctx context.Context, modelID string, input []*generated.AddFieldInput) (*generated.Model, error) {
-	// Convert GraphQL input to DTO
-	var payload *generated.Model
-	graphqlErr := bizerrors.WithGraphqlErrorHandler(ctx, func() error {
-		// Convert GraphQL input to domain field definitions via DTO intermediate
-		fields := make([]*modeldesign.FieldDefinition, 0, len(input))
-		for _, inputItem := range input {
-			dto, err := adapter.FieldMapper.ConvertAddFieldInputToDTO(inputItem)
-			if err != nil {
-				return err
+func (r *mutationResolver) AddFields(ctx context.Context, modelID string, input []*generated.AddFieldInput) (*generated.AddFieldsPayload, error) {
+	errorAdapter := adapter.NewModelErrorAdapter(ctx)
+
+	// Convert GraphQL input to domain field definitions via DTO intermediate
+	fields := make([]*modeldesign.FieldDefinition, 0, len(input))
+	for _, inputItem := range input {
+		dto, err := adapter.FieldMapper.ConvertAddFieldInputToDTO(inputItem)
+		if err != nil {
+			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+				return &generated.AddFieldsPayload{
+					Error: errorAdapter.ConvertToAddFieldsError(bizErr),
+				}, nil
 			}
-			field, err := mapper.FieldMapper.ConvertFieldDTOToDomain(modelID, nil, dto)
-			if err != nil {
-				return err
+			return nil, err
+		}
+		field, err := mapper.FieldMapper.ConvertFieldDTOToDomain(modelID, nil, dto)
+		if err != nil {
+			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+				return &generated.AddFieldsPayload{
+					Error: errorAdapter.ConvertToAddFieldsError(bizErr),
+				}, nil
 			}
-			fields = append(fields, field)
+			return nil, err
 		}
-
-		// Create command
-		cmd := appmodeldesign.AddFieldCommand{
-			ModelID: modelID,
-			Fields:  fields,
-		}
-
-		// Add field using app service
-		err := r.ModelDesignService.AddFieldSync(ctx, cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get updated model
-		updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
-		if err != nil {
-			return err
-		}
-
-		// Convert domain model to GraphQL model
-		graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
-		if err != nil {
-			return err
-		}
-
-		payload = graphqlModel
-		return nil
-	})
-
-	if graphqlErr != nil {
-		return nil, graphqlErr
+		fields = append(fields, field)
 	}
-	return payload, nil
+
+	// Create command
+	cmd := appmodeldesign.AddFieldCommand{
+		ModelID: modelID,
+		Fields:  fields,
+	}
+
+	// Add field using app service
+	err := r.ModelDesignService.AddFieldSync(ctx, cmd)
+	if err != nil {
+		// Convert business errors to typed GraphQL errors
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			return &generated.AddFieldsPayload{
+				Model: nil,
+				Error: errorAdapter.ConvertToAddFieldsError(bizErr),
+			}, nil
+		}
+		// For non-business errors, still throw as GraphQL error
+		return nil, err
+	}
+
+	// Get updated model
+	updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
+	if err != nil {
+		return nil, err
+	}
+
+	// Convert domain model to GraphQL model
+	graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
+	if err != nil {
+		return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
+	}
+
+	return &generated.AddFieldsPayload{
+		Model: graphqlModel,
+		Error: nil,
+	}, nil
 }
 
 // UpdateField is the resolver for the updateField field.

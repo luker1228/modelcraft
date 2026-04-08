@@ -1,11 +1,54 @@
 // tests-bdd/step-definitions/auth.steps.ts
-import { Given } from '@cucumber/cucumber'
+import { Given, When, Then } from '@cucumber/cucumber'
+import { expect } from 'expect'
 import { ModelCraftWorld } from '../support/world'
+import {
+  RegisterResponse,
+  LoginResponse,
+  RefreshResponse,
+  RestResult,
+} from '../support/rest-client'
+
+// ──────────────── 工具函数 ────────────────
 
 /**
- * 以管理员身份登录。
- * 优先使用 .env.test 中的 TEST_ACCESS_TOKEN（已在 World 构造函数中设置）。
- * 若未设置则抛出明确错误，提示配置方法。
+ * 为避免并行测试手机号冲突，将 feature 中的固定手机号映射为随机手机号。
+ * 同一个 Scenario 内，相同原始手机号始终映射到同一个随机手机号。
+ */
+const phoneMap = new Map<string, Map<string, string>>()
+let scenarioKey = ''
+
+function getOrCreatePhone(world: ModelCraftWorld, rawPhone: string): string {
+  // 空字符串或非法格式直接传递给后端，让后端做校验
+  if (!rawPhone || rawPhone.length !== 11 || !/^1[3-9]\d{9}$/.test(rawPhone)) {
+    return rawPhone
+  }
+  const key = `${world.constructor.name}_${Date.now()}`
+  if (!phoneMap.has(scenarioKey)) {
+    phoneMap.set(scenarioKey, new Map())
+  }
+  const map = phoneMap.get(scenarioKey)!
+  if (!map.has(rawPhone)) {
+    // 保留前三位（运营商号段），随机生成后八位
+    const prefix = rawPhone.slice(0, 3)
+    const suffix = Math.floor(10000000 + Math.random() * 90000000).toString()
+    map.set(rawPhone, prefix + suffix)
+  }
+  return map.get(rawPhone)!
+}
+
+// 每个 Scenario 重置映射
+import { Before } from '@cucumber/cucumber'
+Before(function () {
+  scenarioKey = `${Date.now()}_${Math.random()}`
+  phoneMap.set(scenarioKey, new Map())
+})
+
+// ──────────────── Given ────────────────
+
+/**
+ * 以管理员身份登录（复用现有 token）。
+ * 优先使用 .env.test 中的 TEST_ACCESS_TOKEN。
  */
 Given('我以管理员身份登录', function (this: ModelCraftWorld) {
   if (!this.token) {
@@ -15,5 +58,185 @@ Given('我以管理员身份登录', function (this: ModelCraftWorld) {
       '获取方式：在 modelcraft-backend/ 目录运行 just test-user-setup'
     )
   }
-  // token 已在 World 构造函数中设置到 projectClient，此处只做验证
+})
+
+/**
+ * 前置条件：注册一个用户。
+ */
+Given(
+  '已注册手机号 {string} 密码 {string}',
+  async function (this: ModelCraftWorld, rawPhone: string, password: string) {
+    const phone = getOrCreatePhone(this, rawPhone)
+    const result = await this.restClient.register(phone, password)
+    if (!result.data) {
+      throw new Error(`前置条件：注册用户 ${phone} 失败 — ${JSON.stringify(result.error)}`)
+    }
+    this.registeredPhone = phone
+    this.registeredPassword = password
+    this.currentUserId = result.data.userId
+  }
+)
+
+/**
+ * 前置条件：注册并登录一个用户（获取 refreshToken）。
+ */
+Given(
+  '已注册并登录手机号 {string} 密码 {string}',
+  async function (this: ModelCraftWorld, rawPhone: string, password: string) {
+    const phone = getOrCreatePhone(this, rawPhone)
+    // 注册
+    const regResult = await this.restClient.register(phone, password)
+    if (!regResult.data) {
+      throw new Error(`前置条件：注册用户 ${phone} 失败 — ${JSON.stringify(regResult.error)}`)
+    }
+    // 登录
+    const loginResult = await this.restClient.login(phone, password)
+    if (!loginResult.data) {
+      throw new Error(`前置条件：登录用户 ${phone} 失败 — ${JSON.stringify(loginResult.error)}`)
+    }
+    this.registeredPhone = phone
+    this.registeredPassword = password
+    this.currentUserId = loginResult.data.userId
+    this.currentRefreshToken = loginResult.data.refreshToken
+  }
+)
+
+// ──────────────── When: 注册 ────────────────
+
+When(
+  '我用手机号 {string} 和密码 {string} 注册',
+  async function (this: ModelCraftWorld, rawPhone: string, password: string) {
+    const phone = getOrCreatePhone(this, rawPhone)
+    this.lastRestResult = await this.restClient.register(phone, password)
+    if (this.lastRestResult.data) {
+      this.registeredPhone = phone
+      this.registeredPassword = password
+    }
+  }
+)
+
+// ──────────────── When: 登录 ────────────────
+
+When(
+  '我用手机号 {string} 和密码 {string} 登录',
+  async function (this: ModelCraftWorld, rawPhone: string, password: string) {
+    const phone = getOrCreatePhone(this, rawPhone)
+    this.lastRestResult = await this.restClient.login(phone, password)
+    if ((this.lastRestResult as RestResult<LoginResponse>).data?.refreshToken) {
+      this.currentRefreshToken = (this.lastRestResult as RestResult<LoginResponse>).data!.refreshToken
+    }
+  }
+)
+
+// ──────────────── When: Token 刷新 ────────────────
+
+When('我使用 refreshToken 刷新令牌', async function (this: ModelCraftWorld) {
+  if (!this.currentRefreshToken) {
+    throw new Error('当前无 refreshToken，请先登录')
+  }
+  this.lastRestResult = await this.restClient.refresh(this.currentRefreshToken)
+})
+
+When('我使用无效的 refreshToken 刷新令牌', async function (this: ModelCraftWorld) {
+  this.lastRestResult = await this.restClient.refresh('invalid_token_does_not_exist')
+})
+
+When('我使用已登出的 refreshToken 刷新令牌', async function (this: ModelCraftWorld) {
+  // currentRefreshToken 在登出步骤中保存了已登出的 token
+  if (!this.currentRefreshToken) {
+    throw new Error('当前无 refreshToken')
+  }
+  this.lastRestResult = await this.restClient.refresh(this.currentRefreshToken)
+})
+
+// ──────────────── When: 登出 ────────────────
+
+When('我使用 refreshToken 登出', async function (this: ModelCraftWorld) {
+  if (!this.currentRefreshToken) {
+    throw new Error('当前无 refreshToken，请先登录')
+  }
+  this.lastRestResult = await this.restClient.logout(this.currentRefreshToken)
+  // 不清除 currentRefreshToken，后续步骤可能需要验证它已失效
+})
+
+// ──────────────── Then: 注册断言 ────────────────
+
+Then('注册应该成功', function (this: ModelCraftWorld) {
+  const result = this.lastRestResult as RestResult<RegisterResponse>
+  expect(result).not.toBeNull()
+  expect(result.status).toBe(201)
+  expect(result.data).toBeDefined()
+})
+
+// ──────────────── Then: 登录断言 ────────────────
+
+Then('登录应该成功', function (this: ModelCraftWorld) {
+  const result = this.lastRestResult as RestResult<LoginResponse>
+  expect(result).not.toBeNull()
+  expect(result.status).toBe(200)
+  expect(result.data).toBeDefined()
+})
+
+// ──────────────── Then: 刷新断言 ────────────────
+
+Then('刷新应该成功', function (this: ModelCraftWorld) {
+  const result = this.lastRestResult as RestResult<RefreshResponse>
+  expect(result).not.toBeNull()
+  expect(result.status).toBe(200)
+  expect(result.data).toBeDefined()
+})
+
+Then('新 refreshToken 应与旧 refreshToken 不同', function (this: ModelCraftWorld) {
+  const result = this.lastRestResult as RestResult<RefreshResponse>
+  expect(result.data).toBeDefined()
+  expect(result.data!.refreshToken).not.toBe(this.currentRefreshToken)
+})
+
+// ──────────────── Then: 登出断言 ────────────────
+
+Then('登出应该成功', function (this: ModelCraftWorld) {
+  expect(this.lastRestResult).not.toBeNull()
+  expect(this.lastRestResult!.status).toBe(204)
+})
+
+// ──────────────── Then: 通用 REST 断言 ────────────────
+
+Then('应该返回 HTTP 状态码 {int}', function (this: ModelCraftWorld, expectedStatus: number) {
+  expect(this.lastRestResult).not.toBeNull()
+  expect(this.lastRestResult!.status).toBe(expectedStatus)
+})
+
+Then('应该返回错误码 {string}', function (this: ModelCraftWorld, expectedCode: string) {
+  expect(this.lastRestResult).not.toBeNull()
+  expect(this.lastRestResult!.error).toBeDefined()
+  expect(this.lastRestResult!.error!.error.code).toBe(expectedCode)
+})
+
+Then('响应中应包含 userId', function (this: ModelCraftWorld) {
+  expect(this.lastRestResult).not.toBeNull()
+  const data = this.lastRestResult!.data as Record<string, unknown>
+  expect(data).toBeDefined()
+  expect(data.userId).toBeDefined()
+  expect(typeof data.userId).toBe('string')
+  expect((data.userId as string).length).toBeGreaterThan(0)
+})
+
+Then('响应中应包含 refreshToken', function (this: ModelCraftWorld) {
+  expect(this.lastRestResult).not.toBeNull()
+  const data = this.lastRestResult!.data as Record<string, unknown>
+  expect(data).toBeDefined()
+  expect(data.refreshToken).toBeDefined()
+  expect(typeof data.refreshToken).toBe('string')
+  expect((data.refreshToken as string).length).toBeGreaterThan(0)
+})
+
+Then('响应中应包含 expiresAt', function (this: ModelCraftWorld) {
+  expect(this.lastRestResult).not.toBeNull()
+  const data = this.lastRestResult!.data as Record<string, unknown>
+  expect(data).toBeDefined()
+  expect(data.expiresAt).toBeDefined()
+  expect(typeof data.expiresAt).toBe('string')
+  // 验证是合法的日期格式
+  const date = new Date(data.expiresAt as string)
+  expect(date.getTime()).not.toBeNaN()
 })

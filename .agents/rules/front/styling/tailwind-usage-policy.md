@@ -5,4 +5,4 @@ paths:
   - "src/**/*.css"
 ---
 
-See: [ai-metadata/style/tailwind-usage-policy.md](../../../ai-metadata/style/tailwind-usage-policy.md)
+See: [ai-metadata/front/style/tailwind-usage-policy.md](../../../ai-metadata/front/style/tailwind-usage-policy.md)

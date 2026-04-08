@@ -48,7 +48,6 @@ Domain (领域模型 + 仓储接口)   ←   Infrastructure (Repository + sqlc)
 | 修改 `.graphql` / `.yaml` / `.sql` 文件后需要生成代码 | Schema-First 工作流：哪个文件改了跑哪条命令、禁止手改的目录、两套 GraphQL schema 的目录结构 | [contract-sync.md](../../../../ai-metadata/backend/development/contract-sync.md) |
 | 写日志、不确定该用哪个日志方法或字段 | logfacade 用法、字段常量、Stack() 只在 Interfaces 层用、禁止裸 log | [logging.md](../../../../ai-metadata/backend/development/logging.md) |
 | 处理 JSON 字段或自定义 sqlc 类型 | StringSlice / JSONMap 等自定义类型的 Scan+Value 实现模板、`db:"type:json"` 标签要求、常见 sqlc 坑（软删除、零值更新、N+1） | [sqlc-custom-types.md](../../../../ai-metadata/backend/development/sqlc-custom-types.md) |
-| 命名、代码风格、协程写法、事务怎么用 | 命名约定、事务模式（TxManager.WithTx）、协程必须用 bizutils.GoWithCtx、import 顺序 | [code-style.md](../../../../ai-metadata/backend/development/code-style.md) |
 | 设计领域模型、实体/值对象/聚合边界 | 核心领域模型文档、DDD 原则、业务规则（最高优先级，实现必须以此为准） | [design/](../../../../ai-metadata/backend/design/) |
 | 运行 just 命令、不知道命令叫什么 | 所有 just 命令速查表（run/test/lint/db/generate/deploy 等），含参数说明 | [justfile-guide.md](../../../../ai-metadata/backend/tools/justfile-guide.md) |
 | 本地启动服务、查日志、数据库重置 | just run / just logs / just db reset 常用命令、request_id 追踪、常见问题快速修复 | [debugging-workflow.md](../../../../ai-metadata/backend/testing/debugging-workflow.md) |

@@ -1,7 +1,7 @@
 import 'dotenv/config'
 import { World, setWorldConstructor, IWorldOptions } from '@cucumber/cucumber'
 import { GraphQLClient } from './graphql-client'
-import { RestClient } from './rest-client'
+import { RestClient, RestResult } from './rest-client'
 
 export class ModelCraftWorld extends World {
   // 客户端
@@ -29,9 +29,16 @@ export class ModelCraftWorld extends World {
   lastModelName: string | null = null
   lastEnumName: string | null = null
 
-  // 最近操作结果（When → Then 传递）
+  // 最近操作结果（When → Then 传递）— GraphQL 场景
   lastResponse: Record<string, unknown> | null = null
   lastError: Error | null = null
+
+  // Auth 相关状态（REST 场景）
+  lastRestResult: RestResult<unknown> | null = null
+  registeredPhone: string | null = null
+  registeredPassword: string | null = null
+  currentRefreshToken: string | null = null
+  currentUserId: string | null = null
 
   constructor(options: IWorldOptions) {
     super(options)

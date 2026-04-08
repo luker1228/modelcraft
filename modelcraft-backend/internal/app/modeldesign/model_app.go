@@ -116,7 +116,24 @@ func (s *ModelDesignAppService) transactionDeployModel(
 	orgName string,
 	model *modeldesign.DataModel,
 ) (*modeldesign.DataModel, error) {
-	// Check if the underlying table already exists in the client database before deploying.
+	// 1. Check if a model with the same name already exists in the platform DB.
+	// This must be done before CheckTableExists so that duplicate model names
+	// return ModelAlreadyExists (not ModelTableAlreadyExists).
+	existingModel, err := s.modelRepo.GetByName(
+		ctx,
+		model.DatabaseName,
+		model.ModelName,
+		model.ProjectSlug,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check model name uniqueness: %w", err)
+	}
+	if existingModel != nil {
+		resourceName := model.GetBizUniqueName()
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, resourceName)
+	}
+
+	// 2. Check if the underlying table already exists in the client database before deploying.
 	tableExists, err := s.deployRepo.CheckTableExists(ctx, model)
 	if err != nil {
 		return nil, fmt.Errorf("failed to check table existence: %w", err)
@@ -318,6 +335,22 @@ func (s *ModelDesignAppService) AddFieldSync(ctx context.Context, cmd AddFieldCo
 		field.ModelID = model.ID
 		field.ModelLocator = model.GetModelLocator()
 	}
+
+	// 过滤掉与系统字段同名的字段（静默跳过，不报错）
+	systemFieldNames := lo.SliceToMap(
+		modeldesign.GetSystemFields(),
+		func(f *modeldesign.FieldDefinition) (string, struct{}) {
+			return f.Name, struct{}{}
+		},
+	)
+	toAddFields = lo.Filter(toAddFields, func(f *modeldesign.FieldDefinition, _ int) bool {
+		_, isSystem := systemFieldNames[f.Name]
+		return !isSystem
+	})
+	if len(toAddFields) == 0 {
+		return nil
+	}
+
 	fieldAbstracts := lo.SliceToMap(
 		toAddFields,
 		func(field *modeldesign.FieldDefinition) (string, *modeldesign.FieldType) {
