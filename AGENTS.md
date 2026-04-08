@@ -106,11 +106,13 @@ Please refer to the respective documentation for detailed coding styles, pattern
 All agent-specific directories (`.claude`, `.codebuddy`) are **symlinks** that point to `./.agents/`:
 
 ```
+.claude/agents    -> .agents/agents
 .claude/commands  -> .agents/commands
 .claude/hooks     -> .agents/hooks
 .claude/rules     -> .agents/rules
 .claude/skills    -> .agents/skills
 
+.codebuddy/agents   -> .agents/agents
 .codebuddy/commands -> .agents/commands
 .codebuddy/hooks    -> .agents/hooks
 .codebuddy/rules    -> .agents/rules

@@ -101,20 +101,6 @@ func WrapSQLErrorInPlace(err *error) {
 	*err = WrapSQLError(*err)
 }
 
-func wrapSQLErrorFromOperation(op func() error) error {
-	return WrapSQLError(op())
-}
-
-// ExecWithErrorHandling wraps a write operation and maps errors.
-func ExecWithErrorHandling(op func() error) error {
-	return wrapSQLErrorFromOperation(op)
-}
-
-// QueryWithSQLErrorHandling wraps a read operation and maps errors.
-func QueryWithSQLErrorHandling(op func() error) error {
-	return wrapSQLErrorFromOperation(op)
-}
-
 // ----------------------------------------------------------------------------
 // sql.Null* ↔ Go Type Converters
 // ----------------------------------------------------------------------------

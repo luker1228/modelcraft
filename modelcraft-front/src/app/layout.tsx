@@ -3,6 +3,7 @@ import { Inter, Space_Grotesk, Fira_Code } from 'next/font/google'
 import { ApolloWrapper } from '@web/providers/apollo-wrapper'
 import { QueryWrapper } from '@web/providers/query-wrapper'
 import { ErrorProvider } from '@web/components/features/providers/ErrorProvider'
+import { MSWProvider } from '@/mocks/MSWProvider'
 
 import { Toaster } from 'sonner'
 import '@/app/globals.css'
@@ -44,13 +45,15 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <body className={`${inter.variable} ${spaceGrotesk.variable} ${firaCode.variable} font-sans`}>
-        <ApolloWrapper>
-          <QueryWrapper>
-            <ErrorProvider>
-              {children}
-            </ErrorProvider>
-          </QueryWrapper>
-        </ApolloWrapper>
+        <MSWProvider>
+          <ApolloWrapper>
+            <QueryWrapper>
+              <ErrorProvider>
+                {children}
+              </ErrorProvider>
+            </QueryWrapper>
+          </ApolloWrapper>
+        </MSWProvider>
         <Toaster position="top-right" richColors />
       </body>
     </html>
