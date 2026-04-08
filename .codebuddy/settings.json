@@ -3,27 +3,6 @@
     "code-simplifier@claude-plugins-official": true
   },
   "hooks": {
-      "Notification": [
-    {
-      "matcher": "permission_prompt",
-      "hooks": [
-        {
-          "type": "command",
-          "command": "$CODEBUDDY_PROJECT_DIR/.agents/hooks/notify-wecom.sh"
-        }
-      ]
-    }
-  ],
-  "Stop": [
-    {
-      "hooks": [
-        {
-          "type": "command",
-          "command": "$CODEBUDDY_PROJECT_DIR/.agents/hooks/notify-wecom-stop.sh"
-        }
-      ]
-    }
-  ],
     "PreToolUse": [
       {
         "matcher": "Write",

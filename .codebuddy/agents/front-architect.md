@@ -65,6 +65,40 @@ Shared     → 跨层共享工具，无 UI 依赖
 
 **依赖方向**：App → Web → BFF → Shared（禁止反向依赖）
 
+### 组件放置规则
+
+| 组件类型 | 放置位置 |
+|---------|---------|
+| 绑定特定业务域 | `web/components/features/<domain>/` |
+| 无业务语义、跨域复用 | `web/components/common/` |
+| shadcn/ui 原子组件 | `web/components/ui/`（禁止手动修改） |
+| 页面私有（不跨页复用） | `app/.../page-name/_components/` |
+
+### Hooks 放置规则
+
+| Hook 类型 | 放置位置 |
+|----------|---------|
+| 全局复用、按业务域 | `web/hooks/<domain>/` |
+| 页面私有逻辑 | `app/.../page-name/_hooks/` |
+| 禁止平铺 | `web/hooks/` 根目录下不放 hook 文件 |
+
+### Types 组织规则
+
+- 新建业务域类型 → `src/types/<domain>.ts`，在 `index.ts` 中 re-export
+- 导入统一从 `@/types` 入口（不直接引用具体文件）
+- 页面私有类型 → `_hooks/types.ts`
+
+### GraphQL 类型规则
+
+- 禁止手动维护 GraphQL 操作类型
+- 所有类型从 `@/generated/graphql` 导入（由 `npm run codegen` 生成）
+- GraphQL 操作定义（query/mutation）放在 `web/graphql/queries/` 或 `web/graphql/mutations/`
+
+### 页面拆分规则
+
+- `page.tsx` 超过 200 行时，**必须**拆分为 `_components/` + `_hooks/`
+- `_components/` 中的组件不得被其他页面直接引用
+
 ### 路径别名
 
 ```
@@ -105,43 +139,74 @@ Shared     → 跨层共享工具，无 UI 依赖
 
 ### 3. 目录规划
 
-输出格式：
+根据变更规模选择放置位置：
+
+**场景 A：新增全局复用组件 / Hook**
 
 ```
-## 目录结构
-
 src/
-├── app/(authenticated)/org/[orgName]/[功能路由]/
-│   └── page.tsx
-├── web/[功能名]/
-│   ├── components/
-│   │   ├── [组件名].tsx
-│   │   └── ...
-│   ├── hooks/
-│   │   └── use-[hook名].ts
-│   └── types.ts
-├── bff/[模块名]/          # 如需新 BFF 能力
-│   ├── [实现].ts
-│   └── public.ts          # 门面
-└── shared/[工具名]/        # 如需共享工具
-    └── [实现].ts
+├── web/components/features/[domain]/   # 绑定业务域的功能组件
+│   └── [ComponentName].tsx
+├── web/components/common/              # 无业务语义的通用组件
+│   └── [ComponentName].tsx
+├── web/hooks/[domain]/                 # 按业务域放置的全局 Hook
+│   └── use-[hook-name].ts
+└── types/[domain].ts                   # 新业务域类型（或追加到已有文件）
 ```
+
+**场景 B：新增复杂页面（超过 200 行）**
+
+```
+src/app/org/[orgName]/[路由段]/
+├── page.tsx              # 精简入口，只做组合
+├── layout.tsx
+├── _components/          # 页面私有组件（不可被其他页面引用）
+│   ├── [PanelA].tsx
+│   ├── [PanelB].tsx
+│   └── index.ts
+└── _hooks/               # 页面私有 Hooks
+    ├── use-[feature].ts
+    ├── types.ts
+    └── index.ts
+```
+
+**场景 C：新增 BFF 能力 / 共享工具**
+
+```
+src/
+├── bff/[module]/         # 新 BFF 能力
+│   ├── [impl].ts
+│   └── public.ts         # 对外门面（只导出此文件）
+└── shared/[util]/        # 跨层共享工具（无 UI 依赖）
+    └── [impl].ts
+```
+
+输出时仅展示本次涉及的目录，不重复列出未变更路径。
 
 ### 4. 接口骨架
 
 产出 TypeScript 类型定义和函数签名（不写实现体）：
 
 ```typescript
-// types.ts
-interface XxxProps { ... }
-interface XxxData { ... }
+// types/[domain].ts  或  _hooks/types.ts
+export interface XxxProps { ... }
+export interface XxxData { ... }
 
-// hooks/use-xxx.ts
-export function useXxx(params: XxxParams): XxxReturn { ... }
+// web/hooks/[domain]/use-xxx.ts  或  _hooks/use-xxx.ts
+export function useXxx(params: XxxParams): XxxReturn {
+  // TODO: worker 实现
+}
 
-// components/XxxPanel.tsx
-export function XxxPanel({ ... }: XxxPanelProps): JSX.Element { ... }
+// web/components/features/[domain]/XxxPanel.tsx  或  _components/XxxPanel.tsx
+export function XxxPanel({ ... }: XxxPanelProps): JSX.Element {
+  // TODO: worker 实现
+}
 ```
+
+**类型位置规则**：
+- 全局共享类型 → `src/types/[domain].ts`，通过 `src/types/index.ts` 导出
+- 页面私有类型 → `_hooks/types.ts`
+- 禁止将新类型堆回 `src/types/index.ts` 正文
 
 ### 5. 交付给 Worker
 

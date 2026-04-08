@@ -4,6 +4,15 @@
 
 ## 📚 文档索引
 
+### 架构
+
+- **[前端架构总览](./architecture.md)** - 目录分层、组件约定、Hooks 组织、GraphQL 类型生成
+  - 目录结构（`app/` / `web/` / `bff/` / `shared/` / `types/` / `generated/`）
+  - `features/` vs `common/` 组件分类
+  - 页面私有 `_components/` + `_hooks/` 拆分规范
+  - GraphQL Codegen 流程
+  - Types / Hooks 按业务域组织约定
+
 ### 代码质量
 
 - **[ESLint 规则](./eslint-rules.md)** - ESLint 配置和代码检查规则

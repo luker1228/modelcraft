@@ -26,14 +26,67 @@
 ```
 src/
 ├── app/            # Next.js App Router — 路由 + API Routes
+│   ├── api/        # API Routes（代理到 BFF 层）
+│   ├── login/      # 登录页
+│   ├── auth/       # OAuth 回调处理
+│   ├── org-selector/
+│   └── org/[orgName]/          # 组织作用域路由
+│       └── projects/[projectSlug]/
+│           └── model-editor/
+│               ├── _components/  # 页面私有组件（Next.js 约定）
+│               └── _hooks/       # 页面私有 Hooks
 ├── bff/            # Backend For Frontend 层
-├── web/            # Web 层（组件、Provider、页面级 Hooks）
+│   ├── api/        # REST 接口封装（auth / org / user）
+│   ├── apollo/     # Apollo Client 工厂（3 种实例策略）
+│   ├── auth/       # Casdoor Token 管理
+│   └── cms/        # CMS 数据适配
+├── web/            # Web 层（UI 渲染相关）
+│   ├── components/
+│   │   ├── common/     # 通用跨域组件（ErrorDialog、LoadingScreen、RouteValidator）
+│   │   ├── features/   # 按业务域组织的功能组件
+│   │   │   ├── auth/
+│   │   │   ├── copilot/
+│   │   │   ├── database/
+│   │   │   ├── layout/
+│   │   │   ├── model-editor/
+│   │   │   ├── organization/
+│   │   │   ├── project/
+│   │   │   ├── providers/
+│   │   │   └── settings/
+│   │   ├── cms/        # CMS 专属组件
+│   │   └── ui/         # shadcn/ui 基础组件（不手动修改）
+│   ├── hooks/          # 按业务域分组的全局 Hooks
+│   │   ├── auth/       # useAuth, usePermission
+│   │   ├── common/     # use-mobile, useLocalStorage
+│   │   ├── database/   # useDatabases
+│   │   ├── error/      # useGraphQLErrorHandler
+│   │   ├── model/      # useModels
+│   │   ├── organization/
+│   │   └── project/    # useProjects, useProjectContext 等
+│   ├── graphql/        # GraphQL 查询 / 变更定义（.ts 文件）
+│   │   ├── mutations/
+│   │   └── queries/
+│   ├── providers/      # React Context Provider
+│   ├── stores/         # Zustand 页面级状态
+│   ├── cache/          # Apollo / React Query 缓存策略
+│   ├── routing/        # 路由守卫、跳转工具
+│   └── cms/            # CMS Web 层
 ├── shared/         # 跨层共享工具（无 UI 依赖）
-├── components/     # 全局公用 UI 组件（含 shadcn/ui 基础组件）
-├── stores/         # Zustand 全局状态
-├── hooks/          # 全局自定义 Hooks
-├── graphql/        # GraphQL 查询 / 变更定义
-└── types/          # 全局 TypeScript 类型定义
+│   ├── utils/
+│   ├── cache/
+│   ├── stores/
+│   └── cms/
+├── generated/      # GraphQL Codegen 自动生成（禁止手动修改）
+│   └── graphql.ts
+└── types/          # 全局 TypeScript 类型定义（按业务域拆分）
+    ├── index.ts        # 统一导出入口
+    ├── model.ts
+    ├── cluster.ts
+    ├── enum.ts
+    ├── foreign-key.ts
+    ├── project.ts
+    ├── user.ts
+    └── schema-issue.ts
 ```
 
 ### 路径别名
@@ -145,6 +198,97 @@ sequenceDiagram
 | `/api/org/*` | 组织管理 |
 | `/graphql/org/**` | 设计态 GraphQL |
 | `/org/*/project/*/db/*/model/*` | 运行态 GraphQL |
+
+---
+
+## 组件架构约定
+
+### `features/` vs `common/`
+
+| 目录 | 放什么 | 原则 |
+|------|--------|------|
+| `web/components/features/<domain>/` | 绑定到特定业务域的组件（如 `ProjectCard`、`ModelSidebar`） | 只在对应业务场景下使用 |
+| `web/components/common/` | 跨域通用组件（如 `ErrorHistoryDialog`、`LoadingScreen`、`RouteValidator`） | 无业务语义，可在任何地方复用 |
+| `web/components/ui/` | shadcn/ui 原子组件 | 禁止手动修改，通过 shadcn CLI 管理 |
+
+### 页面私有组件：`_components/` 和 `_hooks/`
+
+复杂页面（如 `model-editor`）将私有组件和 Hooks 拆分到页面目录下的 `_components/` 和 `_hooks/` 中：
+
+```
+app/org/[orgName]/projects/[projectSlug]/model-editor/
+├── page.tsx               ← 精简入口，仅负责组合
+├── layout.tsx
+├── _components/           ← 页面私有组件（下划线前缀 = Next.js 私有约定，不参与路由）
+│   ├── ModelSidebar.tsx
+│   ├── ModelDetailPanel.tsx
+│   ├── ModelEditorView.tsx
+│   ├── FieldEditSheet.tsx
+│   ├── ForeignKeyPanel.tsx
+│   ├── CreateModelDialog.tsx
+│   ├── DeleteModelDialog.tsx
+│   └── index.ts
+└── _hooks/                ← 页面私有 Hooks
+    ├── useModelEditorState.ts   # UI 状态管理
+    ├── useModelCRUD.ts          # 模型增删改查
+    ├── useFieldOperations.ts    # 字段操作
+    ├── useForeignKeys.ts        # 外键操作
+    ├── types.ts                 # 页面级类型
+    └── index.ts
+```
+
+**规则**：
+- 当 `page.tsx` 超过 200 行时，必须拆分为 `_components/` + `_hooks/`
+- `_components/` 中的组件不得被其他页面直接引用；如需复用，升级到 `web/components/features/`
+- `_hooks/` 中的 hook 只封装该页面的业务逻辑，数据请求 hook 放到 `web/hooks/<domain>/`
+
+---
+
+## GraphQL 类型生成
+
+前端使用 **GraphQL Code Generator** 从 Schema 自动生成 TypeScript 类型，**禁止手动维护 GraphQL 操作类型**：
+
+```
+contract/graph/           ← API Contract（通过 git subtree 同步，禁止手动修改）
+src/web/graphql/          ← GraphQL 操作定义（queries / mutations）
+        ↓ codegen
+src/generated/graphql.ts  ← 自动生成的类型和 hooks（禁止手动修改）
+```
+
+```bash
+# 重新生成类型
+npm run codegen
+```
+
+---
+
+## Types 组织约定
+
+全局类型按业务域拆分到 `src/types/` 下独立文件，通过 `index.ts` 统一导出：
+
+```typescript
+// ✅ 正确：从 index 导入
+import { DataModel, FieldDefinition } from '@/types'
+
+// ❌ 禁止：直接引用具体文件
+import { DataModel } from '@/types/model'
+```
+
+新增类型时，选择对应业务域文件（`model.ts` / `cluster.ts` / `enum.ts` 等），不得堆回 `index.ts`。
+
+---
+
+## Hooks 组织约定
+
+`src/web/hooks/` 按业务域分子目录，禁止在根目录新建 hook 文件：
+
+```typescript
+// ✅ 正确：按域放置
+src/web/hooks/project/useProjects.ts
+
+// ❌ 禁止：直接放在 hooks 根目录
+src/web/hooks/useProjects.ts
+```
 
 ---
 
