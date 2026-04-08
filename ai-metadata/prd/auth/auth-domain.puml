@@ -1,0 +1,75 @@
+@startuml auth-domain
+!theme plain
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+title 用户认证 - 领域模型
+
+' ═══ 认证子域 ═══
+rectangle "认证子域" {
+
+  ' ═══ 用户聚合 ═══
+  package "用户聚合" <<Aggregate>> #FFFDE7 {
+
+    class User <<Aggregate Root>> #FFEAA7 {
+      --标识--
+      + id : UserID
+      --属性--
+      + phoneNumber : PhoneNumber
+      + password : HashedPassword
+      + createdAt : DateTime
+      --行为--
+      + register(phone : PhoneNumber, password : Password)
+      + verifyPassword(plain : String) : Boolean
+      --不变量--
+      .. 手机号全局唯一 ..
+      .. 密码最少 8 位 ..
+    }
+
+    class PhoneNumber <<Value Object>> #DCEDC1 {
+      + value : String
+      --校验--
+      .. 必须为 11 位国内手机号 ..
+      --相等性--
+      .. value 全匹配 ..
+    }
+
+    class HashedPassword <<Value Object>> #DCEDC1 {
+      + hash : String
+      --行为--
+      + matches(plain : String) : Boolean
+      --相等性--
+      .. hash 全匹配 ..
+    }
+
+    User "1" *-- "1" PhoneNumber
+    User "1" *-- "1" HashedPassword
+  }
+
+  ' ═══ 认证凭证（登录输入）═══
+  class Credential <<Value Object>> #DCEDC1 {
+    + phoneNumber : PhoneNumber
+    + plainPassword : String
+  }
+
+  ' ═══ 认证令牌 ═══
+  class AuthToken <<Value Object>> #DCEDC1 {
+    + token : String
+    + expiresAt : DateTime
+    --不变量--
+    .. 有效期 7 天 ..
+  }
+
+  ' ═══ 领域服务 ═══
+  class AuthenticationService <<Domain Service>> #FAD9C1 {
+    + authenticate(credential : Credential) : AuthToken
+    .. 查找用户 → 验证密码 → 签发 Token ..
+  }
+
+  AuthenticationService ..> User : 查找并验证
+  AuthenticationService ..> Credential : 接收
+  AuthenticationService ..> AuthToken : 签发
+}
+
+@enduml
