@@ -6,8 +6,13 @@ import { ModelCraftWorld } from '../support/world'
 const ADD_FIELDS = `
   mutation AddFields($modelID: ID!, $input: [AddFieldInput!]!) {
     addFields(modelID: $modelID, input: $input) {
-      id
-      name
+      model {
+        id
+        name
+      }
+      error {
+        __typename
+      }
     }
   }
 `

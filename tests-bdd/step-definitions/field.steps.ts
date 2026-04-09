@@ -6,10 +6,12 @@ import { ModelCraftWorld } from '../support/world'
 const ADD_FIELDS = `
   mutation AddFields($modelID: ID!, $input: [AddFieldInput!]!) {
     addFields(modelID: $modelID, input: $input) {
-      id
-      fields {
-        name
-        format
+      model {
+        id
+        fields {
+          name
+          format
+        }
       }
       error {
         __typename
@@ -39,19 +41,19 @@ Given('模型已有名为 {string} 格式为 {string} 的字段', async function
   this: ModelCraftWorld, fieldName: string, format: string
 ) {
   const modelId = getCurrentModelId(this)
-  const res = await this.projectClient.mutate<{ addFields: { id: string; fields: Array<{ name: string }> } | null }>(
+  const res = await this.projectClient.mutate<{ addFields: { model: { id: string; fields: Array<{ name: string }> } | null } }>(
     ADD_FIELDS,
     { modelID: modelId, input: [{ name: fieldName, title: fieldName, format }] }
   )
   this.lastResponse = { addFields: res.addFields }
-  if (!res.addFields) throw new Error(`前置条件：添加字段 ${fieldName} 失败`)
+  if (!res.addFields?.model) throw new Error(`前置条件：添加字段 ${fieldName} 失败`)
 })
 
 When('我为该模型添加名为 {string} 格式为 {string} 的字段', async function (
   this: ModelCraftWorld, fieldName: string, format: string
 ) {
   const modelId = getCurrentModelId(this)
-  const res = await this.projectClient.mutate<{ addFields: { id: string; fields: Array<{ name: string }> } | null }>(
+  const res = await this.projectClient.mutate<{ addFields: { model: { id: string; fields: Array<{ name: string }> } | null; error: { __typename: string; message?: string } | null } }>(
     ADD_FIELDS,
     { modelID: modelId, input: [{ name: fieldName, title: fieldName, format }] }
   )
@@ -68,13 +70,13 @@ When('我删除名为 {string} 的字段', async function (this: ModelCraftWorld
 })
 
 Then('字段应该添加成功', function (this: ModelCraftWorld) {
-  const payload = (this.lastResponse as { addFields: { id: string } | null }).addFields
-  expect(payload).not.toBeNull()
+  const payload = (this.lastResponse as { addFields: { model: { id: string } | null } }).addFields
+  expect(payload.model).not.toBeNull()
 })
 
 Then('模型应该包含名为 {string} 的字段', function (this: ModelCraftWorld, fieldName: string) {
-  const payload = (this.lastResponse as { addFields: { fields: Array<{ name: string }> } | null }).addFields
-  const fieldNames = payload?.fields.map(f => f.name) ?? []
+  const payload = (this.lastResponse as { addFields: { model: { fields: Array<{ name: string }> } | null } }).addFields
+  const fieldNames = payload.model?.fields.map(f => f.name) ?? []
   expect(fieldNames).toContain(fieldName)
 })
 

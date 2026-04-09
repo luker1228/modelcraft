@@ -2,6 +2,7 @@ package projectgraphql
 
 import (
 	"context"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 )
@@ -14,33 +15,34 @@ func NewFieldSelectionChecker() *FieldSelectionChecker {
 	return &FieldSelectionChecker{}
 }
 
-// IsFieldSelected checks if a specified field is selected in the GraphQL query
-// fieldPath supports nested field paths like "model", "model.fields", "edges.node.model" etc.
+// IsFieldSelected checks if a specified field is selected in the GraphQL query.
+// fieldPath supports dot-separated nested paths like "model", "model.fields", "edges.node.model".
 func (f *FieldSelectionChecker) IsFieldSelected(ctx context.Context, fieldPath string) bool {
 	fieldCtx := graphql.GetFieldContext(ctx)
 	if fieldCtx == nil {
 		return false
 	}
 
-	// Get the current operation context
 	operationCtx := graphql.GetOperationContext(ctx)
 	if operationCtx == nil {
 		return false
 	}
 
-	// Collect all child fields of the current field
 	fields := graphql.CollectFields(operationCtx, fieldCtx.Field.Selections, nil)
-
-	// Check if it contains the specified field path
-	return f.containsField(fields, fieldPath)
+	return f.containsField(operationCtx, fields, fieldPath)
 }
 
-// containsField recursively checks if the field collection contains the specified field
-func (f *FieldSelectionChecker) containsField(fields []graphql.CollectedField, fieldPath string) bool {
-	// Simple field name check
+// containsField checks if the field collection contains the specified field path.
+// Supports dot-separated paths by recursing into nested selections.
+func (f *FieldSelectionChecker) containsField(opCtx *graphql.OperationContext, fields []graphql.CollectedField, fieldPath string) bool {
+	head, tail, hasNested := strings.Cut(fieldPath, ".")
 	for _, field := range fields {
-		if field.Name == fieldPath {
-			return true
+		if field.Name == head {
+			if !hasNested {
+				return true
+			}
+			nested := graphql.CollectFields(opCtx, field.Selections, nil)
+			return f.containsField(opCtx, nested, tail)
 		}
 	}
 	return false

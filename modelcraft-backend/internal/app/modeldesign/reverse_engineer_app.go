@@ -221,5 +221,11 @@ func (s *ReverseEngineerAppService) createModel(
 	}
 
 	// 在事务中创建模型并部署
-	return s.modelAppService.transactionDeployModel(ctx, orgName, model)
+	if err := s.modelAppService.transactionDeployModel(ctx, orgName, model); err != nil {
+		return nil, err
+	}
+
+	// 获取创建后的完整模型
+	opt := modeldesign.NewModelQueryOptions().WithFields()
+	return s.modelRepo.GetByID(ctx, model.ID, opt)
 }

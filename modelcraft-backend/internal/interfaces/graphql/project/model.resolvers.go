@@ -50,7 +50,7 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 	}
 
 	// Create model using app service
-	modelEntity, err := r.ModelDesignService.CreateModelSync(ctx, cmd)
+	modelID, err := r.ModelDesignService.CreateModelSync(ctx, cmd)
 	if err != nil {
 		// Convert business errors to typed GraphQL errors
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
@@ -63,10 +63,26 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 		return nil, err
 	}
 
-	// Convert domain model to GraphQL model
-	graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(modelEntity)
-	if err != nil {
-		return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
+	// Only fetch model when the "model" field is selected in the query
+	var graphqlModel *generated.Model
+	if r.FieldSelectionChecker.IsFieldSelected(ctx, "model") {
+		opts := appmodeldesign.NewGetModelOptions()
+		if !r.FieldSelectionChecker.IsFieldSelected(ctx, "model.fields") {
+			opts.GetFields = false
+		}
+		modelEntity, err := r.ModelDesignService.GetModelByID(ctx, modelID, opts)
+		if err != nil {
+			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+				return &generated.CreateModelPayload{
+					Error: errorAdapter.ConvertToCreateError(bizErr),
+				}, nil
+			}
+			return nil, err
+		}
+		graphqlModel, err = adapter.ModelMapper.ConvertToGraphQLModel(modelEntity)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
+		}
 	}
 
 	return &generated.CreateModelPayload{

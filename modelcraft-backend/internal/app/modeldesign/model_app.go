@@ -80,102 +80,80 @@ func (s *ModelDesignAppService) getLogger(ctx context.Context) logfacade.Logger 
 func (s *ModelDesignAppService) CreateModelSync(
 	ctx context.Context,
 	cmd CreateModelCommand,
-) (*modeldesign.DataModel, error) {
+) (string, error) {
 	// Get orgName from context
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get organization name: %w", err)
+		return "", fmt.Errorf("failed to get organization name: %w", err)
 	}
 	_, err = s.clusterRepo.GetByProjectKey(ctx, orgName, cmd.ProjectSlug)
 	if err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ClusterNotFound, cmd.ProjectSlug)
+		return "", bizerrors.NewErrorFromContext(ctx, bizerrors.ClusterNotFound, cmd.ProjectSlug)
 	}
 	model, err := newModelFromCommand(ctx, cmd)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	fields := modeldesign.GetSystemFields()
 	model.AddFields(fields)
 	s.getLogger(ctx).Infof(ctx, "model: %s", bizutils.MarshalToStringIgnoreErr(model))
 	err = model.Validate()
 	if err != nil {
-		return nil, bizerrors.Wrapf(err, "模型规则校验失败")
+		return "", bizerrors.Wrapf(err, "模型规则校验失败")
 	}
 
-	var createdModel *modeldesign.DataModel
-	createdModel, err = s.transactionDeployModel(ctx, orgName, model)
-	if err != nil {
-		return nil, err
+	// 1. Check model name uniqueness
+	existingModel, err := s.modelRepo.GetByName(ctx, model.DatabaseName, model.ModelName, model.ProjectSlug)
+	if err != nil && !shared.IsNotFoundError(err) {
+		return "", fmt.Errorf("failed to check model name uniqueness: %w", err)
 	}
-	return createdModel, nil
+	if err == nil && existingModel != nil {
+		return "", bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, model.GetBizUniqueName())
+	}
+
+	// 2. Check table existence in client DB
+	tableExists, err := s.deployRepo.CheckTableExists(ctx, model)
+	if err != nil {
+		return "", fmt.Errorf("failed to check table existence: %w", err)
+	}
+	if tableExists {
+		return "", bizerrors.NewErrorFromContext(ctx, bizerrors.ModelTableAlreadyExists, model.ModelName, model.DatabaseName)
+	}
+
+	// 3. Deploy in transaction
+	if err = s.transactionDeployModel(ctx, orgName, model); err != nil {
+		return "", err
+	}
+
+	return model.ID, nil
 }
 
-// transactionDeployModel 在事务中部署模型
+// transactionDeployModel 在事务中保存模型并部署到客户DB
 func (s *ModelDesignAppService) transactionDeployModel(
 	ctx context.Context,
 	orgName string,
 	model *modeldesign.DataModel,
-) (*modeldesign.DataModel, error) {
-	// 1. Check if a model with the same name already exists in the platform DB.
-	// This must be done before CheckTableExists so that duplicate model names
-	// return ModelAlreadyExists (not ModelTableAlreadyExists).
-	existingModel, err := s.modelRepo.GetByName(
-		ctx,
-		model.DatabaseName,
-		model.ModelName,
-		model.ProjectSlug,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check model name uniqueness: %w", err)
-	}
-	if existingModel != nil {
-		resourceName := model.GetBizUniqueName()
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, resourceName)
-	}
-
-	// 2. Check if the underlying table already exists in the client database before deploying.
-	tableExists, err := s.deployRepo.CheckTableExists(ctx, model)
-	if err != nil {
-		return nil, fmt.Errorf("failed to check table existence: %w", err)
-	}
-	if tableExists {
-		return nil, bizerrors.NewErrorFromContext(
-			ctx,
-			bizerrors.ModelTableAlreadyExists,
-			model.ModelName,
-			model.DatabaseName,
-		)
-	}
-
-	var createdModel *modeldesign.DataModel
-	err = s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
-		var txErr error
+) error {
+	return s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		modelRepository := repository.NewSqlModelDesignRepository(q)
-		if txErr = modelRepository.Save(ctx, orgName, model); txErr != nil {
-			if shared.IsRepoError(txErr, shared.ErrTypeConstraint) {
-				resourceName := model.GetBizUniqueName()
-				return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, resourceName)
+		if err := modelRepository.Save(ctx, orgName, model); err != nil {
+			if shared.IsRepoError(err, shared.ErrTypeConstraint) {
+				return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, model.GetBizUniqueName())
 			}
-			return txErr
+			return err
 		}
 
 		opt := modeldesign.NewModelQueryOptions().WithFields()
-		createdModel, txErr = modelRepository.GetByID(ctx, model.ID, opt)
-		if txErr != nil {
-			return txErr
+		createdModel, err := modelRepository.GetByID(ctx, model.ID, opt)
+		if err != nil {
+			return err
 		}
 		if createdModel == nil {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, createdModel.ID)
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, model.ID)
 		}
 
-		// 2. 部署到客户DB
-		txErr = s.deployRepo.DeployModelToCreate(ctx, createdModel)
-		if txErr != nil {
-			return fmt.Errorf("客户数据库部署失败: %w", txErr)
-		}
-		return nil
+		return s.deployRepo.DeployModelToCreate(ctx, createdModel)
 	})
-	return createdModel, err
 }
 
 // UpdateModelMeta 更新模型元数据（仅平台DB）
@@ -873,18 +851,11 @@ func (s *ModelDesignAppService) CreateModelFromSchema(
 	}
 
 	// 检查模型名冲突
-	opts := modeldesign.NewModelQueryOptions()
-	existingModel, err := s.modelRepo.GetByName(
-		ctx,
-		databaseName,
-		model.ModelName,
-		projectSlug,
-		opts,
-	)
-	if err != nil {
-		return nil, err
+	existingModel, err := s.modelRepo.GetByName(ctx, databaseName, model.ModelName, projectSlug)
+	if err != nil && !shared.IsNotFoundError(err) {
+		return nil, fmt.Errorf("failed to check model name uniqueness: %w", err)
 	}
-	if existingModel != nil {
+	if err == nil && existingModel != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelAlreadyExists, model.GetBizUniqueName())
 	}
 
@@ -897,8 +868,23 @@ func (s *ModelDesignAppService) CreateModelFromSchema(
 		return nil, bizerrors.Wrapf(err, "Model validation failed")
 	}
 
+	// 检查客户DB表是否已存在
+	tableExists, err := s.deployRepo.CheckTableExists(ctx, model)
+	if err != nil {
+		return nil, fmt.Errorf("failed to check table existence: %w", err)
+	}
+	if tableExists {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelTableAlreadyExists, model.ModelName, databaseName)
+	}
+
 	// 在事务中创建并部署模型
-	createdModel, err := s.transactionDeployModel(ctx, orgName, model)
+	if err = s.transactionDeployModel(ctx, orgName, model); err != nil {
+		return nil, err
+	}
+
+	// 获取创建后的完整模型
+	opt := modeldesign.NewModelQueryOptions().WithFields()
+	createdModel, err := s.modelRepo.GetByID(ctx, model.ID, opt)
 	if err != nil {
 		return nil, err
 	}

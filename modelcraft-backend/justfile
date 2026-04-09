@@ -79,7 +79,7 @@ run *FLAGS:
             echo "✅ Stopped go run processes"
         fi
         # 方式 3: 杀掉二进制文件进程
-        pkill -f {{BINARY_NAME}} 2>/dev/null && echo "✅ Stopped {{BINARY_NAME}} binary"
+        pkill -f "^"{{BINARY_NAME}} 2>/dev/null && echo "✅ Stopped {{BINARY_NAME}} binary"
         sleep 1
     fi
     
