@@ -13,6 +13,7 @@ import (
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/internal/interfaces/mapper"
 	"modelcraft/pkg/bizerrors"
+	"strings"
 )
 
 // AddFields is the resolver for the addFields field.
@@ -59,6 +60,15 @@ func (r *mutationResolver) AddFields(ctx context.Context, modelID string, input 
 				Error: errorAdapter.ConvertToAddFieldsError(bizErr),
 			}, nil
 		}
+
+		// Domain validation errors should also be mapped to AddFieldsPayload.error
+		if strings.Contains(err.Error(), "(FieldValidate)") {
+			return &generated.AddFieldsPayload{
+				Model: nil,
+				Error: &generated.InvalidModelInput{Message: err.Error()},
+			}, nil
+		}
+
 		// For non-business errors, still throw as GraphQL error
 		return nil, err
 	}
