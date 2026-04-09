@@ -72,6 +72,7 @@ type mockUserRepo struct {
 	users        map[string]*domainUser.User // key: externalID
 	usersByID    map[string]*domainUser.User // key: internal ID
 	usersByPhone map[string]*domainUser.User // key: phone
+	usersByName  map[string]*domainUser.User // key: name
 }
 
 func newMockUserRepo() *mockUserRepo {
@@ -79,6 +80,7 @@ func newMockUserRepo() *mockUserRepo {
 		users:        make(map[string]*domainUser.User),
 		usersByID:    make(map[string]*domainUser.User),
 		usersByPhone: make(map[string]*domainUser.User),
+		usersByName:  make(map[string]*domainUser.User),
 	}
 }
 
@@ -89,6 +91,9 @@ func (m *mockUserRepo) Create(_ context.Context, u *domainUser.User) error {
 	m.usersByID[u.ID] = u
 	if !u.Phone.IsZero() {
 		m.usersByPhone[u.Phone.String()] = u
+	}
+	if u.Name != "" {
+		m.usersByName[u.Name] = u
 	}
 	return nil
 }
@@ -134,6 +139,19 @@ func (m *mockUserRepo) ExistsByPhone(_ context.Context, phone string) (bool, err
 	return ok, nil
 }
 
+func (m *mockUserRepo) GetByName(_ context.Context, name string) (*domainUser.User, error) {
+	u, ok := m.usersByName[name]
+	if !ok {
+		return nil, shared.NewNotFoundError("user not found by name: " + name)
+	}
+	return u, nil
+}
+
+func (m *mockUserRepo) ExistsByName(_ context.Context, name string) (bool, error) {
+	_, ok := m.usersByName[name]
+	return ok, nil
+}
+
 // mockPasswordHasher is an in-memory password hasher for testing.
 type mockPasswordHasher struct{}
 
@@ -156,7 +174,7 @@ func createTestService(t *testing.T) (*TokenService, *mockRefreshTokenRepo, *moc
 	userRepo := newMockUserRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
-	svc := NewTokenService(refreshRepo, userRepo, auditRepo, hasher, 7*24*time.Hour)
+	svc := NewTokenService(refreshRepo, userRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil)
 	return svc, refreshRepo, userRepo, auditRepo
 }
 
@@ -164,7 +182,7 @@ func createTestService(t *testing.T) (*TokenService, *mockRefreshTokenRepo, *moc
 func registerTestUser(t *testing.T, svc *TokenService, phone, password string) *RegisterResult {
 	t.Helper()
 	ctx := context.Background()
-	result, err := svc.Register(ctx, RegisterCommand{Phone: phone, Password: password})
+	result, err := svc.Register(ctx, RegisterCommand{Phone: phone, Password: password, UserName: "testuser_" + phone[len(phone)-4:]})
 	require.NoError(t, err)
 	return result
 }
@@ -178,17 +196,18 @@ func TestTokenService_Register_Success(t *testing.T) {
 	result, err := svc.Register(ctx, RegisterCommand{
 		Phone:    "13800138000",
 		Password: "securePassword1",
+		UserName: "john_doe",
 	})
 
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.UserID)
+	assert.NotEmpty(t, result.OrgName)
 
-	// Verify user was created with correct phone
+	// Verify user was created with correct phone and userName
 	u, ok := userRepo.usersByPhone["13800138000"]
 	require.True(t, ok)
 	assert.Equal(t, result.UserID, u.ID)
-	assert.NotEmpty(t, u.Name)
-	assert.NotEqual(t, "138****8000", u.Name)
+	assert.Equal(t, "john_doe", u.Name)
 	assert.Equal(t, "hashed_securePassword1", u.PasswordHash)
 }
 
@@ -199,6 +218,7 @@ func TestTokenService_Register_InvalidPhone(t *testing.T) {
 	_, err := svc.Register(ctx, RegisterCommand{
 		Phone:    "123",
 		Password: "securePassword1",
+		UserName: "john_doe",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "PARAM_INVALID")
@@ -211,6 +231,7 @@ func TestTokenService_Register_WeakPassword(t *testing.T) {
 	_, err := svc.Register(ctx, RegisterCommand{
 		Phone:    "13800138000",
 		Password: "short",
+		UserName: "john_doe",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "PARAM_INVALID")
@@ -224,6 +245,7 @@ func TestTokenService_Register_DuplicatePhone(t *testing.T) {
 	_, err := svc.Register(ctx, RegisterCommand{
 		Phone:    "13800138000",
 		Password: "securePassword1",
+		UserName: "john_doe",
 	})
 	require.NoError(t, err)
 
@@ -231,9 +253,56 @@ func TestTokenService_Register_DuplicatePhone(t *testing.T) {
 	_, err = svc.Register(ctx, RegisterCommand{
 		Phone:    "13800138000",
 		Password: "anotherPassword1",
+		UserName: "jane_doe",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "CONFLICT")
+}
+
+func TestTokenService_Register_DuplicateUserName(t *testing.T) {
+	svc, _, _, _ := createTestService(t)
+	ctx := context.Background()
+
+	_, err := svc.Register(ctx, RegisterCommand{
+		Phone:    "13800138000",
+		Password: "securePassword1",
+		UserName: "john_doe",
+	})
+	require.NoError(t, err)
+
+	_, err = svc.Register(ctx, RegisterCommand{
+		Phone:    "13900139000",
+		Password: "anotherPassword1",
+		UserName: "john_doe",
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "CONFLICT.USER")
+}
+
+func TestTokenService_Register_InvalidUserName(t *testing.T) {
+	svc, _, _, _ := createTestService(t)
+	ctx := context.Background()
+
+	_, err := svc.Register(ctx, RegisterCommand{
+		Phone:    "13800138000",
+		Password: "securePassword1",
+		UserName: "1invalid",
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "PARAM_INVALID.AUTH")
+}
+
+func TestTokenService_Register_ReservedUserName(t *testing.T) {
+	svc, _, _, _ := createTestService(t)
+	ctx := context.Background()
+
+	_, err := svc.Register(ctx, RegisterCommand{
+		Phone:    "13800138000",
+		Password: "securePassword1",
+		UserName: "admin",
+	})
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "PARAM_INVALID.AUTH")
 }
 
 // ========== Login Tests ==========
@@ -247,8 +316,9 @@ func TestTokenService_Login_Success(t *testing.T) {
 
 	// Login
 	result, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
-		Password: "securePassword1",
+		Identifier:     "13800138000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 
 	require.NoError(t, err)
@@ -262,8 +332,9 @@ func TestTokenService_Login_InvalidPhone(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Phone:    "invalid",
-		Password: "securePassword1",
+		Identifier:     "invalid",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "PARAM_INVALID")
@@ -274,8 +345,9 @@ func TestTokenService_Login_PhoneNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13900139000",
-		Password: "securePassword1",
+		Identifier:     "13900139000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "AUTHENTICATION_FAILED")
@@ -288,8 +360,9 @@ func TestTokenService_Login_WrongPassword(t *testing.T) {
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Phone:    "13800138000",
-		Password: "wrongPassword",
+		Identifier:     "13800138000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "wrongPassword",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "AUTHENTICATION_FAILED")
@@ -346,7 +419,9 @@ func TestTokenService_Refresh_Rotation(t *testing.T) {
 	// Register and login to get a refresh token
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone: "13800138000", Password: "securePassword1",
+		Identifier:     "13800138000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -365,7 +440,9 @@ func TestTokenService_Refresh_ReuseDetection(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone: "13800138000", Password: "securePassword1",
+		Identifier:     "13800138000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -395,7 +472,9 @@ func TestTokenService_Refresh_ExpiredToken(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone: "13800138000", Password: "securePassword1",
+		Identifier:     "13800138000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -424,7 +503,9 @@ func TestTokenService_Logout(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Phone: "13800138000", Password: "securePassword1",
+		Identifier:     "13800138000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "securePassword1",
 	})
 	require.NoError(t, err)
 

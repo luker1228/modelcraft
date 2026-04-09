@@ -3,6 +3,7 @@ package user
 import (
 	"fmt"
 	"hash/fnv"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -26,6 +27,41 @@ func (u *User) Validate() error {
 	return nil
 }
 
+// ValidateUserName validates the userName format and reserved words.
+// Rules:
+//   - Length: 3-32 characters
+//   - Pattern: ^[a-zA-Z_-][a-zA-Z0-9_-]{2,31}$ (start with letter/underscore/hyphen,
+//     followed by alphanumeric/underscore/hyphen)
+//   - Reserved words: admin, root, system, etc.
+//
+// Returns nil if valid, error with description otherwise.
+func ValidateUserName(name string) error {
+	if len(name) < 3 || len(name) > 32 {
+		return fmt.Errorf("userName must be 3-32 characters, got %d", len(name))
+	}
+
+	// Pattern: start with letter/underscore/hyphen, then alphanumeric/underscore/hyphen
+	pattern := regexp.MustCompile(`^[a-zA-Z_-][a-zA-Z0-9_-]{2,31}$`)
+	if !pattern.MatchString(name) {
+		return fmt.Errorf("userName must start with letter/underscore/hyphen and contain only alphanumeric/underscore/hyphen")
+	}
+
+	// Reserved words check (case-insensitive)
+	lowerName := strings.ToLower(name)
+	reservedWords := []string{
+		"admin", "administrator", "root", "system", "sys",
+		"modelcraft", "support", "help", "api", "www",
+		"null", "undefined", "anonymous",
+	}
+	for _, reserved := range reservedWords {
+		if lowerName == reserved {
+			return fmt.Errorf("userName '%s' is reserved", name)
+		}
+	}
+
+	return nil
+}
+
 var registerNameAdjectives = [...]string{
 	"brisk", "calm", "clever", "daring", "eager", "fancy", "gentle", "happy",
 	"jolly", "kind", "lucky", "merry", "noble", "quick", "royal", "smart",
@@ -37,18 +73,21 @@ var registerNameNouns = [...]string{
 }
 
 // NewUser 通过手机号+密码创建用户实体
-// Name 自动设置为随机风格且稳定可复现的 displayName（基于 userID 生成）
-func NewUser(id string, phone PhoneNumber, passwordHash string) (*User, error) {
+// userName 为用户自定义的用户名，在注册时由用户提供
+func NewUser(id string, userName string, phone PhoneNumber, passwordHash string) (*User, error) {
 	if phone.IsZero() {
 		return nil, fmt.Errorf("phone number is required")
 	}
 	if passwordHash == "" {
 		return nil, fmt.Errorf("password hash is required")
 	}
+	if err := ValidateUserName(userName); err != nil {
+		return nil, err
+	}
 	now := time.Now()
 	user := &User{
 		ID:           id,
-		Name:         generateRegisterDisplayName(id),
+		Name:         userName,
 		Phone:        phone,
 		PasswordHash: passwordHash,
 		CreatedAt:    now,

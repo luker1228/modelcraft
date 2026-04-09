@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"modelcraft/internal/app/organization"
+	"modelcraft/internal/domain/membership"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
@@ -17,9 +19,11 @@ import (
 type TokenService struct {
 	refreshTokenRepo domainauth.RefreshTokenRepository
 	userRepo         domainUser.UserRepository
+	membershipRepo   membership.MembershipRepository
 	auditLogRepo     domainauth.SecurityAuditLogRepository
 	passwordHasher   domainauth.PasswordHasher
 	refreshTTL       time.Duration
+	createOrgService *organization.CreateOrganizationService
 }
 
 // NewTokenService 创建新的 TokenService。
@@ -29,6 +33,8 @@ func NewTokenService(
 	auditLogRepo domainauth.SecurityAuditLogRepository,
 	passwordHasher domainauth.PasswordHasher,
 	refreshTTL time.Duration,
+	createOrgService *organization.CreateOrganizationService,
+	membershipRepo membership.MembershipRepository,
 ) *TokenService {
 	if refreshTTL == 0 {
 		refreshTTL = 7 * 24 * time.Hour
@@ -36,87 +42,154 @@ func NewTokenService(
 	return &TokenService{
 		refreshTokenRepo: refreshTokenRepo,
 		userRepo:         userRepo,
+		membershipRepo:   membershipRepo,
 		auditLogRepo:     auditLogRepo,
 		passwordHasher:   passwordHasher,
 		refreshTTL:       refreshTTL,
+		createOrgService: createOrgService,
 	}
 }
 
 // Register 手机号+密码注册新用户。
+// 同时创建用户的个人组织。
 func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*RegisterResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	// 1. 校验手机号格式
+	// 1. 校验 userName（格式、保留字）
+	if err := domainUser.ValidateUserName(cmd.UserName); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
+	}
+
+	// 2. 校验手机号格式
 	phone, err := domainUser.NewPhoneNumber(cmd.Phone)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
 	}
 
-	// 2. 校验密码强度
+	// 3. 校验密码强度
 	if err := domainauth.ValidatePasswordStrength(cmd.Password); err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
 	}
 
-	// 3. 检查手机号是否已注册
-	exists, err := s.userRepo.ExistsByPhone(ctx, cmd.Phone)
+	// 4. 检查 userName 是否已被占用
+	nameExists, err := s.userRepo.ExistsByName(ctx, cmd.UserName)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if exists {
+	if nameExists {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, cmd.UserName)
+	}
+
+	// 5. 检查手机号是否已注册
+	phoneExists, err := s.userRepo.ExistsByPhone(ctx, cmd.Phone)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if phoneExists {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, phone.Masked())
 	}
 
-	// 4. 哈希密码
+	// 6. 哈希密码
 	hashedPassword, err := s.passwordHasher.Hash(ctx, cmd.Password)
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "hash password")
 	}
 
-	// 5. 生成用户 ID
+	// 7. 生成用户 ID
 	id, err := bizutils.GenerateUUIDV7()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
 	}
 
-	// 6. 创建用户实体
-	u, err := domainUser.NewUser(id, phone, hashedPassword)
+	// 8. 创建用户实体（使用用户提供的 userName）
+	u, err := domainUser.NewUser(id, cmd.UserName, phone, hashedPassword)
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
 	}
 
-	// 7. 持久化
+	// 9. 持久化用户
 	if err := s.userRepo.Create(ctx, u); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	logger.Infof(ctx, "User registered: id=%s, phone=%s", u.ID, phone.Masked())
-	return &RegisterResult{UserID: u.ID}, nil
+	logger.Infof(ctx, "User registered: id=%s, userName=%s, phone=%s", u.ID, cmd.UserName, phone.Masked())
+
+	// 10. 创建个人组织并返回 orgName
+	if s.createOrgService == nil {
+		// 兜底：测试环境可不注入组织服务，仍返回稳定 slug
+		orgName := bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
+		return &RegisterResult{UserID: u.ID, OrgName: orgName}, nil
+	}
+
+	orgOutput, err := s.createOrgService.Execute(ctx, &organization.CreateOrganizationInput{
+		DisplayName:      cmd.UserName,
+		OrganizationName: "", // 由组织服务根据 displayName 生成 slug
+		OwnerUserID:      u.ID,
+	})
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create personal organization")
+	}
+
+	orgName := orgOutput.OrganizationName
+	logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", orgName, u.ID)
+
+	return &RegisterResult{UserID: u.ID, OrgName: orgName}, nil
 }
 
-// Login 手机号+密码登录，生成 Refresh Token 存入 DB，返回明文给 BFF。
+// Login 登录（支持手机号或用户名），生成 Refresh Token 存入 DB，返回明文给 BFF。
 func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	// 1. 校验手机号格式
-	if _, err := domainUser.NewPhoneNumber(cmd.Phone); err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
+	// Resolve the effective identifier and type (backward compat: use Phone if Identifier is empty)
+	identifier := cmd.Identifier
+	idType := cmd.IdentifierType
+	if identifier == "" && cmd.Phone != "" {
+		identifier = cmd.Phone
+		idType = IdentifierTypePhone
+	}
+	// Default to PHONE if not specified
+	if idType == "" {
+		idType = IdentifierTypePhone
 	}
 
-	// 2. 根据手机号查找用户
-	u, err := s.userRepo.GetByPhone(ctx, cmd.Phone)
-	if err != nil {
-		if shared.IsNotFoundError(err) {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "phone number not found")
+	var u *domainUser.User
+	var err error
+
+	switch idType {
+	case IdentifierTypePhone:
+		// Validate phone format
+		if _, validateErr := domainUser.NewPhoneNumber(identifier); validateErr != nil {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, validateErr.Error())
 		}
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+		// Find user by phone
+		u, err = s.userRepo.GetByPhone(ctx, identifier)
+		if err != nil {
+			if shared.IsNotFoundError(err) {
+				return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "phone number not found")
+			}
+			return nil, bizerrors.ConvertRepositoryError(ctx, err)
+		}
+
+	case IdentifierTypeUsername:
+		// Find user by username (name field)
+		u, err = s.userRepo.GetByName(ctx, identifier)
+		if err != nil {
+			if shared.IsNotFoundError(err) {
+				return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "username not found")
+			}
+			return nil, bizerrors.ConvertRepositoryError(ctx, err)
+		}
+
+	default:
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "invalid identifier type: "+string(idType))
 	}
 
-	// 3. 验证密码
+	// Verify password
 	if err := s.passwordHasher.Verify(ctx, cmd.Password, u.PasswordHash); err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
 	}
 
-	// 4. 生成 opaque refresh token
+	// Generate opaque refresh token
 	plaintext, hash, err := GenerateRefreshToken()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate refresh token")
@@ -139,9 +212,20 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	logger.Infof(ctx, "Login success: user_id=%s", u.ID)
+	// Fetch user's primary organization (first one)
+	var orgName string
+	if s.membershipRepo != nil {
+		memberships, listErr := s.membershipRepo.ListByUserWithDetails(ctx, u.ID, 1)
+		if listErr == nil && len(memberships) > 0 {
+			orgName = memberships[0].OrgName
+		}
+	}
+
+	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
 	return &LoginResult{
 		UserID:       u.ID,
+		UserName:     u.Name,
+		OrgName:      orgName,
 		RefreshToken: plaintext,
 		ExpiresAt:    expiresAt,
 	}, nil

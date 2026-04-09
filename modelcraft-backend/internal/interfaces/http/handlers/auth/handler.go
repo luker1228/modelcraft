@@ -39,6 +39,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	result, err := h.tokenService.Register(r.Context(), appAuth.RegisterCommand{
 		Phone:    req.Phone,
 		Password: req.Password,
+		UserName: req.UserName,
 	})
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "Register failed")
@@ -48,10 +49,11 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, generated.RegisterResponse{
 		RequestId: requestID,
 		UserId:    result.UserID,
+		OrgName:   result.OrgName,
 	})
 }
 
-// HandleLogin handles POST /api/auth/login — phone+password login.
+// HandleLogin handles POST /api/auth/login — supports phone or username login.
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
@@ -62,21 +64,50 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	result, err := h.tokenService.Login(r.Context(), appAuth.LoginCommand{
-		Phone:    req.Phone,
-		Password: req.Password,
-	})
+	// Build LoginCommand with new identifier-based fields
+	cmd := appAuth.LoginCommand{
+		Identifier: req.Identifier,
+		Password:   req.Password,
+	}
+
+	// Map identifierType from generated enum to app enum
+	if req.IdentifierType != nil {
+		switch *req.IdentifierType {
+		case generated.USERNAME:
+			cmd.IdentifierType = appAuth.IdentifierTypeUsername
+		default:
+			cmd.IdentifierType = appAuth.IdentifierTypePhone
+		}
+	} else {
+		cmd.IdentifierType = appAuth.IdentifierTypePhone
+	}
+
+	// Backward compat: if identifier is empty but phone is provided, use phone
+	if cmd.Identifier == "" && req.Phone != nil {
+		cmd.Phone = *req.Phone
+	}
+
+	result, err := h.tokenService.Login(r.Context(), cmd)
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "Login failed")
 		return
 	}
 
-	writeJSON(w, http.StatusOK, generated.LoginResponse{
+	// Build response with optional userName and orgName
+	resp := generated.LoginResponse{
 		RequestId:    requestID,
 		UserId:       result.UserID,
 		RefreshToken: result.RefreshToken,
 		ExpiresAt:    result.ExpiresAt,
-	})
+	}
+	if result.UserName != "" {
+		resp.UserName = &result.UserName
+	}
+	if result.OrgName != "" {
+		resp.OrgName = &result.OrgName
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
 // HandleRefresh handles POST /api/auth/refresh — token rotation.

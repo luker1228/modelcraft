@@ -22,6 +22,48 @@ func (q *Queries) ExistsByPhone(ctx context.Context, phone string) (bool, error)
 	return phone_exists, err
 }
 
+const existsByUserName = `-- name: ExistsByUserName :one
+SELECT EXISTS(SELECT 1 FROM users WHERE name = ?) AS name_exists
+`
+
+func (q *Queries) ExistsByUserName(ctx context.Context, name string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, existsByUserName, name)
+	var name_exists bool
+	err := row.Scan(&name_exists)
+	return name_exists, err
+}
+
+const getUserByName = `-- name: GetUserByName :one
+SELECT id, phone, password_hash, name, external_id, created_at, updated_at
+FROM users
+WHERE name = ? LIMIT 1
+`
+
+type GetUserByNameRow struct {
+	ID           string
+	Phone        string
+	PasswordHash string
+	Name         string
+	ExternalID   sql.NullString
+	CreatedAt    time.Time
+	UpdatedAt    time.Time
+}
+
+func (q *Queries) GetUserByName(ctx context.Context, name string) (GetUserByNameRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByName, name)
+	var i GetUserByNameRow
+	err := row.Scan(
+		&i.ID,
+		&i.Phone,
+		&i.PasswordHash,
+		&i.Name,
+		&i.ExternalID,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getUserByPhone = `-- name: GetUserByPhone :one
 SELECT id, phone, password_hash, name, external_id, created_at, updated_at
 FROM users

@@ -47,6 +47,7 @@ type Querier interface {
 	DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
 	DeleteUserRolesByRole(ctx context.Context, roleID int64) error
 	ExistsByPhone(ctx context.Context, phone string) (bool, error)
+	ExistsByUserName(ctx context.Context, name string) (bool, error)
 	ExistsDatabaseClusterByProjectKey(ctx context.Context, arg ExistsDatabaseClusterByProjectKeyParams) (int64, error)
 	ExistsEnumByName(ctx context.Context, arg ExistsEnumByNameParams) (int64, error)
 	ExistsFieldByName(ctx context.Context, arg ExistsFieldByNameParams) (int64, error)
@@ -93,6 +94,7 @@ type Querier interface {
 	GetTailModelGroupDisplayOrder(ctx context.Context, arg GetTailModelGroupDisplayOrderParams) (string, error)
 	GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
+	GetUserByName(ctx context.Context, name string) (GetUserByNameRow, error)
 	GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
 	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) error

@@ -66,7 +66,8 @@ export interface RestResult<T> {
 
 export class RestClient {
   private buildUserNameFromPhone(phone: string): string {
-    return `u${phone.slice(-10)}`
+    const suffix = phone.slice(-8)
+    return `user${suffix}`
   }
 
   async getTokenByCode(code: string): Promise<TokenResponse> {

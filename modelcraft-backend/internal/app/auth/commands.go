@@ -2,26 +2,46 @@ package auth
 
 import "time"
 
+// IdentifierType 登录标识符类型
+type IdentifierType string
+
+const (
+	// IdentifierTypePhone 手机号登录
+	IdentifierTypePhone IdentifierType = "PHONE"
+	// IdentifierTypeUsername 用户名登录
+	IdentifierTypeUsername IdentifierType = "USERNAME"
+)
+
 // RegisterCommand 手机号+密码注册
 type RegisterCommand struct {
 	Phone    string
 	Password string
+	UserName string // 用户名（3-32字符，以字母/下划线/连字符开头）
 }
 
 // RegisterResult 注册成功后返回
 type RegisterResult struct {
-	UserID string
+	UserID  string
+	OrgName string // 自动创建的个人组织 slug
 }
 
-// LoginCommand 手机号+密码登录
+// LoginCommand 登录命令 - 支持手机号或用户名
 type LoginCommand struct {
-	Phone    string
+	// Identifier 登录标识符（手机号或用户名）
+	Identifier string
+	// IdentifierType 标识符类型：PHONE 或 USERNAME，默认为 PHONE
+	IdentifierType IdentifierType
+	// Password 密码
 	Password string
+	// Deprecated: Phone 保留用于向后兼容，新代码应使用 Identifier + IdentifierType
+	Phone string
 }
 
 // LoginResult 登录成功后返回给 BFF
 type LoginResult struct {
 	UserID       string
+	UserName     string // 用户显示名
+	OrgName      string // 用户首个组织名（如有）
 	RefreshToken string // 明文，BFF 存入 Cookie
 	ExpiresAt    time.Time
 }

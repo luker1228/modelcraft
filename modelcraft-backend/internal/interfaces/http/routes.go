@@ -169,6 +169,15 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	refreshTokenRepo := repository.NewSqlRefreshTokenRepository(dbgen.New(loggingDB))
 	auditLogRepo := repository.NewSqlSecurityAuditLogRepository(dbgen.New(loggingDB))
 
+	// Create organization service for user registration
+	createOrgService := appOrg.NewCreateOrganizationService(
+		txManager,
+		userRepo,
+		orgRepo,
+		casbinRoleRepo,
+		membershipRepo,
+	)
+
 	passwordHasher := infraAuth.NewBcryptPasswordHasher()
 	tokenService := auth.NewTokenService(
 		refreshTokenRepo,
@@ -176,6 +185,8 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 		auditLogRepo,
 		passwordHasher,
 		7*24*time.Hour, // refresh token TTL
+		createOrgService,
+		membershipRepo, // for fetching user's org on login
 	)
 
 	// Create auth handler with token service

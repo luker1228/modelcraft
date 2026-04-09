@@ -389,6 +389,7 @@ components:
       required:
         - phone
         - password
+        - userName
       properties:
         phone:
           type: string
@@ -400,31 +401,53 @@ components:
           description: Password (minimum 8 characters)
           minLength: 8
           example: mypassword123
+        userName:
+          type: string
+          description: User name (3-32 chars, start with letter/underscore/hyphen, then alphanumeric/underscore/hyphen)
+          pattern: ^[a-zA-Z_-][a-zA-Z0-9_-]{2,31}$
+          minLength: 3
+          maxLength: 32
+          example: john_doe
     RegisterResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
         - type: object
           required:
             - userId
+            - orgName
           properties:
             userId:
               type: string
               description: Created user UUID
+            orgName:
+              type: string
+              description: Created personal organization slug
     LoginRequest:
       type: object
       required:
-        - phone
+        - identifier
         - password
       properties:
-        phone:
+        identifier:
           type: string
-          description: 11-digit mainland China phone number
-          pattern: ^1[3-9]\d{9}$
+          description: Login identifier - can be phone number or username depending on identifierType
           example: '13800138000'
+        identifierType:
+          type: string
+          description: 'Type of identifier: PHONE (default) or USERNAME'
+          enum:
+            - PHONE
+            - USERNAME
+          default: PHONE
         password:
           type: string
           description: User password
           example: mypassword123
+        phone:
+          type: string
+          description: '[Deprecated] 11-digit mainland China phone number. Use identifier + identifierType instead.'
+          pattern: ^1[3-9]\d{9}$
+          example: '13800138000'
     LoginResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -437,6 +460,12 @@ components:
             userId:
               type: string
               description: ModelCraft internal user UUID
+            userName:
+              type: string
+              description: User display name
+            orgName:
+              type: string
+              description: Primary organization name (first org the user belongs to, if any)
             refreshToken:
               type: string
               description: Opaque refresh token (store securely on client)

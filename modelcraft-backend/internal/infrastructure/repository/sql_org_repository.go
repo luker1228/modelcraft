@@ -302,6 +302,52 @@ func (r *SqlUserRepository) ExistsByPhone(ctx context.Context, phone string) (bo
 	return exists, nil
 }
 
+// GetByName retrieves a user by username.
+// Returns nil, shared.NewNotFoundError when no user matches the given name.
+func (r *SqlUserRepository) GetByName(ctx context.Context, name string) (*user.User, error) {
+	row, err := r.q.GetUserByName(ctx, name)
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("user not found by name: " + name)
+		}
+		return nil, bizerrors.Wrapf(err, "failed to get user by name: %s", name)
+	}
+
+	// Convert GetUserByNameRow to domain User.
+	var externalID string
+	if row.ExternalID.Valid {
+		externalID = row.ExternalID.String
+	}
+
+	var phoneVO user.PhoneNumber
+	if row.Phone != "" {
+		p, err := user.NewPhoneNumber(row.Phone)
+		if err == nil {
+			phoneVO = p
+		}
+	}
+
+	return &user.User{
+		ID:           row.ID,
+		ExternalID:   externalID,
+		Name:         row.Name,
+		Phone:        phoneVO,
+		PasswordHash: row.PasswordHash,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}, nil
+}
+
+// ExistsByName checks whether a user with the given name already exists.
+func (r *SqlUserRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
+	exists, err := r.q.ExistsByUserName(ctx, name)
+	if err != nil {
+		return false, bizerrors.Wrapf(err, "failed to check user name existence: %s", name)
+	}
+
+	return exists, nil
+}
+
 // SqlMembershipRepository is the sqlc-based implementation of membership.MembershipRepository.
 type SqlMembershipRepository struct {
 	q dbgen.Querier

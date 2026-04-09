@@ -26,6 +26,12 @@ type UserRepository interface {
 	// GetByPhone 根据手机号获取用户 (Pattern A: 不存在返回 NotFoundError)
 	GetByPhone(ctx context.Context, phone string) (*User, error)
 
+	// GetByName 根据用户名获取用户 (Pattern A: 不存在返回 NotFoundError)
+	GetByName(ctx context.Context, name string) (*User, error)
+
 	// ExistsByPhone 检查手机号是否已被注册 (Pattern B: 不存在返回 false)
 	ExistsByPhone(ctx context.Context, phone string) (bool, error)
+
+	// ExistsByName 检查用户名是否已被占用 (Pattern B: 不存在返回 false)
+	ExistsByName(ctx context.Context, name string) (bool, error)
 }
