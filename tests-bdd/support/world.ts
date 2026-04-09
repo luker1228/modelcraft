@@ -36,6 +36,7 @@ export class ModelCraftWorld extends World {
   // Auth 相关状态（REST 场景）
   lastRestResult: RestResult<unknown> | null = null
   registeredPhone: string | null = null
+  registeredUserName: string | null = null
   registeredPassword: string | null = null
   currentRefreshToken: string | null = null
   currentUserId: string | null = null

@@ -9,6 +9,8 @@ Feature: 用户登录
     When 我用手机号 "13800138001" 和密码 "password123" 登录
     Then 登录应该成功
     And 响应中应包含 userId
+    And 响应中应包含 userName
+    And 响应中应包含 orgName
     And 响应中应包含 refreshToken
     And 响应中应包含 expiresAt
 
@@ -19,6 +21,21 @@ Feature: 用户登录
 
   Scenario: 密码错误时报错
     When 我用手机号 "13800138001" 和密码 "wrongpassword" 登录
+    Then 应该返回 HTTP 状态码 401
+    And 应该返回错误码 "AUTHENTICATION_FAILED"
+
+  Scenario: 用户名登录成功
+    Given 已注册手机号 "13800138003" 用户名 "login_by_username" 密码 "password123"
+    When 我用用户名 "login_by_username" 和密码 "password123" 登录
+    Then 登录应该成功
+    And 响应中应包含 userId
+    And 响应中应包含 userName
+    And 响应中应包含 orgName
+    And 响应中应包含 refreshToken
+    And 响应中应包含 expiresAt
+
+  Scenario: 用户名不存在时报错
+    When 我用用户名 "not_exists_user" 和密码 "password123" 登录
     Then 应该返回 HTTP 状态码 401
     And 应该返回错误码 "AUTHENTICATION_FAILED"
 

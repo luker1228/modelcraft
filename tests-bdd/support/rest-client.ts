@@ -10,11 +10,14 @@ export interface TokenResponse {
 export interface RegisterResponse {
   requestId: string
   userId: string
+  orgName: string
 }
 
 export interface LoginResponse {
   requestId: string
   userId: string
+  userName: string
+  orgName: string
   refreshToken: string
   expiresAt: string
 }
@@ -62,6 +65,10 @@ export interface RestResult<T> {
 }
 
 export class RestClient {
+  private buildUserNameFromPhone(phone: string): string {
+    return `u${phone.slice(-10)}`
+  }
+
   async getTokenByCode(code: string): Promise<TokenResponse> {
     const res = await fetch(`${API_BASE_URL}/api/auth/token`, {
       method: 'POST',
@@ -74,29 +81,68 @@ export class RestClient {
     return res.json() as Promise<TokenResponse>
   }
 
-  async register(phone: string, password: string): Promise<RestResult<RegisterResponse>> {
+  async register(
+    phone: string,
+    password: string,
+    userName?: string
+  ): Promise<RestResult<RegisterResponse>> {
+    const normalizedUserName = userName ?? this.buildUserNameFromPhone(phone)
     const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, password }),
+      body: JSON.stringify({ phone, userName: normalizedUserName, password }),
     })
     const body = await res.json()
     if (res.ok) {
       return { status: res.status, data: body as RegisterResponse }
     }
+
+    // 兼容旧后端：当调用方未显式传 userName 时，允许回退到仅 phone+password 的老协议
+    if (!userName && res.status === 400) {
+      const legacyRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, password }),
+      })
+      const legacyBody = await legacyRes.json()
+      if (legacyRes.ok) {
+        return { status: legacyRes.status, data: legacyBody as RegisterResponse }
+      }
+      return { status: legacyRes.status, error: legacyBody as RestErrorResponse }
+    }
+
     return { status: res.status, error: body as RestErrorResponse }
   }
 
-  async login(phone: string, password: string): Promise<RestResult<LoginResponse>> {
+  async login(
+    identifier: string,
+    password: string,
+    identifierType: 'PHONE' | 'USERNAME' = 'PHONE'
+  ): Promise<RestResult<LoginResponse>> {
     const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, password }),
+      body: JSON.stringify({ identifier, identifierType, password }),
     })
     const body = await res.json()
     if (res.ok) {
       return { status: res.status, data: body as LoginResponse }
     }
+
+    // 兼容旧后端：手机号登录可回退到 { phone, password }
+    if (identifierType === 'PHONE' && /^1[3-9]\d{9}$/.test(identifier) && res.status === 400) {
+      const legacyRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: identifier, password }),
+      })
+      const legacyBody = await legacyRes.json()
+      if (legacyRes.ok) {
+        return { status: legacyRes.status, data: legacyBody as LoginResponse }
+      }
+      return { status: legacyRes.status, error: legacyBody as RestErrorResponse }
+    }
+
     return { status: res.status, error: body as RestErrorResponse }
   }
 

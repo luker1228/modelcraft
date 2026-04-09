@@ -18,12 +18,15 @@ import {
 const phoneMap = new Map<string, Map<string, string>>()
 let scenarioKey = ''
 
+function buildUserNameFromPhone(phone: string): string {
+  return `u${phone.slice(-10)}`
+}
+
 function getOrCreatePhone(world: ModelCraftWorld, rawPhone: string): string {
   // 空字符串或非法格式直接传递给后端，让后端做校验
   if (!rawPhone || rawPhone.length !== 11 || !/^1[3-9]\d{9}$/.test(rawPhone)) {
     return rawPhone
   }
-  const key = `${world.constructor.name}_${Date.now()}`
   if (!phoneMap.has(scenarioKey)) {
     phoneMap.set(scenarioKey, new Map())
   }
@@ -72,6 +75,22 @@ Given(
       throw new Error(`前置条件：注册用户 ${phone} 失败 — ${JSON.stringify(result.error)}`)
     }
     this.registeredPhone = phone
+    this.registeredUserName = buildUserNameFromPhone(phone)
+    this.registeredPassword = password
+    this.currentUserId = result.data.userId
+  }
+)
+
+Given(
+  '已注册手机号 {string} 用户名 {string} 密码 {string}',
+  async function (this: ModelCraftWorld, rawPhone: string, userName: string, password: string) {
+    const phone = getOrCreatePhone(this, rawPhone)
+    const result = await this.restClient.register(phone, password, userName)
+    if (!result.data) {
+      throw new Error(`前置条件：注册用户 ${phone}/${userName} 失败 — ${JSON.stringify(result.error)}`)
+    }
+    this.registeredPhone = phone
+    this.registeredUserName = userName
     this.registeredPassword = password
     this.currentUserId = result.data.userId
   }
@@ -90,11 +109,12 @@ Given(
       throw new Error(`前置条件：注册用户 ${phone} 失败 — ${JSON.stringify(regResult.error)}`)
     }
     // 登录
-    const loginResult = await this.restClient.login(phone, password)
+    const loginResult = await this.restClient.login(phone, password, 'PHONE')
     if (!loginResult.data) {
       throw new Error(`前置条件：登录用户 ${phone} 失败 — ${JSON.stringify(loginResult.error)}`)
     }
     this.registeredPhone = phone
+    this.registeredUserName = buildUserNameFromPhone(phone)
     this.registeredPassword = password
     this.currentUserId = loginResult.data.userId
     this.currentRefreshToken = loginResult.data.refreshToken
@@ -110,6 +130,20 @@ When(
     this.lastRestResult = await this.restClient.register(phone, password)
     if (this.lastRestResult.data) {
       this.registeredPhone = phone
+      this.registeredUserName = buildUserNameFromPhone(phone)
+      this.registeredPassword = password
+    }
+  }
+)
+
+When(
+  '我用手机号 {string} 和用户名 {string} 和密码 {string} 注册',
+  async function (this: ModelCraftWorld, rawPhone: string, userName: string, password: string) {
+    const phone = getOrCreatePhone(this, rawPhone)
+    this.lastRestResult = await this.restClient.register(phone, password, userName)
+    if (this.lastRestResult.data) {
+      this.registeredPhone = phone
+      this.registeredUserName = userName
       this.registeredPassword = password
     }
   }
@@ -121,7 +155,17 @@ When(
   '我用手机号 {string} 和密码 {string} 登录',
   async function (this: ModelCraftWorld, rawPhone: string, password: string) {
     const phone = getOrCreatePhone(this, rawPhone)
-    this.lastRestResult = await this.restClient.login(phone, password)
+    this.lastRestResult = await this.restClient.login(phone, password, 'PHONE')
+    if ((this.lastRestResult as RestResult<LoginResponse>).data?.refreshToken) {
+      this.currentRefreshToken = (this.lastRestResult as RestResult<LoginResponse>).data!.refreshToken
+    }
+  }
+)
+
+When(
+  '我用用户名 {string} 和密码 {string} 登录',
+  async function (this: ModelCraftWorld, userName: string, password: string) {
+    this.lastRestResult = await this.restClient.login(userName, password, 'USERNAME')
     if ((this.lastRestResult as RestResult<LoginResponse>).data?.refreshToken) {
       this.currentRefreshToken = (this.lastRestResult as RestResult<LoginResponse>).data!.refreshToken
     }
@@ -228,6 +272,24 @@ Then('响应中应包含 refreshToken', function (this: ModelCraftWorld) {
   expect(data.refreshToken).toBeDefined()
   expect(typeof data.refreshToken).toBe('string')
   expect((data.refreshToken as string).length).toBeGreaterThan(0)
+})
+
+Then('响应中应包含 userName', function (this: ModelCraftWorld) {
+  expect(this.lastRestResult).not.toBeNull()
+  const data = this.lastRestResult!.data as Record<string, unknown>
+  expect(data).toBeDefined()
+  expect(data.userName).toBeDefined()
+  expect(typeof data.userName).toBe('string')
+  expect((data.userName as string).length).toBeGreaterThan(0)
+})
+
+Then('响应中应包含 orgName', function (this: ModelCraftWorld) {
+  expect(this.lastRestResult).not.toBeNull()
+  const data = this.lastRestResult!.data as Record<string, unknown>
+  expect(data).toBeDefined()
+  expect(data.orgName).toBeDefined()
+  expect(typeof data.orgName).toBe('string')
+  expect((data.orgName as string).length).toBeGreaterThan(0)
 })
 
 Then('响应中应包含 expiresAt', function (this: ModelCraftWorld) {

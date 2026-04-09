@@ -65,6 +65,7 @@ Before(function (this: ModelCraftWorld) {
   // Auth 相关状态
   this.lastRestResult = null
   this.registeredPhone = null
+  this.registeredUserName = null
   this.registeredPassword = null
   this.currentRefreshToken = null
   this.currentUserId = null
