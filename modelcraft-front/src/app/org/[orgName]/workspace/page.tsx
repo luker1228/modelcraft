@@ -40,7 +40,7 @@ import {
 } from "lucide-react"
 import { toast } from "sonner"
 import { saveUserPreferences } from "@web/routing/smart-redirect"
-import { cn } from "@/shared/utils"
+import { cn, formatDateSafe } from "@/shared/utils"
 import type { Project } from "@/types"
 import type { ProjectFormValues } from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@bff/auth/public"
@@ -409,7 +409,7 @@ export default function WorkspacePage() {
                       <div className="flex items-center gap-4">
                         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                           <Clock className="size-3.5" />
-                          <span>{new Date(project.updatedAt).toLocaleDateString('zh-CN')}</span>
+                          <span>{formatDateSafe(project.updatedAt)}</span>
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>

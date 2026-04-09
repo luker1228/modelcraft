@@ -17,6 +17,7 @@ import {
   FormLabel,
   FormControl,
   FormMessage,
+  FormDescription,
 } from '@web/components/ui/form'
 
 export default function RegisterPage() {
@@ -24,7 +25,7 @@ export default function RegisterPage() {
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
-    defaultValues: { phone: '', password: '', confirmPassword: '' },
+    defaultValues: { phone: '', userName: '', password: '', confirmPassword: '' },
   })
 
   const handleSubmit = form.handleSubmit(async (values) => {
@@ -34,7 +35,7 @@ export default function RegisterPage() {
   return (
     <AuthLayout title="创建账号" subtitle="注册新账号">
       <Form {...form}>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-5">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Server error banner */}
           {error && (
             <div className="rounded-md bg-destructive/10 px-4 py-3 text-sm text-destructive">
@@ -51,6 +52,26 @@ export default function RegisterPage() {
                 <FormControl>
                   <Input placeholder="请输入手机号" {...field} />
                 </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="userName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>用户名</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="字母/数字/_-，不能数字开头"
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription className="text-xs">
+                  3-32 位，注册后不可修改，将作为登录凭证
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

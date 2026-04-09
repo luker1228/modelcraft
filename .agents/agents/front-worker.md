@@ -36,6 +36,7 @@ tool: *
 - 实现组件、Hook、工具函数
 - 修复 Bug
 - 优化性能和代码质量
+- 任务完成前执行并通过 lint 与 build（编译）检查
 - 填充 architect 留下的 `// TODO: worker 实现` 骨架
 - 实现 BFF 层模块（`src/bff/`）
 - 在接口 spec 就绪后运行 codegen，生成 TypeScript 类型和 MSW mock handlers
@@ -470,6 +471,11 @@ npm run dev
 ---
 
 ## 完成检查清单
+
+### 构建与质量门禁（任务完成前必须全部通过）
+- [ ] 在前端项目目录执行 `npm run lint` 并通过
+- [ ] 在前端项目目录执行 `npm run build` 并通过（确保编译成功）
+- [ ] 若任一命令失败，先修复问题后再交付
 
 ### 组件实现
 - [ ] `'use client'` 已添加（使用 hook / 事件处理 / 浏览器 API 时）

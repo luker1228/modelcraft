@@ -69,8 +69,8 @@ func (m *mockAuditLogRepo) Insert(_ context.Context, log *domainauth.SecurityAud
 }
 
 type mockUserRepo struct {
-	users       map[string]*domainUser.User // key: externalID
-	usersByID   map[string]*domainUser.User // key: internal ID
+	users        map[string]*domainUser.User // key: externalID
+	usersByID    map[string]*domainUser.User // key: internal ID
 	usersByPhone map[string]*domainUser.User // key: phone
 }
 
@@ -187,7 +187,8 @@ func TestTokenService_Register_Success(t *testing.T) {
 	u, ok := userRepo.usersByPhone["13800138000"]
 	require.True(t, ok)
 	assert.Equal(t, result.UserID, u.ID)
-	assert.Equal(t, "138****8000", u.Name) // auto-masked name
+	assert.NotEmpty(t, u.Name)
+	assert.NotEqual(t, "138****8000", u.Name)
 	assert.Equal(t, "hashed_securePassword1", u.PasswordHash)
 }
 

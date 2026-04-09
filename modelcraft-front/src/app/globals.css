@@ -38,19 +38,19 @@
     --card-foreground: 224 71.4% 4.1%;
     --popover: 0 0% 100%;
     --popover-foreground: 224 71.4% 4.1%;
-    --primary: 220.9 39.3% 11%; /* #0EA5E9 Sky Blue - 更明亮的蓝色 */
-    --primary-foreground: 210 20% 98%;
-    --secondary: 220 14.3% 95.9%;
-    --secondary-foreground: 220.9 39.3% 11%;
+    --primary: 221 83% 53%; /* #2563eb Blue-600 */
+    --primary-foreground: 0 0% 100%;
+    --secondary: 214 95% 93%; /* #dbeafe blue-100 */
+    --secondary-foreground: 221 83% 40%;
     --muted: 220 14.3% 95.9%;
     --muted-foreground: 220 8.9% 46.1%;
-    --accent: 220 14.3% 95.9%; /* #06B6D4 Cyan - 互补色 */
-    --accent-foreground: 220.9 39.3% 11%;
+    --accent: 214 95% 93%;
+    --accent-foreground: 221 83% 40%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 20% 98%;
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 224 71.4% 4.1%;
+    --ring: 221 83% 53%;
     --radius: 0.5rem;
     --success: 160 84% 39%; /* #10B981 Emerald - 和谐的绿色 */
     --warning: 38 92% 50%;
@@ -93,8 +93,8 @@
     --card-foreground: 210 20% 98%;
     --popover: 224 71.4% 4.1%;
     --popover-foreground: 210 20% 98%;
-    --primary: 210 20% 98%;
-    --primary-foreground: 220.9 39.3% 11%;
+    --primary: 213 97% 87%; /* lighter blue for dark mode */
+    --primary-foreground: 221 83% 20%;
     --secondary: 215 27.9% 16.9%;
     --secondary-foreground: 210 20% 98%;
     --muted: 215 27.9% 16.9%;

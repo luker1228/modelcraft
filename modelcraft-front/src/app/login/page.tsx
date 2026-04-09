@@ -10,6 +10,7 @@ import { AuthLayout } from '@/web/components/features/auth/auth-layout'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { PasswordInput } from '@/web/components/common/password-input'
+import { Tabs, TabsList, TabsTrigger } from '@web/components/ui/tabs'
 import {
   Form,
   FormField,
@@ -18,14 +19,25 @@ import {
   FormControl,
   FormMessage,
 } from '@web/components/ui/form'
+import type { IdentifierType } from '@/types/auth'
 
 export default function LoginPage() {
-  const { login, isLoading, error } = useLogin()
+  const { login, isLoading, error, identifierType, setIdentifierType } =
+    useLogin()
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: { phone: '', password: '' },
+    defaultValues: { identifier: '', identifierType: 'PHONE', password: '' },
   })
+
+  // 切换登录类型时清空输入并更新 form 值
+  const handleTabChange = (value: string) => {
+    const type = value as IdentifierType
+    setIdentifierType(type)
+    form.setValue('identifierType', type)
+    form.setValue('identifier', '')
+    form.clearErrors('identifier')
+  }
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await login(values)
@@ -42,14 +54,35 @@ export default function LoginPage() {
             </div>
           )}
 
+          {/* 登录方式切换 */}
+          <Tabs
+            value={identifierType}
+            onValueChange={handleTabChange}
+            className="w-full"
+          >
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="PHONE">手机号登录</TabsTrigger>
+              <TabsTrigger value="USERNAME">用户名登录</TabsTrigger>
+            </TabsList>
+          </Tabs>
+
           <FormField
             control={form.control}
-            name="phone"
+            name="identifier"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>手机号</FormLabel>
+                <FormLabel>
+                  {identifierType === 'PHONE' ? '手机号' : '用户名'}
+                </FormLabel>
                 <FormControl>
-                  <Input placeholder="请输入手机号" {...field} />
+                  <Input
+                    placeholder={
+                      identifierType === 'PHONE'
+                        ? '请输入手机号'
+                        : '请输入用户名'
+                    }
+                    {...field}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -70,14 +103,21 @@ export default function LoginPage() {
             )}
           />
 
-          <Button type="submit" className="mt-1 h-10 w-full" disabled={isLoading}>
+          <Button
+            type="submit"
+            className="mt-1 h-10 w-full"
+            disabled={isLoading}
+          >
             {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
             登录
           </Button>
 
           <p className="text-center text-sm text-muted-foreground">
             还没有账号？{' '}
-            <NextLink href="/register" className="font-medium text-primary hover:underline">
+            <NextLink
+              href="/register"
+              className="font-medium text-primary hover:underline"
+            >
               立即注册
             </NextLink>
           </p>

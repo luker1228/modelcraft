@@ -9,6 +9,7 @@ import {
   DropdownMenuTrigger,
 } from "@web/components/ui/dropdown-menu"
 import { MoreHorizontal, Edit, Trash2, FolderOpen } from "lucide-react"
+import { formatDateSafe } from "@/shared/utils"
 import type { Project } from "@/types"
 
 interface ProjectCardProps {
@@ -47,15 +48,6 @@ export function ProjectCard({
       default:
         return <Badge variant="outline">{status}</Badge>
     }
-  }
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    })
   }
 
   return (
@@ -103,7 +95,11 @@ export function ProjectCard({
           <div className="flex items-center gap-2">
             {getStatusBadge(project.status)}
           </div>
-          <span className="text-muted-foreground">更新于 {formatDate(project.updatedAt)}</span>
+          <span className="text-muted-foreground">更新于 {formatDateSafe(project.updatedAt, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}</span>
         </div>
       </CardContent>
     </Card>

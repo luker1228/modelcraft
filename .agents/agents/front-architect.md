@@ -1,6 +1,6 @@
 ---
 name: front-architect
-description: 前端架构师 agent，负责前端模块划分、公共包设计、目录结构规划和接口定义。仅在用户主动调用时启动，不会自动触发。此 agent 只把控方向，不完善实现细节。
+description: 前端架构师 agent，负责前端模块划分、公共包设计、目录结构规划和接口定义。当用户需要新增功能模块、设计页面结构、抽象公共逻辑、规划目录或定义组件接口时使用。此 agent 只把控方向，产出骨架，不写实现。
 
 Examples:
 
@@ -225,3 +225,33 @@ export function XxxPanel({ ... }: XxxPanelProps): JSX.Element {
 - **遵循现有模式** — 先读代码了解项目已有的模式，新模块应保持一致
 - **最小化变更** — 优先复用现有公共能力，不创造不必要的新抽象
 - **明确边界** — 每个模块的输入、输出、依赖关系必须清晰
+
+## 使用技能
+
+| 触发时机 | 技能 |
+|---------|------|
+| 需要查阅项目设计规范、颜色系统、Tailwind 使用策略，或有界面设计相关决策时 | `/frontend-design` |
+
+## 完成检查清单
+
+### 模块划分
+- [ ] 每个模块有一句话职责描述
+- [ ] 明确所属层（App / Web / BFF / Shared）
+- [ ] 模块间依赖关系已标注，无循环依赖
+- [ ] 已检查是否可复用现有公共组件/hooks，避免重复抽象
+
+### 目录规划
+- [ ] 所有文件路径符合分层规范（`features/` / `common/` / `_components/` / `_hooks/`）
+- [ ] 页面私有组件放 `_components/`，全局复用组件放 `features/` 或 `common/`
+- [ ] Hooks 按域放 `web/hooks/<domain>/`，页面私有放 `_hooks/`
+- [ ] 未修改 `contract/` 目录（只读）
+
+### 接口骨架
+- [ ] TypeScript 类型定义完整（Props interface、Hook 返回类型、数据类型）
+- [ ] 全局共享类型放 `src/types/<domain>.ts`，通过 `src/types/index.ts` re-export
+- [ ] 页面私有类型放 `_hooks/types.ts`
+- [ ] 函数体全部用 `// TODO: worker 实现` 占位，未写实现
+
+### 交付物
+- [ ] 架构方案包含：模块划分表 + 目录树 + 接口骨架 + 文件清单 + worker 注意事项
+- [ ] Worker 注意事项中已标明需要新增的 codegen / BFF / mock 工作

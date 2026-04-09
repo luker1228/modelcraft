@@ -40,6 +40,14 @@ export class ModelCraftWorld extends World {
   currentRefreshToken: string | null = null
   currentUserId: string | null = null
 
+  // Org 初始化相关状态（REST 场景）
+  lastMembershipsCount: number | null = null
+  initOrgName: string | null = null
+  initDisplayName: string | null = null
+  initAlreadyExists: boolean | null = null
+  firstInitOrgName: string | null = null
+  secondInitOrgName: string | null = null
+
   constructor(options: IWorldOptions) {
     super(options)
 

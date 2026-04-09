@@ -68,6 +68,12 @@ Before(function (this: ModelCraftWorld) {
   this.registeredPassword = null
   this.currentRefreshToken = null
   this.currentUserId = null
+  this.lastMembershipsCount = null
+  this.initOrgName = null
+  this.initDisplayName = null
+  this.initAlreadyExists = null
+  this.firstInitOrgName = null
+  this.secondInitOrgName = null
 
   // 如果 BeforeAll 生成了 token，确保 World 也使用它
   if (!this.token && process.env.TEST_ACCESS_TOKEN) {

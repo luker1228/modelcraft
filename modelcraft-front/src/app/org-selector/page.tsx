@@ -31,6 +31,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { getSmartRedirectUrl } from "@web/routing/smart-redirect";
+import { formatDateSafe } from "@/shared/utils";
 
 // MembershipInfo from API response
 interface MembershipInfo {
@@ -401,7 +402,7 @@ export default function OrgSelectorPage() {
                       </span>
                     )}
                     <span className="text-[12px] text-[#9ca3af]">
-                      {new Date(org.joinedAt).toLocaleDateString('zh-CN', {
+                      {formatDateSafe(org.joinedAt, {
                         year: 'numeric',
                         month: 'short',
                         day: 'numeric',

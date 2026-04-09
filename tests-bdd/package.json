@@ -9,6 +9,7 @@
     "test:enum": "cucumber-js features/enum",
     "test:lfk": "cucumber-js features/logical-foreign-key",
     "test:auth": "cucumber-js features/auth",
+    "test:org": "cucumber-js features/org",
     "test:smoke": "cucumber-js --tags @smoke",
     "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html"
   },

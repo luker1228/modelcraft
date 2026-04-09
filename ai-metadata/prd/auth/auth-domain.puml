@@ -17,20 +17,35 @@ rectangle "认证子域" {
       + id : UserID
       --属性--
       + phoneNumber : PhoneNumber
+      + userName : UserName
+      + displayName : String
       + password : HashedPassword
       + createdAt : DateTime
       --行为--
-      + register(phone : PhoneNumber, password : Password)
+      + register(phone : PhoneNumber, userName : UserName, password : Password)
       + verifyPassword(plain : String) : Boolean
       --不变量--
       .. 手机号全局唯一 ..
+      .. userName 全局唯一，注册后不可修改 ..
       .. 密码最少 8 位 ..
+      .. displayName 默认等于 userName ..
     }
 
     class PhoneNumber <<Value Object>> #DCEDC1 {
       + value : String
       --校验--
       .. 必须为 11 位国内手机号 ..
+      --相等性--
+      .. value 全匹配 ..
+    }
+
+    class UserName <<Value Object>> #DCEDC1 {
+      + value : String
+      --校验--
+      .. 英文字母/数字/_/- ..
+      .. 不能数字开头 ..
+      .. 长度 3–32 位 ..
+      .. 不能是保留字 ..
       --相等性--
       .. value 全匹配 ..
     }
@@ -44,13 +59,22 @@ rectangle "认证子域" {
     }
 
     User "1" *-- "1" PhoneNumber
+    User "1" *-- "1" UserName
     User "1" *-- "1" HashedPassword
   }
 
   ' ═══ 认证凭证（登录输入）═══
   class Credential <<Value Object>> #DCEDC1 {
-    + phoneNumber : PhoneNumber
+    + identifier : String
+    + identifierType : IdentifierType
     + plainPassword : String
+    --说明--
+    .. identifier 可为手机号或用户名 ..
+  }
+
+  enum IdentifierType <<Enum>> #E8DAEF {
+    PHONE
+    USERNAME
   }
 
   ' ═══ 认证令牌 ═══
@@ -64,12 +88,42 @@ rectangle "认证子域" {
   ' ═══ 领域服务 ═══
   class AuthenticationService <<Domain Service>> #FAD9C1 {
     + authenticate(credential : Credential) : AuthToken
-    .. 查找用户 → 验证密码 → 签发 Token ..
+    .. 按 identifierType 查找用户 ..
+    .. 验证密码 → 签发 Token ..
   }
 
+  class RegistrationService <<Domain Service>> #FAD9C1 {
+    + register(phone : PhoneNumber, userName : UserName, password : Password)
+    .. 创建 User（displayName = userName）..
+    .. 触发创建初始 Org ..
+  }
+
+  Credential "1" *-- "1" IdentifierType
   AuthenticationService ..> User : 查找并验证
   AuthenticationService ..> Credential : 接收
   AuthenticationService ..> AuthToken : 签发
+  RegistrationService ..> User : 创建
 }
+
+' ═══ 租户子域（跨聚合引用）═══
+rectangle "租户子域" {
+  package "Org 聚合" <<Aggregate>> #FFFDE7 {
+    class Org <<Aggregate Root>> #FFEAA7 {
+      --标识--
+      + id : OrgID
+      --属性--
+      + name : String
+      + ownerRef : UserID
+      --不变量--
+      .. 注册时自动创建，orgName 随机生成 ..
+    }
+  }
+}
+
+RegistrationService ..> Org : 触发创建初始 Org
+Org "1" ..> "1" User : ownerRef
+
+' ═══ 待确认 ═══
+note "待确认：保留字黑名单由谁维护、放在哪里？" as Q1 #FF7675
 
 @enduml

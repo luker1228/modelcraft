@@ -26,6 +26,27 @@ export interface RefreshResponse {
   expiresAt: string
 }
 
+export interface InitOrgResponse {
+  requestId: string
+  success: boolean
+  orgName: string
+  displayName: string
+  alreadyExists: boolean
+}
+
+export interface MembershipInfo {
+  orgId: string
+  orgName: string
+  displayName: string
+  role: string
+  joinedAt: number
+}
+
+export interface GetMembershipsResponse {
+  requestId: string
+  memberships: MembershipInfo[]
+}
+
 export interface RestErrorResponse {
   requestId: string
   error: {
@@ -102,6 +123,45 @@ export class RestClient {
       return { status: res.status }
     }
     const body = await res.json()
+    return { status: res.status, error: body as RestErrorResponse }
+  }
+
+  async initOrganization(
+    accessToken: string,
+    displayName: string,
+    organizationName?: string
+  ): Promise<RestResult<InitOrgResponse>> {
+    const res = await fetch(`${API_BASE_URL}/api/org/init`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        displayName,
+        ...(organizationName ? { organizationName } : {}),
+      }),
+    })
+
+    const body = await res.json()
+    if (res.ok) {
+      return { status: res.status, data: body as InitOrgResponse }
+    }
+    return { status: res.status, error: body as RestErrorResponse }
+  }
+
+  async getUserMemberships(accessToken: string): Promise<RestResult<GetMembershipsResponse>> {
+    const res = await fetch(`${API_BASE_URL}/api/user/memberships`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    })
+
+    const body = await res.json()
+    if (res.ok) {
+      return { status: res.status, data: body as GetMembershipsResponse }
+    }
     return { status: res.status, error: body as RestErrorResponse }
   }
 }

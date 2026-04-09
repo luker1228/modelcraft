@@ -2,6 +2,8 @@ package user
 
 import (
 	"fmt"
+	"hash/fnv"
+	"strings"
 	"time"
 )
 
@@ -24,8 +26,18 @@ func (u *User) Validate() error {
 	return nil
 }
 
+var registerNameAdjectives = [...]string{
+	"brisk", "calm", "clever", "daring", "eager", "fancy", "gentle", "happy",
+	"jolly", "kind", "lucky", "merry", "noble", "quick", "royal", "smart",
+}
+
+var registerNameNouns = [...]string{
+	"aurora", "bamboo", "cloud", "dolphin", "ember", "falcon", "glade", "harbor",
+	"island", "jungle", "kitten", "legend", "meteor", "nebula", "orchid", "phoenix",
+}
+
 // NewUser 通过手机号+密码创建用户实体
-// Name 自动设置为手机号脱敏格式 (如 "138****8000")
+// Name 自动设置为随机风格且稳定可复现的 displayName（基于 userID 生成）
 func NewUser(id string, phone PhoneNumber, passwordHash string) (*User, error) {
 	if phone.IsZero() {
 		return nil, fmt.Errorf("phone number is required")
@@ -36,7 +48,7 @@ func NewUser(id string, phone PhoneNumber, passwordHash string) (*User, error) {
 	now := time.Now()
 	user := &User{
 		ID:           id,
-		Name:         phone.Masked(),
+		Name:         generateRegisterDisplayName(id),
 		Phone:        phone,
 		PasswordHash: passwordHash,
 		CreatedAt:    now,
@@ -46,6 +58,26 @@ func NewUser(id string, phone PhoneNumber, passwordHash string) (*User, error) {
 		return nil, err
 	}
 	return user, nil
+}
+
+func generateRegisterDisplayName(userID string) string {
+	h := fnv.New64a()
+	_, _ = h.Write([]byte(userID))
+	sum := h.Sum64()
+
+	adjective := registerNameAdjectives[int(sum%uint64(len(registerNameAdjectives)))]
+	noun := registerNameNouns[int((sum>>8)%uint64(len(registerNameNouns)))]
+
+	compactID := strings.ToLower(strings.ReplaceAll(userID, "-", ""))
+	if compactID == "" {
+		compactID = "000000"
+	}
+	if len(compactID) < 6 {
+		compactID = strings.Repeat("0", 6-len(compactID)) + compactID
+	}
+	suffix := compactID[len(compactID)-6:]
+
+	return fmt.Sprintf("%s_%s_%s", adjective, noun, suffix)
 }
 
 // NewOAuthUser 通过外部认证提供者（OAuth）创建用户实体

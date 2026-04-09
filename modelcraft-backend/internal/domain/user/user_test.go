@@ -16,7 +16,8 @@ func TestNewUser(t *testing.T) {
 		require.NoError(t, err)
 		assert.NotNil(t, user)
 		assert.Equal(t, "uuid-123", user.ID)
-		assert.Equal(t, "138****8000", user.Name) // auto-masked
+		assert.Equal(t, generateRegisterDisplayName("uuid-123"), user.Name)
+		assert.NotEqual(t, "138****8000", user.Name)
 		assert.Equal(t, "13800138000", user.Phone.String())
 		assert.Equal(t, "$2a$10$hashedpassword", user.PasswordHash)
 		assert.Empty(t, user.ExternalID)
@@ -43,6 +44,15 @@ func TestNewUser(t *testing.T) {
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "password hash is required")
+	})
+
+	t.Run("should generate stable display name by user id", func(t *testing.T) {
+		user1, err := NewUser("uuid-123", validPhone, "hashed-a")
+		require.NoError(t, err)
+		user2, err := NewUser("uuid-123", validPhone, "hashed-b")
+		require.NoError(t, err)
+		assert.Equal(t, user1.Name, user2.Name)
+		assert.Contains(t, user1.Name, "_")
 	})
 }
 

@@ -13,6 +13,8 @@ interface JWTPayload {
   sub?: string
   phone?: string
   name?: string
+  user_name?: string
+  userName?: string
 }
 
 /**
@@ -73,6 +75,7 @@ export function getUserInfoFromToken(token: string): AuthUser | null {
     id: decoded.user_id || decoded.sub || '',
     phone: decoded.phone || '',
     name: decoded.name || '',
+    userName: decoded.user_name || decoded.userName,
   }
 }
 
