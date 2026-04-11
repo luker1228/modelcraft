@@ -27,6 +27,7 @@ import {
   UPDATE_PROJECT,
   DELETE_PROJECT
 } from "@web/graphql/mutations/project"
+import { TEST_CLUSTER_CONNECTION } from "@web/graphql/mutations/cluster"
 import {
   Plus,
   FolderOpen,
@@ -42,7 +43,11 @@ import { toast } from "sonner"
 import { saveUserPreferences } from "@web/routing/smart-redirect"
 import { cn, formatDateSafe } from "@/shared/utils"
 import type { Project } from "@/types"
-import type { ProjectFormValues } from "@web/components/features/project/ProjectDialog"
+import type { DatabaseConnectionInfo } from "@/types/cluster"
+import type {
+  ProjectFormValues,
+  ProjectConnectionTestResult,
+} from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@bff/auth/public"
 
 // Membership info from API response
@@ -81,6 +86,14 @@ interface DeleteProjectResult {
   deleteProject?: {
     error?: ProjectPayloadError
     success?: boolean
+  }
+}
+
+interface TestDatabaseConnectionResult {
+  testDatabaseConnection?: {
+    success: boolean
+    connectionTime?: number
+    error?: ProjectPayloadError
   }
 }
 
@@ -166,6 +179,13 @@ export default function WorkspacePage() {
     refetchQueries: [{ query: GET_PROJECTS }],
     context: orgScopedContext,
   })
+
+  const [testDatabaseConnectionMutation] = useMutation<TestDatabaseConnectionResult>(
+    TEST_CLUSTER_CONNECTION,
+    {
+      context: orgScopedContext,
+    },
+  )
 
   useEffect(() => {
     setLoading(loading)
@@ -274,6 +294,41 @@ export default function WorkspacePage() {
       })
     } finally {
       setMutationLoading(false)
+    }
+  }
+
+  const handleTestProjectConnection = async (
+    connectionInfo: DatabaseConnectionInfo,
+  ): Promise<ProjectConnectionTestResult> => {
+    try {
+      const { data: resultData } = await testDatabaseConnectionMutation({
+        variables: {
+          input: {
+            connectionInfo,
+          },
+        },
+      })
+
+      const payload = resultData?.testDatabaseConnection
+      if (payload?.success) {
+        const connectionTime = Number(payload.connectionTime ?? 0).toFixed(2)
+        return {
+          success: true,
+          message: `连接成功！耗时 ${connectionTime}ms`,
+        }
+      }
+
+      const errorMessage = payload?.error?.message ?? "连接失败"
+      const suggestion = payload?.error?.suggestion
+      return {
+        success: false,
+        message: suggestion ? `${errorMessage}: ${suggestion}` : errorMessage,
+      }
+    } catch (err) {
+      return {
+        success: false,
+        message: err instanceof Error ? err.message : "连接测试失败",
+      }
     }
   }
 
@@ -465,6 +520,7 @@ export default function WorkspacePage() {
         onOpenChange={handleCloseDialog}
         project={editingProject}
         onSubmit={handleSubmitProject}
+        onTestConnection={handleTestProjectConnection}
         loading={mutationLoading}
       />
 

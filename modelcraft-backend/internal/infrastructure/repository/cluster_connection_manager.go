@@ -211,7 +211,7 @@ func (cm *ClusterConnectionManager) GetConnectionWithDatabase(
 	}
 
 	// 切换到指定数据库
-	// NOCA:sqli(设计如此),sql_injection(设计如此,无注入)
+	// NOCA:yunding/go/sql-injection(设计如此)
 	_, err = conn.ExecContext(ctx, fmt.Sprintf("USE `%s`", database))
 	if err != nil {
 		return nil, fmt.Errorf("failed to use database %s: %w", database, err)

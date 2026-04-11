@@ -1,7 +1,7 @@
 "use client"
 
-import { useEffect } from "react"
-import { useForm } from "react-hook-form"
+import { useEffect, useState } from "react"
+import { useForm, type FieldPath } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
 import { pinyin } from "pinyin-pro"
@@ -25,10 +25,11 @@ import {
 import { Button } from "@web/components/ui/button"
 import { Input } from "@web/components/ui/input"
 import { Textarea } from "@web/components/ui/textarea"
-import { Checkbox } from "@web/components/ui/checkbox"
 import { Separator } from "@web/components/ui/separator"
 import { DatabaseConfigFields } from "@web/components/features/database/DatabaseConfigFields"
+import { CheckCircle, Loader2, XCircle } from "lucide-react"
 import type { Project } from "@/types"
+import type { DatabaseConnectionInfo } from "@/types/cluster"
 
 // ── Zod Schema ────────────────────────────────────────────────────────────────
 
@@ -56,7 +57,6 @@ export const projectFormSchema = z.object({
   description: z.string().max(500).optional(),
   loginUrl: z.string().url("请输入有效的 URL").optional().or(z.literal("")),
   clusterInput: clusterInputSchema.optional(),
-  skipConnectionTest: z.boolean().default(false),
 })
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>
@@ -66,15 +66,23 @@ const createSchema = projectFormSchema.required({ clusterInput: true }).extend({
   clusterInput: clusterInputSchema,
 })
 
-const editSchema = projectFormSchema.omit({ clusterInput: true, skipConnectionTest: true })
+const editSchema = projectFormSchema.omit({ clusterInput: true })
 
 // ── Props ─────────────────────────────────────────────────────────────────────
+
+export interface ProjectConnectionTestResult {
+  success: boolean
+  message: string
+}
 
 interface ProjectDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   project?: Project | null
   onSubmit: (data: ProjectFormValues) => void
+  onTestConnection?: (
+    connectionInfo: DatabaseConnectionInfo,
+  ) => Promise<ProjectConnectionTestResult>
   loading?: boolean
 }
 
@@ -90,8 +98,36 @@ const CREATE_DEFAULTS: ProjectFormValues = {
     description: "",
     connectionInfo: { host: "", port: 3306, username: "", password: "" },
   },
-  skipConnectionTest: false,
 }
+
+const CREATE_STEP_1_FIELDS: FieldPath<ProjectFormValues>[] = [
+  "title",
+  "slug",
+  "description",
+  "loginUrl",
+]
+
+const CREATE_STEP_2_FIELDS: FieldPath<ProjectFormValues>[] = [
+  "clusterInput.title",
+  "clusterInput.description",
+  "clusterInput.connectionInfo.host",
+  "clusterInput.connectionInfo.port",
+  "clusterInput.connectionInfo.username",
+  "clusterInput.connectionInfo.password",
+]
+
+const CONNECTION_TEST_FIELDS: FieldPath<ProjectFormValues>[] = [
+  "clusterInput.connectionInfo.host",
+  "clusterInput.connectionInfo.port",
+  "clusterInput.connectionInfo.username",
+  "clusterInput.connectionInfo.password",
+]
+
+const CREATE_STEPS = [
+  { index: 1 as const, title: "项目信息", description: "填写项目的基础信息" },
+  { index: 2 as const, title: "数据库集群", description: "配置项目默认数据库连接" },
+  { index: 3 as const, title: "确认创建", description: "确认信息后创建项目" },
+]
 
 // ── Helper: Generate project name from title ─────────────────────────────────
 
@@ -129,17 +165,70 @@ export function ProjectDialog({
   onOpenChange,
   project,
   onSubmit,
+  onTestConnection,
   loading = false,
 }: ProjectDialogProps) {
   const isEditing = !!project
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  const [testingConnection, setTestingConnection] = useState(false)
+  const [testResult, setTestResult] = useState<ProjectConnectionTestResult | null>(null)
 
   const form = useForm<ProjectFormValues>({
     resolver: zodResolver(isEditing ? editSchema : createSchema),
     defaultValues: CREATE_DEFAULTS,
   })
 
+  const isCreateMode = !isEditing
+  const currentStepConfig = CREATE_STEPS[currentStep - 1]
+  const createValues = form.watch()
+
+  const handleNextStep = async () => {
+    if (!isCreateMode || currentStep >= 3) return
+
+    const fields = currentStep === 1 ? CREATE_STEP_1_FIELDS : CREATE_STEP_2_FIELDS
+    const passed = await form.trigger(fields, { shouldFocus: true })
+    if (!passed) return
+
+    setCurrentStep((currentStep + 1) as 1 | 2 | 3)
+  }
+
+  const handlePrevStep = () => {
+    if (!isCreateMode || currentStep <= 1) return
+    setCurrentStep((currentStep - 1) as 1 | 2 | 3)
+  }
+
+  const handleTestConnection = async () => {
+    if (!isCreateMode || !onTestConnection || loading) return
+
+    const passed = await form.trigger(CONNECTION_TEST_FIELDS, { shouldFocus: true })
+    if (!passed) return
+
+    const connectionInfo = form.getValues("clusterInput.connectionInfo")
+    if (!connectionInfo) return
+
+    setTestingConnection(true)
+    setTestResult(null)
+
+    try {
+      const result = await onTestConnection(connectionInfo)
+      setTestResult(result)
+    } catch (error) {
+      setTestResult({
+        success: false,
+        message: error instanceof Error ? error.message : "连接测试失败",
+      })
+    } finally {
+      setTestingConnection(false)
+    }
+  }
+
   useEffect(() => {
     if (!open) return
+
+    setCurrentStep(1)
+    setTestingConnection(false)
+    setTestResult(null)
+
     if (project) {
       form.reset({
         slug: project.slug,
@@ -151,6 +240,18 @@ export function ProjectDialog({
       form.reset(CREATE_DEFAULTS)
     }
   }, [open, project, form])
+
+  useEffect(() => {
+    if (!isCreateMode || currentStep !== 2) return
+    setTestResult(null)
+  }, [
+    isCreateMode,
+    currentStep,
+    createValues.clusterInput?.connectionInfo.host,
+    createValues.clusterInput?.connectionInfo.port,
+    createValues.clusterInput?.connectionInfo.username,
+    createValues.clusterInput?.connectionInfo.password,
+  ])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -166,96 +267,120 @@ export function ProjectDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+            {isCreateMode && (
+              <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">步骤 {currentStep}/3</p>
+                  <p className="text-xs text-muted-foreground">{currentStepConfig.title}</p>
+                </div>
+                <p className="text-sm font-medium text-foreground">{currentStepConfig.description}</p>
+                <div className="grid grid-cols-3 gap-2">
+                  {CREATE_STEPS.map((step) => {
+                    const isActive = currentStep === step.index
+                    const isDone = currentStep > step.index
+                    return (
+                      <div
+                        key={step.index}
+                        className={`h-1.5 rounded-full ${isActive || isDone ? "bg-primary" : "bg-border"}`}
+                      />
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* ── 项目信息 ── */}
-            <FormField
-              control={form.control}
-              name="title"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>项目名称 *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="我的项目"
-                      {...field}
-                      onChange={(e) => {
-                        const newTitle = e.target.value
-                        field.onChange(newTitle)
-                        // 自动生成项目标识（仅在创建模式下）
-                        if (!isEditing) {
-                          const generatedSlug = generateProjectSlug(newTitle)
-                          form.setValue("slug", generatedSlug)
-                        }
-                      }}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="slug"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>项目标识 *</FormLabel>
-                  <FormControl>
-                    <Input
-                      placeholder="myproject"
-                      disabled={isEditing}
-                      className="font-mono"
-                      {...field}
-                    />
-                  </FormControl>
-                  {!isEditing && (
-                    <FormDescription>
-                      用于 URL 和 API 调用，创建后不可修改
-                    </FormDescription>
-                  )}
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>项目描述</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      placeholder="描述此项目的用途（可选）"
-                      rows={2}
-                      className="resize-none"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            <FormField
-              control={form.control}
-              name="loginUrl"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>登录页面 URL</FormLabel>
-                  <FormControl>
-                    <Input placeholder="https://example.com/login" {...field} />
-                  </FormControl>
-                  <FormDescription>可选，用于项目的自定义登录跳转</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* ── 集群配置（仅创建时） ── */}
-            {!isEditing && (
+            {(isEditing || currentStep === 1) && (
               <>
-                <Separator />
+                <FormField
+                  control={form.control}
+                  name="title"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>项目名称 *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="我的项目"
+                          {...field}
+                          onChange={(e) => {
+                            const newTitle = e.target.value
+                            field.onChange(newTitle)
+                            // 自动生成项目标识（仅在创建模式下）
+                            if (!isEditing) {
+                              const generatedSlug = generateProjectSlug(newTitle)
+                              form.setValue("slug", generatedSlug)
+                            }
+                          }}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="slug"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>项目标识 *</FormLabel>
+                      <FormControl>
+                        <Input
+                          placeholder="myproject"
+                          disabled={isEditing}
+                          className="font-mono"
+                          {...field}
+                        />
+                      </FormControl>
+                      {!isEditing && (
+                        <FormDescription>
+                          用于 URL 和 API 调用，创建后不可修改
+                        </FormDescription>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>项目描述</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="描述此项目的用途（可选）"
+                          rows={2}
+                          className="resize-none"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="loginUrl"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>登录页面 URL</FormLabel>
+                      <FormControl>
+                        <Input placeholder="https://example.com/login" {...field} />
+                      </FormControl>
+                      <FormDescription>可选，用于项目的自定义登录跳转</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </>
+            )}
+
+            {/* ── 集群配置（仅创建第2步） ── */}
+            {!isEditing && currentStep === 2 && (
+              <>
                 <p className="pt-1 text-sm font-semibold text-foreground">数据库集群配置</p>
 
                 <div className="grid grid-cols-2 gap-4">
@@ -298,44 +423,132 @@ export function ProjectDialog({
                   fieldPrefix="clusterInput.connectionInfo"
                 />
 
-                <FormField
-                  control={form.control}
-                  name="skipConnectionTest"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-2 space-y-0">
-                      <FormControl>
-                        <Checkbox
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                      <div>
-                        <FormLabel className="cursor-pointer font-normal">
-                          跳过连接测试
-                        </FormLabel>
-                        <FormDescription>
-                          不验证数据库连接即可创建项目
-                        </FormDescription>
-                      </div>
-                    </FormItem>
-                  )}
-                />
+                <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/20 px-3 py-2">
+                  <div className="min-h-[20px] text-sm">
+                    {testResult && (
+                      <span
+                        className={`flex items-center gap-1.5 ${testResult.success ? "text-[#059669]" : "text-[#ef4444]"}`}
+                      >
+                        {testResult.success ? (
+                          <CheckCircle className="size-4 shrink-0" strokeWidth={1.5} />
+                        ) : (
+                          <XCircle className="size-4 shrink-0" strokeWidth={1.5} />
+                        )}
+                        {testResult.message}
+                      </span>
+                    )}
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleTestConnection}
+                    disabled={loading || testingConnection || !onTestConnection}
+                    className="h-9 px-4 text-sm font-medium"
+                  >
+                    {testingConnection && (
+                      <Loader2 className="mr-1.5 size-4 animate-spin" strokeWidth={1.5} />
+                    )}
+                    测试连接
+                  </Button>
+                </div>
               </>
             )}
 
-            <DialogFooter className="pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-                disabled={loading}
-              >
-                取消
-              </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "保存中..." : isEditing ? "保存修改" : "创建项目"}
-              </Button>
-            </DialogFooter>
+            {/* ── 确认创建（仅创建第3步） ── */}
+            {!isEditing && currentStep === 3 && (
+              <div className="space-y-3">
+                <p className="text-sm font-semibold text-foreground">请确认以下信息</p>
+
+                <div className="space-y-3 rounded-md border border-border bg-muted/20 p-4 text-sm">
+                  <div>
+                    <p className="text-xs text-muted-foreground">项目名称</p>
+                    <p className="font-medium text-foreground">{createValues.title || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">项目标识</p>
+                    <p className="font-mono text-foreground">{createValues.slug || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">登录页面 URL</p>
+                    <p className="break-all text-foreground">{createValues.loginUrl || "未设置"}</p>
+                  </div>
+
+                  <Separator />
+
+                  <div>
+                    <p className="text-xs text-muted-foreground">集群名称</p>
+                    <p className="font-medium text-foreground">{createValues.clusterInput?.title || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">主机地址</p>
+                    <p className="text-foreground">{createValues.clusterInput?.connectionInfo.host || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">端口</p>
+                    <p className="font-mono text-foreground">{createValues.clusterInput?.connectionInfo.port || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">用户名</p>
+                    <p className="font-mono text-foreground">{createValues.clusterInput?.connectionInfo.username || "-"}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs text-muted-foreground">密码</p>
+                    <p className="font-mono text-foreground">
+                      {createValues.clusterInput?.connectionInfo.password ? "••••••••" : "未填写"}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {isEditing ? (
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => onOpenChange(false)}
+                  disabled={loading}
+                >
+                  取消
+                </Button>
+                <Button type="submit" disabled={loading}>
+                  {loading ? "保存中..." : "保存修改"}
+                </Button>
+              </DialogFooter>
+            ) : (
+              <DialogFooter className="pt-2">
+                {currentStep === 1 ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => onOpenChange(false)}
+                    disabled={loading}
+                  >
+                    取消
+                  </Button>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handlePrevStep}
+                    disabled={loading}
+                  >
+                    上一步
+                  </Button>
+                )}
+
+                {currentStep < 3 ? (
+                  <Button type="button" onClick={handleNextStep} disabled={loading}>
+                    下一步
+                  </Button>
+                ) : (
+                  <Button type="submit" disabled={loading}>
+                    {loading ? "保存中..." : "创建项目"}
+                  </Button>
+                )}
+              </DialogFooter>
+            )}
           </form>
         </Form>
       </DialogContent>
