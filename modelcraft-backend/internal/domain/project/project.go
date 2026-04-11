@@ -2,7 +2,6 @@ package project
 
 import (
 	"fmt"
-	"net/url"
 	"regexp"
 	"time"
 )
@@ -22,7 +21,6 @@ type Project struct {
 	Slug        string // Project slug (unique within org) - part of primary key
 	Title       string // Display title
 	Description string
-	LoginURL    string
 	ClusterID   *string // Cluster ID (nullable, one-to-one relationship)
 	Status      ProjectStatus
 	CreatedAt   time.Time
@@ -42,34 +40,6 @@ func isValidProjectSlug(name string) bool {
 	return projectSlugPattern.MatchString(name)
 }
 
-// isValidLoginURL validates that a login URL follows the required format:
-// - empty string is valid (optional field)
-// - must be a valid URL with http or https scheme
-func isValidLoginURL(loginURL string) bool {
-	// Empty is valid
-	if loginURL == "" {
-		return true
-	}
-
-	// Parse URL
-	u, err := url.Parse(loginURL)
-	if err != nil {
-		return false
-	}
-
-	// Must have http or https scheme
-	if u.Scheme != "http" && u.Scheme != "https" {
-		return false
-	}
-
-	// Must have a host
-	if u.Host == "" {
-		return false
-	}
-
-	return true
-}
-
 // Validate validates the Project entity
 func (p *Project) Validate() error {
 	if p.OrgName == "" {
@@ -87,9 +57,6 @@ func (p *Project) Validate() error {
 	if p.Title == "" {
 		return fmt.Errorf("project title is required")
 	}
-	if !isValidLoginURL(p.LoginURL) {
-		return fmt.Errorf("invalid login URL format: must be a valid http or https URL")
-	}
 	if p.Status != ProjectStatusActive && p.Status != ProjectStatusArchived {
 		return fmt.Errorf("project status MUST be either 'active' or 'archived'")
 	}
@@ -102,7 +69,7 @@ func (p *Project) Validate() error {
 
 // NewProject creates a new Project entity with validation
 // Primary key is (orgName, name) composite
-func NewProject(orgName, slug, title, description, loginURL string) (*Project, error) {
+func NewProject(orgName, slug, title, description string) (*Project, error) {
 	now := time.Now()
 
 	project := &Project{
@@ -110,7 +77,6 @@ func NewProject(orgName, slug, title, description, loginURL string) (*Project, e
 		Slug:        slug,
 		Title:       title,
 		Description: description,
-		LoginURL:    loginURL,
 		Status:      ProjectStatusActive,
 		CreatedAt:   now,
 		UpdatedAt:   now,
@@ -123,13 +89,12 @@ func NewProject(orgName, slug, title, description, loginURL string) (*Project, e
 	return project, nil
 }
 
-// UpdateMetadata updates the project's title, description, and login URL
+// UpdateMetadata updates the project's title and description
 // Empty string means "do not update this field" for all parameters
-func (p *Project) UpdateMetadata(title, description, loginURL string) error {
+func (p *Project) UpdateMetadata(title, description string) error {
 	// Store original values for rollback on error
 	originalTitle := p.Title
 	originalDescription := p.Description
-	originalLoginURL := p.LoginURL
 
 	// Update only non-empty fields
 	if title != "" {
@@ -138,9 +103,6 @@ func (p *Project) UpdateMetadata(title, description, loginURL string) error {
 	if description != "" {
 		p.Description = description
 	}
-	if loginURL != "" {
-		p.LoginURL = loginURL
-	}
 	p.UpdatedAt = time.Now()
 
 	// Validate the changes
@@ -148,7 +110,6 @@ func (p *Project) UpdateMetadata(title, description, loginURL string) error {
 		// Rollback on validation error
 		p.Title = originalTitle
 		p.Description = originalDescription
-		p.LoginURL = originalLoginURL
 		return err
 	}
 

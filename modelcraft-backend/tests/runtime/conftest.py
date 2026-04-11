@@ -7,6 +7,15 @@ Runtime tests can also import and use Design utilities from tests.design.common.
 
 import pytest
 
+# Re-export Design fixtures for runtime tests (pytest only auto-discovers parent conftest files).
+# These imports make the fixtures available under tests/runtime/.
+from design.conftest import (  # noqa: F401
+    graphql_client,
+    created_projects,
+    created_models,
+    default_project,
+)
+
 # Runtime tests can import Design utilities
 from design.common.graphql_client import create_design_graphql_client
 

@@ -187,7 +187,6 @@ type Project implements Node {
   slug: String!
   title: String!
   description: String!
-  loginUrl: String
   status: ProjectStatus!
   orgName: String! # Multi-tenant organization identifier
   createdAt: String!
@@ -215,7 +214,6 @@ input CreateProjectInput {
   slug: String!
   title: String!
   description: String
-  loginUrl: String
   clusterInput: ClusterConnectionInput! # Required: cluster must be created with project
   skipConnectionTest: Boolean # Default false; set true to skip connection validation
 }
@@ -224,7 +222,6 @@ input UpdateProjectInput {
   slug: String!
   title: String
   description: String
-  loginUrl: String
 }
 
 input ListProjectsInput {

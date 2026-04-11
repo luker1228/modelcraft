@@ -74,7 +74,7 @@ func (s *ProjectAppService) CreateProject(
 	}
 
 	// Create project entity
-	proj, err := project.NewProject(cmd.OrgName, cmd.Slug, cmd.Title, cmd.Description, cmd.LoginURL)
+	proj, err := project.NewProject(cmd.OrgName, cmd.Slug, cmd.Title, cmd.Description)
 	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to create project entity")
 	}
@@ -198,7 +198,7 @@ func (s *ProjectAppService) UpdateProjectMetadata(
 		)
 	}
 
-	if err := proj.UpdateMetadata(cmd.Title, cmd.Description, cmd.LoginURL); err != nil {
+	if err := proj.UpdateMetadata(cmd.Title, cmd.Description); err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to update project metadata")
 	}
 

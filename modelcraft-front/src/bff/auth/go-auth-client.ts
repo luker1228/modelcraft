@@ -4,6 +4,7 @@ import type {
   GoLoginResponse,
   GoRegisterResponse,
   GoAuthError,
+  RegisterProfileSnapshot,
 } from '@/types/auth'
 
 const GO_BACKEND_INTERNAL_URL =
@@ -24,6 +25,7 @@ export interface GoLoginResult {
 export interface GoRegisterResult {
   userId: string
   orgName: string
+  profile?: RegisterProfileSnapshot
 }
 
 export interface GoRefreshResult {
@@ -147,9 +149,21 @@ export async function callGoRegister(params: {
   }
 
   const data = (await res.json()) as GoRegisterResponse
+
+  const profile = data.profile
+    ? {
+        id: data.profile.id,
+        userId: data.profile.userId,
+        nickname: data.profile.nickname,
+        avatarUrl: data.profile.avatarUrl,
+        bio: data.profile.bio,
+      }
+    : undefined
+
   return {
     userId: data.userId,
     orgName: data.orgName,
+    profile,
   }
 }
 

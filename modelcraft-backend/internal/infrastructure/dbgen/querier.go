@@ -19,6 +19,7 @@ type Querier interface {
 	CreateEnumDefinition(ctx context.Context, arg CreateEnumDefinitionParams) error
 	CreateFieldDefinition(ctx context.Context, arg CreateFieldDefinitionParams) error
 	CreateFieldEnumAssociation(ctx context.Context, arg CreateFieldEnumAssociationParams) error
+	CreateInitialProfile(ctx context.Context, arg CreateInitialProfileParams) error
 	CreateLogicalForeignKey(ctx context.Context, arg CreateLogicalForeignKeyParams) error
 	CreateMembership(ctx context.Context, arg CreateMembershipParams) error
 	CreateModel(ctx context.Context, arg CreateModelParams) error
@@ -83,6 +84,7 @@ type Querier interface {
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
+	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (Profile, error)
 	GetProjectByClusterID(ctx context.Context, arg GetProjectByClusterIDParams) (Project, error)
 	GetProjectBySlugAndOrg(ctx context.Context, arg GetProjectBySlugAndOrgParams) (Project, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
@@ -137,6 +139,7 @@ type Querier interface {
 	UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)
 	UpdateModelsGroupID(ctx context.Context, arg UpdateModelsGroupIDParams) error
 	UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) error
+	UpdateProfileByUserID(ctx context.Context, arg UpdateProfileByUserIDParams) (sql.Result, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) error
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) error
 }

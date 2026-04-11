@@ -44,6 +44,14 @@ export type AddFieldInput = {
   validationConfig?: InputMaybe<ValidationConfigInput>;
 };
 
+export type AddFieldsError = InvalidModelInput;
+
+export type AddFieldsPayload = {
+  __typename?: 'AddFieldsPayload';
+  error?: Maybe<AddFieldsError>;
+  model?: Maybe<Model>;
+};
+
 export type AddRolePermissionPayload = {
   __typename?: 'AddRolePermissionPayload';
   error?: Maybe<RolePermissionError>;
@@ -240,7 +248,6 @@ export type CreateProjectError = DatabaseConnectionFailed | InvalidProjectInput 
 export type CreateProjectInput = {
   clusterInput: ClusterConnectionInput;
   description?: InputMaybe<Scalars['String']['input']>;
-  loginUrl?: InputMaybe<Scalars['String']['input']>;
   skipConnectionTest?: InputMaybe<Scalars['Boolean']['input']>;
   slug: Scalars['String']['input'];
   title: Scalars['String']['input'];
@@ -769,7 +776,7 @@ export type MoveModelToGroupPayload = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  addFields?: Maybe<Model>;
+  addFields: AddFieldsPayload;
   addPermissionToRole: AddRolePermissionPayload;
   assignRoleToUser: AssignRolePayload;
   createApiKey: CreateApiKeyPayload;
@@ -1145,7 +1152,6 @@ export type Project = Node & {
   createdAt: Scalars['String']['output'];
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
-  loginUrl?: Maybe<Scalars['String']['output']>;
   orgName: Scalars['String']['output'];
   slug: Scalars['String']['output'];
   status: ProjectStatus;
@@ -1549,7 +1555,6 @@ export type UpdateProjectError = InvalidProjectInput | ProjectNotFound;
 
 export type UpdateProjectInput = {
   description?: InputMaybe<Scalars['String']['input']>;
-  loginUrl?: InputMaybe<Scalars['String']['input']>;
   slug: Scalars['String']['input'];
   title?: InputMaybe<Scalars['String']['input']>;
 };
@@ -1750,7 +1755,7 @@ export type AddFieldsMutationVariables = Exact<{
 }>;
 
 
-export type AddFieldsMutation = { __typename?: 'Mutation', addFields?: { __typename?: 'Model', id: string } | null };
+export type AddFieldsMutation = { __typename?: 'Mutation', addFields: { __typename?: 'AddFieldsPayload', model?: { __typename?: 'Model', id: string } | null, error?: { __typename: 'InvalidModelInput', message: string, suggestion?: string | null } | null } };
 
 export type UpdateFieldMutationVariables = Exact<{
   modelID: Scalars['ID']['input'];
@@ -1796,7 +1801,7 @@ export type CreateProjectMutationVariables = Exact<{
 }>;
 
 
-export type CreateProjectMutation = { __typename?: 'Mutation', createProject: { __typename?: 'CreateProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, loginUrl?: string | null, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?:
+export type CreateProjectMutation = { __typename?: 'Mutation', createProject: { __typename?: 'CreateProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?:
       | { __typename: 'DatabaseConnectionFailed', message: string, suggestion?: string | null }
       | { __typename: 'InvalidProjectInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectAlreadyExists', message: string, suggestion?: string | null }
@@ -1807,7 +1812,7 @@ export type UpdateProjectMutationVariables = Exact<{
 }>;
 
 
-export type UpdateProjectMutation = { __typename?: 'Mutation', updateProject: { __typename?: 'UpdateProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, loginUrl?: string | null, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?:
+export type UpdateProjectMutation = { __typename?: 'Mutation', updateProject: { __typename?: 'UpdateProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?:
       | { __typename: 'InvalidProjectInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
@@ -1974,14 +1979,14 @@ export type GetProjectsQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectsQuery = { __typename?: 'Query', projects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, loginUrl?: string | null, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
+export type GetProjectsQuery = { __typename?: 'Query', projects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
 
 export type GetProjectQueryVariables = Exact<{
   slug: Scalars['String']['input'];
 }>;
 
 
-export type GetProjectQuery = { __typename?: 'Query', project: { __typename?: 'GetProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, loginUrl?: string | null, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?: { __typename: 'ProjectNotFound', message: string } | null } };
+export type GetProjectQuery = { __typename?: 'Query', project: { __typename?: 'GetProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?: { __typename: 'ProjectNotFound', message: string } | null } };
 
 export type GetMeQueryVariables = Exact<{ [key: string]: never; }>;
 

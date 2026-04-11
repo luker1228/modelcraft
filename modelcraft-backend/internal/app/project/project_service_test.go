@@ -127,7 +127,7 @@ func TestProjectAppService_GetProject(t *testing.T) {
 		mockRepo := new(MockProjectRepository)
 		service := newTestService(mockRepo)
 
-		expectedProj, _ := project.NewProject("built-in", "test_project", "Test", "Description", "")
+		expectedProj, _ := project.NewProject("built-in", "test_project", "Test", "Description")
 		mockRepo.On("GetByNameAndOrg", ctx, "test_project", "built-in").Return(expectedProj, nil)
 
 		cmd := GetProjectCommand{
@@ -170,8 +170,8 @@ func TestProjectAppService_ListProjects(t *testing.T) {
 		mockRepo := new(MockProjectRepository)
 		service := newTestService(mockRepo)
 
-		proj1, _ := project.NewProject("built-in", "project1", "Project 1", "Desc 1", "")
-		proj2, _ := project.NewProject("built-in", "project2", "Project 2", "Desc 2", "")
+		proj1, _ := project.NewProject("built-in", "project1", "Project 1", "Desc 1")
+		proj2, _ := project.NewProject("built-in", "project2", "Project 2", "Desc 2")
 		expectedProjects := []*project.Project{proj1, proj2}
 
 		mockRepo.On("List", ctx, (*project.ProjectStatus)(nil)).Return(expectedProjects, nil)
@@ -187,7 +187,7 @@ func TestProjectAppService_ListProjects(t *testing.T) {
 		mockRepo := new(MockProjectRepository)
 		service := newTestService(mockRepo)
 
-		proj1, _ := project.NewProject("built-in", "project1", "Project 1", "Desc 1", "")
+		proj1, _ := project.NewProject("built-in", "project1", "Project 1", "Desc 1")
 		expectedProjects := []*project.Project{proj1}
 
 		activeStatus := project.ProjectStatusActive
@@ -208,7 +208,7 @@ func TestProjectAppService_UpdateProjectMetadata(t *testing.T) {
 		mockRepo := new(MockProjectRepository)
 		service := newTestService(mockRepo)
 
-		existingProj, _ := project.NewProject("built-in", "test_project", "Old Title", "Old Description", "")
+		existingProj, _ := project.NewProject("built-in", "test_project", "Old Title", "Old Description")
 		mockRepo.On("GetByNameAndOrg", ctx, "test_project", "built-in").Return(existingProj, nil)
 		mockRepo.On("Update", ctx, mock.AnythingOfType("*project.Project")).Return(nil)
 
@@ -217,7 +217,6 @@ func TestProjectAppService_UpdateProjectMetadata(t *testing.T) {
 			Slug:        "test_project",
 			Title:       "New Title",
 			Description: "New Description",
-			LoginURL:    "",
 		}
 		updatedProj, err := service.UpdateProjectMetadata(ctx, cmd)
 
@@ -239,7 +238,6 @@ func TestProjectAppService_UpdateProjectMetadata(t *testing.T) {
 			Slug:        "nonexistent",
 			Title:       "Title",
 			Description: "Desc",
-			LoginURL:    "",
 		}
 		proj, err := service.UpdateProjectMetadata(ctx, cmd)
 

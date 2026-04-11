@@ -64,9 +64,27 @@ func (m *mockUserRepo) GetByPhone(_ context.Context, phone string) (*user.User, 
 	return nil, nil
 }
 
+func (m *mockUserRepo) GetByName(_ context.Context, name string) (*user.User, error) {
+	for _, u := range m.users {
+		if u.Name == name {
+			return u, nil
+		}
+	}
+	return nil, nil
+}
+
 func (m *mockUserRepo) ExistsByPhone(_ context.Context, phone string) (bool, error) {
 	for _, u := range m.users {
 		if u.Phone.String() == phone {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func (m *mockUserRepo) ExistsByName(_ context.Context, name string) (bool, error) {
+	for _, u := range m.users {
+		if u.Name == name {
 			return true, nil
 		}
 	}

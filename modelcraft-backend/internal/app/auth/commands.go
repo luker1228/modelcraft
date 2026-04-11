@@ -19,10 +19,20 @@ type RegisterCommand struct {
 	UserName string // 用户名（3-32字符，以字母/下划线/连字符开头）
 }
 
+// RegisterProfileSnapshot 注册成功后返回的 profile 快照。
+type RegisterProfileSnapshot struct {
+	ID        string
+	UserID    string
+	Nickname  string
+	AvatarURL *string
+	Bio       *string
+}
+
 // RegisterResult 注册成功后返回
 type RegisterResult struct {
 	UserID  string
 	OrgName string // 自动创建的个人组织 slug
+	Profile RegisterProfileSnapshot
 }
 
 // LoginCommand 登录命令 - 支持手机号或用户名

@@ -10,11 +10,11 @@ import {
   FormMessage,
 } from "@web/components/ui/form"
 import { Input } from "@web/components/ui/input"
-import type { UseFormReturn } from "react-hook-form"
+import type { FieldValues, UseFormReturn } from "react-hook-form"
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
-export interface DatabaseConfigFieldsProps<T extends Record<string, unknown> = Record<string, unknown>> {
+export interface DatabaseConfigFieldsProps<T extends FieldValues = FieldValues> {
   /** 表单实例 */
   form: UseFormReturn<T>
   /** 字段前缀，如 "clusterInput.connectionInfo" */
@@ -82,7 +82,7 @@ function FormRow({
  * 用户聚焦密码框时，自动清空为空字符串进入编辑模式；失去焦点且未输入内容时
  * 恢复为占位符，表示保持原有密码不变。
  */
-export function DatabaseConfigFields<T extends Record<string, unknown> = Record<string, unknown>>({
+export function DatabaseConfigFields<T extends FieldValues = FieldValues>({
   form,
   fieldPrefix = "",
   showPasswordToggle = true,
@@ -93,7 +93,7 @@ export function DatabaseConfigFields<T extends Record<string, unknown> = Record<
   usernameFieldName = "username",
   passwordFieldName = "password",
   encryptedByServerPlaceholder,
-}: DatabaseConfigFieldsProps) {
+}: DatabaseConfigFieldsProps<T>) {
   const [showPassword, setShowPassword] = useState(false)
 
   // 构建完整字段名
@@ -121,7 +121,7 @@ export function DatabaseConfigFields<T extends Record<string, unknown> = Record<
           <div className="col-span-2">
             <FormField
               control={form.control}
-              name={getFieldPath(hostFieldName)}
+              name={getFieldPath(hostFieldName) as never}
               render={({ field }) => (
                 <FormItem>
                   <FormControl>
@@ -134,7 +134,7 @@ export function DatabaseConfigFields<T extends Record<string, unknown> = Record<
           </div>
           <FormField
             control={form.control}
-            name={getFieldPath(portFieldName)}
+            name={getFieldPath(portFieldName) as never}
             render={({ field }) => (
               <FormItem>
                 <FormControl>
@@ -167,7 +167,7 @@ export function DatabaseConfigFields<T extends Record<string, unknown> = Record<
         <div className="flex-1">
           <FormField
             control={form.control}
-            name={getFieldPath(usernameFieldName)}
+            name={getFieldPath(usernameFieldName) as never}
             render={({ field }) => (
               <FormItem>
                 <FormControl>
@@ -183,7 +183,7 @@ export function DatabaseConfigFields<T extends Record<string, unknown> = Record<
       {/* 密码 */}
       <FormField
         control={form.control}
-        name={passwordPath}
+        name={passwordPath as never}
         render={({ field }) => {
           const isServerPlaceholder =
             encryptedByServerPlaceholder !== undefined &&

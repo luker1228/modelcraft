@@ -587,7 +587,7 @@ export default function DynamicModelTable({
 
           {jsonSchema && model?.fields && (
             <ModelRecordForm
-              fields={model.fields}
+              fields={model.fields as never}
               jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
               onSubmit={async (data) => {
                 setCreateSaving(true)
@@ -635,7 +635,7 @@ export default function DynamicModelTable({
             </div>
           ) : jsonSchema && model?.fields && (
             <ModelRecordForm
-              fields={model.fields}
+              fields={model.fields as never}
               jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
               initialData={editFormData}
               onSubmit={async (data) => {

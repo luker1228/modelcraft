@@ -36,7 +36,6 @@ func (r *mutationResolver) CreateProject(ctx context.Context, input generated.Cr
 		Slug:        input.Slug,
 		Title:       input.Title,
 		Description: bizutils.SafeString(input.Description),
-		LoginURL:    bizutils.SafeString(input.LoginURL),
 	}
 	if input.ClusterInput != nil {
 		ci := input.ClusterInput
@@ -99,7 +98,6 @@ func (r *mutationResolver) UpdateProject(ctx context.Context, input generated.Up
 		Slug:        input.Slug,
 		Title:       bizutils.SafeString(input.Title),
 		Description: bizutils.SafeString(input.Description),
-		LoginURL:    bizutils.SafeString(input.LoginURL),
 	}
 
 	// Update project
@@ -199,20 +197,23 @@ func (r *mutationResolver) UpdateProjectCluster(ctx context.Context, projectSlug
 func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input generated.TestDatabaseConnectionInput) (*generated.TestConnectionPayload, error) {
 	errorAdapter := adapter.NewClusterErrorAdapter(ctx)
 
-	// Extract projectSlug - use default if not provided since it's optional in TestDatabaseConnectionInput
-	projectSlug := "default"
+	// projectSlug is optional in this API:
+	// 1) project not created yet: test with raw connectionInfo only (no cluster lookup)
+	// 2) project exists: optionally provide projectSlug to reuse stored cluster password
+	projectSlug := ""
 	if input.ProjectSlug != nil {
 		projectSlug = *input.ProjectSlug
 	}
 
 	// Build the test command from the request connection info.
-	// When the password equals the server-side sentinel value, it means the caller wants
-	// to test with the password already stored in the database, so we clear it here and
-	// let the app layer fall back to the persisted password (loaded via clusterID).
+	// When password is the server sentinel, app layer should fallback to persisted password,
+	// which requires loading existing cluster by project.
 	var testCmd *clusterApp.TestConnectionCommand
+	useStoredPassword := false
 	if input.ConnectionInfo != nil {
 		password := input.ConnectionInfo.Password
-		if password == domainCluster.EncryptedByServerPlaceholder {
+		useStoredPassword = password == domainCluster.EncryptedByServerPlaceholder
+		if useStoredPassword {
 			password = ""
 		}
 		cmd := clusterApp.TestConnectionCommand{
@@ -228,25 +229,42 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 		testCmd = &cmd
 	}
 
-	// Always resolve the cluster by project so the app layer can supply the stored password
-	// when testCmd.Password is empty (sentinel was sent) or when no connectionInfo was given.
+	// Resolve cluster only when needed:
+	// - no connectionInfo (test existing project cluster)
+	// - using stored password placeholder (needs fallback password)
+	needClusterByProject := input.ConnectionInfo == nil || useStoredPassword
 	var clusterID *string
-	existingCluster, err := r.ClusterAppService.GetClusterByProject(ctx, projectSlug)
-	if err != nil {
-		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+	if needClusterByProject {
+		if projectSlug == "" {
+			bizErr := bizerrors.NewErrorFromContext(
+				ctx,
+				bizerrors.ParamInvalid,
+				"projectSlug is required when connectionInfo is absent or uses stored password",
+			)
 			return &generated.TestConnectionPayload{
 				Success:        false,
 				ConnectionTime: nil,
 				Error:          errorAdapter.ConvertToTestConnectionError(bizErr),
 			}, nil
 		}
-		return nil, err
+
+		existingCluster, err := r.ClusterAppService.GetClusterByProject(ctx, projectSlug)
+		if err != nil {
+			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+				return &generated.TestConnectionPayload{
+					Success:        false,
+					ConnectionTime: nil,
+					Error:          errorAdapter.ConvertToTestConnectionError(bizErr),
+				}, nil
+			}
+			return nil, err
+		}
+		clusterID = &existingCluster.ID
 	}
-	clusterID = &existingCluster.ID
 
 	// 测量连接时间
 	start := time.Now()
-	err = r.ClusterAppService.TestConnection(ctx, projectSlug, clusterID, testCmd)
+	err := r.ClusterAppService.TestConnection(ctx, projectSlug, clusterID, testCmd)
 	connectionTime := float64(time.Since(start).Nanoseconds()) / 1e6 // 转换为毫秒
 
 	if err != nil {

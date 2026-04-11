@@ -28,10 +28,20 @@ export interface RegisterRequest {
   password: string
 }
 
+/** 注册后返回的个人资料快照 */
+export interface RegisterProfileSnapshot {
+  id: string
+  userId: string
+  nickname: string
+  avatarUrl?: string
+  bio?: string
+}
+
 /** BFF 注册响应 */
 export interface RegisterResponse {
   userId: string
   orgName: string
+  profile: RegisterProfileSnapshot
 }
 
 // ============================================================================
@@ -67,6 +77,7 @@ export interface GoRegisterResponse {
   requestId: string
   userId: string
   orgName: string
+  profile?: RegisterProfileSnapshot
 }
 
 // ============================================================================

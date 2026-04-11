@@ -21,7 +21,6 @@ func TestProjectToDomain(t *testing.T) {
 			Slug:        "my-project",
 			Title:       "My Project",
 			Description: sql.NullString{String: "desc", Valid: true},
-			LoginUrl:    sql.NullString{String: "https://example.com", Valid: true},
 			ClusterID:   sql.NullString{String: clusterID, Valid: true},
 			Status:      "active",
 			CreatedAt:   sql.NullTime{Time: now, Valid: true},
@@ -34,7 +33,6 @@ func TestProjectToDomain(t *testing.T) {
 		assert.Equal(t, "my-project", p.Slug)
 		assert.Equal(t, "My Project", p.Title)
 		assert.Equal(t, "desc", p.Description)
-		assert.Equal(t, "https://example.com", p.LoginURL)
 		assert.NotNil(t, p.ClusterID)
 		assert.Equal(t, clusterID, *p.ClusterID)
 		assert.Equal(t, project.ProjectStatusActive, p.Status)
@@ -53,7 +51,6 @@ func TestProjectToDomain(t *testing.T) {
 		p := repository.ProjectToDomain(row)
 
 		assert.Equal(t, "", p.Description)
-		assert.Equal(t, "", p.LoginURL)
 		assert.Nil(t, p.ClusterID)
 	})
 }
@@ -68,7 +65,6 @@ func TestProjectToRow(t *testing.T) {
 			Slug:        "proj",
 			Title:       "Proj",
 			Description: "some desc",
-			LoginURL:    "https://login.example.com",
 			ClusterID:   &clusterID,
 			Status:      project.ProjectStatusActive,
 			CreatedAt:   now,
@@ -81,8 +77,6 @@ func TestProjectToRow(t *testing.T) {
 		assert.Equal(t, "proj", params.Slug)
 		assert.Equal(t, "some desc", params.Description.String)
 		assert.True(t, params.Description.Valid)
-		assert.Equal(t, "https://login.example.com", params.LoginUrl.String)
-		assert.True(t, params.LoginUrl.Valid)
 		assert.Equal(t, clusterID, params.ClusterID.String)
 		assert.True(t, params.ClusterID.Valid)
 	})
@@ -98,7 +92,6 @@ func TestProjectToRow(t *testing.T) {
 		params := repository.ProjectToCreateParams(p)
 
 		assert.False(t, params.Description.Valid)
-		assert.False(t, params.LoginUrl.Valid)
 		assert.False(t, params.ClusterID.Valid)
 	})
 }

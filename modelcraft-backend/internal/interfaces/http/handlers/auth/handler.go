@@ -3,12 +3,13 @@ package auth
 import (
 	"encoding/json"
 	"io"
+	"net/http"
+
 	appAuth "modelcraft/internal/app/auth"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"net/http"
 )
 
 // Handler handles HTTP auth endpoints.
@@ -25,7 +26,7 @@ func NewHandler(tokenService *appAuth.TokenService, logger logfacade.Logger) *Ha
 	}
 }
 
-// HandleRegister handles POST /api/auth/register — phone+password registration.
+// HandleRegister handles POST /api/auth/register — phone+userName+password registration.
 func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
@@ -50,6 +51,13 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		RequestId: requestID,
 		UserId:    result.UserID,
 		OrgName:   result.OrgName,
+		Profile: generated.RegisterProfileSnapshot{
+			Id:        result.Profile.ID,
+			UserId:    result.Profile.UserID,
+			Nickname:  result.Profile.Nickname,
+			AvatarUrl: result.Profile.AvatarURL,
+			Bio:       result.Profile.Bio,
+		},
 	})
 }
 
@@ -160,7 +168,13 @@ func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
 
 // handleBusinessError maps a BusinessError to the appropriate HTTP error response.
 // This is the error conversion point — logfacade.Stack(err) is logged here per architecture rules.
-func (h *Handler) handleBusinessError(w http.ResponseWriter, r *http.Request, requestID string, err error, logMsg string) {
+func (h *Handler) handleBusinessError(
+	w http.ResponseWriter,
+	r *http.Request,
+	requestID string,
+	err error,
+	logMsg string,
+) {
 	bizErr, ok := err.(*bizerrors.BusinessError)
 	if !ok {
 		// Not a BusinessError — unexpected system error

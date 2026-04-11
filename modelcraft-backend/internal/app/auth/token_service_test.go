@@ -7,6 +7,7 @@ import (
 	"time"
 
 	domainauth "modelcraft/internal/domain/auth"
+	domainProfile "modelcraft/internal/domain/profile"
 	"modelcraft/internal/domain/shared"
 	domainUser "modelcraft/internal/domain/user"
 
@@ -66,6 +67,49 @@ type mockAuditLogRepo struct {
 func (m *mockAuditLogRepo) Insert(_ context.Context, log *domainauth.SecurityAuditLog) error {
 	m.logs = append(m.logs, log)
 	return nil
+}
+
+type mockProfileRepo struct {
+	profilesByUserID map[string]*domainProfile.Profile
+}
+
+func newMockProfileRepo() *mockProfileRepo {
+	return &mockProfileRepo{profilesByUserID: make(map[string]*domainProfile.Profile)}
+}
+
+func (m *mockProfileRepo) Create(_ context.Context, p *domainProfile.Profile) error {
+	m.profilesByUserID[p.UserID] = p
+	return nil
+}
+
+func (m *mockProfileRepo) CreateInitialProfile(ctx context.Context, p *domainProfile.Profile) error {
+	return m.Create(ctx, p)
+}
+
+func (m *mockProfileRepo) FindByUserID(_ context.Context, _ string, userID string) (*domainProfile.Profile, error) {
+	p, ok := m.profilesByUserID[userID]
+	if !ok {
+		return nil, shared.NewNotFoundError("profile not found by user id: " + userID)
+	}
+	return p, nil
+}
+
+func (m *mockProfileRepo) UpdateByUserID(
+	_ context.Context,
+	_ string,
+	userID string,
+	patch domainProfile.UpdatePatch,
+) error {
+	p, ok := m.profilesByUserID[userID]
+	if !ok {
+		return shared.NewNotFoundError("profile not found by user id: " + userID)
+	}
+
+	if patch.IsEmpty() {
+		return nil
+	}
+
+	return p.ApplyPatch(patch)
 }
 
 type mockUserRepo struct {
@@ -168,21 +212,32 @@ func (m *mockPasswordHasher) Verify(_ context.Context, password, hash string) er
 
 // ========== Test Helper ==========
 
-func createTestService(t *testing.T) (*TokenService, *mockRefreshTokenRepo, *mockUserRepo, *mockAuditLogRepo) {
+func createTestService(t *testing.T) (
+	*TokenService,
+	*mockRefreshTokenRepo,
+	*mockUserRepo,
+	*mockProfileRepo,
+	*mockAuditLogRepo,
+) {
 	t.Helper()
 	refreshRepo := newMockRefreshTokenRepo()
 	userRepo := newMockUserRepo()
+	profileRepo := newMockProfileRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
-	svc := NewTokenService(refreshRepo, userRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil)
-	return svc, refreshRepo, userRepo, auditRepo
+	svc := NewTokenService(refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, nil)
+	return svc, refreshRepo, userRepo, profileRepo, auditRepo
 }
 
 // registerTestUser is a helper that registers a user and returns the result.
 func registerTestUser(t *testing.T, svc *TokenService, phone, password string) *RegisterResult {
 	t.Helper()
 	ctx := context.Background()
-	result, err := svc.Register(ctx, RegisterCommand{Phone: phone, Password: password, UserName: "testuser_" + phone[len(phone)-4:]})
+	result, err := svc.Register(ctx, RegisterCommand{
+		Phone:    phone,
+		Password: password,
+		UserName: "testuser_" + phone[len(phone)-4:],
+	})
 	require.NoError(t, err)
 	return result
 }
@@ -190,7 +245,7 @@ func registerTestUser(t *testing.T, svc *TokenService, phone, password string) *
 // ========== Register Tests ==========
 
 func TestTokenService_Register_Success(t *testing.T) {
-	svc, _, userRepo, _ := createTestService(t)
+	svc, _, userRepo, profileRepo, _ := createTestService(t)
 	ctx := context.Background()
 
 	result, err := svc.Register(ctx, RegisterCommand{
@@ -202,6 +257,12 @@ func TestTokenService_Register_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.UserID)
 	assert.NotEmpty(t, result.OrgName)
+	assert.NotEmpty(t, result.Profile.ID)
+	assert.Equal(t, result.UserID, result.Profile.UserID)
+	assert.Regexp(t, `^user_[A-Z0-9]{6}$`, result.Profile.Nickname)
+	if assert.NotNil(t, result.Profile.AvatarURL) {
+		assert.Equal(t, "mock://avatar/default-1.png", *result.Profile.AvatarURL)
+	}
 
 	// Verify user was created with correct phone and userName
 	u, ok := userRepo.usersByPhone["13800138000"]
@@ -209,10 +270,16 @@ func TestTokenService_Register_Success(t *testing.T) {
 	assert.Equal(t, result.UserID, u.ID)
 	assert.Equal(t, "john_doe", u.Name)
 	assert.Equal(t, "hashed_securePassword1", u.PasswordHash)
+
+	// Verify profile was created and associated with the user
+	p, ok := profileRepo.profilesByUserID[result.UserID]
+	require.True(t, ok)
+	assert.Equal(t, result.Profile.ID, p.ID)
+	assert.Equal(t, result.Profile.Nickname, p.Nickname)
 }
 
 func TestTokenService_Register_InvalidPhone(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Register(ctx, RegisterCommand{
@@ -225,7 +292,7 @@ func TestTokenService_Register_InvalidPhone(t *testing.T) {
 }
 
 func TestTokenService_Register_WeakPassword(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Register(ctx, RegisterCommand{
@@ -238,7 +305,7 @@ func TestTokenService_Register_WeakPassword(t *testing.T) {
 }
 
 func TestTokenService_Register_DuplicatePhone(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	// First registration succeeds
@@ -260,7 +327,7 @@ func TestTokenService_Register_DuplicatePhone(t *testing.T) {
 }
 
 func TestTokenService_Register_DuplicateUserName(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Register(ctx, RegisterCommand{
@@ -280,7 +347,7 @@ func TestTokenService_Register_DuplicateUserName(t *testing.T) {
 }
 
 func TestTokenService_Register_InvalidUserName(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Register(ctx, RegisterCommand{
@@ -293,7 +360,7 @@ func TestTokenService_Register_InvalidUserName(t *testing.T) {
 }
 
 func TestTokenService_Register_ReservedUserName(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Register(ctx, RegisterCommand{
@@ -308,7 +375,7 @@ func TestTokenService_Register_ReservedUserName(t *testing.T) {
 // ========== Login Tests ==========
 
 func TestTokenService_Login_Success(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	// Register first
@@ -328,7 +395,7 @@ func TestTokenService_Login_Success(t *testing.T) {
 }
 
 func TestTokenService_Login_InvalidPhone(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Login(ctx, LoginCommand{
@@ -341,7 +408,7 @@ func TestTokenService_Login_InvalidPhone(t *testing.T) {
 }
 
 func TestTokenService_Login_PhoneNotFound(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Login(ctx, LoginCommand{
@@ -354,7 +421,7 @@ func TestTokenService_Login_PhoneNotFound(t *testing.T) {
 }
 
 func TestTokenService_Login_WrongPassword(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
@@ -371,7 +438,7 @@ func TestTokenService_Login_WrongPassword(t *testing.T) {
 // ========== OAuth Login Tests (backward compat) ==========
 
 func TestTokenService_OAuthLogin_NewUser(t *testing.T) {
-	svc, _, userRepo, _ := createTestService(t)
+	svc, _, userRepo, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	result, err := svc.OAuthLogin(ctx, OAuthLoginCommand{
@@ -393,7 +460,7 @@ func TestTokenService_OAuthLogin_NewUser(t *testing.T) {
 }
 
 func TestTokenService_OAuthLogin_ExistingUser(t *testing.T) {
-	svc, _, userRepo, _ := createTestService(t)
+	svc, _, userRepo, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	// Pre-create user
@@ -413,7 +480,7 @@ func TestTokenService_OAuthLogin_ExistingUser(t *testing.T) {
 // ========== Refresh Tests ==========
 
 func TestTokenService_Refresh_Rotation(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	// Register and login to get a refresh token
@@ -435,7 +502,7 @@ func TestTokenService_Refresh_Rotation(t *testing.T) {
 }
 
 func TestTokenService_Refresh_ReuseDetection(t *testing.T) {
-	svc, refreshRepo, _, auditRepo := createTestService(t)
+	svc, refreshRepo, _, _, auditRepo := createTestService(t)
 	ctx := context.Background()
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
@@ -467,7 +534,7 @@ func TestTokenService_Refresh_ReuseDetection(t *testing.T) {
 }
 
 func TestTokenService_Refresh_ExpiredToken(t *testing.T) {
-	svc, refreshRepo, _, _ := createTestService(t)
+	svc, refreshRepo, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
@@ -488,7 +555,7 @@ func TestTokenService_Refresh_ExpiredToken(t *testing.T) {
 }
 
 func TestTokenService_Refresh_UnknownToken(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	_, err := svc.Refresh(ctx, RefreshCommand{RefreshToken: "nonexistent_token_value"})
@@ -498,7 +565,7 @@ func TestTokenService_Refresh_UnknownToken(t *testing.T) {
 // ========== Logout Tests ==========
 
 func TestTokenService_Logout(t *testing.T) {
-	svc, refreshRepo, _, _ := createTestService(t)
+	svc, refreshRepo, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
@@ -523,7 +590,7 @@ func TestTokenService_Logout(t *testing.T) {
 }
 
 func TestTokenService_Logout_NonexistentToken(t *testing.T) {
-	svc, _, _, _ := createTestService(t)
+	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
 	// Logout with nonexistent token should succeed silently

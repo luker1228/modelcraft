@@ -1,0 +1,101 @@
+@startuml profile-domain
+!theme plain
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+title User / Profile Separation - 领域模型
+
+rectangle "身份与账号子域" {
+
+  package "User 聚合" <<Aggregate>> #FFFDE7 {
+    class User <<Aggregate Root>> #FFEAA7 {
+      --标识--
+      + id : UserID
+      --属性--
+      + phoneNumber : PhoneNumber
+      + userName : UserName
+      + status : UserStatus
+      --行为--
+      + register(phone : PhoneNumber, userName : UserName)
+      + activate()
+      + suspend()
+      --不变量--
+      .. phone 全局唯一 ..
+      .. userName 全局唯一，注册后不可修改 ..
+      .. 注册流程不使用 email ..
+    }
+
+    class PhoneNumber <<Value Object>> #DCEDC1 {
+      + value : string
+    }
+
+    class UserName <<Value Object>> #DCEDC1 {
+      + value : string
+    }
+
+    class UserStatus <<Value Object>> #DCEDC1 {
+      + value : REGISTERED | ACTIVE | SUSPENDED
+    }
+
+    User "1" *-- "1" PhoneNumber
+    User "1" *-- "1" UserName
+    User "1" *-- "1" UserStatus
+  }
+
+  package "Profile 聚合" <<Aggregate>> #E8F5E9 {
+    class Profile <<Aggregate Root>> #A5D6A7 {
+      --标识--
+      + id : ProfileID
+      --关联--
+      + userId : UserID
+      --属性--
+      + nickname : Nickname
+      + avatarUrl : AvatarUrl
+      + bio : Bio
+      --行为--
+      + initializeFor(userId, defaultNickname)
+      + update(nickname, avatarUrl, bio)
+      --不变量--
+      .. 一个 userId 仅允许一个 profile ..
+      .. 注册时必须初始化默认 nickname（固定前缀+随机后缀） ..
+    }
+
+    class Nickname <<Value Object>> #DCEDC1 {
+      + value : string
+    }
+
+    class AvatarUrl <<Value Object>> #DCEDC1 {
+      + value : string
+    }
+
+    class Bio <<Value Object>> #DCEDC1 {
+      + value : string
+    }
+
+    Profile "1" *-- "1" Nickname
+    Profile "1" *-- "0..1" AvatarUrl
+    Profile "1" *-- "0..1" Bio
+  }
+}
+
+' 跨聚合引用：Profile 通过 userId 引用 User
+Profile ..> User : userId
+
+class ProfileProvisioningService <<Domain Service>> #FAD9C1 {
+  + createInitialProfile(userId : UserID, defaultNickname : Nickname) : Profile
+}
+
+note bottom of User
+  <b>生命周期</b>
+  REGISTERED → ACTIVE → SUSPENDED
+end note
+
+note bottom of Profile
+  <b>生命周期</b>
+  CREATED → UPDATED
+end note
+
+note "待确认：\n1) 默认昵称前缀是否统一为 user_ ？\n2) Profile 是否允许软删除？\n3) User+Profile 联合查询是否需要批量接口？" as Q1 #FFCCBC
+
+@enduml

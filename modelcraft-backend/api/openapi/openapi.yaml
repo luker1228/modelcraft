@@ -17,7 +17,7 @@ paths:
   /api/auth/register:
     post:
       operationId: register
-      summary: Register a new user with phone number and password
+      summary: Register user and initialize profile atomically
       tags:
         - Auth
       security: []
@@ -29,7 +29,7 @@ paths:
               $ref: '#/components/schemas/RegisterRequest'
       responses:
         '201':
-          description: Registration successful
+          description: Registration successful (user + profile created)
           content:
             application/json:
               schema:
@@ -41,13 +41,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthInvalidInputError'
         '409':
-          description: Phone number already registered
+          description: phone or userName already exists
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PhoneAlreadyRegisteredError'
+                oneOf:
+                  - $ref: '#/components/schemas/PhoneAlreadyRegisteredError'
+                  - $ref: '#/components/schemas/UserNameAlreadyRegisteredError'
         '500':
-          description: Server error
+          description: Profile init failed or internal error
           content:
             application/json:
               schema:
@@ -415,6 +417,7 @@ components:
           required:
             - userId
             - orgName
+            - profile
           properties:
             userId:
               type: string
@@ -422,6 +425,8 @@ components:
             orgName:
               type: string
               description: Created personal organization slug
+            profile:
+              $ref: '#/components/schemas/RegisterProfileSnapshot'
     LoginRequest:
       type: object
       required:
@@ -677,4 +682,42 @@ components:
             userID:
               type: string
             action:
+              type: string
+    RegisterProfileSnapshot:
+      type: object
+      required:
+        - id
+        - userId
+        - nickname
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        nickname:
+          type: string
+          description: default generated nickname, e.g. user_A1B2C3
+        avatarUrl:
+          type: string
+        bio:
+          type: string
+    UserNameAlreadyRegisteredError:
+      type: object
+      required:
+        - requestId
+        - error
+      properties:
+        requestId:
+          type: string
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: string
+              enum:
+                - CONFLICT.USER
+            message:
               type: string

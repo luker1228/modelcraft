@@ -26,7 +26,6 @@ func ProjectToDomain(row dbgen.Project) *project.Project {
 		Slug:        row.Slug,
 		Title:       row.Title,
 		Description: row.Description.String,
-		LoginURL:    row.LoginUrl.String,
 		ClusterID:   sqlerr.NullStrToPtr(row.ClusterID),
 		Status:      project.ProjectStatus(row.Status),
 		CreatedAt:   createdAt,
@@ -41,7 +40,6 @@ func ProjectToCreateParams(p *project.Project) dbgen.CreateProjectParams {
 		Slug:        p.Slug,
 		Title:       p.Title,
 		Description: sql.NullString{String: p.Description, Valid: p.Description != ""},
-		LoginUrl:    sql.NullString{String: p.LoginURL, Valid: p.LoginURL != ""},
 		ClusterID:   sqlerr.PtrToNullStr(p.ClusterID),
 		Status:      string(p.Status),
 	}
@@ -52,7 +50,6 @@ func ProjectToUpdateParams(p *project.Project) dbgen.UpdateProjectParams {
 	return dbgen.UpdateProjectParams{
 		Title:       p.Title,
 		Description: sql.NullString{String: p.Description, Valid: p.Description != ""},
-		LoginUrl:    sql.NullString{String: p.LoginURL, Valid: p.LoginURL != ""},
 		ClusterID:   sqlerr.PtrToNullStr(p.ClusterID),
 		Slug:        p.Slug,
 		OrgName:     p.OrgName,

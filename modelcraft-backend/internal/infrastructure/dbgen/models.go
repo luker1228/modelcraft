@@ -306,6 +306,24 @@ type Organization struct {
 	UpdatedAt time.Time
 }
 
+// 用户资料表
+type Profile struct {
+	// profile UUID
+	ID string
+	// 用户 ID（引用 users.id）
+	UserID string
+	// 昵称
+	Nickname string
+	// 头像 URL（当前可为空，上传能力后续实现）
+	AvatarUrl sql.NullString
+	// 个人简介
+	Bio sql.NullString
+	// 创建时间
+	CreatedAt time.Time
+	// 更新时间
+	UpdatedAt time.Time
+}
+
 // 项目信息表（多租户，复合主键，只归档不删除）
 type Project struct {
 	// 组织名称（复合主键之一）
@@ -316,8 +334,6 @@ type Project struct {
 	Title string
 	// 项目描述信息
 	Description sql.NullString
-	// 项目登录URL地址
-	LoginUrl sql.NullString
 	// 项目状态：active/archived（永不物理删除）
 	Status string
 	// 关联的集群ID（一对一关系）
@@ -409,7 +425,7 @@ type User struct {
 	ID string
 	// 外部认证提供者用户 ID（来自 JWT.sub，Casdoor 用户有值，本地注册用户为 NULL）
 	ExternalID sql.NullString
-	// 用户姓名
+	// 用户名（userName）
 	Name string
 	// 用户手机号
 	Phone string

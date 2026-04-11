@@ -7,10 +7,19 @@ export interface TokenResponse {
   tokenType: string
 }
 
+export interface RegisterProfileSnapshot {
+  id: string
+  userId: string
+  nickname: string
+  avatarUrl?: string
+  bio?: string
+}
+
 export interface RegisterResponse {
   requestId: string
   userId: string
   orgName: string
+  profile?: RegisterProfileSnapshot
 }
 
 export interface LoginResponse {
@@ -48,6 +57,11 @@ export interface MembershipInfo {
 export interface GetMembershipsResponse {
   requestId: string
   memberships: MembershipInfo[]
+}
+
+export interface WebhookResponse {
+  message: string
+  userID?: string
 }
 
 export interface RestErrorResponse {
@@ -208,6 +222,20 @@ export class RestClient {
     const body = await res.json()
     if (res.ok) {
       return { status: res.status, data: body as GetMembershipsResponse }
+    }
+    return { status: res.status, error: body as RestErrorResponse }
+  }
+
+  async handleCasdoorWebhook(payload: Record<string, unknown>): Promise<RestResult<WebhookResponse>> {
+    const res = await fetch(`${API_BASE_URL}/api/webhook/casdoor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    })
+
+    const body = await res.json()
+    if (res.ok) {
+      return { status: res.status, data: body as WebhookResponse }
     }
     return { status: res.status, error: body as RestErrorResponse }
   }

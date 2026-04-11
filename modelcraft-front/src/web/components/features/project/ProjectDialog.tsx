@@ -55,7 +55,6 @@ export const projectFormSchema = z.object({
     .regex(/^[a-z][a-z0-9_]*$/, "必须以字母开头，只能包含小写字母、数字和下划线"),
   title: z.string().min(1, "项目名称不能为空").max(100),
   description: z.string().max(500).optional(),
-  loginUrl: z.string().url("请输入有效的 URL").optional().or(z.literal("")),
   clusterInput: clusterInputSchema.optional(),
 })
 
@@ -92,7 +91,6 @@ const CREATE_DEFAULTS: ProjectFormValues = {
   slug: "",
   title: "",
   description: "",
-  loginUrl: "",
   clusterInput: {
     title: "主数据库集群",
     description: "",
@@ -104,7 +102,6 @@ const CREATE_STEP_1_FIELDS: FieldPath<ProjectFormValues>[] = [
   "title",
   "slug",
   "description",
-  "loginUrl",
 ]
 
 const CREATE_STEP_2_FIELDS: FieldPath<ProjectFormValues>[] = [
@@ -234,7 +231,6 @@ export function ProjectDialog({
         slug: project.slug,
         title: project.title,
         description: project.description ?? "",
-        loginUrl: project.loginUrl ?? "",
       })
     } else {
       form.reset(CREATE_DEFAULTS)
@@ -361,20 +357,6 @@ export function ProjectDialog({
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="loginUrl"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>登录页面 URL</FormLabel>
-                      <FormControl>
-                        <Input placeholder="https://example.com/login" {...field} />
-                      </FormControl>
-                      <FormDescription>可选，用于项目的自定义登录跳转</FormDescription>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
               </>
             )}
 
@@ -469,11 +451,6 @@ export function ProjectDialog({
                     <p className="text-xs text-muted-foreground">项目标识</p>
                     <p className="font-mono text-foreground">{createValues.slug || "-"}</p>
                   </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">登录页面 URL</p>
-                    <p className="break-all text-foreground">{createValues.loginUrl || "未设置"}</p>
-                  </div>
-
                   <Separator />
 
                   <div>

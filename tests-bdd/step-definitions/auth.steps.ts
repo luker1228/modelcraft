@@ -78,6 +78,8 @@ Given(
     this.registeredUserName = buildUserNameFromPhone(phone)
     this.registeredPassword = password
     this.currentUserId = result.data.userId
+    this.currentOrgName = result.data.orgName
+    this.orgClient.setOrgName(result.data.orgName)
   }
 )
 
@@ -93,6 +95,8 @@ Given(
     this.registeredUserName = userName
     this.registeredPassword = password
     this.currentUserId = result.data.userId
+    this.currentOrgName = result.data.orgName
+    this.orgClient.setOrgName(result.data.orgName)
   }
 )
 
@@ -117,6 +121,8 @@ Given(
     this.registeredUserName = buildUserNameFromPhone(phone)
     this.registeredPassword = password
     this.currentUserId = loginResult.data.userId
+    this.currentOrgName = loginResult.data.orgName
+    this.orgClient.setOrgName(loginResult.data.orgName)
     this.currentRefreshToken = loginResult.data.refreshToken
   }
 )
@@ -132,6 +138,8 @@ When(
       this.registeredPhone = phone
       this.registeredUserName = buildUserNameFromPhone(phone)
       this.registeredPassword = password
+      this.currentOrgName = (this.lastRestResult.data as RegisterResponse).orgName
+      this.orgClient.setOrgName((this.lastRestResult.data as RegisterResponse).orgName)
     }
   }
 )
@@ -145,6 +153,8 @@ When(
       this.registeredPhone = phone
       this.registeredUserName = userName
       this.registeredPassword = password
+      this.currentOrgName = (this.lastRestResult.data as RegisterResponse).orgName
+      this.orgClient.setOrgName((this.lastRestResult.data as RegisterResponse).orgName)
     }
   }
 )
@@ -158,6 +168,8 @@ When(
     this.lastRestResult = await this.restClient.login(phone, password, 'PHONE')
     if ((this.lastRestResult as RestResult<LoginResponse>).data?.refreshToken) {
       this.currentRefreshToken = (this.lastRestResult as RestResult<LoginResponse>).data!.refreshToken
+      this.currentOrgName = (this.lastRestResult as RestResult<LoginResponse>).data!.orgName
+      this.orgClient.setOrgName((this.lastRestResult as RestResult<LoginResponse>).data!.orgName)
     }
   }
 )
@@ -168,6 +180,8 @@ When(
     this.lastRestResult = await this.restClient.login(userName, password, 'USERNAME')
     if ((this.lastRestResult as RestResult<LoginResponse>).data?.refreshToken) {
       this.currentRefreshToken = (this.lastRestResult as RestResult<LoginResponse>).data!.refreshToken
+      this.currentOrgName = (this.lastRestResult as RestResult<LoginResponse>).data!.orgName
+      this.orgClient.setOrgName((this.lastRestResult as RestResult<LoginResponse>).data!.orgName)
     }
   }
 )

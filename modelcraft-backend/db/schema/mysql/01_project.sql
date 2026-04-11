@@ -9,7 +9,6 @@ CREATE TABLE IF NOT EXISTS `projects` (
   -- 基本信息字段
   `title` VARCHAR(255) NOT NULL COMMENT '项目显示标题',
   `description` TEXT NULL COMMENT '项目描述信息',
-  `login_url` VARCHAR(512) NULL COMMENT '项目登录URL地址',
 
   -- 状态字段
   `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '项目状态：active/archived（永不物理删除）',

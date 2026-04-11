@@ -13,3 +13,4 @@ SELECT EXISTS(SELECT 1 FROM users WHERE phone = ?) AS phone_exists;
 
 -- name: ExistsByUserName :one
 SELECT EXISTS(SELECT 1 FROM users WHERE name = ?) AS name_exists;
+

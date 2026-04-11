@@ -190,6 +190,11 @@ type ComplexityRoot struct {
 		Error   func(childComplexity int) int
 	}
 
+	GetMyUserProfilePayload struct {
+		Error func(childComplexity int) int
+		User  func(childComplexity int) int
+	}
+
 	GetOrganizationPayload struct {
 		Error        func(childComplexity int) int
 		Organization func(childComplexity int) int
@@ -201,6 +206,11 @@ type ComplexityRoot struct {
 	}
 
 	InvalidClusterInput struct {
+		Message    func(childComplexity int) int
+		Suggestion func(childComplexity int) int
+	}
+
+	InvalidProfileInput struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
 	}
@@ -231,6 +241,7 @@ type ComplexityRoot struct {
 		RevokeRoleFromUser       func(childComplexity int, userID string, roleID int32, orgName string) int
 		TestDatabaseConnection   func(childComplexity int, input TestDatabaseConnectionInput) int
 		UpdateAPIKey             func(childComplexity int, id string, input UpdateAPIKeyInput) int
+		UpdateMyProfile          func(childComplexity int, input UpdateMyProfileInput) int
 		UpdateOrganization       func(childComplexity int, input UpdateOrganizationInput) int
 		UpdatePermissionRole     func(childComplexity int, roleID int32, input UpdateRoleInput) int
 		UpdateProject            func(childComplexity int, input UpdateProjectInput) int
@@ -309,11 +320,24 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
+	Profile struct {
+		AvatarURL func(childComplexity int) int
+		Bio       func(childComplexity int) int
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Nickname  func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+		UserID    func(childComplexity int) int
+	}
+
+	ProfileNotFound struct {
+		Message func(childComplexity int) int
+	}
+
 	Project struct {
 		CreatedAt   func(childComplexity int) int
 		Description func(childComplexity int) int
 		ID          func(childComplexity int) int
-		LoginURL    func(childComplexity int) int
 		OrgName     func(childComplexity int) int
 		Slug        func(childComplexity int) int
 		Status      func(childComplexity int) int
@@ -347,6 +371,7 @@ type ComplexityRoot struct {
 		Hello               func(childComplexity int) int
 		Me                  func(childComplexity int) int
 		MyOrganizations     func(childComplexity int) int
+		MyUserProfile       func(childComplexity int) int
 		Node                func(childComplexity int, id string) int
 		OrganizationMembers func(childComplexity int) int
 		PermissionRole      func(childComplexity int, id int32) int
@@ -408,6 +433,11 @@ type ComplexityRoot struct {
 		Error   func(childComplexity int) int
 	}
 
+	UpdateMyProfilePayload struct {
+		Error   func(childComplexity int) int
+		Profile func(childComplexity int) int
+	}
+
 	UpdateOrganizationPayload struct {
 		Error        func(childComplexity int) int
 		Organization func(childComplexity int) int
@@ -421,6 +451,20 @@ type ComplexityRoot struct {
 	UpdateProjectPayload struct {
 		Error   func(childComplexity int) int
 		Project func(childComplexity int) int
+	}
+
+	User struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Phone     func(childComplexity int) int
+		Profile   func(childComplexity int) int
+		Status    func(childComplexity int) int
+		UpdatedAt func(childComplexity int) int
+		UserName  func(childComplexity int) int
+	}
+
+	UserNotFound struct {
+		Message func(childComplexity int) int
 	}
 
 	UserRoleAssignment struct {
@@ -444,6 +488,7 @@ type MutationResolver interface {
 	RemovePermissionFromRole(ctx context.Context, roleID int32, obj string, act string) (*RemoveRolePermissionPayload, error)
 	AssignRoleToUser(ctx context.Context, userID string, roleID int32, orgName string) (*AssignRolePayload, error)
 	RevokeRoleFromUser(ctx context.Context, userID string, roleID int32, orgName string) (*RevokeRolePayload, error)
+	UpdateMyProfile(ctx context.Context, input UpdateMyProfileInput) (*UpdateMyProfilePayload, error)
 	CreateProject(ctx context.Context, input CreateProjectInput) (*CreateProjectPayload, error)
 	UpdateProject(ctx context.Context, input UpdateProjectInput) (*UpdateProjectPayload, error)
 	DeleteProject(ctx context.Context, slug string) (*DeleteProjectPayload, error)
@@ -462,6 +507,7 @@ type QueryResolver interface {
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
 	RolePermissionsList(ctx context.Context, roleID int32) ([]*PermissionDef, error)
+	MyUserProfile(ctx context.Context) (*GetMyUserProfilePayload, error)
 	Project(ctx context.Context, slug string) (*GetProjectPayload, error)
 	Projects(ctx context.Context, input *ListProjectsInput) ([]*Project, error)
 	DatabaseCluster(ctx context.Context, projectSlug string) (*GetClusterPayload, error)
@@ -923,6 +969,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.GetClusterPayload.Error(childComplexity), true
 
+	case "GetMyUserProfilePayload.error":
+		if e.complexity.GetMyUserProfilePayload.Error == nil {
+			break
+		}
+
+		return e.complexity.GetMyUserProfilePayload.Error(childComplexity), true
+	case "GetMyUserProfilePayload.user":
+		if e.complexity.GetMyUserProfilePayload.User == nil {
+			break
+		}
+
+		return e.complexity.GetMyUserProfilePayload.User(childComplexity), true
+
 	case "GetOrganizationPayload.error":
 		if e.complexity.GetOrganizationPayload.Error == nil {
 			break
@@ -961,6 +1020,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.InvalidClusterInput.Suggestion(childComplexity), true
+
+	case "InvalidProfileInput.message":
+		if e.complexity.InvalidProfileInput.Message == nil {
+			break
+		}
+
+		return e.complexity.InvalidProfileInput.Message(childComplexity), true
+	case "InvalidProfileInput.suggestion":
+		if e.complexity.InvalidProfileInput.Suggestion == nil {
+			break
+		}
+
+		return e.complexity.InvalidProfileInput.Suggestion(childComplexity), true
 
 	case "InvalidProjectInput.message":
 		if e.complexity.InvalidProjectInput.Message == nil {
@@ -1148,6 +1220,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateAPIKey(childComplexity, args["id"].(string), args["input"].(UpdateAPIKeyInput)), true
+	case "Mutation.updateMyProfile":
+		if e.complexity.Mutation.UpdateMyProfile == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateMyProfile_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateMyProfile(childComplexity, args["input"].(UpdateMyProfileInput)), true
 	case "Mutation.updateOrganization":
 		if e.complexity.Mutation.UpdateOrganization == nil {
 			break
@@ -1438,6 +1521,56 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PermissionUserNotFound.Suggestion(childComplexity), true
 
+	case "Profile.avatarUrl":
+		if e.complexity.Profile.AvatarURL == nil {
+			break
+		}
+
+		return e.complexity.Profile.AvatarURL(childComplexity), true
+	case "Profile.bio":
+		if e.complexity.Profile.Bio == nil {
+			break
+		}
+
+		return e.complexity.Profile.Bio(childComplexity), true
+	case "Profile.createdAt":
+		if e.complexity.Profile.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Profile.CreatedAt(childComplexity), true
+	case "Profile.id":
+		if e.complexity.Profile.ID == nil {
+			break
+		}
+
+		return e.complexity.Profile.ID(childComplexity), true
+	case "Profile.nickname":
+		if e.complexity.Profile.Nickname == nil {
+			break
+		}
+
+		return e.complexity.Profile.Nickname(childComplexity), true
+	case "Profile.updatedAt":
+		if e.complexity.Profile.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.Profile.UpdatedAt(childComplexity), true
+	case "Profile.userId":
+		if e.complexity.Profile.UserID == nil {
+			break
+		}
+
+		return e.complexity.Profile.UserID(childComplexity), true
+
+	case "ProfileNotFound.message":
+		if e.complexity.ProfileNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.ProfileNotFound.Message(childComplexity), true
+
 	case "Project.createdAt":
 		if e.complexity.Project.CreatedAt == nil {
 			break
@@ -1456,12 +1589,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Project.ID(childComplexity), true
-	case "Project.loginUrl":
-		if e.complexity.Project.LoginURL == nil {
-			break
-		}
-
-		return e.complexity.Project.LoginURL(childComplexity), true
 	case "Project.orgName":
 		if e.complexity.Project.OrgName == nil {
 			break
@@ -1580,6 +1707,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyOrganizations(childComplexity), true
+	case "Query.myUserProfile":
+		if e.complexity.Query.MyUserProfile == nil {
+			break
+		}
+
+		return e.complexity.Query.MyUserProfile(childComplexity), true
 	case "Query.node":
 		if e.complexity.Query.Node == nil {
 			break
@@ -1817,6 +1950,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UpdateClusterPayload.Error(childComplexity), true
 
+	case "UpdateMyProfilePayload.error":
+		if e.complexity.UpdateMyProfilePayload.Error == nil {
+			break
+		}
+
+		return e.complexity.UpdateMyProfilePayload.Error(childComplexity), true
+	case "UpdateMyProfilePayload.profile":
+		if e.complexity.UpdateMyProfilePayload.Profile == nil {
+			break
+		}
+
+		return e.complexity.UpdateMyProfilePayload.Profile(childComplexity), true
+
 	case "UpdateOrganizationPayload.error":
 		if e.complexity.UpdateOrganizationPayload.Error == nil {
 			break
@@ -1855,6 +2001,56 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.UpdateProjectPayload.Project(childComplexity), true
+
+	case "User.createdAt":
+		if e.complexity.User.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.User.CreatedAt(childComplexity), true
+	case "User.id":
+		if e.complexity.User.ID == nil {
+			break
+		}
+
+		return e.complexity.User.ID(childComplexity), true
+	case "User.phone":
+		if e.complexity.User.Phone == nil {
+			break
+		}
+
+		return e.complexity.User.Phone(childComplexity), true
+	case "User.profile":
+		if e.complexity.User.Profile == nil {
+			break
+		}
+
+		return e.complexity.User.Profile(childComplexity), true
+	case "User.status":
+		if e.complexity.User.Status == nil {
+			break
+		}
+
+		return e.complexity.User.Status(childComplexity), true
+	case "User.updatedAt":
+		if e.complexity.User.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.User.UpdatedAt(childComplexity), true
+	case "User.userName":
+		if e.complexity.User.UserName == nil {
+			break
+		}
+
+		return e.complexity.User.UserName(childComplexity), true
+
+	case "UserNotFound.message":
+		if e.complexity.UserNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.UserNotFound.Message(childComplexity), true
 
 	case "UserRoleAssignment.createdAt":
 		if e.complexity.UserRoleAssignment.CreatedAt == nil {
@@ -1905,6 +2101,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputTestDatabaseConnectionInput,
 		ec.unmarshalInputUpdateApiKeyInput,
 		ec.unmarshalInputUpdateClusterConnectionInput,
+		ec.unmarshalInputUpdateMyProfileInput,
 		ec.unmarshalInputUpdateOrganizationInput,
 		ec.unmarshalInputUpdateProjectInput,
 		ec.unmarshalInputUpdateRoleInput,
@@ -2260,6 +2457,94 @@ union RolePermissionError = PermissionRoleNotFound | PermissionSystemRoleCannotB
 union AssignRoleError = PermissionRoleNotFound | PermissionUserNotFound | PermissionInvalidInput
 union RevokeRoleError = PermissionRoleNotFound | PermissionUserNotFound
 `, BuiltIn: false},
+	{Name: "../../../../../api/graph/org/schema/profile.graphql", Input: `# Profile query/mutation types and payloads
+
+# ============================================
+# Profile Error Types
+# ============================================
+
+type UserNotFound implements Error {
+  message: String!
+}
+
+type ProfileNotFound implements Error {
+  message: String!
+}
+
+type InvalidProfileInput implements Error {
+  message: String!
+  suggestion: String
+}
+
+union GetMyUserProfileError = UserNotFound | ProfileNotFound
+union UpdateMyProfileError = ProfileNotFound | InvalidProfileInput
+
+# ============================================
+# Profile Domain Types
+# ============================================
+
+enum UserStatus {
+  REGISTERED
+  ACTIVE
+  SUSPENDED
+}
+
+type Profile implements Node {
+  id: ID!
+  userId: ID!
+  nickname: String!
+  avatarUrl: String
+  bio: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type User implements Node {
+  id: ID!
+  phone: String!
+  userName: String!
+  status: UserStatus!
+  createdAt: String!
+  updatedAt: String!
+  profile: Profile!
+}
+
+# ============================================
+# Payload Types
+# ============================================
+
+type GetMyUserProfilePayload {
+  user: User
+  error: GetMyUserProfileError
+}
+
+type UpdateMyProfilePayload {
+  profile: Profile
+  error: UpdateMyProfileError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input UpdateMyProfileInput {
+  nickname: String
+  avatarUrl: String
+  bio: String
+}
+
+# ============================================
+# Queries & Mutations
+# ============================================
+
+extend type Query {
+  myUserProfile: GetMyUserProfilePayload! @hasPermission(action: "user:read")
+}
+
+extend type Mutation {
+  updateMyProfile(input: UpdateMyProfileInput!): UpdateMyProfilePayload! @hasPermission(action: "profile:update")
+}
+`, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/project.graphql", Input: `# Project and DatabaseCluster related types, inputs, queries and mutations
 
 # ============================================
@@ -2449,7 +2734,6 @@ type Project implements Node {
   slug: String!
   title: String!
   description: String!
-  loginUrl: String
   status: ProjectStatus!
   orgName: String! # Multi-tenant organization identifier
   createdAt: String!
@@ -2477,7 +2761,6 @@ input CreateProjectInput {
   slug: String!
   title: String!
   description: String
-  loginUrl: String
   clusterInput: ClusterConnectionInput! # Required: cluster must be created with project
   skipConnectionTest: Boolean # Default false; set true to skip connection validation
 }
@@ -2486,7 +2769,6 @@ input UpdateProjectInput {
   slug: String!
   title: String
   description: String
-  loginUrl: String
 }
 
 input ListProjectsInput {
@@ -2932,6 +3214,17 @@ func (ec *executionContext) field_Mutation_updateApiKey_args(ctx context.Context
 		return nil, err
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateMyProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateMyProfileInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfileInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -4092,8 +4385,6 @@ func (ec *executionContext) fieldContext_CreateProjectPayload_project(_ context.
 				return ec.fieldContext_Project_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Project_description(ctx, field)
-			case "loginUrl":
-				return ec.fieldContext_Project_loginUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_Project_status(ctx, field)
 			case "orgName":
@@ -5264,6 +5555,80 @@ func (ec *executionContext) fieldContext_GetClusterPayload_error(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _GetMyUserProfilePayload_user(ctx context.Context, field graphql.CollectedField, obj *GetMyUserProfilePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GetMyUserProfilePayload_user,
+		func(ctx context.Context) (any, error) {
+			return obj.User, nil
+		},
+		nil,
+		ec.marshalOUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GetMyUserProfilePayload_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GetMyUserProfilePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_User_id(ctx, field)
+			case "phone":
+				return ec.fieldContext_User_phone(ctx, field)
+			case "userName":
+				return ec.fieldContext_User_userName(ctx, field)
+			case "status":
+				return ec.fieldContext_User_status(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_User_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_User_updatedAt(ctx, field)
+			case "profile":
+				return ec.fieldContext_User_profile(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type User", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GetMyUserProfilePayload_error(ctx context.Context, field graphql.CollectedField, obj *GetMyUserProfilePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GetMyUserProfilePayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOGetMyUserProfileError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetMyUserProfileError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GetMyUserProfilePayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GetMyUserProfilePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type GetMyUserProfileError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _GetOrganizationPayload_organization(ctx context.Context, field graphql.CollectedField, obj *GetOrganizationPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5370,8 +5735,6 @@ func (ec *executionContext) fieldContext_GetProjectPayload_project(_ context.Con
 				return ec.fieldContext_Project_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Project_description(ctx, field)
-			case "loginUrl":
-				return ec.fieldContext_Project_loginUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_Project_status(ctx, field)
 			case "orgName":
@@ -5464,6 +5827,64 @@ func (ec *executionContext) _InvalidClusterInput_suggestion(ctx context.Context,
 func (ec *executionContext) fieldContext_InvalidClusterInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InvalidClusterInput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InvalidProfileInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidProfileInput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InvalidProfileInput_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InvalidProfileInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InvalidProfileInput",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InvalidProfileInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidProfileInput) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InvalidProfileInput_suggestion,
+		func(ctx context.Context) (any, error) {
+			return obj.Suggestion, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InvalidProfileInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InvalidProfileInput",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -6263,6 +6684,71 @@ func (ec *executionContext) fieldContext_Mutation_revokeRoleFromUser(ctx context
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_revokeRoleFromUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateMyProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateMyProfile,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateMyProfile(ctx, fc.Args["input"].(UpdateMyProfileInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "profile:update")
+				if err != nil {
+					var zeroVal *UpdateMyProfilePayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *UpdateMyProfilePayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNUpdateMyProfilePayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfilePayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateMyProfile(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "profile":
+				return ec.fieldContext_UpdateMyProfilePayload_profile(ctx, field)
+			case "error":
+				return ec.fieldContext_UpdateMyProfilePayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UpdateMyProfilePayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateMyProfile_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -7938,6 +8424,238 @@ func (ec *executionContext) fieldContext_PermissionUserNotFound_suggestion(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _Profile_id(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_userId(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_userId,
+		func(ctx context.Context) (any, error) {
+			return obj.UserID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_userId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_nickname(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_nickname,
+		func(ctx context.Context) (any, error) {
+			return obj.Nickname, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_nickname(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_avatarUrl(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_avatarUrl,
+		func(ctx context.Context) (any, error) {
+			return obj.AvatarURL, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_avatarUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_bio(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_bio,
+		func(ctx context.Context) (any, error) {
+			return obj.Bio, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_bio(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_createdAt(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Profile_updatedAt(ctx context.Context, field graphql.CollectedField, obj *Profile) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Profile_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Profile_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Profile",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProfileNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ProfileNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ProfileNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ProfileNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProfileNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Project_id(ctx context.Context, field graphql.CollectedField, obj *Project) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8042,35 +8760,6 @@ func (ec *executionContext) _Project_description(ctx context.Context, field grap
 }
 
 func (ec *executionContext) fieldContext_Project_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Project",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Project_loginUrl(ctx context.Context, field graphql.CollectedField, obj *Project) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Project_loginUrl,
-		func(ctx context.Context) (any, error) {
-			return obj.LoginURL, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Project_loginUrl(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Project",
 		Field:      field,
@@ -8392,8 +9081,6 @@ func (ec *executionContext) fieldContext_ProjectEdge_node(_ context.Context, fie
 				return ec.fieldContext_Project_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Project_description(ctx, field)
-			case "loginUrl":
-				return ec.fieldContext_Project_loginUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_Project_status(ctx, field)
 			case "orgName":
@@ -8915,6 +9602,59 @@ func (ec *executionContext) fieldContext_Query_rolePermissionsList(ctx context.C
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_myUserProfile(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myUserProfile,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyUserProfile(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "user:read")
+				if err != nil {
+					var zeroVal *GetMyUserProfilePayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *GetMyUserProfilePayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNGetMyUserProfilePayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetMyUserProfilePayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myUserProfile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "user":
+				return ec.fieldContext_GetMyUserProfilePayload_user(ctx, field)
+			case "error":
+				return ec.fieldContext_GetMyUserProfilePayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GetMyUserProfilePayload", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_project(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9031,8 +9771,6 @@ func (ec *executionContext) fieldContext_Query_projects(ctx context.Context, fie
 				return ec.fieldContext_Project_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Project_description(ctx, field)
-			case "loginUrl":
-				return ec.fieldContext_Project_loginUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_Project_status(ctx, field)
 			case "orgName":
@@ -10144,6 +10882,80 @@ func (ec *executionContext) fieldContext_UpdateClusterPayload_error(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _UpdateMyProfilePayload_profile(ctx context.Context, field graphql.CollectedField, obj *UpdateMyProfilePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UpdateMyProfilePayload_profile,
+		func(ctx context.Context) (any, error) {
+			return obj.Profile, nil
+		},
+		nil,
+		ec.marshalOProfile2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProfile,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UpdateMyProfilePayload_profile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateMyProfilePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Profile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Profile_userId(ctx, field)
+			case "nickname":
+				return ec.fieldContext_Profile_nickname(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_Profile_avatarUrl(ctx, field)
+			case "bio":
+				return ec.fieldContext_Profile_bio(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Profile_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Profile_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateMyProfilePayload_error(ctx context.Context, field graphql.CollectedField, obj *UpdateMyProfilePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UpdateMyProfilePayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOUpdateMyProfileError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfileError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UpdateMyProfilePayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateMyProfilePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UpdateMyProfileError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _UpdateOrganizationPayload_organization(ctx context.Context, field graphql.CollectedField, obj *UpdateOrganizationPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10324,8 +11136,6 @@ func (ec *executionContext) fieldContext_UpdateProjectPayload_project(_ context.
 				return ec.fieldContext_Project_title(ctx, field)
 			case "description":
 				return ec.fieldContext_Project_description(ctx, field)
-			case "loginUrl":
-				return ec.fieldContext_Project_loginUrl(ctx, field)
 			case "status":
 				return ec.fieldContext_Project_status(ctx, field)
 			case "orgName":
@@ -10365,6 +11175,254 @@ func (ec *executionContext) fieldContext_UpdateProjectPayload_error(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type UpdateProjectError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_phone(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_phone,
+		func(ctx context.Context) (any, error) {
+			return obj.Phone, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_phone(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_userName(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_userName,
+		func(ctx context.Context) (any, error) {
+			return obj.UserName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_userName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_status(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNUserStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UserStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_createdAt(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_updatedAt(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _User_profile(ctx context.Context, field graphql.CollectedField, obj *User) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_User_profile,
+		func(ctx context.Context) (any, error) {
+			return obj.Profile, nil
+		},
+		nil,
+		ec.marshalNProfile2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProfile,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_User_profile(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Profile_id(ctx, field)
+			case "userId":
+				return ec.fieldContext_Profile_userId(ctx, field)
+			case "nickname":
+				return ec.fieldContext_Profile_nickname(ctx, field)
+			case "avatarUrl":
+				return ec.fieldContext_Profile_avatarUrl(ctx, field)
+			case "bio":
+				return ec.fieldContext_Profile_bio(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Profile_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Profile_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserNotFound_message(ctx context.Context, field graphql.CollectedField, obj *UserNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -12084,7 +13142,7 @@ func (ec *executionContext) unmarshalInputCreateProjectInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"slug", "title", "description", "loginUrl", "clusterInput", "skipConnectionTest"}
+	fieldsInOrder := [...]string{"slug", "title", "description", "clusterInput", "skipConnectionTest"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -12112,13 +13170,6 @@ func (ec *executionContext) unmarshalInputCreateProjectInput(ctx context.Context
 				return it, err
 			}
 			it.Description = data
-		case "loginUrl":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loginUrl"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LoginURL = data
 		case "clusterInput":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("clusterInput"))
 			data, err := ec.unmarshalNClusterConnectionInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐClusterConnectionInput(ctx, v)
@@ -12378,6 +13429,47 @@ func (ec *executionContext) unmarshalInputUpdateClusterConnectionInput(ctx conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateMyProfileInput(ctx context.Context, obj any) (UpdateMyProfileInput, error) {
+	var it UpdateMyProfileInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"nickname", "avatarUrl", "bio"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "nickname":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("nickname"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Nickname = data
+		case "avatarUrl":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("avatarUrl"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AvatarURL = data
+		case "bio":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bio"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Bio = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputUpdateOrganizationInput(ctx context.Context, obj any) (UpdateOrganizationInput, error) {
 	var it UpdateOrganizationInput
 	asMap := map[string]any{}
@@ -12412,7 +13504,7 @@ func (ec *executionContext) unmarshalInputUpdateProjectInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"slug", "title", "description", "loginUrl"}
+	fieldsInOrder := [...]string{"slug", "title", "description"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -12440,13 +13532,6 @@ func (ec *executionContext) unmarshalInputUpdateProjectInput(ctx context.Context
 				return it, err
 			}
 			it.Description = data
-		case "loginUrl":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("loginUrl"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LoginURL = data
 		}
 	}
 
@@ -12716,6 +13801,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case UserNotFound:
+		return ec._UserNotFound(ctx, sel, &obj)
+	case *UserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UserNotFound(ctx, sel, obj)
 	case RoleNotFound:
 		return ec._RoleNotFound(ctx, sel, &obj)
 	case *RoleNotFound:
@@ -12744,6 +13836,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._ProjectAlreadyExists(ctx, sel, obj)
+	case ProfileNotFound:
+		return ec._ProfileNotFound(ctx, sel, &obj)
+	case *ProfileNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProfileNotFound(ctx, sel, obj)
 	case OrganizationNotFound:
 		return ec._OrganizationNotFound(ctx, sel, &obj)
 	case *OrganizationNotFound:
@@ -12765,6 +13864,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._InvalidProjectInput(ctx, sel, obj)
+	case InvalidProfileInput:
+		return ec._InvalidProfileInput(ctx, sel, &obj)
+	case *InvalidProfileInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidProfileInput(ctx, sel, obj)
 	case InvalidClusterInput:
 		return ec._InvalidClusterInput(ctx, sel, &obj)
 	case *InvalidClusterInput:
@@ -12863,6 +13969,29 @@ func (ec *executionContext) _GetClusterError(ctx context.Context, sel ast.Select
 	}
 }
 
+func (ec *executionContext) _GetMyUserProfileError(ctx context.Context, sel ast.SelectionSet, obj GetMyUserProfileError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case UserNotFound:
+		return ec._UserNotFound(ctx, sel, &obj)
+	case *UserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._UserNotFound(ctx, sel, obj)
+	case ProfileNotFound:
+		return ec._ProfileNotFound(ctx, sel, &obj)
+	case *ProfileNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProfileNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _GetOrganizationError(ctx context.Context, sel ast.SelectionSet, obj GetOrganizationError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -12899,6 +14028,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case User:
+		return ec._User(ctx, sel, &obj)
+	case *User:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._User(ctx, sel, obj)
 	case Project:
 		return ec._Project(ctx, sel, &obj)
 	case *Project:
@@ -12906,6 +14042,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Project(ctx, sel, obj)
+	case Profile:
+		return ec._Profile(ctx, sel, &obj)
+	case *Profile:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Profile(ctx, sel, obj)
 	case DatabaseCluster:
 		return ec._DatabaseCluster(ctx, sel, &obj)
 	case *DatabaseCluster:
@@ -13116,6 +14259,29 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ClusterNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _UpdateMyProfileError(ctx context.Context, sel ast.SelectionSet, obj UpdateMyProfileError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProfileNotFound:
+		return ec._ProfileNotFound(ctx, sel, &obj)
+	case *ProfileNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProfileNotFound(ctx, sel, obj)
+	case InvalidProfileInput:
+		return ec._InvalidProfileInput(ctx, sel, &obj)
+	case *InvalidProfileInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidProfileInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14297,6 +15463,44 @@ func (ec *executionContext) _GetClusterPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var getMyUserProfilePayloadImplementors = []string{"GetMyUserProfilePayload"}
+
+func (ec *executionContext) _GetMyUserProfilePayload(ctx context.Context, sel ast.SelectionSet, obj *GetMyUserProfilePayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, getMyUserProfilePayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GetMyUserProfilePayload")
+		case "user":
+			out.Values[i] = ec._GetMyUserProfilePayload_user(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._GetMyUserProfilePayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var getOrganizationPayloadImplementors = []string{"GetOrganizationPayload"}
 
 func (ec *executionContext) _GetOrganizationPayload(ctx context.Context, sel ast.SelectionSet, obj *GetOrganizationPayload) graphql.Marshaler {
@@ -14391,6 +15595,47 @@ func (ec *executionContext) _InvalidClusterInput(ctx context.Context, sel ast.Se
 			}
 		case "suggestion":
 			out.Values[i] = ec._InvalidClusterInput_suggestion(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var invalidProfileInputImplementors = []string{"InvalidProfileInput", "Error", "UpdateMyProfileError"}
+
+func (ec *executionContext) _InvalidProfileInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidProfileInput) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, invalidProfileInputImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InvalidProfileInput")
+		case "message":
+			out.Values[i] = ec._InvalidProfileInput_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggestion":
+			out.Values[i] = ec._InvalidProfileInput_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -14588,6 +15833,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "revokeRoleFromUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_revokeRoleFromUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateMyProfile":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateMyProfile(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -15210,6 +16462,108 @@ func (ec *executionContext) _PermissionUserNotFound(ctx context.Context, sel ast
 	return out
 }
 
+var profileImplementors = []string{"Profile", "Node"}
+
+func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, obj *Profile) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, profileImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Profile")
+		case "id":
+			out.Values[i] = ec._Profile_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "userId":
+			out.Values[i] = ec._Profile_userId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "nickname":
+			out.Values[i] = ec._Profile_nickname(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "avatarUrl":
+			out.Values[i] = ec._Profile_avatarUrl(ctx, field, obj)
+		case "bio":
+			out.Values[i] = ec._Profile_bio(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._Profile_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._Profile_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var profileNotFoundImplementors = []string{"ProfileNotFound", "Error", "GetMyUserProfileError", "UpdateMyProfileError"}
+
+func (ec *executionContext) _ProfileNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProfileNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, profileNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProfileNotFound")
+		case "message":
+			out.Values[i] = ec._ProfileNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var projectImplementors = []string{"Project", "Node"}
 
 func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, obj *Project) graphql.Marshaler {
@@ -15241,8 +16595,6 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "loginUrl":
-			out.Values[i] = ec._Project_loginUrl(ctx, field, obj)
 		case "status":
 			out.Values[i] = ec._Project_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -15636,6 +16988,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_rolePermissionsList(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myUserProfile":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myUserProfile(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -16216,6 +17590,44 @@ func (ec *executionContext) _UpdateClusterPayload(ctx context.Context, sel ast.S
 	return out
 }
 
+var updateMyProfilePayloadImplementors = []string{"UpdateMyProfilePayload"}
+
+func (ec *executionContext) _UpdateMyProfilePayload(ctx context.Context, sel ast.SelectionSet, obj *UpdateMyProfilePayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateMyProfilePayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateMyProfilePayload")
+		case "profile":
+			out.Values[i] = ec._UpdateMyProfilePayload_profile(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._UpdateMyProfilePayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var updateOrganizationPayloadImplementors = []string{"UpdateOrganizationPayload"}
 
 func (ec *executionContext) _UpdateOrganizationPayload(ctx context.Context, sel ast.SelectionSet, obj *UpdateOrganizationPayload) graphql.Marshaler {
@@ -16307,6 +17719,114 @@ func (ec *executionContext) _UpdateProjectPayload(ctx context.Context, sel ast.S
 			out.Values[i] = ec._UpdateProjectPayload_project(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._UpdateProjectPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var userImplementors = []string{"User", "Node"}
+
+func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj *User) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("User")
+		case "id":
+			out.Values[i] = ec._User_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "phone":
+			out.Values[i] = ec._User_phone(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "userName":
+			out.Values[i] = ec._User_userName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._User_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._User_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._User_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "profile":
+			out.Values[i] = ec._User_profile(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var userNotFoundImplementors = []string{"UserNotFound", "Error", "GetMyUserProfileError"}
+
+func (ec *executionContext) _UserNotFound(ctx context.Context, sel ast.SelectionSet, obj *UserNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserNotFound")
+		case "message":
+			out.Values[i] = ec._UserNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16998,6 +18518,20 @@ func (ec *executionContext) marshalNGetClusterPayload2ᚖmodelcraftᚋinternal�
 	return ec._GetClusterPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNGetMyUserProfilePayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetMyUserProfilePayload(ctx context.Context, sel ast.SelectionSet, v GetMyUserProfilePayload) graphql.Marshaler {
+	return ec._GetMyUserProfilePayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGetMyUserProfilePayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetMyUserProfilePayload(ctx context.Context, sel ast.SelectionSet, v *GetMyUserProfilePayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GetMyUserProfilePayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNGetProjectPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetProjectPayload(ctx context.Context, sel ast.SelectionSet, v GetProjectPayload) graphql.Marshaler {
 	return ec._GetProjectPayload(ctx, sel, &v)
 }
@@ -17304,6 +18838,16 @@ func (ec *executionContext) marshalNPermissionRole2ᚖmodelcraftᚋinternalᚋin
 		return graphql.Null
 	}
 	return ec._PermissionRole(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNProfile2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProfile(ctx context.Context, sel ast.SelectionSet, v *Profile) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Profile(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNProject2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProjectᚄ(ctx context.Context, sel ast.SelectionSet, v []*Project) graphql.Marshaler {
@@ -17639,6 +19183,25 @@ func (ec *executionContext) marshalNUpdateClusterPayload2ᚖmodelcraftᚋinterna
 	return ec._UpdateClusterPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNUpdateMyProfileInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfileInput(ctx context.Context, v any) (UpdateMyProfileInput, error) {
+	res, err := ec.unmarshalInputUpdateMyProfileInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpdateMyProfilePayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfilePayload(ctx context.Context, sel ast.SelectionSet, v UpdateMyProfilePayload) graphql.Marshaler {
+	return ec._UpdateMyProfilePayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUpdateMyProfilePayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfilePayload(ctx context.Context, sel ast.SelectionSet, v *UpdateMyProfilePayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UpdateMyProfilePayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNUpdateOrganizationInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateOrganizationInput(ctx context.Context, v any) (UpdateOrganizationInput, error) {
 	res, err := ec.unmarshalInputUpdateOrganizationInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -17748,6 +19311,16 @@ func (ec *executionContext) marshalNUserRoleAssignment2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._UserRoleAssignment(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUserStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserStatus(ctx context.Context, v any) (UserStatus, error) {
+	var res UserStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUserStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserStatus(ctx context.Context, sel ast.SelectionSet, v UserStatus) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
@@ -18149,6 +19722,13 @@ func (ec *executionContext) marshalOGetClusterError2modelcraftᚋinternalᚋinte
 	return ec._GetClusterError(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOGetMyUserProfileError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetMyUserProfileError(ctx context.Context, sel ast.SelectionSet, v GetMyUserProfileError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._GetMyUserProfileError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOGetOrganizationError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetOrganizationError(ctx context.Context, sel ast.SelectionSet, v GetOrganizationError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -18208,6 +19788,13 @@ func (ec *executionContext) marshalOPermissionRole2ᚖmodelcraftᚋinternalᚋin
 		return graphql.Null
 	}
 	return ec._PermissionRole(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOProfile2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProfile(ctx context.Context, sel ast.SelectionSet, v *Profile) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Profile(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOProject2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProject(ctx context.Context, sel ast.SelectionSet, v *Project) graphql.Marshaler {
@@ -18318,6 +19905,13 @@ func (ec *executionContext) marshalOUpdateClusterError2modelcraftᚋinternalᚋi
 	return ec._UpdateClusterError(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOUpdateMyProfileError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfileError(ctx context.Context, sel ast.SelectionSet, v UpdateMyProfileError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._UpdateMyProfileError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOUpdatePermissionRoleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdatePermissionRoleError(ctx context.Context, sel ast.SelectionSet, v UpdatePermissionRoleError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -18330,6 +19924,13 @@ func (ec *executionContext) marshalOUpdateProjectError2modelcraftᚋinternalᚋi
 		return graphql.Null
 	}
 	return ec._UpdateProjectError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUser(ctx context.Context, sel ast.SelectionSet, v *User) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._User(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUserRoleAssignment2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserRoleAssignment(ctx context.Context, sel ast.SelectionSet, v *UserRoleAssignment) graphql.Marshaler {

@@ -156,9 +156,17 @@ extend type Query {
   fields(modelID: ID!): [Field!]! @hasPermission(action: "model:read")
 }
 
+# AddFields error and payload types
+union AddFieldsError = InvalidModelInput
+
+type AddFieldsPayload {
+  model: Model
+  error: AddFieldsError
+}
+
 # Field mutations
 extend type Mutation {
-  addFields(modelID: ID!, input: [AddFieldInput!]!): Model @hasPermission(action: "model:update")
+  addFields(modelID: ID!, input: [AddFieldInput!]!): AddFieldsPayload! @hasPermission(action: "model:update")
   updateField(modelID: ID!, fieldName: String!, input: UpdateFieldInput!): Model @hasPermission(action: "model:update")
   removeField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
 

@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/organization"
 	"modelcraft/internal/app/permission"
+	appProfile "modelcraft/internal/app/profile"
 	"modelcraft/internal/app/project"
 	"modelcraft/internal/app/role"
 	"modelcraft/internal/domain/user"
@@ -18,6 +19,7 @@ type Resolver struct {
 
 	// Organization
 	OrganizationAppService *organization.OrganizationAppService
+	ProfileAppService      *appProfile.AppService
 	UserRepo               user.UserRepository
 
 	// Permission (Casbin)

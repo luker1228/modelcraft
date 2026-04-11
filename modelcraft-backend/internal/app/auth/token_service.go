@@ -2,16 +2,19 @@ package auth
 
 import (
 	"context"
+	"time"
+
 	"modelcraft/internal/app/organization"
+	domainauth "modelcraft/internal/domain/auth"
 	"modelcraft/internal/domain/membership"
+	domainProfile "modelcraft/internal/domain/profile"
+	"modelcraft/internal/domain/shared"
+	domainUser "modelcraft/internal/domain/user"
+	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
-	"time"
-
-	domainauth "modelcraft/internal/domain/auth"
-	"modelcraft/internal/domain/shared"
-	domainUser "modelcraft/internal/domain/user"
 )
 
 // TokenService 处理认证令牌操作：注册、登录、刷新、登出。
@@ -19,22 +22,26 @@ import (
 type TokenService struct {
 	refreshTokenRepo domainauth.RefreshTokenRepository
 	userRepo         domainUser.UserRepository
+	profileRepo      domainProfile.Repository
 	membershipRepo   membership.MembershipRepository
 	auditLogRepo     domainauth.SecurityAuditLogRepository
 	passwordHasher   domainauth.PasswordHasher
 	refreshTTL       time.Duration
 	createOrgService *organization.CreateOrganizationService
+	txManager        repository.TxManager
 }
 
 // NewTokenService 创建新的 TokenService。
 func NewTokenService(
 	refreshTokenRepo domainauth.RefreshTokenRepository,
 	userRepo domainUser.UserRepository,
+	profileRepo domainProfile.Repository,
 	auditLogRepo domainauth.SecurityAuditLogRepository,
 	passwordHasher domainauth.PasswordHasher,
 	refreshTTL time.Duration,
 	createOrgService *organization.CreateOrganizationService,
 	membershipRepo membership.MembershipRepository,
+	txManager repository.TxManager,
 ) *TokenService {
 	if refreshTTL == 0 {
 		refreshTTL = 7 * 24 * time.Hour
@@ -42,16 +49,18 @@ func NewTokenService(
 	return &TokenService{
 		refreshTokenRepo: refreshTokenRepo,
 		userRepo:         userRepo,
+		profileRepo:      profileRepo,
 		membershipRepo:   membershipRepo,
 		auditLogRepo:     auditLogRepo,
 		passwordHasher:   passwordHasher,
 		refreshTTL:       refreshTTL,
 		createOrgService: createOrgService,
+		txManager:        txManager,
 	}
 }
 
 // Register 手机号+密码注册新用户。
-// 同时创建用户的个人组织。
+// 注册成功后会同事务初始化 profile，并创建用户的个人组织。
 func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*RegisterResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
@@ -107,18 +116,41 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
 	}
 
-	// 9. 持久化用户
-	if err := s.userRepo.Create(ctx, u); err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	// 9. 创建初始 profile
+	profileID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate profile id")
+	}
+	defaultAvatarURL := "mock://avatar/default-1.png"
+	initialProfile, err := domainProfile.NewInitialProfile(profileID, u.ID, "", &defaultAvatarURL, nil)
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create profile entity")
 	}
 
-	logger.Infof(ctx, "User registered: id=%s, userName=%s, phone=%s", u.ID, cmd.UserName, phone.Masked())
+	// 10. 同事务持久化 user + profile
+	if err := s.createUserAndProfile(ctx, u, initialProfile, phone.Masked()); err != nil {
+		return nil, err
+	}
 
-	// 10. 创建个人组织并返回 orgName
+	logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
+		u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
+
+	result := &RegisterResult{
+		UserID: u.ID,
+		Profile: RegisterProfileSnapshot{
+			ID:        initialProfile.ID,
+			UserID:    initialProfile.UserID,
+			Nickname:  initialProfile.Nickname,
+			AvatarURL: initialProfile.AvatarURL,
+			Bio:       initialProfile.Bio,
+		},
+	}
+
+	// 11. 创建个人组织并返回 orgName
 	if s.createOrgService == nil {
 		// 兜底：测试环境可不注入组织服务，仍返回稳定 slug
-		orgName := bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
-		return &RegisterResult{UserID: u.ID, OrgName: orgName}, nil
+		result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
+		return result, nil
 	}
 
 	orgOutput, err := s.createOrgService.Execute(ctx, &organization.CreateOrganizationInput{
@@ -130,10 +162,56 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create personal organization")
 	}
 
-	orgName := orgOutput.OrganizationName
-	logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", orgName, u.ID)
+	result.OrgName = orgOutput.OrganizationName
+	logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
 
-	return &RegisterResult{UserID: u.ID, OrgName: orgName}, nil
+	return result, nil
+}
+
+func (s *TokenService) createUserAndProfile(
+	ctx context.Context,
+	u *domainUser.User,
+	p *domainProfile.Profile,
+	maskedPhone string,
+) error {
+	persist := func(
+		ctx context.Context,
+		userRepo domainUser.UserRepository,
+		profileRepo domainProfile.Repository,
+	) error {
+		if err := userRepo.Create(ctx, u); err != nil {
+			if shared.IsDuplicateKeyError(err) {
+				return bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, maskedPhone)
+			}
+			return bizerrors.ConvertRepositoryError(ctx, err)
+		}
+
+		if err := profileRepo.CreateInitialProfile(ctx, p); err != nil {
+			return bizerrors.ConvertRepositoryError(ctx, err)
+		}
+		return nil
+	}
+
+	if s.txManager == nil {
+		if s.profileRepo == nil {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "profile repository not configured")
+		}
+		return persist(ctx, s.userRepo, s.profileRepo)
+	}
+
+	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+		userRepo := repository.NewSqlUserRepository(q)
+		profileRepo := repository.NewSqlProfileRepository(q)
+		return persist(ctx, userRepo, profileRepo)
+	})
+	if err != nil {
+		if _, ok := err.(*bizerrors.BusinessError); ok {
+			return err
+		}
+		return bizerrors.WrapError(err, bizerrors.SystemError, "register transaction")
+	}
+
+	return nil
 }
 
 // Login 登录（支持手机号或用户名），生成 Refresh Token 存入 DB，返回明文给 BFF。
@@ -181,7 +259,11 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		}
 
 	default:
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "invalid identifier type: "+string(idType))
+		return nil, bizerrors.NewErrorFromContext(
+			ctx,
+			bizerrors.AuthParamInvalid,
+			"invalid identifier type: "+string(idType),
+		)
 	}
 
 	// Verify password

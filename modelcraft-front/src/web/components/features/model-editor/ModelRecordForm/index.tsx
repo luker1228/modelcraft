@@ -130,9 +130,11 @@ export function ModelRecordForm({
     const map = new Map<string, ModelNode>()
     const edges = modelsData?.models?.edges ?? []
     for (const edge of edges) {
-      if (edge.node?.id) {
-        map.set(edge.node.id, { id: edge.node.id, name: edge.node.name })
+      if (!edge?.node?.id) {
+        continue
       }
+
+      map.set(edge.node.id, { id: edge.node.id, name: edge.node.name })
     }
     return map
   }, [modelsData])
@@ -216,9 +218,9 @@ export function ModelRecordForm({
           uiSchema={uiSchema}
           formData={initialData}
           validator={validator}
-          widgets={customWidgets}
-          templates={customTemplates}
-          formContext={formContext}
+          widgets={customWidgets as never}
+          templates={customTemplates as never}
+          formContext={formContext as never}
           onSubmit={handleSubmit}
           disabled={isSubmitting}
           liveValidate={false}

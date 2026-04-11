@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +12,7 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@web/components/ui/avatar'
 import { Button } from '@web/components/ui/button'
-import { Settings, LogOut, ChevronDown } from 'lucide-react'
+import { Settings, LogOut, ChevronDown, CircleUserRound } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
 /**
@@ -45,6 +45,8 @@ interface UserMenuProps {
   userAvatar?: string
   /** Callback when user clicks logout */
   onLogout: () => void
+  /** Optional callback when user clicks profile */
+  onProfile?: () => void
   /** Optional callback when user clicks settings */
   onSettings?: () => void
 }
@@ -54,9 +56,13 @@ export function UserMenu({
   userEmail,
   userAvatar,
   onLogout,
-  onSettings
+  onProfile,
+  onSettings,
 }: UserMenuProps) {
+  const params = useParams()
   const router = useRouter()
+
+  const orgName = typeof params.orgName === 'string' ? params.orgName : ''
 
   // Get initials for avatar fallback (up to 2 characters)
   const getInitials = (name: string) => {
@@ -69,14 +75,31 @@ export function UserMenu({
 
   const initials = userName ? getInitials(userName) : 'U'
 
+  const handleProfile = useCallback(() => {
+    if (onProfile) {
+      onProfile()
+      return
+    }
+
+    if (!orgName) {
+      return
+    }
+
+    router.push(`/org/${orgName}/profile`)
+  }, [onProfile, orgName, router])
+
   const handleSettings = useCallback(() => {
     if (onSettings) {
       onSettings()
-    } else {
-      // Default behavior - navigate to settings (can be overridden by parent)
-      console.log('[UserMenu] Settings clicked')
+      return
     }
-  }, [onSettings])
+
+    if (!orgName) {
+      return
+    }
+
+    router.push(`/org/${orgName}/settings`)
+  }, [onSettings, orgName, router])
 
   return (
     <DropdownMenu>
@@ -120,6 +143,15 @@ export function UserMenu({
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />
+
+        {/* Profile */}
+        <DropdownMenuItem
+          className="cursor-pointer focus:bg-selected focus:text-selected-foreground"
+          onClick={handleProfile}
+        >
+          <CircleUserRound className="mr-2 size-4" />
+          <span>个人资料</span>
+        </DropdownMenuItem>
 
         {/* Settings */}
         <DropdownMenuItem

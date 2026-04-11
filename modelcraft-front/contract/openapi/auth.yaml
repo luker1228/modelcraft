@@ -1,10 +1,48 @@
 # Auth Domain - paths + schemas
 
 paths:
+  /api/auth/register:
+    post:
+      operationId: register
+      summary: Register a new user with phone number and password
+      tags: [Auth]
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "auth.yaml#/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: Registration successful
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/RegisterResponse"
+        "400":
+          description: Invalid input (phone format, password too short)
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+        "409":
+          description: Phone number already registered
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/PhoneAlreadyRegisteredError"
+        "500":
+          description: Server error
+          content:
+            application/json:
+              schema:
+                $ref: "common.yaml#/schemas/SystemError"
+
   /api/auth/login:
     post:
       operationId: login
-      summary: Login with external user info (called by BFF after Casdoor OAuth)
+      summary: Login with phone number and password
       tags: [Auth]
       security: []
       requestBody:
@@ -20,32 +58,24 @@ paths:
             application/json:
               schema:
                 $ref: "auth.yaml#/schemas/LoginResponse"
+        "400":
+          description: Invalid input (phone format)
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthInvalidInputError"
+        "401":
+          description: Authentication failed (phone not found or wrong password)
+          content:
+            application/json:
+              schema:
+                $ref: "auth.yaml#/schemas/AuthenticationError"
         "500":
           description: Server error
           content:
             application/json:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
-
-  /api/auth/login-url:
-    get:
-      operationId: getLoginURL
-      summary: Get Casdoor login URL
-      tags: [Auth]
-      security: []
-      parameters:
-        - name: state
-          in: query
-          required: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: Login URL returned
-          content:
-            application/json:
-              schema:
-                $ref: "auth.yaml#/schemas/GetLoginURLResponse"
 
   /api/auth/logout:
     post:
@@ -87,7 +117,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "auth.yaml#/schemas/UnauthorizedError"
+                $ref: "auth.yaml#/schemas/AuthenticationError"
         "500":
           description: Server error
           content:
@@ -97,29 +127,122 @@ paths:
 
 schemas:
   # -- Auth domain errors --
-  UnauthorizedError:
+  AuthInvalidInputError:
     type: object
+    required:
+      - requestId
+      - error
     properties:
-      error:
+      requestId:
         type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - PARAM_INVALID.AUTH
+          message:
+            type: string
+
+  PhoneAlreadyRegisteredError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - CONFLICT.USER
+          message:
+            type: string
+
+  AuthenticationError:
+    type: object
+    required:
+      - requestId
+      - error
+    properties:
+      requestId:
+        type: string
+      error:
+        type: object
+        required:
+          - code
+          - message
+        properties:
+          code:
+            type: string
+            enum:
+              - AUTHENTICATION_FAILED
+          message:
+            type: string
 
   # -- Auth request types --
+  RegisterRequest:
+    type: object
+    required:
+      - phone
+      - password
+      - userName
+    properties:
+      phone:
+        type: string
+        description: "11-digit mainland China phone number"
+        pattern: "^1[3-9]\\d{9}$"
+        example: "13800138000"
+      password:
+        type: string
+        description: "Password (minimum 8 characters)"
+        minLength: 8
+        example: "mypassword123"
+      userName:
+        type: string
+        description: "User name (3-32 chars, start with letter/underscore/hyphen, then alphanumeric/underscore/hyphen)"
+        pattern: "^[a-zA-Z_-][a-zA-Z0-9_-]{2,31}$"
+        minLength: 3
+        maxLength: 32
+        example: "john_doe"
+
   LoginRequest:
     type: object
     required:
-      - externalId
-      - email
-      - name
+      - identifier
+      - password
     properties:
-      externalId:
+      identifier:
         type: string
-        description: External authentication provider user ID
-      email:
+        description: "Login identifier - can be phone number or username depending on identifierType"
+        example: "13800138000"
+      identifierType:
         type: string
-        description: User email address
-      name:
+        description: "Type of identifier: PHONE (default) or USERNAME"
+        enum:
+          - PHONE
+          - USERNAME
+        default: PHONE
+      password:
         type: string
-        description: User display name
+        description: "User password"
+        example: "mypassword123"
+      # Deprecated: kept for backward compatibility, use identifier + identifierType instead
+      phone:
+        type: string
+        description: "[Deprecated] 11-digit mainland China phone number. Use identifier + identifierType instead."
+        pattern: "^1[3-9]\\d{9}$"
+        example: "13800138000"
 
   RefreshTokenRequest:
     type: object
@@ -128,49 +251,66 @@ schemas:
     properties:
       refreshToken:
         type: string
-        description: Refresh token obtained during initial authentication
+        description: Refresh token obtained during login
 
   # -- Auth response types --
-  LoginResponse:
-    type: object
-    required:
-      - userId
-      - refreshToken
-      - expiresAt
-    properties:
-      userId:
-        type: string
-        description: ModelCraft internal user UUID
-      refreshToken:
-        type: string
-        description: Opaque refresh token (store in httpOnly cookie)
-      expiresAt:
-        type: string
-        format: date-time
-        description: Refresh token expiration time
-
-  RefreshResponse:
-    type: object
-    required:
-      - userId
-      - refreshToken
-      - expiresAt
-    properties:
-      userId:
-        type: string
-        description: ModelCraft internal user UUID
-      refreshToken:
-        type: string
-        description: New opaque refresh token (replaces the old one)
-      expiresAt:
-        type: string
-        format: date-time
-        description: New refresh token expiration time
-
-  GetLoginURLResponse:
+  RegisterResponse:
     allOf:
       - $ref: "common.yaml#/schemas/BaseResponse"
       - type: object
+        required:
+          - userId
+          - orgName
         properties:
-          loginUrl:
+          userId:
             type: string
+            description: "Created user UUID"
+          orgName:
+            type: string
+            description: "Created personal organization slug"
+
+  LoginResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - userId
+          - refreshToken
+          - expiresAt
+        properties:
+          userId:
+            type: string
+            description: ModelCraft internal user UUID
+          userName:
+            type: string
+            description: User display name
+          orgName:
+            type: string
+            description: Primary organization name (first org the user belongs to, if any)
+          refreshToken:
+            type: string
+            description: Opaque refresh token (store securely on client)
+          expiresAt:
+            type: string
+            format: date-time
+            description: Refresh token expiration time (7 days from now)
+
+  RefreshResponse:
+    allOf:
+      - $ref: "common.yaml#/schemas/BaseResponse"
+      - type: object
+        required:
+          - userId
+          - refreshToken
+          - expiresAt
+        properties:
+          userId:
+            type: string
+            description: ModelCraft internal user UUID
+          refreshToken:
+            type: string
+            description: New opaque refresh token (replaces the old one)
+          expiresAt:
+            type: string
+            format: date-time
+            description: New refresh token expiration time

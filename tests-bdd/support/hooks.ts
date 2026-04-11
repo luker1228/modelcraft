@@ -69,6 +69,7 @@ Before(function (this: ModelCraftWorld) {
   this.registeredPassword = null
   this.currentRefreshToken = null
   this.currentUserId = null
+  this.currentOrgName = null
   this.lastMembershipsCount = null
   this.initOrgName = null
   this.initDisplayName = null
@@ -80,6 +81,7 @@ Before(function (this: ModelCraftWorld) {
   if (!this.token && process.env.TEST_ACCESS_TOKEN) {
     this.token = process.env.TEST_ACCESS_TOKEN
     this.projectClient.setAuth(process.env.TEST_ACCESS_TOKEN)
+    this.orgClient.setAuth(process.env.TEST_ACCESS_TOKEN)
   }
 })
 

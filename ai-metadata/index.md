@@ -173,3 +173,10 @@ ai-metadata/
 | [prd/auth/auth-login.md](./prd/auth/auth-login.md) | 登录流程需求 |
 | [prd/auth/auth-register.md](./prd/auth/auth-register.md) | 注册流程需求 |
 
+### 字段展示协议
+
+| 路径 | 说明 |
+|------|------|
+| [prd/field/00-field-label-field.md](./prd/field/00-field-label-field.md) | 关系字段统一展示协议（`__label` + 模型级 `displayField`） |
+| [prd/field/plan.md](./prd/field/plan.md) | 后端实现逻辑计划（直接切换、无 fallback） |
+

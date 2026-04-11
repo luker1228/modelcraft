@@ -1,12 +1,13 @@
 import 'dotenv/config'
 import { World, setWorldConstructor, IWorldOptions } from '@cucumber/cucumber'
-import { GraphQLClient } from './graphql-client'
+import { GraphQLClient, OrgGraphQLClient } from './graphql-client'
 import { RestClient, RestResult } from './rest-client'
 
 export class ModelCraftWorld extends World {
   // 客户端
   readonly restClient: RestClient
   readonly projectClient: GraphQLClient
+  readonly orgClient: OrgGraphQLClient
 
   // 认证
   token: string | null = null
@@ -40,6 +41,7 @@ export class ModelCraftWorld extends World {
   registeredPassword: string | null = null
   currentRefreshToken: string | null = null
   currentUserId: string | null = null
+  currentOrgName: string | null = null
 
   // Org 初始化相关状态（REST 场景）
   lastMembershipsCount: number | null = null
@@ -57,12 +59,14 @@ export class ModelCraftWorld extends World {
 
     this.restClient = new RestClient()
     this.projectClient = new GraphQLClient(this.orgName, this.projectSlug)
+    this.orgClient = new OrgGraphQLClient(this.orgName)
 
     // 若提供了预设 token，直接使用（跳过 OAuth 流程）
     const token = process.env.TEST_ACCESS_TOKEN
     if (token) {
       this.token = token
       this.projectClient.setAuth(token)
+      this.orgClient.setAuth(token)
     }
   }
 }

@@ -412,7 +412,16 @@ export const MOVE_MODEL_TO_GROUP = gql`
 export const ADD_FIELDS = gql`
   mutation AddFields($modelID: ID!, $input: [AddFieldInput!]!) {
     addFields(modelID: $modelID, input: $input) {
-      id
+      model {
+        id
+      }
+      error {
+        __typename
+        ... on InvalidModelInput {
+          message
+          suggestion
+        }
+      }
     }
   }
 `

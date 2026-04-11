@@ -216,7 +216,7 @@ export function GraphQLErrorDialog({
                   </div>
 
                   {/* 变量信息 */}
-                  {context.variables && Object.keys(context.variables).length > 0 && (
+                  {Boolean(context.variables) && Object.keys(context.variables ?? {}).length > 0 && (
                     <div>
                       <strong className="mb-1 block">请求变量:</strong>
                       <pre className="max-h-32 overflow-x-auto rounded bg-gray-100 p-2 text-xs">
@@ -226,7 +226,7 @@ export function GraphQLErrorDialog({
                   )}
 
                   {/* GraphQL查询 */}
-                  {context.query && (
+                  {Boolean(context.query) && (
                     <div>
                       <strong className="mb-1 block">GraphQL 查询:</strong>
                       <pre className="max-h-40 overflow-x-auto rounded bg-gray-100 p-2 text-xs">
@@ -236,7 +236,7 @@ export function GraphQLErrorDialog({
                   )}
 
                   {/* 网络错误 */}
-                  {context.networkError && (
+                  {Boolean(context.networkError) && (
                     <div>
                       <strong className="mb-1 block">网络错误:</strong>
                       <pre className="overflow-x-auto rounded bg-red-50 p-2 text-xs">

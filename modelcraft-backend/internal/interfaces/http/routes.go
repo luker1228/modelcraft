@@ -32,6 +32,7 @@ import (
 
 	appOrg "modelcraft/internal/app/organization"
 	appPermission "modelcraft/internal/app/permission"
+	appProfile "modelcraft/internal/app/profile"
 
 	appRole "modelcraft/internal/app/role"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
@@ -59,6 +60,7 @@ type DesignHandlers struct {
 	EnumAppService            *modeldesign.EnumAppService
 	ProjectAppService         *project.ProjectAppService
 	OrgAppService             *appOrg.OrganizationAppService
+	ProfileAppService         *appProfile.AppService
 	RoleAppService            *appRole.RoleAppService
 	GroupAppService           *modeldesign.ModelGroupAppService
 	LogicalFKAppService       *modeldesign.LogicalFKAppService
@@ -128,6 +130,8 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
+	profileRepo := repository.NewSqlProfileRepository(dbgen.New(loggingDB))
+	profileAppService := appProfile.NewAppService(userRepo, profileRepo)
 	orgRepo := repository.NewSqlOrganizationRepository(dbgen.New(loggingDB))
 	membershipRepo := repository.NewSqlMembershipRepository(dbgen.New(loggingDB))
 
@@ -182,11 +186,13 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	tokenService := auth.NewTokenService(
 		refreshTokenRepo,
 		userRepo,
+		profileRepo,
 		auditLogRepo,
 		passwordHasher,
 		7*24*time.Hour, // refresh token TTL
 		createOrgService,
 		membershipRepo, // for fetching user's org on login
+		txManager,
 	)
 
 	// Create auth handler with token service
@@ -205,6 +211,7 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 		EnumAppService:            enumAppService,
 		ProjectAppService:         projectAppService,
 		OrgAppService:             orgAppService,
+		ProfileAppService:         profileAppService,
 		RoleAppService:            roleAppService,
 		PermRoleService:           permRoleService,
 		PermPermissionService:     permPermissionService,
@@ -226,6 +233,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		ProjectAppService:      handlers.ProjectAppService,
 		ClusterAppService:      handlers.ClusterAppService,
 		OrganizationAppService: handlers.OrgAppService,
+		ProfileAppService:      handlers.ProfileAppService,
 		UserRepo:               handlers.UserRepo,
 		RoleAppService:         handlers.RoleAppService,
 		RoleService:            handlers.PermRoleService,

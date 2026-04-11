@@ -74,8 +74,21 @@ func (m *mockUserRepo) GetByPhone(ctx context.Context, phone string) (*user.User
 	return args.Get(0).(*user.User), args.Error(1)
 }
 
+func (m *mockUserRepo) GetByName(ctx context.Context, name string) (*user.User, error) {
+	args := m.Called(ctx, name)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*user.User), args.Error(1)
+}
+
 func (m *mockUserRepo) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
 	args := m.Called(ctx, phone)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockUserRepo) ExistsByName(ctx context.Context, name string) (bool, error) {
+	args := m.Called(ctx, name)
 	return args.Bool(0), args.Error(1)
 }
 

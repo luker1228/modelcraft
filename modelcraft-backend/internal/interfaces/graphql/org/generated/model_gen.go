@@ -55,6 +55,10 @@ type GetClusterError interface {
 	IsGetClusterError()
 }
 
+type GetMyUserProfileError interface {
+	IsGetMyUserProfileError()
+}
+
 type GetOrganizationError interface {
 	IsGetOrganizationError()
 }
@@ -96,6 +100,10 @@ type UpdateAPIKeyError interface {
 
 type UpdateClusterError interface {
 	IsUpdateClusterError()
+}
+
+type UpdateMyProfileError interface {
+	IsUpdateMyProfileError()
 }
 
 type UpdatePermissionRoleError interface {
@@ -245,7 +253,6 @@ type CreateProjectInput struct {
 	Slug               string                  `json:"slug"`
 	Title              string                  `json:"title"`
 	Description        *string                 `json:"description,omitempty"`
-	LoginURL           *string                 `json:"loginUrl,omitempty"`
 	ClusterInput       *ClusterConnectionInput `json:"clusterInput"`
 	SkipConnectionTest *bool                   `json:"skipConnectionTest,omitempty"`
 }
@@ -347,6 +354,11 @@ type GetClusterPayload struct {
 	Error   GetClusterError  `json:"error,omitempty"`
 }
 
+type GetMyUserProfilePayload struct {
+	User  *User                 `json:"user,omitempty"`
+	Error GetMyUserProfileError `json:"error,omitempty"`
+}
+
 type GetOrganizationPayload struct {
 	Organization *Organization        `json:"organization,omitempty"`
 	Error        GetOrganizationError `json:"error,omitempty"`
@@ -366,6 +378,16 @@ func (InvalidClusterInput) IsError()                {}
 func (this InvalidClusterInput) GetMessage() string { return this.Message }
 
 func (InvalidClusterInput) IsUpdateClusterError() {}
+
+type InvalidProfileInput struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (InvalidProfileInput) IsError()                {}
+func (this InvalidProfileInput) GetMessage() string { return this.Message }
+
+func (InvalidProfileInput) IsUpdateMyProfileError() {}
 
 type InvalidProjectInput struct {
 	Message    string  `json:"message"`
@@ -525,12 +547,35 @@ func (PermissionUserNotFound) IsAssignRoleError() {}
 
 func (PermissionUserNotFound) IsRevokeRoleError() {}
 
+type Profile struct {
+	ID        string  `json:"id"`
+	UserID    string  `json:"userId"`
+	Nickname  string  `json:"nickname"`
+	AvatarURL *string `json:"avatarUrl,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+	CreatedAt string  `json:"createdAt"`
+	UpdatedAt string  `json:"updatedAt"`
+}
+
+func (Profile) IsNode()            {}
+func (this Profile) GetID() string { return this.ID }
+
+type ProfileNotFound struct {
+	Message string `json:"message"`
+}
+
+func (ProfileNotFound) IsError()                {}
+func (this ProfileNotFound) GetMessage() string { return this.Message }
+
+func (ProfileNotFound) IsGetMyUserProfileError() {}
+
+func (ProfileNotFound) IsUpdateMyProfileError() {}
+
 type Project struct {
 	ID          string        `json:"id"`
 	Slug        string        `json:"slug"`
 	Title       string        `json:"title"`
 	Description string        `json:"description"`
-	LoginURL    *string       `json:"loginUrl,omitempty"`
 	Status      ProjectStatus `json:"status"`
 	OrgName     string        `json:"orgName"`
 	CreatedAt   string        `json:"createdAt"`
@@ -661,6 +706,17 @@ type UpdateClusterPayload struct {
 	Error   UpdateClusterError `json:"error,omitempty"`
 }
 
+type UpdateMyProfileInput struct {
+	Nickname  *string `json:"nickname,omitempty"`
+	AvatarURL *string `json:"avatarUrl,omitempty"`
+	Bio       *string `json:"bio,omitempty"`
+}
+
+type UpdateMyProfilePayload struct {
+	Profile *Profile             `json:"profile,omitempty"`
+	Error   UpdateMyProfileError `json:"error,omitempty"`
+}
+
 type UpdateOrganizationInput struct {
 	DisplayName *string `json:"displayName,omitempty"`
 }
@@ -679,7 +735,6 @@ type UpdateProjectInput struct {
 	Slug        string  `json:"slug"`
 	Title       *string `json:"title,omitempty"`
 	Description *string `json:"description,omitempty"`
-	LoginURL    *string `json:"loginUrl,omitempty"`
 }
 
 type UpdateProjectPayload struct {
@@ -691,6 +746,28 @@ type UpdateRoleInput struct {
 	Name        *string `json:"name,omitempty"`
 	Description *string `json:"description,omitempty"`
 }
+
+type User struct {
+	ID        string     `json:"id"`
+	Phone     string     `json:"phone"`
+	UserName  string     `json:"userName"`
+	Status    UserStatus `json:"status"`
+	CreatedAt string     `json:"createdAt"`
+	UpdatedAt string     `json:"updatedAt"`
+	Profile   *Profile   `json:"profile"`
+}
+
+func (User) IsNode()            {}
+func (this User) GetID() string { return this.ID }
+
+type UserNotFound struct {
+	Message string `json:"message"`
+}
+
+func (UserNotFound) IsError()                {}
+func (this UserNotFound) GetMessage() string { return this.Message }
+
+func (UserNotFound) IsGetMyUserProfileError() {}
 
 type UserRoleAssignment struct {
 	ID        int32     `json:"id"`
@@ -919,6 +996,63 @@ func (e *ProjectStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e ProjectStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type UserStatus string
+
+const (
+	UserStatusRegistered UserStatus = "REGISTERED"
+	UserStatusActive     UserStatus = "ACTIVE"
+	UserStatusSuspended  UserStatus = "SUSPENDED"
+)
+
+var AllUserStatus = []UserStatus{
+	UserStatusRegistered,
+	UserStatusActive,
+	UserStatusSuspended,
+}
+
+func (e UserStatus) IsValid() bool {
+	switch e {
+	case UserStatusRegistered, UserStatusActive, UserStatusSuspended:
+		return true
+	}
+	return false
+}
+
+func (e UserStatus) String() string {
+	return string(e)
+}
+
+func (e *UserStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = UserStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid UserStatus", str)
+	}
+	return nil
+}
+
+func (e UserStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *UserStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e UserStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

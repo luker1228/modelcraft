@@ -142,7 +142,7 @@ export default function EnumsPage() {
       if (!newEnum) return
       cache.modify({
         fields: {
-          enums(existing: Reference[] = []) {
+          enums(existing: readonly Reference[] = []) {
             const newRef = cache.writeFragment({
               data: newEnum,
               fragment: gql`

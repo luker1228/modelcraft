@@ -1,6 +1,6 @@
 -- name: CreateProject :exec
-INSERT INTO projects (org_name, slug, title, description, login_url, cluster_id, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO projects (org_name, slug, title, description, cluster_id, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetProjectBySlugAndOrg :one
 SELECT * FROM projects
@@ -23,7 +23,7 @@ ORDER BY created_at DESC;
 
 -- name: UpdateProject :exec
 UPDATE projects
-SET title = ?, description = ?, login_url = ?, cluster_id = ?, updated_at = NOW(3)
+SET title = ?, description = ?, cluster_id = ?, updated_at = NOW(3)
 WHERE slug = ? AND org_name = ?;
 
 -- name: ArchiveProject :exec

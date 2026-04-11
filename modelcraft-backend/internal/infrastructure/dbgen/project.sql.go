@@ -27,8 +27,8 @@ func (q *Queries) ArchiveProject(ctx context.Context, arg ArchiveProjectParams) 
 }
 
 const createProject = `-- name: CreateProject :exec
-INSERT INTO projects (org_name, slug, title, description, login_url, cluster_id, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO projects (org_name, slug, title, description, cluster_id, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateProjectParams struct {
@@ -36,7 +36,6 @@ type CreateProjectParams struct {
 	Slug        string
 	Title       string
 	Description sql.NullString
-	LoginUrl    sql.NullString
 	ClusterID   sql.NullString
 	Status      string
 }
@@ -47,7 +46,6 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) er
 		arg.Slug,
 		arg.Title,
 		arg.Description,
-		arg.LoginUrl,
 		arg.ClusterID,
 		arg.Status,
 	)
@@ -72,7 +70,7 @@ func (q *Queries) ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySl
 }
 
 const getProjectByClusterID = `-- name: GetProjectByClusterID :one
-SELECT org_name, slug, title, description, login_url, status, cluster_id, created_at, updated_at FROM projects
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
 WHERE org_name = ? AND cluster_id = ?
 LIMIT 1
 `
@@ -90,7 +88,6 @@ func (q *Queries) GetProjectByClusterID(ctx context.Context, arg GetProjectByClu
 		&i.Slug,
 		&i.Title,
 		&i.Description,
-		&i.LoginUrl,
 		&i.Status,
 		&i.ClusterID,
 		&i.CreatedAt,
@@ -100,7 +97,7 @@ func (q *Queries) GetProjectByClusterID(ctx context.Context, arg GetProjectByClu
 }
 
 const getProjectBySlugAndOrg = `-- name: GetProjectBySlugAndOrg :one
-SELECT org_name, slug, title, description, login_url, status, cluster_id, created_at, updated_at FROM projects
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
 WHERE slug = ? AND org_name = ?
 LIMIT 1
 `
@@ -118,7 +115,6 @@ func (q *Queries) GetProjectBySlugAndOrg(ctx context.Context, arg GetProjectBySl
 		&i.Slug,
 		&i.Title,
 		&i.Description,
-		&i.LoginUrl,
 		&i.Status,
 		&i.ClusterID,
 		&i.CreatedAt,
@@ -128,7 +124,7 @@ func (q *Queries) GetProjectBySlugAndOrg(ctx context.Context, arg GetProjectBySl
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT org_name, slug, title, description, login_url, status, cluster_id, created_at, updated_at FROM projects
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
 ORDER BY created_at DESC
 `
 
@@ -146,7 +142,6 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.Slug,
 			&i.Title,
 			&i.Description,
-			&i.LoginUrl,
 			&i.Status,
 			&i.ClusterID,
 			&i.CreatedAt,
@@ -166,7 +161,7 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 }
 
 const listProjectsByOrg = `-- name: ListProjectsByOrg :many
-SELECT org_name, slug, title, description, login_url, status, cluster_id, created_at, updated_at FROM projects
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
 WHERE org_name = ?
 ORDER BY created_at DESC
 `
@@ -185,7 +180,6 @@ func (q *Queries) ListProjectsByOrg(ctx context.Context, orgName string) ([]Proj
 			&i.Slug,
 			&i.Title,
 			&i.Description,
-			&i.LoginUrl,
 			&i.Status,
 			&i.ClusterID,
 			&i.CreatedAt,
@@ -206,14 +200,13 @@ func (q *Queries) ListProjectsByOrg(ctx context.Context, orgName string) ([]Proj
 
 const updateProject = `-- name: UpdateProject :exec
 UPDATE projects
-SET title = ?, description = ?, login_url = ?, cluster_id = ?, updated_at = NOW(3)
+SET title = ?, description = ?, cluster_id = ?, updated_at = NOW(3)
 WHERE slug = ? AND org_name = ?
 `
 
 type UpdateProjectParams struct {
 	Title       string
 	Description sql.NullString
-	LoginUrl    sql.NullString
 	ClusterID   sql.NullString
 	Slug        string
 	OrgName     string
@@ -223,7 +216,6 @@ func (q *Queries) UpdateProject(ctx context.Context, arg UpdateProjectParams) er
 	_, err := q.db.ExecContext(ctx, updateProject,
 		arg.Title,
 		arg.Description,
-		arg.LoginUrl,
 		arg.ClusterID,
 		arg.Slug,
 		arg.OrgName,

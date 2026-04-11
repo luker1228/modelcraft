@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm } from 'react-hook-form'
+import { useForm, type FieldValues } from 'react-hook-form'
 import { IdentityFormSection } from '@web/components/ui/identity-form-section'
 import { Badge } from '@web/components/ui/badge'
 import { Separator } from '@web/components/ui/separator'
@@ -21,7 +21,7 @@ const DEMOS = [
 // ── Individual demos ───────────────────────────────────────────────────────────
 
 function ClusterDemo() {
-  const { control, formState } = useForm({ defaultValues: { title: '主数据库集群' } })
+  const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '主数据库集群' } })
   const dirty = !!formState.dirtyFields.title
   const [saving, setSaving] = useState(false)
 
@@ -56,7 +56,7 @@ function ClusterDemo() {
 }
 
 function ModelDemo() {
-  const { control, formState } = useForm({ defaultValues: { title: '用户' } })
+  const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '用户' } })
   const dirty = !!formState.dirtyFields.title
   const [saving, setSaving] = useState(false)
 
@@ -88,7 +88,7 @@ function ModelDemo() {
 }
 
 function EnumDemo() {
-  const { control, formState } = useForm({ defaultValues: { title: '用户角色' } })
+  const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '用户角色' } })
   const dirty = !!formState.dirtyFields.title
 
   return (
@@ -136,7 +136,7 @@ function ViewDemo() {
 }
 
 function ReadOnlyDemo() {
-  const { control, formState } = useForm({ defaultValues: { title: '用户表' } })
+  const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '用户表' } })
   const dirty = !!formState.dirtyFields.title
 
   return (
@@ -173,7 +173,7 @@ function ReadOnlyDemo() {
 }
 
 function PrefixDemo() {
-  const { control, formState } = useForm({ defaultValues: { title: '官方文档站' } })
+  const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '官方文档站' } })
   const dirty = !!formState.dirtyFields.title
 
   return (
@@ -207,7 +207,7 @@ function StatusDemo() {
     { type: 'loading' as const, label: '生成中'   },
     { type: 'error'   as const, label: '生成失败', message: '标识符已被占用' },
   ]
-  const { control } = useForm({ defaultValues: { title: '示例资源' } })
+  const { control } = useForm<FieldValues>({ defaultValues: { title: '示例资源' } })
 
   return (
     <div className="space-y-4">

@@ -94,7 +94,7 @@ function createOrgScopedClient() {
 export function createProjectScopedClient(
   orgName: string,
   projectSlug: string
-): ApolloClient<unknown> {
+): ApolloClient<object> {
   const uri = `/graphql/org/${orgName}/project/${projectSlug}/`
 
   const httpLink = createHttpLink({ uri })
@@ -134,7 +134,7 @@ export function createModelRuntimeClient(
   projectSlug: string,
   databaseName: string,
   modelName: string
-): ApolloClient<unknown> {
+): ApolloClient<object> {
   const uri = buildRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
 
   const httpLink = createHttpLink({ uri })
@@ -157,13 +157,13 @@ export function createModelRuntimeClient(
 }
 
 // Org-scoped singleton
-let orgScopedClient: ApolloClient<unknown> | null = null
+let orgScopedClient: ApolloClient<object> | null = null
 
 /**
  * Get or create Org-Scoped Apollo Client (singleton)
  * Use for org-level operations: Projects, Clusters, Users, Roles
  */
-export function getOrgScopedClient(): ApolloClient<unknown> {
+export function getOrgScopedClient(): ApolloClient<object> {
   if (!orgScopedClient) {
     orgScopedClient = createOrgScopedClient()
   }
@@ -177,7 +177,7 @@ export function getOrgScopedClient(): ApolloClient<unknown> {
  * - Otherwise: returns the org-scoped singleton
  *   pointing to /graphql/org/{orgName}/
  */
-export function useProjectScopedClient(projectSlug?: string): ApolloClient<unknown> {
+export function useProjectScopedClient(projectSlug?: string): ApolloClient<object> {
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
 
   return useMemo(() => {
@@ -189,7 +189,7 @@ export function useProjectScopedClient(projectSlug?: string): ApolloClient<unkno
 }
 
 // React Context for org-scoped client
-const OrgScopedClientContext = createContext<ApolloClient<unknown> | null>(null)
+const OrgScopedClientContext = createContext<ApolloClient<object> | null>(null)
 
 /**
  * Hook to access the Org-Scoped Apollo Client.
@@ -198,7 +198,7 @@ const OrgScopedClientContext = createContext<ApolloClient<unknown> | null>(null)
  * @deprecated Prefer useProjectScopedClient() for project-level operations.
  * Kept for backward compatibility with existing consumers (DynamicModelTable, InsertFieldSheet, FormRenderer).
  */
-export function useDesignTimeClient(): ApolloClient<unknown> {
+export function useDesignTimeClient(): ApolloClient<object> {
   const client = useContext(OrgScopedClientContext)
   if (!client) {
     return getOrgScopedClient()

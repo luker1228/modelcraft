@@ -18,16 +18,13 @@ export interface ReadOnlyField {
 }
 
 /**
- * A relaxed Control type that accepts any FieldValues subtype.
+ * Runtime-only control holder.
  *
- * react-hook-form's Control<TFieldValues> is contravariant in TFieldValues,
- * which means Control<{title: string}> is NOT assignable to Control<FieldValues>.
- * Using FieldValues (which is Record<string, any>) as the type parameter is
- * the widest possible type that satisfies the FieldValues constraint, so any
- * Control<SpecificType> can be safely used at runtime even though TypeScript's
- * strict variance checking rejects the assignment at compile time.
+ * react-hook-form's Control<TFieldValues> has strict variance constraints,
+ * which makes different form schemas incompatible at compile time.
+ * We keep this field as unknown and cast at the Controller boundary.
  */
-type AnyControl = Control<FieldValues>
+type AnyControl = unknown
 
 export interface IdentityFormSectionProps extends React.HTMLAttributes<HTMLDivElement> {
   /** 区块标题 */

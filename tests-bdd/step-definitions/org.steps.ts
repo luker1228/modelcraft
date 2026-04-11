@@ -20,8 +20,11 @@ Given('我已登录并持有 access token', async function (this: ModelCraftWorl
   }
 
   this.currentUserId = regResult.data.userId
+  this.currentOrgName = regResult.data.orgName
+  this.orgClient.setOrgName(regResult.data.orgName)
   this.token = signJWT(regResult.data.userId, 3600)
   this.projectClient.setAuth(this.token)
+  this.orgClient.setAuth(this.token)
 })
 
 Given('当前用户没有任何组织 memberships', async function (this: ModelCraftWorld) {

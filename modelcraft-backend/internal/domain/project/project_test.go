@@ -13,7 +13,6 @@ func TestNewProject(t *testing.T) {
 		projectSlug string
 		title       string
 		description string
-		loginURL    string
 		wantErr     bool
 		errContains string
 	}{
@@ -22,15 +21,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "ecommerce",
 			title:       "E-Commerce Platform",
 			description: "Online shopping platform",
-			loginURL:    "",
-			wantErr:     false,
-		},
-		{
-			name:        "valid project with login URL",
-			projectSlug: "ecommerce",
-			title:       "E-Commerce Platform",
-			description: "Online shopping platform",
-			loginURL:    "https://login.example.com",
 			wantErr:     false,
 		},
 		{
@@ -38,34 +28,14 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "my-project-123",
 			title:       "My Project",
 			description: "Test project",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "lowercase letters/digits/underscores only",
-		},
-		{
-			name:        "invalid login URL format",
-			projectSlug: "ecommerce",
-			title:       "E-Commerce Platform",
-			description: "Online shopping platform",
-			loginURL:    "not-a-valid-url",
-			wantErr:     true,
-			errContains: "invalid login URL format",
-		},
-		{
-			name:        "login URL without scheme",
-			projectSlug: "ecommerce",
-			title:       "E-Commerce Platform",
-			description: "Online shopping platform",
-			loginURL:    "example.com",
-			wantErr:     true,
-			errContains: "invalid login URL format",
 		},
 		{
 			name:        "empty name",
 			projectSlug: "",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "ProjectSlug cant be blank",
 		},
@@ -74,7 +44,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "test",
 			title:       "",
 			description: "",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "project title is required",
 		},
@@ -83,7 +52,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "ab",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "3-64 characters",
 		},
@@ -92,7 +60,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "123project",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "start with a letter",
 		},
@@ -101,7 +68,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "MyProject",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "lowercase",
 		},
@@ -110,7 +76,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "my_project",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     false,
 		},
 		{
@@ -118,7 +83,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "my_project_123",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     false,
 		},
 		{
@@ -126,7 +90,6 @@ func TestNewProject(t *testing.T) {
 			projectSlug: "project@123",
 			title:       "Test",
 			description: "",
-			loginURL:    "",
 			wantErr:     true,
 			errContains: "lowercase letters/digits/underscores only",
 		},
@@ -134,7 +97,7 @@ func TestNewProject(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			project, err := NewProject("built-in", tt.projectSlug, tt.title, tt.description, tt.loginURL)
+			project, err := NewProject("built-in", tt.projectSlug, tt.title, tt.description)
 
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -149,7 +112,6 @@ func TestNewProject(t *testing.T) {
 				assert.Equal(t, "built-in", project.OrgName)
 				assert.Equal(t, tt.title, project.Title)
 				assert.Equal(t, tt.description, project.Description)
-				assert.Equal(t, tt.loginURL, project.LoginURL)
 				assert.Equal(t, ProjectStatusActive, project.Status)
 				assert.False(t, project.CreatedAt.IsZero())
 				assert.False(t, project.UpdatedAt.IsZero())
@@ -217,7 +179,6 @@ func TestProject_UpdateMetadata(t *testing.T) {
 			Slug:        "test_project",
 			Title:       "Original Title",
 			Description: "Original Description",
-			LoginURL:    "https://old.example.com",
 			Status:      ProjectStatusActive,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -226,21 +187,19 @@ func TestProject_UpdateMetadata(t *testing.T) {
 		oldUpdatedAt := project.UpdatedAt
 		time.Sleep(10 * time.Millisecond)
 
-		err := project.UpdateMetadata("New Title", "New Description", "")
+		err := project.UpdateMetadata("New Title", "New Description")
 		assert.NoError(t, err)
 		assert.Equal(t, "New Title", project.Title)
 		assert.Equal(t, "New Description", project.Description)
-		assert.Equal(t, "https://old.example.com", project.LoginURL) // Should not change when empty string passed
 		assert.True(t, project.UpdatedAt.After(oldUpdatedAt))
 	})
 
-	t.Run("update all fields including login URL", func(t *testing.T) {
+	t.Run("update title only", func(t *testing.T) {
 		project := &Project{
 			OrgName:     "built-in",
 			Slug:        "test_project",
 			Title:       "Original Title",
 			Description: "Original Description",
-			LoginURL:    "https://old.example.com",
 			Status:      ProjectStatusActive,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -249,21 +208,19 @@ func TestProject_UpdateMetadata(t *testing.T) {
 		oldUpdatedAt := project.UpdatedAt
 		time.Sleep(10 * time.Millisecond)
 
-		err := project.UpdateMetadata("New Title", "New Description", "https://new.example.com")
+		err := project.UpdateMetadata("New Title", "")
 		assert.NoError(t, err)
 		assert.Equal(t, "New Title", project.Title)
-		assert.Equal(t, "New Description", project.Description)
-		assert.Equal(t, "https://new.example.com", project.LoginURL)
+		assert.Equal(t, "Original Description", project.Description)
 		assert.True(t, project.UpdatedAt.After(oldUpdatedAt))
 	})
 
-	t.Run("update login URL only", func(t *testing.T) {
+	t.Run("update description only", func(t *testing.T) {
 		project := &Project{
 			OrgName:     "built-in",
 			Slug:        "test_project",
 			Title:       "Original Title",
 			Description: "Original Description",
-			LoginURL:    "https://old.example.com",
 			Status:      ProjectStatusActive,
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
@@ -272,30 +229,11 @@ func TestProject_UpdateMetadata(t *testing.T) {
 		oldUpdatedAt := project.UpdatedAt
 		time.Sleep(10 * time.Millisecond)
 
-		err := project.UpdateMetadata("", "", "https://new.example.com")
+		err := project.UpdateMetadata("", "New Description")
 		assert.NoError(t, err)
 		assert.Equal(t, "Original Title", project.Title)
-		assert.Equal(t, "Original Description", project.Description)
-		assert.Equal(t, "https://new.example.com", project.LoginURL)
+		assert.Equal(t, "New Description", project.Description)
 		assert.True(t, project.UpdatedAt.After(oldUpdatedAt))
-	})
-
-	t.Run("invalid login URL", func(t *testing.T) {
-		project := &Project{
-			OrgName:     "built-in",
-			Slug:        "test_project",
-			Title:       "Original Title",
-			Description: "Original Description",
-			LoginURL:    "https://old.example.com",
-			Status:      ProjectStatusActive,
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
-		}
-
-		err := project.UpdateMetadata("", "", "invalid-url")
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "invalid login URL format")
-		assert.Equal(t, "https://old.example.com", project.LoginURL) // Should not change on error
 	})
 }
 
@@ -370,34 +308,6 @@ func TestIsValidProjectSlug(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			result := isValidProjectSlug(tt.projectSlug)
-			assert.Equal(t, tt.valid, result)
-		})
-	}
-}
-
-func TestIsValidLoginURL(t *testing.T) {
-	tests := []struct {
-		name  string
-		url   string
-		valid bool
-	}{
-		{"empty URL", "", true},
-		{"valid https URL", "https://login.example.com", true},
-		{"valid http URL", "http://login.example.com", true},
-		{"valid URL with port", "https://login.example.com:8080", true},
-		{"valid URL with path", "https://login.example.com/auth/login", true},
-		{"valid URL with query", "https://login.example.com?redirect=home", true},
-		{"no scheme", "login.example.com", false},
-		{"invalid scheme", "ftp://login.example.com", false},
-		{"just a word", "not-a-url", false},
-		{"relative path", "/login", false},
-		{"localhost", "http://localhost:8080", true},
-		{"IP address", "http://192.168.1.1", true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := isValidLoginURL(tt.url)
 			assert.Equal(t, tt.valid, result)
 		})
 	}

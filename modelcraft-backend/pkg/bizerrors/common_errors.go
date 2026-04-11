@@ -237,6 +237,21 @@ var (
 	}
 )
 
+// 定义用户资料（Profile）领域错误
+var (
+	ProfileNotFound = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".PROFILE",
+		EnMessage: "Profile not found: {0}",
+		ZhMessage: "用户资料不存在: {0}",
+	}
+
+	InvalidProfileInput = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".PROFILE",
+		EnMessage: "Invalid profile input: {0}",
+		ZhMessage: "用户资料参数无效: {0}",
+	}
+)
+
 // 定义组织领域错误
 var (
 	OrganizationNotFound = ErrorDefinition{

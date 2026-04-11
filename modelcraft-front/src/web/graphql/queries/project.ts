@@ -20,7 +20,6 @@ export const GET_PROJECTS = gql`
       slug
       title
       description
-      loginUrl
       status
       orgName
       createdAt
@@ -38,7 +37,6 @@ export const GET_PROJECT = gql`
         slug
         title
         description
-        loginUrl
         status
         orgName
         createdAt

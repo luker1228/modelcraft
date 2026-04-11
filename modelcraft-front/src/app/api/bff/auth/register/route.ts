@@ -5,12 +5,28 @@ import {
   AuthParamInvalidError,
   UserConflictError,
 } from '@/bff/auth/go-auth-client'
-import type { RegisterResponse } from '@/types/auth'
+import type { RegisterProfileSnapshot, RegisterResponse } from '@/types/auth'
 
 interface RegisterRequestBody {
   phone?: unknown
   userName?: unknown
   password?: unknown
+}
+
+function buildMockAvatarUrl(userName: string): string {
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(userName)}`
+}
+
+function buildFallbackProfileSnapshot(
+  userId: string,
+  userName: string
+): RegisterProfileSnapshot {
+  return {
+    id: `mock-profile-${userId}`,
+    userId,
+    nickname: userName,
+    avatarUrl: buildMockAvatarUrl(userName),
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -35,11 +51,16 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { userId, orgName } = await callGoRegister({ phone, userName, password })
+    const { userId, orgName, profile } = await callGoRegister({
+      phone,
+      userName,
+      password,
+    })
 
     const response: RegisterResponse = {
       userId,
       orgName,
+      profile: profile ?? buildFallbackProfileSnapshot(userId, userName),
     }
 
     return NextResponse.json(response, { status: 201 })
@@ -73,9 +94,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: err.message }, { status: 400 })
     }
 
-    return NextResponse.json(
-      { error: err instanceof Error ? err.message : '注册失败，请稍后重试' },
-      { status: 400 }
-    )
+    return NextResponse.json({ error: '注册失败，请稍后重试' }, { status: 500 })
   }
 }

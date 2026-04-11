@@ -16,17 +16,11 @@ type projectMapper struct{}
 
 // ConvertProjectToGraphQL converts domain Project to GraphQL Project
 func (p *projectMapper) ConvertProjectToGraphQL(proj *project.Project) *generated.Project {
-	var loginURL *string
-	if proj.LoginURL != "" {
-		loginURL = &proj.LoginURL
-	}
-
 	return &generated.Project{
 		ID:          proj.Slug, // Use slug as ID for backward compatibility
 		Slug:        proj.Slug,
 		Title:       proj.Title,
 		Description: proj.Description,
-		LoginURL:    loginURL,
 		Status:      ConvertProjectStatusToGraphQL(proj.Status),
 		OrgName:     proj.OrgName,
 		// Cluster field is resolved separately via ProjectResolver.Cluster()

@@ -17,6 +17,7 @@ import {
   TooltipTrigger,
 } from '@web/components/ui/tooltip'
 import { Check, Copy, Edit, Key, Loader2, Plus, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { renderCellValue } from './fieldProtocol'
 
 export interface ModelRecordTableFieldInfo {
@@ -121,6 +122,27 @@ export function ModelRecordTable({
   }, [resizingColumn, handleResizeMove, handleResizeEnd])
 
   const visibleFields = displayFields
+
+  const copyText = useCallback(async (text: string) => {
+    if (navigator.clipboard && window.isSecureContext) {
+      try {
+        await navigator.clipboard.writeText(text)
+        return true
+      } catch {
+        // fallback to execCommand
+      }
+    }
+
+    const textarea = document.createElement('textarea')
+    textarea.value = text
+    textarea.style.cssText = 'position:fixed;top:0;left:0;opacity:0'
+    document.body.appendChild(textarea)
+    textarea.focus()
+    textarea.select()
+    const copied = document.execCommand('copy')
+    document.body.removeChild(textarea)
+    return copied
+  }, [])
 
   return (
     <TooltipProvider>
@@ -266,16 +288,20 @@ export function ModelRecordTable({
                               >
                                 <span>{renderedValue}</span>
                                 <button
+                                  type="button"
                                   className="ml-1 shrink-0 opacity-70 hover:opacity-100"
                                   onClick={async (e) => {
                                     e.stopPropagation()
-                                    try {
-                                      await navigator.clipboard.writeText(renderedValue)
-                                    } catch {
-                                      // ignore clipboard errors
+                                    const copied = await copyText(renderedValue)
+                                    if (!copied) {
+                                      toast.error('复制失败，请手动复制')
+                                      return
                                     }
+
                                     setCopiedCell(cellKey)
-                                    setTimeout(() => setCopiedCell(null), 1500)
+                                    setTimeout(() => {
+                                      setCopiedCell((current) => (current === cellKey ? null : current))
+                                    }, 1500)
                                   }}
                                 >
                                   {copiedCell === cellKey ? (

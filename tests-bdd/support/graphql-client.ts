@@ -3,16 +3,24 @@ import { GraphQLClient as GqlClient } from 'graphql-request'
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:8080'
 
-export class GraphQLClient {
-  private client: GqlClient
+class BaseGraphQLClient {
+  protected client: GqlClient
+  protected token: string | null = null
 
-  constructor(orgName: string, projectSlug: string) {
-    const url = `${API_BASE_URL}/graphql/org/${orgName}/project/${projectSlug}/`
+  constructor(url: string) {
     this.client = new GqlClient(url)
   }
 
   setAuth(token: string): void {
+    this.token = token
     this.client.setHeader('Authorization', `Bearer ${token}`)
+  }
+
+  protected setURL(url: string): void {
+    this.client = new GqlClient(url)
+    if (this.token) {
+      this.client.setHeader('Authorization', `Bearer ${this.token}`)
+    }
   }
 
   async query<T>(document: string, variables?: Record<string, unknown>): Promise<T> {
@@ -21,5 +29,28 @@ export class GraphQLClient {
 
   async mutate<T>(document: string, variables?: Record<string, unknown>): Promise<T> {
     return this.client.request<T>(document, variables)
+  }
+}
+
+export class GraphQLClient extends BaseGraphQLClient {
+  constructor(orgName: string, projectSlug: string) {
+    super(`${API_BASE_URL}/graphql/org/${orgName}/project/${projectSlug}/`)
+  }
+}
+
+export class OrgGraphQLClient extends BaseGraphQLClient {
+  private orgName: string
+
+  constructor(orgName: string) {
+    super(`${API_BASE_URL}/graphql/org/${orgName}/`)
+    this.orgName = orgName
+  }
+
+  setOrgName(orgName: string): void {
+    if (this.orgName === orgName) {
+      return
+    }
+    this.orgName = orgName
+    this.setURL(`${API_BASE_URL}/graphql/org/${orgName}/`)
   }
 }

@@ -29,7 +29,7 @@ const config: CodegenConfig = {
     // 2. MSW mock handlers — org 域（禁止手动编辑，由 codegen 生成）
     'src/mocks/handlers/org/generated.ts': {
       schema: 'contract/graph/org/schema/*.graphql',
-      plugins: ['typescript', 'typescript-msw'],
+      plugins: ['typescript', 'typescript-operations', 'typescript-msw'],
       config: {
         scalars: {
           DateTime: 'string',
@@ -40,7 +40,7 @@ const config: CodegenConfig = {
     // 3. MSW mock handlers — project 域（禁止手动编辑，由 codegen 生成）
     'src/mocks/handlers/project/generated.ts': {
       schema: 'contract/graph/project/schema/*.graphql',
-      plugins: ['typescript', 'typescript-msw'],
+      plugins: ['typescript', 'typescript-operations', 'typescript-msw'],
       config: {
         scalars: {
           DateTime: 'string',
