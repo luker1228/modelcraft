@@ -40,6 +40,7 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 			Title:            row.Title,
 			Description:      row.Description.String,
 			StorageType:      row.StorageType,
+			DisplayField:     sqlerr.NullStrToPtr(row.DisplayField),
 			Version:          row.Version.Int64,
 			Status:           row.Status.String,
 			GroupID:          sqlerr.NullStrToPtr(row.GroupID),
@@ -63,6 +64,7 @@ func ModelToCreateParams(m *modeldesign.DataModel, orgName string) dbgen.CreateM
 		Description:      sql.NullString{String: m.Description, Valid: m.Description != ""},
 		StorageType:      m.StorageType,
 		DatabaseName:     m.DatabaseName,
+		DisplayField:     sqlerr.PtrToNullStr(m.DisplayField),
 		Version:          sql.NullInt64{Int64: m.Version, Valid: m.Version != 0},
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
 		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
@@ -77,6 +79,7 @@ func ModelToUpdateParams(m *modeldesign.DataModel) dbgen.UpdateModelParams {
 	return dbgen.UpdateModelParams{
 		Title:            m.Title,
 		Description:      sql.NullString{String: m.Description, Valid: m.Description != ""},
+		DisplayField:     sqlerr.PtrToNullStr(m.DisplayField),
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
 		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
@@ -92,6 +95,7 @@ func ModelToUpdateWithVersionParams(
 	return dbgen.UpdateModelWithVersionParams{
 		Title:            m.Title,
 		Description:      sql.NullString{String: m.Description, Valid: m.Description != ""},
+		DisplayField:     sqlerr.PtrToNullStr(m.DisplayField),
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
 		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},

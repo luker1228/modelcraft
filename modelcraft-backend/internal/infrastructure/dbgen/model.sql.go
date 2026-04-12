@@ -53,8 +53,8 @@ func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64
 }
 
 const createModel = `-- name: CreateModel :exec
-INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateModelParams struct {
@@ -66,6 +66,7 @@ type CreateModelParams struct {
 	Description      sql.NullString
 	StorageType      string
 	DatabaseName     string
+	DisplayField     sql.NullString
 	Version          sql.NullInt64
 	Status           sql.NullString
 	GroupID          sql.NullString
@@ -84,6 +85,7 @@ func (q *Queries) CreateModel(ctx context.Context, arg CreateModelParams) error 
 		arg.Description,
 		arg.StorageType,
 		arg.DatabaseName,
+		arg.DisplayField,
 		arg.Version,
 		arg.Status,
 		arg.GroupID,
@@ -104,7 +106,7 @@ func (q *Queries) DeleteModel(ctx context.Context, id string) error {
 }
 
 const findModelsByDeploymentStatus = `-- name: FindModelsByDeploymentStatus :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
 WHERE deployment_status IN (/*SLICE:statuses*/?)
 `
 
@@ -136,6 +138,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 			&i.Description,
 			&i.StorageType,
 			&i.DatabaseName,
+			&i.DisplayField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -159,7 +162,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 }
 
 const getAllModels = `-- name: GetAllModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
 `
 
 func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
@@ -180,6 +183,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 			&i.Description,
 			&i.StorageType,
 			&i.DatabaseName,
+			&i.DisplayField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -203,7 +207,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 }
 
 const getModelByID = `-- name: GetModelByID :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models WHERE id = ? LIMIT 1
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
@@ -218,6 +222,7 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 		&i.Description,
 		&i.StorageType,
 		&i.DatabaseName,
+		&i.DisplayField,
 		&i.Version,
 		&i.Status,
 		&i.GroupID,
@@ -231,7 +236,7 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 }
 
 const getModelByName = `-- name: GetModelByName :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
 WHERE database_name = ? AND name = ? AND project_slug = ?
 LIMIT 1
 `
@@ -254,6 +259,7 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 		&i.Description,
 		&i.StorageType,
 		&i.DatabaseName,
+		&i.DisplayField,
 		&i.Version,
 		&i.Status,
 		&i.GroupID,
@@ -267,7 +273,7 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 }
 
 const listModels = `-- name: ListModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
 WHERE project_slug = ?
   AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
@@ -324,6 +330,7 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 			&i.Description,
 			&i.StorageType,
 			&i.DatabaseName,
+			&i.DisplayField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -348,13 +355,14 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 
 const updateModel = `-- name: UpdateModel :execresult
 UPDATE models
-SET title = ?, description = ?, status = ?, group_id = ?, deployment_status = ?, version = ?, updated_at = NOW(3)
+SET title = ?, description = ?, display_field = ?, status = ?, group_id = ?, deployment_status = ?, version = ?, updated_at = NOW(3)
 WHERE id = ?
 `
 
 type UpdateModelParams struct {
 	Title            string
 	Description      sql.NullString
+	DisplayField     sql.NullString
 	Status           sql.NullString
 	GroupID          sql.NullString
 	DeploymentStatus sql.NullString
@@ -366,6 +374,7 @@ func (q *Queries) UpdateModel(ctx context.Context, arg UpdateModelParams) (sql.R
 	return q.db.ExecContext(ctx, updateModel,
 		arg.Title,
 		arg.Description,
+		arg.DisplayField,
 		arg.Status,
 		arg.GroupID,
 		arg.DeploymentStatus,
@@ -399,13 +408,14 @@ func (q *Queries) UpdateModelDeploymentStatus(ctx context.Context, arg UpdateMod
 
 const updateModelWithVersion = `-- name: UpdateModelWithVersion :execresult
 UPDATE models
-SET title = ?, description = ?, status = ?, group_id = ?, deployment_status = ?, version = version + 1, updated_at = NOW(3)
+SET title = ?, description = ?, display_field = ?, status = ?, group_id = ?, deployment_status = ?, version = version + 1, updated_at = NOW(3)
 WHERE id = ? AND version = ?
 `
 
 type UpdateModelWithVersionParams struct {
 	Title            string
 	Description      sql.NullString
+	DisplayField     sql.NullString
 	Status           sql.NullString
 	GroupID          sql.NullString
 	DeploymentStatus sql.NullString
@@ -417,6 +427,7 @@ func (q *Queries) UpdateModelWithVersion(ctx context.Context, arg UpdateModelWit
 	return q.db.ExecContext(ctx, updateModelWithVersion,
 		arg.Title,
 		arg.Description,
+		arg.DisplayField,
 		arg.Status,
 		arg.GroupID,
 		arg.DeploymentStatus,

@@ -229,6 +229,7 @@ type CreateModelInput struct {
 	Title        string  `json:"title"`
 	Description  *string `json:"description,omitempty"`
 	DatabaseName string  `json:"databaseName"`
+	DisplayField *string `json:"displayField,omitempty"`
 }
 
 type CreateModelPayload struct {
@@ -588,6 +589,7 @@ type Model struct {
 	Description  string         `json:"description"`
 	DatabaseName string         `json:"databaseName"`
 	StorageType  string         `json:"storageType"`
+	DisplayField *string        `json:"displayField,omitempty"`
 	Fields       []*Field       `json:"fields"`
 	Group        *ModelGroup    `json:"group"`
 	DbTable      *DbTableStatus `json:"dbTable,omitempty"`
@@ -827,8 +829,9 @@ type UpdateFieldInput struct {
 }
 
 type UpdateModelMetaInput struct {
-	Title       *string `json:"title,omitempty"`
-	Description *string `json:"description,omitempty"`
+	Title        *string `json:"title,omitempty"`
+	Description  *string `json:"description,omitempty"`
+	DisplayField *string `json:"displayField,omitempty"`
 }
 
 type UpdateModelMetaPayload struct {

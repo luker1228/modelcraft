@@ -33,7 +33,7 @@ interface FormContext {
 
 interface RemoteRecord {
   id: string
-  name?: string
+  __label?: string
   [key: string]: unknown
 }
 
@@ -89,7 +89,7 @@ export function RelationPicker(props: WidgetProps) {
 
   const findManyQuery = React.useMemo(() => {
     if (!refModelName) return null
-    return buildFindManyQuery(refModelName, ['id', 'name'])
+    return buildFindManyQuery(refModelName, ['id', '__label'])
   }, [refModelName])
 
   // Provide a no-op fallback query/client so hooks are always called unconditionally.
@@ -143,10 +143,22 @@ export function RelationPicker(props: WidgetProps) {
     return <span className="text-sm text-muted-foreground">暂无数据</span>
   }
 
+  /**
+   * Format display label according to id + __label protocol.
+   * Format: `__label(id)`, or `空(id)` if __label is empty.
+   */
+  const formatLabel = (r: RemoteRecord): string => {
+    const labelStr = typeof r.__label === 'string' ? r.__label : ''
+    if (labelStr === '') {
+      return `空(${r.id})`
+    }
+    return `${labelStr}(${r.id})`
+  }
+
   const filtered = search
     ? records.filter((r) => {
-        const label = r.name ?? r.id
-        return String(label).toLowerCase().includes(search.toLowerCase())
+        const displayLabel = formatLabel(r)
+        return displayLabel.toLowerCase().includes(search.toLowerCase())
       })
     : records
 
@@ -174,7 +186,7 @@ export function RelationPicker(props: WidgetProps) {
         </div>
         {filtered.map((record) => (
           <SelectItem key={record.id} value={record.id}>
-            {record.name ?? record.id}
+            {formatLabel(record)}
           </SelectItem>
         ))}
         {filtered.length === 0 && (

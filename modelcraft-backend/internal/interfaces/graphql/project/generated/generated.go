@@ -325,6 +325,7 @@ type ComplexityRoot struct {
 		DatabaseName func(childComplexity int) int
 		DbTable      func(childComplexity int) int
 		Description  func(childComplexity int) int
+		DisplayField func(childComplexity int) int
 		Fields       func(childComplexity int) int
 		Group        func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -1465,6 +1466,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Model.Description(childComplexity), true
+	case "Model.displayField":
+		if e.complexity.Model.DisplayField == nil {
+			break
+		}
+
+		return e.complexity.Model.DisplayField(childComplexity), true
 	case "Model.fields":
 		if e.complexity.Model.Fields == nil {
 			break
@@ -3194,6 +3201,7 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
+  displayField: String  # 用于 runtime __label 解析的字段名
   fields: [Field!]!
   group: ModelGroup!
   dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
@@ -3234,11 +3242,13 @@ input CreateModelInput {
   title: String!
   description: String
   databaseName: String!
+  displayField: String  # 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
 }
 
 input UpdateModelMetaInput {
   title: String
   description: String
+  displayField: String  # 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
 }
 
 input ImportModelInput {
@@ -4090,6 +4100,8 @@ func (ec *executionContext) fieldContext_AddFieldsPayload_model(_ context.Contex
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -4612,6 +4624,8 @@ func (ec *executionContext) fieldContext_CreateModelFromSchemaPayload_model(_ co
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -4667,6 +4681,8 @@ func (ec *executionContext) fieldContext_CreateModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -7455,6 +7471,8 @@ func (ec *executionContext) fieldContext_GetModelPayload_model(_ context.Context
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -8400,6 +8418,35 @@ func (ec *executionContext) fieldContext_Model_storageType(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _Model_displayField(ctx context.Context, field graphql.CollectedField, obj *Model) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Model_displayField,
+		func(ctx context.Context) (any, error) {
+			return obj.DisplayField, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Model_displayField(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Model",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Model_fields(ctx context.Context, field graphql.CollectedField, obj *Model) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8796,6 +8843,8 @@ func (ec *executionContext) fieldContext_ModelEdge_node(_ context.Context, field
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -8996,6 +9045,8 @@ func (ec *executionContext) fieldContext_ModelGroup_models(_ context.Context, fi
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -9723,6 +9774,8 @@ func (ec *executionContext) fieldContext_Mutation_updateField(ctx context.Contex
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -9808,6 +9861,8 @@ func (ec *executionContext) fieldContext_Mutation_removeField(ctx context.Contex
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -9893,6 +9948,8 @@ func (ec *executionContext) fieldContext_Mutation_deprecateField(ctx context.Con
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -9978,6 +10035,8 @@ func (ec *executionContext) fieldContext_Mutation_undeprecateField(ctx context.C
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -12329,6 +12388,8 @@ func (ec *executionContext) fieldContext_RepairModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -12744,6 +12805,8 @@ func (ec *executionContext) fieldContext_SyncModelSchemaPayload_model(_ context.
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -13282,6 +13345,8 @@ func (ec *executionContext) fieldContext_UpdateModelMetaPayload_model(_ context.
 				return ec.fieldContext_Model_databaseName(ctx, field)
 			case "storageType":
 				return ec.fieldContext_Model_storageType(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -15248,7 +15313,7 @@ func (ec *executionContext) unmarshalInputCreateModelInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "title", "description", "databaseName"}
+	fieldsInOrder := [...]string{"name", "title", "description", "databaseName", "displayField"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15283,6 +15348,13 @@ func (ec *executionContext) unmarshalInputCreateModelInput(ctx context.Context, 
 				return it, err
 			}
 			it.DatabaseName = data
+		case "displayField":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayField"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayField = data
 		}
 	}
 
@@ -15990,7 +16062,7 @@ func (ec *executionContext) unmarshalInputUpdateModelMetaInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "description"}
+	fieldsInOrder := [...]string{"title", "description", "displayField"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16011,6 +16083,13 @@ func (ec *executionContext) unmarshalInputUpdateModelMetaInput(ctx context.Conte
 				return it, err
 			}
 			it.Description = data
+		case "displayField":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("displayField"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.DisplayField = data
 		}
 	}
 
@@ -18939,6 +19018,8 @@ func (ec *executionContext) _Model(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "displayField":
+			out.Values[i] = ec._Model_displayField(ctx, field, obj)
 		case "fields":
 			out.Values[i] = ec._Model_fields(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

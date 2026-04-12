@@ -1,6 +1,6 @@
 -- name: CreateModel :exec
-INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetModelByID :one
 SELECT * FROM models WHERE id = ? LIMIT 1;
@@ -35,12 +35,12 @@ SELECT * FROM models;
 
 -- name: UpdateModel :execresult
 UPDATE models
-SET title = ?, description = ?, status = ?, group_id = ?, deployment_status = ?, version = ?, updated_at = NOW(3)
+SET title = ?, description = ?, display_field = ?, status = ?, group_id = ?, deployment_status = ?, version = ?, updated_at = NOW(3)
 WHERE id = ?;
 
 -- name: UpdateModelWithVersion :execresult
 UPDATE models
-SET title = ?, description = ?, status = ?, group_id = ?, deployment_status = ?, version = version + 1, updated_at = NOW(3)
+SET title = ?, description = ?, display_field = ?, status = ?, group_id = ?, deployment_status = ?, version = version + 1, updated_at = NOW(3)
 WHERE id = ? AND version = ?;
 
 -- name: UpdateModelDeploymentStatus :exec

@@ -43,6 +43,7 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 		StorageType:  "mysql", // Default storage type
 		DatabaseName: input.DatabaseName,
 		ProjectSlug:  projectSlug,
+		DisplayField: input.DisplayField,
 	}
 
 	if input.Description != nil {
@@ -112,8 +113,9 @@ func (r *mutationResolver) UpdateModelMeta(ctx context.Context, id string, input
 
 	// Convert GraphQL input to command
 	cmd := appmodeldesign.UpdateModelMetaCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		DisplayField: input.DisplayField,
 	}
 
 	if input.Title != nil {

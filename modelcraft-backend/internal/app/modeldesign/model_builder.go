@@ -71,6 +71,7 @@ func newModelFromCommand(ctx context.Context, cmd CreateModelCommand) (*modeldes
 			Title:            cmd.Title,
 			Description:      cmd.Description,
 			StorageType:      cmd.StorageType,
+			DisplayField:     cmd.DisplayField,
 			Version:          1, // 初始版本号为1
 			Status:           "draft",
 			DeploymentStatus: modeldesign.DeploymentPending, // 新创建的模型待同步

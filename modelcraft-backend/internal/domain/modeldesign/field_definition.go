@@ -284,6 +284,22 @@ func (fd *FieldDefinition) IsEnumArrayField() bool {
 	return fd.Type.Format == FormatEnum && fd.IsArray
 }
 
+// IsStringifiable 判断字段值是否可以转为字符串用于 __label 显示
+// 可字符串化的类型：STRING、UUID、INTEGER、NUMBER、DECIMAL、DATE、DATETIME、TIME、ENUM、BOOLEAN
+// 不可字符串化的类型：RELATION（对象）、ENUM_LABEL（虚拟字段）、ENUM_ARRAY（数组）
+func (fd *FieldDefinition) IsStringifiable() bool {
+	if fd.Type == nil {
+		return false
+	}
+	switch fd.Type.Format {
+	case FormatString, FormatUUID, FormatInteger, FormatNumber, FormatDecimal,
+		FormatDate, FormatDateTime, FormatTime, FormatEnum, FormatBoolean:
+		return true
+	default:
+		return false
+	}
+}
+
 // Update 更新字段信息
 // 空字符串表示不更新该字段，nil 指针同理
 func (fd *FieldDefinition) Update(title, description string, validation *ValidationConfig) {

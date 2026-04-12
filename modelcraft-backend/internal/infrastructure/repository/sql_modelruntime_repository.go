@@ -120,6 +120,10 @@ func (r *SqlModelRuntimeRepository) getFields(
 
 // DbgenModelToRuntimeModel converts a dbgen.Model row to a modelruntime.RuntimeModel.
 func DbgenModelToRuntimeModel(row dbgen.Model) *modelruntime.RuntimeModel {
+	var displayField *string
+	if row.DisplayField.Valid && row.DisplayField.String != "" {
+		displayField = &row.DisplayField.String
+	}
 	return &modelruntime.RuntimeModel{
 		OrgName:      row.OrgName,
 		ProjectSlug:  row.ProjectSlug,
@@ -127,6 +131,7 @@ func DbgenModelToRuntimeModel(row dbgen.Model) *modelruntime.RuntimeModel {
 		Title:        row.Title,
 		Description:  row.Description.String,
 		DatabaseName: row.DatabaseName,
+		DisplayField: displayField,
 	}
 }
 

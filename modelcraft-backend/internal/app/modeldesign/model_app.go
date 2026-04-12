@@ -102,6 +102,11 @@ func (s *ModelDesignAppService) CreateModelSync(
 		return "", bizerrors.Wrapf(err, "模型规则校验失败")
 	}
 
+	// 验证 displayField 有效性（必须是模型字段中存在且可字符串化的字段）
+	if err := model.ValidateDisplayField(); err != nil {
+		return "", err
+	}
+
 	// 1. Check model name uniqueness
 	existingModel, err := s.modelRepo.GetByName(ctx, model.DatabaseName, model.ModelName, model.ProjectSlug)
 	if err != nil && !shared.IsNotFoundError(err) {
@@ -158,8 +163,9 @@ func (s *ModelDesignAppService) transactionDeployModel(
 
 // UpdateModelMeta 更新模型元数据（仅平台DB）
 func (s *ModelDesignAppService) UpdateModelMeta(ctx context.Context, id string, cmd UpdateModelMetaCommand) error {
-	// 获取模型
-	model, repoErr := s.modelRepo.GetByID(ctx, id)
+	// 获取模型（需要字段信息以验证 displayField）
+	opts := modeldesign.NewModelQueryOptions().WithFields()
+	model, repoErr := s.modelRepo.GetByID(ctx, id, opts)
 	if repoErr != nil {
 		return repoErr
 	}
@@ -171,7 +177,19 @@ func (s *ModelDesignAppService) UpdateModelMeta(ctx context.Context, id string, 
 	if err := model.Update(cmd.Title, cmd.Description); err != nil {
 		return fmt.Errorf("更新模型属性失败: %w", err)
 	}
+
+	// 更新 displayField（如果传入非 nil 则更新）
+	if cmd.DisplayField != nil {
+		model.UpdateDisplayField(cmd.DisplayField)
+	}
+
+	// 验证元数据
 	if err := model.ValidateMeta(); err != nil {
+		return err
+	}
+
+	// 验证 displayField 有效性
+	if err := model.ValidateDisplayField(); err != nil {
 		return err
 	}
 
@@ -693,6 +711,11 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 	field := dataModel.GetField(fieldName)
 	if field == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldNotFound)
+	}
+
+	// 检查字段是否被 displayField 引用
+	if dataModel.DisplayField != nil && *dataModel.DisplayField == fieldName {
+		return bizerrors.Errorf("cannot remove field '%s': it is configured as displayField", fieldName)
 	}
 
 	// Case 1: RELATION 格式字段（relate_fk_id 字段）——直接删除，无需物理部署

@@ -116,7 +116,7 @@ func TestCreateModelType(t *testing.T) {
 				assert.Equal(t, "用户模型", obj.Description())
 				// 检查字段
 				fields := obj.Fields()
-				assert.Len(t, fields, 4)
+				assert.Len(t, fields, 5)
 				fmt.Printf("fields: %s, lens = %d", bizutils.MarshalToStringIgnoreErr(fields), len(fields))
 
 				// 检查 id 字段
@@ -143,6 +143,12 @@ func TestCreateModelType(t *testing.T) {
 				assert.NotNil(t, emailField)
 				assert.Equal(t, "email", emailField.Name)
 				assert.Equal(t, graphql.String, emailField.Type)
+
+				// 检查 __label 字段
+				labelField := fields["__label"]
+				assert.NotNil(t, labelField)
+				assert.Equal(t, "__label", labelField.Name)
+				assert.Equal(t, "String!", labelField.Type.String())
 			},
 		},
 		{
@@ -195,7 +201,7 @@ func TestCreateModelType(t *testing.T) {
 				assert.NotNil(t, obj)
 				assert.Equal(t, "ProductQuery", obj.Name())
 				fields := obj.Fields()
-				assert.Len(t, fields, 7)
+				assert.Len(t, fields, 8)
 
 				// 检查各种类型
 				assert.Equal(t, graphql.ID, fields["id"].Type)
@@ -205,6 +211,7 @@ func TestCreateModelType(t *testing.T) {
 				assert.Equal(t, graphql.Boolean, fields["isActive"].Type)
 				assert.Equal(t, graphql.String, fields["description"].Type)
 				assert.Equal(t, graphql.DateTime, fields["createdAt"].Type)
+				assert.Equal(t, "String!", fields["__label"].Type.String())
 			},
 		},
 		{

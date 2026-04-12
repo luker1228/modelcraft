@@ -4,21 +4,23 @@ import "modelcraft/internal/domain/modeldesign"
 
 // CreateModelCommand 创建模型命令
 type CreateModelCommand struct {
-	OrgName      string // 组织名称（从 URL 路径或 JWT 中提取）
-	ProjectSlug  string // 项目标识符
+	OrgName      string  // 组织名称（从 URL 路径或 JWT 中提取）
+	ProjectSlug  string  // 项目标识符
 	Name         string
 	Title        string
 	Description  string
 	StorageType  string
 	DatabaseName string
+	DisplayField *string // 用于 runtime __label 解析的字段名
 }
 
 // UpdateModelMetaCommand 更新模型元数据命令
 type UpdateModelMetaCommand struct {
-	OrgName     string // 组织名称（从 URL 路径或 JWT 中提取）
-	ProjectSlug string // 项目标识符
+	OrgName     string  // 组织名称（从 URL 路径或 JWT 中提取）
+	ProjectSlug string  // 项目标识符
 	Title       *string
 	Description *string
+	DisplayField *string // 用于 runtime __label 解析的字段名（nil 表示不更新）
 }
 
 // ModelQueryCommand 模型查询命令
