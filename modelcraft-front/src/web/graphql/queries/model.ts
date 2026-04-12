@@ -82,6 +82,7 @@ export const GET_MODEL = gql`
         name
         title
         description
+        displayField
         databaseName
         storageType
         fields {

@@ -40,17 +40,33 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         console.log("[OrgLayout] Has access to org:", orgName, "→", hasAccess);
 
         if (!hasAccess) {
-          console.warn(`[OrgLayout] Access denied to "${orgName}", redirecting to org-selector`);
-          router.push("/org-selector");
+          const fallbackOrgName = memberships[0]?.orgName;
+
+          if (fallbackOrgName) {
+            console.warn(
+              `[OrgLayout] Access denied to "${orgName}", redirecting to fallback org "${fallbackOrgName}"`
+            );
+            localStorage.setItem("defaultOrgName", fallbackOrgName);
+            router.push(`/org/${fallbackOrgName}/workspace`);
+            return;
+          }
+
+          console.warn(
+            `[OrgLayout] Access denied to "${orgName}" and no memberships found, redirecting to org creation`
+          );
+          localStorage.removeItem("defaultOrgName");
+          router.push("/org/create");
           return;
         }
 
         setCurrentOrg(orgName);
+        localStorage.setItem("defaultOrgName", orgName);
         console.log("[OrgLayout] Org access verified ✓");
         setIsVerifying(false);
       } catch (error) {
         console.error("[OrgLayout] Error verifying org access:", error);
-        router.push("/org-selector");
+        localStorage.removeItem("defaultOrgName");
+        router.push("/login");
       }
     }
 

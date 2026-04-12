@@ -73,7 +73,8 @@ export function AppLayout({
 
   const token = getToken()
   const userInfo = getUserInfoFromToken(token || '')
-  const displayName = userInfo?.name || userInfo?.phone || 'User'
+  const [storedUserName, setStoredUserName] = useState('')
+  const displayName = userInfo?.name || userInfo?.userName || storedUserName || userInfo?.phone || 'User'
 
   // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -89,6 +90,10 @@ export function AppLayout({
   // Current context
   const orgName = params.orgName as string
   const projectSlug = params.projectSlug as string
+
+  useEffect(() => {
+    setStoredUserName(localStorage.getItem('defaultUserName') || '')
+  }, [])
 
   // Fetch memberships once from store
   useEffect(() => {
@@ -134,6 +139,8 @@ export function AppLayout({
   // Handlers
   const handleLogout = useCallback(() => {
     removeToken()
+    localStorage.removeItem('defaultUserName')
+    localStorage.removeItem('defaultOrgName')
     useOrganizationStore.getState().clearOrganization()
     router.push('/login')
   }, [router])
@@ -145,6 +152,7 @@ export function AppLayout({
   const handleOrgSelect = useCallback(
     (org: MembershipInfo) => {
       setOrgSearchQuery('')
+      localStorage.setItem('defaultOrgName', org.orgName)
       router.push(`/org/${org.orgName}/workspace`)
     },
     [router]

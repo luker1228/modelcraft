@@ -10,22 +10,9 @@
 export function getCurrentOrgName(): string | null {
   if (typeof window === 'undefined') return null
 
-  // JWT no longer contains organization info
-  // Use the last selected org from localStorage
-  const lastOrgId = localStorage.getItem('lastSelectedOrgId')
-  if (lastOrgId) {
-    // Try to get org name from org memberships cache
-    const orgMembershipsCache = localStorage.getItem('org_memberships_cache')
-    if (orgMembershipsCache) {
-      try {
-        const memberships = JSON.parse(orgMembershipsCache) as Array<{ orgId: string; orgName: string }>
-        const org = memberships.find((m) => m.orgId === lastOrgId)
-        if (org) return org.orgName
-      } catch {
-        // Ignore parse errors for cache
-      }
-    }
-  }
+  // Use recorded default org from localStorage
+  const defaultOrgName = localStorage.getItem('defaultOrgName')
+  if (defaultOrgName) return defaultOrgName
 
   return null
 }
@@ -40,7 +27,7 @@ export function getOrgPath(path: string): string {
   if (orgName) {
     return `/org/${orgName}${path}`
   }
-  return '/org-selector' // no org context, let user select one
+  return '/' // no org context, re-evaluate at root
 }
 
 /**

@@ -29,7 +29,7 @@ interface EnumOption {
  *   enumValues: { code: string; label: string }[]
  *   multiple:   boolean
  */
-export function EnumSelect(props: WidgetProps<unknown, RJSFSchema, unknown>) {
+export function EnumSelect(props: WidgetProps<unknown, RJSFSchema, Record<string, unknown>>) {
   const value = props.value as unknown
   const onChange = props.onChange as (nextValue: unknown) => void
   const disabled = props.disabled as boolean | undefined

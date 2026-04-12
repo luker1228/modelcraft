@@ -239,6 +239,7 @@ export default function WorkspacePage() {
   const handleOrgSwitch = useCallback((org: MembershipInfo) => {
     setCurrentOrgInfo(org)
     localStorage.setItem('lastSelectedOrgId', org.orgId)
+    localStorage.setItem('defaultOrgName', org.orgName)
     router.push(`/org/${org.orgName}/workspace`)
   }, [router])
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, getUserInfoFromToken, refreshAccessToken } from "@bff/auth/public";
+import { getToken, refreshAccessToken } from "@bff/auth/public";
 
 export default function Home() {
   const router = useRouter();
@@ -27,10 +27,17 @@ export default function Home() {
         return;
       }
 
-      const userInfo = getUserInfoFromToken(token);
-      console.log("[HomePage] User:", userInfo?.id, "→ redirecting to org-selector");
+      const defaultOrgName = localStorage.getItem("defaultOrgName");
+
       setDebugInfo("Redirecting...");
-      router.push("/org-selector");
+      if (defaultOrgName) {
+        console.log("[HomePage] redirecting to default org:", defaultOrgName);
+        router.push(`/org/${defaultOrgName}/workspace`);
+        return;
+      }
+
+      console.log("[HomePage] default org not found, redirecting to org creation");
+      router.push("/org/create");
     }
 
     init();

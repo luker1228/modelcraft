@@ -114,9 +114,9 @@ export default function CreateOrgPage() {
       setSuccess(true);
       console.log("[CreateOrg] Organization initialized:", data);
 
-      // Redirect to org selector page after short delay
+      // Redirect to root page after short delay
       setTimeout(() => {
-        router.push("/org-selector");
+        router.push("/");
       }, 1500);
     } catch (err) {
       console.error("[CreateOrg] Error:", err);
@@ -126,7 +126,7 @@ export default function CreateOrgPage() {
   };
 
   const handleBack = () => {
-    router.push("/org-selector");
+    router.push("/");
   };
 
   return (
@@ -241,6 +241,8 @@ export default function CreateOrgPage() {
           <button
             onClick={() => {
               removeToken();
+              localStorage.removeItem("defaultUserName");
+              localStorage.removeItem("defaultOrgName");
               router.push("/login");
             }}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"

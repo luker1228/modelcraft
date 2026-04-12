@@ -51,7 +51,9 @@ export function useLogin(): UseLoginReturn {
       // 存储 access token
       useAuthStore.getState().setAccessToken(data.accessToken, data.expiresIn)
 
-      // 跳转到 workspace
+      // 记录默认组织和昵称并跳转到 workspace
+      localStorage.setItem('defaultOrgName', data.orgName)
+      localStorage.setItem('defaultUserName', data.userName)
       router.push(`/org/${data.orgName}/workspace`)
     } catch {
       setError('网络错误，请检查网络连接')
@@ -90,7 +92,9 @@ export function useRegister(): UseRegisterReturn {
         return
       }
 
-      // 注册成功后直接跳转到 workspace（PRD 要求：注册成功后直接进入工作区）
+      // 注册成功后记录默认组织和昵称并直接跳转到 workspace（PRD 要求：注册成功后直接进入工作区）
+      localStorage.setItem('defaultOrgName', data.orgName)
+      localStorage.setItem('defaultUserName', data.profile?.nickname || values.userName)
       router.push(`/org/${data.orgName}/workspace`)
     } catch {
       setError('网络错误，请检查网络连接')

@@ -50,6 +50,16 @@ export function CreateModelDialog({ state, crud }: CreateModelDialogProps) {
             />
             <p className="text-xs text-muted-foreground">中文显示名称，便于理解</p>
           </div>
+          <div className="space-y-2">
+            <label className="text-sm font-medium">展示字段（建议设置）</label>
+            <Input
+              placeholder="例如：name"
+              value={state.newModelDisplayField}
+              onChange={(e) => state.setNewModelDisplayField(e.target.value)}
+              className="text-sm"
+            />
+            <p className="text-xs text-muted-foreground">建议设置，可稍后修改</p>
+          </div>
         </div>
         <SheetFooter className="flex gap-2 sm:justify-end">
           <Button
@@ -59,6 +69,7 @@ export function CreateModelDialog({ state, crud }: CreateModelDialogProps) {
               state.setCreateModelOpen(false)
               state.setNewModelName('')
               state.setNewModelTitle('')
+              state.setNewModelDisplayField('')
             }}
           >
             取消

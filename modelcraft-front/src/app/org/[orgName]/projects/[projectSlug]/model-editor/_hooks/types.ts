@@ -7,6 +7,7 @@ export interface EditorModel {
   name: string
   title: string
   description?: string
+  displayField?: string
   databaseName: string
   storageType?: string
 }

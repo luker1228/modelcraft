@@ -23,6 +23,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@web/components/ui/select'
 import { InsertFieldSheet } from '@web/components/features/model-editor/InsertFieldSheet'
 import { ForeignKeyPanel } from './ForeignKeyPanel'
 import type { ModelEditorState, EditorModel } from '../_hooks'
@@ -49,6 +56,9 @@ export function ModelDetailPanel({
   projectSlug,
   models,
 }: ModelDetailPanelProps) {
+  const displayFieldOptions = (state.editModelData?.fields || []).filter((field) => field.format !== 'RELATION')
+  const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
+
   return (
     <Drawer open={state.editModelOpen} onOpenChange={crud.handleCloseEditModel} direction="right">
       <DrawerContent direction="right" className="flex w-[680px] flex-col rounded-none">
@@ -93,14 +103,15 @@ export function ModelDetailPanel({
                 <div className="mb-3 flex items-center justify-between">
                   <span className="text-sm font-semibold text-foreground">元信息</span>
                   {!state.metaEditMode && (
-                    <button
+                    <Button
                       type="button"
-                      title="编辑元信息"
-                      className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 text-xs"
                       onClick={() => state.setMetaEditMode(true)}
                     >
-                      <Edit className="size-3.5" />
-                    </button>
+                      设置展示字段
+                    </Button>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3">
@@ -140,7 +151,46 @@ export function ModelDetailPanel({
                       disabled={!state.metaEditMode}
                     />
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">展示字段</label>
+                    {state.metaEditMode ? (
+                      <Select
+                        value={displayFieldSelectValue}
+                        onValueChange={(value) => {
+                          state.setMetaDisplayField(value === '__display_field_none__' ? '' : value)
+                        }}
+                      >
+                        <SelectTrigger className="h-8 text-sm">
+                          <SelectValue placeholder="选择展示字段" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="__display_field_none__" className="text-sm">
+                            未设置
+                          </SelectItem>
+                          {displayFieldOptions.map((field) => (
+                            <SelectItem key={field.name} value={field.name} className="font-mono text-xs">
+                              {field.name}
+                              {field.title && field.title !== field.name ? ` (${field.title})` : ''}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <Input
+                        value={state.metaDisplayField || '未设置'}
+                        disabled
+                        className="h-8 bg-muted/30 text-sm"
+                      />
+                    )}
+                  </div>
                 </div>
+                {!state.metaEditMode && !state.metaDisplayField && (
+                  <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      当前未设置展示字段，建议尽快配置，避免关系字段展示为不直观的默认值。
+                    </p>
+                  </div>
+                )}
                 {state.metaEditMode && (
                   <div className="mt-4 flex items-center justify-end gap-2">
                     <Button
@@ -150,6 +200,7 @@ export function ModelDetailPanel({
                       onClick={() => {
                         state.setMetaTitle(state.editModelData!.title || '')
                         state.setMetaDescription(state.editModelData!.description || '')
+                        state.setMetaDisplayField(state.editModelData!.displayField || '')
                         state.setMetaEditMode(false)
                       }}
                     >

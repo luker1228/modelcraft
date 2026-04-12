@@ -18,6 +18,7 @@ export function useModelEditorState() {
   const [createModelOpen, setCreateModelOpen] = useState(false)
   const [newModelName, setNewModelName] = useState('')
   const [newModelTitle, setNewModelTitle] = useState('')
+  const [newModelDisplayField, setNewModelDisplayField] = useState('')
   const [creating, setCreating] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
 
@@ -35,6 +36,7 @@ export function useModelEditorState() {
   // Meta info inline editing
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
+  const [metaDisplayField, setMetaDisplayField] = useState('')
   const [metaSaving, setMetaSaving] = useState(false)
   const [metaEditMode, setMetaEditMode] = useState(false)
 
@@ -76,6 +78,7 @@ export function useModelEditorState() {
     createModelOpen, setCreateModelOpen,
     newModelName, setNewModelName,
     newModelTitle, setNewModelTitle,
+    newModelDisplayField, setNewModelDisplayField,
     creating, setCreating,
     importDialogOpen, setImportDialogOpen,
 
@@ -93,6 +96,7 @@ export function useModelEditorState() {
     // Meta editing
     metaTitle, setMetaTitle,
     metaDescription, setMetaDescription,
+    metaDisplayField, setMetaDisplayField,
     metaSaving, setMetaSaving,
     metaEditMode, setMetaEditMode,
 

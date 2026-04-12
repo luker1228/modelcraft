@@ -10,6 +10,7 @@ export const CREATE_MODEL = gql`
         name
         title
         description
+        displayField
         databaseName
         storageType
         fields {
@@ -74,6 +75,7 @@ export const UPDATE_MODEL = gql`
         name
         title
         description
+        displayField
         databaseName
         storageType
         fields {

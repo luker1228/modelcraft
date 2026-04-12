@@ -14,10 +14,9 @@ export function ObjectFieldTemplate({
   title,
   description,
   properties,
-  idSchema,
+  fieldPathId,
 }: ObjectFieldTemplateProps) {
-  const idSchemaValue = idSchema as Record<string, unknown> | undefined
-  const isRoot = idSchemaValue?.['$id'] === 'root'
+  const isRoot = fieldPathId.$id === 'root'
 
   return (
     <div className={isRoot ? 'space-y-4' : 'space-y-4 border-l-2 border-border pl-4'}>

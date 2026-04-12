@@ -25,9 +25,9 @@ export function getSmartRedirectUrl(
   memberships: MembershipInfo[],
   lastSelectedOrgId?: string
 ): string {
-  // 没有组织 - 跳转到组织选择器创建
+  // 没有组织 - 跳转到创建组织页面
   if (memberships.length === 0) {
-    return '/org-selector'
+    return '/org/create'
   }
 
   // 单个组织 - 直接进入该组织的工作空间
@@ -44,8 +44,9 @@ export function getSmartRedirectUrl(
     }
   }
 
-  // 多个组织且没有历史记录 - 显示组织选择器
-  return '/org-selector'
+  // 多个组织且没有历史记录 - 默认进入第一个组织
+  const firstOrg = memberships[0]
+  return `/org/${firstOrg.orgName}/workspace`
 }
 
 /**

@@ -131,6 +131,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
           input: {
             name: state.newModelName.trim(),
             title: state.newModelTitle.trim(),
+            displayField: state.newModelDisplayField.trim() || '',
             databaseName: state.selectedDatabase,
           },
         },
@@ -141,6 +142,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setCreateModelOpen(false)
         state.setNewModelName('')
         state.setNewModelTitle('')
+        state.setNewModelDisplayField('')
         refetchModels()
         state.setSelectedModelId(modelId)
       } else if (result.data?.createModel?.error) {
@@ -170,6 +172,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setEditModelData(data.model.model as EditorModelDetail)
         state.setMetaTitle(data.model.model.title || '')
         state.setMetaDescription(data.model.model.description || '')
+        state.setMetaDisplayField(data.model.model.displayField || '')
         state.setFkList([])
         state.setFkFormOpen(false)
         state.setFkMappings([{ sourceField: '', targetField: '' }])
@@ -193,6 +196,8 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     state.setEditModelOpen(false)
     state.setEditModelId(null)
     state.setEditModelData(null)
+    state.setMetaDisplayField('')
+    state.setMetaEditMode(false)
     state.setFkList([])
     state.setFkFormOpen(false)
     state.setFkRefModelId('')
@@ -241,11 +246,23 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         mutation: UPDATE_MODEL,
         variables: {
           id: state.editModelId,
-          input: { title: state.metaTitle, description: state.metaDescription },
+          input: {
+            title: state.metaTitle,
+            description: state.metaDescription,
+            displayField: state.metaDisplayField || '',
+          },
         },
       })
       if (result.data?.updateModelMeta?.model) {
-        state.setEditModelData(prev => prev ? { ...prev, title: state.metaTitle, description: state.metaDescription } : prev)
+        state.setEditModelData(prev => prev
+          ? {
+            ...prev,
+            title: state.metaTitle,
+            description: state.metaDescription,
+            displayField: state.metaDisplayField,
+          }
+          : prev,
+        )
         toast.success('保存成功')
       } else {
         toast.error(result.data?.updateModelMeta?.error?.message || '保存失败')
@@ -261,7 +278,12 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   const refreshModelDetail = async () => {
     if (state.editModelId) {
       const { data } = await fetchModelDetail({ variables: { id: state.editModelId, withActualSchema: true } })
-      if (data?.model?.model) state.setEditModelData(data.model.model as EditorModelDetail)
+      if (data?.model?.model) {
+        state.setEditModelData(data.model.model as EditorModelDetail)
+        state.setMetaTitle(data.model.model.title || '')
+        state.setMetaDescription(data.model.model.description || '')
+        state.setMetaDisplayField(data.model.model.displayField || '')
+      }
     }
   }
 
