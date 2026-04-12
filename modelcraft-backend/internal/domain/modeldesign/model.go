@@ -72,6 +72,7 @@ type ModelMeta struct {
 	Title            string           `json:"title"`
 	Description      string           `json:"description"`
 	StorageType      string           `json:"storageType"`
+	DisplayField     *string          `json:"displayField"` // 用于 runtime __label 解析的字段名
 	Version          int64            `json:"version"`
 	Status           string           `json:"status"`
 	GroupID          *string          `json:"groupId"`
@@ -146,6 +147,37 @@ func (m *DataModel) Update(title, description *string) error {
 	}
 
 	m.UpdatedAt = now
+
+	return nil
+}
+
+// UpdateDisplayField 更新 displayField
+// displayField: 新的显示字段名称，传 nil 表示清空
+func (m *DataModel) UpdateDisplayField(displayField *string) {
+	m.DisplayField = displayField
+	m.UpdatedAt = time.Now()
+}
+
+// ValidateDisplayField 验证 displayField 是否有效
+// 如果 displayField 为 nil 或空字符串，返回 nil（视为未设置）
+// 如果 displayField 不为空，验证：
+// 1. 该字段必须存在于模型的字段集合中
+// 2. 该字段必须是可字符串化的类型（非 RELATION / ENUM_LABEL 等虚拟字段）
+func (m *DataModel) ValidateDisplayField() error {
+	if m.DisplayField == nil || *m.DisplayField == "" {
+		return nil
+	}
+
+	fieldName := *m.DisplayField
+	field := m.GetField(fieldName)
+	if field == nil {
+		return bizerrors.Errorf("displayField '%s' not found in model fields", fieldName)
+	}
+
+	// 检查字段类型是否可字符串化
+	if !field.IsStringifiable() {
+		return bizerrors.Errorf("displayField '%s' is not stringifiable (type: %s)", fieldName, field.Type.Format)
+	}
 
 	return nil
 }

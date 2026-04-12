@@ -38,7 +38,9 @@ function isRelationField(field: FieldDefinition): boolean {
 /**
  * Build field selections for gql-query-builder.
  * Scalar fields remain as strings: 'fieldName'
- * RELATION fields become objects with sub-selections: { fieldName: ['id'] }
+ * RELATION fields become objects with sub-selections: { fieldName: ['id', '__label'] }
+ *
+ * Protocol: relation fields only request `id` and `__label` (computed display label).
  */
 function buildFieldSelections(
   fields: string[] | FieldDefinition[]
@@ -52,7 +54,7 @@ function buildFieldSelections(
       return field
     }
     if (isRelationField(field)) {
-      return { [field.name]: ['id', 'name'] }
+      return { [field.name]: ['id', '__label'] }
     }
     return field.name
   })

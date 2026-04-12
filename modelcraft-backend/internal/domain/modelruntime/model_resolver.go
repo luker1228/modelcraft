@@ -1036,6 +1036,10 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 		}
 		graphqlfields[field.Name] = graphqlfield
 	}
+
+	// 注入 __label 字段（始终返回 String!，根据当前模型的 displayField 解析）
+	graphqlfields[FieldLabel] = r.createLabelField(model.DisplayField)
+
 	modelType := graphql.NewObject(graphql.ObjectConfig{
 		Name:        model.Name + "Query",
 		Fields:      graphqlfields,
@@ -1596,4 +1600,72 @@ func handleRepoErr(ctx context.Context, err error) error {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError)
 	}
 	return err
+}
+
+// createLabelField 创建 __label 字段
+// __label 字段用于返回 displayField 指定字段的值（转为字符串）
+// 如果 displayField 未配置或对应值不可用（null/空/对象/数组），返回空字符串 ""
+func (r *graphqlModelResolver) createLabelField(displayField *string) *graphql.Field {
+	return &graphql.Field{
+		Name:        FieldLabel,
+		Type:        graphql.NewNonNull(graphql.String),
+		Description: "Display label resolved from displayField configuration",
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			logger := logfacade.GetLogger(p.Context)
+
+			// 获取父对象记录
+			record, ok := p.Source.(map[string]any)
+			if !ok {
+				logger.Warnf(p.Context, "__label: invalid source type: %T", p.Source)
+				return "", nil
+			}
+
+			// 检查是否配置了 displayField（按当前模型）
+			if displayField == nil || *displayField == "" {
+				return "", nil
+			}
+
+			displayFieldName := *displayField
+			value, exists := record[displayFieldName]
+			if !exists || value == nil {
+				return "", nil
+			}
+
+			return valueToString(value), nil
+		},
+	}
+}
+
+// valueToString 将任意值转换为字符串，用于 __label 解析
+// 对于非标量类型（对象、数组），返回空字符串
+func valueToString(v any) string {
+	if v == nil {
+		return ""
+	}
+
+	switch val := v.(type) {
+	case string:
+		return val
+	case bool:
+		if val {
+			return "true"
+		}
+		return "false"
+	case int, int8, int16, int32, int64:
+		return cast.ToString(val)
+	case uint, uint8, uint16, uint32, uint64:
+		return cast.ToString(val)
+	case float32, float64:
+		return cast.ToString(val)
+	case []interface{}, map[string]interface{}:
+		// 数组或对象，返回空字符串
+		return ""
+	default:
+		// 尝试使用 cast.ToString
+		result, err := cast.ToStringE(val)
+		if err != nil {
+			return ""
+		}
+		return result
+	}
 }

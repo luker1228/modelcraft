@@ -210,6 +210,8 @@ type Model struct {
 	StorageType string
 	// 数据库名称
 	DatabaseName string
+	// 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
+	DisplayField sql.NullString
 	// 数据版本号
 	Version sql.NullInt64
 	// 模型状态：draft/published/archived

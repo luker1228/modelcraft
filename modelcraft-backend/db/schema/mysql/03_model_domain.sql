@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS `models` (
   `storage_type` VARCHAR(100) NOT NULL COMMENT '存储类型',
   `database_name` VARCHAR(64) NOT NULL COMMENT '数据库名称',
 
+  -- 运行时配置字段
+  `display_field` VARCHAR(64) NULL COMMENT '用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）',
+
   -- 版本和状态字段
   `version` BIGINT NULL DEFAULT 1 COMMENT '数据版本号',
   `status` VARCHAR(50) NULL DEFAULT 'draft' COMMENT '模型状态：draft/published/archived',
