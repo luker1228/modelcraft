@@ -30,6 +30,11 @@ func (s *SafeQuerier) CountActiveAPIKeysByUserID(ctx context.Context, userID str
 	WrapSQLErrorInPlace(&err)
 	return
 }
+func (s *SafeQuerier) CountFieldEnumRelationsByLabelField(ctx context.Context, arg _sourceDbgen.CountFieldEnumRelationsByLabelFieldParams) (i1 int64, err error) {
+	i1, err = s.delegate.CountFieldEnumRelationsByLabelField(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
 func (s *SafeQuerier) CountFieldEnumRelationsBySource(ctx context.Context, arg _sourceDbgen.CountFieldEnumRelationsBySourceParams) (i1 int64, err error) {
 	i1, err = s.delegate.CountFieldEnumRelationsBySource(ctx, arg)
 	WrapSQLErrorInPlace(&err)

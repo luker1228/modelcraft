@@ -211,7 +211,6 @@ func TestFieldDefinitionToDomain(t *testing.T) {
 		assert.Equal(t, now, fd.UpdatedAt)
 		assert.Nil(t, fd.Validation)
 		assert.Nil(t, fd.Metadata)
-		assert.Nil(t, fd.EnumLabelConfig)
 	})
 
 	t.Run("field with validation JSON", func(t *testing.T) {
@@ -255,24 +254,23 @@ func TestFieldDefinitionToDomain(t *testing.T) {
 		assert.Equal(t, "value", fd.Metadata["key"])
 	})
 
-	t.Run("field with enum label config", func(t *testing.T) {
-		configJSON, _ := json.Marshal(modeldesign.EnumLabelConfig{SourceField: "status"})
-		c := json.RawMessage(configJSON)
+	t.Run("field with enum relation id for ENUM_LABEL", func(t *testing.T) {
+		relationID := "relation-123"
 		row := dbgen.FieldDefinition{
-			ModelID:         "model-1",
-			Name:            "status_label",
-			ModelName:       "users",
-			DatabaseName:    "db",
-			Title:           "Status Label",
-			Format:          "ENUM_LABEL",
-			Status:          "active",
-			EnumLabelConfig: &c,
+			ModelID:        "model-1",
+			Name:           "status_label",
+			ModelName:      "users",
+			DatabaseName:   "db",
+			Title:          "Status Label",
+			Format:         "ENUM_LABEL",
+			Status:         "active",
+			EnumRelationID: sql.NullString{String: relationID, Valid: true},
 		}
 
 		fd, err := repository.FieldDefinitionToDomain(row)
 		require.NoError(t, err)
-		require.NotNil(t, fd.EnumLabelConfig)
-		assert.Equal(t, "status", fd.EnumLabelConfig.SourceField)
+		require.NotNil(t, fd.EnumRelationID)
+		assert.Equal(t, relationID, *fd.EnumRelationID)
 	})
 
 	t.Run("invalid format returns error", func(t *testing.T) {
@@ -366,7 +364,7 @@ func TestFieldDefinitionToCreateParams(t *testing.T) {
 		// Nil JSON fields produce nil (not "null" bytes)
 		assert.Nil(t, p.Validation)
 		assert.Nil(t, p.Metadata)
-		assert.Nil(t, p.EnumLabelConfig)
+		assert.Nil(t, p.Metadata)
 	})
 }
 

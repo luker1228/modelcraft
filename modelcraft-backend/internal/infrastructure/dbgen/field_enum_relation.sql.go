@@ -10,6 +10,24 @@ import (
 	"database/sql"
 )
 
+const countFieldEnumRelationsByLabelField = `-- name: CountFieldEnumRelationsByLabelField :one
+SELECT COUNT(*) FROM field_enum_relations
+WHERE org_name = ? AND model_id = ? AND label_field_name = ?
+`
+
+type CountFieldEnumRelationsByLabelFieldParams struct {
+	OrgName        string
+	ModelID        string
+	LabelFieldName string
+}
+
+func (q *Queries) CountFieldEnumRelationsByLabelField(ctx context.Context, arg CountFieldEnumRelationsByLabelFieldParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFieldEnumRelationsByLabelField, arg.OrgName, arg.ModelID, arg.LabelFieldName)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countFieldEnumRelationsBySource = `-- name: CountFieldEnumRelationsBySource :one
 SELECT COUNT(*) FROM field_enum_relations
 WHERE org_name = ? AND model_id = ? AND source_field_name = ?
@@ -77,6 +95,35 @@ type DeleteFieldEnumRelationByIDParams struct {
 
 func (q *Queries) DeleteFieldEnumRelationByID(ctx context.Context, arg DeleteFieldEnumRelationByIDParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, deleteFieldEnumRelationByID, arg.OrgName, arg.ID)
+}
+
+const findFieldEnumRelationByLabelField = `-- name: FindFieldEnumRelationByLabelField :one
+SELECT id, model_id, label_field_name, source_field_name, org_name, project_slug, enum_name, created_at, updated_at FROM field_enum_relations
+WHERE org_name = ? AND model_id = ? AND label_field_name = ?
+LIMIT 1
+`
+
+type FindFieldEnumRelationByLabelFieldParams struct {
+	OrgName        string
+	ModelID        string
+	LabelFieldName string
+}
+
+func (q *Queries) FindFieldEnumRelationByLabelField(ctx context.Context, arg FindFieldEnumRelationByLabelFieldParams) (FieldEnumRelation, error) {
+	row := q.db.QueryRowContext(ctx, findFieldEnumRelationByLabelField, arg.OrgName, arg.ModelID, arg.LabelFieldName)
+	var i FieldEnumRelation
+	err := row.Scan(
+		&i.ID,
+		&i.ModelID,
+		&i.LabelFieldName,
+		&i.SourceFieldName,
+		&i.OrgName,
+		&i.ProjectSlug,
+		&i.EnumName,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getFieldEnumRelationByID = `-- name: GetFieldEnumRelationByID :one

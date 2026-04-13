@@ -45,3 +45,7 @@ SELECT display_order FROM field_definitions
 WHERE model_id = ?
 ORDER BY display_order DESC
 LIMIT 1;
+
+-- name: CountFieldsByEnumRelationID :one
+SELECT COUNT(*) FROM field_definitions
+WHERE org_name = ? AND enum_relation_id = ?;

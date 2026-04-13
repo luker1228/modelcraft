@@ -33,3 +33,12 @@ WHERE org_name = ? AND model_id = ? AND source_field_name = ?;
 -- name: DeleteFieldEnumRelationByID :execresult
 DELETE FROM field_enum_relations
 WHERE org_name = ? AND id = ?;
+
+-- name: CountFieldEnumRelationsByLabelField :one
+SELECT COUNT(*) FROM field_enum_relations
+WHERE org_name = ? AND model_id = ? AND label_field_name = ?;
+
+-- name: FindFieldEnumRelationByLabelField :one
+SELECT * FROM field_enum_relations
+WHERE org_name = ? AND model_id = ? AND label_field_name = ?
+LIMIT 1;

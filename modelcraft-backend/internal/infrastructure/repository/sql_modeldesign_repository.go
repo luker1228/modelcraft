@@ -835,6 +835,39 @@ func (r *SqlFieldEnumRelationRepository) Delete(
 	return nil
 }
 
+// FindByLabelField retrieves a field enum relation by label field and org scope.
+func (r *SqlFieldEnumRelationRepository) FindByLabelField(
+	ctx context.Context,
+	orgName, modelID, labelFieldName string,
+) (*modeldesign.FieldEnumRelation, error) {
+	row, err := r.q.FindFieldEnumRelationByLabelField(ctx, dbgen.FindFieldEnumRelationByLabelFieldParams{
+		OrgName:        orgName,
+		ModelID:        modelID,
+		LabelFieldName: labelFieldName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if row.ID == "" {
+		return nil, shared.NewNotFoundError("field enum relation not found by label field: " + labelFieldName)
+	}
+
+	return FieldEnumRelationToDomain(row), nil
+}
+
+// CountByLabelField counts field enum relations by label field under org scope.
+func (r *SqlFieldEnumRelationRepository) CountByLabelField(
+	ctx context.Context,
+	orgName, modelID, labelFieldName string,
+) (int64, error) {
+	return r.q.CountFieldEnumRelationsByLabelField(ctx, dbgen.CountFieldEnumRelationsByLabelFieldParams{
+		OrgName:        orgName,
+		ModelID:        modelID,
+		LabelFieldName: labelFieldName,
+	})
+}
+
 // --- nullable trick helpers ---
 
 // nullableTrickArgs returns the two args needed for: (? IS NULL OR col LIKE CONCAT('%', ?, '%'))

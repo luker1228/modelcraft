@@ -12,7 +12,9 @@ import (
 type Querier interface {
 	ArchiveProject(ctx context.Context, arg ArchiveProjectParams) error
 	CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
+	CountFieldEnumRelationsByLabelField(ctx context.Context, arg CountFieldEnumRelationsByLabelFieldParams) (int64, error)
 	CountFieldEnumRelationsBySource(ctx context.Context, arg CountFieldEnumRelationsBySourceParams) (int64, error)
+	CountFieldsByEnumRelationID(ctx context.Context, arg CountFieldsByEnumRelationIDParams) (int64, error)
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
 	CountMembershipsByUser(ctx context.Context, userID string) (int64, error)
 	CountModels(ctx context.Context, arg CountModelsParams) (int64, error)
@@ -58,6 +60,7 @@ type Querier interface {
 	ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
 	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
+	FindFieldEnumRelationByLabelField(ctx context.Context, arg FindFieldEnumRelationByLabelFieldParams) (FieldEnumRelation, error)
 	FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID sql.NullString) ([]FindFieldsByBelongsToFKIDRow, error)
 	FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.NullString) ([]FindFieldsByRelateFKIDRow, error)
 	FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error)

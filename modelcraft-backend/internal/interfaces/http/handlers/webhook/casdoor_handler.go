@@ -3,6 +3,7 @@ package webhook
 import (
 	"encoding/json"
 	"modelcraft/internal/domain/user"
+	"modelcraft/internal/interfaces/http/httputil"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 
@@ -97,7 +98,7 @@ func (h *CasdoorHandler) Handle(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader != h.webhookSecret {
 			logger.Warnf(ctx, "Webhook request rejected: invalid authorization header")
-			writeJSONError(w, http.StatusUnauthorized, "Invalid webhook secret")
+			httputil.WriteJSONError(w, http.StatusUnauthorized, "Invalid webhook secret")
 			return
 		}
 	}
@@ -106,7 +107,7 @@ func (h *CasdoorHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	var payload CasdoorWebhookPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 		logger.Warnf(ctx, "Failed to parse Casdoor webhook payload: %v", err)
-		writeJSONError(w, http.StatusBadRequest, "Invalid webhook payload")
+		httputil.WriteJSONError(w, http.StatusBadRequest, "Invalid webhook payload")
 		return
 	}
 

@@ -601,6 +601,12 @@ func (s *ModelDesignAppService) addVirtualFields(
 				return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "enumRelationId does not belong to current model")
 			}
 
+			// 一致性校验：ENUM_LABEL 字段名必须与 relation.LabelFieldName 匹配
+			if field.Name != relation.LabelFieldName {
+				return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
+					fmt.Sprintf("field name '%s' does not match relation labelFieldName '%s'", field.Name, relation.LabelFieldName))
+			}
+
 			sourceField, err := s.modelRepo.GetFieldByModelID(ctx, model.ID, relation.SourceFieldName)
 			if err != nil {
 				if shared.IsNotFoundError(err) {
@@ -611,6 +617,12 @@ func (s *ModelDesignAppService) addVirtualFields(
 			if err := fieldService.ValidateFieldEnumRelationSource(sourceField, relation); err != nil {
 				return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, err.Error())
 			}
+
+			// 将 sourceFieldName 写入 metadata，供 runtime 解析使用
+			if field.Metadata == nil {
+				field.Metadata = make(map[string]any)
+			}
+			field.Metadata["sourceFieldName"] = relation.SourceFieldName
 		}
 	}
 
@@ -815,6 +827,15 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 		if relationCount > 0 {
 			return ErrFieldReferenceInUse
 		}
+	}
+
+	// Case 0: ENUM_LABEL 虚拟字段——删除字段时联动删除关联的 FieldEnumRelation
+	if field.IsEnumLabelField() {
+		if err := s.removeEnumLabelFieldWithRelation(ctx, dataModel.OrgName, modelID, field); err != nil {
+			return err
+		}
+		logger.Infof(ctx, "成功删除 ENUM_LABEL 字段及关联 relation: modelID=%s, fieldName=%s", modelID, fieldName)
+		return nil
 	}
 
 	// Case 1: RELATION 格式字段（relate_fk_id 字段）——直接删除，无需物理部署
@@ -1032,6 +1053,7 @@ func (s *ModelDesignAppService) CreateFieldEnumRelation(
 }
 
 // DeleteFieldEnumRelation 删除字段枚举关联。
+// 注意：删除前会检查是否有 ENUM_LABEL 字段引用此 relation，若有则拒绝删除。
 func (s *ModelDesignAppService) DeleteFieldEnumRelation(
 	ctx context.Context,
 	cmd DeleteFieldEnumRelationCommand,
@@ -1057,6 +1079,17 @@ func (s *ModelDesignAppService) DeleteFieldEnumRelation(
 	}
 	if relation == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "field enum relation not found")
+	}
+
+	// 检查是否有 ENUM_LABEL 字段通过 enum_relation_id 引用此 relation
+	// 若有则拒绝删除，避免产生悬挂引用
+	labelField, err := s.modelRepo.GetFieldByModelID(ctx, relation.ModelID, relation.LabelFieldName)
+	if err != nil && !shared.IsNotFoundError(err) {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if labelField != nil && labelField.IsEnumLabelField() && labelField.EnumRelationID != nil && *labelField.EnumRelationID == cmd.ID {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
+			"cannot delete field enum relation: it is still referenced by ENUM_LABEL field '"+relation.LabelFieldName+"'")
 	}
 
 	if err := s.fieldEnumRelRepo.Delete(ctx, orgName, cmd.ID); err != nil {

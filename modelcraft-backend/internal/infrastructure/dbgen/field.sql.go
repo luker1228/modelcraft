@@ -12,6 +12,23 @@ import (
 	"strings"
 )
 
+const countFieldsByEnumRelationID = `-- name: CountFieldsByEnumRelationID :one
+SELECT COUNT(*) FROM field_definitions
+WHERE org_name = ? AND enum_relation_id = ?
+`
+
+type CountFieldsByEnumRelationIDParams struct {
+	OrgName        string
+	EnumRelationID sql.NullString
+}
+
+func (q *Queries) CountFieldsByEnumRelationID(ctx context.Context, arg CountFieldsByEnumRelationIDParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countFieldsByEnumRelationID, arg.OrgName, arg.EnumRelationID)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countFieldsByModelID = `-- name: CountFieldsByModelID :one
 SELECT COUNT(*) FROM field_definitions WHERE model_id = ?
 `

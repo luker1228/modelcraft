@@ -145,6 +145,9 @@ This ensures rules are only loaded when relevant files are being edited, improvi
 
 ## graphify
 
+any input to knowledge graph. Trigger: `/graphify`
+When the user types `/graphify`, invoke the Skill tool with `skill: "graphify"` before doing anything else.
+
 This project has a graphify knowledge graph at graphify-out/.
 
 Rules:
