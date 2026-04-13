@@ -31,7 +31,7 @@ export function ModelEditorView() {
   const state = useModelEditorState()
 
   const crud = useModelCRUD({ orgName, projectSlug, state })
-  const fieldOps = useFieldOperations({ projectSlug, state })
+  const fieldOps = useFieldOperations({ orgName, projectSlug, state })
   const fkOps = useForeignKeys({ projectSlug, state })
 
   return (

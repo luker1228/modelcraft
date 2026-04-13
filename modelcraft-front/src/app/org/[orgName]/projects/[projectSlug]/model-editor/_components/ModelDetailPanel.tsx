@@ -10,9 +10,11 @@ import {
   MoreVertical,
   Archive,
   Trash2,
+  AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
+import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
   Drawer,
   DrawerContent,
@@ -58,6 +60,7 @@ export function ModelDetailPanel({
 }: ModelDetailPanelProps) {
   const displayFieldOptions = (state.editModelData?.fields || []).filter((field) => field.format !== 'RELATION')
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
+  const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
 
   return (
     <Drawer open={state.editModelOpen} onOpenChange={crud.handleCloseEditModel} direction="right">
@@ -114,6 +117,25 @@ export function ModelDetailPanel({
                     </Button>
                   )}
                 </div>
+                {isDisplayFieldUnset && (
+                  <Alert variant="warning" className="mb-3 py-2">
+                    <AlertTriangle className="size-4" />
+                    <AlertDescription className="flex items-center justify-between gap-2 text-xs">
+                      <span>未设置展示字段，关系展示将显示空(id)。</span>
+                      {!state.metaEditMode && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="h-6 px-2 text-xs"
+                          onClick={() => state.setMetaEditMode(true)}
+                        >
+                          去设置
+                        </Button>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
                 <div className="grid grid-cols-2 gap-x-6 gap-y-3">
                   <div className="space-y-1">
                     <label className="text-xs text-muted-foreground">标识名称</label>
@@ -184,13 +206,6 @@ export function ModelDetailPanel({
                     )}
                   </div>
                 </div>
-                {!state.metaEditMode && !state.metaDisplayField && (
-                  <div className="mt-4 rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
-                    <p className="text-xs text-amber-700 dark:text-amber-300">
-                      当前未设置展示字段，建议尽快配置，避免关系字段展示为不直观的默认值。
-                    </p>
-                  </div>
-                )}
                 {state.metaEditMode && (
                   <div className="mt-4 flex items-center justify-end gap-2">
                     <Button
@@ -231,14 +246,28 @@ export function ModelDetailPanel({
                       {state.editModelData.fields?.length || 0}
                     </span>
                   </div>
-                  <button
-                    type="button"
-                    title="插入字段"
-                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                    onClick={() => state.setInsertFieldOpen(true)}
-                  >
-                    <Plus className="size-3.5" />
-                  </button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        type="button"
+                        title="新增字段"
+                        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => state.setInsertFieldOpen(true)}>
+                        插入通用字段
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer text-xs" onClick={fieldOps.handleOpenCreateEnumField}>
+                        创建 ENUM 字段
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="cursor-pointer text-xs" onClick={fieldOps.handleOpenCreateEnumLabelField}>
+                        创建 ENUM_LABEL 字段
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
 
                 <div className="overflow-hidden rounded-lg border border-border bg-card">

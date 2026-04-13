@@ -1,0 +1,48 @@
+# FieldEnumRelation types, inputs and mutations
+
+type FieldEnumSourceConflict implements Error {
+  message: String!
+  code: String!
+  suggestion: String
+}
+
+type FieldEnumRelation implements Node {
+  id: ID!
+  modelId: ID!
+  labelFieldName: String!
+  sourceFieldName: String!
+  enumName: String!
+  orgName: String!
+  projectSlug: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CreateFieldEnumRelationInput {
+  modelId: ID!
+  labelFieldName: String!
+  sourceFieldName: String!
+  enumName: String!
+}
+
+union CreateFieldEnumRelationError = InvalidInput | FieldEnumSourceConflict
+union DeleteFieldEnumRelationError = InvalidInput
+
+type CreateFieldEnumRelationPayload {
+  relation: FieldEnumRelation
+  error: CreateFieldEnumRelationError
+}
+
+type DeleteFieldEnumRelationPayload {
+  success: Boolean!
+  error: DeleteFieldEnumRelationError
+}
+
+extend type Query {
+  fieldEnumRelations(modelID: ID!): [FieldEnumRelation!]! @hasPermission(action: "field:read")
+}
+
+extend type Mutation {
+  createFieldEnumRelation(input: CreateFieldEnumRelationInput!): CreateFieldEnumRelationPayload! @hasPermission(action: "field:create")
+  deleteFieldEnumRelation(id: ID!): DeleteFieldEnumRelationPayload! @hasPermission(action: "field:delete")
+}

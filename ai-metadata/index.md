@@ -65,12 +65,19 @@ ai-metadata/
 │       ├── quick-start.md
 │       └── tailwind-usage-policy.md
 └── prd/                              # 产品需求文档
-    └── auth/
-        ├── auth.md
-        ├── auth-api-design.md
-        ├── auth-domain.puml
-        ├── auth-login.md
-        └── auth-register.md
+    ├── auth/
+    │   ├── auth.md
+    │   ├── auth-api-design.md
+    │   ├── auth-domain.puml
+    │   ├── auth-login.md
+    │   └── auth-register.md
+    └── model-enum/
+        ├── 00-model-enum.md
+        ├── 01-field-create-enum-binding.md
+        ├── 02-field-edit-format-immutable.md
+        ├── 03-backend-design.md
+        ├── 04-frontend-subpage-design.md
+        └── model-enum-domain.puml
 ```
 
 ---
@@ -179,4 +186,15 @@ ai-metadata/
 |------|------|
 | [prd/field/00-field-label-field.md](./prd/field/00-field-label-field.md) | 关系字段统一展示协议（`__label` + 模型级 `displayField`） |
 | [prd/field/plan.md](./prd/field/plan.md) | 后端实现逻辑计划（直接切换、无 fallback） |
+
+### 枚举字段关联（Model Enum）
+
+| 路径 | 说明 |
+|------|------|
+| [prd/model-enum/00-model-enum.md](./prd/model-enum/00-model-enum.md) | 总览：规则边界、单一真相与子页索引 |
+| [prd/model-enum/01-field-create-enum-binding.md](./prd/model-enum/01-field-create-enum-binding.md) | 前端子页：创建 ENUM 字段交互设计 |
+| [prd/model-enum/02-field-edit-format-immutable.md](./prd/model-enum/02-field-edit-format-immutable.md) | 前端子页：字段编辑页（format 不可变） |
+| [prd/model-enum/03-backend-design.md](./prd/model-enum/03-backend-design.md) | 后端方案：无迁移、含 BDD 场景设计 |
+| [prd/model-enum/04-frontend-subpage-design.md](./prd/model-enum/04-frontend-subpage-design.md) | 前端合并交互方案（基于 01/02） |
+| [prd/model-enum/model-enum-domain.puml](./prd/model-enum/model-enum-domain.puml) | 领域模型：Field / Enum / FieldEnumRelation 关系图 |
 

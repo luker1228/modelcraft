@@ -127,14 +127,6 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 		}
 	}
 
-	var enumLabelConfig *modeldesign.EnumLabelConfig
-	if row.EnumLabelConfig != nil && len(*row.EnumLabelConfig) > 0 {
-		enumLabelConfig = &modeldesign.EnumLabelConfig{}
-		if err := json.Unmarshal(*row.EnumLabelConfig, enumLabelConfig); err != nil {
-			return nil, fmt.Errorf("FieldDefinitionToDomain: unmarshal enum_label_config: %w", err)
-		}
-	}
-
 	var createdAt, updatedAt time.Time
 	if row.CreatedAt.Valid {
 		createdAt = row.CreatedAt.Time
@@ -156,6 +148,7 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 		Name:             row.Name,
 		ParentRelationID: sqlerr.NullStrToPtr(row.ParentRelationID),
 		EnumName:         row.EnumName.String,
+		EnumRelationID:   sqlerr.NullStrToPtr(row.EnumRelationID),
 		Title:            row.Title,
 		Description:      row.Description.String,
 		Type:             fieldType,
@@ -168,7 +161,6 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 		Validation:       validation,
 		DisplayOrder:     row.DisplayOrder,
 		Metadata:         metadata,
-		EnumLabelConfig:  enumLabelConfig,
 		BelongsToFKID:    sqlerr.NullStrToPtr(row.BelongsToFkID),
 		RelateFKID:       sqlerr.NullStrToPtr(row.RelateFkID),
 		CreatedAt:        createdAt,
@@ -177,7 +169,7 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 }
 
 // FieldDefinitionToCreateParams converts a domain FieldDefinition to dbgen.CreateFieldDefinitionParams.
-// Returns an error if JSON marshalling of validation/metadata/enum_label_config fails.
+// Returns an error if JSON marshalling of validation/metadata fails.
 func FieldDefinitionToCreateParams(
 	fd *modeldesign.FieldDefinition, orgName string,
 ) (dbgen.CreateFieldDefinitionParams, error) {
@@ -193,12 +185,6 @@ func FieldDefinitionToCreateParams(
 			fmt.Errorf("FieldDefinitionToCreateParams: marshal metadata: %w", err)
 	}
 
-	enumLabelJSON, err := marshalJSON(fd.EnumLabelConfig)
-	if err != nil {
-		return dbgen.CreateFieldDefinitionParams{},
-			fmt.Errorf("FieldDefinitionToCreateParams: marshal enum_label_config: %w", err)
-	}
-
 	return dbgen.CreateFieldDefinitionParams{
 		ModelID:          fd.ModelID,
 		OrgName:          orgName,
@@ -208,6 +194,7 @@ func FieldDefinitionToCreateParams(
 		Name:             fd.Name,
 		ParentRelationID: sqlerr.PtrToNullStr(fd.ParentRelationID),
 		EnumName:         sql.NullString{String: fd.EnumName, Valid: fd.EnumName != ""},
+		EnumRelationID:   sqlerr.PtrToNullStr(fd.EnumRelationID),
 		Title:            fd.Title,
 		Description:      sql.NullString{String: fd.Description, Valid: fd.Description != ""},
 		Format:           string(fd.Type.Format),
@@ -220,7 +207,6 @@ func FieldDefinitionToCreateParams(
 		Validation:       ptrJSON(validationJSON),
 		DisplayOrder:     fd.DisplayOrder,
 		Metadata:         ptrJSON(metadataJSON),
-		EnumLabelConfig:  ptrJSON(enumLabelJSON),
 		RelateFkID:       sqlerr.PtrToNullStr(fd.RelateFKID),
 		BelongsToFkID:    sqlerr.PtrToNullStr(fd.BelongsToFKID),
 	}, nil
@@ -238,28 +224,21 @@ func FieldDefinitionToUpdateParams(fd *modeldesign.FieldDefinition) (dbgen.Updat
 		return dbgen.UpdateFieldParams{}, fmt.Errorf("FieldDefinitionToUpdateParams: marshal metadata: %w", err)
 	}
 
-	enumLabelJSON, err := marshalJSON(fd.EnumLabelConfig)
-	if err != nil {
-		return dbgen.UpdateFieldParams{},
-			fmt.Errorf("FieldDefinitionToUpdateParams: marshal enum_label_config: %w", err)
-	}
-
 	return dbgen.UpdateFieldParams{
-		Title:           fd.Title,
-		Description:     sql.NullString{String: fd.Description, Valid: fd.Description != ""},
-		Format:          string(fd.Type.Format),
-		NonNull:         sqlerr.BoolToNullBool(fd.NonNull),
-		Required:        sqlerr.BoolToNullBool(fd.Required),
-		IsUnique:        sqlerr.BoolToNullBool(fd.IsUnique),
-		IsPrimary:       sqlerr.BoolToNullBool(fd.IsPrimary),
-		IsDeprecated:    sqlerr.BoolToNullBool(fd.IsDeprecated),
-		Status:          string(fd.Status),
-		Validation:      ptrJSON(validationJSON),
-		DisplayOrder:    fd.DisplayOrder,
-		Metadata:        ptrJSON(metadataJSON),
-		EnumLabelConfig: ptrJSON(enumLabelJSON),
-		ModelID:         fd.ModelID,
-		Name:            fd.Name,
+		Title:          fd.Title,
+		Description:    sql.NullString{String: fd.Description, Valid: fd.Description != ""},
+		NonNull:        sqlerr.BoolToNullBool(fd.NonNull),
+		Required:       sqlerr.BoolToNullBool(fd.Required),
+		IsUnique:       sqlerr.BoolToNullBool(fd.IsUnique),
+		IsPrimary:      sqlerr.BoolToNullBool(fd.IsPrimary),
+		IsDeprecated:   sqlerr.BoolToNullBool(fd.IsDeprecated),
+		Status:         string(fd.Status),
+		Validation:     ptrJSON(validationJSON),
+		DisplayOrder:   fd.DisplayOrder,
+		Metadata:       ptrJSON(metadataJSON),
+		EnumRelationID: sqlerr.PtrToNullStr(fd.EnumRelationID),
+		ModelID:        fd.ModelID,
+		Name:           fd.Name,
 	}, nil
 }
 
@@ -287,14 +266,62 @@ func ptrJSON(v json.RawMessage) *json.RawMessage {
 	return &v
 }
 
+// FieldEnumRelationToDomain converts a dbgen.FieldEnumRelation row to a domain FieldEnumRelation.
+func FieldEnumRelationToDomain(row dbgen.FieldEnumRelation) *modeldesign.FieldEnumRelation {
+	var createdAt, updatedAt time.Time
+	if row.CreatedAt.Valid {
+		createdAt = row.CreatedAt.Time
+	}
+	if row.UpdatedAt.Valid {
+		updatedAt = row.UpdatedAt.Time
+	}
+
+	return &modeldesign.FieldEnumRelation{
+		ID:              row.ID,
+		ModelID:         row.ModelID,
+		LabelFieldName:  row.LabelFieldName,
+		SourceFieldName: row.SourceFieldName,
+		ProjectScope: project.ProjectScope{
+			OrgName:     row.OrgName,
+			ProjectSlug: row.ProjectSlug,
+		},
+		EnumName:  row.EnumName,
+		CreatedAt: createdAt,
+		UpdatedAt: updatedAt,
+	}
+}
+
+// FieldEnumRelationToCreateParams converts a domain FieldEnumRelation to dbgen.CreateFieldEnumRelationParams.
+func FieldEnumRelationToCreateParams(relation *modeldesign.FieldEnumRelation) dbgen.CreateFieldEnumRelationParams {
+	return dbgen.CreateFieldEnumRelationParams{
+		ID:              relation.ID,
+		ModelID:         relation.ModelID,
+		LabelFieldName:  relation.LabelFieldName,
+		SourceFieldName: relation.SourceFieldName,
+		OrgName:         relation.OrgName,
+		ProjectSlug:     relation.ProjectSlug,
+		EnumName:        relation.EnumName,
+	}
+}
+
 // SqlModelDesignRepository is the sqlc-based implementation of modeldesign.ModelRepository.
 type SqlModelDesignRepository struct {
+	q dbgen.Querier
+}
+
+// SqlFieldEnumRelationRepository is the sqlc-based implementation of modeldesign.FieldEnumRelationRepository.
+type SqlFieldEnumRelationRepository struct {
 	q dbgen.Querier
 }
 
 // NewSqlModelDesignRepository creates a SqlModelDesignRepository.
 func NewSqlModelDesignRepository(q dbgen.Querier) modeldesign.ModelRepository {
 	return &SqlModelDesignRepository{q: dbgenwrap.NewSafeQuerier(q)}
+}
+
+// NewSqlFieldEnumRelationRepository creates a SqlFieldEnumRelationRepository.
+func NewSqlFieldEnumRelationRepository(q dbgen.Querier) modeldesign.FieldEnumRelationRepository {
+	return &SqlFieldEnumRelationRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // Save creates a new model and its fields.
@@ -701,6 +728,113 @@ func (r *SqlModelDesignRepository) getFieldsForModel(
 	return fields, nil
 }
 
+// Create creates a new field enum relation.
+func (r *SqlFieldEnumRelationRepository) Create(
+	ctx context.Context,
+	relation *modeldesign.FieldEnumRelation,
+) error {
+	if err := relation.Validate(); err != nil {
+		return bizerrors.Wrapf(err, "field enum relation validation failed")
+	}
+
+	return r.q.CreateFieldEnumRelation(ctx, FieldEnumRelationToCreateParams(relation))
+}
+
+// FindByID retrieves a field enum relation by id and org scope.
+func (r *SqlFieldEnumRelationRepository) FindByID(
+	ctx context.Context,
+	orgName, id string,
+) (*modeldesign.FieldEnumRelation, error) {
+	row, err := r.q.GetFieldEnumRelationByID(ctx, dbgen.GetFieldEnumRelationByIDParams{
+		OrgName: orgName,
+		ID:      id,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if row.ID == "" {
+		return nil, shared.NewNotFoundError("field enum relation not found by id: " + id)
+	}
+
+	return FieldEnumRelationToDomain(row), nil
+}
+
+// FindBySourceField retrieves a field enum relation by source field and org scope.
+func (r *SqlFieldEnumRelationRepository) FindBySourceField(
+	ctx context.Context,
+	orgName, modelID, sourceFieldName string,
+) (*modeldesign.FieldEnumRelation, error) {
+	row, err := r.q.GetFieldEnumRelationBySource(ctx, dbgen.GetFieldEnumRelationBySourceParams{
+		OrgName:         orgName,
+		ModelID:         modelID,
+		SourceFieldName: sourceFieldName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if row.ID == "" {
+		return nil, shared.NewNotFoundError("field enum relation not found by source field: " + sourceFieldName)
+	}
+
+	return FieldEnumRelationToDomain(row), nil
+}
+
+// ListByModelID lists field enum relations under a model and org scope.
+func (r *SqlFieldEnumRelationRepository) ListByModelID(
+	ctx context.Context,
+	orgName, modelID string,
+) ([]*modeldesign.FieldEnumRelation, error) {
+	rows, err := r.q.ListFieldEnumRelationsByModelID(ctx, dbgen.ListFieldEnumRelationsByModelIDParams{
+		OrgName: orgName,
+		ModelID: modelID,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	relations := make([]*modeldesign.FieldEnumRelation, len(rows))
+	for i, row := range rows {
+		relations[i] = FieldEnumRelationToDomain(row)
+	}
+
+	return relations, nil
+}
+
+// CountBySourceField counts field enum relations by source field under org scope.
+func (r *SqlFieldEnumRelationRepository) CountBySourceField(
+	ctx context.Context,
+	orgName, modelID, sourceFieldName string,
+) (int64, error) {
+	return r.q.CountFieldEnumRelationsBySource(ctx, dbgen.CountFieldEnumRelationsBySourceParams{
+		OrgName:         orgName,
+		ModelID:         modelID,
+		SourceFieldName: sourceFieldName,
+	})
+}
+
+// Delete deletes a field enum relation by id and org scope.
+func (r *SqlFieldEnumRelationRepository) Delete(
+	ctx context.Context,
+	orgName, id string,
+) error {
+	result, err := r.q.DeleteFieldEnumRelationByID(ctx, dbgen.DeleteFieldEnumRelationByIDParams{
+		OrgName: orgName,
+		ID:      id,
+	})
+	if err != nil {
+		return err
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "field enum relation not found")
+	}
+
+	return nil
+}
+
 // --- nullable trick helpers ---
 
 // nullableTrickArgs returns the two args needed for: (? IS NULL OR col LIKE CONCAT('%', ?, '%'))
@@ -727,3 +861,9 @@ func nullableStorageTypeFilter(s string) interface{} {
 	}
 	return s
 }
+
+// Compile-time interface satisfaction checks.
+var (
+	_ modeldesign.ModelRepository             = (*SqlModelDesignRepository)(nil)
+	_ modeldesign.FieldEnumRelationRepository = (*SqlFieldEnumRelationRepository)(nil)
+)

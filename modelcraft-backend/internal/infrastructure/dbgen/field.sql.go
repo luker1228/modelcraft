@@ -24,7 +24,7 @@ func (q *Queries) CountFieldsByModelID(ctx context.Context, modelID string) (int
 }
 
 const createFieldDefinition = `-- name: CreateFieldDefinition :exec
-INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, parent_relation_id, enum_name, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, enum_label_config, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
+INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, parent_relation_id, enum_name, enum_relation_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
@@ -37,6 +37,7 @@ type CreateFieldDefinitionParams struct {
 	Name             string
 	ParentRelationID sql.NullString
 	EnumName         sql.NullString
+	EnumRelationID   sql.NullString
 	Title            string
 	Description      sql.NullString
 	Format           string
@@ -49,7 +50,6 @@ type CreateFieldDefinitionParams struct {
 	Validation       *json.RawMessage
 	DisplayOrder     string
 	Metadata         *json.RawMessage
-	EnumLabelConfig  *json.RawMessage
 	RelateFkID       sql.NullString
 	BelongsToFkID    sql.NullString
 }
@@ -64,6 +64,7 @@ func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefi
 		arg.Name,
 		arg.ParentRelationID,
 		arg.EnumName,
+		arg.EnumRelationID,
 		arg.Title,
 		arg.Description,
 		arg.Format,
@@ -76,7 +77,6 @@ func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefi
 		arg.Validation,
 		arg.DisplayOrder,
 		arg.Metadata,
-		arg.EnumLabelConfig,
 		arg.RelateFkID,
 		arg.BelongsToFkID,
 	)
@@ -134,7 +134,7 @@ func (q *Queries) ExistsFieldByName(ctx context.Context, arg ExistsFieldByNamePa
 }
 
 const getFieldByModelIDAndName = `-- name: GetFieldByModelIDAndName :one
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, enum_label_config, created_at, updated_at FROM field_definitions
+SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
 WHERE model_id = ? AND name = ?
 LIMIT 1
 `
@@ -156,6 +156,7 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 		&i.DatabaseName,
 		&i.ParentRelationID,
 		&i.EnumName,
+		&i.EnumRelationID,
 		&i.BelongsToFkID,
 		&i.RelateFkID,
 		&i.Title,
@@ -170,7 +171,6 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 		&i.Validation,
 		&i.DisplayOrder,
 		&i.Metadata,
-		&i.EnumLabelConfig,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -178,7 +178,7 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 }
 
 const getFieldsByModelID = `-- name: GetFieldsByModelID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, enum_label_config, created_at, updated_at FROM field_definitions
+SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
 WHERE model_id = ?
 ORDER BY display_order ASC
 `
@@ -201,6 +201,7 @@ func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]Fie
 			&i.DatabaseName,
 			&i.ParentRelationID,
 			&i.EnumName,
+			&i.EnumRelationID,
 			&i.BelongsToFkID,
 			&i.RelateFkID,
 			&i.Title,
@@ -215,7 +216,6 @@ func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]Fie
 			&i.Validation,
 			&i.DisplayOrder,
 			&i.Metadata,
-			&i.EnumLabelConfig,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -248,33 +248,31 @@ func (q *Queries) GetTailFieldDisplayOrder(ctx context.Context, modelID string) 
 
 const updateField = `-- name: UpdateField :execresult
 UPDATE field_definitions
-SET title = ?, description = ?, format = ?, non_null = ?, required = ?, is_unique = ?, is_primary = ?, is_deprecated = ?, status = ?, validation = ?, display_order = ?, metadata = ?, enum_label_config = ?, updated_at = NOW(3)
+SET title = ?, description = ?, non_null = ?, required = ?, is_unique = ?, is_primary = ?, is_deprecated = ?, status = ?, validation = ?, display_order = ?, metadata = ?, enum_relation_id = ?, updated_at = NOW(3)
 WHERE model_id = ? AND name = ?
 `
 
 type UpdateFieldParams struct {
-	Title           string
-	Description     sql.NullString
-	Format          string
-	NonNull         sql.NullBool
-	Required        sql.NullBool
-	IsUnique        sql.NullBool
-	IsPrimary       sql.NullBool
-	IsDeprecated    sql.NullBool
-	Status          string
-	Validation      *json.RawMessage
-	DisplayOrder    string
-	Metadata        *json.RawMessage
-	EnumLabelConfig *json.RawMessage
-	ModelID         string
-	Name            string
+	Title          string
+	Description    sql.NullString
+	NonNull        sql.NullBool
+	Required       sql.NullBool
+	IsUnique       sql.NullBool
+	IsPrimary      sql.NullBool
+	IsDeprecated   sql.NullBool
+	Status         string
+	Validation     *json.RawMessage
+	DisplayOrder   string
+	Metadata       *json.RawMessage
+	EnumRelationID sql.NullString
+	ModelID        string
+	Name           string
 }
 
 func (q *Queries) UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updateField,
 		arg.Title,
 		arg.Description,
-		arg.Format,
 		arg.NonNull,
 		arg.Required,
 		arg.IsUnique,
@@ -284,7 +282,7 @@ func (q *Queries) UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.R
 		arg.Validation,
 		arg.DisplayOrder,
 		arg.Metadata,
-		arg.EnumLabelConfig,
+		arg.EnumRelationID,
 		arg.ModelID,
 		arg.Name,
 	)

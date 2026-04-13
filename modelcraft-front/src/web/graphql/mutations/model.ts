@@ -10,7 +10,6 @@ export const CREATE_MODEL = gql`
         name
         title
         description
-        displayField
         databaseName
         storageType
         fields {
@@ -75,7 +74,6 @@ export const UPDATE_MODEL = gql`
         name
         title
         description
-        displayField
         databaseName
         storageType
         fields {
@@ -416,6 +414,59 @@ export const ADD_FIELDS = gql`
     addFields(modelID: $modelID, input: $input) {
       model {
         id
+        projectSlug
+        name
+        title
+        description
+        databaseName
+        storageType
+        fields {
+          name
+          title
+          format
+          schemaType
+          storageHint
+          nonNull
+          required
+          isPrimary
+          isUnique
+          isDeprecated
+          isArray
+          description
+          relateFkId
+          belongsToFkId
+          enum {
+            id
+            name
+            displayName
+            description
+            isMultiSelect
+            options {
+              code
+              label
+              order
+              description
+            }
+          }
+          validationConfig {
+            minLength
+            maxLength
+            pattern
+            minimum
+            maximum
+          }
+          createdAt
+          updatedAt
+        }
+        group {
+          id
+          name
+          isVirtual
+          displayOrder
+        }
+        dbTable
+        createdAt
+        updatedAt
       }
       error {
         __typename
@@ -450,9 +501,23 @@ export const UPDATE_FIELD = gql`
         isPrimary
         isUnique
         isDeprecated
+        isArray
         description
         relateFkId
         belongsToFkId
+        enum {
+          id
+          name
+          displayName
+          description
+          isMultiSelect
+          options {
+            code
+            label
+            order
+            description
+          }
+        }
         validationConfig {
           minLength
           maxLength

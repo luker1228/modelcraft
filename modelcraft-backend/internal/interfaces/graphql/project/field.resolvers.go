@@ -13,167 +13,155 @@ import (
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/internal/interfaces/mapper"
 	"modelcraft/pkg/bizerrors"
-	"strings"
+	"modelcraft/pkg/logfacade"
 )
 
 // AddFields is the resolver for the addFields field.
 func (r *mutationResolver) AddFields(ctx context.Context, modelID string, input []*generated.AddFieldInput) (*generated.AddFieldsPayload, error) {
 	errorAdapter := adapter.NewModelErrorAdapter(ctx)
+	results := make([]*generated.AddFieldItemResult, 0, len(input))
+	hasSuccess := false
 
-	// Convert GraphQL input to domain field definitions via DTO intermediate
-	fields := make([]*modeldesign.FieldDefinition, 0, len(input))
 	for _, inputItem := range input {
+		if inputItem == nil {
+			gqlErr := &generated.InvalidInput{Message: "field input is required"}
+			results = append(results, &generated.AddFieldItemResult{Name: "", Success: false, Error: gqlErr})
+			continue
+		}
+
 		dto, err := adapter.FieldMapper.ConvertAddFieldInputToDTO(inputItem)
 		if err != nil {
-			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-				return &generated.AddFieldsPayload{
-					Error: errorAdapter.ConvertToAddFieldsError(bizErr),
-				}, nil
-			}
-			return nil, err
+			gqlErr := convertToAddFieldsError(err, errorAdapter)
+			results = append(results, &generated.AddFieldItemResult{Name: inputItem.Name, Success: false, Error: gqlErr})
+			continue
 		}
+
 		field, err := mapper.FieldMapper.ConvertFieldDTOToDomain(modelID, nil, dto)
 		if err != nil {
-			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-				return &generated.AddFieldsPayload{
-					Error: errorAdapter.ConvertToAddFieldsError(bizErr),
-				}, nil
-			}
+			gqlErr := convertToAddFieldsError(err, errorAdapter)
+			results = append(results, &generated.AddFieldItemResult{Name: inputItem.Name, Success: false, Error: gqlErr})
+			continue
+		}
+
+		appResults, appErr := r.ModelDesignService.AddFieldsWithResults(ctx, appmodeldesign.AddFieldCommand{
+			ModelID: modelID,
+			Fields:  []*modeldesign.FieldDefinition{field},
+		})
+		if appErr != nil {
+			return nil, appErr
+		}
+		if len(appResults) == 0 {
+			gqlErr := &generated.InvalidInput{Message: "failed to process add field request"}
+			results = append(results, &generated.AddFieldItemResult{Name: inputItem.Name, Success: false, Error: gqlErr})
+			continue
+		}
+
+		result := appResults[0]
+		if result.Success {
+			hasSuccess = true
+			results = append(results, &generated.AddFieldItemResult{Name: result.Name, Success: true, Error: nil})
+			continue
+		}
+
+		gqlErr := convertToAddFieldsError(result.Err, errorAdapter)
+		results = append(results, &generated.AddFieldItemResult{Name: result.Name, Success: false, Error: gqlErr})
+	}
+
+	payload := &generated.AddFieldsPayload{Results: results}
+	for _, item := range results {
+		if !item.Success {
+			payload.Error = item.Error
+			break
+		}
+	}
+
+	if hasSuccess {
+		updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
+		if err != nil {
 			return nil, err
 		}
-		fields = append(fields, field)
-	}
-
-	// Create command
-	cmd := appmodeldesign.AddFieldCommand{
-		ModelID: modelID,
-		Fields:  fields,
-	}
-
-	// Add field using app service
-	err := r.ModelDesignService.AddFieldSync(ctx, cmd)
-	if err != nil {
-		// Convert business errors to typed GraphQL errors
-		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-			return &generated.AddFieldsPayload{
-				Model: nil,
-				Error: errorAdapter.ConvertToAddFieldsError(bizErr),
-			}, nil
+		graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 		}
-
-		// Domain validation errors should also be mapped to AddFieldsPayload.error
-		if strings.Contains(err.Error(), "(FieldValidate)") {
-			return &generated.AddFieldsPayload{
-				Model: nil,
-				Error: &generated.InvalidModelInput{Message: err.Error()},
-			}, nil
-		}
-
-		// For non-business errors, still throw as GraphQL error
-		return nil, err
+		payload.Model = graphqlModel
 	}
 
-	// Get updated model
+	return payload, nil
+}
+
+func convertToAddFieldsError(err error, errorAdapter *adapter.ModelErrorAdapter) generated.AddFieldsError {
+	if err == nil {
+		return nil
+	}
+	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		return errorAdapter.ConvertToAddFieldsError(bizErr)
+	}
+	msg := err.Error()
+	return &generated.InvalidInput{Message: msg}
+}
+
+// UpdateField is the resolver for the updateField field.
+func (r *mutationResolver) UpdateField(ctx context.Context, modelID string, fieldName string, input generated.UpdateFieldInput) (*generated.UpdateFieldPayload, error) {
+	errorAdapter := adapter.NewModelErrorAdapter(ctx)
+
+	cmd := appmodeldesign.UpdateFieldCommand{
+		ModelID:   modelID,
+		FieldName: fieldName,
+	}
+	if input.Title != nil {
+		cmd.Title = *input.Title
+	}
+	if input.Description != nil {
+		cmd.Description = *input.Description
+	}
+	if input.ValidationConfig != nil {
+		cmd.ValidationConfig = adapter.FieldMapper.ConvertValidationInputToDomain(input.ValidationConfig)
+	}
+
+	if err := r.ModelDesignService.UpdateFieldSync(ctx, cmd); err != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "failed to update field", logfacade.Err(err), logfacade.Stack(err))
+		return &generated.UpdateFieldPayload{Error: errorAdapter.ConvertToUpdateFieldError(err)}, nil
+	}
+
 	updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
 	if err != nil {
 		return nil, err
 	}
 
-	// Convert domain model to GraphQL model
 	graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
 	if err != nil {
-		return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
+		return nil, err
 	}
 
-	return &generated.AddFieldsPayload{
-		Model: graphqlModel,
-		Error: nil,
-	}, nil
-}
-
-// UpdateField is the resolver for the updateField field.
-func (r *mutationResolver) UpdateField(ctx context.Context, modelID string, fieldName string, input generated.UpdateFieldInput) (*generated.Model, error) {
-	var payload *generated.Model
-	graphqlErr := bizerrors.WithGraphqlErrorHandler(ctx, func() error {
-		// Convert GraphQL input to command
-		cmd := appmodeldesign.UpdateFieldCommand{
-			ModelID:   modelID,
-			FieldName: fieldName,
-		}
-		if input.Title != nil {
-			cmd.Title = *input.Title
-		}
-		if input.Description != nil {
-			cmd.Description = *input.Description
-		}
-		if input.ValidationConfig != nil {
-			cmd.ValidationConfig = adapter.FieldMapper.ConvertValidationInputToDomain(input.ValidationConfig)
-		}
-
-		// Update field using app service
-		err := r.ModelDesignService.UpdateFieldSync(ctx, cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get updated model
-		updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
-		if err != nil {
-			return err
-		}
-
-		// Convert domain model to GraphQL model
-		graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
-		if err != nil {
-			return err
-		}
-
-		payload = graphqlModel
-		return nil
-	})
-
-	if graphqlErr != nil {
-		return nil, graphqlErr
-	}
-	return payload, nil
+	return &generated.UpdateFieldPayload{Model: graphqlModel}, nil
 }
 
 // RemoveField is the resolver for the removeField field.
-func (r *mutationResolver) RemoveField(ctx context.Context, modelID string, fieldName string) (*generated.Model, error) {
-	// Remove field using app service
-	var payload *generated.Model
-	graphqlErr := bizerrors.WithGraphqlErrorHandler(ctx, func() error {
-		// Build command
-		cmd := appmodeldesign.RemoveFieldCommand{
-			ModelID:   modelID,
-			FieldName: fieldName,
-		}
+func (r *mutationResolver) RemoveField(ctx context.Context, modelID string, fieldName string) (*generated.RemoveFieldPayload, error) {
+	errorAdapter := adapter.NewModelErrorAdapter(ctx)
 
-		err := r.ModelDesignService.RemoveFieldSync(ctx, cmd)
-		if err != nil {
-			return err
-		}
-
-		// Get updated model
-		updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
-		if err != nil {
-			return err
-		}
-
-		// Convert domain model to GraphQL model
-		graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
-		if err != nil {
-			return err
-		}
-
-		payload = graphqlModel
-		return nil
-	})
-
-	if graphqlErr != nil {
-		return nil, graphqlErr
+	cmd := appmodeldesign.RemoveFieldCommand{
+		ModelID:   modelID,
+		FieldName: fieldName,
 	}
-	return payload, nil
+
+	if err := r.ModelDesignService.RemoveFieldSync(ctx, cmd); err != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "failed to remove field", logfacade.Err(err), logfacade.Stack(err))
+		return &generated.RemoveFieldPayload{Error: errorAdapter.ConvertToRemoveFieldError(err)}, nil
+	}
+
+	updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
+	if err != nil {
+		return nil, err
+	}
+
+	graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(updatedModel)
+	if err != nil {
+		return nil, err
+	}
+
+	return &generated.RemoveFieldPayload{Model: graphqlModel}, nil
 }
 
 // DeprecateField is the resolver for the deprecateField field.
@@ -246,18 +234,13 @@ func (r *mutationResolver) UndeprecateField(ctx context.Context, modelID string,
 func (r *queryResolver) Fields(ctx context.Context, modelID string) ([]*generated.Field, error) {
 	var payload []*generated.Field
 	graphqlErr := bizerrors.WithGraphqlErrorHandler(ctx, func() error {
-		// Build command
-		cmd := appmodeldesign.GetFieldsCommand{
-			ModelID: modelID,
-		}
+		cmd := appmodeldesign.GetFieldsCommand{ModelID: modelID}
 
-		// Get model by ID using app service
 		fields, err := r.ModelDesignService.GetFieldsByModelID(ctx, cmd)
 		if err != nil {
 			return err
 		}
 
-		// Convert domain fields to GraphQL fields
 		modelMapper := adapter.ModelMapper
 		graphqlFields := make([]*generated.Field, 0, len(fields))
 		for _, field := range fields {

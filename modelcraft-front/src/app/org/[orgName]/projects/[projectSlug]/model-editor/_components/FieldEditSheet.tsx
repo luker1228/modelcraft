@@ -1,19 +1,20 @@
 'use client'
 
-import { Key, Settings } from 'lucide-react'
-import { Button } from '@web/components/ui/button'
-import { Input } from '@web/components/ui/input'
-import { Textarea } from '@web/components/ui/textarea'
+import { PlusCircle, Settings, Tags } from 'lucide-react'
 import {
   Sheet,
   SheetContent,
   SheetDescription,
-  SheetFooter,
   SheetHeader,
   SheetTitle,
 } from '@web/components/ui/sheet'
 import type { ModelEditorState } from '../_hooks'
 import type { FieldOperations } from '../_hooks'
+import {
+  CreateEnumFieldPage,
+  CreateEnumLabelFieldPage,
+  EditFieldImmutablePage,
+} from './field-pages'
 
 interface FieldEditSheetProps {
   state: ModelEditorState
@@ -21,111 +22,72 @@ interface FieldEditSheetProps {
 }
 
 export function FieldEditSheet({ state, fieldOps }: FieldEditSheetProps) {
+  const pageMeta =
+    fieldOps.fieldPageMode === 'create-enum'
+      ? {
+          title: '创建 ENUM 字段',
+          description: '填写基础信息并绑定枚举。',
+          icon: <Tags className="size-4 text-primary" />,
+        }
+      : fieldOps.fieldPageMode === 'create-enum-label'
+        ? {
+            title: '创建 ENUM_LABEL 字段',
+            description: '选择 source 字段并绑定 enum relation。',
+            icon: <PlusCircle className="size-4 text-primary" />,
+          }
+        : {
+            title: '编辑字段',
+            description: `编辑字段 ${state.editingField?.name || ''}，format 与关联配置只读。`,
+            icon: <Settings className="size-4 text-primary" />,
+          }
+
   return (
     <Sheet open={state.editFieldOpen} onOpenChange={state.setEditFieldOpen}>
-      <SheetContent className="w-[480px] overflow-y-auto sm:max-w-[480px]">
+      <SheetContent className="w-[520px] overflow-y-auto sm:max-w-[520px]">
         <SheetHeader>
-          <SheetTitle className="flex items-center gap-2 font-heading text-base">
-            <Settings className="size-4 text-[#2563eb]" />
-            编辑字段
+          <SheetTitle className="flex items-center gap-2 text-base">
+            {pageMeta.icon}
+            {pageMeta.title}
           </SheetTitle>
-          <SheetDescription className="text-sm">
-            编辑字段 <span className="font-mono text-[#2563eb]">{state.editingField?.name}</span> 的配置
-          </SheetDescription>
+          <SheetDescription className="text-sm">{pageMeta.description}</SheetDescription>
         </SheetHeader>
 
-        {state.editingField && (
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">字段名称</label>
-              <Input
-                value={state.editingField.name}
-                disabled
-                className="bg-muted/30 font-mono text-sm"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">显示名称 (DisplayName)</label>
-              <Input
-                value={state.editFieldTitle}
-                onChange={(e) => state.setEditFieldTitle(e.target.value)}
-                className="text-sm"
-                placeholder="字段显示名称"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Format</label>
-              <Input
-                value={state.editingField.format || '-'}
-                disabled
-                className="bg-muted/30 font-mono text-sm"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Type</label>
-              <Input
-                value={state.editingField.storageHint || state.editingField.schemaType || 'String'}
-                disabled
-                className="bg-muted/30 font-mono text-sm"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-medium text-muted-foreground">属性</label>
-              <div className="flex flex-wrap gap-2">
-                {state.editingField.isPrimary && (
-                  <span className="inline-flex items-center rounded px-2 py-1 text-xs" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
-                    <Key className="mr-1 size-3" />
-                    主键
-                  </span>
-                )}
-                {state.editingField.nonNull && (
-                  <span className="inline-flex items-center rounded px-2 py-1 text-xs" style={{ backgroundColor: '#fee2e2', color: '#ef4444' }}>
-                    必填
-                  </span>
-                )}
-                {state.editingField.required && (
-                  <span className="inline-flex items-center rounded px-2 py-1 text-xs" style={{ backgroundColor: '#fef3c7', color: '#d97706' }}>
-                    必需
-                  </span>
-                )}
-                {!state.editingField.isPrimary && !state.editingField.nonNull && !state.editingField.required && (
-                  <span className="text-xs text-muted-foreground">无特殊属性</span>
-                )}
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-foreground">描述</label>
-              <Textarea
-                value={state.editFieldDescription}
-                onChange={(e) => state.setEditFieldDescription(e.target.value)}
-                className="min-h-[80px] resize-none text-sm"
-                placeholder="字段描述"
-              />
-            </div>
-          </div>
+        {fieldOps.fieldPageMode === 'create-enum' && (
+          <CreateEnumFieldPage
+            enumOptions={fieldOps.enumOptions}
+            loading={fieldOps.contextLoading || fieldOps.createEnumFieldLoading}
+            error={fieldOps.createEnumFieldError ?? fieldOps.contextError}
+            onSubmit={fieldOps.handleSubmitCreateEnumField}
+            onCancel={fieldOps.handleCloseFieldPage}
+          />
         )}
 
-        <SheetFooter className="mt-4 flex gap-2 border-t border-border pt-4 sm:justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => state.setEditFieldOpen(false)}
-          >
-            取消
-          </Button>
-          <Button
-            size="sm"
-            className="border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
-            onClick={fieldOps.handleSaveField}
-          >
-            保存
-          </Button>
-        </SheetFooter>
+        {fieldOps.fieldPageMode === 'create-enum-label' && (
+          <CreateEnumLabelFieldPage
+            sourceOptions={fieldOps.sourceOptions}
+            relationOptions={fieldOps.relationOptions}
+            loading={fieldOps.contextLoading || fieldOps.createEnumLabelFieldLoading}
+            error={fieldOps.createEnumLabelFieldError ?? fieldOps.contextError}
+            onCreateRelation={fieldOps.handleCreateEnumRelation}
+            onSubmit={fieldOps.handleSubmitCreateEnumLabelField}
+            onCancel={fieldOps.handleCloseFieldPage}
+          />
+        )}
+
+        {fieldOps.fieldPageMode === 'edit' && state.editingField && (
+          <EditFieldImmutablePage
+            fieldName={state.editingField.name}
+            title={state.editingField.title}
+            description={state.editingField.description}
+            format={state.editingField.format || '-'}
+            relateEnumName={state.editingField.enum?.name}
+            enumRelationId={state.editingField.enumRelationId}
+            loading={fieldOps.editFieldLoading}
+            error={fieldOps.editFieldError}
+            onSubmit={fieldOps.handleSubmitEditField}
+            onCancel={fieldOps.handleCloseFieldPage}
+          />
+        )}
       </SheetContent>
     </Sheet>
   )

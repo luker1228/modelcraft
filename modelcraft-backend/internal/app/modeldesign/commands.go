@@ -1,11 +1,14 @@
 package modeldesign
 
-import "modelcraft/internal/domain/modeldesign"
+import (
+	"modelcraft/internal/domain/modeldesign"
+	bizerrors "modelcraft/pkg/bizerrors"
+)
 
 // CreateModelCommand 创建模型命令
 type CreateModelCommand struct {
-	OrgName      string  // 组织名称（从 URL 路径或 JWT 中提取）
-	ProjectSlug  string  // 项目标识符
+	OrgName      string // 组织名称（从 URL 路径或 JWT 中提取）
+	ProjectSlug  string // 项目标识符
 	Name         string
 	Title        string
 	Description  string
@@ -16,10 +19,10 @@ type CreateModelCommand struct {
 
 // UpdateModelMetaCommand 更新模型元数据命令
 type UpdateModelMetaCommand struct {
-	OrgName     string  // 组织名称（从 URL 路径或 JWT 中提取）
-	ProjectSlug string  // 项目标识符
-	Title       *string
-	Description *string
+	OrgName      string // 组织名称（从 URL 路径或 JWT 中提取）
+	ProjectSlug  string // 项目标识符
+	Title        *string
+	Description  *string
 	DisplayField *string // 用于 runtime __label 解析的字段名（nil 表示不更新）
 }
 
@@ -57,6 +60,9 @@ type UpdateFieldCommand struct {
 	Title            string                        // 新的显示名称（空字符串表示不更新）
 	Description      string                        // 新的描述（空字符串表示不更新）
 	ValidationConfig *modeldesign.ValidationConfig // 验证配置（nil表示不更新）
+	Format           *modeldesign.FormatType       // 可选传入（仅用于不可变校验）
+	RelateEnumName   *string                       // 可选传入（仅用于不可变校验）
+	EnumRelationID   *string                       // 可选传入（仅用于不可变校验）
 }
 
 // DeprecateFieldCommand 废弃字段命令（幂等：已废弃时直接成功）
@@ -77,9 +83,46 @@ type RemoveFieldCommand struct {
 	FieldName string // 字段名称
 }
 
+// AddFieldItemResult 表示 addFields 中单个字段的处理结果。
+type AddFieldItemResult struct {
+	Name    string
+	Success bool
+	Err     error
+}
+
+const (
+	FieldEnumSourceConflictCode = "FIELD_ENUM_SOURCE_CONFLICT"
+	FieldFormatImmutableCode    = "FIELD_FORMAT_IMMUTABLE"
+	FieldReferenceInUseCode     = "FIELD_REFERENCE_IN_USE"
+)
+
+var (
+	ErrFieldEnumSourceConflict = bizerrors.New(FieldEnumSourceConflictCode)
+	ErrFieldFormatImmutable    = bizerrors.New(FieldFormatImmutableCode)
+	ErrFieldReferenceInUse     = bizerrors.New(FieldReferenceInUseCode)
+)
+
 // GetFieldsCommand 获取字段列表命令
 type GetFieldsCommand struct {
 	ModelID string // 模型ID
+}
+
+// CreateFieldEnumRelationCommand 创建字段枚举关联命令
+type CreateFieldEnumRelationCommand struct {
+	ModelID         string
+	LabelFieldName  string
+	SourceFieldName string
+	EnumName        string
+}
+
+// DeleteFieldEnumRelationCommand 删除字段枚举关联命令
+type DeleteFieldEnumRelationCommand struct {
+	ID string
+}
+
+// ListFieldEnumRelationsCommand 查询模型字段枚举关联列表命令
+type ListFieldEnumRelationsCommand struct {
+	ModelID string
 }
 
 // GetModelOptions 获取模型选项

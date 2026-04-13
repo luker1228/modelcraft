@@ -1,4 +1,15 @@
-import type { LogicalForeignKey, DbColumnInfo, CreateLogicalForeignKeyResult, DeleteLogicalForeignKeyResult } from '@/types'
+import type {
+  CreateEnumFieldFormValues,
+  CreateEnumLabelFieldFormValues,
+  CreateLogicalForeignKeyResult,
+  DbColumnInfo,
+  DeleteLogicalForeignKeyResult,
+  EnumRelationOption,
+  EnumSourceOption,
+  LogicalForeignKey,
+  ModelEnumDomainError,
+  UpdateFieldMetaFormValues,
+} from '@/types'
 
 // Local model type used by the model editor page
 // (lighter than the shared Model type from @/types)
@@ -23,6 +34,11 @@ export interface EditorModelField {
   isPrimary?: boolean
   description?: string
   isDeprecated?: boolean
+  enum?: {
+    name: string
+  }
+  relateEnumName?: string
+  enumRelationId?: string
   dbColumn?: DbColumnInfo
 }
 
@@ -80,6 +96,33 @@ export interface UpdateModelMetaResult {
 
 export interface ForeignKeysQueryData {
   logicalForeignKeys?: LogicalForeignKey[]
+}
+
+export interface EnumFieldPageState {
+  saving: boolean
+  error: ModelEnumDomainError | null
+}
+
+export interface CreateEnumFieldPageModel {
+  defaults: CreateEnumFieldFormValues
+  enumOptions: string[]
+  state: EnumFieldPageState
+}
+
+export interface CreateEnumLabelFieldPageModel {
+  defaults: CreateEnumLabelFieldFormValues
+  sourceOptions: EnumSourceOption[]
+  relationOptions: EnumRelationOption[]
+  state: EnumFieldPageState
+}
+
+export interface EditFieldImmutablePageModel {
+  fieldName: string
+  format: string
+  relateEnumName?: string
+  enumRelationId?: string
+  editable: UpdateFieldMetaFormValues
+  state: EnumFieldPageState
 }
 
 export type { LogicalForeignKey, CreateLogicalForeignKeyResult, DeleteLogicalForeignKeyResult }

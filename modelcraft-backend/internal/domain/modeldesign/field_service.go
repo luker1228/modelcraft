@@ -108,46 +108,29 @@ func (s *FieldService) NewField(
 	}, nil
 }
 
-// validateEnumLabelField 验证枚举标签虚拟字段配置
-// 检查：
-// 1. 源字段是否存在于模型中
-// 2. 源字段是否为枚举字段（ENUM或ENUM_ARRAY）
-func (s *FieldService) ValidateEnumLabelField(field *FieldDefinition, model *DataModel) error {
-	if field.Type.Format != FormatEnumLabel {
-		return nil
-	}
-
-	if field.EnumLabelConfig == nil {
-		return bizerrors.Errorf("enum label field '%s' must have enumLabelConfig", field.Name)
-	}
-
-	sourceFieldName := field.EnumLabelConfig.SourceField
-	if sourceFieldName == "" {
-		return bizerrors.Errorf("enum label field '%s': sourceField cannot be empty", field.Name)
-	}
-
-	// 查找源字段
-	var sourceField *FieldDefinition
-	for _, f := range model.Fields {
-		if f.Name == sourceFieldName {
-			sourceField = f
-			break
-		}
-	}
-
+// ValidateFieldEnumRelationSource 校验 FieldEnumRelation 与 source ENUM 字段的一致性。
+func (s *FieldService) ValidateFieldEnumRelationSource(sourceField *FieldDefinition, relation *FieldEnumRelation) error {
 	if sourceField == nil {
-		return bizerrors.Errorf("enum label field '%s': sourceField '%s' not found in model '%s'",
-			field.Name, sourceFieldName, model.ModelName)
+		return bizerrors.NewError(bizerrors.ParamInvalid, "source enum field is required")
 	}
-
-	// 检查源字段是否为枚举字段
-	if !sourceField.IsEnumField() {
-		return bizerrors.Errorf(
-			"enum label field '%s': sourceField '%s' must be an enum field (ENUM or ENUM_ARRAY), got %s",
-			field.Name, sourceFieldName, sourceField.Type.Format,
-		)
+	if relation == nil {
+		return bizerrors.NewError(bizerrors.ParamInvalid, "field enum relation is required")
 	}
-
+	if sourceField.ModelID != relation.ModelID {
+		return bizerrors.NewError(bizerrors.ParamInvalid, "relation modelId does not match source field")
+	}
+	if sourceField.Name != relation.SourceFieldName {
+		return bizerrors.NewError(bizerrors.ParamInvalid, "relation sourceFieldName does not match source field")
+	}
+	if sourceField.Type == nil || sourceField.Type.Format != FormatEnum {
+		return bizerrors.NewError(bizerrors.ParamInvalid, "source field format must be ENUM")
+	}
+	if sourceField.EnumName == "" {
+		return bizerrors.NewError(bizerrors.ParamInvalid, "source enum field must have enumName")
+	}
+	if sourceField.EnumName != relation.EnumName {
+		return bizerrors.NewError(bizerrors.ParamInvalid, "relation enumName must equal source enum field enumName")
+	}
 	return nil
 }
 

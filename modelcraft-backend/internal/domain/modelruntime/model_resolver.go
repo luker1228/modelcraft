@@ -612,14 +612,20 @@ func (r *graphqlModelResolver) createEnumField(field *RuntimeField, graphqlField
 }
 
 // createEnumLabelField 创建枚举标签虚拟字段
-// 枚举标签字段根据源字段（ENUM或ENUM_ARRAY）的值查找对应的枚举选项，返回code/label/description
+// 枚举标签字段根据 enumRelationId 指向的 source 字段值查找对应枚举选项，返回 code/label/description
 func (r *graphqlModelResolver) createEnumLabelField(field *RuntimeField, graphqlField *graphql.Field,
 ) (*graphql.Field, error) {
-	// 查找源字段
-	sourceField, exists := r.model.Fields[field.EnumLabelConfig.SourceField]
+	sourceFieldName, err := resolveEnumLabelSourceFieldName(field)
+	if err != nil {
+		return nil, err
+	}
+
+	sourceField, exists := r.model.Fields[sourceFieldName]
 	if !exists {
-		return nil, bizerrors.Errorf("enum label field %s: source field %s not found",
-			field.Name, field.EnumLabelConfig.SourceField)
+		return nil, bizerrors.Errorf("enum label field %s: source field %s not found", field.Name, sourceFieldName)
+	}
+	if !sourceField.IsEnumField() {
+		return nil, bizerrors.Errorf("enum label field %s: source field %s must be enum", field.Name, sourceFieldName)
 	}
 
 	enumType, err := r.getEnumConfig(sourceField)
@@ -638,6 +644,40 @@ func (r *graphqlModelResolver) createEnumLabelField(field *RuntimeField, graphql
 	// 设置解析器
 	graphqlField.Resolve = r.createEnumLabelResolver(sourceField)
 	return graphqlField, nil
+}
+
+func resolveEnumLabelSourceFieldName(field *RuntimeField) (string, error) {
+	if field.EnumRelationID == nil || *field.EnumRelationID == "" {
+		return "", bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			fmt.Sprintf("enumRelationId is required when format=ENUM_LABEL, field=%s", field.Name),
+		)
+	}
+
+	if field.Metadata == nil {
+		return "", bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			fmt.Sprintf("enum label field %s missing metadata for enumRelationId=%s", field.Name, *field.EnumRelationID),
+		)
+	}
+
+	// 兼容多个键名，统一走 enumRelationId 链路解析 source 字段。
+	for _, key := range []string{"enumRelationSourceField", "sourceFieldName", "sourceField"} {
+		raw, exists := field.Metadata[key]
+		if !exists || raw == nil {
+			continue
+		}
+		sourceFieldName, err := cast.ToStringE(raw)
+		if err != nil || sourceFieldName == "" {
+			continue
+		}
+		return sourceFieldName, nil
+	}
+
+	return "", bizerrors.NewError(
+		bizerrors.ParamInvalid,
+		fmt.Sprintf("cannot resolve source field from enumRelationId=%s for field=%s", *field.EnumRelationID, field.Name),
+	)
 }
 
 // getEnumLabelType 获取EnumLabel的GraphQL类型

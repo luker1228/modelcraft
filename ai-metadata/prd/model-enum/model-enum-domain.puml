@@ -1,0 +1,80 @@
+@startuml field-enum-domain
+!theme plain
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+title Field / Enum / FieldEnumRelation 领域模型（A 不入 relation）
+
+package "字段聚合" <<Aggregate>> #FFFDE7 {
+  class FieldDefinition <<Aggregate Root>> #FFEAA7 {
+    --标识--
+    + modelId : String
+    + name : String
+    --属性--
+    + format : FormatType
+    + enumName : String [0..1]
+    + enumRelationId : String [0..1]
+    + isArray : Boolean
+    + title : String
+    + description : String
+    --不变量--
+    .. format=ENUM 时 enumName 必填、enumRelationId 为空 ..
+    .. format=ENUM_LABEL 时 enumRelationId 必填、enumName 为空 ..
+  }
+
+  enum FormatType <<Enum>> #E8DAEF {
+    STRING
+    NUMBER
+    BOOLEAN
+    RELATION
+    ENUM
+    ENUM_LABEL
+  }
+
+  FieldDefinition --> FormatType
+}
+
+package "枚举聚合" <<Aggregate>> #FFFDE7 {
+  class EnumDefinition <<Aggregate Root>> #FFEAA7 {
+    + id : String
+    + orgName : String
+    + projectSlug : String
+    + name : String
+    + displayName : String
+    + isMultiSelect : Boolean
+  }
+}
+
+package "字段-枚举标签关联" <<Aggregate>> #FFFDE7 {
+  class FieldEnumRelation <<Entity>> #DFE6E9 {
+    + id : String
+    + modelId : String
+    + labelFieldName : String
+    + sourceFieldName : String
+    + orgName : String
+    + projectSlug : String
+    + enumName : String
+    --约束--
+    .. UNIQUE(modelId, sourceFieldName) ..
+    .. sourceFieldName 必须是 ENUM 字段 ..
+  }
+}
+
+' A(enum) 仅通过 enumName 关联 Enum，不入 relation
+FieldDefinition "0..*" ..> "0..1" EnumDefinition : by enumName (ENUM only)
+
+' A_label(enum_label) 通过 enumRelationId -> FieldEnumRelation
+FieldDefinition "0..1" ..> "1" FieldEnumRelation : enumRelationId (ENUM_LABEL only)
+
+' relation 同时指向源字段 A 与枚举 EnumA
+FieldEnumRelation "1" ..> "1" FieldDefinition : sourceFieldName -> A
+FieldEnumRelation "0..*" ..> "1" EnumDefinition : by enumName
+
+note bottom of FieldEnumRelation
+  A 不写 relation；
+  A_label 必须写 relation（并记录 sourceField）；
+  同一 model 下一个 sourceField 只能产生一个 label。
+end note
+
+@enduml

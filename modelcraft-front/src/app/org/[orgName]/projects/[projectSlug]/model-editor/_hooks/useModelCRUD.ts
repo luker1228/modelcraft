@@ -131,7 +131,6 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
           input: {
             name: state.newModelName.trim(),
             title: state.newModelTitle.trim(),
-            displayField: state.newModelDisplayField.trim() || '',
             databaseName: state.selectedDatabase,
           },
         },
@@ -142,7 +141,6 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setCreateModelOpen(false)
         state.setNewModelName('')
         state.setNewModelTitle('')
-        state.setNewModelDisplayField('')
         refetchModels()
         state.setSelectedModelId(modelId)
       } else if (result.data?.createModel?.error) {

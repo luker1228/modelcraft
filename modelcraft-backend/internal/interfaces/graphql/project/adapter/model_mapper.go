@@ -86,6 +86,12 @@ func (m *modelMapper) convertFieldWithActualSchema(
 	}
 	schemaType := fieldDef.Type.SchemaType
 
+	var enumName *string
+	if fieldDef.EnumName != "" {
+		en := fieldDef.EnumName
+		enumName = &en
+	}
+
 	field := &generated.Field{
 		Name:             fieldDef.Name,
 		Title:            fieldDef.Title,
@@ -101,6 +107,8 @@ func (m *modelMapper) convertFieldWithActualSchema(
 		ValidationConfig: validationConfig,
 		RelateFkID:       fieldDef.RelateFKID,
 		BelongsToFkID:    fieldDef.BelongsToFKID,
+		EnumName:         enumName,
+		EnumRelationID:   fieldDef.EnumRelationID,
 		CreatedAt:        fieldDef.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:        fieldDef.UpdatedAt.Format(time.RFC3339),
 	}

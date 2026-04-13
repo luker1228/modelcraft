@@ -53,7 +53,7 @@ func (q *Queries) DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID st
 }
 
 const findFieldsByBelongsToFKID = `-- name: FindFieldsByBelongsToFKID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, enum_label_config, created_at, updated_at
+SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE belongs_to_fk_id = ?
 `
@@ -67,6 +67,7 @@ type FindFieldsByBelongsToFKIDRow struct {
 	DatabaseName     string
 	ParentRelationID sql.NullString
 	EnumName         sql.NullString
+	EnumRelationID   sql.NullString
 	BelongsToFkID    sql.NullString
 	RelateFkID       sql.NullString
 	Title            string
@@ -80,7 +81,6 @@ type FindFieldsByBelongsToFKIDRow struct {
 	Validation       *json.RawMessage
 	DisplayOrder     string
 	Metadata         *json.RawMessage
-	EnumLabelConfig  *json.RawMessage
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
 }
@@ -103,6 +103,7 @@ func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID s
 			&i.DatabaseName,
 			&i.ParentRelationID,
 			&i.EnumName,
+			&i.EnumRelationID,
 			&i.BelongsToFkID,
 			&i.RelateFkID,
 			&i.Title,
@@ -116,7 +117,6 @@ func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID s
 			&i.Validation,
 			&i.DisplayOrder,
 			&i.Metadata,
-			&i.EnumLabelConfig,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -134,7 +134,7 @@ func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID s
 }
 
 const findFieldsByRelateFKID = `-- name: FindFieldsByRelateFKID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, enum_label_config, created_at, updated_at
+SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE relate_fk_id = ?
 `
@@ -148,6 +148,7 @@ type FindFieldsByRelateFKIDRow struct {
 	DatabaseName     string
 	ParentRelationID sql.NullString
 	EnumName         sql.NullString
+	EnumRelationID   sql.NullString
 	BelongsToFkID    sql.NullString
 	RelateFkID       sql.NullString
 	Title            string
@@ -161,7 +162,6 @@ type FindFieldsByRelateFKIDRow struct {
 	Validation       *json.RawMessage
 	DisplayOrder     string
 	Metadata         *json.RawMessage
-	EnumLabelConfig  *json.RawMessage
 	CreatedAt        sql.NullTime
 	UpdatedAt        sql.NullTime
 }
@@ -184,6 +184,7 @@ func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.Nul
 			&i.DatabaseName,
 			&i.ParentRelationID,
 			&i.EnumName,
+			&i.EnumRelationID,
 			&i.BelongsToFkID,
 			&i.RelateFkID,
 			&i.Title,
@@ -197,7 +198,6 @@ func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.Nul
 			&i.Validation,
 			&i.DisplayOrder,
 			&i.Metadata,
-			&i.EnumLabelConfig,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

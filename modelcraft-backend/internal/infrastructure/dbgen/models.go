@@ -128,8 +128,10 @@ type FieldDefinition struct {
 	DatabaseName string
 	// 依赖的关联的关系ID, 这个字段不为nul, 则该字段不能被删除
 	ParentRelationID sql.NullString
-	// 关联的枚举名称
+	// 关联的枚举名称（format=ENUM）
 	EnumName sql.NullString
+	// 字段枚举关联ID（format=ENUM_LABEL）
+	EnumRelationID sql.NullString
 	// 所属逻辑外键ID（FK列字段使用）
 	BelongsToFkID sql.NullString
 	// 关联的逻辑外键ID（RELATION格式字段使用）
@@ -158,8 +160,28 @@ type FieldDefinition struct {
 	DisplayOrder string
 	// 字段元数据配置
 	Metadata *json.RawMessage
-	// 枚举标签虚拟字段配置（ENUM_LABEL格式使用）
-	EnumLabelConfig *json.RawMessage
+	// 创建时间
+	CreatedAt sql.NullTime
+	// 更新时间
+	UpdatedAt sql.NullTime
+}
+
+// 字段枚举标签关联表
+type FieldEnumRelation struct {
+	// 关联唯一标识
+	ID string
+	// 所属模型ID
+	ModelID string
+	// 标签字段名称（ENUM_LABEL）
+	LabelFieldName string
+	// 源字段名称（ENUM）
+	SourceFieldName string
+	// 所属组织名称
+	OrgName string
+	// 所属项目标识符
+	ProjectSlug string
+	// 关联的枚举名称
+	EnumName string
 	// 创建时间
 	CreatedAt sql.NullTime
 	// 更新时间

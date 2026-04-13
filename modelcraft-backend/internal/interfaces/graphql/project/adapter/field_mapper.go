@@ -86,15 +86,15 @@ func (m *fieldMapper) ConvertAddFieldInputToDTO(input *generated.AddFieldInput) 
 		dto.Description = *input.Description
 	}
 
-	// Convert enum config
-	if input.EnumConfig != nil {
-		dto.EnumConfig = convertEnumConfigInput2DTO(input.EnumConfig)
-	}
-
-	// Convert enum label config (virtual field)
-	if input.EnumLabelConfig != nil {
-		dto.EnumLabelConfig = &dtos.EnumLabelConfigDTO{
-			SourceField: input.EnumLabelConfig.SourceField,
+	// model-enum 容错矩阵：按 format 仅保留有效参数
+	switch format {
+	case modeldesign.FormatEnum, modeldesign.FormatEnumArray:
+		if input.RelateEnumName != nil {
+			dto.RelateEnumName = input.RelateEnumName
+		}
+	case modeldesign.FormatEnumLabel:
+		if input.EnumRelationID != nil {
+			dto.EnumRelationID = input.EnumRelationID
 		}
 	}
 
@@ -170,33 +170,6 @@ func (m *fieldMapper) ConvertValidationInputToDomain(
 		validation.Maximum = &maximum
 	}
 	return validation
-}
-
-func convertEnumConfigInput2DTO(input *generated.EnumConfigInput) *dtos.EnumConfigDTO {
-	if input == nil {
-		return nil
-	}
-
-	config := &dtos.EnumConfigDTO{
-		EnumName:    input.EnumName,
-		ConnectEnum: input.ConnectEnum,
-		Description: input.Description,
-	}
-
-	// Convert options
-	if len(input.Options) > 0 {
-		config.Options = make([]dtos.EnumOptionDTO, len(input.Options))
-		for i, opt := range input.Options {
-			config.Options[i] = dtos.EnumOptionDTO{
-				Code:        opt.Code,
-				Label:       opt.Label,
-				Order:       opt.Order,
-				Description: opt.Description,
-			}
-		}
-	}
-
-	return config
 }
 
 // ConvertValidationDTO2Domain converts DTO ValidationConfig to domain ValidationConfig

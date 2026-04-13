@@ -784,55 +784,84 @@ func TestFieldDefinition_validateArrayField(t *testing.T) {
 	}
 }
 
-// TestFieldDefinition_validateEnumLabelField tests validateEnumLabelField method
-func TestFieldDefinition_validateEnumLabelField(t *testing.T) {
+// TestFieldDefinition_validateEnumBindingRules tests enum/enum_label 参数约束与容错
+func TestFieldDefinition_validateEnumBindingRules(t *testing.T) {
+	relationID := "rel-1"
+
 	tests := []struct {
-		name        string
-		field       *FieldDefinition
-		wantErr     bool
-		errContains string
+		name             string
+		field            *FieldDefinition
+		wantErr          bool
+		errContains      string
+		expectEnumName   string
+		expectRelationID *string
 	}{
 		{
-			name: "valid enum label config",
+			name: "ENUM requires enumName",
 			field: &FieldDefinition{
-				EnumLabelConfig: &EnumLabelConfig{
-					SourceField: "status",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "nil enum label config",
-			field: &FieldDefinition{
-				EnumLabelConfig: nil,
+				Type:     GetFieldTypeByFormat(FormatEnum),
+				EnumName: "",
 			},
 			wantErr:     true,
-			errContains: "must have enumLabelConfig",
+			errContains: "PARAM_INVALID",
 		},
 		{
-			name: "empty source field",
+			name: "ENUM ignores enumRelationId when both provided",
 			field: &FieldDefinition{
-				EnumLabelConfig: &EnumLabelConfig{
-					SourceField: "",
-				},
+				Type:           GetFieldTypeByFormat(FormatEnum),
+				EnumName:       "CustomerLevel",
+				EnumRelationID: &relationID,
+			},
+			wantErr:          false,
+			expectEnumName:   "CustomerLevel",
+			expectRelationID: nil,
+		},
+		{
+			name: "ENUM_LABEL requires enumRelationId",
+			field: &FieldDefinition{
+				Type: GetFieldTypeByFormat(FormatEnumLabel),
 			},
 			wantErr:     true,
-			errContains: "sourceField cannot be empty",
+			errContains: "PARAM_INVALID",
+		},
+		{
+			name: "ENUM_LABEL ignores enumName when both provided",
+			field: &FieldDefinition{
+				Type:           GetFieldTypeByFormat(FormatEnumLabel),
+				EnumName:       "ShouldBeIgnored",
+				EnumRelationID: &relationID,
+			},
+			wantErr:          false,
+			expectEnumName:   "",
+			expectRelationID: &relationID,
+		},
+		{
+			name: "non-enum clears enum binding parameters",
+			field: &FieldDefinition{
+				Type:           GetFieldTypeByFormat(FormatString),
+				EnumName:       "ShouldBeIgnored",
+				EnumRelationID: &relationID,
+			},
+			wantErr:          false,
+			expectEnumName:   "",
+			expectRelationID: nil,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.field.validateEnumLabelField()
-
+			err := tt.field.validateEnumField()
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errContains != "" {
 					assert.Contains(t, err.Error(), tt.errContains)
 				}
-			} else {
-				assert.NoError(t, err)
+				return
 			}
+
+			assert.NoError(t, err)
+			assert.Equal(t, tt.expectEnumName, tt.field.EnumName)
+			assert.Equal(t, tt.expectRelationID, tt.field.EnumRelationID)
 		})
 	}
 }

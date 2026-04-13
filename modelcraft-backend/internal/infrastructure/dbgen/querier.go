@@ -12,6 +12,7 @@ import (
 type Querier interface {
 	ArchiveProject(ctx context.Context, arg ArchiveProjectParams) error
 	CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
+	CountFieldEnumRelationsBySource(ctx context.Context, arg CountFieldEnumRelationsBySourceParams) (int64, error)
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
 	CountMembershipsByUser(ctx context.Context, userID string) (int64, error)
 	CountModels(ctx context.Context, arg CountModelsParams) (int64, error)
@@ -19,6 +20,7 @@ type Querier interface {
 	CreateEnumDefinition(ctx context.Context, arg CreateEnumDefinitionParams) error
 	CreateFieldDefinition(ctx context.Context, arg CreateFieldDefinitionParams) error
 	CreateFieldEnumAssociation(ctx context.Context, arg CreateFieldEnumAssociationParams) error
+	CreateFieldEnumRelation(ctx context.Context, arg CreateFieldEnumRelationParams) error
 	CreateInitialProfile(ctx context.Context, arg CreateInitialProfileParams) error
 	CreateLogicalForeignKey(ctx context.Context, arg CreateLogicalForeignKeyParams) error
 	CreateMembership(ctx context.Context, arg CreateMembershipParams) error
@@ -35,6 +37,7 @@ type Querier interface {
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteFieldEnumAssociation(ctx context.Context, arg DeleteFieldEnumAssociationParams) error
 	DeleteFieldEnumAssociationsByModelID(ctx context.Context, modelID string) error
+	DeleteFieldEnumRelationByID(ctx context.Context, arg DeleteFieldEnumRelationByIDParams) (sql.Result, error)
 	DeleteFieldsByModelID(ctx context.Context, modelID string) error
 	DeleteFieldsByNames(ctx context.Context, arg DeleteFieldsByNamesParams) (sql.Result, error)
 	DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID string) error
@@ -75,6 +78,8 @@ type Querier interface {
 	GetFieldEnumAssociationByField(ctx context.Context, arg GetFieldEnumAssociationByFieldParams) (ModelFieldEnumAssociation, error)
 	GetFieldEnumAssociationsByEnumName(ctx context.Context, arg GetFieldEnumAssociationsByEnumNameParams) ([]ModelFieldEnumAssociation, error)
 	GetFieldEnumAssociationsByModelID(ctx context.Context, modelID string) ([]ModelFieldEnumAssociation, error)
+	GetFieldEnumRelationByID(ctx context.Context, arg GetFieldEnumRelationByIDParams) (FieldEnumRelation, error)
+	GetFieldEnumRelationBySource(ctx context.Context, arg GetFieldEnumRelationBySourceParams) (FieldEnumRelation, error)
 	GetFieldsByModelID(ctx context.Context, modelID string) ([]FieldDefinition, error)
 	GetLogicalForeignKeyByID(ctx context.Context, id string) (LogicalForeignKey, error)
 	GetMembershipByID(ctx context.Context, id string) (UserOrganization, error)
@@ -106,6 +111,7 @@ type Querier interface {
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
 	ListDatabaseClustersUpdatedAfter(ctx context.Context, arg ListDatabaseClustersUpdatedAfterParams) ([]DatabaseCluster, error)
 	ListEnums(ctx context.Context, arg ListEnumsParams) ([]ModelEnum, error)
+	ListFieldEnumRelationsByModelID(ctx context.Context, arg ListFieldEnumRelationsByModelIDParams) ([]FieldEnumRelation, error)
 	ListMembershipsByOrg(ctx context.Context, orgName string) ([]UserOrganization, error)
 	ListMembershipsByUser(ctx context.Context, userID string) ([]UserOrganization, error)
 	ListMembershipsWithOrgDetails(ctx context.Context, arg ListMembershipsWithOrgDetailsParams) ([]ListMembershipsWithOrgDetailsRow, error)

@@ -17,6 +17,10 @@ type CreateEnumError interface {
 	IsCreateEnumError()
 }
 
+type CreateFieldEnumRelationError interface {
+	IsCreateFieldEnumRelationError()
+}
+
 type CreateGroupError interface {
 	IsCreateGroupError()
 }
@@ -35,6 +39,10 @@ type DeleteClusterError interface {
 
 type DeleteEnumError interface {
 	IsDeleteEnumError()
+}
+
+type DeleteFieldEnumRelationError interface {
+	IsDeleteFieldEnumRelationError()
 }
 
 type DeleteGroupError interface {
@@ -75,6 +83,10 @@ type Node interface {
 	GetID() string
 }
 
+type RemoveFieldError interface {
+	IsRemoveFieldError()
+}
+
 type RenameGroupError interface {
 	IsRenameGroupError()
 }
@@ -93,6 +105,10 @@ type UpdateClusterError interface {
 
 type UpdateEnumError interface {
 	IsUpdateEnumError()
+}
+
+type UpdateFieldError interface {
+	IsUpdateFieldError()
 }
 
 type UpdateModelError interface {
@@ -117,13 +133,20 @@ type AddFieldInput struct {
 	Description      *string                `json:"description,omitempty"`
 	ValidationConfig *ValidationConfigInput `json:"validationConfig,omitempty"`
 	RelateFkID       *string                `json:"relateFkId,omitempty"`
-	EnumConfig       *EnumConfigInput       `json:"enumConfig,omitempty"`
-	EnumLabelConfig  *EnumLabelConfigInput  `json:"enumLabelConfig,omitempty"`
+	RelateEnumName   *string                `json:"relateEnumName,omitempty"`
+	EnumRelationID   *string                `json:"enumRelationId,omitempty"`
+}
+
+type AddFieldItemResult struct {
+	Name    string         `json:"name"`
+	Success bool           `json:"success"`
+	Error   AddFieldsError `json:"error,omitempty"`
 }
 
 type AddFieldsPayload struct {
-	Model *Model         `json:"model,omitempty"`
-	Error AddFieldsError `json:"error,omitempty"`
+	Model   *Model                `json:"model,omitempty"`
+	Results []*AddFieldItemResult `json:"results"`
+	Error   AddFieldsError        `json:"error,omitempty"`
 }
 
 type CannotDeleteDeployedModel struct {
@@ -193,6 +216,18 @@ type CreateEnumInput struct {
 type CreateEnumPayload struct {
 	Enum  *EnumDefinition `json:"enum,omitempty"`
 	Error CreateEnumError `json:"error,omitempty"`
+}
+
+type CreateFieldEnumRelationInput struct {
+	ModelID         string `json:"modelId"`
+	LabelFieldName  string `json:"labelFieldName"`
+	SourceFieldName string `json:"sourceFieldName"`
+	EnumName        string `json:"enumName"`
+}
+
+type CreateFieldEnumRelationPayload struct {
+	Relation *FieldEnumRelation           `json:"relation,omitempty"`
+	Error    CreateFieldEnumRelationError `json:"error,omitempty"`
 }
 
 type CreateGroupInput struct {
@@ -318,6 +353,11 @@ type DeleteEnumPayload struct {
 	Error   DeleteEnumError `json:"error,omitempty"`
 }
 
+type DeleteFieldEnumRelationPayload struct {
+	Success bool                         `json:"success"`
+	Error   DeleteFieldEnumRelationError `json:"error,omitempty"`
+}
+
 type DeleteGroupPayload struct {
 	Success bool             `json:"success"`
 	Error   DeleteGroupError `json:"error,omitempty"`
@@ -348,13 +388,6 @@ func (this EnumAlreadyExists) GetMessage() string { return this.Message }
 
 func (EnumAlreadyExists) IsCreateEnumError() {}
 
-type EnumConfigInput struct {
-	EnumName    string             `json:"enumName"`
-	Options     []*EnumOptionInput `json:"options,omitempty"`
-	Description *string            `json:"description,omitempty"`
-	ConnectEnum bool               `json:"connectEnum"`
-}
-
 type EnumDefinition struct {
 	ID            string        `json:"id"`
 	ProjectSlug   string        `json:"projectSlug"`
@@ -365,10 +398,6 @@ type EnumDefinition struct {
 	IsMultiSelect bool          `json:"isMultiSelect"`
 	CreatedAt     string        `json:"createdAt"`
 	UpdatedAt     string        `json:"updatedAt"`
-}
-
-type EnumLabelConfigInput struct {
-	SourceField string `json:"sourceField"`
 }
 
 type EnumNotFound struct {
@@ -439,6 +468,8 @@ type Field struct {
 	RelateFkID       *string           `json:"relateFkId,omitempty"`
 	BelongsToFkID    *string           `json:"belongsToFkId,omitempty"`
 	Enum             *EnumDefinition   `json:"enum,omitempty"`
+	EnumName         *string           `json:"enumName,omitempty"`
+	EnumRelationID   *string           `json:"enumRelationId,omitempty"`
 	DbColumn         *DbColumnInfo     `json:"dbColumn,omitempty"`
 	CreatedAt        string            `json:"createdAt"`
 	UpdatedAt        string            `json:"updatedAt"`
@@ -449,6 +480,53 @@ type FieldConflict struct {
 	Expected string              `json:"expected"`
 	Actual   string              `json:"actual"`
 }
+
+type FieldEnumRelation struct {
+	ID              string `json:"id"`
+	ModelID         string `json:"modelId"`
+	LabelFieldName  string `json:"labelFieldName"`
+	SourceFieldName string `json:"sourceFieldName"`
+	EnumName        string `json:"enumName"`
+	OrgName         string `json:"orgName"`
+	ProjectSlug     string `json:"projectSlug"`
+	CreatedAt       string `json:"createdAt"`
+	UpdatedAt       string `json:"updatedAt"`
+}
+
+func (FieldEnumRelation) IsNode()            {}
+func (this FieldEnumRelation) GetID() string { return this.ID }
+
+type FieldEnumSourceConflict struct {
+	Message    string  `json:"message"`
+	Code       string  `json:"code"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (FieldEnumSourceConflict) IsError()                {}
+func (this FieldEnumSourceConflict) GetMessage() string { return this.Message }
+
+func (FieldEnumSourceConflict) IsCreateFieldEnumRelationError() {}
+
+type FieldFormatImmutable struct {
+	Message string `json:"message"`
+	Code    string `json:"code"`
+}
+
+func (FieldFormatImmutable) IsError()                {}
+func (this FieldFormatImmutable) GetMessage() string { return this.Message }
+
+func (FieldFormatImmutable) IsUpdateFieldError() {}
+
+type FieldReferenceInUse struct {
+	Message    string  `json:"message"`
+	Code       string  `json:"code"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (FieldReferenceInUse) IsError()                {}
+func (this FieldReferenceInUse) GetMessage() string { return this.Message }
+
+func (FieldReferenceInUse) IsRemoveFieldError() {}
 
 type GetClusterPayload struct {
 	Cluster *DatabaseCluster `json:"cluster,omitempty"`
@@ -538,12 +616,28 @@ func (InvalidGroupName) IsCreateGroupError() {}
 
 func (InvalidGroupName) IsRenameGroupError() {}
 
-type InvalidModelInput struct {
+type InvalidInput struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
 }
 
-func (InvalidModelInput) IsAddFieldsError() {}
+func (InvalidInput) IsError()                {}
+func (this InvalidInput) GetMessage() string { return this.Message }
+
+func (InvalidInput) IsAddFieldsError() {}
+
+func (InvalidInput) IsUpdateFieldError() {}
+
+func (InvalidInput) IsRemoveFieldError() {}
+
+func (InvalidInput) IsCreateFieldEnumRelationError() {}
+
+func (InvalidInput) IsDeleteFieldEnumRelationError() {}
+
+type InvalidModelInput struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
 
 func (InvalidModelInput) IsError()                {}
 func (this InvalidModelInput) GetMessage() string { return this.Message }
@@ -721,6 +815,11 @@ func (ProjectNotFound) IsDeleteModelError() {}
 type Query struct {
 }
 
+type RemoveFieldPayload struct {
+	Model *Model           `json:"model,omitempty"`
+	Error RemoveFieldError `json:"error,omitempty"`
+}
+
 type RenameGroupInput struct {
 	GroupID string `json:"groupId"`
 	NewName string `json:"newName"`
@@ -826,6 +925,11 @@ type UpdateFieldInput struct {
 	Title            *string                `json:"title,omitempty"`
 	Description      *string                `json:"description,omitempty"`
 	ValidationConfig *ValidationConfigInput `json:"validationConfig,omitempty"`
+}
+
+type UpdateFieldPayload struct {
+	Model *Model           `json:"model,omitempty"`
+	Error UpdateFieldError `json:"error,omitempty"`
 }
 
 type UpdateModelMetaInput struct {

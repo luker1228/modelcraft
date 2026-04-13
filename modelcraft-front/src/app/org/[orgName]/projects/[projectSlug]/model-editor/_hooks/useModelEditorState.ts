@@ -18,7 +18,6 @@ export function useModelEditorState() {
   const [createModelOpen, setCreateModelOpen] = useState(false)
   const [newModelName, setNewModelName] = useState('')
   const [newModelTitle, setNewModelTitle] = useState('')
-  const [newModelDisplayField, setNewModelDisplayField] = useState('')
   const [creating, setCreating] = useState(false)
   const [importDialogOpen, setImportDialogOpen] = useState(false)
 
@@ -78,7 +77,6 @@ export function useModelEditorState() {
     createModelOpen, setCreateModelOpen,
     newModelName, setNewModelName,
     newModelTitle, setNewModelTitle,
-    newModelDisplayField, setNewModelDisplayField,
     creating, setCreating,
     importDialogOpen, setImportDialogOpen,
 

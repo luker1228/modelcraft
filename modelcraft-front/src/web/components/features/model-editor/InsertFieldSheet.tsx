@@ -36,6 +36,7 @@ import type { LogicalForeignKey } from '@/types'
 
 const FORMAT_TYPE_OPTIONS = [
   { value: 'STRING', label: '字符串 (String)' },
+  { value: 'ENUM', label: '枚举 (Enum)' },
   { value: 'UUID', label: 'UUID v7' },
   { value: 'DATE', label: '日期 (Date)' },
   { value: 'DATETIME', label: '日期时间 (DateTime)' },

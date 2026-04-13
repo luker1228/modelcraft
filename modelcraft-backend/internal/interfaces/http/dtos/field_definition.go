@@ -46,14 +46,9 @@ type EnumConfigDTO struct {
 	ConnectEnum bool            `json:"connectEnum"`           // true=关联现有枚举, false=创建新枚举
 }
 
-// EnumLabelConfigDTO 枚举标签虚拟字段配置DTO
-type EnumLabelConfigDTO struct {
-	SourceField string `json:"sourceField"` // 源字段名称（枚举字段）
-}
-
 // FieldDefinitionDTO 字段定义DTO
 type FieldDefinitionDTO struct {
-	Name        string                 `json:"Name" binding:"required"`  // 字段键名，不能重复
+	Name        string                 `json:"name" binding:"required"`  // 字段键名，不能重复
 	Title       string                 `json:"title" binding:"required"` // 字段名称
 	Description string                 `json:"description"`              // 字段含义/描述
 	Format      modeldesign.FormatType `json:"format"`                   // 字段格式
@@ -66,7 +61,7 @@ type FieldDefinitionDTO struct {
 	// 通用属性
 	ValidationConfig *ValidationConfigDTO `json:"validationConfig,omitempty"` // 校验属性配置
 	RelationConfig   *RelationConfigDTO   `json:"relationConfig,omitempty"`   // 关联关系配置（保留向后兼容）
-	EnumConfig       *EnumConfigDTO       `json:"enumConfig,omitempty"`       // 枚举配置（用于ENUM和ENUM_ARRAY格式）
-	EnumLabelConfig  *EnumLabelConfigDTO  `json:"enumLabelConfig,omitempty"`  // 枚举标签虚拟字段配置（用于ENUM_LABEL格式）
+	RelateEnumName   *string              `json:"relateEnumName,omitempty"`   // format=ENUM 时必填
+	EnumRelationID   *string              `json:"enumRelationId,omitempty"`   // format=ENUM_LABEL 时必填
 	RelateFKID       *string              `json:"relateFkId,omitempty"`       // RELATION 格式字段引用的逻辑外键 ID
 }

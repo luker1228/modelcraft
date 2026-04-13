@@ -2,16 +2,12 @@ package modeldesign
 
 import (
 	"encoding/json"
+	"fmt"
 	"regexp"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
 )
-
-// EnumLabelConfig 枚举标签虚拟字段配置
-type EnumLabelConfig struct {
-	SourceField string `json:"sourceField"` // 源字段名称（枚举字段）
-}
 
 // StatusType 字段状态枚举
 type StatusType string
@@ -40,12 +36,12 @@ type FieldDefinition struct {
 	IsArray          bool              `json:"isArray"`      // ENUM 是否为多选
 	Status           StatusType        `json:"status"`
 	Validation       *ValidationConfig `json:"validation"`
-	DisplayOrder     string            `json:"displayOrder"`              // 字典序排序键（lexicographic fractional index）
-	Enum             *EnumDefinition   `json:"enum,omitempty"`            // 关联的枚举详情（查询时加载）
-	EnumName         string            `json:"enumName,omitempty"`        // 关联的枚举名称（用于创建字段时指定）
-	EnumLabelConfig  *EnumLabelConfig  `json:"enumLabelConfig,omitempty"` // 枚举标签虚拟字段配置
-	BelongsToFKID    *string           `json:"belongsToFkId,omitempty"`   // FK 列字段引用的逻辑外键 ID（model_id 侧）
-	RelateFKID       *string           `json:"relateFkId,omitempty"`      // RELATION 格式字段引用的逻辑外键 ID
+	DisplayOrder     string            `json:"displayOrder"`             // 字典序排序键（lexicographic fractional index）
+	Enum             *EnumDefinition   `json:"enum,omitempty"`           // 关联的枚举详情（查询时加载）
+	EnumName         string            `json:"enumName,omitempty"`       // format=ENUM 时使用
+	EnumRelationID   *string           `json:"enumRelationId,omitempty"` // format=ENUM_LABEL 时使用
+	BelongsToFKID    *string           `json:"belongsToFkId,omitempty"`  // FK 列字段引用的逻辑外键 ID（model_id 侧）
+	RelateFKID       *string           `json:"relateFkId,omitempty"`     // RELATION 格式字段引用的逻辑外键 ID
 	Metadata         map[string]any    `json:"metadata"`
 	CreatedAt        time.Time         `json:"createdAt"`
 	UpdatedAt        time.Time         `json:"updatedAt"`
@@ -81,16 +77,23 @@ type ValidationConfig struct {
 func (fd *FieldDefinition) Validate() error {
 	// 验证必填字段
 	if fd.Name == "" {
-		return bizerrors.Errorf("(FieldValidate) Name不能为空")
+		return bizerrors.NewError(bizerrors.ParamInvalid, "field name is required")
 	}
 	// 验证字段key格式（只允许字母、数字、下划线，且不能以数字开头）
 	if !isValidFieldName(fd.Name) {
-		return bizerrors.Errorf("(FieldValidate) Name '%s' 格式无效，只允许字母、数字、下划线，且不能以数字开头", fd.Name)
+		return bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			fmt.Sprintf("field name '%s' 格式无效，只允许字母、数字、下划线，且不能以数字开头", fd.Name),
+		)
 	}
 
 	err := fd.validate()
 	if err != nil {
-		return bizerrors.Errorf("(FieldValidate) Name:%s Detail:%s", fd.Name, err)
+		var bizErr *bizerrors.BusinessError
+		if bizerrors.As(err, &bizErr) {
+			return bizErr
+		}
+		return bizerrors.NewError(bizerrors.ParamInvalid, fmt.Sprintf("field '%s' validation failed: %s", fd.Name, err.Error()))
 	}
 	return nil
 }
@@ -118,18 +121,8 @@ func (fd *FieldDefinition) validate() error {
 		return bizerrors.Errorf("Type缺少SchemaType")
 	}
 
-	// 枚举字段特殊验证
-	if fd.Type.Format == FormatEnum || fd.Type.Format == FormatEnumArray {
-		if err := fd.validateEnumField(); err != nil {
-			return err
-		}
-	}
-
-	// 枚举标签虚拟字段特殊验证
-	if fd.Type.Format == FormatEnumLabel {
-		if err := fd.validateEnumLabelField(); err != nil {
-			return err
-		}
+	if err := fd.validateEnumField(); err != nil {
+		return err
 	}
 
 	// belongs_to_fk_id 和 relate_fk_id 互斥
@@ -227,23 +220,35 @@ func (fd *FieldDefinition) validateBooleanField() error {
 	return nil
 }
 
-// validateEnumField 验证枚举字段
+// validateEnumField 验证枚举字段与枚举标签字段不变量
 func (fd *FieldDefinition) validateEnumField() error {
-	// 枚举字段可以使用 ValidationConfig.EnumValues (简单枚举)
-	// 或者通过外部关联表管理枚举关联(由服务层处理)
-	// 此方法仅验证字段本身的有效性
-	return nil
-}
+	if fd.Type == nil {
+		return nil
+	}
 
-// validateEnumLabelField 验证枚举标签虚拟字段
-func (fd *FieldDefinition) validateEnumLabelField() error {
-	if fd.EnumLabelConfig == nil {
-		return bizerrors.Errorf("enum label field must have enumLabelConfig")
+	enumRelationID := ""
+	if fd.EnumRelationID != nil {
+		enumRelationID = *fd.EnumRelationID
 	}
-	if fd.EnumLabelConfig.SourceField == "" {
-		return bizerrors.Errorf("enum label config: sourceField cannot be empty")
+
+	switch fd.Type.Format {
+	case FormatEnum, FormatEnumArray:
+		// 容错：ENUM 忽略 enumRelationId
+		fd.EnumRelationID = nil
+		if fd.EnumName == "" {
+			return bizerrors.NewError(bizerrors.ParamInvalid, "relateEnumName is required when format=ENUM")
+		}
+	case FormatEnumLabel:
+		// 容错：ENUM_LABEL 忽略 relateEnumName
+		fd.EnumName = ""
+		if enumRelationID == "" {
+			return bizerrors.NewError(bizerrors.ParamInvalid, "enumRelationId is required when format=ENUM_LABEL")
+		}
+	default:
+		// 容错：非 ENUM/ENUM_LABEL 忽略关联参数
+		fd.EnumName = ""
+		fd.EnumRelationID = nil
 	}
-	// 源字段存在性和类型检查需要服务层处理
 	return nil
 }
 

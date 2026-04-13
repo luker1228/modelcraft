@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"context"
+	appmodeldesign "modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
@@ -148,18 +149,101 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 	}
 }
 
-// ConvertToAddFieldsError converts business error to AddFieldsError union type
+// ConvertToAddFieldsError converts business error to AddFieldsError union type.
 func (a *ModelErrorAdapter) ConvertToAddFieldsError(err *bizerrors.BusinessError) generated.AddFieldsError {
 	if err == nil {
 		return nil
 	}
-
-	gqlErr := &generated.InvalidModelInput{
-		Message: err.Msg(),
-	}
+	gqlErr := &generated.InvalidInput{Message: err.Msg()}
 	if err.Detail() != "" {
 		detail := err.Detail()
 		gqlErr.Suggestion = &detail
 	}
 	return gqlErr
+}
+
+// ConvertToUpdateFieldError converts errors to UpdateFieldError union type.
+func (a *ModelErrorAdapter) ConvertToUpdateFieldError(err error) generated.UpdateFieldError {
+	if err == nil {
+		return nil
+	}
+	if bizerrors.Is(err, appmodeldesign.ErrFieldFormatImmutable) {
+		return &generated.FieldFormatImmutable{
+			Code:    appmodeldesign.FieldFormatImmutableCode,
+			Message: "field format is immutable after creation",
+		}
+	}
+	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
+		if bizErr.Detail() != "" {
+			detail := bizErr.Detail()
+			gqlErr.Suggestion = &detail
+		}
+		return gqlErr
+	}
+	return &generated.InvalidInput{Message: err.Error()}
+}
+
+// ConvertToRemoveFieldError converts errors to RemoveFieldError union type.
+func (a *ModelErrorAdapter) ConvertToRemoveFieldError(err error) generated.RemoveFieldError {
+	if err == nil {
+		return nil
+	}
+	if bizerrors.Is(err, appmodeldesign.ErrFieldReferenceInUse) {
+		suggestion := "Please remove dependent enum relations before deleting the source field"
+		return &generated.FieldReferenceInUse{
+			Code:       appmodeldesign.FieldReferenceInUseCode,
+			Message:    "field is still referenced by enum relations",
+			Suggestion: &suggestion,
+		}
+	}
+	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
+		if bizErr.Detail() != "" {
+			detail := bizErr.Detail()
+			gqlErr.Suggestion = &detail
+		}
+		return gqlErr
+	}
+	return &generated.InvalidInput{Message: err.Error()}
+}
+
+// ConvertToCreateFieldEnumRelationError converts errors to CreateFieldEnumRelationError union type.
+func (a *ModelErrorAdapter) ConvertToCreateFieldEnumRelationError(err error) generated.CreateFieldEnumRelationError {
+	if err == nil {
+		return nil
+	}
+	if bizerrors.Is(err, appmodeldesign.ErrFieldEnumSourceConflict) {
+		suggestion := "same sourceFieldName can bind only one enum relation"
+		return &generated.FieldEnumSourceConflict{
+			Code:       appmodeldesign.FieldEnumSourceConflictCode,
+			Message:    "source field already has an enum relation",
+			Suggestion: &suggestion,
+		}
+	}
+	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
+		if bizErr.Detail() != "" {
+			detail := bizErr.Detail()
+			gqlErr.Suggestion = &detail
+		}
+		return gqlErr
+	}
+	return &generated.InvalidInput{Message: err.Error()}
+}
+
+// ConvertToDeleteFieldEnumRelationError converts errors to DeleteFieldEnumRelationError union type.
+func (a *ModelErrorAdapter) ConvertToDeleteFieldEnumRelationError(err error) generated.DeleteFieldEnumRelationError {
+	if err == nil {
+		return nil
+	}
+	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
+		if bizErr.Detail() != "" {
+			detail := bizErr.Detail()
+			gqlErr.Suggestion = &detail
+		}
+		return gqlErr
+	}
+	return &generated.InvalidInput{Message: err.Error()}
 }

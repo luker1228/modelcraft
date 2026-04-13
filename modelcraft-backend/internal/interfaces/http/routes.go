@@ -97,11 +97,15 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	txManager := repository.NewSqlTxManager(repoFactory.SqlDB)
 	enumAssocRepository := repository.NewSqlFieldEnumAssociationRepository(dbgen.New(loggingDB))
 	fkRepository := repository.NewSqlLogicalForeignKeyRepository(dbgen.New(loggingDB))
+	enumRepository := repository.NewSqlEnumRepository(dbgen.New(loggingDB))
+	fieldEnumRelationRepository := repository.NewSqlFieldEnumRelationRepository(dbgen.New(loggingDB))
 	appService := modeldesign.NewModelDesignAppService(
 		ddl.NewDeploymentService(clusterManager),
 		modelRepository, clusterRepository, txManager).
 		WithEnumAssocRepo(enumAssocRepository).
-		WithFKRepo(fkRepository)
+		WithEnumRepo(enumRepository).
+		WithFKRepo(fkRepository).
+		WithFieldEnumRelationRepo(fieldEnumRelationRepository)
 
 	// Create logical FK app service
 	logicalFKAppService := modeldesign.NewLogicalFKAppService(fkRepository, modelRepository, txManager)
@@ -121,7 +125,6 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	)
 
 	// Create enum related services
-	enumRepository := repository.NewSqlEnumRepository(dbgen.New(loggingDB))
 	enumAppService := modeldesign.NewEnumAppService(enumRepository, projectRepository)
 
 	// Create model group related services

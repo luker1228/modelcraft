@@ -85,15 +85,7 @@ func (m *fieldMapper) ConvertFieldDTOToDomain(
 		UpdatedAt:    time.Now(),
 	}
 
-	if field.EnumLabelConfig != nil {
-		f.EnumLabelConfig = &modeldesign.EnumLabelConfig{
-			SourceField: field.EnumLabelConfig.SourceField,
-		}
-	}
-
-	if field.EnumConfig != nil {
-		f.EnumName = field.EnumConfig.EnumName
-	}
+	applyEnumBindingByFormat(f, field)
 
 	if field.RelateFKID != nil {
 		f.RelateFKID = field.RelateFKID
@@ -117,4 +109,22 @@ func (m *fieldMapper) ConvertFieldDTOsToDomain(
 		fields = append(fields, field)
 	}
 	return fields, nil
+}
+
+// applyEnumBindingByFormat 应用 model-enum 参数容错矩阵。
+// - ENUM:       仅使用 relateEnumName，忽略 enumRelationId
+// - ENUM_LABEL: 仅使用 enumRelationId，忽略 relateEnumName
+// - 其他类型:    忽略两者
+func applyEnumBindingByFormat(target *modeldesign.FieldDefinition, input *dtos.FieldDefinitionDTO) {
+	target.EnumName = ""
+	target.EnumRelationID = nil
+
+	switch input.Format {
+	case modeldesign.FormatEnum, modeldesign.FormatEnumArray:
+		if input.RelateEnumName != nil {
+			target.EnumName = *input.RelateEnumName
+		}
+	case modeldesign.FormatEnumLabel:
+		target.EnumRelationID = input.EnumRelationID
+	}
 }
