@@ -445,7 +445,7 @@ func (s *RepairModelUseCase) findExtraFields(
 	return extraFields, nil
 }
 
-// filterSafeToRemoveFields filters out protected fields (system fields and those with dependencies)
+// filterSafeToRemoveFields filters out protected fields (system fields)
 func (s *RepairModelUseCase) filterSafeToRemoveFields(
 	model *entity.DataModel,
 	fieldNames []string,
@@ -462,12 +462,6 @@ func (s *RepairModelUseCase) filterSafeToRemoveFields(
 	for _, name := range fieldNames {
 		// Check if it's a system field
 		if systemFields[name] {
-			blocked = append(blocked, name)
-			continue
-		}
-
-		// Check if field has relation dependencies
-		if entity.IsFieldReferencedByRelation(model, name) {
 			blocked = append(blocked, name)
 			continue
 		}

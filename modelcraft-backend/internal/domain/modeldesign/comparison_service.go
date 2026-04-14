@@ -482,13 +482,3 @@ func (s *MySQLSchemaComparisonService) checkConstraintMismatch(field *FieldDefin
 	// Column being NOT NULL when field is nullable is acceptable (more restrictive)
 	return nil
 }
-
-// IsFieldReferencedByRelation checks if a field is referenced by any relation
-func IsFieldReferencedByRelation(model *DataModel, fieldName string) bool {
-	for _, field := range model.Fields {
-		if field.ParentRelationID != nil && field.Name == fieldName {
-			return true
-		}
-	}
-	return false
-}

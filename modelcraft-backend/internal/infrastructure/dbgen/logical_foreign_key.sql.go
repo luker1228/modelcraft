@@ -53,36 +53,35 @@ func (q *Queries) DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID st
 }
 
 const findFieldsByBelongsToFKID = `-- name: FindFieldsByBelongsToFKID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE belongs_to_fk_id = ?
 `
 
 type FindFieldsByBelongsToFKIDRow struct {
-	ModelID          string
-	Name             string
-	OrgName          string
-	ProjectSlug      string
-	ModelName        string
-	DatabaseName     string
-	ParentRelationID sql.NullString
-	EnumName         sql.NullString
-	EnumRelationID   sql.NullString
-	BelongsToFkID    sql.NullString
-	RelateFkID       sql.NullString
-	Title            string
-	Description      sql.NullString
-	Format           string
-	NonNull          sql.NullBool
-	Required         sql.NullBool
-	IsUnique         sql.NullBool
-	IsPrimary        sql.NullBool
-	Status           string
-	Validation       *json.RawMessage
-	DisplayOrder     string
-	Metadata         *json.RawMessage
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
+	ModelID        string
+	Name           string
+	OrgName        string
+	ProjectSlug    string
+	ModelName      string
+	DatabaseName   string
+	EnumName       sql.NullString
+	EnumRelationID sql.NullString
+	BelongsToFkID  sql.NullString
+	RelateFkID     sql.NullString
+	Title          string
+	Description    sql.NullString
+	Format         string
+	NonNull        sql.NullBool
+	Required       sql.NullBool
+	IsUnique       sql.NullBool
+	IsPrimary      sql.NullBool
+	Status         string
+	Validation     *json.RawMessage
+	DisplayOrder   string
+	Metadata       *json.RawMessage
+	CreatedAt      sql.NullTime
+	UpdatedAt      sql.NullTime
 }
 
 func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID sql.NullString) ([]FindFieldsByBelongsToFKIDRow, error) {
@@ -101,7 +100,6 @@ func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID s
 			&i.ProjectSlug,
 			&i.ModelName,
 			&i.DatabaseName,
-			&i.ParentRelationID,
 			&i.EnumName,
 			&i.EnumRelationID,
 			&i.BelongsToFkID,
@@ -134,36 +132,35 @@ func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID s
 }
 
 const findFieldsByRelateFKID = `-- name: FindFieldsByRelateFKID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE relate_fk_id = ?
 `
 
 type FindFieldsByRelateFKIDRow struct {
-	ModelID          string
-	Name             string
-	OrgName          string
-	ProjectSlug      string
-	ModelName        string
-	DatabaseName     string
-	ParentRelationID sql.NullString
-	EnumName         sql.NullString
-	EnumRelationID   sql.NullString
-	BelongsToFkID    sql.NullString
-	RelateFkID       sql.NullString
-	Title            string
-	Description      sql.NullString
-	Format           string
-	NonNull          sql.NullBool
-	Required         sql.NullBool
-	IsUnique         sql.NullBool
-	IsPrimary        sql.NullBool
-	Status           string
-	Validation       *json.RawMessage
-	DisplayOrder     string
-	Metadata         *json.RawMessage
-	CreatedAt        sql.NullTime
-	UpdatedAt        sql.NullTime
+	ModelID        string
+	Name           string
+	OrgName        string
+	ProjectSlug    string
+	ModelName      string
+	DatabaseName   string
+	EnumName       sql.NullString
+	EnumRelationID sql.NullString
+	BelongsToFkID  sql.NullString
+	RelateFkID     sql.NullString
+	Title          string
+	Description    sql.NullString
+	Format         string
+	NonNull        sql.NullBool
+	Required       sql.NullBool
+	IsUnique       sql.NullBool
+	IsPrimary      sql.NullBool
+	Status         string
+	Validation     *json.RawMessage
+	DisplayOrder   string
+	Metadata       *json.RawMessage
+	CreatedAt      sql.NullTime
+	UpdatedAt      sql.NullTime
 }
 
 func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.NullString) ([]FindFieldsByRelateFKIDRow, error) {
@@ -182,7 +179,6 @@ func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.Nul
 			&i.ProjectSlug,
 			&i.ModelName,
 			&i.DatabaseName,
-			&i.ParentRelationID,
 			&i.EnumName,
 			&i.EnumRelationID,
 			&i.BelongsToFkID,

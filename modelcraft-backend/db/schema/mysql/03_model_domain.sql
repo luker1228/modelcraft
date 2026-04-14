@@ -87,69 +87,6 @@ CREATE TABLE IF NOT EXISTS `model_groups` (
 
 
 
--- field_definitions 表 SQL 定义
--- 模型字段定义表
-
-CREATE TABLE IF NOT EXISTS `field_definitions` (
-  -- 复合主键字段
-  `model_id` VARCHAR(36) NOT NULL COMMENT '所属模型ID',
-  `name` VARCHAR(64) NOT NULL COMMENT '字段名称',
-  
-  -- 多租户隔离字段（与models表保持一致）
-  `org_name` VARCHAR(36) NOT NULL COMMENT '所属组织名称（多租户隔离）',
-  `project_slug` VARCHAR(64) NOT NULL COMMENT '项目标识符（多租户隔离）',
-  
-  -- 模型和集群信息字段
-  `model_name` VARCHAR(64) NOT NULL COMMENT '模型名称',
-  `database_name` VARCHAR(64) NOT NULL COMMENT '数据库名称',
-  
-  -- 关系关联字段
-  `parent_relation_id` CHAR(36) NULL COMMENT '依赖的关联的关系ID, 这个字段不为nul, 则该字段不能被删除',
-  `enum_name` VARCHAR(64) NULL COMMENT '关联的枚举名称（format=ENUM）',
-  `enum_relation_id` VARCHAR(36) NULL COMMENT '字段枚举关联ID（format=ENUM_LABEL）',
-
-  -- 逻辑外键关联字段
-  `belongs_to_fk_id` VARCHAR(36) NULL COMMENT '所属逻辑外键ID（FK列字段使用）',
-  `relate_fk_id` VARCHAR(36) NULL COMMENT '关联的逻辑外键ID（RELATION格式字段使用）',
-
-  -- 字段基本信息
-  `title` VARCHAR(255) NOT NULL COMMENT '字段显示标题',
-  `description` TEXT NULL COMMENT '字段描述信息',
-  `format` VARCHAR(50) NOT NULL COMMENT '字段格式类型',
-  
-  -- 字段属性配置
-  `non_null` TINYINT(1) NULL DEFAULT 0 COMMENT '是否可为null',
-  `required` TINYINT(1) NULL DEFAULT 0 COMMENT '是否创建时必填',
-  `is_unique` TINYINT(1) NULL DEFAULT 0 COMMENT '是否唯一',
-  `is_primary` TINYINT(1) NULL DEFAULT 0 COMMENT '是否主键',
-  `is_deprecated` TINYINT(1) NULL DEFAULT 0 COMMENT '是否已废弃',
-  
-  -- 状态和验证配置
-  `status` VARCHAR(20) NOT NULL DEFAULT 'init' COMMENT '字段状态：init/active/inactive',
-  `validation` JSON NULL COMMENT '字段验证规则配置',
-  
-  -- 显示和元数据配置
-  `display_order` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '字典序排序键，用于拖拽排序（lexicographic fractional index）',
-  `metadata` JSON NULL COMMENT '字段元数据配置',
-
-  -- 时间戳字段
-  `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-  `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-  
-  -- 复合主键约束
-  PRIMARY KEY (`model_id`, `name`),
-  
-  -- 索引：多租户查询优化（与其他表保持一致）
-  INDEX `idx_field_definitions_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
-  INDEX `idx_field_definitions_model` (`org_name`, `project_slug`, `model_name`) COMMENT '模型查询索引',
-  INDEX `idx_field_definitions_enum_relation_id` (`enum_relation_id`) COMMENT '枚举关联查询索引',
-  
-  -- 外键约束
-  CONSTRAINT `fk_field_definitions_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE
-  
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型字段定义表';
-
-
 -- logical_foreign_keys 表 SQL 定义
 -- 逻辑外键定义表（成对存储：normal + reverse）
 
@@ -231,6 +168,7 @@ CREATE TABLE IF NOT EXISTS `model_enums` (
 
 -- field_enum_relations 表 SQL 定义
 -- ENUM_LABEL 字段通过该表关联 ENUM 源字段与枚举定义
+-- 注意：此表必须在 field_definitions 之前创建，因为 field_definitions.enum_relation_id 引用此表
 
 CREATE TABLE IF NOT EXISTS `field_enum_relations` (
   `id` VARCHAR(36) NOT NULL COMMENT '关联唯一标识',
@@ -252,6 +190,69 @@ CREATE TABLE IF NOT EXISTS `field_enum_relations` (
   CONSTRAINT `fk_field_enum_relations_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='字段枚举标签关联表';
+
+
+-- field_definitions 表 SQL 定义
+-- 模型字段定义表
+
+CREATE TABLE IF NOT EXISTS `field_definitions` (
+  -- 复合主键字段
+  `model_id` VARCHAR(36) NOT NULL COMMENT '所属模型ID',
+  `name` VARCHAR(64) NOT NULL COMMENT '字段名称',
+  
+  -- 多租户隔离字段（与models表保持一致）
+  `org_name` VARCHAR(36) NOT NULL COMMENT '所属组织名称（多租户隔离）',
+  `project_slug` VARCHAR(64) NOT NULL COMMENT '项目标识符（多租户隔离）',
+  
+  -- 模型和集群信息字段
+  `model_name` VARCHAR(64) NOT NULL COMMENT '模型名称',
+  `database_name` VARCHAR(64) NOT NULL COMMENT '数据库名称',
+  
+  -- 关系关联字段
+  `enum_name` VARCHAR(64) NULL COMMENT '关联的枚举名称（format=ENUM）',
+  `enum_relation_id` VARCHAR(36) NULL COMMENT '字段枚举关联ID（format=ENUM_LABEL）',
+
+  -- 逻辑外键关联字段
+  `belongs_to_fk_id` VARCHAR(36) NULL COMMENT '所属逻辑外键ID（FK列字段使用）',
+  `relate_fk_id` VARCHAR(36) NULL COMMENT '关联的逻辑外键ID（RELATION格式字段使用）',
+
+  -- 字段基本信息
+  `title` VARCHAR(255) NOT NULL COMMENT '字段显示标题',
+  `description` TEXT NULL COMMENT '字段描述信息',
+  `format` VARCHAR(50) NOT NULL COMMENT '字段格式类型',
+  
+  -- 字段属性配置
+  `non_null` TINYINT(1) NULL DEFAULT 0 COMMENT '是否可为null',
+  `required` TINYINT(1) NULL DEFAULT 0 COMMENT '是否创建时必填',
+  `is_unique` TINYINT(1) NULL DEFAULT 0 COMMENT '是否唯一',
+  `is_primary` TINYINT(1) NULL DEFAULT 0 COMMENT '是否主键',
+  `is_deprecated` TINYINT(1) NULL DEFAULT 0 COMMENT '是否已废弃',
+  
+  -- 状态和验证配置
+  `status` VARCHAR(20) NOT NULL DEFAULT 'init' COMMENT '字段状态：init/active/inactive',
+  `validation` JSON NULL COMMENT '字段验证规则配置',
+  
+  -- 显示和元数据配置
+  `display_order` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '字典序排序键，用于拖拽排序（lexicographic fractional index）',
+  `metadata` JSON NULL COMMENT '字段元数据配置',
+
+  -- 时间戳字段
+  `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  
+  -- 复合主键约束
+  PRIMARY KEY (`model_id`, `name`),
+  
+  -- 索引：多租户查询优化（与其他表保持一致）
+  INDEX `idx_field_definitions_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
+  INDEX `idx_field_definitions_model` (`org_name`, `project_slug`, `model_name`) COMMENT '模型查询索引',
+  INDEX `idx_field_definitions_enum_relation_id` (`enum_relation_id`) COMMENT '枚举关联查询索引',
+  
+  -- 外键约束
+  CONSTRAINT `fk_field_definitions_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_field_definitions_enum_relation` FOREIGN KEY (`enum_relation_id`) REFERENCES `field_enum_relations` (`id`) ON DELETE SET NULL
+  
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型字段定义表';
 
 
 -- model_field_enum_associations 表 SQL 定义

@@ -2,6 +2,7 @@ package modeldesign
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/modeldesign"
@@ -30,6 +31,10 @@ type ModelDesignAppService struct {
 	enumAssocRepo    modeldesign.FieldEnumAssociationRepository
 	enumRepo         modeldesign.EnumRepository
 	fieldEnumRelRepo modeldesign.FieldEnumRelationRepository
+
+	// Repository factory functions for transaction-bound repository creation
+	modelRepoFactory        func(q dbgen.Querier) modeldesign.ModelRepository
+	fieldEnumRelRepoFactory func(q dbgen.Querier) modeldesign.FieldEnumRelationRepository
 }
 
 // NewModelDesignAppService 创建模型设计应用服务实例
@@ -40,10 +45,12 @@ func NewModelDesignAppService(
 	txManager repository.TxManager,
 ) *ModelDesignAppService {
 	return &ModelDesignAppService{
-		txManager:   txManager,
-		deployRepo:  deployRepo,
-		modelRepo:   modelRepo,
-		clusterRepo: clusterRepo,
+		txManager:               txManager,
+		deployRepo:              deployRepo,
+		modelRepo:               modelRepo,
+		clusterRepo:             clusterRepo,
+		modelRepoFactory:        repository.NewSqlModelDesignRepository,
+		fieldEnumRelRepoFactory: repository.NewSqlFieldEnumRelationRepository,
 	}
 }
 
@@ -466,14 +473,27 @@ func (s *ModelDesignAppService) addPhysicFields(
 		return err
 	}
 
+	// 部署到客户 DB，若失败则回滚已添加的字段（补偿机制）
+	fieldService := modeldesign.NewFieldService()
+	fieldNames := fieldService.GetNamesFromFields(fieldEntitys)
+
 	err := s.deployRepo.DeployModelToAddFields(ctx, model, fieldEntitys)
 	if err != nil {
+		// 补偿：删除已落库但部署失败的字段，避免状态污染
+		log.Warnf(ctx, "部署字段失败，执行回滚: modelID=%s, fields=%v, err=%v", model.ID, fieldNames, err)
+		rollbackErr := s.modelRepo.DeleteFields(ctx, model.ID, fieldNames)
+		if rollbackErr != nil {
+			log.Errorf(ctx, "回滚字段失败: modelID=%s, fields=%v, err=%v", model.ID, fieldNames, rollbackErr)
+			// 返回组合错误：包含部署失败和回滚失败
+			return bizerrors.Wrapf(errors.Join(err, rollbackErr),
+				"部署模型到客户DB失败且回滚失败: modelID=%s, fields=%v", model.ID, fieldNames)
+		}
 		return fmt.Errorf("部署模型到客户DB失败: %w", err)
 	}
-	fieldService := modeldesign.NewFieldService()
+
 	updateReq := modeldesign.UpdateFieldsStatusRequest{
 		ModelId: model.ID,
-		Name:    fieldService.GetNamesFromFields(fieldEntitys),
+		Name:    fieldNames,
 		Status:  modeldesign.FieldStatusToDelete,
 	}
 	if err := s.modelRepo.UpdateFieldsStatus(ctx, updateReq); err != nil {
@@ -603,8 +623,11 @@ func (s *ModelDesignAppService) addVirtualFields(
 
 			// 一致性校验：ENUM_LABEL 字段名必须与 relation.LabelFieldName 匹配
 			if field.Name != relation.LabelFieldName {
-				return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
-					fmt.Sprintf("field name '%s' does not match relation labelFieldName '%s'", field.Name, relation.LabelFieldName))
+				errMsg := fmt.Sprintf(
+					"field name '%s' does not match relation labelFieldName '%s'",
+					field.Name, relation.LabelFieldName,
+				)
+				return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, errMsg)
 			}
 
 			sourceField, err := s.modelRepo.GetFieldByModelID(ctx, model.ID, relation.SourceFieldName)
@@ -854,9 +877,6 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 		}
 	}
 
-	if field.ParentRelationID != nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.FieldHasDependencies)
-	}
 	updateReq := modeldesign.UpdateFieldsStatusRequest{
 		ModelId: modelID,
 		Name:    []string{fieldName},
@@ -905,6 +925,50 @@ func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, 
 		}
 	}
 	return nil
+}
+
+// removeEnumLabelFieldWithRelation 删除 ENUM_LABEL 字段并联动删除关联的 FieldEnumRelation。
+// 使用事务保证原子性：先删除字段，再删除 relation。若 relation 不存在则忽略（幂等）。
+func (s *ModelDesignAppService) removeEnumLabelFieldWithRelation(
+	ctx context.Context,
+	orgName, modelID string,
+	field *modeldesign.FieldDefinition,
+) error {
+	// 无 relation ID 时无需事务，直接删除字段
+	if field.EnumRelationID == nil || *field.EnumRelationID == "" {
+		deleteReq := modeldesign.DeleteFieldRequest{
+			ModelId: modelID,
+			Name:    []string{field.Name},
+		}
+		if err := s.modelRepo.BulkDeleteFields(ctx, deleteReq); err != nil {
+			return bizerrors.Wrapf(err, "failed to delete ENUM_LABEL field %s", field.Name)
+		}
+		return nil
+	}
+
+	// 有 relation ID 时使用事务保证原子性
+	return s.txManager.WithTx(ctx, func(txCtx context.Context, q dbgen.Querier) error {
+		txModelRepo := s.modelRepoFactory(q)
+		txFieldEnumRelRepo := s.fieldEnumRelRepoFactory(q)
+
+		// 删除字段记录
+		deleteReq := modeldesign.DeleteFieldRequest{
+			ModelId: modelID,
+			Name:    []string{field.Name},
+		}
+		if err := txModelRepo.BulkDeleteFields(txCtx, deleteReq); err != nil {
+			return bizerrors.Wrapf(err, "failed to delete ENUM_LABEL field %s", field.Name)
+		}
+
+		// 联动删除 FieldEnumRelation（忽略不存在的情况）
+		if err := txFieldEnumRelRepo.Delete(txCtx, orgName, *field.EnumRelationID); err != nil {
+			if !shared.IsNotFoundError(err) && !shared.IsRepoError(err, shared.ErrTypeNoRowsAffected) {
+				return bizerrors.Wrapf(err, "failed to delete FieldEnumRelation %s", *field.EnumRelationID)
+			}
+		}
+
+		return nil
+	})
 }
 
 // SyncModelSchemaResult 同步模型Schema结果
@@ -1087,9 +1151,14 @@ func (s *ModelDesignAppService) DeleteFieldEnumRelation(
 	if err != nil && !shared.IsNotFoundError(err) {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if labelField != nil && labelField.IsEnumLabelField() && labelField.EnumRelationID != nil && *labelField.EnumRelationID == cmd.ID {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
-			"cannot delete field enum relation: it is still referenced by ENUM_LABEL field '"+relation.LabelFieldName+"'")
+	isRefByLabelField := labelField != nil && labelField.IsEnumLabelField() &&
+		labelField.EnumRelationID != nil && *labelField.EnumRelationID == cmd.ID
+	if isRefByLabelField {
+		errMsg := fmt.Sprintf(
+			"cannot delete field enum relation: still referenced by ENUM_LABEL field '%s'",
+			relation.LabelFieldName,
+		)
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, errMsg)
 	}
 
 	if err := s.fieldEnumRelRepo.Delete(ctx, orgName, cmd.ID); err != nil {
@@ -1356,17 +1425,6 @@ func (s *ModelDesignAppService) collectFieldsToDelete(
 			continue
 		}
 
-		// 检查是否有依赖（关系字段）
-		if existingField.ParentRelationID != nil {
-			return nil, bizerrors.NewErrorFromContext(
-				ctx,
-				bizerrors.OperationDenied,
-				fmt.Sprintf(
-					"Cannot delete field '%s' because it has dependencies (referenced by relations)",
-					existingField.Name,
-				),
-			)
-		}
 		fieldsToDelete = append(fieldsToDelete, existingField.Name)
 	}
 

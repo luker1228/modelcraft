@@ -324,9 +324,10 @@ func TestAddFieldSync_NonEnumField_IsArrayNotAffected(t *testing.T) {
 	mockEnumRepo.AssertNotCalled(t, "FindByName")
 }
 
-// TestAddFieldSync_EnumField_NoEnumName_SkipsInference verifies that ENUM fields
-// without EnumName skip the IsArray inference logic (no error, no modification).
-func TestAddFieldSync_EnumField_NoEnumName_SkipsInference(t *testing.T) {
+// TestAddFieldSync_EnumField_NoEnumName_ReturnsError verifies that ENUM fields
+// without EnumName now fail validation per current business rules.
+// (Previously this test expected the field to pass without enumName - legacy behavior has been removed.)
+func TestAddFieldSync_EnumField_NoEnumName_ReturnsError(t *testing.T) {
 	ctx := newTestContextForIsArray()
 	mockModelRepo := new(MockModelRepository)
 	mockDeployRepo := new(MockDeployRepo)
@@ -338,28 +339,21 @@ func TestAddFieldSync_EnumField_NoEnumName_SkipsInference(t *testing.T) {
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
 
-	// Create an ENUM field without EnumName (legacy behavior or inline enum values)
+	// Create an ENUM field without EnumName
 	enumField := newTestEnumField("model-1", "inline_enum", "", false, locator)
 
 	// Setup mocks
 	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
-	mockModelRepo.On("GetTailFieldDisplayOrder", ctx, "model-1").Return("P", nil)
-
-	var capturedFields []*modeldesign.FieldDefinition
-	mockModelRepo.On("AddFields", ctx, "test-org", mock.MatchedBy(func(fields []*modeldesign.FieldDefinition) bool {
-		capturedFields = fields
-		return len(fields) == 1
-	})).Return(nil)
-	mockDeployRepo.On("DeployModelToAddFields", ctx, existingModel, mock.Anything).Return(nil)
-	mockModelRepo.On("UpdateFieldsStatus", ctx, mock.Anything).Return(nil)
 
 	err := svc.AddFieldSync(ctx, AddFieldCommand{
 		ModelID: "model-1",
 		Fields:  []*modeldesign.FieldDefinition{enumField},
 	})
 
-	require.NoError(t, err)
-	require.Len(t, capturedFields, 1)
-	// EnumRepo should NOT be called when EnumName is empty
+	// Current business rule: ENUM fields must have an associated enum
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "relateEnumName is required when format=ENUM",
+		"Error message should indicate ENUM fields require enumName")
+	// EnumRepo should NOT be called since validation fails first
 	mockEnumRepo.AssertNotCalled(t, "FindByName")
 }

@@ -27,11 +27,11 @@ WHERE id = ?
 LIMIT 1;
 
 -- name: FindFieldsByBelongsToFKID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE belongs_to_fk_id = ?;
 
 -- name: FindFieldsByRelateFKID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE relate_fk_id = ?;

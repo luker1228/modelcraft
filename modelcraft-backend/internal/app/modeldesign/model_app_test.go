@@ -2,9 +2,11 @@ package modeldesign
 
 import (
 	"context"
+	"errors"
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
+	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"testing"
@@ -854,6 +856,25 @@ func (m *MockFieldEnumRelationRepo) Delete(ctx context.Context, orgName, id stri
 	return args.Error(0)
 }
 
+func (m *MockFieldEnumRelationRepo) FindByLabelField(
+	ctx context.Context,
+	orgName, modelID, labelFieldName string,
+) (*modeldesign.FieldEnumRelation, error) {
+	args := m.Called(ctx, orgName, modelID, labelFieldName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*modeldesign.FieldEnumRelation), args.Error(1)
+}
+
+func (m *MockFieldEnumRelationRepo) CountByLabelField(
+	ctx context.Context,
+	orgName, modelID, labelFieldName string,
+) (int64, error) {
+	args := m.Called(ctx, orgName, modelID, labelFieldName)
+	return args.Get(0).(int64), args.Error(1)
+}
+
 // TestAddFieldSync_PhysicField_SetsDisplayOrder verifies that display_order is
 // computed and assigned before a physical field is persisted.
 func TestAddFieldSync_PhysicField_SetsDisplayOrder(t *testing.T) {
@@ -1069,4 +1090,96 @@ func TestModelDesignAppService_CreateFieldEnumRelation_SourceConflict(t *testing
 	})
 	require.Error(t, err)
 	assert.True(t, bizerrors.Is(err, ErrFieldEnumSourceConflict))
+}
+
+// ============================================================================
+// Tests: addPhysicFields — Deploy failure and rollback failure combined error
+// ============================================================================
+
+func TestAddPhysicFields_DeployFailAndRollbackFail_ReturnsCombinedError(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockDeployRepo := new(MockDeployRepo)
+	mockEnumAssocRepo := new(MockEnumAssocRepo)
+
+	svc := newTestService(mockModelRepo, mockDeployRepo, nil)
+	svc.WithEnumAssocRepo(mockEnumAssocRepo)
+
+	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
+	locator := &existingModel.ModelLocator
+	newField := newTestField("model-1", "test_field", locator)
+
+	deployErr := errors.New("deploy to client DB failed")
+	rollbackErr := errors.New("rollback delete fields failed")
+
+	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
+	mockModelRepo.On("GetTailFieldDisplayOrder", ctx, "model-1").Return("P", nil)
+	mockModelRepo.On("AddFields", ctx, "test-org", mock.Anything).Return(nil)
+	mockDeployRepo.On("DeployModelToAddFields", ctx, existingModel, mock.Anything).Return(deployErr)
+	mockModelRepo.On("DeleteFields", ctx, "model-1", []string{"test_field"}).Return(rollbackErr)
+
+	err := svc.AddFieldSync(ctx, AddFieldCommand{
+		ModelID: "model-1",
+		Fields:  []*modeldesign.FieldDefinition{newField},
+	})
+
+	require.Error(t, err)
+	// Verify error message contains both deploy failure and rollback failure info
+	assert.Contains(t, err.Error(), "部署模型到客户DB失败且回滚失败")
+	assert.Contains(t, err.Error(), "model-1")
+	// Verify combined error unwraps to both original errors
+	assert.True(t, errors.Is(err, deployErr), "combined error should wrap deploy error")
+	assert.True(t, errors.Is(err, rollbackErr), "combined error should wrap rollback error")
+	mockModelRepo.AssertExpectations(t)
+	mockDeployRepo.AssertExpectations(t)
+}
+
+// ============================================================================
+// Tests: removeEnumLabelFieldWithRelation — Transaction failure path
+// ============================================================================
+
+func TestRemoveEnumLabelFieldWithRelation_TransactionFailure_ReturnsError(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockRelationRepo := new(MockFieldEnumRelationRepo)
+	mockTxManager := new(MockTxManager)
+
+	svc := &ModelDesignAppService{
+		modelRepo:               mockModelRepo,
+		txManager:               mockTxManager,
+		fieldEnumRelRepo:        mockRelationRepo,
+		modelRepoFactory:        func(q dbgen.Querier) modeldesign.ModelRepository { return mockModelRepo },
+		fieldEnumRelRepoFactory: func(q dbgen.Querier) modeldesign.FieldEnumRelationRepository { return mockRelationRepo },
+	}
+
+	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
+	enumLabelType, _ := modeldesign.NewFieldFormat(modeldesign.FormatEnumLabel)
+	relationID := "relation-1"
+	enumLabelField := &modeldesign.FieldDefinition{
+		ModelID:        "model-1",
+		ModelLocator:   &existingModel.ModelLocator,
+		Name:           "levelLabel",
+		Title:          "Level Label",
+		Type:           enumLabelType,
+		EnumRelationID: &relationID,
+		Status:         modeldesign.FieldStatusInit,
+	}
+	existingModel.Fields = append(existingModel.Fields, enumLabelField)
+
+	// Transaction failure simulated directly via the mock
+	txErr := bizerrors.Errorf("failed to delete FieldEnumRelation relation-1: database connection lost")
+
+	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
+	mockRelationRepo.On("CountBySourceField", ctx, "test-org", "model-1", "levelLabel").Return(int64(0), nil).Maybe()
+
+	// Mock transaction: return error directly (simulating transaction failure)
+	mockTxManager.On("WithTx", ctx, mock.AnythingOfType("func(context.Context, dbgen.Querier) error")).
+		Return(txErr)
+
+	err := svc.RemoveFieldSync(ctx, RemoveFieldCommand{ModelID: "model-1", FieldName: "levelLabel"})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to delete FieldEnumRelation")
+	assert.Contains(t, err.Error(), "relation-1")
+	mockModelRepo.AssertExpectations(t)
 }

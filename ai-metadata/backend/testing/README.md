@@ -11,6 +11,7 @@
 | 文档 | 说明 |
 |------|------|
 | [debugging-workflow.md](./debugging-workflow.md) | **开发调试流程** - 日常开发必读 ⭐ |
+| [bdd-testing-guidelines.md](./bdd-testing-guidelines.md) | BDD 验收测试注意要点（默认不耦合注册） |
 | [integration-testing.md](./integration-testing.md) | 集成测试指南 |
 | [test-strategy.md](./test-strategy.md) | 测试策略总览 |
 | [test-data.md](./test-data.md) | 测试数据管理 |

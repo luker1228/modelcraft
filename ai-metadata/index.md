@@ -41,6 +41,7 @@ ai-metadata/
 │   │   └── type-conversion.md
 │   ├── testing/                      # 测试策略
 │   │   ├── README.md
+│   │   ├── bdd-testing-guidelines.md
 │   │   └── debugging-workflow.md
 │   ├── deployment/                   # 部署指南
 │   │   └── README.md
@@ -66,11 +67,11 @@ ai-metadata/
 │       └── tailwind-usage-policy.md
 └── prd/                              # 产品需求文档
     ├── auth/
-    │   ├── auth.md
+    │   ├── 00-auth.md
     │   ├── auth-api-design.md
     │   ├── auth-domain.puml
-    │   ├── auth-login.md
-    │   └── auth-register.md
+    │   ├── 01-auth-login.md
+    │   └── 02-auth-register.md
     └── model-enum/
         ├── 00-model-enum.md
         ├── 01-field-create-enum-binding.md
@@ -123,6 +124,7 @@ ai-metadata/
 | 路径 | 说明 |
 |------|------|
 | [backend/testing/README.md](./backend/testing/README.md) | 测试策略总览、测试金字塔、覆盖率要求 |
+| [backend/testing/bdd-testing-guidelines.md](./backend/testing/bdd-testing-guidelines.md) | BDD 验收测试注意要点（默认不耦合注册） |
 | [backend/testing/debugging-workflow.md](./backend/testing/debugging-workflow.md) | ⭐ 日常开发调试流程（必读） |
 
 ### 部署指南
@@ -174,11 +176,11 @@ ai-metadata/
 
 | 路径 | 说明 |
 |------|------|
-| [prd/auth/auth.md](./prd/auth/auth.md) | 认证模块需求总览 |
+| [prd/auth/00-auth.md](./prd/auth/00-auth.md) | 认证模块需求总览 |
 | [prd/auth/auth-api-design.md](./prd/auth/auth-api-design.md) | 认证 API 设计 |
 | [prd/auth/auth-domain.puml](./prd/auth/auth-domain.puml) | 认证域 PlantUML 类图 |
-| [prd/auth/auth-login.md](./prd/auth/auth-login.md) | 登录流程需求 |
-| [prd/auth/auth-register.md](./prd/auth/auth-register.md) | 注册流程需求 |
+| [prd/auth/01-auth-login.md](./prd/auth/01-auth-login.md) | 登录流程需求 |
+| [prd/auth/02-auth-register.md](./prd/auth/02-auth-register.md) | 注册流程需求 |
 
 ### 字段展示协议
 

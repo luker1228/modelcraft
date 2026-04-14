@@ -126,8 +126,6 @@ type FieldDefinition struct {
 	ModelName string
 	// 数据库名称
 	DatabaseName string
-	// 依赖的关联的关系ID, 这个字段不为nul, 则该字段不能被删除
-	ParentRelationID sql.NullString
 	// 关联的枚举名称（format=ENUM）
 	EnumName sql.NullString
 	// 字段枚举关联ID（format=ENUM_LABEL）

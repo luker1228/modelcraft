@@ -3,35 +3,23 @@ import { ModelCraftWorld } from './world'
 import { signJWT } from './jwt'
 import { RestClient } from './rest-client'
 
-// ──────── BDD 固定测试用户 ────────
-// BeforeAll 自动注册此用户并签发 JWT，无需手动配置 .env.test
-const BDD_PHONE = '19900000001'
-const BDD_PASSWORD = 'bddtest12345'
+// ──────── BDD 测试登录用户 ────────
+// 优先使用 TEST_ACCESS_TOKEN；若未提供，则通过测试账号登录后签发 JWT
+const BDD_LOGIN_PHONE = process.env.TEST_LOGIN_PHONE ?? '19900000001'
+const BDD_LOGIN_PASSWORD = process.env.TEST_LOGIN_PASSWORD ?? 'bddtest12345'
 
 BeforeAll(async function () {
   // 如果已提供 TEST_ACCESS_TOKEN，跳过自动配置
   if (process.env.TEST_ACCESS_TOKEN) return
 
   const client = new RestClient()
-
-  // 注册测试用户（忽略 409 — 已注册）
-  const regResult = await client.register(BDD_PHONE, BDD_PASSWORD)
-  let userId: string
-
-  if (regResult.data) {
-    userId = regResult.data.userId
-  } else if (regResult.status === 409) {
-    const loginResult = await client.login(BDD_PHONE, BDD_PASSWORD)
-    if (!loginResult.data) {
-      throw new Error(`BDD auto-setup: login failed — ${JSON.stringify(loginResult.error)}`)
-    }
-    userId = loginResult.data.userId
-  } else {
-    throw new Error(`BDD auto-setup: register failed — ${JSON.stringify(regResult.error)}`)
+  const loginResult = await client.login(BDD_LOGIN_PHONE, BDD_LOGIN_PASSWORD, 'PHONE')
+  if (!loginResult.data) {
+    throw new Error(`BDD auto-setup: login failed — ${JSON.stringify(loginResult.error)}`)
   }
 
   // 签发 JWT（有效期 1 小时，含 iss: "modelcraft"）
-  process.env.TEST_ACCESS_TOKEN = signJWT(userId, 3600)
+  process.env.TEST_ACCESS_TOKEN = signJWT(loginResult.data.userId, 3600)
 })
 
 // ──────── GraphQL 操作 ────────

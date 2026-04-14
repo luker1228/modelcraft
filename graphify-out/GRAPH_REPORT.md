@@ -1,797 +1,912 @@
-# Graph Report - .  (2026-04-13)
+# Graph Report - .  (2026-04-14)
 
 ## Corpus Check
-- Large corpus: 1002 files · ~1,513,423 words. Semantic extraction will be expensive (many Claude tokens). Consider running on a subfolder, or use --no-semantic to run AST-only.
+- 624 files · ~1,523,837 words
+- Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 7116 nodes · 9974 edges · 759 communities detected
-- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 34 edges (avg confidence: 0.69)
+- 6921 nodes · 9617 edges · 873 communities detected
+- Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS · INFERRED: 18 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Community Hubs (Navigation)
-- [[_COMMUNITY_ModelRuntime GraphQL Engine|ModelRuntime GraphQL Engine]]
-- [[_COMMUNITY_Model Design GraphQL API|Model Design GraphQL API]]
-- [[_COMMUNITY_Organization & Project Services|Organization & Project Services]]
-- [[_COMMUNITY_SQL Repository Infrastructure|SQL Repository Infrastructure]]
-- [[_COMMUNITY_gqlgen Generated Types & Config|gqlgen Generated Types & Config]]
-- [[_COMMUNITY_Field Type System & Validation|Field Type System & Validation]]
-- [[_COMMUNITY_Auth Error Handling|Auth Error Handling]]
-- [[_COMMUNITY_GraphQL Argument Parsers|GraphQL Argument Parsers]]
-- [[_COMMUNITY_BDD Test Infrastructure|BDD Test Infrastructure]]
-- [[_COMMUNITY_Unit Test Helpers|Unit Test Helpers]]
-- [[_COMMUNITY_Query Condition Engine|Query Condition Engine]]
-- [[_COMMUNITY_GraphQL Resolver Layer|GraphQL Resolver Layer]]
-- [[_COMMUNITY_Filter & Condition Builder|Filter & Condition Builder]]
-- [[_COMMUNITY_Frontend Mock Factories|Frontend Mock Factories]]
-- [[_COMMUNITY_GraphQL Error Adapters|GraphQL Error Adapters]]
-- [[_COMMUNITY_Python Integration Tests|Python Integration Tests]]
-- [[_COMMUNITY_Field-Enum Relation Repository|Field-Enum Relation Repository]]
-- [[_COMMUNITY_Auth & RBAC Test Helpers|Auth & RBAC Test Helpers]]
-- [[_COMMUNITY_Model Group Service Tests|Model Group Service Tests]]
-- [[_COMMUNITY_Introspection Resolvers|Introspection Resolvers]]
-- [[_COMMUNITY_Frontend Design Documentation|Frontend Design Documentation]]
-- [[_COMMUNITY_Org & Permission Resolvers|Org & Permission Resolvers]]
-- [[_COMMUNITY_Model Design App Service|Model Design App Service]]
-- [[_COMMUNITY_Backend Architecture Docs|Backend Architecture Docs]]
-- [[_COMMUNITY_Role Service Tests|Role Service Tests]]
-- [[_COMMUNITY_Enum GraphQL Integration Tests|Enum GraphQL Integration Tests]]
-- [[_COMMUNITY_Org SQL Repository|Org SQL Repository]]
-- [[_COMMUNITY_Field Type Registry|Field Type Registry]]
-- [[_COMMUNITY_Auth Webhook Handlers|Auth Webhook Handlers]]
-- [[_COMMUNITY_Model App Command Handlers|Model App Command Handlers]]
-- [[_COMMUNITY_Module Group 30|Module Group 30]]
-- [[_COMMUNITY_Module Group 31|Module Group 31]]
-- [[_COMMUNITY_Module Group 32|Module Group 32]]
-- [[_COMMUNITY_Module Group 33|Module Group 33]]
-- [[_COMMUNITY_Module Group 34|Module Group 34]]
-- [[_COMMUNITY_Module Group 35|Module Group 35]]
-- [[_COMMUNITY_Module Group 36|Module Group 36]]
-- [[_COMMUNITY_Module Group 37|Module Group 37]]
-- [[_COMMUNITY_Module Group 38|Module Group 38]]
-- [[_COMMUNITY_Module Group 39|Module Group 39]]
-- [[_COMMUNITY_Module Group 40|Module Group 40]]
-- [[_COMMUNITY_Module Group 41|Module Group 41]]
-- [[_COMMUNITY_Module Group 42|Module Group 42]]
-- [[_COMMUNITY_Module Group 43|Module Group 43]]
-- [[_COMMUNITY_Module Group 44|Module Group 44]]
-- [[_COMMUNITY_Module Group 45|Module Group 45]]
-- [[_COMMUNITY_Module Group 46|Module Group 46]]
-- [[_COMMUNITY_Module Group 47|Module Group 47]]
-- [[_COMMUNITY_Module Group 48|Module Group 48]]
-- [[_COMMUNITY_Module Group 49|Module Group 49]]
-- [[_COMMUNITY_Module Group 50|Module Group 50]]
-- [[_COMMUNITY_Module Group 51|Module Group 51]]
-- [[_COMMUNITY_Module Group 52|Module Group 52]]
-- [[_COMMUNITY_Module Group 53|Module Group 53]]
-- [[_COMMUNITY_Module Group 54|Module Group 54]]
-- [[_COMMUNITY_Module Group 55|Module Group 55]]
-- [[_COMMUNITY_Module Group 56|Module Group 56]]
-- [[_COMMUNITY_Module Group 57|Module Group 57]]
-- [[_COMMUNITY_Module Group 58|Module Group 58]]
-- [[_COMMUNITY_Module Group 59|Module Group 59]]
-- [[_COMMUNITY_Module Group 60|Module Group 60]]
-- [[_COMMUNITY_Module Group 61|Module Group 61]]
-- [[_COMMUNITY_Module Group 62|Module Group 62]]
-- [[_COMMUNITY_Module Group 63|Module Group 63]]
-- [[_COMMUNITY_Module Group 64|Module Group 64]]
-- [[_COMMUNITY_Module Group 65|Module Group 65]]
-- [[_COMMUNITY_Module Group 66|Module Group 66]]
-- [[_COMMUNITY_Module Group 67|Module Group 67]]
-- [[_COMMUNITY_Module Group 68|Module Group 68]]
-- [[_COMMUNITY_Module Group 69|Module Group 69]]
-- [[_COMMUNITY_Module Group 70|Module Group 70]]
-- [[_COMMUNITY_Module Group 71|Module Group 71]]
-- [[_COMMUNITY_Module Group 72|Module Group 72]]
-- [[_COMMUNITY_Module Group 73|Module Group 73]]
-- [[_COMMUNITY_Module Group 74|Module Group 74]]
-- [[_COMMUNITY_Module Group 75|Module Group 75]]
-- [[_COMMUNITY_Module Group 76|Module Group 76]]
-- [[_COMMUNITY_Module Group 77|Module Group 77]]
-- [[_COMMUNITY_Module Group 78|Module Group 78]]
-- [[_COMMUNITY_Module Group 79|Module Group 79]]
-- [[_COMMUNITY_Module Group 80|Module Group 80]]
-- [[_COMMUNITY_Module Group 81|Module Group 81]]
-- [[_COMMUNITY_Module Group 82|Module Group 82]]
-- [[_COMMUNITY_Module Group 83|Module Group 83]]
-- [[_COMMUNITY_Module Group 84|Module Group 84]]
-- [[_COMMUNITY_Module Group 85|Module Group 85]]
-- [[_COMMUNITY_Module Group 86|Module Group 86]]
-- [[_COMMUNITY_Module Group 87|Module Group 87]]
-- [[_COMMUNITY_Module Group 88|Module Group 88]]
-- [[_COMMUNITY_Module Group 89|Module Group 89]]
-- [[_COMMUNITY_Module Group 90|Module Group 90]]
-- [[_COMMUNITY_Module Group 91|Module Group 91]]
-- [[_COMMUNITY_Module Group 92|Module Group 92]]
-- [[_COMMUNITY_Module Group 93|Module Group 93]]
-- [[_COMMUNITY_Module Group 94|Module Group 94]]
-- [[_COMMUNITY_Module Group 95|Module Group 95]]
-- [[_COMMUNITY_Module Group 96|Module Group 96]]
-- [[_COMMUNITY_Module Group 97|Module Group 97]]
-- [[_COMMUNITY_Module Group 98|Module Group 98]]
-- [[_COMMUNITY_Module Group 99|Module Group 99]]
-- [[_COMMUNITY_Module Group 100|Module Group 100]]
-- [[_COMMUNITY_Module Group 101|Module Group 101]]
-- [[_COMMUNITY_Module Group 102|Module Group 102]]
-- [[_COMMUNITY_Module Group 103|Module Group 103]]
-- [[_COMMUNITY_Module Group 104|Module Group 104]]
-- [[_COMMUNITY_Module Group 105|Module Group 105]]
-- [[_COMMUNITY_Module Group 106|Module Group 106]]
-- [[_COMMUNITY_Module Group 107|Module Group 107]]
-- [[_COMMUNITY_Module Group 108|Module Group 108]]
-- [[_COMMUNITY_Module Group 109|Module Group 109]]
-- [[_COMMUNITY_Module Group 110|Module Group 110]]
-- [[_COMMUNITY_Module Group 111|Module Group 111]]
-- [[_COMMUNITY_Module Group 112|Module Group 112]]
-- [[_COMMUNITY_Module Group 113|Module Group 113]]
-- [[_COMMUNITY_Module Group 114|Module Group 114]]
-- [[_COMMUNITY_Module Group 115|Module Group 115]]
-- [[_COMMUNITY_Module Group 116|Module Group 116]]
-- [[_COMMUNITY_Module Group 117|Module Group 117]]
-- [[_COMMUNITY_Module Group 118|Module Group 118]]
-- [[_COMMUNITY_Module Group 119|Module Group 119]]
-- [[_COMMUNITY_Module Group 120|Module Group 120]]
-- [[_COMMUNITY_Module Group 121|Module Group 121]]
-- [[_COMMUNITY_Module Group 122|Module Group 122]]
-- [[_COMMUNITY_Module Group 123|Module Group 123]]
-- [[_COMMUNITY_Module Group 124|Module Group 124]]
-- [[_COMMUNITY_Module Group 125|Module Group 125]]
-- [[_COMMUNITY_Module Group 126|Module Group 126]]
-- [[_COMMUNITY_Module Group 127|Module Group 127]]
-- [[_COMMUNITY_Module Group 128|Module Group 128]]
-- [[_COMMUNITY_Module Group 129|Module Group 129]]
-- [[_COMMUNITY_Module Group 130|Module Group 130]]
-- [[_COMMUNITY_Module Group 131|Module Group 131]]
-- [[_COMMUNITY_Module Group 132|Module Group 132]]
-- [[_COMMUNITY_Module Group 133|Module Group 133]]
-- [[_COMMUNITY_Module Group 134|Module Group 134]]
-- [[_COMMUNITY_Module Group 135|Module Group 135]]
-- [[_COMMUNITY_Module Group 136|Module Group 136]]
-- [[_COMMUNITY_Module Group 137|Module Group 137]]
-- [[_COMMUNITY_Module Group 138|Module Group 138]]
-- [[_COMMUNITY_Module Group 139|Module Group 139]]
-- [[_COMMUNITY_Module Group 140|Module Group 140]]
-- [[_COMMUNITY_Module Group 141|Module Group 141]]
-- [[_COMMUNITY_Module Group 142|Module Group 142]]
-- [[_COMMUNITY_Module Group 143|Module Group 143]]
-- [[_COMMUNITY_Module Group 144|Module Group 144]]
-- [[_COMMUNITY_Module Group 145|Module Group 145]]
-- [[_COMMUNITY_Module Group 146|Module Group 146]]
-- [[_COMMUNITY_Module Group 147|Module Group 147]]
-- [[_COMMUNITY_Module Group 148|Module Group 148]]
-- [[_COMMUNITY_Module Group 149|Module Group 149]]
-- [[_COMMUNITY_Module Group 150|Module Group 150]]
-- [[_COMMUNITY_Module Group 151|Module Group 151]]
-- [[_COMMUNITY_Module Group 152|Module Group 152]]
-- [[_COMMUNITY_Module Group 153|Module Group 153]]
-- [[_COMMUNITY_Module Group 154|Module Group 154]]
-- [[_COMMUNITY_Module Group 155|Module Group 155]]
-- [[_COMMUNITY_Module Group 156|Module Group 156]]
-- [[_COMMUNITY_Module Group 157|Module Group 157]]
-- [[_COMMUNITY_Module Group 158|Module Group 158]]
-- [[_COMMUNITY_Module Group 159|Module Group 159]]
-- [[_COMMUNITY_Module Group 160|Module Group 160]]
-- [[_COMMUNITY_Module Group 161|Module Group 161]]
-- [[_COMMUNITY_Module Group 162|Module Group 162]]
-- [[_COMMUNITY_Module Group 163|Module Group 163]]
-- [[_COMMUNITY_Module Group 164|Module Group 164]]
-- [[_COMMUNITY_Module Group 165|Module Group 165]]
-- [[_COMMUNITY_Module Group 166|Module Group 166]]
-- [[_COMMUNITY_Module Group 167|Module Group 167]]
-- [[_COMMUNITY_Module Group 168|Module Group 168]]
-- [[_COMMUNITY_Module Group 169|Module Group 169]]
-- [[_COMMUNITY_Module Group 170|Module Group 170]]
-- [[_COMMUNITY_Module Group 171|Module Group 171]]
-- [[_COMMUNITY_Module Group 172|Module Group 172]]
-- [[_COMMUNITY_Module Group 173|Module Group 173]]
-- [[_COMMUNITY_Module Group 174|Module Group 174]]
-- [[_COMMUNITY_Module Group 175|Module Group 175]]
-- [[_COMMUNITY_Module Group 176|Module Group 176]]
-- [[_COMMUNITY_Module Group 177|Module Group 177]]
-- [[_COMMUNITY_Module Group 178|Module Group 178]]
-- [[_COMMUNITY_Module Group 179|Module Group 179]]
-- [[_COMMUNITY_Module Group 180|Module Group 180]]
-- [[_COMMUNITY_Module Group 181|Module Group 181]]
-- [[_COMMUNITY_Module Group 182|Module Group 182]]
-- [[_COMMUNITY_Module Group 183|Module Group 183]]
-- [[_COMMUNITY_Module Group 184|Module Group 184]]
-- [[_COMMUNITY_Module Group 185|Module Group 185]]
-- [[_COMMUNITY_Module Group 186|Module Group 186]]
-- [[_COMMUNITY_Module Group 187|Module Group 187]]
-- [[_COMMUNITY_Module Group 188|Module Group 188]]
-- [[_COMMUNITY_Module Group 189|Module Group 189]]
-- [[_COMMUNITY_Module Group 190|Module Group 190]]
-- [[_COMMUNITY_Module Group 191|Module Group 191]]
-- [[_COMMUNITY_Module Group 192|Module Group 192]]
-- [[_COMMUNITY_Module Group 193|Module Group 193]]
-- [[_COMMUNITY_Module Group 194|Module Group 194]]
-- [[_COMMUNITY_Module Group 195|Module Group 195]]
-- [[_COMMUNITY_Module Group 196|Module Group 196]]
-- [[_COMMUNITY_Module Group 197|Module Group 197]]
-- [[_COMMUNITY_Module Group 198|Module Group 198]]
-- [[_COMMUNITY_Module Group 199|Module Group 199]]
-- [[_COMMUNITY_Module Group 200|Module Group 200]]
-- [[_COMMUNITY_Module Group 201|Module Group 201]]
-- [[_COMMUNITY_Module Group 202|Module Group 202]]
-- [[_COMMUNITY_Module Group 203|Module Group 203]]
-- [[_COMMUNITY_Module Group 204|Module Group 204]]
-- [[_COMMUNITY_Module Group 205|Module Group 205]]
-- [[_COMMUNITY_Module Group 206|Module Group 206]]
-- [[_COMMUNITY_Module Group 207|Module Group 207]]
-- [[_COMMUNITY_Module Group 208|Module Group 208]]
-- [[_COMMUNITY_Module Group 209|Module Group 209]]
-- [[_COMMUNITY_Module Group 210|Module Group 210]]
-- [[_COMMUNITY_Module Group 211|Module Group 211]]
-- [[_COMMUNITY_Module Group 212|Module Group 212]]
-- [[_COMMUNITY_Module Group 213|Module Group 213]]
-- [[_COMMUNITY_Module Group 214|Module Group 214]]
-- [[_COMMUNITY_Module Group 215|Module Group 215]]
-- [[_COMMUNITY_Module Group 216|Module Group 216]]
-- [[_COMMUNITY_Module Group 217|Module Group 217]]
-- [[_COMMUNITY_Module Group 218|Module Group 218]]
-- [[_COMMUNITY_Module Group 219|Module Group 219]]
-- [[_COMMUNITY_Module Group 220|Module Group 220]]
-- [[_COMMUNITY_Module Group 221|Module Group 221]]
-- [[_COMMUNITY_Module Group 222|Module Group 222]]
-- [[_COMMUNITY_Module Group 223|Module Group 223]]
-- [[_COMMUNITY_Module Group 224|Module Group 224]]
-- [[_COMMUNITY_Module Group 225|Module Group 225]]
-- [[_COMMUNITY_Module Group 226|Module Group 226]]
-- [[_COMMUNITY_Module Group 227|Module Group 227]]
-- [[_COMMUNITY_Module Group 228|Module Group 228]]
-- [[_COMMUNITY_Module Group 229|Module Group 229]]
-- [[_COMMUNITY_Module Group 230|Module Group 230]]
-- [[_COMMUNITY_Module Group 231|Module Group 231]]
-- [[_COMMUNITY_Module Group 232|Module Group 232]]
-- [[_COMMUNITY_Module Group 233|Module Group 233]]
-- [[_COMMUNITY_Module Group 234|Module Group 234]]
-- [[_COMMUNITY_Module Group 235|Module Group 235]]
-- [[_COMMUNITY_Module Group 236|Module Group 236]]
-- [[_COMMUNITY_Module Group 237|Module Group 237]]
-- [[_COMMUNITY_Module Group 238|Module Group 238]]
-- [[_COMMUNITY_Module Group 239|Module Group 239]]
-- [[_COMMUNITY_Module Group 240|Module Group 240]]
-- [[_COMMUNITY_Module Group 241|Module Group 241]]
-- [[_COMMUNITY_Module Group 242|Module Group 242]]
-- [[_COMMUNITY_Module Group 243|Module Group 243]]
-- [[_COMMUNITY_Module Group 244|Module Group 244]]
-- [[_COMMUNITY_Module Group 245|Module Group 245]]
-- [[_COMMUNITY_Module Group 246|Module Group 246]]
-- [[_COMMUNITY_Module Group 247|Module Group 247]]
-- [[_COMMUNITY_Module Group 248|Module Group 248]]
-- [[_COMMUNITY_Module Group 249|Module Group 249]]
-- [[_COMMUNITY_Module Group 250|Module Group 250]]
-- [[_COMMUNITY_Module Group 251|Module Group 251]]
-- [[_COMMUNITY_Module Group 252|Module Group 252]]
-- [[_COMMUNITY_Module Group 253|Module Group 253]]
-- [[_COMMUNITY_Module Group 254|Module Group 254]]
-- [[_COMMUNITY_Module Group 255|Module Group 255]]
-- [[_COMMUNITY_Module Group 256|Module Group 256]]
-- [[_COMMUNITY_Module Group 257|Module Group 257]]
-- [[_COMMUNITY_Module Group 258|Module Group 258]]
-- [[_COMMUNITY_Module Group 259|Module Group 259]]
-- [[_COMMUNITY_Module Group 260|Module Group 260]]
-- [[_COMMUNITY_Module Group 261|Module Group 261]]
-- [[_COMMUNITY_Module Group 262|Module Group 262]]
-- [[_COMMUNITY_Module Group 263|Module Group 263]]
-- [[_COMMUNITY_Module Group 264|Module Group 264]]
-- [[_COMMUNITY_Module Group 265|Module Group 265]]
-- [[_COMMUNITY_Module Group 266|Module Group 266]]
-- [[_COMMUNITY_Module Group 267|Module Group 267]]
-- [[_COMMUNITY_Module Group 268|Module Group 268]]
-- [[_COMMUNITY_Module Group 269|Module Group 269]]
-- [[_COMMUNITY_Module Group 270|Module Group 270]]
-- [[_COMMUNITY_Module Group 271|Module Group 271]]
-- [[_COMMUNITY_Module Group 272|Module Group 272]]
-- [[_COMMUNITY_Module Group 273|Module Group 273]]
-- [[_COMMUNITY_Module Group 274|Module Group 274]]
-- [[_COMMUNITY_Module Group 275|Module Group 275]]
-- [[_COMMUNITY_Module Group 276|Module Group 276]]
-- [[_COMMUNITY_Module Group 277|Module Group 277]]
-- [[_COMMUNITY_Module Group 278|Module Group 278]]
-- [[_COMMUNITY_Module Group 279|Module Group 279]]
-- [[_COMMUNITY_Module Group 280|Module Group 280]]
-- [[_COMMUNITY_Module Group 281|Module Group 281]]
-- [[_COMMUNITY_Module Group 282|Module Group 282]]
-- [[_COMMUNITY_Module Group 283|Module Group 283]]
-- [[_COMMUNITY_Module Group 284|Module Group 284]]
-- [[_COMMUNITY_Module Group 285|Module Group 285]]
-- [[_COMMUNITY_Module Group 286|Module Group 286]]
-- [[_COMMUNITY_Module Group 287|Module Group 287]]
-- [[_COMMUNITY_Module Group 288|Module Group 288]]
-- [[_COMMUNITY_Module Group 289|Module Group 289]]
-- [[_COMMUNITY_Module Group 290|Module Group 290]]
-- [[_COMMUNITY_Module Group 291|Module Group 291]]
-- [[_COMMUNITY_Module Group 292|Module Group 292]]
-- [[_COMMUNITY_Module Group 293|Module Group 293]]
-- [[_COMMUNITY_Module Group 294|Module Group 294]]
-- [[_COMMUNITY_Module Group 295|Module Group 295]]
-- [[_COMMUNITY_Module Group 296|Module Group 296]]
-- [[_COMMUNITY_Module Group 297|Module Group 297]]
-- [[_COMMUNITY_Module Group 298|Module Group 298]]
-- [[_COMMUNITY_Module Group 299|Module Group 299]]
-- [[_COMMUNITY_Module Group 300|Module Group 300]]
-- [[_COMMUNITY_Module Group 301|Module Group 301]]
-- [[_COMMUNITY_Module Group 302|Module Group 302]]
-- [[_COMMUNITY_Module Group 303|Module Group 303]]
-- [[_COMMUNITY_Module Group 304|Module Group 304]]
-- [[_COMMUNITY_Module Group 305|Module Group 305]]
-- [[_COMMUNITY_Module Group 306|Module Group 306]]
-- [[_COMMUNITY_Module Group 307|Module Group 307]]
-- [[_COMMUNITY_Module Group 308|Module Group 308]]
-- [[_COMMUNITY_Module Group 309|Module Group 309]]
-- [[_COMMUNITY_Module Group 310|Module Group 310]]
-- [[_COMMUNITY_Module Group 311|Module Group 311]]
-- [[_COMMUNITY_Module Group 312|Module Group 312]]
-- [[_COMMUNITY_Module Group 313|Module Group 313]]
-- [[_COMMUNITY_Module Group 314|Module Group 314]]
-- [[_COMMUNITY_Module Group 315|Module Group 315]]
-- [[_COMMUNITY_Module Group 316|Module Group 316]]
-- [[_COMMUNITY_Module Group 317|Module Group 317]]
-- [[_COMMUNITY_Module Group 318|Module Group 318]]
-- [[_COMMUNITY_Module Group 319|Module Group 319]]
-- [[_COMMUNITY_Module Group 320|Module Group 320]]
-- [[_COMMUNITY_Module Group 321|Module Group 321]]
-- [[_COMMUNITY_Module Group 322|Module Group 322]]
-- [[_COMMUNITY_Module Group 323|Module Group 323]]
-- [[_COMMUNITY_Module Group 324|Module Group 324]]
-- [[_COMMUNITY_Module Group 325|Module Group 325]]
-- [[_COMMUNITY_Module Group 326|Module Group 326]]
-- [[_COMMUNITY_Module Group 327|Module Group 327]]
-- [[_COMMUNITY_Module Group 328|Module Group 328]]
-- [[_COMMUNITY_Module Group 329|Module Group 329]]
-- [[_COMMUNITY_Module Group 330|Module Group 330]]
-- [[_COMMUNITY_Module Group 331|Module Group 331]]
-- [[_COMMUNITY_Module Group 332|Module Group 332]]
-- [[_COMMUNITY_Module Group 333|Module Group 333]]
-- [[_COMMUNITY_Module Group 334|Module Group 334]]
-- [[_COMMUNITY_Module Group 335|Module Group 335]]
-- [[_COMMUNITY_Module Group 336|Module Group 336]]
-- [[_COMMUNITY_Module Group 337|Module Group 337]]
-- [[_COMMUNITY_Module Group 338|Module Group 338]]
-- [[_COMMUNITY_Module Group 339|Module Group 339]]
-- [[_COMMUNITY_Module Group 340|Module Group 340]]
-- [[_COMMUNITY_Module Group 341|Module Group 341]]
-- [[_COMMUNITY_Module Group 342|Module Group 342]]
-- [[_COMMUNITY_Module Group 343|Module Group 343]]
-- [[_COMMUNITY_Module Group 344|Module Group 344]]
-- [[_COMMUNITY_Module Group 345|Module Group 345]]
-- [[_COMMUNITY_Module Group 346|Module Group 346]]
-- [[_COMMUNITY_Module Group 347|Module Group 347]]
-- [[_COMMUNITY_Module Group 348|Module Group 348]]
-- [[_COMMUNITY_Module Group 349|Module Group 349]]
-- [[_COMMUNITY_Module Group 350|Module Group 350]]
-- [[_COMMUNITY_Module Group 351|Module Group 351]]
-- [[_COMMUNITY_Module Group 352|Module Group 352]]
-- [[_COMMUNITY_Module Group 353|Module Group 353]]
-- [[_COMMUNITY_Module Group 354|Module Group 354]]
-- [[_COMMUNITY_Module Group 355|Module Group 355]]
-- [[_COMMUNITY_Module Group 356|Module Group 356]]
-- [[_COMMUNITY_Module Group 357|Module Group 357]]
-- [[_COMMUNITY_Module Group 358|Module Group 358]]
-- [[_COMMUNITY_Module Group 359|Module Group 359]]
-- [[_COMMUNITY_Module Group 360|Module Group 360]]
-- [[_COMMUNITY_Module Group 361|Module Group 361]]
-- [[_COMMUNITY_Module Group 362|Module Group 362]]
-- [[_COMMUNITY_Module Group 363|Module Group 363]]
-- [[_COMMUNITY_Module Group 364|Module Group 364]]
-- [[_COMMUNITY_Module Group 365|Module Group 365]]
-- [[_COMMUNITY_Module Group 366|Module Group 366]]
-- [[_COMMUNITY_Module Group 367|Module Group 367]]
-- [[_COMMUNITY_Module Group 368|Module Group 368]]
-- [[_COMMUNITY_Module Group 369|Module Group 369]]
-- [[_COMMUNITY_Module Group 370|Module Group 370]]
-- [[_COMMUNITY_Module Group 371|Module Group 371]]
-- [[_COMMUNITY_Module Group 372|Module Group 372]]
-- [[_COMMUNITY_Module Group 373|Module Group 373]]
-- [[_COMMUNITY_Module Group 374|Module Group 374]]
-- [[_COMMUNITY_Module Group 375|Module Group 375]]
-- [[_COMMUNITY_Module Group 376|Module Group 376]]
-- [[_COMMUNITY_Module Group 377|Module Group 377]]
-- [[_COMMUNITY_Module Group 378|Module Group 378]]
-- [[_COMMUNITY_Module Group 379|Module Group 379]]
-- [[_COMMUNITY_Module Group 380|Module Group 380]]
-- [[_COMMUNITY_Module Group 381|Module Group 381]]
-- [[_COMMUNITY_Module Group 382|Module Group 382]]
-- [[_COMMUNITY_Module Group 383|Module Group 383]]
-- [[_COMMUNITY_Module Group 384|Module Group 384]]
-- [[_COMMUNITY_Module Group 385|Module Group 385]]
-- [[_COMMUNITY_Module Group 386|Module Group 386]]
-- [[_COMMUNITY_Module Group 387|Module Group 387]]
-- [[_COMMUNITY_Module Group 388|Module Group 388]]
-- [[_COMMUNITY_Module Group 389|Module Group 389]]
-- [[_COMMUNITY_Module Group 390|Module Group 390]]
-- [[_COMMUNITY_Module Group 391|Module Group 391]]
-- [[_COMMUNITY_Module Group 392|Module Group 392]]
-- [[_COMMUNITY_Module Group 393|Module Group 393]]
-- [[_COMMUNITY_Module Group 394|Module Group 394]]
-- [[_COMMUNITY_Module Group 395|Module Group 395]]
-- [[_COMMUNITY_Module Group 396|Module Group 396]]
-- [[_COMMUNITY_Module Group 397|Module Group 397]]
-- [[_COMMUNITY_Module Group 398|Module Group 398]]
-- [[_COMMUNITY_Module Group 399|Module Group 399]]
-- [[_COMMUNITY_Module Group 400|Module Group 400]]
-- [[_COMMUNITY_Module Group 401|Module Group 401]]
-- [[_COMMUNITY_Module Group 402|Module Group 402]]
-- [[_COMMUNITY_Module Group 403|Module Group 403]]
-- [[_COMMUNITY_Module Group 404|Module Group 404]]
-- [[_COMMUNITY_Module Group 405|Module Group 405]]
-- [[_COMMUNITY_Module Group 406|Module Group 406]]
-- [[_COMMUNITY_Module Group 407|Module Group 407]]
-- [[_COMMUNITY_Module Group 408|Module Group 408]]
-- [[_COMMUNITY_Module Group 409|Module Group 409]]
-- [[_COMMUNITY_Module Group 410|Module Group 410]]
-- [[_COMMUNITY_Module Group 411|Module Group 411]]
-- [[_COMMUNITY_Module Group 412|Module Group 412]]
-- [[_COMMUNITY_Module Group 413|Module Group 413]]
-- [[_COMMUNITY_Module Group 414|Module Group 414]]
-- [[_COMMUNITY_Module Group 415|Module Group 415]]
-- [[_COMMUNITY_Module Group 416|Module Group 416]]
-- [[_COMMUNITY_Module Group 417|Module Group 417]]
-- [[_COMMUNITY_Module Group 418|Module Group 418]]
-- [[_COMMUNITY_Module Group 419|Module Group 419]]
-- [[_COMMUNITY_Module Group 420|Module Group 420]]
-- [[_COMMUNITY_Module Group 421|Module Group 421]]
-- [[_COMMUNITY_Module Group 422|Module Group 422]]
-- [[_COMMUNITY_Module Group 423|Module Group 423]]
-- [[_COMMUNITY_Module Group 424|Module Group 424]]
-- [[_COMMUNITY_Module Group 425|Module Group 425]]
-- [[_COMMUNITY_Module Group 426|Module Group 426]]
-- [[_COMMUNITY_Module Group 427|Module Group 427]]
-- [[_COMMUNITY_Module Group 428|Module Group 428]]
-- [[_COMMUNITY_Module Group 429|Module Group 429]]
-- [[_COMMUNITY_Module Group 430|Module Group 430]]
-- [[_COMMUNITY_Module Group 431|Module Group 431]]
-- [[_COMMUNITY_Module Group 432|Module Group 432]]
-- [[_COMMUNITY_Module Group 433|Module Group 433]]
-- [[_COMMUNITY_Module Group 434|Module Group 434]]
-- [[_COMMUNITY_Module Group 435|Module Group 435]]
-- [[_COMMUNITY_Module Group 436|Module Group 436]]
-- [[_COMMUNITY_Module Group 437|Module Group 437]]
-- [[_COMMUNITY_Module Group 438|Module Group 438]]
-- [[_COMMUNITY_Module Group 439|Module Group 439]]
-- [[_COMMUNITY_Module Group 440|Module Group 440]]
-- [[_COMMUNITY_Module Group 441|Module Group 441]]
-- [[_COMMUNITY_Module Group 442|Module Group 442]]
-- [[_COMMUNITY_Module Group 443|Module Group 443]]
-- [[_COMMUNITY_Module Group 444|Module Group 444]]
-- [[_COMMUNITY_Module Group 445|Module Group 445]]
-- [[_COMMUNITY_Module Group 446|Module Group 446]]
-- [[_COMMUNITY_Module Group 447|Module Group 447]]
-- [[_COMMUNITY_Module Group 448|Module Group 448]]
-- [[_COMMUNITY_Module Group 449|Module Group 449]]
-- [[_COMMUNITY_Module Group 450|Module Group 450]]
-- [[_COMMUNITY_Module Group 451|Module Group 451]]
-- [[_COMMUNITY_Module Group 452|Module Group 452]]
-- [[_COMMUNITY_Module Group 453|Module Group 453]]
-- [[_COMMUNITY_Module Group 454|Module Group 454]]
-- [[_COMMUNITY_Module Group 455|Module Group 455]]
-- [[_COMMUNITY_Module Group 456|Module Group 456]]
-- [[_COMMUNITY_Module Group 457|Module Group 457]]
-- [[_COMMUNITY_Module Group 458|Module Group 458]]
-- [[_COMMUNITY_Module Group 459|Module Group 459]]
-- [[_COMMUNITY_Module Group 460|Module Group 460]]
-- [[_COMMUNITY_Module Group 461|Module Group 461]]
-- [[_COMMUNITY_Module Group 462|Module Group 462]]
-- [[_COMMUNITY_Module Group 463|Module Group 463]]
-- [[_COMMUNITY_Module Group 464|Module Group 464]]
-- [[_COMMUNITY_Module Group 465|Module Group 465]]
-- [[_COMMUNITY_Module Group 466|Module Group 466]]
-- [[_COMMUNITY_Module Group 467|Module Group 467]]
-- [[_COMMUNITY_Module Group 468|Module Group 468]]
-- [[_COMMUNITY_Module Group 469|Module Group 469]]
-- [[_COMMUNITY_Module Group 470|Module Group 470]]
-- [[_COMMUNITY_Module Group 471|Module Group 471]]
-- [[_COMMUNITY_Module Group 472|Module Group 472]]
-- [[_COMMUNITY_Module Group 473|Module Group 473]]
-- [[_COMMUNITY_Module Group 474|Module Group 474]]
-- [[_COMMUNITY_Module Group 475|Module Group 475]]
-- [[_COMMUNITY_Module Group 476|Module Group 476]]
-- [[_COMMUNITY_Module Group 477|Module Group 477]]
-- [[_COMMUNITY_Module Group 478|Module Group 478]]
-- [[_COMMUNITY_Module Group 479|Module Group 479]]
-- [[_COMMUNITY_Module Group 480|Module Group 480]]
-- [[_COMMUNITY_Module Group 481|Module Group 481]]
-- [[_COMMUNITY_Module Group 482|Module Group 482]]
-- [[_COMMUNITY_Module Group 483|Module Group 483]]
-- [[_COMMUNITY_Module Group 484|Module Group 484]]
-- [[_COMMUNITY_Module Group 485|Module Group 485]]
-- [[_COMMUNITY_Module Group 486|Module Group 486]]
-- [[_COMMUNITY_Module Group 487|Module Group 487]]
-- [[_COMMUNITY_Module Group 488|Module Group 488]]
-- [[_COMMUNITY_Module Group 489|Module Group 489]]
-- [[_COMMUNITY_Module Group 490|Module Group 490]]
-- [[_COMMUNITY_Module Group 491|Module Group 491]]
-- [[_COMMUNITY_Module Group 492|Module Group 492]]
-- [[_COMMUNITY_Module Group 493|Module Group 493]]
-- [[_COMMUNITY_Module Group 494|Module Group 494]]
-- [[_COMMUNITY_Module Group 495|Module Group 495]]
-- [[_COMMUNITY_Module Group 496|Module Group 496]]
-- [[_COMMUNITY_Module Group 497|Module Group 497]]
-- [[_COMMUNITY_Module Group 498|Module Group 498]]
-- [[_COMMUNITY_Module Group 499|Module Group 499]]
-- [[_COMMUNITY_Module Group 500|Module Group 500]]
-- [[_COMMUNITY_Module Group 501|Module Group 501]]
-- [[_COMMUNITY_Module Group 502|Module Group 502]]
-- [[_COMMUNITY_Module Group 503|Module Group 503]]
-- [[_COMMUNITY_Module Group 504|Module Group 504]]
-- [[_COMMUNITY_Module Group 505|Module Group 505]]
-- [[_COMMUNITY_Module Group 506|Module Group 506]]
-- [[_COMMUNITY_Module Group 507|Module Group 507]]
-- [[_COMMUNITY_Module Group 508|Module Group 508]]
-- [[_COMMUNITY_Module Group 509|Module Group 509]]
-- [[_COMMUNITY_Module Group 510|Module Group 510]]
-- [[_COMMUNITY_Module Group 511|Module Group 511]]
-- [[_COMMUNITY_Module Group 512|Module Group 512]]
-- [[_COMMUNITY_Module Group 513|Module Group 513]]
-- [[_COMMUNITY_Module Group 514|Module Group 514]]
-- [[_COMMUNITY_Module Group 515|Module Group 515]]
-- [[_COMMUNITY_Module Group 516|Module Group 516]]
-- [[_COMMUNITY_Module Group 517|Module Group 517]]
-- [[_COMMUNITY_Module Group 518|Module Group 518]]
-- [[_COMMUNITY_Module Group 519|Module Group 519]]
-- [[_COMMUNITY_Module Group 520|Module Group 520]]
-- [[_COMMUNITY_Module Group 521|Module Group 521]]
-- [[_COMMUNITY_Module Group 522|Module Group 522]]
-- [[_COMMUNITY_Module Group 523|Module Group 523]]
-- [[_COMMUNITY_Module Group 524|Module Group 524]]
-- [[_COMMUNITY_Module Group 525|Module Group 525]]
-- [[_COMMUNITY_Module Group 526|Module Group 526]]
-- [[_COMMUNITY_Module Group 527|Module Group 527]]
-- [[_COMMUNITY_Module Group 528|Module Group 528]]
-- [[_COMMUNITY_Module Group 529|Module Group 529]]
-- [[_COMMUNITY_Module Group 530|Module Group 530]]
-- [[_COMMUNITY_Module Group 531|Module Group 531]]
-- [[_COMMUNITY_Module Group 532|Module Group 532]]
-- [[_COMMUNITY_Module Group 533|Module Group 533]]
-- [[_COMMUNITY_Module Group 534|Module Group 534]]
-- [[_COMMUNITY_Module Group 535|Module Group 535]]
-- [[_COMMUNITY_Module Group 536|Module Group 536]]
-- [[_COMMUNITY_Module Group 537|Module Group 537]]
-- [[_COMMUNITY_Module Group 538|Module Group 538]]
-- [[_COMMUNITY_Module Group 539|Module Group 539]]
-- [[_COMMUNITY_Module Group 540|Module Group 540]]
-- [[_COMMUNITY_Module Group 541|Module Group 541]]
-- [[_COMMUNITY_Module Group 542|Module Group 542]]
-- [[_COMMUNITY_Module Group 543|Module Group 543]]
-- [[_COMMUNITY_Module Group 544|Module Group 544]]
-- [[_COMMUNITY_Module Group 545|Module Group 545]]
-- [[_COMMUNITY_Module Group 546|Module Group 546]]
-- [[_COMMUNITY_Module Group 547|Module Group 547]]
-- [[_COMMUNITY_Module Group 548|Module Group 548]]
-- [[_COMMUNITY_Module Group 549|Module Group 549]]
-- [[_COMMUNITY_Module Group 550|Module Group 550]]
-- [[_COMMUNITY_Module Group 551|Module Group 551]]
-- [[_COMMUNITY_Module Group 552|Module Group 552]]
-- [[_COMMUNITY_Module Group 553|Module Group 553]]
-- [[_COMMUNITY_Module Group 554|Module Group 554]]
-- [[_COMMUNITY_Module Group 555|Module Group 555]]
-- [[_COMMUNITY_Module Group 556|Module Group 556]]
-- [[_COMMUNITY_Module Group 557|Module Group 557]]
-- [[_COMMUNITY_Module Group 558|Module Group 558]]
-- [[_COMMUNITY_Module Group 559|Module Group 559]]
-- [[_COMMUNITY_Module Group 560|Module Group 560]]
-- [[_COMMUNITY_Module Group 561|Module Group 561]]
-- [[_COMMUNITY_Module Group 562|Module Group 562]]
-- [[_COMMUNITY_Module Group 563|Module Group 563]]
-- [[_COMMUNITY_Module Group 564|Module Group 564]]
-- [[_COMMUNITY_Module Group 565|Module Group 565]]
-- [[_COMMUNITY_Module Group 566|Module Group 566]]
-- [[_COMMUNITY_Module Group 567|Module Group 567]]
-- [[_COMMUNITY_Module Group 568|Module Group 568]]
-- [[_COMMUNITY_Module Group 569|Module Group 569]]
-- [[_COMMUNITY_Module Group 570|Module Group 570]]
-- [[_COMMUNITY_Module Group 571|Module Group 571]]
-- [[_COMMUNITY_Module Group 572|Module Group 572]]
-- [[_COMMUNITY_Module Group 573|Module Group 573]]
-- [[_COMMUNITY_Module Group 574|Module Group 574]]
-- [[_COMMUNITY_Module Group 575|Module Group 575]]
-- [[_COMMUNITY_Module Group 576|Module Group 576]]
-- [[_COMMUNITY_Module Group 577|Module Group 577]]
-- [[_COMMUNITY_Module Group 578|Module Group 578]]
-- [[_COMMUNITY_Module Group 579|Module Group 579]]
-- [[_COMMUNITY_Module Group 580|Module Group 580]]
-- [[_COMMUNITY_Module Group 581|Module Group 581]]
-- [[_COMMUNITY_Module Group 582|Module Group 582]]
-- [[_COMMUNITY_Module Group 583|Module Group 583]]
-- [[_COMMUNITY_Module Group 584|Module Group 584]]
-- [[_COMMUNITY_Module Group 585|Module Group 585]]
-- [[_COMMUNITY_Module Group 586|Module Group 586]]
-- [[_COMMUNITY_Module Group 587|Module Group 587]]
-- [[_COMMUNITY_Module Group 588|Module Group 588]]
-- [[_COMMUNITY_Module Group 589|Module Group 589]]
-- [[_COMMUNITY_Module Group 590|Module Group 590]]
-- [[_COMMUNITY_Module Group 591|Module Group 591]]
-- [[_COMMUNITY_Module Group 592|Module Group 592]]
-- [[_COMMUNITY_Module Group 593|Module Group 593]]
-- [[_COMMUNITY_Module Group 594|Module Group 594]]
-- [[_COMMUNITY_Module Group 595|Module Group 595]]
-- [[_COMMUNITY_Module Group 596|Module Group 596]]
-- [[_COMMUNITY_Module Group 597|Module Group 597]]
-- [[_COMMUNITY_Module Group 598|Module Group 598]]
-- [[_COMMUNITY_Module Group 599|Module Group 599]]
-- [[_COMMUNITY_Module Group 600|Module Group 600]]
-- [[_COMMUNITY_Module Group 601|Module Group 601]]
-- [[_COMMUNITY_Module Group 602|Module Group 602]]
-- [[_COMMUNITY_Module Group 603|Module Group 603]]
-- [[_COMMUNITY_Module Group 604|Module Group 604]]
-- [[_COMMUNITY_Module Group 605|Module Group 605]]
-- [[_COMMUNITY_Module Group 606|Module Group 606]]
-- [[_COMMUNITY_Module Group 607|Module Group 607]]
-- [[_COMMUNITY_Module Group 608|Module Group 608]]
-- [[_COMMUNITY_Module Group 609|Module Group 609]]
-- [[_COMMUNITY_Module Group 610|Module Group 610]]
-- [[_COMMUNITY_Module Group 611|Module Group 611]]
-- [[_COMMUNITY_Module Group 612|Module Group 612]]
-- [[_COMMUNITY_Module Group 613|Module Group 613]]
-- [[_COMMUNITY_Module Group 614|Module Group 614]]
-- [[_COMMUNITY_Module Group 615|Module Group 615]]
-- [[_COMMUNITY_Module Group 616|Module Group 616]]
-- [[_COMMUNITY_Module Group 617|Module Group 617]]
-- [[_COMMUNITY_Module Group 618|Module Group 618]]
-- [[_COMMUNITY_Module Group 619|Module Group 619]]
-- [[_COMMUNITY_Module Group 620|Module Group 620]]
-- [[_COMMUNITY_Module Group 621|Module Group 621]]
-- [[_COMMUNITY_Module Group 622|Module Group 622]]
-- [[_COMMUNITY_Module Group 623|Module Group 623]]
-- [[_COMMUNITY_Module Group 624|Module Group 624]]
-- [[_COMMUNITY_Module Group 625|Module Group 625]]
-- [[_COMMUNITY_Module Group 626|Module Group 626]]
-- [[_COMMUNITY_Module Group 627|Module Group 627]]
-- [[_COMMUNITY_Module Group 628|Module Group 628]]
-- [[_COMMUNITY_Module Group 629|Module Group 629]]
-- [[_COMMUNITY_Module Group 630|Module Group 630]]
-- [[_COMMUNITY_Module Group 631|Module Group 631]]
-- [[_COMMUNITY_Module Group 632|Module Group 632]]
-- [[_COMMUNITY_Module Group 633|Module Group 633]]
-- [[_COMMUNITY_Module Group 634|Module Group 634]]
-- [[_COMMUNITY_Module Group 635|Module Group 635]]
-- [[_COMMUNITY_Module Group 636|Module Group 636]]
-- [[_COMMUNITY_Module Group 637|Module Group 637]]
-- [[_COMMUNITY_Module Group 638|Module Group 638]]
-- [[_COMMUNITY_Module Group 639|Module Group 639]]
-- [[_COMMUNITY_Module Group 640|Module Group 640]]
-- [[_COMMUNITY_Module Group 641|Module Group 641]]
-- [[_COMMUNITY_Module Group 642|Module Group 642]]
-- [[_COMMUNITY_Module Group 643|Module Group 643]]
-- [[_COMMUNITY_Module Group 644|Module Group 644]]
-- [[_COMMUNITY_Module Group 645|Module Group 645]]
-- [[_COMMUNITY_Module Group 646|Module Group 646]]
-- [[_COMMUNITY_Module Group 647|Module Group 647]]
-- [[_COMMUNITY_Module Group 648|Module Group 648]]
-- [[_COMMUNITY_Module Group 649|Module Group 649]]
-- [[_COMMUNITY_Module Group 650|Module Group 650]]
-- [[_COMMUNITY_Module Group 651|Module Group 651]]
-- [[_COMMUNITY_Module Group 652|Module Group 652]]
-- [[_COMMUNITY_Module Group 653|Module Group 653]]
-- [[_COMMUNITY_Module Group 654|Module Group 654]]
-- [[_COMMUNITY_Module Group 655|Module Group 655]]
-- [[_COMMUNITY_Module Group 656|Module Group 656]]
-- [[_COMMUNITY_Module Group 657|Module Group 657]]
-- [[_COMMUNITY_Module Group 658|Module Group 658]]
-- [[_COMMUNITY_Module Group 659|Module Group 659]]
-- [[_COMMUNITY_Module Group 660|Module Group 660]]
-- [[_COMMUNITY_Module Group 661|Module Group 661]]
-- [[_COMMUNITY_Module Group 662|Module Group 662]]
-- [[_COMMUNITY_Module Group 663|Module Group 663]]
-- [[_COMMUNITY_Module Group 664|Module Group 664]]
-- [[_COMMUNITY_Module Group 665|Module Group 665]]
-- [[_COMMUNITY_Module Group 666|Module Group 666]]
-- [[_COMMUNITY_Module Group 667|Module Group 667]]
-- [[_COMMUNITY_Module Group 668|Module Group 668]]
-- [[_COMMUNITY_Module Group 669|Module Group 669]]
-- [[_COMMUNITY_Module Group 670|Module Group 670]]
-- [[_COMMUNITY_Module Group 671|Module Group 671]]
-- [[_COMMUNITY_Module Group 672|Module Group 672]]
-- [[_COMMUNITY_Module Group 673|Module Group 673]]
-- [[_COMMUNITY_Module Group 674|Module Group 674]]
-- [[_COMMUNITY_Module Group 675|Module Group 675]]
-- [[_COMMUNITY_Module Group 676|Module Group 676]]
-- [[_COMMUNITY_Module Group 677|Module Group 677]]
-- [[_COMMUNITY_Module Group 678|Module Group 678]]
-- [[_COMMUNITY_Module Group 679|Module Group 679]]
-- [[_COMMUNITY_Module Group 680|Module Group 680]]
-- [[_COMMUNITY_Module Group 681|Module Group 681]]
-- [[_COMMUNITY_Module Group 682|Module Group 682]]
-- [[_COMMUNITY_Module Group 683|Module Group 683]]
-- [[_COMMUNITY_Module Group 684|Module Group 684]]
-- [[_COMMUNITY_Module Group 685|Module Group 685]]
-- [[_COMMUNITY_Module Group 686|Module Group 686]]
-- [[_COMMUNITY_Module Group 687|Module Group 687]]
-- [[_COMMUNITY_Module Group 688|Module Group 688]]
-- [[_COMMUNITY_Module Group 689|Module Group 689]]
-- [[_COMMUNITY_Module Group 690|Module Group 690]]
-- [[_COMMUNITY_Module Group 691|Module Group 691]]
-- [[_COMMUNITY_Module Group 692|Module Group 692]]
-- [[_COMMUNITY_Module Group 693|Module Group 693]]
-- [[_COMMUNITY_Module Group 694|Module Group 694]]
-- [[_COMMUNITY_Module Group 695|Module Group 695]]
-- [[_COMMUNITY_Module Group 696|Module Group 696]]
-- [[_COMMUNITY_Module Group 697|Module Group 697]]
-- [[_COMMUNITY_Module Group 698|Module Group 698]]
-- [[_COMMUNITY_Module Group 699|Module Group 699]]
-- [[_COMMUNITY_Module Group 700|Module Group 700]]
-- [[_COMMUNITY_Module Group 701|Module Group 701]]
-- [[_COMMUNITY_Module Group 702|Module Group 702]]
-- [[_COMMUNITY_Module Group 703|Module Group 703]]
-- [[_COMMUNITY_Module Group 704|Module Group 704]]
-- [[_COMMUNITY_Module Group 705|Module Group 705]]
-- [[_COMMUNITY_Module Group 706|Module Group 706]]
-- [[_COMMUNITY_Module Group 707|Module Group 707]]
-- [[_COMMUNITY_Module Group 708|Module Group 708]]
-- [[_COMMUNITY_Module Group 709|Module Group 709]]
-- [[_COMMUNITY_Module Group 710|Module Group 710]]
-- [[_COMMUNITY_Module Group 711|Module Group 711]]
-- [[_COMMUNITY_Module Group 712|Module Group 712]]
-- [[_COMMUNITY_Module Group 713|Module Group 713]]
-- [[_COMMUNITY_Module Group 714|Module Group 714]]
-- [[_COMMUNITY_Module Group 715|Module Group 715]]
-- [[_COMMUNITY_Module Group 716|Module Group 716]]
-- [[_COMMUNITY_Module Group 717|Module Group 717]]
-- [[_COMMUNITY_Module Group 718|Module Group 718]]
-- [[_COMMUNITY_Module Group 719|Module Group 719]]
-- [[_COMMUNITY_Module Group 720|Module Group 720]]
-- [[_COMMUNITY_Module Group 721|Module Group 721]]
-- [[_COMMUNITY_Module Group 722|Module Group 722]]
-- [[_COMMUNITY_Module Group 723|Module Group 723]]
-- [[_COMMUNITY_Module Group 724|Module Group 724]]
-- [[_COMMUNITY_Module Group 725|Module Group 725]]
-- [[_COMMUNITY_Module Group 726|Module Group 726]]
-- [[_COMMUNITY_Module Group 727|Module Group 727]]
-- [[_COMMUNITY_Module Group 728|Module Group 728]]
-- [[_COMMUNITY_Module Group 729|Module Group 729]]
-- [[_COMMUNITY_Module Group 730|Module Group 730]]
-- [[_COMMUNITY_Module Group 731|Module Group 731]]
-- [[_COMMUNITY_Module Group 732|Module Group 732]]
-- [[_COMMUNITY_Module Group 733|Module Group 733]]
-- [[_COMMUNITY_Module Group 734|Module Group 734]]
-- [[_COMMUNITY_Module Group 735|Module Group 735]]
-- [[_COMMUNITY_Module Group 736|Module Group 736]]
-- [[_COMMUNITY_Module Group 737|Module Group 737]]
-- [[_COMMUNITY_Module Group 738|Module Group 738]]
-- [[_COMMUNITY_Module Group 739|Module Group 739]]
-- [[_COMMUNITY_Module Group 740|Module Group 740]]
-- [[_COMMUNITY_Module Group 741|Module Group 741]]
-- [[_COMMUNITY_Module Group 742|Module Group 742]]
-- [[_COMMUNITY_Module Group 743|Module Group 743]]
-- [[_COMMUNITY_Module Group 744|Module Group 744]]
-- [[_COMMUNITY_Module Group 745|Module Group 745]]
-- [[_COMMUNITY_Module Group 746|Module Group 746]]
-- [[_COMMUNITY_Module Group 747|Module Group 747]]
-- [[_COMMUNITY_Module Group 748|Module Group 748]]
-- [[_COMMUNITY_Module Group 749|Module Group 749]]
-- [[_COMMUNITY_Module Group 750|Module Group 750]]
-- [[_COMMUNITY_Module Group 751|Module Group 751]]
-- [[_COMMUNITY_Module Group 752|Module Group 752]]
-- [[_COMMUNITY_Module Group 753|Module Group 753]]
-- [[_COMMUNITY_Module Group 754|Module Group 754]]
-- [[_COMMUNITY_Module Group 755|Module Group 755]]
-- [[_COMMUNITY_Module Group 756|Module Group 756]]
-- [[_COMMUNITY_Module Group 757|Module Group 757]]
-- [[_COMMUNITY_Module Group 758|Module Group 758]]
+- [[_COMMUNITY_Community 0|Community 0]]
+- [[_COMMUNITY_Community 1|Community 1]]
+- [[_COMMUNITY_Community 2|Community 2]]
+- [[_COMMUNITY_Community 3|Community 3]]
+- [[_COMMUNITY_Community 4|Community 4]]
+- [[_COMMUNITY_Community 5|Community 5]]
+- [[_COMMUNITY_Community 6|Community 6]]
+- [[_COMMUNITY_Community 7|Community 7]]
+- [[_COMMUNITY_Community 8|Community 8]]
+- [[_COMMUNITY_Community 9|Community 9]]
+- [[_COMMUNITY_Community 10|Community 10]]
+- [[_COMMUNITY_Community 11|Community 11]]
+- [[_COMMUNITY_Community 12|Community 12]]
+- [[_COMMUNITY_Community 13|Community 13]]
+- [[_COMMUNITY_Community 14|Community 14]]
+- [[_COMMUNITY_Community 15|Community 15]]
+- [[_COMMUNITY_Community 16|Community 16]]
+- [[_COMMUNITY_Community 17|Community 17]]
+- [[_COMMUNITY_Community 18|Community 18]]
+- [[_COMMUNITY_Community 19|Community 19]]
+- [[_COMMUNITY_Community 20|Community 20]]
+- [[_COMMUNITY_Community 21|Community 21]]
+- [[_COMMUNITY_Community 22|Community 22]]
+- [[_COMMUNITY_Community 23|Community 23]]
+- [[_COMMUNITY_Community 24|Community 24]]
+- [[_COMMUNITY_Community 25|Community 25]]
+- [[_COMMUNITY_Community 26|Community 26]]
+- [[_COMMUNITY_Community 27|Community 27]]
+- [[_COMMUNITY_Community 28|Community 28]]
+- [[_COMMUNITY_Community 29|Community 29]]
+- [[_COMMUNITY_Community 30|Community 30]]
+- [[_COMMUNITY_Community 31|Community 31]]
+- [[_COMMUNITY_Community 32|Community 32]]
+- [[_COMMUNITY_Community 33|Community 33]]
+- [[_COMMUNITY_Community 34|Community 34]]
+- [[_COMMUNITY_Community 35|Community 35]]
+- [[_COMMUNITY_Community 36|Community 36]]
+- [[_COMMUNITY_Community 37|Community 37]]
+- [[_COMMUNITY_Community 38|Community 38]]
+- [[_COMMUNITY_Community 39|Community 39]]
+- [[_COMMUNITY_Community 40|Community 40]]
+- [[_COMMUNITY_Community 41|Community 41]]
+- [[_COMMUNITY_Community 42|Community 42]]
+- [[_COMMUNITY_Community 43|Community 43]]
+- [[_COMMUNITY_Community 44|Community 44]]
+- [[_COMMUNITY_Community 45|Community 45]]
+- [[_COMMUNITY_Community 46|Community 46]]
+- [[_COMMUNITY_Community 47|Community 47]]
+- [[_COMMUNITY_Community 48|Community 48]]
+- [[_COMMUNITY_Community 49|Community 49]]
+- [[_COMMUNITY_Community 50|Community 50]]
+- [[_COMMUNITY_Community 51|Community 51]]
+- [[_COMMUNITY_Community 52|Community 52]]
+- [[_COMMUNITY_Community 53|Community 53]]
+- [[_COMMUNITY_Community 54|Community 54]]
+- [[_COMMUNITY_Community 55|Community 55]]
+- [[_COMMUNITY_Community 56|Community 56]]
+- [[_COMMUNITY_Community 57|Community 57]]
+- [[_COMMUNITY_Community 58|Community 58]]
+- [[_COMMUNITY_Community 59|Community 59]]
+- [[_COMMUNITY_Community 60|Community 60]]
+- [[_COMMUNITY_Community 61|Community 61]]
+- [[_COMMUNITY_Community 62|Community 62]]
+- [[_COMMUNITY_Community 63|Community 63]]
+- [[_COMMUNITY_Community 64|Community 64]]
+- [[_COMMUNITY_Community 65|Community 65]]
+- [[_COMMUNITY_Community 66|Community 66]]
+- [[_COMMUNITY_Community 67|Community 67]]
+- [[_COMMUNITY_Community 68|Community 68]]
+- [[_COMMUNITY_Community 69|Community 69]]
+- [[_COMMUNITY_Community 70|Community 70]]
+- [[_COMMUNITY_Community 71|Community 71]]
+- [[_COMMUNITY_Community 72|Community 72]]
+- [[_COMMUNITY_Community 73|Community 73]]
+- [[_COMMUNITY_Community 74|Community 74]]
+- [[_COMMUNITY_Community 75|Community 75]]
+- [[_COMMUNITY_Community 76|Community 76]]
+- [[_COMMUNITY_Community 77|Community 77]]
+- [[_COMMUNITY_Community 78|Community 78]]
+- [[_COMMUNITY_Community 79|Community 79]]
+- [[_COMMUNITY_Community 80|Community 80]]
+- [[_COMMUNITY_Community 81|Community 81]]
+- [[_COMMUNITY_Community 82|Community 82]]
+- [[_COMMUNITY_Community 83|Community 83]]
+- [[_COMMUNITY_Community 84|Community 84]]
+- [[_COMMUNITY_Community 85|Community 85]]
+- [[_COMMUNITY_Community 86|Community 86]]
+- [[_COMMUNITY_Community 87|Community 87]]
+- [[_COMMUNITY_Community 88|Community 88]]
+- [[_COMMUNITY_Community 89|Community 89]]
+- [[_COMMUNITY_Community 90|Community 90]]
+- [[_COMMUNITY_Community 91|Community 91]]
+- [[_COMMUNITY_Community 92|Community 92]]
+- [[_COMMUNITY_Community 93|Community 93]]
+- [[_COMMUNITY_Community 94|Community 94]]
+- [[_COMMUNITY_Community 95|Community 95]]
+- [[_COMMUNITY_Community 96|Community 96]]
+- [[_COMMUNITY_Community 97|Community 97]]
+- [[_COMMUNITY_Community 98|Community 98]]
+- [[_COMMUNITY_Community 99|Community 99]]
+- [[_COMMUNITY_Community 100|Community 100]]
+- [[_COMMUNITY_Community 101|Community 101]]
+- [[_COMMUNITY_Community 102|Community 102]]
+- [[_COMMUNITY_Community 103|Community 103]]
+- [[_COMMUNITY_Community 104|Community 104]]
+- [[_COMMUNITY_Community 105|Community 105]]
+- [[_COMMUNITY_Community 106|Community 106]]
+- [[_COMMUNITY_Community 107|Community 107]]
+- [[_COMMUNITY_Community 108|Community 108]]
+- [[_COMMUNITY_Community 109|Community 109]]
+- [[_COMMUNITY_Community 110|Community 110]]
+- [[_COMMUNITY_Community 111|Community 111]]
+- [[_COMMUNITY_Community 112|Community 112]]
+- [[_COMMUNITY_Community 113|Community 113]]
+- [[_COMMUNITY_Community 114|Community 114]]
+- [[_COMMUNITY_Community 115|Community 115]]
+- [[_COMMUNITY_Community 116|Community 116]]
+- [[_COMMUNITY_Community 117|Community 117]]
+- [[_COMMUNITY_Community 118|Community 118]]
+- [[_COMMUNITY_Community 119|Community 119]]
+- [[_COMMUNITY_Community 120|Community 120]]
+- [[_COMMUNITY_Community 121|Community 121]]
+- [[_COMMUNITY_Community 122|Community 122]]
+- [[_COMMUNITY_Community 123|Community 123]]
+- [[_COMMUNITY_Community 124|Community 124]]
+- [[_COMMUNITY_Community 125|Community 125]]
+- [[_COMMUNITY_Community 126|Community 126]]
+- [[_COMMUNITY_Community 127|Community 127]]
+- [[_COMMUNITY_Community 128|Community 128]]
+- [[_COMMUNITY_Community 129|Community 129]]
+- [[_COMMUNITY_Community 130|Community 130]]
+- [[_COMMUNITY_Community 131|Community 131]]
+- [[_COMMUNITY_Community 132|Community 132]]
+- [[_COMMUNITY_Community 133|Community 133]]
+- [[_COMMUNITY_Community 134|Community 134]]
+- [[_COMMUNITY_Community 135|Community 135]]
+- [[_COMMUNITY_Community 136|Community 136]]
+- [[_COMMUNITY_Community 137|Community 137]]
+- [[_COMMUNITY_Community 138|Community 138]]
+- [[_COMMUNITY_Community 139|Community 139]]
+- [[_COMMUNITY_Community 140|Community 140]]
+- [[_COMMUNITY_Community 141|Community 141]]
+- [[_COMMUNITY_Community 142|Community 142]]
+- [[_COMMUNITY_Community 143|Community 143]]
+- [[_COMMUNITY_Community 144|Community 144]]
+- [[_COMMUNITY_Community 145|Community 145]]
+- [[_COMMUNITY_Community 146|Community 146]]
+- [[_COMMUNITY_Community 147|Community 147]]
+- [[_COMMUNITY_Community 148|Community 148]]
+- [[_COMMUNITY_Community 149|Community 149]]
+- [[_COMMUNITY_Community 150|Community 150]]
+- [[_COMMUNITY_Community 151|Community 151]]
+- [[_COMMUNITY_Community 152|Community 152]]
+- [[_COMMUNITY_Community 153|Community 153]]
+- [[_COMMUNITY_Community 154|Community 154]]
+- [[_COMMUNITY_Community 155|Community 155]]
+- [[_COMMUNITY_Community 156|Community 156]]
+- [[_COMMUNITY_Community 157|Community 157]]
+- [[_COMMUNITY_Community 158|Community 158]]
+- [[_COMMUNITY_Community 159|Community 159]]
+- [[_COMMUNITY_Community 160|Community 160]]
+- [[_COMMUNITY_Community 161|Community 161]]
+- [[_COMMUNITY_Community 162|Community 162]]
+- [[_COMMUNITY_Community 163|Community 163]]
+- [[_COMMUNITY_Community 164|Community 164]]
+- [[_COMMUNITY_Community 165|Community 165]]
+- [[_COMMUNITY_Community 166|Community 166]]
+- [[_COMMUNITY_Community 167|Community 167]]
+- [[_COMMUNITY_Community 168|Community 168]]
+- [[_COMMUNITY_Community 169|Community 169]]
+- [[_COMMUNITY_Community 170|Community 170]]
+- [[_COMMUNITY_Community 171|Community 171]]
+- [[_COMMUNITY_Community 172|Community 172]]
+- [[_COMMUNITY_Community 173|Community 173]]
+- [[_COMMUNITY_Community 174|Community 174]]
+- [[_COMMUNITY_Community 175|Community 175]]
+- [[_COMMUNITY_Community 176|Community 176]]
+- [[_COMMUNITY_Community 177|Community 177]]
+- [[_COMMUNITY_Community 178|Community 178]]
+- [[_COMMUNITY_Community 179|Community 179]]
+- [[_COMMUNITY_Community 180|Community 180]]
+- [[_COMMUNITY_Community 181|Community 181]]
+- [[_COMMUNITY_Community 182|Community 182]]
+- [[_COMMUNITY_Community 183|Community 183]]
+- [[_COMMUNITY_Community 184|Community 184]]
+- [[_COMMUNITY_Community 185|Community 185]]
+- [[_COMMUNITY_Community 186|Community 186]]
+- [[_COMMUNITY_Community 187|Community 187]]
+- [[_COMMUNITY_Community 188|Community 188]]
+- [[_COMMUNITY_Community 189|Community 189]]
+- [[_COMMUNITY_Community 190|Community 190]]
+- [[_COMMUNITY_Community 191|Community 191]]
+- [[_COMMUNITY_Community 192|Community 192]]
+- [[_COMMUNITY_Community 193|Community 193]]
+- [[_COMMUNITY_Community 194|Community 194]]
+- [[_COMMUNITY_Community 195|Community 195]]
+- [[_COMMUNITY_Community 196|Community 196]]
+- [[_COMMUNITY_Community 197|Community 197]]
+- [[_COMMUNITY_Community 198|Community 198]]
+- [[_COMMUNITY_Community 199|Community 199]]
+- [[_COMMUNITY_Community 200|Community 200]]
+- [[_COMMUNITY_Community 201|Community 201]]
+- [[_COMMUNITY_Community 202|Community 202]]
+- [[_COMMUNITY_Community 203|Community 203]]
+- [[_COMMUNITY_Community 204|Community 204]]
+- [[_COMMUNITY_Community 205|Community 205]]
+- [[_COMMUNITY_Community 206|Community 206]]
+- [[_COMMUNITY_Community 207|Community 207]]
+- [[_COMMUNITY_Community 208|Community 208]]
+- [[_COMMUNITY_Community 209|Community 209]]
+- [[_COMMUNITY_Community 210|Community 210]]
+- [[_COMMUNITY_Community 211|Community 211]]
+- [[_COMMUNITY_Community 212|Community 212]]
+- [[_COMMUNITY_Community 213|Community 213]]
+- [[_COMMUNITY_Community 214|Community 214]]
+- [[_COMMUNITY_Community 215|Community 215]]
+- [[_COMMUNITY_Community 216|Community 216]]
+- [[_COMMUNITY_Community 217|Community 217]]
+- [[_COMMUNITY_Community 218|Community 218]]
+- [[_COMMUNITY_Community 219|Community 219]]
+- [[_COMMUNITY_Community 220|Community 220]]
+- [[_COMMUNITY_Community 221|Community 221]]
+- [[_COMMUNITY_Community 222|Community 222]]
+- [[_COMMUNITY_Community 223|Community 223]]
+- [[_COMMUNITY_Community 224|Community 224]]
+- [[_COMMUNITY_Community 225|Community 225]]
+- [[_COMMUNITY_Community 226|Community 226]]
+- [[_COMMUNITY_Community 227|Community 227]]
+- [[_COMMUNITY_Community 228|Community 228]]
+- [[_COMMUNITY_Community 229|Community 229]]
+- [[_COMMUNITY_Community 230|Community 230]]
+- [[_COMMUNITY_Community 231|Community 231]]
+- [[_COMMUNITY_Community 232|Community 232]]
+- [[_COMMUNITY_Community 233|Community 233]]
+- [[_COMMUNITY_Community 234|Community 234]]
+- [[_COMMUNITY_Community 235|Community 235]]
+- [[_COMMUNITY_Community 236|Community 236]]
+- [[_COMMUNITY_Community 237|Community 237]]
+- [[_COMMUNITY_Community 238|Community 238]]
+- [[_COMMUNITY_Community 239|Community 239]]
+- [[_COMMUNITY_Community 240|Community 240]]
+- [[_COMMUNITY_Community 241|Community 241]]
+- [[_COMMUNITY_Community 242|Community 242]]
+- [[_COMMUNITY_Community 243|Community 243]]
+- [[_COMMUNITY_Community 244|Community 244]]
+- [[_COMMUNITY_Community 245|Community 245]]
+- [[_COMMUNITY_Community 246|Community 246]]
+- [[_COMMUNITY_Community 247|Community 247]]
+- [[_COMMUNITY_Community 248|Community 248]]
+- [[_COMMUNITY_Community 249|Community 249]]
+- [[_COMMUNITY_Community 250|Community 250]]
+- [[_COMMUNITY_Community 251|Community 251]]
+- [[_COMMUNITY_Community 252|Community 252]]
+- [[_COMMUNITY_Community 253|Community 253]]
+- [[_COMMUNITY_Community 254|Community 254]]
+- [[_COMMUNITY_Community 255|Community 255]]
+- [[_COMMUNITY_Community 256|Community 256]]
+- [[_COMMUNITY_Community 257|Community 257]]
+- [[_COMMUNITY_Community 258|Community 258]]
+- [[_COMMUNITY_Community 259|Community 259]]
+- [[_COMMUNITY_Community 260|Community 260]]
+- [[_COMMUNITY_Community 261|Community 261]]
+- [[_COMMUNITY_Community 262|Community 262]]
+- [[_COMMUNITY_Community 263|Community 263]]
+- [[_COMMUNITY_Community 264|Community 264]]
+- [[_COMMUNITY_Community 265|Community 265]]
+- [[_COMMUNITY_Community 266|Community 266]]
+- [[_COMMUNITY_Community 267|Community 267]]
+- [[_COMMUNITY_Community 268|Community 268]]
+- [[_COMMUNITY_Community 269|Community 269]]
+- [[_COMMUNITY_Community 270|Community 270]]
+- [[_COMMUNITY_Community 271|Community 271]]
+- [[_COMMUNITY_Community 272|Community 272]]
+- [[_COMMUNITY_Community 273|Community 273]]
+- [[_COMMUNITY_Community 274|Community 274]]
+- [[_COMMUNITY_Community 275|Community 275]]
+- [[_COMMUNITY_Community 276|Community 276]]
+- [[_COMMUNITY_Community 277|Community 277]]
+- [[_COMMUNITY_Community 278|Community 278]]
+- [[_COMMUNITY_Community 279|Community 279]]
+- [[_COMMUNITY_Community 280|Community 280]]
+- [[_COMMUNITY_Community 281|Community 281]]
+- [[_COMMUNITY_Community 282|Community 282]]
+- [[_COMMUNITY_Community 283|Community 283]]
+- [[_COMMUNITY_Community 284|Community 284]]
+- [[_COMMUNITY_Community 285|Community 285]]
+- [[_COMMUNITY_Community 286|Community 286]]
+- [[_COMMUNITY_Community 287|Community 287]]
+- [[_COMMUNITY_Community 288|Community 288]]
+- [[_COMMUNITY_Community 289|Community 289]]
+- [[_COMMUNITY_Community 290|Community 290]]
+- [[_COMMUNITY_Community 291|Community 291]]
+- [[_COMMUNITY_Community 292|Community 292]]
+- [[_COMMUNITY_Community 293|Community 293]]
+- [[_COMMUNITY_Community 294|Community 294]]
+- [[_COMMUNITY_Community 295|Community 295]]
+- [[_COMMUNITY_Community 296|Community 296]]
+- [[_COMMUNITY_Community 297|Community 297]]
+- [[_COMMUNITY_Community 298|Community 298]]
+- [[_COMMUNITY_Community 299|Community 299]]
+- [[_COMMUNITY_Community 300|Community 300]]
+- [[_COMMUNITY_Community 301|Community 301]]
+- [[_COMMUNITY_Community 302|Community 302]]
+- [[_COMMUNITY_Community 303|Community 303]]
+- [[_COMMUNITY_Community 304|Community 304]]
+- [[_COMMUNITY_Community 305|Community 305]]
+- [[_COMMUNITY_Community 306|Community 306]]
+- [[_COMMUNITY_Community 307|Community 307]]
+- [[_COMMUNITY_Community 308|Community 308]]
+- [[_COMMUNITY_Community 309|Community 309]]
+- [[_COMMUNITY_Community 310|Community 310]]
+- [[_COMMUNITY_Community 311|Community 311]]
+- [[_COMMUNITY_Community 312|Community 312]]
+- [[_COMMUNITY_Community 313|Community 313]]
+- [[_COMMUNITY_Community 314|Community 314]]
+- [[_COMMUNITY_Community 315|Community 315]]
+- [[_COMMUNITY_Community 316|Community 316]]
+- [[_COMMUNITY_Community 317|Community 317]]
+- [[_COMMUNITY_Community 318|Community 318]]
+- [[_COMMUNITY_Community 319|Community 319]]
+- [[_COMMUNITY_Community 320|Community 320]]
+- [[_COMMUNITY_Community 321|Community 321]]
+- [[_COMMUNITY_Community 322|Community 322]]
+- [[_COMMUNITY_Community 323|Community 323]]
+- [[_COMMUNITY_Community 324|Community 324]]
+- [[_COMMUNITY_Community 325|Community 325]]
+- [[_COMMUNITY_Community 326|Community 326]]
+- [[_COMMUNITY_Community 327|Community 327]]
+- [[_COMMUNITY_Community 328|Community 328]]
+- [[_COMMUNITY_Community 329|Community 329]]
+- [[_COMMUNITY_Community 330|Community 330]]
+- [[_COMMUNITY_Community 331|Community 331]]
+- [[_COMMUNITY_Community 332|Community 332]]
+- [[_COMMUNITY_Community 333|Community 333]]
+- [[_COMMUNITY_Community 334|Community 334]]
+- [[_COMMUNITY_Community 335|Community 335]]
+- [[_COMMUNITY_Community 336|Community 336]]
+- [[_COMMUNITY_Community 337|Community 337]]
+- [[_COMMUNITY_Community 338|Community 338]]
+- [[_COMMUNITY_Community 339|Community 339]]
+- [[_COMMUNITY_Community 340|Community 340]]
+- [[_COMMUNITY_Community 341|Community 341]]
+- [[_COMMUNITY_Community 342|Community 342]]
+- [[_COMMUNITY_Community 343|Community 343]]
+- [[_COMMUNITY_Community 344|Community 344]]
+- [[_COMMUNITY_Community 345|Community 345]]
+- [[_COMMUNITY_Community 346|Community 346]]
+- [[_COMMUNITY_Community 347|Community 347]]
+- [[_COMMUNITY_Community 348|Community 348]]
+- [[_COMMUNITY_Community 349|Community 349]]
+- [[_COMMUNITY_Community 350|Community 350]]
+- [[_COMMUNITY_Community 351|Community 351]]
+- [[_COMMUNITY_Community 352|Community 352]]
+- [[_COMMUNITY_Community 353|Community 353]]
+- [[_COMMUNITY_Community 354|Community 354]]
+- [[_COMMUNITY_Community 355|Community 355]]
+- [[_COMMUNITY_Community 356|Community 356]]
+- [[_COMMUNITY_Community 357|Community 357]]
+- [[_COMMUNITY_Community 358|Community 358]]
+- [[_COMMUNITY_Community 359|Community 359]]
+- [[_COMMUNITY_Community 360|Community 360]]
+- [[_COMMUNITY_Community 361|Community 361]]
+- [[_COMMUNITY_Community 362|Community 362]]
+- [[_COMMUNITY_Community 363|Community 363]]
+- [[_COMMUNITY_Community 364|Community 364]]
+- [[_COMMUNITY_Community 365|Community 365]]
+- [[_COMMUNITY_Community 366|Community 366]]
+- [[_COMMUNITY_Community 367|Community 367]]
+- [[_COMMUNITY_Community 368|Community 368]]
+- [[_COMMUNITY_Community 369|Community 369]]
+- [[_COMMUNITY_Community 370|Community 370]]
+- [[_COMMUNITY_Community 371|Community 371]]
+- [[_COMMUNITY_Community 372|Community 372]]
+- [[_COMMUNITY_Community 373|Community 373]]
+- [[_COMMUNITY_Community 374|Community 374]]
+- [[_COMMUNITY_Community 375|Community 375]]
+- [[_COMMUNITY_Community 376|Community 376]]
+- [[_COMMUNITY_Community 377|Community 377]]
+- [[_COMMUNITY_Community 378|Community 378]]
+- [[_COMMUNITY_Community 379|Community 379]]
+- [[_COMMUNITY_Community 380|Community 380]]
+- [[_COMMUNITY_Community 381|Community 381]]
+- [[_COMMUNITY_Community 382|Community 382]]
+- [[_COMMUNITY_Community 383|Community 383]]
+- [[_COMMUNITY_Community 384|Community 384]]
+- [[_COMMUNITY_Community 385|Community 385]]
+- [[_COMMUNITY_Community 386|Community 386]]
+- [[_COMMUNITY_Community 387|Community 387]]
+- [[_COMMUNITY_Community 388|Community 388]]
+- [[_COMMUNITY_Community 389|Community 389]]
+- [[_COMMUNITY_Community 390|Community 390]]
+- [[_COMMUNITY_Community 391|Community 391]]
+- [[_COMMUNITY_Community 392|Community 392]]
+- [[_COMMUNITY_Community 393|Community 393]]
+- [[_COMMUNITY_Community 394|Community 394]]
+- [[_COMMUNITY_Community 395|Community 395]]
+- [[_COMMUNITY_Community 396|Community 396]]
+- [[_COMMUNITY_Community 397|Community 397]]
+- [[_COMMUNITY_Community 398|Community 398]]
+- [[_COMMUNITY_Community 399|Community 399]]
+- [[_COMMUNITY_Community 400|Community 400]]
+- [[_COMMUNITY_Community 401|Community 401]]
+- [[_COMMUNITY_Community 402|Community 402]]
+- [[_COMMUNITY_Community 403|Community 403]]
+- [[_COMMUNITY_Community 404|Community 404]]
+- [[_COMMUNITY_Community 405|Community 405]]
+- [[_COMMUNITY_Community 406|Community 406]]
+- [[_COMMUNITY_Community 407|Community 407]]
+- [[_COMMUNITY_Community 408|Community 408]]
+- [[_COMMUNITY_Community 409|Community 409]]
+- [[_COMMUNITY_Community 410|Community 410]]
+- [[_COMMUNITY_Community 411|Community 411]]
+- [[_COMMUNITY_Community 412|Community 412]]
+- [[_COMMUNITY_Community 413|Community 413]]
+- [[_COMMUNITY_Community 414|Community 414]]
+- [[_COMMUNITY_Community 415|Community 415]]
+- [[_COMMUNITY_Community 416|Community 416]]
+- [[_COMMUNITY_Community 417|Community 417]]
+- [[_COMMUNITY_Community 418|Community 418]]
+- [[_COMMUNITY_Community 419|Community 419]]
+- [[_COMMUNITY_Community 420|Community 420]]
+- [[_COMMUNITY_Community 421|Community 421]]
+- [[_COMMUNITY_Community 422|Community 422]]
+- [[_COMMUNITY_Community 423|Community 423]]
+- [[_COMMUNITY_Community 424|Community 424]]
+- [[_COMMUNITY_Community 425|Community 425]]
+- [[_COMMUNITY_Community 426|Community 426]]
+- [[_COMMUNITY_Community 427|Community 427]]
+- [[_COMMUNITY_Community 428|Community 428]]
+- [[_COMMUNITY_Community 429|Community 429]]
+- [[_COMMUNITY_Community 430|Community 430]]
+- [[_COMMUNITY_Community 431|Community 431]]
+- [[_COMMUNITY_Community 432|Community 432]]
+- [[_COMMUNITY_Community 433|Community 433]]
+- [[_COMMUNITY_Community 434|Community 434]]
+- [[_COMMUNITY_Community 435|Community 435]]
+- [[_COMMUNITY_Community 436|Community 436]]
+- [[_COMMUNITY_Community 437|Community 437]]
+- [[_COMMUNITY_Community 438|Community 438]]
+- [[_COMMUNITY_Community 439|Community 439]]
+- [[_COMMUNITY_Community 440|Community 440]]
+- [[_COMMUNITY_Community 441|Community 441]]
+- [[_COMMUNITY_Community 442|Community 442]]
+- [[_COMMUNITY_Community 443|Community 443]]
+- [[_COMMUNITY_Community 444|Community 444]]
+- [[_COMMUNITY_Community 445|Community 445]]
+- [[_COMMUNITY_Community 446|Community 446]]
+- [[_COMMUNITY_Community 447|Community 447]]
+- [[_COMMUNITY_Community 448|Community 448]]
+- [[_COMMUNITY_Community 449|Community 449]]
+- [[_COMMUNITY_Community 450|Community 450]]
+- [[_COMMUNITY_Community 451|Community 451]]
+- [[_COMMUNITY_Community 452|Community 452]]
+- [[_COMMUNITY_Community 453|Community 453]]
+- [[_COMMUNITY_Community 454|Community 454]]
+- [[_COMMUNITY_Community 455|Community 455]]
+- [[_COMMUNITY_Community 456|Community 456]]
+- [[_COMMUNITY_Community 457|Community 457]]
+- [[_COMMUNITY_Community 458|Community 458]]
+- [[_COMMUNITY_Community 459|Community 459]]
+- [[_COMMUNITY_Community 460|Community 460]]
+- [[_COMMUNITY_Community 461|Community 461]]
+- [[_COMMUNITY_Community 462|Community 462]]
+- [[_COMMUNITY_Community 463|Community 463]]
+- [[_COMMUNITY_Community 464|Community 464]]
+- [[_COMMUNITY_Community 465|Community 465]]
+- [[_COMMUNITY_Community 466|Community 466]]
+- [[_COMMUNITY_Community 467|Community 467]]
+- [[_COMMUNITY_Community 468|Community 468]]
+- [[_COMMUNITY_Community 469|Community 469]]
+- [[_COMMUNITY_Community 470|Community 470]]
+- [[_COMMUNITY_Community 471|Community 471]]
+- [[_COMMUNITY_Community 472|Community 472]]
+- [[_COMMUNITY_Community 473|Community 473]]
+- [[_COMMUNITY_Community 474|Community 474]]
+- [[_COMMUNITY_Community 475|Community 475]]
+- [[_COMMUNITY_Community 476|Community 476]]
+- [[_COMMUNITY_Community 477|Community 477]]
+- [[_COMMUNITY_Community 478|Community 478]]
+- [[_COMMUNITY_Community 479|Community 479]]
+- [[_COMMUNITY_Community 480|Community 480]]
+- [[_COMMUNITY_Community 481|Community 481]]
+- [[_COMMUNITY_Community 482|Community 482]]
+- [[_COMMUNITY_Community 483|Community 483]]
+- [[_COMMUNITY_Community 484|Community 484]]
+- [[_COMMUNITY_Community 485|Community 485]]
+- [[_COMMUNITY_Community 486|Community 486]]
+- [[_COMMUNITY_Community 487|Community 487]]
+- [[_COMMUNITY_Community 488|Community 488]]
+- [[_COMMUNITY_Community 489|Community 489]]
+- [[_COMMUNITY_Community 490|Community 490]]
+- [[_COMMUNITY_Community 491|Community 491]]
+- [[_COMMUNITY_Community 492|Community 492]]
+- [[_COMMUNITY_Community 493|Community 493]]
+- [[_COMMUNITY_Community 494|Community 494]]
+- [[_COMMUNITY_Community 495|Community 495]]
+- [[_COMMUNITY_Community 496|Community 496]]
+- [[_COMMUNITY_Community 497|Community 497]]
+- [[_COMMUNITY_Community 498|Community 498]]
+- [[_COMMUNITY_Community 499|Community 499]]
+- [[_COMMUNITY_Community 500|Community 500]]
+- [[_COMMUNITY_Community 501|Community 501]]
+- [[_COMMUNITY_Community 502|Community 502]]
+- [[_COMMUNITY_Community 503|Community 503]]
+- [[_COMMUNITY_Community 504|Community 504]]
+- [[_COMMUNITY_Community 505|Community 505]]
+- [[_COMMUNITY_Community 506|Community 506]]
+- [[_COMMUNITY_Community 507|Community 507]]
+- [[_COMMUNITY_Community 508|Community 508]]
+- [[_COMMUNITY_Community 509|Community 509]]
+- [[_COMMUNITY_Community 510|Community 510]]
+- [[_COMMUNITY_Community 511|Community 511]]
+- [[_COMMUNITY_Community 512|Community 512]]
+- [[_COMMUNITY_Community 513|Community 513]]
+- [[_COMMUNITY_Community 514|Community 514]]
+- [[_COMMUNITY_Community 515|Community 515]]
+- [[_COMMUNITY_Community 516|Community 516]]
+- [[_COMMUNITY_Community 517|Community 517]]
+- [[_COMMUNITY_Community 518|Community 518]]
+- [[_COMMUNITY_Community 519|Community 519]]
+- [[_COMMUNITY_Community 520|Community 520]]
+- [[_COMMUNITY_Community 521|Community 521]]
+- [[_COMMUNITY_Community 522|Community 522]]
+- [[_COMMUNITY_Community 523|Community 523]]
+- [[_COMMUNITY_Community 524|Community 524]]
+- [[_COMMUNITY_Community 525|Community 525]]
+- [[_COMMUNITY_Community 526|Community 526]]
+- [[_COMMUNITY_Community 527|Community 527]]
+- [[_COMMUNITY_Community 528|Community 528]]
+- [[_COMMUNITY_Community 529|Community 529]]
+- [[_COMMUNITY_Community 530|Community 530]]
+- [[_COMMUNITY_Community 531|Community 531]]
+- [[_COMMUNITY_Community 532|Community 532]]
+- [[_COMMUNITY_Community 533|Community 533]]
+- [[_COMMUNITY_Community 534|Community 534]]
+- [[_COMMUNITY_Community 535|Community 535]]
+- [[_COMMUNITY_Community 536|Community 536]]
+- [[_COMMUNITY_Community 537|Community 537]]
+- [[_COMMUNITY_Community 538|Community 538]]
+- [[_COMMUNITY_Community 539|Community 539]]
+- [[_COMMUNITY_Community 540|Community 540]]
+- [[_COMMUNITY_Community 541|Community 541]]
+- [[_COMMUNITY_Community 542|Community 542]]
+- [[_COMMUNITY_Community 543|Community 543]]
+- [[_COMMUNITY_Community 544|Community 544]]
+- [[_COMMUNITY_Community 545|Community 545]]
+- [[_COMMUNITY_Community 546|Community 546]]
+- [[_COMMUNITY_Community 547|Community 547]]
+- [[_COMMUNITY_Community 548|Community 548]]
+- [[_COMMUNITY_Community 549|Community 549]]
+- [[_COMMUNITY_Community 550|Community 550]]
+- [[_COMMUNITY_Community 551|Community 551]]
+- [[_COMMUNITY_Community 552|Community 552]]
+- [[_COMMUNITY_Community 553|Community 553]]
+- [[_COMMUNITY_Community 554|Community 554]]
+- [[_COMMUNITY_Community 555|Community 555]]
+- [[_COMMUNITY_Community 556|Community 556]]
+- [[_COMMUNITY_Community 557|Community 557]]
+- [[_COMMUNITY_Community 558|Community 558]]
+- [[_COMMUNITY_Community 559|Community 559]]
+- [[_COMMUNITY_Community 560|Community 560]]
+- [[_COMMUNITY_Community 561|Community 561]]
+- [[_COMMUNITY_Community 562|Community 562]]
+- [[_COMMUNITY_Community 563|Community 563]]
+- [[_COMMUNITY_Community 564|Community 564]]
+- [[_COMMUNITY_Community 565|Community 565]]
+- [[_COMMUNITY_Community 566|Community 566]]
+- [[_COMMUNITY_Community 567|Community 567]]
+- [[_COMMUNITY_Community 568|Community 568]]
+- [[_COMMUNITY_Community 569|Community 569]]
+- [[_COMMUNITY_Community 570|Community 570]]
+- [[_COMMUNITY_Community 571|Community 571]]
+- [[_COMMUNITY_Community 572|Community 572]]
+- [[_COMMUNITY_Community 573|Community 573]]
+- [[_COMMUNITY_Community 574|Community 574]]
+- [[_COMMUNITY_Community 575|Community 575]]
+- [[_COMMUNITY_Community 576|Community 576]]
+- [[_COMMUNITY_Community 577|Community 577]]
+- [[_COMMUNITY_Community 578|Community 578]]
+- [[_COMMUNITY_Community 579|Community 579]]
+- [[_COMMUNITY_Community 580|Community 580]]
+- [[_COMMUNITY_Community 581|Community 581]]
+- [[_COMMUNITY_Community 582|Community 582]]
+- [[_COMMUNITY_Community 583|Community 583]]
+- [[_COMMUNITY_Community 584|Community 584]]
+- [[_COMMUNITY_Community 585|Community 585]]
+- [[_COMMUNITY_Community 586|Community 586]]
+- [[_COMMUNITY_Community 587|Community 587]]
+- [[_COMMUNITY_Community 588|Community 588]]
+- [[_COMMUNITY_Community 589|Community 589]]
+- [[_COMMUNITY_Community 590|Community 590]]
+- [[_COMMUNITY_Community 591|Community 591]]
+- [[_COMMUNITY_Community 592|Community 592]]
+- [[_COMMUNITY_Community 593|Community 593]]
+- [[_COMMUNITY_Community 594|Community 594]]
+- [[_COMMUNITY_Community 595|Community 595]]
+- [[_COMMUNITY_Community 596|Community 596]]
+- [[_COMMUNITY_Community 597|Community 597]]
+- [[_COMMUNITY_Community 598|Community 598]]
+- [[_COMMUNITY_Community 599|Community 599]]
+- [[_COMMUNITY_Community 600|Community 600]]
+- [[_COMMUNITY_Community 601|Community 601]]
+- [[_COMMUNITY_Community 602|Community 602]]
+- [[_COMMUNITY_Community 603|Community 603]]
+- [[_COMMUNITY_Community 604|Community 604]]
+- [[_COMMUNITY_Community 605|Community 605]]
+- [[_COMMUNITY_Community 606|Community 606]]
+- [[_COMMUNITY_Community 607|Community 607]]
+- [[_COMMUNITY_Community 608|Community 608]]
+- [[_COMMUNITY_Community 609|Community 609]]
+- [[_COMMUNITY_Community 610|Community 610]]
+- [[_COMMUNITY_Community 611|Community 611]]
+- [[_COMMUNITY_Community 612|Community 612]]
+- [[_COMMUNITY_Community 613|Community 613]]
+- [[_COMMUNITY_Community 614|Community 614]]
+- [[_COMMUNITY_Community 615|Community 615]]
+- [[_COMMUNITY_Community 616|Community 616]]
+- [[_COMMUNITY_Community 617|Community 617]]
+- [[_COMMUNITY_Community 618|Community 618]]
+- [[_COMMUNITY_Community 619|Community 619]]
+- [[_COMMUNITY_Community 620|Community 620]]
+- [[_COMMUNITY_Community 621|Community 621]]
+- [[_COMMUNITY_Community 622|Community 622]]
+- [[_COMMUNITY_Community 623|Community 623]]
+- [[_COMMUNITY_Community 624|Community 624]]
+- [[_COMMUNITY_Community 625|Community 625]]
+- [[_COMMUNITY_Community 626|Community 626]]
+- [[_COMMUNITY_Community 627|Community 627]]
+- [[_COMMUNITY_Community 628|Community 628]]
+- [[_COMMUNITY_Community 629|Community 629]]
+- [[_COMMUNITY_Community 630|Community 630]]
+- [[_COMMUNITY_Community 631|Community 631]]
+- [[_COMMUNITY_Community 632|Community 632]]
+- [[_COMMUNITY_Community 633|Community 633]]
+- [[_COMMUNITY_Community 634|Community 634]]
+- [[_COMMUNITY_Community 635|Community 635]]
+- [[_COMMUNITY_Community 636|Community 636]]
+- [[_COMMUNITY_Community 637|Community 637]]
+- [[_COMMUNITY_Community 638|Community 638]]
+- [[_COMMUNITY_Community 639|Community 639]]
+- [[_COMMUNITY_Community 640|Community 640]]
+- [[_COMMUNITY_Community 641|Community 641]]
+- [[_COMMUNITY_Community 642|Community 642]]
+- [[_COMMUNITY_Community 643|Community 643]]
+- [[_COMMUNITY_Community 644|Community 644]]
+- [[_COMMUNITY_Community 645|Community 645]]
+- [[_COMMUNITY_Community 646|Community 646]]
+- [[_COMMUNITY_Community 647|Community 647]]
+- [[_COMMUNITY_Community 648|Community 648]]
+- [[_COMMUNITY_Community 649|Community 649]]
+- [[_COMMUNITY_Community 650|Community 650]]
+- [[_COMMUNITY_Community 651|Community 651]]
+- [[_COMMUNITY_Community 652|Community 652]]
+- [[_COMMUNITY_Community 653|Community 653]]
+- [[_COMMUNITY_Community 654|Community 654]]
+- [[_COMMUNITY_Community 655|Community 655]]
+- [[_COMMUNITY_Community 656|Community 656]]
+- [[_COMMUNITY_Community 657|Community 657]]
+- [[_COMMUNITY_Community 658|Community 658]]
+- [[_COMMUNITY_Community 659|Community 659]]
+- [[_COMMUNITY_Community 660|Community 660]]
+- [[_COMMUNITY_Community 661|Community 661]]
+- [[_COMMUNITY_Community 662|Community 662]]
+- [[_COMMUNITY_Community 663|Community 663]]
+- [[_COMMUNITY_Community 664|Community 664]]
+- [[_COMMUNITY_Community 665|Community 665]]
+- [[_COMMUNITY_Community 666|Community 666]]
+- [[_COMMUNITY_Community 667|Community 667]]
+- [[_COMMUNITY_Community 668|Community 668]]
+- [[_COMMUNITY_Community 669|Community 669]]
+- [[_COMMUNITY_Community 670|Community 670]]
+- [[_COMMUNITY_Community 671|Community 671]]
+- [[_COMMUNITY_Community 672|Community 672]]
+- [[_COMMUNITY_Community 673|Community 673]]
+- [[_COMMUNITY_Community 674|Community 674]]
+- [[_COMMUNITY_Community 675|Community 675]]
+- [[_COMMUNITY_Community 676|Community 676]]
+- [[_COMMUNITY_Community 677|Community 677]]
+- [[_COMMUNITY_Community 678|Community 678]]
+- [[_COMMUNITY_Community 679|Community 679]]
+- [[_COMMUNITY_Community 680|Community 680]]
+- [[_COMMUNITY_Community 681|Community 681]]
+- [[_COMMUNITY_Community 682|Community 682]]
+- [[_COMMUNITY_Community 683|Community 683]]
+- [[_COMMUNITY_Community 684|Community 684]]
+- [[_COMMUNITY_Community 685|Community 685]]
+- [[_COMMUNITY_Community 686|Community 686]]
+- [[_COMMUNITY_Community 687|Community 687]]
+- [[_COMMUNITY_Community 688|Community 688]]
+- [[_COMMUNITY_Community 689|Community 689]]
+- [[_COMMUNITY_Community 690|Community 690]]
+- [[_COMMUNITY_Community 691|Community 691]]
+- [[_COMMUNITY_Community 692|Community 692]]
+- [[_COMMUNITY_Community 693|Community 693]]
+- [[_COMMUNITY_Community 694|Community 694]]
+- [[_COMMUNITY_Community 695|Community 695]]
+- [[_COMMUNITY_Community 696|Community 696]]
+- [[_COMMUNITY_Community 697|Community 697]]
+- [[_COMMUNITY_Community 698|Community 698]]
+- [[_COMMUNITY_Community 699|Community 699]]
+- [[_COMMUNITY_Community 700|Community 700]]
+- [[_COMMUNITY_Community 701|Community 701]]
+- [[_COMMUNITY_Community 702|Community 702]]
+- [[_COMMUNITY_Community 703|Community 703]]
+- [[_COMMUNITY_Community 704|Community 704]]
+- [[_COMMUNITY_Community 705|Community 705]]
+- [[_COMMUNITY_Community 706|Community 706]]
+- [[_COMMUNITY_Community 707|Community 707]]
+- [[_COMMUNITY_Community 708|Community 708]]
+- [[_COMMUNITY_Community 709|Community 709]]
+- [[_COMMUNITY_Community 710|Community 710]]
+- [[_COMMUNITY_Community 711|Community 711]]
+- [[_COMMUNITY_Community 712|Community 712]]
+- [[_COMMUNITY_Community 713|Community 713]]
+- [[_COMMUNITY_Community 714|Community 714]]
+- [[_COMMUNITY_Community 715|Community 715]]
+- [[_COMMUNITY_Community 716|Community 716]]
+- [[_COMMUNITY_Community 717|Community 717]]
+- [[_COMMUNITY_Community 718|Community 718]]
+- [[_COMMUNITY_Community 719|Community 719]]
+- [[_COMMUNITY_Community 720|Community 720]]
+- [[_COMMUNITY_Community 721|Community 721]]
+- [[_COMMUNITY_Community 722|Community 722]]
+- [[_COMMUNITY_Community 723|Community 723]]
+- [[_COMMUNITY_Community 724|Community 724]]
+- [[_COMMUNITY_Community 725|Community 725]]
+- [[_COMMUNITY_Community 726|Community 726]]
+- [[_COMMUNITY_Community 727|Community 727]]
+- [[_COMMUNITY_Community 728|Community 728]]
+- [[_COMMUNITY_Community 729|Community 729]]
+- [[_COMMUNITY_Community 730|Community 730]]
+- [[_COMMUNITY_Community 731|Community 731]]
+- [[_COMMUNITY_Community 732|Community 732]]
+- [[_COMMUNITY_Community 733|Community 733]]
+- [[_COMMUNITY_Community 734|Community 734]]
+- [[_COMMUNITY_Community 735|Community 735]]
+- [[_COMMUNITY_Community 736|Community 736]]
+- [[_COMMUNITY_Community 737|Community 737]]
+- [[_COMMUNITY_Community 738|Community 738]]
+- [[_COMMUNITY_Community 739|Community 739]]
+- [[_COMMUNITY_Community 740|Community 740]]
+- [[_COMMUNITY_Community 741|Community 741]]
+- [[_COMMUNITY_Community 742|Community 742]]
+- [[_COMMUNITY_Community 743|Community 743]]
+- [[_COMMUNITY_Community 744|Community 744]]
+- [[_COMMUNITY_Community 745|Community 745]]
+- [[_COMMUNITY_Community 746|Community 746]]
+- [[_COMMUNITY_Community 747|Community 747]]
+- [[_COMMUNITY_Community 748|Community 748]]
+- [[_COMMUNITY_Community 749|Community 749]]
+- [[_COMMUNITY_Community 750|Community 750]]
+- [[_COMMUNITY_Community 751|Community 751]]
+- [[_COMMUNITY_Community 752|Community 752]]
+- [[_COMMUNITY_Community 753|Community 753]]
+- [[_COMMUNITY_Community 754|Community 754]]
+- [[_COMMUNITY_Community 755|Community 755]]
+- [[_COMMUNITY_Community 756|Community 756]]
+- [[_COMMUNITY_Community 757|Community 757]]
+- [[_COMMUNITY_Community 758|Community 758]]
+- [[_COMMUNITY_Community 759|Community 759]]
+- [[_COMMUNITY_Community 760|Community 760]]
+- [[_COMMUNITY_Community 761|Community 761]]
+- [[_COMMUNITY_Community 762|Community 762]]
+- [[_COMMUNITY_Community 763|Community 763]]
+- [[_COMMUNITY_Community 764|Community 764]]
+- [[_COMMUNITY_Community 765|Community 765]]
+- [[_COMMUNITY_Community 766|Community 766]]
+- [[_COMMUNITY_Community 767|Community 767]]
+- [[_COMMUNITY_Community 768|Community 768]]
+- [[_COMMUNITY_Community 769|Community 769]]
+- [[_COMMUNITY_Community 770|Community 770]]
+- [[_COMMUNITY_Community 771|Community 771]]
+- [[_COMMUNITY_Community 772|Community 772]]
+- [[_COMMUNITY_Community 773|Community 773]]
+- [[_COMMUNITY_Community 774|Community 774]]
+- [[_COMMUNITY_Community 775|Community 775]]
+- [[_COMMUNITY_Community 776|Community 776]]
+- [[_COMMUNITY_Community 777|Community 777]]
+- [[_COMMUNITY_Community 778|Community 778]]
+- [[_COMMUNITY_Community 779|Community 779]]
+- [[_COMMUNITY_Community 780|Community 780]]
+- [[_COMMUNITY_Community 781|Community 781]]
+- [[_COMMUNITY_Community 782|Community 782]]
+- [[_COMMUNITY_Community 783|Community 783]]
+- [[_COMMUNITY_Community 784|Community 784]]
+- [[_COMMUNITY_Community 785|Community 785]]
+- [[_COMMUNITY_Community 786|Community 786]]
+- [[_COMMUNITY_Community 787|Community 787]]
+- [[_COMMUNITY_Community 788|Community 788]]
+- [[_COMMUNITY_Community 789|Community 789]]
+- [[_COMMUNITY_Community 790|Community 790]]
+- [[_COMMUNITY_Community 791|Community 791]]
+- [[_COMMUNITY_Community 792|Community 792]]
+- [[_COMMUNITY_Community 793|Community 793]]
+- [[_COMMUNITY_Community 794|Community 794]]
+- [[_COMMUNITY_Community 795|Community 795]]
+- [[_COMMUNITY_Community 796|Community 796]]
+- [[_COMMUNITY_Community 797|Community 797]]
+- [[_COMMUNITY_Community 798|Community 798]]
+- [[_COMMUNITY_Community 799|Community 799]]
+- [[_COMMUNITY_Community 800|Community 800]]
+- [[_COMMUNITY_Community 801|Community 801]]
+- [[_COMMUNITY_Community 802|Community 802]]
+- [[_COMMUNITY_Community 803|Community 803]]
+- [[_COMMUNITY_Community 804|Community 804]]
+- [[_COMMUNITY_Community 805|Community 805]]
+- [[_COMMUNITY_Community 806|Community 806]]
+- [[_COMMUNITY_Community 807|Community 807]]
+- [[_COMMUNITY_Community 808|Community 808]]
+- [[_COMMUNITY_Community 809|Community 809]]
+- [[_COMMUNITY_Community 810|Community 810]]
+- [[_COMMUNITY_Community 811|Community 811]]
+- [[_COMMUNITY_Community 812|Community 812]]
+- [[_COMMUNITY_Community 813|Community 813]]
+- [[_COMMUNITY_Community 814|Community 814]]
+- [[_COMMUNITY_Community 815|Community 815]]
+- [[_COMMUNITY_Community 816|Community 816]]
+- [[_COMMUNITY_Community 817|Community 817]]
+- [[_COMMUNITY_Community 818|Community 818]]
+- [[_COMMUNITY_Community 819|Community 819]]
+- [[_COMMUNITY_Community 820|Community 820]]
+- [[_COMMUNITY_Community 821|Community 821]]
+- [[_COMMUNITY_Community 822|Community 822]]
+- [[_COMMUNITY_Community 823|Community 823]]
+- [[_COMMUNITY_Community 824|Community 824]]
+- [[_COMMUNITY_Community 825|Community 825]]
+- [[_COMMUNITY_Community 826|Community 826]]
+- [[_COMMUNITY_Community 827|Community 827]]
+- [[_COMMUNITY_Community 828|Community 828]]
+- [[_COMMUNITY_Community 829|Community 829]]
+- [[_COMMUNITY_Community 830|Community 830]]
+- [[_COMMUNITY_Community 831|Community 831]]
+- [[_COMMUNITY_Community 832|Community 832]]
+- [[_COMMUNITY_Community 833|Community 833]]
+- [[_COMMUNITY_Community 834|Community 834]]
+- [[_COMMUNITY_Community 835|Community 835]]
+- [[_COMMUNITY_Community 836|Community 836]]
+- [[_COMMUNITY_Community 837|Community 837]]
+- [[_COMMUNITY_Community 838|Community 838]]
+- [[_COMMUNITY_Community 839|Community 839]]
+- [[_COMMUNITY_Community 840|Community 840]]
+- [[_COMMUNITY_Community 841|Community 841]]
+- [[_COMMUNITY_Community 842|Community 842]]
+- [[_COMMUNITY_Community 843|Community 843]]
+- [[_COMMUNITY_Community 844|Community 844]]
+- [[_COMMUNITY_Community 845|Community 845]]
+- [[_COMMUNITY_Community 846|Community 846]]
+- [[_COMMUNITY_Community 847|Community 847]]
+- [[_COMMUNITY_Community 848|Community 848]]
+- [[_COMMUNITY_Community 849|Community 849]]
+- [[_COMMUNITY_Community 850|Community 850]]
+- [[_COMMUNITY_Community 851|Community 851]]
+- [[_COMMUNITY_Community 852|Community 852]]
+- [[_COMMUNITY_Community 853|Community 853]]
+- [[_COMMUNITY_Community 854|Community 854]]
+- [[_COMMUNITY_Community 855|Community 855]]
+- [[_COMMUNITY_Community 856|Community 856]]
+- [[_COMMUNITY_Community 857|Community 857]]
+- [[_COMMUNITY_Community 858|Community 858]]
+- [[_COMMUNITY_Community 859|Community 859]]
+- [[_COMMUNITY_Community 860|Community 860]]
+- [[_COMMUNITY_Community 861|Community 861]]
+- [[_COMMUNITY_Community 862|Community 862]]
+- [[_COMMUNITY_Community 863|Community 863]]
+- [[_COMMUNITY_Community 864|Community 864]]
+- [[_COMMUNITY_Community 865|Community 865]]
+- [[_COMMUNITY_Community 866|Community 866]]
+- [[_COMMUNITY_Community 867|Community 867]]
+- [[_COMMUNITY_Community 868|Community 868]]
+- [[_COMMUNITY_Community 869|Community 869]]
+- [[_COMMUNITY_Community 870|Community 870]]
+- [[_COMMUNITY_Community 871|Community 871]]
+- [[_COMMUNITY_Community 872|Community 872]]
 
 ## God Nodes (most connected - your core abstractions)
 1. `executionContext` - 1631 edges
-2. `SafeQuerier` - 139 edges
-3. `Queries` - 135 edges
+2. `SafeQuerier` - 142 edges
+3. `Queries` - 138 edges
 4. `graphqlModelResolver` - 46 edges
-5. `ModelDesignAppService` - 34 edges
+5. `ModelDesignAppService` - 35 edges
 6. `mutationResolver` - 28 edges
-7. `TestConfig` - 24 edges
-8. `TestModelErrors` - 23 edges
-9. `SqlModelDesignRepository` - 21 edges
-10. `mutationResolver` - 21 edges
+7. `SqlModelDesignRepository` - 21 edges
+8. `mutationResolver` - 21 edges
+9. `ProjectNotFound` - 19 edges
+10. `mockModelRepo` - 19 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Repository Layer Development Rules` --references--> `sqlerr.QueryWithSQLErrorHandling / ExecWithErrorHandling`  [EXTRACTED]
   ai-metadata/backend/development/repo-develop.md → ai-metadata/backend/development/repo-develop.go
-- `sqlerr.QueryWithSQLErrorHandling / ExecWithErrorHandling` --conceptually_related_to--> `shared.RepositoryError - Technical Error Isolation`  [INFERRED]
-  ai-metadata/backend/development/repo-develop.go → ai-metadata/backend/development/error-handling.md
-- `Session-scoped test configuration.      Loads configuration from environment var` --uses--> `TestConfig`  [INFERRED]
-  modelcraft-backend/tests/conftest.py → modelcraft-backend/tests/common/config.py
-- `Session-scoped base URL for API calls.      Returns:         str: Base URL for M` --uses--> `TestConfig`  [INFERRED]
-  modelcraft-backend/tests/conftest.py → modelcraft-backend/tests/common/config.py
-- `Session-scoped Design-time GraphQL endpoint URL.      Returns:         str: Grap` --uses--> `TestConfig`  [INFERRED]
-  modelcraft-backend/tests/conftest.py → modelcraft-backend/tests/common/config.py
+- `shared.RepositoryError - Technical Error Isolation` --conceptually_related_to--> `sqlerr.QueryWithSQLErrorHandling / ExecWithErrorHandling`  [INFERRED]
+  ai-metadata/backend/development/error-handling.md → ai-metadata/backend/development/repo-develop.go
+- `Infrastructure Layer - Repository Implementations` --conceptually_related_to--> `StringSlice Custom Type with sql.Scanner/driver.Valuer`  [INFERRED]
+  ai-metadata/backend/development/architecture.md → ai-metadata/backend/development/sqlc-custom-types.md
+- `Infrastructure Layer - Repository Implementations` --conceptually_related_to--> `Go Wrapper Architecture for Repository Cross-cutting Concerns`  [INFERRED]
+  ai-metadata/backend/development/architecture.md → ai-metadata/backend/development/repo-develop.md
+- `Shared Kernel (pkg/)` --conceptually_related_to--> `bizerrors Package - Business Error System`  [INFERRED]
+  ai-metadata/backend/development/architecture.md → ai-metadata/backend/development/error-handling.md
 
 ## Hyperedges (group relationships)
 - **Frontend Styling System (Tailwind + Color + Design System)** — tailwind_policy, color_system, style_md, quick_start, eslint_rules [INFERRED 0.90]
@@ -802,3804 +917,4516 @@
 
 ## Communities
 
-### Community 0 - "ModelRuntime GraphQL Engine"
+### Community 0 - "Community 0"
 Cohesion: 0.0
 Nodes (1): executionContext
 
-### Community 1 - "Model Design GraphQL API"
+### Community 1 - "Community 1"
 Cohesion: 0.01
 Nodes (214): ActualForeignKey, AddFieldInput, AddFieldItemResult, AddFieldsError, AddFieldsPayload, AddRolePermissionPayload, APIKey, APIKeyInvalidInput (+206 more)
 
-### Community 2 - "Organization & Project Services"
+### Community 2 - "Community 2"
 Cohesion: 0.01
 Nodes (1): SafeQuerier
 
-### Community 3 - "SQL Repository Infrastructure"
+### Community 3 - "Community 3"
 Cohesion: 0.01
 Nodes (2): DBTX, Queries
 
-### Community 4 - "gqlgen Generated Types & Config"
+### Community 4 - "Community 4"
 Cohesion: 0.04
 Nodes (8): ComplexityRoot, Config, DirectiveRoot, executableSchema, MutationResolver, NewExecutableSchema(), QueryResolver, ResolverRoot
 
-### Community 5 - "Field Type System & Validation"
+### Community 5 - "Community 5"
 Cohesion: 0.04
 Nodes (14): ActualConstraintType, ClusterStatus, DbTableStatus, FieldConflictAspect, FKDirection, FormatType, HealthStatus, MembershipStatus (+6 more)
 
-### Community 6 - "Auth Error Handling"
+### Community 6 - "Community 6"
 Cohesion: 0.03
 Nodes (55): AuthenticationError, AuthenticationErrorErrorCode, AuthenticationFailedError, AuthenticationFailedErrorErrorCode, AuthInvalidInputError, AuthInvalidInputErrorErrorCode, BaseResponse, CasdoorExtendedUser (+47 more)
 
-### Community 7 - "GraphQL Argument Parsers"
+### Community 7 - "Community 7"
 Cohesion: 0.07
 Nodes (0): 
 
-### Community 8 - "BDD Test Infrastructure"
+### Community 8 - "Community 8"
 Cohesion: 0.04
-Nodes (59): load_env_from_root(), Test configuration module.  Loads database and API configuration from environmen, Get GraphQL endpoint URL (legacy method).          Returns:             str: Gra, Load environment variables from .env file at project root.      Args:         en, Test configuration from environment variables., Initialize test configuration.          Environment variables should be loaded b, Get database configuration.          Returns:             dict: Database configu, Get API base URL.          Returns:             str: API base URL (e.g., http:// (+51 more)
+Nodes (23): newTestContext(), newTestField(), newTestModel(), newTestService(), TestAddFieldSync_MultipleFields_SequentialDisplayOrders(), TestAddFieldSync_PhysicField_SetsDisplayOrder(), TestAddPhysicFields_DeployFailAndRollbackFail_ReturnsCombinedError(), TestModelDesignAppService_AddFieldsWithResults_PartialSuccess() (+15 more)
 
-### Community 9 - "Unit Test Helpers"
-Cohesion: 0.05
-Nodes (21): newTestContext(), newTestField(), newTestModel(), newTestService(), TestAddFieldSync_MultipleFields_SequentialDisplayOrders(), TestAddFieldSync_PhysicField_SetsDisplayOrder(), TestModelDesignAppService_AddFieldsWithResults_PartialSuccess(), TestModelDesignAppService_CreateFieldEnumRelation_SourceConflict() (+13 more)
-
-### Community 10 - "Query Condition Engine"
+### Community 9 - "Community 9"
 Cohesion: 0.03
 Nodes (0): 
 
-### Community 11 - "GraphQL Resolver Layer"
+### Community 10 - "Community 10"
 Cohesion: 0.07
 Nodes (8): handleErr(), handleRepoErr(), normalizeEnumArrayCodes(), normalizeEnumCode(), resolveEnumLabelSourceFieldName(), valueToString(), graphqlEnumConfig, graphqlModelResolver
 
-### Community 12 - "Filter & Condition Builder"
+### Community 11 - "Community 11"
 Cohesion: 0.06
 Nodes (19): And(), Between(), Contains(), EndsWith(), Eq(), Gt(), Gte(), In() (+11 more)
 
-### Community 13 - "Frontend Mock Factories"
+### Community 12 - "Community 12"
 Cohesion: 0.08
 Nodes (47): mockAddFieldsMutation(), mockCreateEnumMutation(), mockCreateGroupMutation(), mockCreateLogicalForeignKeyMutation(), mockCreateModelFromSchemaMutation(), mockCreateModelMutation(), mockCreateProjectMutation(), mockCreateRoleMutation() (+39 more)
 
-### Community 14 - "GraphQL Error Adapters"
+### Community 13 - "Community 13"
 Cohesion: 0.04
 Nodes (3): convertToAddFieldsError(), mutationResolver, queryResolver
 
-### Community 15 - "Python Integration Tests"
-Cohesion: 0.05
-Nodes (24): Model Design GraphQL Typed Error Tests  Tests for model GraphQL operations that, Test suite for Model GraphQL typed errors, Assert error has the expected __typename, Assert payload has no error and model data exists, Assert payload has error and no model data, Assert error message is non-empty and descriptive, Test getting a non-existent model returns ModelNotFound error, Test getting model by name that doesn't exist returns ModelNotFound error (+16 more)
-
-### Community 16 - "Field-Enum Relation Repository"
+### Community 14 - "Community 14"
 Cohesion: 0.07
 Nodes (16): SqlFieldEnumRelationRepository, SqlModelDesignRepository, FieldDefinitionToCreateParams(), FieldDefinitionToDomain(), FieldDefinitionToUpdateParams(), FieldEnumRelationToCreateParams(), FieldEnumRelationToDomain(), marshalJSON() (+8 more)
 
-### Community 17 - "Auth & RBAC Test Helpers"
+### Community 15 - "Community 15"
 Cohesion: 0.05
 Nodes (13): makeOwnerRole(), makeTestUser(), newTestService(), TestCreateOrganizationService_Execute_OrganizationAlreadyExists(), TestCreateOrganizationService_Execute_RoleNotFound(), TestCreateOrganizationService_Execute_Success(), TestCreateOrganizationService_Execute_UserAlreadyHasOrganization(), TestCreateOrganizationService_Execute_UserNotFound() (+5 more)
 
-### Community 18 - "Model Group Service Tests"
+### Community 16 - "Community 16"
 Cohesion: 0.07
 Nodes (17): newGroup(), newService(), TestCreateGroup_DuplicateName(), TestCreateGroup_HappyPath(), TestCreateGroup_InvalidName(), TestDeleteGroup_NotFound(), TestDeleteGroup_WithModels(), TestListGroups_Empty() (+9 more)
 
-### Community 19 - "Introspection Resolvers"
+### Community 17 - "Community 17"
 Cohesion: 0.17
 Nodes (0): 
 
-### Community 20 - "Frontend Design Documentation"
+### Community 18 - "Community 18"
 Cohesion: 0.07
 Nodes (40): BFF Layer Design, Frontend Code Conventions, ModelCraft Color System, Apollo Client 3 for GraphQL, @apply Centralization in globals.css, BFF Public Facade Pattern, Casdoor OAuth2/OIDC Authentication, B2B Restrained Color System (Solid Colors Only) (+32 more)
 
-### Community 21 - "Org & Permission Resolvers"
+### Community 19 - "Community 19"
 Cohesion: 0.05
 Nodes (2): mutationResolver, queryResolver
 
-### Community 22 - "Model Design App Service"
+### Community 20 - "Community 20"
 Cohesion: 0.09
 Nodes (2): ModelDesignAppService, SyncModelSchemaResult
 
-### Community 23 - "Backend Architecture Docs"
+### Community 21 - "Community 21"
 Cohesion: 0.09
 Nodes (37): Backend DDD Architecture Specification, Backend Development Guidelines README, Application Layer - Use Case Orchestration, bizerrors Package - Business Error System, Context Values Passed as Explicit Parameters, ctxutils Package - Centralized Context Access, DDD Layered Architecture (Interfaces/App/Domain/Infra), Domain Layer - Core Business Logic (+29 more)
 
-### Community 24 - "Role Service Tests"
+### Community 22 - "Community 22"
 Cohesion: 0.09
 Nodes (18): MockPermissionRepository, MockRoleRepository, MockUserRoleRepository, testContext(), TestRoleService_CreateCustomRole_DuplicateName(), TestRoleService_CreateCustomRole_EmptyName(), TestRoleService_CreateCustomRole_EmptyOrgName(), TestRoleService_CreateCustomRole_Success() (+10 more)
 
-### Community 25 - "Enum GraphQL Integration Tests"
-Cohesion: 0.06
-Nodes (19): Enum GraphQL Tests  Tests for enum CRUD operations via GraphQL API with typed er, Test enum GraphQL operations with typed error handling., Test successful enum creation returns enum data with no error., Test creating duplicate enum returns EnumAlreadyExists error., Test creating enum with invalid project returns ProjectNotFound error., Test creating enum with duplicate option codes returns InvalidEnumInput error., Test getting existing enum returns enum data with no error., Test getting non-existent enum returns EnumNotFound error. (+11 more)
-
-### Community 26 - "Org SQL Repository"
+### Community 23 - "Community 23"
 Cohesion: 0.09
 Nodes (7): SqlMembershipRepository, SqlOrganizationRepository, SqlUserRepository, MembershipToDomain(), OrganizationToDomain(), StrToNullStr(), UserToDomain()
 
-### Community 27 - "Field Type Registry"
+### Community 24 - "Community 24"
 Cohesion: 0.08
 Nodes (10): GetFieldTypeByFormat(), isValidFieldName(), NewFieldFormat(), FieldDefinition, FieldType, FormatType, SchemaType, StatusType (+2 more)
 
-### Community 28 - "Auth Webhook Handlers"
+### Community 25 - "Community 25"
 Cohesion: 0.13
 Nodes (17): makeWebhookRequest(), newMockUserRepo(), parseResponse(), TestHandle_AddUserAction(), TestHandle_InvalidPayload(), TestHandle_NameFallbackToUsername(), TestHandle_NonSignupEventIgnored(), TestHandle_ProfileFromObjectJSON() (+9 more)
 
-### Community 29 - "Model App Command Handlers"
+### Community 26 - "Community 26"
 Cohesion: 0.06
 Nodes (29): AddFieldCommand, AddFieldItemResult, CreateEnumCommand, CreateFieldEnumRelationCommand, CreateGroupCommand, CreateLogicalForeignKeyCommand, CreateModelCommand, DeleteEnumCommand (+21 more)
 
-### Community 30 - "Module Group 30"
+### Community 27 - "Community 27"
 Cohesion: 0.1
 Nodes (29): getWhere(), hasAnyAggregate(), hasSelectedField(), newAggregateInput(), newCountInput(), newCreateManyInput(), newCreateOneInput(), newDeleteManyInput() (+21 more)
 
-### Community 31 - "Module Group 31"
+### Community 28 - "Community 28"
+Cohesion: 0.18
+Nodes (0): 
+
+### Community 29 - "Community 29"
 Cohesion: 0.12
 Nodes (18): containsPrefix(), extractBaseStorageType(), isDateTimeFormat(), isNumericFormat(), isStringFormat(), parseDate(), parseDateTime(), parseTime() (+10 more)
 
-### Community 32 - "Module Group 32"
+### Community 30 - "Community 30"
 Cohesion: 0.17
 Nodes (0): 
 
-### Community 33 - "Module Group 33"
+### Community 31 - "Community 31"
 Cohesion: 0.09
 Nodes (10): MockPermissionRepository, MockRoleRepository, MockUserRoleRepository, createTestPermissionLoader(), TestPermissionLoader_LoadUserPermissions_DatabaseError(), TestPermissionLoader_LoadUserPermissions_MultipleRoles(), TestPermissionLoader_LoadUserPermissions_NoRoles(), TestPermissionLoader_LoadUserPermissions_RoleNotFound() (+2 more)
 
-### Community 34 - "Module Group 34"
-Cohesion: 0.08
-Nodes (19): Actual Schema Integration Tests  Tests for model(id, withActualSchema: true) que, Create a simple model and ensure its DB table exists via repair., Tests for withActualSchema=true when table exists., dbTable should be TABLE_EXISTS when the table was repaired into the DB., Regular fields should have dbColumn populated when withActualSchema=true., Tests for withActualSchema=false (or omitted)., dbTable should be null when withActualSchema is not set., All dbColumn fields should be null when withActualSchema is not set. (+11 more)
-
-### Community 35 - "Module Group 35"
+### Community 32 - "Community 32"
 Cohesion: 0.08
 Nodes (5): contains(), intPtr(), TestFieldDefinition_ChainMethods(), TestFieldDefinition_Validate(), TestNewFieldDefinition()
 
-### Community 36 - "Module Group 36"
+### Community 33 - "Community 33"
 Cohesion: 0.1
 Nodes (6): SqlCasbinPermissionRepository, SqlCasbinRoleRepository, SqlCasbinUserRoleRepository, CasbinRolePermissionToDomain(), CasbinRoleToDomain(), CasbinUserRoleToDomain()
 
-### Community 37 - "Module Group 37"
+### Community 34 - "Community 34"
 Cohesion: 0.1
 Nodes (14): makeFKRow(), makeLocator(), TestAddRelationField_AcceptsMatchingFKID(), TestAddRelationField_RejectsFKIDMismatch(), TestAddRelationField_RequiresRelateFkId(), TestAddRelationField_WithRelateFkId(), TestLogicalForeignKeyRepository_DeleteByPairID(), TestLogicalForeignKeyRepository_FindByBelongsToField() (+6 more)
 
-### Community 38 - "Module Group 38"
+### Community 35 - "Community 35"
 Cohesion: 0.08
 Nodes (22): ApiKey, DatabaseCluster, FieldDefinition, FieldEnumRelation, LogicalForeignKey, LogicalForeignKeysDirection, Model, ModelEnum (+14 more)
 
-### Community 39 - "Module Group 39"
+### Community 36 - "Community 36"
 Cohesion: 0.17
 Nodes (9): convertAggregateBytes(), convertBytesSliceToString(), convertBytesToString(), convertFlatToNestedAggregate(), execute(), isAggregateField(), isUniqueConstraintError(), parseAggregateValue() (+1 more)
 
-### Community 40 - "Module Group 40"
-Cohesion: 0.13
+### Community 37 - "Community 37"
+Cohesion: 0.14
 Nodes (9): isStringType(), parseMySQLType(), ClusterConnectionManager, ColumnDefinition, IndexDefinition, MySQLSchemaComparisonService, RepairRequest, SchemaComparisonService (+1 more)
 
-### Community 41 - "Module Group 41"
+### Community 38 - "Community 38"
 Cohesion: 0.13
 Nodes (6): SqlEnumRepository, SqlFieldEnumAssociationRepository, EnumDefinitionToCreateParams(), EnumDefinitionToDomain(), FieldEnumAssociationToCreateParams(), FieldEnumAssociationToDomain()
 
-### Community 42 - "Module Group 42"
+### Community 39 - "Community 39"
 Cohesion: 0.15
 Nodes (17): BenchmarkHasSelectedField(), BenchmarkNewCreateManyInput(), createMockResolveParams(), createMockResolveParamsNoSelection(), TestCreateManyInputDataConversion(), TestDeleteManyInputWithNilWhere(), TestHasSelectedField(), TestNewCreateManyInput() (+9 more)
 
-### Community 43 - "Module Group 43"
+### Community 40 - "Community 40"
 Cohesion: 0.12
 Nodes (11): GoquWhereVisitor, operatorHandler, QueryVisitor, assertStringValue(), convertArrayValue(), ConvertToGoquExpression(), handleContains(), handleEndsWith() (+3 more)
 
-### Community 44 - "Module Group 44"
+### Community 41 - "Community 41"
 Cohesion: 0.13
 Nodes (12): newMockAPIKeyRepo(), TestAPIKeyService_CreateAPIKey_LimitExceeded(), TestAPIKeyService_CreateAPIKey_Success(), TestAPIKeyService_ListAPIKeys(), TestAPIKeyService_RevokeAPIKey_NotFound(), TestAPIKeyService_RevokeAPIKey_Success(), TestAPIKeyService_RevokeAPIKey_WrongUser(), TestAPIKeyService_UpdateAPIKey_Success() (+4 more)
 
-### Community 45 - "Module Group 45"
-Cohesion: 0.18
-Nodes (2): isNumericField(), inputTypeGenerator
-
-### Community 46 - "Module Group 46"
-Cohesion: 0.14
-Nodes (13): build_model_input(), Model Design GraphQL Tests  Tests for model CRUD operations and field management, Build model input data with defaults, Test suite for model CRUD operations, Test creating a new model, Test retrieving a model by id, Test listing models for a specific project, Generate a unique name to avoid conflicts. (+5 more)
-
-### Community 47 - "Module Group 47"
-Cohesion: 0.16
-Nodes (4): InitClusterManager(), newClusterConnectionManager(), ClusterConnectionManager, DatabaseInfo
-
-### Community 48 - "Module Group 48"
+### Community 42 - "Community 42"
 Cohesion: 0.1
 Nodes (1): mockClientDatabaseRepository
 
-### Community 49 - "Module Group 49"
+### Community 43 - "Community 43"
+Cohesion: 0.18
+Nodes (2): isNumericField(), inputTypeGenerator
+
+### Community 44 - "Community 44"
+Cohesion: 0.16
+Nodes (4): InitClusterManager(), newClusterConnectionManager(), ClusterConnectionManager, DatabaseInfo
+
+### Community 45 - "Community 45"
 Cohesion: 0.13
 Nodes (4): NewModelLocator(), DataModel, ModelLocator, ModelMeta
 
-### Community 50 - "Module Group 50"
+### Community 46 - "Community 46"
 Cohesion: 0.34
 Nodes (18): actionFailed(), actionSucceeded(), cloneRelations(), cloneSources(), createDomainError(), createMockRelationId(), fieldInputError(), getOrCreateState() (+10 more)
 
-### Community 51 - "Module Group 51"
+### Community 47 - "Community 47"
 Cohesion: 0.11
 Nodes (4): generateSlug(), generateUniqueSlug(), handleRefresh(), handleSubmit()
 
-### Community 52 - "Module Group 52"
+### Community 48 - "Community 48"
 Cohesion: 0.2
-Nodes (10): newTestContextForIsArray(), newTestEnumDefinition(), newTestEnumField(), newTestServiceWithEnumRepo(), TestAddFieldSync_EnumField_InfersIsArrayFromMultiSelect(), TestAddFieldSync_EnumField_IsArrayTrueButEnumNotMultiSelect_ReturnsError(), TestAddFieldSync_EnumField_NoEnumName_SkipsInference(), TestAddFieldSync_EnumField_SingleSelectEnumKeepsIsArrayFalse() (+2 more)
+Nodes (10): newTestContextForIsArray(), newTestEnumDefinition(), newTestEnumField(), newTestServiceWithEnumRepo(), TestAddFieldSync_EnumField_InfersIsArrayFromMultiSelect(), TestAddFieldSync_EnumField_IsArrayTrueButEnumNotMultiSelect_ReturnsError(), TestAddFieldSync_EnumField_NoEnumName_ReturnsError(), TestAddFieldSync_EnumField_SingleSelectEnumKeepsIsArrayFalse() (+2 more)
 
-### Community 53 - "Module Group 53"
-Cohesion: 0.11
-Nodes (10): Database Cluster GraphQL Tests  Tests for database cluster operations via GraphQ, Generate a unique name to avoid conflicts., Test suite for database cluster operations via project sub-resource API., Test that invalid connection info returns DatabaseConnectionFailed (without skip, Test retrieving a cluster by project name., Test retrieving cluster for a non-existent project., Test that querying a project includes the nested cluster., Test that skipConnectionTest: true bypasses validation with invalid credentials. (+2 more)
-
-### Community 54 - "Module Group 54"
+### Community 49 - "Community 49"
 Cohesion: 0.12
 Nodes (5): BusinessError, ConvertRepositoryError(), NewError(), NewErrorFromContext(), WrapError()
 
-### Community 55 - "Module Group 55"
+### Community 50 - "Community 50"
 Cohesion: 0.25
 Nodes (4): ZapLogger, getEncoder(), getZapLevel(), newZapLogger()
 
-### Community 56 - "Module Group 56"
+### Community 51 - "Community 51"
 Cohesion: 0.13
 Nodes (5): AnalyzeSQLError(), classifyError(), errorPattern, WrapSQLError(), WrapSQLErrorInPlace()
 
-### Community 57 - "Module Group 57"
+### Community 52 - "Community 52"
 Cohesion: 0.21
 Nodes (1): JSONSchemaParser
 
-### Community 58 - "Module Group 58"
-Cohesion: 0.32
-Nodes (0): 
-
-### Community 59 - "Module Group 59"
+### Community 53 - "Community 53"
 Cohesion: 0.12
 Nodes (3): setupTestCipher(), TestCreateCluster_ShouldSucceedWhenProjectHasNoCluster(), MockClusterRepository
 
-### Community 60 - "Module Group 60"
+### Community 54 - "Community 54"
 Cohesion: 0.11
 Nodes (2): mockProfileRepository, mockUserRepository
 
-### Community 61 - "Module Group 61"
-Cohesion: 0.11
-Nodes (17): assert_cluster_fields(), assert_contains_fields(), assert_graphql_error(), assert_graphql_success(), assert_model_fields(), assert_not_empty(), assert_project_fields(), assert_query_returns_none() (+9 more)
-
-### Community 62 - "Module Group 62"
+### Community 55 - "Community 55"
 Cohesion: 0.14
 Nodes (17): AuthConfig, CasdoorConfig, Config, ConfigOptions, CryptoConfig, DatabaseConfig, DesignAuthConfig, JWTConfig (+9 more)
 
-### Community 63 - "Module Group 63"
+### Community 56 - "Community 56"
 Cohesion: 0.14
 Nodes (5): MockQuerierForFK, newTestLFRow(), TestLogicalForeignKeyToDomain(), TestSqlLogicalForeignKeyRepository_FindByModel(), TestSqlLogicalForeignKeyRepository_FindByPairID()
 
-### Community 64 - "Module Group 64"
+### Community 57 - "Community 57"
 Cohesion: 0.18
 Nodes (5): Role, IsSystemRoleName(), isValidPermission(), NewRole(), Role
 
-### Community 65 - "Module Group 65"
+### Community 58 - "Community 58"
 Cohesion: 0.26
 Nodes (5): buildConnInfoFromCmd(), getOrgNameFromContext(), normalizeConnectionTimeout(), DatabaseClusterAppService, DatabaseInfo
 
-### Community 66 - "Module Group 66"
+### Community 59 - "Community 59"
 Cohesion: 0.12
 Nodes (4): contextKey, HttpRequestContext, FromContext(), GetRequestID()
 
-### Community 67 - "Module Group 67"
+### Community 60 - "Community 60"
 Cohesion: 0.18
 Nodes (6): buildCountQuery(), buildFieldSelections(), buildFindFirstQuery(), buildFindManyQuery(), buildFindUniqueQuery(), buildModelQueryOperations()
 
-### Community 68 - "Module Group 68"
+### Community 61 - "Community 61"
 Cohesion: 0.12
 Nodes (0): 
 
-### Community 69 - "Module Group 69"
+### Community 62 - "Community 62"
 Cohesion: 0.21
 Nodes (5): projectRowsToDomain(), ProjectToCreateParams(), ProjectToDomain(), ProjectToUpdateParams(), SqlProjectRepository
 
-### Community 70 - "Module Group 70"
+### Community 63 - "Community 63"
 Cohesion: 0.2
 Nodes (13): fillProfileFromSignupObject(), isUserSignupAction(), parseSignupObject(), resolveExtendedUserProfile(), resolveExternalID(), resolveUsername(), resolveUserProfile(), writeJSONError() (+5 more)
 
-### Community 71 - "Module Group 71"
+### Community 64 - "Community 64"
 Cohesion: 0.17
 Nodes (6): fieldMapper, applyEnumBindingByFormat(), convertFormatType2Domain(), convertValidationInput2DTO(), init(), fieldMapper
 
-### Community 72 - "Module Group 72"
+### Community 65 - "Community 65"
 Cohesion: 0.17
 Nodes (7): MockProjectRepository, newTestService(), TestProjectAppService_CreateProject_AlreadyExists(), TestProjectAppService_DeleteProject_ProjectNotFound(), TestProjectAppService_GetProject(), TestProjectAppService_ListProjects(), TestProjectAppService_UpdateProjectMetadata()
 
-### Community 73 - "Module Group 73"
-Cohesion: 0.17
-Nodes (15): build_cluster_input(), build_enum_input(), build_enum_option(), build_field_input(), build_model_input(), build_project_input(), generate_test_id(), Test data builders for Design-time tests.  Provides builder functions to generat (+7 more)
-
-### Community 74 - "Module Group 74"
-Cohesion: 0.15
-Nodes (11): create_design_graphql_client(), execute_graphql(), LoggingGraphQLClient, GraphQL client utilities for Design-time tests.  This module provides utilities, Extract operation info (type and name) from GraphQL document., Delegate unknown attributes to underlying client., Create a GraphQL client for Design-time API with automatic logging.      Args:, GraphQL client wrapper with automatic request/response logging.      This wrappe (+3 more)
-
-### Community 75 - "Module Group 75"
-Cohesion: 0.12
-Nodes (9): Project-Cluster One-to-One Relationship Integration Tests  Tests for the one-to-, Test creating a project always includes a cluster., Test that project and cluster are created in a single atomic operation., Test that bad connection info (without skipConnectionTest) prevents project crea, Test retrieving project includes nested cluster field., Test that deleting a project also removes its cluster., Test that skipConnectionTest allows project creation even with invalid connectio, Test suite for Project-Cluster one-to-one relationship. (+1 more)
-
-### Community 76 - "Module Group 76"
+### Community 66 - "Community 66"
 Cohesion: 0.23
 Nodes (1): GraphQLSchemaGenerator
 
-### Community 77 - "Module Group 77"
+### Community 67 - "Community 67"
 Cohesion: 0.12
 Nodes (0): 
 
-### Community 78 - "Module Group 78"
+### Community 68 - "Community 68"
 Cohesion: 0.23
 Nodes (11): containsComplexOperators(), convertAggregateInputToSQL(), convertCountInputToSQL(), convertDeleteManyInputToSQL(), convertDeleteOneInputToSQL(), convertFindFirstInputToSQL(), convertFindManyInputToSQL(), convertFindUniqueInputToSQL() (+3 more)
 
-### Community 79 - "Module Group 79"
+### Community 69 - "Community 69"
 Cohesion: 0.2
 Nodes (5): SqlDatabaseClusterRepository, clusterRowsToDomain(), DatabaseClusterToCreateParams(), DatabaseClusterToDomain(), DatabaseClusterToUpdateParams()
 
-### Community 80 - "Module Group 80"
+### Community 70 - "Community 70"
 Cohesion: 0.17
 Nodes (6): ClusterLocator, ClusterStatus, ConnectionInfo, DatabaseCluster, NewClusterLocator(), NewDatabaseCluster()
 
-### Community 81 - "Module Group 81"
+### Community 71 - "Community 71"
 Cohesion: 0.22
 Nodes (4): MappingResult, ReverseTypeMapper, TableColumn, formatFieldTitle()
 
-### Community 82 - "Module Group 82"
+### Community 72 - "Community 72"
 Cohesion: 0.13
 Nodes (0): 
 
-### Community 83 - "Module Group 83"
+### Community 73 - "Community 73"
 Cohesion: 0.29
 Nodes (5): newGQLError(), NewHasPermissionDirective(), newPermissionDeniedError(), HasPermissionDirective, HasPermissionDirective
 
-### Community 84 - "Module Group 84"
+### Community 74 - "Community 74"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 75 - "Community 75"
 Cohesion: 0.22
 Nodes (11): MockPermissionLoader, setupTestCache(), TestPermissionCache_BuildCacheKey(), TestPermissionCache_ConcurrentAccess(), TestPermissionCache_GetUserPermissions_CacheHit(), TestPermissionCache_GetUserPermissions_CacheMiss(), TestPermissionCache_PerformanceBenchmark(), TestPermissionCache_RedisFailure() (+3 more)
 
-### Community 85 - "Module Group 85"
+### Community 76 - "Community 76"
 Cohesion: 0.24
 Nodes (2): RepairModelUseCase, parseMySQLTypeToField()
 
-### Community 86 - "Module Group 86"
+### Community 77 - "Community 77"
 Cohesion: 0.23
 Nodes (11): CustomError, TestAs(), TestCause(), TestCompatibility(), TestErrorChain(), TestErrorf(), TestNew(), TestUnwrap() (+3 more)
 
-### Community 87 - "Module Group 87"
+### Community 78 - "Community 78"
 Cohesion: 0.18
 Nodes (8): AuthenticationError, AuthParamInvalidError, callGoLogin(), callGoRefresh(), callGoRegister(), parseGoError(), TokenReuseError, UserConflictError
 
-### Community 88 - "Module Group 88"
+### Community 79 - "Community 79"
 Cohesion: 0.14
 Nodes (13): CreateEnumDefinitionParams, CreateFieldEnumAssociationParams, DeleteEnumParams, DeleteFieldEnumAssociationParams, ExistsEnumByNameParams, GetEnumByNameParams, GetEnumReferencesByNameParams, GetEnumReferencesByNameRow (+5 more)
 
-### Community 89 - "Module Group 89"
+### Community 80 - "Community 80"
 Cohesion: 0.22
 Nodes (5): logicalFKQuerier, SqlLogicalForeignKeyRepository, logicalForeignKeyRowsToDomain(), LogicalForeignKeyToCreateParams(), LogicalForeignKeyToDomain()
 
-### Community 90 - "Module Group 90"
+### Community 81 - "Community 81"
 Cohesion: 0.19
 Nodes (4): isValidProjectSlug(), NewProject(), Project, ProjectStatus
 
-### Community 91 - "Module Group 91"
+### Community 82 - "Community 82"
 Cohesion: 0.14
 Nodes (0): 
 
-### Community 92 - "Module Group 92"
+### Community 83 - "Community 83"
 Cohesion: 0.22
 Nodes (3): ImportModelCommand, ImportModelResult, ReverseEngineerAppService
 
-### Community 93 - "Module Group 93"
-Cohesion: 0.14
-Nodes (8): Project Management CRUD Tests  Tests for project creation, read, update, delete, Test retrieving a project by orgName and name, Test listing all projects, Test creating a duplicate project returns ProjectAlreadyExists error, Test getting a non-existent project returns ProjectNotFound error, Test suite for project CRUD operations, Test creating a new project with valid data, TestProjectCRUD
-
-### Community 94 - "Module Group 94"
+### Community 84 - "Community 84"
 Cohesion: 0.14
 Nodes (4): Config, Field, Level, Logger
 
-### Community 95 - "Module Group 95"
+### Community 85 - "Community 85"
 Cohesion: 0.17
 Nodes (7): ComparisonNode, EntryType, FieldNode, LogicalNode, QueryNode, NewComparisonNode(), ValidateOperator()
 
-### Community 96 - "Module Group 96"
+### Community 86 - "Community 86"
 Cohesion: 0.21
 Nodes (1): DeploymentImpl
 
-### Community 97 - "Module Group 97"
+### Community 87 - "Community 87"
 Cohesion: 0.19
 Nodes (2): SqlAPIKeyRepository, toDomainAPIKey()
 
-### Community 98 - "Module Group 98"
+### Community 88 - "Community 88"
 Cohesion: 0.21
 Nodes (3): SqlModelGroupRepository, ModelGroupToCreateParams(), ModelGroupToDomain()
 
-### Community 99 - "Module Group 99"
+### Community 89 - "Community 89"
 Cohesion: 0.35
 Nodes (1): fieldConditionTypeManager
 
-### Community 100 - "Module Group 100"
+### Community 90 - "Community 90"
 Cohesion: 0.27
 Nodes (1): JSONSchemaGenerator
 
-### Community 101 - "Module Group 101"
+### Community 91 - "Community 91"
 Cohesion: 0.28
 Nodes (5): Handler, NewHandler(), writeAuthError(), writeJSON(), Handler
 
-### Community 102 - "Module Group 102"
-Cohesion: 0.38
-Nodes (0): 
-
-### Community 103 - "Module Group 103"
+### Community 92 - "Community 92"
 Cohesion: 0.24
 Nodes (4): validateOrgSlugFormat(), CreateOrganizationInput, CreateOrganizationOutput, CreateOrganizationService
 
-### Community 104 - "Module Group 104"
+### Community 93 - "Community 93"
 Cohesion: 0.21
 Nodes (4): FieldType, InvalidFieldTypeError, MustParseFieldType(), ParseFieldType()
 
-### Community 105 - "Module Group 105"
+### Community 94 - "Community 94"
 Cohesion: 0.27
 Nodes (1): MySQLDDLBuilder
 
-### Community 106 - "Module Group 106"
+### Community 95 - "Community 95"
 Cohesion: 0.22
 Nodes (6): JSONParser, StandardJSONParser, Marshal(), MarshalToString(), MarshalToStringIgnoreErr(), Unmarshal()
 
-### Community 107 - "Module Group 107"
+### Community 96 - "Community 96"
 Cohesion: 0.15
 Nodes (0): 
 
-### Community 108 - "Module Group 108"
+### Community 97 - "Community 97"
 Cohesion: 0.18
 Nodes (3): BaseGraphQLClient, GraphQLClient, OrgGraphQLClient
 
-### Community 109 - "Module Group 109"
+### Community 98 - "Community 98"
 Cohesion: 0.17
 Nodes (0): 
 
-### Community 110 - "Module Group 110"
+### Community 99 - "Community 99"
 Cohesion: 0.17
 Nodes (11): CreatePermissionParams, CreateRoleParams, CreateUserRoleParams, DeletePermissionParams, DeleteUserRoleParams, GetRoleByNameAndOrgParams, GetUserRoleParams, ListPermissionsByRoleAndOrgParams (+3 more)
 
-### Community 111 - "Module Group 111"
+### Community 100 - "Community 100"
 Cohesion: 0.2
 Nodes (5): IsDuplicateKeyError(), IsNotFoundError(), IsRepoError(), RepositoryError, RepositoryErrorType
 
-### Community 112 - "Module Group 112"
+### Community 101 - "Community 101"
 Cohesion: 0.17
 Nodes (0): 
 
-### Community 113 - "Module Group 113"
+### Community 102 - "Community 102"
 Cohesion: 0.2
 Nodes (2): EnumDefinition, EnumOption
 
-### Community 114 - "Module Group 114"
+### Community 103 - "Community 103"
 Cohesion: 0.18
 Nodes (2): Server, writeJSON()
 
-### Community 115 - "Module Group 115"
+### Community 104 - "Community 104"
 Cohesion: 0.3
 Nodes (7): modelMapper, convertActualForeignKey(), convertDbColumnInfo(), convertDbTableStatus(), convertFieldConflictAspect(), convertFormatTypeDomain2Model(), convertValidationDomain2Graphql()
 
-### Community 116 - "Module Group 116"
+### Community 105 - "Community 105"
 Cohesion: 0.17
 Nodes (1): ModelErrorAdapter
 
-### Community 117 - "Module Group 117"
-Cohesion: 0.29
-Nodes (0): 
-
-### Community 118 - "Module Group 118"
+### Community 106 - "Community 106"
 Cohesion: 0.18
 Nodes (2): FieldDefinition, ValidationRules
 
-### Community 119 - "Module Group 119"
+### Community 107 - "Community 107"
 Cohesion: 0.29
 Nodes (4): JSONSchemaBuilder, JSONSchemaGenerator, NewJSONSchemaBuilder(), NewJSONSchemaGenerator()
 
-### Community 120 - "Module Group 120"
+### Community 108 - "Community 108"
 Cohesion: 0.2
 Nodes (1): RestClient
 
-### Community 121 - "Module Group 121"
+### Community 109 - "Community 109"
 Cohesion: 0.27
 Nodes (5): createUnknownError(), isModelEnumDomainError(), normalizeDomainError(), normalizeUnknownError(), runModelEnumAction()
 
-### Community 122 - "Module Group 122"
+### Community 110 - "Community 110"
 Cohesion: 0.33
 Nodes (4): QueryParser, NewQueryParser(), ParseAndConvert(), ParseQuery()
 
-### Community 123 - "Module Group 123"
+### Community 111 - "Community 111"
 Cohesion: 0.24
 Nodes (5): ColumnDefinition, DDLParser, IndexDefinition, TableDefinition, TiDBDDLParser
 
-### Community 124 - "Module Group 124"
+### Community 112 - "Community 112"
 Cohesion: 0.27
 Nodes (4): boolToString(), actualColumnRow, actualForeignKeyRow, ActualSchemaServiceImpl
 
-### Community 125 - "Module Group 125"
+### Community 113 - "Community 113"
 Cohesion: 0.29
 Nodes (2): TestModelGroupRepository_MockUsage(), MockModelGroupRepo
 
-### Community 126 - "Module Group 126"
+### Community 114 - "Community 114"
 Cohesion: 0.25
 Nodes (2): SqlRoleRepository, roleToDomain()
 
-### Community 127 - "Module Group 127"
+### Community 115 - "Community 115"
 Cohesion: 0.25
 Nodes (4): DBTX, sqlcLogger, SqlcLogLevel, cleanSQL()
 
-### Community 128 - "Module Group 128"
-Cohesion: 0.2
-Nodes (2): TestNewRole(), TestRole_CanDelete()
-
-### Community 129 - "Module Group 129"
+### Community 116 - "Community 116"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 130 - "Module Group 130"
+### Community 117 - "Community 117"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 131 - "Module Group 131"
+### Community 118 - "Community 118"
 Cohesion: 0.22
 Nodes (4): isValidOrgName(), NewOrganization(), Organization, OrgStatus
 
-### Community 132 - "Module Group 132"
+### Community 119 - "Community 119"
+Cohesion: 0.2
+Nodes (2): TestNewRole(), TestRole_CanDelete()
+
+### Community 120 - "Community 120"
 Cohesion: 0.29
 Nodes (2): TestModelGroupRepository_InterfaceCompliance(), MockModelGroupRepository
 
-### Community 133 - "Module Group 133"
+### Community 121 - "Community 121"
 Cohesion: 0.22
 Nodes (3): float64PtrTest(), intPtrTest(), TestJSONSchemaParser_RoundTrip()
 
-### Community 134 - "Module Group 134"
+### Community 122 - "Community 122"
 Cohesion: 0.18
 Nodes (1): FieldService
 
-### Community 135 - "Module Group 135"
+### Community 123 - "Community 123"
 Cohesion: 0.18
 Nodes (10): IdentifierType, LoginCommand, LoginResult, LogoutCommand, OAuthLoginCommand, RefreshCommand, RefreshResult, RegisterCommand (+2 more)
 
-### Community 136 - "Module Group 136"
+### Community 124 - "Community 124"
 Cohesion: 0.18
 Nodes (4): APIKeyService, CreateAPIKeyCommand, CreateAPIKeyResult, UpdateAPIKeyCommand
 
-### Community 137 - "Module Group 137"
+### Community 125 - "Community 125"
 Cohesion: 0.2
 Nodes (3): CreateCustomRoleInput, RoleService, UpdateRoleInput
 
-### Community 138 - "Module Group 138"
+### Community 126 - "Community 126"
 Cohesion: 0.24
 Nodes (2): PermissionVersionManager, UserRoleService
 
-### Community 139 - "Module Group 139"
+### Community 127 - "Community 127"
 Cohesion: 0.31
 Nodes (1): EnumAppService
 
-### Community 140 - "Module Group 140"
+### Community 128 - "Community 128"
 Cohesion: 0.22
 Nodes (2): computeNeighbors(), ModelGroupAppService
 
-### Community 141 - "Module Group 141"
-Cohesion: 0.2
-Nodes (9): DatabaseConfig, from_env(), get_test_db_config(), Database connection configuration for tests.  This module provides a centralized, Database connection configuration., Convert configuration to dictionary format.                  Returns:, Get the default test database configuration.          This function returns a si, Reset the default test database configuration.          This is useful for testi (+1 more)
-
-### Community 142 - "Module Group 142"
+### Community 129 - "Community 129"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 143 - "Module Group 143"
+### Community 130 - "Community 130"
 Cohesion: 0.22
 Nodes (2): MySQLDDLBuilderTestSuite, stringPtr()
 
-### Community 144 - "Module Group 144"
+### Community 131 - "Community 131"
 Cohesion: 0.27
 Nodes (1): ErrorDefinition
 
-### Community 145 - "Module Group 145"
+### Community 132 - "Community 132"
 Cohesion: 0.42
 Nodes (10): average(), charToDigit(), computeMidpoint(), decrementOne(), digitToChar(), InitialOrder(), Midpoint(), Renumber() (+2 more)
 
-### Community 146 - "Module Group 146"
+### Community 133 - "Community 133"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 147 - "Module Group 147"
+### Community 134 - "Community 134"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 148 - "Module Group 148"
+### Community 135 - "Community 135"
 Cohesion: 0.42
 Nodes (8): fetchMembershipsFromAPI(), getCachedMemberships(), getMemberships(), hasCachedMemberships(), invalidateMembershipsCache(), isCacheValid(), loadFromLocalStorage(), preloadMemberships()
 
-### Community 149 - "Module Group 149"
+### Community 136 - "Community 136"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 150 - "Module Group 150"
+### Community 137 - "Community 137"
 Cohesion: 0.29
 Nodes (3): columnInfo, MySQLIntrospector, SchemaIntrospector
 
-### Community 151 - "Module Group 151"
+### Community 138 - "Community 138"
 Cohesion: 0.2
 Nodes (1): DDLConverterTestSuite
 
-### Community 152 - "Module Group 152"
+### Community 139 - "Community 139"
 Cohesion: 0.2
 Nodes (9): CreateMembershipParams, CreateOrganizationParams, CreateUserParams, GetMembershipByUserAndOrgParams, ListMembershipsWithOrgDetailsParams, ListMembershipsWithOrgDetailsRow, ListMembershipsWithUserNameRow, UpdateMembershipParams (+1 more)
 
-### Community 153 - "Module Group 153"
+### Community 140 - "Community 140"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 154 - "Module Group 154"
+### Community 141 - "Community 141"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 155 - "Module Group 155"
+### Community 142 - "Community 142"
 Cohesion: 0.33
 Nodes (6): float64Ptr(), intPtr(), stringPtr(), TestJSONSchemaGenerator_GenerateSchema_BasicTypes(), TestJSONSchemaGenerator_GenerateSchema_DateTimeTypes(), TestJSONSchemaGenerator_GenerateSchema_DecimalField()
 
-### Community 156 - "Module Group 156"
+### Community 143 - "Community 143"
 Cohesion: 0.29
 Nodes (2): PermissionCache, PermissionCacheInterface
 
-### Community 157 - "Module Group 157"
+### Community 144 - "Community 144"
 Cohesion: 0.2
 Nodes (1): ProjectAppService
 
-### Community 158 - "Module Group 158"
+### Community 145 - "Community 145"
 Cohesion: 0.29
 Nodes (7): makeTestModel(), TestActualSchemaQueryUseCase_ClusterUnreachable(), TestActualSchemaQueryUseCase_TableExists(), TestActualSchemaQueryUseCase_TableMissing(), TestActualSchemaQueryUseCase_VirtualFieldsExcluded(), mockActualSchemaService, mockClusterConnector
 
-### Community 159 - "Module Group 159"
+### Community 146 - "Community 146"
 Cohesion: 0.31
 Nodes (9): BuildModelFromTable(), findColumn(), formatModelTitle(), newModelFromCommand(), normalizeModelName(), validateModelDatabaseName(), validateModelDisplayName(), BuildModelFromTableResult (+1 more)
 
-### Community 160 - "Module Group 160"
-Cohesion: 0.2
-Nodes (6): User Data GraphQL Query Tests  Tests for querying user data through the Runtime, Test suite for user data queries via Runtime GraphQL, Test querying all records for a model, Test querying data with filters, Test querying a single record by ID, TestUserGraphQLQueries
-
-### Community 161 - "Module Group 161"
+### Community 147 - "Community 147"
 Cohesion: 0.31
 Nodes (1): GraphQLTypeFactory
 
-### Community 162 - "Module Group 162"
+### Community 148 - "Community 148"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 163 - "Module Group 163"
+### Community 149 - "Community 149"
 Cohesion: 0.31
 Nodes (4): decodeJWT(), getUserInfoFromToken(), isTokenExpired(), isTokenNearExpiry()
 
-### Community 164 - "Module Group 164"
+### Community 150 - "Community 150"
 Cohesion: 0.39
 Nodes (7): buildRuntimeEndpoint(), createAuthLink(), createModelRuntimeClient(), createOrgScopedClient(), createProjectScopedClient(), getOrgScopedClient(), useDesignTimeClient()
 
-### Community 165 - "Module Group 165"
+### Community 151 - "Community 151"
 Cohesion: 0.28
 Nodes (8): CasdoorTokenResponse, ErrorResponse, SuccessResponse, TokenRequest, ErrorResponseWithStatus(), NewErrorResponse(), NewSuccessResponse(), SuccessResponseWithStatus()
 
-### Community 166 - "Module Group 166"
+### Community 152 - "Community 152"
 Cohesion: 0.25
 Nodes (2): GetEnforcer(), initializeEnforcer()
 
-### Community 167 - "Module Group 167"
+### Community 153 - "Community 153"
 Cohesion: 0.22
 Nodes (8): CountModelsParams, CreateModelParams, GetModelByNameParams, ListModelsParams, UpdateModelDeploymentStatusParams, UpdateModelParams, UpdateModelsGroupIDParams, UpdateModelWithVersionParams
 
-### Community 168 - "Module Group 168"
+### Community 154 - "Community 154"
 Cohesion: 0.22
 Nodes (8): CreateDatabaseClusterParams, DeleteDatabaseClusterParams, ExistsDatabaseClusterByProjectKeyParams, GetDatabaseClusterByIDParams, GetDatabaseClusterByProjectKeyParams, ListDatabaseClustersParams, ListDatabaseClustersUpdatedAfterParams, UpdateDatabaseClusterWithVersionParams
 
-### Community 169 - "Module Group 169"
+### Community 155 - "Community 155"
+Cohesion: 0.22
+Nodes (8): CountFieldsByEnumRelationIDParams, CreateFieldDefinitionParams, DeleteFieldsByNamesParams, ExistsFieldByNameParams, GetFieldByModelIDAndNameParams, UpdateFieldDisplayOrderParams, UpdateFieldParams, UpdateFieldsStatusParams
+
+### Community 156 - "Community 156"
+Cohesion: 0.22
+Nodes (8): CountFieldEnumRelationsByLabelFieldParams, CountFieldEnumRelationsBySourceParams, CreateFieldEnumRelationParams, DeleteFieldEnumRelationByIDParams, FindFieldEnumRelationByLabelFieldParams, GetFieldEnumRelationByIDParams, GetFieldEnumRelationBySourceParams, ListFieldEnumRelationsByModelIDParams
+
+### Community 157 - "Community 157"
 Cohesion: 0.22
 Nodes (0): 
 
-### Community 170 - "Module Group 170"
+### Community 158 - "Community 158"
 Cohesion: 0.33
 Nodes (5): generateDefaultNickname(), NewInitialProfile(), NewProfile(), Profile, UpdatePatch
 
-### Community 171 - "Module Group 171"
+### Community 159 - "Community 159"
 Cohesion: 0.25
 Nodes (1): Permission
 
-### Community 172 - "Module Group 172"
+### Community 160 - "Community 160"
 Cohesion: 0.28
 Nodes (4): Membership, MembershipStatus, NewInvitation(), NewMembership()
 
-### Community 173 - "Module Group 173"
+### Community 161 - "Community 161"
 Cohesion: 0.22
 Nodes (8): ActualConstraintType, ActualForeignKey, ActualSchemaResult, ActualSchemaService, DbColumnInfo, DbTableStatus, FieldConflict, FieldConflictAspect
 
-### Community 174 - "Module Group 174"
+### Community 162 - "Community 162"
 Cohesion: 0.25
 Nodes (4): DesignHandlers, RuntimeHandlers, LoadRSAPublicKey(), SetupOrgGraphQLRoutesOnChi()
 
-### Community 175 - "Module Group 175"
+### Community 163 - "Community 163"
 Cohesion: 0.5
 Nodes (8): stubSystemRole(), systemRoleSyncerTestSetup(), TestSystemRolePermissionsSyncer_Sync_CreateRoleError(), TestSystemRolePermissionsSyncer_Sync_CreatesRoleWhenMissing(), TestSystemRolePermissionsSyncer_Sync_DeleteError(), TestSystemRolePermissionsSyncer_Sync_DeleteThenInsert(), TestSystemRolePermissionsSyncer_Sync_Idempotent(), TestSystemRolePermissionsSyncer_Sync_InsertError()
 
-### Community 176 - "Module Group 176"
-Cohesion: 0.25
-Nodes (8): exchange_for_modelcraft_token(), get_modelcraft_token(), get_test_access_token(), Authentication utilities for integration tests.  Provides functions to obtain JW, # NOTE: The current /api/auth/token endpoint expects an OAuth authorization code, Obtain JWT access token from Casdoor using Resource Owner Password Credentials f, Get ModelCraft JWT for tests (convenience function).      Note: Currently return, Exchange Casdoor JWT for ModelCraft JWT via ModelCraft's auth endpoint.      Not
-
-### Community 177 - "Module Group 177"
+### Community 164 - "Community 164"
 Cohesion: 0.42
 Nodes (7): TestCase, assertJSONEqual(), floatPtr(), intPtr(), stringPtr(), TestJSONSchemaBuilder_ValidationRules(), TestJSONSchemaGenerator_GenerateJSONSchema()
 
-### Community 178 - "Module Group 178"
+### Community 165 - "Community 165"
 Cohesion: 0.42
 Nodes (7): assertSDLEqual(), createTestModel(), normalizeSDL(), TestSchemaManager_GenerateBothSchemas(), TestSchemaManager_GenerateGraphQLSchema(), TestSchemaManager_GenerateJSONSchema(), TestSchemaManager_ValidateModel()
 
-### Community 179 - "Module Group 179"
+### Community 166 - "Community 166"
 Cohesion: 0.22
 Nodes (0): 
 
-### Community 180 - "Module Group 180"
+### Community 167 - "Community 167"
 Cohesion: 0.25
 Nodes (0): 
 
-### Community 181 - "Module Group 181"
+### Community 168 - "Community 168"
 Cohesion: 0.29
 Nodes (2): validateAgainstSchema(), validateField()
 
-### Community 182 - "Module Group 182"
+### Community 169 - "Community 169"
 Cohesion: 0.25
 Nodes (0): 
 
-### Community 183 - "Module Group 183"
+### Community 170 - "Community 170"
 Cohesion: 0.64
 Nodes (7): createBackup(), log(), main(), showSummary(), syncTailwindBaseCSS(), syncTailwindConfig(), validateFiles()
 
-### Community 184 - "Module Group 184"
+### Community 171 - "Community 171"
 Cohesion: 0.25
 Nodes (0): 
 
-### Community 185 - "Module Group 185"
+### Community 172 - "Community 172"
 Cohesion: 0.25
 Nodes (0): 
 
-### Community 186 - "Module Group 186"
+### Community 173 - "Community 173"
 Cohesion: 0.36
 Nodes (1): DDLConverter
 
-### Community 187 - "Module Group 187"
+### Community 174 - "Community 174"
 Cohesion: 0.29
 Nodes (2): Client, Config
 
-### Community 188 - "Module Group 188"
-Cohesion: 0.25
-Nodes (7): CreateFieldDefinitionParams, DeleteFieldsByNamesParams, ExistsFieldByNameParams, GetFieldByModelIDAndNameParams, UpdateFieldDisplayOrderParams, UpdateFieldParams, UpdateFieldsStatusParams
-
-### Community 189 - "Module Group 189"
+### Community 175 - "Community 175"
 Cohesion: 0.36
 Nodes (2): SqlProfileRepository, profileToDomain()
 
-### Community 190 - "Module Group 190"
+### Community 176 - "Community 176"
 Cohesion: 0.29
 Nodes (2): MembershipClaimInfo, ModelCraftClaims
 
-### Community 191 - "Module Group 191"
+### Community 177 - "Community 177"
 Cohesion: 0.36
 Nodes (2): isQueryableField(), whereInputBuilder
 
-### Community 192 - "Module Group 192"
+### Community 178 - "Community 178"
 Cohesion: 0.25
 Nodes (0): 
 
-### Community 193 - "Module Group 193"
+### Community 179 - "Community 179"
 Cohesion: 0.25
 Nodes (4): DeleteFieldRequest, ModelQueryOptions, ModelRepository, UpdateFieldsStatusRequest
 
-### Community 194 - "Module Group 194"
+### Community 180 - "Community 180"
 Cohesion: 0.36
 Nodes (2): ClusterMapper, NewClusterMapper()
 
-### Community 195 - "Module Group 195"
+### Community 181 - "Community 181"
 Cohesion: 0.29
 Nodes (2): ClusterErrorAdapter, NewClusterErrorAdapter()
 
-### Community 196 - "Module Group 196"
+### Community 182 - "Community 182"
 Cohesion: 0.25
 Nodes (1): GroupErrorAdapter
 
-### Community 197 - "Module Group 197"
+### Community 183 - "Community 183"
 Cohesion: 0.36
 Nodes (2): userManagementMapper, convertOrgStatusToGraphQL()
 
-### Community 198 - "Module Group 198"
+### Community 184 - "Community 184"
 Cohesion: 0.25
 Nodes (4): PermissionLoader, PermissionLoaderInterface, RolePermissionInfo, RolePermissions
 
-### Community 199 - "Module Group 199"
+### Community 185 - "Community 185"
 Cohesion: 0.25
 Nodes (2): CreateRoleInput, RoleAppService
 
-### Community 200 - "Module Group 200"
+### Community 186 - "Community 186"
 Cohesion: 0.25
 Nodes (2): OrganizationAppService, OrgMember
 
-### Community 201 - "Module Group 201"
-Cohesion: 0.25
-Nodes (5): ModelCraft Client Integration Tests  End-to-end integration tests that exercise, Integration tests for complete ModelCraft workflows, Test the complete lifecycle: Create model (using project's cluster) → Query data, Test integration across projects, clusters, and models.          Verifies that r, TestModelCraftClientIntegration
-
-### Community 202 - "Module Group 202"
+### Community 187 - "Community 187"
 Cohesion: 0.29
 Nodes (3): InitDefaultAESCipher(), NewAESCipher(), AESCipher
 
-### Community 203 - "Module Group 203"
+### Community 188 - "Community 188"
 Cohesion: 0.25
 Nodes (1): TestStruct
 
-### Community 204 - "Module Group 204"
+### Community 189 - "Community 189"
 Cohesion: 0.33
 Nodes (2): formatTimestamp(), getOperationInfo()
 
-### Community 205 - "Module Group 205"
+### Community 190 - "Community 190"
 Cohesion: 0.33
 Nodes (2): handleEdit(), isRecord()
 
-### Community 206 - "Module Group 206"
+### Community 191 - "Community 191"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 207 - "Module Group 207"
+### Community 192 - "Community 192"
 Cohesion: 0.48
 Nodes (6): isReservedName(), isValidCustomBase(), isValidDefaultName(), isValidFinalName(), validateCustomBase(), validateOrgName()
 
-### Community 208 - "Module Group 208"
+### Community 193 - "Community 193"
 Cohesion: 0.48
 Nodes (5): getComponentProps(), getComponentType(), getValidator(), parseAndTransformSchema(), transformToFormilySchema()
 
-### Community 209 - "Module Group 209"
+### Community 194 - "Community 194"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 210 - "Module Group 210"
+### Community 195 - "Community 195"
 Cohesion: 0.38
 Nodes (3): buildFallbackProfileSnapshot(), buildMockAvatarUrl(), POST()
 
-### Community 211 - "Module Group 211"
+### Community 196 - "Community 196"
 Cohesion: 0.62
 Nodes (6): getResponse(), handleRequest(), resolveMainClient(), respondWithMock(), sendToClient(), serializeRequest()
 
-### Community 212 - "Module Group 212"
+### Community 197 - "Community 197"
 Cohesion: 0.29
 Nodes (2): CasdoorConfig, CasdoorProvider
 
-### Community 213 - "Module Group 213"
+### Community 198 - "Community 198"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 214 - "Module Group 214"
+### Community 199 - "Community 199"
 Cohesion: 0.29
 Nodes (6): ArchiveProjectParams, CreateProjectParams, ExistsProjectBySlugParams, GetProjectByClusterIDParams, GetProjectBySlugAndOrgParams, UpdateProjectParams
 
-### Community 215 - "Module Group 215"
-Cohesion: 0.29
-Nodes (6): CountFieldEnumRelationsBySourceParams, CreateFieldEnumRelationParams, DeleteFieldEnumRelationByIDParams, GetFieldEnumRelationByIDParams, GetFieldEnumRelationBySourceParams, ListFieldEnumRelationsByModelIDParams
-
-### Community 216 - "Module Group 216"
+### Community 200 - "Community 200"
 Cohesion: 0.48
 Nodes (2): SqlModelRuntimeRepository, DbgenModelToRuntimeModel()
 
-### Community 217 - "Module Group 217"
+### Community 201 - "Community 201"
 Cohesion: 0.43
 Nodes (4): NewOAuthUser(), NewUser(), User, ValidateUserName()
 
-### Community 218 - "Module Group 218"
+### Community 202 - "Community 202"
 Cohesion: 0.33
 Nodes (4): newGraphqlRequestContext(), WithGraphqlRequestContext(), graphqlRequestContext, graphqlRequestContextKey
 
-### Community 219 - "Module Group 219"
+### Community 203 - "Community 203"
 Cohesion: 0.33
 Nodes (2): newBaseFieldForFKTest(), TestFieldDefinition_RelationFormat_WithRelateFkId()
 
-### Community 220 - "Module Group 220"
+### Community 204 - "Community 204"
 Cohesion: 0.38
 Nodes (2): MySQLTypeMapper, TypeMapper
 
-### Community 221 - "Module Group 221"
+### Community 205 - "Community 205"
 Cohesion: 0.29
 Nodes (5): HealthStatus, RepairMode, RepairResult, SchemaIssue, SchemaIssueType
 
-### Community 222 - "Module Group 222"
+### Community 206 - "Community 206"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 223 - "Module Group 223"
+### Community 207 - "Community 207"
 Cohesion: 0.48
 Nodes (6): conditionalAuthMiddleware(), debugHandler(), healthHandler(), openAPISpecHandler(), SetupChiRouter(), ChiRouterConfig
 
-### Community 224 - "Module Group 224"
+### Community 208 - "Community 208"
 Cohesion: 0.38
 Nodes (2): writeJSONError(), CreateHandler
 
-### Community 225 - "Module Group 225"
+### Community 209 - "Community 209"
 Cohesion: 0.38
 Nodes (1): FieldSelectionChecker
 
-### Community 226 - "Module Group 226"
+### Community 210 - "Community 210"
 Cohesion: 0.29
 Nodes (1): injectRequestIDMiddleware()
 
-### Community 227 - "Module Group 227"
+### Community 211 - "Community 211"
 Cohesion: 0.29
 Nodes (1): EnumErrorAdapter
 
-### Community 228 - "Module Group 228"
+### Community 212 - "Community 212"
+Cohesion: 0.57
+Nodes (0): 
+
+### Community 213 - "Community 213"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 229 - "Module Group 229"
+### Community 214 - "Community 214"
 Cohesion: 0.29
 Nodes (1): ProjectErrorAdapter
 
-### Community 230 - "Module Group 230"
+### Community 215 - "Community 215"
 Cohesion: 0.38
 Nodes (2): projectMapper, ConvertProjectStatusToGraphQL()
 
-### Community 231 - "Module Group 231"
+### Community 216 - "Community 216"
 Cohesion: 0.52
 Nodes (6): setupVersionManager(), TestPermissionVersionManager_BuildVersionKey(), TestPermissionVersionManager_ConcurrentIncrements(), TestPermissionVersionManager_GetVersion(), TestPermissionVersionManager_IncrementVersion(), TestPermissionVersionManager_VersionPersistence()
 
-### Community 232 - "Module Group 232"
+### Community 217 - "Community 217"
 Cohesion: 0.43
 Nodes (1): PermissionVersionManager
 
-### Community 233 - "Module Group 233"
+### Community 218 - "Community 218"
 Cohesion: 0.29
 Nodes (6): CreateClusterForProjectInput, CreateProjectCommand, DeleteProjectCommand, GetProjectCommand, ListProjectsCommand, UpdateProjectCommand
 
-### Community 234 - "Module Group 234"
+### Community 219 - "Community 219"
 Cohesion: 0.33
 Nodes (2): validateFieldsExistOnModel(), LogicalFKAppService
 
-### Community 235 - "Module Group 235"
+### Community 220 - "Community 220"
 Cohesion: 0.62
 Nodes (6): makeBelongsToField(), makeModelWithFields(), makeRelationField(), TestRemoveBelongsToField_BlockedWhenRelateFieldsExist(), TestRemoveBelongsToField_DeletesFKPairWhenNoRelateFields(), TestRemoveRelationField_AllowedFreely()
 
-### Community 236 - "Module Group 236"
+### Community 221 - "Community 221"
 Cohesion: 0.38
 Nodes (1): SchemaManager
 
-### Community 237 - "Module Group 237"
+### Community 222 - "Community 222"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 238 - "Module Group 238"
+### Community 223 - "Community 223"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 239 - "Module Group 239"
+### Community 224 - "Community 224"
 Cohesion: 0.47
 Nodes (3): TabsContent(), TabsTrigger(), useTabsContext()
 
-### Community 240 - "Module Group 240"
+### Community 225 - "Community 225"
 Cohesion: 0.4
 Nodes (2): copyErrorInfo(), fallbackCopy()
 
-### Community 241 - "Module Group 241"
+### Community 226 - "Community 226"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 242 - "Module Group 242"
+### Community 227 - "Community 227"
 Cohesion: 0.4
 Nodes (2): mapQueryPayloadToProfileView(), normalizeUserStatus()
 
-### Community 243 - "Module Group 243"
+### Community 228 - "Community 228"
 Cohesion: 0.6
 Nodes (5): isModelEnumErrorCode(), mapModelEnumError(), normalizeCode(), normalizeMessage(), normalizeSuggestion()
 
-### Community 244 - "Module Group 244"
+### Community 229 - "Community 229"
 Cohesion: 0.33
 Nodes (1): jsonResponseWriter
 
-### Community 245 - "Module Group 245"
+### Community 230 - "Community 230"
 Cohesion: 0.47
 Nodes (4): ChiJWTAuthMiddleware(), extractBearerToken(), validateModelCraftJWT(), JWTAuthConfig
 
-### Community 246 - "Module Group 246"
+### Community 231 - "Community 231"
 Cohesion: 0.47
 Nodes (4): ChiLoggerMiddleware(), shouldCaptureChiRequestBody(), shouldCaptureChiResponseBody(), chiResponseWriter
 
-### Community 247 - "Module Group 247"
+### Community 232 - "Community 232"
 Cohesion: 0.73
 Nodes (5): okHandler(), requestWithPermissions(), TestChiRequireAllPermissions(), TestChiRequireAnyPermission(), TestChiRequirePermission()
 
-### Community 248 - "Module Group 248"
+### Community 233 - "Community 233"
 Cohesion: 0.33
 Nodes (5): CreateModelGroupParams, GetModelGroupByNameParams, GetTailModelGroupDisplayOrderParams, ListModelGroupsByProjectParams, UpdateModelGroupParams
 
-### Community 249 - "Module Group 249"
+### Community 234 - "Community 234"
 Cohesion: 0.4
 Nodes (2): NewFieldEnumAssociationPOFromDomain(), FieldEnumAssociationPO
 
-### Community 250 - "Module Group 250"
+### Community 235 - "Community 235"
 Cohesion: 0.4
 Nodes (2): ptrInt(), TestFieldDefinitionToDomain()
 
-### Community 251 - "Module Group 251"
+### Community 236 - "Community 236"
 Cohesion: 0.4
 Nodes (2): NewModelGroupPOFromDomain(), ModelGroupPO
 
-### Community 252 - "Module Group 252"
+### Community 237 - "Community 237"
 Cohesion: 0.47
 Nodes (2): ProjectAuthConfig, ProviderType
 
-### Community 253 - "Module Group 253"
+### Community 238 - "Community 238"
 Cohesion: 0.33
 Nodes (4): EnvironmentContext, InterceptorContext, ResourceContext, UserContext
 
-### Community 254 - "Module Group 254"
+### Community 239 - "Community 239"
 Cohesion: 0.33
 Nodes (1): PhoneNumber
 
-### Community 255 - "Module Group 255"
+### Community 240 - "Community 240"
 Cohesion: 0.33
 Nodes (1): GraphqlSchemaManager
 
-### Community 256 - "Module Group 256"
+### Community 241 - "Community 241"
 Cohesion: 0.33
 Nodes (2): EnumLabel, RuntimeModel
 
-### Community 257 - "Module Group 257"
+### Community 242 - "Community 242"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 258 - "Module Group 258"
+### Community 243 - "Community 243"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 259 - "Module Group 259"
+### Community 244 - "Community 244"
 Cohesion: 0.33
 Nodes (5): ChangeResult, DeploymentHistory, DeploymentStatus, ModelChange, ModelChangeType
 
-### Community 260 - "Module Group 260"
+### Community 245 - "Community 245"
 Cohesion: 0.33
 Nodes (2): LogicalFKDirection, LogicalForeignKey
 
-### Community 261 - "Module Group 261"
+### Community 246 - "Community 246"
 Cohesion: 0.53
 Nodes (3): responseRecorder, injectRequestID(), requestIDInjectorMiddleware()
 
-### Community 262 - "Module Group 262"
+### Community 247 - "Community 247"
 Cohesion: 0.33
 Nodes (5): EnumConfigDTO, EnumOptionDTO, FieldDefinitionDTO, RelationConfigDTO, ValidationConfigDTO
 
-### Community 263 - "Module Group 263"
+### Community 248 - "Community 248"
 Cohesion: 0.47
 Nodes (3): convertRolesToGraphQL(), convertRoleToGraphQL(), strPtr()
 
-### Community 264 - "Module Group 264"
+### Community 249 - "Community 249"
 Cohesion: 0.33
 Nodes (1): APIKeyErrorAdapter
 
-### Community 265 - "Module Group 265"
+### Community 250 - "Community 250"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 266 - "Module Group 266"
+### Community 251 - "Community 251"
 Cohesion: 0.33
 Nodes (2): ModelRuntimeHandler, RuntimeGraphQLRequest
 
-### Community 267 - "Module Group 267"
+### Community 252 - "Community 252"
 Cohesion: 0.33
 Nodes (5): GetMyUserProfileCommand, ProfileView, UpdateMyProfileCommand, UserProfileView, UserView
 
-### Community 268 - "Module Group 268"
+### Community 253 - "Community 253"
 Cohesion: 0.33
 Nodes (1): MockPermissionVersionManager
 
-### Community 269 - "Module Group 269"
+### Community 254 - "Community 254"
 Cohesion: 0.33
 Nodes (1): PermissionService
 
-### Community 270 - "Module Group 270"
+### Community 255 - "Community 255"
 Cohesion: 0.33
 Nodes (1): ModelDefinition
 
-### Community 271 - "Module Group 271"
+### Community 256 - "Community 256"
 Cohesion: 0.33
 Nodes (0): 
 
-### Community 272 - "Module Group 272"
+### Community 257 - "Community 257"
 Cohesion: 0.4
 Nodes (2): getDefault(), GetLogger()
 
-### Community 273 - "Module Group 273"
+### Community 258 - "Community 258"
 Cohesion: 0.4
 Nodes (4): CalculateTimeCost(), GetMetadata(), contextKey, RequestMetadata
 
-### Community 274 - "Module Group 274"
+### Community 259 - "Community 259"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 275 - "Module Group 275"
+### Community 260 - "Community 260"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 261 - "Community 261"
 Cohesion: 0.5
 Nodes (2): getClient(), makeClient()
 
-### Community 276 - "Module Group 276"
+### Community 262 - "Community 262"
 Cohesion: 0.5
 Nodes (2): formatRelationDisplay(), renderCellValue()
 
-### Community 277 - "Module Group 277"
+### Community 263 - "Community 263"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 278 - "Module Group 278"
+### Community 264 - "Community 264"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 279 - "Module Group 279"
+### Community 265 - "Community 265"
 Cohesion: 0.5
 Nodes (2): mapQueryPayloadToProfileView(), normalizeUserStatus()
 
-### Community 280 - "Module Group 280"
+### Community 266 - "Community 266"
 Cohesion: 0.7
 Nodes (4): createMockMyUserProfilePayload(), createMockProfile(), createMockUpdateMyProfilePayload(), createMockUserWithProfile()
 
-### Community 281 - "Module Group 281"
+### Community 267 - "Community 267"
 Cohesion: 0.7
 Nodes (4): CheckPermission(), ChiRequireAllPermissions(), ChiRequireAnyPermission(), ChiRequirePermission()
 
-### Community 282 - "Module Group 282"
+### Community 268 - "Community 268"
 Cohesion: 0.4
 Nodes (1): BcryptPasswordHasher
 
-### Community 283 - "Module Group 283"
+### Community 269 - "Community 269"
 Cohesion: 0.4
 Nodes (2): SqlTxManager, TxManager
 
-### Community 284 - "Module Group 284"
+### Community 270 - "Community 270"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 285 - "Module Group 285"
+### Community 271 - "Community 271"
 Cohesion: 0.4
 Nodes (2): RefreshClaims, UserClaims
 
-### Community 286 - "Module Group 286"
+### Community 272 - "Community 272"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 287 - "Module Group 287"
+### Community 273 - "Community 273"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 288 - "Module Group 288"
+### Community 274 - "Community 274"
 Cohesion: 0.5
 Nodes (2): ProjectScope, NewProjectScope()
 
-### Community 289 - "Module Group 289"
+### Community 275 - "Community 275"
 Cohesion: 0.4
 Nodes (1): UserRole
 
-### Community 290 - "Module Group 290"
+### Community 276 - "Community 276"
 Cohesion: 0.4
 Nodes (1): ModelGroup
 
-### Community 291 - "Module Group 291"
+### Community 277 - "Community 277"
 Cohesion: 0.4
 Nodes (2): FieldQuery, ModelQuery
 
-### Community 292 - "Module Group 292"
+### Community 278 - "Community 278"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 293 - "Module Group 293"
+### Community 279 - "Community 279"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 294 - "Module Group 294"
+### Community 280 - "Community 280"
 Cohesion: 0.6
 Nodes (1): groupMapper
 
-### Community 295 - "Module Group 295"
+### Community 281 - "Community 281"
 Cohesion: 0.4
 Nodes (1): FKErrorAdapter
 
-### Community 296 - "Module Group 296"
+### Community 282 - "Community 282"
 Cohesion: 0.5
 Nodes (1): apiKeyMapper
 
-### Community 297 - "Module Group 297"
+### Community 283 - "Community 283"
 Cohesion: 0.5
 Nodes (1): CleanupService
 
-### Community 298 - "Module Group 298"
+### Community 284 - "Community 284"
 Cohesion: 0.5
 Nodes (1): GraphqlAppService
 
-### Community 299 - "Module Group 299"
+### Community 285 - "Community 285"
 Cohesion: 0.4
 Nodes (1): AppService
 
-### Community 300 - "Module Group 300"
+### Community 286 - "Community 286"
 Cohesion: 0.4
 Nodes (2): ActualSchemaQueryUseCase, clusterConnector
 
-### Community 301 - "Module Group 301"
+### Community 287 - "Community 287"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 302 - "Module Group 302"
+### Community 288 - "Community 288"
 Cohesion: 0.4
 Nodes (1): GraphQLTestCase
 
-### Community 303 - "Module Group 303"
+### Community 289 - "Community 289"
 Cohesion: 0.4
 Nodes (4): ErrorResponse, FieldError, SuccessResponse, ValidationErrorResponse
 
-### Community 304 - "Module Group 304"
+### Community 290 - "Community 290"
 Cohesion: 0.4
 Nodes (0): 
 
-### Community 305 - "Module Group 305"
+### Community 291 - "Community 291"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 306 - "Module Group 306"
+### Community 292 - "Community 292"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 307 - "Module Group 307"
+### Community 293 - "Community 293"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 308 - "Module Group 308"
+### Community 294 - "Community 294"
 Cohesion: 0.67
 Nodes (2): extractWidgetFields(), RelationPicker()
 
-### Community 309 - "Module Group 309"
+### Community 295 - "Community 295"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 310 - "Module Group 310"
+### Community 296 - "Community 296"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 311 - "Module Group 311"
+### Community 297 - "Community 297"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 312 - "Module Group 312"
+### Community 298 - "Community 298"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 313 - "Module Group 313"
+### Community 299 - "Community 299"
 Cohesion: 0.67
 Nodes (2): formatDate(), formatDateSafe()
 
-### Community 314 - "Module Group 314"
+### Community 300 - "Community 300"
 Cohesion: 0.83
 Nodes (3): getJWTSecret(), signAccessToken(), verifyAccessToken()
 
-### Community 315 - "Module Group 315"
+### Community 301 - "Community 301"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 316 - "Module Group 316"
+### Community 302 - "Community 302"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 317 - "Module Group 317"
+### Community 303 - "Community 303"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 318 - "Module Group 318"
+### Community 304 - "Community 304"
 Cohesion: 0.67
 Nodes (2): AnalyzeError(), WrapDatabaseError()
 
-### Community 319 - "Module Group 319"
+### Community 305 - "Community 305"
 Cohesion: 0.5
 Nodes (3): CreateLogicalForeignKeyParams, FindFieldsByBelongsToFKIDRow, FindFieldsByRelateFKIDRow
 
-### Community 320 - "Module Group 320"
+### Community 306 - "Community 306"
 Cohesion: 0.5
 Nodes (3): InsertAPIKeyParams, RevokeAPIKeyParams, UpdateAPIKeyParams
 
-### Community 321 - "Module Group 321"
+### Community 307 - "Community 307"
 Cohesion: 0.5
 Nodes (3): CreateInitialProfileParams, GetProfileByUserIDParams, UpdateProfileByUserIDParams
 
-### Community 322 - "Module Group 322"
+### Community 308 - "Community 308"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 323 - "Module Group 323"
+### Community 309 - "Community 309"
 Cohesion: 0.5
 Nodes (1): SqlSecurityAuditLogRepository
 
-### Community 324 - "Module Group 324"
+### Community 310 - "Community 310"
 Cohesion: 0.83
 Nodes (3): setupClusterTestCipher(), TestDatabaseClusterToCreateParams(), TestDatabaseClusterToDomain()
 
-### Community 325 - "Module Group 325"
+### Community 311 - "Community 311"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 326 - "Module Group 326"
+### Community 312 - "Community 312"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 327 - "Module Group 327"
+### Community 313 - "Community 313"
 Cohesion: 0.5
 Nodes (3): SecurityAuditEvent, SecurityAuditLog, SecurityAuditLogRepository
 
-### Community 328 - "Module Group 328"
+### Community 314 - "Community 314"
 Cohesion: 0.67
 Nodes (2): InterceptorRule, NewInterceptorRule()
 
-### Community 329 - "Module Group 329"
+### Community 315 - "Community 315"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 330 - "Module Group 330"
+### Community 316 - "Community 316"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 331 - "Module Group 331"
+### Community 317 - "Community 317"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 332 - "Module Group 332"
+### Community 318 - "Community 318"
 Cohesion: 0.5
 Nodes (3): PermissionRepository, RoleRepository, UserRoleRepository
 
-### Community 333 - "Module Group 333"
+### Community 319 - "Community 319"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 334 - "Module Group 334"
+### Community 320 - "Community 320"
 Cohesion: 0.5
 Nodes (3): MembershipRepository, MembershipWithDetails, MembershipWithUserName
 
-### Community 335 - "Module Group 335"
+### Community 321 - "Community 321"
 Cohesion: 0.67
 Nodes (2): ptr(), TestMySQLTypeMapper_MapToMySQL()
 
-### Community 336 - "Module Group 336"
+### Community 322 - "Community 322"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 337 - "Module Group 337"
+### Community 323 - "Community 323"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 338 - "Module Group 338"
+### Community 324 - "Community 324"
 Cohesion: 0.67
 Nodes (2): NewFieldEnumAssociation(), FieldEnumAssociation
 
-### Community 339 - "Module Group 339"
+### Community 325 - "Community 325"
 Cohesion: 0.5
 Nodes (1): ConnectionInfo
 
-### Community 340 - "Module Group 340"
+### Community 326 - "Community 326"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 341 - "Module Group 341"
+### Community 327 - "Community 327"
 Cohesion: 0.5
 Nodes (1): Resolver
 
-### Community 342 - "Module Group 342"
+### Community 328 - "Community 328"
 Cohesion: 0.5
 Nodes (1): enumMapper
 
-### Community 343 - "Module Group 343"
+### Community 329 - "Community 329"
 Cohesion: 0.5
 Nodes (1): Resolver
 
-### Community 344 - "Module Group 344"
+### Community 330 - "Community 330"
 Cohesion: 0.5
 Nodes (3): CreateClusterCommand, TestConnectionCommand, UpdateProjectClusterCommand
 
-### Community 345 - "Module Group 345"
+### Community 331 - "Community 331"
 Cohesion: 0.5
 Nodes (1): SystemRolePermissionsSyncer
 
-### Community 346 - "Module Group 346"
+### Community 332 - "Community 332"
 Cohesion: 0.5
 Nodes (1): AddFieldFKService
 
-### Community 347 - "Module Group 347"
+### Community 333 - "Community 333"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 348 - "Module Group 348"
+### Community 334 - "Community 334"
 Cohesion: 0.83
 Nodes (3): initializeCasbinEnforcer(), main(), printWelcomeBanner()
 
-### Community 349 - "Module Group 349"
+### Community 335 - "Community 335"
 Cohesion: 0.5
 Nodes (3): GraphQLSchemaResult, JSONSchemaResult, SchemaGenerator
 
-### Community 350 - "Module Group 350"
+### Community 336 - "Community 336"
 Cohesion: 0.5
 Nodes (3): FieldEntity, MySQLDataType, TableEntity
 
-### Community 351 - "Module Group 351"
+### Community 337 - "Community 337"
 Cohesion: 0.5
 Nodes (0): 
 
-### Community 352 - "Module Group 352"
+### Community 338 - "Community 338"
 Cohesion: 0.5
 Nodes (1): PlaygroundConfig
 
-### Community 353 - "Module Group 353"
+### Community 339 - "Community 339"
 Cohesion: 0.83
 Nodes (3): generateRandomAlphanumeric(), GenerateSlug(), GenerateSlugWithLength()
 
-### Community 354 - "Module Group 354"
+### Community 340 - "Community 340"
 Cohesion: 0.67
 Nodes (1): ModelCraftWorld
 
-### Community 355 - "Module Group 355"
+### Community 341 - "Community 341"
 Cohesion: 1.0
 Nodes (2): base64url(), signJWT()
 
-### Community 356 - "Module Group 356"
+### Community 342 - "Community 342"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 357 - "Module Group 357"
+### Community 343 - "Community 343"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 358 - "Module Group 358"
+### Community 344 - "Community 344"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 359 - "Module Group 359"
+### Community 345 - "Community 345"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 360 - "Module Group 360"
+### Community 346 - "Community 346"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 361 - "Module Group 361"
+### Community 347 - "Community 347"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 362 - "Module Group 362"
+### Community 348 - "Community 348"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 363 - "Module Group 363"
+### Community 349 - "Community 349"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 364 - "Module Group 364"
+### Community 350 - "Community 350"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 365 - "Module Group 365"
+### Community 351 - "Community 351"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 366 - "Module Group 366"
+### Community 352 - "Community 352"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 367 - "Module Group 367"
+### Community 353 - "Community 353"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 368 - "Module Group 368"
+### Community 354 - "Community 354"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 369 - "Module Group 369"
+### Community 355 - "Community 355"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 370 - "Module Group 370"
+### Community 356 - "Community 356"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 371 - "Module Group 371"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 372 - "Module Group 372"
+### Community 357 - "Community 357"
 Cohesion: 1.0
 Nodes (2): ChiRecoveryMiddleware(), resolveRequestID()
 
-### Community 373 - "Module Group 373"
+### Community 358 - "Community 358"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 374 - "Module Group 374"
+### Community 359 - "Community 359"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 375 - "Module Group 375"
+### Community 360 - "Community 360"
 Cohesion: 0.67
 Nodes (2): GetUserByNameRow, GetUserByPhoneRow
 
-### Community 376 - "Module Group 376"
+### Community 361 - "Community 361"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 377 - "Module Group 377"
+### Community 362 - "Community 362"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 378 - "Module Group 378"
+### Community 363 - "Community 363"
 Cohesion: 0.67
 Nodes (1): ConnectionFactory
 
-### Community 379 - "Module Group 379"
+### Community 364 - "Community 364"
 Cohesion: 0.67
 Nodes (1): APIKey
 
-### Community 380 - "Module Group 380"
+### Community 365 - "Community 365"
 Cohesion: 1.0
 Nodes (2): newRelationBatchLoader(), toString()
 
-### Community 381 - "Module Group 381"
+### Community 366 - "Community 366"
 Cohesion: 0.67
 Nodes (1): FieldEnumRelation
 
-### Community 382 - "Module Group 382"
+### Community 367 - "Community 367"
+Cohesion: 1.0
+Nodes (2): WriteJSON(), WriteJSONError()
+
+### Community 368 - "Community 368"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 383 - "Module Group 383"
+### Community 369 - "Community 369"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 384 - "Module Group 384"
+### Community 370 - "Community 370"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 385 - "Module Group 385"
+### Community 371 - "Community 371"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 386 - "Module Group 386"
+### Community 372 - "Community 372"
 Cohesion: 0.67
 Nodes (0): 
 
-### Community 387 - "Module Group 387"
+### Community 373 - "Community 373"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 388 - "Module Group 388"
+### Community 374 - "Community 374"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 389 - "Module Group 389"
+### Community 375 - "Community 375"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 390 - "Module Group 390"
+### Community 376 - "Community 376"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 391 - "Module Group 391"
+### Community 377 - "Community 377"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 392 - "Module Group 392"
+### Community 378 - "Community 378"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 393 - "Module Group 393"
+### Community 379 - "Community 379"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 394 - "Module Group 394"
+### Community 380 - "Community 380"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 395 - "Module Group 395"
+### Community 381 - "Community 381"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 396 - "Module Group 396"
+### Community 382 - "Community 382"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 397 - "Module Group 397"
+### Community 383 - "Community 383"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 398 - "Module Group 398"
+### Community 384 - "Community 384"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 399 - "Module Group 399"
+### Community 385 - "Community 385"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 400 - "Module Group 400"
+### Community 386 - "Community 386"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 401 - "Module Group 401"
+### Community 387 - "Community 387"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 402 - "Module Group 402"
+### Community 388 - "Community 388"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 403 - "Module Group 403"
+### Community 389 - "Community 389"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 404 - "Module Group 404"
+### Community 390 - "Community 390"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 405 - "Module Group 405"
+### Community 391 - "Community 391"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 406 - "Module Group 406"
+### Community 392 - "Community 392"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 407 - "Module Group 407"
+### Community 393 - "Community 393"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 408 - "Module Group 408"
+### Community 394 - "Community 394"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 409 - "Module Group 409"
+### Community 395 - "Community 395"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 410 - "Module Group 410"
+### Community 396 - "Community 396"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 411 - "Module Group 411"
+### Community 397 - "Community 397"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 412 - "Module Group 412"
+### Community 398 - "Community 398"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 413 - "Module Group 413"
+### Community 399 - "Community 399"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 414 - "Module Group 414"
+### Community 400 - "Community 400"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 415 - "Module Group 415"
+### Community 401 - "Community 401"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 416 - "Module Group 416"
+### Community 402 - "Community 402"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 417 - "Module Group 417"
+### Community 403 - "Community 403"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 418 - "Module Group 418"
+### Community 404 - "Community 404"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 419 - "Module Group 419"
+### Community 405 - "Community 405"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 420 - "Module Group 420"
+### Community 406 - "Community 406"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 421 - "Module Group 421"
+### Community 407 - "Community 407"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 422 - "Module Group 422"
+### Community 408 - "Community 408"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 423 - "Module Group 423"
+### Community 409 - "Community 409"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 424 - "Module Group 424"
+### Community 410 - "Community 410"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 425 - "Module Group 425"
+### Community 411 - "Community 411"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 426 - "Module Group 426"
+### Community 412 - "Community 412"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 427 - "Module Group 427"
+### Community 413 - "Community 413"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 428 - "Module Group 428"
+### Community 414 - "Community 414"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 429 - "Module Group 429"
+### Community 415 - "Community 415"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 430 - "Module Group 430"
+### Community 416 - "Community 416"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 431 - "Module Group 431"
+### Community 417 - "Community 417"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 432 - "Module Group 432"
+### Community 418 - "Community 418"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 433 - "Module Group 433"
+### Community 419 - "Community 419"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 434 - "Module Group 434"
+### Community 420 - "Community 420"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 435 - "Module Group 435"
+### Community 421 - "Community 421"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 436 - "Module Group 436"
+### Community 422 - "Community 422"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 437 - "Module Group 437"
+### Community 423 - "Community 423"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 438 - "Module Group 438"
+### Community 424 - "Community 424"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 439 - "Module Group 439"
+### Community 425 - "Community 425"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 440 - "Module Group 440"
+### Community 426 - "Community 426"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 441 - "Module Group 441"
+### Community 427 - "Community 427"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 442 - "Module Group 442"
+### Community 428 - "Community 428"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 443 - "Module Group 443"
+### Community 429 - "Community 429"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 444 - "Module Group 444"
+### Community 430 - "Community 430"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 445 - "Module Group 445"
+### Community 431 - "Community 431"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 446 - "Module Group 446"
+### Community 432 - "Community 432"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 447 - "Module Group 447"
+### Community 433 - "Community 433"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 448 - "Module Group 448"
+### Community 434 - "Community 434"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 449 - "Module Group 449"
+### Community 435 - "Community 435"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 450 - "Module Group 450"
+### Community 436 - "Community 436"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 451 - "Module Group 451"
+### Community 437 - "Community 437"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 452 - "Module Group 452"
+### Community 438 - "Community 438"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 453 - "Module Group 453"
+### Community 439 - "Community 439"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 454 - "Module Group 454"
+### Community 440 - "Community 440"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 455 - "Module Group 455"
+### Community 441 - "Community 441"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 456 - "Module Group 456"
+### Community 442 - "Community 442"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 457 - "Module Group 457"
+### Community 443 - "Community 443"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 458 - "Module Group 458"
+### Community 444 - "Community 444"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 459 - "Module Group 459"
+### Community 445 - "Community 445"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 460 - "Module Group 460"
+### Community 446 - "Community 446"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 461 - "Module Group 461"
+### Community 447 - "Community 447"
 Cohesion: 1.0
 Nodes (1): APIKeyVerifier
 
-### Community 462 - "Module Group 462"
+### Community 448 - "Community 448"
 Cohesion: 1.0
 Nodes (1): Querier
 
-### Community 463 - "Module Group 463"
+### Community 449 - "Community 449"
 Cohesion: 1.0
 Nodes (1): InsertSecurityAuditLogParams
 
-### Community 464 - "Module Group 464"
+### Community 450 - "Community 450"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 465 - "Module Group 465"
+### Community 451 - "Community 451"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 466 - "Module Group 466"
+### Community 452 - "Community 452"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 467 - "Module Group 467"
+### Community 453 - "Community 453"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 468 - "Module Group 468"
+### Community 454 - "Community 454"
 Cohesion: 1.0
 Nodes (1): APIKeyRepository
 
-### Community 469 - "Module Group 469"
+### Community 455 - "Community 455"
 Cohesion: 1.0
 Nodes (1): AuthProvider
 
-### Community 470 - "Module Group 470"
+### Community 456 - "Community 456"
 Cohesion: 1.0
 Nodes (1): RoleRepository
 
-### Community 471 - "Module Group 471"
+### Community 457 - "Community 457"
 Cohesion: 1.0
 Nodes (1): UserRepository
 
-### Community 472 - "Module Group 472"
+### Community 458 - "Community 458"
 Cohesion: 1.0
 Nodes (1): DatabaseClusterRepository
 
-### Community 473 - "Module Group 473"
+### Community 459 - "Community 459"
 Cohesion: 1.0
 Nodes (1): ModelRepository
 
-### Community 474 - "Module Group 474"
+### Community 460 - "Community 460"
 Cohesion: 1.0
 Nodes (1): ClientDatabaseRepository
 
-### Community 475 - "Module Group 475"
+### Community 461 - "Community 461"
 Cohesion: 1.0
 Nodes (1): Repository
 
-### Community 476 - "Module Group 476"
+### Community 462 - "Community 462"
 Cohesion: 1.0
 Nodes (1): OrganizationRepository
 
-### Community 477 - "Module Group 477"
+### Community 463 - "Community 463"
 Cohesion: 1.0
 Nodes (1): ProjectRepository
 
-### Community 478 - "Module Group 478"
+### Community 464 - "Community 464"
 Cohesion: 1.0
 Nodes (1): LogicalForeignKeyRepository
 
-### Community 479 - "Module Group 479"
+### Community 465 - "Community 465"
 Cohesion: 1.0
 Nodes (1): EnumRepository
 
-### Community 480 - "Module Group 480"
+### Community 466 - "Community 466"
 Cohesion: 1.0
 Nodes (1): FieldEnumRelationRepository
 
-### Community 481 - "Module Group 481"
+### Community 467 - "Community 467"
 Cohesion: 1.0
 Nodes (1): FieldDefinitionRepository
 
-### Community 482 - "Module Group 482"
+### Community 468 - "Community 468"
 Cohesion: 1.0
 Nodes (1): FieldEnumAssociationRepository
 
-### Community 483 - "Module Group 483"
+### Community 469 - "Community 469"
 Cohesion: 1.0
 Nodes (1): DeployRepo
 
-### Community 484 - "Module Group 484"
+### Community 470 - "Community 470"
 Cohesion: 1.0
 Nodes (1): ModelGroupRepository
 
-### Community 485 - "Module Group 485"
+### Community 471 - "Community 471"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 486 - "Module Group 486"
+### Community 472 - "Community 472"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 487 - "Module Group 487"
+### Community 473 - "Community 473"
 Cohesion: 1.0
 Nodes (1): ExecuteGraphQLCommand
 
-### Community 488 - "Module Group 488"
+### Community 474 - "Community 474"
 Cohesion: 1.0
 Nodes (1): ListTablesResult
 
-### Community 489 - "Module Group 489"
-Cohesion: 1.0
-Nodes (1): Common fixtures for Design-time tests.  These fixtures can be reused across all
-
-### Community 490 - "Module Group 490"
+### Community 475 - "Community 475"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 491 - "Module Group 491"
+### Community 476 - "Community 476"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 492 - "Module Group 492"
+### Community 477 - "Community 477"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 493 - "Module Group 493"
+### Community 478 - "Community 478"
 Cohesion: 1.0
 Nodes (1): contextKey
 
-### Community 494 - "Module Group 494"
+### Community 479 - "Community 479"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 495 - "Module Group 495"
+### Community 480 - "Community 480"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 496 - "Module Group 496"
+### Community 481 - "Community 481"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 497 - "Module Group 497"
+### Community 482 - "Community 482"
 Cohesion: 1.0
 Nodes (2): Backend Go Comment Standards, Go Comment Convention for Exported Identifiers
 
-### Community 498 - "Module Group 498"
+### Community 483 - "Community 483"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 499 - "Module Group 499"
+### Community 484 - "Community 484"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 500 - "Module Group 500"
+### Community 485 - "Community 485"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 501 - "Module Group 501"
+### Community 486 - "Community 486"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 502 - "Module Group 502"
+### Community 487 - "Community 487"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 503 - "Module Group 503"
+### Community 488 - "Community 488"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 504 - "Module Group 504"
+### Community 489 - "Community 489"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 505 - "Module Group 505"
+### Community 490 - "Community 490"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 506 - "Module Group 506"
+### Community 491 - "Community 491"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 507 - "Module Group 507"
+### Community 492 - "Community 492"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 508 - "Module Group 508"
+### Community 493 - "Community 493"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 509 - "Module Group 509"
+### Community 494 - "Community 494"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 510 - "Module Group 510"
+### Community 495 - "Community 495"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 511 - "Module Group 511"
+### Community 496 - "Community 496"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 512 - "Module Group 512"
+### Community 497 - "Community 497"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 513 - "Module Group 513"
+### Community 498 - "Community 498"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 514 - "Module Group 514"
+### Community 499 - "Community 499"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 515 - "Module Group 515"
+### Community 500 - "Community 500"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 516 - "Module Group 516"
+### Community 501 - "Community 501"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 517 - "Module Group 517"
+### Community 502 - "Community 502"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 518 - "Module Group 518"
+### Community 503 - "Community 503"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 519 - "Module Group 519"
+### Community 504 - "Community 504"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 520 - "Module Group 520"
+### Community 505 - "Community 505"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 521 - "Module Group 521"
+### Community 506 - "Community 506"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 522 - "Module Group 522"
+### Community 507 - "Community 507"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 523 - "Module Group 523"
+### Community 508 - "Community 508"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 524 - "Module Group 524"
+### Community 509 - "Community 509"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 525 - "Module Group 525"
+### Community 510 - "Community 510"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 526 - "Module Group 526"
+### Community 511 - "Community 511"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 527 - "Module Group 527"
+### Community 512 - "Community 512"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 528 - "Module Group 528"
+### Community 513 - "Community 513"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 529 - "Module Group 529"
+### Community 514 - "Community 514"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 530 - "Module Group 530"
+### Community 515 - "Community 515"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 531 - "Module Group 531"
+### Community 516 - "Community 516"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 532 - "Module Group 532"
+### Community 517 - "Community 517"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 533 - "Module Group 533"
+### Community 518 - "Community 518"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 534 - "Module Group 534"
+### Community 519 - "Community 519"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 535 - "Module Group 535"
+### Community 520 - "Community 520"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 536 - "Module Group 536"
+### Community 521 - "Community 521"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 537 - "Module Group 537"
+### Community 522 - "Community 522"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 538 - "Module Group 538"
+### Community 523 - "Community 523"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 539 - "Module Group 539"
+### Community 524 - "Community 524"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 540 - "Module Group 540"
+### Community 525 - "Community 525"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 541 - "Module Group 541"
+### Community 526 - "Community 526"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 542 - "Module Group 542"
+### Community 527 - "Community 527"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 543 - "Module Group 543"
+### Community 528 - "Community 528"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 544 - "Module Group 544"
+### Community 529 - "Community 529"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 545 - "Module Group 545"
+### Community 530 - "Community 530"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 546 - "Module Group 546"
+### Community 531 - "Community 531"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 547 - "Module Group 547"
+### Community 532 - "Community 532"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 548 - "Module Group 548"
+### Community 533 - "Community 533"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 549 - "Module Group 549"
+### Community 534 - "Community 534"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 550 - "Module Group 550"
+### Community 535 - "Community 535"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 551 - "Module Group 551"
+### Community 536 - "Community 536"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 552 - "Module Group 552"
+### Community 537 - "Community 537"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 553 - "Module Group 553"
+### Community 538 - "Community 538"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 554 - "Module Group 554"
+### Community 539 - "Community 539"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 555 - "Module Group 555"
+### Community 540 - "Community 540"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 556 - "Module Group 556"
+### Community 541 - "Community 541"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 557 - "Module Group 557"
+### Community 542 - "Community 542"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 558 - "Module Group 558"
+### Community 543 - "Community 543"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 559 - "Module Group 559"
+### Community 544 - "Community 544"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 560 - "Module Group 560"
+### Community 545 - "Community 545"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 561 - "Module Group 561"
+### Community 546 - "Community 546"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 562 - "Module Group 562"
+### Community 547 - "Community 547"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 563 - "Module Group 563"
+### Community 548 - "Community 548"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 564 - "Module Group 564"
+### Community 549 - "Community 549"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 565 - "Module Group 565"
+### Community 550 - "Community 550"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 566 - "Module Group 566"
+### Community 551 - "Community 551"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 567 - "Module Group 567"
+### Community 552 - "Community 552"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 568 - "Module Group 568"
+### Community 553 - "Community 553"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 569 - "Module Group 569"
+### Community 554 - "Community 554"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 570 - "Module Group 570"
+### Community 555 - "Community 555"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 571 - "Module Group 571"
+### Community 556 - "Community 556"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 572 - "Module Group 572"
+### Community 557 - "Community 557"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 573 - "Module Group 573"
+### Community 558 - "Community 558"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 574 - "Module Group 574"
+### Community 559 - "Community 559"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 575 - "Module Group 575"
+### Community 560 - "Community 560"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 576 - "Module Group 576"
+### Community 561 - "Community 561"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 577 - "Module Group 577"
+### Community 562 - "Community 562"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 578 - "Module Group 578"
+### Community 563 - "Community 563"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 579 - "Module Group 579"
+### Community 564 - "Community 564"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 580 - "Module Group 580"
+### Community 565 - "Community 565"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 581 - "Module Group 581"
+### Community 566 - "Community 566"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 582 - "Module Group 582"
+### Community 567 - "Community 567"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 583 - "Module Group 583"
+### Community 568 - "Community 568"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 584 - "Module Group 584"
+### Community 569 - "Community 569"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 585 - "Module Group 585"
+### Community 570 - "Community 570"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 586 - "Module Group 586"
+### Community 571 - "Community 571"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 587 - "Module Group 587"
+### Community 572 - "Community 572"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 588 - "Module Group 588"
+### Community 573 - "Community 573"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 589 - "Module Group 589"
+### Community 574 - "Community 574"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 590 - "Module Group 590"
+### Community 575 - "Community 575"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 591 - "Module Group 591"
+### Community 576 - "Community 576"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 592 - "Module Group 592"
+### Community 577 - "Community 577"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 593 - "Module Group 593"
+### Community 578 - "Community 578"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 594 - "Module Group 594"
+### Community 579 - "Community 579"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 595 - "Module Group 595"
+### Community 580 - "Community 580"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 596 - "Module Group 596"
+### Community 581 - "Community 581"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 597 - "Module Group 597"
+### Community 582 - "Community 582"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 598 - "Module Group 598"
+### Community 583 - "Community 583"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 599 - "Module Group 599"
+### Community 584 - "Community 584"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 600 - "Module Group 600"
+### Community 585 - "Community 585"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 601 - "Module Group 601"
+### Community 586 - "Community 586"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 602 - "Module Group 602"
+### Community 587 - "Community 587"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 603 - "Module Group 603"
+### Community 588 - "Community 588"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 604 - "Module Group 604"
+### Community 589 - "Community 589"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 605 - "Module Group 605"
+### Community 590 - "Community 590"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 606 - "Module Group 606"
+### Community 591 - "Community 591"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 607 - "Module Group 607"
+### Community 592 - "Community 592"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 608 - "Module Group 608"
+### Community 593 - "Community 593"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 609 - "Module Group 609"
+### Community 594 - "Community 594"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 610 - "Module Group 610"
+### Community 595 - "Community 595"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 611 - "Module Group 611"
+### Community 596 - "Community 596"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 612 - "Module Group 612"
+### Community 597 - "Community 597"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 613 - "Module Group 613"
+### Community 598 - "Community 598"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 614 - "Module Group 614"
+### Community 599 - "Community 599"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 615 - "Module Group 615"
+### Community 600 - "Community 600"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 616 - "Module Group 616"
+### Community 601 - "Community 601"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 617 - "Module Group 617"
+### Community 602 - "Community 602"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 618 - "Module Group 618"
+### Community 603 - "Community 603"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 619 - "Module Group 619"
+### Community 604 - "Community 604"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 620 - "Module Group 620"
+### Community 605 - "Community 605"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 621 - "Module Group 621"
+### Community 606 - "Community 606"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 622 - "Module Group 622"
+### Community 607 - "Community 607"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 623 - "Module Group 623"
+### Community 608 - "Community 608"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 624 - "Module Group 624"
+### Community 609 - "Community 609"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 625 - "Module Group 625"
+### Community 610 - "Community 610"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 626 - "Module Group 626"
+### Community 611 - "Community 611"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 627 - "Module Group 627"
+### Community 612 - "Community 612"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 628 - "Module Group 628"
+### Community 613 - "Community 613"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 629 - "Module Group 629"
+### Community 614 - "Community 614"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 630 - "Module Group 630"
+### Community 615 - "Community 615"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 631 - "Module Group 631"
+### Community 616 - "Community 616"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Shared fixtures for model tests
 
-### Community 632 - "Module Group 632"
+### Community 617 - "Community 617"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Session-scoped test configuration.      Loads configuration from environment var
+
+### Community 618 - "Community 618"
+Cohesion: 1.0
+Nodes (1): Session-scoped base URL for API calls.      Returns:         str: Base URL for M
+
+### Community 619 - "Community 619"
+Cohesion: 1.0
+Nodes (1): Session-scoped Design-time GraphQL endpoint URL.      Returns:         str: Grap
+
+### Community 620 - "Community 620"
+Cohesion: 1.0
+Nodes (1): Session-scoped database configuration.      Returns:         dict: Database conn
+
+### Community 621 - "Community 621"
+Cohesion: 1.0
+Nodes (1): Session-scoped fixture: provision test user with owner role.      Automatically
+
+### Community 622 - "Community 622"
+Cohesion: 1.0
+Nodes (1): Session-scoped JWT access token for authenticated API calls.      Obtains a real
+
+### Community 623 - "Community 623"
+Cohesion: 1.0
+Nodes (1): Session-scoped Casdoor JWT token (explicit naming for clarity).      This is an
+
+### Community 624 - "Community 624"
+Cohesion: 1.0
+Nodes (1): Session-scoped ModelCraft JWT token for dual-token authentication tests.      Th
+
+### Community 625 - "Community 625"
+Cohesion: 1.0
+Nodes (1): Pytest hook called after command line options have been parsed.
+
+### Community 626 - "Community 626"
+Cohesion: 1.0
+Nodes (1): Pytest hook to modify test items during collection.      Automatically adds mark
+
+### Community 627 - "Community 627"
+Cohesion: 1.0
+Nodes (1): Authentication utilities for integration tests.  Provides functions to obtain JW
+
+### Community 628 - "Community 628"
+Cohesion: 1.0
+Nodes (1): Obtain JWT access token from Casdoor using Resource Owner Password Credentials f
+
+### Community 629 - "Community 629"
+Cohesion: 1.0
+Nodes (1): Exchange Casdoor JWT for ModelCraft JWT via ModelCraft's auth endpoint.      Not
+
+### Community 630 - "Community 630"
+Cohesion: 1.0
+Nodes (1): Get ModelCraft JWT for tests (convenience function).      Note: Currently return
+
+### Community 631 - "Community 631"
+Cohesion: 1.0
+Nodes (1): # NOTE: The current /api/auth/token endpoint expects an OAuth authorization code
+
+### Community 632 - "Community 632"
+Cohesion: 1.0
+Nodes (1): Test user setup utility for integration tests.  Provides functions to automatica
+
+### Community 633 - "Community 633"
+Cohesion: 1.0
+Nodes (1): Get the path to the test user setup SQL script.
+
+### Community 634 - "Community 634"
+Cohesion: 1.0
+Nodes (1): Execute the test user setup SQL script.      Creates a test user with owner role
+
+### Community 635 - "Community 635"
+Cohesion: 1.0
+Nodes (1): Clean up test user and associated data with cascading deletions.      Args:
+
+### Community 636 - "Community 636"
+Cohesion: 1.0
+Nodes (1): Enum tests.  This package contains integration tests for enum GraphQL operations
+
+### Community 637 - "Community 637"
+Cohesion: 1.0
+Nodes (1): Test configuration module.  Loads database and API configuration from environmen
+
+### Community 638 - "Community 638"
+Cohesion: 1.0
+Nodes (1): Load environment variables from .env file at project root.      Args:         en
+
+### Community 639 - "Community 639"
+Cohesion: 1.0
+Nodes (1): Test configuration from environment variables.
+
+### Community 640 - "Community 640"
+Cohesion: 1.0
+Nodes (1): Initialize test configuration.          Environment variables should be loaded b
+
+### Community 641 - "Community 641"
+Cohesion: 1.0
+Nodes (1): Get database configuration.          Returns:             dict: Database configu
+
+### Community 642 - "Community 642"
+Cohesion: 1.0
+Nodes (1): Get API base URL.          Returns:             str: API base URL (e.g., http://
+
+### Community 643 - "Community 643"
+Cohesion: 1.0
+Nodes (1): Get API base URL (legacy alias for get_base_url).          Returns:
+
+### Community 644 - "Community 644"
+Cohesion: 1.0
+Nodes (1): Get Design-time GraphQL endpoint URL.          Args:             org_name (str,
+
+### Community 645 - "Community 645"
+Cohesion: 1.0
+Nodes (1): Get GraphQL endpoint URL (legacy method).          Returns:             str: Gra
+
+### Community 646 - "Community 646"
+Cohesion: 1.0
+Nodes (1): Module-scoped GraphQL client for Runtime API.      Note: Currently uses the same
+
+### Community 647 - "Community 647"
+Cohesion: 1.0
+Nodes (1): Fixture to set up a sample model for Runtime tests.      Runtime tests often nee
+
+### Community 648 - "Community 648"
+Cohesion: 1.0
+Nodes (1): User Data GraphQL Query Tests  Tests for querying user data through the Runtime
+
+### Community 649 - "Community 649"
+Cohesion: 1.0
+Nodes (1): Test suite for user data queries via Runtime GraphQL
+
+### Community 650 - "Community 650"
+Cohesion: 1.0
+Nodes (1): Test querying all records for a model
+
+### Community 651 - "Community 651"
+Cohesion: 1.0
+Nodes (1): Test querying data with filters
+
+### Community 652 - "Community 652"
+Cohesion: 1.0
+Nodes (1): Test querying a single record by ID
+
+### Community 653 - "Community 653"
+Cohesion: 1.0
+Nodes (1): ModelCraft Client Integration Tests  End-to-end integration tests that exercise
+
+### Community 654 - "Community 654"
+Cohesion: 1.0
+Nodes (1): Integration tests for complete ModelCraft workflows
+
+### Community 655 - "Community 655"
+Cohesion: 1.0
+Nodes (1): Test the complete lifecycle: Create model (using project's cluster) → Query data
+
+### Community 656 - "Community 656"
+Cohesion: 1.0
+Nodes (1): Test integration across projects, clusters, and models.          Verifies that r
+
+### Community 657 - "Community 657"
+Cohesion: 1.0
+Nodes (1): Session-scoped JWT access token for Design tests.      Design tests require auth
+
+### Community 658 - "Community 658"
+Cohesion: 1.0
+Nodes (1): Module-scoped authenticated GraphQL client for Design-time API.      Args:
+
+### Community 659 - "Community 659"
+Cohesion: 1.0
+Nodes (1): Fixture to track and cleanup created projects.      Projects are stored as dicti
+
+### Community 660 - "Community 660"
+Cohesion: 1.0
+Nodes (1): Legacy fixture for backward compatibility.      Clusters are now sub-resources o
+
+### Community 661 - "Community 661"
+Cohesion: 1.0
+Nodes (1): Fixture to track and cleanup created models.      Models are stored as tuples of
+
+### Community 662 - "Community 662"
+Cohesion: 1.0
+Nodes (1): Fixture to track and cleanup created enums.      Enums are stored as tuples of (
+
+### Community 663 - "Community 663"
+Cohesion: 1.0
+Nodes (1): Fixture that ensures the default project exists.      Returns:         dict: Def
+
+### Community 664 - "Community 664"
+Cohesion: 1.0
+Nodes (1): Database connection configuration for tests.  This module provides a centralized
+
+### Community 665 - "Community 665"
+Cohesion: 1.0
+Nodes (1): Database connection configuration.
 
-### Community 633 - "Module Group 633"
+### Community 666 - "Community 666"
 Cohesion: 1.0
 Nodes (1): Create configuration from environment variables with fallback defaults.
 
-### Community 634 - "Module Group 634"
+### Community 667 - "Community 667"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Convert configuration to dictionary format.                  Returns:
 
-### Community 635 - "Module Group 635"
+### Community 668 - "Community 668"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Get the default test database configuration.          This function returns a si
 
-### Community 636 - "Module Group 636"
+### Community 669 - "Community 669"
 Cohesion: 1.0
-Nodes (1): Test creating a project creates the cluster atomically.
+Nodes (1): Reset the default test database configuration.          This is useful for testi
 
-### Community 637 - "Module Group 637"
+### Community 670 - "Community 670"
 Cohesion: 1.0
-Nodes (1): Test updating the project's cluster connection info.
+Nodes (1): Custom assertions for Design-time tests.  Provides reusable assertion helpers fo
 
-### Community 638 - "Module Group 638"
+### Community 671 - "Community 671"
+Cohesion: 1.0
+Nodes (1): Assert that a GraphQL query succeeded without errors.      Args:         result:
+
+### Community 672 - "Community 672"
+Cohesion: 1.0
+Nodes (1): Assert that a project object has expected fields and values.      Args:
+
+### Community 673 - "Community 673"
+Cohesion: 1.0
+Nodes (1): Assert that a cluster object has expected fields and values.      Args:
+
+### Community 674 - "Community 674"
+Cohesion: 1.0
+Nodes (1): Assert that a model object has expected fields and values.      Args:         mo
+
+### Community 675 - "Community 675"
+Cohesion: 1.0
+Nodes (1): Assert that an object contains all specified fields.      Args:         obj: Obj
+
+### Community 676 - "Community 676"
+Cohesion: 1.0
+Nodes (1): Assert that a value is not empty (not None, not empty string, not empty list).
+
+### Community 677 - "Community 677"
+Cohesion: 1.0
+Nodes (1): Assert that a GraphQL mutation returned a specific error type.      Args:
+
+### Community 678 - "Community 678"
+Cohesion: 1.0
+Nodes (1): Assert that a GraphQL query returns None (e.g., when resource not found).      A
+
+### Community 679 - "Community 679"
+Cohesion: 1.0
+Nodes (1): Test data builders for Design-time tests.  Provides builder functions to generat
+
+### Community 680 - "Community 680"
+Cohesion: 1.0
+Nodes (1): Generate a unique test ID.      Args:         prefix: ID prefix (default: "test"
+
+### Community 681 - "Community 681"
+Cohesion: 1.0
+Nodes (1): Build a project creation input with sensible defaults.      Includes clusterInpu
+
+### Community 682 - "Community 682"
+Cohesion: 1.0
+Nodes (1): Build a database cluster input with sensible defaults.      Uses test database c
+
+### Community 683 - "Community 683"
+Cohesion: 1.0
+Nodes (1): Build a model creation input with sensible defaults.      Args:         project_
+
+### Community 684 - "Community 684"
+Cohesion: 1.0
+Nodes (1): Build a field input with sensible defaults.      Args:         name: Field name
+
+### Community 685 - "Community 685"
+Cohesion: 1.0
+Nodes (1): Build an enum option input.      Args:         code: Option code (unique identif
+
+### Community 686 - "Community 686"
+Cohesion: 1.0
+Nodes (1): Build an enum creation input with sensible defaults.      Args:         project_
+
+### Community 687 - "Community 687"
+Cohesion: 1.0
+Nodes (1): Common fixtures for Design-time tests.  These fixtures can be reused across all
+
+### Community 688 - "Community 688"
+Cohesion: 1.0
+Nodes (1): GraphQL client utilities for Design-time tests.  This module provides utilities
+
+### Community 689 - "Community 689"
+Cohesion: 1.0
+Nodes (1): GraphQL client wrapper with automatic request/response logging.      This wrappe
+
+### Community 690 - "Community 690"
+Cohesion: 1.0
+Nodes (1): Initialize logging wrapper.          Args:             client: Underlying GQL cl
+
+### Community 691 - "Community 691"
+Cohesion: 1.0
+Nodes (1): Execute GraphQL query with automatic logging.          Args:             documen
+
+### Community 692 - "Community 692"
+Cohesion: 1.0
+Nodes (1): Extract operation info (type and name) from GraphQL document.
+
+### Community 693 - "Community 693"
+Cohesion: 1.0
+Nodes (1): Delegate unknown attributes to underlying client.
+
+### Community 694 - "Community 694"
+Cohesion: 1.0
+Nodes (1): Create a GraphQL client for Design-time API with automatic logging.      Args:
+
+### Community 695 - "Community 695"
+Cohesion: 1.0
+Nodes (1): Execute a GraphQL query with error handling.      Note: When using LoggingGraphQ
+
+### Community 696 - "Community 696"
+Cohesion: 1.0
+Nodes (1): Project-Cluster One-to-One Relationship Integration Tests  Tests for the one-to-
+
+### Community 697 - "Community 697"
+Cohesion: 1.0
+Nodes (1): Test suite for Project-Cluster one-to-one relationship.
+
+### Community 698 - "Community 698"
+Cohesion: 1.0
+Nodes (1): Test creating a project always includes a cluster.
+
+### Community 699 - "Community 699"
+Cohesion: 1.0
+Nodes (1): Test that project and cluster are created in a single atomic operation.
+
+### Community 700 - "Community 700"
+Cohesion: 1.0
+Nodes (1): Test that bad connection info (without skipConnectionTest) prevents project crea
+
+### Community 701 - "Community 701"
+Cohesion: 1.0
+Nodes (1): Test retrieving project includes nested cluster field.
+
+### Community 702 - "Community 702"
 Cohesion: 1.0
 Nodes (1): Test that deleting a project also removes its cluster.
 
-### Community 639 - "Module Group 639"
+### Community 703 - "Community 703"
+Cohesion: 1.0
+Nodes (1): Test that skipConnectionTest allows project creation even with invalid connectio
+
+### Community 704 - "Community 704"
+Cohesion: 1.0
+Nodes (1): Database Cluster GraphQL Tests  Tests for database cluster operations via GraphQ
+
+### Community 705 - "Community 705"
+Cohesion: 1.0
+Nodes (1): Generate a unique name to avoid conflicts.
+
+### Community 706 - "Community 706"
+Cohesion: 1.0
+Nodes (1): Test suite for database cluster operations via project sub-resource API.
+
+### Community 707 - "Community 707"
+Cohesion: 1.0
+Nodes (1): Test creating a project creates the cluster atomically.
+
+### Community 708 - "Community 708"
+Cohesion: 1.0
+Nodes (1): Test that invalid connection info returns DatabaseConnectionFailed (without skip
+
+### Community 709 - "Community 709"
+Cohesion: 1.0
+Nodes (1): Test retrieving a cluster by project name.
+
+### Community 710 - "Community 710"
+Cohesion: 1.0
+Nodes (1): Test retrieving cluster for a non-existent project.
+
+### Community 711 - "Community 711"
+Cohesion: 1.0
+Nodes (1): Test updating the project's cluster connection info.
+
+### Community 712 - "Community 712"
+Cohesion: 1.0
+Nodes (1): Test that deleting a project also removes its cluster.
+
+### Community 713 - "Community 713"
+Cohesion: 1.0
+Nodes (1): Test that querying a project includes the nested cluster.
+
+### Community 714 - "Community 714"
+Cohesion: 1.0
+Nodes (1): Test that skipConnectionTest: true bypasses validation with invalid credentials.
+
+### Community 715 - "Community 715"
+Cohesion: 1.0
+Nodes (1): Ensure the default project exists with a cluster for all model tests.      Model
+
+### Community 716 - "Community 716"
+Cohesion: 1.0
+Nodes (1): Model Design GraphQL Typed Error Tests  Tests for model GraphQL operations that
+
+### Community 717 - "Community 717"
+Cohesion: 1.0
+Nodes (1): Test suite for Model GraphQL typed errors
+
+### Community 718 - "Community 718"
+Cohesion: 1.0
+Nodes (1): Assert error has the expected __typename
+
+### Community 719 - "Community 719"
+Cohesion: 1.0
+Nodes (1): Assert payload has no error and model data exists
+
+### Community 720 - "Community 720"
+Cohesion: 1.0
+Nodes (1): Assert payload has error and no model data
+
+### Community 721 - "Community 721"
+Cohesion: 1.0
+Nodes (1): Assert error message is non-empty and descriptive
+
+### Community 722 - "Community 722"
 Cohesion: 1.0
 Nodes (1): Provide the shared test cluster to individual tests.         Uses session-scoped
 
-### Community 640 - "Module Group 640"
+### Community 723 - "Community 723"
 Cohesion: 1.0
 Nodes (1): Create a test model for error tests
 
-### Community 641 - "Module Group 641"
+### Community 724 - "Community 724"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): Test getting a non-existent model returns ModelNotFound error
 
-### Community 642 - "Module Group 642"
+### Community 725 - "Community 725"
+Cohesion: 1.0
+Nodes (1): Test getting model by name that doesn't exist returns ModelNotFound error
+
+### Community 726 - "Community 726"
+Cohesion: 1.0
+Nodes (1): Test getting model by name with non-existent project returns error
+
+### Community 727 - "Community 727"
+Cohesion: 1.0
+Nodes (1): Test creating a model with duplicate name returns ModelAlreadyExists error
+
+### Community 728 - "Community 728"
+Cohesion: 1.0
+Nodes (1): Test creating model with non-existent project returns error
+
+### Community 729 - "Community 729"
+Cohesion: 1.0
+Nodes (1): Test updating a non-existent model returns ModelNotFound error
+
+### Community 730 - "Community 730"
+Cohesion: 1.0
+Nodes (1): Test updating model with non-existent project returns ProjectNotFound error
+
+### Community 731 - "Community 731"
+Cohesion: 1.0
+Nodes (1): Test deleting a non-existent model returns ModelNotFound error
+
+### Community 732 - "Community 732"
+Cohesion: 1.0
+Nodes (1): Test deleting model with non-existent project returns error
+
+### Community 733 - "Community 733"
+Cohesion: 1.0
+Nodes (1): Test successful model creation returns no error
+
+### Community 734 - "Community 734"
+Cohesion: 1.0
+Nodes (1): Test successful model retrieval returns no error
+
+### Community 735 - "Community 735"
+Cohesion: 1.0
+Nodes (1): Test successful model update returns no error          Note: Currently, models w
+
+### Community 736 - "Community 736"
+Cohesion: 1.0
+Nodes (1): Test successful model deletion returns no error
+
+### Community 737 - "Community 737"
+Cohesion: 1.0
+Nodes (1): Test successful model retrieval by name returns no error
+
+### Community 738 - "Community 738"
+Cohesion: 1.0
+Nodes (1): Test that ModelAlreadyExists error has helpful message and suggestion
+
+### Community 739 - "Community 739"
+Cohesion: 1.0
+Nodes (1): Test that ModelNotFound error has helpful message
+
+### Community 740 - "Community 740"
+Cohesion: 1.0
+Nodes (1): Test that error has helpful message for non-existent project
+
+### Community 741 - "Community 741"
+Cohesion: 1.0
+Nodes (1): Model Design GraphQL Tests  Tests for model CRUD operations and field management
+
+### Community 742 - "Community 742"
+Cohesion: 1.0
+Nodes (1): Generate a unique name to avoid conflicts.
+
+### Community 743 - "Community 743"
+Cohesion: 1.0
+Nodes (1): Build model input data with defaults
+
+### Community 744 - "Community 744"
+Cohesion: 1.0
+Nodes (1): Test suite for model CRUD operations
+
+### Community 745 - "Community 745"
 Cohesion: 1.0
 Nodes (1): Provide the shared test cluster to individual tests.         Uses session-scoped
 
-### Community 643 - "Module Group 643"
+### Community 746 - "Community 746"
+Cohesion: 1.0
+Nodes (1): Test creating a new model
+
+### Community 747 - "Community 747"
+Cohesion: 1.0
+Nodes (1): Test retrieving a model by id
+
+### Community 748 - "Community 748"
+Cohesion: 1.0
+Nodes (1): Test listing models for a specific project
+
+### Community 749 - "Community 749"
+Cohesion: 1.0
+Nodes (1): Test that creating a model with duplicate name returns error
+
+### Community 750 - "Community 750"
+Cohesion: 1.0
+Nodes (1): Test that getting non-existent model returns error
+
+### Community 751 - "Community 751"
+Cohesion: 1.0
+Nodes (1): Test listing models returns empty result when no models exist
+
+### Community 752 - "Community 752"
+Cohesion: 1.0
+Nodes (1): Actual Schema Integration Tests  Tests for model(id, withActualSchema: true) que
+
+### Community 753 - "Community 753"
+Cohesion: 1.0
+Nodes (1): Create a simple model and ensure its DB table exists via repair.
+
+### Community 754 - "Community 754"
+Cohesion: 1.0
+Nodes (1): Tests for withActualSchema=true when table exists.
+
+### Community 755 - "Community 755"
+Cohesion: 1.0
+Nodes (1): dbTable should be TABLE_EXISTS when the table was repaired into the DB.
+
+### Community 756 - "Community 756"
+Cohesion: 1.0
+Nodes (1): Regular fields should have dbColumn populated when withActualSchema=true.
+
+### Community 757 - "Community 757"
+Cohesion: 1.0
+Nodes (1): Tests for withActualSchema=false (or omitted).
+
+### Community 758 - "Community 758"
+Cohesion: 1.0
+Nodes (1): dbTable should be null when withActualSchema is not set.
+
+### Community 759 - "Community 759"
+Cohesion: 1.0
+Nodes (1): All dbColumn fields should be null when withActualSchema is not set.
+
+### Community 760 - "Community 760"
+Cohesion: 1.0
+Nodes (1): dbTable should be null when withActualSchema=false.
+
+### Community 761 - "Community 761"
+Cohesion: 1.0
+Nodes (1): Tests for UNIQUE_MISMATCH conflict detection.
+
+### Community 762 - "Community 762"
+Cohesion: 1.0
+Nodes (1): When a field has isUnique=true in design but the DB column has no UNIQUE
+
+### Community 763 - "Community 763"
+Cohesion: 1.0
+Nodes (1): Tests that ENUM_LABEL (virtual) fields always have dbColumn=null.
+
+### Community 764 - "Community 764"
+Cohesion: 1.0
+Nodes (1): ENUM_LABEL virtual fields should always have dbColumn=null, even with withActual
+
+### Community 765 - "Community 765"
+Cohesion: 1.0
+Nodes (1): Project Management CRUD Tests  Tests for project creation, read, update, delete
+
+### Community 766 - "Community 766"
+Cohesion: 1.0
+Nodes (1): Test suite for project CRUD operations
+
+### Community 767 - "Community 767"
+Cohesion: 1.0
+Nodes (1): Test creating a new project with valid data
+
+### Community 768 - "Community 768"
+Cohesion: 1.0
+Nodes (1): Test retrieving a project by orgName and name
+
+### Community 769 - "Community 769"
+Cohesion: 1.0
+Nodes (1): Test listing all projects
+
+### Community 770 - "Community 770"
+Cohesion: 1.0
+Nodes (1): Test creating a duplicate project returns ProjectAlreadyExists error
+
+### Community 771 - "Community 771"
+Cohesion: 1.0
+Nodes (1): Test getting a non-existent project returns ProjectNotFound error
+
+### Community 772 - "Community 772"
+Cohesion: 1.0
+Nodes (1): Enum GraphQL Tests  Tests for enum CRUD operations via GraphQL API with typed er
+
+### Community 773 - "Community 773"
+Cohesion: 1.0
+Nodes (1): Test enum GraphQL operations with typed error handling.
+
+### Community 774 - "Community 774"
+Cohesion: 1.0
+Nodes (1): Test successful enum creation returns enum data with no error.
+
+### Community 775 - "Community 775"
+Cohesion: 1.0
+Nodes (1): Test creating duplicate enum returns EnumAlreadyExists error.
+
+### Community 776 - "Community 776"
+Cohesion: 1.0
+Nodes (1): Test creating enum with invalid project returns ProjectNotFound error.
+
+### Community 777 - "Community 777"
+Cohesion: 1.0
+Nodes (1): Test creating enum with duplicate option codes returns InvalidEnumInput error.
+
+### Community 778 - "Community 778"
+Cohesion: 1.0
+Nodes (1): Test getting existing enum returns enum data with no error.
+
+### Community 779 - "Community 779"
+Cohesion: 1.0
+Nodes (1): Test getting non-existent enum returns EnumNotFound error.
+
+### Community 780 - "Community 780"
+Cohesion: 1.0
+Nodes (1): Test getting enum with invalid project returns ProjectNotFound error.
+
+### Community 781 - "Community 781"
+Cohesion: 1.0
+Nodes (1): Test updating existing enum returns updated enum data with no error.
+
+### Community 782 - "Community 782"
+Cohesion: 1.0
+Nodes (1): Test updating non-existent enum returns EnumNotFound error.
+
+### Community 783 - "Community 783"
+Cohesion: 1.0
+Nodes (1): Test updating enum with invalid options returns InvalidEnumInput error.
+
+### Community 784 - "Community 784"
+Cohesion: 1.0
+Nodes (1): Test deleting existing enum returns success with no error.
+
+### Community 785 - "Community 785"
+Cohesion: 1.0
+Nodes (1): Test deleting non-existent enum returns EnumNotFound error.
+
+### Community 786 - "Community 786"
+Cohesion: 1.0
+Nodes (1): Test listing enums returns array (not wrapped in payload).
+
+### Community 787 - "Community 787"
+Cohesion: 1.0
+Nodes (1): Test getting enum references returns array (not wrapped in payload).
+
+### Community 788 - "Community 788"
+Cohesion: 1.0
+Nodes (1): Test creating multi-select enum.
+
+### Community 789 - "Community 789"
+Cohesion: 1.0
+Nodes (1): Test updating enum options.
+
+### Community 790 - "Community 790"
 Cohesion: 1.0
 Nodes (0): 
 
-### Community 644 - "Module Group 644"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 645 - "Module Group 645"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 646 - "Module Group 646"
-Cohesion: 1.0
-Nodes (0): 
-
-### Community 647 - "Module Group 647"
+### Community 791 - "Community 791"
 Cohesion: 1.0
 Nodes (1): ModelCraft Project
 
-### Community 648 - "Module Group 648"
+### Community 792 - "Community 792"
 Cohesion: 1.0
 Nodes (1): ModelCraft Backend (Go)
 
-### Community 649 - "Module Group 649"
+### Community 793 - "Community 793"
 Cohesion: 1.0
 Nodes (1): ModelCraft Frontend (Next.js)
 
-### Community 650 - "Module Group 650"
+### Community 794 - "Community 794"
 Cohesion: 1.0
 Nodes (1): Git Subtree - API Contract Sharing
 
-### Community 651 - "Module Group 651"
+### Community 795 - "Community 795"
 Cohesion: 1.0
 Nodes (1): modelcraft-api-contracts Shared Repo
 
-### Community 652 - "Module Group 652"
+### Community 796 - "Community 796"
 Cohesion: 1.0
 Nodes (1): modelcraft-backend/api/ Source of Truth
 
-### Community 653 - "Module Group 653"
+### Community 797 - "Community 797"
 Cohesion: 1.0
 Nodes (1): modelcraft-front/contract/ Read-only Consumer
 
-### Community 654 - "Module Group 654"
+### Community 798 - "Community 798"
 Cohesion: 1.0
 Nodes (1): ModelCraft Core Principles
 
-### Community 655 - "Module Group 655"
+### Community 799 - "Community 799"
 Cohesion: 1.0
 Nodes (1): ModelCraft Roadmap
 
-### Community 656 - "Module Group 656"
+### Community 800 - "Community 800"
 Cohesion: 1.0
 Nodes (1): Domain Model Overview
 
-### Community 657 - "Module Group 657"
+### Community 801 - "Community 801"
 Cohesion: 1.0
 Nodes (1): Auth Domain Design
 
-### Community 658 - "Module Group 658"
+### Community 802 - "Community 802"
 Cohesion: 1.0
 Nodes (1): Organization/Tenant Domain Design
 
-### Community 659 - "Module Group 659"
+### Community 803 - "Community 803"
 Cohesion: 1.0
 Nodes (1): Project Domain Design
 
-### Community 660 - "Module Group 660"
+### Community 804 - "Community 804"
 Cohesion: 1.0
 Nodes (1): Model Domain Overview
 
-### Community 661 - "Module Group 661"
+### Community 805 - "Community 805"
 Cohesion: 1.0
 Nodes (1): Model Runtime Artifact
 
-### Community 662 - "Module Group 662"
+### Community 806 - "Community 806"
 Cohesion: 1.0
 Nodes (1): Model Design-time Domain
 
-### Community 663 - "Module Group 663"
+### Community 807 - "Community 807"
 Cohesion: 1.0
 Nodes (1): Domain-Driven Design (DDD)
 
-### Community 664 - "Module Group 664"
+### Community 808 - "Community 808"
 Cohesion: 1.0
 Nodes (1): Design-time Phase
 
-### Community 665 - "Module Group 665"
+### Community 809 - "Community 809"
 Cohesion: 1.0
 Nodes (1): Runtime Phase
 
-### Community 666 - "Module Group 666"
+### Community 810 - "Community 810"
 Cohesion: 1.0
 Nodes (1): Casdoor Authentication Decision
 
-### Community 667 - "Module Group 667"
+### Community 811 - "Community 811"
 Cohesion: 1.0
 Nodes (1): Dual GraphQL Endpoints
 
-### Community 668 - "Module Group 668"
+### Community 812 - "Community 812"
 Cohesion: 1.0
 Nodes (1): Dynamic GraphQL Schema Generation
 
-### Community 669 - "Module Group 669"
+### Community 813 - "Community 813"
 Cohesion: 1.0
 Nodes (1): Schema Sync Mechanism
 
-### Community 670 - "Module Group 670"
+### Community 814 - "Community 814"
 Cohesion: 1.0
 Nodes (1): ProjectScope Value Object
 
-### Community 671 - "Module Group 671"
+### Community 815 - "Community 815"
 Cohesion: 1.0
 Nodes (1): Membership Entity
 
-### Community 672 - "Module Group 672"
+### Community 816 - "Community 816"
 Cohesion: 1.0
 Nodes (1): Role Entity
 
-### Community 673 - "Module Group 673"
+### Community 817 - "Community 817"
 Cohesion: 1.0
 Nodes (1): Permission Value Object
 
-### Community 674 - "Module Group 674"
+### Community 818 - "Community 818"
 Cohesion: 1.0
 Nodes (1): RBAC Domain Model
 
-### Community 675 - "Module Group 675"
+### Community 819 - "Community 819"
 Cohesion: 1.0
 Nodes (1): SQL Editor Domain
 
-### Community 676 - "Module Group 676"
+### Community 820 - "Community 820"
 Cohesion: 1.0
 Nodes (1): Type Conversion via spf13/cast
 
-### Community 677 - "Module Group 677"
+### Community 821 - "Community 821"
 Cohesion: 1.0
 Nodes (1): Backend Testing Strategy
 
-### Community 678 - "Module Group 678"
+### Community 822 - "Community 822"
 Cohesion: 1.0
 Nodes (1): Deployment Guide
 
-### Community 679 - "Module Group 679"
+### Community 823 - "Community 823"
 Cohesion: 1.0
 Nodes (1): Justfile Command Reference
 
-### Community 680 - "Module Group 680"
+### Community 824 - "Community 824"
 Cohesion: 1.0
 Nodes (1): Atlas Database Migration Tool
 
-### Community 681 - "Module Group 681"
+### Community 825 - "Community 825"
 Cohesion: 1.0
 Nodes (1): Auth API Design
 
-### Community 682 - "Module Group 682"
+### Community 826 - "Community 826"
 Cohesion: 1.0
 Nodes (1): Refresh Token Rotation
 
-### Community 683 - "Module Group 683"
+### Community 827 - "Community 827"
 Cohesion: 1.0
 Nodes (1): Model Enum Feature Overview
 
-### Community 684 - "Module Group 684"
+### Community 828 - "Community 828"
 Cohesion: 1.0
 Nodes (1): FieldEnumRelation Entity
 
-### Community 685 - "Module Group 685"
+### Community 829 - "Community 829"
 Cohesion: 1.0
 Nodes (1): ENUM Field Type
 
-### Community 686 - "Module Group 686"
+### Community 830 - "Community 830"
 Cohesion: 1.0
 Nodes (1): ENUM_LABEL Field Type
 
-### Community 687 - "Module Group 687"
+### Community 831 - "Community 831"
 Cohesion: 1.0
 Nodes (1): ENUM Backend Design
 
-### Community 688 - "Module Group 688"
+### Community 832 - "Community 832"
 Cohesion: 1.0
 Nodes (1): ENUM Frontend Combined Interaction Design
 
-### Community 689 - "Module Group 689"
+### Community 833 - "Community 833"
 Cohesion: 1.0
 Nodes (1): Field __label Display Protocol
 
-### Community 690 - "Module Group 690"
+### Community 834 - "Community 834"
 Cohesion: 1.0
 Nodes (1): Model displayField Configuration
 
-### Community 691 - "Module Group 691"
+### Community 835 - "Community 835"
 Cohesion: 1.0
 Nodes (1): Spec: Project Auth Config
 
-### Community 692 - "Module Group 692"
+### Community 836 - "Community 836"
 Cohesion: 1.0
 Nodes (1): Spec: Project Management
 
-### Community 693 - "Module Group 693"
+### Community 837 - "Community 837"
 Cohesion: 1.0
 Nodes (1): Spec: @hasPermission Directive
 
-### Community 694 - "Module Group 694"
+### Community 838 - "Community 838"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Aggregate Query
 
-### Community 695 - "Module Group 695"
+### Community 839 - "Community 839"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Count Query
 
-### Community 696 - "Module Group 696"
+### Community 840 - "Community 840"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Sort
 
-### Community 697 - "Module Group 697"
+### Community 841 - "Community 841"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Pagination
 
-### Community 698 - "Module Group 698"
+### Community 842 - "Community 842"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Query
 
-### Community 699 - "Module Group 699"
+### Community 843 - "Community 843"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Filter
 
-### Community 700 - "Module Group 700"
+### Community 844 - "Community 844"
 Cohesion: 1.0
 Nodes (1): Spec: ModelRuntime Mutation
 
-### Community 701 - "Module Group 701"
+### Community 845 - "Community 845"
 Cohesion: 1.0
 Nodes (1): Spec: Field Create API
 
-### Community 702 - "Module Group 702"
+### Community 846 - "Community 846"
 Cohesion: 1.0
 Nodes (1): Spec: LFK Query
 
-### Community 703 - "Module Group 703"
+### Community 847 - "Community 847"
 Cohesion: 1.0
 Nodes (1): Spec: Enum Query
 
-### Community 704 - "Module Group 704"
+### Community 848 - "Community 848"
 Cohesion: 1.0
 Nodes (1): Spec: Display Field
 
-### Community 705 - "Module Group 705"
+### Community 849 - "Community 849"
 Cohesion: 1.0
 Nodes (1): Spec: Admin Org Management
 
-### Community 706 - "Module Group 706"
+### Community 850 - "Community 850"
 Cohesion: 1.0
 Nodes (1): Spec: Admin Casdoor SSO
 
-### Community 707 - "Module Group 707"
+### Community 851 - "Community 851"
 Cohesion: 1.0
 Nodes (1): BDD Test Suite README
 
-### Community 708 - "Module Group 708"
+### Community 852 - "Community 852"
 Cohesion: 1.0
 Nodes (1): Auth Login Feature
 
-### Community 709 - "Module Group 709"
+### Community 853 - "Community 853"
 Cohesion: 1.0
 Nodes (1): Auth Register Feature
 
-### Community 710 - "Module Group 710"
+### Community 854 - "Community 854"
 Cohesion: 1.0
 Nodes (1): Cluster Management Feature
 
-### Community 711 - "Module Group 711"
+### Community 855 - "Community 855"
 Cohesion: 1.0
 Nodes (1): Field Management Feature
 
-### Community 712 - "Module Group 712"
+### Community 856 - "Community 856"
 Cohesion: 1.0
 Nodes (1): Model Management Feature
 
-### Community 713 - "Module Group 713"
+### Community 857 - "Community 857"
 Cohesion: 1.0
 Nodes (1): Project Management Feature
 
-### Community 714 - "Module Group 714"
+### Community 858 - "Community 858"
 Cohesion: 1.0
 Nodes (1): SQL Editor Feature
 
-### Community 715 - "Module Group 715"
+### Community 859 - "Community 859"
 Cohesion: 1.0
 Nodes (1): Enum Management Feature
 
-### Community 716 - "Module Group 716"
+### Community 860 - "Community 860"
 Cohesion: 1.0
 Nodes (1): Logical Foreign Key Feature
 
-### Community 717 - "Module Group 717"
+### Community 861 - "Community 861"
 Cohesion: 1.0
 Nodes (1): Runtime Feature
 
-### Community 718 - "Module Group 718"
+### Community 862 - "Community 862"
 Cohesion: 1.0
 Nodes (1): Field-Enum Feature
 
-### Community 719 - "Module Group 719"
+### Community 863 - "Community 863"
 Cohesion: 1.0
 Nodes (1): Field-Label Feature
 
-### Community 720 - "Module Group 720"
+### Community 864 - "Community 864"
 Cohesion: 1.0
 Nodes (1): Runtime Enum Feature
 
-### Community 721 - "Module Group 721"
+### Community 865 - "Community 865"
 Cohesion: 1.0
 Nodes (1): Runtime Label Feature
 
-### Community 722 - "Module Group 722"
+### Community 866 - "Community 866"
 Cohesion: 1.0
 Nodes (1): Runtime LFK Feature
 
-### Community 723 - "Module Group 723"
-Cohesion: 1.0
-Nodes (1): Cucumber World (Shared State)
-
-### Community 724 - "Module Group 724"
-Cohesion: 1.0
-Nodes (1): GraphQL Client (BDD)
-
-### Community 725 - "Module Group 725"
-Cohesion: 1.0
-Nodes (1): Test Data Factory
-
-### Community 726 - "Module Group 726"
-Cohesion: 1.0
-Nodes (1): Node Interface (Relay Spec)
-
-### Community 727 - "Module Group 727"
-Cohesion: 1.0
-Nodes (1): PageInfo Type
-
-### Community 728 - "Module Group 728"
-Cohesion: 1.0
-Nodes (1): @hasPermission Directive
-
-### Community 729 - "Module Group 729"
-Cohesion: 1.0
-Nodes (1): Organization GraphQL Type
-
-### Community 730 - "Module Group 730"
-Cohesion: 1.0
-Nodes (1): Role GraphQL Type
-
-### Community 731 - "Module Group 731"
-Cohesion: 1.0
-Nodes (1): OrganizationMember GraphQL Type
-
-### Community 732 - "Module Group 732"
-Cohesion: 1.0
-Nodes (1): Project GraphQL Type
-
-### Community 733 - "Module Group 733"
-Cohesion: 1.0
-Nodes (1): DatabaseCluster GraphQL Type
-
-### Community 734 - "Module Group 734"
-Cohesion: 1.0
-Nodes (1): EnumDefinition GraphQL Type
-
-### Community 735 - "Module Group 735"
-Cohesion: 1.0
-Nodes (1): Field GraphQL Type
-
-### Community 736 - "Module Group 736"
-Cohesion: 1.0
-Nodes (1): FormatType Enum
-
-### Community 737 - "Module Group 737"
-Cohesion: 1.0
-Nodes (1): Model GraphQL Type
-
-### Community 738 - "Module Group 738"
-Cohesion: 1.0
-Nodes (1): ModelGroup GraphQL Type
-
-### Community 739 - "Module Group 739"
-Cohesion: 1.0
-Nodes (1): LogicalForeignKey GraphQL Type
-
-### Community 740 - "Module Group 740"
-Cohesion: 1.0
-Nodes (1): projects DB Table
-
-### Community 741 - "Module Group 741"
-Cohesion: 1.0
-Nodes (1): database_clusters DB Table
-
-### Community 742 - "Module Group 742"
-Cohesion: 1.0
-Nodes (1): models DB Table
-
-### Community 743 - "Module Group 743"
-Cohesion: 1.0
-Nodes (1): field_definitions DB Table
-
-### Community 744 - "Module Group 744"
-Cohesion: 1.0
-Nodes (1): model_enums DB Table
-
-### Community 745 - "Module Group 745"
-Cohesion: 1.0
-Nodes (1): organizations DB Table
-
-### Community 746 - "Module Group 746"
-Cohesion: 1.0
-Nodes (1): users DB Table
-
-### Community 747 - "Module Group 747"
-Cohesion: 1.0
-Nodes (1): Model SQL Queries (sqlc)
-
-### Community 748 - "Module Group 748"
-Cohesion: 1.0
-Nodes (1): Field SQL Queries (sqlc)
-
-### Community 749 - "Module Group 749"
-Cohesion: 1.0
-Nodes (1): Enum SQL Queries (sqlc)
-
-### Community 750 - "Module Group 750"
-Cohesion: 1.0
-Nodes (1): Runtime SQL Queries (sqlc)
-
-### Community 751 - "Module Group 751"
+### Community 867 - "Community 867"
 Cohesion: 1.0
 Nodes (1): API Contract Git Subtree Sync
 
-### Community 752 - "Module Group 752"
+### Community 868 - "Community 868"
 Cohesion: 1.0
 Nodes (1): Next.js 14 Framework
 
-### Community 753 - "Module Group 753"
+### Community 869 - "Community 869"
 Cohesion: 1.0
 Nodes (1): Apollo Client (GraphQL)
 
-### Community 754 - "Module Group 754"
+### Community 870 - "Community 870"
 Cohesion: 1.0
 Nodes (1): Zustand State Management
 
-### Community 755 - "Module Group 755"
+### Community 871 - "Community 871"
 Cohesion: 1.0
 Nodes (1): React Hook Form + Zod Validation
 
-### Community 756 - "Module Group 756"
+### Community 872 - "Community 872"
 Cohesion: 1.0
 Nodes (1): Tailwind CSS
 
-### Community 757 - "Module Group 757"
-Cohesion: 1.0
-Nodes (1): Typography Constants Library
-
-### Community 758 - "Module Group 758"
-Cohesion: 1.0
-Nodes (1): EditorSidebar Component
-
 ## Knowledge Gaps
-- **810 isolated node(s):** `TokenRequest`, `CasdoorTokenResponse`, `ErrorResponse`, `SuccessResponse`, `JWTAuthConfig` (+805 more)
+- **799 isolated node(s):** `TokenRequest`, `CasdoorTokenResponse`, `ErrorResponse`, `SuccessResponse`, `JWTAuthConfig` (+794 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Module Group 387`** (2 nodes): `uniqueName()`, `factory.ts`
+- **Thin community `Community 373`** (2 nodes): `uniqueName()`, `factory.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 388`** (2 nodes): `buildOptions()`, `enum.steps.ts`
+- **Thin community `Community 374`** (2 nodes): `buildOptions()`, `enum.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 389`** (2 nodes): `randomPhone()`, `org.steps.ts`
+- **Thin community `Community 375`** (2 nodes): `randomPhone()`, `org.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 390`** (2 nodes): `getCurrentModelId()`, `field.steps.ts`
+- **Thin community `Community 376`** (2 nodes): `getCurrentModelId()`, `field.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 391`** (2 nodes): `middleware()`, `middleware.ts`
+- **Thin community `Community 377`** (2 nodes): `middleware()`, `middleware.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 392`** (2 nodes): `register()`, `instrumentation.ts`
+- **Thin community `Community 378`** (2 nodes): `register()`, `instrumentation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 393`** (2 nodes): `profile.ts`, `getMyUserProfileQueryDocument()`
+- **Thin community `Community 379`** (2 nodes): `profile.ts`, `getMyUserProfileQueryDocument()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 394`** (2 nodes): `profile.ts`, `getUpdateMyProfileMutationDocument()`
+- **Thin community `Community 380`** (2 nodes): `profile.ts`, `getUpdateMyProfileMutationDocument()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 395`** (2 nodes): `query-wrapper.tsx`, `QueryWrapper()`
+- **Thin community `Community 381`** (2 nodes): `query-wrapper.tsx`, `QueryWrapper()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 396`** (2 nodes): `handleKeyDown()`, `editor-sidebar.tsx`
+- **Thin community `Community 382`** (2 nodes): `handleKeyDown()`, `editor-sidebar.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 397`** (2 nodes): `LoadingSpinner()`, `loading-spinner.tsx`
+- **Thin community `Community 383`** (2 nodes): `LoadingSpinner()`, `loading-spinner.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 398`** (2 nodes): `Badge()`, `badge.tsx`
+- **Thin community `Community 384`** (2 nodes): `Badge()`, `badge.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 399`** (2 nodes): `skeleton.tsx`, `Skeleton()`
+- **Thin community `Community 385`** (2 nodes): `skeleton.tsx`, `Skeleton()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 400`** (2 nodes): `FieldRow()`, `identity-form-section.tsx`
+- **Thin community `Community 386`** (2 nodes): `FieldRow()`, `identity-form-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 401`** (2 nodes): `handleImport()`, `ImportModelDialog.tsx`
+- **Thin community `Community 387`** (2 nodes): `handleImport()`, `ImportModelDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 402`** (2 nodes): `InsertFieldSheet()`, `InsertFieldSheet.tsx`
+- **Thin community `Community 388`** (2 nodes): `InsertFieldSheet()`, `InsertFieldSheet.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 403`** (2 nodes): `ModelRecordForm()`, `index.tsx`
+- **Thin community `Community 389`** (2 nodes): `ModelRecordForm()`, `index.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 404`** (2 nodes): `filterJsonSchemaForForm()`, `filterJsonSchemaForForm.ts`
+- **Thin community `Community 390`** (2 nodes): `filterJsonSchemaForForm()`, `filterJsonSchemaForForm.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 405`** (2 nodes): `buildUiSchema()`, `buildUiSchema.ts`
+- **Thin community `Community 391`** (2 nodes): `buildUiSchema()`, `buildUiSchema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 406`** (2 nodes): `EnumSelect()`, `EnumSelect.tsx`
+- **Thin community `Community 392`** (2 nodes): `EnumSelect()`, `EnumSelect.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 407`** (2 nodes): `AuthProvider()`, `auth-provider.tsx`
+- **Thin community `Community 393`** (2 nodes): `AuthProvider()`, `auth-provider.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 408`** (2 nodes): `RoleTable.tsx`, `handleConfirmDelete()`
+- **Thin community `Community 394`** (2 nodes): `RoleTable.tsx`, `handleConfirmDelete()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 409`** (2 nodes): `ErrorProvider()`, `ErrorProvider.tsx`
+- **Thin community `Community 395`** (2 nodes): `ErrorProvider()`, `ErrorProvider.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 410`** (2 nodes): `user-menu.tsx`, `handleLogout()`
+- **Thin community `Community 396`** (2 nodes): `user-menu.tsx`, `handleLogout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 411`** (2 nodes): `organization-switcher.tsx`, `OrganizationSwitcher()`
+- **Thin community `Community 397`** (2 nodes): `organization-switcher.tsx`, `OrganizationSwitcher()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 412`** (2 nodes): `ProjectCard.tsx`, `ProjectCard()`
+- **Thin community `Community 398`** (2 nodes): `ProjectCard.tsx`, `ProjectCard()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 413`** (2 nodes): `DeleteProjectDialog()`, `DeleteProjectDialog.tsx`
+- **Thin community `Community 399`** (2 nodes): `DeleteProjectDialog()`, `DeleteProjectDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 414`** (2 nodes): `UserMenu.tsx`, `getInitials()`
+- **Thin community `Community 400`** (2 nodes): `UserMenu.tsx`, `getInitials()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 415`** (2 nodes): `handleSubmit()`, `FormRenderer.tsx`
+- **Thin community `Community 401`** (2 nodes): `handleSubmit()`, `FormRenderer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 416`** (2 nodes): `useDatabases.ts`, `useDatabases()`
+- **Thin community `Community 402`** (2 nodes): `useDatabases.ts`, `useDatabases()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 417`** (2 nodes): `use-mobile.tsx`, `useIsMobile()`
+- **Thin community `Community 403`** (2 nodes): `use-mobile.tsx`, `useIsMobile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 418`** (2 nodes): `useLocalStorage.ts`, `useLocalStorage()`
+- **Thin community `Community 404`** (2 nodes): `useLocalStorage.ts`, `useLocalStorage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 419`** (2 nodes): `useProjectContext.ts`, `useProjectContext()`
+- **Thin community `Community 405`** (2 nodes): `useProjectContext.ts`, `useProjectContext()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 420`** (2 nodes): `useProjects.ts`, `useProjects()`
+- **Thin community `Community 406`** (2 nodes): `useProjects.ts`, `useProjects()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 421`** (2 nodes): `useProjectsWithErrorHandling.ts`, `useProjectsWithErrorHandling()`
+- **Thin community `Community 407`** (2 nodes): `useProjectsWithErrorHandling.ts`, `useProjectsWithErrorHandling()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 422`** (2 nodes): `MSWProvider.tsx`, `MSWProvider()`
+- **Thin community `Community 408`** (2 nodes): `MSWProvider.tsx`, `MSWProvider()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 423`** (2 nodes): `typography.ts`, `cn()`
+- **Thin community `Community 409`** (2 nodes): `typography.ts`, `cn()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 424`** (2 nodes): `validateIdentifier()`, `auth.ts`
+- **Thin community `Community 410`** (2 nodes): `validateIdentifier()`, `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 425`** (2 nodes): `reserved-usernames.ts`, `isReservedUserName()`
+- **Thin community `Community 411`** (2 nodes): `reserved-usernames.ts`, `isReservedUserName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 426`** (2 nodes): `uuid.ts`, `generateUUID()`
+- **Thin community `Community 412`** (2 nodes): `uuid.ts`, `generateUUID()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 427`** (2 nodes): `POST()`, `copilotkit.ts`
+- **Thin community `Community 413`** (2 nodes): `POST()`, `copilotkit.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 428`** (2 nodes): `refresh.ts`, `POST()`
+- **Thin community `Community 414`** (2 nodes): `refresh.ts`, `POST()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 429`** (2 nodes): `GET()`, `memberships.ts`
+- **Thin community `Community 415`** (2 nodes): `GET()`, `memberships.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 430`** (2 nodes): `POST()`, `init.ts`
+- **Thin community `Community 416`** (2 nodes): `POST()`, `init.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 431`** (2 nodes): `page.tsx`, `Home()`
+- **Thin community `Community 417`** (2 nodes): `page.tsx`, `Home()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 432`** (2 nodes): `RootLayout()`, `layout.tsx`
+- **Thin community `Community 418`** (2 nodes): `RootLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 433`** (2 nodes): `page.tsx`, `handleTabChange()`
+- **Thin community `Community 419`** (2 nodes): `page.tsx`, `handleTabChange()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 434`** (2 nodes): `page.tsx`, `OrgPage()`
+- **Thin community `Community 420`** (2 nodes): `page.tsx`, `OrgPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 435`** (2 nodes): `OrgLayout()`, `layout.tsx`
+- **Thin community `Community 421`** (2 nodes): `OrgLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 436`** (2 nodes): `page.tsx`, `ProjectsRedirect()`
+- **Thin community `Community 422`** (2 nodes): `page.tsx`, `ProjectsRedirect()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 437`** (2 nodes): `page.tsx`, `ProjectHomePage()`
+- **Thin community `Community 423`** (2 nodes): `page.tsx`, `ProjectHomePage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 438`** (2 nodes): `page.tsx`, `handleSave()`
+- **Thin community `Community 424`** (2 nodes): `page.tsx`, `handleSave()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 439`** (2 nodes): `page.tsx`, `ModelEditorPage()`
+- **Thin community `Community 425`** (2 nodes): `page.tsx`, `ModelEditorPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 440`** (2 nodes): `ModelEditorLayout()`, `layout.tsx`
+- **Thin community `Community 426`** (2 nodes): `ModelEditorLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 441`** (2 nodes): `ModelDetailPanel.tsx`, `async()`
+- **Thin community `Community 427`** (2 nodes): `ModelDetailPanel.tsx`, `async()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 442`** (2 nodes): `Boolean()`, `CreateEnumLabelFieldPage.tsx`
+- **Thin community `Community 428`** (2 nodes): `Boolean()`, `CreateEnumLabelFieldPage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 443`** (2 nodes): `Boolean()`, `EditFieldImmutablePage.tsx`
+- **Thin community `Community 429`** (2 nodes): `Boolean()`, `EditFieldImmutablePage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 444`** (2 nodes): `Boolean()`, `CreateEnumFieldPage.tsx`
+- **Thin community `Community 430`** (2 nodes): `Boolean()`, `CreateEnumFieldPage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 445`** (2 nodes): `handleCreateRelation()`, `EnumRelationSelector.tsx`
+- **Thin community `Community 431`** (2 nodes): `handleCreateRelation()`, `EnumRelationSelector.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 446`** (2 nodes): `useFieldOperations.ts`, `useFieldOperations()`
+- **Thin community `Community 432`** (2 nodes): `useFieldOperations.ts`, `useFieldOperations()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 447`** (2 nodes): `useModelCRUD.ts`, `useModelCRUD()`
+- **Thin community `Community 433`** (2 nodes): `useModelCRUD.ts`, `useModelCRUD()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 448`** (2 nodes): `use-create-enum-field-page.ts`, `useCreateEnumFieldPage()`
+- **Thin community `Community 434`** (2 nodes): `use-create-enum-field-page.ts`, `useCreateEnumFieldPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 449`** (2 nodes): `useModelEditorState.ts`, `useModelEditorState()`
+- **Thin community `Community 435`** (2 nodes): `useModelEditorState.ts`, `useModelEditorState()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 450`** (2 nodes): `use-edit-field-page.ts`, `useEditFieldPage()`
+- **Thin community `Community 436`** (2 nodes): `use-edit-field-page.ts`, `useEditFieldPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 451`** (2 nodes): `use-create-enum-label-field-page.ts`, `useCreateEnumLabelFieldPage()`
+- **Thin community `Community 437`** (2 nodes): `use-create-enum-label-field-page.ts`, `useCreateEnumLabelFieldPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 452`** (2 nodes): `useForeignKeys.ts`, `useForeignKeys()`
+- **Thin community `Community 438`** (2 nodes): `useForeignKeys.ts`, `useForeignKeys()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 453`** (2 nodes): `page.tsx`, `SettingsPage()`
+- **Thin community `Community 439`** (2 nodes): `page.tsx`, `SettingsPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 454`** (2 nodes): `page.tsx`, `WelcomeRedirect()`
+- **Thin community `Community 440`** (2 nodes): `page.tsx`, `WelcomeRedirect()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 455`** (2 nodes): `use-profile-page-data.ts`, `useProfilePageData()`
+- **Thin community `Community 441`** (2 nodes): `use-profile-page-data.ts`, `useProfilePageData()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 456`** (2 nodes): `use-profile-page-state.ts`, `useProfilePageState()`
+- **Thin community `Community 442`** (2 nodes): `use-profile-page-state.ts`, `useProfilePageState()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 457`** (2 nodes): `use-profile-edit-form.ts`, `useProfileEditForm()`
+- **Thin community `Community 443`** (2 nodes): `use-profile-edit-form.ts`, `useProfileEditForm()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 458`** (2 nodes): `ChiCORS()`, `chi_cors.go`
+- **Thin community `Community 444`** (2 nodes): `ChiCORS()`, `chi_cors.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 459`** (2 nodes): `permission_test.go`, `TestCheckPermission()`
+- **Thin community `Community 445`** (2 nodes): `permission_test.go`, `TestCheckPermission()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 460`** (2 nodes): `ChiHttpContextMiddleware()`, `chi_http_context.go`
+- **Thin community `Community 446`** (2 nodes): `ChiHttpContextMiddleware()`, `chi_http_context.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 461`** (2 nodes): `APIKeyVerifier`, `api_key_verifier.go`
+- **Thin community `Community 447`** (2 nodes): `APIKeyVerifier`, `api_key_verifier.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 462`** (2 nodes): `Querier`, `querier.go`
+- **Thin community `Community 448`** (2 nodes): `Querier`, `querier.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 463`** (2 nodes): `InsertSecurityAuditLogParams`, `security_audit_logs.sql.go`
+- **Thin community `Community 449`** (2 nodes): `InsertSecurityAuditLogParams`, `security_audit_logs.sql.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 464`** (2 nodes): `sql_connection.go`, `NewSQLConnection()`
+- **Thin community `Community 450`** (2 nodes): `sql_connection.go`, `NewSQLConnection()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 465`** (2 nodes): `modelruntime_convert_test.go`, `TestDbgenModelToRuntimeModel()`
+- **Thin community `Community 451`** (2 nodes): `modelruntime_convert_test.go`, `TestDbgenModelToRuntimeModel()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 466`** (2 nodes): `NewError()`, `error_helper.go`
+- **Thin community `Community 452`** (2 nodes): `NewError()`, `error_helper.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 467`** (2 nodes): `WrapSQLErrorInPlace()`, `error_wrap.go`
+- **Thin community `Community 453`** (2 nodes): `WrapSQLErrorInPlace()`, `error_wrap.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 468`** (2 nodes): `APIKeyRepository`, `api_key_repository.go`
+- **Thin community `Community 454`** (2 nodes): `APIKeyRepository`, `api_key_repository.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 469`** (2 nodes): `AuthProvider`, `provider.go`
+- **Thin community `Community 455`** (2 nodes): `AuthProvider`, `provider.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 470`** (2 nodes): `repository.go`, `RoleRepository`
+- **Thin community `Community 456`** (2 nodes): `repository.go`, `RoleRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 471`** (2 nodes): `repository.go`, `UserRepository`
+- **Thin community `Community 457`** (2 nodes): `repository.go`, `UserRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 472`** (2 nodes): `DatabaseClusterRepository`, `database_cluster_repository.go`
+- **Thin community `Community 458`** (2 nodes): `DatabaseClusterRepository`, `database_cluster_repository.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 473`** (2 nodes): `model_repository.go`, `ModelRepository`
+- **Thin community `Community 459`** (2 nodes): `model_repository.go`, `ModelRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 474`** (2 nodes): `graphql_repository.go`, `ClientDatabaseRepository`
+- **Thin community `Community 460`** (2 nodes): `graphql_repository.go`, `ClientDatabaseRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 475`** (2 nodes): `repository.go`, `Repository`
+- **Thin community `Community 461`** (2 nodes): `repository.go`, `Repository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 476`** (2 nodes): `repository.go`, `OrganizationRepository`
+- **Thin community `Community 462`** (2 nodes): `repository.go`, `OrganizationRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 477`** (2 nodes): `repository.go`, `ProjectRepository`
+- **Thin community `Community 463`** (2 nodes): `repository.go`, `ProjectRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 478`** (2 nodes): `logical_foreign_key_repository.go`, `LogicalForeignKeyRepository`
+- **Thin community `Community 464`** (2 nodes): `logical_foreign_key_repository.go`, `LogicalForeignKeyRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 479`** (2 nodes): `enum_repository.go`, `EnumRepository`
+- **Thin community `Community 465`** (2 nodes): `enum_repository.go`, `EnumRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 480`** (2 nodes): `field_enum_relation_repository.go`, `FieldEnumRelationRepository`
+- **Thin community `Community 466`** (2 nodes): `field_enum_relation_repository.go`, `FieldEnumRelationRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 481`** (2 nodes): `field_definition_repository.go`, `FieldDefinitionRepository`
+- **Thin community `Community 467`** (2 nodes): `field_definition_repository.go`, `FieldDefinitionRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 482`** (2 nodes): `field_enum_association_repository.go`, `FieldEnumAssociationRepository`
+- **Thin community `Community 468`** (2 nodes): `field_enum_association_repository.go`, `FieldEnumAssociationRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 483`** (2 nodes): `deployment_repo.go`, `DeployRepo`
+- **Thin community `Community 469`** (2 nodes): `deployment_repo.go`, `DeployRepo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 484`** (2 nodes): `model_group_repository.go`, `ModelGroupRepository`
+- **Thin community `Community 470`** (2 nodes): `model_group_repository.go`, `ModelGroupRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 485`** (2 nodes): `TestRequestIDInjectorMiddleware()`, `middleware_request_id_test.go`
+- **Thin community `Community 471`** (2 nodes): `TestRequestIDInjectorMiddleware()`, `middleware_request_id_test.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 486`** (2 nodes): `convertFKDirection()`, `fk_converters.go`
+- **Thin community `Community 472`** (2 nodes): `convertFKDirection()`, `fk_converters.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 487`** (2 nodes): `commands.go`, `ExecuteGraphQLCommand`
+- **Thin community `Community 473`** (2 nodes): `commands.go`, `ExecuteGraphQLCommand`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 488`** (2 nodes): `list_tables_app.go`, `ListTablesResult`
+- **Thin community `Community 474`** (2 nodes): `list_tables_app.go`, `ListTablesResult`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 489`** (2 nodes): `Common fixtures for Design-time tests.  These fixtures can be reused across all`, `fixtures.py`
+- **Thin community `Community 475`** (2 nodes): `TestEncodePasswd()`, `aes_cipher_test.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 490`** (2 nodes): `TestEncodePasswd()`, `aes_cipher_test.go`
+- **Thin community `Community 476`** (2 nodes): `WithGraphqlErrorHandler()`, `graphql_handler.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 491`** (2 nodes): `WithGraphqlErrorHandler()`, `graphql_handler.go`
+- **Thin community `Community 477`** (2 nodes): `NewGraphqlErr()`, `graphql_error.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 492`** (2 nodes): `NewGraphqlErr()`, `graphql_error.go`
+- **Thin community `Community 478`** (2 nodes): `contextKey`, `constant.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 493`** (2 nodes): `contextKey`, `constant.go`
+- **Thin community `Community 479`** (2 nodes): `type_utils.go`, `IsArrayType()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 494`** (2 nodes): `type_utils.go`, `IsArrayType()`
+- **Thin community `Community 480`** (2 nodes): `GenerateUUIDV7()`, `idutils.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 495`** (2 nodes): `GenerateUUIDV7()`, `idutils.go`
+- **Thin community `Community 481`** (2 nodes): `utils.go`, `GoWithCtx()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 496`** (2 nodes): `utils.go`, `GoWithCtx()`
+- **Thin community `Community 482`** (2 nodes): `Backend Go Comment Standards`, `Go Comment Convention for Exported Identifiers`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 497`** (2 nodes): `Backend Go Comment Standards`, `Go Comment Convention for Exported Identifiers`
+- **Thin community `Community 483`** (1 nodes): `cucumber.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 498`** (1 nodes): `cucumber.js`
+- **Thin community `Community 484`** (1 nodes): `hooks.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 499`** (1 nodes): `hooks.ts`
+- **Thin community `Community 485`** (1 nodes): `lfk.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 500`** (1 nodes): `lfk.steps.ts`
+- **Thin community `Community 486`** (1 nodes): `model.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 501`** (1 nodes): `model.steps.ts`
+- **Thin community `Community 487`** (1 nodes): `common.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 502`** (1 nodes): `common.steps.ts`
+- **Thin community `Community 488`** (1 nodes): `next-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 503`** (1 nodes): `next-env.d.ts`
+- **Thin community `Community 489`** (1 nodes): `codegen.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 504`** (1 nodes): `codegen.ts`
+- **Thin community `Community 490`** (1 nodes): `tailwind.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 505`** (1 nodes): `tailwind.config.ts`
+- **Thin community `Community 491`** (1 nodes): `vite-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 506`** (1 nodes): `vite-env.d.ts`
+- **Thin community `Community 492`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 507`** (1 nodes): `index.ts`
+- **Thin community `Community 493`** (1 nodes): `project.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 508`** (1 nodes): `project.ts`
+- **Thin community `Community 494`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 509`** (1 nodes): `index.ts`
+- **Thin community `Community 495`** (1 nodes): `enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 510`** (1 nodes): `enum.ts`
+- **Thin community `Community 496`** (1 nodes): `model.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 511`** (1 nodes): `model.ts`
+- **Thin community `Community 497`** (1 nodes): `field-enum-relation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 512`** (1 nodes): `field-enum-relation.ts`
+- **Thin community `Community 498`** (1 nodes): `cluster.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 513`** (1 nodes): `cluster.ts`
+- **Thin community `Community 499`** (1 nodes): `user.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 514`** (1 nodes): `user.ts`
+- **Thin community `Community 500`** (1 nodes): `project.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 515`** (1 nodes): `project.ts`
+- **Thin community `Community 501`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 516`** (1 nodes): `index.ts`
+- **Thin community `Community 502`** (1 nodes): `enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 517`** (1 nodes): `enum.ts`
+- **Thin community `Community 503`** (1 nodes): `model.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 518`** (1 nodes): `model.ts`
+- **Thin community `Community 504`** (1 nodes): `field-enum-relation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 519`** (1 nodes): `field-enum-relation.ts`
+- **Thin community `Community 505`** (1 nodes): `cluster.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 520`** (1 nodes): `cluster.ts`
+- **Thin community `Community 506`** (1 nodes): `user.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 521`** (1 nodes): `user.ts`
+- **Thin community `Community 507`** (1 nodes): `collapsible.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 522`** (1 nodes): `collapsible.tsx`
+- **Thin community `Community 508`** (1 nodes): `separator.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 523`** (1 nodes): `separator.tsx`
+- **Thin community `Community 509`** (1 nodes): `alert.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 524`** (1 nodes): `alert.tsx`
+- **Thin community `Community 510`** (1 nodes): `form.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 525`** (1 nodes): `form.tsx`
+- **Thin community `Community 511`** (1 nodes): `label.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 526`** (1 nodes): `label.tsx`
+- **Thin community `Community 512`** (1 nodes): `toggle.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 527`** (1 nodes): `toggle.tsx`
+- **Thin community `Community 513`** (1 nodes): `view-toggle.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 528`** (1 nodes): `view-toggle.tsx`
+- **Thin community `Community 514`** (1 nodes): `switch.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 529`** (1 nodes): `switch.tsx`
+- **Thin community `Community 515`** (1 nodes): `checkbox.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 530`** (1 nodes): `checkbox.tsx`
+- **Thin community `Community 516`** (1 nodes): `input.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 531`** (1 nodes): `input.tsx`
+- **Thin community `Community 517`** (1 nodes): `breadcrumb.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 532`** (1 nodes): `breadcrumb.tsx`
+- **Thin community `Community 518`** (1 nodes): `toggle-group.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 533`** (1 nodes): `toggle-group.tsx`
+- **Thin community `Community 519`** (1 nodes): `select.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 534`** (1 nodes): `select.tsx`
+- **Thin community `Community 520`** (1 nodes): `card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 535`** (1 nodes): `card.tsx`
+- **Thin community `Community 521`** (1 nodes): `sheet.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 536`** (1 nodes): `sheet.tsx`
+- **Thin community `Community 522`** (1 nodes): `dropdown-menu.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 537`** (1 nodes): `dropdown-menu.tsx`
+- **Thin community `Community 523`** (1 nodes): `table.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 538`** (1 nodes): `table.tsx`
+- **Thin community `Community 524`** (1 nodes): `alert-dialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 539`** (1 nodes): `alert-dialog.tsx`
+- **Thin community `Community 525`** (1 nodes): `tooltip.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 540`** (1 nodes): `tooltip.tsx`
+- **Thin community `Community 526`** (1 nodes): `dialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 541`** (1 nodes): `dialog.tsx`
+- **Thin community `Community 527`** (1 nodes): `avatar.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 542`** (1 nodes): `avatar.tsx`
+- **Thin community `Community 528`** (1 nodes): `connection-config-card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 543`** (1 nodes): `connection-config-card.tsx`
+- **Thin community `Community 529`** (1 nodes): `button.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 544`** (1 nodes): `button.tsx`
+- **Thin community `Community 530`** (1 nodes): `popover.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 545`** (1 nodes): `popover.tsx`
+- **Thin community `Community 531`** (1 nodes): `search-input.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 546`** (1 nodes): `search-input.tsx`
+- **Thin community `Community 532`** (1 nodes): `scroll-area.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 547`** (1 nodes): `scroll-area.tsx`
+- **Thin community `Community 533`** (1 nodes): `drawer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 548`** (1 nodes): `drawer.tsx`
+- **Thin community `Community 534`** (1 nodes): `textarea.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 549`** (1 nodes): `textarea.tsx`
+- **Thin community `Community 535`** (1 nodes): `LoadingScreen.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 550`** (1 nodes): `LoadingScreen.tsx`
+- **Thin community `Community 536`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 551`** (1 nodes): `index.ts`
+- **Thin community `Community 537`** (1 nodes): `ModelRecordTable.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 552`** (1 nodes): `ModelRecordTable.tsx`
+- **Thin community `Community 538`** (1 nodes): `modelFieldMapping.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 553`** (1 nodes): `modelFieldMapping.test.ts`
+- **Thin community `Community 539`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 554`** (1 nodes): `index.ts`
+- **Thin community `Community 540`** (1 nodes): `FieldTemplate.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 555`** (1 nodes): `FieldTemplate.tsx`
+- **Thin community `Community 541`** (1 nodes): `ObjectFieldTemplate.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 556`** (1 nodes): `ObjectFieldTemplate.tsx`
+- **Thin community `Community 542`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 557`** (1 nodes): `index.ts`
+- **Thin community `Community 543`** (1 nodes): `auth-layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 558`** (1 nodes): `auth-layout.tsx`
+- **Thin community `Community 544`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 559`** (1 nodes): `index.ts`
+- **Thin community `Community 545`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 560`** (1 nodes): `index.ts`
+- **Thin community `Community 546`** (1 nodes): `AppLayout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 561`** (1 nodes): `AppLayout.tsx`
+- **Thin community `Community 547`** (1 nodes): `CopilotProvider.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 562`** (1 nodes): `CopilotProvider.tsx`
+- **Thin community `Community 548`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 563`** (1 nodes): `index.ts`
+- **Thin community `Community 549`** (1 nodes): `memberships-cache.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 564`** (1 nodes): `memberships-cache.ts`
+- **Thin community `Community 550`** (1 nodes): `project.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 565`** (1 nodes): `project.ts`
+- **Thin community `Community 551`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 566`** (1 nodes): `index.ts`
+- **Thin community `Community 552`** (1 nodes): `enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 567`** (1 nodes): `enum.ts`
+- **Thin community `Community 553`** (1 nodes): `model.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 568`** (1 nodes): `model.ts`
+- **Thin community `Community 554`** (1 nodes): `cluster.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 569`** (1 nodes): `cluster.ts`
+- **Thin community `Community 555`** (1 nodes): `app.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 570`** (1 nodes): `app.ts`
+- **Thin community `Community 556`** (1 nodes): `error.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 571`** (1 nodes): `error.ts`
+- **Thin community `Community 557`** (1 nodes): `node.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 572`** (1 nodes): `node.ts`
+- **Thin community `Community 558`** (1 nodes): `browser.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 573`** (1 nodes): `browser.ts`
+- **Thin community `Community 559`** (1 nodes): `theme-colors.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 574`** (1 nodes): `theme-colors.ts`
+- **Thin community `Community 560`** (1 nodes): `auth-store.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 575`** (1 nodes): `auth-store.ts`
+- **Thin community `Community 561`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 576`** (1 nodes): `public.ts`
+- **Thin community `Community 562`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 577`** (1 nodes): `public.ts`
+- **Thin community `Community 563`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 578`** (1 nodes): `types.ts`
+- **Thin community `Community 564`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 579`** (1 nodes): `public.ts`
+- **Thin community `Community 565`** (1 nodes): `project.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 580`** (1 nodes): `project.ts`
+- **Thin community `Community 566`** (1 nodes): `foreign-key.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 581`** (1 nodes): `foreign-key.ts`
+- **Thin community `Community 567`** (1 nodes): `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 582`** (1 nodes): `auth.ts`
+- **Thin community `Community 568`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 583`** (1 nodes): `index.ts`
+- **Thin community `Community 569`** (1 nodes): `schema-issue.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 584`** (1 nodes): `schema-issue.ts`
+- **Thin community `Community 570`** (1 nodes): `enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 585`** (1 nodes): `enum.ts`
+- **Thin community `Community 571`** (1 nodes): `profile.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 586`** (1 nodes): `profile.ts`
+- **Thin community `Community 572`** (1 nodes): `model-enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 587`** (1 nodes): `model-enum.ts`
+- **Thin community `Community 573`** (1 nodes): `model.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 588`** (1 nodes): `model.ts`
+- **Thin community `Community 574`** (1 nodes): `cluster.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 589`** (1 nodes): `cluster.ts`
+- **Thin community `Community 575`** (1 nodes): `user.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 590`** (1 nodes): `user.ts`
+- **Thin community `Community 576`** (1 nodes): `graphql.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 591`** (1 nodes): `graphql.ts`
+- **Thin community `Community 577`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 592`** (1 nodes): `page.tsx`
+- **Thin community `Community 578`** (1 nodes): `route.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 593`** (1 nodes): `route.ts`
+- **Thin community `Community 579`** (1 nodes): `route.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 594`** (1 nodes): `route.ts`
+- **Thin community `Community 580`** (1 nodes): `route.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 595`** (1 nodes): `route.ts`
+- **Thin community `Community 581`** (1 nodes): `route.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 596`** (1 nodes): `route.ts`
+- **Thin community `Community 582`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 597`** (1 nodes): `layout.tsx`
+- **Thin community `Community 583`** (1 nodes): `FieldEditSheet.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 598`** (1 nodes): `FieldEditSheet.tsx`
+- **Thin community `Community 584`** (1 nodes): `DeleteModelDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 599`** (1 nodes): `DeleteModelDialog.tsx`
+- **Thin community `Community 585`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 600`** (1 nodes): `index.ts`
+- **Thin community `Community 586`** (1 nodes): `ForeignKeyPanel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 601`** (1 nodes): `ForeignKeyPanel.tsx`
+- **Thin community `Community 587`** (1 nodes): `ModelEditorView.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 602`** (1 nodes): `ModelEditorView.tsx`
+- **Thin community `Community 588`** (1 nodes): `CreateModelDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 603`** (1 nodes): `CreateModelDialog.tsx`
+- **Thin community `Community 589`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 604`** (1 nodes): `index.ts`
+- **Thin community `Community 590`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 605`** (1 nodes): `index.ts`
+- **Thin community `Community 591`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 606`** (1 nodes): `types.ts`
+- **Thin community `Community 592`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 607`** (1 nodes): `page.tsx`
+- **Thin community `Community 593`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 608`** (1 nodes): `layout.tsx`
+- **Thin community `Community 594`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 609`** (1 nodes): `page.tsx`
+- **Thin community `Community 595`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 610`** (1 nodes): `index.ts`
+- **Thin community `Community 596`** (1 nodes): `ProfileEditForm.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 611`** (1 nodes): `ProfileEditForm.tsx`
+- **Thin community `Community 597`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 612`** (1 nodes): `index.ts`
+- **Thin community `Community 598`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 613`** (1 nodes): `types.ts`
+- **Thin community `Community 599`** (1 nodes): `tailwind.config.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 614`** (1 nodes): `tailwind.config.js`
+- **Thin community `Community 600`** (1 nodes): `graphql_constants.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 615`** (1 nodes): `graphql_constants.go`
+- **Thin community `Community 601`** (1 nodes): `graphql_scalars.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 616`** (1 nodes): `graphql_scalars.go`
+- **Thin community `Community 602`** (1 nodes): `cluster.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 617`** (1 nodes): `cluster.resolvers.go`
+- **Thin community `Community 603`** (1 nodes): `enum.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 618`** (1 nodes): `enum.resolvers.go`
+- **Thin community `Community 604`** (1 nodes): `model.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 619`** (1 nodes): `model.resolvers.go`
+- **Thin community `Community 605`** (1 nodes): `logical_foreign_key.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 620`** (1 nodes): `logical_foreign_key.resolvers.go`
+- **Thin community `Community 606`** (1 nodes): `field_enum_relation.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 621`** (1 nodes): `field_enum_relation.resolvers.go`
+- **Thin community `Community 607`** (1 nodes): `user_management.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 622`** (1 nodes): `user_management.resolvers.go`
+- **Thin community `Community 608`** (1 nodes): `permission.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 623`** (1 nodes): `permission.resolvers.go`
+- **Thin community `Community 609`** (1 nodes): `profile.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 624`** (1 nodes): `profile.resolvers.go`
+- **Thin community `Community 610`** (1 nodes): `project.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 625`** (1 nodes): `project.resolvers.go`
+- **Thin community `Community 611`** (1 nodes): `api_key.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 626`** (1 nodes): `api_key.resolvers.go`
+- **Thin community `Community 612`** (1 nodes): `field_builder.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 627`** (1 nodes): `field_builder.go`
+- **Thin community `Community 613`** (1 nodes): `tools.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 628`** (1 nodes): `tools.go`
+- **Thin community `Community 614`** (1 nodes): `graphql_constants.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 629`** (1 nodes): `__init__.py`
+- **Thin community `Community 615`** (1 nodes): `errors.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 630`** (1 nodes): `__init__.py`
+- **Thin community `Community 616`** (1 nodes): `Shared fixtures for model tests`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 631`** (1 nodes): `__init__.py`
+- **Thin community `Community 617`** (1 nodes): `Session-scoped test configuration.      Loads configuration from environment var`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 632`** (1 nodes): `__init__.py`
+- **Thin community `Community 618`** (1 nodes): `Session-scoped base URL for API calls.      Returns:         str: Base URL for M`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 633`** (1 nodes): `Create configuration from environment variables with fallback defaults.`
+- **Thin community `Community 619`** (1 nodes): `Session-scoped Design-time GraphQL endpoint URL.      Returns:         str: Grap`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 634`** (1 nodes): `__init__.py`
+- **Thin community `Community 620`** (1 nodes): `Session-scoped database configuration.      Returns:         dict: Database conn`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 635`** (1 nodes): `__init__.py`
+- **Thin community `Community 621`** (1 nodes): `Session-scoped fixture: provision test user with owner role.      Automatically`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 636`** (1 nodes): `Test creating a project creates the cluster atomically.`
+- **Thin community `Community 622`** (1 nodes): `Session-scoped JWT access token for authenticated API calls.      Obtains a real`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 637`** (1 nodes): `Test updating the project's cluster connection info.`
+- **Thin community `Community 623`** (1 nodes): `Session-scoped Casdoor JWT token (explicit naming for clarity).      This is an`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 638`** (1 nodes): `Test that deleting a project also removes its cluster.`
+- **Thin community `Community 624`** (1 nodes): `Session-scoped ModelCraft JWT token for dual-token authentication tests.      Th`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 639`** (1 nodes): `Provide the shared test cluster to individual tests.         Uses session-scoped`
+- **Thin community `Community 625`** (1 nodes): `Pytest hook called after command line options have been parsed.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 640`** (1 nodes): `Create a test model for error tests`
+- **Thin community `Community 626`** (1 nodes): `Pytest hook to modify test items during collection.      Automatically adds mark`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 641`** (1 nodes): `__init__.py`
+- **Thin community `Community 627`** (1 nodes): `Authentication utilities for integration tests.  Provides functions to obtain JW`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 642`** (1 nodes): `Provide the shared test cluster to individual tests.         Uses session-scoped`
+- **Thin community `Community 628`** (1 nodes): `Obtain JWT access token from Casdoor using Resource Owner Password Credentials f`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 643`** (1 nodes): `__init__.py`
+- **Thin community `Community 629`** (1 nodes): `Exchange Casdoor JWT for ModelCraft JWT via ModelCraft's auth endpoint.      Not`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 644`** (1 nodes): `graphql_constants.go`
+- **Thin community `Community 630`** (1 nodes): `Get ModelCraft JWT for tests (convenience function).      Note: Currently return`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 645`** (1 nodes): `errors.go`
+- **Thin community `Community 631`** (1 nodes): `# NOTE: The current /api/auth/token endpoint expects an OAuth authorization code`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 646`** (1 nodes): `AGENTS.md`
+- **Thin community `Community 632`** (1 nodes): `Test user setup utility for integration tests.  Provides functions to automatica`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 647`** (1 nodes): `ModelCraft Project`
+- **Thin community `Community 633`** (1 nodes): `Get the path to the test user setup SQL script.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 648`** (1 nodes): `ModelCraft Backend (Go)`
+- **Thin community `Community 634`** (1 nodes): `Execute the test user setup SQL script.      Creates a test user with owner role`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 649`** (1 nodes): `ModelCraft Frontend (Next.js)`
+- **Thin community `Community 635`** (1 nodes): `Clean up test user and associated data with cascading deletions.      Args:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 650`** (1 nodes): `Git Subtree - API Contract Sharing`
+- **Thin community `Community 636`** (1 nodes): `Enum tests.  This package contains integration tests for enum GraphQL operations`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 651`** (1 nodes): `modelcraft-api-contracts Shared Repo`
+- **Thin community `Community 637`** (1 nodes): `Test configuration module.  Loads database and API configuration from environmen`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 652`** (1 nodes): `modelcraft-backend/api/ Source of Truth`
+- **Thin community `Community 638`** (1 nodes): `Load environment variables from .env file at project root.      Args:         en`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 653`** (1 nodes): `modelcraft-front/contract/ Read-only Consumer`
+- **Thin community `Community 639`** (1 nodes): `Test configuration from environment variables.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 654`** (1 nodes): `ModelCraft Core Principles`
+- **Thin community `Community 640`** (1 nodes): `Initialize test configuration.          Environment variables should be loaded b`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 655`** (1 nodes): `ModelCraft Roadmap`
+- **Thin community `Community 641`** (1 nodes): `Get database configuration.          Returns:             dict: Database configu`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 656`** (1 nodes): `Domain Model Overview`
+- **Thin community `Community 642`** (1 nodes): `Get API base URL.          Returns:             str: API base URL (e.g., http://`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 657`** (1 nodes): `Auth Domain Design`
+- **Thin community `Community 643`** (1 nodes): `Get API base URL (legacy alias for get_base_url).          Returns:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 658`** (1 nodes): `Organization/Tenant Domain Design`
+- **Thin community `Community 644`** (1 nodes): `Get Design-time GraphQL endpoint URL.          Args:             org_name (str,`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 659`** (1 nodes): `Project Domain Design`
+- **Thin community `Community 645`** (1 nodes): `Get GraphQL endpoint URL (legacy method).          Returns:             str: Gra`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 660`** (1 nodes): `Model Domain Overview`
+- **Thin community `Community 646`** (1 nodes): `Module-scoped GraphQL client for Runtime API.      Note: Currently uses the same`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 661`** (1 nodes): `Model Runtime Artifact`
+- **Thin community `Community 647`** (1 nodes): `Fixture to set up a sample model for Runtime tests.      Runtime tests often nee`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 662`** (1 nodes): `Model Design-time Domain`
+- **Thin community `Community 648`** (1 nodes): `User Data GraphQL Query Tests  Tests for querying user data through the Runtime`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 663`** (1 nodes): `Domain-Driven Design (DDD)`
+- **Thin community `Community 649`** (1 nodes): `Test suite for user data queries via Runtime GraphQL`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 664`** (1 nodes): `Design-time Phase`
+- **Thin community `Community 650`** (1 nodes): `Test querying all records for a model`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 665`** (1 nodes): `Runtime Phase`
+- **Thin community `Community 651`** (1 nodes): `Test querying data with filters`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 666`** (1 nodes): `Casdoor Authentication Decision`
+- **Thin community `Community 652`** (1 nodes): `Test querying a single record by ID`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 667`** (1 nodes): `Dual GraphQL Endpoints`
+- **Thin community `Community 653`** (1 nodes): `ModelCraft Client Integration Tests  End-to-end integration tests that exercise`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 668`** (1 nodes): `Dynamic GraphQL Schema Generation`
+- **Thin community `Community 654`** (1 nodes): `Integration tests for complete ModelCraft workflows`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 669`** (1 nodes): `Schema Sync Mechanism`
+- **Thin community `Community 655`** (1 nodes): `Test the complete lifecycle: Create model (using project's cluster) → Query data`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 670`** (1 nodes): `ProjectScope Value Object`
+- **Thin community `Community 656`** (1 nodes): `Test integration across projects, clusters, and models.          Verifies that r`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 671`** (1 nodes): `Membership Entity`
+- **Thin community `Community 657`** (1 nodes): `Session-scoped JWT access token for Design tests.      Design tests require auth`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 672`** (1 nodes): `Role Entity`
+- **Thin community `Community 658`** (1 nodes): `Module-scoped authenticated GraphQL client for Design-time API.      Args:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 673`** (1 nodes): `Permission Value Object`
+- **Thin community `Community 659`** (1 nodes): `Fixture to track and cleanup created projects.      Projects are stored as dicti`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 674`** (1 nodes): `RBAC Domain Model`
+- **Thin community `Community 660`** (1 nodes): `Legacy fixture for backward compatibility.      Clusters are now sub-resources o`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 675`** (1 nodes): `SQL Editor Domain`
+- **Thin community `Community 661`** (1 nodes): `Fixture to track and cleanup created models.      Models are stored as tuples of`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 676`** (1 nodes): `Type Conversion via spf13/cast`
+- **Thin community `Community 662`** (1 nodes): `Fixture to track and cleanup created enums.      Enums are stored as tuples of (`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 677`** (1 nodes): `Backend Testing Strategy`
+- **Thin community `Community 663`** (1 nodes): `Fixture that ensures the default project exists.      Returns:         dict: Def`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 678`** (1 nodes): `Deployment Guide`
+- **Thin community `Community 664`** (1 nodes): `Database connection configuration for tests.  This module provides a centralized`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 679`** (1 nodes): `Justfile Command Reference`
+- **Thin community `Community 665`** (1 nodes): `Database connection configuration.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 680`** (1 nodes): `Atlas Database Migration Tool`
+- **Thin community `Community 666`** (1 nodes): `Create configuration from environment variables with fallback defaults.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 681`** (1 nodes): `Auth API Design`
+- **Thin community `Community 667`** (1 nodes): `Convert configuration to dictionary format.                  Returns:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 682`** (1 nodes): `Refresh Token Rotation`
+- **Thin community `Community 668`** (1 nodes): `Get the default test database configuration.          This function returns a si`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 683`** (1 nodes): `Model Enum Feature Overview`
+- **Thin community `Community 669`** (1 nodes): `Reset the default test database configuration.          This is useful for testi`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 684`** (1 nodes): `FieldEnumRelation Entity`
+- **Thin community `Community 670`** (1 nodes): `Custom assertions for Design-time tests.  Provides reusable assertion helpers fo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 685`** (1 nodes): `ENUM Field Type`
+- **Thin community `Community 671`** (1 nodes): `Assert that a GraphQL query succeeded without errors.      Args:         result:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 686`** (1 nodes): `ENUM_LABEL Field Type`
+- **Thin community `Community 672`** (1 nodes): `Assert that a project object has expected fields and values.      Args:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 687`** (1 nodes): `ENUM Backend Design`
+- **Thin community `Community 673`** (1 nodes): `Assert that a cluster object has expected fields and values.      Args:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 688`** (1 nodes): `ENUM Frontend Combined Interaction Design`
+- **Thin community `Community 674`** (1 nodes): `Assert that a model object has expected fields and values.      Args:         mo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 689`** (1 nodes): `Field __label Display Protocol`
+- **Thin community `Community 675`** (1 nodes): `Assert that an object contains all specified fields.      Args:         obj: Obj`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 690`** (1 nodes): `Model displayField Configuration`
+- **Thin community `Community 676`** (1 nodes): `Assert that a value is not empty (not None, not empty string, not empty list).`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 691`** (1 nodes): `Spec: Project Auth Config`
+- **Thin community `Community 677`** (1 nodes): `Assert that a GraphQL mutation returned a specific error type.      Args:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 692`** (1 nodes): `Spec: Project Management`
+- **Thin community `Community 678`** (1 nodes): `Assert that a GraphQL query returns None (e.g., when resource not found).      A`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 693`** (1 nodes): `Spec: @hasPermission Directive`
+- **Thin community `Community 679`** (1 nodes): `Test data builders for Design-time tests.  Provides builder functions to generat`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 694`** (1 nodes): `Spec: ModelRuntime Aggregate Query`
+- **Thin community `Community 680`** (1 nodes): `Generate a unique test ID.      Args:         prefix: ID prefix (default: "test"`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 695`** (1 nodes): `Spec: ModelRuntime Count Query`
+- **Thin community `Community 681`** (1 nodes): `Build a project creation input with sensible defaults.      Includes clusterInpu`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 696`** (1 nodes): `Spec: ModelRuntime Sort`
+- **Thin community `Community 682`** (1 nodes): `Build a database cluster input with sensible defaults.      Uses test database c`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 697`** (1 nodes): `Spec: ModelRuntime Pagination`
+- **Thin community `Community 683`** (1 nodes): `Build a model creation input with sensible defaults.      Args:         project_`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 698`** (1 nodes): `Spec: ModelRuntime Query`
+- **Thin community `Community 684`** (1 nodes): `Build a field input with sensible defaults.      Args:         name: Field name`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 699`** (1 nodes): `Spec: ModelRuntime Filter`
+- **Thin community `Community 685`** (1 nodes): `Build an enum option input.      Args:         code: Option code (unique identif`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 700`** (1 nodes): `Spec: ModelRuntime Mutation`
+- **Thin community `Community 686`** (1 nodes): `Build an enum creation input with sensible defaults.      Args:         project_`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 701`** (1 nodes): `Spec: Field Create API`
+- **Thin community `Community 687`** (1 nodes): `Common fixtures for Design-time tests.  These fixtures can be reused across all`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 702`** (1 nodes): `Spec: LFK Query`
+- **Thin community `Community 688`** (1 nodes): `GraphQL client utilities for Design-time tests.  This module provides utilities`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 703`** (1 nodes): `Spec: Enum Query`
+- **Thin community `Community 689`** (1 nodes): `GraphQL client wrapper with automatic request/response logging.      This wrappe`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 704`** (1 nodes): `Spec: Display Field`
+- **Thin community `Community 690`** (1 nodes): `Initialize logging wrapper.          Args:             client: Underlying GQL cl`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 705`** (1 nodes): `Spec: Admin Org Management`
+- **Thin community `Community 691`** (1 nodes): `Execute GraphQL query with automatic logging.          Args:             documen`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 706`** (1 nodes): `Spec: Admin Casdoor SSO`
+- **Thin community `Community 692`** (1 nodes): `Extract operation info (type and name) from GraphQL document.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 707`** (1 nodes): `BDD Test Suite README`
+- **Thin community `Community 693`** (1 nodes): `Delegate unknown attributes to underlying client.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 708`** (1 nodes): `Auth Login Feature`
+- **Thin community `Community 694`** (1 nodes): `Create a GraphQL client for Design-time API with automatic logging.      Args:`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 709`** (1 nodes): `Auth Register Feature`
+- **Thin community `Community 695`** (1 nodes): `Execute a GraphQL query with error handling.      Note: When using LoggingGraphQ`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 710`** (1 nodes): `Cluster Management Feature`
+- **Thin community `Community 696`** (1 nodes): `Project-Cluster One-to-One Relationship Integration Tests  Tests for the one-to-`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 711`** (1 nodes): `Field Management Feature`
+- **Thin community `Community 697`** (1 nodes): `Test suite for Project-Cluster one-to-one relationship.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 712`** (1 nodes): `Model Management Feature`
+- **Thin community `Community 698`** (1 nodes): `Test creating a project always includes a cluster.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 713`** (1 nodes): `Project Management Feature`
+- **Thin community `Community 699`** (1 nodes): `Test that project and cluster are created in a single atomic operation.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 714`** (1 nodes): `SQL Editor Feature`
+- **Thin community `Community 700`** (1 nodes): `Test that bad connection info (without skipConnectionTest) prevents project crea`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 715`** (1 nodes): `Enum Management Feature`
+- **Thin community `Community 701`** (1 nodes): `Test retrieving project includes nested cluster field.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 716`** (1 nodes): `Logical Foreign Key Feature`
+- **Thin community `Community 702`** (1 nodes): `Test that deleting a project also removes its cluster.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 717`** (1 nodes): `Runtime Feature`
+- **Thin community `Community 703`** (1 nodes): `Test that skipConnectionTest allows project creation even with invalid connectio`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 718`** (1 nodes): `Field-Enum Feature`
+- **Thin community `Community 704`** (1 nodes): `Database Cluster GraphQL Tests  Tests for database cluster operations via GraphQ`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 719`** (1 nodes): `Field-Label Feature`
+- **Thin community `Community 705`** (1 nodes): `Generate a unique name to avoid conflicts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 720`** (1 nodes): `Runtime Enum Feature`
+- **Thin community `Community 706`** (1 nodes): `Test suite for database cluster operations via project sub-resource API.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 721`** (1 nodes): `Runtime Label Feature`
+- **Thin community `Community 707`** (1 nodes): `Test creating a project creates the cluster atomically.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 722`** (1 nodes): `Runtime LFK Feature`
+- **Thin community `Community 708`** (1 nodes): `Test that invalid connection info returns DatabaseConnectionFailed (without skip`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 723`** (1 nodes): `Cucumber World (Shared State)`
+- **Thin community `Community 709`** (1 nodes): `Test retrieving a cluster by project name.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 724`** (1 nodes): `GraphQL Client (BDD)`
+- **Thin community `Community 710`** (1 nodes): `Test retrieving cluster for a non-existent project.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 725`** (1 nodes): `Test Data Factory`
+- **Thin community `Community 711`** (1 nodes): `Test updating the project's cluster connection info.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 726`** (1 nodes): `Node Interface (Relay Spec)`
+- **Thin community `Community 712`** (1 nodes): `Test that deleting a project also removes its cluster.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 727`** (1 nodes): `PageInfo Type`
+- **Thin community `Community 713`** (1 nodes): `Test that querying a project includes the nested cluster.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 728`** (1 nodes): `@hasPermission Directive`
+- **Thin community `Community 714`** (1 nodes): `Test that skipConnectionTest: true bypasses validation with invalid credentials.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 729`** (1 nodes): `Organization GraphQL Type`
+- **Thin community `Community 715`** (1 nodes): `Ensure the default project exists with a cluster for all model tests.      Model`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 730`** (1 nodes): `Role GraphQL Type`
+- **Thin community `Community 716`** (1 nodes): `Model Design GraphQL Typed Error Tests  Tests for model GraphQL operations that`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 731`** (1 nodes): `OrganizationMember GraphQL Type`
+- **Thin community `Community 717`** (1 nodes): `Test suite for Model GraphQL typed errors`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 732`** (1 nodes): `Project GraphQL Type`
+- **Thin community `Community 718`** (1 nodes): `Assert error has the expected __typename`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 733`** (1 nodes): `DatabaseCluster GraphQL Type`
+- **Thin community `Community 719`** (1 nodes): `Assert payload has no error and model data exists`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 734`** (1 nodes): `EnumDefinition GraphQL Type`
+- **Thin community `Community 720`** (1 nodes): `Assert payload has error and no model data`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 735`** (1 nodes): `Field GraphQL Type`
+- **Thin community `Community 721`** (1 nodes): `Assert error message is non-empty and descriptive`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 736`** (1 nodes): `FormatType Enum`
+- **Thin community `Community 722`** (1 nodes): `Provide the shared test cluster to individual tests.         Uses session-scoped`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 737`** (1 nodes): `Model GraphQL Type`
+- **Thin community `Community 723`** (1 nodes): `Create a test model for error tests`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 738`** (1 nodes): `ModelGroup GraphQL Type`
+- **Thin community `Community 724`** (1 nodes): `Test getting a non-existent model returns ModelNotFound error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 739`** (1 nodes): `LogicalForeignKey GraphQL Type`
+- **Thin community `Community 725`** (1 nodes): `Test getting model by name that doesn't exist returns ModelNotFound error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 740`** (1 nodes): `projects DB Table`
+- **Thin community `Community 726`** (1 nodes): `Test getting model by name with non-existent project returns error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 741`** (1 nodes): `database_clusters DB Table`
+- **Thin community `Community 727`** (1 nodes): `Test creating a model with duplicate name returns ModelAlreadyExists error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 742`** (1 nodes): `models DB Table`
+- **Thin community `Community 728`** (1 nodes): `Test creating model with non-existent project returns error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 743`** (1 nodes): `field_definitions DB Table`
+- **Thin community `Community 729`** (1 nodes): `Test updating a non-existent model returns ModelNotFound error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 744`** (1 nodes): `model_enums DB Table`
+- **Thin community `Community 730`** (1 nodes): `Test updating model with non-existent project returns ProjectNotFound error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 745`** (1 nodes): `organizations DB Table`
+- **Thin community `Community 731`** (1 nodes): `Test deleting a non-existent model returns ModelNotFound error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 746`** (1 nodes): `users DB Table`
+- **Thin community `Community 732`** (1 nodes): `Test deleting model with non-existent project returns error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 747`** (1 nodes): `Model SQL Queries (sqlc)`
+- **Thin community `Community 733`** (1 nodes): `Test successful model creation returns no error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 748`** (1 nodes): `Field SQL Queries (sqlc)`
+- **Thin community `Community 734`** (1 nodes): `Test successful model retrieval returns no error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 749`** (1 nodes): `Enum SQL Queries (sqlc)`
+- **Thin community `Community 735`** (1 nodes): `Test successful model update returns no error          Note: Currently, models w`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 750`** (1 nodes): `Runtime SQL Queries (sqlc)`
+- **Thin community `Community 736`** (1 nodes): `Test successful model deletion returns no error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 751`** (1 nodes): `API Contract Git Subtree Sync`
+- **Thin community `Community 737`** (1 nodes): `Test successful model retrieval by name returns no error`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 752`** (1 nodes): `Next.js 14 Framework`
+- **Thin community `Community 738`** (1 nodes): `Test that ModelAlreadyExists error has helpful message and suggestion`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 753`** (1 nodes): `Apollo Client (GraphQL)`
+- **Thin community `Community 739`** (1 nodes): `Test that ModelNotFound error has helpful message`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 754`** (1 nodes): `Zustand State Management`
+- **Thin community `Community 740`** (1 nodes): `Test that error has helpful message for non-existent project`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 755`** (1 nodes): `React Hook Form + Zod Validation`
+- **Thin community `Community 741`** (1 nodes): `Model Design GraphQL Tests  Tests for model CRUD operations and field management`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 756`** (1 nodes): `Tailwind CSS`
+- **Thin community `Community 742`** (1 nodes): `Generate a unique name to avoid conflicts.`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 757`** (1 nodes): `Typography Constants Library`
+- **Thin community `Community 743`** (1 nodes): `Build model input data with defaults`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Module Group 758`** (1 nodes): `EditorSidebar Component`
+- **Thin community `Community 744`** (1 nodes): `Test suite for model CRUD operations`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 745`** (1 nodes): `Provide the shared test cluster to individual tests.         Uses session-scoped`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 746`** (1 nodes): `Test creating a new model`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 747`** (1 nodes): `Test retrieving a model by id`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 748`** (1 nodes): `Test listing models for a specific project`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 749`** (1 nodes): `Test that creating a model with duplicate name returns error`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 750`** (1 nodes): `Test that getting non-existent model returns error`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 751`** (1 nodes): `Test listing models returns empty result when no models exist`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 752`** (1 nodes): `Actual Schema Integration Tests  Tests for model(id, withActualSchema: true) que`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 753`** (1 nodes): `Create a simple model and ensure its DB table exists via repair.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 754`** (1 nodes): `Tests for withActualSchema=true when table exists.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 755`** (1 nodes): `dbTable should be TABLE_EXISTS when the table was repaired into the DB.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 756`** (1 nodes): `Regular fields should have dbColumn populated when withActualSchema=true.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 757`** (1 nodes): `Tests for withActualSchema=false (or omitted).`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 758`** (1 nodes): `dbTable should be null when withActualSchema is not set.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 759`** (1 nodes): `All dbColumn fields should be null when withActualSchema is not set.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 760`** (1 nodes): `dbTable should be null when withActualSchema=false.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 761`** (1 nodes): `Tests for UNIQUE_MISMATCH conflict detection.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 762`** (1 nodes): `When a field has isUnique=true in design but the DB column has no UNIQUE`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 763`** (1 nodes): `Tests that ENUM_LABEL (virtual) fields always have dbColumn=null.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 764`** (1 nodes): `ENUM_LABEL virtual fields should always have dbColumn=null, even with withActual`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 765`** (1 nodes): `Project Management CRUD Tests  Tests for project creation, read, update, delete`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 766`** (1 nodes): `Test suite for project CRUD operations`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 767`** (1 nodes): `Test creating a new project with valid data`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 768`** (1 nodes): `Test retrieving a project by orgName and name`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 769`** (1 nodes): `Test listing all projects`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 770`** (1 nodes): `Test creating a duplicate project returns ProjectAlreadyExists error`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 771`** (1 nodes): `Test getting a non-existent project returns ProjectNotFound error`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 772`** (1 nodes): `Enum GraphQL Tests  Tests for enum CRUD operations via GraphQL API with typed er`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 773`** (1 nodes): `Test enum GraphQL operations with typed error handling.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 774`** (1 nodes): `Test successful enum creation returns enum data with no error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 775`** (1 nodes): `Test creating duplicate enum returns EnumAlreadyExists error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 776`** (1 nodes): `Test creating enum with invalid project returns ProjectNotFound error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 777`** (1 nodes): `Test creating enum with duplicate option codes returns InvalidEnumInput error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 778`** (1 nodes): `Test getting existing enum returns enum data with no error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 779`** (1 nodes): `Test getting non-existent enum returns EnumNotFound error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 780`** (1 nodes): `Test getting enum with invalid project returns ProjectNotFound error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 781`** (1 nodes): `Test updating existing enum returns updated enum data with no error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 782`** (1 nodes): `Test updating non-existent enum returns EnumNotFound error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 783`** (1 nodes): `Test updating enum with invalid options returns InvalidEnumInput error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 784`** (1 nodes): `Test deleting existing enum returns success with no error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 785`** (1 nodes): `Test deleting non-existent enum returns EnumNotFound error.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 786`** (1 nodes): `Test listing enums returns array (not wrapped in payload).`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 787`** (1 nodes): `Test getting enum references returns array (not wrapped in payload).`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 788`** (1 nodes): `Test creating multi-select enum.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 789`** (1 nodes): `Test updating enum options.`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 790`** (1 nodes): `AGENTS.md`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 791`** (1 nodes): `ModelCraft Project`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 792`** (1 nodes): `ModelCraft Backend (Go)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 793`** (1 nodes): `ModelCraft Frontend (Next.js)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 794`** (1 nodes): `Git Subtree - API Contract Sharing`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 795`** (1 nodes): `modelcraft-api-contracts Shared Repo`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 796`** (1 nodes): `modelcraft-backend/api/ Source of Truth`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 797`** (1 nodes): `modelcraft-front/contract/ Read-only Consumer`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 798`** (1 nodes): `ModelCraft Core Principles`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 799`** (1 nodes): `ModelCraft Roadmap`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 800`** (1 nodes): `Domain Model Overview`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 801`** (1 nodes): `Auth Domain Design`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 802`** (1 nodes): `Organization/Tenant Domain Design`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 803`** (1 nodes): `Project Domain Design`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 804`** (1 nodes): `Model Domain Overview`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 805`** (1 nodes): `Model Runtime Artifact`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 806`** (1 nodes): `Model Design-time Domain`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 807`** (1 nodes): `Domain-Driven Design (DDD)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 808`** (1 nodes): `Design-time Phase`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 809`** (1 nodes): `Runtime Phase`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 810`** (1 nodes): `Casdoor Authentication Decision`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 811`** (1 nodes): `Dual GraphQL Endpoints`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 812`** (1 nodes): `Dynamic GraphQL Schema Generation`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 813`** (1 nodes): `Schema Sync Mechanism`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 814`** (1 nodes): `ProjectScope Value Object`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 815`** (1 nodes): `Membership Entity`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 816`** (1 nodes): `Role Entity`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 817`** (1 nodes): `Permission Value Object`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 818`** (1 nodes): `RBAC Domain Model`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 819`** (1 nodes): `SQL Editor Domain`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 820`** (1 nodes): `Type Conversion via spf13/cast`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 821`** (1 nodes): `Backend Testing Strategy`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 822`** (1 nodes): `Deployment Guide`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 823`** (1 nodes): `Justfile Command Reference`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 824`** (1 nodes): `Atlas Database Migration Tool`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 825`** (1 nodes): `Auth API Design`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 826`** (1 nodes): `Refresh Token Rotation`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 827`** (1 nodes): `Model Enum Feature Overview`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 828`** (1 nodes): `FieldEnumRelation Entity`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 829`** (1 nodes): `ENUM Field Type`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 830`** (1 nodes): `ENUM_LABEL Field Type`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 831`** (1 nodes): `ENUM Backend Design`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 832`** (1 nodes): `ENUM Frontend Combined Interaction Design`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 833`** (1 nodes): `Field __label Display Protocol`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 834`** (1 nodes): `Model displayField Configuration`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 835`** (1 nodes): `Spec: Project Auth Config`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 836`** (1 nodes): `Spec: Project Management`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 837`** (1 nodes): `Spec: @hasPermission Directive`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 838`** (1 nodes): `Spec: ModelRuntime Aggregate Query`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 839`** (1 nodes): `Spec: ModelRuntime Count Query`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 840`** (1 nodes): `Spec: ModelRuntime Sort`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 841`** (1 nodes): `Spec: ModelRuntime Pagination`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 842`** (1 nodes): `Spec: ModelRuntime Query`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 843`** (1 nodes): `Spec: ModelRuntime Filter`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 844`** (1 nodes): `Spec: ModelRuntime Mutation`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 845`** (1 nodes): `Spec: Field Create API`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 846`** (1 nodes): `Spec: LFK Query`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 847`** (1 nodes): `Spec: Enum Query`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 848`** (1 nodes): `Spec: Display Field`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 849`** (1 nodes): `Spec: Admin Org Management`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 850`** (1 nodes): `Spec: Admin Casdoor SSO`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 851`** (1 nodes): `BDD Test Suite README`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 852`** (1 nodes): `Auth Login Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 853`** (1 nodes): `Auth Register Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 854`** (1 nodes): `Cluster Management Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 855`** (1 nodes): `Field Management Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 856`** (1 nodes): `Model Management Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 857`** (1 nodes): `Project Management Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 858`** (1 nodes): `SQL Editor Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 859`** (1 nodes): `Enum Management Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 860`** (1 nodes): `Logical Foreign Key Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 861`** (1 nodes): `Runtime Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 862`** (1 nodes): `Field-Enum Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 863`** (1 nodes): `Field-Label Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 864`** (1 nodes): `Runtime Enum Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 865`** (1 nodes): `Runtime Label Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 866`** (1 nodes): `Runtime LFK Feature`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 867`** (1 nodes): `API Contract Git Subtree Sync`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 868`** (1 nodes): `Next.js 14 Framework`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 869`** (1 nodes): `Apollo Client (GraphQL)`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 870`** (1 nodes): `Zustand State Management`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 871`** (1 nodes): `React Hook Form + Zod Validation`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 872`** (1 nodes): `Tailwind CSS`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `executionContext` connect `ModelRuntime GraphQL Engine` to `Module Group 32`, `gqlgen Generated Types & Config`, `Module Group 102`, `GraphQL Argument Parsers`, `Introspection Resolvers`, `Module Group 117`, `Module Group 58`?**
-  _High betweenness centrality (0.053) - this node is a cross-community bridge._
+- **Why does `executionContext` connect `Community 0` to `Community 4`, `Community 7`, `Community 74`, `Community 17`, `Community 212`, `Community 28`, `Community 30`?**
+  _High betweenness centrality (0.056) - this node is a cross-community bridge._
 - **What connects `TokenRequest`, `CasdoorTokenResponse`, `ErrorResponse` to the rest of the system?**
-  _810 weakly-connected nodes found - possible documentation gaps or missing edges._
-- **Should `ModelRuntime GraphQL Engine` be split into smaller, more focused modules?**
+  _799 weakly-connected nodes found - possible documentation gaps or missing edges._
+- **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.0 - nodes in this community are weakly interconnected._
-- **Should `Model Design GraphQL API` be split into smaller, more focused modules?**
+- **Should `Community 1` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
-- **Should `Organization & Project Services` be split into smaller, more focused modules?**
+- **Should `Community 2` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
-- **Should `SQL Repository Infrastructure` be split into smaller, more focused modules?**
+- **Should `Community 3` be split into smaller, more focused modules?**
   _Cohesion score 0.01 - nodes in this community are weakly interconnected._
-- **Should `gqlgen Generated Types & Config` be split into smaller, more focused modules?**
+- **Should `Community 4` be split into smaller, more focused modules?**
   _Cohesion score 0.04 - nodes in this community are weakly interconnected._

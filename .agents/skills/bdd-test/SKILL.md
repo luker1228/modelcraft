@@ -190,12 +190,21 @@ tests-bdd/
 1. `cd ./tests-bdd && npm install`（`node_modules` 不存在时自动执行）
 2. 后端运行中（`http://localhost:8080`）
 3. `./tests-bdd/.env.test` 存在，至少包含 `TEST_ORG_NAME` 和 `TEST_PROJECT_SLUG`
-   - `TEST_ACCESS_TOKEN` 可选 — BeforeAll hook 会自动注册用户并签发 JWT
+   - `TEST_ACCESS_TOKEN` 推荐提供（优先级最高）
+   - 若未提供 token，使用 `TEST_LOGIN_PHONE` + `TEST_LOGIN_PASSWORD` 登录后签发 JWT
+   - 默认不应通过“注册新用户”作为 BDD 启动前置
 
 ## 架构要点
 
 - **World 对象**（`support/world.ts`）：Scenario 级隔离，存储 token/response/tracking
-- **JWT 自动签发**（`support/jwt.ts`）：BeforeAll 注册测试用户 → HMAC-SHA256 JWT（需 `iss: "modelcraft"`）
+- **JWT 自动签发**（`support/jwt.ts`）：BeforeAll 通过已有 token 或登录拿到 userId 后签发 HMAC-SHA256 JWT（需 `iss: "modelcraft"`）
 - **双客户端**：GraphQL（项目领域）+ REST（auth 接口）
 - **自动清理**：After hook 删 model/enum；`@smoke` 跳过清理
 - **唯一命名**：`uniqueName("User")` → `"Usera3f2b1c0"` 防冲突
+
+## 注册耦合约束（新增）
+
+- 默认不要把“注册用户”作为 BDD 通用前置（尤其是 model/field/enum/lfk/smoke）。
+- 只有在明确测试注册能力时（如 auth/register）才应走注册链路。
+- 若非注册场景出现 `CONFLICT.USER`，优先归类为前置设计问题或测试数据冲突，而不是业务能力失败。
+- 注册流程已保证 init-org 时，不应把 `org/init` 场景作为常规回归阻断项。

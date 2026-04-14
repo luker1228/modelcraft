@@ -16,6 +16,7 @@ import {
  * 同一个 Scenario 内，相同原始手机号始终映射到同一个随机手机号。
  */
 const phoneMap = new Map<string, Map<string, string>>()
+const userNameMap = new Map<string, Map<string, string>>()
 let scenarioKey = ''
 
 function buildUserNameFromPhone(phone: string): string {
@@ -40,11 +41,31 @@ function getOrCreatePhone(world: ModelCraftWorld, rawPhone: string): string {
   return map.get(rawPhone)!
 }
 
+function getOrCreateUserName(rawUserName: string): string {
+  if (!rawUserName) {
+    return rawUserName
+  }
+  if (!userNameMap.has(scenarioKey)) {
+    userNameMap.set(scenarioKey, new Map())
+  }
+  const map = userNameMap.get(scenarioKey)!
+  if (!map.has(rawUserName)) {
+    const suffix = Math.floor(100000 + Math.random() * 900000).toString()
+    map.set(rawUserName, `${rawUserName}_${suffix}`)
+  }
+  return map.get(rawUserName)!
+}
+
+function resolveUserName(rawUserName: string): string {
+  return userNameMap.get(scenarioKey)?.get(rawUserName) ?? rawUserName
+}
+
 // 每个 Scenario 重置映射
 import { Before } from '@cucumber/cucumber'
 Before(function () {
   scenarioKey = `${Date.now()}_${Math.random()}`
   phoneMap.set(scenarioKey, new Map())
+  userNameMap.set(scenarioKey, new Map())
 })
 
 // ──────────────── Given ────────────────
@@ -87,12 +108,13 @@ Given(
   '已注册手机号 {string} 用户名 {string} 密码 {string}',
   async function (this: ModelCraftWorld, rawPhone: string, userName: string, password: string) {
     const phone = getOrCreatePhone(this, rawPhone)
-    const result = await this.restClient.register(phone, password, userName)
+    const resolvedUserName = getOrCreateUserName(userName)
+    const result = await this.restClient.register(phone, password, resolvedUserName)
     if (!result.data) {
-      throw new Error(`前置条件：注册用户 ${phone}/${userName} 失败 — ${JSON.stringify(result.error)}`)
+      throw new Error(`前置条件：注册用户 ${phone}/${resolvedUserName} 失败 — ${JSON.stringify(result.error)}`)
     }
     this.registeredPhone = phone
-    this.registeredUserName = userName
+    this.registeredUserName = resolvedUserName
     this.registeredPassword = password
     this.currentUserId = result.data.userId
     this.currentOrgName = result.data.orgName
@@ -148,10 +170,11 @@ When(
   '我用手机号 {string} 和用户名 {string} 和密码 {string} 注册',
   async function (this: ModelCraftWorld, rawPhone: string, userName: string, password: string) {
     const phone = getOrCreatePhone(this, rawPhone)
-    this.lastRestResult = await this.restClient.register(phone, password, userName)
+    const resolvedUserName = resolveUserName(userName)
+    this.lastRestResult = await this.restClient.register(phone, password, resolvedUserName)
     if (this.lastRestResult.data) {
       this.registeredPhone = phone
-      this.registeredUserName = userName
+      this.registeredUserName = resolvedUserName
       this.registeredPassword = password
       this.currentOrgName = (this.lastRestResult.data as RegisterResponse).orgName
       this.orgClient.setOrgName((this.lastRestResult.data as RegisterResponse).orgName)
@@ -177,7 +200,8 @@ When(
 When(
   '我用用户名 {string} 和密码 {string} 登录',
   async function (this: ModelCraftWorld, userName: string, password: string) {
-    this.lastRestResult = await this.restClient.login(userName, password, 'USERNAME')
+    const resolvedUserName = resolveUserName(userName)
+    this.lastRestResult = await this.restClient.login(resolvedUserName, password, 'USERNAME')
     if ((this.lastRestResult as RestResult<LoginResponse>).data?.refreshToken) {
       this.currentRefreshToken = (this.lastRestResult as RestResult<LoginResponse>).data!.refreshToken
       this.currentOrgName = (this.lastRestResult as RestResult<LoginResponse>).data!.orgName

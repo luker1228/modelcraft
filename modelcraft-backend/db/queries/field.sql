@@ -1,6 +1,6 @@
 -- name: CreateFieldDefinition :exec
-INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, parent_relation_id, enum_name, enum_relation_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, enum_name, enum_relation_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetFieldByModelIDAndName :one
 SELECT * FROM field_definitions

@@ -41,34 +41,33 @@ func (q *Queries) CountFieldsByModelID(ctx context.Context, modelID string) (int
 }
 
 const createFieldDefinition = `-- name: CreateFieldDefinition :exec
-INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, parent_relation_id, enum_name, enum_relation_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO field_definitions (model_id, org_name, project_slug, model_name, database_name, name, enum_name, enum_relation_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, relate_fk_id, belongs_to_fk_id, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateFieldDefinitionParams struct {
-	ModelID          string
-	OrgName          string
-	ProjectSlug      string
-	ModelName        string
-	DatabaseName     string
-	Name             string
-	ParentRelationID sql.NullString
-	EnumName         sql.NullString
-	EnumRelationID   sql.NullString
-	Title            string
-	Description      sql.NullString
-	Format           string
-	NonNull          sql.NullBool
-	Required         sql.NullBool
-	IsUnique         sql.NullBool
-	IsPrimary        sql.NullBool
-	IsDeprecated     sql.NullBool
-	Status           string
-	Validation       *json.RawMessage
-	DisplayOrder     string
-	Metadata         *json.RawMessage
-	RelateFkID       sql.NullString
-	BelongsToFkID    sql.NullString
+	ModelID        string
+	OrgName        string
+	ProjectSlug    string
+	ModelName      string
+	DatabaseName   string
+	Name           string
+	EnumName       sql.NullString
+	EnumRelationID sql.NullString
+	Title          string
+	Description    sql.NullString
+	Format         string
+	NonNull        sql.NullBool
+	Required       sql.NullBool
+	IsUnique       sql.NullBool
+	IsPrimary      sql.NullBool
+	IsDeprecated   sql.NullBool
+	Status         string
+	Validation     *json.RawMessage
+	DisplayOrder   string
+	Metadata       *json.RawMessage
+	RelateFkID     sql.NullString
+	BelongsToFkID  sql.NullString
 }
 
 func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefinitionParams) error {
@@ -79,7 +78,6 @@ func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefi
 		arg.ModelName,
 		arg.DatabaseName,
 		arg.Name,
-		arg.ParentRelationID,
 		arg.EnumName,
 		arg.EnumRelationID,
 		arg.Title,
@@ -151,7 +149,7 @@ func (q *Queries) ExistsFieldByName(ctx context.Context, arg ExistsFieldByNamePa
 }
 
 const getFieldByModelIDAndName = `-- name: GetFieldByModelIDAndName :one
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
 WHERE model_id = ? AND name = ?
 LIMIT 1
 `
@@ -171,7 +169,6 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 		&i.ProjectSlug,
 		&i.ModelName,
 		&i.DatabaseName,
-		&i.ParentRelationID,
 		&i.EnumName,
 		&i.EnumRelationID,
 		&i.BelongsToFkID,
@@ -195,7 +192,7 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 }
 
 const getFieldsByModelID = `-- name: GetFieldsByModelID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, parent_relation_id, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
 WHERE model_id = ?
 ORDER BY display_order ASC
 `
@@ -216,7 +213,6 @@ func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]Fie
 			&i.ProjectSlug,
 			&i.ModelName,
 			&i.DatabaseName,
-			&i.ParentRelationID,
 			&i.EnumName,
 			&i.EnumRelationID,
 			&i.BelongsToFkID,
