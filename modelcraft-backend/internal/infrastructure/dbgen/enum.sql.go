@@ -43,13 +43,14 @@ func (q *Queries) CreateEnumDefinition(ctx context.Context, arg CreateEnumDefini
 }
 
 const createFieldEnumAssociation = `-- name: CreateFieldEnumAssociation :exec
-INSERT INTO model_field_enum_associations (model_id, field_name, project_slug, enum_name, database_name, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO model_field_enum_associations (model_id, field_name, org_name, project_slug, enum_name, database_name, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateFieldEnumAssociationParams struct {
 	ModelID      string
 	FieldName    string
+	OrgName      string
 	ProjectSlug  string
 	EnumName     string
 	DatabaseName string
@@ -59,6 +60,7 @@ func (q *Queries) CreateFieldEnumAssociation(ctx context.Context, arg CreateFiel
 	_, err := q.db.ExecContext(ctx, createFieldEnumAssociation,
 		arg.ModelID,
 		arg.FieldName,
+		arg.OrgName,
 		arg.ProjectSlug,
 		arg.EnumName,
 		arg.DatabaseName,

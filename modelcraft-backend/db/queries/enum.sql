@@ -33,8 +33,8 @@ SELECT * FROM model_enums
 WHERE project_slug = ? AND name IN (sqlc.slice('names'));
 
 -- name: CreateFieldEnumAssociation :exec
-INSERT INTO model_field_enum_associations (model_id, field_name, project_slug, enum_name, database_name, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO model_field_enum_associations (model_id, field_name, org_name, project_slug, enum_name, database_name, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetFieldEnumAssociationByField :one
 SELECT * FROM model_field_enum_associations

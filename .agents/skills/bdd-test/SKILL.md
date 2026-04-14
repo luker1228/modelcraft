@@ -63,6 +63,20 @@ cd ./tests-bdd && <对应 npm 命令> 2>&1
 
 ### Step 4 — 分析结果并汇报
 
+#### Step 4.1 — 日志优先定位（新增硬性规则）
+
+在判断失败归因前，**必须先用日志定位**，再看代码：
+
+1. 从失败输出中提取 `requestId`（GraphQL 通常在 `extensions.requestId`，REST 通常在响应体 `requestId`）。
+2. 在后端目录按 requestId 查整条链路：
+
+```bash
+cd ./modelcraft-backend && just log-cat <requestId>
+```
+
+3. 日志中确认“第一现场错误”（最早出现的业务/SQL错误），再决定分类 `[ENV]/[BACKEND]/[TEST]/[DATA]`。
+4. 只有日志无法判断时，才进入代码阅读。
+
 **汇报格式**（所有场景都使用此格式）：
 
 ```

@@ -101,6 +101,7 @@ func FieldEnumAssociationToCreateParams(
 	return dbgen.CreateFieldEnumAssociationParams{
 		ModelID:      assoc.ModelID,
 		FieldName:    assoc.FieldName,
+		OrgName:      assoc.OrgName,
 		ProjectSlug:  assoc.ProjectSlug,
 		EnumName:     assoc.EnumName,
 		DatabaseName: assoc.DatabaseName,
