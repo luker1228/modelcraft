@@ -3,7 +3,7 @@
 import { ApolloClient, ApolloError, ApolloProvider, InMemoryCache, createHttpLink, from } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
-import { createGlobalErrorHandler } from '@web/hooks/error/useGraphQLErrorHandler'
+import { createGlobalErrorHandler } from '@web/hooks/error/use-graphql-error-handler'
 import { removeToken } from '@bff/auth/public'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@shared/utils/uuid'

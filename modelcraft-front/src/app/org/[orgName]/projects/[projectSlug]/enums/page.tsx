@@ -78,6 +78,7 @@ interface UpdateEnumResult {
 
 export default function EnumsPage() {
   const params = useParams()
+  const orgName = params?.orgName as string
   const projectSlug = params?.projectSlug as string
   const [searchQuery, setSearchQuery] = useState('')
   const [deletingName, setDeletingName] = useState<string | null>(null)
@@ -100,7 +101,7 @@ export default function EnumsPage() {
   const [displayNameError, setDisplayNameError] = useState<string | null>(null)
   const [optionErrors, setOptionErrors] = useState<Record<number, { code?: string; label?: string }>>({})
 
-  const projectClient = useProjectScopedClient(projectSlug)
+  const projectClient = useProjectScopedClient(projectSlug, orgName)
 
   const { data, loading, error, refetch } = useQuery<EnumsQueryData>(GET_ENUMS, {
     client: projectClient,

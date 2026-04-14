@@ -176,16 +176,25 @@ export function getOrgScopedClient(): ApolloClient<object> {
  *   pointing to /graphql/org/{orgName}/project/{projectSlug}/
  * - Otherwise: returns the org-scoped singleton
  *   pointing to /graphql/org/{orgName}/
+ *
+ * @param projectSlug - The project slug for project-scoped operations
+ * @param orgNameOverride - Explicit org name. If omitted, falls back to the organization store.
+ *   Pass this when orgName is already available from URL params to avoid a stale-store edge case
+ *   where currentOrg has not yet been set and the client would fall back to the org-level endpoint.
  */
-export function useProjectScopedClient(projectSlug?: string): ApolloClient<object> {
+export function useProjectScopedClient(
+  projectSlug?: string,
+  orgNameOverride?: string
+): ApolloClient<object> {
   const currentOrg = useOrganizationStore((s) => s.currentOrg)
+  const resolvedOrg = orgNameOverride ?? currentOrg
 
   return useMemo(() => {
-    if (projectSlug && currentOrg) {
-      return createProjectScopedClient(currentOrg, projectSlug)
+    if (projectSlug && resolvedOrg) {
+      return createProjectScopedClient(resolvedOrg, projectSlug)
     }
     return getOrgScopedClient()
-  }, [projectSlug, currentOrg])
+  }, [projectSlug, resolvedOrg])
 }
 
 // React Context for org-scoped client

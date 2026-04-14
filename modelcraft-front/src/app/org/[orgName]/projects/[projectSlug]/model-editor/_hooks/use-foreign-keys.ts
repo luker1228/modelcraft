@@ -7,7 +7,7 @@ import {
   DELETE_LOGICAL_FOREIGN_KEY,
 } from '@web/graphql/mutations/model'
 import { toast } from 'sonner'
-import type { ModelEditorState } from './useModelEditorState'
+import type { ModelEditorState } from './use-model-editor-state'
 import type {
   EditorModelDetail,
   ForeignKeysQueryData,

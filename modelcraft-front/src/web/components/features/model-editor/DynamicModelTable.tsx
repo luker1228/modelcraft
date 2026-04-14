@@ -670,6 +670,7 @@ export default function DynamicModelTable({
         modelName={model?.name}
         projectSlug={projectSlug}
         orgName={orgName}
+        existingFieldNames={(model?.fields ?? []).map((f) => f.name)}
         onSuccess={() => refetch()}
       />
 

@@ -9,6 +9,7 @@ import {
   queryModelEnumContext,
   updateFieldMeta,
 } from '@bff/model-enum/public'
+import { useProjectScopedClient } from '@bff/apollo/public'
 import type { RawGraphQLErrorLike } from '@/shared/errors/model-enum-error-mapper'
 import { mapModelEnumError } from '@/shared/errors/model-enum-error-mapper'
 import type {
@@ -100,6 +101,7 @@ export interface UseModelEnumContextReturn {
 
 export function useModelEnumContext(params: UseModelEnumContextParams): UseModelEnumContextReturn {
   const { orgName, projectSlug, modelId } = params
+  const projectClient = useProjectScopedClient(projectSlug)
   const [sourceOptions, setSourceOptions] = React.useState<EnumSourceOption[]>([])
   const [relationOptions, setRelationOptions] = React.useState<EnumRelationOption[]>([])
   const [loading, setLoading] = React.useState(false)
@@ -107,7 +109,7 @@ export function useModelEnumContext(params: UseModelEnumContextParams): UseModel
 
   const runContextRequest = React.useCallback(async (): Promise<UseModelEnumContextState> => {
     const [contextResult, relationResult] = await Promise.all([
-      queryModelEnumContext({ orgName, projectSlug, modelId }),
+      queryModelEnumContext({ orgName, projectSlug, modelId }, projectClient),
       listFieldEnumRelations({ orgName, projectSlug, modelId }),
     ])
 
@@ -119,7 +121,7 @@ export function useModelEnumContext(params: UseModelEnumContextParams): UseModel
       relationOptions: relationError ? contextResult.relations : relationResult.relations,
       error: contextError ?? relationError,
     }
-  }, [modelId, orgName, projectSlug])
+  }, [modelId, orgName, projectSlug, projectClient])
 
   const refetch = React.useCallback(async () => {
     setLoading(true)

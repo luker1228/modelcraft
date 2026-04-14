@@ -26,7 +26,7 @@ export const CREATE_ENUM = gql`
           message
           suggestion
         }
-        ... on InvalidInput {
+        ... on InvalidEnumInput {
           message
           suggestion
         }
@@ -63,7 +63,7 @@ export const UPDATE_ENUM = gql`
         ... on EnumNotFound {
           message
         }
-        ... on InvalidInput {
+        ... on InvalidEnumInput {
           message
           suggestion
         }

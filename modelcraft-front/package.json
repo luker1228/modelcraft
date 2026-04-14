@@ -52,6 +52,7 @@
     "antd": "^5.22.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "cmdk": "^1.1.1",
     "gql-query-builder": "^3.8.0",
     "graphql": "^16.8.0",
     "jose": "^6.2.2",

@@ -14,7 +14,7 @@ import type {
 import { useCreateEnumFieldPage } from './use-create-enum-field-page'
 import { useCreateEnumLabelFieldPage } from './use-create-enum-label-field-page'
 import { useEditFieldPage } from './use-edit-field-page'
-import type { ModelEditorState } from './useModelEditorState'
+import type { ModelEditorState } from './use-model-editor-state'
 import type { EditorModelField } from './types'
 
 interface UseFieldOperationsParams {
@@ -29,6 +29,9 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
   const projectClient = useProjectScopedClient(projectSlug)
   const modelId = state.editModelData?.id ?? ''
 
+  // 解构稳定的 setter 引用，避免 useCallback 依赖整个 state 对象
+  const { setEditModelData } = state
+
   const [fieldPageMode, setFieldPageMode] = useState<FieldPageMode>('edit')
   const [contextLoading, setContextLoading] = useState(false)
   const [contextError, setContextError] = useState<ModelEnumDomainError | null>(null)
@@ -42,7 +45,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
 
   const updateFieldInEditorState = useCallback(
     (fieldName: string, updater: (field: EditorModelField) => EditorModelField) => {
-      state.setEditModelData((prev) => {
+      setEditModelData((prev) => {
         if (!prev) {
           return prev
         }
@@ -53,12 +56,12 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
         }
       })
     },
-    [state],
+    [setEditModelData],
   )
 
   const appendFieldToEditorState = useCallback(
     (field: EditorModelField) => {
-      state.setEditModelData((prev) => {
+      setEditModelData((prev) => {
         if (!prev) {
           return prev
         }
@@ -74,7 +77,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
         }
       })
     },
-    [state],
+    [setEditModelData],
   )
 
   const refreshEnumContext = useCallback(async () => {
@@ -88,11 +91,10 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     setContextError(null)
 
     try {
-      const result = await queryModelEnumContext({
-        orgName,
-        projectSlug,
-        modelId,
-      })
+      const result = await queryModelEnumContext(
+        { orgName, projectSlug, modelId },
+        projectClient,
+      )
 
       if (result.error) {
         setContextError(result.error)
@@ -117,7 +119,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     } finally {
       setContextLoading(false)
     }
-  }, [modelId, orgName, projectSlug])
+  }, [modelId, orgName, projectSlug, projectClient])
 
   const handleToggleDeprecate = async (field: EditorModelField) => {
     if (!state.editModelData) {
@@ -146,9 +148,12 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
         },
       })
 
-      state.setEditModelData({
-        ...state.editModelData,
-        fields: state.editModelData.fields.filter((item) => item.name !== field.name),
+      setEditModelData((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          fields: prev.fields.filter((item) => item.name !== field.name),
+        }
       })
       toast.success('字段已删除')
     } catch {
@@ -266,35 +271,44 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
       return null
     }
 
-    const relationResult = await createFieldEnumRelation({
-      orgName,
-      projectSlug,
-      modelId,
-      sourceFieldName,
-      enumName: source.enumName,
-      labelFieldName: `${sourceFieldName}_label`,
-    })
+    try {
+      const relationResult = await createFieldEnumRelation({
+        orgName,
+        projectSlug,
+        modelId,
+        sourceFieldName,
+        enumName: source.enumName,
+        labelFieldName: `${sourceFieldName}_label`,
+      })
 
-    if (!relationResult.success) {
-      setContextError(relationResult.error)
+      if (!relationResult.success) {
+        setContextError(relationResult.error)
+        return null
+      }
+
+      const latestContext = await refreshEnumContext()
+      if (!latestContext) {
+        return null
+      }
+
+      const matchedRelation = latestContext.relations.find(
+        (relation) => relation.sourceFieldName === sourceFieldName,
+      )
+
+      if (!matchedRelation) {
+        return null
+      }
+
+      toast.success('relation 创建成功')
+      return matchedRelation.id
+    } catch {
+      setContextError({
+        type: 'Unknown',
+        code: 'UNKNOWN',
+        message: '创建 relation 失败，请稍后重试。',
+      })
       return null
     }
-
-    const latestContext = await refreshEnumContext()
-    if (!latestContext) {
-      return null
-    }
-
-    const matchedRelation = latestContext.relations.find(
-      (relation) => relation.sourceFieldName === sourceFieldName,
-    )
-
-    if (!matchedRelation) {
-      return null
-    }
-
-    toast.success('relation 创建成功')
-    return matchedRelation.id
   }
 
   const handleSubmitEditField = async (values: UpdateFieldMetaFormValues) => {

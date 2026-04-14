@@ -15,7 +15,7 @@ import {
   TableRow,
 } from '@web/components/ui/table'
 import { GET_ORGANIZATION_MEMBERS } from '@web/graphql/queries/user'
-import { useRequireAuth } from '@web/hooks/auth/useAuth'
+import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import type { OrganizationMember } from '@/types'
 
 interface MembersQueryData {

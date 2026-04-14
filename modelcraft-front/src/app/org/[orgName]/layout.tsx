@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { useRequireAuth } from "@web/hooks/auth/useAuth";
+import { useRequireAuth } from "@web/hooks/auth/use-auth";
 import { useOrganizationStore } from "@shared/stores/organization";
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {

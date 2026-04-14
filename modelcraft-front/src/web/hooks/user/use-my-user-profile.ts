@@ -1,6 +1,6 @@
 import { useCallback, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { useOrganization } from '@web/hooks/organization/useOrganization'
+import { useOrganization } from '@web/hooks/organization/use-organization'
 import { MY_USER_PROFILE } from '@web/graphql/queries/profile'
 import type { ProfileDomainError, UserProfileStatus, UserProfileView } from '@/types/profile'
 

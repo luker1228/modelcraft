@@ -83,7 +83,7 @@ export function ModelEditorView() {
       />
 
       {/* Edit Field Sheet */}
-      <FieldEditSheet state={state} fieldOps={fieldOps} />
+      <FieldEditSheet state={state} fieldOps={fieldOps} orgName={orgName} projectSlug={projectSlug} />
 
       {/* Import Model Dialog */}
       <ImportModelDialog

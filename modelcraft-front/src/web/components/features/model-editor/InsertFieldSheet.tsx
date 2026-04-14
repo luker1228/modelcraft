@@ -87,6 +87,8 @@ export interface InsertFieldSheetProps {
   modelName?: string
   projectSlug: string
   orgName: string
+  /** Existing field names in the model, used for duplicate name validation */
+  existingFieldNames?: string[]
   /** Called after a field is successfully added */
   onSuccess?: () => void
 }
@@ -98,6 +100,7 @@ export function InsertFieldSheet({
   modelName,
   projectSlug,
   orgName,
+  existingFieldNames = [],
   onSuccess,
 }: InsertFieldSheetProps) {
   const projectClient = useProjectScopedClient(projectSlug)
@@ -109,6 +112,9 @@ export function InsertFieldSheet({
 
   const [fieldData, setFieldData] = useState(DEFAULT_FIELD_DATA)
   const [saving, setSaving] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
+
+  const isDuplicateName = fieldData.name.trim() !== '' && existingFieldNames.includes(fieldData.name.trim())
   const [enumContextLoading, setEnumContextLoading] = useState(false)
   const [enumContextError, setEnumContextError] = useState<ModelEnumDomainError | null>(null)
   const [creatingRelation, setCreatingRelation] = useState(false)
@@ -159,11 +165,10 @@ export function InsertFieldSheet({
     setEnumContextError(null)
 
     try {
-      const result = await queryModelEnumContext({
-        orgName,
-        projectSlug,
-        modelId,
-      })
+      const result = await queryModelEnumContext(
+        { orgName, projectSlug, modelId },
+        projectClient,
+      )
 
       if (result.error) {
         setEnumContextError(result.error)
@@ -188,7 +193,7 @@ export function InsertFieldSheet({
     } finally {
       setEnumContextLoading(false)
     }
-  }, [modelId, open, orgName, projectSlug])
+  }, [modelId, open, orgName, projectSlug, projectClient])
 
   useEffect(() => {
     if (!open) {
@@ -206,15 +211,22 @@ export function InsertFieldSheet({
   const [addField] = useMutation(ADD_FIELDS, {
     client: projectClient,
     context: projectScopedContext,
-    onCompleted: () => {
+    onCompleted: (data: { addFields?: { error?: { message?: string } | null } | null }) => {
+      const bizError = data?.addFields?.error
+      if (bizError) {
+        setSubmitError(bizError.message ?? '添加字段失败')
+        setSaving(false)
+        return
+      }
       onOpenChange(false)
       setFieldData(DEFAULT_FIELD_DATA)
+      setSubmitError(null)
       setSaving(false)
       onSuccess?.()
     },
     onError: (error) => {
       console.error('Failed to add field:', error)
-      alert('添加字段失败: ' + error.message)
+      setSubmitError('添加字段失败: ' + error.message)
       setSaving(false)
     },
     refetchQueries: ['GetModel', 'GetModelJsonSchema'],
@@ -222,33 +234,38 @@ export function InsertFieldSheet({
 
   const handleSave = async () => {
     if (!fieldData.name || !fieldData.title || !fieldData.format) {
-      alert('请填写字段名、标题和类型')
+      setSubmitError('请填写字段名、标题和类型')
+      return
+    }
+
+    if (isDuplicateName) {
+      setSubmitError(`字段标识 '${fieldData.name}' 已存在`)
       return
     }
 
     if (fieldData.format === 'RELATION' && !fieldData.relateFkId) {
-      alert('请选择关联的逻辑外键')
+      setSubmitError('请选择关联的逻辑外键')
       return
     }
 
     if (fieldData.format === 'ENUM' && !fieldData.relateEnumName) {
-      alert('请选择关联枚举')
+      setSubmitError('请选择关联枚举')
       return
     }
 
     if (fieldData.format === 'ENUM_LABEL') {
       if (!fieldData.sourceFieldName) {
-        alert('请选择 source ENUM 字段')
+        setSubmitError('请选择 source ENUM 字段')
         return
       }
 
       if (selectedSource?.occupied) {
-        alert('当前 source 字段已占用，不能重复创建 ENUM_LABEL')
+        setSubmitError('当前 source 字段已占用，不能重复创建 ENUM_LABEL')
         return
       }
 
       if (!fieldData.enumRelationId) {
-        alert('请选择或创建 relation')
+        setSubmitError('请选择或创建 relation')
         return
       }
     }
@@ -273,6 +290,7 @@ export function InsertFieldSheet({
       input.enumRelationId = fieldData.enumRelationId
     }
 
+    setSubmitError(null)
     setSaving(true)
     try {
       await addField({
@@ -350,6 +368,7 @@ export function InsertFieldSheet({
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setFieldData(DEFAULT_FIELD_DATA)
+      setSubmitError(null)
       setEnumContextError(null)
       setEnumSources([])
       setEnumRelations([])
@@ -398,11 +417,18 @@ export function InsertFieldSheet({
                     </Label>
                     <Input
                       value={fieldData.name}
-                      onChange={(e) => setFieldData(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={(e) => {
+                        setFieldData(prev => ({ ...prev, name: e.target.value }))
+                        setSubmitError(null)
+                      }}
                       placeholder="例如：title, status"
-                      className="font-mono"
+                      className={`font-mono ${isDuplicateName ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                     />
-                    <p className="text-xs text-muted-foreground">字母、数字和下划线，用于数据库列名</p>
+                    {isDuplicateName ? (
+                      <p className="text-xs text-destructive">字段标识 &apos;{fieldData.name}&apos; 已存在</p>
+                    ) : (
+                      <p className="text-xs text-muted-foreground">字母、数字和下划线，用于数据库列名</p>
+                    )}
                   </div>
 
                   {/* 显示名字 */}
@@ -808,6 +834,11 @@ export function InsertFieldSheet({
 
           {/* Footer */}
           <DrawerFooter className="border-t border-border px-6 py-4">
+            {submitError && (
+              <p className="mb-2 rounded-md bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                {submitError}
+              </p>
+            )}
             <div className="flex gap-3">
               <Button
                 variant="outline"
@@ -822,6 +853,7 @@ export function InsertFieldSheet({
                   saving
                   || !fieldData.name
                   || !fieldData.title
+                  || isDuplicateName
                   || (fieldData.format === 'RELATION' && !fieldData.relateFkId)
                   || (fieldData.format === 'ENUM' && !fieldData.relateEnumName)
                   || (

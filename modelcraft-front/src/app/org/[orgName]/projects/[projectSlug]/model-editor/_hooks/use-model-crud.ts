@@ -5,9 +5,9 @@ import { useProjectScopedClient, getOrgScopedClient } from '@bff/apollo/public'
 import { TEST_CLUSTER_CONNECTION } from '@web/graphql/mutations/cluster'
 import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@web/graphql/mutations/model'
 import { GET_MODEL, GET_MODELS } from '@web/graphql/queries/model'
-import { useDatabases } from '@web/hooks/database/useDatabases'
+import { useDatabases } from '@web/hooks/database/use-databases'
 import { toast } from 'sonner'
-import type { ModelEditorState } from './useModelEditorState'
+import type { ModelEditorState } from './use-model-editor-state'
 import type {
   EditorModel,
   EditorModelDetail,

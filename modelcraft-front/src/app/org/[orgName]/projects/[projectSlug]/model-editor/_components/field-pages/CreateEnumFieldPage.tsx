@@ -1,22 +1,26 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
-import { Loader2 } from 'lucide-react'
+import { Check, ChevronsUpDown, ExternalLink, Loader2 } from 'lucide-react'
 import { z } from 'zod'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import { Button } from '@web/components/ui/button'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+  CommandSeparator,
+} from '@web/components/ui/command'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web/components/ui/select'
+import { Popover, PopoverContent, PopoverTrigger } from '@web/components/ui/popover'
 import { Textarea } from '@web/components/ui/textarea'
+import { cn } from '@/shared/utils'
 import type { CreateEnumFieldFormValues, ModelEnumDomainError } from '@/types'
 
 const schema = z.object({
@@ -36,9 +40,21 @@ interface CreateEnumFieldPageProps {
   error: ModelEnumDomainError | null
   onSubmit: (values: CreateEnumFieldFormValues) => Promise<void>
   onCancel: () => void
+  orgName: string
+  projectSlug: string
 }
 
-export function CreateEnumFieldPage({ enumOptions, loading, error, onSubmit, onCancel }: CreateEnumFieldPageProps) {
+export function CreateEnumFieldPage({
+  enumOptions,
+  loading,
+  error,
+  onSubmit,
+  onCancel,
+  orgName,
+  projectSlug,
+}: CreateEnumFieldPageProps) {
+  const [open, setOpen] = useState(false)
+
   const {
     register,
     handleSubmit,
@@ -99,26 +115,65 @@ export function CreateEnumFieldPage({ enumOptions, loading, error, onSubmit, onC
 
       <div className="space-y-1.5">
         <Label>关联枚举</Label>
-        <Select value={relateEnumName} onValueChange={(value) => setValue('relateEnumName', value, { shouldValidate: true })}>
-          <SelectTrigger aria-invalid={Boolean(errors.relateEnumName)}>
-            <SelectValue placeholder="请选择枚举" />
-          </SelectTrigger>
-          <SelectContent>
-            {enumOptions.length > 0 ? (
-              enumOptions.map((enumName) => (
-                <SelectItem key={enumName} value={enumName}>
-                  <span className="font-mono text-xs">{enumName}</span>
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="__empty__" disabled>
-                暂无可用枚举
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+        <Popover open={open} onOpenChange={setOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              type="button"
+              variant="outline"
+              role="combobox"
+              aria-expanded={open}
+              aria-invalid={Boolean(errors.relateEnumName)}
+              className="w-full justify-between font-normal"
+            >
+              {relateEnumName
+                ? <span className="font-mono text-xs">{relateEnumName}</span>
+                : <span className="text-muted-foreground">请选择枚举</span>}
+              <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            className="p-0"
+            align="start"
+            style={{ width: 'var(--radix-popover-trigger-width)' }}
+          >
+            <Command>
+              <CommandInput placeholder="搜索枚举..." />
+              <CommandList>
+                <CommandEmpty>未找到匹配枚举</CommandEmpty>
+                <CommandGroup>
+                  {enumOptions.map((enumName) => (
+                    <CommandItem
+                      key={enumName}
+                      value={enumName}
+                      onSelect={(value) => {
+                        setValue('relateEnumName', value, { shouldValidate: true })
+                        setOpen(false)
+                      }}
+                    >
+                      <Check className={cn('mr-2 size-4', relateEnumName === enumName ? 'opacity-100' : 'opacity-0')} />
+                      <span className="font-mono text-xs">{enumName}</span>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+                <CommandSeparator />
+                <CommandGroup>
+                  <CommandItem
+                    value="__goto_enums__"
+                    onSelect={() => {
+                      window.open(`/org/${orgName}/projects/${projectSlug}/enums`, '_blank')
+                      setOpen(false)
+                    }}
+                    className="text-muted-foreground"
+                  >
+                    <ExternalLink className="mr-2 size-4" />
+                    前往枚举管理页
+                  </CommandItem>
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
         {errors.relateEnumName && <p className="text-xs text-destructive">{errors.relateEnumName.message}</p>}
-        {enumOptions.length === 0 && <p className="text-xs text-muted-foreground">请先创建枚举后再创建 ENUM 字段。</p>}
       </div>
 
       <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">

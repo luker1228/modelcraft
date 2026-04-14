@@ -73,6 +73,7 @@ export function ModelDetailPanel({
           modelName={state.editModelData?.name}
           projectSlug={projectSlug}
           orgName={orgName}
+          existingFieldNames={(state.editModelData?.fields || []).map((f) => f.name)}
           onSuccess={crud.refreshModelDetail}
         />
 

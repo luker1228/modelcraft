@@ -20,7 +20,7 @@ import { AppLayout } from "@web/components/features/layout/AppLayout"
 import { useProjectStore } from "@web/stores/project"
 import { useAppStore } from "@web/stores"
 import { useOrganizationStore } from "@shared/stores/organization"
-import { useRequireAuth } from "@web/hooks/auth/useAuth"
+import { useRequireAuth } from "@web/hooks/auth/use-auth"
 import { GET_PROJECTS } from "@web/graphql/queries/project"
 import {
   CREATE_PROJECT,

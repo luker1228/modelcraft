@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { isValidOrgName, isValidProjectSlug } from '@web/hooks/organization/useOrganization'
+import { isValidOrgName, isValidProjectSlug } from '@web/hooks/organization/use-organization'
 
 interface RouteValidatorProps {
   orgName?: string

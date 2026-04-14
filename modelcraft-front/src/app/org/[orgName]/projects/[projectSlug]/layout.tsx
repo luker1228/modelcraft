@@ -7,7 +7,7 @@ import { LoadingScreen } from '@web/components/common/LoadingScreen'
 import { CopilotWrapper, AIAssistantButton } from '@web/components/features/copilot/CopilotProvider'
 import { RouteValidator } from '@web/components/common/RouteValidator'
 import { useAppStore } from '@web/stores/app'
-import { useRequireAuth } from '@web/hooks/auth/useAuth'
+import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import "@copilotkit/react-ui/styles.css"
 
 interface ProjectLayoutProps {

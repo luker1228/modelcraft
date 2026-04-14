@@ -19,9 +19,11 @@ import {
 interface FieldEditSheetProps {
   state: ModelEditorState
   fieldOps: FieldOperations
+  orgName: string
+  projectSlug: string
 }
 
-export function FieldEditSheet({ state, fieldOps }: FieldEditSheetProps) {
+export function FieldEditSheet({ state, fieldOps, orgName, projectSlug }: FieldEditSheetProps) {
   const pageMeta =
     fieldOps.fieldPageMode === 'create-enum'
       ? {
@@ -59,6 +61,8 @@ export function FieldEditSheet({ state, fieldOps }: FieldEditSheetProps) {
             error={fieldOps.createEnumFieldError ?? fieldOps.contextError}
             onSubmit={fieldOps.handleSubmitCreateEnumField}
             onCancel={fieldOps.handleCloseFieldPage}
+            orgName={orgName}
+            projectSlug={projectSlug}
           />
         )}
 

@@ -5,8 +5,8 @@ import type { Field } from '@/types/index'
  * Build RJSF uiSchema from design-time Field definitions.
  *
  * Mapping rules (in priority order):
- *  - format ENUM       → custom widget "EnumSelect" (single)
- *  - format ENUM_ARRAY → custom widget "EnumSelect" (multi)
+ *  - format ENUM/ENUM_ARRAY → no custom widget; RJSF natively renders the
+ *                             "enum" array already present in the jsonSchema
  *  - format DATE       → ui:widget "date"
  *  - format DATETIME   → ui:widget "datetime-local"
  *  - format TIME       → ui:widget "time"
@@ -23,34 +23,6 @@ export function buildUiSchema(fields: Field[]): UiSchema {
   const uiSchema: UiSchema = {}
 
   for (const field of fields) {
-    if (field.format === 'ENUM') {
-      uiSchema[field.name] = {
-        'ui:widget': 'EnumSelect',
-        'ui:options': {
-          multiple: false,
-          enumValues: (field.enum?.options ?? []).map((opt) => ({
-            code: opt.code,
-            label: opt.label,
-          })),
-        },
-      }
-      continue
-    }
-
-    if (field.format === 'ENUM_ARRAY') {
-      uiSchema[field.name] = {
-        'ui:widget': 'EnumSelect',
-        'ui:options': {
-          multiple: true,
-          enumValues: (field.enum?.options ?? []).map((opt) => ({
-            code: opt.code,
-            label: opt.label,
-          })),
-        },
-      }
-      continue
-    }
-
     if (field.format === 'DATE') {
       uiSchema[field.name] = { 'ui:widget': 'date' }
       continue
