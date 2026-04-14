@@ -259,7 +259,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     const source = sourceOptions.find((option) => option.fieldName === sourceFieldName)
     if (!source) {
       setContextError({
-        type: 'InvalidFieldInput',
+        type: 'InvalidInput',
         message: `未找到 source 字段 ${sourceFieldName}。`,
         suggestion: '请重新选择 source 字段。',
       })

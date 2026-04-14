@@ -62,10 +62,6 @@ type ComplexityRoot struct {
 		RevokedAt  func(childComplexity int) int
 	}
 
-	ApiKeyInvalidInput struct {
-		Message func(childComplexity int) int
-	}
-
 	ApiKeyLimitExceeded struct {
 		Message func(childComplexity int) int
 	}
@@ -205,22 +201,7 @@ type ComplexityRoot struct {
 		Project func(childComplexity int) int
 	}
 
-	InvalidClusterInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
-	InvalidProfileInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
-	InvalidProjectInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
-	InvalidRoleInput struct {
+	InvalidInput struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
 	}
@@ -283,11 +264,6 @@ type ComplexityRoot struct {
 	PermissionDef struct {
 		Act func(childComplexity int) int
 		Obj func(childComplexity int) int
-	}
-
-	PermissionInvalidInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
 	}
 
 	PermissionRole struct {
@@ -591,13 +567,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ApiKey.RevokedAt(childComplexity), true
-
-	case "ApiKeyInvalidInput.message":
-		if e.complexity.ApiKeyInvalidInput.Message == nil {
-			break
-		}
-
-		return e.complexity.ApiKeyInvalidInput.Message(childComplexity), true
 
 	case "ApiKeyLimitExceeded.message":
 		if e.complexity.ApiKeyLimitExceeded.Message == nil {
@@ -1008,57 +977,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.GetProjectPayload.Project(childComplexity), true
 
-	case "InvalidClusterInput.message":
-		if e.complexity.InvalidClusterInput.Message == nil {
+	case "InvalidInput.message":
+		if e.complexity.InvalidInput.Message == nil {
 			break
 		}
 
-		return e.complexity.InvalidClusterInput.Message(childComplexity), true
-	case "InvalidClusterInput.suggestion":
-		if e.complexity.InvalidClusterInput.Suggestion == nil {
+		return e.complexity.InvalidInput.Message(childComplexity), true
+	case "InvalidInput.suggestion":
+		if e.complexity.InvalidInput.Suggestion == nil {
 			break
 		}
 
-		return e.complexity.InvalidClusterInput.Suggestion(childComplexity), true
-
-	case "InvalidProfileInput.message":
-		if e.complexity.InvalidProfileInput.Message == nil {
-			break
-		}
-
-		return e.complexity.InvalidProfileInput.Message(childComplexity), true
-	case "InvalidProfileInput.suggestion":
-		if e.complexity.InvalidProfileInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.InvalidProfileInput.Suggestion(childComplexity), true
-
-	case "InvalidProjectInput.message":
-		if e.complexity.InvalidProjectInput.Message == nil {
-			break
-		}
-
-		return e.complexity.InvalidProjectInput.Message(childComplexity), true
-	case "InvalidProjectInput.suggestion":
-		if e.complexity.InvalidProjectInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.InvalidProjectInput.Suggestion(childComplexity), true
-
-	case "InvalidRoleInput.message":
-		if e.complexity.InvalidRoleInput.Message == nil {
-			break
-		}
-
-		return e.complexity.InvalidRoleInput.Message(childComplexity), true
-	case "InvalidRoleInput.suggestion":
-		if e.complexity.InvalidRoleInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.InvalidRoleInput.Suggestion(childComplexity), true
+		return e.complexity.InvalidInput.Suggestion(childComplexity), true
 
 	case "Mutation.addPermissionToRole":
 		if e.complexity.Mutation.AddPermissionToRole == nil {
@@ -1412,19 +1342,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PermissionDef.Obj(childComplexity), true
-
-	case "PermissionInvalidInput.message":
-		if e.complexity.PermissionInvalidInput.Message == nil {
-			break
-		}
-
-		return e.complexity.PermissionInvalidInput.Message(childComplexity), true
-	case "PermissionInvalidInput.suggestion":
-		if e.complexity.PermissionInvalidInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.PermissionInvalidInput.Suggestion(childComplexity), true
 
 	case "PermissionRole.createdAt":
 		if e.complexity.PermissionRole.CreatedAt == nil {
@@ -2266,13 +2183,9 @@ type ApiKeyNotFound implements Error {
   message: String!
 }
 
-type ApiKeyInvalidInput implements Error {
-  message: String!
-}
-
-union CreateApiKeyError = ApiKeyLimitExceeded | ApiKeyInvalidInput
+union CreateApiKeyError = ApiKeyLimitExceeded | InvalidInput
 union RevokeApiKeyError = ApiKeyNotFound
-union UpdateApiKeyError = ApiKeyNotFound | ApiKeyInvalidInput
+union UpdateApiKeyError = ApiKeyNotFound | InvalidInput
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/base.graphql", Input: `# Base types and interfaces
 scalar Int64
@@ -2285,6 +2198,11 @@ directive @hasPermission(action: String!) on FIELD_DEFINITION
 # Node interface for Relay specification
 interface Node {
   id: ID!
+}
+
+type InvalidInput implements Error {
+  message: String!
+  suggestion: String
 }
 
 # Pagination types
@@ -2439,22 +2357,17 @@ type PermissionSystemRoleCannotBeModified implements PermissionManagementError {
   suggestion: String
 }
 
-type PermissionInvalidInput implements PermissionManagementError {
-  message: String!
-  suggestion: String
-}
-
 type PermissionUserNotFound implements PermissionManagementError {
   message: String!
   suggestion: String
 }
 
 # Error Unions
-union CreateCustomRoleError = PermissionRoleAlreadyExists | PermissionInvalidInput
-union UpdatePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | PermissionInvalidInput
+union CreateCustomRoleError = PermissionRoleAlreadyExists | InvalidInput
+union UpdatePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | InvalidInput
 union DeletePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified
-union RolePermissionError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | PermissionInvalidInput
-union AssignRoleError = PermissionRoleNotFound | PermissionUserNotFound | PermissionInvalidInput
+union RolePermissionError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | InvalidInput
+union AssignRoleError = PermissionRoleNotFound | PermissionUserNotFound | InvalidInput
 union RevokeRoleError = PermissionRoleNotFound | PermissionUserNotFound
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/profile.graphql", Input: `# Profile query/mutation types and payloads
@@ -2471,13 +2384,8 @@ type ProfileNotFound implements Error {
   message: String!
 }
 
-type InvalidProfileInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 union GetMyUserProfileError = UserNotFound | ProfileNotFound
-union UpdateMyProfileError = ProfileNotFound | InvalidProfileInput
+union UpdateMyProfileError = ProfileNotFound | InvalidInput
 
 # ============================================
 # Profile Domain Types
@@ -2570,19 +2478,14 @@ type ProjectNotFound implements Error {
   message: String!
 }
 
-type InvalidProjectInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteDefaultProject implements Error {
   message: String!
 }
 
 # Error unions for each mutation and query
 union GetProjectError = ProjectNotFound
-union CreateProjectError = ProjectAlreadyExists | InvalidProjectInput | DatabaseConnectionFailed
-union UpdateProjectError = ProjectNotFound | InvalidProjectInput
+union CreateProjectError = ProjectAlreadyExists | InvalidInput | DatabaseConnectionFailed
+union UpdateProjectError = ProjectNotFound | InvalidInput
 union DeleteProjectError = ProjectNotFound | CannotDeleteDefaultProject
 
 # ============================================
@@ -2604,11 +2507,6 @@ type ClusterNotFound implements Error {
   message: String!
 }
 
-type InvalidClusterInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type DatabaseConnectionFailed implements Error {
   message: String!
   suggestion: String
@@ -2616,7 +2514,7 @@ type DatabaseConnectionFailed implements Error {
 
 # Error unions for cluster operations
 union GetClusterError = ClusterNotFound | ProjectNotFound
-union UpdateClusterError = ClusterNotFound | InvalidClusterInput | DatabaseConnectionFailed | ProjectNotFound
+union UpdateClusterError = ClusterNotFound | InvalidInput | DatabaseConnectionFailed | ProjectNotFound
 union DeleteClusterError = ClusterNotFound | ProjectNotFound
 union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
 
@@ -2915,18 +2813,13 @@ type RoleAlreadyExists implements Error {
   message: String!
 }
 
-type InvalidRoleInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteSystemRole implements Error {
   message: String!
 }
 
 # Error unions
 union GetOrganizationError = OrganizationNotFound
-union CreateRoleError = RoleAlreadyExists | InvalidRoleInput
+union CreateRoleError = RoleAlreadyExists | InvalidInput
 union DeleteRoleError = RoleNotFound | CannotDeleteSystemRole
 
 # ============================================
@@ -3699,35 +3592,6 @@ func (ec *executionContext) fieldContext_ApiKey_createdAt(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Time does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ApiKeyInvalidInput_message(ctx context.Context, field graphql.CollectedField, obj *APIKeyInvalidInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ApiKeyInvalidInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ApiKeyInvalidInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ApiKeyInvalidInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -5779,12 +5643,12 @@ func (ec *executionContext) fieldContext_GetProjectPayload_error(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _InvalidClusterInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidClusterInput) (ret graphql.Marshaler) {
+func (ec *executionContext) _InvalidInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidInput) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InvalidClusterInput_message,
+		ec.fieldContext_InvalidInput_message,
 		func(ctx context.Context) (any, error) {
 			return obj.Message, nil
 		},
@@ -5795,9 +5659,9 @@ func (ec *executionContext) _InvalidClusterInput_message(ctx context.Context, fi
 	)
 }
 
-func (ec *executionContext) fieldContext_InvalidClusterInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_InvalidInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "InvalidClusterInput",
+		Object:     "InvalidInput",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -5808,12 +5672,12 @@ func (ec *executionContext) fieldContext_InvalidClusterInput_message(_ context.C
 	return fc, nil
 }
 
-func (ec *executionContext) _InvalidClusterInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidClusterInput) (ret graphql.Marshaler) {
+func (ec *executionContext) _InvalidInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidInput) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_InvalidClusterInput_suggestion,
+		ec.fieldContext_InvalidInput_suggestion,
 		func(ctx context.Context) (any, error) {
 			return obj.Suggestion, nil
 		},
@@ -5824,183 +5688,9 @@ func (ec *executionContext) _InvalidClusterInput_suggestion(ctx context.Context,
 	)
 }
 
-func (ec *executionContext) fieldContext_InvalidClusterInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_InvalidInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
-		Object:     "InvalidClusterInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidProfileInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidProfileInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidProfileInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidProfileInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidProfileInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidProfileInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidProfileInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidProfileInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidProfileInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidProfileInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidProjectInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidProjectInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidProjectInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidProjectInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidProjectInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidProjectInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidProjectInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidProjectInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidProjectInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidProjectInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidRoleInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidRoleInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidRoleInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidRoleInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidRoleInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidRoleInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidRoleInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidRoleInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidRoleInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidRoleInput",
+		Object:     "InvalidInput",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -7921,64 +7611,6 @@ func (ec *executionContext) _PermissionDef_act(ctx context.Context, field graphq
 func (ec *executionContext) fieldContext_PermissionDef_act(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PermissionDef",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PermissionInvalidInput_message(ctx context.Context, field graphql.CollectedField, obj *PermissionInvalidInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PermissionInvalidInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_PermissionInvalidInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PermissionInvalidInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PermissionInvalidInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *PermissionInvalidInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PermissionInvalidInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_PermissionInvalidInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PermissionInvalidInput",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -13594,13 +13226,13 @@ func (ec *executionContext) _AssignRoleError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._PermissionRoleNotFound(ctx, sel, obj)
-	case PermissionInvalidInput:
-		return ec._PermissionInvalidInput(ctx, sel, &obj)
-	case *PermissionInvalidInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._PermissionInvalidInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -13610,6 +13242,13 @@ func (ec *executionContext) _CreateApiKeyError(ctx context.Context, sel ast.Sele
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
 	case APIKeyLimitExceeded:
 		return ec._ApiKeyLimitExceeded(ctx, sel, &obj)
 	case *APIKeyLimitExceeded:
@@ -13617,13 +13256,6 @@ func (ec *executionContext) _CreateApiKeyError(ctx context.Context, sel ast.Sele
 			return graphql.Null
 		}
 		return ec._ApiKeyLimitExceeded(ctx, sel, obj)
-	case APIKeyInvalidInput:
-		return ec._ApiKeyInvalidInput(ctx, sel, &obj)
-	case *APIKeyInvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ApiKeyInvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -13640,13 +13272,13 @@ func (ec *executionContext) _CreateCustomRoleError(ctx context.Context, sel ast.
 			return graphql.Null
 		}
 		return ec._PermissionRoleAlreadyExists(ctx, sel, obj)
-	case PermissionInvalidInput:
-		return ec._PermissionInvalidInput(ctx, sel, &obj)
-	case *PermissionInvalidInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._PermissionInvalidInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -13663,13 +13295,13 @@ func (ec *executionContext) _CreateProjectError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ProjectAlreadyExists(ctx, sel, obj)
-	case InvalidProjectInput:
-		return ec._InvalidProjectInput(ctx, sel, &obj)
-	case *InvalidProjectInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidProjectInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -13693,13 +13325,13 @@ func (ec *executionContext) _CreateRoleError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._RoleAlreadyExists(ctx, sel, obj)
-	case InvalidRoleInput:
-		return ec._InvalidRoleInput(ctx, sel, &obj)
-	case *InvalidRoleInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidRoleInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -13850,34 +13482,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._OrganizationNotFound(ctx, sel, obj)
-	case InvalidRoleInput:
-		return ec._InvalidRoleInput(ctx, sel, &obj)
-	case *InvalidRoleInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidRoleInput(ctx, sel, obj)
-	case InvalidProjectInput:
-		return ec._InvalidProjectInput(ctx, sel, &obj)
-	case *InvalidProjectInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidProjectInput(ctx, sel, obj)
-	case InvalidProfileInput:
-		return ec._InvalidProfileInput(ctx, sel, &obj)
-	case *InvalidProfileInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidProfileInput(ctx, sel, obj)
-	case InvalidClusterInput:
-		return ec._InvalidClusterInput(ctx, sel, &obj)
-	case *InvalidClusterInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidClusterInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -13934,13 +13545,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._ApiKeyLimitExceeded(ctx, sel, obj)
-	case APIKeyInvalidInput:
-		return ec._ApiKeyInvalidInput(ctx, sel, &obj)
-	case *APIKeyInvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ApiKeyInvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14093,13 +13697,6 @@ func (ec *executionContext) _PermissionManagementError(ctx context.Context, sel 
 			return graphql.Null
 		}
 		return ec._PermissionRoleAlreadyExists(ctx, sel, obj)
-	case PermissionInvalidInput:
-		return ec._PermissionInvalidInput(ctx, sel, &obj)
-	case *PermissionInvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionInvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14162,13 +13759,13 @@ func (ec *executionContext) _RolePermissionError(ctx context.Context, sel ast.Se
 			return graphql.Null
 		}
 		return ec._PermissionRoleNotFound(ctx, sel, obj)
-	case PermissionInvalidInput:
-		return ec._PermissionInvalidInput(ctx, sel, &obj)
-	case *PermissionInvalidInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._PermissionInvalidInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14208,6 +13805,13 @@ func (ec *executionContext) _UpdateApiKeyError(ctx context.Context, sel ast.Sele
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
 	case APIKeyNotFound:
 		return ec._ApiKeyNotFound(ctx, sel, &obj)
 	case *APIKeyNotFound:
@@ -14215,13 +13819,6 @@ func (ec *executionContext) _UpdateApiKeyError(ctx context.Context, sel ast.Sele
 			return graphql.Null
 		}
 		return ec._ApiKeyNotFound(ctx, sel, obj)
-	case APIKeyInvalidInput:
-		return ec._ApiKeyInvalidInput(ctx, sel, &obj)
-	case *APIKeyInvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ApiKeyInvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14238,13 +13835,13 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ProjectNotFound(ctx, sel, obj)
-	case InvalidClusterInput:
-		return ec._InvalidClusterInput(ctx, sel, &obj)
-	case *InvalidClusterInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidClusterInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -14275,13 +13872,13 @@ func (ec *executionContext) _UpdateMyProfileError(ctx context.Context, sel ast.S
 			return graphql.Null
 		}
 		return ec._ProfileNotFound(ctx, sel, obj)
-	case InvalidProfileInput:
-		return ec._InvalidProfileInput(ctx, sel, &obj)
-	case *InvalidProfileInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidProfileInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14312,13 +13909,13 @@ func (ec *executionContext) _UpdatePermissionRoleError(ctx context.Context, sel 
 			return graphql.Null
 		}
 		return ec._PermissionRoleAlreadyExists(ctx, sel, obj)
-	case PermissionInvalidInput:
-		return ec._PermissionInvalidInput(ctx, sel, &obj)
-	case *PermissionInvalidInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._PermissionInvalidInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14335,13 +13932,13 @@ func (ec *executionContext) _UpdateProjectError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ProjectNotFound(ctx, sel, obj)
-	case InvalidProjectInput:
-		return ec._InvalidProjectInput(ctx, sel, &obj)
-	case *InvalidProjectInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidProjectInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14426,45 +14023,6 @@ func (ec *executionContext) _ApiKey(ctx context.Context, sel ast.SelectionSet, o
 			out.Values[i] = ec._ApiKey_revokedAt(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._ApiKey_createdAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var apiKeyInvalidInputImplementors = []string{"ApiKeyInvalidInput", "Error", "CreateApiKeyError", "UpdateApiKeyError"}
-
-func (ec *executionContext) _ApiKeyInvalidInput(ctx context.Context, sel ast.SelectionSet, obj *APIKeyInvalidInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, apiKeyInvalidInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ApiKeyInvalidInput")
-		case "message":
-			out.Values[i] = ec._ApiKeyInvalidInput_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -15577,147 +15135,24 @@ func (ec *executionContext) _GetProjectPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var invalidClusterInputImplementors = []string{"InvalidClusterInput", "Error", "UpdateClusterError"}
+var invalidInputImplementors = []string{"InvalidInput", "CreateApiKeyError", "UpdateApiKeyError", "Error", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "CreateRoleError"}
 
-func (ec *executionContext) _InvalidClusterInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidClusterInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidClusterInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidClusterInput")
-		case "message":
-			out.Values[i] = ec._InvalidClusterInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._InvalidClusterInput_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var invalidProfileInputImplementors = []string{"InvalidProfileInput", "Error", "UpdateMyProfileError"}
-
-func (ec *executionContext) _InvalidProfileInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidProfileInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidProfileInputImplementors)
+func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidProfileInput")
+			out.Values[i] = graphql.MarshalString("InvalidInput")
 		case "message":
-			out.Values[i] = ec._InvalidProfileInput_message(ctx, field, obj)
+			out.Values[i] = ec._InvalidInput_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
 		case "suggestion":
-			out.Values[i] = ec._InvalidProfileInput_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var invalidProjectInputImplementors = []string{"InvalidProjectInput", "Error", "CreateProjectError", "UpdateProjectError"}
-
-func (ec *executionContext) _InvalidProjectInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidProjectInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidProjectInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidProjectInput")
-		case "message":
-			out.Values[i] = ec._InvalidProjectInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._InvalidProjectInput_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var invalidRoleInputImplementors = []string{"InvalidRoleInput", "Error", "CreateRoleError"}
-
-func (ec *executionContext) _InvalidRoleInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidRoleInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidRoleInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidRoleInput")
-		case "message":
-			out.Values[i] = ec._InvalidRoleInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._InvalidRoleInput_suggestion(ctx, field, obj)
+			out.Values[i] = ec._InvalidInput_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16168,47 +15603,6 @@ func (ec *executionContext) _PermissionDef(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var permissionInvalidInputImplementors = []string{"PermissionInvalidInput", "PermissionManagementError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError"}
-
-func (ec *executionContext) _PermissionInvalidInput(ctx context.Context, sel ast.SelectionSet, obj *PermissionInvalidInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, permissionInvalidInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("PermissionInvalidInput")
-		case "message":
-			out.Values[i] = ec._PermissionInvalidInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._PermissionInvalidInput_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

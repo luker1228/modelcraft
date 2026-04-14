@@ -16,7 +16,7 @@ const CREATE_MODEL = `
       error {
         __typename
         ... on ModelAlreadyExists { message }
-        ... on InvalidModelInput { message }
+        ... on InvalidInput { message }
         ... on ProjectNotFound { message }
       }
     }

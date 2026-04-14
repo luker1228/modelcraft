@@ -97,7 +97,7 @@ const GET_MODEL_QUERY = gql`
         ... on ModelNotFound {
           message
         }
-        ... on InvalidModelInput {
+        ... on InvalidInput {
           message
         }
       }

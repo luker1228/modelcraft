@@ -2,12 +2,13 @@ package profile
 
 import (
 	"context"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/pkg/bizerrors"
 	"strings"
 
 	domainProfile "modelcraft/internal/domain/profile"
-	"modelcraft/internal/domain/shared"
+
 	domainUser "modelcraft/internal/domain/user"
-	"modelcraft/pkg/bizerrors"
 )
 
 const (

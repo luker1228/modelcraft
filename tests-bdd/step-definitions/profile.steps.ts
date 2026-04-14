@@ -18,7 +18,7 @@ const UPDATE_MY_PROFILE = `
       error {
         __typename
         ... on ProfileNotFound { message }
-        ... on InvalidProfileInput { message suggestion }
+        ... on InvalidInput { message suggestion }
       }
     }
   }

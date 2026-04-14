@@ -5,5 +5,5 @@ interface Props {
 }
 
 export default function ProjectHomePage({ params }: Props) {
-  redirect(`/org/${params.orgName}/projects/${params.projectSlug}/settings`)
+  redirect(`/org/${params.orgName}/projects/${params.projectSlug}/model-editor`)
 }

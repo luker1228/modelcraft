@@ -63,7 +63,7 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 			Message: err.Msg(),
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidClusterInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		if err.Detail() != "" {

@@ -25,7 +25,7 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.CreateModelPayload{
-			Error: &generated.InvalidModelInput{Message: "projectSlug not found in context"},
+			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
 
@@ -101,7 +101,7 @@ func (r *mutationResolver) UpdateModelMeta(ctx context.Context, id string, input
 	if err != nil {
 		return &generated.UpdateModelMetaPayload{
 			Success: false,
-			Error:   &generated.InvalidModelInput{Message: "projectSlug not found in context"},
+			Error:   &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
 
@@ -716,7 +716,7 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 	if err != nil {
 		return &generated.GetModelPayload{
 			Model: nil,
-			Error: &generated.InvalidModelInput{Message: "projectSlug not found in context"},
+			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
 
@@ -724,7 +724,7 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 	if databaseName == "" {
 		return &generated.GetModelPayload{
 			Model: nil,
-			Error: &generated.InvalidModelInput{
+			Error: &generated.InvalidInput{
 				Message: "Database name cannot be empty",
 			},
 		}, nil

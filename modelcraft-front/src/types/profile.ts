@@ -21,7 +21,7 @@ export interface UpdateMyProfileFormValues {
   bio?: string
 }
 
-export type ProfileDomainErrorType = 'ProfileNotFound' | 'InvalidProfileInput' | 'Unknown'
+export type ProfileDomainErrorType = 'ProfileNotFound' | 'InvalidInput' | 'Unknown'
 
 export interface ProfileDomainError {
   type: ProfileDomainErrorType

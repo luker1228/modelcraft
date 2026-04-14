@@ -43,7 +43,7 @@ func ValidateUserName(name string) error {
 	// Pattern: start with letter/underscore/hyphen, then alphanumeric/underscore/hyphen
 	pattern := regexp.MustCompile(`^[a-zA-Z_-][a-zA-Z0-9_-]{2,31}$`)
 	if !pattern.MatchString(name) {
-		return fmt.Errorf("userName must start with letter/underscore/hyphen and contain only alphanumeric/underscore/hyphen")
+		return fmt.Errorf("userName must start with letter/underscore/hyphen and contain only alphanumeric/underscore/hyphen") //nolint:lll
 	}
 
 	// Reserved words check (case-insensitive)
@@ -62,11 +62,13 @@ func ValidateUserName(name string) error {
 	return nil
 }
 
+//nolint:unused
 var registerNameAdjectives = [...]string{
 	"brisk", "calm", "clever", "daring", "eager", "fancy", "gentle", "happy",
 	"jolly", "kind", "lucky", "merry", "noble", "quick", "royal", "smart",
 }
 
+//nolint:unused
 var registerNameNouns = [...]string{
 	"aurora", "bamboo", "cloud", "dolphin", "ember", "falcon", "glade", "harbor",
 	"island", "jungle", "kitten", "legend", "meteor", "nebula", "orchid", "phoenix",
@@ -74,7 +76,7 @@ var registerNameNouns = [...]string{
 
 // NewUser 通过手机号+密码创建用户实体
 // userName 为用户自定义的用户名，在注册时由用户提供
-func NewUser(id string, userName string, phone PhoneNumber, passwordHash string) (*User, error) {
+func NewUser(id, userName string, phone PhoneNumber, passwordHash string) (*User, error) {
 	if phone.IsZero() {
 		return nil, fmt.Errorf("phone number is required")
 	}
@@ -99,6 +101,7 @@ func NewUser(id string, userName string, phone PhoneNumber, passwordHash string)
 	return user, nil
 }
 
+//nolint:unused
 func generateRegisterDisplayName(userID string) string {
 	h := fnv.New64a()
 	_, _ = h.Write([]byte(userID))
@@ -108,15 +111,8 @@ func generateRegisterDisplayName(userID string) string {
 	noun := registerNameNouns[int((sum>>8)%uint64(len(registerNameNouns)))]
 
 	compactID := strings.ToLower(strings.ReplaceAll(userID, "-", ""))
-	if compactID == "" {
-		compactID = "000000"
-	}
-	if len(compactID) < 6 {
-		compactID = strings.Repeat("0", 6-len(compactID)) + compactID
-	}
-	suffix := compactID[len(compactID)-6:]
 
-	return fmt.Sprintf("%s_%s_%s", adjective, noun, suffix)
+	return fmt.Sprintf("%s-%s-%s", adjective, noun, compactID[:8])
 }
 
 // NewOAuthUser 通过外部认证提供者（OAuth）创建用户实体

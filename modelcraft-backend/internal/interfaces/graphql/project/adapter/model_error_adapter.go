@@ -70,7 +70,7 @@ func (a *ModelErrorAdapter) ConvertToCreateError(err *bizerrors.BusinessError) g
 			Message: err.Msg(),
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidModelInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		// Add suggestion if available from error detail
@@ -81,9 +81,9 @@ func (a *ModelErrorAdapter) ConvertToCreateError(err *bizerrors.BusinessError) g
 		return gqlErr
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for CreateModel: %s", err.Info().GetCode())
-		// Return as InvalidModelInput for unknown errors
+		// Return as InvalidInput for unknown errors
 		msg := err.Msg()
-		return &generated.InvalidModelInput{
+		return &generated.InvalidInput{
 			Message: msg,
 		}
 	}
@@ -105,7 +105,7 @@ func (a *ModelErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError) g
 			Message: err.Msg(),
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidModelInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		if err.Detail() != "" {

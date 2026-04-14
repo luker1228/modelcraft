@@ -41,7 +41,7 @@ export const CREATE_ROLE = gql`
         ... on RoleAlreadyExists {
           message
         }
-        ... on InvalidRoleInput {
+        ... on InvalidInput {
           message
           suggestion
         }

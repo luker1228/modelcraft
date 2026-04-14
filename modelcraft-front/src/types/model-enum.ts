@@ -1,8 +1,7 @@
 import type { ValidationConfigInput } from '@/generated/graphql'
 
 export type ModelEnumErrorType =
-  | 'InvalidModelInput'
-  | 'InvalidFieldInput'
+  | 'InvalidInput'
   | 'FieldEnumSourceConflict'
   | 'FieldFormatImmutable'
   | 'FieldReferenceInUse'

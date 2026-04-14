@@ -22,7 +22,7 @@ Feature: 模型管理
 
   Scenario Outline: 创建非法名称模型时报错
     When 我创建名为 "<name>" 的模型
-    Then 应该返回错误类型 "InvalidModelInput"
+    Then 应该返回错误类型 "InvalidInput"
 
     Examples:
       | name             |

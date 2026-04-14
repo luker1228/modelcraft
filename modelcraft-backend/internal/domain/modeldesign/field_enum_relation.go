@@ -1,9 +1,9 @@
 package modeldesign
 
 import (
+	"modelcraft/internal/domain/project"
 	"time"
 
-	"modelcraft/internal/domain/project"
 	bizerrors "modelcraft/pkg/bizerrors"
 )
 

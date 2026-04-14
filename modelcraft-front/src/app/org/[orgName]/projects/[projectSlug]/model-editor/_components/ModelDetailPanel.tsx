@@ -246,28 +246,14 @@ export function ModelDetailPanel({
                       {state.editModelData.fields?.length || 0}
                     </span>
                   </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <button
-                        type="button"
-                        title="新增字段"
-                        className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
-                      >
-                        <Plus className="size-3.5" />
-                      </button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-48">
-                      <DropdownMenuItem className="cursor-pointer text-xs" onClick={() => state.setInsertFieldOpen(true)}>
-                        插入通用字段
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer text-xs" onClick={fieldOps.handleOpenCreateEnumField}>
-                        创建 ENUM 字段
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="cursor-pointer text-xs" onClick={fieldOps.handleOpenCreateEnumLabelField}>
-                        创建 ENUM_LABEL 字段
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
+                  <button
+                    type="button"
+                    title="新增字段"
+                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    onClick={() => state.setInsertFieldOpen(true)}
+                  >
+                    <Plus className="size-3.5" />
+                  </button>
                 </div>
 
                 <div className="overflow-hidden rounded-lg border border-border bg-card">

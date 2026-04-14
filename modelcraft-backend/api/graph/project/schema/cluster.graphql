@@ -28,11 +28,6 @@ type ClusterNotFound implements Error {
   message: String!
 }
 
-type InvalidClusterInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type DatabaseConnectionFailed implements Error {
   message: String!
   suggestion: String
@@ -44,7 +39,7 @@ type ProjectNotFound implements Error {
 
 # Error unions for cluster operations
 union GetClusterError = ClusterNotFound | ProjectNotFound
-union UpdateClusterError = ClusterNotFound | InvalidClusterInput | DatabaseConnectionFailed | ProjectNotFound
+union UpdateClusterError = ClusterNotFound | InvalidInput | DatabaseConnectionFailed | ProjectNotFound
 union DeleteClusterError = ClusterNotFound | ProjectNotFound
 union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
 

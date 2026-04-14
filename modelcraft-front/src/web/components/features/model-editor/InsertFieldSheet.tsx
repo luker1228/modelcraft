@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback, useEffect } from 'react'
 import { useMutation, useQuery } from '@apollo/client'
 import { useProjectScopedClient } from '@bff/apollo/public'
+import { createFieldEnumRelation, queryModelEnumContext } from '@bff/model-enum/public'
 import { ADD_FIELDS, GET_LOGICAL_FOREIGN_KEYS } from '@web/graphql'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -11,7 +12,6 @@ import { Textarea } from '@web/components/ui/textarea'
 import { Switch } from '@web/components/ui/switch'
 import {
   Drawer,
-  DrawerClose,
   DrawerContent,
   DrawerDescription,
   DrawerFooter,
@@ -32,11 +32,17 @@ import {
   TooltipTrigger,
 } from '@web/components/ui/tooltip'
 import { Columns, Loader2, Save, HelpCircle, Link2 } from 'lucide-react'
-import type { LogicalForeignKey } from '@/types'
+import type {
+  EnumRelationOption,
+  EnumSourceOption,
+  LogicalForeignKey,
+  ModelEnumDomainError,
+} from '@/types'
 
 const FORMAT_TYPE_OPTIONS = [
   { value: 'STRING', label: '字符串 (String)' },
   { value: 'ENUM', label: '枚举 (Enum)' },
+  { value: 'ENUM_LABEL', label: '枚举标签 (Enum Label)' },
   { value: 'UUID', label: 'UUID v7' },
   { value: 'DATE', label: '日期 (Date)' },
   { value: 'DATETIME', label: '日期时间 (DateTime)' },
@@ -68,6 +74,9 @@ const DEFAULT_FIELD_DATA = {
   unique: false,
   description: '',
   relateFkId: '',
+  relateEnumName: '',
+  sourceFieldName: '',
+  enumRelationId: '',
   relationDirection: 'NORMAL' as 'NORMAL' | 'REVERSE',
 }
 
@@ -78,8 +87,6 @@ export interface InsertFieldSheetProps {
   modelName?: string
   projectSlug: string
   orgName: string
-  /** Optional list of models for FK label display */
-  models?: Array<{ id: string; name: string; title: string }>
   /** Called after a field is successfully added */
   onSuccess?: () => void
 }
@@ -91,7 +98,6 @@ export function InsertFieldSheet({
   modelName,
   projectSlug,
   orgName,
-  models,
   onSuccess,
 }: InsertFieldSheetProps) {
   const projectClient = useProjectScopedClient(projectSlug)
@@ -103,6 +109,11 @@ export function InsertFieldSheet({
 
   const [fieldData, setFieldData] = useState(DEFAULT_FIELD_DATA)
   const [saving, setSaving] = useState(false)
+  const [enumContextLoading, setEnumContextLoading] = useState(false)
+  const [enumContextError, setEnumContextError] = useState<ModelEnumDomainError | null>(null)
+  const [creatingRelation, setCreatingRelation] = useState(false)
+  const [enumSources, setEnumSources] = useState<EnumSourceOption[]>([])
+  const [enumRelations, setEnumRelations] = useState<EnumRelationOption[]>([])
 
   // 查询逻辑外键列表（仅当抽屉打开时）
   const { data: fkData, loading: fkLoading } = useQuery<{ logicalForeignKeys: LogicalForeignKey[] }>(GET_LOGICAL_FOREIGN_KEYS, {
@@ -121,6 +132,76 @@ export function InsertFieldSheet({
   const filteredForeignKeys = logicalForeignKeys.filter(
     fk => fk.direction === fieldData.relationDirection
   )
+
+  const enumOptions = useMemo(
+    () => Array.from(new Set(enumSources.map((source) => source.enumName))),
+    [enumSources],
+  )
+
+  const selectedSource = useMemo(
+    () => enumSources.find((source) => source.fieldName === fieldData.sourceFieldName),
+    [enumSources, fieldData.sourceFieldName],
+  )
+
+  const filteredEnumRelations = useMemo(
+    () => enumRelations.filter((relation) => relation.sourceFieldName === fieldData.sourceFieldName),
+    [enumRelations, fieldData.sourceFieldName],
+  )
+
+  const refreshEnumContext = useCallback(async () => {
+    if (!open || !modelId) {
+      setEnumSources([])
+      setEnumRelations([])
+      return null
+    }
+
+    setEnumContextLoading(true)
+    setEnumContextError(null)
+
+    try {
+      const result = await queryModelEnumContext({
+        orgName,
+        projectSlug,
+        modelId,
+      })
+
+      if (result.error) {
+        setEnumContextError(result.error)
+        setEnumSources([])
+        setEnumRelations([])
+        return null
+      }
+
+      setEnumSources(result.enumSources)
+      setEnumRelations(result.relations)
+      return result
+    } catch {
+      const error: ModelEnumDomainError = {
+        type: 'Unknown',
+        code: 'UNKNOWN',
+        message: '加载 ENUM 上下文失败，请稍后重试。',
+      }
+      setEnumContextError(error)
+      setEnumSources([])
+      setEnumRelations([])
+      return null
+    } finally {
+      setEnumContextLoading(false)
+    }
+  }, [modelId, open, orgName, projectSlug])
+
+  useEffect(() => {
+    if (!open) {
+      setEnumContextError(null)
+      setEnumSources([])
+      setEnumRelations([])
+      return
+    }
+
+    if (fieldData.format === 'ENUM' || fieldData.format === 'ENUM_LABEL') {
+      void refreshEnumContext()
+    }
+  }, [fieldData.format, open, refreshEnumContext])
 
   const [addField] = useMutation(ADD_FIELDS, {
     client: projectClient,
@@ -144,27 +225,61 @@ export function InsertFieldSheet({
       alert('请填写字段名、标题和类型')
       return
     }
+
     if (fieldData.format === 'RELATION' && !fieldData.relateFkId) {
       alert('请选择关联的逻辑外键')
       return
     }
+
+    if (fieldData.format === 'ENUM' && !fieldData.relateEnumName) {
+      alert('请选择关联枚举')
+      return
+    }
+
+    if (fieldData.format === 'ENUM_LABEL') {
+      if (!fieldData.sourceFieldName) {
+        alert('请选择 source ENUM 字段')
+        return
+      }
+
+      if (selectedSource?.occupied) {
+        alert('当前 source 字段已占用，不能重复创建 ENUM_LABEL')
+        return
+      }
+
+      if (!fieldData.enumRelationId) {
+        alert('请选择或创建 relation')
+        return
+      }
+    }
+
+    const input: Record<string, unknown> = {
+      name: fieldData.name,
+      title: fieldData.title,
+      format: fieldData.format,
+      storageHint: fieldData.storageHint !== '' ? fieldData.storageHint : undefined,
+      nonNull: fieldData.nonNull,
+      required: fieldData.required,
+      isUnique: fieldData.unique,
+      description: fieldData.description || undefined,
+      relateFkId: fieldData.relateFkId || undefined,
+    }
+
+    if (fieldData.format === 'ENUM') {
+      input.relateEnumName = fieldData.relateEnumName
+    }
+
+    if (fieldData.format === 'ENUM_LABEL') {
+      input.enumRelationId = fieldData.enumRelationId
+    }
+
     setSaving(true)
     try {
       await addField({
         variables: {
           projectSlug: projectSlug,
           modelID: modelId,
-          input: [{
-            name: fieldData.name,
-            title: fieldData.title,
-            format: fieldData.format,
-            storageHint: fieldData.storageHint !== '' ? fieldData.storageHint : undefined,
-            nonNull: fieldData.nonNull,
-            required: fieldData.required,
-            isUnique: fieldData.unique,
-            description: fieldData.description || undefined,
-            relateFkId: fieldData.relateFkId || undefined,
-          }],
+          input: [input],
         },
       })
     } catch {
@@ -172,9 +287,72 @@ export function InsertFieldSheet({
     }
   }
 
+  const handleCreateEnumRelation = async () => {
+    if (!modelId) {
+      return
+    }
+
+    if (!fieldData.sourceFieldName) {
+      alert('请先选择 source ENUM 字段')
+      return
+    }
+
+    const source = enumSources.find((option) => option.fieldName === fieldData.sourceFieldName)
+    if (!source) {
+      alert('未找到 source 字段，请重新选择')
+      return
+    }
+
+    setCreatingRelation(true)
+    setEnumContextError(null)
+
+    try {
+      const relationResult = await createFieldEnumRelation({
+        orgName,
+        projectSlug,
+        modelId,
+        sourceFieldName: source.fieldName,
+        enumName: source.enumName,
+        labelFieldName: `${source.fieldName}_label`,
+      })
+
+      if (!relationResult.success) {
+        setEnumContextError(relationResult.error)
+        return
+      }
+
+      const latestContext = await refreshEnumContext()
+      if (!latestContext) {
+        return
+      }
+
+      const matchedRelation = latestContext.relations.find(
+        (relation) => relation.sourceFieldName === source.fieldName,
+      )
+
+      if (matchedRelation) {
+        setFieldData((prev) => ({
+          ...prev,
+          enumRelationId: matchedRelation.id,
+        }))
+      }
+    } catch {
+      setEnumContextError({
+        type: 'Unknown',
+        code: 'UNKNOWN',
+        message: '创建 relation 失败，请稍后重试。',
+      })
+    } finally {
+      setCreatingRelation(false)
+    }
+  }
+
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       setFieldData(DEFAULT_FIELD_DATA)
+      setEnumContextError(null)
+      setEnumSources([])
+      setEnumRelations([])
     }
     onOpenChange(nextOpen)
   }
@@ -310,6 +488,9 @@ export function InsertFieldSheet({
                         format: value,
                         storageHint: value === 'STRING' ? prev.storageHint : '',
                         relateFkId: value === 'RELATION' ? prev.relateFkId : '',
+                        relateEnumName: value === 'ENUM' ? prev.relateEnumName : '',
+                        sourceFieldName: value === 'ENUM_LABEL' ? prev.sourceFieldName : '',
+                        enumRelationId: value === 'ENUM_LABEL' ? prev.enumRelationId : '',
                         relationDirection: value === 'RELATION' ? prev.relationDirection : 'NORMAL',
                       }))}
                     >
@@ -325,6 +506,146 @@ export function InsertFieldSheet({
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {/* 枚举绑定 - 仅 ENUM 类型 */}
+                  {fieldData.format === 'ENUM' && (
+                    <div className="space-y-2">
+                      <Label className="text-sm text-foreground">
+                        关联枚举 <span className="text-xs text-destructive">*</span>
+                      </Label>
+                      {enumContextLoading ? (
+                        <div className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm text-muted-foreground">
+                          <Loader2 className="size-3.5 animate-spin" strokeWidth={1.5} />
+                          加载枚举列表...
+                        </div>
+                      ) : (
+                        <Select
+                          value={fieldData.relateEnumName}
+                          onValueChange={(value) => setFieldData(prev => ({ ...prev, relateEnumName: value }))}
+                          disabled={enumOptions.length === 0}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="请选择枚举" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {enumOptions.length > 0 ? (
+                              enumOptions.map((enumName) => (
+                                <SelectItem key={enumName} value={enumName}>
+                                  <span className="font-mono text-xs">{enumName}</span>
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="__empty__" disabled>
+                                暂无可用枚举
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      )}
+                      {enumContextError && <p className="text-xs text-destructive">{enumContextError.message}</p>}
+                      {enumOptions.length === 0 && !enumContextLoading && (
+                        <p className="text-xs text-muted-foreground">请先创建枚举后再创建 ENUM 字段。</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 枚举标签绑定 - 仅 ENUM_LABEL 类型 */}
+                  {fieldData.format === 'ENUM_LABEL' && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm text-foreground">
+                          源字段 (ENUM) <span className="text-xs text-destructive">*</span>
+                        </Label>
+                        {enumContextLoading ? (
+                          <div className="flex h-9 items-center gap-2 rounded-md border border-border px-3 text-sm text-muted-foreground">
+                            <Loader2 className="size-3.5 animate-spin" strokeWidth={1.5} />
+                            加载 source 字段...
+                          </div>
+                        ) : (
+                          <Select
+                            value={fieldData.sourceFieldName}
+                            onValueChange={(value) => setFieldData(prev => ({
+                              ...prev,
+                              sourceFieldName: value,
+                              enumRelationId: '',
+                            }))}
+                            disabled={enumSources.length === 0}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="请选择 source ENUM 字段" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {enumSources.length > 0 ? (
+                                enumSources.map((source) => (
+                                  <SelectItem key={source.fieldName} value={source.fieldName} disabled={source.occupied}>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-mono text-xs">{source.fieldName}</span>
+                                      <span className="text-xs text-muted-foreground">→ {source.enumName}</span>
+                                      {source.occupied && <span className="text-xs text-destructive">(已占用)</span>}
+                                    </div>
+                                  </SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="__empty__" disabled>
+                                  暂无 ENUM 字段，请先创建
+                                </SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        {enumSources.length === 0 && !enumContextLoading && (
+                          <p className="text-xs text-muted-foreground">当前模型暂无 ENUM 字段，请先创建。</p>
+                        )}
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="text-sm text-foreground">
+                          Relation <span className="text-xs text-destructive">*</span>
+                        </Label>
+                        <Select
+                          value={fieldData.enumRelationId}
+                          onValueChange={(value) => setFieldData(prev => ({ ...prev, enumRelationId: value }))}
+                          disabled={!fieldData.sourceFieldName || Boolean(selectedSource?.occupied)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="请选择已有 relation" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {filteredEnumRelations.length > 0 ? (
+                              filteredEnumRelations.map((relation) => (
+                                <SelectItem key={relation.id} value={relation.id}>
+                                  <span className="font-mono text-xs">{relation.id}</span>
+                                </SelectItem>
+                              ))
+                            ) : (
+                              <SelectItem value="__empty__" disabled>
+                                暂无 relation，可先创建
+                              </SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-xs text-muted-foreground">同一 source 字段只能绑定一个 ENUM_LABEL。</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 px-2 text-xs"
+                            onClick={handleCreateEnumRelation}
+                            disabled={!fieldData.sourceFieldName || creatingRelation || Boolean(selectedSource?.occupied)}
+                          >
+                            {creatingRelation && <Loader2 className="mr-1.5 size-3 animate-spin" />}
+                            创建 relation
+                          </Button>
+                        </div>
+                        {selectedSource?.occupied && (
+                          <p className="text-xs text-destructive">当前 source 字段已占用，不能重复创建 ENUM_LABEL。</p>
+                        )}
+                      </div>
+
+                      {enumContextError && <p className="text-xs text-destructive">{enumContextError.message}</p>}
+                    </div>
+                  )}
 
                   {/* 存储长度 - 仅字符串类型 */}
                   {fieldData.format === 'STRING' && (
@@ -497,7 +818,17 @@ export function InsertFieldSheet({
               </Button>
               <Button
                 onClick={handleSave}
-                disabled={saving || !fieldData.name || !fieldData.title || (fieldData.format === 'RELATION' && !fieldData.relateFkId)}
+                disabled={
+                  saving
+                  || !fieldData.name
+                  || !fieldData.title
+                  || (fieldData.format === 'RELATION' && !fieldData.relateFkId)
+                  || (fieldData.format === 'ENUM' && !fieldData.relateEnumName)
+                  || (
+                    fieldData.format === 'ENUM_LABEL'
+                    && (!fieldData.sourceFieldName || !fieldData.enumRelationId || Boolean(selectedSource?.occupied))
+                  )
+                }
                 className="flex-1 border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
               >
                 {saving ? (

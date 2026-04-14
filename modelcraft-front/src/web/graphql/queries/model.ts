@@ -154,7 +154,7 @@ export const GET_MODEL = gql`
         ... on ModelNotFound {
           message
         }
-        ... on InvalidModelInput {
+        ... on InvalidInput {
           message
           suggestion
         }
@@ -229,7 +229,7 @@ export const GET_MODEL_BY_NAME = gql`
         ... on ModelNotFound {
           message
         }
-        ... on InvalidModelInput {
+        ... on InvalidInput {
           message
           suggestion
         }

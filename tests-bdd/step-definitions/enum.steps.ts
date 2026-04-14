@@ -16,7 +16,7 @@ const CREATE_ENUM = `
       error {
         __typename
         ... on EnumAlreadyExists { message }
-        ... on InvalidEnumInput { message }
+        ... on InvalidInput { message }
       }
     }
   }

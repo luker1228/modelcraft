@@ -336,27 +336,12 @@ type ComplexityRoot struct {
 		SkippedFields func(childComplexity int) int
 	}
 
-	InvalidClusterInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
-	InvalidEnumInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
 	InvalidGroupName struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
 	}
 
 	InvalidInput struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
-	InvalidModelInput struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
 	}
@@ -1573,32 +1558,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ImportModelPayload.SkippedFields(childComplexity), true
 
-	case "InvalidClusterInput.message":
-		if e.complexity.InvalidClusterInput.Message == nil {
-			break
-		}
-
-		return e.complexity.InvalidClusterInput.Message(childComplexity), true
-	case "InvalidClusterInput.suggestion":
-		if e.complexity.InvalidClusterInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.InvalidClusterInput.Suggestion(childComplexity), true
-
-	case "InvalidEnumInput.message":
-		if e.complexity.InvalidEnumInput.Message == nil {
-			break
-		}
-
-		return e.complexity.InvalidEnumInput.Message(childComplexity), true
-	case "InvalidEnumInput.suggestion":
-		if e.complexity.InvalidEnumInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.InvalidEnumInput.Suggestion(childComplexity), true
-
 	case "InvalidGroupName.message":
 		if e.complexity.InvalidGroupName.Message == nil {
 			break
@@ -1624,19 +1583,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.InvalidInput.Suggestion(childComplexity), true
-
-	case "InvalidModelInput.message":
-		if e.complexity.InvalidModelInput.Message == nil {
-			break
-		}
-
-		return e.complexity.InvalidModelInput.Message(childComplexity), true
-	case "InvalidModelInput.suggestion":
-		if e.complexity.InvalidModelInput.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.InvalidModelInput.Suggestion(childComplexity), true
 
 	case "LogicalForeignKey.direction":
 		if e.complexity.LogicalForeignKey.Direction == nil {
@@ -2858,11 +2804,6 @@ type ClusterNotFound implements Error {
   message: String!
 }
 
-type InvalidClusterInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type DatabaseConnectionFailed implements Error {
   message: String!
   suggestion: String
@@ -2874,7 +2815,7 @@ type ProjectNotFound implements Error {
 
 # Error unions for cluster operations
 union GetClusterError = ClusterNotFound | ProjectNotFound
-union UpdateClusterError = ClusterNotFound | InvalidClusterInput | DatabaseConnectionFailed | ProjectNotFound
+union UpdateClusterError = ClusterNotFound | InvalidInput | DatabaseConnectionFailed | ProjectNotFound
 union DeleteClusterError = ClusterNotFound | ProjectNotFound
 union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
 
@@ -3058,11 +2999,6 @@ type EnumNotFound implements Error {
   message: String!
 }
 
-type InvalidEnumInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteReferencedEnum implements Error {
   message: String!
   suggestion: String
@@ -3070,8 +3006,8 @@ type CannotDeleteReferencedEnum implements Error {
 
 # Error unions for each mutation and query
 union GetEnumError = EnumNotFound | ProjectNotFound
-union CreateEnumError = EnumAlreadyExists | InvalidEnumInput | ProjectNotFound
-union UpdateEnumError = EnumNotFound | InvalidEnumInput | ProjectNotFound
+union CreateEnumError = EnumAlreadyExists | InvalidInput | ProjectNotFound
+union UpdateEnumError = EnumNotFound | InvalidInput | ProjectNotFound
 union DeleteEnumError = EnumNotFound | CannotDeleteReferencedEnum | ProjectNotFound
 
 # ============================================
@@ -3533,11 +3469,6 @@ type ModelNotFound implements Error {
   message: String!
 }
 
-type InvalidModelInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteDeployedModel implements Error {
   message: String!
   suggestion: String
@@ -3549,9 +3480,9 @@ type ModelTableAlreadyExists implements Error {
 }
 
 # Error unions for each mutation and query
-union GetModelError = ModelNotFound | InvalidModelInput | ProjectNotFound
-union CreateModelError = ModelAlreadyExists | InvalidModelInput | ProjectNotFound | ModelTableAlreadyExists
-union UpdateModelError = ModelNotFound | InvalidModelInput | ProjectNotFound
+union GetModelError = ModelNotFound | InvalidInput | ProjectNotFound
+union CreateModelError = ModelAlreadyExists | InvalidInput | ProjectNotFound | ModelTableAlreadyExists
+union UpdateModelError = ModelNotFound | InvalidInput | ProjectNotFound
 union DeleteModelError = ModelNotFound | CannotDeleteDeployedModel | ProjectNotFound
 
 # ============================================
@@ -8953,122 +8884,6 @@ func (ec *executionContext) fieldContext_ImportModelPayload_skippedFields(_ cont
 	return fc, nil
 }
 
-func (ec *executionContext) _InvalidClusterInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidClusterInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidClusterInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidClusterInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidClusterInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidClusterInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidClusterInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidClusterInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidClusterInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidClusterInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidEnumInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidEnumInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidEnumInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidEnumInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidEnumInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidEnumInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidEnumInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidEnumInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidEnumInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidEnumInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _InvalidGroupName_message(ctx context.Context, field graphql.CollectedField, obj *InvalidGroupName) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9175,64 +8990,6 @@ func (ec *executionContext) _InvalidInput_suggestion(ctx context.Context, field 
 func (ec *executionContext) fieldContext_InvalidInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "InvalidInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidModelInput_message(ctx context.Context, field graphql.CollectedField, obj *InvalidModelInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidModelInput_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidModelInput_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidModelInput",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _InvalidModelInput_suggestion(ctx context.Context, field graphql.CollectedField, obj *InvalidModelInput) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_InvalidModelInput_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_InvalidModelInput_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "InvalidModelInput",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -17791,13 +17548,13 @@ func (ec *executionContext) _CreateEnumError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._ProjectNotFound(ctx, sel, obj)
-	case InvalidEnumInput:
-		return ec._InvalidEnumInput(ctx, sel, &obj)
-	case *InvalidEnumInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidEnumInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	case EnumAlreadyExists:
 		return ec._EnumAlreadyExists(ctx, sel, &obj)
 	case *EnumAlreadyExists:
@@ -17911,13 +17668,13 @@ func (ec *executionContext) _CreateModelError(ctx context.Context, sel ast.Selec
 			return graphql.Null
 		}
 		return ec._ModelAlreadyExists(ctx, sel, obj)
-	case InvalidModelInput:
-		return ec._InvalidModelInput(ctx, sel, &obj)
-	case *InvalidModelInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidModelInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -18100,13 +17857,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._ModelAlreadyExists(ctx, sel, obj)
-	case InvalidModelInput:
-		return ec._InvalidModelInput(ctx, sel, &obj)
-	case *InvalidModelInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidModelInput(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -18121,20 +17871,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._InvalidGroupName(ctx, sel, obj)
-	case InvalidEnumInput:
-		return ec._InvalidEnumInput(ctx, sel, &obj)
-	case *InvalidEnumInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidEnumInput(ctx, sel, obj)
-	case InvalidClusterInput:
-		return ec._InvalidClusterInput(ctx, sel, &obj)
-	case *InvalidClusterInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidClusterInput(ctx, sel, obj)
 	case GroupNotFound:
 		return ec._GroupNotFound(ctx, sel, &obj)
 	case *GroupNotFound:
@@ -18295,13 +18031,13 @@ func (ec *executionContext) _GetModelError(ctx context.Context, sel ast.Selectio
 			return graphql.Null
 		}
 		return ec._ModelNotFound(ctx, sel, obj)
-	case InvalidModelInput:
-		return ec._InvalidModelInput(ctx, sel, &obj)
-	case *InvalidModelInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidModelInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -18470,13 +18206,13 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ProjectNotFound(ctx, sel, obj)
-	case InvalidClusterInput:
-		return ec._InvalidClusterInput(ctx, sel, &obj)
-	case *InvalidClusterInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidClusterInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -18507,13 +18243,13 @@ func (ec *executionContext) _UpdateEnumError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._ProjectNotFound(ctx, sel, obj)
-	case InvalidEnumInput:
-		return ec._InvalidEnumInput(ctx, sel, &obj)
-	case *InvalidEnumInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidEnumInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	case EnumNotFound:
 		return ec._EnumNotFound(ctx, sel, &obj)
 	case *EnumNotFound:
@@ -18567,13 +18303,13 @@ func (ec *executionContext) _UpdateModelError(ctx context.Context, sel ast.Selec
 			return graphql.Null
 		}
 		return ec._ModelNotFound(ctx, sel, obj)
-	case InvalidModelInput:
-		return ec._InvalidModelInput(ctx, sel, &obj)
-	case *InvalidModelInput:
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._InvalidModelInput(ctx, sel, obj)
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -20807,88 +20543,6 @@ func (ec *executionContext) _ImportModelPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var invalidClusterInputImplementors = []string{"InvalidClusterInput", "Error", "UpdateClusterError"}
-
-func (ec *executionContext) _InvalidClusterInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidClusterInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidClusterInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidClusterInput")
-		case "message":
-			out.Values[i] = ec._InvalidClusterInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._InvalidClusterInput_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var invalidEnumInputImplementors = []string{"InvalidEnumInput", "Error", "CreateEnumError", "UpdateEnumError"}
-
-func (ec *executionContext) _InvalidEnumInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidEnumInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidEnumInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidEnumInput")
-		case "message":
-			out.Values[i] = ec._InvalidEnumInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._InvalidEnumInput_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var invalidGroupNameImplementors = []string{"InvalidGroupName", "Error", "CreateGroupError", "RenameGroupError"}
 
 func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.SelectionSet, obj *InvalidGroupName) graphql.Marshaler {
@@ -20930,7 +20584,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "CreateFieldEnumRelationError", "DeleteFieldEnumRelationError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "CreateFieldEnumRelationError", "DeleteFieldEnumRelationError", "GetModelError", "CreateModelError", "UpdateModelError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -20948,47 +20602,6 @@ func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.Selection
 			}
 		case "suggestion":
 			out.Values[i] = ec._InvalidInput_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var invalidModelInputImplementors = []string{"InvalidModelInput", "Error", "GetModelError", "CreateModelError", "UpdateModelError"}
-
-func (ec *executionContext) _InvalidModelInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidModelInput) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, invalidModelInputImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("InvalidModelInput")
-		case "message":
-			out.Values[i] = ec._InvalidModelInput_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._InvalidModelInput_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

@@ -2,13 +2,14 @@ package profile
 
 import (
 	"context"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/pkg/bizerrors"
 	"testing"
 	"time"
 
 	domainProfile "modelcraft/internal/domain/profile"
-	"modelcraft/internal/domain/shared"
+
 	domainUser "modelcraft/internal/domain/user"
-	"modelcraft/pkg/bizerrors"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

@@ -63,7 +63,7 @@ func (r *mutationResolver) CreateRole(ctx context.Context, input generated.Creat
 			}
 			if bizErr.IsParamInvalidError() {
 				return &generated.CreateRolePayload{
-					Error: &generated.InvalidRoleInput{Message: bizErr.Msg()},
+					Error: &generated.InvalidInput{Message: bizErr.Msg()},
 				}, nil
 			}
 		}

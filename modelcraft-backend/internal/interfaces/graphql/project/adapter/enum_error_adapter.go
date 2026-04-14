@@ -62,7 +62,7 @@ func (a *EnumErrorAdapter) ConvertToCreateEnumError(err *bizerrors.BusinessError
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidEnumInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		// Add suggestion if available from error detail
@@ -76,8 +76,8 @@ func (a *EnumErrorAdapter) ConvertToCreateEnumError(err *bizerrors.BusinessError
 		return gqlErr
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for CreateEnum: %s", err.Info().GetCode())
-		// Return as InvalidEnumInput for unknown errors
-		return &generated.InvalidEnumInput{
+		// Return as InvalidInput for unknown errors
+		return &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 	}
@@ -99,7 +99,7 @@ func (a *EnumErrorAdapter) ConvertToUpdateEnumError(err *bizerrors.BusinessError
 			Message: err.Msg(),
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidEnumInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		if err.Detail() != "" {

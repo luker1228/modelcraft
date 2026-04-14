@@ -56,13 +56,13 @@ function createDomainError(
 }
 
 function modelInputError(message: string): ModelEnumDomainError {
-  return createDomainError('InvalidModelInput', message, {
+  return createDomainError('InvalidInput', message, {
     suggestion: '请确认组织、项目和模型参数均已提供。',
   })
 }
 
 function fieldInputError(message: string): ModelEnumDomainError {
-  return createDomainError('InvalidFieldInput', message, {
+  return createDomainError('InvalidInput', message, {
     suggestion: '请检查字段参数是否完整且合法。',
   })
 }

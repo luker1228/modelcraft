@@ -14,11 +14,6 @@ type EnumNotFound implements Error {
   message: String!
 }
 
-type InvalidEnumInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteReferencedEnum implements Error {
   message: String!
   suggestion: String
@@ -26,8 +21,8 @@ type CannotDeleteReferencedEnum implements Error {
 
 # Error unions for each mutation and query
 union GetEnumError = EnumNotFound | ProjectNotFound
-union CreateEnumError = EnumAlreadyExists | InvalidEnumInput | ProjectNotFound
-union UpdateEnumError = EnumNotFound | InvalidEnumInput | ProjectNotFound
+union CreateEnumError = EnumAlreadyExists | InvalidInput | ProjectNotFound
+union UpdateEnumError = EnumNotFound | InvalidInput | ProjectNotFound
 union DeleteEnumError = EnumNotFound | CannotDeleteReferencedEnum | ProjectNotFound
 
 # ============================================

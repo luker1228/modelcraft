@@ -12,11 +12,7 @@ export const CREATE_FIELD_ENUM_RELATION = gql`
       }
       error {
         __typename
-        ... on InvalidModelInput {
-          message
-          suggestion
-        }
-        ... on InvalidFieldInput {
+        ... on InvalidInput {
           message
           suggestion
         }

@@ -24,7 +24,7 @@ func (r *mutationResolver) CreateEnum(ctx context.Context, input generated.Creat
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.CreateEnumPayload{
-			Error: &generated.InvalidEnumInput{Message: "projectSlug not found in context"},
+			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
 
@@ -86,7 +86,7 @@ func (r *mutationResolver) UpdateEnum(ctx context.Context, name string, input ge
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.UpdateEnumPayload{
-			Error: &generated.InvalidEnumInput{Message: "projectSlug not found in context"},
+			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
 

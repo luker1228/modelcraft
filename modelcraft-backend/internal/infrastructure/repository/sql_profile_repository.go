@@ -2,7 +2,6 @@ package repository
 
 import (
 	"context"
-
 	"modelcraft/internal/domain/profile"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"

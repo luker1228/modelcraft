@@ -46,18 +46,10 @@ export function mapModelEnumError(raw: RawGraphQLErrorLike | null | undefined): 
   const code = normalizeCode(raw.code)
   const suggestion = normalizeSuggestion(raw.suggestion)
 
-  if (typename === 'InvalidModelInput') {
+  if (typename === 'InvalidInput') {
     return {
-      type: 'InvalidModelInput',
-      message: normalizeMessage(raw.message, '模型参数非法。'),
-      suggestion,
-    }
-  }
-
-  if (typename === 'InvalidFieldInput') {
-    return {
-      type: 'InvalidFieldInput',
-      message: normalizeMessage(raw.message, '字段参数非法。'),
+      type: 'InvalidInput',
+      message: normalizeMessage(raw.message, '参数非法。'),
       suggestion,
     }
   }

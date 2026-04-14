@@ -582,28 +582,6 @@ type ImportModelPayload struct {
 	SkippedFields []string `json:"skippedFields"`
 }
 
-type InvalidClusterInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (InvalidClusterInput) IsError()                {}
-func (this InvalidClusterInput) GetMessage() string { return this.Message }
-
-func (InvalidClusterInput) IsUpdateClusterError() {}
-
-type InvalidEnumInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (InvalidEnumInput) IsError()                {}
-func (this InvalidEnumInput) GetMessage() string { return this.Message }
-
-func (InvalidEnumInput) IsCreateEnumError() {}
-
-func (InvalidEnumInput) IsUpdateEnumError() {}
-
 type InvalidGroupName struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -621,6 +599,12 @@ type InvalidInput struct {
 	Suggestion *string `json:"suggestion,omitempty"`
 }
 
+func (InvalidInput) IsUpdateClusterError() {}
+
+func (InvalidInput) IsCreateEnumError() {}
+
+func (InvalidInput) IsUpdateEnumError() {}
+
 func (InvalidInput) IsError()                {}
 func (this InvalidInput) GetMessage() string { return this.Message }
 
@@ -634,19 +618,11 @@ func (InvalidInput) IsCreateFieldEnumRelationError() {}
 
 func (InvalidInput) IsDeleteFieldEnumRelationError() {}
 
-type InvalidModelInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
+func (InvalidInput) IsGetModelError() {}
 
-func (InvalidModelInput) IsError()                {}
-func (this InvalidModelInput) GetMessage() string { return this.Message }
+func (InvalidInput) IsCreateModelError() {}
 
-func (InvalidModelInput) IsGetModelError() {}
-
-func (InvalidModelInput) IsCreateModelError() {}
-
-func (InvalidModelInput) IsUpdateModelError() {}
+func (InvalidInput) IsUpdateModelError() {}
 
 type ListDatabasesInput struct {
 	Offset *int32  `json:"offset,omitempty"`

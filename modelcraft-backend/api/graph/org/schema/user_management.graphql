@@ -87,18 +87,13 @@ type RoleAlreadyExists implements Error {
   message: String!
 }
 
-type InvalidRoleInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteSystemRole implements Error {
   message: String!
 }
 
 # Error unions
 union GetOrganizationError = OrganizationNotFound
-union CreateRoleError = RoleAlreadyExists | InvalidRoleInput
+union CreateRoleError = RoleAlreadyExists | InvalidInput
 union DeleteRoleError = RoleNotFound | CannotDeleteSystemRole
 
 # ============================================

@@ -52,7 +52,7 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input generated.
 			case bizerrors.InvalidProfileInput.GetCode():
 				suggestion := "Please provide at least one field: nickname, avatarUrl, or bio"
 				return &generated.UpdateMyProfilePayload{
-					Error: &generated.InvalidProfileInput{Message: bizErr.Msg(), Suggestion: &suggestion},
+					Error: &generated.InvalidInput{Message: bizErr.Msg(), Suggestion: &suggestion},
 				}, nil
 			}
 		}

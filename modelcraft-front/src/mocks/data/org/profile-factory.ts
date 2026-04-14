@@ -44,7 +44,7 @@ export interface MockUpdateMyProfilePayload {
         message: string
       }
     | {
-        __typename: 'InvalidProfileInput'
+        __typename: 'InvalidInput'
         message: string
         suggestion: string
       }
@@ -131,7 +131,7 @@ export function createMockUpdateMyProfilePayload(
       return {
         profile: null,
         error: {
-          __typename: 'InvalidProfileInput',
+          __typename: 'InvalidInput',
           message: 'At least one updatable profile field is required',
           suggestion: 'Provide nickname, avatarUrl, or bio to update profile',
         },

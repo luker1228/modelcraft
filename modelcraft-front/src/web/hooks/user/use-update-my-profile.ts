@@ -112,9 +112,9 @@ function mapMutationError(error: MutationPayloadError): ProfileDomainError {
     }
   }
 
-  if (error.__typename === 'InvalidProfileInput') {
+  if (error.__typename === 'InvalidInput') {
     return {
-      type: 'InvalidProfileInput',
+      type: 'InvalidInput',
       message: error.message,
       suggestion: error.suggestion ?? undefined,
     }

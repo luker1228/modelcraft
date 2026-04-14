@@ -14,11 +14,6 @@ type ModelNotFound implements Error {
   message: String!
 }
 
-type InvalidModelInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 type CannotDeleteDeployedModel implements Error {
   message: String!
   suggestion: String
@@ -30,9 +25,9 @@ type ModelTableAlreadyExists implements Error {
 }
 
 # Error unions for each mutation and query
-union GetModelError = ModelNotFound | InvalidModelInput | ProjectNotFound
-union CreateModelError = ModelAlreadyExists | InvalidModelInput | ProjectNotFound | ModelTableAlreadyExists
-union UpdateModelError = ModelNotFound | InvalidModelInput | ProjectNotFound
+union GetModelError = ModelNotFound | InvalidInput | ProjectNotFound
+union CreateModelError = ModelAlreadyExists | InvalidInput | ProjectNotFound | ModelTableAlreadyExists
+union UpdateModelError = ModelNotFound | InvalidInput | ProjectNotFound
 union DeleteModelError = ModelNotFound | CannotDeleteDeployedModel | ProjectNotFound
 
 # ============================================

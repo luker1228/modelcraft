@@ -51,7 +51,7 @@ export const CREATE_MODEL = gql`
           message
           suggestion
         }
-        ... on InvalidModelInput {
+        ... on InvalidInput {
           message
           suggestion
         }
@@ -107,7 +107,7 @@ export const UPDATE_MODEL = gql`
         ... on ModelNotFound {
           message
         }
-        ... on InvalidModelInput {
+        ... on InvalidInput {
           message
           suggestion
         }
@@ -470,7 +470,7 @@ export const ADD_FIELDS = gql`
       }
       error {
         __typename
-        ... on InvalidModelInput {
+        ... on InvalidInput {
           message
           suggestion
         }
@@ -483,60 +483,73 @@ export const ADD_FIELDS = gql`
 export const UPDATE_FIELD = gql`
   mutation UpdateField($modelID: ID!, $fieldName: String!, $input: UpdateFieldInput!) {
     updateField(modelID: $modelID, fieldName: $fieldName, input: $input) {
-      id
-      projectSlug
-      name
-      title
-      description
-      databaseName
-      storageType
-      fields {
+      model {
+        id
+        projectSlug
         name
         title
-        format
-        schemaType
-        storageHint
-        nonNull
-        required
-        isPrimary
-        isUnique
-        isDeprecated
-        isArray
         description
-        relateFkId
-        belongsToFkId
-        enum {
+        databaseName
+        storageType
+        fields {
+          name
+          title
+          format
+          schemaType
+          storageHint
+          nonNull
+          required
+          isPrimary
+          isUnique
+          isDeprecated
+          isArray
+          description
+          relateFkId
+          belongsToFkId
+          enum {
+            id
+            name
+            displayName
+            description
+            isMultiSelect
+            options {
+              code
+              label
+              order
+              description
+            }
+          }
+          validationConfig {
+            minLength
+            maxLength
+            pattern
+            minimum
+            maximum
+          }
+          createdAt
+          updatedAt
+        }
+        group {
           id
           name
-          displayName
-          description
-          isMultiSelect
-          options {
-            code
-            label
-            order
-            description
-          }
+          isVirtual
+          displayOrder
         }
-        validationConfig {
-          minLength
-          maxLength
-          pattern
-          minimum
-          maximum
-        }
+        dbTable
         createdAt
         updatedAt
       }
-      group {
-        id
-        name
-        isVirtual
-        displayOrder
+      error {
+        __typename
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+        ... on FieldFormatImmutable {
+          message
+          code
+        }
       }
-      dbTable
-      createdAt
-      updatedAt
     }
   }
 `
@@ -546,38 +559,52 @@ export const UPDATE_FIELD = gql`
 export const REMOVE_FIELD = gql`
   mutation RemoveField($modelID: ID!, $fieldName: String!) {
     removeField(modelID: $modelID, fieldName: $fieldName) {
-      id
-      projectSlug
-      name
-      title
-      description
-      databaseName
-      storageType
-      fields {
+      model {
+        id
+        projectSlug
         name
         title
-        format
-        schemaType
-        storageHint
-        nonNull
-        required
-        isPrimary
-        isUnique
         description
-        relateFkId
-        belongsToFkId
+        databaseName
+        storageType
+        fields {
+          name
+          title
+          format
+          schemaType
+          storageHint
+          nonNull
+          required
+          isPrimary
+          isUnique
+          description
+          relateFkId
+          belongsToFkId
+          createdAt
+          updatedAt
+        }
+        group {
+          id
+          name
+          isVirtual
+          displayOrder
+        }
+        dbTable
         createdAt
         updatedAt
       }
-      group {
-        id
-        name
-        isVirtual
-        displayOrder
+      error {
+        __typename
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+        ... on FieldReferenceInUse {
+          message
+          code
+          suggestion
+        }
       }
-      dbTable
-      createdAt
-      updatedAt
     }
   }
 `

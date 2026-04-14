@@ -3,13 +3,13 @@ package auth
 import (
 	"encoding/json"
 	"io"
-	"net/http"
-
-	appAuth "modelcraft/internal/app/auth"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"net/http"
+
+	appAuth "modelcraft/internal/app/auth"
 )
 
 // Handler handles HTTP auth endpoints.

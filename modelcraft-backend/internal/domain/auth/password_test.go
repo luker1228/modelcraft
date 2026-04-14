@@ -9,7 +9,7 @@ import (
 func TestValidatePasswordStrength(t *testing.T) {
 	t.Run("valid passwords", func(t *testing.T) {
 		validPasswords := []string{
-			"12345678",         // exactly 8 chars
+			"12345678",        // exactly 8 chars
 			"abcdefghij",      // 10 chars
 			"MyP@ssw0rd!2024", // complex
 		}
@@ -21,10 +21,10 @@ func TestValidatePasswordStrength(t *testing.T) {
 
 	t.Run("too short passwords", func(t *testing.T) {
 		shortPasswords := []string{
-			"",       // empty
+			"",        // empty
 			"1234567", // 7 chars
-			"abc",    // 3 chars
-			"a",      // 1 char
+			"abc",     // 3 chars
+			"a",       // 1 char
 		}
 		for _, pw := range shortPasswords {
 			err := ValidatePasswordStrength(pw)

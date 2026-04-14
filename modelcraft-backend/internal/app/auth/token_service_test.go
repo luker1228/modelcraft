@@ -3,12 +3,13 @@ package auth
 import (
 	"context"
 	"fmt"
+	"modelcraft/internal/domain/shared"
 	"testing"
 	"time"
 
 	domainauth "modelcraft/internal/domain/auth"
 	domainProfile "modelcraft/internal/domain/profile"
-	"modelcraft/internal/domain/shared"
+
 	domainUser "modelcraft/internal/domain/user"
 
 	"github.com/stretchr/testify/assert"
@@ -86,7 +87,7 @@ func (m *mockProfileRepo) CreateInitialProfile(ctx context.Context, p *domainPro
 	return m.Create(ctx, p)
 }
 
-func (m *mockProfileRepo) FindByUserID(_ context.Context, _ string, userID string) (*domainProfile.Profile, error) {
+func (m *mockProfileRepo) FindByUserID(_ context.Context, _, userID string) (*domainProfile.Profile, error) {
 	p, ok := m.profilesByUserID[userID]
 	if !ok {
 		return nil, shared.NewNotFoundError("profile not found by user id: " + userID)

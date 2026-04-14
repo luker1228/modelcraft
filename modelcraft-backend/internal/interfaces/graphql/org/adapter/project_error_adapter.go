@@ -35,7 +35,7 @@ func (a *ProjectErrorAdapter) ConvertToCreateProjectErrors(err *bizerrors.Busine
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidProjectInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		// Add suggestion if available from error detail
@@ -52,9 +52,9 @@ func (a *ProjectErrorAdapter) ConvertToCreateProjectErrors(err *bizerrors.Busine
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for CreateProject: %s", err.Info().GetCode())
-		// Return as InvalidProjectInput for unknown errors
+		// Return as InvalidInput for unknown errors
 		msg := err.Msg()
-		return &generated.InvalidProjectInput{
+		return &generated.InvalidInput{
 			Message: msg,
 		}
 	}
@@ -72,7 +72,7 @@ func (a *ProjectErrorAdapter) ConvertToUpdateProjectErrors(err *bizerrors.Busine
 			Message: err.Msg(),
 		}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidProjectInput{
+		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
 		if err.Detail() != "" {

@@ -18,7 +18,7 @@ function getUpdateMyProfileMutationDocument() {
           ... on ProfileNotFound {
             message
           }
-          ... on InvalidProfileInput {
+          ... on InvalidInput {
             message
             suggestion
           }

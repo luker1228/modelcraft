@@ -28,7 +28,7 @@ func (a *APIKeyErrorAdapter) ConvertToCreateError(err *bizerrors.BusinessError) 
 		return &generated.APIKeyLimitExceeded{Message: err.Msg()}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for CreateApiKey: %s", err.Info().GetCode())
-		return &generated.APIKeyInvalidInput{Message: err.Msg()}
+		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
 
@@ -56,6 +56,6 @@ func (a *APIKeyErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError) 
 		return &generated.APIKeyNotFound{Message: err.Msg()}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for UpdateApiKey: %s", err.Info().GetCode())
-		return &generated.APIKeyInvalidInput{Message: err.Msg()}
+		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }

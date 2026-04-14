@@ -14,7 +14,7 @@ func convertToCreateCustomRoleError(bizErr *bizerrors.BusinessError) generated.C
 			Suggestion: strPtr("Use a different role name or update the existing role"),
 		}
 	case bizErr.Info().IsParamInvalidError():
-		return &generated.PermissionInvalidInput{
+		return &generated.InvalidInput{
 			Message:    bizErr.Msg(),
 			Suggestion: strPtr("Check role name format and org_name validity"),
 		}
@@ -41,7 +41,7 @@ func convertToUpdateRoleError(bizErr *bizerrors.BusinessError) generated.UpdateP
 			Suggestion: strPtr("A role with this name already exists in the organization"),
 		}
 	case bizErr.Info().IsParamInvalidError():
-		return &generated.PermissionInvalidInput{
+		return &generated.InvalidInput{
 			Message:    bizErr.Msg(),
 			Suggestion: nil,
 		}
@@ -80,7 +80,7 @@ func convertToRolePermissionError(bizErr *bizerrors.BusinessError) generated.Rol
 			Suggestion: strPtr("Cannot modify system role permissions"),
 		}
 	case bizErr.Info().IsParamInvalidError():
-		return &generated.PermissionInvalidInput{
+		return &generated.InvalidInput{
 			Message:    bizErr.Msg(),
 			Suggestion: strPtr("Check permission format (e.g., 'resource:action')"),
 		}
@@ -103,7 +103,7 @@ func convertToAssignRoleError(bizErr *bizerrors.BusinessError) generated.AssignR
 			Suggestion: strPtr("Verify the role ID exists"),
 		}
 	case bizErr.Info().IsParamInvalidError():
-		return &generated.PermissionInvalidInput{
+		return &generated.InvalidInput{
 			Message:    bizErr.Msg(),
 			Suggestion: nil,
 		}

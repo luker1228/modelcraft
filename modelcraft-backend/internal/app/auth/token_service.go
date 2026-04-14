@@ -2,19 +2,21 @@ package auth
 
 import (
 	"context"
-	"time"
-
 	"modelcraft/internal/app/organization"
-	domainauth "modelcraft/internal/domain/auth"
 	"modelcraft/internal/domain/membership"
-	domainProfile "modelcraft/internal/domain/profile"
 	"modelcraft/internal/domain/shared"
-	domainUser "modelcraft/internal/domain/user"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
+	"time"
+
+	domainauth "modelcraft/internal/domain/auth"
+
+	domainProfile "modelcraft/internal/domain/profile"
+
+	domainUser "modelcraft/internal/domain/user"
 )
 
 // TokenService 处理认证令牌操作：注册、登录、刷新、登出。

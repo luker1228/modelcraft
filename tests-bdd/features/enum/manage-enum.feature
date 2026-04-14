@@ -17,7 +17,7 @@ Feature: 枚举管理
 
   Scenario Outline: 创建非法名称枚举时报错
     When 我创建名为 "<name>" 的枚举，选项为 "A,B"
-    Then 应该返回错误类型 "InvalidEnumInput"
+    Then 应该返回错误类型 "InvalidInput"
 
     Examples:
       | name         |

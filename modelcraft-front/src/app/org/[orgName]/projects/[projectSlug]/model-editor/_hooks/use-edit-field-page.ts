@@ -41,7 +41,7 @@ export function useEditFieldPage({
     async (values: UpdateFieldMetaFormValues) => {
       if (!fieldName.trim()) {
         setError({
-          type: 'InvalidFieldInput',
+          type: 'InvalidInput',
           message: '缺少字段名称，无法保存。',
           suggestion: '请重新打开字段编辑页后重试。',
         })

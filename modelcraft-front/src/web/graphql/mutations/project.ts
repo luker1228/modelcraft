@@ -20,7 +20,7 @@ export const CREATE_PROJECT = gql`
           message
           suggestion
         }
-        ... on InvalidProjectInput {
+        ... on InvalidInput {
           message
           suggestion
         }
@@ -52,7 +52,7 @@ export const UPDATE_PROJECT = gql`
         ... on ProjectNotFound {
           message
         }
-        ... on InvalidProjectInput {
+        ... on InvalidInput {
           message
           suggestion
         }
@@ -103,7 +103,7 @@ export const UPDATE_PROJECT_CLUSTER = gql`
         ... on ClusterNotFound {
           message
         }
-        ... on InvalidClusterInput {
+        ... on InvalidInput {
           message
           suggestion
         }

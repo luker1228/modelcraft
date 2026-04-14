@@ -129,17 +129,6 @@ type APIKey struct {
 	CreatedAt  time.Time  `json:"createdAt"`
 }
 
-type APIKeyInvalidInput struct {
-	Message string `json:"message"`
-}
-
-func (APIKeyInvalidInput) IsError()                {}
-func (this APIKeyInvalidInput) GetMessage() string { return this.Message }
-
-func (APIKeyInvalidInput) IsCreateAPIKeyError() {}
-
-func (APIKeyInvalidInput) IsUpdateAPIKeyError() {}
-
 type APIKeyLimitExceeded struct {
 	Message string `json:"message"`
 }
@@ -369,47 +358,35 @@ type GetProjectPayload struct {
 	Error   GetProjectError `json:"error,omitempty"`
 }
 
-type InvalidClusterInput struct {
+type InvalidInput struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
 }
 
-func (InvalidClusterInput) IsError()                {}
-func (this InvalidClusterInput) GetMessage() string { return this.Message }
+func (InvalidInput) IsCreateAPIKeyError() {}
 
-func (InvalidClusterInput) IsUpdateClusterError() {}
+func (InvalidInput) IsUpdateAPIKeyError() {}
 
-type InvalidProfileInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
+func (InvalidInput) IsError()                {}
+func (this InvalidInput) GetMessage() string { return this.Message }
 
-func (InvalidProfileInput) IsError()                {}
-func (this InvalidProfileInput) GetMessage() string { return this.Message }
+func (InvalidInput) IsCreateCustomRoleError() {}
 
-func (InvalidProfileInput) IsUpdateMyProfileError() {}
+func (InvalidInput) IsUpdatePermissionRoleError() {}
 
-type InvalidProjectInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
+func (InvalidInput) IsRolePermissionError() {}
 
-func (InvalidProjectInput) IsError()                {}
-func (this InvalidProjectInput) GetMessage() string { return this.Message }
+func (InvalidInput) IsAssignRoleError() {}
 
-func (InvalidProjectInput) IsCreateProjectError() {}
+func (InvalidInput) IsUpdateMyProfileError() {}
 
-func (InvalidProjectInput) IsUpdateProjectError() {}
+func (InvalidInput) IsCreateProjectError() {}
 
-type InvalidRoleInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
+func (InvalidInput) IsUpdateProjectError() {}
 
-func (InvalidRoleInput) IsError()                {}
-func (this InvalidRoleInput) GetMessage() string { return this.Message }
+func (InvalidInput) IsUpdateClusterError() {}
 
-func (InvalidRoleInput) IsCreateRoleError() {}
+func (InvalidInput) IsCreateRoleError() {}
 
 type ListProjectsInput struct {
 	Status *ProjectStatus `json:"status,omitempty"`
@@ -459,23 +436,6 @@ type PermissionDef struct {
 	Obj string `json:"obj"`
 	Act string `json:"act"`
 }
-
-type PermissionInvalidInput struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (PermissionInvalidInput) IsPermissionManagementError() {}
-func (this PermissionInvalidInput) GetMessage() string      { return this.Message }
-func (this PermissionInvalidInput) GetSuggestion() *string  { return this.Suggestion }
-
-func (PermissionInvalidInput) IsCreateCustomRoleError() {}
-
-func (PermissionInvalidInput) IsUpdatePermissionRoleError() {}
-
-func (PermissionInvalidInput) IsRolePermissionError() {}
-
-func (PermissionInvalidInput) IsAssignRoleError() {}
 
 type PermissionRole struct {
 	ID          int32     `json:"id"`

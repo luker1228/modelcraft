@@ -90,17 +90,6 @@ func (r *mutationResolver) AddFields(ctx context.Context, modelID string, input 
 	return payload, nil
 }
 
-func convertToAddFieldsError(err error, errorAdapter *adapter.ModelErrorAdapter) generated.AddFieldsError {
-	if err == nil {
-		return nil
-	}
-	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-		return errorAdapter.ConvertToAddFieldsError(bizErr)
-	}
-	msg := err.Error()
-	return &generated.InvalidInput{Message: msg}
-}
-
 // UpdateField is the resolver for the updateField field.
 func (r *mutationResolver) UpdateField(ctx context.Context, modelID string, fieldName string, input generated.UpdateFieldInput) (*generated.UpdateFieldPayload, error) {
 	errorAdapter := adapter.NewModelErrorAdapter(ctx)
