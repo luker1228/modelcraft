@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/samber/lo"
+	"golang.org/x/sync/errgroup"
 )
 
 // ModelDesignAppService 模型设计应用服务，负责模型在平台数据库和客户数据库之间的同步操作
@@ -1016,9 +1017,16 @@ func (s *ModelDesignAppService) GetModelByID(
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
 	}
 
-	// 批量填充 ENUM/ENUM_ARRAY 字段的 EnumDefinition（一次 List，内存 map，无 N+1）
-	if getModelOpt.GetEnumOptions {
-		if err := s.fillEnumDefinitions(ctx, modelQueryResult); err != nil {
+	// 并发填充字段的附加元数据：ENUM 定义 + 外键 x-relation（两者互相独立，无数据竞争）
+	if getModelOpt.GetFields {
+		g, gCtx := errgroup.WithContext(ctx)
+		g.Go(func() error {
+			return s.fillEnumDefinitions(gCtx, modelQueryResult)
+		})
+		g.Go(func() error {
+			return s.fillRelationMetadata(gCtx, modelQueryResult)
+		})
+		if err := g.Wait(); err != nil {
 			return nil, err
 		}
 	}
@@ -1060,6 +1068,73 @@ func (s *ModelDesignAppService) fillEnumDefinitions(
 	for _, f := range model.Fields {
 		if f.EnumName != "" {
 			f.Enum = enumMap[f.EnumName] // nil-safe: missing enum stays nil
+		}
+	}
+	return nil
+}
+
+// fillRelationMetadata 为带有 BelongsToFKID 的外键字段填充 x-relation 元数据。
+// 查询 LogicalForeignKey 获取目标模型 ID，再查目标 DataModel 取 DatabaseName 和 ModelName，
+// 写入 field.Metadata["x-relation"]，供 JSONSchemaGenerator 注入到 JSON Schema。
+func (s *ModelDesignAppService) fillRelationMetadata(
+	ctx context.Context,
+	model *modeldesign.DataModel,
+) error {
+	if len(model.Fields) == 0 || s.fkRepo == nil {
+		return nil
+	}
+
+	// 收集所有 BelongsToFKID（去重），批量查 LFK 再查目标模型
+	type relationInfo struct {
+		databaseName string
+		modelName    string
+	}
+	fkIDToRelation := make(map[string]*relationInfo)
+
+	for _, f := range model.Fields {
+		if f.BelongsToFKID == nil {
+			continue
+		}
+		fkID := *f.BelongsToFKID
+		if _, already := fkIDToRelation[fkID]; already {
+			continue
+		}
+
+		lf, err := s.fkRepo.GetByID(ctx, fkID)
+		if err != nil {
+			logfacade.GetLogger(ctx).Warnf(ctx,
+				"fillRelationMetadata: GetByID fkID=%s err=%v", fkID, err)
+			continue
+		}
+
+		refModel, err := s.modelRepo.GetByID(ctx, lf.RefModelID)
+		if err != nil {
+			logfacade.GetLogger(ctx).Warnf(ctx,
+				"fillRelationMetadata: GetByID refModelID=%s err=%v", lf.RefModelID, err)
+			continue
+		}
+
+		fkIDToRelation[fkID] = &relationInfo{
+			databaseName: refModel.DatabaseName,
+			modelName:    refModel.ModelName,
+		}
+	}
+
+	// 将 x-relation 写入字段 Metadata
+	for _, f := range model.Fields {
+		if f.BelongsToFKID == nil {
+			continue
+		}
+		info, ok := fkIDToRelation[*f.BelongsToFKID]
+		if !ok {
+			continue
+		}
+		if f.Metadata == nil {
+			f.Metadata = make(map[string]any)
+		}
+		f.Metadata["x-relation"] = map[string]string{
+			"databaseName": info.databaseName,
+			"modelName":    info.modelName,
 		}
 	}
 	return nil

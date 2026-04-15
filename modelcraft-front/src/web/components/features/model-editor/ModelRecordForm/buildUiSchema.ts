@@ -1,4 +1,4 @@
-import type { UiSchema } from '@rjsf/utils'
+import type { UiSchema, RJSFSchema } from '@rjsf/utils'
 import type { Field } from '@/types/index'
 
 /**
@@ -46,6 +46,38 @@ export function buildUiSchema(fields: Field[]): UiSchema {
     if (field.storageHint === 'TEXT') {
       uiSchema[field.name] = { 'ui:widget': 'textarea' }
       continue
+    }
+  }
+
+  return uiSchema
+}
+
+/**
+ * Scan a (filtered) JSON Schema and return widget overrides for any property
+ * that carries an `x-relation` extension.
+ *
+ * `x-relation` is injected by the backend at runtime into FK scalar fields:
+ * ```json
+ * "user_id": {
+ *   "type": "string",
+ *   "x-belongsToFkId": "fk-123",
+ *   "x-relation": { "databaseName": "users_db", "modelName": "User" }
+ * }
+ * ```
+ *
+ * Such fields should be rendered as a `RelationSelector` combobox instead of a
+ * plain text input.  The widget reads `x-relation` directly from `props.schema`
+ * at render time, so no extra ui:options are required here.
+ */
+export function buildRelationUiSchema(jsonSchema: RJSFSchema): UiSchema {
+  const uiSchema: UiSchema = {}
+
+  if (!jsonSchema.properties) return uiSchema
+
+  for (const [fieldName, prop] of Object.entries(jsonSchema.properties)) {
+    const typedProp = prop as Record<string, unknown>
+    if (typedProp['x-relation']) {
+      uiSchema[fieldName] = { 'ui:widget': 'RelationSelector' }
     }
   }
 

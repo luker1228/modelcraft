@@ -148,6 +148,7 @@ func TestGoquWhereVisitor_VisitComparison(t *testing.T) {
 		opAndValue  map[string]interface{}
 		expectError bool
 		expectedSQL string
+		allContains []string // all substrings must appear (order-independent)
 	}{
 		{
 			name:  "equals operator",
@@ -229,7 +230,8 @@ func TestGoquWhereVisitor_VisitComparison(t *testing.T) {
 				query.FieldLt: 65,
 			},
 			expectError: false,
-			expectedSQL: `("age" > ?) AND ("age" < ?)`,
+			// map iteration order is non-deterministic, verify both conditions exist
+			allContains: []string{`"age" > ?`, `"age" < ?`},
 		},
 		{
 			name:  "empty field name",
@@ -292,7 +294,13 @@ func TestGoquWhereVisitor_VisitComparison(t *testing.T) {
 
 				sql, _, err := goqu.From("test").Where(expr).Prepared(true).ToSQL()
 				require.NoError(t, err)
-				assert.Contains(t, sql, tt.expectedSQL)
+				if len(tt.allContains) > 0 {
+					for _, s := range tt.allContains {
+						assert.Contains(t, sql, s)
+					}
+				} else {
+					assert.Contains(t, sql, tt.expectedSQL)
+				}
 			}
 		})
 	}

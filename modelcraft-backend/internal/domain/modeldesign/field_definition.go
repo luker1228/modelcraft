@@ -76,7 +76,7 @@ type ValidationConfig struct {
 func (fd *FieldDefinition) Validate() error {
 	// 验证必填字段
 	if fd.Name == "" {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "field name is required")
+		return bizerrors.NewError(bizerrors.ParamInvalid, "Name不能为空")
 	}
 	// 验证字段key格式（只允许字母、数字、下划线，且不能以数字开头）
 	if !isValidFieldName(fd.Name) {

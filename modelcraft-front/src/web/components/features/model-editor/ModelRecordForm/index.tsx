@@ -8,9 +8,9 @@ import type { RJSFSchema, UiSchema } from '@rjsf/utils'
 import { useProjectScopedClient } from '@bff/apollo/public'
 import { GET_LOGICAL_FOREIGN_KEYS, GET_MODELS } from '@web/graphql'
 import type { Field } from '@/types/index'
-import { buildUiSchema } from './buildUiSchema'
+import { buildUiSchema, buildRelationUiSchema } from './buildUiSchema'
 import { filterJsonSchemaForForm } from './filterJsonSchemaForForm'
-import { EnumSelect, EnumSchemaSelect, RelationPicker } from './widgets'
+import { EnumSelect, EnumSchemaSelect, RelationPicker, RelationSelector } from './widgets'
 import { FieldTemplate, BaseInputTemplate, ObjectFieldTemplate } from './templates'
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
@@ -68,6 +68,7 @@ const customWidgets = {
   EnumSelect,
   EnumSchemaSelect,
   RelationPicker,
+  RelationSelector,
 }
 
 const customTemplates = {
@@ -155,19 +156,23 @@ export function ModelRecordForm({
     [jsonSchema]
   )
 
-  // Build uiSchema and enforce a stable render order from filtered schema properties
+  // Build uiSchema and enforce a stable render order from filtered schema properties.
+  // Priority: field-type widgets (ENUM, DATE, …) → x-relation widgets → ui:order
   const uiSchema = useMemo<UiSchema>(() => {
     const fieldUiSchema = buildUiSchema(fields)
+    const relationUiSchema = buildRelationUiSchema(editableSchema)
     const orderedFieldNames = editableSchema.properties
       ? Object.keys(editableSchema.properties)
       : []
 
+    const merged = { ...fieldUiSchema, ...relationUiSchema }
+
     if (orderedFieldNames.length === 0) {
-      return fieldUiSchema
+      return merged
     }
 
     return {
-      ...fieldUiSchema,
+      ...merged,
       'ui:order': orderedFieldNames,
     }
   }, [fields, editableSchema])
@@ -207,7 +212,8 @@ export function ModelRecordForm({
 
   // FK query error - show form anyway, RelationPicker will show error for affected fields
   if (fkError) {
-    console.warn('Failed to load logical foreign keys:', fkError)
+    // Intentionally silent: FK load failure is non-fatal.
+    // RelationPicker widgets will surface per-field errors when rendered.
   }
 
   return (

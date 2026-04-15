@@ -37,7 +37,6 @@ type Config struct {
 }
 
 type ResolverRoot interface {
-	Model() ModelResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -569,9 +568,6 @@ type ComplexityRoot struct {
 	}
 }
 
-type ModelResolver interface {
-	JSONSchema(ctx context.Context, obj *Model) (*string, error)
-}
 type MutationResolver interface {
 	Pong(ctx context.Context) (string, error)
 	UpdateProjectCluster(ctx context.Context, input UpdateClusterConnectionInput) (*UpdateClusterPayload, error)
@@ -9706,7 +9702,7 @@ func (ec *executionContext) _Model_jsonSchema(ctx context.Context, field graphql
 		field,
 		ec.fieldContext_Model_jsonSchema,
 		func(ctx context.Context) (any, error) {
-			return ec.resolvers.Model().JSONSchema(ctx, obj)
+			return obj.JSONSchema, nil
 		},
 		nil,
 		ec.marshalOString2ᚖstring,
@@ -9719,8 +9715,8 @@ func (ec *executionContext) fieldContext_Model_jsonSchema(_ context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "Model",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -20837,94 +20833,63 @@ func (ec *executionContext) _Model(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Model_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "projectSlug":
 			out.Values[i] = ec._Model_projectSlug(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "name":
 			out.Values[i] = ec._Model_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "title":
 			out.Values[i] = ec._Model_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "description":
 			out.Values[i] = ec._Model_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "databaseName":
 			out.Values[i] = ec._Model_databaseName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "storageType":
 			out.Values[i] = ec._Model_storageType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "displayField":
 			out.Values[i] = ec._Model_displayField(ctx, field, obj)
 		case "fields":
 			out.Values[i] = ec._Model_fields(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "group":
 			out.Values[i] = ec._Model_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "dbTable":
 			out.Values[i] = ec._Model_dbTable(ctx, field, obj)
 		case "jsonSchema":
-			field := field
-
-			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Model_jsonSchema(ctx, field, obj)
-				return res
-			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			out.Values[i] = ec._Model_jsonSchema(ctx, field, obj)
 		case "createdAt":
 			out.Values[i] = ec._Model_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Model_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&out.Invalids, 1)
+				out.Invalids++
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

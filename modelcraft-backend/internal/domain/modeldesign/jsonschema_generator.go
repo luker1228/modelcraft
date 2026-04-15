@@ -243,6 +243,13 @@ func (g *JSONSchemaGenerator) applyCustomProperties(schema map[string]interface{
 	}
 	if field.BelongsToFKID != nil {
 		schema["x-belongsToFkId"] = *field.BelongsToFKID
+		// 注入 x-relation：前端据此构建目标模型的 GraphQL endpoint 并渲染关联选择器
+		// 仅在 Metadata 已由 App 层填充时才输出（避免空对象）
+		if field.Metadata != nil {
+			if rel, ok := field.Metadata["x-relation"]; ok {
+				schema["x-relation"] = rel
+			}
+		}
 	}
 
 	// Mark readOnly for fields that cannot be edited by the user:

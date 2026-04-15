@@ -103,6 +103,7 @@ ai-metadata/
 | [backend/design/domain-model/5-model/design.md](./backend/design/domain-model/5-model/design.md) | 模型设计细节 |
 | [backend/design/domain-model/6-database-cluster.md](./backend/design/domain-model/6-database-cluster.md) | 数据库集群域领域模型 |
 | [backend/design/domain-model/7-sql-editor.md](./backend/design/domain-model/7-sql-editor.md) | SQL 编辑器域领域模型 |
+| [backend/design/domain-model/8-runtime/jsonschema-contract.md](./backend/design/domain-model/8-runtime/jsonschema-contract.md) | ⭐ Runtime JSON Schema 契约（`x-mc` 命名空间、`widget` 规范、字段全集） |
 
 ### 开发规范
 
@@ -206,4 +207,10 @@ ai-metadata/
 | [prd/model-enum/03-backend-design.md](./prd/model-enum/03-backend-design.md) | 后端方案：无迁移、含 BDD 场景设计 |
 | [prd/model-enum/04-frontend-subpage-design.md](./prd/model-enum/04-frontend-subpage-design.md) | 前端合并交互方案（基于 01/02） |
 | [prd/model-enum/model-enum-domain.puml](./prd/model-enum/model-enum-domain.puml) | 领域模型：Field / Enum / FieldEnumRelation 关系图 |
+
+### 运行时（Runtime）
+
+| 路径 | 说明 |
+|------|------|
+| [prd/runtime/field-relation-selector.md](./prd/runtime/field-relation-selector.md) | 多对一外键字段升级为下拉选择器，依赖 → [jsonschema-contract](./backend/design/domain-model/8-runtime/jsonschema-contract.md) |
 

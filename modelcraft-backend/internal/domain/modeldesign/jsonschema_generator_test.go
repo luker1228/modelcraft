@@ -390,9 +390,10 @@ func TestJSONSchemaGenerator_GenerateSchema_RequiredIsArrayWhenNoRequiredFields(
 	schemaJSON, err := generator.GenerateSchema(model)
 	require.NoError(t, err)
 
-	// The raw JSON must contain "required": [] — not "required": null.
+	// The raw JSON must contain "required":[] — not "required":null.
 	// This is the exact contract that RJSF depends on.
-	assert.Contains(t, schemaJSON, `"required": []`,
+	// Note: json.Marshal produces compact JSON without spaces.
+	assert.Contains(t, schemaJSON, `"required":[]`,
 		"required must be an empty JSON array, not null, so RJSF can call required.includes()")
 
 	// Also verify via unmarshalling: the field must be a non-nil slice.
@@ -478,4 +479,103 @@ func TestJSONSchemaGenerator_ReadOnly(t *testing.T) {
 	noteField := properties["note"].(map[string]interface{})
 	_, hasReadOnly := noteField["readOnly"]
 	assert.False(t, hasReadOnly, "regular field must NOT have readOnly")
+}
+
+// TestJSONSchemaGenerator_XRelation verifies that a field with BelongsToFKID and
+// Metadata["x-relation"] produces "x-relation" in the generated JSON Schema.
+func TestJSONSchemaGenerator_XRelation(t *testing.T) {
+	fkID := "fk-123"
+	model := &DataModel{
+		ModelMeta: ModelMeta{
+			ID:           "order-model-id",
+			ModelLocator: ModelLocator{ModelName: "Order", DatabaseName: "shop_db"},
+			Title:        "Order",
+			StorageType:  "mysql",
+		},
+		Fields: []*FieldDefinition{
+			{
+				Name:          "user_id",
+				Title:         "User ID",
+				Type:          GetFieldTypeByFormat(FormatString),
+				BelongsToFKID: &fkID,
+				DisplayOrder:  "a0",
+				Metadata: map[string]any{
+					"x-relation": map[string]string{
+						"databaseName": "users_db",
+						"modelName":    "User",
+					},
+				},
+			},
+			{
+				Name:         "note",
+				Title:        "Note",
+				Type:         GetFieldTypeByFormat(FormatString),
+				DisplayOrder: "a1",
+			},
+		},
+	}
+
+	generator := NewJSONSchemaGenerator()
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+
+	properties, ok := schema["properties"].(map[string]interface{})
+	require.True(t, ok)
+
+	// user_id field should carry x-relation
+	userIDField, ok := properties["user_id"].(map[string]interface{})
+	require.True(t, ok)
+
+	xRelation, ok := userIDField["x-relation"].(map[string]interface{})
+	require.True(t, ok, "user_id field must have x-relation")
+	assert.Equal(t, "users_db", xRelation["databaseName"])
+	assert.Equal(t, "User", xRelation["modelName"])
+	assert.Equal(t, fkID, userIDField["x-belongsToFkId"], "x-belongsToFkId must also be present")
+
+	// note field must NOT have x-relation
+	noteField, ok := properties["note"].(map[string]interface{})
+	require.True(t, ok)
+	_, hasXRelation := noteField["x-relation"]
+	assert.False(t, hasXRelation, "regular field must NOT have x-relation")
+}
+
+// TestJSONSchemaGenerator_XRelation_MissingMetadata verifies that a field with
+// BelongsToFKID but without Metadata["x-relation"] does NOT emit x-relation.
+func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
+	fkID := "fk-456"
+	model := &DataModel{
+		ModelMeta: ModelMeta{
+			ID:           "order-model-id",
+			ModelLocator: ModelLocator{ModelName: "Order", DatabaseName: "shop_db"},
+			Title:        "Order",
+			StorageType:  "mysql",
+		},
+		Fields: []*FieldDefinition{
+			{
+				Name:          "user_id",
+				Title:         "User ID",
+				Type:          GetFieldTypeByFormat(FormatString),
+				BelongsToFKID: &fkID,
+				DisplayOrder:  "a0",
+				// Metadata is nil — x-relation should NOT appear
+			},
+		},
+	}
+
+	generator := NewJSONSchemaGenerator()
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+
+	properties := schema["properties"].(map[string]interface{})
+	userIDField := properties["user_id"].(map[string]interface{})
+
+	_, hasXRelation := userIDField["x-relation"]
+	assert.False(t, hasXRelation, "x-relation must not appear when Metadata is nil")
+	assert.Equal(t, fkID, userIDField["x-belongsToFkId"], "x-belongsToFkId must still be present")
 }

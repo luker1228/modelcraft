@@ -76,7 +76,7 @@ func (r *mutationResolver) AddFields(ctx context.Context, modelID string, input 
 	}
 
 	if hasSuccess {
-		updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions().WithEnumOptions())
+		updatedModel, err := r.ModelDesignService.GetModelByID(ctx, modelID, appmodeldesign.NewGetModelOptions())
 		if err != nil {
 			return nil, err
 		}

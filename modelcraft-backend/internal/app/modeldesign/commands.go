@@ -127,21 +127,14 @@ type ListFieldEnumRelationsCommand struct {
 
 // GetModelOptions 获取模型选项
 type GetModelOptions struct {
-	GetFields      bool
-	GetEnumOptions bool // 是否同时填充 ENUM/ENUM_ARRAY 字段的 EnumDefinition（批量加载，无 N+1）
+	GetFields bool // 是否加载字段（含枚举定义、外键 x-relation 元数据，一次完整加载）
 }
 
-// NewGetModelOptions 创建默认获取模型选项
+// NewGetModelOptions 创建默认获取模型选项（默认加载字段）
 func NewGetModelOptions() *GetModelOptions {
 	return &GetModelOptions{
 		GetFields: true,
 	}
-}
-
-// WithEnumOptions 同时加载字段关联的枚举定义
-func (o *GetModelOptions) WithEnumOptions() *GetModelOptions {
-	o.GetEnumOptions = true
-	return o
 }
 
 // ============================================================================
