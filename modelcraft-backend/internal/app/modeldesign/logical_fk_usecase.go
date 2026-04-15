@@ -126,6 +126,15 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 		if err := txFKRepo.Save(txCtx, reverseRow); err != nil {
 			return fmt.Errorf("save reverse FK row: %w", err)
 		}
+		if err := txFKRepo.BindBelongsToFields(
+			txCtx,
+			cmd.OrgName,
+			cmd.ModelID,
+			normalID,
+			cmd.SourceFields,
+		); err != nil {
+			return fmt.Errorf("bind source fields to belongs_to_fk_id: %w", err)
+		}
 		return nil
 	}); err != nil {
 		return nil, err

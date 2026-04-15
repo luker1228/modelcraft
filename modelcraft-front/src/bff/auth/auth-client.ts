@@ -1,5 +1,5 @@
 // src/bff/auth/auth-client.ts
-// Pure JWT utility functions extracted from casdoor.ts — no Casdoor SDK dependency.
+// JWT utility functions for client-side authentication — token decode, expiry check, refresh.
 
 import { useAuthStore } from '@shared/stores/auth-store'
 import type { AuthUser } from '@/types/auth'
@@ -10,10 +10,8 @@ export type { AuthUser }
 interface JWTPayload {
   exp?: number
   user_id?: string
-  sub?: string
   phone?: string
   name?: string
-  user_name?: string
   userName?: string
 }
 
@@ -72,10 +70,10 @@ export function getUserInfoFromToken(token: string): AuthUser | null {
   }
 
   return {
-    id: decoded.user_id || decoded.sub || '',
+    id: decoded.user_id || '',
     phone: decoded.phone || '',
     name: decoded.name || '',
-    userName: decoded.user_name || decoded.userName,
+    userName: decoded.userName || '',
   }
 }
 

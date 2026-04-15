@@ -1,4 +1,5 @@
 import type { RJSFSchema } from '@rjsf/utils'
+import { getXMC } from '@/types/xmc'
 
 type SchemaProperty = Record<string, unknown>
 
@@ -11,14 +12,14 @@ export function shouldShowInForm(prop: SchemaProperty): boolean {
 }
 
 /**
- * Format a relation value according to the `id + __label` protocol.
+ * Format a relation value according to the `id + _label` protocol.
  *
- * Display format: `__label(id)`
- * If `__label` is empty string, display: `空(id)`
+ * Display format: `_label(id)`
+ * If `_label` is empty string, display: `空(id)`
  */
 function formatRelationDisplay(rel: Record<string, unknown>): string {
   const id = String(rel.id ?? '')
-  const label = rel.__label
+  const label = rel._label
   const labelStr = typeof label === 'string' ? label : ''
 
   if (!id) return ''
@@ -33,18 +34,19 @@ function formatRelationDisplay(rel: Record<string, unknown>): string {
  * Renders a table cell value for a given field's schema property.
  *
  * Protocol:
- *   - RELATION fields (type=object, x-relateFkId or x-belongsToFkId present)
- *     → display format: `__label(id)`, or `空(id)` if __label is empty
+ *   - RELATION fields (type=object, x-mc.relateFkId or x-mc.belongsToFkId present)
+ *     → display format: `_label(id)`, or `空(id)` if _label is empty
  *   - All other values → convert to string, truncated to 100 chars
  *
  * Note: both RelateFKID and BelongsToFKID produce FormatRelation fields in the
- * backend, which are always type=object in JSON Schema with value { id, __label, ... }.
+ * backend, which are always type=object in JSON Schema with value { id, _label, ... }.
  */
 export function renderCellValue(value: unknown, prop: SchemaProperty): string {
   if (value === null || value === undefined) return ''
 
-  // RELATION fields: schema explicitly marks them (x-relateFkId / x-belongsToFkId)
-  if (prop.type === 'object' && (prop['x-relateFkId'] || prop['x-belongsToFkId'])) {
+  // RELATION fields: schema explicitly marks them (x-mc.relateFkId / x-mc.belongsToFkId)
+  const xmc = getXMC(prop)
+  if (prop.type === 'object' && (xmc?.relateFkId ?? xmc?.belongsToFkId)) {
     if (typeof value === 'object' && value !== null) {
       const rel = value as Record<string, unknown>
       return formatRelationDisplay(rel)
@@ -52,10 +54,10 @@ export function renderCellValue(value: unknown, prop: SchemaProperty): string {
     return ''
   }
 
-  // Generic object fallback: any object value with id and __label fields is treated as a relation
+  // Generic object fallback: any object value with id and _label fields is treated as a relation
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const rel = value as Record<string, unknown>
-    if (rel.id !== undefined && '__label' in rel) {
+    if (rel.id !== undefined && '_label' in rel) {
       return formatRelationDisplay(rel)
     }
     // For other objects, render as JSON
@@ -81,8 +83,8 @@ export function getFieldProtocols(
   return Object.entries(schema.properties)
     .map(([name, prop]) => ({ name, prop: prop as SchemaProperty }))
     .sort((a, b) => {
-      const oa = String(a.prop['x-displayOrder'] ?? '')
-      const ob = String(b.prop['x-displayOrder'] ?? '')
-      return oa.localeCompare(ob)
+      const oa = String(getXMC(a.prop)?.displayOrder ?? '')
+      const ob = String(getXMC(b.prop)?.displayOrder ?? '')
+      return oa.localeCompare(ob, undefined, { numeric: true })
     })
 }

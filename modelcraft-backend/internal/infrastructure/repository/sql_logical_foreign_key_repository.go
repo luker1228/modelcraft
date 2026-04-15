@@ -14,6 +14,7 @@ import (
 
 // logicalFKQuerier defines the minimal querier interface needed by SqlLogicalForeignKeyRepository.
 type logicalFKQuerier interface {
+	BindBelongsToFKIDToFields(ctx context.Context, arg dbgen.BindBelongsToFKIDToFieldsParams) error
 	CreateLogicalForeignKey(ctx context.Context, arg dbgen.CreateLogicalForeignKeyParams) error
 	DeleteLogicalForeignKeyByPairID(ctx context.Context, arg dbgen.DeleteLogicalForeignKeyByPairIDParams) error
 	FindLogicalForeignKeysByModelID(
@@ -145,6 +146,23 @@ func (r *SqlLogicalForeignKeyRepository) FindByRelateField(
 		return nil, err
 	}
 	return rows, nil
+}
+
+// BindBelongsToFields writes belongs_to_fk_id to source fields that own FK columns.
+func (r *SqlLogicalForeignKeyRepository) BindBelongsToFields(
+	ctx context.Context,
+	orgName, modelID, lfID string,
+	fieldNames []string,
+) error {
+	if len(fieldNames) == 0 {
+		return nil
+	}
+	return r.q.BindBelongsToFKIDToFields(ctx, dbgen.BindBelongsToFKIDToFieldsParams{
+		BelongsToFkID: sql.NullString{String: lfID, Valid: true},
+		OrgName:       orgName,
+		ModelID:       modelID,
+		FieldNames:    fieldNames,
+	})
 }
 
 // LogicalForeignKeyToCreateParams converts a domain LogicalForeignKey to dbgen.CreateLogicalForeignKeyParams.

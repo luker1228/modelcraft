@@ -16,7 +16,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@web/components/ui/tooltip'
-import { Check, Copy, Edit, Key, Loader2, Plus, Trash2 } from 'lucide-react'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@web/components/ui/dropdown-menu'
+import { Archive, Check, Copy, Edit, Key, Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { renderCellValue } from './fieldProtocol'
 
@@ -24,6 +30,7 @@ export interface ModelRecordTableFieldInfo {
   name: string
   title?: string | null
   isPrimary?: boolean
+  isDeprecated?: boolean
   storageHint?: string | null
   schemaType?: string | null
 }
@@ -42,6 +49,8 @@ interface ModelRecordTableProps {
   onCreate: () => void
   onEdit: (id: string) => void
   onDelete: (id: string) => void
+  onToggleFieldDeprecated?: (fieldInfo: ModelRecordTableFieldInfo) => void
+  onDeleteField?: (fieldInfo: ModelRecordTableFieldInfo) => void
 }
 
 export function ModelRecordTable({
@@ -54,6 +63,8 @@ export function ModelRecordTable({
   onCreate,
   onEdit,
   onDelete,
+  onToggleFieldDeprecated,
+  onDeleteField,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
 
@@ -161,8 +172,17 @@ export function ModelRecordTable({
                   const fieldInfo = getFieldInfo(field)
                   const typeDisplay = getFieldTypeDisplay(fieldInfo)
                   const isPrimary = fieldInfo?.isPrimary
+                  const isDeprecated = fieldInfo?.isDeprecated === true
                   const fieldTitle = (fieldInfo?.title ?? field).trim() || field
                   const headerLabel = `${fieldTitle} (${field})`
+                  const headerFieldInfo: ModelRecordTableFieldInfo = {
+                    name: field,
+                    title: fieldInfo?.title ?? null,
+                    isPrimary: fieldInfo?.isPrimary,
+                    isDeprecated: fieldInfo?.isDeprecated,
+                    storageHint: fieldInfo?.storageHint ?? null,
+                    schemaType: fieldInfo?.schemaType ?? null,
+                  }
 
                   return (
                     <TableHead
@@ -170,25 +190,55 @@ export function ModelRecordTable({
                       className="group relative bg-sidebar py-2.5 text-xs font-semibold text-foreground"
                       style={{ width: getColumnWidth(field) }}
                     >
-                      <div className="flex min-w-0 items-center gap-1.5 pr-3">
-                        {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
-                        <span
-                          className="truncate text-xs font-semibold text-foreground"
-                          title={headerLabel}
-                        >
-                          {headerLabel}
-                        </span>
-                        {typeDisplay && (
-                          <>
-                            <span className="flex-shrink-0 text-[10px] text-muted-foreground/40">
-                              ·
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className="flex min-w-0 items-center gap-1.5 pr-3 text-left"
+                            title={`${headerLabel}（点击管理字段）`}
+                          >
+                            {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
+                            <span
+                              className={`truncate text-xs font-semibold ${
+                                isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'
+                              }`}
+                            >
+                              {headerLabel}
                             </span>
-                            <span className="flex-shrink-0 font-mono text-[10px] font-normal text-muted-foreground">
-                              {typeDisplay}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                            {typeDisplay && (
+                              <>
+                                <span className="flex-shrink-0 text-[10px] text-muted-foreground/40">
+                                  ·
+                                </span>
+                                <span className="flex-shrink-0 font-mono text-[10px] font-normal text-muted-foreground">
+                                  {typeDisplay}
+                                </span>
+                              </>
+                            )}
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="start" className="w-36">
+                          <DropdownMenuItem
+                            className="cursor-pointer text-xs"
+                            onClick={() => onToggleFieldDeprecated?.(headerFieldInfo)}
+                          >
+                            <Archive className="mr-2 size-3.5" />
+                            {isDeprecated ? '取消废弃' : '废弃字段'}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            className={`cursor-pointer text-xs ${
+                              isDeprecated
+                                ? 'text-destructive focus:text-destructive'
+                                : 'cursor-not-allowed text-muted-foreground/50'
+                            }`}
+                            onClick={() => onDeleteField?.(headerFieldInfo)}
+                            disabled={!isDeprecated}
+                          >
+                            <Trash2 className="mr-2 size-3.5" />
+                            删除字段
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <div
                         className="absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-blue-500/40 group-hover:bg-blue-500/20"
                         onMouseDown={(e) => handleResizeStart(e, field)}

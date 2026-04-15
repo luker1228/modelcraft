@@ -158,8 +158,8 @@ func (p *JSONSchemaParser) parseFields(
 			continue
 		}
 
-		// 跳过relation字段
-		if _, hasRelation := fieldMap["x-relation"]; hasRelation {
+		// 跳过 relation 字段：检查 x-mc.relation 或旧版 x-relation
+		if p.hasRelationField(fieldMap) {
 			p.logger.Warnf(p.ctx, "Skipping field '%s': relation fields are not supported in schema import", fieldName)
 			continue
 		}
@@ -175,6 +175,21 @@ func (p *JSONSchemaParser) parseFields(
 	return fields, nil
 }
 
+// hasRelationField 检查字段是否为 relation 虚拟字段（x-mc.relation 或旧版 x-relation）
+func (p *JSONSchemaParser) hasRelationField(fieldMap map[string]interface{}) bool {
+	// 新版：x-mc.relation
+	if xmc := extractXMC(fieldMap); xmc != nil {
+		if _, hasRelation := xmc["relation"]; hasRelation {
+			return true
+		}
+	}
+	// 兼容旧版：x-relation（向后兼容）
+	if _, hasRelation := fieldMap["x-relation"]; hasRelation {
+		return true
+	}
+	return false
+}
+
 // extractRequiredFields 提取required字段列表
 func (p *JSONSchemaParser) extractRequiredFields(schemaMap map[string]interface{}) map[string]bool {
 	requiredList, ok := schemaMap["required"].([]interface{})
@@ -187,6 +202,19 @@ func (p *JSONSchemaParser) extractRequiredFields(schemaMap map[string]interface{
 		requiredMap[cast.ToString(field)] = true
 	}
 	return requiredMap
+}
+
+// extractXMC 从字段 map 中安全地提取 x-mc 对象，不存在或类型断言失败时返回 nil
+func extractXMC(fieldMap map[string]interface{}) map[string]interface{} {
+	raw, ok := fieldMap["x-mc"]
+	if !ok || raw == nil {
+		return nil
+	}
+	xmc, ok := raw.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	return xmc
 }
 
 // parseField 解析单个字段
@@ -215,20 +243,46 @@ func (p *JSONSchemaParser) parseField(
 	// 解析验证规则
 	validation := p.parseValidationConfig(fieldMap, fieldType)
 
-	// 解析nullable
-	nonNull := !cast.ToBool(fieldMap["nullable"])
+	// 从 x-mc 读取自定义属性（带 nil 保护）
+	xmc := extractXMC(fieldMap)
+
+	// nullable：从 x-mc 读取；兼容旧版顶层 nullable
+	var nonNull bool
+	if xmc != nil {
+		if nullableVal, ok := xmc["nullable"]; ok {
+			nonNull = !cast.ToBool(nullableVal)
+		} else {
+			// x-mc 存在但没有 nullable 键：默认非空
+			nonNull = true
+		}
+	} else {
+		// 旧版：顶层 nullable（向后兼容）
+		nonNull = !cast.ToBool(fieldMap["nullable"])
+	}
 
 	// 解析required
 	required := requiredFields[fieldName]
 
-	// 解析自定义属性
-	displayOrder := cast.ToString(fieldMap["x-displayOrder"])
-	isPrimary := cast.ToBool(fieldMap["x-isPrimary"])
-	isUnique := cast.ToBool(fieldMap["x-isUnique"])
-
+	// 从 x-mc 读取自定义元数据
+	var displayOrder string
+	var isPrimary, isUnique bool
 	var storageHint *string
-	if hint := cast.ToString(fieldMap["x-storageHint"]); hint != "" {
-		storageHint = &hint
+
+	if xmc != nil {
+		displayOrder = cast.ToString(xmc["displayOrder"])
+		isPrimary = cast.ToBool(xmc["isPrimary"])
+		isUnique = cast.ToBool(xmc["isUnique"])
+		if hint := cast.ToString(xmc["storageHint"]); hint != "" {
+			storageHint = &hint
+		}
+	} else {
+		// 向后兼容旧版顶层 x-* 字段
+		displayOrder = cast.ToString(fieldMap["x-displayOrder"])
+		isPrimary = cast.ToBool(fieldMap["x-isPrimary"])
+		isUnique = cast.ToBool(fieldMap["x-isUnique"])
+		if hint := cast.ToString(fieldMap["x-storageHint"]); hint != "" {
+			storageHint = &hint
+		}
 	}
 
 	field := &FieldDefinition{
@@ -271,8 +325,17 @@ func (p *JSONSchemaParser) parseFieldType(fieldMap map[string]interface{}) (*Fie
 	case "integer":
 		fieldFormat = FormatInteger
 	case "number":
-		// 检查是否是decimal类型
-		if _, hasPrecision := fieldMap["x-precision"]; hasPrecision {
+		// 检查是否是decimal类型：从 x-mc 读取 precision（新版），兼容旧版顶层 x-precision
+		xmc := extractXMC(fieldMap)
+		hasPrecision := false
+		if xmc != nil {
+			_, hasPrecision = xmc["precision"]
+		}
+		if !hasPrecision {
+			// 兼容旧版顶层 x-precision
+			_, hasPrecision = fieldMap["x-precision"]
+		}
+		if hasPrecision {
 			fieldFormat = FormatDecimal
 		} else {
 			fieldFormat = FormatNumber
@@ -330,7 +393,7 @@ func (p *JSONSchemaParser) parseValidationConfig(
 ) *ValidationConfig {
 	validation := &ValidationConfig{}
 
-	// String validation
+	// ── 标准 JSON Schema Draft 7 验证字段（从顶层读取） ────────────────────────
 	if val := cast.ToInt(fieldMap["maxLength"]); val > 0 {
 		validation.MaxLength = &val
 	}
@@ -340,8 +403,6 @@ func (p *JSONSchemaParser) parseValidationConfig(
 	if pattern := cast.ToString(fieldMap["pattern"]); pattern != "" {
 		validation.Pattern = &pattern
 	}
-
-	// Number validation
 	if _, hasMax := fieldMap["maximum"]; hasMax {
 		val := cast.ToFloat64(fieldMap["maximum"])
 		validation.Maximum = &val
@@ -350,8 +411,6 @@ func (p *JSONSchemaParser) parseValidationConfig(
 		val := cast.ToFloat64(fieldMap["minimum"])
 		validation.Minimum = &val
 	}
-
-	// Array validation
 	if val := cast.ToInt(fieldMap["maxItems"]); val > 0 {
 		validation.MaxItems = &val
 	}
@@ -359,39 +418,59 @@ func (p *JSONSchemaParser) parseValidationConfig(
 		validation.MinItems = &val
 	}
 
-	// Date/Time validation (custom properties)
-	if minDate := cast.ToString(fieldMap["x-minDate"]); minDate != "" {
+	// ── 非标准验证字段（从 x-mc 读取，兼容旧版顶层 x-* 字段） ──────────────────
+	xmc := extractXMC(fieldMap)
+
+	getXMCOrTop := func(key, legacyKey string) string {
+		if xmc != nil {
+			if val := cast.ToString(xmc[key]); val != "" {
+				return val
+			}
+		}
+		// 兼容旧版
+		return cast.ToString(fieldMap[legacyKey])
+	}
+
+	getXMCIntOrTop := func(key, legacyKey string) int {
+		if xmc != nil {
+			if raw, ok := xmc[key]; ok {
+				return cast.ToInt(raw)
+			}
+		}
+		return cast.ToInt(fieldMap[legacyKey])
+	}
+
+	if minDate := getXMCOrTop("minDate", "x-minDate"); minDate != "" {
 		validation.MinDate = &minDate
 	}
-	if maxDate := cast.ToString(fieldMap["x-maxDate"]); maxDate != "" {
+	if maxDate := getXMCOrTop("maxDate", "x-maxDate"); maxDate != "" {
 		validation.MaxDate = &maxDate
 	}
-	if minTime := cast.ToString(fieldMap["x-minTime"]); minTime != "" {
+	if minTime := getXMCOrTop("minTime", "x-minTime"); minTime != "" {
 		validation.MinTime = &minTime
 	}
-	if maxTime := cast.ToString(fieldMap["x-maxTime"]); maxTime != "" {
+	if maxTime := getXMCOrTop("maxTime", "x-maxTime"); maxTime != "" {
 		validation.MaxTime = &maxTime
 	}
 
-	// Decimal precision/scale (custom properties)
-	if precision := cast.ToInt(fieldMap["x-precision"]); precision > 0 {
+	if precision := getXMCIntOrTop("precision", "x-precision"); precision > 0 {
 		validation.Precision = &precision
 	}
-	if scale := cast.ToInt(fieldMap["x-scale"]); scale > 0 {
+	if scale := getXMCIntOrTop("scale", "x-scale"); scale > 0 {
 		validation.Scale = &scale
 	}
 
-	// Enum values
+	// validateRule
+	if rule := getXMCOrTop("validateRule", "x-validateRule"); rule != "" {
+		validation.Rule = ValidateRule(rule)
+	}
+
+	// ── 枚举值（从顶层 enum 或 items.enum 读取，这是标准字段） ───────────────────
 	switch fieldType.Format {
 	case FormatEnum:
 		validation.EnumValues = p.extractEnumValuesFromField(fieldMap)
 	case FormatEnumArray:
 		validation.EnumValues = p.extractEnumValuesFromArrayItems(fieldMap)
-	}
-
-	// Validation rule type
-	if rule := cast.ToString(fieldMap["x-validateRule"]); rule != "" {
-		validation.Rule = ValidateRule(rule)
 	}
 
 	return validation

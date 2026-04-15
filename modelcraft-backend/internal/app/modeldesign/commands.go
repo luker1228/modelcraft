@@ -14,7 +14,7 @@ type CreateModelCommand struct {
 	Description  string
 	StorageType  string
 	DatabaseName string
-	DisplayField *string // 用于 runtime __label 解析的字段名
+	DisplayField *string // 用于 runtime _label 解析的字段名
 }
 
 // UpdateModelMetaCommand 更新模型元数据命令
@@ -23,7 +23,7 @@ type UpdateModelMetaCommand struct {
 	ProjectSlug  string // 项目标识符
 	Title        *string
 	Description  *string
-	DisplayField *string // 用于 runtime __label 解析的字段名（nil 表示不更新）
+	DisplayField *string // 用于 runtime _label 解析的字段名（nil 表示不更新）
 }
 
 // ModelQueryCommand 模型查询命令

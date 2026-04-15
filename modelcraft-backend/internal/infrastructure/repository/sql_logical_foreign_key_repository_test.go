@@ -17,6 +17,13 @@ type MockQuerierForFK struct {
 	mock.Mock
 }
 
+func (m *MockQuerierForFK) BindBelongsToFKIDToFields(
+	ctx context.Context, arg dbgen.BindBelongsToFKIDToFieldsParams,
+) error {
+	args := m.Called(ctx, arg)
+	return args.Error(0)
+}
+
 func (m *MockQuerierForFK) CreateLogicalForeignKey(ctx context.Context, arg dbgen.CreateLogicalForeignKeyParams) error {
 	args := m.Called(ctx, arg)
 	return args.Error(0)
@@ -202,6 +209,24 @@ func TestSqlLogicalForeignKeyRepository_FindByRelateField_NoFields(t *testing.T)
 	result, err := repo.FindByRelateField(ctx, "test-org", "lf-001")
 	assert.NoError(t, err)
 	assert.Empty(t, result)
+	mockQ.AssertExpectations(t)
+}
+
+func TestSqlLogicalForeignKeyRepository_BindBelongsToFields(t *testing.T) {
+	mockQ := new(MockQuerierForFK)
+	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
+	ctx := context.Background()
+
+	expectedArg := dbgen.BindBelongsToFKIDToFieldsParams{
+		BelongsToFkID: sql.NullString{String: "lf-normal-1", Valid: true},
+		OrgName:       "test-org",
+		ModelID:       "model-order",
+		FieldNames:    []string{"user_id"},
+	}
+	mockQ.On("BindBelongsToFKIDToFields", ctx, expectedArg).Return(nil)
+
+	err := repo.BindBelongsToFields(ctx, "test-org", "model-order", "lf-normal-1", []string{"user_id"})
+	assert.NoError(t, err)
 	mockQ.AssertExpectations(t)
 }
 

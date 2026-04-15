@@ -1,7 +1,7 @@
 /**
  * Organization Name Validator
  * 
- * Validates organization names for Casdoor registration.
+ * Validates organization names for user registration.
  * 
  * Validation Rules:
  * - Default: 12 alphanumeric chars, starts with letter

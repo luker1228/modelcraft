@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useCallback } from 'react'
 import { useQuery, useMutation, gql, ApolloClient } from '@apollo/client'
+import { toast } from 'sonner'
 import { useProjectScopedClient, createModelRuntimeClient, buildRuntimeEndpoint } from '@bff/apollo/public'
 import { InsertFieldSheet } from './InsertFieldSheet'
 import { ModelRecordForm } from './ModelRecordForm'
@@ -24,6 +25,7 @@ import {
   extractWritableFieldNamesFromSchema,
   sanitizeMutationInputData,
 } from '@bff/cms/public'
+import { REMOVE_FIELD } from '@web/graphql/mutations/model'
 import { Button } from '@web/components/ui/button'
 import {
   Dialog,
@@ -76,9 +78,8 @@ const GET_MODEL_QUERY = gql`
           format
           schemaType
           storageHint
-          nonNull
-          required
           isPrimary
+          isDeprecated
           description
         }
       }
@@ -91,6 +92,22 @@ const GET_MODEL_QUERY = gql`
           message
         }
       }
+    }
+  }
+`
+
+const DEPRECATE_FIELD_MUTATION = gql`
+  mutation DeprecateField($modelID: ID!, $fieldName: String!) {
+    deprecateField(modelID: $modelID, fieldName: $fieldName) {
+      id
+    }
+  }
+`
+
+const UNDEPRECATE_FIELD_MUTATION = gql`
+  mutation UndeprecateField($modelID: ID!, $fieldName: String!) {
+    undeprecateField(modelID: $modelID, fieldName: $fieldName) {
+      id
     }
   }
 `
@@ -137,6 +154,8 @@ export default function DynamicModelTable({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const [removeFieldDialogOpen, setRemoveFieldDialogOpen] = useState(false)
+  const [removeFieldTarget, setRemoveFieldTarget] = useState<ModelRecordTableFieldInfo | null>(null)
 
   // 添加数据状态
   const [createDataOpen, setCreateDataOpen] = useState(false)
@@ -273,6 +292,18 @@ export default function DynamicModelTable({
     },
   })
 
+  const [deprecateField] = useMutation(DEPRECATE_FIELD_MUTATION, {
+    client: projectClient,
+  })
+
+  const [undeprecateField] = useMutation(UNDEPRECATE_FIELD_MUTATION, {
+    client: projectClient,
+  })
+
+  const [removeField] = useMutation(REMOVE_FIELD, {
+    client: projectClient,
+  })
+
   // Build create mutation
   const createMutation = useMemo(() => {
     if (!modelName) return null
@@ -288,7 +319,7 @@ export default function DynamicModelTable({
     },
     onError: (error) => {
       console.error('Failed to create content:', error)
-      alert('创建数据失败: ' + error.message)
+      toast.error('创建数据失败: ' + error.message)
       setCreateSaving(false)
     },
   })
@@ -316,7 +347,7 @@ export default function DynamicModelTable({
     },
     onError: (error) => {
       console.error('Failed to update content:', error)
-      alert('更新数据失败: ' + error.message)
+      toast.error('更新数据失败: ' + error.message)
       setEditSaving(false)
     },
   })
@@ -336,7 +367,7 @@ export default function DynamicModelTable({
       })
     } catch (error) {
       console.error('Failed to delete content:', error)
-      alert('删除失败')
+      toast.error('删除失败')
     }
   }
 
@@ -361,7 +392,7 @@ export default function DynamicModelTable({
       }
     } catch (error) {
       console.error('Failed to fetch content:', error)
-      alert('获取数据失败')
+      toast.error('获取数据失败')
       setEditDataOpen(false)
     } finally {
       setEditLoading(false)
@@ -377,6 +408,66 @@ export default function DynamicModelTable({
     setDeleteItemId(id)
     setDeleteDialogOpen(true)
   }
+
+  const handleToggleFieldDeprecated = useCallback(
+    async (fieldInfo: ModelRecordTableFieldInfo) => {
+      if (!model?.id) {
+        return
+      }
+
+      try {
+        const mutate = fieldInfo.isDeprecated ? undeprecateField : deprecateField
+        await mutate({
+          variables: {
+            modelID: model.id,
+            fieldName: fieldInfo.name,
+          },
+          context: projectScopedContext,
+        })
+
+        await refetchModel()
+        toast.success(fieldInfo.isDeprecated ? '已取消废弃字段' : '字段已废弃')
+      } catch (error) {
+        console.error('Failed to toggle field deprecated state:', error)
+        toast.error(fieldInfo.isDeprecated ? '取消废弃失败' : '废弃字段失败')
+      }
+    },
+    [model?.id, deprecateField, undeprecateField, projectScopedContext, refetchModel]
+  )
+
+  const handleRequestRemoveField = useCallback((fieldInfo: ModelRecordTableFieldInfo) => {
+    if (!fieldInfo.isDeprecated) {
+      toast.error('请先废弃字段，再执行删除')
+      return
+    }
+
+    setRemoveFieldTarget(fieldInfo)
+    setRemoveFieldDialogOpen(true)
+  }, [])
+
+  const handleConfirmRemoveField = useCallback(async () => {
+    if (!model?.id || !removeFieldTarget) {
+      return
+    }
+
+    try {
+      await removeField({
+        variables: {
+          modelID: model.id,
+          fieldName: removeFieldTarget.name,
+        },
+        context: projectScopedContext,
+      })
+
+      setRemoveFieldDialogOpen(false)
+      setRemoveFieldTarget(null)
+      await Promise.all([refetchModel(), refetch()])
+      toast.success('字段已删除')
+    } catch (error) {
+      console.error('Failed to remove field:', error)
+      toast.error('删除字段失败')
+    }
+  }, [model?.id, removeFieldTarget, removeField, projectScopedContext, refetchModel, refetch])
 
   // 构建 GraphQL 端点 URL
   const graphqlEndpoint = model
@@ -434,7 +525,7 @@ export default function DynamicModelTable({
                     }
                   }}
                   className={`cursor-pointer text-sm font-normal transition-colors ${
-                    nameCopied ? 'text-green-500' : 'text-muted-foreground hover:text-primary'
+                    nameCopied ? 'text-emerald-600' : 'text-muted-foreground hover:text-primary'
                   }`}
                   title={nameCopied ? '已复制!' : '点击复制 name'}
                 >
@@ -453,7 +544,7 @@ export default function DynamicModelTable({
                 title="复制端点"
               >
                 {endpointCopied ? (
-                  <Check className="size-3.5 text-green-500" />
+                  <Check className="size-3.5 text-emerald-600" />
                 ) : (
                   <Copy className="size-3.5" />
                 )}
@@ -495,7 +586,7 @@ export default function DynamicModelTable({
               <DropdownMenuTrigger asChild>
                 <Button
                   size="sm"
-                  className="h-[26px] border-0 bg-[#2563eb] px-2.5 text-xs font-normal text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
+                  className="h-[26px] border-0 bg-primary px-2.5 text-xs font-normal text-white transition-colors duration-200 hover:bg-primary/90"
                 >
                   <Plus className="mr-1.5 size-3.5" />
                   <span>插入</span>
@@ -547,6 +638,8 @@ export default function DynamicModelTable({
         onCreate={handleCreate}
         onEdit={handleEdit}
         onDelete={confirmDelete}
+        onToggleFieldDeprecated={handleToggleFieldDeprecated}
+        onDeleteField={handleRequestRemoveField}
       />
 
       {/* 添加数据侧边栏 */}
@@ -562,9 +655,8 @@ export default function DynamicModelTable({
             </SheetDescription>
           </SheetHeader>
 
-          {jsonSchema && model?.fields && (
+          {jsonSchema && (
             <ModelRecordForm
-              fields={model.fields as never}
               jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
               onSubmit={async (data) => {
                 setCreateSaving(true)
@@ -610,9 +702,8 @@ export default function DynamicModelTable({
             <div className="flex items-center justify-center py-12">
               <Loader2 className="size-8 animate-spin text-muted-foreground" />
             </div>
-          ) : jsonSchema && model?.fields && (
+          ) : jsonSchema && (
             <ModelRecordForm
-              fields={model.fields as never}
               jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
               initialData={editFormData}
               onSubmit={async (data) => {
@@ -667,6 +758,40 @@ export default function DynamicModelTable({
             </Button>
             <Button variant="destructive" onClick={handleDelete}>
               删除
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 删除字段确认对话框 */}
+      <Dialog
+        open={removeFieldDialogOpen}
+        onOpenChange={(open) => {
+          setRemoveFieldDialogOpen(open)
+          if (!open) {
+            setRemoveFieldTarget(null)
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>确认删除字段</DialogTitle>
+            <DialogDescription>
+              确定要删除字段 <span className="font-mono">{removeFieldTarget?.name}</span> 吗？此操作不可撤销。
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setRemoveFieldDialogOpen(false)
+                setRemoveFieldTarget(null)
+              }}
+            >
+              取消
+            </Button>
+            <Button variant="destructive" onClick={handleConfirmRemoveField}>
+              删除字段
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -1091,7 +1091,7 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 		graphqlfields[field.Name] = graphqlfield
 	}
 
-	// 注入 __label 字段（始终返回 String!，根据当前模型的 displayField 解析）
+	// 注入 _label 字段（始终返回 String!，根据当前模型的 displayField 解析）
 	graphqlfields[FieldLabel] = r.createLabelField(model.DisplayField)
 
 	modelType := graphql.NewObject(graphql.ObjectConfig{
@@ -1658,8 +1658,8 @@ func handleRepoErr(ctx context.Context, err error) error {
 	return err
 }
 
-// createLabelField 创建 __label 字段
-// __label 字段用于返回 displayField 指定字段的值（转为字符串）
+// createLabelField 创建 _label 字段
+// _label 字段用于返回 displayField 指定字段的值（转为字符串）
 // 如果 displayField 未配置或对应值不可用（null/空/对象/数组），返回空字符串 ""
 func (r *graphqlModelResolver) createLabelField(displayField *string) *graphql.Field {
 	return &graphql.Field{
@@ -1672,7 +1672,7 @@ func (r *graphqlModelResolver) createLabelField(displayField *string) *graphql.F
 			// 获取父对象记录
 			record, ok := p.Source.(map[string]any)
 			if !ok {
-				logger.Warnf(p.Context, "__label: invalid source type: %T", p.Source)
+				logger.Warnf(p.Context, "_label: invalid source type: %T", p.Source)
 				return "", nil
 			}
 
@@ -1683,16 +1683,41 @@ func (r *graphqlModelResolver) createLabelField(displayField *string) *graphql.F
 
 			displayFieldName := *displayField
 			value, exists := record[displayFieldName]
-			if !exists || value == nil {
+			if exists && value != nil {
+				return valueToString(value), nil
+			}
+
+			// 兜底查询：当上游只返回了部分列且缺少 displayField 时，按当前记录 id 回查 displayField。
+			idValue, idExists := record[FieldID]
+			if !idExists || idValue == nil {
+				return "", nil
+			}
+			rctx, ok := getGraphqlRequestContext(p.Context)
+			if !ok || rctx.ClientRepo == nil {
 				return "", nil
 			}
 
-			return valueToString(value), nil
+			row, err := rctx.ClientRepo.FindUnique(p.Context, &FindUniqueInput{
+				TableName: r.model.Name,
+				Selection: &Selection{
+					FieldNames: map[string]bool{
+						displayFieldName: true,
+					},
+				},
+				Where: map[string]any{
+					FieldID: idValue,
+				},
+			})
+			if err != nil || row == nil {
+				return "", nil
+			}
+
+			return valueToString(row[displayFieldName]), nil
 		},
 	}
 }
 
-// valueToString 将任意值转换为字符串，用于 __label 解析
+// valueToString 将任意值转换为字符串，用于 _label 解析
 // 对于非标量类型（对象、数组），返回空字符串
 func valueToString(v any) string {
 	if v == nil {

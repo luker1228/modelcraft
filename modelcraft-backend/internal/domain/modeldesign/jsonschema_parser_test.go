@@ -23,19 +23,23 @@ func TestJSONSchemaParser_ParseSchema_BasicTypes(t *testing.T) {
 			"name": {
 				"type": "string",
 				"title": "Name",
-				"description": "User name"
+				"description": "User name",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a0", "nullable": true}
 			},
 			"age": {
 				"type": "integer",
-				"title": "Age"
+				"title": "Age",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a1", "nullable": true}
 			},
 			"score": {
 				"type": "number",
-				"title": "Score"
+				"title": "Score",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a2", "nullable": true}
 			},
 			"active": {
 				"type": "boolean",
-				"title": "Active"
+				"title": "Active",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a3", "nullable": true}
 			}
 		},
 		"required": ["name"]
@@ -88,22 +92,26 @@ func TestJSONSchemaParser_ParseSchema_Formats(t *testing.T) {
 			"id": {
 				"type": "string",
 				"format": "uuid",
-				"title": "ID"
+				"title": "ID",
+				"x-mc": {"isPrimary": true, "isUnique": true, "displayOrder": "a0", "nullable": false}
 			},
 			"birthDate": {
 				"type": "string",
 				"format": "date",
-				"title": "Birth Date"
+				"title": "Birth Date",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a1", "nullable": true}
 			},
 			"createdAt": {
 				"type": "string",
 				"format": "date-time",
-				"title": "Created At"
+				"title": "Created At",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a2", "nullable": true}
 			},
 			"startTime": {
 				"type": "string",
 				"format": "time",
-				"title": "Start Time"
+				"title": "Start Time",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a3", "nullable": true}
 			}
 		},
 		"required": []
@@ -141,19 +149,20 @@ func TestJSONSchemaParser_ParseSchema_ValidationRules(t *testing.T) {
 				"title": "Username",
 				"minLength": 3,
 				"maxLength": 20,
-				"pattern": "^[a-zA-Z0-9]+$"
+				"pattern": "^[a-zA-Z0-9]+$",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a0", "nullable": true}
 			},
 			"price": {
 				"type": "number",
 				"title": "Price",
 				"minimum": 0,
-				"maximum": 1000
+				"maximum": 1000,
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a1", "nullable": true}
 			},
 			"amount": {
 				"type": "number",
 				"title": "Amount",
-				"x-precision": 10,
-				"x-scale": 2
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a2", "nullable": true, "precision": 10, "scale": 2}
 			}
 		},
 		"required": []
@@ -183,12 +192,49 @@ func TestJSONSchemaParser_ParseSchema_ValidationRules(t *testing.T) {
 func TestJSONSchemaParser_ParseSchema_Nullable(t *testing.T) {
 	parser := NewJSONSchemaParser(context.Background())
 
+	// 新格式：nullable 在 x-mc 中
 	schema := `{
 		"$schema": "http://json-schema.org/draft-07/schema#",
 		"type": "object",
 		"title": "Test Model",
 		"x-modelName": "test_model",
 		"x-clusterName": "test-cluster",
+		"x-databaseName": "test-db",
+		"properties": {
+			"required_field": {
+				"type": "string",
+				"title": "Required Field",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a0", "nullable": false}
+			},
+			"nullable_field": {
+				"type": "string",
+				"title": "Nullable Field",
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a1", "nullable": true}
+			}
+		},
+		"required": []
+	}`
+
+	model, err := parser.ParseSchema(schema)
+	require.NoError(t, err)
+
+	requiredField := model.GetField("required_field")
+	assert.True(t, requiredField.NonNull)
+
+	nullableField := model.GetField("nullable_field")
+	assert.False(t, nullableField.NonNull)
+}
+
+// TestJSONSchemaParser_ParseSchema_Nullable_LegacyCompat 验证旧版顶层 nullable 仍可被解析（向后兼容）
+func TestJSONSchemaParser_ParseSchema_Nullable_LegacyCompat(t *testing.T) {
+	parser := NewJSONSchemaParser(context.Background())
+
+	// 旧格式：nullable 在顶层（向后兼容）
+	schema := `{
+		"$schema": "http://json-schema.org/draft-07/schema#",
+		"type": "object",
+		"title": "Test Model",
+		"x-modelName": "test_model",
 		"x-databaseName": "test-db",
 		"properties": {
 			"required_field": {
@@ -208,15 +254,55 @@ func TestJSONSchemaParser_ParseSchema_Nullable(t *testing.T) {
 	require.NoError(t, err)
 
 	requiredField := model.GetField("required_field")
-	assert.True(t, requiredField.NonNull)
+	assert.True(t, requiredField.NonNull, "field without nullable key should be NonNull=true")
 
 	nullableField := model.GetField("nullable_field")
-	assert.False(t, nullableField.NonNull)
+	assert.False(t, nullableField.NonNull, "field with nullable=true should be NonNull=false")
 }
 
 func TestJSONSchemaParser_ParseSchema_CustomProperties(t *testing.T) {
 	parser := NewJSONSchemaParser(context.Background())
 
+	// 新格式：自定义属性在 x-mc 中
+	schema := `{
+		"$schema": "http://json-schema.org/draft-07/schema#",
+		"type": "object",
+		"title": "Test Model",
+		"x-modelName": "test_model",
+		"x-clusterName": "test-cluster",
+		"x-databaseName": "test-db",
+		"properties": {
+			"id": {
+				"type": "string",
+				"title": "ID",
+				"x-mc": {
+					"isPrimary": true,
+					"isUnique": true,
+					"displayOrder": "1",
+					"nullable": false,
+					"storageHint": "indexed"
+				}
+			}
+		},
+		"required": []
+	}`
+
+	model, err := parser.ParseSchema(schema)
+	require.NoError(t, err)
+
+	idField := model.GetField("id")
+	assert.True(t, idField.IsPrimary)
+	assert.True(t, idField.IsUnique)
+	assert.Equal(t, "1", idField.DisplayOrder)
+	require.NotNil(t, idField.StorageHint)
+	assert.Equal(t, "indexed", *idField.StorageHint)
+}
+
+// TestJSONSchemaParser_ParseSchema_CustomProperties_LegacyCompat 验证旧版 x-* 顶层字段仍可解析
+func TestJSONSchemaParser_ParseSchema_CustomProperties_LegacyCompat(t *testing.T) {
+	parser := NewJSONSchemaParser(context.Background())
+
+	// 旧格式：自定义属性在顶层 x-* 字段
 	schema := `{
 		"$schema": "http://json-schema.org/draft-07/schema#",
 		"type": "object",
@@ -262,7 +348,8 @@ func TestJSONSchemaParser_ParseSchema_EnumField(t *testing.T) {
 			"status": {
 				"type": "string",
 				"title": "Status",
-				"enum": ["active", "inactive", "pending"]
+				"enum": ["active", "inactive", "pending"],
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a0", "nullable": true}
 			},
 			"roles": {
 				"type": "array",
@@ -270,7 +357,8 @@ func TestJSONSchemaParser_ParseSchema_EnumField(t *testing.T) {
 				"items": {
 					"type": "string",
 					"enum": ["admin", "user", "guest"]
-				}
+				},
+				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a1", "nullable": true}
 			}
 		},
 		"required": []

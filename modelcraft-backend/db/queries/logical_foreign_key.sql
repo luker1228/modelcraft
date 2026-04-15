@@ -42,3 +42,10 @@ SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_n
 FROM field_definitions
 WHERE relate_fk_id = ?
   AND org_name = ?;
+
+-- name: BindBelongsToFKIDToFields :exec
+UPDATE field_definitions
+SET belongs_to_fk_id = ?, updated_at = NOW(3)
+WHERE org_name = ?
+  AND model_id = ?
+  AND name IN (sqlc.slice('field_names'));

@@ -1,7 +1,7 @@
 /**
  * Organization Name Generator
  * 
- * Generates human-readable organization names for Casdoor registration.
+ * Generates human-readable organization names for user registration.
  * 
  * - Default: 12 random alphanumeric characters (e.g., "a3k9m2x7p5q1")
  * - Custom: User input + 6 random characters (e.g., "mycompany_x9k2j7")

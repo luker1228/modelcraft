@@ -8,8 +8,8 @@ const (
 	FieldData = "data"
 	// FieldID GraphQL id字段名
 	FieldID = "id"
-	// FieldLabel GraphQL __label 字段名（用于显示 displayField 的值）
-	FieldLabel = "__label"
+	// FieldLabel GraphQL _label 字段名（用于显示 displayField 的值）
+	FieldLabel = "_label"
 	// FieldReturnUpdatedObj 返回更新后的对象字段名
 	FieldReturnUpdatedObj = "returnUpdatedObj"
 	// FieldReturnCreatedObj 返回创建的对象字段名

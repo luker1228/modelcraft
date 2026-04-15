@@ -111,6 +111,7 @@ export function ModelSidebar({
                     )}
                     onClick={() => {
                       state.setSelectedDatabase(db.name)
+                      state.setSelectedModelId(null)
                       state.setDatabaseOpen(false)
                     }}
                   >

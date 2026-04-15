@@ -1,9 +1,14 @@
 /** @type {import('next').NextConfig} */
 const backendUrl = process.env.BACKEND_URL || 'http://localhost:8080'
+const buildId =
+  process.env.BUILD_ID ||
+  process.env.GIT_SHA ||
+  process.env.VERCEL_GIT_COMMIT_SHA ||
+  'local-dev'
 
 const nextConfig = {
-  // 每次构建生成唯一 ID，防止缓存导致的 chunk 加载失败
-  generateBuildId: () => `build-${Date.now()}`,
+  // Use a stable build id per release to avoid client/runtime chunk mismatch.
+  generateBuildId: async () => buildId,
   reactStrictMode: true,
 
   // 生产环境优化

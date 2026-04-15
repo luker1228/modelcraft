@@ -106,6 +106,25 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     )
   }, [models, state.searchQuery])
 
+  // Keep selected model in sync with current database's model list.
+  // After switching database, auto select the first available model.
+  useEffect(() => {
+    if (!state.selectedDatabase) {
+      state.setSelectedModelId(null)
+      return
+    }
+
+    if (models.length === 0) {
+      state.setSelectedModelId(null)
+      return
+    }
+
+    const hasSelectedModel = !!state.selectedModelId && models.some((model) => model.id === state.selectedModelId)
+    if (!hasSelectedModel) {
+      state.setSelectedModelId(models[0].id)
+    }
+  }, [models, state.selectedDatabase, state.selectedModelId]) // eslint-disable-line react-hooks/exhaustive-deps
+
   // Lazy load model detail
   const [fetchModelDetail] = useLazyQuery<ModelQueryData>(GET_MODEL, {
     fetchPolicy: 'network-only',

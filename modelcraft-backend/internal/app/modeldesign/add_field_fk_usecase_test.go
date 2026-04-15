@@ -68,6 +68,13 @@ func (m *MockLogicalForeignKeyRepository) FindByRelateField(
 	return args.Get(0).([]*modeldesign.LogicalForeignKey), args.Error(1)
 }
 
+func (m *MockLogicalForeignKeyRepository) BindBelongsToFields(
+	ctx context.Context, orgName, modelID, fkID string, fieldNames []string,
+) error {
+	args := m.Called(ctx, orgName, modelID, fkID, fieldNames)
+	return args.Error(0)
+}
+
 func (m *MockLogicalForeignKeyRepository) GetByID(
 	ctx context.Context, id string,
 ) (*modeldesign.LogicalForeignKey, error) {

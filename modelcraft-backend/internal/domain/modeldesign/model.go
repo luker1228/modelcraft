@@ -72,7 +72,7 @@ type ModelMeta struct {
 	Title            string           `json:"title"`
 	Description      string           `json:"description"`
 	StorageType      string           `json:"storageType"`
-	DisplayField     *string          `json:"displayField"` // 用于 runtime __label 解析的字段名
+	DisplayField     *string          `json:"displayField"` // 用于 runtime _label 解析的字段名
 	Version          int64            `json:"version"`
 	Status           string           `json:"status"`
 	GroupID          *string          `json:"groupId"`

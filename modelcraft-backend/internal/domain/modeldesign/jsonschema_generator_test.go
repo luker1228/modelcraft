@@ -9,6 +9,20 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// getXMC 从字段 map 中提取 x-mc 对象，供测试辅助使用。
+// 如果不存在则返回空 map。
+func getXMC(field map[string]interface{}) map[string]interface{} {
+	raw, ok := field["x-mc"]
+	if !ok || raw == nil {
+		return map[string]interface{}{}
+	}
+	xmc, ok := raw.(map[string]interface{})
+	if !ok {
+		return map[string]interface{}{}
+	}
+	return xmc
+}
+
 func TestJSONSchemaGenerator_GenerateSchema_BasicTypes(t *testing.T) {
 	// Create a test model with basic field types
 	model := &DataModel{
@@ -95,7 +109,7 @@ func TestJSONSchemaGenerator_GenerateSchema_BasicTypes(t *testing.T) {
 	assert.Equal(t, "Test Model", schema["title"])
 	assert.Equal(t, "A test model for JSON Schema generation", schema["description"])
 
-	// Verify custom properties
+	// Verify custom properties (model-level info stays at root)
 	assert.Equal(t, "TestModel", schema["x-modelName"])
 	assert.Equal(t, "test-db", schema["x-databaseName"])
 
@@ -115,7 +129,7 @@ func TestJSONSchemaGenerator_GenerateSchema_BasicTypes(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "string", idField["type"])
 	assert.Equal(t, "uuid", idField["format"])
-	assert.Equal(t, true, idField["x-isPrimary"])
+	assert.Equal(t, true, getXMC(idField)["isPrimary"])
 	assert.Equal(t, true, idField["readOnly"], "isPrimary field must have readOnly: true")
 
 	// Check name field with validation
@@ -137,8 +151,8 @@ func TestJSONSchemaGenerator_GenerateSchema_BasicTypes(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "string", emailField["type"])
 	assert.NotNil(t, emailField["pattern"])
-	assert.Equal(t, "email", emailField["x-validateRule"])
-	assert.Equal(t, true, emailField["nullable"])
+	assert.Equal(t, "email", getXMC(emailField)["validateRule"])
+	assert.Equal(t, true, getXMC(emailField)["nullable"])
 
 	// Check active field
 	activeField, ok := properties["active"].(map[string]interface{})
@@ -197,8 +211,8 @@ func TestJSONSchemaGenerator_GenerateSchema_DateTimeTypes(t *testing.T) {
 	require.True(t, ok)
 	assert.Equal(t, "string", dateField["type"])
 	assert.Equal(t, "date", dateField["format"])
-	assert.Equal(t, "2020-01-01", dateField["x-minDate"])
-	assert.Equal(t, "2030-12-31", dateField["x-maxDate"])
+	assert.Equal(t, "2020-01-01", getXMC(dateField)["minDate"])
+	assert.Equal(t, "2030-12-31", getXMC(dateField)["maxDate"])
 
 	// Check time field
 	timeField, ok := properties["eventTime"].(map[string]interface{})
@@ -284,13 +298,13 @@ func TestJSONSchemaGenerator_GenerateSchema_EnumFields(t *testing.T) {
 	assert.Contains(t, enumValues, "INACTIVE")
 	assert.Contains(t, enumValues, "DISCONTINUED")
 
-	// Check x-enum metadata
-	xEnum, ok := statusField["x-enum"].(map[string]interface{})
+	// Check x-mc.enum metadata
+	xEnumMeta, ok := getXMC(statusField)["enum"].(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "ProductStatus", xEnum["name"])
-	assert.Equal(t, false, xEnum["isMultiSelect"])
+	assert.Equal(t, "ProductStatus", xEnumMeta["name"])
+	assert.Equal(t, false, xEnumMeta["isMultiSelect"])
 
-	options, ok := xEnum["options"].([]interface{})
+	options, ok := xEnumMeta["options"].([]interface{})
 	require.True(t, ok)
 	assert.Equal(t, 3, len(options))
 
@@ -345,8 +359,8 @@ func TestJSONSchemaGenerator_GenerateSchema_DecimalField(t *testing.T) {
 	priceField, ok := properties["price"].(map[string]interface{})
 	require.True(t, ok)
 	assert.Equal(t, "number", priceField["type"])
-	assert.Equal(t, float64(10), priceField["x-precision"])
-	assert.Equal(t, float64(2), priceField["x-scale"])
+	assert.Equal(t, float64(10), getXMC(priceField)["precision"])
+	assert.Equal(t, float64(2), getXMC(priceField)["scale"])
 	assert.Equal(t, float64(0), priceField["minimum"])
 }
 
@@ -482,7 +496,7 @@ func TestJSONSchemaGenerator_ReadOnly(t *testing.T) {
 }
 
 // TestJSONSchemaGenerator_XRelation verifies that a field with BelongsToFKID and
-// Metadata["x-relation"] produces "x-relation" in the generated JSON Schema.
+// Metadata["x-relation"] produces "x-mc.relation" in the generated JSON Schema.
 func TestJSONSchemaGenerator_XRelation(t *testing.T) {
 	fkID := "fk-123"
 	model := &DataModel{
@@ -525,25 +539,29 @@ func TestJSONSchemaGenerator_XRelation(t *testing.T) {
 	properties, ok := schema["properties"].(map[string]interface{})
 	require.True(t, ok)
 
-	// user_id field should carry x-relation
+	// user_id field should carry x-mc.relation
 	userIDField, ok := properties["user_id"].(map[string]interface{})
 	require.True(t, ok)
 
-	xRelation, ok := userIDField["x-relation"].(map[string]interface{})
-	require.True(t, ok, "user_id field must have x-relation")
+	xmc := getXMC(userIDField)
+	xRelationRaw, ok := xmc["relation"]
+	require.True(t, ok, "user_id x-mc must have relation")
+	xRelation, ok := xRelationRaw.(map[string]interface{})
+	require.True(t, ok, "user_id x-mc must have relation as map")
 	assert.Equal(t, "users_db", xRelation["databaseName"])
 	assert.Equal(t, "User", xRelation["modelName"])
-	assert.Equal(t, fkID, userIDField["x-belongsToFkId"], "x-belongsToFkId must also be present")
+	assert.Equal(t, fkID, xmc["belongsToFkId"], "x-mc.belongsToFkId must also be present")
 
-	// note field must NOT have x-relation
+	// note field must NOT have x-mc.relation
 	noteField, ok := properties["note"].(map[string]interface{})
 	require.True(t, ok)
-	_, hasXRelation := noteField["x-relation"]
-	assert.False(t, hasXRelation, "regular field must NOT have x-relation")
+	noteXMC := getXMC(noteField)
+	_, hasRelation := noteXMC["relation"]
+	assert.False(t, hasRelation, "regular field must NOT have x-mc.relation")
 }
 
 // TestJSONSchemaGenerator_XRelation_MissingMetadata verifies that a field with
-// BelongsToFKID but without Metadata["x-relation"] does NOT emit x-relation.
+// BelongsToFKID but without Metadata["x-relation"] does NOT emit x-mc.relation.
 func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 	fkID := "fk-456"
 	model := &DataModel{
@@ -560,7 +578,7 @@ func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 				Type:          GetFieldTypeByFormat(FormatString),
 				BelongsToFKID: &fkID,
 				DisplayOrder:  "a0",
-				// Metadata is nil — x-relation should NOT appear
+				// Metadata is nil — x-mc.relation should NOT appear
 			},
 		},
 	}
@@ -575,7 +593,382 @@ func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 	properties := schema["properties"].(map[string]interface{})
 	userIDField := properties["user_id"].(map[string]interface{})
 
-	_, hasXRelation := userIDField["x-relation"]
-	assert.False(t, hasXRelation, "x-relation must not appear when Metadata is nil")
-	assert.Equal(t, fkID, userIDField["x-belongsToFkId"], "x-belongsToFkId must still be present")
+	xmc := getXMC(userIDField)
+	_, hasRelation := xmc["relation"]
+	assert.False(t, hasRelation, "x-mc.relation must not appear when Metadata is nil")
+	assert.Equal(t, fkID, xmc["belongsToFkId"], "x-mc.belongsToFkId must still be present")
+}
+
+// ─── 新增 x-mc 测试 ────────────────────────────────────────────────────────────
+
+// TestXMC_Widget_EnumSelect 验证 FormatEnum 和 FormatEnumArray 都得到 widget="enum-select"
+func TestXMC_Widget_EnumSelect(t *testing.T) {
+	enumDef := &EnumDefinition{
+		Name:    "Status",
+		Options: []EnumOption{{Code: "A", Label: "A"}},
+	}
+	for _, format := range []FormatType{FormatEnum, FormatEnumArray} {
+		field := &FieldDefinition{
+			Name:         "f",
+			Title:        "F",
+			Type:         GetFieldTypeByFormat(format),
+			DisplayOrder: "a0",
+			Enum:         enumDef,
+		}
+		generator := NewJSONSchemaGenerator()
+		model := makeMinimalModel([]*FieldDefinition{field})
+		schemaJSON, err := generator.GenerateSchema(model)
+		require.NoError(t, err, "format=%s", format)
+
+		var schema map[string]interface{}
+		require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+		props := schema["properties"].(map[string]interface{})
+		fField := props["f"].(map[string]interface{})
+		assert.Equal(t, "enum-select", getXMC(fField)["widget"], "format=%s should yield widget=enum-select", format)
+	}
+}
+
+// TestXMC_Widget_Date 验证 FormatDate → widget="date"
+func TestXMC_Widget_Date(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "d", Title: "D",
+		Type:         GetFieldTypeByFormat(FormatDate),
+		DisplayOrder: "a0",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, "date", xmc["widget"])
+}
+
+// TestXMC_Widget_DatetimeLocal 验证 FormatDateTime → widget="datetime-local"
+func TestXMC_Widget_DatetimeLocal(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "dt", Title: "DT",
+		Type:         GetFieldTypeByFormat(FormatDateTime),
+		DisplayOrder: "a0",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, "datetime-local", xmc["widget"])
+}
+
+// TestXMC_Widget_Time 验证 FormatTime → widget="time"
+func TestXMC_Widget_Time(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "t", Title: "T",
+		Type:         GetFieldTypeByFormat(FormatTime),
+		DisplayOrder: "a0",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, "time", xmc["widget"])
+}
+
+// TestXMC_Widget_Textarea 验证 storageHint=TEXT → widget="textarea"
+func TestXMC_Widget_Textarea(t *testing.T) {
+	hint := "TEXT"
+	field := &FieldDefinition{
+		Name: "content", Title: "Content",
+		Type:         GetFieldTypeByFormat(FormatString),
+		StorageHint:  &hint,
+		DisplayOrder: "a0",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, "textarea", xmc["widget"])
+}
+
+// TestXMC_Widget_RelationSelector 验证 BelongsToFKID != nil → widget="relation-selector"
+func TestXMC_Widget_RelationSelector(t *testing.T) {
+	fkID := "fk-1"
+	field := &FieldDefinition{
+		Name: "user_id", Title: "User ID",
+		Type:          GetFieldTypeByFormat(FormatString),
+		BelongsToFKID: &fkID,
+		DisplayOrder:  "a0",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, "relation-selector", xmc["widget"])
+}
+
+// TestXMC_Widget_None 验证普通 STRING 字段不写 widget 键
+func TestXMC_Widget_None(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "name", Title: "Name",
+		Type:         GetFieldTypeByFormat(FormatString),
+		DisplayOrder: "a0",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	_, hasWidget := xmc["widget"]
+	assert.False(t, hasWidget, "plain STRING field must not have widget key in x-mc")
+}
+
+// TestXMC_BaseFields 验证 isPrimary/isUnique/displayOrder/nullable 始终出现在 x-mc
+func TestXMC_BaseFields(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "f", Title: "F",
+		Type:         GetFieldTypeByFormat(FormatString),
+		IsPrimary:    true,
+		IsUnique:     true,
+		NonNull:      false, // nullable = true
+		DisplayOrder: "b1",
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, true, xmc["isPrimary"])
+	assert.Equal(t, true, xmc["isUnique"])
+	assert.Equal(t, "b1", xmc["displayOrder"])
+	assert.Equal(t, true, xmc["nullable"])
+}
+
+// TestXMC_Enum_Metadata 验证 x-mc.enum 含完整 options（code/label）
+func TestXMC_Enum_Metadata(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "status", Title: "Status",
+		Type:         GetFieldTypeByFormat(FormatEnum),
+		DisplayOrder: "a0",
+		Enum: &EnumDefinition{
+			Name:          "Status",
+			DisplayName:   "Status",
+			IsMultiSelect: false,
+			Options: []EnumOption{
+				{Code: "A", Label: "Alpha", Description: "first"},
+				{Code: "B", Label: "Beta", Description: "second"},
+			},
+		},
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	enumMeta, ok := xmc["enum"].(map[string]interface{})
+	require.True(t, ok, "x-mc.enum must be an object")
+	assert.Equal(t, "Status", enumMeta["name"])
+	options, ok := enumMeta["options"].([]interface{})
+	require.True(t, ok, "x-mc.enum.options must be a slice")
+	require.Len(t, options, 2)
+	option0 := options[0].(map[string]interface{})
+	assert.Equal(t, "A", option0["code"])
+	assert.Equal(t, "Alpha", option0["label"])
+}
+
+// TestXMC_Relation_Metadata 验证 x-mc.relation.databaseName 和 modelName 正确
+func TestXMC_Relation_Metadata(t *testing.T) {
+	fkID := "fk-99"
+	field := &FieldDefinition{
+		Name: "org_id", Title: "Org ID",
+		Type:          GetFieldTypeByFormat(FormatString),
+		BelongsToFKID: &fkID,
+		DisplayOrder:  "a0",
+		Metadata: map[string]any{
+			"x-relation": map[string]string{
+				"databaseName": "org_db",
+				"modelName":    "Org",
+			},
+		},
+	}
+	xmc := generateAndGetFieldXMC(t, field)
+	relRaw, ok := xmc["relation"]
+	require.True(t, ok, "x-mc.relation must be present")
+	rel, ok := relRaw.(map[string]interface{})
+	require.True(t, ok, "x-mc.relation must be a map")
+	assert.Equal(t, "org_db", rel["databaseName"])
+	assert.Equal(t, "Org", rel["modelName"])
+}
+
+// TestXMC_Validation_Fields 验证 minDate/maxDate/precision/scale/validateRule 出现在 x-mc
+func TestXMC_Validation_Fields(t *testing.T) {
+	// Use date field for minDate/maxDate
+	dateField := &FieldDefinition{
+		Name: "event_date", Title: "Date",
+		Type:         GetFieldTypeByFormat(FormatDate),
+		DisplayOrder: "a0",
+		Validation: &ValidationConfig{
+			MinDate: stringPtr("2020-01-01"),
+			MaxDate: stringPtr("2030-12-31"),
+		},
+	}
+	dateXMC := generateAndGetFieldXMC(t, dateField)
+	assert.Equal(t, "2020-01-01", dateXMC["minDate"])
+	assert.Equal(t, "2030-12-31", dateXMC["maxDate"])
+
+	decimalField := &FieldDefinition{
+		Name: "price", Title: "Price",
+		Type:         GetFieldTypeByFormat(FormatDecimal),
+		DisplayOrder: "a0",
+		Validation: &ValidationConfig{
+			Precision: intPtr(10),
+			Scale:     intPtr(4),
+		},
+	}
+	decimalXMC := generateAndGetFieldXMC(t, decimalField)
+	assert.Equal(t, float64(10), decimalXMC["precision"])
+	assert.Equal(t, float64(4), decimalXMC["scale"])
+
+	ruleField := &FieldDefinition{
+		Name: "email", Title: "Email",
+		Type:         GetFieldTypeByFormat(FormatString),
+		DisplayOrder: "a0",
+		Validation: &ValidationConfig{
+			Rule: EmailRule,
+		},
+	}
+	ruleXMC := generateAndGetFieldXMC(t, ruleField)
+	assert.Equal(t, "email", ruleXMC["validateRule"])
+}
+
+// TestXMC_NoUnknownFields 遍历 x-mc 所有 key，断言均在白名单内
+func TestXMC_NoUnknownFields(t *testing.T) {
+	whitelist := map[string]bool{
+		"widget":        true,
+		"isPrimary":     true,
+		"isUnique":      true,
+		"displayOrder":  true,
+		"nullable":      true,
+		"storageHint":   true,
+		"validateRule":  true,
+		"precision":     true,
+		"scale":         true,
+		"minDate":       true,
+		"maxDate":       true,
+		"minTime":       true,
+		"maxTime":       true,
+		"belongsToFkId": true,
+		"relation":      true,
+		"relateFkId":    true,
+		"enum":          true,
+	}
+
+	fkID := "fk-1"
+	hint := "TEXT"
+	fields := []*FieldDefinition{
+		{
+			Name: "f1", Title: "F1",
+			Type: GetFieldTypeByFormat(FormatEnum),
+			Enum: &EnumDefinition{
+				Name:    "S",
+				Options: []EnumOption{{Code: "A", Label: "A"}},
+			},
+			DisplayOrder: "a0",
+		},
+		{
+			Name: "f2", Title: "F2",
+			Type:          GetFieldTypeByFormat(FormatString),
+			BelongsToFKID: &fkID,
+			DisplayOrder:  "a1",
+		},
+		{
+			Name: "f3", Title: "F3",
+			Type:        GetFieldTypeByFormat(FormatString),
+			StorageHint: &hint,
+			DisplayOrder: "a2",
+		},
+		{
+			Name: "f4", Title: "F4",
+			Type:         GetFieldTypeByFormat(FormatDecimal),
+			DisplayOrder: "a3",
+			Validation: &ValidationConfig{
+				Precision: intPtr(10),
+				Scale:     intPtr(2),
+			},
+		},
+	}
+
+	generator := NewJSONSchemaGenerator()
+	model := makeMinimalModel(fields)
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+	props := schema["properties"].(map[string]interface{})
+
+	for fieldName, fieldRaw := range props {
+		fieldMap := fieldRaw.(map[string]interface{})
+		xmc := getXMC(fieldMap)
+		for key := range xmc {
+			assert.True(t, whitelist[key], "field %s has unknown x-mc key: %s", fieldName, key)
+		}
+	}
+}
+
+// TestXMC_TopLevel_Clean 顶层无 nullable，无任何 x- 开头键（x-mc 除外）
+func TestXMC_TopLevel_Clean(t *testing.T) {
+	fkID := "fk-1"
+	hint := "TEXT"
+	fields := []*FieldDefinition{
+		{
+			Name: "id", Title: "ID",
+			Type: GetFieldTypeByFormat(FormatUUID), IsPrimary: true,
+			NonNull:      true,
+			DisplayOrder: "a0",
+		},
+		{
+			Name: "name", Title: "Name",
+			Type:         GetFieldTypeByFormat(FormatString),
+			StorageHint:  &hint,
+			DisplayOrder: "a1",
+		},
+		{
+			Name: "user_id", Title: "User ID",
+			Type:          GetFieldTypeByFormat(FormatString),
+			BelongsToFKID: &fkID,
+			DisplayOrder:  "a2",
+		},
+		{
+			Name: "event_date", Title: "Date",
+			Type:         GetFieldTypeByFormat(FormatDate),
+			DisplayOrder: "a3",
+			Validation: &ValidationConfig{
+				MinDate: stringPtr("2020-01-01"),
+				MaxDate: stringPtr("2030-12-31"),
+			},
+		},
+	}
+
+	generator := NewJSONSchemaGenerator()
+	model := makeMinimalModel(fields)
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+	props := schema["properties"].(map[string]interface{})
+
+	for fieldName, fieldRaw := range props {
+		fieldMap := fieldRaw.(map[string]interface{})
+		for key := range fieldMap {
+			// 顶层禁止 nullable
+			assert.NotEqual(t, "nullable", key,
+				"field %s must not have top-level 'nullable' key", fieldName)
+			// 顶层 x- 键只允许 x-mc
+			if len(key) >= 2 && key[:2] == "x-" {
+				assert.Equal(t, "x-mc", key,
+					"field %s has forbidden top-level x- key: %s (only x-mc is allowed)", fieldName, key)
+			}
+		}
+	}
+}
+
+// ─── 辅助函数 ────────────────────────────────────────────────────────────────
+
+// makeMinimalModel 创建最小化的 DataModel 用于测试
+func makeMinimalModel(fields []*FieldDefinition) *DataModel {
+	return &DataModel{
+		ModelMeta: ModelMeta{
+			ID:           "test-id",
+			ModelLocator: ModelLocator{ModelName: "TestModel", DatabaseName: "test-db"},
+			Title:        "Test Model",
+			StorageType:  "mysql",
+		},
+		Fields: fields,
+	}
+}
+
+// generateAndGetFieldXMC 生成 schema 并返回指定字段名（取 Fields[0].Name）的 x-mc map
+func generateAndGetFieldXMC(t *testing.T, field *FieldDefinition) map[string]interface{} {
+	t.Helper()
+	generator := NewJSONSchemaGenerator()
+	model := makeMinimalModel([]*FieldDefinition{field})
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+	props := schema["properties"].(map[string]interface{})
+	fieldMap, ok := props[field.Name].(map[string]interface{})
+	require.True(t, ok, "field %s not found in properties", field.Name)
+	return getXMC(fieldMap)
 }

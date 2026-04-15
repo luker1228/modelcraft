@@ -69,7 +69,7 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
-  displayField: String  # 用于 runtime __label 解析的字段名
+  displayField: String  # 用于 runtime _label 解析的字段名
   fields: [Field!]!
   group: ModelGroup!
   dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
@@ -110,13 +110,13 @@ input CreateModelInput {
   title: String!
   description: String
   databaseName: String!
-  displayField: String  # 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
+  displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
 }
 
 input UpdateModelMetaInput {
   title: String
   description: String
-  displayField: String  # 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
+  displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
 }
 
 input ImportModelInput {

@@ -9,7 +9,41 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 )
+
+const bindBelongsToFKIDToFields = `-- name: BindBelongsToFKIDToFields :exec
+UPDATE field_definitions
+SET belongs_to_fk_id = ?, updated_at = NOW(3)
+WHERE org_name = ?
+  AND model_id = ?
+  AND name IN (/*SLICE:field_names*/?)
+`
+
+type BindBelongsToFKIDToFieldsParams struct {
+	BelongsToFkID sql.NullString
+	OrgName       string
+	ModelID       string
+	FieldNames    []string
+}
+
+func (q *Queries) BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongsToFKIDToFieldsParams) error {
+	query := bindBelongsToFKIDToFields
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.BelongsToFkID)
+	queryParams = append(queryParams, arg.OrgName)
+	queryParams = append(queryParams, arg.ModelID)
+	if len(arg.FieldNames) > 0 {
+		for _, v := range arg.FieldNames {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:field_names*/?", strings.Repeat(",?", len(arg.FieldNames))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:field_names*/?", "NULL", 1)
+	}
+	_, err := q.db.ExecContext(ctx, query, queryParams...)
+	return err
+}
 
 const createLogicalForeignKey = `-- name: CreateLogicalForeignKey :exec
 INSERT INTO logical_foreign_keys (id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at)

@@ -77,7 +77,7 @@ export interface GoRegisterResponse {
   requestId: string
   userId: string
   orgName: string
-  profile?: RegisterProfileSnapshot
+  profile: RegisterProfileSnapshot
 }
 
 // ============================================================================
@@ -108,5 +108,5 @@ export interface AuthUser {
   id: string
   phone: string
   name: string
-  userName?: string
+  userName: string
 }

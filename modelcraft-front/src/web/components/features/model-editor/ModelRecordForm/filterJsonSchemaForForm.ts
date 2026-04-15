@@ -1,4 +1,5 @@
 import type { RJSFSchema } from '@rjsf/utils'
+import { getXMC } from '@/types/xmc'
 
 /**
  * Filters out readOnly fields from a JSON Schema, returning a schema that
@@ -18,7 +19,7 @@ export function filterJsonSchemaForForm(schema: RJSFSchema): RJSFSchema {
       key,
       prop,
       index,
-      displayOrder: (prop as Record<string, unknown>)['x-displayOrder'],
+      displayOrder: getXMC(prop as Record<string, unknown>)?.displayOrder,
     }))
 
   editableEntries.sort((a, b) => {

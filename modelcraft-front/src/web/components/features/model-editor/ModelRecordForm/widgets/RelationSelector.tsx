@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useRef } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { gql } from '@apollo/client'
-import { createModelRuntimeClient } from '@bff/apollo/public'
-import { buildFindManyQuery } from '@bff/cms/public'
+import { buildRuntimeEndpoint, createModelRuntimeClient } from '@bff/apollo/public'
+import { buildFindManyQuery, buildFindUniqueQuery } from '@bff/cms/public'
 import {
   Popover,
   PopoverContent,
@@ -21,19 +20,15 @@ import {
 import { Button } from '@web/components/ui/button'
 import { ChevronsUpDown, X, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/shared/utils'
+import type { XMC } from '@/types/xmc'
 
 // ──────────────────────────────────────────────
 // Types
 // ──────────────────────────────────────────────
 
-interface XRelation {
-  databaseName: string
-  modelName: string
-}
-
 interface RemoteRecord {
   id: string
-  __label?: string | null
+  _label?: string | null
 }
 
 interface FindManyQueryData {
@@ -43,8 +38,8 @@ interface FindManyQueryData {
 }
 
 interface FormContext {
-  orgName: string
-  projectSlug: string
+  orgName?: string
+  projectSlug?: string
 }
 
 // ──────────────────────────────────────────────
@@ -53,10 +48,10 @@ interface FormContext {
 
 /**
  * Format a remote record for display.
- * Protocol: `__label(id)`, or `空(id)` when __label is empty string.
+ * Protocol: `_label(id)`, or `空(id)` when _label is empty string.
  */
 function formatRecordDisplay(r: RemoteRecord): string {
-  const labelStr = typeof r.__label === 'string' ? r.__label : ''
+  const labelStr = typeof r._label === 'string' ? r._label : ''
   if (labelStr === '') {
     return `空(${r.id})`
   }
@@ -65,11 +60,11 @@ function formatRecordDisplay(r: RemoteRecord): string {
 
 /**
  * Format just the trigger label when a value is selected.
- * Shows `__label (id)` — human-readable label first, id as context.
- * Falls back to bare id if no __label.
+ * Shows `_label (id)` — human-readable label first, id as context.
+ * Falls back to bare id if no _label.
  */
 function formatTriggerLabel(r: RemoteRecord): string {
-  const labelStr = typeof r.__label === 'string' ? r.__label : ''
+  const labelStr = typeof r._label === 'string' ? r._label : ''
   if (labelStr === '') return r.id
   return `${labelStr} (${r.id})`
 }
@@ -87,6 +82,22 @@ function extractProps(props: WidgetProps) {
   }
 }
 
+function getRouteContextFromPathname(): { orgName?: string; projectSlug?: string } {
+  if (typeof window === 'undefined') {
+    return {}
+  }
+
+  const match = window.location.pathname.match(/\/org\/([^/]+)\/projects\/([^/]+)/)
+  if (!match) {
+    return {}
+  }
+
+  return {
+    orgName: decodeURIComponent(match[1]),
+    projectSlug: decodeURIComponent(match[2]),
+  }
+}
+
 // ──────────────────────────────────────────────
 // Hook: debounced relation search
 // ──────────────────────────────────────────────
@@ -98,6 +109,7 @@ interface UseRelationSearchOptions {
   modelName: string
   search: string
   enabled: boolean
+  triggerNonce: number
 }
 
 interface UseRelationSearchResult {
@@ -113,20 +125,24 @@ function useRelationSearch({
   modelName,
   search,
   enabled,
+  triggerNonce,
 }: UseRelationSearchOptions): UseRelationSearchResult {
   const [records, setRecords] = useState<RemoteRecord[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(false)
 
-  // Stable Apollo client for this relation — recreated only when connection params change
-  const clientRef = useRef<ReturnType<typeof createModelRuntimeClient> | null>(null)
-  const clientKey = `${orgName}:${projectSlug}:${databaseName}:${modelName}`
-  const clientKeyRef = useRef<string>('')
-
-  if (clientKeyRef.current !== clientKey && orgName && projectSlug && databaseName && modelName) {
-    clientKeyRef.current = clientKey
-    clientRef.current = createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
-  }
+  const client = useMemo(() => {
+    if (!orgName || !projectSlug || !databaseName || !modelName) {
+      return null
+    }
+    return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
+  }, [orgName, projectSlug, databaseName, modelName])
+  const endpoint = useMemo(
+    () => (orgName && projectSlug && databaseName && modelName
+      ? buildRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
+      : ''),
+    [orgName, projectSlug, databaseName, modelName]
+  )
 
   // Debounce search input 300ms
   const [debouncedSearch, setDebouncedSearch] = useState(search)
@@ -136,41 +152,72 @@ function useRelationSearch({
   }, [search])
 
   useEffect(() => {
-    if (!enabled || !clientRef.current) return
+    if (!enabled || !client) return
 
     let cancelled = false
-    const client = clientRef.current
-
-    const query = buildFindManyQuery(modelName, ['id', '__label'])
 
     // Build where filter only when there is a search term
     const variables: Record<string, unknown> = { take: 50 }
     if (debouncedSearch.trim()) {
-      variables.where = { __label: { contains: debouncedSearch.trim() } }
+      variables.where = { _label: { contains: debouncedSearch.trim() } }
     }
 
     setLoading(true)
     setError(false)
 
-    client
-      .query<FindManyQueryData>({ query, variables, fetchPolicy: 'network-only' })
-      .then(({ data }) => {
+    ;(async () => {
+      try {
+        const withLabel = await client.query<FindManyQueryData>({
+          query: buildFindManyQuery(modelName, ['id', '_label']),
+          variables,
+          fetchPolicy: 'network-only',
+        })
+
+        const runtimeError = (withLabel as unknown as { error?: unknown; errors?: unknown }).error
+          ?? (withLabel as unknown as { errors?: unknown }).errors
+        if (runtimeError) {
+          console.error('[RelationSelector] findMany returned GraphQL errors', {
+            endpoint,
+            modelName,
+            variables,
+            runtimeError,
+          })
+          if (!cancelled) {
+            setError(true)
+            setLoading(false)
+          }
+          return
+        }
+
+        console.debug('[RelationSelector] findMany success', {
+          endpoint,
+          modelName,
+          variables,
+          count: withLabel.data?.findMany?.items?.length ?? 0,
+        })
+
         if (!cancelled) {
-          setRecords(data?.findMany?.items ?? [])
+          setRecords(withLabel.data?.findMany?.items ?? [])
           setLoading(false)
         }
-      })
-      .catch(() => {
+      } catch (error) {
+        console.error('[RelationSelector] findMany request failed', {
+          endpoint,
+          modelName,
+          variables,
+          error,
+        })
         if (!cancelled) {
           setError(true)
           setLoading(false)
         }
-      })
+      }
+    })()
 
     return () => {
       cancelled = true
     }
-  }, [enabled, debouncedSearch, modelName])
+  }, [enabled, client, endpoint, debouncedSearch, modelName, triggerNonce])
 
   return { records, loading, error }
 }
@@ -195,60 +242,76 @@ function useCurrentRecord({
   currentId,
 }: UseCurrentRecordOptions): RemoteRecord | null {
   const [record, setRecord] = useState<RemoteRecord | null>(null)
-  const fetchedIdRef = useRef<string>('')
-
-  const clientRef = useRef<ReturnType<typeof createModelRuntimeClient> | null>(null)
-  const clientKey = `${orgName}:${projectSlug}:${databaseName}:${modelName}`
-  const clientKeyRef = useRef<string>('')
-
-  if (clientKeyRef.current !== clientKey && orgName && projectSlug && databaseName && modelName) {
-    clientKeyRef.current = clientKey
-    clientRef.current = createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
-  }
+  const client = useMemo(() => {
+    if (!orgName || !projectSlug || !databaseName || !modelName) {
+      return null
+    }
+    return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
+  }, [orgName, projectSlug, databaseName, modelName])
+  const endpoint = useMemo(
+    () => (orgName && projectSlug && databaseName && modelName
+      ? buildRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
+      : ''),
+    [orgName, projectSlug, databaseName, modelName]
+  )
 
   useEffect(() => {
-    if (!currentId || fetchedIdRef.current === currentId || !clientRef.current) {
-      if (!currentId) setRecord(null)
+    if (!currentId || !client) {
+      setRecord(null)
       return
     }
 
-    const client = clientRef.current
-    fetchedIdRef.current = currentId
-
-    const query = gql`
-      query FindById($where: ${modelName}UniqueWhereInput!) {
-        findUnique(where: $where) {
-          item {
-            id
-            __label
-          }
-        }
-      }
-    `
-
     let cancelled = false
-    client
-      .query<{ findUnique?: { item?: RemoteRecord | null } | null }>({
-        query,
-        variables: { where: { id: currentId } },
-        fetchPolicy: 'cache-first',
-      })
-      .then(({ data }) => {
-        if (!cancelled) {
-          setRecord(data?.findUnique?.item ?? { id: currentId })
+    ;(async () => {
+      try {
+        const withLabel = await client.query<{ findUnique?: { item?: RemoteRecord | null } | null }>({
+          query: buildFindUniqueQuery(modelName, ['id', '_label']),
+          variables: { where: { id: currentId } },
+          fetchPolicy: 'cache-first',
+        })
+
+        const runtimeError = (withLabel as unknown as { error?: unknown; errors?: unknown }).error
+          ?? (withLabel as unknown as { errors?: unknown }).errors
+        if (runtimeError) {
+          console.error('[RelationSelector] findUnique returned GraphQL errors', {
+            endpoint,
+            modelName,
+            currentId,
+            runtimeError,
+          })
+          if (!cancelled) {
+            setRecord({ id: currentId })
+          }
+          return
         }
-      })
-      .catch(() => {
+
+        console.debug('[RelationSelector] findUnique success', {
+          endpoint,
+          modelName,
+          currentId,
+          found: !!withLabel.data?.findUnique?.item,
+        })
+
         if (!cancelled) {
-          // Fallback to bare id when lookup fails
+          setRecord(withLabel.data?.findUnique?.item ?? { id: currentId })
+        }
+      } catch (error) {
+        console.error('[RelationSelector] findUnique request failed', {
+          endpoint,
+          modelName,
+          currentId,
+          error,
+        })
+        if (!cancelled) {
           setRecord({ id: currentId })
         }
-      })
+      }
+    })()
 
     return () => {
       cancelled = true
     }
-  }, [currentId, modelName])
+  }, [client, endpoint, currentId, modelName])
 
   return record
 }
@@ -260,32 +323,39 @@ function useCurrentRecord({
 /**
  * RelationSelector widget for RJSF.
  *
- * Activated when a JSON Schema property contains an `x-relation` extension:
+ * Activated when a JSON Schema property contains an `x-mc.widget: "relation-selector"`
+ * extension along with `x-mc.relation`:
  * ```json
  * {
  *   "type": "string",
- *   "x-belongsToFkId": "fk-123",
- *   "x-relation": {
- *     "databaseName": "users_db",
- *     "modelName": "User"
+ *   "x-mc": {
+ *     "widget": "relation-selector",
+ *     "belongsToFkId": "fk-123",
+ *     "relation": {
+ *       "databaseName": "users_db",
+ *       "modelName": "User"
+ *     }
  *   }
  * }
  * ```
  *
  * Features:
  * - Popover + Command combobox with 300ms debounced server-side search
- * - Each item shows `__label` (primary) + id (secondary, muted)
- * - Falls back to bare id when __label is empty
+ * - Each item shows `_label` (primary) + id (secondary, muted)
+ * - Falls back to bare id when _label is empty
  * - Supports nullable fields (clear button shown when field is not required)
- * - Shows `__label (id)` on the trigger for already-selected values
+ * - Shows `_label (id)` on the trigger for already-selected values
  */
 export function RelationSelector(props: WidgetProps) {
   const { value, onChange, disabled, required, schema, formContext } = extractProps(props)
 
   const ctx = (formContext ?? {}) as unknown as FormContext
-  const { orgName, projectSlug } = ctx
+  const routeCtx = useMemo(() => getRouteContextFromPathname(), [])
+  const orgName = ctx.orgName ?? routeCtx.orgName ?? ''
+  const projectSlug = ctx.projectSlug ?? routeCtx.projectSlug ?? ''
 
-  const xRelation = schema['x-relation'] as XRelation | undefined
+  const xmc = schema['x-mc'] as XMC | undefined
+  const xRelation = xmc?.relation
   const databaseName = xRelation?.databaseName ?? ''
   const modelName = xRelation?.modelName ?? ''
 
@@ -293,8 +363,9 @@ export function RelationSelector(props: WidgetProps) {
 
   const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
+  const [openTriggerNonce, setOpenTriggerNonce] = useState(0)
 
-  // Resolve __label for the currently selected id
+  // Resolve _label for the currently selected id
   const currentRecord = useCurrentRecord({
     orgName,
     projectSlug,
@@ -305,6 +376,18 @@ export function RelationSelector(props: WidgetProps) {
 
   const enabled = open && !!orgName && !!projectSlug && !!databaseName && !!modelName
 
+  useEffect(() => {
+    console.debug('[RelationSelector] render context', {
+      fieldId: props.id,
+      orgName,
+      projectSlug,
+      databaseName,
+      modelName,
+      open,
+      enabled,
+    })
+  }, [props.id, orgName, projectSlug, databaseName, modelName, open, enabled])
+
   const { records, loading, error } = useRelationSearch({
     orgName,
     projectSlug,
@@ -312,6 +395,7 @@ export function RelationSelector(props: WidgetProps) {
     modelName,
     search,
     enabled,
+    triggerNonce: openTriggerNonce,
   })
 
   const handleSelect = useCallback(
@@ -331,11 +415,11 @@ export function RelationSelector(props: WidgetProps) {
     [onChange]
   )
 
-  // Guard: missing x-relation metadata
+  // Guard: missing x-mc.relation metadata
   if (!xRelation || !databaseName || !modelName) {
     return (
       <span className="text-sm text-destructive">
-        缺少 x-relation 元数据，无法渲染关联选择器
+        缺少 x-mc.relation 元数据，无法渲染关联选择器
       </span>
     )
   }
@@ -347,7 +431,23 @@ export function RelationSelector(props: WidgetProps) {
     : null
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
+    <Popover
+      open={open}
+      onOpenChange={(nextOpen) => {
+        console.debug('[RelationSelector] onOpenChange', {
+          fieldId: props.id,
+          nextOpen,
+          orgName,
+          projectSlug,
+          databaseName,
+          modelName,
+        })
+        setOpen(nextOpen)
+        if (nextOpen) {
+          setOpenTriggerNonce((n) => n + 1)
+        }
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type="button"
@@ -366,14 +466,14 @@ export function RelationSelector(props: WidgetProps) {
           <span className="ml-2 flex shrink-0 items-center gap-1">
             {/* Clear button — only for non-required fields */}
             {!required && currentId && (
-              <span
-                role="button"
+              <button
+                type="button"
                 aria-label="清空选择"
                 onClick={handleClear}
                 className="rounded p-0.5 hover:bg-muted"
               >
                 <X className="size-3.5 text-muted-foreground" />
-              </span>
+              </button>
             )}
             <ChevronsUpDown className="size-4 shrink-0 opacity-50" />
           </span>
@@ -424,9 +524,9 @@ export function RelationSelector(props: WidgetProps) {
                       )}
                     />
                     <span className="flex-1 truncate">
-                      {typeof record.__label === 'string' && record.__label !== '' ? (
+                      {typeof record._label === 'string' && record._label !== '' ? (
                         <>
-                          <span className="text-foreground">{record.__label}</span>
+                          <span className="text-foreground">{record._label}</span>
                           <span className="ml-1.5 text-xs text-muted-foreground">
                             {record.id}
                           </span>

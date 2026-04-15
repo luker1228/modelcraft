@@ -8,6 +8,7 @@ export interface ModelField {
   schemaType?: string | null
   storageHint?: string | null
   isPrimary?: boolean | null
+  isDeprecated?: boolean | null
   type?: string | null
 }
 
@@ -32,6 +33,7 @@ export function mapModelFieldsToTableFieldInfos(
     name: field.name,
     title: typeof field.title === 'string' ? field.title : null,
     isPrimary: field.isPrimary === true,
+    isDeprecated: field.isDeprecated === true,
     storageHint: typeof field.storageHint === 'string' ? field.storageHint : null,
     schemaType: typeof field.schemaType === 'string' ? field.schemaType : null,
   }))

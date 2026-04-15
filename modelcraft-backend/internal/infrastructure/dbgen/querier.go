@@ -11,6 +11,7 @@ import (
 
 type Querier interface {
 	ArchiveProject(ctx context.Context, arg ArchiveProjectParams) error
+	BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongsToFKIDToFieldsParams) error
 	CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
 	CountFieldEnumRelationsByLabelField(ctx context.Context, arg CountFieldEnumRelationsByLabelFieldParams) (int64, error)
 	CountFieldEnumRelationsBySource(ctx context.Context, arg CountFieldEnumRelationsBySourceParams) (int64, error)

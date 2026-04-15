@@ -75,7 +75,8 @@ export function useRegister(): UseRegisterReturn {
     setError(null)
 
     try {
-      const res = await fetch('/api/bff/auth/register', {
+      // Step 1: 注册
+      const registerRes = await fetch('/api/bff/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -85,17 +86,40 @@ export function useRegister(): UseRegisterReturn {
         }),
       })
 
-      const data = (await res.json()) as RegisterResponse & { error?: string }
+      const registerData = (await registerRes.json()) as RegisterResponse & { error?: string }
 
-      if (!res.ok) {
-        setError(data.error ?? '注册失败，请稍后重试')
+      if (!registerRes.ok) {
+        setError(registerData.error ?? '注册失败，请稍后重试')
         return
       }
 
-      // 注册成功后记录默认组织和昵称并直接跳转到 workspace（PRD 要求：注册成功后直接进入工作区）
-      localStorage.setItem('defaultOrgName', data.orgName)
-      localStorage.setItem('defaultUserName', data.profile?.nickname || values.userName)
-      router.push(`/org/${data.orgName}/workspace`)
+      // Step 2: 自动登录获取 accessToken（使用刚注册的手机号 + 密码）
+      const loginRes = await fetch('/api/bff/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          identifier: values.phone,
+          identifierType: 'PHONE',
+          password: values.password,
+        }),
+      })
+
+      const loginData = (await loginRes.json()) as LoginResponse & { error?: string }
+
+      if (!loginRes.ok) {
+        // 注册成功但登录失败，跳转到登录页让用户手动登录
+        setError('注册成功，请重新登录')
+        router.push('/auth/login')
+        return
+      }
+
+      // Step 3: 存储 access token
+      useAuthStore.getState().setAccessToken(loginData.accessToken, loginData.expiresIn)
+
+      // Step 4: 记录默认组织和昵称并跳转到 workspace
+      localStorage.setItem('defaultOrgName', loginData.orgName)
+      localStorage.setItem('defaultUserName', registerData.profile.nickname || values.userName)
+      router.push(`/org/${loginData.orgName}/workspace`)
     } catch {
       setError('网络错误，请检查网络连接')
     } finally {

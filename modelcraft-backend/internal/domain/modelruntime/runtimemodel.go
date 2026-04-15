@@ -36,7 +36,7 @@ type RuntimeModel struct {
 	Title        string                   `json:"title"`
 	Description  string                   `json:"description"`
 	DatabaseName string                   `json:"databaseName"`
-	DisplayField *string                  `json:"displayField"` // 用于 __label 解析的字段名
+	DisplayField *string                  `json:"displayField"` // 用于 _label 解析的字段名
 	Fields       map[string]*RuntimeField `json:"fields"`
 }
 

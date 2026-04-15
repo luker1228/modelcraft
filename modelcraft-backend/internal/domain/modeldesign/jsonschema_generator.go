@@ -34,7 +34,7 @@ func (g *JSONSchemaGenerator) buildSchema(model *DataModel) map[string]interface
 		"description": model.Description,
 		"properties":  g.buildProperties(model.Fields),
 		"required":    g.buildRequiredList(model.Fields),
-		// Custom ModelCraft metadata
+		// Custom ModelCraft metadata stays at root level for model-level info
 		"x-modelName":    model.ModelName,
 		"x-databaseName": model.DatabaseName,
 	}
@@ -63,16 +63,14 @@ func (g *JSONSchemaGenerator) buildFieldSchema(field *FieldDefinition) map[strin
 	// 基本类型和格式映射
 	g.applyTypeAndFormat(fieldSchema, field)
 
-	// 应用验证规则
-	g.applyValidationRules(fieldSchema, field)
+	// 应用验证规则（标准 JSON Schema Draft 7 字段写入 fieldSchema，x-mc 字段写入 xmc）
+	xmc := g.buildXMC(field, fieldSchema)
 
-	// 处理nullable
-	if !field.NonNull {
-		fieldSchema["nullable"] = true
-	}
+	// 添加自定义ModelCraft属性（写入 xmc）
+	g.applyCustomProperties(fieldSchema, field, xmc)
 
-	// 添加自定义ModelCraft属性
-	g.applyCustomProperties(fieldSchema, field)
+	// 写入 x-mc 对象
+	fieldSchema["x-mc"] = xmc
 
 	return fieldSchema
 }
@@ -107,7 +105,7 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 		schema["type"] = "integer"
 	case FormatDecimal:
 		schema["type"] = string(SchemaTypeNumber)
-		// Precision and scale will be added as custom properties
+		// Precision and scale will be added in x-mc
 
 	// Boolean type
 	case FormatBoolean:
@@ -116,13 +114,13 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 	// Enum types
 	case FormatEnum:
 		schema["type"] = string(SchemaTypeString)
-		g.applyEnumOptions(schema, field)
+		g.applyEnumCodes(schema, field)
 	case FormatEnumArray:
 		schema["type"] = string(SchemaTypeArray)
 		items := map[string]interface{}{
 			"type": string(SchemaTypeString),
 		}
-		g.applyEnumOptions(items, field)
+		g.applyEnumCodes(items, field)
 		schema["items"] = items
 
 	// Relation type
@@ -131,8 +129,8 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 	}
 }
 
-// applyEnumOptions 应用枚举选项
-func (g *JSONSchemaGenerator) applyEnumOptions(schema map[string]interface{}, field *FieldDefinition) {
+// applyEnumCodes 只写顶层 enum 码值列表（标准 JSON Schema Draft 7 字段）
+func (g *JSONSchemaGenerator) applyEnumCodes(schema map[string]interface{}, field *FieldDefinition) {
 	if field.Enum == nil {
 		return
 	}
@@ -141,10 +139,9 @@ func (g *JSONSchemaGenerator) applyEnumOptions(schema map[string]interface{}, fi
 		codes[i] = opt.Code
 	}
 	schema["enum"] = codes
-	schema["x-enum"] = g.buildEnumMetadata(field.Enum)
 }
 
-// buildEnumMetadata 构建枚举元数据
+// buildEnumMetadata 构建枚举元数据（写入 x-mc.enum）
 func (g *JSONSchemaGenerator) buildEnumMetadata(enum *EnumDefinition) map[string]interface{} {
 	options := make([]map[string]interface{}, len(enum.Options))
 	for i, opt := range enum.Options {
@@ -164,15 +161,108 @@ func (g *JSONSchemaGenerator) buildEnumMetadata(enum *EnumDefinition) map[string
 	}
 }
 
-// applyValidationRules 应用验证规则
-func (g *JSONSchemaGenerator) applyValidationRules(schema map[string]interface{}, field *FieldDefinition) {
+// buildXMC 构建 x-mc 对象，包含所有非 JSON Schema Draft 7 标准字段。
+// fieldSchema 在调用前已经由 applyTypeAndFormat 写入了标准字段（type/format/enum/items），
+// 此函数负责从 fieldSchema 和 field 中收集需要迁入 x-mc 的内容，同时将验证规则中的
+// 标准字段（maxLength/minLength 等）写入 fieldSchema。
+func (g *JSONSchemaGenerator) buildXMC(
+	field *FieldDefinition,
+	fieldSchema map[string]interface{},
+) map[string]interface{} {
+	xmc := map[string]interface{}{}
+
+	// ── 始终存在的字段 ──────────────────────────────────────────────────────────
+	xmc["isPrimary"] = field.IsPrimary
+	xmc["isUnique"] = field.IsUnique
+	xmc["displayOrder"] = field.DisplayOrder
+	// nullable：NonNull=true 表示非空（不 nullable），NonNull=false 表示 nullable
+	xmc["nullable"] = !field.NonNull
+
+	// ── 有值时才写入的字段 ────────────────────────────────────────────────────────
+	if field.StorageHint != nil {
+		xmc["storageHint"] = *field.StorageHint
+	}
+
+	if field.RelateFKID != nil {
+		xmc["relateFkId"] = *field.RelateFKID
+	}
+
+	if field.BelongsToFKID != nil {
+		xmc["belongsToFkId"] = *field.BelongsToFKID
+		// relation 元数据：仅在 Metadata 已由 App 层填充时输出
+		if field.Metadata != nil {
+			if rel, ok := field.Metadata["x-relation"]; ok {
+				xmc["relation"] = rel
+			}
+		}
+	}
+
+	// ── 枚举元数据 ─────────────────────────────────────────────────────────────
+	if field.Enum != nil {
+		xmc["enum"] = g.buildEnumMetadata(field.Enum)
+	}
+
+	// ── 验证规则（标准字段写 fieldSchema，x-mc 字段写 xmc） ─────────────────────
+	g.applyValidationRules(fieldSchema, xmc, field)
+
+	// ── widget 决策（优先级严格按规范） ──────────────────────────────────────────
+	if w := g.decideWidget(field, fieldSchema); w != "" {
+		xmc["widget"] = w
+	}
+
+	return xmc
+}
+
+// decideWidget 根据字段属性决定 widget 值，返回空字符串表示不写 widget 键。
+// 优先级：BelongsToFKID > storageHint=TEXT > FormatEnum/FormatEnumArray > FormatDate > FormatDateTime > FormatTime
+func (g *JSONSchemaGenerator) decideWidget(field *FieldDefinition, fieldSchema map[string]interface{}) string {
+	// 1. belongs-to 外键列 → 关联选择器
+	if field.BelongsToFKID != nil {
+		return "relation-selector"
+	}
+
+	// 2. storageHint == "TEXT" → 多行文本框
+	if field.StorageHint != nil && *field.StorageHint == "TEXT" {
+		return "textarea"
+	}
+
+	if field.Type == nil {
+		return ""
+	}
+
+	switch field.Type.Format {
+	// 3. 枚举（单选/多选） → 枚举下拉
+	case FormatEnum, FormatEnumArray:
+		return "enum-select"
+	// 4. 日期
+	case FormatDate:
+		return "date"
+	// 5. 日期时间
+	case FormatDateTime:
+		return "datetime-local"
+	// 6. 时间
+	case FormatTime:
+		return "time"
+	}
+
+	return ""
+}
+
+// applyValidationRules 将验证规则分流写入：
+//   - 标准 JSON Schema Draft 7 字段（maxLength/minLength/pattern/maximum/minimum/maxItems/minItems）→ fieldSchema
+//   - 非标准验证字段（minDate/maxDate/minTime/maxTime/precision/scale/validateRule）→ xmc
+func (g *JSONSchemaGenerator) applyValidationRules(
+	schema map[string]interface{},
+	xmc map[string]interface{},
+	field *FieldDefinition,
+) {
 	if field.Validation == nil {
 		return
 	}
 
 	v := field.Validation
 
-	// String validation
+	// ── 标准 JSON Schema Draft 7 验证字段 → schema ────────────────────────────
 	if v.MaxLength != nil {
 		schema["maxLength"] = *v.MaxLength
 	}
@@ -182,16 +272,12 @@ func (g *JSONSchemaGenerator) applyValidationRules(schema map[string]interface{}
 	if v.Pattern != nil {
 		schema["pattern"] = *v.Pattern
 	}
-
-	// Number validation
 	if v.Maximum != nil {
 		schema["maximum"] = *v.Maximum
 	}
 	if v.Minimum != nil {
 		schema["minimum"] = *v.Minimum
 	}
-
-	// Array validation
 	if v.MaxItems != nil {
 		schema["maxItems"] = *v.MaxItems
 	}
@@ -199,59 +285,37 @@ func (g *JSONSchemaGenerator) applyValidationRules(schema map[string]interface{}
 		schema["minItems"] = *v.MinItems
 	}
 
-	// Date/Time validation (custom properties)
+	// ── 非标准验证字段 → xmc ──────────────────────────────────────────────────
 	if v.MinDate != nil {
-		schema["x-minDate"] = *v.MinDate
+		xmc["minDate"] = *v.MinDate
 	}
 	if v.MaxDate != nil {
-		schema["x-maxDate"] = *v.MaxDate
+		xmc["maxDate"] = *v.MaxDate
 	}
 	if v.MinTime != nil {
-		schema["x-minTime"] = *v.MinTime
+		xmc["minTime"] = *v.MinTime
 	}
 	if v.MaxTime != nil {
-		schema["x-maxTime"] = *v.MaxTime
+		xmc["maxTime"] = *v.MaxTime
 	}
-
-	// Decimal precision/scale (custom properties)
 	if v.Precision != nil {
-		schema["x-precision"] = *v.Precision
+		xmc["precision"] = *v.Precision
 	}
 	if v.Scale != nil {
-		schema["x-scale"] = *v.Scale
+		xmc["scale"] = *v.Scale
 	}
-
-	// Validation rule type
 	if v.Rule != "" {
-		schema["x-validateRule"] = string(v.Rule)
+		xmc["validateRule"] = string(v.Rule)
 	}
 }
 
-// applyCustomProperties 添加ModelCraft自定义属性
-func (g *JSONSchemaGenerator) applyCustomProperties(schema map[string]interface{}, field *FieldDefinition) {
-	// Field metadata
-	if field.StorageHint != nil {
-		schema["x-storageHint"] = *field.StorageHint
-	}
-	schema["x-displayOrder"] = field.DisplayOrder
-	schema["x-isPrimary"] = field.IsPrimary
-	schema["x-isUnique"] = field.IsUnique
-
-	// FK metadata
-	if field.RelateFKID != nil {
-		schema["x-relateFkId"] = *field.RelateFKID
-	}
-	if field.BelongsToFKID != nil {
-		schema["x-belongsToFkId"] = *field.BelongsToFKID
-		// 注入 x-relation：前端据此构建目标模型的 GraphQL endpoint 并渲染关联选择器
-		// 仅在 Metadata 已由 App 层填充时才输出（避免空对象）
-		if field.Metadata != nil {
-			if rel, ok := field.Metadata["x-relation"]; ok {
-				schema["x-relation"] = rel
-			}
-		}
-	}
-
+// applyCustomProperties 在 fieldSchema 写入标准 JSON Schema 字段（readOnly），
+// 不再写任何 x-* 顶层键。
+func (g *JSONSchemaGenerator) applyCustomProperties(
+	schema map[string]interface{},
+	field *FieldDefinition,
+	_ map[string]interface{}, // xmc 已在 buildXMC 中填充，此处保留签名一致性
+) {
 	// Mark readOnly for fields that cannot be edited by the user:
 	//   - Primary key fields are generated by the database
 	//   - RELATION fields are derived and displayed read-only in tables

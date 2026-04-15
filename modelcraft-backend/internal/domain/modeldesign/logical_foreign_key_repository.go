@@ -24,4 +24,7 @@ type LogicalForeignKeyRepository interface {
 
 	// FindByRelateField 查找指定 org 下字段作为 relate_fk_id 引用的逻辑外键
 	FindByRelateField(ctx context.Context, orgName, lfID string) ([]*LogicalForeignKey, error)
+
+	// BindBelongsToFields 将源模型字段批量绑定到 normal 方向 FK 行（写 field_definitions.belongs_to_fk_id）
+	BindBelongsToFields(ctx context.Context, orgName, modelID, lfID string, fieldNames []string) error
 }

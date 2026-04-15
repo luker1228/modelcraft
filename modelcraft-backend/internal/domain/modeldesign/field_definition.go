@@ -289,7 +289,7 @@ func (fd *FieldDefinition) IsEnumArrayField() bool {
 	return fd.Type.Format == FormatEnum && fd.IsArray
 }
 
-// IsStringifiable 判断字段值是否可以转为字符串用于 __label 显示
+// IsStringifiable 判断字段值是否可以转为字符串用于 _label 显示
 // 可字符串化的类型：STRING、UUID、INTEGER、NUMBER、DECIMAL、DATE、DATETIME、TIME、ENUM、BOOLEAN
 // 不可字符串化的类型：RELATION（对象）、ENUM_LABEL（虚拟字段）、ENUM_ARRAY（数组）
 func (fd *FieldDefinition) IsStringifiable() bool {
