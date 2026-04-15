@@ -64,12 +64,13 @@ func (m *MockModelRepository) GetByID(
 
 func (m *MockModelRepository) GetByName(
 	ctx context.Context,
+	orgName string,
 	databaseName string,
 	name string,
 	projectId string,
 	opts ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
-	args := m.Called(ctx, databaseName, name, projectId, opts)
+	args := m.Called(ctx, orgName, databaseName, name, projectId, opts)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -787,7 +788,7 @@ func (m *MockEnumAssocRepo) FindByField(
 }
 
 func (m *MockEnumAssocRepo) FindByEnumName(
-	ctx context.Context, projectID, enumName string,
+	ctx context.Context, orgName, projectID, enumName string,
 ) ([]*modeldesign.FieldEnumAssociation, error) {
 	return nil, nil
 }

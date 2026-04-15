@@ -19,15 +19,15 @@ func (m *MockLogicalForeignKeyRepository) Save(ctx context.Context, lf *LogicalF
 	return args.Error(0)
 }
 
-func (m *MockLogicalForeignKeyRepository) DeleteByPairID(ctx context.Context, pairID string) error {
-	args := m.Called(ctx, pairID)
+func (m *MockLogicalForeignKeyRepository) DeleteByPairID(ctx context.Context, orgName, pairID string) error {
+	args := m.Called(ctx, orgName, pairID)
 	return args.Error(0)
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByModel(
-	ctx context.Context, modelID string,
+	ctx context.Context, orgName, modelID string,
 ) ([]*LogicalForeignKey, error) {
-	args := m.Called(ctx, modelID)
+	args := m.Called(ctx, orgName, modelID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -35,9 +35,9 @@ func (m *MockLogicalForeignKeyRepository) FindByModel(
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByPairID(
-	ctx context.Context, pairID string,
+	ctx context.Context, orgName, pairID string,
 ) ([]*LogicalForeignKey, error) {
-	args := m.Called(ctx, pairID)
+	args := m.Called(ctx, orgName, pairID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -45,9 +45,9 @@ func (m *MockLogicalForeignKeyRepository) FindByPairID(
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByBelongsToField(
-	ctx context.Context, lfID string,
+	ctx context.Context, orgName, lfID string,
 ) ([]*LogicalForeignKey, error) {
-	args := m.Called(ctx, lfID)
+	args := m.Called(ctx, orgName, lfID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -55,9 +55,9 @@ func (m *MockLogicalForeignKeyRepository) FindByBelongsToField(
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByRelateField(
-	ctx context.Context, lfID string,
+	ctx context.Context, orgName, lfID string,
 ) ([]*LogicalForeignKey, error) {
-	args := m.Called(ctx, lfID)
+	args := m.Called(ctx, orgName, lfID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -105,8 +105,8 @@ func TestLogicalForeignKeyRepository_DeleteByPairID(t *testing.T) {
 	mockRepo := new(MockLogicalForeignKeyRepository)
 	ctx := context.Background()
 
-	mockRepo.On("DeleteByPairID", ctx, "pair-001").Return(nil)
-	err := mockRepo.DeleteByPairID(ctx, "pair-001")
+	mockRepo.On("DeleteByPairID", ctx, "test-org", "pair-001").Return(nil)
+	err := mockRepo.DeleteByPairID(ctx, "test-org", "pair-001")
 	assert.NoError(t, err)
 	mockRepo.AssertExpectations(t)
 }
@@ -118,8 +118,8 @@ func TestLogicalForeignKeyRepository_FindByModel(t *testing.T) {
 		{ID: "lf-001", PairID: "pair-001", Direction: DirectionNormal, ModelID: "model-order"},
 	}
 
-	mockRepo.On("FindByModel", ctx, "model-order").Return(expected, nil)
-	result, err := mockRepo.FindByModel(ctx, "model-order")
+	mockRepo.On("FindByModel", ctx, "test-org", "model-order").Return(expected, nil)
+	result, err := mockRepo.FindByModel(ctx, "test-org", "model-order")
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 	assert.Equal(t, "lf-001", result[0].ID)
@@ -134,8 +134,8 @@ func TestLogicalForeignKeyRepository_FindByPairID(t *testing.T) {
 		{ID: "lf-002", PairID: "pair-001", Direction: DirectionReverse},
 	}
 
-	mockRepo.On("FindByPairID", ctx, "pair-001").Return(expected, nil)
-	result, err := mockRepo.FindByPairID(ctx, "pair-001")
+	mockRepo.On("FindByPairID", ctx, "test-org", "pair-001").Return(expected, nil)
+	result, err := mockRepo.FindByPairID(ctx, "test-org", "pair-001")
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
 	mockRepo.AssertExpectations(t)
@@ -145,8 +145,8 @@ func TestLogicalForeignKeyRepository_FindByBelongsToField(t *testing.T) {
 	mockRepo := new(MockLogicalForeignKeyRepository)
 	ctx := context.Background()
 
-	mockRepo.On("FindByBelongsToField", ctx, "lf-001").Return([]*LogicalForeignKey{}, nil)
-	result, err := mockRepo.FindByBelongsToField(ctx, "lf-001")
+	mockRepo.On("FindByBelongsToField", ctx, "test-org", "lf-001").Return([]*LogicalForeignKey{}, nil)
+	result, err := mockRepo.FindByBelongsToField(ctx, "test-org", "lf-001")
 	assert.NoError(t, err)
 	assert.Empty(t, result)
 	mockRepo.AssertExpectations(t)
@@ -156,8 +156,8 @@ func TestLogicalForeignKeyRepository_FindByRelateField(t *testing.T) {
 	mockRepo := new(MockLogicalForeignKeyRepository)
 	ctx := context.Background()
 
-	mockRepo.On("FindByRelateField", ctx, "lf-001").Return([]*LogicalForeignKey{}, nil)
-	result, err := mockRepo.FindByRelateField(ctx, "lf-001")
+	mockRepo.On("FindByRelateField", ctx, "test-org", "lf-001").Return([]*LogicalForeignKey{}, nil)
+	result, err := mockRepo.FindByRelateField(ctx, "test-org", "lf-001")
 	assert.NoError(t, err)
 	assert.Empty(t, result)
 	mockRepo.AssertExpectations(t)

@@ -53,7 +53,7 @@ type ModelRepository interface {
 	GetByID(ctx context.Context, id string, opts ...*ModelQueryOptions) (*DataModel, error)
 	GetByName(
 		ctx context.Context,
-		databaseName, name, projectId string,
+		orgName, databaseName, name, projectId string,
 		opts ...*ModelQueryOptions,
 	) (*DataModel, error)
 	FindByDeploymentStatus(ctx context.Context, statuses ...DeploymentStatus) ([]DataModel, error)

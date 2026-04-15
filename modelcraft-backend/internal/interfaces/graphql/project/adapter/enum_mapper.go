@@ -32,6 +32,7 @@ func (e *enumMapper) ConvertEnumDefinitionToGraphQL(
 	description := enum.Description
 	return &generated.EnumDefinition{
 		ID:            enum.ID,
+		OrgName:       enum.OrgName,
 		ProjectSlug:   enum.ProjectSlug,
 		Name:          enum.Name,
 		DisplayName:   enum.DisplayName,

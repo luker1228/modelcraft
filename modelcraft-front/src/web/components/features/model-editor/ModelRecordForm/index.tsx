@@ -10,7 +10,7 @@ import { GET_LOGICAL_FOREIGN_KEYS, GET_MODELS } from '@web/graphql'
 import type { Field } from '@/types/index'
 import { buildUiSchema } from './buildUiSchema'
 import { filterJsonSchemaForForm } from './filterJsonSchemaForForm'
-import { EnumSelect, RelationPicker } from './widgets'
+import { EnumSelect, EnumSchemaSelect, RelationPicker } from './widgets'
 import { FieldTemplate, BaseInputTemplate, ObjectFieldTemplate } from './templates'
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
@@ -66,6 +66,7 @@ interface GetLogicalForeignKeysQueryData {
 
 const customWidgets = {
   EnumSelect,
+  EnumSchemaSelect,
   RelationPicker,
 }
 

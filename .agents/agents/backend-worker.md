@@ -94,6 +94,52 @@ tool: *
 |---------|------|
 | 开始任何后端功能开发前（了解 Schema-First 流程、事务、日志规范、代码模式） | `/backend-develop` |
 | 需要执行 `just` 命令（构建、代码生成、lint、运行服务等） | `/justfile` |
+| 需要搜索代码、理解模块结构、查找函数/类型实现位置时 | `/graphify` |
+
+## 使用知识图谱导航代码
+
+项目已在 `graphify-out/` 生成完整知识图谱（6923 节点、9621 条边、874 个社区）。**实现新功能前先查图，比直接读代码快 5-10x。**
+
+### 关键 God Nodes（优先了解这些）
+
+| 节点 | 边数 | 含义 |
+|------|------|------|
+| `executionContext` | 1631 | Context 贯穿全栈的核心载体，所有 orgName/requestId 从这里流动 |
+| `SafeQuerier` | 142 | 数据库访问安全抽象层 |
+| `Queries` | 138 | sqlc 生成的全量查询集合 |
+| `graphqlModelResolver` | 46 | GraphQL Model 域解析器入口 |
+| `ModelDesignAppService` | 35 | Model 设计领域 Application 层核心 |
+| `SqlModelDesignRepository` | 21 | Model 设计 Repository 实现参考 |
+
+### 常用图查询场景
+
+```bash
+# 1. 理解一个概念的全部关联（开始实现新功能前）
+/graphify query "EnumDefinition"
+
+# 2. 追踪数据流链路（排查跨层问题）
+/graphify path "mutationResolver" "SqlModelDesignRepository" --dfs
+
+# 3. 找类似实现参考（实现新 Repository 前，先看同类模式）
+/graphify query "Repository" --budget 1500
+
+# 4. 理解错误如何在层间转换
+/graphify path "bizerrors" "graphqlModelResolver"
+
+# 5. 代码生成后更新图（修改 .go 文件后）
+python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
+```
+
+### 社区结构速查
+
+- **Community 0**：`executionContext`（单独社区，说明它连接一切）
+- **Community 1**：全部 GraphQL 类型（214 节点，AddFieldInput / ActualForeignKey 等）
+- **Community 3**：`DBTX` + `Queries`（数据库接口层）
+- **Community 4**：GraphQL Schema 基础设施（ComplexityRoot / ResolverRoot 等）
+- **Community 10**：`graphqlModelResolver`（Enum + Model resolver 聚合）
+- **Community 14**：`SqlModelDesignRepository` + `SqlFieldEnumRelationRepository`（Repository 实现）
+
+> 图谱发现的关键隐式联系：`ai-metadata/backend/development/architecture.md` → `repo-develop.md` → `error-handling.md` 构成一个完整知识链，读代码时可同时 `/graphify path` 确认设计意图与代码是否对齐。
 
 ## 技术栈（固定，不提建议替换）
 

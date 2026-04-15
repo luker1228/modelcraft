@@ -30,7 +30,7 @@ WHERE org_name = ? AND project_slug = ? AND name = ?;
 
 -- name: GetEnumsByNames :many
 SELECT * FROM model_enums
-WHERE project_slug = ? AND name IN (sqlc.slice('names'));
+WHERE org_name = ? AND project_slug = ? AND name IN (sqlc.slice('names'));
 
 -- name: CreateFieldEnumAssociation :exec
 INSERT INTO model_field_enum_associations (model_id, field_name, org_name, project_slug, enum_name, database_name, created_at, updated_at)
@@ -43,7 +43,7 @@ LIMIT 1;
 
 -- name: GetFieldEnumAssociationsByEnumName :many
 SELECT * FROM model_field_enum_associations
-WHERE project_slug = ? AND enum_name = ?;
+WHERE org_name = ? AND project_slug = ? AND enum_name = ?;
 
 -- name: GetFieldEnumAssociationsByModelID :many
 SELECT * FROM model_field_enum_associations
@@ -60,4 +60,4 @@ DELETE FROM model_field_enum_associations WHERE model_id = ?;
 SELECT fea.model_id, fea.field_name, fd.model_name
 FROM model_field_enum_associations fea
 INNER JOIN field_definitions fd ON fea.model_id = fd.model_id AND fea.field_name = fd.name
-WHERE fea.project_slug = ? AND fea.enum_name = ?;
+WHERE fea.org_name = ? AND fea.project_slug = ? AND fea.enum_name = ?;

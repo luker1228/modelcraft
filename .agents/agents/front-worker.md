@@ -470,6 +470,43 @@ npm run dev
 
 ---
 
+## 使用技能
+
+| 触发时机 | 技能 |
+|---------|------|
+| 需要搜索代码、理解模块结构、查找组件/Hook 实现位置时 | `/graphify` |
+
+## 使用知识图谱加速实现
+
+项目已在 `graphify-out/` 生成完整知识图谱。**实现前先查图找参考实现，避免从零写已有模式。**
+
+### 前端核心概念定位
+
+```bash
+# 1. 实现新组件前，找同类已有组件
+/graphify query "<组件功能关键词>" --budget 1500
+
+# 2. 追踪一个 Hook 从 Web 层到 BFF 层的完整链路
+/graphify path "useXxx" "BFF" --dfs
+
+# 3. 排查组件 bug，找所有使用该组件的上游
+/graphify explain "<ComponentName>"
+
+# 4. 修改代码后更新图（让下一次查询更准确）
+python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; _rebuild_code(Path('.'))"
+```
+
+### 图谱揭示的关键模式
+
+图谱检测到的隐式关联可帮你找到正确的实现位置：
+
+| 你要实现的 | 图谱告诉你先看 |
+|-----------|--------------|
+| 新样式组件 | 查 `tailwind_policy + eslint_rules`（两者耦合，同时验证） |
+| 新 BFF 模块 | 查 `bff_design + apollo_client`（技术栈约束网络） |
+| 新 GraphQL Query | 查 `front_architecture`（codegen 流程约束） |
+| 颜色/字体修改 | 查 `color_system + style_md + quick_start`（三者联动） |
+
 ## 完成检查清单
 
 ### 构建与质量门禁（任务完成前必须全部通过）

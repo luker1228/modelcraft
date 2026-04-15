@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect } from 'react'
+import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery } from '@apollo/client'
 import { useProjectScopedClient } from '@bff/apollo/public'
 import { createFieldEnumRelation, queryModelEnumContext } from '@bff/model-enum/public'
@@ -113,6 +113,8 @@ export function InsertFieldSheet({
   const [fieldData, setFieldData] = useState(DEFAULT_FIELD_DATA)
   const [saving, setSaving] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [continueMode, setContinueMode] = useState(false)
+  const continueModeRef = useRef(false)
 
   const isDuplicateName = fieldData.name.trim() !== '' && existingFieldNames.includes(fieldData.name.trim())
   const [enumContextLoading, setEnumContextLoading] = useState(false)
@@ -218,21 +220,24 @@ export function InsertFieldSheet({
         setSaving(false)
         return
       }
-      onOpenChange(false)
       setFieldData(DEFAULT_FIELD_DATA)
       setSubmitError(null)
       setSaving(false)
       onSuccess?.()
+      if (!continueModeRef.current) {
+        onOpenChange(false)
+      }
     },
     onError: (error) => {
-      console.error('Failed to add field:', error)
       setSubmitError('添加字段失败: ' + error.message)
       setSaving(false)
     },
     refetchQueries: ['GetModel', 'GetModelJsonSchema'],
   })
 
-  const handleSave = async () => {
+  const handleSave = async (andContinue = false) => {
+    continueModeRef.current = andContinue
+    setContinueMode(andContinue)
     if (!fieldData.name || !fieldData.title || !fieldData.format) {
       setSubmitError('请填写字段名、标题和类型')
       return
@@ -385,6 +390,18 @@ export function InsertFieldSheet({
     return fieldPairs
   }
 
+  const isSubmitDisabled =
+    saving
+    || !fieldData.name
+    || !fieldData.title
+    || isDuplicateName
+    || (fieldData.format === 'RELATION' && !fieldData.relateFkId)
+    || (fieldData.format === 'ENUM' && !fieldData.relateEnumName)
+    || (
+      fieldData.format === 'ENUM_LABEL'
+      && (!fieldData.sourceFieldName || !fieldData.enumRelationId || Boolean(selectedSource?.occupied))
+    )
+
   return (
     <Drawer open={open} onOpenChange={handleOpenChange} direction="right">
       <DrawerContent className="left-auto right-0 h-screen max-h-screen w-[600px] rounded-none border-l border-border">
@@ -392,11 +409,11 @@ export function InsertFieldSheet({
           {/* Header */}
           <DrawerHeader className="border-b border-border px-6 py-4">
             <DrawerTitle className="flex items-center gap-2 text-lg font-semibold">
-              <Columns className="size-5 text-[#2563eb]" strokeWidth={1.5} />
+              <Columns className="size-5 text-primary" strokeWidth={1.5} />
               插入字段
             </DrawerTitle>
             <DrawerDescription className="mt-1 text-sm">
-              为模型 <span className="font-mono text-[#2563eb]">{modelName}</span> 添加新字段
+              为模型 <span className="font-mono text-primary">{modelName}</span> 添加新字段
             </DrawerDescription>
           </DrawerHeader>
 
@@ -702,7 +719,7 @@ export function InsertFieldSheet({
                       {/* 关联类型选择 */}
                       <div className="space-y-2">
                         <Label className="flex items-center gap-1.5 text-sm text-foreground">
-                          <Link2 className="size-3.5 text-[#2563eb]" strokeWidth={1.5} />
+                          <Link2 className="size-3.5 text-primary" strokeWidth={1.5} />
                           关联类型 <span className="text-xs text-destructive">*</span>
                         </Label>
                         <Select
@@ -747,7 +764,7 @@ export function InsertFieldSheet({
                             加载外键列表...
                           </div>
                         ) : filteredForeignKeys.length === 0 ? (
-                          <div className="rounded-md border border-dashed border-border bg-[#fafafa] p-3">
+                          <div className="rounded-md border border-dashed border-border bg-muted/50 p-3">
                             <p className="text-xs text-muted-foreground">
                               {logicalForeignKeys.length === 0
                                 ? '当前模型暂无逻辑外键。请先在模型编辑器的「逻辑外键」区域定义关系，再添加关联字段。'
@@ -794,7 +811,7 @@ export function InsertFieldSheet({
                       <Switch
                         checked={fieldData.nonNull}
                         onCheckedChange={(checked) => setFieldData(prev => ({ ...prev, nonNull: checked }))}
-                        className="data-[state=checked]:bg-[#2563eb]"
+                        className="data-[state=checked]:bg-primary"
                       />
                       <div className="flex flex-col gap-1">
                         <Label className="text-sm text-foreground">非空约束</Label>
@@ -806,7 +823,7 @@ export function InsertFieldSheet({
                       <Switch
                         checked={fieldData.required}
                         onCheckedChange={(checked) => setFieldData(prev => ({ ...prev, required: checked }))}
-                        className="data-[state=checked]:bg-[#2563eb]"
+                        className="data-[state=checked]:bg-primary"
                       />
                       <div className="flex flex-col gap-1">
                         <Label className="text-sm text-foreground">必填字段</Label>
@@ -818,7 +835,7 @@ export function InsertFieldSheet({
                       <Switch
                         checked={fieldData.unique}
                         onCheckedChange={(checked) => setFieldData(prev => ({ ...prev, unique: checked }))}
-                        className="data-[state=checked]:bg-[#2563eb]"
+                        className="data-[state=checked]:bg-primary"
                       />
                       <div className="flex flex-col gap-1">
                         <Label className="text-sm text-foreground">唯一约束</Label>
@@ -841,6 +858,7 @@ export function InsertFieldSheet({
             )}
             <div className="flex gap-3">
               <Button
+                type="button"
                 variant="outline"
                 onClick={() => handleOpenChange(false)}
                 className="flex-1"
@@ -848,22 +866,28 @@ export function InsertFieldSheet({
                 取消
               </Button>
               <Button
-                onClick={handleSave}
-                disabled={
-                  saving
-                  || !fieldData.name
-                  || !fieldData.title
-                  || isDuplicateName
-                  || (fieldData.format === 'RELATION' && !fieldData.relateFkId)
-                  || (fieldData.format === 'ENUM' && !fieldData.relateEnumName)
-                  || (
-                    fieldData.format === 'ENUM_LABEL'
-                    && (!fieldData.sourceFieldName || !fieldData.enumRelationId || Boolean(selectedSource?.occupied))
-                  )
-                }
-                className="flex-1 border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
+                type="button"
+                variant="outline"
+                onClick={() => handleSave(true)}
+                disabled={isSubmitDisabled}
+                className="flex-1"
               >
-                {saving ? (
+                {saving && continueMode ? (
+                  <>
+                    <Loader2 className="mr-2 size-4 animate-spin" strokeWidth={1.5} />
+                    保存中...
+                  </>
+                ) : (
+                  '保存并继续'
+                )}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleSave(false)}
+                disabled={isSubmitDisabled}
+                className="flex-1"
+              >
+                {saving && !continueMode ? (
                   <>
                     <Loader2 className="mr-2 size-4 animate-spin" strokeWidth={1.5} />
                     保存中...

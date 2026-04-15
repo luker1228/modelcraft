@@ -246,8 +246,16 @@ func TestJSONSchemaGenerator_GenerateSchema_EnumFields(t *testing.T) {
 				Title:        "Tags",
 				Type:         GetFieldTypeByFormat(FormatEnumArray),
 				DisplayOrder: "a1",
-				Validation: &ValidationConfig{
-					EnumValues: []string{"electronics", "clothing", "food"},
+				Enum: &EnumDefinition{
+					ID:            "tags-enum-id",
+					Name:          "ProductTag",
+					DisplayName:   "Product Tag",
+					IsMultiSelect: true,
+					Options: []EnumOption{
+						{Code: "electronics", Label: "Electronics"},
+						{Code: "clothing", Label: "Clothing"},
+						{Code: "food", Label: "Food"},
+					},
 				},
 			},
 		},

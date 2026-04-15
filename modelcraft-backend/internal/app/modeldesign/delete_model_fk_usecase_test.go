@@ -46,14 +46,14 @@ func TestDeleteModelSync_CleansUpOrphanedFKRows(t *testing.T) {
 	mockModelRepo.On("GetByID", ctx, deletedModelID, mock.Anything).Return(model, nil)
 	mockDeployRepo.On("DeployModelToDrop", ctx, model).Return(nil)
 	mockModelRepo.On("Delete", ctx, deletedModelID).Return(nil)
-	mockFKRepo.On("FindByModel", ctx, deletedModelID).Return(
+	mockFKRepo.On("FindByModel", ctx, "", deletedModelID).Return(
 		[]*modeldesign.LogicalForeignKey{orphanRow1}, nil,
 	)
-	mockFKRepo.On("DeleteByPairID", ctx, "pair-orphan").Return(nil)
+	mockFKRepo.On("DeleteByPairID", ctx, "", "pair-orphan").Return(nil)
 
 	err := svc.DeleteModelSync(ctx, deletedModelID, "proj1", true)
 	assert.NoError(t, err)
-	mockFKRepo.AssertCalled(t, "DeleteByPairID", ctx, "pair-orphan")
+	mockFKRepo.AssertCalled(t, "DeleteByPairID", ctx, "", "pair-orphan")
 }
 
 // TestDeleteModelSync_NoOrphanedRows verifies that deletion proceeds normally
@@ -75,7 +75,7 @@ func TestDeleteModelSync_NoOrphanedRows(t *testing.T) {
 	mockModelRepo.On("GetByID", ctx, deletedModelID, mock.Anything).Return(model, nil)
 	mockDeployRepo.On("DeployModelToDrop", ctx, model).Return(nil)
 	mockModelRepo.On("Delete", ctx, deletedModelID).Return(nil)
-	mockFKRepo.On("FindByModel", ctx, deletedModelID).Return([]*modeldesign.LogicalForeignKey{}, nil)
+	mockFKRepo.On("FindByModel", ctx, "", deletedModelID).Return([]*modeldesign.LogicalForeignKey{}, nil)
 
 	err := svc.DeleteModelSync(ctx, deletedModelID, "proj1", true)
 	assert.NoError(t, err)

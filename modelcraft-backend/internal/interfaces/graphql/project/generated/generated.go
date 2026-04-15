@@ -37,6 +37,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Model() ModelResolver
 	Mutation() MutationResolver
 	Query() QueryResolver
 }
@@ -215,6 +216,7 @@ type ComplexityRoot struct {
 		IsMultiSelect func(childComplexity int) int
 		Name          func(childComplexity int) int
 		Options       func(childComplexity int) int
+		OrgName       func(childComplexity int) int
 		ProjectSlug   func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
 	}
@@ -367,6 +369,7 @@ type ComplexityRoot struct {
 		Fields       func(childComplexity int) int
 		Group        func(childComplexity int) int
 		ID           func(childComplexity int) int
+		JSONSchema   func(childComplexity int) int
 		Name         func(childComplexity int) int
 		ProjectSlug  func(childComplexity int) int
 		StorageType  func(childComplexity int) int
@@ -566,6 +569,9 @@ type ComplexityRoot struct {
 	}
 }
 
+type ModelResolver interface {
+	JSONSchema(ctx context.Context, obj *Model) (*string, error)
+}
 type MutationResolver interface {
 	Pong(ctx context.Context) (string, error)
 	UpdateProjectCluster(ctx context.Context, input UpdateClusterConnectionInput) (*UpdateClusterPayload, error)
@@ -1149,6 +1155,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EnumDefinition.Options(childComplexity), true
+	case "EnumDefinition.orgName":
+		if e.complexity.EnumDefinition.OrgName == nil {
+			break
+		}
+
+		return e.complexity.EnumDefinition.OrgName(childComplexity), true
 	case "EnumDefinition.projectSlug":
 		if e.complexity.EnumDefinition.ProjectSlug == nil {
 			break
@@ -1687,6 +1699,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Model.ID(childComplexity), true
+	case "Model.jsonSchema":
+		if e.complexity.Model.JSONSchema == nil {
+			break
+		}
+
+		return e.complexity.Model.JSONSchema(childComplexity), true
 	case "Model.name":
 		if e.complexity.Model.Name == nil {
 			break
@@ -3050,7 +3068,8 @@ type EnumOption {
 # EnumDefinition type - 枚举定义
 type EnumDefinition {
   id: ID!
-  projectSlug: String!  # Project slug (orgName from context)
+  orgName: String!
+  projectSlug: String!
   name: String!
   displayName: String!
   description: String
@@ -3523,6 +3542,7 @@ type Model implements Node {
   fields: [Field!]!
   group: ModelGroup!
   dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
+  jsonSchema: String  # 模型的 JSON Schema（按需计算，仅当请求该字段时计算）
   createdAt: String!
   updatedAt: String!
 }
@@ -4546,6 +4566,8 @@ func (ec *executionContext) fieldContext_AddFieldsPayload_model(_ context.Contex
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -4910,6 +4932,8 @@ func (ec *executionContext) fieldContext_CreateEnumPayload_enum(_ context.Contex
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EnumDefinition_id(ctx, field)
+			case "orgName":
+				return ec.fieldContext_EnumDefinition_orgName(ctx, field)
 			case "projectSlug":
 				return ec.fieldContext_EnumDefinition_projectSlug(ctx, field)
 			case "name":
@@ -5185,6 +5209,8 @@ func (ec *executionContext) fieldContext_CreateModelFromSchemaPayload_model(_ co
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -5242,6 +5268,8 @@ func (ec *executionContext) fieldContext_CreateModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -6691,6 +6719,35 @@ func (ec *executionContext) fieldContext_EnumDefinition_id(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _EnumDefinition_orgName(ctx context.Context, field graphql.CollectedField, obj *EnumDefinition) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EnumDefinition_orgName,
+		func(ctx context.Context) (any, error) {
+			return obj.OrgName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EnumDefinition_orgName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EnumDefinition",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EnumDefinition_projectSlug(ctx context.Context, field graphql.CollectedField, obj *EnumDefinition) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -7667,6 +7724,8 @@ func (ec *executionContext) fieldContext_Field_enum(_ context.Context, field gra
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EnumDefinition_id(ctx, field)
+			case "orgName":
+				return ec.fieldContext_EnumDefinition_orgName(ctx, field)
 			case "projectSlug":
 				return ec.fieldContext_EnumDefinition_projectSlug(ctx, field)
 			case "name":
@@ -8543,6 +8602,8 @@ func (ec *executionContext) fieldContext_GetEnumPayload_enum(_ context.Context, 
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EnumDefinition_id(ctx, field)
+			case "orgName":
+				return ec.fieldContext_EnumDefinition_orgName(ctx, field)
 			case "projectSlug":
 				return ec.fieldContext_EnumDefinition_projectSlug(ctx, field)
 			case "name":
@@ -8641,6 +8702,8 @@ func (ec *executionContext) fieldContext_GetModelPayload_model(_ context.Context
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -9636,6 +9699,35 @@ func (ec *executionContext) fieldContext_Model_dbTable(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Model_jsonSchema(ctx context.Context, field graphql.CollectedField, obj *Model) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Model_jsonSchema,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Model().JSONSchema(ctx, obj)
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Model_jsonSchema(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Model",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Model_createdAt(ctx context.Context, field graphql.CollectedField, obj *Model) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9901,6 +9993,8 @@ func (ec *executionContext) fieldContext_ModelEdge_node(_ context.Context, field
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -10103,6 +10197,8 @@ func (ec *executionContext) fieldContext_ModelGroup_models(_ context.Context, fi
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -10964,6 +11060,8 @@ func (ec *executionContext) fieldContext_Mutation_deprecateField(ctx context.Con
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -11051,6 +11149,8 @@ func (ec *executionContext) fieldContext_Mutation_undeprecateField(ctx context.C
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -12669,6 +12769,8 @@ func (ec *executionContext) fieldContext_Query_enums(_ context.Context, field gr
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EnumDefinition_id(ctx, field)
+			case "orgName":
+				return ec.fieldContext_EnumDefinition_orgName(ctx, field)
 			case "projectSlug":
 				return ec.fieldContext_EnumDefinition_projectSlug(ctx, field)
 			case "name":
@@ -13489,6 +13591,8 @@ func (ec *executionContext) fieldContext_RemoveFieldPayload_model(_ context.Cont
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -13703,6 +13807,8 @@ func (ec *executionContext) fieldContext_RepairModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -14120,6 +14226,8 @@ func (ec *executionContext) fieldContext_SyncModelSchemaPayload_model(_ context.
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -14533,6 +14641,8 @@ func (ec *executionContext) fieldContext_UpdateEnumPayload_enum(_ context.Contex
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EnumDefinition_id(ctx, field)
+			case "orgName":
+				return ec.fieldContext_EnumDefinition_orgName(ctx, field)
 			case "projectSlug":
 				return ec.fieldContext_EnumDefinition_projectSlug(ctx, field)
 			case "name":
@@ -14631,6 +14741,8 @@ func (ec *executionContext) fieldContext_UpdateFieldPayload_model(_ context.Cont
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -14746,6 +14858,8 @@ func (ec *executionContext) fieldContext_UpdateModelMetaPayload_model(_ context.
 				return ec.fieldContext_Model_group(ctx, field)
 			case "dbTable":
 				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_Model_createdAt(ctx, field)
 			case "updatedAt":
@@ -19610,6 +19724,11 @@ func (ec *executionContext) _EnumDefinition(ctx context.Context, sel ast.Selecti
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "orgName":
+			out.Values[i] = ec._EnumDefinition_orgName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "projectSlug":
 			out.Values[i] = ec._EnumDefinition_projectSlug(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -20718,61 +20837,94 @@ func (ec *executionContext) _Model(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Model_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "projectSlug":
 			out.Values[i] = ec._Model_projectSlug(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Model_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "title":
 			out.Values[i] = ec._Model_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._Model_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "databaseName":
 			out.Values[i] = ec._Model_databaseName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "storageType":
 			out.Values[i] = ec._Model_storageType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "displayField":
 			out.Values[i] = ec._Model_displayField(ctx, field, obj)
 		case "fields":
 			out.Values[i] = ec._Model_fields(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "group":
 			out.Values[i] = ec._Model_group(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "dbTable":
 			out.Values[i] = ec._Model_dbTable(ctx, field, obj)
+		case "jsonSchema":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Model_jsonSchema(ctx, field, obj)
+				return res
+			}
+
+			if field.Deferrable != nil {
+				dfs, ok := deferred[field.Deferrable.Label]
+				di := 0
+				if ok {
+					dfs.AddField(field)
+					di = len(dfs.Values) - 1
+				} else {
+					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
+					deferred[field.Deferrable.Label] = dfs
+				}
+				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
+					return innerFunc(ctx, dfs)
+				})
+
+				// don't run the out.Concurrently() call below
+				out.Values[i] = graphql.Null
+				continue
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "createdAt":
 			out.Values[i] = ec._Model_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Model_updatedAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				out.Invalids++
+				atomic.AddUint32(&out.Invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

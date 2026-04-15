@@ -174,14 +174,14 @@ export default function DynamicModelTable({
   const [nameCopied, setNameCopied] = useState(false)
 
   // Fetch model details with fields
-  const { data: modelData, loading: modelLoading } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_QUERY, {
+  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_QUERY, {
     client: projectClient,
     variables: { id: modelId },
     context: projectScopedContext,
   })
 
   // Fetch model schema for runtime queries
-  const { data: schemaData } = useQuery<ModelJsonSchemaQueryData, { id: string }>(MODEL_JSON_SCHEMA_QUERY, {
+  const { data: schemaData, refetch: refetchSchema } = useQuery<ModelJsonSchemaQueryData, { id: string }>(MODEL_JSON_SCHEMA_QUERY, {
     client: projectClient,
     variables: { id: modelId },
     context: projectScopedContext,
@@ -671,7 +671,11 @@ export default function DynamicModelTable({
         projectSlug={projectSlug}
         orgName={orgName}
         existingFieldNames={(model?.fields ?? []).map((f) => f.name)}
-        onSuccess={() => refetch()}
+        onSuccess={() => {
+          void refetch()
+          void refetchModel()
+          void refetchSchema()
+        }}
       />
 
       {/* 删除确认对话框 */}

@@ -45,10 +45,11 @@ ai-metadata/
 │   │   └── debugging-workflow.md
 │   ├── deployment/                   # 部署指南
 │   │   └── README.md
-│   └── tools/                        # 工具手册
-│       ├── README.md
-│       ├── justfile-guide.md
-│       └── tools-installation.md
+│   ├── tools/                        # 工具手册
+│   │   ├── README.md
+│   │   ├── justfile-guide.md
+│   │   └── tools-installation.md
+│   └── common-mistakes.md            # ⚠️ 错题本（真实 Bug Checklist）
 ├── front/                            # 前端知识库
 │   ├── development/
 │   │   ├── README.md                 # 前端开发规范总览
@@ -140,6 +141,12 @@ ai-metadata/
 | [backend/tools/README.md](./backend/tools/README.md) | 工具手册总览 |
 | [backend/tools/justfile-guide.md](./backend/tools/justfile-guide.md) | 所有 `just` 命令参考 |
 | [backend/tools/tools-installation.md](./backend/tools/tools-installation.md) | goenv / just / Atlas / jq 安装指南 |
+
+### ⚠️ 错题本（最高优先级参考）
+
+| 路径 | 说明 |
+|------|------|
+| [backend/common-mistakes.md](./backend/common-mistakes.md) | 真实 Bug 案例 + Checklist 规则，代码审查前必读 |
 
 ---
 

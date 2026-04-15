@@ -11,7 +11,7 @@ type FieldEnumAssociationRepository interface {
 	FindByField(ctx context.Context, modelID, fieldName string) (*FieldEnumAssociation, error)
 
 	// FindByEnumName 根据枚举名称查找所有关联的字段
-	FindByEnumName(ctx context.Context, projectID, enumName string) ([]*FieldEnumAssociation, error)
+	FindByEnumName(ctx context.Context, orgName, projectID, enumName string) ([]*FieldEnumAssociation, error)
 
 	// FindByModelID 根据模型ID查找所有字段的枚举关联
 	FindByModelID(ctx context.Context, modelID string) ([]*FieldEnumAssociation, error)

@@ -21,6 +21,7 @@ const (
 type LogicalForeignKey struct {
 	ID           string             `json:"id"`
 	PairID       string             `json:"pairId"`
+	OrgName      string             `json:"orgName"`
 	Direction    LogicalFKDirection `json:"direction"`
 	ModelID      string             `json:"modelId"`
 	ModelName    string             `json:"modelName"`
@@ -39,6 +40,9 @@ func (lf *LogicalForeignKey) Validate() error {
 	}
 	if lf.PairID == "" {
 		return bizerrors.New("logical foreign key PairID cannot be empty")
+	}
+	if lf.OrgName == "" {
+		return bizerrors.New("logical foreign key OrgName cannot be empty")
 	}
 	if lf.Direction != DirectionNormal && lf.Direction != DirectionReverse {
 		return bizerrors.Errorf("logical foreign key direction must be '%s' or '%s', got '%s'",

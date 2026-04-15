@@ -10,6 +10,7 @@ func TestLogicalForeignKey_Validate_HappyPath(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -53,10 +54,28 @@ func TestLogicalForeignKey_Validate_EmptyPairID(t *testing.T) {
 	assert.Contains(t, err.Error(), "PairID cannot be empty")
 }
 
+func TestLogicalForeignKey_Validate_EmptyOrgName(t *testing.T) {
+	lf := &LogicalForeignKey{
+		ID:           "lf-001",
+		PairID:       "pair-001",
+		Direction:    DirectionNormal,
+		ModelID:      "model-order",
+		ModelName:    "Order",
+		RefModelID:   "model-user",
+		RefModelName: "User",
+		SourceFields: []string{"userId"},
+		TargetFields: []string{"id"},
+	}
+	err := lf.Validate()
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "OrgName cannot be empty")
+}
+
 func TestLogicalForeignKey_Validate_InvalidDirection(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    "invalid",
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -74,6 +93,7 @@ func TestLogicalForeignKey_Validate_EmptyModelID(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelName:    "Order",
 		RefModelID:   "model-user",
@@ -90,6 +110,7 @@ func TestLogicalForeignKey_Validate_EmptyRefModelID(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -106,6 +127,7 @@ func TestLogicalForeignKey_Validate_EmptySourceFields(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -123,6 +145,7 @@ func TestLogicalForeignKey_Validate_FieldCountMismatch(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -140,6 +163,7 @@ func TestLogicalForeignKey_Validate_CompositeFK(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -155,6 +179,7 @@ func TestLogicalForeignKey_Validate_EmptyModelName(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		RefModelID:   "model-user",
@@ -171,6 +196,7 @@ func TestLogicalForeignKey_Validate_EmptyRefModelName(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-001",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionNormal,
 		ModelID:      "model-order",
 		ModelName:    "Order",
@@ -187,6 +213,7 @@ func TestLogicalForeignKey_Validate_ReverseDirection(t *testing.T) {
 	lf := &LogicalForeignKey{
 		ID:           "lf-002",
 		PairID:       "pair-001",
+		OrgName:      "test-org",
 		Direction:    DirectionReverse,
 		ModelID:      "model-user",
 		ModelName:    "User",

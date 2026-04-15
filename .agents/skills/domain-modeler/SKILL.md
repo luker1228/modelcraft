@@ -21,6 +21,31 @@ description: >
 
 如果用户要求参考代码，拒绝并解释：领域模型从业务需求推导，非从实现反推。
 
+## Graphify 辅助检索（可选）
+
+如果 `graphify-out/graph.json` 存在，可在建模前用 graphify 快速理解现有架构社区，辅助判断聚合边界。**不替代 PRD 推导，只做参考**。
+
+### 查询已有领域结构
+
+```bash
+# 查询某个业务概念的相关节点（BFS 广度优先，了解它被哪些模块引用）
+/graphify query "<业务概念名>" 
+
+# 查询两个概念之间的关系路径（判断是否应放在同一聚合）
+/graphify path "<ConceptA>" "<ConceptB>"
+
+# 查看某个核心实体的全部连接（了解聚合边界）
+/graphify explain "<EntityName>"
+```
+
+### 使用时机
+
+- **PRD 提到的概念在代码中已有实现**：用 `explain` 查看它的代码连接，帮助判断是否需要拆分聚合
+- **两个 PRD 概念归属不清**：用 `path` 查看它们在现有代码中的关联距离
+- **识别"神节点"（上帝类）**：读 `graphify-out/GRAPH_REPORT.md` 的 God Nodes 章节，这些高连接度节点往往是聚合边界的候选
+
+> 提示：查询结果中的 `source_file` 和 `source_location` 指向代码位置，建模时**不要打开这些文件**（违反铁律1），仅用连接关系辅助判断。
+
 ## 工作流程
 
 ### 1. 阅读 PRD

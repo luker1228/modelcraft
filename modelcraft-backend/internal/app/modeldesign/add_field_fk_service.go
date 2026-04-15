@@ -31,7 +31,7 @@ func newAddFieldFKService(
 // If relateFKID is nil, validation is skipped (non-RELATION fields).
 func (s *AddFieldFKService) ValidateRelateFKID(
 	ctx context.Context,
-	modelID string,
+	orgName, modelID string,
 	relateFKID *string,
 ) error {
 	if relateFKID == nil {
@@ -41,7 +41,7 @@ func (s *AddFieldFKService) ValidateRelateFKID(
 	// Find the FK row by scanning all rows in the pair that contains this FK ID.
 	// We use FindByPairID here only as a workaround until a FindByID query is added.
 	// For now we look through FindByModel to find the matching row.
-	rows, err := s.fkRepo.FindByModel(ctx, modelID)
+	rows, err := s.fkRepo.FindByModel(ctx, orgName, modelID)
 	if err != nil {
 		return fmt.Errorf("ValidateRelateFKID: look up FK rows for model %s: %w", modelID, err)
 	}

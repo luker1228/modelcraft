@@ -65,7 +65,8 @@ type EnumOption {
 # EnumDefinition type - 枚举定义
 type EnumDefinition {
   id: ID!
-  projectSlug: String!  # Project slug (orgName from context)
+  orgName: String!
+  projectSlug: String!
   name: String!
   displayName: String!
   description: String

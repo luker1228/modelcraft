@@ -125,7 +125,7 @@ func (s *ModelDesignAppService) CreateModelSync(
 	}
 
 	// 1. Check model name uniqueness
-	existingModel, err := s.modelRepo.GetByName(ctx, model.DatabaseName, model.ModelName, model.ProjectSlug)
+	existingModel, err := s.modelRepo.GetByName(ctx, orgName, model.DatabaseName, model.ModelName, model.ProjectSlug)
 	if err != nil && !shared.IsNotFoundError(err) {
 		return "", fmt.Errorf("failed to check model name uniqueness: %w", err)
 	}
@@ -242,7 +242,7 @@ func (s *ModelDesignAppService) DeleteModelSync(ctx context.Context, id, project
 	// 4.10: 清理孤立的反向 FK 行（DB CASCADE 已删除本模型的 FK 行，
 	// 但 ref_model_id = deleted_model_id 的反向行可能残留）
 	if s.fkRepo != nil {
-		s.cleanOrphanedFKRows(ctx, id)
+		s.cleanOrphanedFKRows(ctx, model.OrgName, id)
 	}
 	return nil
 }
@@ -250,9 +250,9 @@ func (s *ModelDesignAppService) DeleteModelSync(ctx context.Context, id, project
 // cleanOrphanedFKRows removes orphaned FK rows left after model deletion.
 // DB CASCADE removes FK rows where model_id = deleted model, but rows where
 // ref_model_id = deleted model may remain as orphans.
-func (s *ModelDesignAppService) cleanOrphanedFKRows(ctx context.Context, modelID string) {
+func (s *ModelDesignAppService) cleanOrphanedFKRows(ctx context.Context, orgName, modelID string) {
 	logger := logfacade.GetLogger(ctx)
-	orphans, err := s.fkRepo.FindByModel(ctx, modelID)
+	orphans, err := s.fkRepo.FindByModel(ctx, orgName, modelID)
 	if err != nil {
 		logger.Warnf(ctx, "DeleteModelSync: failed to query orphaned FK rows for model %s: %v", modelID, err)
 		return
@@ -263,7 +263,7 @@ func (s *ModelDesignAppService) cleanOrphanedFKRows(ctx context.Context, modelID
 			continue
 		}
 		seen[row.PairID] = true
-		if delErr := s.fkRepo.DeleteByPairID(ctx, row.PairID); delErr != nil {
+		if delErr := s.fkRepo.DeleteByPairID(ctx, orgName, row.PairID); delErr != nil {
 			logger.Warnf(ctx, "DeleteModelSync: failed to delete orphaned FK pair %s: %v", row.PairID, delErr)
 		}
 	}
@@ -508,7 +508,7 @@ func (s *ModelDesignAppService) addPhysicFields(
 				ModelID:   model.ID,
 				FieldName: field.Name,
 				ProjectScope: project.ProjectScope{
-					OrgName:     model.OrgName,
+					OrgName:     orgName,
 					ProjectSlug: model.ProjectSlug,
 				},
 				EnumName:     field.EnumName,
@@ -698,7 +698,7 @@ func (s *ModelDesignAppService) addRelationFields(
 		}
 		// 额外验证：relate_fk_id 必须指向本模型的 FK 行
 		if fkSvc != nil {
-			if err := fkSvc.ValidateRelateFKID(ctx, model.ID, field.RelateFKID); err != nil {
+			if err := fkSvc.ValidateRelateFKID(ctx, orgName, model.ID, field.RelateFKID); err != nil {
 				return err
 			}
 		}
@@ -872,7 +872,7 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 
 	// Case 2: FK 列字段（belongs_to_fk_id 字段）——需要检查是否有 RELATION 字段引用该 FK
 	if field.BelongsToFKID != nil && s.fkRepo != nil {
-		if err := s.removeFKPairIfUnreferenced(ctx, modelID, *field.BelongsToFKID); err != nil {
+		if err := s.removeFKPairIfUnreferenced(ctx, dataModel.OrgName, modelID, *field.BelongsToFKID); err != nil {
 			return err
 		}
 	}
@@ -903,8 +903,8 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 
 // removeFKPairIfUnreferenced checks if the FK pair is still referenced by any RELATION fields.
 // If not referenced, it deletes the FK pair. Returns an error if the FK pair is still in use.
-func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, modelID, fkID string) error {
-	relateFields, err := s.fkRepo.FindByRelateField(ctx, fkID)
+func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, orgName, modelID, fkID string) error {
+	relateFields, err := s.fkRepo.FindByRelateField(ctx, orgName, fkID)
 	if err != nil {
 		return fmt.Errorf("RemoveFieldSync: check relate fields: %w", err)
 	}
@@ -912,13 +912,13 @@ func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, 
 		return bizerrors.NewError(bizerrors.FKPairHasRelateFields, fkID)
 	}
 	// No RELATION field references this FK; find and delete the FK pair.
-	fkRows, err := s.fkRepo.FindByModel(ctx, modelID)
+	fkRows, err := s.fkRepo.FindByModel(ctx, orgName, modelID)
 	if err != nil {
 		return fmt.Errorf("RemoveFieldSync: find FK rows: %w", err)
 	}
 	for _, row := range fkRows {
 		if row.ID == fkID {
-			if err := s.fkRepo.DeleteByPairID(ctx, row.PairID); err != nil {
+			if err := s.fkRepo.DeleteByPairID(ctx, orgName, row.PairID); err != nil {
 				return fmt.Errorf("RemoveFieldSync: delete FK pair %s: %w", row.PairID, err)
 			}
 			break
@@ -998,6 +998,38 @@ func (s *ModelDesignAppService) GetModelByID(
 	if modelQueryResult == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
 	}
+
+	// 批量填充 ENUM/ENUM_ARRAY 字段的 EnumDefinition（一次 List，内存 map，无 N+1）
+	if getModelOpt.GetEnumOptions && len(modelQueryResult.Fields) > 0 {
+		// 收集需要加载的 enumName（去重）
+		enumNames := make(map[string]struct{})
+		for _, f := range modelQueryResult.Fields {
+			if f.EnumName != "" {
+				enumNames[f.EnumName] = struct{}{}
+			}
+		}
+		if len(enumNames) > 0 {
+			// 优先使用请求上下文的 orgName，避免模型记录存储的 org 与当前 tenant 不一致
+			enumOrgName := modelQueryResult.OrgName
+			if ctxOrg, ctxErr := ctxutils.GetOrgNameFromContext(ctx); ctxErr == nil && ctxOrg != "" {
+				enumOrgName = ctxOrg
+			}
+			allEnums, listErr := s.enumRepo.List(enumOrgName, modelQueryResult.ProjectSlug)
+			if listErr != nil {
+				return nil, fmt.Errorf("GetModelByID: list enums: %w", listErr)
+			}
+			enumMap := make(map[string]*modeldesign.EnumDefinition, len(allEnums))
+			for _, e := range allEnums {
+				enumMap[e.Name] = e
+			}
+			for _, f := range modelQueryResult.Fields {
+				if f.EnumName != "" {
+					f.Enum = enumMap[f.EnumName] // nil-safe: missing enum stays nil
+				}
+			}
+		}
+	}
+
 	return modelQueryResult, nil
 }
 
@@ -1238,7 +1270,7 @@ func (s *ModelDesignAppService) CreateModelFromSchema(
 	}
 
 	// 检查模型名冲突
-	existingModel, err := s.modelRepo.GetByName(ctx, databaseName, model.ModelName, projectSlug)
+	existingModel, err := s.modelRepo.GetByName(ctx, orgName, databaseName, model.ModelName, projectSlug)
 	if err != nil && !shared.IsNotFoundError(err) {
 		return nil, fmt.Errorf("failed to check model name uniqueness: %w", err)
 	}

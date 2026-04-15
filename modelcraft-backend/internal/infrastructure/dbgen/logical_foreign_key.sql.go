@@ -12,13 +12,14 @@ import (
 )
 
 const createLogicalForeignKey = `-- name: CreateLogicalForeignKey :exec
-INSERT INTO logical_foreign_keys (id, pair_id, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO logical_foreign_keys (id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateLogicalForeignKeyParams struct {
 	ID           string
 	PairID       string
+	OrgName      string
 	Direction    LogicalForeignKeysDirection
 	ModelID      string
 	ModelName    string
@@ -32,6 +33,7 @@ func (q *Queries) CreateLogicalForeignKey(ctx context.Context, arg CreateLogical
 	_, err := q.db.ExecContext(ctx, createLogicalForeignKey,
 		arg.ID,
 		arg.PairID,
+		arg.OrgName,
 		arg.Direction,
 		arg.ModelID,
 		arg.ModelName,
@@ -44,11 +46,18 @@ func (q *Queries) CreateLogicalForeignKey(ctx context.Context, arg CreateLogical
 }
 
 const deleteLogicalForeignKeyByPairID = `-- name: DeleteLogicalForeignKeyByPairID :exec
-DELETE FROM logical_foreign_keys WHERE pair_id = ?
+DELETE FROM logical_foreign_keys
+WHERE pair_id = ?
+  AND org_name = ?
 `
 
-func (q *Queries) DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID string) error {
-	_, err := q.db.ExecContext(ctx, deleteLogicalForeignKeyByPairID, pairID)
+type DeleteLogicalForeignKeyByPairIDParams struct {
+	PairID  string
+	OrgName string
+}
+
+func (q *Queries) DeleteLogicalForeignKeyByPairID(ctx context.Context, arg DeleteLogicalForeignKeyByPairIDParams) error {
+	_, err := q.db.ExecContext(ctx, deleteLogicalForeignKeyByPairID, arg.PairID, arg.OrgName)
 	return err
 }
 
@@ -56,7 +65,13 @@ const findFieldsByBelongsToFKID = `-- name: FindFieldsByBelongsToFKID :many
 SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE belongs_to_fk_id = ?
+  AND org_name = ?
 `
+
+type FindFieldsByBelongsToFKIDParams struct {
+	BelongsToFkID sql.NullString
+	OrgName       string
+}
 
 type FindFieldsByBelongsToFKIDRow struct {
 	ModelID        string
@@ -84,8 +99,8 @@ type FindFieldsByBelongsToFKIDRow struct {
 	UpdatedAt      sql.NullTime
 }
 
-func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID sql.NullString) ([]FindFieldsByBelongsToFKIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, findFieldsByBelongsToFKID, belongsToFkID)
+func (q *Queries) FindFieldsByBelongsToFKID(ctx context.Context, arg FindFieldsByBelongsToFKIDParams) ([]FindFieldsByBelongsToFKIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, findFieldsByBelongsToFKID, arg.BelongsToFkID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +150,13 @@ const findFieldsByRelateFKID = `-- name: FindFieldsByRelateFKID :many
 SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, enum_relation_id, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE relate_fk_id = ?
+  AND org_name = ?
 `
+
+type FindFieldsByRelateFKIDParams struct {
+	RelateFkID sql.NullString
+	OrgName    string
+}
 
 type FindFieldsByRelateFKIDRow struct {
 	ModelID        string
@@ -163,8 +184,8 @@ type FindFieldsByRelateFKIDRow struct {
 	UpdatedAt      sql.NullTime
 }
 
-func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.NullString) ([]FindFieldsByRelateFKIDRow, error) {
-	rows, err := q.db.QueryContext(ctx, findFieldsByRelateFKID, relateFkID)
+func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, arg FindFieldsByRelateFKIDParams) ([]FindFieldsByRelateFKIDRow, error) {
+	rows, err := q.db.QueryContext(ctx, findFieldsByRelateFKID, arg.RelateFkID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
@@ -211,13 +232,19 @@ func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.Nul
 }
 
 const findLogicalForeignKeysByModelID = `-- name: FindLogicalForeignKeysByModelID :many
-SELECT id, pair_id, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
 FROM logical_foreign_keys
 WHERE model_id = ?
+  AND org_name = ?
 `
 
-func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, modelID string) ([]LogicalForeignKey, error) {
-	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByModelID, modelID)
+type FindLogicalForeignKeysByModelIDParams struct {
+	ModelID string
+	OrgName string
+}
+
+func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, arg FindLogicalForeignKeysByModelIDParams) ([]LogicalForeignKey, error) {
+	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByModelID, arg.ModelID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
@@ -228,6 +255,7 @@ func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, modelID s
 		if err := rows.Scan(
 			&i.ID,
 			&i.PairID,
+			&i.OrgName,
 			&i.Direction,
 			&i.ModelID,
 			&i.ModelName,
@@ -252,13 +280,19 @@ func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, modelID s
 }
 
 const findLogicalForeignKeysByPairID = `-- name: FindLogicalForeignKeysByPairID :many
-SELECT id, pair_id, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
 FROM logical_foreign_keys
 WHERE pair_id = ?
+  AND org_name = ?
 `
 
-func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, pairID string) ([]LogicalForeignKey, error) {
-	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByPairID, pairID)
+type FindLogicalForeignKeysByPairIDParams struct {
+	PairID  string
+	OrgName string
+}
+
+func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]LogicalForeignKey, error) {
+	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByPairID, arg.PairID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
@@ -269,6 +303,7 @@ func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, pairID str
 		if err := rows.Scan(
 			&i.ID,
 			&i.PairID,
+			&i.OrgName,
 			&i.Direction,
 			&i.ModelID,
 			&i.ModelName,
@@ -293,13 +328,19 @@ func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, pairID str
 }
 
 const findLogicalForeignKeysByRefModelID = `-- name: FindLogicalForeignKeysByRefModelID :many
-SELECT id, pair_id, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
 FROM logical_foreign_keys
 WHERE ref_model_id = ?
+  AND org_name = ?
 `
 
-func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, refModelID string) ([]LogicalForeignKey, error) {
-	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByRefModelID, refModelID)
+type FindLogicalForeignKeysByRefModelIDParams struct {
+	RefModelID string
+	OrgName    string
+}
+
+func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]LogicalForeignKey, error) {
+	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByRefModelID, arg.RefModelID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
@@ -310,6 +351,7 @@ func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, refMod
 		if err := rows.Scan(
 			&i.ID,
 			&i.PairID,
+			&i.OrgName,
 			&i.Direction,
 			&i.ModelID,
 			&i.ModelName,
@@ -334,7 +376,7 @@ func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, refMod
 }
 
 const getLogicalForeignKeyByID = `-- name: GetLogicalForeignKeyByID :one
-SELECT id, pair_id, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
 FROM logical_foreign_keys
 WHERE id = ?
 LIMIT 1
@@ -346,6 +388,7 @@ func (q *Queries) GetLogicalForeignKeyByID(ctx context.Context, id string) (Logi
 	err := row.Scan(
 		&i.ID,
 		&i.PairID,
+		&i.OrgName,
 		&i.Direction,
 		&i.ModelID,
 		&i.ModelName,

@@ -99,7 +99,7 @@ func (m *mockModelRepo) UpdateWithVersion(ctx context.Context, model *modeldesig
 }
 func (m *mockModelRepo) Delete(ctx context.Context, id string) error { return nil }
 func (m *mockModelRepo) GetByName(
-	ctx context.Context, db, name, proj string, opts ...*modeldesign.ModelQueryOptions,
+	ctx context.Context, orgName, db, name, proj string, opts ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
 	return nil, nil
 }

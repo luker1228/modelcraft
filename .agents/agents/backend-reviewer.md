@@ -132,17 +132,50 @@ ls tests-bdd/.env.test 2>/dev/null && echo "OK" || echo "请创建 tests-bdd/.en
 
 ---
 
+---
+
+## ⚠️ 能力四：错题本 Checklist 审查【必做项】
+
+> **这是所有代码审查中优先级最高的一步，不可跳过。**
+
+使用 **`backend-checklist` skill（review 模式）** 对变更代码跑一遍历史 Bug Checklist。
+
+错题本路径：`ai-metadata/backend/common-mistakes.md`
+
+### 何时调用
+
+| 场景 | 操作 |
+|------|------|
+| 任何代码 Review | **Review 开始前，先跑 Checklist**，再执行能力一 |
+| 新增 SQL 查询 / 修改 Repository 层 | **强制执行**，历史 Bug 多集中在此 |
+| 涉及多租户 / org_name / project_slug 的代码 | **强制执行** |
+| 用户说「加入错题本」 | 调用 `backend-checklist` skill（add 模式） |
+
+### 汇报格式
+
+Checklist 结果放在汇总报告最前面：
+
+```
+🗂️ 错题本 Checklist：{X} 条规则，命中 {Y} 条 / 全部通过
+```
+
+若有命中，则提升为 CRITICAL 问题，单独列出。
+
+---
+
 ## 工作流
 
 1. **明确范围** —— 要审查的是哪些代码或 PRD？涉及哪些领域？
 2. **读取相关文件** —— 源代码、测试文件、PRD、GraphQL schema、`AGENTS.md`。
-3. **Lint & 审查** —— 执行能力一，按严重程度排序（CRITICAL → HIGH → MEDIUM → LOW → INFO）。
-4. **运行 BDD 测试** —— 使用能力三（bdd-test skill）验证相关领域的行为。
-5. **汇总报告** —— 整理输出：
+3. **Lint & 审查** —— 执行能力一，按严重程度排序（CRITICAL → HIGH → MEDIUM → LOW → INFO）。Lint 不通过时，后续步骤暂停，优先修复。
+4. **⚠️ 错题本 Checklist** —— Lint 通过后，调用 `backend-checklist` skill（review）逐条检查历史 Bug 模式。
+5. **运行 BDD 测试** —— 使用能力三（bdd-test skill）验证相关领域的行为。
+6. **汇总报告** —— 整理输出：
 
 ```
 📊 审查汇总
 ━━━━━━━━━━━━━━━━
+🗂️  错题本 Checklist：X 条规则，命中 Y 条（命中项已标为 CRITICAL）
 🔴 Critical: X 个问题
 🟠 High:     X 个问题
 🟡 Medium:   X 个问题
@@ -164,6 +197,36 @@ ls tests-bdd/.env.test 2>/dev/null && echo "OK" || echo "请创建 tests-bdd/.en
 - **日志规范**：遵循 `ai-metadata/backend/development/logging.md`
 - **Repository 模式**：遵循 `ai-metadata/backend/development/repo-develop.md`
 - **BDD 测试**：位于 `tests-bdd/`，覆盖 Auth / Model / Field / Enum / LFK 五个领域
+
+## 使用知识图谱辅助审查
+
+项目知识图谱在 `graphify-out/`（6923 节点、9621 条边）。审查代码时可用图谱快速定位「这段代码应该长什么样」的参考实现。
+
+### 审查前快速定位
+
+```bash
+# 审查某个 Repository 实现 → 先看 God Node 的邻居作为参考标准
+/graphify explain "SqlModelDesignRepository"   # 已知正确的 Repository 实现参考
+
+# 审查错误处理 → 找隐式耦合链
+/graphify path "bizerrors" "graphqlModelResolver"   # 追踪错误从 pkg 到 Interfaces 的完整路径
+
+# 审查 Context 传递 → 从 God Node 出发（1631 条边！）
+/graphify explain "executionContext"   # 了解 Context 应携带哪些信息
+
+# 审查某个新实现是否违反了分层规则
+/graphify query "<被审查的类型名>" --dfs   # 看它的依赖链是否有逆向引用
+```
+
+### 图谱揭示的审查重点
+
+从 Surprising Connections 可以看出这个项目的隐式设计契约：
+
+| 审查点 | 图谱依据 |
+|--------|---------|
+| Repository 用 `sqlerr` 包装还是手动检查 | `repo-develop.md → repo-develop.go`（EXTRACTED，说明规范和实现是绑定的） |
+| `RepositoryError` vs `bizerrors` 越层使用 | `error-handling.md → repo-develop.go`（INFERRED，说明这是隐式设计规范） |
+| Infrastructure 层是否用了 Go Wrapper 架构 | `architecture.md → repo-develop.md`（INFERRED，说明架构文档对 repo 实现有约束） |
 
 ---
 

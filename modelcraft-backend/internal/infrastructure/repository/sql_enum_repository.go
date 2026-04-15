@@ -254,6 +254,7 @@ func (r *SqlEnumRepository) IsReferencedByFields(orgName, projectSlug, name stri
 	ctx := context.Background()
 
 	rows, err := r.q.GetEnumReferencesByName(ctx, dbgen.GetEnumReferencesByNameParams{
+		OrgName:     orgName,
 		ProjectSlug: projectSlug,
 		EnumName:    name,
 	})
@@ -332,12 +333,13 @@ func (r *SqlFieldEnumAssociationRepository) FindByField(
 	return FieldEnumAssociationToDomain(row), nil
 }
 
-// FindByEnumName retrieves all field associations for a given enum within a project.
+// FindByEnumName retrieves all field associations for a given enum within an org and project.
 func (r *SqlFieldEnumAssociationRepository) FindByEnumName(
 	ctx context.Context,
-	projectSlug, enumName string,
+	orgName, projectSlug, enumName string,
 ) ([]*modeldesign.FieldEnumAssociation, error) {
 	rows, err := r.q.GetFieldEnumAssociationsByEnumName(ctx, dbgen.GetFieldEnumAssociationsByEnumNameParams{
+		OrgName:     orgName,
 		ProjectSlug: projectSlug,
 		EnumName:    enumName,
 	})

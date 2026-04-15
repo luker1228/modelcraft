@@ -7,12 +7,13 @@ SELECT * FROM models WHERE id = ? LIMIT 1;
 
 -- name: GetModelByName :one
 SELECT * FROM models
-WHERE database_name = ? AND name = ? AND project_slug = ?
+WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ?
 LIMIT 1;
 
 -- name: ListModels :many
 SELECT * FROM models
-WHERE project_slug = ?
+WHERE org_name = ?
+  AND project_slug = ?
   AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
@@ -23,7 +24,8 @@ LIMIT ? OFFSET ?;
 
 -- name: CountModels :one
 SELECT COUNT(*) FROM models
-WHERE project_slug = ?
+WHERE org_name = ?
+  AND project_slug = ?
   AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))

@@ -23,15 +23,15 @@ func (m *MockLogicalForeignKeyRepository) Save(ctx context.Context, fk *modeldes
 	return args.Error(0)
 }
 
-func (m *MockLogicalForeignKeyRepository) DeleteByPairID(ctx context.Context, pairID string) error {
-	args := m.Called(ctx, pairID)
+func (m *MockLogicalForeignKeyRepository) DeleteByPairID(ctx context.Context, orgName, pairID string) error {
+	args := m.Called(ctx, orgName, pairID)
 	return args.Error(0)
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByModel(
-	ctx context.Context, modelID string,
+	ctx context.Context, orgName, modelID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
-	args := m.Called(ctx, modelID)
+	args := m.Called(ctx, orgName, modelID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -39,9 +39,9 @@ func (m *MockLogicalForeignKeyRepository) FindByModel(
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByPairID(
-	ctx context.Context, pairID string,
+	ctx context.Context, orgName, pairID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
-	args := m.Called(ctx, pairID)
+	args := m.Called(ctx, orgName, pairID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -49,9 +49,9 @@ func (m *MockLogicalForeignKeyRepository) FindByPairID(
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByBelongsToField(
-	ctx context.Context, fkID string,
+	ctx context.Context, orgName, fkID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
-	args := m.Called(ctx, fkID)
+	args := m.Called(ctx, orgName, fkID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -59,9 +59,9 @@ func (m *MockLogicalForeignKeyRepository) FindByBelongsToField(
 }
 
 func (m *MockLogicalForeignKeyRepository) FindByRelateField(
-	ctx context.Context, fkID string,
+	ctx context.Context, orgName, fkID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
-	args := m.Called(ctx, fkID)
+	args := m.Called(ctx, orgName, fkID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -180,12 +180,12 @@ func TestAddRelationField_RejectsFKIDMismatch(t *testing.T) {
 
 	// FK row belongs to a different model
 	fkRow := makeFKRow("fk-normal-1", "pair-1", "model-WRONG", "model-2", modeldesign.DirectionNormal)
-	mockFKRepo.On("FindByModel", ctx, "model-1").Return(
+	mockFKRepo.On("FindByModel", ctx, "test-org", "model-1").Return(
 		[]*modeldesign.LogicalForeignKey{fkRow}, nil,
 	)
 
 	fkID := "fk-normal-1"
-	err := svc.ValidateRelateFKID(ctx, "model-1", &fkID)
+	err := svc.ValidateRelateFKID(ctx, "test-org", "model-1", &fkID)
 	// The FK row ID matches but belongs to a different model — should be rejected
 	assert.Error(t, err)
 }
@@ -200,12 +200,12 @@ func TestAddRelationField_AcceptsMatchingFKID(t *testing.T) {
 	svc := newAddFieldFKService(mockModelRepo, mockFKRepo)
 
 	fkRow := makeFKRow("fk-normal-1", "pair-1", "model-1", "model-2", modeldesign.DirectionNormal)
-	mockFKRepo.On("FindByModel", ctx, "model-1").Return(
+	mockFKRepo.On("FindByModel", ctx, "test-org", "model-1").Return(
 		[]*modeldesign.LogicalForeignKey{fkRow}, nil,
 	)
 
 	fkID := "fk-normal-1"
-	err := svc.ValidateRelateFKID(ctx, "model-1", &fkID)
+	err := svc.ValidateRelateFKID(ctx, "test-org", "model-1", &fkID)
 	assert.NoError(t, err)
 }
 
@@ -215,6 +215,6 @@ func TestAddRelationField_NilRelateFkIdSkipsValidation(t *testing.T) {
 	ctx := context.Background()
 	svc := newAddFieldFKService(new(MockModelRepository), new(MockLogicalForeignKeyRepository))
 
-	err := svc.ValidateRelateFKID(ctx, "model-1", nil)
+	err := svc.ValidateRelateFKID(ctx, "test-org", "model-1", nil)
 	assert.NoError(t, err)
 }

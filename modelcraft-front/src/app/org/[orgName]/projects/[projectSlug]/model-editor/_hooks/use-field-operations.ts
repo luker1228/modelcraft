@@ -146,6 +146,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
           modelID: state.editModelData.id,
           fieldName: field.name,
         },
+        refetchQueries: ['GetModel', 'GetModelJsonSchema'],
       })
 
       setEditModelData((prev) => {

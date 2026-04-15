@@ -42,6 +42,7 @@ func (r *SqlModelRuntimeRepository) GetByName(
 	ctx context.Context, modelLocator *modeldesign.ModelLocator,
 ) (*modelruntime.RuntimeModel, error) {
 	row, err := r.q.GetModelByName(ctx, dbgen.GetModelByNameParams{
+		OrgName:      modelLocator.OrgName,
 		DatabaseName: modelLocator.DatabaseName,
 		Name:         modelLocator.ModelName,
 		ProjectSlug:  modelLocator.ProjectSlug,
@@ -82,6 +83,7 @@ func (r *SqlModelRuntimeRepository) getFields(
 	enumMap := make(map[string]*modeldesign.EnumDefinition)
 	if len(enumNames) > 0 {
 		enumRows, enumErr := r.q.GetEnumsByNames(ctx, dbgen.GetEnumsByNamesParams{
+			OrgName:     orgName,
 			ProjectSlug: projectSlug,
 			Names:       enumNames,
 		})

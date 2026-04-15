@@ -366,14 +366,15 @@ func (r *SqlModelDesignRepository) GetByID(
 	return m, nil
 }
 
-// GetByName retrieves a model by database name, model name, and project slug.
+// GetByName retrieves a model by org name, database name, model name, and project slug.
 // Returns nil, shared.NewNotFoundError if the model does not exist.
 func (r *SqlModelDesignRepository) GetByName(
 	ctx context.Context,
-	databaseName, name, projectSlug string,
+	orgName, databaseName, name, projectSlug string,
 	opts ...*modeldesign.ModelQueryOptions,
 ) (*modeldesign.DataModel, error) {
 	row, err := r.q.GetModelByName(ctx, dbgen.GetModelByNameParams{
+		OrgName:      orgName,
 		DatabaseName: databaseName,
 		Name:         name,
 		ProjectSlug:  projectSlug,
@@ -446,15 +447,16 @@ func (r *SqlModelDesignRepository) Query(
 	}
 
 	rows, err := r.q.ListModels(ctx, dbgen.ListModelsParams{
+		OrgName:      queryObj.OrgName,
 		ProjectSlug:  queryObj.ProjectSlug,
 		DatabaseName: queryObj.DatabaseName,
-		Column3:      nameFilter,
+		Column4:      nameFilter,
 		CONCAT:       nameArg,
-		Column5:      titleFilter,
+		Column6:      titleFilter,
 		CONCAT_2:     titleArg,
-		Column7:      nullableStatusFilter(statusArg),
+		Column8:      nullableStatusFilter(statusArg),
 		Status:       statusArg,
-		Column9:      nullableStorageTypeFilter(storageTypeArg),
+		Column10:     nullableStorageTypeFilter(storageTypeArg),
 		StorageType:  storageTypeArg,
 		Limit:        limit,
 		Offset:       offset,
@@ -464,15 +466,16 @@ func (r *SqlModelDesignRepository) Query(
 	}
 
 	total, err := r.q.CountModels(ctx, dbgen.CountModelsParams{
+		OrgName:      queryObj.OrgName,
 		ProjectSlug:  queryObj.ProjectSlug,
 		DatabaseName: queryObj.DatabaseName,
-		Column3:      nameFilter,
+		Column4:      nameFilter,
 		CONCAT:       nameArg,
-		Column5:      titleFilter,
+		Column6:      titleFilter,
 		CONCAT_2:     titleArg,
-		Column7:      nullableStatusFilter(statusArg),
+		Column8:      nullableStatusFilter(statusArg),
 		Status:       statusArg,
-		Column9:      nullableStorageTypeFilter(storageTypeArg),
+		Column10:     nullableStorageTypeFilter(storageTypeArg),
 		StorageType:  storageTypeArg,
 	})
 	if err != nil {

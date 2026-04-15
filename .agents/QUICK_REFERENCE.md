@@ -277,8 +277,6 @@ description: ...
 skills/front/
 ├── design-token-extractor/
 │   └── SKILL.md
-├── contract-sync/
-│   └── SKILL.md
 └── ui-ux-pro-max/
     └── SKILL.md
 ```

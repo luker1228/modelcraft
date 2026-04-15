@@ -231,6 +231,42 @@ export function XxxPanel({ ... }: XxxPanelProps): JSX.Element {
 | 触发时机 | 技能 |
 |---------|------|
 | 需要查阅项目设计规范、颜色系统、Tailwind 使用策略，或有界面设计相关决策时 | `/frontend-design` |
+| 需要搜索代码、理解现有模块结构、查找组件/Hook 实现位置时 | `/graphify` |
+| 后端 API contract 有变更，或前端 `contract/` 目录需要更新时 | `/front-contract-pull` |
+
+## 使用知识图谱做架构决策
+
+项目已在 `graphify-out/` 生成完整知识图谱。**做模块划分决策前先查图，找到已有的模式而不是重复发明。**
+
+### 已发现的前端架构社区
+
+图谱检测到两个关键超边（跨文件隐式关联），可直接指导架构决策：
+
+- **Frontend Styling System**：`tailwind_policy + color_system + style_md + quick_start + eslint_rules` 形成完整的样式约束网络（INFERRED 0.90），说明这五个规范文件高度耦合，修改样式决策时需同时验证
+- **Frontend Tech Architecture Stack**：`front_architecture + bff_design + nextjs_app_router + apollo_client + zustand + casdoor_auth` 形成技术栈约束网络（INFERRED 0.85），新模块必须在这个栈内选型
+
+### 做架构决策前的图查询
+
+```bash
+# 1. 在已有组件中找复用点（避免重复抽象）
+/graphify query "<功能名称>" --budget 1500
+
+# 2. 检查某个 Hook 被哪些组件复用
+/graphify explain "use<HookName>"
+
+# 3. 找某个页面模块的全部依赖边界
+/graphify query "<module>" --dfs
+
+# 4. 规划新模块时，找最近的同类社区
+# 读 graphify-out/GRAPH_REPORT.md 的 Community 部分，
+# 按节点列表找最相关的社区，新模块参考该社区的组织模式
+```
+
+### 隐式耦合警告
+
+图谱发现的 Surprising Connections 意味着你在架构中改动一处，可能影响另一处：
+- 前端样式系统五个文件高度耦合 → 修改颜色系统规范时，必须同时更新 ESLint 规则
+- BFF 层与 Apollo / Casdoor 紧密绑定 → 新认证方式不能绕过 BFF 门面
 
 ## 完成检查清单
 

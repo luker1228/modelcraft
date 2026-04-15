@@ -233,3 +233,25 @@ Tailwind 冲突类名：
 7. **框架专项规则**：应用 React/Next.js 最佳实践（hooks 规则、App Router 约定、SSR/SSG 注意事项等）。
 8. **生产思维**：始终从生产就绪性和可维护性角度评估代码。
 9. **设计系统优先**：对字体权重、颜色、圆角、图标等设计系统规范保持零容忍，发现违规必须报告。
+
+## 使用知识图谱辅助审查
+
+项目知识图谱在 `graphify-out/`（6923 节点、9621 条边）。审查前用图谱快速定位「正确的参考实现」。
+
+```bash
+# 审查某个组件是否遵循项目模式
+/graphify explain "<ComponentName>"   # 看它的邻居，理解它在项目中的定位
+
+# 检查样式决策是否一致（样式系统五个文件高度耦合）
+/graphify query "tailwind" --budget 1000   # 找同类组件的样式用法
+
+# 审查 BFF 层是否正确使用门面模式
+/graphify query "BFF"    # 找 bff_design + apollo 的耦合边，确认 public.ts 约束
+
+# 找到被审查组件的所有上游调用者
+/graphify query "<ComponentName>" --dfs
+```
+
+**审查时的图谱提示**：
+- 若发现样式违规（font-bold、text-gray-*），这来自图谱发现的 Hyperedge：`tailwind_policy + eslint_rules` 是强耦合的，ESLint 配置会强制执行
+- 若发现 BFF 层绕过 `public.ts`，这违反了图谱中 `bff_design → apollo_client` 的隐式约束

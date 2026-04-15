@@ -1,0 +1,115 @@
+{
+  "skill_name": "backend-checklist",
+  "evals": [
+    {
+      "id": 1,
+      "name": "trigger-add-mistake",
+      "should_trigger": true,
+      "prompt": "我刚 fix 了一个 bug：sql_modelruntime_repository.go 里 GetEnumsByNames 查询缺少 org_name 条件，导致跨租户拿到了错误的枚举定义。错误现象是 findMany 返回 partial success，errors 里有 'undefined enum: a is not a valid value for enum order'。把这个错误加入错题本。",
+      "assertions": [
+        {"text": "触发了 backend-checklist skill"},
+        {"text": "识别为 add 模式"},
+        {"text": "生成了 BM- 编号"},
+        {"text": "包含 ❌ 错误代码 vs ✅ 正确代码"},
+        {"text": "包含 Checklist 规则（以「凡是…」或「禁止…」开头）"}
+      ]
+    },
+    {
+      "id": 2,
+      "name": "trigger-checklist-review",
+      "should_trigger": true,
+      "prompt": "用错题本 check 一下这段代码有没有踩过的坑：\n\nfunc (r *SqlModelRuntimeRepository) getFields(ctx context.Context, modelID, orgName, projectSlug string) {\n  enumRows, _ := r.q.GetEnumsByNames(ctx, dbgen.GetEnumsByNamesParams{\n    ProjectSlug: projectSlug,\n    Names: enumNames,\n  })\n}",
+      "assertions": [
+        {"text": "触发了 backend-checklist skill"},
+        {"text": "识别为 review 模式"},
+        {"text": "读取了 common-mistakes.md"},
+        {"text": "命中了 BM-20260415-0001（缺少 org_name）"},
+        {"text": "输出了 ❌ 命中条目和位置说明"}
+      ]
+    },
+    {
+      "id": 3,
+      "name": "trigger-sql-repo-check",
+      "should_trigger": true,
+      "prompt": "帮我 checklist review 一下 modelcraft-backend/internal/infrastructure/repository/sql_modelruntime_repository.go，看看有没有历史 bug 模式。",
+      "assertions": [
+        {"text": "触发了 backend-checklist skill"},
+        {"text": "识别为 review 模式"},
+        {"text": "读取了目标文件"},
+        {"text": "输出了结构化 Checklist 结果"}
+      ]
+    },
+    {
+      "id": 4,
+      "name": "trigger-history-query",
+      "should_trigger": true,
+      "prompt": "历史上有没有出过跨租户数据污染的案例？以前踩过哪些 SQL 层面的坑？",
+      "assertions": [
+        {"text": "触发了 backend-checklist skill"},
+        {"text": "读取了 common-mistakes.md"},
+        {"text": "返回了 BM-20260415-0001 的案例内容"}
+      ]
+    },
+    {
+      "id": 5,
+      "name": "trigger-record-bug",
+      "should_trigger": true,
+      "prompt": "这个 bug 很典型，以后 review 代码时要记住。记录一下：凡是查 model_enums 表的 SQL，必须同时带 org_name 和 project_slug，不能只带 project_slug。",
+      "assertions": [
+        {"text": "触发了 backend-checklist skill"},
+        {"text": "识别为 add 模式"},
+        {"text": "追加写入了 common-mistakes.md"}
+      ]
+    },
+    {
+      "id": 6,
+      "name": "no-trigger-code-review",
+      "should_trigger": false,
+      "prompt": "帮我 review 一下 internal/app/modeldesign/field_app.go 这个文件的代码质量，看看有没有逻辑错误、错误处理漏洞。",
+      "assertions": [
+        {"text": "没有触发 backend-checklist skill"},
+        {"text": "触发了 backend-reviewer 或直接进行代码审查"}
+      ]
+    },
+    {
+      "id": 7,
+      "name": "no-trigger-bdd-test",
+      "should_trigger": false,
+      "prompt": "跑一下 enum 领域的 BDD 测试，看看有没有挂掉的场景。",
+      "assertions": [
+        {"text": "没有触发 backend-checklist skill"},
+        {"text": "触发了 bdd-test skill 或 backend-reviewer"}
+      ]
+    },
+    {
+      "id": 8,
+      "name": "no-trigger-db-migrate",
+      "should_trigger": false,
+      "prompt": "数据库迁移跑完了，帮我确认一下 model_enums 表结构是否和 schema 定义一致。",
+      "assertions": [
+        {"text": "没有触发 backend-checklist skill"},
+        {"text": "触发了 db-develop skill 或直接查看 schema"}
+      ]
+    },
+    {
+      "id": 9,
+      "name": "no-trigger-fix-bug",
+      "should_trigger": false,
+      "prompt": "这段代码有 bug，GetEnumsByNames 少了 org_name 参数，帮我直接修一下。",
+      "assertions": [
+        {"text": "没有触发 backend-checklist skill"},
+        {"text": "直接进行代码修复"}
+      ]
+    },
+    {
+      "id": 10,
+      "name": "no-trigger-memory",
+      "should_trigger": false,
+      "prompt": "你之前帮我做了哪些改动？有没有记住什么重要信息？",
+      "assertions": [
+        {"text": "没有触发 backend-checklist skill"},
+        {"text": "查看 memory 或回顾对话历史"}
+      ]
+    }
+  ]
+}

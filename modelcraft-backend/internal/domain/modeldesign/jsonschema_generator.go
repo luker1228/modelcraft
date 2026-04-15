@@ -17,7 +17,7 @@ func (g *JSONSchemaGenerator) GenerateSchema(model *DataModel) (string, error) {
 	schema := g.buildSchema(model)
 
 	// 序列化为JSON字符串
-	jsonBytes, err := json.MarshalIndent(schema, "", "  ")
+	jsonBytes, err := json.Marshal(schema)
 	if err != nil {
 		return "", err
 	}
@@ -133,21 +133,15 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 
 // applyEnumOptions 应用枚举选项
 func (g *JSONSchemaGenerator) applyEnumOptions(schema map[string]interface{}, field *FieldDefinition) {
-	// 从ValidationConfig.EnumValues或Enum获取枚举选项
-	if field.Validation != nil && len(field.Validation.EnumValues) > 0 {
-		// 使用简单枚举值
-		schema["enum"] = field.Validation.EnumValues
-	} else if field.Enum != nil {
-		// 使用完整枚举定义，提取codes作为enum值
-		codes := make([]string, len(field.Enum.Options))
-		for i, opt := range field.Enum.Options {
-			codes[i] = opt.Code
-		}
-		schema["enum"] = codes
-
-		// 添加完整枚举信息到x-enum
-		schema["x-enum"] = g.buildEnumMetadata(field.Enum)
+	if field.Enum == nil {
+		return
 	}
+	codes := make([]string, len(field.Enum.Options))
+	for i, opt := range field.Enum.Options {
+		codes[i] = opt.Code
+	}
+	schema["enum"] = codes
+	schema["x-enum"] = g.buildEnumMetadata(field.Enum)
 }
 
 // buildEnumMetadata 构建枚举元数据

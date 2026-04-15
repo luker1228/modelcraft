@@ -77,6 +77,7 @@ func (s *ReverseEngineerAppService) ImportModel(
 	// 3. 检查模型名冲突
 	if err := s.checkModelNameConflict(
 		ctx,
+		cmd.OrgName,
 		tableDef.TableName,
 		cmd.DatabaseName,
 		cmd.ProjectSlug,
@@ -151,6 +152,7 @@ func (s *ReverseEngineerAppService) getTableDefinition(
 // checkModelNameConflict 检查模型名冲突
 func (s *ReverseEngineerAppService) checkModelNameConflict(
 	ctx context.Context,
+	orgName string,
 	tableName string,
 	databaseName string,
 	projectId string,
@@ -160,7 +162,7 @@ func (s *ReverseEngineerAppService) checkModelNameConflict(
 
 	// 查询是否已存在同名模型
 	opts := modeldesign.NewModelQueryOptions()
-	existingModel, err := s.modelRepo.GetByName(ctx, databaseName, modelName, projectId, opts)
+	existingModel, err := s.modelRepo.GetByName(ctx, orgName, databaseName, modelName, projectId, opts)
 	if err != nil {
 		// 未找到属于正常情况，说明没有冲突，可以继续创建
 		if shared.IsNotFoundError(err) {

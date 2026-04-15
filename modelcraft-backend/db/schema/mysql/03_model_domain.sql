@@ -97,6 +97,9 @@ CREATE TABLE IF NOT EXISTS `logical_foreign_keys` (
   -- 配对字段（normal 和 reverse 共享同一 pair_id）
   `pair_id` VARCHAR(36) NOT NULL COMMENT '外键对ID，normal 和 reverse 行共享',
 
+  -- 租户隔离字段
+  `org_name` VARCHAR(36) NOT NULL COMMENT '所属组织名称',
+
   -- 方向枚举
   `direction` ENUM('normal', 'reverse') NOT NULL COMMENT '外键方向：normal（正向）/ reverse（反向）',
 
@@ -120,6 +123,7 @@ CREATE TABLE IF NOT EXISTS `logical_foreign_keys` (
   -- 索引
   KEY `idx_logical_fk_pair` (`pair_id`) COMMENT '外键对查询索引',
   KEY `idx_logical_fk_model` (`model_id`) COMMENT '模型查询索引',
+  KEY `idx_logical_fk_org_model` (`org_name`, `model_id`) COMMENT '组织+模型查询索引',
 
   -- 外键约束
   CONSTRAINT `fk_logical_fk_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE,

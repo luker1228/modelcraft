@@ -182,10 +182,11 @@ const getEnumReferencesByName = `-- name: GetEnumReferencesByName :many
 SELECT fea.model_id, fea.field_name, fd.model_name
 FROM model_field_enum_associations fea
 INNER JOIN field_definitions fd ON fea.model_id = fd.model_id AND fea.field_name = fd.name
-WHERE fea.project_slug = ? AND fea.enum_name = ?
+WHERE fea.org_name = ? AND fea.project_slug = ? AND fea.enum_name = ?
 `
 
 type GetEnumReferencesByNameParams struct {
+	OrgName     string
 	ProjectSlug string
 	EnumName    string
 }
@@ -197,7 +198,7 @@ type GetEnumReferencesByNameRow struct {
 }
 
 func (q *Queries) GetEnumReferencesByName(ctx context.Context, arg GetEnumReferencesByNameParams) ([]GetEnumReferencesByNameRow, error) {
-	rows, err := q.db.QueryContext(ctx, getEnumReferencesByName, arg.ProjectSlug, arg.EnumName)
+	rows, err := q.db.QueryContext(ctx, getEnumReferencesByName, arg.OrgName, arg.ProjectSlug, arg.EnumName)
 	if err != nil {
 		return nil, err
 	}
@@ -221,10 +222,11 @@ func (q *Queries) GetEnumReferencesByName(ctx context.Context, arg GetEnumRefere
 
 const getEnumsByNames = `-- name: GetEnumsByNames :many
 SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at FROM model_enums
-WHERE project_slug = ? AND name IN (/*SLICE:names*/?)
+WHERE org_name = ? AND project_slug = ? AND name IN (/*SLICE:names*/?)
 `
 
 type GetEnumsByNamesParams struct {
+	OrgName     string
 	ProjectSlug string
 	Names       []string
 }
@@ -232,6 +234,7 @@ type GetEnumsByNamesParams struct {
 func (q *Queries) GetEnumsByNames(ctx context.Context, arg GetEnumsByNamesParams) ([]ModelEnum, error) {
 	query := getEnumsByNames
 	var queryParams []interface{}
+	queryParams = append(queryParams, arg.OrgName)
 	queryParams = append(queryParams, arg.ProjectSlug)
 	if len(arg.Names) > 0 {
 		for _, v := range arg.Names {
@@ -303,16 +306,17 @@ func (q *Queries) GetFieldEnumAssociationByField(ctx context.Context, arg GetFie
 
 const getFieldEnumAssociationsByEnumName = `-- name: GetFieldEnumAssociationsByEnumName :many
 SELECT model_id, field_name, org_name, project_slug, enum_name, database_name, created_at, updated_at FROM model_field_enum_associations
-WHERE project_slug = ? AND enum_name = ?
+WHERE org_name = ? AND project_slug = ? AND enum_name = ?
 `
 
 type GetFieldEnumAssociationsByEnumNameParams struct {
+	OrgName     string
 	ProjectSlug string
 	EnumName    string
 }
 
 func (q *Queries) GetFieldEnumAssociationsByEnumName(ctx context.Context, arg GetFieldEnumAssociationsByEnumNameParams) ([]ModelFieldEnumAssociation, error) {
-	rows, err := q.db.QueryContext(ctx, getFieldEnumAssociationsByEnumName, arg.ProjectSlug, arg.EnumName)
+	rows, err := q.db.QueryContext(ctx, getFieldEnumAssociationsByEnumName, arg.OrgName, arg.ProjectSlug, arg.EnumName)
 	if err != nil {
 		return nil, err
 	}

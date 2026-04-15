@@ -192,6 +192,8 @@ type LogicalForeignKey struct {
 	ID string
 	// 外键对ID，normal 和 reverse 行共享
 	PairID string
+	// 所属组织名称
+	OrgName string
 	// 外键方向：normal（正向）/ reverse（反向）
 	Direction LogicalForeignKeysDirection
 	// 所属模型ID

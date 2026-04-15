@@ -17,6 +17,37 @@ import (
 	"strconv"
 )
 
+// JSONSchema is the resolver for the jsonSchema field.
+// This field is computed on-demand: only called when the client selects `jsonSchema` on a Model.
+func (r *modelResolver) JSONSchema(ctx context.Context, obj *generated.Model) (*string, error) {
+	// Reload model with enum options to ensure enum field metadata is available for schema generation.
+	opts := appmodeldesign.NewGetModelOptions().WithEnumOptions()
+	modelEntity, err := r.ModelDesignService.GetModelByID(ctx, obj.ID, opts)
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			if bizErr.Info().GetCode() == bizerrors.ModelNotFound.GetCode() {
+				return nil, fmt.Errorf("model not found: %s", obj.ID)
+			}
+		}
+		logfacade.GetLogger(ctx).Error(ctx, "failed to get model for jsonSchema",
+			logfacade.Err(err),
+			logfacade.Stack(err),
+		)
+		return nil, fmt.Errorf("failed to get model: %w", err)
+	}
+
+	generator := modeldesign.NewJSONSchemaGenerator()
+	schemaJSON, err := generator.GenerateSchema(modelEntity)
+	if err != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "failed to generate jsonSchema",
+			logfacade.Err(err),
+			logfacade.Stack(err),
+		)
+		return nil, fmt.Errorf("failed to generate JSON Schema: %w", err)
+	}
+	return &schemaJSON, nil
+}
+
 // CreateModel is the resolver for the createModel field.
 func (r *mutationResolver) CreateModel(ctx context.Context, input generated.CreateModelInput) (*generated.CreateModelPayload, error) {
 	errorAdapter := adapter.NewModelErrorAdapter(ctx)
@@ -776,8 +807,8 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 func (r *queryResolver) ModelJSONSchema(ctx context.Context, id string) (*generated.ModelJSONSchema, error) {
 	var result *generated.ModelJSONSchema
 	graphqlErr := bizerrors.WithGraphqlErrorHandler(ctx, func() error {
-		// Get model by ID with fields
-		modelEntity, err := r.ModelDesignService.GetModelByID(ctx, id, appmodeldesign.NewGetModelOptions())
+		// Get model by ID with fields and enum options (batch-loaded, no N+1)
+		modelEntity, err := r.ModelDesignService.GetModelByID(ctx, id, appmodeldesign.NewGetModelOptions().WithEnumOptions())
 		if err != nil {
 			if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 				if bizErr.Info().GetCode() == bizerrors.ModelNotFound.GetCode() {
@@ -832,3 +863,8 @@ func (r *queryResolver) ModelGroups(ctx context.Context) ([]*generated.ModelGrou
 	}
 	return result, nil
 }
+
+// Model returns generated.ModelResolver implementation.
+func (r *Resolver) Model() generated.ModelResolver { return &modelResolver{r} }
+
+type modelResolver struct{ *Resolver }

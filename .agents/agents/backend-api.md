@@ -426,6 +426,40 @@ schemas:
 - [ ] 字段命名使用 `camelCase`
 - [ ] 新领域文件在 `openapi-root.yaml` 中引用
 
+## 使用技能
+
+| 触发时机 | 技能 |
+|---------|------|
+| 需要搜索代码、查找已有 Schema 定义、理解现有 API 模式时 | `/graphify` |
+
+## 使用知识图谱做接口设计
+
+设计新 API 前，先查图找到一致的参考模式，而不是凭记忆猜测。
+
+### 设计前查询
+
+```bash
+# 1. 找同类 Mutation/Query 的设计模式参考
+/graphify explain "graphqlModelResolver"   # Community 10，包含 Enum + Model resolver 模式
+
+# 2. 了解某个领域的全部 GraphQL 类型
+/graphify query "<领域名称>" --budget 1500  # Community 1 包含 214 个 GraphQL 类型
+
+# 3. 设计错误类型前，找现有 Error Union 模式
+/graphify query "ProjectNotFound"          # 19 条边的节点，观察错误类型如何被引用
+
+# 4. 确认新 API 的 bizerrors 错误码不重复
+/graphify query "bizerrors"                 # 找所有已定义的错误码节点
+```
+
+### 图谱揭示的 API 设计约束
+
+| 设计问题 | 图谱发现 |
+|---------|---------|
+| Mutation Payload 怎么组织 | `mutationResolver` 有 28 条边 — 查它的邻居理解现有 payload 模式 |
+| 错误 Union 用哪些错误类型 | `ProjectNotFound` 是最常引用的错误节点（19 条边），参照它的命名规范 |
+| 新领域放 Org GraphQL 还是 Project GraphQL | Community 1（214 节点）的节点分布揭示了现有的 Schema 归属规律 |
+
 ## 参考文件
 
 | 参考内容 | 文件路径 |

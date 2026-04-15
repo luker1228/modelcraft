@@ -1,13 +1,24 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
+import { useAppStore } from '@web/stores/app'
 import type { EditorModel, EditorModelDetail, EditorModelField } from './types'
 import type { LogicalForeignKey } from '@/types'
 
 export function useModelEditorState() {
   // Database / search / selection
-  const [selectedDatabase, setSelectedDatabase] = useState<string>('')
+  const storedDatabase = useAppStore((s) => s.selectedDatabase)
+  const setStoredDatabase = useAppStore((s) => s.setSelectedDatabase)
+  const [selectedDatabase, _setSelectedDatabase] = useState<string>(storedDatabase ?? '')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedModelId, setSelectedModelId] = useState<string | null>(null)
   const [databaseOpen, setDatabaseOpen] = useState(false)
+
+  const setSelectedDatabase = useCallback(
+    (db: string) => {
+      _setSelectedDatabase(db)
+      setStoredDatabase(db)
+    },
+    [setStoredDatabase],
+  )
 
   // Connection status
   const [connectionChecking, setConnectionChecking] = useState(true)

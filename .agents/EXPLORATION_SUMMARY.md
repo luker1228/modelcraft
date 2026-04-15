@@ -78,8 +78,8 @@ description: 功能说明
 
 ### 项目型 Skill（前端）
 - front/artifact-preview
-- front/contract-sync
 - front/ui-ux-pro-max
+- front-contract-pull（顶层，非 front/ 子目录）
 - 等
 
 **特征**: 在 front/ 下的子目录结构
@@ -166,7 +166,6 @@ skills/front/
 │   ├── SKILL.md
 │   ├── evals/
 │   └── workspace/
-├── contract-sync/
 └── theme-factory/
 ```
 

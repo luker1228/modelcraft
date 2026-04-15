@@ -127,7 +127,8 @@ type ListFieldEnumRelationsCommand struct {
 
 // GetModelOptions 获取模型选项
 type GetModelOptions struct {
-	GetFields bool
+	GetFields      bool
+	GetEnumOptions bool // 是否同时填充 ENUM/ENUM_ARRAY 字段的 EnumDefinition（批量加载，无 N+1）
 }
 
 // NewGetModelOptions 创建默认获取模型选项
@@ -135,6 +136,12 @@ func NewGetModelOptions() *GetModelOptions {
 	return &GetModelOptions{
 		GetFields: true,
 	}
+}
+
+// WithEnumOptions 同时加载字段关联的枚举定义
+func (o *GetModelOptions) WithEnumOptions() *GetModelOptions {
+	o.GetEnumOptions = true
+	return o
 }
 
 // ============================================================================
@@ -244,6 +251,7 @@ type ValidateEnumCodesCommand struct {
 
 // CreateLogicalForeignKeyCommand 创建逻辑外键命令
 type CreateLogicalForeignKeyCommand struct {
+	OrgName      string   // 组织名称（租户隔离）
 	ProjectSlug  string   // 项目标识符
 	ModelID      string   // 拥有 FK 列的模型 ID
 	RefModelID   string   // 被引用的模型 ID
@@ -253,12 +261,14 @@ type CreateLogicalForeignKeyCommand struct {
 
 // DeleteLogicalForeignKeyCommand 删除逻辑外键命令
 type DeleteLogicalForeignKeyCommand struct {
+	OrgName     string // 组织名称（租户隔离）
 	ProjectSlug string // 项目标识符
 	PairID      string // FK 对的 pair_id
 }
 
 // ListLogicalForeignKeysCommand 查询模型的逻辑外键列表命令
 type ListLogicalForeignKeysCommand struct {
+	OrgName     string // 组织名称（租户隔离）
 	ProjectSlug string // 项目标识符
 	ModelID     string // 模型 ID
 }

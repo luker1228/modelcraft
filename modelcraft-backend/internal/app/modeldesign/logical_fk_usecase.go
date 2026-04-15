@@ -89,6 +89,7 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 	normalRow := &modeldesign.LogicalForeignKey{
 		ID:           normalID,
 		PairID:       pairID,
+		OrgName:      cmd.OrgName,
 		Direction:    modeldesign.DirectionNormal,
 		ModelID:      cmd.ModelID,
 		ModelName:    sourceModel.ModelName,
@@ -104,6 +105,7 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 	reverseRow := &modeldesign.LogicalForeignKey{
 		ID:           reverseID,
 		PairID:       pairID,
+		OrgName:      cmd.OrgName,
 		Direction:    modeldesign.DirectionReverse,
 		ModelID:      cmd.RefModelID,
 		ModelName:    refModel.ModelName,
@@ -140,7 +142,7 @@ func (s *LogicalFKAppService) DeleteLogicalForeignKey(
 	cmd DeleteLogicalForeignKeyCommand,
 ) error {
 	// 1. Find the FK pair
-	rows, err := s.fkRepo.FindByPairID(ctx, cmd.PairID)
+	rows, err := s.fkRepo.FindByPairID(ctx, cmd.OrgName, cmd.PairID)
 	if err != nil {
 		return err
 	}
@@ -150,7 +152,7 @@ func (s *LogicalFKAppService) DeleteLogicalForeignKey(
 
 	// 2. Check that no RELATION fields reference either FK row
 	for _, row := range rows {
-		relateFields, err := s.fkRepo.FindByRelateField(ctx, row.ID)
+		relateFields, err := s.fkRepo.FindByRelateField(ctx, cmd.OrgName, row.ID)
 		if err != nil {
 			return fmt.Errorf("DeleteLogicalForeignKey: check relate fields for %s: %w", row.ID, err)
 		}
@@ -160,7 +162,7 @@ func (s *LogicalFKAppService) DeleteLogicalForeignKey(
 	}
 
 	// 3. Delete the pair
-	return s.fkRepo.DeleteByPairID(ctx, cmd.PairID)
+	return s.fkRepo.DeleteByPairID(ctx, cmd.OrgName, cmd.PairID)
 }
 
 // ListLogicalForeignKeys returns all FK rows for a given model.
@@ -168,7 +170,7 @@ func (s *LogicalFKAppService) ListLogicalForeignKeys(
 	ctx context.Context,
 	cmd ListLogicalForeignKeysCommand,
 ) ([]*modeldesign.LogicalForeignKey, error) {
-	return s.fkRepo.FindByModel(ctx, cmd.ModelID)
+	return s.fkRepo.FindByModel(ctx, cmd.OrgName, cmd.ModelID)
 }
 
 // validateFieldsExistOnModel checks that all fieldNames exist in the model's fields.

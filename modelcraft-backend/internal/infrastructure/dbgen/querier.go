@@ -42,7 +42,7 @@ type Querier interface {
 	DeleteFieldEnumRelationByID(ctx context.Context, arg DeleteFieldEnumRelationByIDParams) (sql.Result, error)
 	DeleteFieldsByModelID(ctx context.Context, modelID string) error
 	DeleteFieldsByNames(ctx context.Context, arg DeleteFieldsByNamesParams) (sql.Result, error)
-	DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID string) error
+	DeleteLogicalForeignKeyByPairID(ctx context.Context, arg DeleteLogicalForeignKeyByPairIDParams) error
 	DeleteMembership(ctx context.Context, id string) error
 	DeleteModel(ctx context.Context, id string) error
 	DeleteModelGroup(ctx context.Context, id string) error
@@ -61,12 +61,12 @@ type Querier interface {
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
 	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
 	FindFieldEnumRelationByLabelField(ctx context.Context, arg FindFieldEnumRelationByLabelFieldParams) (FieldEnumRelation, error)
-	FindFieldsByBelongsToFKID(ctx context.Context, belongsToFkID sql.NullString) ([]FindFieldsByBelongsToFKIDRow, error)
-	FindFieldsByRelateFKID(ctx context.Context, relateFkID sql.NullString) ([]FindFieldsByRelateFKIDRow, error)
+	FindFieldsByBelongsToFKID(ctx context.Context, arg FindFieldsByBelongsToFKIDParams) ([]FindFieldsByBelongsToFKIDRow, error)
+	FindFieldsByRelateFKID(ctx context.Context, arg FindFieldsByRelateFKIDParams) ([]FindFieldsByRelateFKIDRow, error)
 	FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error)
-	FindLogicalForeignKeysByModelID(ctx context.Context, modelID string) ([]LogicalForeignKey, error)
-	FindLogicalForeignKeysByPairID(ctx context.Context, pairID string) ([]LogicalForeignKey, error)
-	FindLogicalForeignKeysByRefModelID(ctx context.Context, refModelID string) ([]LogicalForeignKey, error)
+	FindLogicalForeignKeysByModelID(ctx context.Context, arg FindLogicalForeignKeysByModelIDParams) ([]LogicalForeignKey, error)
+	FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]LogicalForeignKey, error)
+	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]LogicalForeignKey, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
 	GetAPIKeyByHash(ctx context.Context, keyHash string) (ApiKey, error)
 	GetAPIKeyByID(ctx context.Context, id string) (ApiKey, error)

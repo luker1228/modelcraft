@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-// MockQuerier is a mock for dbgen.Querier used in FK repository tests.
+// MockQuerierForFK is a mock for logicalFKQuerier used in FK repository tests.
 type MockQuerierForFK struct {
 	mock.Mock
 }
@@ -22,15 +22,17 @@ func (m *MockQuerierForFK) CreateLogicalForeignKey(ctx context.Context, arg dbge
 	return args.Error(0)
 }
 
-func (m *MockQuerierForFK) DeleteLogicalForeignKeyByPairID(ctx context.Context, pairID string) error {
-	args := m.Called(ctx, pairID)
+func (m *MockQuerierForFK) DeleteLogicalForeignKeyByPairID(
+	ctx context.Context, arg dbgen.DeleteLogicalForeignKeyByPairIDParams,
+) error {
+	args := m.Called(ctx, arg)
 	return args.Error(0)
 }
 
 func (m *MockQuerierForFK) FindLogicalForeignKeysByModelID(
-	ctx context.Context, modelID string,
+	ctx context.Context, arg dbgen.FindLogicalForeignKeysByModelIDParams,
 ) ([]dbgen.LogicalForeignKey, error) {
-	args := m.Called(ctx, modelID)
+	args := m.Called(ctx, arg)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -38,19 +40,9 @@ func (m *MockQuerierForFK) FindLogicalForeignKeysByModelID(
 }
 
 func (m *MockQuerierForFK) FindLogicalForeignKeysByPairID(
-	ctx context.Context, pairID string,
+	ctx context.Context, arg dbgen.FindLogicalForeignKeysByPairIDParams,
 ) ([]dbgen.LogicalForeignKey, error) {
-	args := m.Called(ctx, pairID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]dbgen.LogicalForeignKey), args.Error(1)
-}
-
-func (m *MockQuerierForFK) FindLogicalForeignKeysByRefModelID(
-	ctx context.Context, refModelID string,
-) ([]dbgen.LogicalForeignKey, error) {
-	args := m.Called(ctx, refModelID)
+	args := m.Called(ctx, arg)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -63,9 +55,9 @@ func (m *MockQuerierForFK) GetLogicalForeignKeyByID(ctx context.Context, id stri
 }
 
 func (m *MockQuerierForFK) FindFieldsByBelongsToFKID(
-	ctx context.Context, belongsToFkID sql.NullString,
+	ctx context.Context, arg dbgen.FindFieldsByBelongsToFKIDParams,
 ) ([]dbgen.FindFieldsByBelongsToFKIDRow, error) {
-	args := m.Called(ctx, belongsToFkID)
+	args := m.Called(ctx, arg)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -73,9 +65,9 @@ func (m *MockQuerierForFK) FindFieldsByBelongsToFKID(
 }
 
 func (m *MockQuerierForFK) FindFieldsByRelateFKID(
-	ctx context.Context, relateFkID sql.NullString,
+	ctx context.Context, arg dbgen.FindFieldsByRelateFKIDParams,
 ) ([]dbgen.FindFieldsByRelateFKIDRow, error) {
-	args := m.Called(ctx, relateFkID)
+	args := m.Called(ctx, arg)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -126,8 +118,12 @@ func TestSqlLogicalForeignKeyRepository_DeleteByPairID(t *testing.T) {
 	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
 	ctx := context.Background()
 
-	mockQ.On("DeleteLogicalForeignKeyByPairID", ctx, "pair-001").Return(nil)
-	err := repo.DeleteByPairID(ctx, "pair-001")
+	expectedArg := dbgen.DeleteLogicalForeignKeyByPairIDParams{
+		PairID:  "pair-001",
+		OrgName: "test-org",
+	}
+	mockQ.On("DeleteLogicalForeignKeyByPairID", ctx, expectedArg).Return(nil)
+	err := repo.DeleteByPairID(ctx, "test-org", "pair-001")
 	assert.NoError(t, err)
 	mockQ.AssertExpectations(t)
 }
@@ -141,8 +137,12 @@ func TestSqlLogicalForeignKeyRepository_FindByModel(t *testing.T) {
 		newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User"),
 	}
 
-	mockQ.On("FindLogicalForeignKeysByModelID", ctx, "model-order").Return(rows, nil)
-	result, err := repo.FindByModel(ctx, "model-order")
+	expectedArg := dbgen.FindLogicalForeignKeysByModelIDParams{
+		OrgName: "test-org",
+		ModelID: "model-order",
+	}
+	mockQ.On("FindLogicalForeignKeysByModelID", ctx, expectedArg).Return(rows, nil)
+	result, err := repo.FindByModel(ctx, "test-org", "model-order")
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
 	assert.Equal(t, "lf-001", result[0].ID)
@@ -162,10 +162,46 @@ func TestSqlLogicalForeignKeyRepository_FindByPairID(t *testing.T) {
 		newTestLFRow("lf-002", "pair-001", "reverse", "model-user", "User", "model-order", "Order"),
 	}
 
-	mockQ.On("FindLogicalForeignKeysByPairID", ctx, "pair-001").Return(rows, nil)
-	result, err := repo.FindByPairID(ctx, "pair-001")
+	expectedArg := dbgen.FindLogicalForeignKeysByPairIDParams{
+		OrgName: "test-org",
+		PairID:  "pair-001",
+	}
+	mockQ.On("FindLogicalForeignKeysByPairID", ctx, expectedArg).Return(rows, nil)
+	result, err := repo.FindByPairID(ctx, "test-org", "pair-001")
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
+	mockQ.AssertExpectations(t)
+}
+
+func TestSqlLogicalForeignKeyRepository_FindByBelongsToField_NoFields(t *testing.T) {
+	mockQ := new(MockQuerierForFK)
+	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
+	ctx := context.Background()
+
+	expectedArg := dbgen.FindFieldsByBelongsToFKIDParams{
+		BelongsToFkID: sql.NullString{String: "lf-001", Valid: true},
+		OrgName:       "test-org",
+	}
+	mockQ.On("FindFieldsByBelongsToFKID", ctx, expectedArg).Return([]dbgen.FindFieldsByBelongsToFKIDRow{}, nil)
+	result, err := repo.FindByBelongsToField(ctx, "test-org", "lf-001")
+	assert.NoError(t, err)
+	assert.Empty(t, result)
+	mockQ.AssertExpectations(t)
+}
+
+func TestSqlLogicalForeignKeyRepository_FindByRelateField_NoFields(t *testing.T) {
+	mockQ := new(MockQuerierForFK)
+	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
+	ctx := context.Background()
+
+	expectedArg := dbgen.FindFieldsByRelateFKIDParams{
+		RelateFkID: sql.NullString{String: "lf-001", Valid: true},
+		OrgName:    "test-org",
+	}
+	mockQ.On("FindFieldsByRelateFKID", ctx, expectedArg).Return([]dbgen.FindFieldsByRelateFKIDRow{}, nil)
+	result, err := repo.FindByRelateField(ctx, "test-org", "lf-001")
+	assert.NoError(t, err)
+	assert.Empty(t, result)
 	mockQ.AssertExpectations(t)
 }
 

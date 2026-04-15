@@ -85,6 +85,29 @@ grep -r "failed to introspect table" modelcraft-backend/internal/ --include="*.g
 
 **理解代码路径**：错误从 Infrastructure 层产生，经过 Application 层包装，最终在 Interfaces 层记录 stack。找根因要从最内层（Infrastructure/Domain）开始读。
 
+### Graphify 辅助理解调用路径（可选）
+
+如果 `graphify-out/graph.json` 存在，可在定位到文件/函数名后，用 graphify 快速理解调用链和依赖关系，无需逐层手动阅读代码：
+
+```bash
+# 从错误函数名出发，广度优先查看它被哪些上层调用
+/graphify query "<函数名或模块名>"
+
+# 追踪两个组件之间的依赖路径（如 Resolver → Repository）
+/graphify path "<ResolverName>" "<RepositoryName>"
+
+# 理解某个核心函数的全部调用关系（快速掌握上下文）
+/graphify explain "<FunctionName>"
+```
+
+**典型用法**：
+
+- 日志显示 `caller: app/modeldesign/field_app.go:87` → 运行 `/graphify explain "field_app"` 查看该文件的全部入口和依赖，再决定读哪几个文件
+- 错误消息涉及多个层（如 "failed to create field: connection refused"）→ 运行 `/graphify path "FieldApp" "DBConnection"` 追踪完整调用链
+- 不确定某个错误来自哪个聚合 → 运行 `/graphify query "<ErrorType>"` 找出所有引用它的模块
+
+> 提示：graphify 使用的是 AST 静态分析图，反映的是编译时依赖关系，适合理解模块间结构。运行时的动态错误仍需结合日志 `stack` 字段来确认。
+
 ---
 
 ## 第四步：选择验证手段

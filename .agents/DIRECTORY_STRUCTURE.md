@@ -61,7 +61,6 @@ skills/
 │   │   │   ├── evals.json
 │   │   │   └── trigger-evals.json
 │   │   └── workspace/                    # 可选：工作目录
-│   ├── contract-sync/
 │   ├── theme-factory/
 │   └── ... (其他子 skill)
 ├── skill-creator/
@@ -126,7 +125,7 @@ Markdown 正文，包含：
 
 #### 类型 3: 项目型 (front/ 下的子 skill)
 - 前端相关的专门 Skill
-- 例如：artifact-preview、contract-sync、ui-ux-pro-max
+- 例如：artifact-preview、front-contract-pull、ui-ux-pro-max
 
 #### 类型 4: 元 Skill (skill-creator)
 - 用于创建/改进其他 Skill

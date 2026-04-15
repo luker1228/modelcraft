@@ -26,7 +26,15 @@ func (r *mutationResolver) CreateLogicalForeignKey(ctx context.Context, input ge
 		}, nil
 	}
 
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.CreateLogicalForeignKeyPayload{
+			Result: &generated.FKColumnsNotFoundError{Message: "orgName not found in context"},
+		}, nil
+	}
+
 	cmd := appmodeldesign.CreateLogicalForeignKeyCommand{
+		OrgName:      orgName,
 		ProjectSlug:  projectSlug,
 		ModelID:      input.ModelID,
 		RefModelID:   input.RefModelID,
@@ -72,7 +80,15 @@ func (r *mutationResolver) DeleteLogicalForeignKey(ctx context.Context, pairID s
 		}, nil
 	}
 
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.DeleteLogicalForeignKeyPayload{
+			Result: &generated.FKNotFoundError{Message: "orgName not found in context"},
+		}, nil
+	}
+
 	cmd := appmodeldesign.DeleteLogicalForeignKeyCommand{
+		OrgName:     orgName,
 		ProjectSlug: projectSlug,
 		PairID:      pairID,
 	}
@@ -103,7 +119,13 @@ func (r *queryResolver) LogicalForeignKeys(ctx context.Context, modelID string) 
 		return nil, err
 	}
 
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	cmd := appmodeldesign.ListLogicalForeignKeysCommand{
+		OrgName:     orgName,
 		ProjectSlug: projectSlug,
 		ModelID:     modelID,
 	}

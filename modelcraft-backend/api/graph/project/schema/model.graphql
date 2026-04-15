@@ -68,6 +68,7 @@ type Model implements Node {
   fields: [Field!]!
   group: ModelGroup!
   dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
+  jsonSchema: String  # 模型的 JSON Schema（按需计算，仅当请求该字段时计算）
   createdAt: String!
   updatedAt: String!
 }

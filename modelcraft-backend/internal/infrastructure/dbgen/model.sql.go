@@ -13,7 +13,8 @@ import (
 
 const countModels = `-- name: CountModels :one
 SELECT COUNT(*) FROM models
-WHERE project_slug = ?
+WHERE org_name = ?
+  AND project_slug = ?
   AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
@@ -22,29 +23,31 @@ WHERE project_slug = ?
 `
 
 type CountModelsParams struct {
+	OrgName      string
 	ProjectSlug  string
 	DatabaseName string
-	Column3      interface{}
+	Column4      interface{}
 	CONCAT       interface{}
-	Column5      interface{}
+	Column6      interface{}
 	CONCAT_2     interface{}
-	Column7      interface{}
+	Column8      interface{}
 	Status       sql.NullString
-	Column9      interface{}
+	Column10     interface{}
 	StorageType  string
 }
 
 func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countModels,
+		arg.OrgName,
 		arg.ProjectSlug,
 		arg.DatabaseName,
-		arg.Column3,
+		arg.Column4,
 		arg.CONCAT,
-		arg.Column5,
+		arg.Column6,
 		arg.CONCAT_2,
-		arg.Column7,
+		arg.Column8,
 		arg.Status,
-		arg.Column9,
+		arg.Column10,
 		arg.StorageType,
 	)
 	var count int64
@@ -237,18 +240,24 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 
 const getModelByName = `-- name: GetModelByName :one
 SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
-WHERE database_name = ? AND name = ? AND project_slug = ?
+WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ?
 LIMIT 1
 `
 
 type GetModelByNameParams struct {
+	OrgName      string
 	DatabaseName string
 	Name         string
 	ProjectSlug  string
 }
 
 func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) (Model, error) {
-	row := q.db.QueryRowContext(ctx, getModelByName, arg.DatabaseName, arg.Name, arg.ProjectSlug)
+	row := q.db.QueryRowContext(ctx, getModelByName,
+		arg.OrgName,
+		arg.DatabaseName,
+		arg.Name,
+		arg.ProjectSlug,
+	)
 	var i Model
 	err := row.Scan(
 		&i.ID,
@@ -274,7 +283,8 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 
 const listModels = `-- name: ListModels :many
 SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
-WHERE project_slug = ?
+WHERE org_name = ?
+  AND project_slug = ?
   AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
@@ -285,15 +295,16 @@ LIMIT ? OFFSET ?
 `
 
 type ListModelsParams struct {
+	OrgName      string
 	ProjectSlug  string
 	DatabaseName string
-	Column3      interface{}
+	Column4      interface{}
 	CONCAT       interface{}
-	Column5      interface{}
+	Column6      interface{}
 	CONCAT_2     interface{}
-	Column7      interface{}
+	Column8      interface{}
 	Status       sql.NullString
-	Column9      interface{}
+	Column10     interface{}
 	StorageType  string
 	Limit        int32
 	Offset       int32
@@ -301,15 +312,16 @@ type ListModelsParams struct {
 
 func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model, error) {
 	rows, err := q.db.QueryContext(ctx, listModels,
+		arg.OrgName,
 		arg.ProjectSlug,
 		arg.DatabaseName,
-		arg.Column3,
+		arg.Column4,
 		arg.CONCAT,
-		arg.Column5,
+		arg.Column6,
 		arg.CONCAT_2,
-		arg.Column7,
+		arg.Column8,
 		arg.Status,
-		arg.Column9,
+		arg.Column10,
 		arg.StorageType,
 		arg.Limit,
 		arg.Offset,

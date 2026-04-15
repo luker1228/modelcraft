@@ -58,6 +58,10 @@ export const CREATE_MODEL = gql`
         ... on ProjectNotFound {
           message
         }
+        ... on ModelTableAlreadyExists {
+          message
+          suggestion
+        }
       }
     }
   }

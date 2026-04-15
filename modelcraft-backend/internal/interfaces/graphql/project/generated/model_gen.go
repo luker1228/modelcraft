@@ -390,6 +390,7 @@ func (EnumAlreadyExists) IsCreateEnumError() {}
 
 type EnumDefinition struct {
 	ID            string        `json:"id"`
+	OrgName       string        `json:"orgName"`
 	ProjectSlug   string        `json:"projectSlug"`
 	Name          string        `json:"name"`
 	DisplayName   string        `json:"displayName"`
@@ -663,6 +664,7 @@ type Model struct {
 	Fields       []*Field       `json:"fields"`
 	Group        *ModelGroup    `json:"group"`
 	DbTable      *DbTableStatus `json:"dbTable,omitempty"`
+	JSONSchema   *string        `json:"jsonSchema,omitempty"`
 	CreatedAt    string         `json:"createdAt"`
 	UpdatedAt    string         `json:"updatedAt"`
 }

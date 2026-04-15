@@ -48,6 +48,7 @@ func makeModelWithFields(id, name string, fields ...*modeldesign.FieldDefinition
 	m := &modeldesign.DataModel{}
 	m.ID = id
 	m.ModelName = name
+	m.OrgName = "test-org"
 	m.ProjectSlug = "proj1"
 	m.DatabaseName = "db1"
 	m.Fields = fields
@@ -100,7 +101,7 @@ func TestRemoveBelongsToField_BlockedWhenRelateFieldsExist(t *testing.T) {
 	existingRelateField := makeRelationField("user_rel", "model-1", fkID)
 	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(model, nil)
 	// FindByRelateField returns a non-empty list (FK is still in use)
-	mockFKRepo.On("FindByRelateField", ctx, fkID).Return(
+	mockFKRepo.On("FindByRelateField", ctx, "test-org", fkID).Return(
 		[]*modeldesign.LogicalForeignKey{
 			{ID: "fk-rel", PairID: "pair-1", ModelID: "model-1"},
 		}, nil,
@@ -146,14 +147,14 @@ func TestRemoveBelongsToField_DeletesFKPairWhenNoRelateFields(t *testing.T) {
 
 	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(model, nil)
 	// No RELATION fields reference this FK
-	mockFKRepo.On("FindByRelateField", ctx, fkID).Return([]*modeldesign.LogicalForeignKey{}, nil)
-	mockFKRepo.On("FindByModel", ctx, "model-1").Return([]*modeldesign.LogicalForeignKey{fkRow}, nil)
-	mockFKRepo.On("DeleteByPairID", ctx, pairID).Return(nil)
+	mockFKRepo.On("FindByRelateField", ctx, "test-org", fkID).Return([]*modeldesign.LogicalForeignKey{}, nil)
+	mockFKRepo.On("FindByModel", ctx, "test-org", "model-1").Return([]*modeldesign.LogicalForeignKey{fkRow}, nil)
+	mockFKRepo.On("DeleteByPairID", ctx, "test-org", pairID).Return(nil)
 	mockModelRepo.On("UpdateFieldsStatus", ctx, mock.Anything).Return(nil)
 	mockDeployRepo.On("DeployModelToRemoveFields", ctx, model, []string{"user_id"}).Return(nil)
 	mockModelRepo.On("DeleteFields", ctx, "model-1", []string{"user_id"}).Return(nil)
 
 	err := svc.RemoveFieldSync(ctx, RemoveFieldCommand{ModelID: "model-1", FieldName: "user_id"})
 	assert.NoError(t, err)
-	mockFKRepo.AssertCalled(t, "DeleteByPairID", ctx, pairID)
+	mockFKRepo.AssertCalled(t, "DeleteByPairID", ctx, "test-org", pairID)
 }
