@@ -3,6 +3,7 @@ import { createFieldEnumRelation, queryModelEnumContext } from '@bff/model-enum/
 import { useProjectScopedClient } from '@bff/apollo/public'
 import { REMOVE_FIELD } from '@web/graphql/mutations/model'
 import { toast } from 'sonner'
+import { isSystemGeneratedLabelField } from '@/shared/model/system-field'
 import type {
   CreateEnumFieldFormValues,
   CreateEnumLabelFieldFormValues,
@@ -126,6 +127,11 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
       return
     }
 
+    if (isSystemGeneratedLabelField(field, state.editModelData.fields)) {
+      toast('系统生成字段不可编辑')
+      return
+    }
+
     const deprecated = !field.isDeprecated
     updateFieldInEditorState(field.name, (current) => ({
       ...current,
@@ -136,6 +142,11 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
 
   const handleRemoveField = async (field: EditorModelField) => {
     if (!field.isDeprecated || !state.editModelData) {
+      return
+    }
+
+    if (isSystemGeneratedLabelField(field, state.editModelData.fields)) {
+      toast('系统生成字段不可编辑')
       return
     }
 
@@ -222,6 +233,12 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
   })
 
   const handleOpenEditField = (field: EditorModelField) => {
+    const allFields = state.editModelData?.fields ?? []
+    if (isSystemGeneratedLabelField(field, allFields)) {
+      toast('系统生成字段不可编辑')
+      return
+    }
+
     setFieldPageMode('edit')
     state.setEditingField(field)
     state.setEditFieldTitle(field.title || '')

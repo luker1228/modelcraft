@@ -254,6 +254,29 @@ func TestFieldDefinitionToDomain(t *testing.T) {
 		assert.Equal(t, "value", fd.Metadata["key"])
 	})
 
+	t.Run("field with enumDisplay in metadata", func(t *testing.T) {
+		metaJSON := []byte(`{"key":"value","enumDisplay":{"enabled":true,"labelFieldName":"status_text"}}`)
+		m := json.RawMessage(metaJSON)
+		row := dbgen.FieldDefinition{
+			ModelID:      "model-1",
+			Name:         "status",
+			ModelName:    "users",
+			DatabaseName: "db",
+			Title:        "Status",
+			Format:       "ENUM",
+			Status:       "active",
+			Metadata:     &m,
+		}
+
+		fd, err := repository.FieldDefinitionToDomain(row)
+		require.NoError(t, err)
+		require.NotNil(t, fd.Metadata)
+		assert.Equal(t, "value", fd.Metadata["key"])
+		enumDisplay, ok := fd.Metadata["enumDisplay"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "status_text", enumDisplay["labelFieldName"])
+	})
+
 	t.Run("field with enum relation id for ENUM_LABEL", func(t *testing.T) {
 		relationID := "relation-123"
 		row := dbgen.FieldDefinition{
@@ -312,7 +335,12 @@ func TestFieldDefinitionToCreateParams(t *testing.T) {
 			Status:       modeldesign.FieldStatusDeploySuccess,
 			Validation:   &modeldesign.ValidationConfig{MaxLength: &maxLen},
 			DisplayOrder: "a1",
-			Metadata:     map[string]any{"hint": "enter email"},
+			Metadata: map[string]any{
+				"hint": "enter email",
+				"enumDisplay": map[string]any{
+					"labelFieldName": "status_text",
+				},
+			},
 		}
 
 		p, err := repository.FieldDefinitionToCreateParams(fd, "test-org")
@@ -338,6 +366,14 @@ func TestFieldDefinitionToCreateParams(t *testing.T) {
 		// Validation and Metadata are JSON-marshaled
 		assert.NotEmpty(t, p.Validation)
 		assert.NotEmpty(t, p.Metadata)
+		require.NotNil(t, p.Metadata)
+
+		var meta map[string]any
+		require.NoError(t, json.Unmarshal(*p.Metadata, &meta))
+		assert.Equal(t, "enter email", meta["hint"])
+		enumDisplayRaw, ok := meta["enumDisplay"].(map[string]any)
+		require.True(t, ok)
+		assert.Equal(t, "status_text", enumDisplayRaw["labelFieldName"])
 	})
 
 	t.Run("field without optional fields", func(t *testing.T) {

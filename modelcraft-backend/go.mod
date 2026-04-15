@@ -39,6 +39,7 @@ require (
 	github.com/pingcap/tidb/pkg/parser v0.0.0-20260104141550-76cbd72ef905
 	github.com/redis/go-redis/v9 v9.18.0
 	github.com/vektah/gqlparser/v2 v2.5.31
+	golang.org/x/sync v0.19.0
 )
 
 require (
@@ -77,7 +78,6 @@ require (
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect
 	golang.org/x/oauth2 v0.13.0 // indirect
-	golang.org/x/sync v0.19.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 )
 

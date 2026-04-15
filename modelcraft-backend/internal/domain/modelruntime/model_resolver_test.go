@@ -850,3 +850,192 @@ func TestResolveEnumLabelSourceFieldName(t *testing.T) {
 		})
 	}
 }
+
+func TestRuntimeAutoEnumLabelFields(t *testing.T) {
+	customStatusLabelName := "status_text"
+	customTagsLabelName := "tag_texts"
+	disabled := false
+
+	statusEnum := &modeldesign.EnumDefinition{
+		Name: "TaskStatusEnum",
+		Options: []modeldesign.EnumOption{
+			{Code: "todo", Label: "待办"},
+			{Code: "done", Label: "已完成"},
+		},
+	}
+	tagEnum := &modeldesign.EnumDefinition{
+		Name: "TaskTagEnum",
+		Options: []modeldesign.EnumOption{
+			{Code: "urgent", Label: "紧急"},
+			{Code: "internal", Label: "内部"},
+		},
+	}
+
+	model := &RuntimeModel{
+		Name:  "Task",
+		Title: "任务",
+		Fields: map[string]*RuntimeField{
+			"id": {
+				Name:      "id",
+				Title:     "ID",
+				Type:      &modeldesign.FieldType{Format: modeldesign.FormatUUID},
+				IsPrimary: true,
+			},
+			"status": {
+				Name:     "status",
+				Title:    "状态",
+				Type:     &modeldesign.FieldType{Format: modeldesign.FormatEnum},
+				EnumName: statusEnum.Name,
+				Enum:     statusEnum,
+				Metadata: map[string]any{
+					"enumDisplay": map[string]any{
+						"labelFieldName": customStatusLabelName,
+					},
+				},
+			},
+			"tags": {
+				Name:     "tags",
+				Title:    "标签",
+				Type:     &modeldesign.FieldType{Format: modeldesign.FormatEnumArray},
+				EnumName: tagEnum.Name,
+				Enum:     tagEnum,
+				Metadata: map[string]any{
+					"enumDisplay": map[string]any{
+						"labelsFieldName": customTagsLabelName,
+					},
+				},
+			},
+			"status_disabled": {
+				Name:     "status_disabled",
+				Title:    "状态（关闭展示）",
+				Type:     &modeldesign.FieldType{Format: modeldesign.FormatEnum},
+				EnumName: statusEnum.Name,
+				Enum:     statusEnum,
+				Metadata: map[string]any{
+					"enumDisplay": map[string]any{
+						"enabled":        disabled,
+						"labelFieldName": customStatusLabelName,
+					},
+				},
+			},
+		},
+	}
+
+	resolver := &graphqlModelResolver{
+		model:              model,
+		inputTypeGenerator: newInputTypeGenerator(),
+		enumConfigMap:      make(map[string]*graphqlEnumConfig),
+	}
+	obj, err := resolver.createModelType(context.Background())
+	require.NoError(t, err)
+	fields := obj.Fields()
+
+	statusLabelField := fields["status_text"]
+	require.NotNil(t, statusLabelField)
+	assert.Equal(t, "String", statusLabelField.Type.String())
+
+	tagsLabelsField := fields["tag_texts"]
+	require.NotNil(t, tagsLabelsField)
+	assert.Equal(t, "[String!]", tagsLabelsField.Type.String())
+	assert.NotContains(t, fields, "status_disabled_label")
+
+	createInput := resolver.inputTypeGenerator.generateCreateInputType(model)
+	updateInput := resolver.inputTypeGenerator.generateUpdateInputType(model)
+	assert.NotContains(t, createInput.Fields(), "status_text")
+	assert.NotContains(t, createInput.Fields(), "tag_texts")
+	assert.NotContains(t, updateInput.Fields(), "status_text")
+	assert.NotContains(t, updateInput.Fields(), "tag_texts")
+}
+
+func TestRuntimeAutoEnumLabelResolver(t *testing.T) {
+	statusEnum := &modeldesign.EnumDefinition{
+		Name: "TaskStatusEnumForAutoLabel",
+		Options: []modeldesign.EnumOption{
+			{Code: "todo", Label: "待办"},
+			{Code: "done", Label: "已完成"},
+		},
+	}
+	tagEnum := &modeldesign.EnumDefinition{
+		Name: "TaskTagEnumForAutoLabel",
+		Options: []modeldesign.EnumOption{
+			{Code: "urgent", Label: "紧急"},
+			{Code: "internal", Label: "内部"},
+		},
+	}
+
+	model := &RuntimeModel{
+		Name:  "TaskAutoLabel",
+		Title: "任务",
+		Fields: map[string]*RuntimeField{
+			"id": {
+				Name:      "id",
+				Title:     "ID",
+				Type:      &modeldesign.FieldType{Format: modeldesign.FormatUUID},
+				IsPrimary: true,
+			},
+			"status": {
+				Name:     "status",
+				Title:    "状态",
+				Type:     &modeldesign.FieldType{Format: modeldesign.FormatEnum},
+				EnumName: statusEnum.Name,
+				Enum:     statusEnum,
+			},
+			"tags": {
+				Name:     "tags",
+				Title:    "标签",
+				Type:     &modeldesign.FieldType{Format: modeldesign.FormatEnumArray},
+				EnumName: tagEnum.Name,
+				Enum:     tagEnum,
+			},
+		},
+	}
+
+	resolver := &graphqlModelResolver{
+		model:              model,
+		inputTypeGenerator: newInputTypeGenerator(),
+		enumConfigMap:      make(map[string]*graphqlEnumConfig),
+	}
+	obj, err := resolver.createModelType(context.Background())
+	require.NoError(t, err)
+	fields := obj.Fields()
+
+	statusLabelField := fields["status_label"]
+	require.NotNil(t, statusLabelField)
+	statusLabel, err := statusLabelField.Resolve(graphql.ResolveParams{
+		Context: context.Background(),
+		Source: map[string]any{
+			"status": "todo",
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "待办", statusLabel)
+
+	tagsLabelsField := fields["tags_labels"]
+	require.NotNil(t, tagsLabelsField)
+	tagsLabels, err := tagsLabelsField.Resolve(graphql.ResolveParams{
+		Context: context.Background(),
+		Source: map[string]any{
+			"tags": []any{"urgent", "internal"},
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{"紧急", "内部"}, tagsLabels)
+
+	statusLabelMissing, err := statusLabelField.Resolve(graphql.ResolveParams{
+		Context: context.Background(),
+		Source: map[string]any{
+			"status": "not_exists",
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, "", statusLabelMissing)
+
+	tagsLabelsMissing, err := tagsLabelsField.Resolve(graphql.ResolveParams{
+		Context: context.Background(),
+		Source: map[string]any{
+			"tags": []any{"urgent", "not_exists"},
+		},
+	})
+	require.NoError(t, err)
+	assert.Equal(t, []string{}, tagsLabelsMissing)
+}

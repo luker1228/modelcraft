@@ -126,7 +126,6 @@ func FieldDefinitionToDomain(row dbgen.FieldDefinition) (*modeldesign.FieldDefin
 			return nil, fmt.Errorf("FieldDefinitionToDomain: unmarshal metadata: %w", err)
 		}
 	}
-
 	var createdAt, updatedAt time.Time
 	if row.CreatedAt.Valid {
 		createdAt = row.CreatedAt.Time

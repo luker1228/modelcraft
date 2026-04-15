@@ -260,6 +260,7 @@ type ComplexityRoot struct {
 		IsDeprecated     func(childComplexity int) int
 		IsPrimary        func(childComplexity int) int
 		IsUnique         func(childComplexity int) int
+		Metadata         func(childComplexity int) int
 		Name             func(childComplexity int) int
 		NonNull          func(childComplexity int) int
 		RelateFkID       func(childComplexity int) int
@@ -1302,6 +1303,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Field.IsUnique(childComplexity), true
+	case "Field.metadata":
+		if e.complexity.Field.Metadata == nil {
+			break
+		}
+
+		return e.complexity.Field.Metadata(childComplexity), true
 	case "Field.name":
 		if e.complexity.Field.Name == nil {
 			break
@@ -3192,6 +3199,7 @@ type Field {
   isArray: Boolean!
   description: String
   validationConfig: ValidationConfig
+  metadata: String
   relateFkId: String
   belongsToFkId: String
 
@@ -3534,7 +3542,7 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
-  displayField: String  # 用于 runtime __label 解析的字段名
+  displayField: String  # 用于 runtime _label 解析的字段名
   fields: [Field!]!
   group: ModelGroup!
   dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
@@ -3576,13 +3584,13 @@ input CreateModelInput {
   title: String!
   description: String
   databaseName: String!
-  displayField: String  # 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
+  displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
 }
 
 input UpdateModelMetaInput {
   title: String
   description: String
-  displayField: String  # 用于 runtime __label 解析的字段名（必须是模型中存在且可字符串化的字段）
+  displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
 }
 
 input ImportModelInput {
@@ -7636,6 +7644,35 @@ func (ec *executionContext) fieldContext_Field_validationConfig(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Field_metadata(ctx context.Context, field graphql.CollectedField, obj *Field) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Field_metadata,
+		func(ctx context.Context) (any, error) {
+			return obj.Metadata, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Field_metadata(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Field",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Field_relateFkId(ctx context.Context, field graphql.CollectedField, obj *Field) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9602,6 +9639,8 @@ func (ec *executionContext) fieldContext_Model_fields(_ context.Context, field g
 				return ec.fieldContext_Field_description(ctx, field)
 			case "validationConfig":
 				return ec.fieldContext_Field_validationConfig(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Field_metadata(ctx, field)
 			case "relateFkId":
 				return ec.fieldContext_Field_relateFkId(ctx, field)
 			case "belongsToFkId":
@@ -12918,6 +12957,8 @@ func (ec *executionContext) fieldContext_Query_fields(ctx context.Context, field
 				return ec.fieldContext_Field_description(ctx, field)
 			case "validationConfig":
 				return ec.fieldContext_Field_validationConfig(ctx, field)
+			case "metadata":
+				return ec.fieldContext_Field_metadata(ctx, field)
 			case "relateFkId":
 				return ec.fieldContext_Field_relateFkId(ctx, field)
 			case "belongsToFkId":
@@ -20101,6 +20142,8 @@ func (ec *executionContext) _Field(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Field_description(ctx, field, obj)
 		case "validationConfig":
 			out.Values[i] = ec._Field_validationConfig(ctx, field, obj)
+		case "metadata":
+			out.Values[i] = ec._Field_metadata(ctx, field, obj)
 		case "relateFkId":
 			out.Values[i] = ec._Field_relateFkId(ctx, field, obj)
 		case "belongsToFkId":

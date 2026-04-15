@@ -32,6 +32,7 @@ import {
   TooltipTrigger,
 } from '@web/components/ui/tooltip'
 import { Columns, Loader2, Save, HelpCircle, Link2 } from 'lucide-react'
+import { hasSystemLabelSuffix } from '@/shared/model/system-field'
 import type {
   EnumSourceOption,
   LogicalForeignKey,
@@ -119,6 +120,8 @@ export function InsertFieldSheet({
   const trimmedFieldName = fieldData.name.trim()
   const isDuplicateName = trimmedFieldName !== '' && existingFieldNames.includes(trimmedFieldName)
   const isInvalidFieldNameFormat = trimmedFieldName !== '' && !FIELD_NAME_REGEX.test(trimmedFieldName)
+  const isReservedSystemLabelName =
+    fieldData.format !== 'ENUM_LABEL' && trimmedFieldName !== '' && hasSystemLabelSuffix(trimmedFieldName)
   const [enumContextLoading, setEnumContextLoading] = useState(false)
   const [enumContextError, setEnumContextError] = useState<ModelEnumDomainError | null>(null)
   const [enumSources, setEnumSources] = useState<EnumSourceOption[]>([])
@@ -200,6 +203,15 @@ export function InsertFieldSheet({
     }
   }, [fieldData.format, open, refreshEnumContext])
 
+  useEffect(() => {
+    if (fieldData.format !== 'ENUM_LABEL') {
+      return
+    }
+
+    const nextName = fieldData.sourceFieldName ? `${fieldData.sourceFieldName}_label` : ''
+    setFieldData((prev) => (prev.name === nextName ? prev : { ...prev, name: nextName }))
+  }, [fieldData.format, fieldData.sourceFieldName])
+
   const [addField] = useMutation(ADD_FIELDS, {
     client: projectClient,
     context: projectScopedContext,
@@ -240,6 +252,11 @@ export function InsertFieldSheet({
 
     if (isDuplicateName) {
       setSubmitError(`字段标识 '${fieldData.name}' 已存在`)
+      return
+    }
+
+    if (isReservedSystemLabelName) {
+      setSubmitError("`_label`/`_labels` 后缀字段为系统保留字段，不允许手工创建")
       return
     }
 
@@ -358,6 +375,7 @@ export function InsertFieldSheet({
     || !fieldData.title
     || isInvalidFieldNameFormat
     || isDuplicateName
+    || isReservedSystemLabelName
     || (fieldData.format === 'RELATION' && !fieldData.relateFkId)
     || (fieldData.format === 'ENUM' && !fieldData.relateEnumName)
     || (
@@ -398,18 +416,32 @@ export function InsertFieldSheet({
                     <Input
                       value={fieldData.name}
                       onChange={(e) => {
+                        if (fieldData.format === 'ENUM_LABEL') {
+                          return
+                        }
                         setFieldData(prev => ({ ...prev, name: e.target.value }))
                         setSubmitError(null)
                       }}
                       placeholder="例如：title, status"
-                      className={`font-mono ${isDuplicateName ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                      className={`font-mono ${
+                        isDuplicateName || isReservedSystemLabelName
+                          ? 'border-destructive focus-visible:ring-destructive'
+                          : ''
+                      }`}
+                      readOnly={fieldData.format === 'ENUM_LABEL'}
                     />
                     {isInvalidFieldNameFormat ? (
                       <p className="text-xs text-destructive">
                         字段标识格式无效：只允许字母、数字、下划线，且必须以字母开头（不允许 &apos;_&apos; 前缀）
                       </p>
+                    ) : isReservedSystemLabelName ? (
+                      <p className="text-xs text-destructive">
+                        `_label` / `_labels` 后缀是系统保留字段，不允许手工创建
+                      </p>
                     ) : isDuplicateName ? (
                       <p className="text-xs text-destructive">字段标识 &apos;{fieldData.name}&apos; 已存在</p>
+                    ) : fieldData.format === 'ENUM_LABEL' ? (
+                      <p className="text-xs text-muted-foreground">根据 source 字段自动生成系统字段名，不可编辑</p>
                     ) : (
                       <p className="text-xs text-muted-foreground">字母开头，可包含字母、数字和下划线</p>
                     )}

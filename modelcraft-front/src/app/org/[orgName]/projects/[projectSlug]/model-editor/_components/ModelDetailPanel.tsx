@@ -33,6 +33,10 @@ import {
   SelectValue,
 } from '@web/components/ui/select'
 import { InsertFieldSheet } from '@web/components/features/model-editor/InsertFieldSheet'
+import {
+  getEnumDisplayFieldName,
+  isSystemGeneratedLabelField,
+} from '@/shared/model/system-field'
 import { ForeignKeyPanel } from './ForeignKeyPanel'
 import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
@@ -284,17 +288,26 @@ export function ModelDetailPanel({
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-border">
-                          {state.editModelData.fields.map((field) => (
-                            <tr
-                              key={field.name}
-                              className="transition-colors hover:bg-muted/20"
-                            >
+                          {state.editModelData.fields.map((field) => {
+                            const enumDisplayFieldName = getEnumDisplayFieldName(field)
+                            const isSystemField = isSystemGeneratedLabelField(field, state.editModelData.fields)
+
+                            return (
+                              <tr
+                                key={field.name}
+                                className="transition-colors hover:bg-muted/20"
+                              >
                               <td className="px-3 py-2">
                                 <div className="flex flex-col">
                                   <div className="flex items-center gap-2">
                                     <span className={`font-mono text-sm ${field.isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'}`}>
                                       {field.name}
                                     </span>
+                                    {isSystemField && (
+                                      <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                        系统字段
+                                      </span>
+                                    )}
                                     {field.isDeprecated && (
                                       <span className="inline-flex items-center rounded bg-orange-50 px-1.5 py-0.5 font-mono text-xs text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
                                         已废弃
@@ -304,6 +317,16 @@ export function ModelDetailPanel({
                                   {field.title && (
                                     <span className="truncate text-xs text-muted-foreground">
                                       {field.title}
+                                    </span>
+                                  )}
+                                  {enumDisplayFieldName && (
+                                    <span className="truncate text-xs text-muted-foreground">
+                                      显示字段: <span className="font-mono">{enumDisplayFieldName}</span>
+                                    </span>
+                                  )}
+                                  {isSystemField && (
+                                    <span className="truncate text-xs text-muted-foreground">
+                                      系统生成 / 只读 / 不可编辑 / 非物理列
                                     </span>
                                   )}
                                 </div>
@@ -345,27 +368,29 @@ export function ModelDetailPanel({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-36">
                                     <DropdownMenuItem
-                                      className="cursor-pointer text-xs"
+                                      className={`text-xs ${isSystemField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'}`}
                                       onClick={() => fieldOps.handleOpenEditField(field)}
+                                      disabled={isSystemField}
                                     >
                                       <Edit className="mr-2 size-3.5" />
                                       编辑
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      className="cursor-pointer text-xs"
+                                      className={`text-xs ${isSystemField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'}`}
                                       onClick={() => fieldOps.handleToggleDeprecate(field)}
+                                      disabled={isSystemField}
                                     >
                                       <Archive className="mr-2 size-3.5" />
                                       {field.isDeprecated ? '取消废弃' : '废弃'}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className={`cursor-pointer text-xs ${
-                                        field.isDeprecated
+                                        field.isDeprecated && !isSystemField
                                           ? 'text-destructive focus:text-destructive'
                                           : 'cursor-not-allowed text-muted-foreground/50'
                                       }`}
                                       onClick={() => fieldOps.handleRemoveField(field)}
-                                      disabled={!field.isDeprecated}
+                                      disabled={!field.isDeprecated || isSystemField}
                                     >
                                       <Trash2 className="mr-2 size-3.5" />
                                       删除
@@ -373,8 +398,9 @@ export function ModelDetailPanel({
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </td>
-                            </tr>
-                          ))}
+                              </tr>
+                            )
+                          })}
                         </tbody>
                       </table>
                     </div>

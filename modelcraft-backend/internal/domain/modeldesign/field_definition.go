@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
@@ -44,6 +45,15 @@ type FieldDefinition struct {
 	Metadata       map[string]any    `json:"metadata"`
 	CreatedAt      time.Time         `json:"createdAt"`
 	UpdatedAt      time.Time         `json:"updatedAt"`
+}
+
+// EnumDisplayAttributes 枚举展示字段配置。
+// - ENUM 使用 labelFieldName
+// - ENUM_ARRAY 使用 labelsFieldName
+type EnumDisplayAttributes struct {
+	Enabled         *bool   `json:"enabled,omitempty"`
+	LabelFieldName  *string `json:"labelFieldName,omitempty"`
+	LabelsFieldName *string `json:"labelsFieldName,omitempty"`
 }
 
 // ValidationConfig 字段验证属性类型
@@ -122,6 +132,9 @@ func (fd *FieldDefinition) validate() error {
 	}
 
 	if err := fd.validateEnumField(); err != nil {
+		return err
+	}
+	if err := fd.validateAttributes(); err != nil {
 		return err
 	}
 
@@ -250,6 +263,124 @@ func (fd *FieldDefinition) validateEnumField() error {
 		fd.EnumRelationID = nil
 	}
 	return nil
+}
+
+func (fd *FieldDefinition) validateAttributes() error {
+	cfg, err := fd.parseEnumDisplayFromMetadata()
+	if err != nil {
+		return bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			fmt.Sprintf("metadata.enumDisplay is invalid: %s", err.Error()),
+		)
+	}
+	if cfg == nil {
+		return nil
+	}
+	if !fd.IsEnumField() {
+		return bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			"metadata.enumDisplay is only allowed for ENUM/ENUM_ARRAY fields",
+		)
+	}
+
+	enabled := cfg.Enabled == nil || *cfg.Enabled
+	if !enabled {
+		return nil
+	}
+
+	if fd.IsEnumArrayField() {
+		if cfg.LabelFieldName != nil && strings.TrimSpace(*cfg.LabelFieldName) != "" {
+			return bizerrors.NewError(
+				bizerrors.ParamInvalid,
+				"metadata.enumDisplay.labelFieldName is not allowed for ENUM_ARRAY",
+			)
+		}
+		if cfg.LabelsFieldName == nil || strings.TrimSpace(*cfg.LabelsFieldName) == "" {
+			return bizerrors.NewError(
+				bizerrors.ParamInvalid,
+				"metadata.enumDisplay.labelsFieldName is required for ENUM_ARRAY",
+			)
+		}
+		if !isValidFieldName(strings.TrimSpace(*cfg.LabelsFieldName)) {
+			return bizerrors.NewError(
+				bizerrors.ParamInvalid,
+				"metadata.enumDisplay.labelsFieldName format is invalid",
+			)
+		}
+		return nil
+	}
+
+	if cfg.LabelsFieldName != nil && strings.TrimSpace(*cfg.LabelsFieldName) != "" {
+		return bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			"metadata.enumDisplay.labelsFieldName is not allowed for ENUM",
+		)
+	}
+	if cfg.LabelFieldName == nil || strings.TrimSpace(*cfg.LabelFieldName) == "" {
+		return bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			"metadata.enumDisplay.labelFieldName is required for ENUM",
+		)
+	}
+	if !isValidFieldName(strings.TrimSpace(*cfg.LabelFieldName)) {
+		return bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			"metadata.enumDisplay.labelFieldName format is invalid",
+		)
+	}
+
+	return nil
+}
+
+// ResolveEnumDisplayFieldName 返回运行态使用的枚举展示字段名（包含默认值回退）。
+// 返回值：
+// - fieldName: 展示字段名
+// - enabled: 是否启用展示字段注入
+func (fd *FieldDefinition) ResolveEnumDisplayFieldName() (string, bool) {
+	if !fd.IsEnumField() {
+		return "", false
+	}
+
+	cfg, _ := fd.parseEnumDisplayFromMetadata()
+
+	if cfg != nil && cfg.Enabled != nil && !*cfg.Enabled {
+		return "", false
+	}
+
+	if fd.IsEnumArrayField() {
+		if cfg != nil && cfg.LabelsFieldName != nil && strings.TrimSpace(*cfg.LabelsFieldName) != "" {
+			return strings.TrimSpace(*cfg.LabelsFieldName), true
+		}
+		return fd.Name + "_labels", true
+	}
+
+	if cfg != nil && cfg.LabelFieldName != nil && strings.TrimSpace(*cfg.LabelFieldName) != "" {
+		return strings.TrimSpace(*cfg.LabelFieldName), true
+	}
+	return fd.Name + "_label", true
+}
+
+func (fd *FieldDefinition) parseEnumDisplayFromMetadata() (*EnumDisplayAttributes, error) {
+	if fd.Metadata == nil {
+		return nil, nil
+	}
+
+	raw, ok := fd.Metadata["enumDisplay"]
+	if !ok || raw == nil {
+		return nil, nil
+	}
+
+	b, err := json.Marshal(raw)
+	if err != nil {
+		return nil, err
+	}
+
+	cfg := &EnumDisplayAttributes{}
+	if err := json.Unmarshal(b, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 // IsRelationField 判断是否为关联关系字段

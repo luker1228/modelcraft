@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"encoding/json"
 	"fmt"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/generated"
@@ -95,6 +96,15 @@ func (m *modelMapper) convertFieldWithActualSchema(
 	if fieldDef.Enum != nil {
 		enumDef = EnumMapper.ConvertEnumDefinitionToGraphQL(fieldDef.Enum)
 	}
+	var metadata *string
+	if len(fieldDef.Metadata) > 0 {
+		metadataJSON, err := json.Marshal(fieldDef.Metadata)
+		if err != nil {
+			return nil, fmt.Errorf("marshal field metadata: %w", err)
+		}
+		metadataStr := string(metadataJSON)
+		metadata = &metadataStr
+	}
 
 	field := &generated.Field{
 		Name:             fieldDef.Name,
@@ -109,6 +119,7 @@ func (m *modelMapper) convertFieldWithActualSchema(
 		IsArray:          fieldDef.IsArray,
 		Description:      description,
 		ValidationConfig: validationConfig,
+		Metadata:         metadata,
 		RelateFkID:       fieldDef.RelateFKID,
 		BelongsToFkID:    fieldDef.BelongsToFKID,
 		Enum:             enumDef,

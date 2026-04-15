@@ -68,6 +68,7 @@ type Field {
   isArray: Boolean!
   description: String
   validationConfig: ValidationConfig
+  metadata: String
   relateFkId: String
   belongsToFkId: String
 

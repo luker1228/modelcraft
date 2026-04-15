@@ -1,4 +1,5 @@
 'use client'
+import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Loader2 } from 'lucide-react'
@@ -26,7 +27,8 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, '字段名称不能为空')
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '字段名称仅支持字母、数字和下划线，且不能数字开头'),
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '字段名称仅支持字母、数字和下划线，且不能数字开头')
+    .refine((value) => value.endsWith('_label'), '系统显示字段必须使用 `_label` 后缀'),
   title: z.string().trim().min(1, '字段标题不能为空').max(64, '字段标题不能超过 64 个字符'),
   description: z.string().trim().max(500, '描述不能超过 500 个字符').optional(),
   sourceFieldName: z.string().trim().min(1, '请选择 sourceField（本表 ENUM 字段）'),
@@ -64,7 +66,13 @@ export function CreateEnumLabelFieldPage({
   })
 
   const sourceFieldName = watch('sourceFieldName')
+  const name = watch('name')
   const selectedSource = sourceOptions.find((source) => source.fieldName === sourceFieldName)
+
+  React.useEffect(() => {
+    const generatedName = sourceFieldName ? `${sourceFieldName}_label` : ''
+    setValue('name', generatedName, { shouldValidate: true })
+  }, [setValue, sourceFieldName])
 
   const submitDisabled =
     loading || isSubmitting || sourceOptions.length === 0 || Boolean(selectedSource?.occupied)
@@ -86,8 +94,15 @@ export function CreateEnumLabelFieldPage({
 
       <div className="space-y-1.5">
         <Label htmlFor="create-enum-label-field-name">字段名称</Label>
-        <Input id="create-enum-label-field-name" placeholder="例如 status_label" {...register('name')} aria-invalid={Boolean(errors.name)} />
+        <Input
+          id="create-enum-label-field-name"
+          value={name}
+          readOnly
+          className="bg-muted/40 font-mono"
+          aria-invalid={Boolean(errors.name)}
+        />
         {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
+        {!errors.name && <p className="text-xs text-muted-foreground">系统自动生成，不可编辑。</p>}
       </div>
 
       <div className="space-y-1.5">

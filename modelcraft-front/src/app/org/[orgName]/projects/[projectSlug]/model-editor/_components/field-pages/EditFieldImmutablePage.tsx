@@ -10,6 +10,7 @@ import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import { Textarea } from '@web/components/ui/textarea'
+import { hasSystemLabelSuffix, isSystemGeneratedLabelField } from '@/shared/model/system-field'
 import type { ModelEnumDomainError, UpdateFieldMetaFormValues } from '@/types'
 
 const schema = z.object({
@@ -42,6 +43,11 @@ export function EditFieldImmutablePage({
   onSubmit,
   onCancel,
 }: EditFieldImmutablePageProps) {
+  const isSystemField = isSystemGeneratedLabelField(
+    { name: fieldName, format },
+    [{ name: fieldName, format }],
+  ) || hasSystemLabelSuffix(fieldName)
+
   const {
     register,
     handleSubmit,
@@ -84,7 +90,13 @@ export function EditFieldImmutablePage({
 
       <div className="space-y-1.5">
         <Label htmlFor="edit-field-title">显示标题</Label>
-        <Input id="edit-field-title" placeholder="输入字段标题" {...register('title')} aria-invalid={Boolean(errors.title)} />
+        <Input
+          id="edit-field-title"
+          placeholder="输入字段标题"
+          {...register('title')}
+          disabled={isSystemField}
+          aria-invalid={Boolean(errors.title)}
+        />
         {errors.title && <p className="text-xs text-destructive">{errors.title.message}</p>}
       </div>
 
@@ -95,6 +107,7 @@ export function EditFieldImmutablePage({
           className="min-h-[96px]"
           placeholder="输入字段描述"
           {...register('description')}
+          disabled={isSystemField}
           aria-invalid={Boolean(errors.description)}
         />
         {errors.description && <p className="text-xs text-destructive">{errors.description.message}</p>}
@@ -123,13 +136,16 @@ export function EditFieldImmutablePage({
           )}
         </div>
         <p className="mt-2 text-xs text-muted-foreground">字段 format/关联配置创建后不可修改。</p>
+        {isSystemField && (
+          <p className="mt-1 text-xs text-muted-foreground">系统生成字段只读，不可编辑。</p>
+        )}
       </div>
 
       <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
         <Button type="button" variant="outline" size="sm" onClick={onCancel}>
           取消
         </Button>
-        <Button type="submit" size="sm" disabled={loading || isSubmitting}>
+        <Button type="submit" size="sm" disabled={loading || isSubmitting || isSystemField}>
           {(loading || isSubmitting) && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
           保存
         </Button>

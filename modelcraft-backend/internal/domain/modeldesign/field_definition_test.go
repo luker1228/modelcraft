@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestGetFieldTypeByFormat 测试getFieldTypeByFormat函数
@@ -880,6 +881,48 @@ func TestFieldDefinition_validateEnumBindingRules(t *testing.T) {
 			assert.Equal(t, tt.expectRelationID, tt.field.EnumRelationID)
 		})
 	}
+}
+
+func TestFieldDefinition_EnumDisplayAttributes_DefaultAndValidate(t *testing.T) {
+	t.Run("ENUM defaults labelFieldName", func(t *testing.T) {
+		field := &FieldDefinition{
+			Name:     "status",
+			Type:     GetFieldTypeByFormat(FormatEnum),
+			EnumName: "StatusEnum",
+		}
+
+		name, enabled := field.ResolveEnumDisplayFieldName()
+		assert.True(t, enabled)
+		assert.Equal(t, "status_label", name)
+	})
+
+	t.Run("ENUM_ARRAY defaults labelsFieldName", func(t *testing.T) {
+		field := &FieldDefinition{
+			Name:     "tags",
+			Type:     GetFieldTypeByFormat(FormatEnumArray),
+			EnumName: "TagEnum",
+		}
+
+		name, enabled := field.ResolveEnumDisplayFieldName()
+		assert.True(t, enabled)
+		assert.Equal(t, "tags_labels", name)
+	})
+
+	t.Run("non-enum rejects enumDisplay attributes", func(t *testing.T) {
+		field := &FieldDefinition{
+			Name: "title",
+			Type: GetFieldTypeByFormat(FormatString),
+			Metadata: map[string]any{
+				"enumDisplay": map[string]any{
+					"enabled": true,
+				},
+			},
+		}
+
+		err := field.validateAttributes()
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "metadata.enumDisplay is only allowed")
+	})
 }
 
 // TestFieldDefinition_validateBooleanField tests validateBooleanField method

@@ -21,6 +21,7 @@ import { Label } from '@web/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@web/components/ui/popover'
 import { Textarea } from '@web/components/ui/textarea'
 import { cn } from '@/shared/utils'
+import { hasSystemLabelSuffix } from '@/shared/model/system-field'
 import type { CreateEnumFieldFormValues, ModelEnumDomainError } from '@/types'
 
 const schema = z.object({
@@ -28,7 +29,10 @@ const schema = z.object({
     .string()
     .trim()
     .min(1, '字段名称不能为空')
-    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '字段名称仅支持字母、数字和下划线，且不能数字开头'),
+    .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '字段名称仅支持字母、数字和下划线，且不能数字开头')
+    .refine((value) => !hasSystemLabelSuffix(value), {
+      message: '`_label`/`_labels` 后缀为系统保留字段，不允许手工创建',
+    }),
   title: z.string().trim().min(1, '字段标题不能为空').max(64, '字段标题不能超过 64 个字符'),
   description: z.string().trim().max(500, '描述不能超过 500 个字符').optional(),
   relateEnumName: z.string().trim().min(1, '请选择关联枚举'),

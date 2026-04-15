@@ -844,6 +844,148 @@ func normalizeEnumCode(sourceValue any) (string, bool) {
 	return code, true
 }
 
+func (r *graphqlModelResolver) injectAutoEnumLabelFields(
+	ctx context.Context,
+	model *RuntimeModel,
+	graphqlFields graphql.Fields,
+) {
+	logger := logfacade.GetLogger(ctx)
+
+	for _, field := range model.Fields {
+		if field == nil || field.Name == "" || !field.IsEnumField() {
+			continue
+		}
+
+		autoFieldName, autoField, enabled := r.newAutoEnumLabelField(field)
+		if !enabled {
+			continue
+		}
+		if _, exists := graphqlFields[autoFieldName]; exists {
+			logger.Warnf(
+				ctx,
+				"skip auto enum label field %s for source field %s: field already exists",
+				autoFieldName,
+				field.Name,
+			)
+			continue
+		}
+		graphqlFields[autoFieldName] = autoField
+	}
+}
+
+func (r *graphqlModelResolver) newAutoEnumLabelField(sourceField *RuntimeField) (string, *graphql.Field, bool) {
+	autoFieldName, enabled := sourceField.ResolveEnumDisplayFieldName()
+	if !enabled {
+		return "", nil, false
+	}
+
+	autoFieldType := graphql.Output(graphql.String)
+	if sourceField.IsEnumArrayField() {
+		autoFieldType = graphql.NewList(graphql.NewNonNull(graphql.String))
+	}
+
+	return autoFieldName, &graphql.Field{
+		Name:        autoFieldName,
+		Type:        autoFieldType,
+		Description: fmt.Sprintf("Auto generated labels for enum field %s", sourceField.Name),
+		Resolve:     r.createAutoEnumLabelResolver(sourceField, autoFieldName),
+	}, true
+}
+
+func (r *graphqlModelResolver) createAutoEnumLabelResolver(
+	sourceField *RuntimeField, autoFieldName string,
+) graphql.FieldResolveFn {
+	return func(p graphql.ResolveParams) (interface{}, error) {
+		logger := logfacade.GetLogger(p.Context)
+
+		if sourceField.IsEnumArrayField() {
+			return r.resolveAutoEnumArrayLabels(p, sourceField, autoFieldName, logger)
+		}
+		return r.resolveAutoEnumLabel(p, sourceField, autoFieldName, logger)
+	}
+}
+
+func (r *graphqlModelResolver) resolveAutoEnumLabel(
+	p graphql.ResolveParams,
+	sourceField *RuntimeField,
+	autoFieldName string,
+	logger logfacade.Logger,
+) (string, error) {
+	record, ok := p.Source.(map[string]any)
+	if !ok {
+		logger.Warnf(p.Context, "invalid source type for auto enum label field %s", autoFieldName)
+		return "", nil
+	}
+
+	sourceValue, exists := record[sourceField.Name]
+	if !exists || sourceValue == nil {
+		return "", nil
+	}
+
+	if sourceField.Enum == nil {
+		logger.Warnf(p.Context, "source field %s has no enum definition", sourceField.Name)
+		return "", nil
+	}
+
+	code, ok := normalizeEnumCode(sourceValue)
+	if !ok {
+		logger.Warnf(p.Context, "enum field %s has invalid type for auto label: %T", sourceField.Name, sourceValue)
+		return "", nil
+	}
+
+	opt, err := sourceField.Enum.GetOptionByCode(code)
+	if err != nil {
+		logger.Warnf(p.Context, "enum option not found for auto label: code=%s, enum=%s", code, sourceField.Enum.Name)
+		return "", nil
+	}
+	return opt.Label, nil
+}
+
+func (r *graphqlModelResolver) resolveAutoEnumArrayLabels(
+	p graphql.ResolveParams,
+	sourceField *RuntimeField,
+	autoFieldName string,
+	logger logfacade.Logger,
+) ([]string, error) {
+	record, ok := p.Source.(map[string]any)
+	if !ok {
+		logger.Warnf(p.Context, "invalid source type for auto enum labels field %s", autoFieldName)
+		return []string{}, nil
+	}
+
+	sourceValue, exists := record[sourceField.Name]
+	if !exists || sourceValue == nil {
+		return []string{}, nil
+	}
+
+	if sourceField.Enum == nil {
+		logger.Warnf(p.Context, "source field %s has no enum definition", sourceField.Name)
+		return []string{}, nil
+	}
+
+	codes, ok := normalizeEnumArrayCodes(sourceValue)
+	if !ok {
+		logger.Warnf(p.Context, "enum array field %s has invalid type for auto labels: %T", sourceField.Name, sourceValue)
+		return []string{}, nil
+	}
+
+	labels := make([]string, 0, len(codes))
+	for _, code := range codes {
+		opt, err := sourceField.Enum.GetOptionByCode(code)
+		if err != nil {
+			logger.Warnf(
+				p.Context,
+				"enum option not found for auto labels: code=%s, enum=%s",
+				code,
+				sourceField.Enum.Name,
+			)
+			return []string{}, nil
+		}
+		labels = append(labels, opt.Label)
+	}
+	return labels, nil
+}
+
 // createRelationField 创建关系字段（使用 LogicalForeignKey）
 func (r *graphqlModelResolver) createRelationField(
 	ctx context.Context,
@@ -1090,6 +1232,7 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 		}
 		graphqlfields[field.Name] = graphqlfield
 	}
+	r.injectAutoEnumLabelFields(ctx, model, graphqlfields)
 
 	// 注入 _label 字段（始终返回 String!，根据当前模型的 displayField 解析）
 	graphqlfields[FieldLabel] = r.createLabelField(model.DisplayField)
@@ -1129,6 +1272,7 @@ func (r *graphqlModelResolver) generateModelTypeSkipRelation(
 		}
 		graphqlfields[field.Name] = graphqlfield
 	}
+	r.injectAutoEnumLabelFields(ctx, model, graphqlfields)
 	modelType := graphql.NewObject(graphql.ObjectConfig{
 		Name:        model.Name + "Mutation",
 		Fields:      graphqlfields,

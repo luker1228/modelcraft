@@ -466,6 +466,7 @@ type Field struct {
 	IsArray          bool              `json:"isArray"`
 	Description      *string           `json:"description,omitempty"`
 	ValidationConfig *ValidationConfig `json:"validationConfig,omitempty"`
+	Metadata         *string           `json:"metadata,omitempty"`
 	RelateFkID       *string           `json:"relateFkId,omitempty"`
 	BelongsToFkID    *string           `json:"belongsToFkId,omitempty"`
 	Enum             *EnumDefinition   `json:"enum,omitempty"`
