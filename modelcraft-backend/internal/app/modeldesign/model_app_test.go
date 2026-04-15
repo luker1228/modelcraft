@@ -817,7 +817,9 @@ func (m *MockFieldEnumRelationRepo) Create(ctx context.Context, relation *modeld
 	return args.Error(0)
 }
 
-func (m *MockFieldEnumRelationRepo) FindByID(ctx context.Context, orgName, id string) (*modeldesign.FieldEnumRelation, error) {
+func (m *MockFieldEnumRelationRepo) FindByID(
+	ctx context.Context, orgName, id string,
+) (*modeldesign.FieldEnumRelation, error) {
 	args := m.Called(ctx, orgName, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -836,7 +838,9 @@ func (m *MockFieldEnumRelationRepo) FindBySourceField(
 	return args.Get(0).(*modeldesign.FieldEnumRelation), args.Error(1)
 }
 
-func (m *MockFieldEnumRelationRepo) ListByModelID(ctx context.Context, orgName, modelID string) ([]*modeldesign.FieldEnumRelation, error) {
+func (m *MockFieldEnumRelationRepo) ListByModelID(
+	ctx context.Context, orgName, modelID string,
+) ([]*modeldesign.FieldEnumRelation, error) {
 	args := m.Called(ctx, orgName, modelID)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -1146,11 +1150,13 @@ func TestRemoveEnumLabelFieldWithRelation_TransactionFailure_ReturnsError(t *tes
 	mockTxManager := new(MockTxManager)
 
 	svc := &ModelDesignAppService{
-		modelRepo:               mockModelRepo,
-		txManager:               mockTxManager,
-		fieldEnumRelRepo:        mockRelationRepo,
-		modelRepoFactory:        func(q dbgen.Querier) modeldesign.ModelRepository { return mockModelRepo },
-		fieldEnumRelRepoFactory: func(q dbgen.Querier) modeldesign.FieldEnumRelationRepository { return mockRelationRepo },
+		modelRepo:        mockModelRepo,
+		txManager:        mockTxManager,
+		fieldEnumRelRepo: mockRelationRepo,
+		modelRepoFactory: func(q dbgen.Querier) modeldesign.ModelRepository { return mockModelRepo },
+		fieldEnumRelRepoFactory: func(q dbgen.Querier) modeldesign.FieldEnumRelationRepository {
+			return mockRelationRepo
+		},
 	}
 
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")

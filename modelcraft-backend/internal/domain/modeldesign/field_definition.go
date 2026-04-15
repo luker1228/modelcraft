@@ -92,7 +92,8 @@ func (fd *FieldDefinition) Validate() error {
 		if bizerrors.As(err, &bizErr) {
 			return bizErr
 		}
-		return bizerrors.NewError(bizerrors.ParamInvalid, fmt.Sprintf("field '%s' validation failed: %s", fd.Name, err.Error()))
+		return bizerrors.NewError(bizerrors.ParamInvalid,
+			fmt.Sprintf("field '%s' validation failed: %s", fd.Name, err.Error()))
 	}
 	return nil
 }

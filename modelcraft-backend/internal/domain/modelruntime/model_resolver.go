@@ -522,7 +522,11 @@ func (m *graphqlModelResolver) createCountResultType(ctx context.Context) *graph
 }
 
 // createField 创建GraphQL字段，支持普通字段、关系字段和虚拟字段
-func (r *graphqlModelResolver) createField(ctx context.Context, maxDepth int, field *RuntimeField, relateObjMaps map[string]*graphql.Object,
+func (r *graphqlModelResolver) createField(
+	ctx context.Context,
+	maxDepth int,
+	field *RuntimeField,
+	relateObjMaps map[string]*graphql.Object,
 ) (*graphql.Field, error) {
 	graphqlField := &graphql.Field{
 		Name:        field.Name,
@@ -574,7 +578,8 @@ func (r *graphqlModelResolver) createEnumField(field *RuntimeField, graphqlField
 			logger.Warnf(p.Context, "invalid source type for enum field %s", field.Name)
 			return nil, nil
 		}
-		logger.Infof(p.Context, "process enum fields: %s, record=%s", field.Name, bizutils.MarshalToStringIgnoreErr(record))
+		logger.Infof(p.Context, "process enum fields: %s, record=%s",
+			field.Name, bizutils.MarshalToStringIgnoreErr(record))
 
 		// 获取字段值
 		value, exists := record[field.Name]
@@ -604,7 +609,8 @@ func (r *graphqlModelResolver) createEnumField(field *RuntimeField, graphqlField
 				bizerrors.Errorf("undefined enum: %s is not a valid value for enum %s", strValue, enumDefinition.Name)
 		}
 
-		logger.Infof(p.Context, "enum field %s: value %s is valid for enum %s", field.Name, strValue, enumDefinition.Name)
+		logger.Infof(p.Context, "enum field %s: value %s is valid for enum %s",
+			field.Name, strValue, enumDefinition.Name)
 		// 返回有效的枚举值（GraphQL 会自动解析为枚举类型）
 		return strValue, nil
 	}
@@ -657,7 +663,10 @@ func resolveEnumLabelSourceFieldName(field *RuntimeField) (string, error) {
 	if field.Metadata == nil {
 		return "", bizerrors.NewError(
 			bizerrors.ParamInvalid,
-			fmt.Sprintf("enum label field %s missing metadata for enumRelationId=%s", field.Name, *field.EnumRelationID),
+			fmt.Sprintf(
+				"enum label field %s missing metadata for enumRelationId=%s",
+				field.Name, *field.EnumRelationID,
+			),
 		)
 	}
 
@@ -676,7 +685,10 @@ func resolveEnumLabelSourceFieldName(field *RuntimeField) (string, error) {
 
 	return "", bizerrors.NewError(
 		bizerrors.ParamInvalid,
-		fmt.Sprintf("cannot resolve source field from enumRelationId=%s for field=%s", *field.EnumRelationID, field.Name),
+		fmt.Sprintf(
+			"cannot resolve source field from enumRelationId=%s for field=%s",
+			*field.EnumRelationID, field.Name,
+		),
 	)
 }
 
@@ -923,7 +935,8 @@ func (r *graphqlModelResolver) createOneToManyResolverFromFK(
 			value, exists := record[sourceField]
 			if !exists || value == nil {
 				// 如果任意一个 SourceField 值为 nil，返回空数组
-				logger.Infof(p.Context, "one-to-many relation: source field %s is nil or missing, returning empty array",
+				logger.Infof(p.Context,
+					"one-to-many relation: source field %s is nil or missing, returning empty array",
 					sourceField)
 				return []map[string]any{}, nil
 			}
@@ -1024,7 +1037,8 @@ func (r *graphqlModelResolver) createManyToOneResolverFromFK(
 			result, err := thunk()
 			if err != nil {
 				// 悬空外键或批量查询失败，按 LEFT JOIN 语义返回 nil
-				logger.Warnf(p.Context, "many-to-one relation load failed (dangling FK?): table=%s key=%s val=%s err=%v",
+				logger.Warnf(p.Context,
+					"many-to-one relation load failed (dangling FK?): table=%s key=%s val=%s err=%v",
 					refModelName, referenceKey, fkStr, err)
 				return nil, nil
 			}
@@ -1088,7 +1102,9 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 	return modelType, nil
 }
 
-func (r *graphqlModelResolver) generateModelTypeSkipRelation(ctx context.Context, model *RuntimeModel) (*graphql.Object, error) {
+func (r *graphqlModelResolver) generateModelTypeSkipRelation(
+	ctx context.Context, model *RuntimeModel,
+) (*graphql.Object, error) {
 	graphqlfields := graphql.Fields{}
 
 	// 验证模型名称不为空

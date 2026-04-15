@@ -30,3 +30,18 @@ Feature: 模型管理
       | has space        |
       | has-hyphen       |
       | _startsUnderscore |
+
+  Scenario: 通过 model query 请求 jsonSchema 字段时返回合法 JSON Schema
+    Given 已创建名为 "JsonSchemaModel" 的模型
+    And 模型已有名为 "email" 格式为 "STRING" 的字段
+    And 模型已有名为 "age" 格式为 "NUMBER" 的字段
+    When 我通过 model query 请求该模型的 jsonSchema 字段
+    Then 返回的 jsonSchema 应该是合法的 JSON Schema 字符串
+    And jsonSchema 中应该包含字段名 "email"
+    And jsonSchema 中应该包含字段名 "age"
+
+  Scenario: 不请求 jsonSchema 字段时 model query 正常返回（向后兼容）
+    Given 已创建名为 "BackCompatModel" 的模型
+    When 我通过 model query 请求该模型的基础字段（不含 jsonSchema）
+    Then 操作应该成功
+    And 返回的模型应该包含 id 和 name 字段

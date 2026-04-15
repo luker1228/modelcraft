@@ -59,18 +59,7 @@ import {
   Columns,
 } from 'lucide-react'
 
-// Query to get model JSON schema for runtime
-const MODEL_JSON_SCHEMA_QUERY = gql`
-  query ModelJsonSchema($id: ID!) {
-    modelJsonSchema(id: $id) {
-      modelId
-      modelName
-      schema
-    }
-  }
-`
-
-// Query to get model details with fields
+// Query to get model details with fields and JSON schema
 const GET_MODEL_QUERY = gql`
   query GetModel($id: ID!) {
     model(id: $id) {
@@ -80,6 +69,7 @@ const GET_MODEL_QUERY = gql`
         title
         description
         databaseName
+        jsonSchema
         fields {
           name
           title
@@ -119,18 +109,12 @@ interface GetModelQueryData {
       title?: string | null
       description?: string | null
       databaseName?: string | null
+      jsonSchema?: string | null
       fields: ModelField[]
     } | null
     error?: {
       message?: string | null
     } | null
-  } | null
-}
-
-interface ModelJsonSchemaQueryData {
-  modelJsonSchema?: {
-    modelName: string
-    schema: string
   } | null
 }
 
@@ -173,15 +157,8 @@ export default function DynamicModelTable({
   // 复制 name 状态
   const [nameCopied, setNameCopied] = useState(false)
 
-  // Fetch model details with fields
+  // Fetch model details with fields and JSON schema
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_QUERY, {
-    client: projectClient,
-    variables: { id: modelId },
-    context: projectScopedContext,
-  })
-
-  // Fetch model schema for runtime queries
-  const { data: schemaData, refetch: refetchSchema } = useQuery<ModelJsonSchemaQueryData, { id: string }>(MODEL_JSON_SCHEMA_QUERY, {
     client: projectClient,
     variables: { id: modelId },
     context: projectScopedContext,
@@ -190,7 +167,7 @@ export default function DynamicModelTable({
   // 注意：model query 返回 GetModelPayload，model 在 payload.model 中
   const model = modelData?.model?.model
   const modelError = modelData?.model?.error
-  const modelName = schemaData?.modelJsonSchema?.modelName
+  const modelName = model?.name
   const fields = useMemo<ModelField[]>(() => model?.fields ?? [], [model?.fields])
 
   // 创建动态的 Runtime Client，使用模型特定的 GraphQL 端点
@@ -201,14 +178,14 @@ export default function DynamicModelTable({
 
   // Parse schema to get runtime fields
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {
-    if (!schemaData?.modelJsonSchema?.schema) return null
+    if (!model?.jsonSchema) return null
     try {
-      return JSON.parse(schemaData.modelJsonSchema.schema) as Record<string, unknown>
+      return JSON.parse(model.jsonSchema) as Record<string, unknown>
     } catch (error) {
       console.error('Failed to parse schema:', error)
       return null
     }
-  }, [schemaData])
+  }, [model?.jsonSchema])
 
   const runtimeFields = useMemo(() => {
     if (fields.length > 0) {
@@ -674,7 +651,6 @@ export default function DynamicModelTable({
         onSuccess={() => {
           void refetch()
           void refetchModel()
-          void refetchSchema()
         }}
       />
 

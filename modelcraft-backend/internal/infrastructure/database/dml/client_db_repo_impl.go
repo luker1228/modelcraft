@@ -118,7 +118,9 @@ func (c *ClientDBRepoImpl) FindFirst(ctx context.Context, input *modelruntime.Fi
 
 // FindManyIn 通过 IN 条件批量查找关联记录，用于解决 N+1 问题。
 // 等价于：SELECT * FROM tableName WHERE referenceKey IN (values...)
-func (c *ClientDBRepoImpl) FindManyIn(ctx context.Context, input *modelruntime.FindManyInInput) ([]map[string]any, error) {
+func (c *ClientDBRepoImpl) FindManyIn(
+	ctx context.Context, input *modelruntime.FindManyInInput,
+) ([]map[string]any, error) {
 	logger := logfacade.GetLogger(ctx)
 	return execute[*modelruntime.FindManyInInput, []map[string]any](
 		ctx, logger, input,

@@ -4,6 +4,39 @@ import { expect } from 'expect'
 import { ModelCraftWorld } from '../support/world'
 import { uniqueName } from '../fixtures/factory'
 
+const GET_MODEL_WITH_JSON_SCHEMA = `
+  query GetModelWithJsonSchema($id: ID!) {
+    model(id: $id) {
+      model {
+        id
+        name
+        jsonSchema
+      }
+      error {
+        __typename
+      }
+    }
+  }
+`
+
+const GET_MODEL_BASIC = `
+  query GetModelBasic($id: ID!) {
+    model(id: $id) {
+      model {
+        id
+        name
+        fields {
+          name
+          format
+        }
+      }
+      error {
+        __typename
+      }
+    }
+  }
+`
+
 const CREATE_MODEL = `
   mutation CreateModel($input: CreateModelInput!) {
     createModel(input: $input) {
@@ -103,4 +136,61 @@ Then('模型名称应该是 {string}', function (this: ModelCraftWorld, baseName
   const payload = (this.lastResponse as { createModel: { model: { name: string } | null } }).createModel
   // 名称带了 uniqueName 后缀，只检查包含原始 baseName
   expect(payload.model?.name).toContain(baseName)
+})
+
+When('我通过 model query 请求该模型的 jsonSchema 字段', async function (this: ModelCraftWorld) {
+  const id = this.currentModelId
+  if (!id) throw new Error('没有可用的模型 ID（请先用 Given 创建模型）')
+
+  const res = await this.projectClient.query<{
+    model: { model: { id: string; name: string; jsonSchema: string | null } | null; error: unknown }
+  }>(GET_MODEL_WITH_JSON_SCHEMA, { id })
+  this.lastResponse = { model: res.model }
+})
+
+When('我通过 model query 请求该模型的基础字段（不含 jsonSchema）', async function (this: ModelCraftWorld) {
+  const id = this.currentModelId
+  if (!id) throw new Error('没有可用的模型 ID（请先用 Given 创建模型）')
+
+  const res = await this.projectClient.query<{
+    model: { model: { id: string; name: string; fields: Array<{ name: string; format: string }> } | null; error: unknown }
+  }>(GET_MODEL_BASIC, { id })
+  this.lastResponse = { model: res.model }
+})
+
+Then('返回的 jsonSchema 应该是合法的 JSON Schema 字符串', function (this: ModelCraftWorld) {
+  const payload = (this.lastResponse as {
+    model: { model: { jsonSchema: string | null } | null; error: unknown }
+  }).model
+  expect(payload.error).toBeNull()
+  expect(payload.model).not.toBeNull()
+
+  const jsonSchema = payload.model?.jsonSchema
+  expect(jsonSchema).not.toBeNull()
+  expect(typeof jsonSchema).toBe('string')
+
+  const parsed = JSON.parse(jsonSchema!) as Record<string, unknown>
+  expect(parsed).toHaveProperty('$schema')
+  expect(parsed).toHaveProperty('type')
+  expect(parsed).toHaveProperty('properties')
+})
+
+Then('jsonSchema 中应该包含字段名 {string}', function (this: ModelCraftWorld, fieldName: string) {
+  const payload = (this.lastResponse as {
+    model: { model: { jsonSchema: string | null } | null }
+  }).model
+  const jsonSchema = payload.model?.jsonSchema
+  expect(jsonSchema).toBeDefined()
+  const parsed = JSON.parse(jsonSchema!) as { properties?: Record<string, unknown> }
+  expect(parsed.properties).toHaveProperty(fieldName)
+})
+
+Then('返回的模型应该包含 id 和 name 字段', function (this: ModelCraftWorld) {
+  const payload = (this.lastResponse as {
+    model: { model: { id: string; name: string } | null; error: unknown }
+  }).model
+  expect(payload.error).toBeNull()
+  expect(payload.model).not.toBeNull()
+  expect(payload.model?.id).toBeTruthy()
+  expect(payload.model?.name).toBeTruthy()
 })

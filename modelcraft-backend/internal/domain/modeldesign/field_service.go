@@ -109,7 +109,9 @@ func (s *FieldService) NewField(
 }
 
 // ValidateFieldEnumRelationSource 校验 FieldEnumRelation 与 source ENUM 字段的一致性。
-func (s *FieldService) ValidateFieldEnumRelationSource(sourceField *FieldDefinition, relation *FieldEnumRelation) error {
+func (s *FieldService) ValidateFieldEnumRelationSource(
+	sourceField *FieldDefinition, relation *FieldEnumRelation,
+) error {
 	if sourceField == nil {
 		return bizerrors.NewError(bizerrors.ParamInvalid, "source enum field is required")
 	}

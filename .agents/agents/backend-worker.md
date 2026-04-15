@@ -54,7 +54,7 @@ tool: *
 - 编写 Domain 层单元测试
 - 修复 Bug
 - 修复 BDD 测试失败（分析错误 → 排查日志 → 修复代码）
-- 运行 `just lint`、`just build` 验证编译，`just test-unit` 运行单元测试
+- 运行 `just lint-fix && just lint`、`just build` 验证编译，`just test-unit` 运行单元测试
 
 **不做什么**：
 - 不决定领域模型结构（由领域模型文档决定）
@@ -300,7 +300,8 @@ r.logger.Error("failed to create model",
 2. **从内到外实现**：Domain → Infrastructure → Application → Interfaces
 3. **每层实现后验证**：
    ```bash
-   just lint          # 检查分层依赖和代码风格
+   just lint-fix      # 先自动修复可修复的 lint 问题（无脑先跑）
+   just lint          # 再确认全部通过
    just test-unit     # 运行单元测试
    ```
 4. **修改 GraphQL Schema 时**：
@@ -352,7 +353,8 @@ just db reset .env.autotest  # 重置测试数据库
 
 5. **验证修复**
    ```bash
-   just lint        # 确保代码规范
+   just lint-fix    # 先自动修复可修复的 lint 问题（无脑先跑）
+   just lint        # 确保代码规范（全部通过后再继续）
    just build       # 确保编译通过
    # 重新运行失败的 BDD 测试验证修复
    ```
@@ -390,7 +392,7 @@ just db reset .env.autotest  # 重置测试数据库
 - [ ] Mutation payload 中数据字段与错误字段不混用
 
 ### 代码质量
-- [ ] `just lint` 通过，无 golangci-lint 错误
+- [ ] `just lint-fix && just lint` 通过，无 golangci-lint 错误
 - [ ] `just build` 通过，无编译错误
 - [ ] `just test-unit` 通过，Domain 层覆盖率 ≥ 95%（单元测试，不含集成测试）
 - [ ] 禁用标准库 `log`，只用 `pkg/logfacade`

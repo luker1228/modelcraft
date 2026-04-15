@@ -145,6 +145,7 @@ export const GET_MODEL = gql`
           isVirtual
           displayOrder
         }
+        jsonSchema
         dbTable
         createdAt
         updatedAt

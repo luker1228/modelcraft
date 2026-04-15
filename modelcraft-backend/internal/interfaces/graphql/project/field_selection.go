@@ -34,7 +34,9 @@ func (f *FieldSelectionChecker) IsFieldSelected(ctx context.Context, fieldPath s
 
 // containsField checks if the field collection contains the specified field path.
 // Supports dot-separated paths by recursing into nested selections.
-func (f *FieldSelectionChecker) containsField(opCtx *graphql.OperationContext, fields []graphql.CollectedField, fieldPath string) bool {
+func (f *FieldSelectionChecker) containsField(
+	opCtx *graphql.OperationContext, fields []graphql.CollectedField, fieldPath string,
+) bool {
 	head, tail, hasNested := strings.Cut(fieldPath, ".")
 	for _, field := range fields {
 		if field.Name == head {
