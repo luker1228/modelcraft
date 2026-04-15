@@ -46,7 +46,7 @@ export interface CreateEnumLabelFieldFormValues {
   title: string
   description?: string
   sourceFieldName: string
-  enumRelationId: string
+  enumRelationId?: string
 }
 
 export interface UpdateFieldMetaFormValues {

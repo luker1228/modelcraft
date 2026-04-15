@@ -91,6 +91,10 @@ func (m *modelMapper) convertFieldWithActualSchema(
 		en := fieldDef.EnumName
 		enumName = &en
 	}
+	var enumDef *generated.EnumDefinition
+	if fieldDef.Enum != nil {
+		enumDef = EnumMapper.ConvertEnumDefinitionToGraphQL(fieldDef.Enum)
+	}
 
 	field := &generated.Field{
 		Name:             fieldDef.Name,
@@ -107,6 +111,7 @@ func (m *modelMapper) convertFieldWithActualSchema(
 		ValidationConfig: validationConfig,
 		RelateFkID:       fieldDef.RelateFKID,
 		BelongsToFkID:    fieldDef.BelongsToFKID,
+		Enum:             enumDef,
 		EnumName:         enumName,
 		EnumRelationID:   fieldDef.EnumRelationID,
 		CreatedAt:        fieldDef.CreatedAt.Format(time.RFC3339),

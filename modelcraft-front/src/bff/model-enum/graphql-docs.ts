@@ -26,6 +26,24 @@ export const GET_ENUMS = gql`
   }
 `
 
+export const GET_MODEL_ENUM_SOURCE_FIELDS = gql`
+  query GetModelEnumSourceFields($id: ID!, $withActualSchema: Boolean) {
+    model(id: $id, withActualSchema: $withActualSchema) {
+      model {
+        id
+        fields {
+          name
+          title
+          format
+          enum {
+            name
+          }
+        }
+      }
+    }
+  }
+`
+
 export const GET_FIELD_ENUM_RELATIONS = gql`
   query GetFieldEnumRelations($modelID: ID!) {
     fieldEnumRelations(modelID: $modelID) {

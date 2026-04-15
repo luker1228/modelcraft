@@ -250,6 +250,15 @@ export function useCreateEnumLabelField(params: UseModelEnumContextParams): UseC
       setError(null)
 
       try {
+        const enumRelationID = values.enumRelationId?.trim()
+        if (!enumRelationID) {
+          setError({
+            type: 'InvalidInput',
+            message: '创建 ENUM_LABEL 前必须先创建 relation。',
+          })
+          return
+        }
+
         const actionError = await runModelEnumAction(
           () =>
             createEnumLabelField({
@@ -260,7 +269,7 @@ export function useCreateEnumLabelField(params: UseModelEnumContextParams): UseC
               title: values.title,
               description: values.description,
               sourceFieldName: values.sourceFieldName,
-              enumRelationId: values.enumRelationId,
+              enumRelationId: enumRelationID,
             }),
           '创建 ENUM_LABEL 字段失败。',
         )

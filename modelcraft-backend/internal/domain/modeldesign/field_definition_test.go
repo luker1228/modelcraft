@@ -327,6 +327,22 @@ func TestFieldDefinition_Validate(t *testing.T) {
 			errContains: "格式无效",
 		},
 		{
+			name: "invalid field name format - starts with underscore",
+			field: &FieldDefinition{
+				Name:    "_username",
+				Title:   "Title",
+				Type:    validFieldType,
+				ModelID: "model-123",
+				ModelLocator: &ModelLocator{
+					ProjectScope: project.ProjectScope{OrgName: "test-org", ProjectSlug: "test"},
+					ModelName:    "Test",
+					DatabaseName: "test_db",
+				},
+			},
+			wantErr:     true,
+			errContains: "格式无效",
+		},
+		{
 			name: "empty ModelID",
 			field: &FieldDefinition{
 				Name:    "username",

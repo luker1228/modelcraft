@@ -3,6 +3,7 @@ package modeldesign
 import (
 	"modelcraft/internal/domain/query"
 	"modelcraft/pkg/bizerrors"
+	"regexp"
 	"strings"
 	"time"
 
@@ -11,6 +12,12 @@ import (
 
 // FieldService 字段领域服务
 type FieldService struct{}
+
+func isValidUserFieldName(name string) bool {
+	pattern := `^[a-zA-Z][a-zA-Z0-9_]*$`
+	matched, _ := regexp.MatchString(pattern, name)
+	return matched
+}
 
 // NewFieldService 创建字段服务
 func NewFieldService() *FieldService {
@@ -28,6 +35,12 @@ func (s *FieldService) ValidateDuplicates(fields []FieldDefinition) error {
 	for _, field := range fields {
 		if field.Name == "" {
 			return bizerrors.Errorf("field: Name cant be blank")
+		}
+		if !isValidUserFieldName(field.Name) {
+			return bizerrors.Errorf(
+				"字段名称 '%s' 格式无效，只允许字母、数字、下划线，且必须以字母开头（不允许 '_' 前缀）",
+				field.Name,
+			)
 		}
 
 		// 检查是否为保留关键字
@@ -89,6 +102,12 @@ func (s *FieldService) NewField(
 		return nil, bizerrors.Errorf(
 			"字段名称 '%s' 是保留关键字，不能用作字段名。保留关键字用于查询操作符，建议使用其他名称，例如 '%s_field' 或 '%s_value'",
 			name, name, name,
+		)
+	}
+	if !isValidUserFieldName(name) {
+		return nil, bizerrors.Errorf(
+			"字段名称 '%s' 格式无效，只允许字母、数字、下划线，且必须以字母开头（不允许 '_' 前缀）",
+			name,
 		)
 	}
 

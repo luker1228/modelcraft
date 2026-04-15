@@ -82,7 +82,7 @@ func (fd *FieldDefinition) Validate() error {
 	if !isValidFieldName(fd.Name) {
 		return bizerrors.NewError(
 			bizerrors.ParamInvalid,
-			fmt.Sprintf("field name '%s' 格式无效，只允许字母、数字、下划线，且不能以数字开头", fd.Name),
+			fmt.Sprintf("field name '%s' 格式无效，只允许字母、数字、下划线，且必须以字母开头（不允许 '_' 前缀）", fd.Name),
 		)
 	}
 
@@ -331,8 +331,8 @@ func (fd *FieldDefinition) Undeprecate() {
 
 // isValidFieldName 验证字段key格式
 func isValidFieldName(key string) bool {
-	// 只允许字母、数字、下划线，且不能以数字开头
-	pattern := `^[a-zA-Z_][a-zA-Z0-9_]*$`
+	// 只允许字母、数字、下划线，且必须以字母开头（不允许 '_' 前缀）
+	pattern := `^[a-zA-Z][a-zA-Z0-9_]*$`
 	matched, _ := regexp.MatchString(pattern, key)
 	return matched
 }

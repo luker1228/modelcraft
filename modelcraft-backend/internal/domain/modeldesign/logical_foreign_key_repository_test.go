@@ -72,6 +72,13 @@ func (m *MockLogicalForeignKeyRepository) GetByID(ctx context.Context, id string
 	return args.Get(0).(*LogicalForeignKey), args.Error(1)
 }
 
+func (m *MockLogicalForeignKeyRepository) BindBelongsToFields(
+	ctx context.Context, orgName, modelID, lfID string, fieldNames []string,
+) error {
+	args := m.Called(ctx, orgName, modelID, lfID, fieldNames)
+	return args.Error(0)
+}
+
 // 确保 MockLogicalForeignKeyRepository 实现了 LogicalForeignKeyRepository 接口
 var _ LogicalForeignKeyRepository = (*MockLogicalForeignKeyRepository)(nil)
 

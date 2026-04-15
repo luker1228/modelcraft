@@ -175,6 +175,11 @@ func (g *JSONSchemaGenerator) buildXMC(
 	xmc["isPrimary"] = field.IsPrimary
 	xmc["isUnique"] = field.IsUnique
 	xmc["displayOrder"] = field.DisplayOrder
+	if field.Type != nil {
+		// Preserve ModelCraft field format in extension metadata and avoid overloading
+		// JSON Schema standard "format" keyword.
+		xmc["format"] = string(field.Type.Format)
+	}
 	// nullable：NonNull=true 表示非空（不 nullable），NonNull=false 表示 nullable
 	xmc["nullable"] = !field.NonNull
 

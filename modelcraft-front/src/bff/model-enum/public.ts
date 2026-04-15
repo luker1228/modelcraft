@@ -6,8 +6,8 @@ import {
   mockListFieldEnumRelations,
   mockUpdateFieldMeta,
 } from './mock-client'
-import { GET_ENUMS, GET_FIELD_ENUM_RELATIONS } from './graphql-docs'
-import type { GetEnumsQuery, GetFieldEnumRelationsQuery } from '@/generated/graphql'
+import { GET_FIELD_ENUM_RELATIONS, GET_MODEL_ENUM_SOURCE_FIELDS } from './graphql-docs'
+import type { GetFieldEnumRelationsQuery, GetModelQuery } from '@/generated/graphql'
 import type { EnumRelationOption, EnumSourceOption, ModelEnumDomainError } from '@/types'
 import type {
   CreateEnumFieldCommand,
@@ -25,8 +25,12 @@ export async function queryModelEnumContext(
   client: ApolloClient<object>,
 ): Promise<ModelEnumContextResult> {
   try {
-    const [enumsResult, relationsResult] = await Promise.all([
-      client.query<GetEnumsQuery>({ query: GET_ENUMS, fetchPolicy: 'network-only' }),
+    const [modelResult, relationsResult] = await Promise.all([
+      client.query<GetModelQuery>({
+        query: GET_MODEL_ENUM_SOURCE_FIELDS,
+        variables: { id: query.modelId, withActualSchema: false },
+        fetchPolicy: 'network-only',
+      }),
       client.query<GetFieldEnumRelationsQuery>({
         query: GET_FIELD_ENUM_RELATIONS,
         variables: { modelID: query.modelId },
@@ -35,7 +39,7 @@ export async function queryModelEnumContext(
     ])
 
     // 检查 GraphQL errors（errorPolicy: 'all' 不会 throw，但 errors 会填充到结果中）
-    const gqlErrors = [...(enumsResult.errors ?? []), ...(relationsResult.errors ?? [])]
+    const gqlErrors = [...(modelResult.errors ?? []), ...(relationsResult.errors ?? [])]
     if (gqlErrors.length > 0) {
       const error: ModelEnumDomainError = {
         type: 'Unknown',
@@ -45,19 +49,22 @@ export async function queryModelEnumContext(
       return { enumSources: [], relations: [], error }
     }
 
-    const enumSources: EnumSourceOption[] = (enumsResult.data?.enums ?? []).map((e) => ({
-      fieldName: e.name,
-      title: e.displayName,
-      enumName: e.name,
-      occupied: false,
-    }))
-
     const relations: EnumRelationOption[] = (relationsResult.data?.fieldEnumRelations ?? []).map((r) => ({
       id: r.id,
       sourceFieldName: r.sourceFieldName,
       enumName: r.enumName,
       labelFieldName: r.labelFieldName,
     }))
+    const occupiedSourceNames = new Set(relations.map((relation) => relation.sourceFieldName))
+
+    const enumSources: EnumSourceOption[] = (modelResult.data?.model.model?.fields ?? [])
+      .filter((field) => field.format === 'ENUM' && Boolean(field.enum?.name))
+      .map((field) => ({
+        fieldName: field.name,
+        title: field.title,
+        enumName: field.enum?.name ?? '',
+        occupied: occupiedSourceNames.has(field.name),
+      }))
 
     return { enumSources, relations, error: null }
   } catch (err) {

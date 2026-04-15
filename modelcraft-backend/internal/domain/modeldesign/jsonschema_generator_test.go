@@ -713,6 +713,7 @@ func TestXMC_BaseFields(t *testing.T) {
 	assert.Equal(t, true, xmc["isPrimary"])
 	assert.Equal(t, true, xmc["isUnique"])
 	assert.Equal(t, "b1", xmc["displayOrder"])
+	assert.Equal(t, "STRING", xmc["format"])
 	assert.Equal(t, true, xmc["nullable"])
 }
 
@@ -816,6 +817,7 @@ func TestXMC_NoUnknownFields(t *testing.T) {
 		"isPrimary":     true,
 		"isUnique":      true,
 		"displayOrder":  true,
+		"format":        true,
 		"nullable":      true,
 		"storageHint":   true,
 		"validateRule":  true,

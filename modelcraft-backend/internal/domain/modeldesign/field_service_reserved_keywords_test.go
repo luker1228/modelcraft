@@ -26,6 +26,22 @@ func TestFieldService_ValidateDuplicates_ReservedKeywords(t *testing.T) {
 			expectErr: false,
 		},
 		{
+			name: "invalid field name - starts with underscore",
+			fields: []FieldDefinition{
+				{Name: "_meta"},
+			},
+			expectErr: true,
+			errMsg:    "格式无效",
+		},
+		{
+			name: "invalid field name - starts with double underscore",
+			fields: []FieldDefinition{
+				{Name: "__meta"},
+			},
+			expectErr: true,
+			errMsg:    "格式无效",
+		},
+		{
 			name: "reserved keyword - AND",
 			fields: []FieldDefinition{
 				{Name: "AND"},
@@ -140,6 +156,18 @@ func TestFieldService_NewField_ReservedKeywords(t *testing.T) {
 			name:      "valid field name",
 			fieldName: "username",
 			expectErr: false,
+		},
+		{
+			name:      "invalid field name - starts with underscore",
+			fieldName: "_meta",
+			expectErr: true,
+			errMsg:    "格式无效",
+		},
+		{
+			name:      "invalid field name - starts with double underscore",
+			fieldName: "__meta",
+			expectErr: true,
+			errMsg:    "格式无效",
 		},
 		{
 			name:      "reserved keyword - AND",

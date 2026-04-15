@@ -257,7 +257,10 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     setContextError(null)
   }
 
-  const handleCreateEnumRelation = async (sourceFieldName: string): Promise<string | null> => {
+  const createEnumRelationForLabelField = async (
+    sourceFieldName: string,
+    labelFieldName: string,
+  ): Promise<string | null> => {
     if (!modelId) {
       return null
     }
@@ -279,7 +282,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
         modelId,
         sourceFieldName,
         enumName: source.enumName,
-        labelFieldName: `${sourceFieldName}_label`,
+        labelFieldName,
       })
 
       if (!relationResult.success) {
@@ -293,14 +296,12 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
       }
 
       const matchedRelation = latestContext.relations.find(
-        (relation) => relation.sourceFieldName === sourceFieldName,
+        (relation) => relation.sourceFieldName === sourceFieldName && relation.labelFieldName === labelFieldName,
       )
 
       if (!matchedRelation) {
         return null
       }
-
-      toast.success('relation 创建成功')
       return matchedRelation.id
     } catch {
       setContextError({
@@ -310,6 +311,20 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
       })
       return null
     }
+  }
+
+  const handleSubmitCreateEnumLabelField = async (values: CreateEnumLabelFieldFormValues) => {
+    const labelFieldName = values.name.trim()
+    const relationId = await createEnumRelationForLabelField(values.sourceFieldName, labelFieldName)
+    if (!relationId) {
+      return
+    }
+
+    await createEnumLabelFieldPage.submit({
+      ...values,
+      name: labelFieldName,
+      enumRelationId: relationId,
+    })
   }
 
   const handleSubmitEditField = async (values: UpdateFieldMetaFormValues) => {
@@ -343,9 +358,8 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     handleOpenCreateEnumField,
     handleOpenCreateEnumLabelField,
     handleCloseFieldPage,
-    handleCreateEnumRelation,
+    handleSubmitCreateEnumLabelField,
     handleSubmitCreateEnumField: createEnumFieldPage.submit,
-    handleSubmitCreateEnumLabelField: createEnumLabelFieldPage.submit,
     handleSubmitEditField,
   }
 }

@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { buildRuntimeEndpoint, createModelRuntimeClient } from '@bff/apollo/public'
+import { createModelRuntimeClient } from '@bff/apollo/public'
 import { buildFindManyQuery, buildFindUniqueQuery } from '@bff/cms/public'
 import {
   Popover,
@@ -137,12 +137,6 @@ function useRelationSearch({
     }
     return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
   }, [orgName, projectSlug, databaseName, modelName])
-  const endpoint = useMemo(
-    () => (orgName && projectSlug && databaseName && modelName
-      ? buildRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
-      : ''),
-    [orgName, projectSlug, databaseName, modelName]
-  )
 
   // Debounce search input 300ms
   const [debouncedSearch, setDebouncedSearch] = useState(search)
@@ -176,12 +170,6 @@ function useRelationSearch({
         const runtimeError = (withLabel as unknown as { error?: unknown; errors?: unknown }).error
           ?? (withLabel as unknown as { errors?: unknown }).errors
         if (runtimeError) {
-          console.error('[RelationSelector] findMany returned GraphQL errors', {
-            endpoint,
-            modelName,
-            variables,
-            runtimeError,
-          })
           if (!cancelled) {
             setError(true)
             setLoading(false)
@@ -189,24 +177,11 @@ function useRelationSearch({
           return
         }
 
-        console.debug('[RelationSelector] findMany success', {
-          endpoint,
-          modelName,
-          variables,
-          count: withLabel.data?.findMany?.items?.length ?? 0,
-        })
-
         if (!cancelled) {
           setRecords(withLabel.data?.findMany?.items ?? [])
           setLoading(false)
         }
-      } catch (error) {
-        console.error('[RelationSelector] findMany request failed', {
-          endpoint,
-          modelName,
-          variables,
-          error,
-        })
+      } catch {
         if (!cancelled) {
           setError(true)
           setLoading(false)
@@ -217,7 +192,7 @@ function useRelationSearch({
     return () => {
       cancelled = true
     }
-  }, [enabled, client, endpoint, debouncedSearch, modelName, triggerNonce])
+  }, [enabled, client, debouncedSearch, modelName, triggerNonce])
 
   return { records, loading, error }
 }
@@ -248,12 +223,6 @@ function useCurrentRecord({
     }
     return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
   }, [orgName, projectSlug, databaseName, modelName])
-  const endpoint = useMemo(
-    () => (orgName && projectSlug && databaseName && modelName
-      ? buildRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
-      : ''),
-    [orgName, projectSlug, databaseName, modelName]
-  )
 
   useEffect(() => {
     if (!currentId || !client) {
@@ -273,35 +242,16 @@ function useCurrentRecord({
         const runtimeError = (withLabel as unknown as { error?: unknown; errors?: unknown }).error
           ?? (withLabel as unknown as { errors?: unknown }).errors
         if (runtimeError) {
-          console.error('[RelationSelector] findUnique returned GraphQL errors', {
-            endpoint,
-            modelName,
-            currentId,
-            runtimeError,
-          })
           if (!cancelled) {
             setRecord({ id: currentId })
           }
           return
         }
 
-        console.debug('[RelationSelector] findUnique success', {
-          endpoint,
-          modelName,
-          currentId,
-          found: !!withLabel.data?.findUnique?.item,
-        })
-
         if (!cancelled) {
           setRecord(withLabel.data?.findUnique?.item ?? { id: currentId })
         }
-      } catch (error) {
-        console.error('[RelationSelector] findUnique request failed', {
-          endpoint,
-          modelName,
-          currentId,
-          error,
-        })
+      } catch {
         if (!cancelled) {
           setRecord({ id: currentId })
         }
@@ -311,7 +261,7 @@ function useCurrentRecord({
     return () => {
       cancelled = true
     }
-  }, [client, endpoint, currentId, modelName])
+  }, [client, currentId, modelName])
 
   return record
 }
@@ -376,18 +326,6 @@ export function RelationSelector(props: WidgetProps) {
 
   const enabled = open && !!orgName && !!projectSlug && !!databaseName && !!modelName
 
-  useEffect(() => {
-    console.debug('[RelationSelector] render context', {
-      fieldId: props.id,
-      orgName,
-      projectSlug,
-      databaseName,
-      modelName,
-      open,
-      enabled,
-    })
-  }, [props.id, orgName, projectSlug, databaseName, modelName, open, enabled])
-
   const { records, loading, error } = useRelationSearch({
     orgName,
     projectSlug,
@@ -434,14 +372,6 @@ export function RelationSelector(props: WidgetProps) {
     <Popover
       open={open}
       onOpenChange={(nextOpen) => {
-        console.debug('[RelationSelector] onOpenChange', {
-          fieldId: props.id,
-          nextOpen,
-          orgName,
-          projectSlug,
-          databaseName,
-          modelName,
-        })
         setOpen(nextOpen)
         if (nextOpen) {
           setOpenTriggerNonce((n) => n + 1)

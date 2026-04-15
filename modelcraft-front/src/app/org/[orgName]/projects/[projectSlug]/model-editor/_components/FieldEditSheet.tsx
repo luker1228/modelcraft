@@ -34,7 +34,7 @@ export function FieldEditSheet({ state, fieldOps, orgName, projectSlug }: FieldE
       : fieldOps.fieldPageMode === 'create-enum-label'
         ? {
             title: '创建 ENUM_LABEL 字段',
-            description: '选择 source 字段并绑定 enum relation。',
+            description: '选择 source 字段，保存时自动创建并绑定 relation。',
             icon: <PlusCircle className="size-4 text-primary" />,
           }
         : {
@@ -69,10 +69,8 @@ export function FieldEditSheet({ state, fieldOps, orgName, projectSlug }: FieldE
         {fieldOps.fieldPageMode === 'create-enum-label' && (
           <CreateEnumLabelFieldPage
             sourceOptions={fieldOps.sourceOptions}
-            relationOptions={fieldOps.relationOptions}
             loading={fieldOps.contextLoading || fieldOps.createEnumLabelFieldLoading}
             error={fieldOps.createEnumLabelFieldError ?? fieldOps.contextError}
-            onCreateRelation={fieldOps.handleCreateEnumRelation}
             onSubmit={fieldOps.handleSubmitCreateEnumLabelField}
             onCancel={fieldOps.handleCloseFieldPage}
           />

@@ -41,6 +41,15 @@ export function useCreateEnumLabelFieldPage({
       setError(null)
 
       try {
+        const enumRelationID = values.enumRelationId?.trim()
+        if (!enumRelationID) {
+          setError({
+            type: 'InvalidInput',
+            message: '创建 ENUM_LABEL 前必须先创建 relation。',
+          })
+          return
+        }
+
         const result = await createEnumLabelField({
           orgName,
           projectSlug,
@@ -49,7 +58,7 @@ export function useCreateEnumLabelFieldPage({
           title: values.title,
           description: values.description,
           sourceFieldName: values.sourceFieldName,
-          enumRelationId: values.enumRelationId,
+          enumRelationId: enumRelationID,
         })
 
         if (!result.success) {

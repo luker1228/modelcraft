@@ -1,6 +1,4 @@
 'use client'
-
-import React from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useForm } from 'react-hook-form'
 import { Loader2 } from 'lucide-react'
@@ -19,11 +17,9 @@ import {
 import { Textarea } from '@web/components/ui/textarea'
 import type {
   CreateEnumLabelFieldFormValues,
-  EnumRelationOption,
   EnumSourceOption,
   ModelEnumDomainError,
 } from '@/types'
-import { EnumRelationSelector } from './EnumRelationSelector'
 
 const schema = z.object({
   name: z
@@ -33,26 +29,21 @@ const schema = z.object({
     .regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, '字段名称仅支持字母、数字和下划线，且不能数字开头'),
   title: z.string().trim().min(1, '字段标题不能为空').max(64, '字段标题不能超过 64 个字符'),
   description: z.string().trim().max(500, '描述不能超过 500 个字符').optional(),
-  sourceFieldName: z.string().trim().min(1, '请选择 source ENUM 字段'),
-  enumRelationId: z.string().trim().min(1, '请选择或创建 relation'),
+  sourceFieldName: z.string().trim().min(1, '请选择 sourceField（本表 ENUM 字段）'),
 })
 
 interface CreateEnumLabelFieldPageProps {
   sourceOptions: EnumSourceOption[]
-  relationOptions: EnumRelationOption[]
   loading: boolean
   error: ModelEnumDomainError | null
-  onCreateRelation: (sourceFieldName: string) => Promise<string | null>
   onSubmit: (values: CreateEnumLabelFieldFormValues) => Promise<void>
   onCancel: () => void
 }
 
 export function CreateEnumLabelFieldPage({
   sourceOptions,
-  relationOptions,
   loading,
   error,
-  onCreateRelation,
   onSubmit,
   onCancel,
 }: CreateEnumLabelFieldPageProps) {
@@ -69,28 +60,11 @@ export function CreateEnumLabelFieldPage({
       title: '',
       description: '',
       sourceFieldName: '',
-      enumRelationId: '',
     },
   })
 
   const sourceFieldName = watch('sourceFieldName')
-  const enumRelationId = watch('enumRelationId')
   const selectedSource = sourceOptions.find((source) => source.fieldName === sourceFieldName)
-
-  React.useEffect(() => {
-    if (!sourceFieldName) {
-      setValue('enumRelationId', '', { shouldValidate: true })
-      return
-    }
-
-    const relationExists = relationOptions.some(
-      (relation) => relation.id === enumRelationId && relation.sourceFieldName === sourceFieldName,
-    )
-
-    if (!relationExists) {
-      setValue('enumRelationId', '', { shouldValidate: true })
-    }
-  }, [enumRelationId, relationOptions, setValue, sourceFieldName])
 
   const submitDisabled =
     loading || isSubmitting || sourceOptions.length === 0 || Boolean(selectedSource?.occupied)
@@ -140,12 +114,11 @@ export function CreateEnumLabelFieldPage({
           value={sourceFieldName}
           onValueChange={(value) => {
             setValue('sourceFieldName', value, { shouldValidate: true })
-            setValue('enumRelationId', '', { shouldValidate: true })
           }}
           disabled={loading || sourceOptions.length === 0}
         >
           <SelectTrigger aria-invalid={Boolean(errors.sourceFieldName)}>
-            <SelectValue placeholder="请选择 source ENUM 字段" />
+            <SelectValue placeholder="请选择 sourceField（本表 ENUM 字段）" />
           </SelectTrigger>
           <SelectContent>
             {sourceOptions.length > 0 ? (
@@ -168,16 +141,7 @@ export function CreateEnumLabelFieldPage({
         {errors.sourceFieldName && <p className="text-xs text-destructive">{errors.sourceFieldName.message}</p>}
       </div>
 
-      <EnumRelationSelector
-        sourceFieldName={sourceFieldName}
-        sourceOptions={sourceOptions}
-        relationOptions={relationOptions}
-        value={enumRelationId}
-        onChange={(value) => setValue('enumRelationId', value, { shouldValidate: true })}
-        onCreateRelation={onCreateRelation}
-        disabled={loading}
-      />
-      {errors.enumRelationId && <p className="-mt-2 text-xs text-destructive">{errors.enumRelationId.message}</p>}
+      <p className="-mt-1 text-xs text-muted-foreground">保存时会自动创建并绑定 relation。</p>
 
       <div className="mt-2 flex items-center justify-end gap-2 border-t border-border pt-4">
         <Button type="button" variant="outline" size="sm" onClick={onCancel}>
