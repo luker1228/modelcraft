@@ -1,12 +1,13 @@
 'use client'
 
-import React, { useMemo, useState, useCallback } from 'react'
+import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, gql, ApolloClient } from '@apollo/client'
 import { toast } from 'sonner'
 import { useProjectScopedClient, createModelRuntimeClient, buildRuntimeEndpoint } from '@bff/apollo/public'
 import { InsertFieldSheet } from './InsertFieldSheet'
 import { ModelRecordForm } from './ModelRecordForm'
 import { ModelRecordTable } from './ModelRecordTable'
+import { RecordRelationManagerDialog } from './RecordRelationManagerDialog'
 import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
 import { getFieldProtocols } from './fieldProtocol'
 import {
@@ -116,6 +117,7 @@ interface DynamicModelTableProps {
   modelId: string
   projectSlug: string
   orgName: string
+  refreshToken?: number
 }
 
 interface GetModelQueryData {
@@ -143,6 +145,7 @@ export default function DynamicModelTable({
   modelId,
   projectSlug,
   orgName,
+  refreshToken = 0,
 }: DynamicModelTableProps) {
   const projectClient = useProjectScopedClient(projectSlug)
 
@@ -156,6 +159,8 @@ export default function DynamicModelTable({
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
   const [removeFieldDialogOpen, setRemoveFieldDialogOpen] = useState(false)
   const [removeFieldTarget, setRemoveFieldTarget] = useState<ModelRecordTableFieldInfo | null>(null)
+  const [relationManagerOpen, setRelationManagerOpen] = useState(false)
+  const [relationRecordId, setRelationRecordId] = useState<string | null>(null)
 
   // 添加数据状态
   const [createDataOpen, setCreateDataOpen] = useState(false)
@@ -355,6 +360,12 @@ export default function DynamicModelTable({
   const contentList: ModelRecordTableRow[] = Array.isArray((contentData as Record<string, unknown> | undefined)?.findMany && ((contentData as Record<string, unknown>).findMany as Record<string, unknown>)?.items)
     ? ((contentData as Record<string, unknown>).findMany as Record<string, unknown>).items as ModelRecordTableRow[]
     : []
+
+  useEffect(() => {
+    if (!refreshToken) return
+    void refetchModel()
+    void refetch()
+  }, [refreshToken, refetchModel, refetch])
 
   const handleDelete = async () => {
     if (!deleteItemId) return
@@ -638,8 +649,27 @@ export default function DynamicModelTable({
         onCreate={handleCreate}
         onEdit={handleEdit}
         onDelete={confirmDelete}
+        onManageRelations={(id) => {
+          setRelationRecordId(id)
+          setRelationManagerOpen(true)
+        }}
         onToggleFieldDeprecated={handleToggleFieldDeprecated}
         onDeleteField={handleRequestRemoveField}
+      />
+
+      <RecordRelationManagerDialog
+        open={relationManagerOpen}
+        onOpenChange={(open) => {
+          setRelationManagerOpen(open)
+          if (!open) {
+            setRelationRecordId(null)
+          }
+        }}
+        jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema | null}
+        orgName={orgName}
+        projectSlug={projectSlug}
+        modelId={modelId}
+        recordId={relationRecordId}
       />
 
       {/* 添加数据侧边栏 */}
@@ -706,6 +736,7 @@ export default function DynamicModelTable({
             <ModelRecordForm
               jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
               initialData={editFormData}
+              recordId={editItemId ?? undefined}
               onSubmit={async (data) => {
                 setEditSaving(true)
                 try {

@@ -22,7 +22,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
-import { Archive, Check, Copy, Edit, Key, Loader2, Plus, Trash2 } from 'lucide-react'
+import { Archive, Check, Copy, Edit, Key, Link2, Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { renderCellValue } from './fieldProtocol'
 
@@ -49,6 +49,7 @@ interface ModelRecordTableProps {
   onCreate: () => void
   onEdit: (id: string) => void
   onDelete: (id: string) => void
+  onManageRelations?: (id: string) => void
   onToggleFieldDeprecated?: (fieldInfo: ModelRecordTableFieldInfo) => void
   onDeleteField?: (fieldInfo: ModelRecordTableFieldInfo) => void
 }
@@ -63,6 +64,7 @@ export function ModelRecordTable({
   onCreate,
   onEdit,
   onDelete,
+  onManageRelations,
   onToggleFieldDeprecated,
   onDeleteField,
 }: ModelRecordTableProps) {
@@ -77,7 +79,7 @@ export function ModelRecordTable({
   const DEFAULT_COLUMN_WIDTH = 150
   const MIN_COLUMN_WIDTH = 60
   const INDEX_COLUMN_WIDTH = 50
-  const ACTION_COLUMN_WIDTH = 100
+  const ACTION_COLUMN_WIDTH = 132
 
   const getColumnWidth = useCallback(
     (field: string) => {
@@ -367,6 +369,15 @@ export function ModelRecordTable({
                       })}
                       <TableCell className="py-2 text-right" style={{ width: ACTION_COLUMN_WIDTH }}>
                         <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-selected hover:text-foreground"
+                            onClick={() => onManageRelations?.(rowId)}
+                            title="关联管理"
+                          >
+                            <Link2 className="size-3.5" />
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"

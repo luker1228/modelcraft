@@ -7,6 +7,7 @@ import type { RJSFSchema, UiSchema } from '@rjsf/utils'
 import { buildUiSchema } from './buildUiSchema'
 import { filterJsonSchemaForForm } from './filterJsonSchemaForForm'
 import { EnumSelect, EnumSchemaSelect, RelationSelector } from './widgets'
+import { OneToManyRelationManagerSection } from './OneToManyRelationManagerSection'
 import { FieldTemplate, BaseInputTemplate, ObjectFieldTemplate } from './templates'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
@@ -22,6 +23,7 @@ interface ModelRecordFormProps {
   clusterName: string
   databaseName: string
   modelId: string
+  recordId?: string
 }
 
 const customWidgets = {
@@ -50,6 +52,7 @@ export function ModelRecordForm({
   clusterName,
   databaseName,
   modelId,
+  recordId,
 }: ModelRecordFormProps) {
   const formRef = useRef<RJSFFormRef>(null)
 
@@ -117,6 +120,15 @@ export function ModelRecordForm({
           {/* Empty children to suppress default submit button */}
           <></>
         </Form>
+
+        <OneToManyRelationManagerSection
+          jsonSchema={jsonSchema}
+          initialData={initialData}
+          recordId={recordId}
+          orgName={orgName}
+          projectSlug={projectSlug}
+          modelId={modelId}
+        />
       </div>
       <div className="flex justify-end gap-2 border-t p-4">
         <Button

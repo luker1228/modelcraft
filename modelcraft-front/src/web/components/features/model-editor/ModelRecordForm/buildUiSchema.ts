@@ -11,6 +11,7 @@ const WIDGET_MAP: Record<XMCWidget, string> = {
   'time': 'time',
   'textarea': 'textarea',
   'relation-selector': 'RelationSelector',
+  'relation-multi-readonly': 'RelationMultiReadonly',
 }
 
 /**

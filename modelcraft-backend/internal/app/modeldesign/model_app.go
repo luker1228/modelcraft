@@ -1073,7 +1073,7 @@ func (s *ModelDesignAppService) fillEnumDefinitions(
 	return nil
 }
 
-// fillRelationMetadata 为带有 BelongsToFKID 的外键字段填充 x-relation 元数据。
+// fillRelationMetadata 为带 FK 关联信息的字段填充 x-relation 元数据。
 // 查询 LogicalForeignKey 获取目标模型 ID，再查目标 DataModel 取 DatabaseName 和 ModelName，
 // 写入 field.Metadata["x-relation"]，供 JSONSchemaGenerator 注入到 JSON Schema。
 func (s *ModelDesignAppService) fillRelationMetadata(
@@ -1088,14 +1088,21 @@ func (s *ModelDesignAppService) fillRelationMetadata(
 	type relationInfo struct {
 		databaseName string
 		modelName    string
+		direction    string
+		cardinality  string
 	}
 	fkIDToRelation := make(map[string]*relationInfo)
 
 	for _, f := range model.Fields {
-		if f.BelongsToFKID == nil {
+		var fkID string
+		switch {
+		case f.BelongsToFKID != nil:
+			fkID = *f.BelongsToFKID
+		case f.RelateFKID != nil:
+			fkID = *f.RelateFKID
+		default:
 			continue
 		}
-		fkID := *f.BelongsToFKID
 		if _, already := fkIDToRelation[fkID]; already {
 			continue
 		}
@@ -1117,15 +1124,23 @@ func (s *ModelDesignAppService) fillRelationMetadata(
 		fkIDToRelation[fkID] = &relationInfo{
 			databaseName: refModel.DatabaseName,
 			modelName:    refModel.ModelName,
+			direction:    string(lf.Direction),
+			cardinality:  relationCardinalityFromDirection(lf.Direction),
 		}
 	}
 
 	// 将 x-relation 写入字段 Metadata
 	for _, f := range model.Fields {
-		if f.BelongsToFKID == nil {
+		var fkID string
+		switch {
+		case f.BelongsToFKID != nil:
+			fkID = *f.BelongsToFKID
+		case f.RelateFKID != nil:
+			fkID = *f.RelateFKID
+		default:
 			continue
 		}
-		info, ok := fkIDToRelation[*f.BelongsToFKID]
+		info, ok := fkIDToRelation[fkID]
 		if !ok {
 			continue
 		}
@@ -1135,9 +1150,18 @@ func (s *ModelDesignAppService) fillRelationMetadata(
 		f.Metadata["x-relation"] = map[string]string{
 			"databaseName": info.databaseName,
 			"modelName":    info.modelName,
+			"direction":    info.direction,
+			"cardinality":  info.cardinality,
 		}
 	}
 	return nil
+}
+
+func relationCardinalityFromDirection(direction modeldesign.LogicalFKDirection) string {
+	if direction == modeldesign.DirectionReverse {
+		return "one-to-many"
+	}
+	return "many-to-one"
 }
 
 // GetFieldsByModelID 根据模型ID获取所有字段

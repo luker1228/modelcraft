@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Table2, Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
@@ -29,6 +29,10 @@ export function ModelEditorView() {
   const projectSlug = params?.projectSlug as string
 
   const state = useModelEditorState()
+  const [schemaRefreshToken, setSchemaRefreshToken] = useState(0)
+  const handleFieldAdded = useCallback(() => {
+    setSchemaRefreshToken((prev) => prev + 1)
+  }, [])
 
   const crud = useModelCRUD({ orgName, projectSlug, state })
   const fieldOps = useFieldOperations({ orgName, projectSlug, state })
@@ -80,6 +84,7 @@ export function ModelEditorView() {
         orgName={orgName}
         projectSlug={projectSlug}
         models={crud.models}
+        onFieldAdded={handleFieldAdded}
       />
 
       {/* Edit Field Sheet */}
@@ -128,9 +133,11 @@ export function ModelEditorView() {
             }
           >
             <DynamicModelTable
+              key={`${state.selectedModelId}-${schemaRefreshToken}`}
               modelId={state.selectedModelId}
               projectSlug={projectSlug}
               orgName={orgName}
+              refreshToken={schemaRefreshToken}
             />
           </Suspense>
         ) : (

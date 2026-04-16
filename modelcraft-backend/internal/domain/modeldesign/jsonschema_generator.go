@@ -4,6 +4,12 @@ import (
 	"encoding/json"
 )
 
+const (
+	relationDirectionReverse     = "reverse"
+	relationCardinalityOneToMany = "one-to-many"
+	relationWidgetMultiReadonly  = "relation-multi-readonly"
+)
+
 // JSONSchemaGenerator 生成JSON Schema的域服务
 type JSONSchemaGenerator struct{}
 
@@ -125,6 +131,14 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 
 	// Relation type
 	case FormatRelation:
+		// REVERSE direction relation is one-to-many, so schema should expose an array.
+		if g.isOneToManyRelation(field) {
+			schema["type"] = string(SchemaTypeArray)
+			schema["items"] = map[string]interface{}{
+				"type": string(SchemaTypeObject),
+			}
+			return
+		}
 		schema["type"] = string(SchemaTypeObject)
 	}
 }
@@ -190,6 +204,12 @@ func (g *JSONSchemaGenerator) buildXMC(
 
 	if field.RelateFKID != nil {
 		xmc["relateFkId"] = *field.RelateFKID
+		// relation 元数据：RELATION 字段同样从 Metadata 注入 relation 信息
+		if field.Metadata != nil {
+			if rel, ok := field.Metadata["x-relation"]; ok {
+				xmc["relation"] = rel
+			}
+		}
 	}
 
 	if field.BelongsToFKID != nil {
@@ -221,6 +241,11 @@ func (g *JSONSchemaGenerator) buildXMC(
 // decideWidget 根据字段属性决定 widget 值，返回空字符串表示不写 widget 键。
 // 优先级：BelongsToFKID > storageHint=TEXT > FormatEnum/FormatEnumArray > FormatDate > FormatDateTime > FormatTime
 func (g *JSONSchemaGenerator) decideWidget(field *FieldDefinition, fieldSchema map[string]interface{}) string {
+	// 0. one-to-many RELATION 字段（只读）→ 专用只读多选组件
+	if field.Type != nil && field.Type.Format == FormatRelation && g.isOneToManyRelation(field) {
+		return relationWidgetMultiReadonly
+	}
+
 	// 1. belongs-to 外键列 → 关联选择器
 	if field.BelongsToFKID != nil {
 		return "relation-selector"
@@ -327,6 +352,36 @@ func (g *JSONSchemaGenerator) applyCustomProperties(
 	if field.IsPrimary || (field.Type != nil && field.Type.Format == FormatRelation) {
 		schema["readOnly"] = true
 	}
+}
+
+func (g *JSONSchemaGenerator) isOneToManyRelation(field *FieldDefinition) bool {
+	if field == nil || field.Metadata == nil {
+		return false
+	}
+
+	relRaw, ok := field.Metadata["x-relation"]
+	if !ok || relRaw == nil {
+		return false
+	}
+
+	switch rel := relRaw.(type) {
+	case map[string]interface{}:
+		if cardinality, ok := rel["cardinality"].(string); ok && cardinality == relationCardinalityOneToMany {
+			return true
+		}
+		if direction, ok := rel["direction"].(string); ok && direction == relationDirectionReverse {
+			return true
+		}
+	case map[string]string:
+		if cardinality, ok := rel["cardinality"]; ok && cardinality == relationCardinalityOneToMany {
+			return true
+		}
+		if direction, ok := rel["direction"]; ok && direction == relationDirectionReverse {
+			return true
+		}
+	}
+
+	return false
 }
 
 // buildRequiredList 构建required字段列表

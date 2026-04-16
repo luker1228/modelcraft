@@ -31,6 +31,7 @@ export type XMCWidget =
   | 'time'
   | 'textarea'
   | 'relation-selector'
+  | 'relation-multi-readonly'
 
 export interface XMC {
   widget?: XMCWidget

@@ -51,6 +51,7 @@ interface ModelDetailPanelProps {
   orgName: string
   projectSlug: string
   models: EditorModel[]
+  onFieldAdded?: () => void
 }
 
 export function ModelDetailPanel({
@@ -61,6 +62,7 @@ export function ModelDetailPanel({
   orgName,
   projectSlug,
   models,
+  onFieldAdded,
 }: ModelDetailPanelProps) {
   const displayFieldOptions = (state.editModelData?.fields || []).filter((field) => field.format !== 'RELATION')
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
@@ -78,7 +80,10 @@ export function ModelDetailPanel({
           projectSlug={projectSlug}
           orgName={orgName}
           existingFieldNames={(state.editModelData?.fields || []).map((f) => f.name)}
-          onSuccess={crud.refreshModelDetail}
+          onSuccess={() => {
+            void crud.refreshModelDetail()
+            onFieldAdded?.()
+          }}
         />
 
         {/* Header */}

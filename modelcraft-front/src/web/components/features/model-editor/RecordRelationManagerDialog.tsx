@@ -1,0 +1,508 @@
+'use client'
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useQuery } from '@apollo/client'
+import type { RJSFSchema } from '@rjsf/utils'
+import { createModelRuntimeClient, useProjectScopedClient } from '@bff/apollo/public'
+import { buildCountQuery, buildFindManyQuery, buildUpdateMutation } from '@bff/cms/public'
+import { GET_LOGICAL_FOREIGN_KEYS } from '@web/graphql'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@web/components/ui/dialog'
+import { Button } from '@web/components/ui/button'
+import { Input } from '@web/components/ui/input'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@web/components/ui/select'
+import { Loader2, RefreshCw, Unlink } from 'lucide-react'
+import { getXMC } from '@/types/xmc'
+import type { LogicalForeignKey } from '@/types'
+
+interface RecordRelationManagerDialogProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  jsonSchema: RJSFSchema | null
+  orgName: string
+  projectSlug: string
+  modelId: string
+  recordId: string | null
+}
+
+interface RelationRecord {
+  id?: string | null
+  _label?: string | null
+}
+
+interface OneToManyRelationField {
+  name: string
+  title: string
+  relateFkId: string
+  databaseName: string
+  modelName: string
+  format: string
+}
+
+const PAGE_SIZE = 10
+
+function toDisplayText(record: RelationRecord): string {
+  const id = typeof record.id === 'string' ? record.id : ''
+  const label = typeof record._label === 'string' ? record._label : ''
+  if (label === '' && id !== '') return `空(${id})`
+  if (label !== '' && id !== '') return `${label}(${id})`
+  if (label !== '') return label
+  return id
+}
+
+function extractOneToManyFields(schema: RJSFSchema | null): OneToManyRelationField[] {
+  if (!schema?.properties) {
+    return []
+  }
+
+  return Object.entries(schema.properties).flatMap(([fieldName, prop]) => {
+    const fieldSchema = prop as Record<string, unknown>
+    const xmc = getXMC(fieldSchema)
+    const relation = xmc?.relation
+    const widget = xmc?.widget
+    const relateFkId = xmc?.relateFkId
+    const xmcRaw = fieldSchema['x-mc']
+    const xmcFormat = typeof xmcRaw === 'object' && xmcRaw !== null
+      && typeof (xmcRaw as Record<string, unknown>).format === 'string'
+      ? (xmcRaw as Record<string, unknown>).format as string
+      : ''
+    const databaseName = relation?.databaseName
+    const modelName = relation?.modelName
+
+    const isRelationField =
+      xmcFormat === 'RELATION'
+      || widget === 'relation-multi-readonly'
+
+    if (fieldSchema.readOnly !== true || !isRelationField) {
+      return []
+    }
+
+    if (typeof relateFkId !== 'string' || relateFkId === '') {
+      return []
+    }
+
+    return [{
+      name: fieldName,
+      title: typeof fieldSchema.title === 'string' ? fieldSchema.title : fieldName,
+      relateFkId,
+      databaseName: typeof databaseName === 'string' ? databaseName : '',
+      modelName: typeof modelName === 'string' ? modelName : '',
+      format: xmcFormat,
+    }]
+  })
+}
+
+export function RecordRelationManagerDialog({
+  open,
+  onOpenChange,
+  jsonSchema,
+  orgName,
+  projectSlug,
+  modelId,
+  recordId,
+}: RecordRelationManagerDialogProps) {
+  const projectClient = useProjectScopedClient(projectSlug)
+  const relationFields = useMemo(() => extractOneToManyFields(jsonSchema), [jsonSchema])
+
+  const [selectedFieldName, setSelectedFieldName] = useState('')
+  const [attachRecordId, setAttachRecordId] = useState('')
+  const [loadingRecords, setLoadingRecords] = useState(false)
+  const [updating, setUpdating] = useState(false)
+  const [managerError, setManagerError] = useState<string | null>(null)
+  const [relatedRecords, setRelatedRecords] = useState<RelationRecord[]>([])
+  const [currentPage, setCurrentPage] = useState(1)
+  const [totalCount, setTotalCount] = useState(0)
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+
+    const fallback = relationFields[0]?.name ?? ''
+    setSelectedFieldName((prev) => (prev && relationFields.some((f) => f.name === prev) ? prev : fallback))
+    setAttachRecordId('')
+    setManagerError(null)
+    setCurrentPage(1)
+  }, [open, relationFields])
+
+  const selectedField = useMemo(
+    () => relationFields.find((field) => field.name === selectedFieldName) ?? null,
+    [relationFields, selectedFieldName]
+  )
+
+  const projectScopedContext = useMemo(() => {
+    if (!orgName || !projectSlug) return undefined
+    return { uri: `/graphql/org/${orgName}/project/${projectSlug}/` }
+  }, [orgName, projectSlug])
+
+  const { data: fkData } = useQuery<{ logicalForeignKeys: LogicalForeignKey[] }>(
+    GET_LOGICAL_FOREIGN_KEYS,
+    {
+      skip: !open || !recordId || !selectedField,
+      variables: { modelId },
+      context: projectScopedContext,
+      client: projectClient,
+      fetchPolicy: 'network-only',
+    }
+  )
+
+  const logicalForeignKeys = useMemo(
+    () => fkData?.logicalForeignKeys ?? [],
+    [fkData?.logicalForeignKeys]
+  )
+
+  const currentFk = useMemo(() => {
+    if (!selectedField) return null
+    return logicalForeignKeys.find((fk) => fk.id === selectedField.relateFkId) ?? null
+  }, [logicalForeignKeys, selectedField])
+
+  const schemaDatabaseName = useMemo(() => {
+    if (!jsonSchema) {
+      return ''
+    }
+    const raw = (jsonSchema as Record<string, unknown>)['x-databaseName']
+    return typeof raw === 'string' ? raw : ''
+  }, [jsonSchema])
+
+  const targetModelName = useMemo(() => {
+    if (!selectedField) {
+      return ''
+    }
+    if (selectedField.modelName !== '') {
+      return selectedField.modelName
+    }
+    return currentFk?.refModelName ?? ''
+  }, [selectedField, currentFk])
+
+  const targetDatabaseName = useMemo(() => {
+    if (!selectedField) {
+      return ''
+    }
+    if (selectedField.databaseName !== '') {
+      return selectedField.databaseName
+    }
+    return schemaDatabaseName
+  }, [selectedField, schemaDatabaseName])
+
+  const targetFkField = useMemo(() => {
+    if (!currentFk) {
+      return null
+    }
+
+    // REVERSE（HasMany）: current model one -> target model many，targetFields 对应目标模型外键列
+    if (currentFk.direction === 'REVERSE') {
+      if (currentFk.targetFields.length !== 1) {
+        return null
+      }
+      return currentFk.targetFields[0]
+    }
+
+    // 兼容兜底：如果 direction 非 REVERSE，仍优先尝试 targetFields
+    if (currentFk.targetFields.length !== 1) {
+      return null
+    }
+    return currentFk.targetFields[0]
+  }, [currentFk])
+
+  const runtimeClient = useMemo(() => {
+    if (!selectedField || !targetDatabaseName || !targetModelName) return null
+    return createModelRuntimeClient(
+      orgName,
+      projectSlug,
+      targetDatabaseName,
+      targetModelName,
+    )
+  }, [selectedField, orgName, projectSlug, targetDatabaseName, targetModelName])
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+
+  const refreshRelatedRecords = useCallback(async () => {
+    if (!runtimeClient || !selectedField || !recordId || !targetFkField) {
+      setRelatedRecords([])
+      setTotalCount(0)
+      return
+    }
+
+    setLoadingRecords(true)
+    setManagerError(null)
+    try {
+      const where = { [targetFkField]: { equals: recordId } }
+      const skip = (currentPage - 1) * PAGE_SIZE
+
+      const [listResult, countResult] = await Promise.all([
+        runtimeClient.query<{ findMany?: { items?: RelationRecord[] } }>({
+          query: buildFindManyQuery(targetModelName, ['id', '_label']),
+          variables: {
+            where,
+            take: PAGE_SIZE,
+            skip,
+          },
+          fetchPolicy: 'network-only',
+        }),
+        runtimeClient.query<Record<string, unknown>>({
+          query: buildCountQuery(targetModelName),
+          variables: { where },
+          fetchPolicy: 'network-only',
+        }),
+      ])
+
+      const countValue = countResult.data?.count
+      const nextTotal = typeof countValue === 'number'
+        ? countValue
+        : (listResult.data?.findMany?.items ?? []).length
+
+      setRelatedRecords(listResult.data?.findMany?.items ?? [])
+      setTotalCount(nextTotal)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '加载关联记录失败'
+      setManagerError(message)
+      setRelatedRecords([])
+      setTotalCount(0)
+    } finally {
+      setLoadingRecords(false)
+    }
+  }, [runtimeClient, selectedField, recordId, targetFkField, currentPage, targetModelName])
+
+  useEffect(() => {
+    if (!open) {
+      return
+    }
+    void refreshRelatedRecords()
+  }, [open, refreshRelatedRecords])
+
+  const handleAttach = useCallback(async () => {
+    if (!runtimeClient || !selectedField || !recordId || !targetFkField) {
+      return
+    }
+
+    const targetId = attachRecordId.trim()
+    if (targetId === '') {
+      setManagerError('请输入要添加的目标记录 ID。')
+      return
+    }
+
+    setUpdating(true)
+    setManagerError(null)
+    try {
+      await runtimeClient.mutate({
+        mutation: buildUpdateMutation(targetModelName),
+        variables: {
+          where: { id: targetId },
+          data: { [targetFkField]: recordId },
+        },
+      })
+
+      setAttachRecordId('')
+      setCurrentPage(1)
+      await refreshRelatedRecords()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '添加关联失败'
+      setManagerError(message)
+    } finally {
+      setUpdating(false)
+    }
+  }, [runtimeClient, selectedField, recordId, targetFkField, attachRecordId, refreshRelatedRecords, targetModelName])
+
+  const handleDetach = useCallback(async (targetId: string) => {
+    if (!runtimeClient || !selectedField || !targetFkField) {
+      return
+    }
+
+    setUpdating(true)
+    setManagerError(null)
+    try {
+      await runtimeClient.mutate({
+        mutation: buildUpdateMutation(targetModelName),
+        variables: {
+          where: { id: targetId },
+          data: { [targetFkField]: null },
+        },
+      })
+
+      await refreshRelatedRecords()
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '移除关联失败'
+      setManagerError(message)
+    } finally {
+      setUpdating(false)
+    }
+  }, [runtimeClient, selectedField, targetFkField, refreshRelatedRecords, targetModelName])
+
+  const hasSingleFK = Boolean(targetFkField)
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[760px]">
+        <DialogHeader>
+          <DialogTitle>关联关系管理</DialogTitle>
+          <DialogDescription>
+            记录 ID：<span className="font-mono">{recordId ?? '-'}</span>
+          </DialogDescription>
+        </DialogHeader>
+
+        {relationFields.length === 0 ? (
+          <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+            当前模型没有可管理的 RELATION 关系字段。
+          </p>
+        ) : (
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground">选择关系字段</p>
+              <Select
+                value={selectedFieldName}
+                onValueChange={(value) => {
+                  setSelectedFieldName(value)
+                  setCurrentPage(1)
+                  setManagerError(null)
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="选择一对多关系字段" />
+                </SelectTrigger>
+                <SelectContent>
+                  {relationFields.map((field) => (
+                    <SelectItem key={field.name} value={field.name}>
+                      {field.title} ({field.name})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!hasSingleFK ? (
+              <p className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+                当前关系为复合外键或缺少外键信息，暂不支持直接添加/移除。
+              </p>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  添加关联（输入目标记录 ID）
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    value={attachRecordId}
+                    onChange={(event) => setAttachRecordId(event.target.value)}
+                    placeholder="目标记录 ID"
+                    className="font-mono"
+                    disabled={updating}
+                  />
+                  <Button onClick={handleAttach} disabled={updating}>
+                    {updating ? '处理中...' : '添加'}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium text-foreground">已关联列表</p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  void refreshRelatedRecords()
+                }}
+                disabled={loadingRecords}
+              >
+                <RefreshCw className={`mr-1.5 size-3.5 ${loadingRecords ? 'animate-spin' : ''}`} />
+                刷新
+              </Button>
+            </div>
+
+            {managerError && (
+              <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+                {managerError}
+              </p>
+            )}
+
+            <div className="max-h-80 overflow-y-auto rounded-md border border-border">
+              {loadingRecords ? (
+                <div className="flex items-center justify-center py-10 text-muted-foreground">
+                  <Loader2 className="mr-2 size-4 animate-spin" />
+                  加载中...
+                </div>
+              ) : relatedRecords.length === 0 ? (
+                <div className="py-10 text-center text-sm text-muted-foreground">
+                  暂无关联记录
+                </div>
+              ) : (
+                <div className="divide-y divide-border">
+                  {relatedRecords.map((record, idx) => {
+                    const targetId = typeof record.id === 'string' ? record.id : ''
+                    return (
+                      <div key={`${targetId}-${idx}`} className="flex items-center justify-between gap-3 p-3">
+                        <div className="min-w-0">
+                          <p className="truncate text-sm text-foreground">{toDisplayText(record)}</p>
+                          <p className="truncate font-mono text-xs text-muted-foreground">{targetId || '-'}</p>
+                        </div>
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => {
+                            if (targetId !== '') {
+                              void handleDetach(targetId)
+                            }
+                          }}
+                          disabled={updating || !hasSingleFK || targetId === ''}
+                        >
+                          <Unlink className="mr-1.5 size-3.5" />
+                          移除
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-muted-foreground">
+                共 {totalCount} 条，当前第 {Math.min(currentPage, totalPages)} / {totalPages} 页
+              </p>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage <= 1 || loadingRecords}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                >
+                  上一页
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  disabled={currentPage >= totalPages || loadingRecords}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                >
+                  下一页
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <DialogFooter>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            关闭
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  )
+}

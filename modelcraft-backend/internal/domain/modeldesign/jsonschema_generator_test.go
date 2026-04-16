@@ -599,6 +599,116 @@ func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 	assert.Equal(t, fkID, xmc["belongsToFkId"], "x-mc.belongsToFkId must still be present")
 }
 
+// TestJSONSchemaGenerator_XRelation_WithRelateFKID verifies that a RELATION field
+// with RelateFKID and Metadata["x-relation"] also emits x-mc.relation.
+func TestJSONSchemaGenerator_XRelation_WithRelateFKID(t *testing.T) {
+	relateFKID := "fk-rel-1"
+	model := &DataModel{
+		ModelMeta: ModelMeta{
+			ID:           "user-model-id",
+			ModelLocator: ModelLocator{ModelName: "User", DatabaseName: "app_db"},
+			Title:        "User",
+			StorageType:  "mysql",
+		},
+		Fields: []*FieldDefinition{
+			{
+				Name:         "orders",
+				Title:        "Orders",
+				Type:         GetFieldTypeByFormat(FormatRelation),
+				RelateFKID:   &relateFKID,
+				DisplayOrder: "a0",
+				Metadata: map[string]any{
+					"x-relation": map[string]string{
+						"databaseName": "app_db",
+						"modelName":    "Order",
+						"direction":    "reverse",
+						"cardinality":  "one-to-many",
+					},
+				},
+			},
+		},
+	}
+
+	generator := NewJSONSchemaGenerator()
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+
+	properties := schema["properties"].(map[string]interface{})
+	ordersField := properties["orders"].(map[string]interface{})
+	xmc := getXMC(ordersField)
+
+	assert.Equal(t, relateFKID, xmc["relateFkId"])
+	_, hasRelation := xmc["relation"]
+	assert.True(t, hasRelation, "RELATION field with RelateFKID should emit x-mc.relation when metadata exists")
+}
+
+func TestJSONSchemaGenerator_RelationTypeByCardinality(t *testing.T) {
+	relateFKID := "fk-rel-2"
+	model := &DataModel{
+		ModelMeta: ModelMeta{
+			ID:           "user-model-id",
+			ModelLocator: ModelLocator{ModelName: "User", DatabaseName: "app_db"},
+			Title:        "User",
+			StorageType:  "mysql",
+		},
+		Fields: []*FieldDefinition{
+			{
+				Name:         "orders",
+				Title:        "Orders",
+				Type:         GetFieldTypeByFormat(FormatRelation),
+				RelateFKID:   &relateFKID,
+				DisplayOrder: "a0",
+				Metadata: map[string]any{
+					"x-relation": map[string]string{
+						"databaseName": "app_db",
+						"modelName":    "Order",
+						"direction":    "reverse",
+						"cardinality":  "one-to-many",
+					},
+				},
+			},
+			{
+				Name:         "owner",
+				Title:        "Owner",
+				Type:         GetFieldTypeByFormat(FormatRelation),
+				RelateFKID:   &relateFKID,
+				DisplayOrder: "a1",
+				Metadata: map[string]any{
+					"x-relation": map[string]string{
+						"databaseName": "app_db",
+						"modelName":    "User",
+						"direction":    "normal",
+						"cardinality":  "many-to-one",
+					},
+				},
+			},
+		},
+	}
+
+	generator := NewJSONSchemaGenerator()
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+
+	properties := schema["properties"].(map[string]interface{})
+
+	ordersField := properties["orders"].(map[string]interface{})
+	assert.Equal(t, "array", ordersField["type"], "one-to-many relation should be rendered as array")
+	items, hasItems := ordersField["items"].(map[string]interface{})
+	require.True(t, hasItems, "one-to-many relation should include items schema")
+	assert.Equal(t, "object", items["type"])
+	assert.Equal(t, "relation-multi-readonly", getXMC(ordersField)["widget"],
+		"one-to-many relation should use readonly multi relation widget")
+
+	ownerField := properties["owner"].(map[string]interface{})
+	assert.Equal(t, "object", ownerField["type"], "many-to-one relation should remain object")
+}
+
 // ─── 新增 x-mc 测试 ────────────────────────────────────────────────────────────
 
 // TestXMC_Widget_EnumSelect 验证 FormatEnum 和 FormatEnumArray 都得到 widget="enum-select"
@@ -853,8 +963,8 @@ func TestXMC_NoUnknownFields(t *testing.T) {
 		},
 		{
 			Name: "f3", Title: "F3",
-			Type:        GetFieldTypeByFormat(FormatString),
-			StorageHint: &hint,
+			Type:         GetFieldTypeByFormat(FormatString),
+			StorageHint:  &hint,
 			DisplayOrder: "a2",
 		},
 		{
