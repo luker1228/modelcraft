@@ -17,10 +17,6 @@ type CreateEnumError interface {
 	IsCreateEnumError()
 }
 
-type CreateFieldEnumRelationError interface {
-	IsCreateFieldEnumRelationError()
-}
-
 type CreateGroupError interface {
 	IsCreateGroupError()
 }
@@ -39,10 +35,6 @@ type DeleteClusterError interface {
 
 type DeleteEnumError interface {
 	IsDeleteEnumError()
-}
-
-type DeleteFieldEnumRelationError interface {
-	IsDeleteFieldEnumRelationError()
 }
 
 type DeleteGroupError interface {
@@ -134,7 +126,6 @@ type AddFieldInput struct {
 	ValidationConfig *ValidationConfigInput `json:"validationConfig,omitempty"`
 	RelateFkID       *string                `json:"relateFkId,omitempty"`
 	RelateEnumName   *string                `json:"relateEnumName,omitempty"`
-	EnumRelationID   *string                `json:"enumRelationId,omitempty"`
 }
 
 type AddFieldItemResult struct {
@@ -216,18 +207,6 @@ type CreateEnumInput struct {
 type CreateEnumPayload struct {
 	Enum  *EnumDefinition `json:"enum,omitempty"`
 	Error CreateEnumError `json:"error,omitempty"`
-}
-
-type CreateFieldEnumRelationInput struct {
-	ModelID         string `json:"modelId"`
-	LabelFieldName  string `json:"labelFieldName"`
-	SourceFieldName string `json:"sourceFieldName"`
-	EnumName        string `json:"enumName"`
-}
-
-type CreateFieldEnumRelationPayload struct {
-	Relation *FieldEnumRelation           `json:"relation,omitempty"`
-	Error    CreateFieldEnumRelationError `json:"error,omitempty"`
 }
 
 type CreateGroupInput struct {
@@ -353,11 +332,6 @@ type DeleteEnumPayload struct {
 	Error   DeleteEnumError `json:"error,omitempty"`
 }
 
-type DeleteFieldEnumRelationPayload struct {
-	Success bool                         `json:"success"`
-	Error   DeleteFieldEnumRelationError `json:"error,omitempty"`
-}
-
 type DeleteGroupPayload struct {
 	Success bool             `json:"success"`
 	Error   DeleteGroupError `json:"error,omitempty"`
@@ -471,7 +445,6 @@ type Field struct {
 	BelongsToFkID    *string           `json:"belongsToFkId,omitempty"`
 	Enum             *EnumDefinition   `json:"enum,omitempty"`
 	EnumName         *string           `json:"enumName,omitempty"`
-	EnumRelationID   *string           `json:"enumRelationId,omitempty"`
 	DbColumn         *DbColumnInfo     `json:"dbColumn,omitempty"`
 	CreatedAt        string            `json:"createdAt"`
 	UpdatedAt        string            `json:"updatedAt"`
@@ -482,32 +455,6 @@ type FieldConflict struct {
 	Expected string              `json:"expected"`
 	Actual   string              `json:"actual"`
 }
-
-type FieldEnumRelation struct {
-	ID              string `json:"id"`
-	ModelID         string `json:"modelId"`
-	LabelFieldName  string `json:"labelFieldName"`
-	SourceFieldName string `json:"sourceFieldName"`
-	EnumName        string `json:"enumName"`
-	OrgName         string `json:"orgName"`
-	ProjectSlug     string `json:"projectSlug"`
-	CreatedAt       string `json:"createdAt"`
-	UpdatedAt       string `json:"updatedAt"`
-}
-
-func (FieldEnumRelation) IsNode()            {}
-func (this FieldEnumRelation) GetID() string { return this.ID }
-
-type FieldEnumSourceConflict struct {
-	Message    string  `json:"message"`
-	Code       string  `json:"code"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (FieldEnumSourceConflict) IsError()                {}
-func (this FieldEnumSourceConflict) GetMessage() string { return this.Message }
-
-func (FieldEnumSourceConflict) IsCreateFieldEnumRelationError() {}
 
 type FieldFormatImmutable struct {
 	Message string `json:"message"`
@@ -615,10 +562,6 @@ func (InvalidInput) IsAddFieldsError() {}
 func (InvalidInput) IsUpdateFieldError() {}
 
 func (InvalidInput) IsRemoveFieldError() {}
-
-func (InvalidInput) IsCreateFieldEnumRelationError() {}
-
-func (InvalidInput) IsDeleteFieldEnumRelationError() {}
 
 func (InvalidInput) IsGetModelError() {}
 
@@ -1221,18 +1164,17 @@ func (e FieldConflictAspect) MarshalJSON() ([]byte, error) {
 type FormatType string
 
 const (
-	FormatTypeString    FormatType = "STRING"
-	FormatTypeUUID      FormatType = "UUID"
-	FormatTypeDate      FormatType = "DATE"
-	FormatTypeDatetime  FormatType = "DATETIME"
-	FormatTypeTime      FormatType = "TIME"
-	FormatTypeNumber    FormatType = "NUMBER"
-	FormatTypeInteger   FormatType = "INTEGER"
-	FormatTypeDecimal   FormatType = "DECIMAL"
-	FormatTypeBoolean   FormatType = "BOOLEAN"
-	FormatTypeRelation  FormatType = "RELATION"
-	FormatTypeEnum      FormatType = "ENUM"
-	FormatTypeEnumLabel FormatType = "ENUM_LABEL"
+	FormatTypeString   FormatType = "STRING"
+	FormatTypeUUID     FormatType = "UUID"
+	FormatTypeDate     FormatType = "DATE"
+	FormatTypeDatetime FormatType = "DATETIME"
+	FormatTypeTime     FormatType = "TIME"
+	FormatTypeNumber   FormatType = "NUMBER"
+	FormatTypeInteger  FormatType = "INTEGER"
+	FormatTypeDecimal  FormatType = "DECIMAL"
+	FormatTypeBoolean  FormatType = "BOOLEAN"
+	FormatTypeRelation FormatType = "RELATION"
+	FormatTypeEnum     FormatType = "ENUM"
 )
 
 var AllFormatType = []FormatType{
@@ -1247,12 +1189,11 @@ var AllFormatType = []FormatType{
 	FormatTypeBoolean,
 	FormatTypeRelation,
 	FormatTypeEnum,
-	FormatTypeEnumLabel,
 }
 
 func (e FormatType) IsValid() bool {
 	switch e {
-	case FormatTypeString, FormatTypeUUID, FormatTypeDate, FormatTypeDatetime, FormatTypeTime, FormatTypeNumber, FormatTypeInteger, FormatTypeDecimal, FormatTypeBoolean, FormatTypeRelation, FormatTypeEnum, FormatTypeEnumLabel:
+	case FormatTypeString, FormatTypeUUID, FormatTypeDate, FormatTypeDatetime, FormatTypeTime, FormatTypeNumber, FormatTypeInteger, FormatTypeDecimal, FormatTypeBoolean, FormatTypeRelation, FormatTypeEnum:
 		return true
 	}
 	return false

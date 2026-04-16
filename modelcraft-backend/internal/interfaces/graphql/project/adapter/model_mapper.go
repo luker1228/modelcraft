@@ -124,7 +124,6 @@ func (m *modelMapper) convertFieldWithActualSchema(
 		BelongsToFkID:    fieldDef.BelongsToFKID,
 		Enum:             enumDef,
 		EnumName:         enumName,
-		EnumRelationID:   fieldDef.EnumRelationID,
 		CreatedAt:        fieldDef.CreatedAt.Format(time.RFC3339),
 		UpdatedAt:        fieldDef.UpdatedAt.Format(time.RFC3339),
 	}
@@ -247,8 +246,6 @@ func convertFormatTypeDomain2Model(format modeldesign.FormatType) generated.Form
 		return generated.FormatTypeRelation
 	case modeldesign.FormatEnum:
 		return generated.FormatTypeEnum
-	case modeldesign.FormatEnumLabel:
-		return generated.FormatTypeEnumLabel
 	default:
 		return ""
 	}

@@ -432,51 +432,6 @@ func TestGetGraphqlTypeByAllFormats(t *testing.T) {
 	}
 }
 
-// TestEnumLabelPointerHandling tests EnumLabel description pointer handling
-func TestEnumLabelPointerHandling(t *testing.T) {
-	// Given: enum options with various description scenarios
-	tests := []struct {
-		name        string
-		description string
-		wantNil     bool
-	}{
-		{"empty description", "", true},
-		{"non-empty description", "Some description", false},
-		{"whitespace description", "   ", false}, // Not empty, but whitespace
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			opt := modeldesign.EnumOption{
-				Code:        "TEST",
-				Label:       "Test",
-				Description: tt.description,
-			}
-
-			// When: creating EnumLabel
-			label := NewEnumLabel(opt)
-
-			// Then: description pointer should match expectations
-			if tt.wantNil {
-				if label.Description != nil {
-					t.Errorf(
-						"NewEnumLabel() Description should be nil for empty description, got %v",
-						*label.Description,
-					)
-				}
-				return
-			}
-			if label.Description == nil {
-				t.Error("NewEnumLabel() Description should not be nil for non-empty description")
-				return
-			}
-			if *label.Description != tt.description {
-				t.Errorf("NewEnumLabel() Description = %v, want %v", *label.Description, tt.description)
-			}
-		})
-	}
-}
-
 // BenchmarkGetUniqueField benchmarks getUniqueField method
 func BenchmarkGetUniqueField(b *testing.B) {
 	model := &RuntimeModel{
@@ -524,19 +479,5 @@ func BenchmarkGetGraphqlTypeBy(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		format := formats[i%len(formats)]
 		_, _ = getGraphqlTypeBy(format)
-	}
-}
-
-// BenchmarkNewEnumLabel benchmarks NewEnumLabel function
-func BenchmarkNewEnumLabel(b *testing.B) {
-	opt := modeldesign.EnumOption{
-		Code:        "ACTIVE",
-		Label:       "Active",
-		Description: "User is active",
-	}
-
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		_ = NewEnumLabel(opt)
 	}
 }

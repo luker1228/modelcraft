@@ -6,7 +6,6 @@ import (
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
-	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"testing"
@@ -807,79 +806,6 @@ func (m *MockEnumAssocRepo) DeleteByModelID(ctx context.Context, modelID string)
 	return nil
 }
 
-// MockFieldEnumRelationRepo is a mock for FieldEnumRelationRepository.
-type MockFieldEnumRelationRepo struct {
-	mock.Mock
-}
-
-func (m *MockFieldEnumRelationRepo) Create(ctx context.Context, relation *modeldesign.FieldEnumRelation) error {
-	args := m.Called(ctx, relation)
-	return args.Error(0)
-}
-
-func (m *MockFieldEnumRelationRepo) FindByID(
-	ctx context.Context, orgName, id string,
-) (*modeldesign.FieldEnumRelation, error) {
-	args := m.Called(ctx, orgName, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*modeldesign.FieldEnumRelation), args.Error(1)
-}
-
-func (m *MockFieldEnumRelationRepo) FindBySourceField(
-	ctx context.Context,
-	orgName, modelID, sourceFieldName string,
-) (*modeldesign.FieldEnumRelation, error) {
-	args := m.Called(ctx, orgName, modelID, sourceFieldName)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*modeldesign.FieldEnumRelation), args.Error(1)
-}
-
-func (m *MockFieldEnumRelationRepo) ListByModelID(
-	ctx context.Context, orgName, modelID string,
-) ([]*modeldesign.FieldEnumRelation, error) {
-	args := m.Called(ctx, orgName, modelID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*modeldesign.FieldEnumRelation), args.Error(1)
-}
-
-func (m *MockFieldEnumRelationRepo) CountBySourceField(
-	ctx context.Context,
-	orgName, modelID, sourceFieldName string,
-) (int64, error) {
-	args := m.Called(ctx, orgName, modelID, sourceFieldName)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *MockFieldEnumRelationRepo) Delete(ctx context.Context, orgName, id string) error {
-	args := m.Called(ctx, orgName, id)
-	return args.Error(0)
-}
-
-func (m *MockFieldEnumRelationRepo) FindByLabelField(
-	ctx context.Context,
-	orgName, modelID, labelFieldName string,
-) (*modeldesign.FieldEnumRelation, error) {
-	args := m.Called(ctx, orgName, modelID, labelFieldName)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*modeldesign.FieldEnumRelation), args.Error(1)
-}
-
-func (m *MockFieldEnumRelationRepo) CountByLabelField(
-	ctx context.Context,
-	orgName, modelID, labelFieldName string,
-) (int64, error) {
-	args := m.Called(ctx, orgName, modelID, labelFieldName)
-	return args.Get(0).(int64), args.Error(1)
-}
-
 // TestAddFieldSync_PhysicField_SetsDisplayOrder verifies that display_order is
 // computed and assigned before a physical field is persisted.
 func TestAddFieldSync_PhysicField_SetsDisplayOrder(t *testing.T) {
@@ -1034,67 +960,6 @@ func TestModelDesignAppService_UpdateFieldSync_FormatImmutable(t *testing.T) {
 	})
 	require.Error(t, err)
 	assert.True(t, bizerrors.Is(err, ErrFieldFormatImmutable))
-}
-
-func TestModelDesignAppService_RemoveFieldSync_BlockedByEnumRelation(t *testing.T) {
-	ctx := newTestContext()
-	mockModelRepo := new(MockModelRepository)
-	mockRelationRepo := new(MockFieldEnumRelationRepo)
-	svc := newTestService(mockModelRepo, nil, nil)
-	svc.WithFieldEnumRelationRepo(mockRelationRepo)
-
-	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
-	enumType, _ := modeldesign.NewFieldFormat(modeldesign.FormatEnum)
-	sourceField := &modeldesign.FieldDefinition{
-		ModelID:      "model-1",
-		ModelLocator: &existingModel.ModelLocator,
-		Name:         "level",
-		Title:        "Level",
-		Type:         enumType,
-		EnumName:     "CustomerLevel",
-		Status:       modeldesign.FieldStatusInit,
-	}
-	existingModel.Fields = append(existingModel.Fields, sourceField)
-
-	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
-	mockRelationRepo.On("CountBySourceField", ctx, "test-org", "model-1", "level").Return(int64(1), nil)
-
-	err := svc.RemoveFieldSync(ctx, RemoveFieldCommand{ModelID: "model-1", FieldName: "level"})
-	require.Error(t, err)
-	assert.True(t, bizerrors.Is(err, ErrFieldReferenceInUse))
-}
-
-func TestModelDesignAppService_CreateFieldEnumRelation_SourceConflict(t *testing.T) {
-	ctx := newTestContext()
-	mockModelRepo := new(MockModelRepository)
-	mockRelationRepo := new(MockFieldEnumRelationRepo)
-	svc := newTestService(mockModelRepo, nil, nil)
-	svc.WithFieldEnumRelationRepo(mockRelationRepo)
-
-	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
-	enumType, _ := modeldesign.NewFieldFormat(modeldesign.FormatEnum)
-	sourceField := &modeldesign.FieldDefinition{
-		ModelID:      "model-1",
-		ModelLocator: &existingModel.ModelLocator,
-		Name:         "level",
-		Title:        "Level",
-		Type:         enumType,
-		EnumName:     "CustomerLevel",
-		Status:       modeldesign.FieldStatusInit,
-	}
-	existingModel.Fields = append(existingModel.Fields, sourceField)
-
-	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
-	mockRelationRepo.On("CountBySourceField", ctx, "test-org", "model-1", "level").Return(int64(1), nil)
-
-	_, err := svc.CreateFieldEnumRelation(ctx, CreateFieldEnumRelationCommand{
-		ModelID:         "model-1",
-		LabelFieldName:  "levelLabel",
-		SourceFieldName: "level",
-		EnumName:        "CustomerLevel",
-	})
-	require.Error(t, err)
-	assert.True(t, bizerrors.Is(err, ErrFieldEnumSourceConflict))
 }
 
 // ============================================================================

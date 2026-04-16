@@ -128,8 +128,6 @@ type FieldDefinition struct {
 	DatabaseName string
 	// 关联的枚举名称（format=ENUM）
 	EnumName sql.NullString
-	// 字段枚举关联ID（format=ENUM_LABEL）
-	EnumRelationID sql.NullString
 	// 所属逻辑外键ID（FK列字段使用）
 	BelongsToFkID sql.NullString
 	// 关联的逻辑外键ID（RELATION格式字段使用）
@@ -158,28 +156,6 @@ type FieldDefinition struct {
 	DisplayOrder string
 	// 字段元数据配置
 	Metadata *json.RawMessage
-	// 创建时间
-	CreatedAt sql.NullTime
-	// 更新时间
-	UpdatedAt sql.NullTime
-}
-
-// 字段枚举标签关联表
-type FieldEnumRelation struct {
-	// 关联唯一标识
-	ID string
-	// 所属模型ID
-	ModelID string
-	// 标签字段名称（ENUM_LABEL）
-	LabelFieldName string
-	// 源字段名称（ENUM）
-	SourceFieldName string
-	// 所属组织名称
-	OrgName string
-	// 所属项目标识符
-	ProjectSlug string
-	// 关联的枚举名称
-	EnumName string
 	// 创建时间
 	CreatedAt sql.NullTime
 	// 更新时间
@@ -232,7 +208,7 @@ type Model struct {
 	StorageType string
 	// 数据库名称
 	DatabaseName string
-	// 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
+	// 用于 runtime _displayName 解析的字段名（必须是模型中存在且可字符串化的字段）
 	DisplayField sql.NullString
 	// 数据版本号
 	Version sql.NullInt64

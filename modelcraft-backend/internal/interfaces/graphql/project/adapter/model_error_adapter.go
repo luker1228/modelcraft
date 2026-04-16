@@ -189,54 +189,7 @@ func (a *ModelErrorAdapter) ConvertToRemoveFieldError(err error) generated.Remov
 	if err == nil {
 		return nil
 	}
-	if bizerrors.Is(err, appmodeldesign.ErrFieldReferenceInUse) {
-		suggestion := "Please remove dependent enum relations before deleting the source field"
-		return &generated.FieldReferenceInUse{
-			Code:       appmodeldesign.FieldReferenceInUseCode,
-			Message:    "field is still referenced by enum relations",
-			Suggestion: &suggestion,
-		}
-	}
-	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
-		if bizErr.Detail() != "" {
-			detail := bizErr.Detail()
-			gqlErr.Suggestion = &detail
-		}
-		return gqlErr
-	}
-	return &generated.InvalidInput{Message: err.Error()}
-}
-
-// ConvertToCreateFieldEnumRelationError converts errors to CreateFieldEnumRelationError union type.
-func (a *ModelErrorAdapter) ConvertToCreateFieldEnumRelationError(err error) generated.CreateFieldEnumRelationError {
-	if err == nil {
-		return nil
-	}
-	if bizerrors.Is(err, appmodeldesign.ErrFieldEnumSourceConflict) {
-		suggestion := "same sourceFieldName can bind only one enum relation"
-		return &generated.FieldEnumSourceConflict{
-			Code:       appmodeldesign.FieldEnumSourceConflictCode,
-			Message:    "source field already has an enum relation",
-			Suggestion: &suggestion,
-		}
-	}
-	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
-		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
-		if bizErr.Detail() != "" {
-			detail := bizErr.Detail()
-			gqlErr.Suggestion = &detail
-		}
-		return gqlErr
-	}
-	return &generated.InvalidInput{Message: err.Error()}
-}
-
-// ConvertToDeleteFieldEnumRelationError converts errors to DeleteFieldEnumRelationError union type.
-func (a *ModelErrorAdapter) ConvertToDeleteFieldEnumRelationError(err error) generated.DeleteFieldEnumRelationError {
-	if err == nil {
-		return nil
-	}
+	// Convert error types
 	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
 		if bizErr.Detail() != "" {

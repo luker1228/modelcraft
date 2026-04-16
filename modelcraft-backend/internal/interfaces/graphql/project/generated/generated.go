@@ -93,11 +93,6 @@ type ComplexityRoot struct {
 		Error func(childComplexity int) int
 	}
 
-	CreateFieldEnumRelationPayload struct {
-		Error    func(childComplexity int) int
-		Relation func(childComplexity int) int
-	}
-
 	CreateGroupPayload struct {
 		Error func(childComplexity int) int
 		Group func(childComplexity int) int
@@ -179,11 +174,6 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
-	DeleteFieldEnumRelationPayload struct {
-		Error   func(childComplexity int) int
-		Success func(childComplexity int) int
-	}
-
 	DeleteGroupPayload struct {
 		Error   func(childComplexity int) int
 		Success func(childComplexity int) int
@@ -254,7 +244,6 @@ type ComplexityRoot struct {
 		Description      func(childComplexity int) int
 		Enum             func(childComplexity int) int
 		EnumName         func(childComplexity int) int
-		EnumRelationID   func(childComplexity int) int
 		Format           func(childComplexity int) int
 		IsArray          func(childComplexity int) int
 		IsDeprecated     func(childComplexity int) int
@@ -276,24 +265,6 @@ type ComplexityRoot struct {
 		Actual   func(childComplexity int) int
 		Aspect   func(childComplexity int) int
 		Expected func(childComplexity int) int
-	}
-
-	FieldEnumRelation struct {
-		CreatedAt       func(childComplexity int) int
-		EnumName        func(childComplexity int) int
-		ID              func(childComplexity int) int
-		LabelFieldName  func(childComplexity int) int
-		ModelID         func(childComplexity int) int
-		OrgName         func(childComplexity int) int
-		ProjectSlug     func(childComplexity int) int
-		SourceFieldName func(childComplexity int) int
-		UpdatedAt       func(childComplexity int) int
-	}
-
-	FieldEnumSourceConflict struct {
-		Code       func(childComplexity int) int
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
 	}
 
 	FieldFormatImmutable struct {
@@ -424,13 +395,11 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AddFields               func(childComplexity int, modelID string, input []*AddFieldInput) int
 		CreateEnum              func(childComplexity int, input CreateEnumInput) int
-		CreateFieldEnumRelation func(childComplexity int, input CreateFieldEnumRelationInput) int
 		CreateGroup             func(childComplexity int, input CreateGroupInput) int
 		CreateLogicalForeignKey func(childComplexity int, input CreateLogicalForeignKeyInput) int
 		CreateModel             func(childComplexity int, input CreateModelInput) int
 		CreateModelFromSchema   func(childComplexity int, input CreateModelFromSchemaInput) int
 		DeleteEnum              func(childComplexity int, name string) int
-		DeleteFieldEnumRelation func(childComplexity int, id string) int
 		DeleteGroup             func(childComplexity int, groupID string) int
 		DeleteLogicalForeignKey func(childComplexity int, pairID string) int
 		DeleteModel             func(childComplexity int, id string, dropTable *bool) int
@@ -467,7 +436,6 @@ type ComplexityRoot struct {
 		Enum               func(childComplexity int, name string) int
 		EnumReferences     func(childComplexity int, name string) int
 		Enums              func(childComplexity int) int
-		FieldEnumRelations func(childComplexity int, modelID string) int
 		Fields             func(childComplexity int, modelID string) int
 		Hello              func(childComplexity int) int
 		ListDatabases      func(childComplexity int, input ListDatabasesInput) int
@@ -581,8 +549,6 @@ type MutationResolver interface {
 	RemoveField(ctx context.Context, modelID string, fieldName string) (*RemoveFieldPayload, error)
 	DeprecateField(ctx context.Context, modelID string, fieldName string) (*Model, error)
 	UndeprecateField(ctx context.Context, modelID string, fieldName string) (*Model, error)
-	CreateFieldEnumRelation(ctx context.Context, input CreateFieldEnumRelationInput) (*CreateFieldEnumRelationPayload, error)
-	DeleteFieldEnumRelation(ctx context.Context, id string) (*DeleteFieldEnumRelationPayload, error)
 	CreateLogicalForeignKey(ctx context.Context, input CreateLogicalForeignKeyInput) (*CreateLogicalForeignKeyPayload, error)
 	DeleteLogicalForeignKey(ctx context.Context, pairID string) (*DeleteLogicalForeignKeyPayload, error)
 	CreateModel(ctx context.Context, input CreateModelInput) (*CreateModelPayload, error)
@@ -609,7 +575,6 @@ type QueryResolver interface {
 	Enums(ctx context.Context) ([]*EnumDefinition, error)
 	EnumReferences(ctx context.Context, name string) ([]string, error)
 	Fields(ctx context.Context, modelID string) ([]*Field, error)
-	FieldEnumRelations(ctx context.Context, modelID string) ([]*FieldEnumRelation, error)
 	LogicalForeignKeys(ctx context.Context, modelID string) ([]*LogicalForeignKey, error)
 	Model(ctx context.Context, id string, withActualSchema *bool) (*GetModelPayload, error)
 	Models(ctx context.Context, input *ModelQueryInput) (*ModelConnection, error)
@@ -765,19 +730,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CreateEnumPayload.Error(childComplexity), true
-
-	case "CreateFieldEnumRelationPayload.error":
-		if e.complexity.CreateFieldEnumRelationPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.CreateFieldEnumRelationPayload.Error(childComplexity), true
-	case "CreateFieldEnumRelationPayload.relation":
-		if e.complexity.CreateFieldEnumRelationPayload.Relation == nil {
-			break
-		}
-
-		return e.complexity.CreateFieldEnumRelationPayload.Relation(childComplexity), true
 
 	case "CreateGroupPayload.error":
 		if e.complexity.CreateGroupPayload.Error == nil {
@@ -1044,19 +996,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.DeleteEnumPayload.Success(childComplexity), true
 
-	case "DeleteFieldEnumRelationPayload.error":
-		if e.complexity.DeleteFieldEnumRelationPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.DeleteFieldEnumRelationPayload.Error(childComplexity), true
-	case "DeleteFieldEnumRelationPayload.success":
-		if e.complexity.DeleteFieldEnumRelationPayload.Success == nil {
-			break
-		}
-
-		return e.complexity.DeleteFieldEnumRelationPayload.Success(childComplexity), true
-
 	case "DeleteGroupPayload.error":
 		if e.complexity.DeleteGroupPayload.Error == nil {
 			break
@@ -1267,12 +1206,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Field.EnumName(childComplexity), true
-	case "Field.enumRelationId":
-		if e.complexity.Field.EnumRelationID == nil {
-			break
-		}
-
-		return e.complexity.Field.EnumRelationID(childComplexity), true
 	case "Field.format":
 		if e.complexity.Field.Format == nil {
 			break
@@ -1382,80 +1315,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.FieldConflict.Expected(childComplexity), true
-
-	case "FieldEnumRelation.createdAt":
-		if e.complexity.FieldEnumRelation.CreatedAt == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.CreatedAt(childComplexity), true
-	case "FieldEnumRelation.enumName":
-		if e.complexity.FieldEnumRelation.EnumName == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.EnumName(childComplexity), true
-	case "FieldEnumRelation.id":
-		if e.complexity.FieldEnumRelation.ID == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.ID(childComplexity), true
-	case "FieldEnumRelation.labelFieldName":
-		if e.complexity.FieldEnumRelation.LabelFieldName == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.LabelFieldName(childComplexity), true
-	case "FieldEnumRelation.modelId":
-		if e.complexity.FieldEnumRelation.ModelID == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.ModelID(childComplexity), true
-	case "FieldEnumRelation.orgName":
-		if e.complexity.FieldEnumRelation.OrgName == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.OrgName(childComplexity), true
-	case "FieldEnumRelation.projectSlug":
-		if e.complexity.FieldEnumRelation.ProjectSlug == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.ProjectSlug(childComplexity), true
-	case "FieldEnumRelation.sourceFieldName":
-		if e.complexity.FieldEnumRelation.SourceFieldName == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.SourceFieldName(childComplexity), true
-	case "FieldEnumRelation.updatedAt":
-		if e.complexity.FieldEnumRelation.UpdatedAt == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumRelation.UpdatedAt(childComplexity), true
-
-	case "FieldEnumSourceConflict.code":
-		if e.complexity.FieldEnumSourceConflict.Code == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumSourceConflict.Code(childComplexity), true
-	case "FieldEnumSourceConflict.message":
-		if e.complexity.FieldEnumSourceConflict.Message == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumSourceConflict.Message(childComplexity), true
-	case "FieldEnumSourceConflict.suggestion":
-		if e.complexity.FieldEnumSourceConflict.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.FieldEnumSourceConflict.Suggestion(childComplexity), true
 
 	case "FieldFormatImmutable.code":
 		if e.complexity.FieldFormatImmutable.Code == nil {
@@ -1889,17 +1748,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateEnum(childComplexity, args["input"].(CreateEnumInput)), true
-	case "Mutation.createFieldEnumRelation":
-		if e.complexity.Mutation.CreateFieldEnumRelation == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_createFieldEnumRelation_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.CreateFieldEnumRelation(childComplexity, args["input"].(CreateFieldEnumRelationInput)), true
 	case "Mutation.createGroup":
 		if e.complexity.Mutation.CreateGroup == nil {
 			break
@@ -1955,17 +1803,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeleteEnum(childComplexity, args["name"].(string)), true
-	case "Mutation.deleteFieldEnumRelation":
-		if e.complexity.Mutation.DeleteFieldEnumRelation == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_deleteFieldEnumRelation_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.DeleteFieldEnumRelation(childComplexity, args["id"].(string)), true
 	case "Mutation.deleteGroup":
 		if e.complexity.Mutation.DeleteGroup == nil {
 			break
@@ -2226,17 +2063,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Enums(childComplexity), true
-	case "Query.fieldEnumRelations":
-		if e.complexity.Query.FieldEnumRelations == nil {
-			break
-		}
-
-		args, err := ec.field_Query_fieldEnumRelations_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.FieldEnumRelations(childComplexity, args["modelID"].(string)), true
 	case "Query.fields":
 		if e.complexity.Query.Fields == nil {
 			break
@@ -2644,7 +2470,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAddFieldInput,
 		ec.unmarshalInputClusterConnectionInput,
 		ec.unmarshalInputCreateEnumInput,
-		ec.unmarshalInputCreateFieldEnumRelationInput,
 		ec.unmarshalInputCreateGroupInput,
 		ec.unmarshalInputCreateLogicalForeignKeyInput,
 		ec.unmarshalInputCreateModelFromSchemaInput,
@@ -3160,7 +2985,6 @@ enum FormatType {
 
   # 枚举类型
   ENUM
-  ENUM_LABEL
 }
 
 # 通用输入错误（跨模块复用）
@@ -3205,7 +3029,6 @@ type Field {
 
   enum: EnumDefinition
   enumName: String
-  enumRelationId: ID
 
   dbColumn: DbColumnInfo
   createdAt: String!
@@ -3285,7 +3108,6 @@ input AddFieldInput {
 
   # model-enum 扁平化参数
   relateEnumName: String
-  enumRelationId: ID
 }
 
 input UpdateFieldInput {
@@ -3345,55 +3167,6 @@ extend type Mutation {
   状态转换：DEPRECATED → ACTIVE
   """
   undeprecateField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
-}
-`, BuiltIn: false},
-	{Name: "../../../../../api/graph/project/schema/field_enum_relation.graphql", Input: `# FieldEnumRelation types, inputs and mutations
-
-type FieldEnumSourceConflict implements Error {
-  message: String!
-  code: String!
-  suggestion: String
-}
-
-type FieldEnumRelation implements Node {
-  id: ID!
-  modelId: ID!
-  labelFieldName: String!
-  sourceFieldName: String!
-  enumName: String!
-  orgName: String!
-  projectSlug: String!
-  createdAt: String!
-  updatedAt: String!
-}
-
-input CreateFieldEnumRelationInput {
-  modelId: ID!
-  labelFieldName: String!
-  sourceFieldName: String!
-  enumName: String!
-}
-
-union CreateFieldEnumRelationError = InvalidInput | FieldEnumSourceConflict
-union DeleteFieldEnumRelationError = InvalidInput
-
-type CreateFieldEnumRelationPayload {
-  relation: FieldEnumRelation
-  error: CreateFieldEnumRelationError
-}
-
-type DeleteFieldEnumRelationPayload {
-  success: Boolean!
-  error: DeleteFieldEnumRelationError
-}
-
-extend type Query {
-  fieldEnumRelations(modelID: ID!): [FieldEnumRelation!]! @hasPermission(action: "field:read")
-}
-
-extend type Mutation {
-  createFieldEnumRelation(input: CreateFieldEnumRelationInput!): CreateFieldEnumRelationPayload! @hasPermission(action: "field:create")
-  deleteFieldEnumRelation(id: ID!): DeleteFieldEnumRelationPayload! @hasPermission(action: "field:delete")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/logical_foreign_key.graphql", Input: `# Logical Foreign Key - types, inputs, mutations and queries
@@ -3841,17 +3614,6 @@ func (ec *executionContext) field_Mutation_createEnum_args(ctx context.Context, 
 	return args, nil
 }
 
-func (ec *executionContext) field_Mutation_createFieldEnumRelation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateFieldEnumRelationInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationInput)
-	if err != nil {
-		return nil, err
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Mutation_createGroup_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3904,17 +3666,6 @@ func (ec *executionContext) field_Mutation_deleteEnum_args(ctx context.Context, 
 		return nil, err
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_deleteFieldEnumRelation_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["id"] = arg0
 	return args, nil
 }
 
@@ -4175,17 +3926,6 @@ func (ec *executionContext) field_Query_enum_args(ctx context.Context, rawArgs m
 		return nil, err
 	}
 	args["name"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_fieldEnumRelations_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "modelID", ec.unmarshalNID2string)
-	if err != nil {
-		return nil, err
-	}
-	args["modelID"] = arg0
 	return args, nil
 }
 
@@ -4985,84 +4725,6 @@ func (ec *executionContext) fieldContext_CreateEnumPayload_error(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type CreateEnumError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CreateFieldEnumRelationPayload_relation(ctx context.Context, field graphql.CollectedField, obj *CreateFieldEnumRelationPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_CreateFieldEnumRelationPayload_relation,
-		func(ctx context.Context) (any, error) {
-			return obj.Relation, nil
-		},
-		nil,
-		ec.marshalOFieldEnumRelation2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldEnumRelation,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_CreateFieldEnumRelationPayload_relation(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CreateFieldEnumRelationPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_FieldEnumRelation_id(ctx, field)
-			case "modelId":
-				return ec.fieldContext_FieldEnumRelation_modelId(ctx, field)
-			case "labelFieldName":
-				return ec.fieldContext_FieldEnumRelation_labelFieldName(ctx, field)
-			case "sourceFieldName":
-				return ec.fieldContext_FieldEnumRelation_sourceFieldName(ctx, field)
-			case "enumName":
-				return ec.fieldContext_FieldEnumRelation_enumName(ctx, field)
-			case "orgName":
-				return ec.fieldContext_FieldEnumRelation_orgName(ctx, field)
-			case "projectSlug":
-				return ec.fieldContext_FieldEnumRelation_projectSlug(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_FieldEnumRelation_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_FieldEnumRelation_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FieldEnumRelation", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _CreateFieldEnumRelationPayload_error(ctx context.Context, field graphql.CollectedField, obj *CreateFieldEnumRelationPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_CreateFieldEnumRelationPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalOCreateFieldEnumRelationError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_CreateFieldEnumRelationPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "CreateFieldEnumRelationPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type CreateFieldEnumRelationError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6399,64 +6061,6 @@ func (ec *executionContext) fieldContext_DeleteEnumPayload_error(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type DeleteEnumError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DeleteFieldEnumRelationPayload_success(ctx context.Context, field graphql.CollectedField, obj *DeleteFieldEnumRelationPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DeleteFieldEnumRelationPayload_success,
-		func(ctx context.Context) (any, error) {
-			return obj.Success, nil
-		},
-		nil,
-		ec.marshalNBoolean2bool,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_DeleteFieldEnumRelationPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DeleteFieldEnumRelationPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Boolean does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DeleteFieldEnumRelationPayload_error(ctx context.Context, field graphql.CollectedField, obj *DeleteFieldEnumRelationPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DeleteFieldEnumRelationPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalODeleteFieldEnumRelationError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteFieldEnumRelationError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_DeleteFieldEnumRelationPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DeleteFieldEnumRelationPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DeleteFieldEnumRelationError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7811,35 +7415,6 @@ func (ec *executionContext) fieldContext_Field_enumName(_ context.Context, field
 	return fc, nil
 }
 
-func (ec *executionContext) _Field_enumRelationId(ctx context.Context, field graphql.CollectedField, obj *Field) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Field_enumRelationId,
-		func(ctx context.Context) (any, error) {
-			return obj.EnumRelationID, nil
-		},
-		nil,
-		ec.marshalOID2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_Field_enumRelationId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Field",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Field_dbColumn(ctx context.Context, field graphql.CollectedField, obj *Field) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8024,354 +7599,6 @@ func (ec *executionContext) _FieldConflict_actual(ctx context.Context, field gra
 func (ec *executionContext) fieldContext_FieldConflict_actual(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "FieldConflict",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_id(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_id,
-		func(ctx context.Context) (any, error) {
-			return obj.ID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_modelId(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_modelId,
-		func(ctx context.Context) (any, error) {
-			return obj.ModelID, nil
-		},
-		nil,
-		ec.marshalNID2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_modelId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ID does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_labelFieldName(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_labelFieldName,
-		func(ctx context.Context) (any, error) {
-			return obj.LabelFieldName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_labelFieldName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_sourceFieldName(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_sourceFieldName,
-		func(ctx context.Context) (any, error) {
-			return obj.SourceFieldName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_sourceFieldName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_enumName(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_enumName,
-		func(ctx context.Context) (any, error) {
-			return obj.EnumName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_enumName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_orgName(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_orgName,
-		func(ctx context.Context) (any, error) {
-			return obj.OrgName, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_orgName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_projectSlug(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_projectSlug,
-		func(ctx context.Context) (any, error) {
-			return obj.ProjectSlug, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_projectSlug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_createdAt(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_createdAt,
-		func(ctx context.Context) (any, error) {
-			return obj.CreatedAt, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumRelation_updatedAt(ctx context.Context, field graphql.CollectedField, obj *FieldEnumRelation) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumRelation_updatedAt,
-		func(ctx context.Context) (any, error) {
-			return obj.UpdatedAt, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumRelation_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumRelation",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumSourceConflict_message(ctx context.Context, field graphql.CollectedField, obj *FieldEnumSourceConflict) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumSourceConflict_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumSourceConflict_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumSourceConflict",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumSourceConflict_code(ctx context.Context, field graphql.CollectedField, obj *FieldEnumSourceConflict) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumSourceConflict_code,
-		func(ctx context.Context) (any, error) {
-			return obj.Code, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumSourceConflict_code(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumSourceConflict",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _FieldEnumSourceConflict_suggestion(ctx context.Context, field graphql.CollectedField, obj *FieldEnumSourceConflict) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_FieldEnumSourceConflict_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_FieldEnumSourceConflict_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "FieldEnumSourceConflict",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9649,8 +8876,6 @@ func (ec *executionContext) fieldContext_Model_fields(_ context.Context, field g
 				return ec.fieldContext_Field_enum(ctx, field)
 			case "enumName":
 				return ec.fieldContext_Field_enumName(ctx, field)
-			case "enumRelationId":
-				return ec.fieldContext_Field_enumRelationId(ctx, field)
 			case "dbColumn":
 				return ec.fieldContext_Field_dbColumn(ctx, field)
 			case "createdAt":
@@ -11202,136 +10427,6 @@ func (ec *executionContext) fieldContext_Mutation_undeprecateField(ctx context.C
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_undeprecateField_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_createFieldEnumRelation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_createFieldEnumRelation,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().CreateFieldEnumRelation(ctx, fc.Args["input"].(CreateFieldEnumRelationInput))
-		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				action, err := ec.unmarshalNString2string(ctx, "field:create")
-				if err != nil {
-					var zeroVal *CreateFieldEnumRelationPayload
-					return zeroVal, err
-				}
-				if ec.directives.HasPermission == nil {
-					var zeroVal *CreateFieldEnumRelationPayload
-					return zeroVal, errors.New("directive hasPermission is not implemented")
-				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
-			}
-
-			next = directive1
-			return next
-		},
-		ec.marshalNCreateFieldEnumRelationPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationPayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_createFieldEnumRelation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "relation":
-				return ec.fieldContext_CreateFieldEnumRelationPayload_relation(ctx, field)
-			case "error":
-				return ec.fieldContext_CreateFieldEnumRelationPayload_error(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type CreateFieldEnumRelationPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_createFieldEnumRelation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Mutation_deleteFieldEnumRelation(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Mutation_deleteFieldEnumRelation,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Mutation().DeleteFieldEnumRelation(ctx, fc.Args["id"].(string))
-		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				action, err := ec.unmarshalNString2string(ctx, "field:delete")
-				if err != nil {
-					var zeroVal *DeleteFieldEnumRelationPayload
-					return zeroVal, err
-				}
-				if ec.directives.HasPermission == nil {
-					var zeroVal *DeleteFieldEnumRelationPayload
-					return zeroVal, errors.New("directive hasPermission is not implemented")
-				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
-			}
-
-			next = directive1
-			return next
-		},
-		ec.marshalNDeleteFieldEnumRelationPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteFieldEnumRelationPayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Mutation_deleteFieldEnumRelation(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "success":
-				return ec.fieldContext_DeleteFieldEnumRelationPayload_success(ctx, field)
-			case "error":
-				return ec.fieldContext_DeleteFieldEnumRelationPayload_error(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DeleteFieldEnumRelationPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Mutation_deleteFieldEnumRelation_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -12967,8 +12062,6 @@ func (ec *executionContext) fieldContext_Query_fields(ctx context.Context, field
 				return ec.fieldContext_Field_enum(ctx, field)
 			case "enumName":
 				return ec.fieldContext_Field_enumName(ctx, field)
-			case "enumRelationId":
-				return ec.fieldContext_Field_enumRelationId(ctx, field)
 			case "dbColumn":
 				return ec.fieldContext_Field_dbColumn(ctx, field)
 			case "createdAt":
@@ -12987,85 +12080,6 @@ func (ec *executionContext) fieldContext_Query_fields(ctx context.Context, field
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_fields_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _Query_fieldEnumRelations(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_fieldEnumRelations,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FieldEnumRelations(ctx, fc.Args["modelID"].(string))
-		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				action, err := ec.unmarshalNString2string(ctx, "field:read")
-				if err != nil {
-					var zeroVal []*FieldEnumRelation
-					return zeroVal, err
-				}
-				if ec.directives.HasPermission == nil {
-					var zeroVal []*FieldEnumRelation
-					return zeroVal, errors.New("directive hasPermission is not implemented")
-				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
-			}
-
-			next = directive1
-			return next
-		},
-		ec.marshalNFieldEnumRelation2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldEnumRelationᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_fieldEnumRelations(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_FieldEnumRelation_id(ctx, field)
-			case "modelId":
-				return ec.fieldContext_FieldEnumRelation_modelId(ctx, field)
-			case "labelFieldName":
-				return ec.fieldContext_FieldEnumRelation_labelFieldName(ctx, field)
-			case "sourceFieldName":
-				return ec.fieldContext_FieldEnumRelation_sourceFieldName(ctx, field)
-			case "enumName":
-				return ec.fieldContext_FieldEnumRelation_enumName(ctx, field)
-			case "orgName":
-				return ec.fieldContext_FieldEnumRelation_orgName(ctx, field)
-			case "projectSlug":
-				return ec.fieldContext_FieldEnumRelation_projectSlug(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_FieldEnumRelation_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_FieldEnumRelation_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type FieldEnumRelation", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_fieldEnumRelations_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -16548,7 +15562,7 @@ func (ec *executionContext) unmarshalInputAddFieldInput(ctx context.Context, obj
 		asMap["isArray"] = false
 	}
 
-	fieldsInOrder := [...]string{"name", "title", "format", "storageHint", "nonNull", "required", "isUnique", "isArray", "description", "validationConfig", "relateFkId", "relateEnumName", "enumRelationId"}
+	fieldsInOrder := [...]string{"name", "title", "format", "storageHint", "nonNull", "required", "isUnique", "isArray", "description", "validationConfig", "relateFkId", "relateEnumName"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -16639,13 +15653,6 @@ func (ec *executionContext) unmarshalInputAddFieldInput(ctx context.Context, obj
 				return it, err
 			}
 			it.RelateEnumName = data
-		case "enumRelationId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enumRelationId"))
-			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.EnumRelationID = data
 		}
 	}
 
@@ -16735,54 +15742,6 @@ func (ec *executionContext) unmarshalInputCreateEnumInput(ctx context.Context, o
 				return it, err
 			}
 			it.Options = data
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputCreateFieldEnumRelationInput(ctx context.Context, obj any) (CreateFieldEnumRelationInput, error) {
-	var it CreateFieldEnumRelationInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"modelId", "labelFieldName", "sourceFieldName", "enumName"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "modelId":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelId"))
-			data, err := ec.unmarshalNID2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.ModelID = data
-		case "labelFieldName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("labelFieldName"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.LabelFieldName = data
-		case "sourceFieldName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("sourceFieldName"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.SourceFieldName = data
-		case "enumName":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("enumName"))
-			data, err := ec.unmarshalNString2string(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.EnumName = data
 		}
 	}
 
@@ -17718,29 +16677,6 @@ func (ec *executionContext) _CreateEnumError(ctx context.Context, sel ast.Select
 	}
 }
 
-func (ec *executionContext) _CreateFieldEnumRelationError(ctx context.Context, sel ast.SelectionSet, obj CreateFieldEnumRelationError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case InvalidInput:
-		return ec._InvalidInput(ctx, sel, &obj)
-	case *InvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidInput(ctx, sel, obj)
-	case FieldEnumSourceConflict:
-		return ec._FieldEnumSourceConflict(ctx, sel, &obj)
-	case *FieldEnumSourceConflict:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._FieldEnumSourceConflict(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
 func (ec *executionContext) _CreateGroupError(ctx context.Context, sel ast.SelectionSet, obj CreateGroupError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -17879,22 +16815,6 @@ func (ec *executionContext) _DeleteEnumError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._CannotDeleteReferencedEnum(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _DeleteFieldEnumRelationError(ctx context.Context, sel ast.SelectionSet, obj DeleteFieldEnumRelationError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case InvalidInput:
-		return ec._InvalidInput(ctx, sel, &obj)
-	case *InvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -18050,13 +16970,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._FieldFormatImmutable(ctx, sel, obj)
-	case FieldEnumSourceConflict:
-		return ec._FieldEnumSourceConflict(ctx, sel, &obj)
-	case *FieldEnumSourceConflict:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._FieldEnumSourceConflict(ctx, sel, obj)
 	case EnumNotFound:
 		return ec._EnumNotFound(ctx, sel, &obj)
 	case *EnumNotFound:
@@ -18228,13 +17141,6 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Model(ctx, sel, obj)
-	case FieldEnumRelation:
-		return ec._FieldEnumRelation(ctx, sel, &obj)
-	case *FieldEnumRelation:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._FieldEnumRelation(ctx, sel, obj)
 	case DatabaseCluster:
 		return ec._DatabaseCluster(ctx, sel, &obj)
 	case *DatabaseCluster:
@@ -18826,44 +17732,6 @@ func (ec *executionContext) _CreateEnumPayload(ctx context.Context, sel ast.Sele
 			out.Values[i] = ec._CreateEnumPayload_enum(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._CreateEnumPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var createFieldEnumRelationPayloadImplementors = []string{"CreateFieldEnumRelationPayload"}
-
-func (ec *executionContext) _CreateFieldEnumRelationPayload(ctx context.Context, sel ast.SelectionSet, obj *CreateFieldEnumRelationPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, createFieldEnumRelationPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("CreateFieldEnumRelationPayload")
-		case "relation":
-			out.Values[i] = ec._CreateFieldEnumRelationPayload_relation(ctx, field, obj)
-		case "error":
-			out.Values[i] = ec._CreateFieldEnumRelationPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -19503,47 +18371,6 @@ func (ec *executionContext) _DeleteEnumPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var deleteFieldEnumRelationPayloadImplementors = []string{"DeleteFieldEnumRelationPayload"}
-
-func (ec *executionContext) _DeleteFieldEnumRelationPayload(ctx context.Context, sel ast.SelectionSet, obj *DeleteFieldEnumRelationPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, deleteFieldEnumRelationPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DeleteFieldEnumRelationPayload")
-		case "success":
-			out.Values[i] = ec._DeleteFieldEnumRelationPayload_success(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "error":
-			out.Values[i] = ec._DeleteFieldEnumRelationPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var deleteGroupPayloadImplementors = []string{"DeleteGroupPayload"}
 
 func (ec *executionContext) _DeleteGroupPayload(ctx context.Context, sel ast.SelectionSet, obj *DeleteGroupPayload) graphql.Marshaler {
@@ -20152,8 +18979,6 @@ func (ec *executionContext) _Field(ctx context.Context, sel ast.SelectionSet, ob
 			out.Values[i] = ec._Field_enum(ctx, field, obj)
 		case "enumName":
 			out.Values[i] = ec._Field_enumName(ctx, field, obj)
-		case "enumRelationId":
-			out.Values[i] = ec._Field_enumRelationId(ctx, field, obj)
 		case "dbColumn":
 			out.Values[i] = ec._Field_dbColumn(ctx, field, obj)
 		case "createdAt":
@@ -20215,131 +19040,6 @@ func (ec *executionContext) _FieldConflict(ctx context.Context, sel ast.Selectio
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var fieldEnumRelationImplementors = []string{"FieldEnumRelation", "Node"}
-
-func (ec *executionContext) _FieldEnumRelation(ctx context.Context, sel ast.SelectionSet, obj *FieldEnumRelation) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, fieldEnumRelationImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("FieldEnumRelation")
-		case "id":
-			out.Values[i] = ec._FieldEnumRelation_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "modelId":
-			out.Values[i] = ec._FieldEnumRelation_modelId(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "labelFieldName":
-			out.Values[i] = ec._FieldEnumRelation_labelFieldName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "sourceFieldName":
-			out.Values[i] = ec._FieldEnumRelation_sourceFieldName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "enumName":
-			out.Values[i] = ec._FieldEnumRelation_enumName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "orgName":
-			out.Values[i] = ec._FieldEnumRelation_orgName(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "projectSlug":
-			out.Values[i] = ec._FieldEnumRelation_projectSlug(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "createdAt":
-			out.Values[i] = ec._FieldEnumRelation_createdAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "updatedAt":
-			out.Values[i] = ec._FieldEnumRelation_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var fieldEnumSourceConflictImplementors = []string{"FieldEnumSourceConflict", "Error", "CreateFieldEnumRelationError"}
-
-func (ec *executionContext) _FieldEnumSourceConflict(ctx context.Context, sel ast.SelectionSet, obj *FieldEnumSourceConflict) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, fieldEnumSourceConflictImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("FieldEnumSourceConflict")
-		case "message":
-			out.Values[i] = ec._FieldEnumSourceConflict_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "code":
-			out.Values[i] = ec._FieldEnumSourceConflict_code(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._FieldEnumSourceConflict_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -20742,7 +19442,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "CreateFieldEnumRelationError", "DeleteFieldEnumRelationError", "GetModelError", "CreateModelError", "UpdateModelError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -21410,20 +20110,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_undeprecateField(ctx, field)
 			})
-		case "createFieldEnumRelation":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_createFieldEnumRelation(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "deleteFieldEnumRelation":
-			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
-				return ec._Mutation_deleteFieldEnumRelation(ctx, field)
-			})
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		case "createLogicalForeignKey":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createLogicalForeignKey(ctx, field)
@@ -21856,28 +20542,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_fields(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "fieldEnumRelations":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_fieldEnumRelations(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -23211,25 +21875,6 @@ func (ec *executionContext) marshalNCreateEnumPayload2ᚖmodelcraftᚋinternal�
 	return ec._CreateEnumPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCreateFieldEnumRelationInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationInput(ctx context.Context, v any) (CreateFieldEnumRelationInput, error) {
-	res, err := ec.unmarshalInputCreateFieldEnumRelationInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNCreateFieldEnumRelationPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationPayload(ctx context.Context, sel ast.SelectionSet, v CreateFieldEnumRelationPayload) graphql.Marshaler {
-	return ec._CreateFieldEnumRelationPayload(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNCreateFieldEnumRelationPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationPayload(ctx context.Context, sel ast.SelectionSet, v *CreateFieldEnumRelationPayload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._CreateFieldEnumRelationPayload(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNCreateGroupInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateGroupInput(ctx context.Context, v any) (CreateGroupInput, error) {
 	res, err := ec.unmarshalInputCreateGroupInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -23421,20 +22066,6 @@ func (ec *executionContext) marshalNDeleteEnumPayload2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._DeleteEnumPayload(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNDeleteFieldEnumRelationPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteFieldEnumRelationPayload(ctx context.Context, sel ast.SelectionSet, v DeleteFieldEnumRelationPayload) graphql.Marshaler {
-	return ec._DeleteFieldEnumRelationPayload(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNDeleteFieldEnumRelationPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteFieldEnumRelationPayload(ctx context.Context, sel ast.SelectionSet, v *DeleteFieldEnumRelationPayload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._DeleteFieldEnumRelationPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNDeleteGroupPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteGroupPayload(ctx context.Context, sel ast.SelectionSet, v DeleteGroupPayload) graphql.Marshaler {
@@ -23743,60 +22374,6 @@ func (ec *executionContext) unmarshalNFieldConflictAspect2modelcraftᚋinternal�
 
 func (ec *executionContext) marshalNFieldConflictAspect2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldConflictAspect(ctx context.Context, sel ast.SelectionSet, v FieldConflictAspect) graphql.Marshaler {
 	return v
-}
-
-func (ec *executionContext) marshalNFieldEnumRelation2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldEnumRelationᚄ(ctx context.Context, sel ast.SelectionSet, v []*FieldEnumRelation) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNFieldEnumRelation2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldEnumRelation(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNFieldEnumRelation2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldEnumRelation(ctx context.Context, sel ast.SelectionSet, v *FieldEnumRelation) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._FieldEnumRelation(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNFormatType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFormatType(ctx context.Context, v any) (FormatType, error) {
@@ -24884,13 +23461,6 @@ func (ec *executionContext) marshalOCreateEnumError2modelcraftᚋinternalᚋinte
 	return ec._CreateEnumError(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOCreateFieldEnumRelationError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateFieldEnumRelationError(ctx context.Context, sel ast.SelectionSet, v CreateFieldEnumRelationError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._CreateFieldEnumRelationError(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOCreateGroupError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐCreateGroupError(ctx context.Context, sel ast.SelectionSet, v CreateGroupError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -24957,13 +23527,6 @@ func (ec *executionContext) marshalODeleteEnumError2modelcraftᚋinternalᚋinte
 	return ec._DeleteEnumError(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalODeleteFieldEnumRelationError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteFieldEnumRelationError(ctx context.Context, sel ast.SelectionSet, v DeleteFieldEnumRelationError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DeleteFieldEnumRelationError(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalODeleteGroupError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteGroupError(ctx context.Context, sel ast.SelectionSet, v DeleteGroupError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -25001,13 +23564,6 @@ func (ec *executionContext) unmarshalOEnumOptionInput2ᚕᚖmodelcraftᚋinterna
 		}
 	}
 	return res, nil
-}
-
-func (ec *executionContext) marshalOFieldEnumRelation2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFieldEnumRelation(ctx context.Context, sel ast.SelectionSet, v *FieldEnumRelation) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._FieldEnumRelation(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
