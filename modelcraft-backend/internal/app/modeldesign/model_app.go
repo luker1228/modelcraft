@@ -31,11 +31,9 @@ type ModelDesignAppService struct {
 	txManager        repository.TxManager
 	enumAssocRepo    modeldesign.FieldEnumAssociationRepository
 	enumRepo         modeldesign.EnumRepository
-	fieldEnumRelRepo modeldesign.FieldEnumRelationRepository
 
 	// Repository factory functions for transaction-bound repository creation
-	modelRepoFactory        func(q dbgen.Querier) modeldesign.ModelRepository
-	fieldEnumRelRepoFactory func(q dbgen.Querier) modeldesign.FieldEnumRelationRepository
+	modelRepoFactory func(q dbgen.Querier) modeldesign.ModelRepository
 }
 
 // NewModelDesignAppService 创建模型设计应用服务实例
@@ -46,12 +44,11 @@ func NewModelDesignAppService(
 	txManager repository.TxManager,
 ) *ModelDesignAppService {
 	return &ModelDesignAppService{
-		txManager:               txManager,
-		deployRepo:              deployRepo,
-		modelRepo:               modelRepo,
-		clusterRepo:             clusterRepo,
-		modelRepoFactory:        repository.NewSqlModelDesignRepository,
-		fieldEnumRelRepoFactory: repository.NewSqlFieldEnumRelationRepository,
+		txManager:        txManager,
+		deployRepo:       deployRepo,
+		modelRepo:        modelRepo,
+		clusterRepo:      clusterRepo,
+		modelRepoFactory: repository.NewSqlModelDesignRepository,
 	}
 }
 
@@ -78,14 +75,6 @@ func (s *ModelDesignAppService) WithEnumRepo(
 	repo modeldesign.EnumRepository,
 ) *ModelDesignAppService {
 	s.enumRepo = repo
-	return s
-}
-
-// WithFieldEnumRelationRepo sets the field enum relation repository dependency.
-func (s *ModelDesignAppService) WithFieldEnumRelationRepo(
-	repo modeldesign.FieldEnumRelationRepository,
-) *ModelDesignAppService {
-	s.fieldEnumRelRepo = repo
 	return s
 }
 
@@ -415,13 +404,10 @@ func (s *ModelDesignAppService) AddFieldSync(ctx context.Context, cmd AddFieldCo
 
 	var physicFields []*modeldesign.FieldDefinition
 	var relationFields []*modeldesign.FieldDefinition
-	var virtualFields []*modeldesign.FieldDefinition
 	for _, field := range toAddFields {
 		switch {
 		case field.IsRelationField():
 			relationFields = append(relationFields, field)
-		case field.IsEnumLabelField():
-			virtualFields = append(virtualFields, field)
 		default:
 			physicFields = append(physicFields, field)
 		}
@@ -433,11 +419,6 @@ func (s *ModelDesignAppService) AddFieldSync(ctx context.Context, cmd AddFieldCo
 	}
 	// 添加 RELATION 格式字段（新方式：通过 relate_fk_id 关联逻辑外键）
 	err = s.addRelationFields(ctx, orgName, model, relationFields)
-	if err != nil {
-		return err
-	}
-	// 添加虚拟字段（枚举标签字段）- 只保存到平台DB，不部署到客户DB
-	err = s.addVirtualFields(ctx, orgName, model, virtualFields)
 	if err != nil {
 		return err
 	}
@@ -577,115 +558,6 @@ func (s *ModelDesignAppService) inferEnumFieldIsArray(
 		field.IsArray = enumDef.IsMultiSelect
 	}
 
-	return nil
-}
-
-// addVirtualFields 添加虚拟字段（如枚举标签字段）
-// 虚拟字段只保存到平台DB，不部署到客户DB
-func (s *ModelDesignAppService) addVirtualFields(
-	ctx context.Context,
-	orgName string,
-	model *modeldesign.DataModel,
-	fieldEntitys []*modeldesign.FieldDefinition,
-) error {
-	if len(fieldEntitys) == 0 {
-		return nil
-	}
-	log := logfacade.GetLogger(ctx)
-	log.Infof(ctx, "add virtual fields: %s", bizutils.MarshalToStringIgnoreErr(fieldEntitys))
-	fieldService := modeldesign.NewFieldService()
-
-	for _, field := range fieldEntitys {
-		// 验证字段
-		if err := field.Validate(); err != nil {
-			return err
-		}
-
-		if field.IsEnumLabelField() {
-			if err := s.processEnumLabelField(ctx, model, field, fieldService); err != nil {
-				return err
-			}
-		}
-	}
-
-	// 保存字段到平台DB（直接标记为已部署，因为不需要部署到客户DB）
-	if err := s.assignDisplayOrders(ctx, model.ID, fieldEntitys); err != nil {
-		return err
-	}
-	if err := s.modelRepo.AddFields(ctx, orgName, fieldEntitys); err != nil {
-		return err
-	}
-
-	// 更新字段状态为已部署（虽然不部署到客户DB，但需要在平台DB中标记为可用）
-	updateReq := modeldesign.UpdateFieldsStatusRequest{
-		ModelId: model.ID,
-		Name:    fieldService.GetNamesFromFields(fieldEntitys),
-		Status:  modeldesign.FieldStatusDeploySuccess,
-	}
-	if err := s.modelRepo.UpdateFieldsStatus(ctx, updateReq); err != nil {
-		return fmt.Errorf("更新虚拟字段状态失败: %w", err)
-	}
-
-	log.Infof(ctx, "Successfully added virtual fields to model %s", model.ModelName)
-	return nil
-}
-
-// processEnumLabelField 校验并填充 ENUM_LABEL 格式虚拟字段的元数据。
-func (s *ModelDesignAppService) processEnumLabelField(
-	ctx context.Context,
-	model *modeldesign.DataModel,
-	field *modeldesign.FieldDefinition,
-	fieldService *modeldesign.FieldService,
-) error {
-	if field.EnumRelationID == nil || *field.EnumRelationID == "" {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
-			"enumRelationId is required when format=ENUM_LABEL")
-	}
-	if s.fieldEnumRelRepo == nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError,
-			"field enum relation repository is not configured")
-	}
-
-	relation, err := s.fieldEnumRelRepo.FindByID(ctx, model.OrgName, *field.EnumRelationID)
-	if err != nil {
-		if shared.IsNotFoundError(err) {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "enumRelationId is invalid")
-		}
-		return bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if relation == nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "enumRelationId is invalid")
-	}
-	if relation.ModelID != model.ID {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
-			"enumRelationId does not belong to current model")
-	}
-
-	// 一致性校验：ENUM_LABEL 字段名必须与 relation.LabelFieldName 匹配
-	if field.Name != relation.LabelFieldName {
-		errMsg := fmt.Sprintf(
-			"field name '%s' does not match relation labelFieldName '%s'",
-			field.Name, relation.LabelFieldName,
-		)
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, errMsg)
-	}
-
-	sourceField, err := s.modelRepo.GetFieldByModelID(ctx, model.ID, relation.SourceFieldName)
-	if err != nil {
-		if shared.IsNotFoundError(err) {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "enum relation source field not found")
-		}
-		return err
-	}
-	if err := fieldService.ValidateFieldEnumRelationSource(sourceField, relation); err != nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, err.Error())
-	}
-
-	// 将 sourceFieldName 写入 metadata，供 runtime 解析使用
-	if field.Metadata == nil {
-		field.Metadata = make(map[string]any)
-	}
-	field.Metadata["sourceFieldName"] = relation.SourceFieldName
 	return nil
 }
 
@@ -859,26 +731,6 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 		return bizerrors.Errorf("cannot remove field '%s': it is configured as displayField", fieldName)
 	}
 
-	// ENUM source 字段被 FieldEnumRelation 引用时禁止删除
-	if field.IsEnumField() && s.fieldEnumRelRepo != nil {
-		relationCount, err := s.fieldEnumRelRepo.CountBySourceField(ctx, dataModel.OrgName, modelID, fieldName)
-		if err != nil {
-			return bizerrors.ConvertRepositoryError(ctx, err)
-		}
-		if relationCount > 0 {
-			return ErrFieldReferenceInUse
-		}
-	}
-
-	// Case 0: ENUM_LABEL 虚拟字段——删除字段时联动删除关联的 FieldEnumRelation
-	if field.IsEnumLabelField() {
-		if err := s.removeEnumLabelFieldWithRelation(ctx, dataModel.OrgName, modelID, field); err != nil {
-			return err
-		}
-		logger.Infof(ctx, "成功删除 ENUM_LABEL 字段及关联 relation: modelID=%s, fieldName=%s", modelID, fieldName)
-		return nil
-	}
-
 	// Case 1: RELATION 格式字段（relate_fk_id 字段）——直接删除，无需物理部署
 	if field.IsRelationField() {
 		deleteReq := modeldesign.DeleteFieldRequest{
@@ -943,50 +795,6 @@ func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, 
 		}
 	}
 	return nil
-}
-
-// removeEnumLabelFieldWithRelation 删除 ENUM_LABEL 字段并联动删除关联的 FieldEnumRelation。
-// 使用事务保证原子性：先删除字段，再删除 relation。若 relation 不存在则忽略（幂等）。
-func (s *ModelDesignAppService) removeEnumLabelFieldWithRelation(
-	ctx context.Context,
-	orgName, modelID string,
-	field *modeldesign.FieldDefinition,
-) error {
-	// 无 relation ID 时无需事务，直接删除字段
-	if field.EnumRelationID == nil || *field.EnumRelationID == "" {
-		deleteReq := modeldesign.DeleteFieldRequest{
-			ModelId: modelID,
-			Name:    []string{field.Name},
-		}
-		if err := s.modelRepo.BulkDeleteFields(ctx, deleteReq); err != nil {
-			return bizerrors.Wrapf(err, "failed to delete ENUM_LABEL field %s", field.Name)
-		}
-		return nil
-	}
-
-	// 有 relation ID 时使用事务保证原子性
-	return s.txManager.WithTx(ctx, func(txCtx context.Context, q dbgen.Querier) error {
-		txModelRepo := s.modelRepoFactory(q)
-		txFieldEnumRelRepo := s.fieldEnumRelRepoFactory(q)
-
-		// 删除字段记录
-		deleteReq := modeldesign.DeleteFieldRequest{
-			ModelId: modelID,
-			Name:    []string{field.Name},
-		}
-		if err := txModelRepo.BulkDeleteFields(txCtx, deleteReq); err != nil {
-			return bizerrors.Wrapf(err, "failed to delete ENUM_LABEL field %s", field.Name)
-		}
-
-		// 联动删除 FieldEnumRelation（忽略不存在的情况）
-		if err := txFieldEnumRelRepo.Delete(txCtx, orgName, *field.EnumRelationID); err != nil {
-			if !shared.IsNotFoundError(err) && !shared.IsRepoError(err, shared.ErrTypeNoRowsAffected) {
-				return bizerrors.Wrapf(err, "failed to delete FieldEnumRelation %s", *field.EnumRelationID)
-			}
-		}
-
-		return nil
-	})
 }
 
 // SyncModelSchemaResult 同步模型Schema结果
@@ -1175,190 +983,6 @@ func (s *ModelDesignAppService) GetFieldsByModelID(
 		return nil, err
 	}
 	return fields, nil
-}
-
-// CreateFieldEnumRelation 创建字段枚举关联。
-func (s *ModelDesignAppService) CreateFieldEnumRelation(
-	ctx context.Context,
-	cmd CreateFieldEnumRelationCommand,
-) (*modeldesign.FieldEnumRelation, error) {
-	if s.fieldEnumRelRepo == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError,
-			"field enum relation repository is not configured")
-	}
-	if cmd.ModelID == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "modelId is required")
-	}
-	if cmd.LabelFieldName == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "labelFieldName is required")
-	}
-	if cmd.SourceFieldName == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "sourceFieldName is required")
-	}
-	if cmd.EnumName == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "enumName is required")
-	}
-
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "orgName is required")
-	}
-
-	model, err := s.modelRepo.GetByID(ctx, cmd.ModelID, modeldesign.NewModelQueryOptions().WithFields())
-	if err != nil {
-		return nil, err
-	}
-	if model == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
-	}
-	if model.OrgName != orgName {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
-	}
-
-	sourceField := model.GetField(cmd.SourceFieldName)
-	if sourceField == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "source field not found")
-	}
-	if sourceField.Type == nil || sourceField.Type.Format != modeldesign.FormatEnum {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "source field format must be ENUM")
-	}
-	if sourceField.EnumName == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "source enum field must have enumName")
-	}
-	if sourceField.EnumName != cmd.EnumName {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid,
-			"enumName must equal source field enumName")
-	}
-
-	if s.enumRepo != nil {
-		enumDef, enumErr := s.enumRepo.FindByName(model.OrgName, model.ProjectSlug, cmd.EnumName)
-		if enumErr != nil {
-			return nil, enumErr
-		}
-		if enumDef == nil {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "enumName is invalid")
-		}
-	}
-
-	relationCount, err := s.fieldEnumRelRepo.CountBySourceField(ctx, model.OrgName, cmd.ModelID, cmd.SourceFieldName)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if relationCount > 0 {
-		return nil, ErrFieldEnumSourceConflict
-	}
-
-	relationID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return nil, bizerrors.Wrapf(err, "failed to generate field enum relation id")
-	}
-
-	now := time.Now()
-	relation := &modeldesign.FieldEnumRelation{
-		ID:              relationID,
-		ModelID:         cmd.ModelID,
-		LabelFieldName:  cmd.LabelFieldName,
-		SourceFieldName: cmd.SourceFieldName,
-		ProjectScope: project.ProjectScope{
-			OrgName:     model.OrgName,
-			ProjectSlug: model.ProjectSlug,
-		},
-		EnumName:  cmd.EnumName,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
-	if err := relation.Validate(); err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, err.Error())
-	}
-
-	if err := s.fieldEnumRelRepo.Create(ctx, relation); err != nil {
-		if shared.IsDuplicateKeyError(err) || shared.IsRepoError(err, shared.ErrTypeConstraint) {
-			return nil, ErrFieldEnumSourceConflict
-		}
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	return relation, nil
-}
-
-// DeleteFieldEnumRelation 删除字段枚举关联。
-// 注意：删除前会检查是否有 ENUM_LABEL 字段引用此 relation，若有则拒绝删除。
-func (s *ModelDesignAppService) DeleteFieldEnumRelation(
-	ctx context.Context,
-	cmd DeleteFieldEnumRelationCommand,
-) error {
-	if s.fieldEnumRelRepo == nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError,
-			"field enum relation repository is not configured")
-	}
-	if cmd.ID == "" {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "id is required")
-	}
-
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "orgName is required")
-	}
-
-	relation, err := s.fieldEnumRelRepo.FindByID(ctx, orgName, cmd.ID)
-	if err != nil {
-		if shared.IsNotFoundError(err) {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "field enum relation not found")
-		}
-		return bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if relation == nil {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "field enum relation not found")
-	}
-
-	// 检查是否有 ENUM_LABEL 字段通过 enum_relation_id 引用此 relation
-	// 若有则拒绝删除，避免产生悬挂引用
-	labelField, err := s.modelRepo.GetFieldByModelID(ctx, relation.ModelID, relation.LabelFieldName)
-	if err != nil && !shared.IsNotFoundError(err) {
-		return bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	isRefByLabelField := labelField != nil && labelField.IsEnumLabelField() &&
-		labelField.EnumRelationID != nil && *labelField.EnumRelationID == cmd.ID
-	if isRefByLabelField {
-		errMsg := fmt.Sprintf(
-			"cannot delete field enum relation: still referenced by ENUM_LABEL field '%s'",
-			relation.LabelFieldName,
-		)
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, errMsg)
-	}
-
-	if err := s.fieldEnumRelRepo.Delete(ctx, orgName, cmd.ID); err != nil {
-		if shared.IsNotFoundError(err) {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "field enum relation not found")
-		}
-		return bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	return nil
-}
-
-// ListFieldEnumRelations 查询模型字段枚举关联。
-func (s *ModelDesignAppService) ListFieldEnumRelations(
-	ctx context.Context,
-	cmd ListFieldEnumRelationsCommand,
-) ([]*modeldesign.FieldEnumRelation, error) {
-	if s.fieldEnumRelRepo == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError,
-			"field enum relation repository is not configured")
-	}
-	if cmd.ModelID == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "modelId is required")
-	}
-
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "orgName is required")
-	}
-
-	relations, err := s.fieldEnumRelRepo.ListByModelID(ctx, orgName, cmd.ModelID)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	return relations, nil
 }
 
 // CreateModelFromSchema 从JSON Schema创建模型

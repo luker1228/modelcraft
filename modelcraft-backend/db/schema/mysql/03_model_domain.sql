@@ -19,7 +19,7 @@ CREATE TABLE IF NOT EXISTS `models` (
   `database_name` VARCHAR(64) NOT NULL COMMENT '数据库名称',
 
   -- 运行时配置字段
-  `display_field` VARCHAR(64) NULL COMMENT '用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）',
+  `display_field` VARCHAR(64) NULL COMMENT '用于 runtime _displayName 解析的字段名（必须是模型中存在且可字符串化的字段）',
 
   -- 版本和状态字段
   `version` BIGINT NULL DEFAULT 1 COMMENT '数据版本号',
@@ -170,32 +170,6 @@ CREATE TABLE IF NOT EXISTS `model_enums` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型枚举定义表';
 
 
--- field_enum_relations 表 SQL 定义
--- ENUM_LABEL 字段通过该表关联 ENUM 源字段与枚举定义
--- 注意：此表必须在 field_definitions 之前创建，因为 field_definitions.enum_relation_id 引用此表
-
-CREATE TABLE IF NOT EXISTS `field_enum_relations` (
-  `id` VARCHAR(36) NOT NULL COMMENT '关联唯一标识',
-  `model_id` VARCHAR(36) NOT NULL COMMENT '所属模型ID',
-  `label_field_name` VARCHAR(64) NOT NULL COMMENT '标签字段名称（ENUM_LABEL）',
-  `source_field_name` VARCHAR(64) NOT NULL COMMENT '源字段名称（ENUM）',
-  `org_name` VARCHAR(36) NOT NULL COMMENT '所属组织名称',
-  `project_slug` VARCHAR(64) NOT NULL COMMENT '所属项目标识符',
-  `enum_name` VARCHAR(64) NOT NULL COMMENT '关联的枚举名称',
-  `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-  `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_field_enum_relations_source` (`model_id`, `source_field_name`) COMMENT '同一模型下 source 字段唯一',
-  KEY `idx_field_enum_relations_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
-  KEY `idx_field_enum_relations_model` (`model_id`) COMMENT '模型查询索引',
-  KEY `idx_field_enum_relations_enum` (`org_name`, `project_slug`, `enum_name`) COMMENT '枚举查询索引',
-
-  CONSTRAINT `fk_field_enum_relations_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE
-
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='字段枚举标签关联表';
-
-
 -- field_definitions 表 SQL 定义
 -- 模型字段定义表
 
@@ -214,7 +188,6 @@ CREATE TABLE IF NOT EXISTS `field_definitions` (
   
   -- 关系关联字段
   `enum_name` VARCHAR(64) NULL COMMENT '关联的枚举名称（format=ENUM）',
-  `enum_relation_id` VARCHAR(36) NULL COMMENT '字段枚举关联ID（format=ENUM_LABEL）',
 
   -- 逻辑外键关联字段
   `belongs_to_fk_id` VARCHAR(36) NULL COMMENT '所属逻辑外键ID（FK列字段使用）',
@@ -250,11 +223,9 @@ CREATE TABLE IF NOT EXISTS `field_definitions` (
   -- 索引：多租户查询优化（与其他表保持一致）
   INDEX `idx_field_definitions_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
   INDEX `idx_field_definitions_model` (`org_name`, `project_slug`, `model_name`) COMMENT '模型查询索引',
-  INDEX `idx_field_definitions_enum_relation_id` (`enum_relation_id`) COMMENT '枚举关联查询索引',
   
   -- 外键约束
-  CONSTRAINT `fk_field_definitions_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_field_definitions_enum_relation` FOREIGN KEY (`enum_relation_id`) REFERENCES `field_enum_relations` (`id`) ON DELETE SET NULL
+  CONSTRAINT `fk_field_definitions_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE
   
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型字段定义表';
 

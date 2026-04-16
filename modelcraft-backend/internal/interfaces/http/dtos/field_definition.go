@@ -62,6 +62,5 @@ type FieldDefinitionDTO struct {
 	ValidationConfig *ValidationConfigDTO `json:"validationConfig,omitempty"` // 校验属性配置
 	RelationConfig   *RelationConfigDTO   `json:"relationConfig,omitempty"`   // 关联关系配置（保留向后兼容）
 	RelateEnumName   *string              `json:"relateEnumName,omitempty"`   // format=ENUM 时必填
-	EnumRelationID   *string              `json:"enumRelationId,omitempty"`   // format=ENUM_LABEL 时必填
 	RelateFKID       *string              `json:"relateFkId,omitempty"`       // RELATION 格式字段引用的逻辑外键 ID
 }

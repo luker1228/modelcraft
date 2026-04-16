@@ -260,12 +260,12 @@ func (s *DeploymentImpl) DeployModelToAddFields(
 		return err
 	}
 
-	// 过滤掉已存在的列和虚拟字段（枚举标签字段）
+	// 过滤掉已存在的列和关系字段
 	fieldsToAdd := make([]*modeldesign.FieldDefinition, 0, len(addFields))
 	for _, field := range addFields {
-		// 跳过虚拟字段（枚举标签字段）- 不需要部署到客户DB
-		if field.IsEnumLabelField() {
-			logger.Infof(ctx, "跳过虚拟字段 %s（枚举标签字段）", field.Name)
+		// 跳过关系字段 - 不需要部署到客户DB
+		if field.IsRelationField() {
+			logger.Infof(ctx, "跳过关系字段 %s", field.Name)
 			continue
 		}
 		if existingColumns[field.Name] {

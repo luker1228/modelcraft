@@ -3,9 +3,6 @@
 import React from 'react'
 import {
   createEnumField,
-  createEnumLabelField,
-  createFieldEnumRelation,
-  listFieldEnumRelations,
   queryModelEnumContext,
   updateFieldMeta,
 } from '@bff/model-enum/public'
@@ -14,7 +11,6 @@ import type { RawGraphQLErrorLike } from '@/shared/errors/model-enum-error-mappe
 import { mapModelEnumError } from '@/shared/errors/model-enum-error-mapper'
 import type {
   CreateEnumFieldFormValues,
-  CreateEnumLabelFieldFormValues,
   EnumRelationOption,
   EnumSourceOption,
   ModelEnumDomainError,
@@ -108,18 +104,14 @@ export function useModelEnumContext(params: UseModelEnumContextParams): UseModel
   const [error, setError] = React.useState<ModelEnumDomainError | null>(null)
 
   const runContextRequest = React.useCallback(async (): Promise<UseModelEnumContextState> => {
-    const [contextResult, relationResult] = await Promise.all([
-      queryModelEnumContext({ orgName, projectSlug, modelId }, projectClient),
-      listFieldEnumRelations({ orgName, projectSlug, modelId }),
-    ])
+    const contextResult = await queryModelEnumContext({ orgName, projectSlug, modelId }, projectClient)
 
     const contextError = normalizeDomainError(contextResult.error)
-    const relationError = normalizeDomainError(relationResult.error)
 
     return {
       sourceOptions: contextResult.enumSources,
-      relationOptions: relationError ? contextResult.relations : relationResult.relations,
-      error: contextError ?? relationError,
+      relationOptions: contextResult.relations,
+      error: contextError,
     }
   }, [modelId, orgName, projectSlug, projectClient])
 
@@ -233,64 +225,6 @@ export function useCreateEnumField(params: UseModelEnumContextParams): UseCreate
   }
 }
 
-export interface UseCreateEnumLabelFieldReturn {
-  mutate: (values: CreateEnumLabelFieldFormValues) => Promise<void>
-  loading: boolean
-  error: ModelEnumDomainError | null
-}
-
-export function useCreateEnumLabelField(params: UseModelEnumContextParams): UseCreateEnumLabelFieldReturn {
-  const { orgName, projectSlug, modelId } = params
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<ModelEnumDomainError | null>(null)
-
-  const mutate = React.useCallback(
-    async (values: CreateEnumLabelFieldFormValues) => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const enumRelationID = values.enumRelationId?.trim()
-        if (!enumRelationID) {
-          setError({
-            type: 'InvalidInput',
-            message: '创建 ENUM_LABEL 前必须先创建 relation。',
-          })
-          return
-        }
-
-        const actionError = await runModelEnumAction(
-          () =>
-            createEnumLabelField({
-              orgName,
-              projectSlug,
-              modelId,
-              name: values.name,
-              title: values.title,
-              description: values.description,
-              sourceFieldName: values.sourceFieldName,
-              enumRelationId: enumRelationID,
-            }),
-          '创建 ENUM_LABEL 字段失败。',
-        )
-
-        setError(actionError)
-      } catch (mutationError) {
-        setError(normalizeUnknownError(mutationError, '创建 ENUM_LABEL 字段失败，请稍后重试。'))
-      } finally {
-        setLoading(false)
-      }
-    },
-    [modelId, orgName, projectSlug],
-  )
-
-  return {
-    mutate,
-    loading,
-    error,
-  }
-}
-
 export interface UseUpdateFieldMetaReturn {
   mutate: (fieldName: string, values: UpdateFieldMetaFormValues) => Promise<void>
   loading: boolean
@@ -325,55 +259,6 @@ export function useUpdateFieldMeta(params: UseModelEnumContextParams): UseUpdate
         setError(actionError)
       } catch (mutationError) {
         setError(normalizeUnknownError(mutationError, '更新字段元信息失败，请稍后重试。'))
-      } finally {
-        setLoading(false)
-      }
-    },
-    [modelId, orgName, projectSlug],
-  )
-
-  return {
-    mutate,
-    loading,
-    error,
-  }
-}
-
-export interface UseCreateFieldEnumRelationReturn {
-  mutate: (sourceFieldName: string, enumName: string, labelFieldName: string) => Promise<void>
-  loading: boolean
-  error: ModelEnumDomainError | null
-}
-
-export function useCreateFieldEnumRelation(
-  params: UseModelEnumContextParams,
-): UseCreateFieldEnumRelationReturn {
-  const { orgName, projectSlug, modelId } = params
-  const [loading, setLoading] = React.useState(false)
-  const [error, setError] = React.useState<ModelEnumDomainError | null>(null)
-
-  const mutate = React.useCallback(
-    async (sourceFieldName: string, enumName: string, labelFieldName: string) => {
-      setLoading(true)
-      setError(null)
-
-      try {
-        const actionError = await runModelEnumAction(
-          () =>
-            createFieldEnumRelation({
-              orgName,
-              projectSlug,
-              modelId,
-              sourceFieldName,
-              enumName,
-              labelFieldName,
-            }),
-          '创建字段枚举关联失败。',
-        )
-
-        setError(actionError)
-      } catch (mutationError) {
-        setError(normalizeUnknownError(mutationError, '创建字段枚举关联失败，请稍后重试。'))
       } finally {
         setLoading(false)
       }

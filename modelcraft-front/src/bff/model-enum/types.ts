@@ -1,5 +1,5 @@
 import type { ValidationConfigInput } from '@/generated/graphql'
-import type { EnumRelationOption, EnumSourceOption, ModelEnumDomainError } from '@/types'
+import type { EnumSourceOption, ModelEnumDomainError } from '@/types'
 
 export interface ModelEnumContextQuery {
   orgName: string
@@ -17,17 +17,6 @@ export interface CreateEnumFieldCommand {
   relateEnumName: string
 }
 
-export interface CreateEnumLabelFieldCommand {
-  orgName: string
-  projectSlug: string
-  modelId: string
-  name: string
-  title: string
-  description?: string
-  sourceFieldName: string
-  enumRelationId: string
-}
-
 export interface UpdateFieldMetaCommand {
   orgName: string
   projectSlug: string
@@ -38,22 +27,8 @@ export interface UpdateFieldMetaCommand {
   validationConfig?: ValidationConfigInput
 }
 
-export interface CreateFieldEnumRelationCommand {
-  orgName: string
-  projectSlug: string
-  modelId: string
-  sourceFieldName: string
-  enumName: string
-  labelFieldName: string
-}
-
 export interface ModelEnumContextResult {
   enumSources: EnumSourceOption[]
-  relations: EnumRelationOption[]
-  error: ModelEnumDomainError | null
-}
-
-export interface FieldEnumRelationListResult {
   relations: EnumRelationOption[]
   error: ModelEnumDomainError | null
 }

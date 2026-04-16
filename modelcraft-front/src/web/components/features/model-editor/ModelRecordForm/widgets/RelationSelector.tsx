@@ -28,7 +28,7 @@ import type { XMC } from '@/types/xmc'
 
 interface RemoteRecord {
   id: string
-  _label?: string | null
+  _displayName?: string | null
 }
 
 interface FindManyQueryData {
@@ -48,10 +48,10 @@ interface FormContext {
 
 /**
  * Format a remote record for display.
- * Protocol: `_label(id)`, or `空(id)` when _label is empty string.
+ * Protocol: `_displayName(id)`, or `空(id)` when _displayName is empty string.
  */
 function formatRecordDisplay(r: RemoteRecord): string {
-  const labelStr = typeof r._label === 'string' ? r._label : ''
+  const labelStr = typeof r._displayName === 'string' ? r._displayName : ''
   if (labelStr === '') {
     return `空(${r.id})`
   }
@@ -60,11 +60,11 @@ function formatRecordDisplay(r: RemoteRecord): string {
 
 /**
  * Format just the trigger label when a value is selected.
- * Shows `_label (id)` — human-readable label first, id as context.
- * Falls back to bare id if no _label.
+ * Shows `_displayName (id)` — human-readable label first, id as context.
+ * Falls back to bare id if no _displayName.
  */
 function formatTriggerLabel(r: RemoteRecord): string {
-  const labelStr = typeof r._label === 'string' ? r._label : ''
+  const labelStr = typeof r._displayName === 'string' ? r._displayName : ''
   if (labelStr === '') return r.id
   return `${labelStr} (${r.id})`
 }
@@ -153,7 +153,7 @@ function useRelationSearch({
     // Build where filter only when there is a search term
     const variables: Record<string, unknown> = { take: 50 }
     if (debouncedSearch.trim()) {
-      variables.where = { _label: { contains: debouncedSearch.trim() } }
+      variables.where = { _displayName: { contains: debouncedSearch.trim() } }
     }
 
     setLoading(true)
@@ -162,7 +162,7 @@ function useRelationSearch({
     ;(async () => {
       try {
         const withLabel = await client.query<FindManyQueryData>({
-          query: buildFindManyQuery(modelName, ['id', '_label']),
+          query: buildFindManyQuery(modelName, ['id', '_displayName']),
           variables,
           fetchPolicy: 'network-only',
         })
@@ -234,7 +234,7 @@ function useCurrentRecord({
     ;(async () => {
       try {
         const withLabel = await client.query<{ findUnique?: { item?: RemoteRecord | null } | null }>({
-          query: buildFindUniqueQuery(modelName, ['id', '_label']),
+          query: buildFindUniqueQuery(modelName, ['id', '_displayName']),
           variables: { where: { id: currentId } },
           fetchPolicy: 'cache-first',
         })
@@ -291,10 +291,10 @@ function useCurrentRecord({
  *
  * Features:
  * - Popover + Command combobox with 300ms debounced server-side search
- * - Each item shows `_label` (primary) + id (secondary, muted)
- * - Falls back to bare id when _label is empty
+ * - Each item shows `_displayName` (primary) + id (secondary, muted)
+ * - Falls back to bare id when _displayName is empty
  * - Supports nullable fields (clear button shown when field is not required)
- * - Shows `_label (id)` on the trigger for already-selected values
+ * - Shows `_displayName (id)` on the trigger for already-selected values
  */
 export function RelationSelector(props: WidgetProps) {
   const { value, onChange, disabled, required, schema, formContext } = extractProps(props)
@@ -315,7 +315,7 @@ export function RelationSelector(props: WidgetProps) {
   const [search, setSearch] = useState('')
   const [openTriggerNonce, setOpenTriggerNonce] = useState(0)
 
-  // Resolve _label for the currently selected id
+  // Resolve _displayName for the currently selected id
   const currentRecord = useCurrentRecord({
     orgName,
     projectSlug,
@@ -454,16 +454,16 @@ export function RelationSelector(props: WidgetProps) {
                       )}
                     />
                     <span className="flex-1 truncate">
-                      {typeof record._label === 'string' && record._label !== '' ? (
+                      {typeof record._displayName === 'string' && record._displayName !== '' ? (
                         <>
-                          <span className="text-foreground">{record._label}</span>
+                          <span className="text-foreground">{record._displayName}</span>
                           <span className="ml-1.5 text-xs text-muted-foreground">
                             {record.id}
                           </span>
                         </>
                       ) : (
                         <span className="text-muted-foreground">{record.id}</span>
-                      )}
+                      )}}
                     </span>
                   </CommandItem>
                 ))}

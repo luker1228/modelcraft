@@ -162,7 +162,7 @@ func (m *DataModel) UpdateDisplayField(displayField *string) {
 // 如果 displayField 为 nil 或空字符串，返回 nil（视为未设置）
 // 如果 displayField 不为空，验证：
 // 1. 该字段必须存在于模型的字段集合中
-// 2. 该字段必须是可字符串化的类型（非 RELATION / ENUM_LABEL 等虚拟字段）
+// 2. 该字段必须是可字符串化的类型（非 RELATION 等虚拟字段）
 func (m *DataModel) ValidateDisplayField() error {
 	if m.DisplayField == nil || *m.DisplayField == "" {
 		return nil

@@ -43,17 +43,3 @@ export const GET_MODEL_ENUM_SOURCE_FIELDS = gql`
     }
   }
 `
-
-export const GET_FIELD_ENUM_RELATIONS = gql`
-  query GetFieldEnumRelations($modelID: ID!) {
-    fieldEnumRelations(modelID: $modelID) {
-      id
-      modelId
-      sourceFieldName
-      labelFieldName
-      enumName
-      createdAt
-      updatedAt
-    }
-  }
-`

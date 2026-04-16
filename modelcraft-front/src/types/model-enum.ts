@@ -2,15 +2,11 @@ import type { ValidationConfigInput } from '@/generated/graphql'
 
 export type ModelEnumErrorType =
   | 'InvalidInput'
-  | 'FieldEnumSourceConflict'
   | 'FieldFormatImmutable'
-  | 'FieldReferenceInUse'
   | 'Unknown'
 
 export type ModelEnumErrorCode =
-  | 'FIELD_ENUM_SOURCE_CONFLICT'
   | 'FIELD_FORMAT_IMMUTABLE'
-  | 'FIELD_REFERENCE_IN_USE'
   | 'UNKNOWN'
 
 export interface ModelEnumDomainError {
@@ -39,14 +35,6 @@ export interface CreateEnumFieldFormValues {
   title: string
   description?: string
   relateEnumName: string
-}
-
-export interface CreateEnumLabelFieldFormValues {
-  name: string
-  title: string
-  description?: string
-  sourceFieldName: string
-  enumRelationId?: string
 }
 
 export interface UpdateFieldMetaFormValues {

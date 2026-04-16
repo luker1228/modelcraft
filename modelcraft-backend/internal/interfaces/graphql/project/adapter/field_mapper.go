@@ -40,8 +40,6 @@ func convertFormatType2Domain(format generated.FormatType) (modeldesign.FormatTy
 		return modeldesign.FormatRelation, nil
 	case generated.FormatTypeEnum:
 		return modeldesign.FormatEnum, nil
-	case generated.FormatTypeEnumLabel:
-		return modeldesign.FormatEnumLabel, nil
 	default:
 		return modeldesign.FormatString, fmt.Errorf("unknown format type: %s", format)
 	}
@@ -91,10 +89,6 @@ func (m *fieldMapper) ConvertAddFieldInputToDTO(input *generated.AddFieldInput) 
 	case modeldesign.FormatEnum, modeldesign.FormatEnumArray:
 		if input.RelateEnumName != nil {
 			dto.RelateEnumName = input.RelateEnumName
-		}
-	case modeldesign.FormatEnumLabel:
-		if input.EnumRelationID != nil {
-			dto.EnumRelationID = input.EnumRelationID
 		}
 	}
 

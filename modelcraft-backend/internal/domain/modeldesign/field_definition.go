@@ -38,8 +38,7 @@ type FieldDefinition struct {
 	Validation     *ValidationConfig `json:"validation"`
 	DisplayOrder   string            `json:"displayOrder"`             // 字典序排序键（lexicographic fractional index）
 	Enum           *EnumDefinition   `json:"enum,omitempty"`           // 关联的枚举详情（查询时加载）
-	EnumName       string            `json:"enumName,omitempty"`       // format=ENUM 时使用
-	EnumRelationID *string           `json:"enumRelationId,omitempty"` // format=ENUM_LABEL 时使用
+	EnumName       string         `json:"enumName,omitempty"` // format=ENUM 时使用
 	BelongsToFKID  *string           `json:"belongsToFkId,omitempty"`  // FK 列字段引用的逻辑外键 ID（model_id 侧）
 	RelateFKID     *string           `json:"relateFkId,omitempty"`     // RELATION 格式字段引用的逻辑外键 ID
 	Metadata       map[string]any    `json:"metadata"`
@@ -251,14 +250,8 @@ func (fd *FieldDefinition) validateEnumField() error {
 		if fd.EnumName == "" {
 			return bizerrors.NewError(bizerrors.ParamInvalid, "relateEnumName is required when format=ENUM")
 		}
-	case FormatEnumLabel:
-		// 容错：ENUM_LABEL 忽略 relateEnumName
-		fd.EnumName = ""
-		if enumRelationID == "" {
-			return bizerrors.NewError(bizerrors.ParamInvalid, "enumRelationId is required when format=ENUM_LABEL")
-		}
 	default:
-		// 容错：非 ENUM/ENUM_LABEL 忽略关联参数
+		// 容错：非 ENUM/ENUM_ARRAY 忽略关联参数
 		fd.EnumName = ""
 		fd.EnumRelationID = nil
 	}
@@ -399,14 +392,6 @@ func (fd *FieldDefinition) IsEnumField() bool {
 	return fd.Type.Format == FormatEnum || fd.Type.Format == FormatEnumArray
 }
 
-// IsEnumLabelField 判断是否为枚举标签虚拟字段
-func (fd *FieldDefinition) IsEnumLabelField() bool {
-	if fd.Type == nil {
-		return false
-	}
-	return fd.Type.Format == FormatEnumLabel
-}
-
 // IsEnumArrayField 判断是否为多选枚举字段（ENUM format with IsArray=true, or legacy ENUM_ARRAY)
 func (fd *FieldDefinition) IsEnumArrayField() bool {
 	if fd.Type == nil {
@@ -422,7 +407,7 @@ func (fd *FieldDefinition) IsEnumArrayField() bool {
 
 // IsStringifiable 判断字段值是否可以转为字符串用于 _label 显示
 // 可字符串化的类型：STRING、UUID、INTEGER、NUMBER、DECIMAL、DATE、DATETIME、TIME、ENUM、BOOLEAN
-// 不可字符串化的类型：RELATION（对象）、ENUM_LABEL（虚拟字段）、ENUM_ARRAY（数组）
+// 不可字符串化的类型：RELATION（对象）、ENUM_ARRAY（数组）
 func (fd *FieldDefinition) IsStringifiable() bool {
 	if fd.Type == nil {
 		return false
@@ -514,8 +499,6 @@ const (
 	FormatEnum      FormatType = "ENUM"       // 单选枚举
 	FormatEnumArray FormatType = "ENUM_ARRAY" // 多选枚举
 
-	// 虚拟字段类型
-	FormatEnumLabel FormatType = "ENUM_LABEL" // 枚举标签虚拟字段
 )
 
 // FieldType 字段类型结构（值对象）
@@ -575,7 +558,7 @@ func (ff *FieldType) UnmarshalJSON(data []byte) error {
 	if fieldType == nil {
 		return bizerrors.Errorf(
 			"unsupported format type: %s (valid types: STRING, UUID, DATE, DATETIME, TIME, "+
-				"NUMBER, INTEGER, DECIMAL, BOOLEAN, RELATION, ENUM, ENUM_ARRAY, ENUM_LABEL)",
+				"NUMBER, INTEGER, DECIMAL, BOOLEAN, RELATION, ENUM, ENUM_ARRAY)",
 			formatStr,
 		)
 	}
@@ -607,9 +590,6 @@ func init() {
 		// 枚举格式
 		FormatEnum:      {SchemaType: SchemaTypeString, Format: FormatEnum, Title: "枚举(单选)"},
 		FormatEnumArray: {SchemaType: SchemaTypeArray, Format: FormatEnumArray, Title: "枚举(多选)"},
-
-		// 虚拟字段格式
-		FormatEnumLabel: {SchemaType: SchemaTypeObject, Format: FormatEnumLabel, Title: "枚举标签(虚拟字段)"},
 	}
 }
 

@@ -112,19 +112,15 @@ func (m *fieldMapper) ConvertFieldDTOsToDomain(
 }
 
 // applyEnumBindingByFormat 应用 model-enum 参数容错矩阵。
-// - ENUM:       仅使用 relateEnumName，忽略 enumRelationId
-// - ENUM_LABEL: 仅使用 enumRelationId，忽略 relateEnumName
-// - 其他类型:    忽略两者
+// - ENUM:       仅使用 relateEnumName
+// - 其他类型:    忽略 enum 绑定参数
 func applyEnumBindingByFormat(target *modeldesign.FieldDefinition, input *dtos.FieldDefinitionDTO) {
 	target.EnumName = ""
-	target.EnumRelationID = nil
 
 	switch input.Format {
 	case modeldesign.FormatEnum, modeldesign.FormatEnumArray:
 		if input.RelateEnumName != nil {
 			target.EnumName = *input.RelateEnumName
 		}
-	case modeldesign.FormatEnumLabel:
-		target.EnumRelationID = input.EnumRelationID
 	}
 }

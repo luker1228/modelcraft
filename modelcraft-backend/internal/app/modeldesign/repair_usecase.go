@@ -159,7 +159,7 @@ func (s *RepairModelUseCase) executeRepair(
 		executedDDL = append(executedDDL, generatedDDL)
 		// When table is created, all fields are added
 		for _, field := range model.Fields {
-			if !field.IsEnumLabelField() && !field.IsRelationField() {
+			if !field.IsRelationField() {
 				fieldsAdded = append(fieldsAdded, field.Name)
 			}
 		}
@@ -199,7 +199,7 @@ func (s *RepairModelUseCase) addMissingFields(
 	fieldsToAdd := make([]*entity.FieldDefinition, 0, len(missingFields))
 	for _, fieldName := range missingFields {
 		field := model.GetField(fieldName)
-		if field != nil && !field.IsEnumLabelField() && !field.IsRelationField() {
+		if field != nil && !field.IsRelationField() {
 			fieldsToAdd = append(fieldsToAdd, field)
 		}
 	}
@@ -270,7 +270,7 @@ func (s *RepairModelUseCase) generateCreateTableDDL(ctx context.Context, model *
 	// Convert all fields to FieldEntity
 	fieldEntities := make([]*ddlfactory.FieldEntity, 0, len(model.Fields))
 	for _, field := range model.Fields {
-		if field.IsEnumLabelField() || field.IsRelationField() {
+		if field.IsRelationField() {
 			continue
 		}
 
@@ -412,9 +412,7 @@ func (s *RepairModelUseCase) findExtraFields(
 	// Build map of expected field names
 	expectedFields := make(map[string]bool)
 	for _, field := range model.Fields {
-		if !field.IsEnumLabelField() {
-			expectedFields[field.Name] = true
-		}
+		expectedFields[field.Name] = true
 	}
 
 	// Get actual table definition

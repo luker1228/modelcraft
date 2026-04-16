@@ -32,7 +32,7 @@ interface OneToManyRelationManagerSectionProps {
 
 interface RelationRecord {
   id?: string | null
-  _label?: string | null
+  _displayName?: string | null
 }
 
 interface OneToManyRelationField {
@@ -46,7 +46,7 @@ interface OneToManyRelationField {
 
 function toDisplayText(record: RelationRecord): string {
   const id = typeof record.id === 'string' ? record.id : ''
-  const label = typeof record._label === 'string' ? record._label : ''
+  const label = typeof record._displayName === 'string' ? record._displayName : ''
   if (label === '' && id !== '') return `空(${id})`
   if (label !== '' && id !== '') return `${label}(${id})`
   if (label !== '') return label
@@ -183,7 +183,7 @@ export function OneToManyRelationManagerSection({
     setManagerError(null)
     try {
       const result = await runtimeClient.query<{ findMany?: { items?: RelationRecord[] } }>({
-        query: buildFindManyQuery(managingField.modelName, ['id', '_label', targetFkField]),
+        query: buildFindManyQuery(managingField.modelName, ['id', '_displayName', targetFkField]),
         variables: {
           where: { [targetFkField]: { equals: recordId } },
           take: 100,

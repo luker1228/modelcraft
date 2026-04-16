@@ -205,7 +205,7 @@ func (s *MySQLSchemaComparisonService) compareModelFields(
 	issues []SchemaIssue,
 ) []SchemaIssue {
 	for _, field := range model.Fields {
-		if field.IsEnumLabelField() {
+		if field.IsRelationField() {
 			continue
 		}
 

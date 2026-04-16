@@ -9,7 +9,7 @@ function toReadableText(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (typeof value === 'object') {
     const record = value as Record<string, unknown>
-    const nested = record._label ?? record.label ?? record.title ?? record.name ?? record.id
+    const nested = record._displayName ?? record.displayName ?? record.title ?? record.name ?? record.id
     if (nested !== undefined && nested !== value) {
       return toReadableText(nested)
     }
@@ -31,14 +31,14 @@ export function shouldShowInForm(prop: SchemaProperty): boolean {
 }
 
 /**
- * Format a relation value according to the `id + _label` protocol.
+ * Format a relation value according to the `id + _displayName` protocol.
  *
- * Display format: `_label(id)`
- * If `_label` is empty string, display: `空(id)`
+ * Display format: `_displayName(id)`
+ * If `_displayName` is empty string, display: `空(id)`
  */
 function formatRelationDisplay(rel: Record<string, unknown>): string {
   const id = toReadableText(rel.id)
-  const labelStr = toReadableText(rel._label)
+  const labelStr = toReadableText(rel._displayName)
 
   if (!id) return ''
 
@@ -53,11 +53,11 @@ function formatRelationDisplay(rel: Record<string, unknown>): string {
  *
  * Protocol:
  *   - RELATION fields (type=object, x-mc.relateFkId or x-mc.belongsToFkId present)
- *     → display format: `_label(id)`, or `空(id)` if _label is empty
+ *     → display format: `_displayName(id)`, or `空(id)` if _displayName is empty
  *   - All other values → convert to string, truncated to 100 chars
  *
  * Note: both RelateFKID and BelongsToFKID produce FormatRelation fields in the
- * backend, which are always type=object in JSON Schema with value { id, _label, ... }.
+ * backend, which are always type=object in JSON Schema with value { id, _displayName, ... }.
  */
 export function renderCellValue(value: unknown, prop: SchemaProperty): string {
   if (value === null || value === undefined) return ''
@@ -93,10 +93,10 @@ export function renderCellValue(value: unknown, prop: SchemaProperty): string {
     return value.map((item) => toReadableText(item)).join(', ').slice(0, 100)
   }
 
-  // Generic object fallback: any object value with id and _label fields is treated as a relation
+  // Generic object fallback: any object value with id and _displayName fields is treated as a relation
   if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
     const rel = value as Record<string, unknown>
-    if (rel.id !== undefined && '_label' in rel) {
+    if (rel.id !== undefined && '_displayName' in rel) {
       return formatRelationDisplay(rel)
     }
     // For other objects, render as JSON

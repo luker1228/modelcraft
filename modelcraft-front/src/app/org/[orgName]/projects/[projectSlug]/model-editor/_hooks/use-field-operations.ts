@@ -1,19 +1,17 @@
 import { useCallback, useMemo, useState } from 'react'
-import { createFieldEnumRelation, queryModelEnumContext } from '@bff/model-enum/public'
+import { queryModelEnumContext } from '@bff/model-enum/public'
 import { useProjectScopedClient } from '@bff/apollo/public'
 import { REMOVE_FIELD } from '@web/graphql/mutations/model'
 import { toast } from 'sonner'
 import { isSystemGeneratedLabelField } from '@/shared/model/system-field'
 import type {
   CreateEnumFieldFormValues,
-  CreateEnumLabelFieldFormValues,
   EnumRelationOption,
   EnumSourceOption,
   ModelEnumDomainError,
   UpdateFieldMetaFormValues,
 } from '@/types'
 import { useCreateEnumFieldPage } from './use-create-enum-field-page'
-import { useCreateEnumLabelFieldPage } from './use-create-enum-label-field-page'
 import { useEditFieldPage } from './use-edit-field-page'
 import type { ModelEditorState } from './use-model-editor-state'
 import type { EditorModelField } from './types'
@@ -24,7 +22,7 @@ interface UseFieldOperationsParams {
   state: ModelEditorState
 }
 
-type FieldPageMode = 'edit' | 'create-enum' | 'create-enum-label'
+type FieldPageMode = 'edit' | 'create-enum'
 
 export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOperationsParams) {
   const projectClient = useProjectScopedClient(projectSlug)
@@ -193,24 +191,6 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     },
   })
 
-  const createEnumLabelFieldPage = useCreateEnumLabelFieldPage({
-    orgName,
-    projectSlug,
-    modelId,
-    onSuccess: (values: CreateEnumLabelFieldFormValues) => {
-      appendFieldToEditorState({
-        name: values.name,
-        title: values.title,
-        description: values.description,
-        format: 'ENUM_LABEL',
-        enumRelationId: values.enumRelationId,
-      })
-      toast.success('ENUM_LABEL 字段创建成功')
-      state.setEditFieldOpen(false)
-      void refreshEnumContext()
-    },
-  })
-
   const editFieldPage = useEditFieldPage({
     orgName,
     projectSlug,
@@ -258,90 +238,9 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     void refreshEnumContext()
   }
 
-  const handleOpenCreateEnumLabelField = () => {
-    setFieldPageMode('create-enum-label')
-    state.setEditingField(null)
-    state.setEditFieldTitle('')
-    state.setEditFieldDescription('')
-    state.setEditFieldOpen(true)
-    createEnumLabelFieldPage.clearError()
-    setContextError(null)
-    void refreshEnumContext()
-  }
-
   const handleCloseFieldPage = () => {
     state.setEditFieldOpen(false)
     setContextError(null)
-  }
-
-  const createEnumRelationForLabelField = async (
-    sourceFieldName: string,
-    labelFieldName: string,
-  ): Promise<string | null> => {
-    if (!modelId) {
-      return null
-    }
-
-    const source = sourceOptions.find((option) => option.fieldName === sourceFieldName)
-    if (!source) {
-      setContextError({
-        type: 'InvalidInput',
-        message: `未找到 source 字段 ${sourceFieldName}。`,
-        suggestion: '请重新选择 source 字段。',
-      })
-      return null
-    }
-
-    try {
-      const relationResult = await createFieldEnumRelation({
-        orgName,
-        projectSlug,
-        modelId,
-        sourceFieldName,
-        enumName: source.enumName,
-        labelFieldName,
-      })
-
-      if (!relationResult.success) {
-        setContextError(relationResult.error)
-        return null
-      }
-
-      const latestContext = await refreshEnumContext()
-      if (!latestContext) {
-        return null
-      }
-
-      const matchedRelation = latestContext.relations.find(
-        (relation) => relation.sourceFieldName === sourceFieldName && relation.labelFieldName === labelFieldName,
-      )
-
-      if (!matchedRelation) {
-        return null
-      }
-      return matchedRelation.id
-    } catch {
-      setContextError({
-        type: 'Unknown',
-        code: 'UNKNOWN',
-        message: '创建 relation 失败，请稍后重试。',
-      })
-      return null
-    }
-  }
-
-  const handleSubmitCreateEnumLabelField = async (values: CreateEnumLabelFieldFormValues) => {
-    const labelFieldName = values.name.trim()
-    const relationId = await createEnumRelationForLabelField(values.sourceFieldName, labelFieldName)
-    if (!relationId) {
-      return
-    }
-
-    await createEnumLabelFieldPage.submit({
-      ...values,
-      name: labelFieldName,
-      enumRelationId: relationId,
-    })
   }
 
   const handleSubmitEditField = async (values: UpdateFieldMetaFormValues) => {
@@ -364,8 +263,6 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     contextError,
     createEnumFieldLoading: createEnumFieldPage.loading,
     createEnumFieldError: createEnumFieldPage.error,
-    createEnumLabelFieldLoading: createEnumLabelFieldPage.loading,
-    createEnumLabelFieldError: createEnumLabelFieldPage.error,
     editFieldLoading: editFieldPage.loading,
     editFieldError: editFieldPage.error,
     handleToggleDeprecate,
@@ -373,9 +270,7 @@ export function useFieldOperations({ orgName, projectSlug, state }: UseFieldOper
     handleOpenEditField,
     handleSaveField,
     handleOpenCreateEnumField,
-    handleOpenCreateEnumLabelField,
     handleCloseFieldPage,
-    handleSubmitCreateEnumLabelField,
     handleSubmitCreateEnumField: createEnumFieldPage.submit,
     handleSubmitEditField,
   }

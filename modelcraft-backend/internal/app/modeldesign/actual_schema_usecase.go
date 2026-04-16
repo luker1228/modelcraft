@@ -48,10 +48,10 @@ func (uc *ActualSchemaQueryUseCase) Query(
 		return &entity.ActualSchemaResult{Status: entity.DbTableClusterUnreachable}, nil
 	}
 
-	// Filter out virtual fields — they have no DB column to query.
+	// Filter out relation fields — they have no DB column to query.
 	var queryFields []*entity.FieldDefinition
 	for _, f := range model.Fields {
-		if !f.IsEnumLabelField() {
+		if !f.IsRelationField() {
 			queryFields = append(queryFields, f)
 		}
 	}

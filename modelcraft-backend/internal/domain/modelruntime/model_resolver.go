@@ -18,8 +18,7 @@ import (
 )
 
 type graphqlEnumConfig struct {
-	enumType      *graphql.Enum
-	enumLabelType *graphql.Object
+	enumType *graphql.Enum
 }
 
 // graphqlModelResolver GraphQL模型解析器实现，用于生成GraphQL Schema并处理查询和变更。
@@ -536,10 +535,6 @@ func (r *graphqlModelResolver) createField(
 	if field.IsEnumField() {
 		return r.createEnumField(field, graphqlField)
 	}
-	// 处理枚举标签虚拟字段
-	if field.IsEnumLabelField() {
-		return r.createEnumLabelField(field, graphqlField)
-	}
 
 	if field.IsRelationField() {
 		return r.createRelationField(ctx, maxDepth, field, relateObjMaps, graphqlField)
@@ -617,82 +612,7 @@ func (r *graphqlModelResolver) createEnumField(field *RuntimeField, graphqlField
 	return graphqlField, nil
 }
 
-// createEnumLabelField 创建枚举标签虚拟字段
-// 枚举标签字段根据 enumRelationId 指向的 source 字段值查找对应枚举选项，返回 code/label/description
-func (r *graphqlModelResolver) createEnumLabelField(field *RuntimeField, graphqlField *graphql.Field,
-) (*graphql.Field, error) {
-	sourceFieldName, err := resolveEnumLabelSourceFieldName(field)
-	if err != nil {
-		return nil, err
-	}
-
-	sourceField, exists := r.model.Fields[sourceFieldName]
-	if !exists {
-		return nil, bizerrors.Errorf("enum label field %s: source field %s not found", field.Name, sourceFieldName)
-	}
-	if !sourceField.IsEnumField() {
-		return nil, bizerrors.Errorf("enum label field %s: source field %s must be enum", field.Name, sourceFieldName)
-	}
-
-	enumType, err := r.getEnumConfig(sourceField)
-	if err != nil {
-		return nil, err
-	}
-	// 确定返回类型：单选枚举返回单个EnumLabel，多选枚举返回EnumLabel数组
-	if sourceField.Type.Format == modeldesign.FormatEnumArray {
-		// ENUM_ARRAY -> 返回数组
-		graphqlField.Type = graphql.NewList(enumType.enumLabelType)
-	} else {
-		// ENUM -> 返回单个对象
-		graphqlField.Type = enumType.enumLabelType
-	}
-
-	// 设置解析器
-	graphqlField.Resolve = r.createEnumLabelResolver(sourceField)
-	return graphqlField, nil
-}
-
-func resolveEnumLabelSourceFieldName(field *RuntimeField) (string, error) {
-	if field.EnumRelationID == nil || *field.EnumRelationID == "" {
-		return "", bizerrors.NewError(
-			bizerrors.ParamInvalid,
-			fmt.Sprintf("enumRelationId is required when format=ENUM_LABEL, field=%s", field.Name),
-		)
-	}
-
-	if field.Metadata == nil {
-		return "", bizerrors.NewError(
-			bizerrors.ParamInvalid,
-			fmt.Sprintf(
-				"enum label field %s missing metadata for enumRelationId=%s",
-				field.Name, *field.EnumRelationID,
-			),
-		)
-	}
-
-	// 兼容多个键名，统一走 enumRelationId 链路解析 source 字段。
-	for _, key := range []string{"enumRelationSourceField", "sourceFieldName", "sourceField"} {
-		raw, exists := field.Metadata[key]
-		if !exists || raw == nil {
-			continue
-		}
-		sourceFieldName, err := cast.ToStringE(raw)
-		if err != nil || sourceFieldName == "" {
-			continue
-		}
-		return sourceFieldName, nil
-	}
-
-	return "", bizerrors.NewError(
-		bizerrors.ParamInvalid,
-		fmt.Sprintf(
-			"cannot resolve source field from enumRelationId=%s for field=%s",
-			*field.EnumRelationID, field.Name,
-		),
-	)
-}
-
-// getEnumLabelType 获取EnumLabel的GraphQL类型
+// getEnumConfig 获取枚举的GraphQL类型配置
 // 使用类型缓存确保每次返回相同的类型
 func (r *graphqlModelResolver) getEnumConfig(field *RuntimeField) (*graphqlEnumConfig, error) {
 	// 检查是否已定义该类型
@@ -723,98 +643,11 @@ func (r *graphqlModelResolver) getEnumConfig(field *RuntimeField) (*graphqlEnumC
 		Values:      enumValueCfgMap,
 	})
 
-	// 创建EnumLabel类型
-	enumLabelType := graphql.NewObject(graphql.ObjectConfig{
-		Name: fmt.Sprintf("%sEnumLabel", enumDefinition.Name),
-		Fields: graphql.Fields{
-			"code": &graphql.Field{
-				Type:        enumType,
-				Description: "枚举值",
-			},
-			"label": &graphql.Field{
-				Type:        graphql.NewNonNull(graphql.String),
-				Description: "枚举显示标签",
-			},
-			"description": &graphql.Field{
-				Type:        graphql.String,
-				Description: "选项描述",
-			},
-		},
-		Description: "枚举标签信息，包含code、label和description",
-	})
-
 	enumModel := &graphqlEnumConfig{
-		enumType:      enumType,
-		enumLabelType: enumLabelType,
+		enumType: enumType,
 	}
 	r.enumConfigMap[field.EnumName] = enumModel
 	return enumModel, nil
-}
-
-// createEnumLabelResolver 创建枚举标签解析器
-func (r *graphqlModelResolver) createEnumLabelResolver(sourceField *RuntimeField) graphql.FieldResolveFn {
-	return func(p graphql.ResolveParams) (interface{}, error) {
-		logger := logfacade.GetLogger(p.Context)
-
-		// 获取父对象记录
-		record, ok := p.Source.(map[string]any)
-		if !ok {
-			logger.Warn(p.Context, "invalid source type for enum label field")
-			return nil, nil
-		}
-
-		// 获取源字段值
-		sourceValue, exists := record[sourceField.Name]
-		if !exists || sourceValue == nil {
-			return nil, nil
-		}
-
-		// 获取关联的枚举定义
-		if sourceField.Enum == nil {
-			logger.Warnf(p.Context, "source field %s has no enum definition", sourceField.Name)
-			return nil, nil
-		}
-
-		enumDef := sourceField.Enum
-
-		// 根据源字段类型处理
-		if sourceField.Type.Format == modeldesign.FormatEnumArray {
-			// ENUM_ARRAY: 返回EnumLabel数组
-			codes, ok := normalizeEnumArrayCodes(sourceValue)
-			if !ok {
-				logger.Warnf(p.Context, "enum array field %s has invalid type: %T", sourceField.Name, sourceValue)
-				return nil, nil
-			}
-
-			result := make([]EnumLabel, 0, len(codes))
-			for _, code := range codes {
-				opt, err := enumDef.GetOptionByCode(code)
-				if err != nil {
-					logger.Warnf(p.Context, "enum option not found: code=%s, enum=%s", code, enumDef.Name)
-					// 跳过不存在的code
-					continue
-				}
-				result = append(result, NewEnumLabel(*opt))
-			}
-			return result, nil
-		}
-
-		// ENUM: 返回单个EnumLabel
-		code, ok := normalizeEnumCode(sourceValue)
-		if !ok {
-			logger.Warnf(p.Context, "enum field %s has invalid type: %T", sourceField.Name, sourceValue)
-			return nil, nil
-		}
-
-		opt, err := enumDef.GetOptionByCode(code)
-		if err != nil {
-			logger.Warnf(p.Context, "enum option not found: code=%s, enum=%s", code, enumDef.Name)
-			return nil, nil
-		}
-
-		result := NewEnumLabel(*opt)
-		return result, nil
-	}
 }
 
 func normalizeEnumArrayCodes(sourceValue any) ([]string, bool) {
@@ -1234,8 +1067,8 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 	}
 	r.injectAutoEnumLabelFields(ctx, model, graphqlfields)
 
-	// 注入 _label 字段（始终返回 String!，根据当前模型的 displayField 解析）
-	graphqlfields[FieldLabel] = r.createLabelField(model.DisplayField)
+	// 注入 _displayName 字段（始终返回 String!，根据当前模型的 displayField 解析）
+	graphqlfields[FieldDisplayName] = r.createDisplayNameField(model.DisplayField)
 
 	modelType := graphql.NewObject(graphql.ObjectConfig{
 		Name:        model.Name + "Query",
@@ -1802,21 +1635,21 @@ func handleRepoErr(ctx context.Context, err error) error {
 	return err
 }
 
-// createLabelField 创建 _label 字段
-// _label 字段用于返回 displayField 指定字段的值（转为字符串）
+// createDisplayNameField 创建 _displayName 字段
+// _displayName 字段用于返回 displayField 指定字段的值（转为字符串）
 // 如果 displayField 未配置或对应值不可用（null/空/对象/数组），返回空字符串 ""
-func (r *graphqlModelResolver) createLabelField(displayField *string) *graphql.Field {
+func (r *graphqlModelResolver) createDisplayNameField(displayField *string) *graphql.Field {
 	return &graphql.Field{
-		Name:        FieldLabel,
+		Name:        FieldDisplayName,
 		Type:        graphql.NewNonNull(graphql.String),
-		Description: "Display label resolved from displayField configuration",
+		Description: "Display name resolved from displayField configuration",
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			logger := logfacade.GetLogger(p.Context)
 
 			// 获取父对象记录
 			record, ok := p.Source.(map[string]any)
 			if !ok {
-				logger.Warnf(p.Context, "_label: invalid source type: %T", p.Source)
+				logger.Warnf(p.Context, "_displayName: invalid source type: %T", p.Source)
 				return "", nil
 			}
 
@@ -1861,7 +1694,7 @@ func (r *graphqlModelResolver) createLabelField(displayField *string) *graphql.F
 	}
 }
 
-// valueToString 将任意值转换为字符串，用于 _label 解析
+// valueToString 将任意值转换为字符串，用于 _displayName 解析
 // 对于非标量类型（对象、数组），返回空字符串
 func valueToString(v any) string {
 	if v == nil {

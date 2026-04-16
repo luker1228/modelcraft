@@ -5,12 +5,12 @@ import { Badge } from '@web/components/ui/badge'
 
 interface RelationRecord {
   id?: string | null
-  _label?: string | null
+  _displayName?: string | null
 }
 
 function toDisplayText(record: RelationRecord): string {
   const id = typeof record.id === 'string' ? record.id : ''
-  const label = typeof record._label === 'string' ? record._label : ''
+  const label = typeof record._displayName === 'string' ? record._displayName : ''
   if (label === '' && id !== '') return `空(${id})`
   if (label !== '' && id !== '') return `${label}(${id})`
   if (label !== '') return label

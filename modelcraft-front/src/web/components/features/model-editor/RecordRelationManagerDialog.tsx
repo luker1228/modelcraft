@@ -51,7 +51,7 @@ interface RecordRelationManagerDialogProps {
 
 interface RelationRecord {
   id?: unknown
-  _label?: unknown
+  _displayName?: unknown
 }
 
 interface OneToManyRelationField {
@@ -71,7 +71,7 @@ function toReadableText(value: unknown): string {
   if (value === null || value === undefined) return ''
   if (typeof value === 'object') {
     const record = value as Record<string, unknown>
-    const nested = record._label ?? record.label ?? record.title ?? record.name ?? record.id
+    const nested = record._displayName ?? record.displayName ?? record.title ?? record.name ?? record.id
     if (nested !== undefined && nested !== value) {
       return toReadableText(nested)
     }
@@ -86,7 +86,7 @@ function toReadableText(value: unknown): string {
 
 function toDisplayText(record: RelationRecord): string {
   const id = toReadableText(record.id)
-  const label = toReadableText(record._label)
+  const label = toReadableText(record._displayName)
   if (label === '' && id !== '') return `空(${id})`
   if (label !== '' && id !== '') return `${label}(${id})`
   if (label !== '') return label
@@ -289,7 +289,7 @@ export function RecordRelationManagerDialog({
 
       const [listResult, countResult] = await Promise.all([
         runtimeClient.query<{ findMany?: { items?: RelationRecord[] } }>({
-          query: buildFindManyQuery(targetModelName, ['id', '_label']),
+          query: buildFindManyQuery(targetModelName, ['id', '_displayName']),
           variables: {
             where,
             take: PAGE_SIZE,
@@ -350,7 +350,7 @@ export function RecordRelationManagerDialog({
       const search = debouncedAttachSearch.trim()
       const variables: Record<string, unknown> = { take: 20 }
       if (search !== '') {
-        variables.where = { _label: { contains: search } }
+        variables.where = { _displayName: { contains: search } }
       }
 
       const result = await runtimeClient.query<{ findMany?: { items?: RelationRecord[] } }>({

@@ -24,7 +24,6 @@ interface EditFieldImmutablePageProps {
   title?: string
   description?: string
   relateEnumName?: string
-  enumRelationId?: string
   loading: boolean
   error: ModelEnumDomainError | null
   onSubmit: (values: UpdateFieldMetaFormValues) => Promise<void>
@@ -37,7 +36,6 @@ export function EditFieldImmutablePage({
   title,
   description,
   relateEnumName,
-  enumRelationId,
   loading,
   error,
   onSubmit,
@@ -125,13 +123,6 @@ export function EditFieldImmutablePage({
             <div className="space-y-1">
               <Label className="text-xs text-muted-foreground">关联枚举</Label>
               <Input value={relateEnumName || '-'} disabled className="bg-background font-mono text-sm" />
-            </div>
-          )}
-
-          {format === 'ENUM_LABEL' && (
-            <div className="space-y-1">
-              <Label className="text-xs text-muted-foreground">关联 relationId</Label>
-              <Input value={enumRelationId || '-'} disabled className="bg-background font-mono text-sm" />
             </div>
           )}
         </div>

@@ -1,5 +1,4 @@
 import type {
-  EnumRelationOption,
   EnumSourceOption,
   ModelEnumDomainError,
   ModelEnumErrorCode,
@@ -7,12 +6,8 @@ import type {
 } from '@/types'
 import type {
   CreateEnumFieldCommand,
-  CreateEnumLabelFieldCommand,
-  CreateFieldEnumRelationCommand,
-  FieldEnumRelationListResult,
   ModelEnumActionResult,
   ModelEnumContextQuery,
-  ModelEnumContextResult,
   UpdateFieldMetaCommand,
 } from './types'
 
@@ -24,8 +19,7 @@ interface FieldMetaSnapshot {
 
 interface MockModelEnumState {
   enumSources: EnumSourceOption[]
-  relations: EnumRelationOption[]
-  fieldFormats: Record<string, 'ENUM' | 'ENUM_LABEL' | 'OTHER'>
+  fieldFormats: Record<string, 'ENUM' | 'OTHER'>
   fieldMeta: Record<string, FieldMetaSnapshot>
 }
 
@@ -79,16 +73,6 @@ function cloneSources(sources: EnumSourceOption[]): EnumSourceOption[] {
   return sources.map((source) => ({ ...source }))
 }
 
-function cloneRelations(relations: EnumRelationOption[]): EnumRelationOption[] {
-  return relations.map((relation) => ({ ...relation }))
-}
-
-function createMockRelationId(sourceFieldName: string): string {
-  const safeSource = sourceFieldName.replace(/\s+/g, '-').toLowerCase()
-  const randomSuffix = Math.random().toString(36).slice(2, 8)
-  return `rel-${safeSource}-${randomSuffix}`
-}
-
 function getOrCreateState(query: ModelEnumContextQuery): MockModelEnumState {
   const key = getStoreKey(query)
   const existed = mockStore.get(key)
@@ -106,7 +90,6 @@ function getOrCreateState(query: ModelEnumContextQuery): MockModelEnumState {
         occupied: false,
       },
     ],
-    relations: [],
     fieldFormats: {
       status: 'ENUM',
     },
@@ -127,27 +110,6 @@ function actionFailed(error: ModelEnumDomainError): ModelEnumActionResult {
 function actionSucceeded(): ModelEnumActionResult {
   return {
     success: true,
-    error: null,
-  }
-}
-
-export async function mockQueryModelEnumContext(
-  query: ModelEnumContextQuery,
-): Promise<ModelEnumContextResult> {
-  const contextError = validateContext(query)
-  if (contextError) {
-    return {
-      enumSources: [],
-      relations: [],
-      error: contextError,
-    }
-  }
-
-  const state = getOrCreateState(query)
-
-  return {
-    enumSources: cloneSources(state.enumSources),
-    relations: cloneRelations(state.relations),
     error: null,
   }
 }
@@ -188,57 +150,6 @@ export async function mockCreateEnumField(command: CreateEnumFieldCommand): Prom
   return actionSucceeded()
 }
 
-export async function mockCreateEnumLabelField(
-  command: CreateEnumLabelFieldCommand,
-): Promise<ModelEnumActionResult> {
-  const contextError = validateContext(command)
-  if (contextError) {
-    return actionFailed(contextError)
-  }
-
-  if (isBlank(command.name) || isBlank(command.title) || isBlank(command.sourceFieldName)) {
-    return actionFailed(fieldInputError('ENUM_LABEL 字段参数不完整。'))
-  }
-
-  if (isBlank(command.enumRelationId)) {
-    return actionFailed(fieldInputError('ENUM_LABEL 字段创建必须传入 enumRelationId。'))
-  }
-
-  const state = getOrCreateState(command)
-  const source = state.enumSources.find((item) => item.fieldName === command.sourceFieldName)
-
-  if (!source) {
-    return actionFailed(fieldInputError(`未找到 source 字段 ${command.sourceFieldName}。`))
-  }
-
-  if (source.occupied) {
-    return actionFailed(
-      createDomainError('FieldEnumSourceConflict', '该 source 已绑定 ENUM_LABEL。', {
-        code: 'FIELD_ENUM_SOURCE_CONFLICT',
-        suggestion: '请更换 source 字段或解绑后重试。',
-      }),
-    )
-  }
-
-  const relation = state.relations.find((item) => item.id === command.enumRelationId)
-  if (!relation) {
-    return actionFailed(fieldInputError(`未找到 enumRelationId=${command.enumRelationId} 对应关系。`))
-  }
-
-  if (relation.sourceFieldName !== command.sourceFieldName) {
-    return actionFailed(fieldInputError('enumRelationId 与 sourceFieldName 不匹配。'))
-  }
-
-  source.occupied = true
-  state.fieldFormats[command.name] = 'ENUM_LABEL'
-  state.fieldMeta[command.name] = {
-    title: command.title,
-    description: command.description,
-  }
-
-  return actionSucceeded()
-}
-
 export async function mockUpdateFieldMeta(command: UpdateFieldMetaCommand): Promise<ModelEnumActionResult> {
   const contextError = validateContext(command)
   if (contextError) {
@@ -262,8 +173,7 @@ export async function mockUpdateFieldMeta(command: UpdateFieldMetaCommand): Prom
   const state = getOrCreateState(command)
   const exists =
     Boolean(state.fieldFormats[command.fieldName]) ||
-    state.enumSources.some((source) => source.fieldName === command.fieldName) ||
-    state.relations.some((relation) => relation.labelFieldName === command.fieldName)
+    state.enumSources.some((source) => source.fieldName === command.fieldName)
 
   if (!exists) {
     return actionFailed(fieldInputError(`字段 ${command.fieldName} 不存在。`))
@@ -274,71 +184,6 @@ export async function mockUpdateFieldMeta(command: UpdateFieldMetaCommand): Prom
     description: command.description,
     validationConfig: command.validationConfig,
   }
-
-  return actionSucceeded()
-}
-
-export async function mockListFieldEnumRelations(
-  query: ModelEnumContextQuery,
-): Promise<FieldEnumRelationListResult> {
-  const contextError = validateContext(query)
-  if (contextError) {
-    return {
-      relations: [],
-      error: contextError,
-    }
-  }
-
-  const state = getOrCreateState(query)
-
-  return {
-    relations: cloneRelations(state.relations),
-    error: null,
-  }
-}
-
-export async function mockCreateFieldEnumRelation(
-  command: CreateFieldEnumRelationCommand,
-): Promise<ModelEnumActionResult> {
-  const contextError = validateContext(command)
-  if (contextError) {
-    return actionFailed(contextError)
-  }
-
-  if (isBlank(command.sourceFieldName) || isBlank(command.enumName) || isBlank(command.labelFieldName)) {
-    return actionFailed(fieldInputError('创建 enum relation 参数不完整。'))
-  }
-
-  const state = getOrCreateState(command)
-  const source = state.enumSources.find((item) => item.fieldName === command.sourceFieldName)
-
-  if (!source) {
-    return actionFailed(fieldInputError(`未找到 source 字段 ${command.sourceFieldName}。`))
-  }
-
-  if (source.enumName !== command.enumName) {
-    return actionFailed(fieldInputError('enumName 与 sourceFieldName 的枚举定义不一致。'))
-  }
-
-  const sourceHasRelation = state.relations.some(
-    (relation) => relation.sourceFieldName === command.sourceFieldName,
-  )
-
-  if (sourceHasRelation || source.occupied) {
-    return actionFailed(
-      createDomainError('FieldEnumSourceConflict', 'source 字段已存在关联关系。', {
-        code: 'FIELD_ENUM_SOURCE_CONFLICT',
-        suggestion: '每个 source 字段只能关联一个 ENUM_LABEL。',
-      }),
-    )
-  }
-
-  state.relations.push({
-    id: createMockRelationId(command.sourceFieldName),
-    sourceFieldName: command.sourceFieldName,
-    enumName: command.enumName,
-    labelFieldName: command.labelFieldName,
-  })
 
   return actionSucceeded()
 }

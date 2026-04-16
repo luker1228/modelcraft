@@ -43,10 +43,5 @@ export function findEnumSourceFieldForSystemLabel(
 }
 
 export function isSystemGeneratedLabelField(field: FieldLike, fields: FieldLike[]): boolean {
-  if (field.format === 'ENUM_LABEL') {
-    return true
-  }
-
   return findEnumSourceFieldForSystemLabel(field.name, fields) !== null
 }
-

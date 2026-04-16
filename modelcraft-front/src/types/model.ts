@@ -40,7 +40,6 @@ export type FormatType =
   | 'RELATION'
   | 'ENUM'
   | 'ENUM_ARRAY'
-  | 'ENUM_LABEL'
 
 export type ActualConstraintType = 'UNIQUE' | 'NOT_NULL'
 
@@ -125,10 +124,6 @@ export interface EnumConfigInput {
   connectEnum: boolean
 }
 
-export interface EnumLabelConfigInput {
-  sourceField: string
-}
-
 export interface ValidationConfigInput {
   minLength?: number
   maxLength?: number
@@ -149,7 +144,6 @@ export interface AddFieldInput {
   validationConfig?: ValidationConfigInput
   relateFkId?: string
   enumConfig?: EnumConfigInput
-  enumLabelConfig?: EnumLabelConfigInput
 }
 
 export interface UpdateFieldInput {

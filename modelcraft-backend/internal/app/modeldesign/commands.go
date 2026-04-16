@@ -91,38 +91,16 @@ type AddFieldItemResult struct {
 }
 
 const (
-	FieldEnumSourceConflictCode = "FIELD_ENUM_SOURCE_CONFLICT"
-	FieldFormatImmutableCode    = "FIELD_FORMAT_IMMUTABLE"
-	FieldReferenceInUseCode     = "FIELD_REFERENCE_IN_USE"
+	FieldFormatImmutableCode = "FIELD_FORMAT_IMMUTABLE"
 )
 
 var (
-	ErrFieldEnumSourceConflict = bizerrors.New(FieldEnumSourceConflictCode)
-	ErrFieldFormatImmutable    = bizerrors.New(FieldFormatImmutableCode)
-	ErrFieldReferenceInUse     = bizerrors.New(FieldReferenceInUseCode)
+	ErrFieldFormatImmutable = bizerrors.New(FieldFormatImmutableCode)
 )
 
 // GetFieldsCommand 获取字段列表命令
 type GetFieldsCommand struct {
 	ModelID string // 模型ID
-}
-
-// CreateFieldEnumRelationCommand 创建字段枚举关联命令
-type CreateFieldEnumRelationCommand struct {
-	ModelID         string
-	LabelFieldName  string
-	SourceFieldName string
-	EnumName        string
-}
-
-// DeleteFieldEnumRelationCommand 删除字段枚举关联命令
-type DeleteFieldEnumRelationCommand struct {
-	ID string
-}
-
-// ListFieldEnumRelationsCommand 查询模型字段枚举关联列表命令
-type ListFieldEnumRelationsCommand struct {
-	ModelID string
 }
 
 // GetModelOptions 获取模型选项
