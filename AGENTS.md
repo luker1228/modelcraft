@@ -75,14 +75,14 @@ modelcraft-front/contract/      ← 前端消费端（只读）
 
 1. **子项目内提交** — 在 `./modelcraft-backend` 或 `./modelcraft-front` 中提交代码变更
 2. **subtree push（如需）** — 后端修改 API 后执行 `git subtree push --prefix=api contracts main`
-3. **subtree pull（如需）** — 前端执行 `git subtree pull --prefix=contract contracts main --squash`
+3. **前端同步 Contract** — 使用 `front-contract-pull` skill 拉取最新 API Contract
 4. **根项目提交** — 回到根项目，`git add modelcraft-backend modelcraft-front` 后提交子模块引用
 
 ## Git Rules
 
 - Never use `git commit --no-verify`. Pre-commit hooks must always run. If a hook fails, fix the underlying issue instead of bypassing it.
-- **前端禁止直接修改 `contract/`** — 所有变更必须通过 subtree pull 获取。
-- **先 push 再 pull** — 后端必须先 `subtree push`，前端才能 `subtree pull`。
+- **前端禁止直接修改 `contract/`** — 所有变更必须通过 `front-contract-pull` skill 获取。
+- **先 push 再 pull** — 后端必须先 `subtree push`，前端才能运行 `front-contract-pull`。
 
 Each subproject has its own pre-commit hook:
 

@@ -7,26 +7,6 @@ import (
 	"github.com/graphql-go/graphql"
 )
 
-// EnumLabel 枚举标签值对象，用于运行时返回枚举的完整信息
-type EnumLabel struct {
-	Code        string  `json:"code"`                  // 枚举code
-	Label       string  `json:"label"`                 // 枚举显示标签
-	Description *string `json:"description,omitempty"` // 选项描述
-}
-
-// NewEnumLabel 从枚举选项创建EnumLabel
-func NewEnumLabel(opt modeldesign.EnumOption) EnumLabel {
-	var desc *string
-	if opt.Description != "" {
-		desc = &opt.Description
-	}
-	return EnumLabel{
-		Code:        opt.Code,
-		Label:       opt.Label,
-		Description: desc,
-	}
-}
-
 // RuntimeModel 运行时模型定义，包含模型的基本信息和字段定义。
 // 这是GraphQL Schema生成的核心数据结构。
 type RuntimeModel struct {
@@ -36,7 +16,7 @@ type RuntimeModel struct {
 	Title        string                   `json:"title"`
 	Description  string                   `json:"description"`
 	DatabaseName string                   `json:"databaseName"`
-	DisplayField *string                  `json:"displayField"` // 用于 _label 解析的字段名
+	DisplayField *string                  `json:"displayField"` // 用于 _displayName 解析的字段名
 	Fields       map[string]*RuntimeField `json:"fields"`
 }
 

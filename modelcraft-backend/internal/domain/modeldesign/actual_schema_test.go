@@ -151,26 +151,3 @@ func TestFieldConflict_AspectValues(t *testing.T) {
 		assert.Equal(t, "true", conflict.Actual)
 	})
 }
-
-func TestFieldDefinition_IsEnumLabelField_VirtualField(t *testing.T) {
-	t.Run("ENUM_LABEL is virtual", func(t *testing.T) {
-		field := &FieldDefinition{
-			Type: &FieldType{Format: FormatEnumLabel},
-		}
-		assert.True(t, field.IsEnumLabelField())
-	})
-
-	t.Run("STRING is not virtual", func(t *testing.T) {
-		field := &FieldDefinition{
-			Type: &FieldType{Format: FormatString},
-		}
-		assert.False(t, field.IsEnumLabelField())
-	})
-
-	t.Run("RELATION is not virtual", func(t *testing.T) {
-		field := &FieldDefinition{
-			Type: &FieldType{Format: FormatRelation},
-		}
-		assert.False(t, field.IsEnumLabelField())
-	})
-}

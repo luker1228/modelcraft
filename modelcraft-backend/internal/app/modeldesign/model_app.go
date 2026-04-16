@@ -16,7 +16,6 @@ import (
 	"modelcraft/pkg/lexorder"
 	"modelcraft/pkg/logfacade"
 	"strings"
-	"time"
 
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -637,15 +636,6 @@ func (s *ModelDesignAppService) UpdateFieldSync(ctx context.Context, cmd UpdateF
 	}
 	if cmd.RelateEnumName != nil {
 		if !field.IsEnumField() || field.EnumName != *cmd.RelateEnumName {
-			return ErrFieldFormatImmutable
-		}
-	}
-	if cmd.EnumRelationID != nil {
-		currentRelationID := ""
-		if field.EnumRelationID != nil {
-			currentRelationID = *field.EnumRelationID
-		}
-		if !field.IsEnumLabelField() || currentRelationID != *cmd.EnumRelationID {
 			return ErrFieldFormatImmutable
 		}
 	}

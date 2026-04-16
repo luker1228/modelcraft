@@ -144,24 +144,13 @@ func TestActualSchemaQueryUseCase_VirtualFieldsExcluded(t *testing.T) {
 			Name: "id", IsUnique: false, NonNull: true,
 			Type: &entity.FieldType{Format: entity.FormatInteger},
 		},
-		// Virtual field — ENUM_LABEL
-		{Name: "status_label", Type: &entity.FieldType{Format: entity.FormatEnumLabel}},
 	}
 	model := makeTestModel("proj", "mydb", "users", fields...)
 
 	connector.On("GetConnection", mock.Anything, "org1", "proj").Return(db, nil)
 	// Capture which fields are passed to QueryActualSchema
-	schemaSvc.On("QueryActualSchema", mock.Anything, db, "mydb", "users", mock.MatchedBy(
-		func(fs []*entity.FieldDefinition) bool {
-			// Only non-virtual fields should be passed
-			for _, f := range fs {
-				if f.IsEnumLabelField() {
-					return false
-				}
-			}
-			return true
-		},
-	)).Return(&entity.ActualSchemaResult{Status: entity.DbTableExists, Fields: map[string]*entity.DbColumnInfo{}}, nil)
+	schemaSvc.On("QueryActualSchema", mock.Anything, db, "mydb", "users", mock.Anything).
+		Return(&entity.ActualSchemaResult{Status: entity.DbTableExists, Fields: map[string]*entity.DbColumnInfo{}}, nil)
 
 	uc := NewActualSchemaQueryUseCase(schemaSvc, connector)
 	result, err := uc.Query(context.Background(), model, "org1")

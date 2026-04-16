@@ -129,8 +129,8 @@ func (m *modelMapper) convertFieldWithActualSchema(
 		UpdatedAt:        fieldDef.UpdatedAt.Format(time.RFC3339),
 	}
 
-	// Virtual fields (ENUM_LABEL) never have a db column.
-	if actualResult != nil && actualResult.Status == modeldesign.DbTableExists && !fieldDef.IsEnumLabelField() {
+	// Relation fields never have a db column.
+	if actualResult != nil && actualResult.Status == modeldesign.DbTableExists && !fieldDef.IsRelationField() {
 		if colInfo, ok := actualResult.Fields[fieldDef.Name]; ok {
 			field.DbColumn = convertDbColumnInfo(colInfo)
 		}

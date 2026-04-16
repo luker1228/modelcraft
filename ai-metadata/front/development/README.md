@@ -157,12 +157,15 @@ import { Header } from './Header'
 
 ### API Contract
 
-前端 `contract/` 目录通过 **git subtree** 从后端共享，**禁止直接修改**。
+前端 `contract/` 目录从后端同步，**禁止直接修改**。
 
 ```bash
 # 拉取后端最新的 API Contract
-git subtree pull --prefix=contract contracts main --squash
+# 使用 front-contract-pull skill
+front-contract-pull
 ```
+
+> 详细说明见 [front-contract-pull skill](../../.agents/skills/front-contract-pull/SKILL.md)
 
 ## 🔧 工具和命令
 

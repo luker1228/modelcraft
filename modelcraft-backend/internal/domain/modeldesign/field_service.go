@@ -127,34 +127,6 @@ func (s *FieldService) NewField(
 	}, nil
 }
 
-// ValidateFieldEnumRelationSource 校验 FieldEnumRelation 与 source ENUM 字段的一致性。
-func (s *FieldService) ValidateFieldEnumRelationSource(
-	sourceField *FieldDefinition, relation *FieldEnumRelation,
-) error {
-	if sourceField == nil {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "source enum field is required")
-	}
-	if relation == nil {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "field enum relation is required")
-	}
-	if sourceField.ModelID != relation.ModelID {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "relation modelId does not match source field")
-	}
-	if sourceField.Name != relation.SourceFieldName {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "relation sourceFieldName does not match source field")
-	}
-	if sourceField.Type == nil || sourceField.Type.Format != FormatEnum {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "source field format must be ENUM")
-	}
-	if sourceField.EnumName == "" {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "source enum field must have enumName")
-	}
-	if sourceField.EnumName != relation.EnumName {
-		return bizerrors.NewError(bizerrors.ParamInvalid, "relation enumName must equal source enum field enumName")
-	}
-	return nil
-}
-
 // ValidContainSystemField 验证是否包含系统保留字段
 func ValidContainSystemField(fields []FieldDefinition) error {
 	if len(fields) == 0 {

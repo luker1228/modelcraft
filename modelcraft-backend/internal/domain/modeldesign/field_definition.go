@@ -238,22 +238,14 @@ func (fd *FieldDefinition) validateEnumField() error {
 		return nil
 	}
 
-	enumRelationID := ""
-	if fd.EnumRelationID != nil {
-		enumRelationID = *fd.EnumRelationID
-	}
-
 	switch fd.Type.Format {
 	case FormatEnum, FormatEnumArray:
-		// 容错：ENUM 忽略 enumRelationId
-		fd.EnumRelationID = nil
 		if fd.EnumName == "" {
 			return bizerrors.NewError(bizerrors.ParamInvalid, "relateEnumName is required when format=ENUM")
 		}
 	default:
 		// 容错：非 ENUM/ENUM_ARRAY 忽略关联参数
 		fd.EnumName = ""
-		fd.EnumRelationID = nil
 	}
 	return nil
 }

@@ -1,11 +1,8 @@
 import type {
   CreateEnumFieldFormValues,
-  CreateEnumLabelFieldFormValues,
   CreateLogicalForeignKeyResult,
   DbColumnInfo,
   DeleteLogicalForeignKeyResult,
-  EnumRelationOption,
-  EnumSourceOption,
   LogicalForeignKey,
   ModelEnumDomainError,
   UpdateFieldMetaFormValues,
@@ -109,12 +106,6 @@ export interface CreateEnumFieldPageModel {
   state: EnumFieldPageState
 }
 
-export interface CreateEnumLabelFieldPageModel {
-  defaults: CreateEnumLabelFieldFormValues
-  sourceOptions: EnumSourceOption[]
-  relationOptions: EnumRelationOption[]
-  state: EnumFieldPageState
-}
 
 export interface EditFieldImmutablePageModel {
   fieldName: string
