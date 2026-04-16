@@ -641,6 +641,8 @@ func TestJSONSchemaGenerator_XRelation_WithRelateFKID(t *testing.T) {
 	xmc := getXMC(ordersField)
 
 	assert.Equal(t, relateFKID, xmc["relateFkId"])
+	assert.Equal(t, "ONE_TO_MANY", xmc["relationType"])
+	assert.Equal(t, "reverse", xmc["relationDirection"])
 	_, hasRelation := xmc["relation"]
 	assert.True(t, hasRelation, "RELATION field with RelateFKID should emit x-mc.relation when metadata exists")
 }
@@ -795,6 +797,8 @@ func TestXMC_Widget_RelationSelector(t *testing.T) {
 	}
 	xmc := generateAndGetFieldXMC(t, field)
 	assert.Equal(t, "relation-selector", xmc["widget"])
+	assert.Equal(t, "MANY_TO_ONE", xmc["relationType"])
+	assert.Equal(t, "normal", xmc["relationDirection"])
 }
 
 // TestXMC_Widget_None 验证普通 STRING 字段不写 widget 键
@@ -940,6 +944,8 @@ func TestXMC_NoUnknownFields(t *testing.T) {
 		"belongsToFkId": true,
 		"relation":      true,
 		"relateFkId":    true,
+		"relationType":  true,
+		"relationDirection": true,
 		"enum":          true,
 	}
 

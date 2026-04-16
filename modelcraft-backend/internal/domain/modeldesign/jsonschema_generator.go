@@ -6,8 +6,11 @@ import (
 
 const (
 	relationDirectionReverse     = "reverse"
+	relationDirectionNormal      = "normal"
 	relationCardinalityOneToMany = "one-to-many"
 	relationWidgetMultiReadonly  = "relation-multi-readonly"
+	relationTypeOneToMany        = "ONE_TO_MANY"
+	relationTypeManyToOne        = "MANY_TO_ONE"
 )
 
 // JSONSchemaGenerator 生成JSON Schema的域服务
@@ -222,6 +225,12 @@ func (g *JSONSchemaGenerator) buildXMC(
 		}
 	}
 
+	// ── 显式关系类型标注（前端无需再推断） ────────────────────────────────────────
+	if relationType, direction, ok := g.detectRelationTypeAndDirection(field); ok {
+		xmc["relationType"] = relationType
+		xmc["relationDirection"] = direction
+	}
+
 	// ── 枚举元数据 ─────────────────────────────────────────────────────────────
 	if field.Enum != nil {
 		xmc["enum"] = g.buildEnumMetadata(field.Enum)
@@ -382,6 +391,64 @@ func (g *JSONSchemaGenerator) isOneToManyRelation(field *FieldDefinition) bool {
 	}
 
 	return false
+}
+
+func (g *JSONSchemaGenerator) detectRelationTypeAndDirection(field *FieldDefinition) (relationType, direction string, ok bool) {
+	if field == nil {
+		return "", "", false
+	}
+
+	// 优先依据元数据（x-relation.direction / x-relation.cardinality）
+	if field.Metadata != nil {
+		if relRaw, exists := field.Metadata["x-relation"]; exists && relRaw != nil {
+			switch rel := relRaw.(type) {
+			case map[string]interface{}:
+				if dir, hasDir := rel["direction"].(string); hasDir {
+					switch dir {
+					case relationDirectionReverse:
+						return relationTypeOneToMany, relationDirectionReverse, true
+					case relationDirectionNormal:
+						return relationTypeManyToOne, relationDirectionNormal, true
+					}
+				}
+				if cardinality, hasCardinality := rel["cardinality"].(string); hasCardinality {
+					switch cardinality {
+					case relationCardinalityOneToMany:
+						return relationTypeOneToMany, relationDirectionReverse, true
+					case "many-to-one":
+						return relationTypeManyToOne, relationDirectionNormal, true
+					}
+				}
+			case map[string]string:
+				if dir, hasDir := rel["direction"]; hasDir {
+					switch dir {
+					case relationDirectionReverse:
+						return relationTypeOneToMany, relationDirectionReverse, true
+					case relationDirectionNormal:
+						return relationTypeManyToOne, relationDirectionNormal, true
+					}
+				}
+				if cardinality, hasCardinality := rel["cardinality"]; hasCardinality {
+					switch cardinality {
+					case relationCardinalityOneToMany:
+						return relationTypeOneToMany, relationDirectionReverse, true
+					case "many-to-one":
+						return relationTypeManyToOne, relationDirectionNormal, true
+					}
+				}
+			}
+		}
+	}
+
+	// 元数据缺失时，按字段形态兜底推断
+	if field.BelongsToFKID != nil {
+		return relationTypeManyToOne, relationDirectionNormal, true
+	}
+	if field.RelateFKID != nil {
+		return relationTypeOneToMany, relationDirectionReverse, true
+	}
+
+	return "", "", false
 }
 
 // buildRequiredList 构建required字段列表

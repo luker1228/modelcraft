@@ -41,6 +41,7 @@ interface OneToManyRelationField {
   relateFkId: string
   databaseName: string
   modelName: string
+  relationType: 'ONE_TO_MANY' | 'MANY_TO_ONE' | ''
 }
 
 function toDisplayText(record: RelationRecord): string {
@@ -71,10 +72,17 @@ function extractOneToManyFields(schema: RJSFSchema): OneToManyRelationField[] {
     const relation = xmc?.relation
     const widget = xmc?.widget
     const relateFkId = xmc?.relateFkId
+    const relationType = xmc?.relationType
+    const xmcFormat = xmc?.format
     const databaseName = relation?.databaseName
     const modelName = relation?.modelName
 
-    if (fieldSchema.readOnly !== true || widget !== 'relation-multi-readonly') {
+    const isOneToMany =
+      relationType === 'ONE_TO_MANY'
+      || widget === 'relation-multi-readonly'
+      || (xmcFormat === 'RELATION' && relationType !== 'MANY_TO_ONE')
+
+    if (fieldSchema.readOnly !== true || !isOneToMany) {
       return []
     }
 
@@ -95,6 +103,7 @@ function extractOneToManyFields(schema: RJSFSchema): OneToManyRelationField[] {
       relateFkId,
       databaseName,
       modelName,
+      relationType: relationType ?? '',
     }]
   })
 }

@@ -3,6 +3,25 @@ import { getXMC } from '@/types/xmc'
 
 type SchemaProperty = Record<string, unknown>
 
+function toReadableText(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const nested = record._label ?? record.label ?? record.title ?? record.name ?? record.id
+    if (nested !== undefined && nested !== value) {
+      return toReadableText(nested)
+    }
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return '[object]'
+    }
+  }
+  return String(value)
+}
+
 /**
  * Determines whether a field should appear in create/edit forms.
  * Protocol: fields with readOnly: true are excluded from forms.
@@ -18,9 +37,8 @@ export function shouldShowInForm(prop: SchemaProperty): boolean {
  * If `_label` is empty string, display: `空(id)`
  */
 function formatRelationDisplay(rel: Record<string, unknown>): string {
-  const id = String(rel.id ?? '')
-  const label = rel._label
-  const labelStr = typeof label === 'string' ? label : ''
+  const id = toReadableText(rel.id)
+  const labelStr = toReadableText(rel._label)
 
   if (!id) return ''
 
@@ -46,12 +64,33 @@ export function renderCellValue(value: unknown, prop: SchemaProperty): string {
 
   // RELATION fields: schema explicitly marks them (x-mc.relateFkId / x-mc.belongsToFkId)
   const xmc = getXMC(prop)
-  if (prop.type === 'object' && (xmc?.relateFkId ?? xmc?.belongsToFkId)) {
+  if ((xmc?.relateFkId ?? xmc?.belongsToFkId)) {
+    // one-to-many / runtime array payload
+    if (Array.isArray(value)) {
+      const items = value
+        .filter((item): item is Record<string, unknown> => typeof item === 'object' && item !== null)
+        .map((item) => {
+          if (item.id !== undefined) {
+            return formatRelationDisplay(item)
+          }
+          return toReadableText(item)
+        })
+        .filter((text) => text !== '')
+
+      return items.join(', ').slice(0, 100)
+    }
+
+    // many-to-one / runtime object payload
     if (typeof value === 'object' && value !== null) {
       const rel = value as Record<string, unknown>
       return formatRelationDisplay(rel)
     }
     return ''
+  }
+
+  // Generic array fallback
+  if (Array.isArray(value)) {
+    return value.map((item) => toReadableText(item)).join(', ').slice(0, 100)
   }
 
   // Generic object fallback: any object value with id and _label fields is treated as a relation

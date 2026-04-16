@@ -15,7 +15,6 @@ import {
   DialogTitle,
 } from '@web/components/ui/dialog'
 import { Button } from '@web/components/ui/button'
-import { Input } from '@web/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -23,7 +22,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { Loader2, RefreshCw, Unlink } from 'lucide-react'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@web/components/ui/popover'
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@web/components/ui/command'
+import { Check, ChevronsUpDown, Loader2, RefreshCw, Unlink } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
 import type { LogicalForeignKey } from '@/types'
 
@@ -38,8 +50,8 @@ interface RecordRelationManagerDialogProps {
 }
 
 interface RelationRecord {
-  id?: string | null
-  _label?: string | null
+  id?: unknown
+  _label?: unknown
 }
 
 interface OneToManyRelationField {
@@ -53,9 +65,28 @@ interface OneToManyRelationField {
 
 const PAGE_SIZE = 10
 
+function toReadableText(value: unknown): string {
+  if (typeof value === 'string') return value
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value)
+  if (value === null || value === undefined) return ''
+  if (typeof value === 'object') {
+    const record = value as Record<string, unknown>
+    const nested = record._label ?? record.label ?? record.title ?? record.name ?? record.id
+    if (nested !== undefined && nested !== value) {
+      return toReadableText(nested)
+    }
+    try {
+      return JSON.stringify(value)
+    } catch {
+      return '[object]'
+    }
+  }
+  return String(value)
+}
+
 function toDisplayText(record: RelationRecord): string {
-  const id = typeof record.id === 'string' ? record.id : ''
-  const label = typeof record._label === 'string' ? record._label : ''
+  const id = toReadableText(record.id)
+  const label = toReadableText(record._label)
   if (label === '' && id !== '') return `空(${id})`
   if (label !== '' && id !== '') return `${label}(${id})`
   if (label !== '') return label
@@ -73,6 +104,7 @@ function extractOneToManyFields(schema: RJSFSchema | null): OneToManyRelationFie
     const relation = xmc?.relation
     const widget = xmc?.widget
     const relateFkId = xmc?.relateFkId
+    const relationType = xmc?.relationType
     const xmcRaw = fieldSchema['x-mc']
     const xmcFormat = typeof xmcRaw === 'object' && xmcRaw !== null
       && typeof (xmcRaw as Record<string, unknown>).format === 'string'
@@ -81,9 +113,10 @@ function extractOneToManyFields(schema: RJSFSchema | null): OneToManyRelationFie
     const databaseName = relation?.databaseName
     const modelName = relation?.modelName
 
-    const isRelationField =
-      xmcFormat === 'RELATION'
+    const isRelationField = xmcFormat === 'RELATION'
       || widget === 'relation-multi-readonly'
+      || relationType === 'ONE_TO_MANY'
+      || relationType === 'MANY_TO_ONE'
 
     if (fieldSchema.readOnly !== true || !isRelationField) {
       return []
@@ -118,6 +151,13 @@ export function RecordRelationManagerDialog({
 
   const [selectedFieldName, setSelectedFieldName] = useState('')
   const [attachRecordId, setAttachRecordId] = useState('')
+  const [attachRecordDisplay, setAttachRecordDisplay] = useState('')
+  const [attachPickerOpen, setAttachPickerOpen] = useState(false)
+  const [attachSearch, setAttachSearch] = useState('')
+  const [debouncedAttachSearch, setDebouncedAttachSearch] = useState('')
+  const [attachCandidates, setAttachCandidates] = useState<RelationRecord[]>([])
+  const [attachCandidatesLoading, setAttachCandidatesLoading] = useState(false)
+  const [attachCandidatesError, setAttachCandidatesError] = useState<string | null>(null)
   const [loadingRecords, setLoadingRecords] = useState(false)
   const [updating, setUpdating] = useState(false)
   const [managerError, setManagerError] = useState<string | null>(null)
@@ -133,6 +173,12 @@ export function RecordRelationManagerDialog({
     const fallback = relationFields[0]?.name ?? ''
     setSelectedFieldName((prev) => (prev && relationFields.some((f) => f.name === prev) ? prev : fallback))
     setAttachRecordId('')
+    setAttachRecordDisplay('')
+    setAttachPickerOpen(false)
+    setAttachSearch('')
+    setDebouncedAttachSearch('')
+    setAttachCandidates([])
+    setAttachCandidatesError(null)
     setManagerError(null)
     setCurrentPage(1)
   }, [open, relationFields])
@@ -282,6 +328,50 @@ export function RecordRelationManagerDialog({
     void refreshRelatedRecords()
   }, [open, refreshRelatedRecords])
 
+  const hasSingleFK = Boolean(targetFkField)
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedAttachSearch(attachSearch)
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [attachSearch])
+
+  const refreshAttachCandidates = useCallback(async () => {
+    if (!open || !hasSingleFK || !runtimeClient || !targetModelName) {
+      setAttachCandidates([])
+      setAttachCandidatesError(null)
+      return
+    }
+
+    setAttachCandidatesLoading(true)
+    setAttachCandidatesError(null)
+    try {
+      const search = debouncedAttachSearch.trim()
+      const variables: Record<string, unknown> = { take: 20 }
+      if (search !== '') {
+        variables.where = { _label: { contains: search } }
+      }
+
+      const result = await runtimeClient.query<{ findMany?: { items?: RelationRecord[] } }>({
+        query: buildFindManyQuery(targetModelName, ['id', '_label']),
+        variables,
+        fetchPolicy: 'network-only',
+      })
+      setAttachCandidates(result.data?.findMany?.items ?? [])
+    } catch (error) {
+      const message = error instanceof Error ? error.message : '查询目标记录失败'
+      setAttachCandidatesError(message)
+      setAttachCandidates([])
+    } finally {
+      setAttachCandidatesLoading(false)
+    }
+  }, [open, hasSingleFK, runtimeClient, targetModelName, debouncedAttachSearch])
+
+  useEffect(() => {
+    void refreshAttachCandidates()
+  }, [refreshAttachCandidates])
+
   const handleAttach = useCallback(async () => {
     if (!runtimeClient || !selectedField || !recordId || !targetFkField) {
       return
@@ -305,6 +395,9 @@ export function RecordRelationManagerDialog({
       })
 
       setAttachRecordId('')
+      setAttachRecordDisplay('')
+      setAttachSearch('')
+      setDebouncedAttachSearch('')
       setCurrentPage(1)
       await refreshRelatedRecords()
     } catch (error) {
@@ -340,8 +433,6 @@ export function RecordRelationManagerDialog({
     }
   }, [runtimeClient, selectedField, targetFkField, refreshRelatedRecords, targetModelName])
 
-  const hasSingleFK = Boolean(targetFkField)
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[760px]">
@@ -364,6 +455,12 @@ export function RecordRelationManagerDialog({
                 value={selectedFieldName}
                 onValueChange={(value) => {
                   setSelectedFieldName(value)
+                  setAttachRecordId('')
+                  setAttachRecordDisplay('')
+                  setAttachSearch('')
+                  setDebouncedAttachSearch('')
+                  setAttachCandidates([])
+                  setAttachCandidatesError(null)
                   setCurrentPage(1)
                   setManagerError(null)
                 }}
@@ -388,16 +485,74 @@ export function RecordRelationManagerDialog({
             ) : (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  添加关联（输入目标记录 ID）
+                  添加关联（搜索并选择目标记录）
                 </p>
                 <div className="flex items-center gap-2">
-                  <Input
-                    value={attachRecordId}
-                    onChange={(event) => setAttachRecordId(event.target.value)}
-                    placeholder="目标记录 ID"
-                    className="font-mono"
-                    disabled={updating}
-                  />
+                  <Popover open={attachPickerOpen} onOpenChange={setAttachPickerOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={attachPickerOpen}
+                        disabled={updating}
+                        className="h-9 flex-1 justify-between font-normal"
+                      >
+                        <span className="truncate text-left">
+                          {attachRecordDisplay || '选择目标记录…'}
+                        </span>
+                        <ChevronsUpDown className="size-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                      <Command shouldFilter={false}>
+                        <CommandInput
+                          placeholder="搜索目标记录…"
+                          value={attachSearch}
+                          onValueChange={(value) => setAttachSearch(value)}
+                        />
+                        <CommandList>
+                          {attachCandidatesLoading ? (
+                            <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+                              <Loader2 className="mr-2 size-4 animate-spin" />
+                              查询中...
+                            </div>
+                          ) : (
+                            <>
+                              {attachCandidatesError && (
+                                <p className="px-3 py-2 text-xs text-destructive">{attachCandidatesError}</p>
+                              )}
+                              <CommandEmpty>未找到匹配记录</CommandEmpty>
+                              <CommandGroup>
+                                {attachCandidates.map((candidate, idx) => {
+                                  const candidateId = toReadableText(candidate.id)
+                                  if (candidateId === '') {
+                                    return null
+                                  }
+                                  const displayText = toDisplayText(candidate)
+                                  const selected = attachRecordId === candidateId
+                                  return (
+                                    <CommandItem
+                                      key={`${candidateId}-${idx}`}
+                                      value={candidateId}
+                                      onSelect={() => {
+                                        setAttachRecordId(candidateId)
+                                        setAttachRecordDisplay(displayText)
+                                        setAttachPickerOpen(false)
+                                      }}
+                                    >
+                                      <Check className={`mr-2 size-4 ${selected ? 'opacity-100' : 'opacity-0'}`} />
+                                      <span className="truncate">{displayText}</span>
+                                    </CommandItem>
+                                  )
+                                })}
+                              </CommandGroup>
+                            </>
+                          )}
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
                   <Button onClick={handleAttach} disabled={updating}>
                     {updating ? '处理中...' : '添加'}
                   </Button>
@@ -440,7 +595,7 @@ export function RecordRelationManagerDialog({
               ) : (
                 <div className="divide-y divide-border">
                   {relatedRecords.map((record, idx) => {
-                    const targetId = typeof record.id === 'string' ? record.id : ''
+                    const targetId = toReadableText(record.id)
                     return (
                       <div key={`${targetId}-${idx}`} className="flex items-center justify-between gap-3 p-3">
                         <div className="min-w-0">

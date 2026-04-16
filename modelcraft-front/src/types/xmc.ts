@@ -35,6 +35,7 @@ export type XMCWidget =
 
 export interface XMC {
   widget?: XMCWidget
+  format?: string
   isPrimary?: boolean
   isUnique?: boolean
   displayOrder?: string
@@ -50,6 +51,8 @@ export interface XMC {
   belongsToFkId?: string
   relation?: XMCRelation
   relateFkId?: string
+  relationType?: 'ONE_TO_MANY' | 'MANY_TO_ONE'
+  relationDirection?: 'reverse' | 'normal'
   enum?: XMCEnum
 }
 
