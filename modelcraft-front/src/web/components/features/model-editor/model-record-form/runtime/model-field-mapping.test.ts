@@ -4,7 +4,7 @@ import {
   mapModelFieldsToRuntimeFields,
   mapModelFieldsToTableFieldInfos,
   type ModelField,
-} from './modelFieldMapping'
+} from './model-field-mapping'
 
 describe('mapModelFieldsToRuntimeFields', () => {
   it('maps fields and applies type fallback chain', () => {

@@ -103,13 +103,9 @@ function extractOneToManyFields(schema: RJSFSchema | null): OneToManyRelationFie
     const xmc = getXMC(fieldSchema)
     const relation = xmc?.relation
     const widget = xmc?.widget
-    const relateFkId = xmc?.relateFkId
-    const relationType = xmc?.relationType
-    const xmcRaw = fieldSchema['x-mc']
-    const xmcFormat = typeof xmcRaw === 'object' && xmcRaw !== null
-      && typeof (xmcRaw as Record<string, unknown>).format === 'string'
-      ? (xmcRaw as Record<string, unknown>).format as string
-      : ''
+    const relateFkId = relation?.relateFkId
+    const relationType = relation?.relationType
+    const xmcFormat = xmc?.format ?? ''
     const databaseName = relation?.databaseName
     const modelName = relation?.modelName
 

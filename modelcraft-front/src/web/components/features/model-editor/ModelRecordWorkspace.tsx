@@ -4,12 +4,12 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, ApolloClient } from '@apollo/client'
 import { toast } from 'sonner'
 import { useProjectScopedClient, createModelRuntimeClient, buildRuntimeEndpoint } from '@bff/apollo/public'
-import { ModelRecordForm } from './ModelRecordForm'
+import { ModelRecordForm } from './model-record-form'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
-import { ModelRecordTable } from './ModelRecordForm/ModelRecordTable'
-import { RecordRelationManagerDialog } from './ModelRecordForm/RecordRelationManagerDialog'
-import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordForm/ModelRecordTable'
-import { getFieldProtocols } from './ModelRecordForm/runtime/fieldProtocol'
+import { ModelRecordTable } from './model-record-form/ModelRecordTable'
+import { RecordRelationManagerDialog } from './model-record-form/RecordRelationManagerDialog'
+import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './model-record-form/ModelRecordTable'
+import { getFieldProtocols } from './model-record-form/runtime/field-protocol'
 import {
   buildFindManyQuery,
   buildFindUniqueQuery,
@@ -72,6 +72,10 @@ interface GetModelQueryData {
       description?: string | null
       databaseName?: string | null
       jsonSchema?: string | null
+      fields?: Array<{
+        name: string
+        isDeprecated?: boolean | null
+      }> | null
     } | null
     error?: {
       message?: string | null
@@ -100,13 +104,13 @@ function isEnumSchemaProp(prop: Record<string, unknown>): boolean {
   const xmc = getXMC(prop)
   return (
     Array.isArray(prop.enum) ||
-    Array.isArray(xmc?.enum?.options) ||
     xmc?.widget === 'enum-select'
   )
 }
 
 function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
-  const configured = getXMC(prop)?.enumLabelFieldName?.trim()
+  const xmc = getXMC(prop)
+  const configured = xmc?.enum?.labelFieldName?.trim()
   return configured ?? ''
 }
 
@@ -224,6 +228,11 @@ export default function ModelRecordWorkspace({
   const tableFieldInfos = useMemo<ModelRecordTableFieldInfo[]>(() => {
     if (jsonSchema?.properties) {
       const props = jsonSchema.properties as Record<string, unknown>
+      const deprecatedFieldNames = new Set(
+        (model?.fields ?? [])
+          .filter((field) => field?.isDeprecated === true)
+          .map((field) => field.name)
+      )
 
       return Object.entries(props).flatMap(([name, rawProp]) => {
         if (!isRecord(rawProp)) return []
@@ -235,7 +244,7 @@ export default function ModelRecordWorkspace({
           name,
           title: typeof prop.title === 'string' ? prop.title : null,
           isPrimary: xmc?.isPrimary === true,
-          isDeprecated: false,
+          isDeprecated: deprecatedFieldNames.has(name),
           storageHint: deriveStorageHintFromSchemaProp(prop),
           schemaType: typeof prop.type === 'string' ? prop.type.toUpperCase() : null,
         }
@@ -254,7 +263,8 @@ export default function ModelRecordWorkspace({
             name: labelFieldName,
             title: null,
             isPrimary: false,
-            isDeprecated: false,
+            // enum label projection column is virtual for the enum field; keep lifecycle aligned
+            isDeprecated: deprecatedFieldNames.has(name),
             storageHint: 'TEXT',
             schemaType: 'STRING',
           },
@@ -263,7 +273,7 @@ export default function ModelRecordWorkspace({
     }
 
     return []
-  }, [jsonSchema])
+  }, [jsonSchema, model?.fields])
 
   // 使用 model.fields 作为表头字段来源（更可靠）
   const displayFields = useMemo(() => {

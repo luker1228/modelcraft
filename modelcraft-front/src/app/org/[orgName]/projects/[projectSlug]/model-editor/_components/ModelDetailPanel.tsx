@@ -295,7 +295,7 @@ export function ModelDetailPanel({
                         <tbody className="divide-y divide-border">
                           {state.editModelData.fields.map((field) => {
                             const enumDisplayFieldName = getEnumDisplayFieldName(field)
-                            const isSystemField = isSystemGeneratedLabelField(field, state.editModelData.fields)
+                            const isSystemField = isSystemGeneratedLabelField(field, state.editModelData?.fields ?? [])
 
                             return (
                               <tr

@@ -2,7 +2,6 @@ package modeldesign
 
 import (
 	"encoding/json"
-	"strings"
 )
 
 const (
@@ -159,24 +158,29 @@ func (g *JSONSchemaGenerator) applyEnumCodes(schema map[string]interface{}, fiel
 	schema["enum"] = codes
 }
 
-// buildEnumMetadata 构建枚举元数据（写入 x-mc.enum）
-func (g *JSONSchemaGenerator) buildEnumMetadata(enum *EnumDefinition) map[string]interface{} {
-	options := make([]map[string]interface{}, len(enum.Options))
-	for i, opt := range enum.Options {
-		options[i] = map[string]interface{}{
-			"code":        opt.Code,
-			"label":       opt.Label,
-			"description": opt.Description,
+func cloneRelationMetadata(field *FieldDefinition) map[string]interface{} {
+	relationMeta := map[string]interface{}{}
+	if field == nil || field.Metadata == nil {
+		return relationMeta
+	}
+
+	raw, ok := field.Metadata["x-relation"]
+	if !ok || raw == nil {
+		return relationMeta
+	}
+
+	switch rel := raw.(type) {
+	case map[string]interface{}:
+		for key, value := range rel {
+			relationMeta[key] = value
+		}
+	case map[string]string:
+		for key, value := range rel {
+			relationMeta[key] = value
 		}
 	}
 
-	return map[string]interface{}{
-		"name":          enum.Name,
-		"displayName":   enum.DisplayName,
-		"description":   enum.Description,
-		"isMultiSelect": enum.IsMultiSelect,
-		"options":       options,
-	}
+	return relationMeta
 }
 
 // buildXMC 构建 x-mc 对象，包含所有非 JSON Schema Draft 7 标准字段。
@@ -206,37 +210,28 @@ func (g *JSONSchemaGenerator) buildXMC(
 		xmc["storageHint"] = *field.StorageHint
 	}
 
+	relationMeta := cloneRelationMetadata(field)
 	if field.RelateFKID != nil {
-		xmc["relateFkId"] = *field.RelateFKID
-		// relation 元数据：RELATION 字段同样从 Metadata 注入 relation 信息
-		if field.Metadata != nil {
-			if rel, ok := field.Metadata["x-relation"]; ok {
-				xmc["relation"] = rel
-			}
-		}
+		relationMeta["relateFkId"] = *field.RelateFKID
 	}
 
 	if field.BelongsToFKID != nil {
-		xmc["belongsToFkId"] = *field.BelongsToFKID
-		// relation 元数据：仅在 Metadata 已由 App 层填充时输出
-		if field.Metadata != nil {
-			if rel, ok := field.Metadata["x-relation"]; ok {
-				xmc["relation"] = rel
-			}
-		}
+		relationMeta["belongsToFkId"] = *field.BelongsToFKID
 	}
 
 	// ── 显式关系类型标注（前端无需再推断） ────────────────────────────────────────
 	if relationType, direction, ok := g.detectRelationTypeAndDirection(field); ok {
-		xmc["relationType"] = relationType
-		xmc["relationDirection"] = direction
+		relationMeta["relationType"] = relationType
+		relationMeta["relationDirection"] = direction
+	}
+	if len(relationMeta) > 0 {
+		xmc["relation"] = relationMeta
 	}
 
 	// ── 枚举元数据 ─────────────────────────────────────────────────────────────
-	if field.Enum != nil {
-		xmc["enum"] = g.buildEnumMetadata(field.Enum)
-		if enumLabelFieldName, ok := g.resolveEnumLabelFieldNameFromMetadata(field); ok {
-			xmc["enumLabelFieldName"] = enumLabelFieldName
+	if enumLabelFieldName, ok := g.resolveEnumLabelFieldName(field); ok {
+		xmc["enum"] = map[string]interface{}{
+			"labelFieldName": enumLabelFieldName,
 		}
 	}
 
@@ -251,36 +246,15 @@ func (g *JSONSchemaGenerator) buildXMC(
 	return xmc
 }
 
-func (g *JSONSchemaGenerator) resolveEnumLabelFieldNameFromMetadata(field *FieldDefinition) (string, bool) {
+func (g *JSONSchemaGenerator) resolveEnumLabelFieldName(field *FieldDefinition) (string, bool) {
 	if field == nil || !field.IsEnumField() {
 		return "", false
 	}
 
-	cfg, err := field.parseEnumDisplayFromMetadata()
-	if err != nil || cfg == nil {
-		return "", false
-	}
-	if cfg.Enabled != nil && !*cfg.Enabled {
-		return "", false
-	}
-
-	if field.IsEnumArrayField() {
-		if cfg.LabelsFieldName == nil {
-			return "", false
-		}
-		if labelFieldName := strings.TrimSpace(*cfg.LabelsFieldName); labelFieldName != "" {
-			return labelFieldName, true
-		}
-		return "", false
-	}
-
-	if cfg.LabelFieldName == nil {
-		return "", false
-	}
-	if labelFieldName := strings.TrimSpace(*cfg.LabelFieldName); labelFieldName != "" {
-		return labelFieldName, true
-	}
-	return "", false
+	// Reuse domain fallback behavior:
+	// - if metadata.enumDisplay is configured, honor it
+	// - otherwise default to "<field>_label" / "<field>_labels"
+	return field.ResolveEnumDisplayFieldName()
 }
 
 // decideWidget 根据字段属性决定 widget 值，返回空字符串表示不写 widget 键。

@@ -24,7 +24,7 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { Archive, Check, Copy, Edit, Key, Link2, Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { renderCellValue } from './runtime/fieldProtocol'
+import { renderCellValue } from './runtime/field-protocol'
 import { getXMC } from '@/types/xmc'
 
 export interface ModelRecordTableFieldInfo {
@@ -151,7 +151,8 @@ export function ModelRecordTable({
     const configuredLabelFieldByCodeField = new Map<string, string>()
 
     Object.entries(propByName).forEach(([codeField, prop]) => {
-      const enumLabelFieldName = getXMC(prop as Record<string, unknown>)?.enumLabelFieldName?.trim()
+      const xmc = getXMC(prop as Record<string, unknown>)
+      const enumLabelFieldName = xmc?.enum?.labelFieldName?.trim()
       if (!enumLabelFieldName || enumLabelFieldName === codeField) return
       if (!fieldSet.has(codeField) || !fieldSet.has(enumLabelFieldName)) return
       configuredLabelFieldByCodeField.set(codeField, enumLabelFieldName)
@@ -292,6 +293,11 @@ export function ModelRecordTable({
                               {isPairedCode && (
                                 <span className="inline-flex flex-shrink-0 items-center rounded border border-border/80 bg-muted/60 px-1.5 py-0 text-[9px] font-semibold leading-4 text-muted-foreground">
                                   Code
+                                </span>
+                              )}
+                              {isDeprecated && (
+                                <span className="inline-flex flex-shrink-0 items-center rounded border border-amber-300/70 bg-amber-50 px-1.5 py-0 text-[9px] font-semibold leading-4 text-amber-700">
+                                  已废弃
                                 </span>
                               )}
                             </span>

@@ -5,7 +5,7 @@ import { getXMC, type XMCWidget } from '@/types/xmc'
  * Widget name mapping: x-mc.widget value → RJSF widget string.
  */
 const WIDGET_MAP: Record<XMCWidget, string> = {
-  'enum-select': 'EnumSchemaSelect',
+  'enum-select': 'EnumSelect',
   'date': 'date',
   'datetime-local': 'datetime-local',
   'time': 'time',

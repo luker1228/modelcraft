@@ -52,19 +52,19 @@ function formatRelationDisplay(rel: Record<string, unknown>): string {
  * Renders a table cell value for a given field's schema property.
  *
  * Protocol:
- *   - RELATION fields (type=object, x-mc.relateFkId or x-mc.belongsToFkId present)
+ *   - RELATION fields (type=object, x-mc.relation.relateFkId or x-mc.relation.belongsToFkId present)
  *     → display format: `_displayName(id)`, or `空(id)` if _displayName is empty
  *   - All other values → convert to string, truncated to 100 chars
  *
- * Note: both RelateFKID and BelongsToFKID produce FormatRelation fields in the
+ * Note: both relateFkId and belongsToFkId produce FormatRelation fields in the
  * backend, which are always type=object in JSON Schema with value { id, _displayName, ... }.
  */
 export function renderCellValue(value: unknown, prop: SchemaProperty): string {
   if (value === null || value === undefined) return ''
 
-  // RELATION fields: schema explicitly marks them (x-mc.relateFkId / x-mc.belongsToFkId)
+  // RELATION fields: schema explicitly marks them (x-mc.relation.relateFkId / belongsToFkId)
   const xmc = getXMC(prop)
-  if ((xmc?.relateFkId ?? xmc?.belongsToFkId)) {
+  if ((xmc?.relation?.relateFkId ?? xmc?.relation?.belongsToFkId)) {
     // one-to-many / runtime array payload
     if (Array.isArray(value)) {
       const items = value

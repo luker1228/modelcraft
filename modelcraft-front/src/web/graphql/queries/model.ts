@@ -178,6 +178,10 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
         description
         databaseName
         jsonSchema
+        fields {
+          name
+          isDeprecated
+        }
       }
       error {
         __typename

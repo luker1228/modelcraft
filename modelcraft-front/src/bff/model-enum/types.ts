@@ -1,5 +1,5 @@
 import type { ValidationConfigInput } from '@/generated/graphql'
-import type { EnumSourceOption, ModelEnumDomainError } from '@/types'
+import type { EnumRelationOption, EnumSourceOption, ModelEnumDomainError } from '@/types'
 
 export interface ModelEnumContextQuery {
   orgName: string

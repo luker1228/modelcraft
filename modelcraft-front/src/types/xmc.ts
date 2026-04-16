@@ -8,20 +8,14 @@
 export interface XMCRelation {
   databaseName: string
   modelName: string
-}
-
-export interface XMCEnumOption {
-  code: string
-  label: string
-  description?: string
+  belongsToFkId?: string
+  relateFkId?: string
+  relationType: 'ONE_TO_MANY' | 'MANY_TO_ONE'
+  relationDirection: 'reverse' | 'normal'
 }
 
 export interface XMCEnum {
-  name: string
-  displayName: string
-  description?: string
-  isMultiSelect: boolean
-  options: XMCEnumOption[]
+  labelFieldName: string
 }
 
 export type XMCWidget =
@@ -48,13 +42,8 @@ export interface XMC {
   maxDate?: string
   minTime?: string
   maxTime?: string
-  belongsToFkId?: string
   relation?: XMCRelation
-  relateFkId?: string
-  relationType?: 'ONE_TO_MANY' | 'MANY_TO_ONE'
-  relationDirection?: 'reverse' | 'normal'
   enum?: XMCEnum
-  enumLabelFieldName?: string
 }
 
 /**

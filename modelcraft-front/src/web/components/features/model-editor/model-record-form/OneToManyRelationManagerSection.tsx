@@ -71,8 +71,8 @@ function extractOneToManyFields(schema: RJSFSchema): OneToManyRelationField[] {
     const xmc = getXMC(fieldSchema)
     const relation = xmc?.relation
     const widget = xmc?.widget
-    const relateFkId = xmc?.relateFkId
-    const relationType = xmc?.relationType
+    const relateFkId = relation?.relateFkId
+    const relationType = relation?.relationType
     const xmcFormat = xmc?.format
     const databaseName = relation?.databaseName
     const modelName = relation?.modelName

@@ -298,15 +298,13 @@ func TestJSONSchemaGenerator_GenerateSchema_EnumFields(t *testing.T) {
 	assert.Contains(t, enumValues, "INACTIVE")
 	assert.Contains(t, enumValues, "DISCONTINUED")
 
-	// Check x-mc.enum metadata
-	xEnumMeta, ok := getXMC(statusField)["enum"].(map[string]interface{})
+	// x-mc.enum.labelFieldName must always be present for enum fields
+	statusXMC := getXMC(statusField)
+	enumRaw, hasXEnum := statusXMC["enum"]
+	require.True(t, hasXEnum)
+	enumMeta, ok := enumRaw.(map[string]interface{})
 	require.True(t, ok)
-	assert.Equal(t, "ProductStatus", xEnumMeta["name"])
-	assert.Equal(t, false, xEnumMeta["isMultiSelect"])
-
-	options, ok := xEnumMeta["options"].([]interface{})
-	require.True(t, ok)
-	assert.Equal(t, 3, len(options))
+	assert.Equal(t, "status_label", enumMeta["labelFieldName"])
 
 	// Check enum array field
 	tagsField, ok := properties["tags"].(map[string]interface{})
@@ -550,7 +548,9 @@ func TestJSONSchemaGenerator_XRelation(t *testing.T) {
 	require.True(t, ok, "user_id x-mc must have relation as map")
 	assert.Equal(t, "users_db", xRelation["databaseName"])
 	assert.Equal(t, "User", xRelation["modelName"])
-	assert.Equal(t, fkID, xmc["belongsToFkId"], "x-mc.belongsToFkId must also be present")
+	assert.Equal(t, fkID, xRelation["belongsToFkId"])
+	assert.Equal(t, "MANY_TO_ONE", xRelation["relationType"])
+	assert.Equal(t, "normal", xRelation["relationDirection"])
 
 	// note field must NOT have x-mc.relation
 	noteField, ok := properties["note"].(map[string]interface{})
@@ -561,7 +561,7 @@ func TestJSONSchemaGenerator_XRelation(t *testing.T) {
 }
 
 // TestJSONSchemaGenerator_XRelation_MissingMetadata verifies that a field with
-// BelongsToFKID but without Metadata["x-relation"] does NOT emit x-mc.relation.
+// BelongsToFKID but without Metadata["x-relation"] still emits relation ids/type metadata.
 func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 	fkID := "fk-456"
 	model := &DataModel{
@@ -578,7 +578,7 @@ func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 				Type:          GetFieldTypeByFormat(FormatString),
 				BelongsToFKID: &fkID,
 				DisplayOrder:  "a0",
-				// Metadata is nil — x-mc.relation should NOT appear
+				// Metadata is nil — relation should still contain fk/type/direction metadata.
 			},
 		},
 	}
@@ -594,9 +594,13 @@ func TestJSONSchemaGenerator_XRelation_MissingMetadata(t *testing.T) {
 	userIDField := properties["user_id"].(map[string]interface{})
 
 	xmc := getXMC(userIDField)
-	_, hasRelation := xmc["relation"]
-	assert.False(t, hasRelation, "x-mc.relation must not appear when Metadata is nil")
-	assert.Equal(t, fkID, xmc["belongsToFkId"], "x-mc.belongsToFkId must still be present")
+	xRelationRaw, hasRelation := xmc["relation"]
+	require.True(t, hasRelation, "x-mc.relation must be present")
+	xRelation, ok := xRelationRaw.(map[string]interface{})
+	require.True(t, ok, "x-mc.relation must be an object")
+	assert.Equal(t, fkID, xRelation["belongsToFkId"])
+	assert.Equal(t, "MANY_TO_ONE", xRelation["relationType"])
+	assert.Equal(t, "normal", xRelation["relationDirection"])
 }
 
 // TestJSONSchemaGenerator_XRelation_WithRelateFKID verifies that a RELATION field
@@ -639,12 +643,13 @@ func TestJSONSchemaGenerator_XRelation_WithRelateFKID(t *testing.T) {
 	properties := schema["properties"].(map[string]interface{})
 	ordersField := properties["orders"].(map[string]interface{})
 	xmc := getXMC(ordersField)
-
-	assert.Equal(t, relateFKID, xmc["relateFkId"])
-	assert.Equal(t, "ONE_TO_MANY", xmc["relationType"])
-	assert.Equal(t, "reverse", xmc["relationDirection"])
-	_, hasRelation := xmc["relation"]
-	assert.True(t, hasRelation, "RELATION field with RelateFKID should emit x-mc.relation when metadata exists")
+	xRelationRaw, hasRelation := xmc["relation"]
+	require.True(t, hasRelation, "RELATION field with RelateFKID should emit x-mc.relation")
+	xRelation, ok := xRelationRaw.(map[string]interface{})
+	require.True(t, ok, "x-mc.relation must be an object")
+	assert.Equal(t, relateFKID, xRelation["relateFkId"])
+	assert.Equal(t, "ONE_TO_MANY", xRelation["relationType"])
+	assert.Equal(t, "reverse", xRelation["relationDirection"])
 }
 
 func TestJSONSchemaGenerator_RelationTypeByCardinality(t *testing.T) {
@@ -797,8 +802,12 @@ func TestXMC_Widget_RelationSelector(t *testing.T) {
 	}
 	xmc := generateAndGetFieldXMC(t, field)
 	assert.Equal(t, "relation-selector", xmc["widget"])
-	assert.Equal(t, "MANY_TO_ONE", xmc["relationType"])
-	assert.Equal(t, "normal", xmc["relationDirection"])
+	relRaw, ok := xmc["relation"]
+	require.True(t, ok, "x-mc.relation must be present")
+	rel, ok := relRaw.(map[string]interface{})
+	require.True(t, ok, "x-mc.relation must be an object")
+	assert.Equal(t, "MANY_TO_ONE", rel["relationType"])
+	assert.Equal(t, "normal", rel["relationDirection"])
 }
 
 // TestXMC_Widget_None 验证普通 STRING 字段不写 widget 键
@@ -831,8 +840,8 @@ func TestXMC_BaseFields(t *testing.T) {
 	assert.Equal(t, true, xmc["nullable"])
 }
 
-// TestXMC_Enum_Metadata 验证 x-mc.enum 含完整 options（code/label）
-func TestXMC_Enum_Metadata(t *testing.T) {
+// TestXMC_Enum_Metadata_DefaultLabelField 验证无 metadata.enumDisplay 时使用默认 labelFieldName
+func TestXMC_Enum_Metadata_DefaultLabelField(t *testing.T) {
 	field := &FieldDefinition{
 		Name: "status", Title: "Status",
 		Type:         GetFieldTypeByFormat(FormatEnum),
@@ -848,15 +857,11 @@ func TestXMC_Enum_Metadata(t *testing.T) {
 		},
 	}
 	xmc := generateAndGetFieldXMC(t, field)
-	enumMeta, ok := xmc["enum"].(map[string]interface{})
+	enumRaw, ok := xmc["enum"]
+	require.True(t, ok, "x-mc.enum must be present for ENUM fields")
+	enumMeta, ok := enumRaw.(map[string]interface{})
 	require.True(t, ok, "x-mc.enum must be an object")
-	assert.Equal(t, "Status", enumMeta["name"])
-	options, ok := enumMeta["options"].([]interface{})
-	require.True(t, ok, "x-mc.enum.options must be a slice")
-	require.Len(t, options, 2)
-	option0 := options[0].(map[string]interface{})
-	assert.Equal(t, "A", option0["code"])
-	assert.Equal(t, "Alpha", option0["label"])
+	assert.Equal(t, "status_label", enumMeta["labelFieldName"])
 }
 
 func TestXMC_EnumLabelFieldName_FromMetadata(t *testing.T) {
@@ -880,7 +885,11 @@ func TestXMC_EnumLabelFieldName_FromMetadata(t *testing.T) {
 	}
 
 	xmc := generateAndGetFieldXMC(t, field)
-	assert.Equal(t, "enum_display_label", xmc["enumLabelFieldName"])
+	enumRaw, ok := xmc["enum"]
+	require.True(t, ok, "x-mc.enum must be present")
+	enumMeta, ok := enumRaw.(map[string]interface{})
+	require.True(t, ok, "x-mc.enum must be an object")
+	assert.Equal(t, "enum_display_label", enumMeta["labelFieldName"])
 }
 
 // TestXMC_Relation_Metadata 验证 x-mc.relation.databaseName 和 modelName 正确
@@ -965,11 +974,7 @@ func TestXMC_NoUnknownFields(t *testing.T) {
 		"maxDate":       true,
 		"minTime":       true,
 		"maxTime":       true,
-		"belongsToFkId": true,
 		"relation":      true,
-		"relateFkId":    true,
-		"relationType":  true,
-		"relationDirection": true,
 		"enum":          true,
 	}
 

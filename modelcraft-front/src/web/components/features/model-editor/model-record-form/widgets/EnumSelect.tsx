@@ -19,28 +19,41 @@ interface EnumOption {
   label: string
 }
 
+function resolveEnumOptions(schema: RJSFSchema): EnumOption[] {
+  const topLevelEnumCodes = Array.isArray(schema.enum)
+    ? schema.enum.filter((item): item is string => typeof item === 'string' && item !== '')
+    : []
+
+  const itemsSchema = schema.items as Record<string, unknown> | undefined
+  const itemEnumCodes = Array.isArray(itemsSchema?.enum)
+    ? itemsSchema.enum.filter((item): item is string => typeof item === 'string' && item !== '')
+    : []
+
+  const schemaEnumCodes = schema.type === 'array' ? itemEnumCodes : topLevelEnumCodes
+  return schemaEnumCodes.map((code) => ({ code, label: code }))
+}
+
+function resolveIsMultiSelect(schema: RJSFSchema): boolean {
+  return schema.type === 'array'
+}
+
 /**
  * EnumSelect widget for RJSF.
  *
  * Single-select: renders a shadcn <Select> dropdown.
  * Multi-select:  renders a <Popover> with a <Checkbox> list, value stored as string[].
- *
- * ui:options expected:
- *   enumValues: { code: string; label: string }[]
- *   multiple:   boolean
  */
 export function EnumSelect(props: WidgetProps<unknown, RJSFSchema, Record<string, unknown>>) {
   const value = props.value as unknown
   const onChange = props.onChange as (nextValue: unknown) => void
   const disabled = props.disabled as boolean | undefined
   const label = props.label as string | undefined
-  const uiSchema = props.uiSchema as Record<string, unknown> | undefined
-  const uiOptions = uiSchema?.['ui:options'] as Record<string, unknown> | undefined
+  const schema = props.schema as RJSFSchema
   const enumValues: EnumOption[] = useMemo(
-    () => (uiOptions?.enumValues as EnumOption[] | undefined) ?? [],
-    [uiOptions?.enumValues]
+    () => resolveEnumOptions(schema),
+    [schema]
   )
-  const multiple: boolean = (uiOptions?.multiple as boolean) ?? false
+  const multiple: boolean = useMemo(() => resolveIsMultiSelect(schema), [schema])
 
   const [open, setOpen] = useState(false)
 
