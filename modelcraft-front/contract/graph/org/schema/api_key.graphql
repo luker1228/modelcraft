@@ -62,10 +62,6 @@ type ApiKeyNotFound implements Error {
   message: String!
 }
 
-type ApiKeyInvalidInput implements Error {
-  message: String!
-}
-
-union CreateApiKeyError = ApiKeyLimitExceeded | ApiKeyInvalidInput
+union CreateApiKeyError = ApiKeyLimitExceeded | InvalidInput
 union RevokeApiKeyError = ApiKeyNotFound
-union UpdateApiKeyError = ApiKeyNotFound | ApiKeyInvalidInput
+union UpdateApiKeyError = ApiKeyNotFound | InvalidInput

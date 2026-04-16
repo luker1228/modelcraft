@@ -1,21 +1,15 @@
 'use client'
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react'
-import { useQuery, useMutation, gql, ApolloClient } from '@apollo/client'
+import { useQuery, useMutation, ApolloClient } from '@apollo/client'
 import { toast } from 'sonner'
 import { useProjectScopedClient, createModelRuntimeClient, buildRuntimeEndpoint } from '@bff/apollo/public'
-import { InsertFieldSheet } from './InsertFieldSheet'
 import { ModelRecordForm } from './ModelRecordForm'
-import { ModelRecordTable } from './ModelRecordTable'
-import { RecordRelationManagerDialog } from './RecordRelationManagerDialog'
-import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
-import { getFieldProtocols } from './fieldProtocol'
-import {
-  buildEditFormData,
-  mapModelFieldsToRuntimeFields,
-  mapModelFieldsToTableFieldInfos,
-  type ModelField,
-} from './modelFieldMapping'
+import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
+import { ModelRecordTable } from './ModelRecordForm/ModelRecordTable'
+import { RecordRelationManagerDialog } from './ModelRecordForm/RecordRelationManagerDialog'
+import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordForm/ModelRecordTable'
+import { getFieldProtocols } from './ModelRecordForm/runtime/fieldProtocol'
 import {
   buildFindManyQuery,
   buildFindUniqueQuery,
@@ -26,7 +20,14 @@ import {
   extractWritableFieldNamesFromSchema,
   sanitizeMutationInputData,
 } from '@bff/cms/public'
-import { REMOVE_FIELD } from '@web/graphql/mutations/model'
+import type { FieldDefinition } from '@bff/cms/public'
+import { NOOP_MUTATION, NOOP_QUERY } from '@web/graphql'
+import {
+  DEPRECATE_FIELD,
+  REMOVE_FIELD,
+  UNDEPRECATE_FIELD,
+} from '@web/graphql/mutations/model'
+import { GET_MODEL_RECORD_WORKSPACE } from '@web/graphql/queries/model'
 import { Button } from '@web/components/ui/button'
 import {
   Dialog,
@@ -44,12 +45,6 @@ import {
   SheetTitle,
 } from '@web/components/ui/sheet'
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@web/components/ui/dropdown-menu'
-import {
   Filter,
   List,
   Plus,
@@ -58,62 +53,10 @@ import {
   Copy,
   Check,
   RefreshCw,
-  ChevronDown,
-  Columns,
 } from 'lucide-react'
+import { getXMC } from '@/types/xmc'
 
-// Query to get model details with fields and JSON schema
-const GET_MODEL_QUERY = gql`
-  query GetModel($id: ID!) {
-    model(id: $id) {
-      model {
-        id
-        name
-        title
-        description
-        databaseName
-        jsonSchema
-        fields {
-          name
-          title
-          format
-          schemaType
-          storageHint
-          isPrimary
-          isDeprecated
-          description
-        }
-      }
-      error {
-        __typename
-        ... on ModelNotFound {
-          message
-        }
-        ... on InvalidInput {
-          message
-        }
-      }
-    }
-  }
-`
-
-const DEPRECATE_FIELD_MUTATION = gql`
-  mutation DeprecateField($modelID: ID!, $fieldName: String!) {
-    deprecateField(modelID: $modelID, fieldName: $fieldName) {
-      id
-    }
-  }
-`
-
-const UNDEPRECATE_FIELD_MUTATION = gql`
-  mutation UndeprecateField($modelID: ID!, $fieldName: String!) {
-    undeprecateField(modelID: $modelID, fieldName: $fieldName) {
-      id
-    }
-  }
-`
-
-interface DynamicModelTableProps {
+interface ModelRecordWorkspaceProps {
   modelId: string
   projectSlug: string
   orgName: string
@@ -129,7 +72,6 @@ interface GetModelQueryData {
       description?: string | null
       databaseName?: string | null
       jsonSchema?: string | null
-      fields: ModelField[]
     } | null
     error?: {
       message?: string | null
@@ -141,12 +83,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export default function DynamicModelTable({
+function deriveStorageHintFromSchemaProp(prop: Record<string, unknown>): string | null {
+  const xmc = getXMC(prop)
+  if (typeof xmc?.storageHint === 'string' && xmc.storageHint.trim() !== '') {
+    return xmc.storageHint
+  }
+
+  const schemaType = typeof prop.type === 'string' ? prop.type.toUpperCase() : ''
+  if (schemaType === 'STRING') return 'TEXT'
+  if (schemaType === 'INTEGER' || schemaType === 'NUMBER') return 'NUMBER'
+  if (schemaType === 'BOOLEAN') return 'BOOLEAN'
+  return null
+}
+
+function isEnumSchemaProp(prop: Record<string, unknown>): boolean {
+  const xmc = getXMC(prop)
+  return (
+    Array.isArray(prop.enum) ||
+    Array.isArray(xmc?.enum?.options) ||
+    xmc?.widget === 'enum-select'
+  )
+}
+
+function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
+  const configured = getXMC(prop)?.enumLabelFieldName?.trim()
+  return configured ?? ''
+}
+
+export default function ModelRecordWorkspace({
   modelId,
   projectSlug,
   orgName,
   refreshToken = 0,
-}: DynamicModelTableProps) {
+}: ModelRecordWorkspaceProps) {
   const projectClient = useProjectScopedClient(projectSlug)
 
   // 创建 project-scoped context
@@ -173,16 +142,13 @@ export default function DynamicModelTable({
   const [editSaving, setEditSaving] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
 
-  // 插入列状态
-  const [insertColumnOpen, setInsertColumnOpen] = useState(false)
-
   // 复制端点状态
   const [endpointCopied, setEndpointCopied] = useState(false)
   // 复制 name 状态
   const [nameCopied, setNameCopied] = useState(false)
 
   // Fetch model details with fields and JSON schema
-  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_QUERY, {
+  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_RECORD_WORKSPACE, {
     client: projectClient,
     variables: { id: modelId },
     context: projectScopedContext,
@@ -192,8 +158,6 @@ export default function DynamicModelTable({
   const model = modelData?.model?.model
   const modelError = modelData?.model?.error
   const modelName = model?.name
-  const fields = useMemo<ModelField[]>(() => model?.fields ?? [], [model?.fields])
-
   // 创建动态的 Runtime Client，使用模型特定的 GraphQL 端点
   const runtimeClient = useMemo(() => {
     if (!model?.databaseName || !model?.name) return null
@@ -212,12 +176,45 @@ export default function DynamicModelTable({
   }, [model?.jsonSchema])
 
   const runtimeFields = useMemo(() => {
-    if (fields.length > 0) {
-      return mapModelFieldsToRuntimeFields(fields)
+    if (jsonSchema?.properties) {
+      const props = jsonSchema.properties as Record<string, unknown>
+      const schemaFieldDefs: FieldDefinition[] = Object.entries(props).flatMap(([name, rawProp]) => {
+        if (!isRecord(rawProp)) return []
+        const prop = rawProp
+        const labelFieldName = resolveEnumLabelFieldName(prop)
+        const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
+        const schemaType = typeof prop.type === 'string' ? prop.type.toUpperCase() : undefined
+        const format = typeof prop.format === 'string' ? prop.format.toUpperCase() : undefined
+        const baseDef: FieldDefinition = {
+          name,
+          type: schemaType ?? 'string',
+          format,
+          schemaType,
+          storageHint: deriveStorageHintFromSchemaProp(prop) ?? undefined,
+        }
+
+        if (!isEnumSchemaProp(prop)) {
+          return [baseDef]
+        }
+
+        if (!labelFieldName || labelFieldName === name || hasLabelFieldInSchema) {
+          return [baseDef]
+        }
+
+        return [{ ...baseDef }, { name: labelFieldName, type: 'string', schemaType: 'STRING', storageHint: 'TEXT' }]
+      })
+
+      if (schemaFieldDefs.length > 0) {
+        if (!schemaFieldDefs.some((field) => field.name === 'id')) {
+          schemaFieldDefs.unshift({ name: 'id', type: 'string', schemaType: 'STRING' })
+        }
+        return schemaFieldDefs
+      }
     }
+
     if (!jsonSchema) return ['id']
     return extractFieldsFromSchema(jsonSchema as { properties?: Record<string, unknown> })
-  }, [fields, jsonSchema])
+  }, [jsonSchema])
 
   const writableFieldNames = useMemo(
     () => extractWritableFieldNamesFromSchema(jsonSchema as { properties?: Record<string, unknown> } | null | undefined),
@@ -225,12 +222,48 @@ export default function DynamicModelTable({
   )
 
   const tableFieldInfos = useMemo<ModelRecordTableFieldInfo[]>(() => {
-    if (fields.length === 0) {
-      return []
+    if (jsonSchema?.properties) {
+      const props = jsonSchema.properties as Record<string, unknown>
+
+      return Object.entries(props).flatMap(([name, rawProp]) => {
+        if (!isRecord(rawProp)) return []
+        const prop = rawProp
+        const labelFieldName = resolveEnumLabelFieldName(prop)
+        const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
+        const xmc = getXMC(prop)
+        const baseInfo: ModelRecordTableFieldInfo = {
+          name,
+          title: typeof prop.title === 'string' ? prop.title : null,
+          isPrimary: xmc?.isPrimary === true,
+          isDeprecated: false,
+          storageHint: deriveStorageHintFromSchemaProp(prop),
+          schemaType: typeof prop.type === 'string' ? prop.type.toUpperCase() : null,
+        }
+
+        if (!isEnumSchemaProp(prop)) {
+          return [baseInfo]
+        }
+
+        if (!labelFieldName || labelFieldName === name || hasLabelFieldInSchema) {
+          return [baseInfo]
+        }
+
+        return [
+          baseInfo,
+          {
+            name: labelFieldName,
+            title: null,
+            isPrimary: false,
+            isDeprecated: false,
+            storageHint: 'TEXT',
+            schemaType: 'STRING',
+          },
+        ]
+      })
     }
 
-    return mapModelFieldsToTableFieldInfos(fields)
-  }, [fields])
+    return []
+  }, [jsonSchema])
 
   // 使用 model.fields 作为表头字段来源（更可靠）
   const displayFields = useMemo(() => {
@@ -273,7 +306,7 @@ export default function DynamicModelTable({
     data: contentData,
     loading: contentLoading,
     refetch,
-  } = useQuery<Record<string, unknown>>(findManyQuery || gql`query { __typename }`, {
+  } = useQuery<Record<string, unknown>>(findManyQuery || NOOP_QUERY, {
     client: runtimeClient!,
     skip: !findManyQuery || !runtimeClient,
     variables: {
@@ -288,7 +321,7 @@ export default function DynamicModelTable({
     return buildDeleteMutation(modelName)
   }, [modelName])
 
-  const [deleteContent] = useMutation(deleteMutation || gql`mutation { __typename }`, {
+  const [deleteContent] = useMutation(deleteMutation || NOOP_MUTATION, {
     client: runtimeClient!,
     onCompleted: () => {
       refetch()
@@ -297,11 +330,11 @@ export default function DynamicModelTable({
     },
   })
 
-  const [deprecateField] = useMutation(DEPRECATE_FIELD_MUTATION, {
+  const [deprecateField] = useMutation(DEPRECATE_FIELD, {
     client: projectClient,
   })
 
-  const [undeprecateField] = useMutation(UNDEPRECATE_FIELD_MUTATION, {
+  const [undeprecateField] = useMutation(UNDEPRECATE_FIELD, {
     client: projectClient,
   })
 
@@ -315,7 +348,7 @@ export default function DynamicModelTable({
     return buildCreateMutation(modelName)
   }, [modelName])
 
-  const [createContent] = useMutation(createMutation || gql`mutation { __typename }`, {
+  const [createContent] = useMutation(createMutation || NOOP_MUTATION, {
     client: runtimeClient!,
     onCompleted: () => {
       refetch()
@@ -341,7 +374,7 @@ export default function DynamicModelTable({
     return buildUpdateMutation(modelName)
   }, [modelName])
 
-  const [updateContent] = useMutation(updateMutation || gql`mutation { __typename }`, {
+  const [updateContent] = useMutation(updateMutation || NOOP_MUTATION, {
     client: runtimeClient!,
     onCompleted: () => {
       refetch()
@@ -399,7 +432,11 @@ export default function DynamicModelTable({
 
       const item = (data as Record<string, unknown> | undefined)?.findUnique && ((data as Record<string, unknown>).findUnique as Record<string, unknown>)?.item
       if (isRecord(item)) {
-        setEditFormData(buildEditFormData(fields, item))
+        const schemaDrivenData = writableFieldNames.reduce<Record<string, unknown>>((formData, fieldName) => {
+          formData[fieldName] = item[fieldName] ?? ''
+          return formData
+        }, {})
+        setEditFormData(schemaDrivenData)
       }
     } catch (error) {
       console.error('Failed to fetch content:', error)
@@ -593,28 +630,18 @@ export default function DynamicModelTable({
 
           {/* Insert 下拉菜单 */}
           <div className="flex items-center gap-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  size="sm"
-                  className="h-[26px] border-0 bg-primary px-2.5 text-xs font-normal text-white transition-colors duration-200 hover:bg-primary/90"
-                >
-                  <Plus className="mr-1.5 size-3.5" />
-                  <span>插入</span>
-                  <ChevronDown className="ml-1.5 size-3 opacity-70" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="w-40 border border-slate-200 shadow-lg">
-                <DropdownMenuItem onClick={handleCreate} className="cursor-pointer text-xs focus:bg-selected focus:text-foreground">
-                  <Plus className="mr-2 size-3.5" />
-                  插入数据
-                </DropdownMenuItem>
-                <DropdownMenuItem className="cursor-pointer text-xs focus:bg-selected focus:text-foreground" onClick={() => setInsertColumnOpen(true)}>
-                  <Columns className="mr-2 size-3.5" />
-                  插入列
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <ModelRecordInsertMenu
+              onCreateRecord={handleCreate}
+              modelId={modelId}
+              modelName={model?.name}
+              projectSlug={projectSlug}
+              orgName={orgName}
+              existingFieldNames={Object.keys((jsonSchema?.properties as Record<string, unknown>) ?? {})}
+              onInsertFieldSuccess={() => {
+                void refetch()
+                void refetchModel()
+              }}
+            />
           </div>
         </div>
 
@@ -760,21 +787,6 @@ export default function DynamicModelTable({
           )}
         </SheetContent>
       </Sheet>
-
-      {/* 插入列侧边栏 */}
-      <InsertFieldSheet
-        open={insertColumnOpen}
-        onOpenChange={setInsertColumnOpen}
-        modelId={modelId}
-        modelName={model?.name}
-        projectSlug={projectSlug}
-        orgName={orgName}
-        existingFieldNames={(model?.fields ?? []).map((f) => f.name)}
-        onSuccess={() => {
-          void refetch()
-          void refetchModel()
-        }}
-      />
 
       {/* 删除确认对话框 */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

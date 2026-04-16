@@ -1,1 +1,1 @@
-export { default as DynamicModelTable } from './DynamicModelTable'
+export { default as ModelRecordWorkspace } from './ModelRecordWorkspace'

@@ -2,9 +2,10 @@
 
 import React, { useState } from 'react'
 import type { WidgetProps, RJSFSchema } from '@rjsf/utils'
-import { useQuery, gql } from '@apollo/client'
+import { useQuery } from '@apollo/client'
 import { createModelRuntimeClient } from '@bff/apollo/public'
 import { buildFindManyQuery } from '@bff/cms/public'
+import { NOOP_QUERY } from '@web/graphql'
 import {
   Select,
   SelectContent,
@@ -94,7 +95,7 @@ export function RelationPicker(props: WidgetProps) {
 
   // Provide a no-op fallback query/client so hooks are always called unconditionally.
   // The `skip` flag prevents actual execution when client or query is not ready.
-  const safeQuery = findManyQuery ?? gql`query Noop { __typename }`
+  const safeQuery = findManyQuery ?? NOOP_QUERY
   const safeClient = client ?? undefined
 
   const {

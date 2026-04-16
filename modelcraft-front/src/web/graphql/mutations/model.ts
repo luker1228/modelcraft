@@ -613,6 +613,22 @@ export const REMOVE_FIELD = gql`
   }
 `
 
+export const DEPRECATE_FIELD = gql`
+  mutation DeprecateField($modelID: ID!, $fieldName: String!) {
+    deprecateField(modelID: $modelID, fieldName: $fieldName) {
+      id
+    }
+  }
+`
+
+export const UNDEPRECATE_FIELD = gql`
+  mutation UndeprecateField($modelID: ID!, $fieldName: String!) {
+    undeprecateField(modelID: $modelID, fieldName: $fieldName) {
+      id
+    }
+  }
+`
+
 // 创建逻辑外键
 export const CREATE_LOGICAL_FOREIGN_KEY = gql`
   mutation CreateLogicalForeignKey($input: CreateLogicalForeignKeyInput!) {

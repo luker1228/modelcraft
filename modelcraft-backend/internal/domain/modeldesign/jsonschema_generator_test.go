@@ -859,6 +859,30 @@ func TestXMC_Enum_Metadata(t *testing.T) {
 	assert.Equal(t, "Alpha", option0["label"])
 }
 
+func TestXMC_EnumLabelFieldName_FromMetadata(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "status", Title: "Status",
+		Type:         GetFieldTypeByFormat(FormatEnum),
+		DisplayOrder: "a0",
+		Metadata: map[string]any{
+			"enumDisplay": map[string]any{
+				"labelFieldName": "enum_display_label",
+			},
+		},
+		Enum: &EnumDefinition{
+			Name:          "Status",
+			DisplayName:   "Status",
+			IsMultiSelect: false,
+			Options: []EnumOption{
+				{Code: "A", Label: "Alpha"},
+			},
+		},
+	}
+
+	xmc := generateAndGetFieldXMC(t, field)
+	assert.Equal(t, "enum_display_label", xmc["enumLabelFieldName"])
+}
+
 // TestXMC_Relation_Metadata 验证 x-mc.relation.databaseName 和 modelName 正确
 func TestXMC_Relation_Metadata(t *testing.T) {
 	fkID := "fk-99"

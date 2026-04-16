@@ -11,6 +11,11 @@ interface Node {
   id: ID!
 }
 
+type InvalidInput implements Error {
+  message: String!
+  suggestion: String
+}
+
 # Pagination types
 type PageInfo {
   hasNextPage: Boolean!

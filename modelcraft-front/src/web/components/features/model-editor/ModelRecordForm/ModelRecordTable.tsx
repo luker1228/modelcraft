@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@web/components/ui/button'
 import {
   Table,
@@ -24,7 +24,8 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { Archive, Check, Copy, Edit, Key, Link2, Loader2, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { renderCellValue } from './fieldProtocol'
+import { renderCellValue } from './runtime/fieldProtocol'
+import { getXMC } from '@/types/xmc'
 
 export interface ModelRecordTableFieldInfo {
   name: string
@@ -52,6 +53,14 @@ interface ModelRecordTableProps {
   onManageRelations?: (id: string) => void
   onToggleFieldDeprecated?: (fieldInfo: ModelRecordTableFieldInfo) => void
   onDeleteField?: (fieldInfo: ModelRecordTableFieldInfo) => void
+}
+
+type PairRole = 'label' | 'code'
+
+interface PairMeta {
+  pairBase: string
+  role: PairRole
+  pairedField: string
 }
 
 export function ModelRecordTable({
@@ -134,7 +143,55 @@ export function ModelRecordTable({
     }
   }, [resizingColumn, handleResizeMove, handleResizeEnd])
 
-  const visibleFields = displayFields
+  const { visibleFields, pairMetaByField } = useMemo(() => {
+    const ordered: string[] = []
+    const seen = new Set<string>()
+    const fieldSet = new Set(displayFields)
+    const pairMeta: Record<string, PairMeta> = {}
+    const configuredLabelFieldByCodeField = new Map<string, string>()
+
+    Object.entries(propByName).forEach(([codeField, prop]) => {
+      const enumLabelFieldName = getXMC(prop as Record<string, unknown>)?.enumLabelFieldName?.trim()
+      if (!enumLabelFieldName || enumLabelFieldName === codeField) return
+      if (!fieldSet.has(codeField) || !fieldSet.has(enumLabelFieldName)) return
+      configuredLabelFieldByCodeField.set(codeField, enumLabelFieldName)
+    })
+
+    displayFields.forEach((field) => {
+      if (seen.has(field)) return
+
+      const configuredLabelField = configuredLabelFieldByCodeField.get(field)
+      if (configuredLabelField) {
+        ordered.push(configuredLabelField, field)
+        seen.add(configuredLabelField)
+        seen.add(field)
+        pairMeta[configuredLabelField] = { pairBase: field, role: 'label', pairedField: field }
+        pairMeta[field] = { pairBase: field, role: 'code', pairedField: configuredLabelField }
+        return
+      }
+
+      const configuredCodeField = Array.from(configuredLabelFieldByCodeField.entries()).find(
+        ([, labelField]) => labelField === field
+      )?.[0]
+      if (configuredCodeField && fieldSet.has(configuredCodeField)) {
+        ordered.push(field, configuredCodeField)
+        seen.add(field)
+        seen.add(configuredCodeField)
+        pairMeta[field] = { pairBase: configuredCodeField, role: 'label', pairedField: configuredCodeField }
+        pairMeta[configuredCodeField] = {
+          pairBase: configuredCodeField,
+          role: 'code',
+          pairedField: field,
+        }
+        return
+      }
+
+      ordered.push(field)
+      seen.add(field)
+    })
+
+    return { visibleFields: ordered, pairMetaByField: pairMeta }
+  }, [displayFields, propByName])
 
   const copyText = useCallback(async (text: string) => {
     if (navigator.clipboard && window.isSecureContext) {
@@ -172,11 +229,23 @@ export function ModelRecordTable({
                 </TableHead>
                 {visibleFields.map((field) => {
                   const fieldInfo = getFieldInfo(field)
+                  const pairMeta = pairMetaByField[field]
+                  const pairBaseInfo = pairMeta ? getFieldInfo(pairMeta.pairBase) : null
                   const typeDisplay = getFieldTypeDisplay(fieldInfo)
                   const isPrimary = fieldInfo?.isPrimary
                   const isDeprecated = fieldInfo?.isDeprecated === true
-                  const fieldTitle = (fieldInfo?.title ?? field).trim() || field
+                  const fieldTitle =
+                    pairMeta?.role === 'label'
+                      ? `${((pairBaseInfo?.title ?? pairMeta.pairBase) || pairMeta.pairBase).trim()} Label`
+                      : (fieldInfo?.title ?? field).trim() || field
                   const headerLabel = `${fieldTitle} (${field})`
+                  const schemaProp = propByName[field] as { enum?: unknown[] } | undefined
+                  const enumOptions = Array.isArray(schemaProp?.enum) ? schemaProp.enum : []
+                  const isEnumField = enumOptions.length > 0
+                  const showFieldName = fieldTitle !== field
+                  const isPairedLabel = pairMeta?.role === 'label'
+                  const isPairedCode = pairMeta?.role === 'code'
+                  const isDerivedLabelField = isPairedLabel
                   const headerFieldInfo: ModelRecordTableFieldInfo = {
                     name: field,
                     title: fieldInfo?.title ?? null,
@@ -189,52 +258,81 @@ export function ModelRecordTable({
                   return (
                     <TableHead
                       key={field}
-                      className="group relative bg-sidebar py-2.5 text-xs font-semibold text-foreground"
+                      className={`group relative py-2.5 text-xs font-semibold text-foreground ${
+                        isPairedLabel || isPairedCode ? 'bg-[#f8fbff]' : 'bg-sidebar'
+                      }`}
                       style={{ width: getColumnWidth(field) }}
                     >
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <button
                             type="button"
-                            className="flex min-w-0 items-center gap-1.5 pr-3 text-left"
+                            className="flex min-w-0 flex-col items-start gap-1 pr-3 text-left"
                             title={`${headerLabel}（点击管理字段）`}
                           >
-                            {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
-                            <span
-                              className={`truncate text-xs font-semibold ${
-                                isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'
-                              }`}
-                            >
-                              {headerLabel}
-                            </span>
-                            {typeDisplay && (
-                              <>
-                                <span className="flex-shrink-0 text-[10px] text-muted-foreground/40">
-                                  ·
+                            <span className="flex min-w-0 items-center gap-1.5">
+                              {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
+                              <span
+                                className={`truncate text-xs font-semibold ${
+                                  isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'
+                                }`}
+                              >
+                                {fieldTitle}
+                              </span>
+                              {isEnumField && (
+                                <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(37,99,235,0.22)] bg-[#dbeafe] px-1.5 py-0 text-[9px] font-semibold uppercase leading-4 text-[#1d4ed8]">
+                                  Enum
                                 </span>
-                                <span className="flex-shrink-0 font-mono text-[10px] font-normal text-muted-foreground">
+                              )}
+                              {isPairedLabel && (
+                                <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(5,150,105,0.24)] bg-[#ecfdf5] px-1.5 py-0 text-[9px] font-semibold leading-4 text-[#047857]">
+                                  Label
+                                </span>
+                              )}
+                              {isPairedCode && (
+                                <span className="inline-flex flex-shrink-0 items-center rounded border border-border/80 bg-muted/60 px-1.5 py-0 text-[9px] font-semibold leading-4 text-muted-foreground">
+                                  Code
+                                </span>
+                              )}
+                            </span>
+                            <span className="flex min-w-0 items-center gap-1.5 text-[10px] leading-4 text-muted-foreground">
+                              {showFieldName && (
+                                <span className="truncate font-mono font-normal text-muted-foreground/90">
+                                  {field}
+                                </span>
+                              )}
+                              {isEnumField && (
+                                <span className="flex-shrink-0 rounded border border-border/70 bg-muted/50 px-1.5 py-0 text-[9px] font-medium text-muted-foreground">
+                                  {enumOptions.length} 项
+                                </span>
+                              )}
+                              {typeDisplay && (
+                                <span className="flex-shrink-0 font-mono font-normal text-muted-foreground/90">
                                   {typeDisplay}
                                 </span>
-                              </>
-                            )}
+                              )}
+                            </span>
                           </button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="start" className="w-36">
                           <DropdownMenuItem
-                            className="cursor-pointer text-xs"
+                            className={`text-xs ${
+                              isDerivedLabelField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'
+                            }`}
                             onClick={() => onToggleFieldDeprecated?.(headerFieldInfo)}
+                            disabled={isDerivedLabelField}
                           >
                             <Archive className="mr-2 size-3.5" />
                             {isDeprecated ? '取消废弃' : '废弃字段'}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             className={`cursor-pointer text-xs ${
-                              isDeprecated
+                              !isDerivedLabelField && isDeprecated
                                 ? 'text-destructive focus:text-destructive'
                                 : 'cursor-not-allowed text-muted-foreground/50'
                             }`}
                             onClick={() => onDeleteField?.(headerFieldInfo)}
-                            disabled={!isDeprecated}
+                            disabled={!isDeprecated || isDerivedLabelField}
                           >
                             <Trash2 className="mr-2 size-3.5" />
                             删除字段
@@ -301,13 +399,17 @@ export function ModelRecordTable({
                         {index + 1}
                       </TableCell>
                       {visibleFields.map((field) => {
+                        const pairMeta = pairMetaByField[field]
+                        const isPairedLabel = pairMeta?.role === 'label'
+                        const isPairedCode = pairMeta?.role === 'code'
                         const rawValue = item[field]
+                        const pairedRawValue = pairMeta ? item[pairMeta.pairedField] : undefined
 
                         if (rawValue === null || rawValue === undefined) {
                           return (
                             <TableCell
                               key={field}
-                              className="py-2"
+                              className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-[#f8fbff]' : ''}`}
                               style={{ width: getColumnWidth(field) }}
                             >
                               <span className="font-mono text-xs text-muted-foreground/50">NULL</span>
@@ -321,17 +423,32 @@ export function ModelRecordTable({
                         return (
                           <TableCell
                             key={field}
-                            className="py-2"
+                            className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-[#f8fbff]' : ''}`}
                             style={{ width: getColumnWidth(field) }}
                           >
                             <Tooltip delayDuration={300}>
                               <TooltipTrigger asChild>
-                                <span
-                                  className="block truncate text-sm font-normal text-foreground"
-                                  style={{ maxWidth: getColumnWidth(field) - 16 }}
-                                >
-                                  {renderedValue}
-                                </span>
+                                <div className="space-y-0.5" style={{ maxWidth: getColumnWidth(field) - 16 }}>
+                                  <span
+                                    className={`block truncate text-sm ${
+                                      isPairedCode
+                                        ? 'font-mono font-normal text-muted-foreground'
+                                        : 'font-normal text-foreground'
+                                    }`}
+                                  >
+                                    {renderedValue}
+                                  </span>
+                                  {isPairedCode && pairedRawValue !== undefined && pairedRawValue !== null && (
+                                    <span className="block truncate text-[10px] text-muted-foreground/80">
+                                      {renderCellValue(pairedRawValue, propByName[pairMeta.pairedField] ?? {})}
+                                    </span>
+                                  )}
+                                  {isPairedLabel && pairedRawValue !== undefined && pairedRawValue !== null && (
+                                    <span className="block truncate font-mono text-[10px] text-muted-foreground/80">
+                                      {renderCellValue(pairedRawValue, propByName[pairMeta.pairedField] ?? {})}
+                                    </span>
+                                  )}
+                                </div>
                               </TooltipTrigger>
                               <TooltipContent
                                 side="bottom"

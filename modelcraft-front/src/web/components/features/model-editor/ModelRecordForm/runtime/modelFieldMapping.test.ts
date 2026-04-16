@@ -43,7 +43,14 @@ describe('mapModelFieldsToRuntimeFields', () => {
 describe('mapModelFieldsToTableFieldInfos', () => {
   it('maps title/name related metadata and normalizes booleans', () => {
     const fields: ModelField[] = [
-      { name: 'code', title: 'Code', isPrimary: true, storageHint: 'TEXT', schemaType: 'STRING' },
+      {
+        name: 'code',
+        title: 'Code',
+        isPrimary: true,
+        storageHint: 'TEXT',
+        schemaType: 'STRING',
+        format: 'ENUM',
+      },
       { name: 'desc', title: null, isPrimary: false, storageHint: null, schemaType: null },
     ]
 
@@ -52,6 +59,7 @@ describe('mapModelFieldsToTableFieldInfos', () => {
         name: 'code',
         title: 'Code',
         isPrimary: true,
+        isDeprecated: false,
         storageHint: 'TEXT',
         schemaType: 'STRING',
       },
@@ -59,6 +67,7 @@ describe('mapModelFieldsToTableFieldInfos', () => {
         name: 'desc',
         title: null,
         isPrimary: false,
+        isDeprecated: false,
         storageHint: null,
         schemaType: null,
       },

@@ -1,5 +1,5 @@
 import type { FieldDefinition } from '@bff/cms/public'
-import type { ModelRecordTableFieldInfo } from './ModelRecordTable'
+import type { ModelRecordTableFieldInfo } from '../ModelRecordTable'
 
 export interface ModelField {
   name: string
@@ -7,6 +7,7 @@ export interface ModelField {
   format?: string | null
   schemaType?: string | null
   storageHint?: string | null
+  metadata?: string | null
   isPrimary?: boolean | null
   isDeprecated?: boolean | null
   type?: string | null

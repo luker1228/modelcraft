@@ -20,7 +20,7 @@ import { CreateModelDialog } from './CreateModelDialog'
 import { DeleteModelDialog } from './DeleteModelDialog'
 import { FieldEditSheet } from './FieldEditSheet'
 
-const DynamicModelTable = lazy(() => import('@web/components/features/model-editor/DynamicModelTable'))
+const ModelRecordWorkspace = lazy(() => import('@web/components/features/model-editor/ModelRecordWorkspace'))
 
 export function ModelEditorView() {
   const params = useParams()
@@ -132,7 +132,7 @@ export function ModelEditorView() {
               </div>
             }
           >
-            <DynamicModelTable
+            <ModelRecordWorkspace
               key={`${state.selectedModelId}-${schemaRefreshToken}`}
               modelId={state.selectedModelId}
               projectSlug={projectSlug}

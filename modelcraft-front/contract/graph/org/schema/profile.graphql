@@ -12,13 +12,8 @@ type ProfileNotFound implements Error {
   message: String!
 }
 
-type InvalidProfileInput implements Error {
-  message: String!
-  suggestion: String
-}
-
 union GetMyUserProfileError = UserNotFound | ProfileNotFound
-union UpdateMyProfileError = ProfileNotFound | InvalidProfileInput
+union UpdateMyProfileError = ProfileNotFound | InvalidInput
 
 # ============================================
 # Profile Domain Types

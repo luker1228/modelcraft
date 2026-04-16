@@ -205,7 +205,7 @@ const OrgScopedClientContext = createContext<ApolloClient<object> | null>(null)
  * Falls back to singleton if no context provider is present.
  *
  * @deprecated Prefer useProjectScopedClient() for project-level operations.
- * Kept for backward compatibility with existing consumers (DynamicModelTable, InsertFieldSheet, FormRenderer).
+ * Kept for backward compatibility with existing consumers (ModelRecordWorkspace, InsertFieldSheet, FormRenderer).
  */
 export function useDesignTimeClient(): ApolloClient<object> {
   const client = useContext(OrgScopedClientContext)

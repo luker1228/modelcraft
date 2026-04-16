@@ -187,6 +187,78 @@ sequenceDiagram
 
 ---
 
+## GraphQL 操作层约定
+
+前端**单独划分 GraphQL 操作层**，统一管理所有查询和变更定义，禁止在组件内部直接裸调 GraphQL。
+
+### 为什么禁止在组件中直接写 GraphQL 操作
+
+- **查询定义分散**：GraphQL 操作散落在各个组件中，无法集中管理和发现
+- **复用困难**：组件内的查询无法被其他组件复用
+- **测试困难**：组件与 GraphQL 操作强耦合，难以单独测试
+- **Codegen 不可见**：Codegen 无法扫描组件内的查询定义，导致类型生成不完整
+
+### 正确做法：静态 GraphQL 定义
+
+所有 GraphQL 操作必须定义在 `src/web/graphql/` 目录下的静态 `.ts` 文件中：
+
+```
+src/web/graphql/
+├── mutations/
+│   ├── index.ts
+│   ├── project.ts
+│   ├── model.ts
+│   ├── cluster.ts
+│   ├── enum.ts
+│   └── ...
+└── queries/
+    ├── index.ts
+    ├── project.ts
+    ├── model.ts
+    ├── cluster.ts
+    ├── enum.ts
+    └── ...
+```
+
+组件通过导入使用：
+
+```typescript
+// ✅ 正确：从 graphql 层导入
+import { GET_MODELS } from '@web/graphql/queries/model'
+import { CREATE_MODEL } from '@web/graphql/mutations/model'
+
+function ModelList() {
+  const { data } = useQuery(GET_MODELS)
+  // ...
+}
+```
+
+```typescript
+// ❌ 禁止：在组件内直接定义 GraphQL 操作
+function ModelList() {
+  const { data } = useQuery(gql`query { models { ... } }`)
+  // ...
+}
+```
+
+### 依赖关系
+
+```
+src/web/graphql/          ← GraphQL 操作定义（静态 .ts 文件）
+        ↓
+src/generated/graphql.ts  ← Codegen 生成的类型（禁止手动修改）
+        ↓
+src/bff/apollo/           ← Apollo Client 实例管理
+        ↓
+src/web/components/       ← 组件只做 UI 渲染，不直接接触 GraphQL
+```
+
+组件层永远不直接 import Apollo Client 或写 gql 操作，必须通过：
+1. 导入已定义的查询/变更
+2. 或通过 BFF 层的门面函数（如 `@bff/model-enum/public.ts`）
+
+---
+
 ## 反向代理
 
 `next.config.mjs` 将以下路径代理到 Go 后端（`http://localhost:8080`），前端组件从不直接访问后端端口：

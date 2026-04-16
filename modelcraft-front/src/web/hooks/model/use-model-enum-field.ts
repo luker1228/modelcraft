@@ -110,7 +110,7 @@ export function useModelEnumContext(params: UseModelEnumContextParams): UseModel
 
     return {
       sourceOptions: contextResult.enumSources,
-      relationOptions: contextResult.relations,
+      relationOptions: contextResult.relations as EnumRelationOption[],
       error: contextError,
     }
   }, [modelId, orgName, projectSlug, projectClient])

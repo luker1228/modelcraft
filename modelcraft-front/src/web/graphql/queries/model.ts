@@ -167,6 +167,31 @@ export const GET_MODEL = gql`
   }
 `
 
+// 查询 Record Workspace 所需的最小模型信息（schema-first 运行态）
+export const GET_MODEL_RECORD_WORKSPACE = gql`
+  query GetModelRecordWorkspace($id: ID!) {
+    model(id: $id) {
+      model {
+        id
+        name
+        title
+        description
+        databaseName
+        jsonSchema
+      }
+      error {
+        __typename
+        ... on ModelNotFound {
+          message
+        }
+        ... on InvalidInput {
+          message
+        }
+      }
+    }
+  }
+`
+
 // 根据名称查询模型
 export const GET_MODEL_BY_NAME = gql`
   query GetModelByName($name: String!, $databaseName: String!) {

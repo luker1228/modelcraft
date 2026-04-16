@@ -30,7 +30,6 @@ export type ActualForeignKey = {
 
 export type AddFieldInput = {
   description?: InputMaybe<Scalars['String']['input']>;
-  enumRelationId?: InputMaybe<Scalars['ID']['input']>;
   format: FormatType;
   isArray?: InputMaybe<Scalars['Boolean']['input']>;
   isUnique?: InputMaybe<Scalars['Boolean']['input']>;
@@ -77,11 +76,6 @@ export type ApiKey = {
   revokedAt?: Maybe<Scalars['Time']['output']>;
 };
 
-export type ApiKeyInvalidInput = Error & {
-  __typename?: 'ApiKeyInvalidInput';
-  message: Scalars['String']['output'];
-};
-
 export type ApiKeyLimitExceeded = Error & {
   __typename?: 'ApiKeyLimitExceeded';
   message: Scalars['String']['output'];
@@ -92,7 +86,7 @@ export type ApiKeyNotFound = Error & {
   message: Scalars['String']['output'];
 };
 
-export type AssignRoleError = PermissionInvalidInput | PermissionRoleNotFound | PermissionUserNotFound;
+export type AssignRoleError = InvalidInput | PermissionRoleNotFound | PermissionUserNotFound;
 
 export type AssignRolePayload = {
   __typename?: 'AssignRolePayload';
@@ -149,7 +143,7 @@ export type ClusterStatus =
   | 'ACTIVE'
   | 'DISABLED';
 
-export type CreateApiKeyError = ApiKeyInvalidInput | ApiKeyLimitExceeded;
+export type CreateApiKeyError = ApiKeyLimitExceeded | InvalidInput;
 
 export type CreateApiKeyInput = {
   expiresAt?: InputMaybe<Scalars['Time']['input']>;
@@ -171,7 +165,7 @@ export type CreateApiKeyResult = {
   name: Scalars['String']['output'];
 };
 
-export type CreateCustomRoleError = PermissionInvalidInput | PermissionRoleAlreadyExists;
+export type CreateCustomRoleError = InvalidInput | PermissionRoleAlreadyExists;
 
 export type CreateCustomRoleInput = {
   description?: InputMaybe<Scalars['String']['input']>;
@@ -185,7 +179,7 @@ export type CreateCustomRolePayload = {
   role?: Maybe<PermissionRole>;
 };
 
-export type CreateEnumError = EnumAlreadyExists | InvalidEnumInput | ProjectNotFound;
+export type CreateEnumError = EnumAlreadyExists | InvalidInput | ProjectNotFound;
 
 export type CreateEnumInput = {
   description?: InputMaybe<Scalars['String']['input']>;
@@ -198,21 +192,6 @@ export type CreateEnumPayload = {
   __typename?: 'CreateEnumPayload';
   enum?: Maybe<EnumDefinition>;
   error?: Maybe<CreateEnumError>;
-};
-
-export type CreateFieldEnumRelationError = FieldEnumSourceConflict | InvalidInput;
-
-export type CreateFieldEnumRelationInput = {
-  enumName: Scalars['String']['input'];
-  labelFieldName: Scalars['String']['input'];
-  modelId: Scalars['ID']['input'];
-  sourceFieldName: Scalars['String']['input'];
-};
-
-export type CreateFieldEnumRelationPayload = {
-  __typename?: 'CreateFieldEnumRelationPayload';
-  error?: Maybe<CreateFieldEnumRelationError>;
-  relation?: Maybe<FieldEnumRelation>;
 };
 
 export type CreateGroupError = GroupAlreadyExists | InvalidGroupName;
@@ -241,7 +220,7 @@ export type CreateLogicalForeignKeyPayload = {
 
 export type CreateLogicalForeignKeyResult = FkColumnsNotFoundError | FkFieldCountMismatchError | LogicalForeignKey;
 
-export type CreateModelError = InvalidModelInput | ModelAlreadyExists | ModelTableAlreadyExists | ProjectNotFound;
+export type CreateModelError = InvalidInput | ModelAlreadyExists | ModelTableAlreadyExists | ProjectNotFound;
 
 export type CreateModelFromSchemaInput = {
   databaseName: Scalars['String']['input'];
@@ -267,7 +246,7 @@ export type CreateModelPayload = {
   model?: Maybe<Model>;
 };
 
-export type CreateProjectError = DatabaseConnectionFailed | InvalidProjectInput | ProjectAlreadyExists;
+export type CreateProjectError = DatabaseConnectionFailed | InvalidInput | ProjectAlreadyExists;
 
 export type CreateProjectInput = {
   clusterInput: ClusterConnectionInput;
@@ -283,7 +262,7 @@ export type CreateProjectPayload = {
   project?: Maybe<Project>;
 };
 
-export type CreateRoleError = InvalidRoleInput | RoleAlreadyExists;
+export type CreateRoleError = InvalidInput | RoleAlreadyExists;
 
 export type CreateRoleInput = {
   description?: InputMaybe<Scalars['String']['input']>;
@@ -397,14 +376,6 @@ export type DeleteEnumPayload = {
   success: Scalars['Boolean']['output'];
 };
 
-export type DeleteFieldEnumRelationError = InvalidInput;
-
-export type DeleteFieldEnumRelationPayload = {
-  __typename?: 'DeleteFieldEnumRelationPayload';
-  error?: Maybe<DeleteFieldEnumRelationError>;
-  success: Scalars['Boolean']['output'];
-};
-
 export type DeleteGroupError = GroupNotFound;
 
 export type DeleteGroupPayload = {
@@ -472,6 +443,7 @@ export type EnumDefinition = {
   isMultiSelect: Scalars['Boolean']['output'];
   name: Scalars['String']['output'];
   options: Array<EnumOption>;
+  orgName: Scalars['String']['output'];
   projectSlug: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
 };
@@ -532,12 +504,12 @@ export type Field = {
   description?: Maybe<Scalars['String']['output']>;
   enum?: Maybe<EnumDefinition>;
   enumName?: Maybe<Scalars['String']['output']>;
-  enumRelationId?: Maybe<Scalars['ID']['output']>;
   format: FormatType;
   isArray: Scalars['Boolean']['output'];
   isDeprecated: Scalars['Boolean']['output'];
   isPrimary: Scalars['Boolean']['output'];
   isUnique: Scalars['Boolean']['output'];
+  metadata?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   nonNull: Scalars['Boolean']['output'];
   relateFkId?: Maybe<Scalars['String']['output']>;
@@ -561,26 +533,6 @@ export type FieldConflictAspect =
   | 'PRIMARY_MISMATCH'
   | 'UNIQUE_MISMATCH';
 
-export type FieldEnumRelation = Node & {
-  __typename?: 'FieldEnumRelation';
-  createdAt: Scalars['String']['output'];
-  enumName: Scalars['String']['output'];
-  id: Scalars['ID']['output'];
-  labelFieldName: Scalars['String']['output'];
-  modelId: Scalars['ID']['output'];
-  orgName: Scalars['String']['output'];
-  projectSlug: Scalars['String']['output'];
-  sourceFieldName: Scalars['String']['output'];
-  updatedAt: Scalars['String']['output'];
-};
-
-export type FieldEnumSourceConflict = Error & {
-  __typename?: 'FieldEnumSourceConflict';
-  code: Scalars['String']['output'];
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
 export type FieldFormatImmutable = Error & {
   __typename?: 'FieldFormatImmutable';
   code: Scalars['String']['output'];
@@ -600,7 +552,6 @@ export type FormatType =
   | 'DATETIME'
   | 'DECIMAL'
   | 'ENUM'
-  | 'ENUM_LABEL'
   | 'INTEGER'
   | 'NUMBER'
   | 'RELATION'
@@ -624,7 +575,7 @@ export type GetEnumPayload = {
   error?: Maybe<GetEnumError>;
 };
 
-export type GetModelError = InvalidModelInput | ModelNotFound | ProjectNotFound;
+export type GetModelError = InvalidInput | ModelNotFound | ProjectNotFound;
 
 export type GetModelPayload = {
   __typename?: 'GetModelPayload';
@@ -685,18 +636,6 @@ export type ImportModelPayload = {
   skippedFields: Array<Scalars['String']['output']>;
 };
 
-export type InvalidClusterInput = Error & {
-  __typename?: 'InvalidClusterInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
-export type InvalidEnumInput = Error & {
-  __typename?: 'InvalidEnumInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
 export type InvalidGroupName = Error & {
   __typename?: 'InvalidGroupName';
   message: Scalars['String']['output'];
@@ -705,30 +644,6 @@ export type InvalidGroupName = Error & {
 
 export type InvalidInput = Error & {
   __typename?: 'InvalidInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
-export type InvalidModelInput = Error & {
-  __typename?: 'InvalidModelInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
-export type InvalidProfileInput = Error & {
-  __typename?: 'InvalidProfileInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
-export type InvalidProjectInput = Error & {
-  __typename?: 'InvalidProjectInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
-export type InvalidRoleInput = Error & {
-  __typename?: 'InvalidRoleInput';
   message: Scalars['String']['output'];
   suggestion?: Maybe<Scalars['String']['output']>;
 };
@@ -778,6 +693,7 @@ export type Model = Node & {
   fields: Array<Field>;
   group: ModelGroup;
   id: Scalars['ID']['output'];
+  jsonSchema?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   projectSlug: Scalars['String']['output'];
   storageType: Scalars['String']['output'];
@@ -859,7 +775,6 @@ export type Mutation = {
   createApiKey: CreateApiKeyPayload;
   createCustomRole: CreateCustomRolePayload;
   createEnum: CreateEnumPayload;
-  createFieldEnumRelation: CreateFieldEnumRelationPayload;
   createGroup: CreateGroupPayload;
   createLogicalForeignKey: CreateLogicalForeignKeyPayload;
   createModel: CreateModelPayload;
@@ -867,7 +782,6 @@ export type Mutation = {
   createProject: CreateProjectPayload;
   createRole: CreateRolePayload;
   deleteEnum: DeleteEnumPayload;
-  deleteFieldEnumRelation: DeleteFieldEnumRelationPayload;
   deleteGroup: DeleteGroupPayload;
   deleteLogicalForeignKey: DeleteLogicalForeignKeyPayload;
   deleteModel: DeleteModelPayload;
@@ -946,11 +860,6 @@ export type MutationCreateEnumArgs = {
 };
 
 
-export type MutationCreateFieldEnumRelationArgs = {
-  input: CreateFieldEnumRelationInput;
-};
-
-
 export type MutationCreateGroupArgs = {
   input: CreateGroupInput;
 };
@@ -983,11 +892,6 @@ export type MutationCreateRoleArgs = {
 
 export type MutationDeleteEnumArgs = {
   name: Scalars['String']['input'];
-};
-
-
-export type MutationDeleteFieldEnumRelationArgs = {
-  id: Scalars['ID']['input'];
 };
 
 
@@ -1196,12 +1100,6 @@ export type PermissionDef = {
   obj: Scalars['String']['output'];
 };
 
-export type PermissionInvalidInput = PermissionManagementError & {
-  __typename?: 'PermissionInvalidInput';
-  message: Scalars['String']['output'];
-  suggestion?: Maybe<Scalars['String']['output']>;
-};
-
 export type PermissionManagementError = {
   message: Scalars['String']['output'];
   suggestion?: Maybe<Scalars['String']['output']>;
@@ -1305,7 +1203,6 @@ export type Query = {
   enum: GetEnumPayload;
   enumReferences: Array<Scalars['String']['output']>;
   enums: Array<EnumDefinition>;
-  fieldEnumRelations: Array<FieldEnumRelation>;
   fields: Array<Field>;
   hello: Scalars['String']['output'];
   listDatabases: DatabaseConnection;
@@ -1344,11 +1241,6 @@ export type QueryEnumArgs = {
 
 export type QueryEnumReferencesArgs = {
   name: Scalars['String']['input'];
-};
-
-
-export type QueryFieldEnumRelationsArgs = {
-  modelID: Scalars['ID']['input'];
 };
 
 
@@ -1530,7 +1422,7 @@ export type RoleNotFound = Error & {
   message: Scalars['String']['output'];
 };
 
-export type RolePermissionError = PermissionInvalidInput | PermissionRoleNotFound | PermissionSystemRoleCannotBeModified;
+export type RolePermissionError = InvalidInput | PermissionRoleNotFound | PermissionSystemRoleCannotBeModified;
 
 export type SchemaIssue = {
   __typename?: 'SchemaIssue';
@@ -1597,7 +1489,7 @@ export type TestDatabaseConnectionInput = {
   projectSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type UpdateApiKeyError = ApiKeyInvalidInput | ApiKeyNotFound;
+export type UpdateApiKeyError = ApiKeyNotFound | InvalidInput;
 
 export type UpdateApiKeyInput = {
   expiresAt?: InputMaybe<Scalars['Time']['input']>;
@@ -1617,7 +1509,7 @@ export type UpdateClusterConnectionInput = {
   title?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type UpdateClusterError = ClusterNotFound | DatabaseConnectionFailed | InvalidClusterInput | ProjectNotFound;
+export type UpdateClusterError = ClusterNotFound | DatabaseConnectionFailed | InvalidInput | ProjectNotFound;
 
 export type UpdateClusterPayload = {
   __typename?: 'UpdateClusterPayload';
@@ -1625,7 +1517,7 @@ export type UpdateClusterPayload = {
   error?: Maybe<UpdateClusterError>;
 };
 
-export type UpdateEnumError = EnumNotFound | InvalidEnumInput | ProjectNotFound;
+export type UpdateEnumError = EnumNotFound | InvalidInput | ProjectNotFound;
 
 export type UpdateEnumInput = {
   description?: InputMaybe<Scalars['String']['input']>;
@@ -1653,7 +1545,7 @@ export type UpdateFieldPayload = {
   model?: Maybe<Model>;
 };
 
-export type UpdateModelError = InvalidModelInput | ModelNotFound | ProjectNotFound;
+export type UpdateModelError = InvalidInput | ModelNotFound | ProjectNotFound;
 
 export type UpdateModelMetaInput = {
   description?: InputMaybe<Scalars['String']['input']>;
@@ -1668,7 +1560,7 @@ export type UpdateModelMetaPayload = {
   success: Scalars['Boolean']['output'];
 };
 
-export type UpdateMyProfileError = InvalidProfileInput | ProfileNotFound;
+export type UpdateMyProfileError = InvalidInput | ProfileNotFound;
 
 export type UpdateMyProfileInput = {
   avatarUrl?: InputMaybe<Scalars['String']['input']>;
@@ -1692,7 +1584,7 @@ export type UpdateOrganizationPayload = {
   organization?: Maybe<Organization>;
 };
 
-export type UpdatePermissionRoleError = PermissionInvalidInput | PermissionRoleAlreadyExists | PermissionRoleNotFound | PermissionSystemRoleCannotBeModified;
+export type UpdatePermissionRoleError = InvalidInput | PermissionRoleAlreadyExists | PermissionRoleNotFound | PermissionSystemRoleCannotBeModified;
 
 export type UpdatePermissionRolePayload = {
   __typename?: 'UpdatePermissionRolePayload';
@@ -1700,7 +1592,7 @@ export type UpdatePermissionRolePayload = {
   role?: Maybe<PermissionRole>;
 };
 
-export type UpdateProjectError = InvalidProjectInput | ProjectNotFound;
+export type UpdateProjectError = InvalidInput | ProjectNotFound;
 
 export type UpdateProjectInput = {
   description?: InputMaybe<Scalars['String']['input']>;
@@ -1784,7 +1676,7 @@ export type CreateEnumMutationVariables = Exact<{
 
 export type CreateEnumMutation = { __typename?: 'Mutation', createEnum: { __typename?: 'CreateEnumPayload', enum?: { __typename?: 'EnumDefinition', id: string, projectSlug: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, createdAt: string, updatedAt: string, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, error?:
       | { __typename: 'EnumAlreadyExists', message: string, suggestion?: string | null }
-      | { __typename: 'InvalidEnumInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
@@ -1796,7 +1688,7 @@ export type UpdateEnumMutationVariables = Exact<{
 
 export type UpdateEnumMutation = { __typename?: 'Mutation', updateEnum: { __typename?: 'UpdateEnumPayload', enum?: { __typename?: 'EnumDefinition', id: string, projectSlug: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, createdAt: string, updatedAt: string, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, error?:
       | { __typename: 'EnumNotFound', message: string }
-      | { __typename: 'InvalidEnumInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
@@ -1811,25 +1703,15 @@ export type DeleteEnumMutation = { __typename?: 'Mutation', deleteEnum: { __type
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
-export type CreateFieldEnumRelationMutationVariables = Exact<{
-  input: CreateFieldEnumRelationInput;
-}>;
-
-
-export type CreateFieldEnumRelationMutation = { __typename?: 'Mutation', createFieldEnumRelation: { __typename?: 'CreateFieldEnumRelationPayload', relation?: { __typename?: 'FieldEnumRelation', id: string, sourceFieldName: string, labelFieldName: string, enumName: string } | null, error?:
-      | { __typename: 'FieldEnumSourceConflict', message: string, code: string, suggestion?: string | null }
-      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-     | null } };
-
 export type CreateModelMutationVariables = Exact<{
   input: CreateModelInput;
 }>;
 
 
 export type CreateModelMutation = { __typename?: 'Mutation', createModel: { __typename?: 'CreateModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
-      | { __typename: 'InvalidModelInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ModelAlreadyExists', message: string, suggestion?: string | null }
-      | { __typename: 'ModelTableAlreadyExists' }
+      | { __typename: 'ModelTableAlreadyExists', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
@@ -1840,7 +1722,7 @@ export type UpdateModelMetaMutationVariables = Exact<{
 
 
 export type UpdateModelMetaMutation = { __typename?: 'Mutation', updateModelMeta: { __typename?: 'UpdateModelMetaPayload', success: boolean, model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
-      | { __typename: 'InvalidModelInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ModelNotFound', message: string }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
@@ -1989,7 +1871,7 @@ export type CreateProjectMutationVariables = Exact<{
 
 export type CreateProjectMutation = { __typename?: 'Mutation', createProject: { __typename?: 'CreateProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?:
       | { __typename: 'DatabaseConnectionFailed', message: string, suggestion?: string | null }
-      | { __typename: 'InvalidProjectInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectAlreadyExists', message: string, suggestion?: string | null }
      | null } };
 
@@ -1999,7 +1881,7 @@ export type UpdateProjectMutationVariables = Exact<{
 
 
 export type UpdateProjectMutation = { __typename?: 'Mutation', updateProject: { __typename?: 'UpdateProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?:
-      | { __typename: 'InvalidProjectInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
@@ -2022,7 +1904,7 @@ export type UpdateProjectClusterMutationVariables = Exact<{
 export type UpdateProjectClusterMutation = { __typename?: 'Mutation', updateProjectCluster: { __typename?: 'UpdateClusterPayload', cluster?: { __typename?: 'DatabaseCluster', id: string, projectSlug: string, title: string, description: string, status: ClusterStatus, createdAt: string, updatedAt: string, connectionInfo: { __typename?: 'DatabaseConnectionInfo', host: string, port: any, username: string, password: string } } | null, error?:
       | { __typename: 'ClusterNotFound', message: string }
       | { __typename: 'DatabaseConnectionFailed', message: string, suggestion?: string | null }
-      | { __typename: 'InvalidClusterInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
@@ -2050,7 +1932,7 @@ export type CreateRoleMutationVariables = Exact<{
 
 
 export type CreateRoleMutation = { __typename?: 'Mutation', createRole: { __typename?: 'CreateRolePayload', role?: { __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean, createdAt: string, updatedAt: string } | null, error?:
-      | { __typename: 'InvalidRoleInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'RoleAlreadyExists', message: string }
      | null } };
 
@@ -2103,13 +1985,6 @@ export type GetEnumReferencesQueryVariables = Exact<{
 
 export type GetEnumReferencesQuery = { __typename?: 'Query', enumReferences: Array<string> };
 
-export type GetFieldEnumRelationsQueryVariables = Exact<{
-  modelID: Scalars['ID']['input'];
-}>;
-
-
-export type GetFieldEnumRelationsQuery = { __typename?: 'Query', fieldEnumRelations: Array<{ __typename?: 'FieldEnumRelation', id: string, modelId: string, sourceFieldName: string, labelFieldName: string, enumName: string, createdAt: string, updatedAt: string }> };
-
 export type GetModelsQueryVariables = Exact<{
   input?: InputMaybe<ModelQueryInput>;
 }>;
@@ -2123,8 +1998,8 @@ export type GetModelQueryVariables = Exact<{
 }>;
 
 
-export type GetModelQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, displayField?: string | null, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, isDeprecated: boolean, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, dbColumn?: { __typename?: 'DbColumnInfo', columnType: string, unique: boolean, nonNull: boolean, defaultValue?: string | null, constraints: Array<ActualConstraintType>, foreignKey?: { __typename?: 'ActualForeignKey', referencedTable: string, referencedColumn: string, constraintName: string } | null, conflicts: Array<{ __typename?: 'FieldConflict', aspect: FieldConflictAspect, expected: string, actual: string }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
-      | { __typename: 'InvalidModelInput', message: string, suggestion?: string | null }
+export type GetModelQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, displayField?: string | null, databaseName: string, storageType: string, jsonSchema?: string | null, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, isDeprecated: boolean, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, dbColumn?: { __typename?: 'DbColumnInfo', columnType: string, unique: boolean, nonNull: boolean, defaultValue?: string | null, constraints: Array<ActualConstraintType>, foreignKey?: { __typename?: 'ActualForeignKey', referencedTable: string, referencedColumn: string, constraintName: string } | null, conflicts: Array<{ __typename?: 'FieldConflict', aspect: FieldConflictAspect, expected: string, actual: string }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ModelNotFound', message: string }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
@@ -2136,7 +2011,7 @@ export type GetModelByNameQueryVariables = Exact<{
 
 
 export type GetModelByNameQuery = { __typename?: 'Query', modelByName: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
-      | { __typename: 'InvalidModelInput', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ModelNotFound', message: string }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };

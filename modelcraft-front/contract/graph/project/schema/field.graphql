@@ -29,7 +29,6 @@ enum FormatType {
 
   # 枚举类型
   ENUM
-  ENUM_LABEL
 }
 
 # 通用输入错误（跨模块复用）
@@ -68,12 +67,12 @@ type Field {
   isArray: Boolean!
   description: String
   validationConfig: ValidationConfig
+  metadata: String
   relateFkId: String
   belongsToFkId: String
 
   enum: EnumDefinition
   enumName: String
-  enumRelationId: ID
 
   dbColumn: DbColumnInfo
   createdAt: String!
@@ -153,7 +152,6 @@ input AddFieldInput {
 
   # model-enum 扁平化参数
   relateEnumName: String
-  enumRelationId: ID
 }
 
 input UpdateFieldInput {

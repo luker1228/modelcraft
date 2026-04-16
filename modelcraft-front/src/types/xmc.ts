@@ -54,6 +54,7 @@ export interface XMC {
   relationType?: 'ONE_TO_MANY' | 'MANY_TO_ONE'
   relationDirection?: 'reverse' | 'normal'
   enum?: XMCEnum
+  enumLabelFieldName?: string
 }
 
 /**

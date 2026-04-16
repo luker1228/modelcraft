@@ -277,25 +277,6 @@ func TestFieldDefinitionToDomain(t *testing.T) {
 		assert.Equal(t, "status_text", enumDisplay["labelFieldName"])
 	})
 
-	t.Run("field with enum relation id for ENUM_LABEL", func(t *testing.T) {
-		relationID := "relation-123"
-		row := dbgen.FieldDefinition{
-			ModelID:        "model-1",
-			Name:           "status_label",
-			ModelName:      "users",
-			DatabaseName:   "db",
-			Title:          "Status Label",
-			Format:         "ENUM_LABEL",
-			Status:         "active",
-			EnumRelationID: sql.NullString{String: relationID, Valid: true},
-		}
-
-		fd, err := repository.FieldDefinitionToDomain(row)
-		require.NoError(t, err)
-		require.NotNil(t, fd.EnumRelationID)
-		assert.Equal(t, relationID, *fd.EnumRelationID)
-	})
-
 	t.Run("invalid format returns error", func(t *testing.T) {
 		row := dbgen.FieldDefinition{
 			ModelID:      "model-1",

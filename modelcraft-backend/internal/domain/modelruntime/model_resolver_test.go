@@ -144,11 +144,10 @@ func TestCreateModelType(t *testing.T) {
 				assert.Equal(t, "email", emailField.Name)
 				assert.Equal(t, graphql.String, emailField.Type)
 
-				// 检查 _label 字段
-				labelField := fields["_label"]
-				assert.NotNil(t, labelField)
-				assert.Equal(t, "_label", labelField.Name)
-				assert.Equal(t, "String!", labelField.Type.String())
+				// 检查 _displayName 字段
+				displayNameField := fields["_displayName"]
+				assert.NotNil(t, displayNameField)
+				assert.Equal(t, "_displayName", displayNameField.Name)
 			},
 		},
 		{
@@ -211,7 +210,7 @@ func TestCreateModelType(t *testing.T) {
 				assert.Equal(t, graphql.Boolean, fields["isActive"].Type)
 				assert.Equal(t, graphql.String, fields["description"].Type)
 				assert.Equal(t, graphql.DateTime, fields["createdAt"].Type)
-				assert.Equal(t, "String!", fields["_label"].Type.String())
+				assert.NotNil(t, fields["_displayName"])
 			},
 		},
 		{

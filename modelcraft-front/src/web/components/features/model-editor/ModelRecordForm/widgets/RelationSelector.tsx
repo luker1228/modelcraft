@@ -463,7 +463,7 @@ export function RelationSelector(props: WidgetProps) {
                         </>
                       ) : (
                         <span className="text-muted-foreground">{record.id}</span>
-                      )}}
+                      )}
                     </span>
                   </CommandItem>
                 ))}

@@ -2,6 +2,7 @@ package modeldesign
 
 import (
 	"encoding/json"
+	"strings"
 )
 
 const (
@@ -234,6 +235,9 @@ func (g *JSONSchemaGenerator) buildXMC(
 	// ── 枚举元数据 ─────────────────────────────────────────────────────────────
 	if field.Enum != nil {
 		xmc["enum"] = g.buildEnumMetadata(field.Enum)
+		if enumLabelFieldName, ok := g.resolveEnumLabelFieldNameFromMetadata(field); ok {
+			xmc["enumLabelFieldName"] = enumLabelFieldName
+		}
 	}
 
 	// ── 验证规则（标准字段写 fieldSchema，x-mc 字段写 xmc） ─────────────────────
@@ -245,6 +249,38 @@ func (g *JSONSchemaGenerator) buildXMC(
 	}
 
 	return xmc
+}
+
+func (g *JSONSchemaGenerator) resolveEnumLabelFieldNameFromMetadata(field *FieldDefinition) (string, bool) {
+	if field == nil || !field.IsEnumField() {
+		return "", false
+	}
+
+	cfg, err := field.parseEnumDisplayFromMetadata()
+	if err != nil || cfg == nil {
+		return "", false
+	}
+	if cfg.Enabled != nil && !*cfg.Enabled {
+		return "", false
+	}
+
+	if field.IsEnumArrayField() {
+		if cfg.LabelsFieldName == nil {
+			return "", false
+		}
+		if labelFieldName := strings.TrimSpace(*cfg.LabelsFieldName); labelFieldName != "" {
+			return labelFieldName, true
+		}
+		return "", false
+	}
+
+	if cfg.LabelFieldName == nil {
+		return "", false
+	}
+	if labelFieldName := strings.TrimSpace(*cfg.LabelFieldName); labelFieldName != "" {
+		return labelFieldName, true
+	}
+	return "", false
 }
 
 // decideWidget 根据字段属性决定 widget 值，返回空字符串表示不写 widget 键。
