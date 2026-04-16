@@ -42,7 +42,7 @@ function isRelationField(field: FieldDefinition): boolean {
  *
  * Protocol: relation fields only request `id` and `_displayName` (computed display name).
  */
-function buildFieldSelections(
+export function buildFieldSelections(
   fields: string[] | FieldDefinition[]
 ): (string | Record<string, string[]>)[] {
   if (fields.length === 0) {
