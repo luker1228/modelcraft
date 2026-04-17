@@ -83,8 +83,11 @@ PRD 子页已生成。请先审核拆分结果，确认后继续？
 
 读取三个文件内容，建立上下文摘要，供后续 agent 使用。
 
-从 `<prd-file>` 推导 `<prd-module-dir>`（即 PRD 文件所在目录），并定义 `<backend-plan-file>`（写入 `plans/` 目录，文件名由工作流自动推导）。
-除后端方案文档外，其他工作流产物默认写入 `<prd-module-dir>`。
+从 `<prd-file>` 推导 `<prd-module-dir>`（即 PRD 文件所在目录），并定义以下计划文件（统一写入 `plans/` 目录，文件名由工作流自动推导）：
+- `<backend-plan-file>`
+- `<front-architecture-file>`
+
+除 Step 5 计划文档外，其他工作流产物默认写入 `<prd-module-dir>`。
 
 ---
 
@@ -120,7 +123,7 @@ PRD 子页已生成。请先审核拆分结果，确认后继续？
 **Prompt 要点：**
 - 传入 PRD 子页内容 + 已确认的 API Contract
 - 产出：模块目录结构、BFF mock 接口定义、TypeScript 类型骨架、组件分层规划
-- 产出物写入 `<prd-module-dir>/front-architecture.md`
+- 产出物写入 `<front-architecture-file>`（位于 `plans/` 目录）
 - 前端使用 **BFF mock**，不依赖真实后端
 
 #### 5B — 后端具体方案落地（不写代码）
@@ -136,6 +139,11 @@ PRD 子页已生成。请先审核拆分结果，确认后继续？
 - **禁止提交具体代码实现**，只输出可执行技术方案
 
 > **CRITICAL**: 5A 和 5B 在**同一条消息**中用多个 Agent tool call 并行启动。
+
+> **CRITICAL**: 从 Step 6 开始，后续开发任务默认以 Step 5 产出的两份计划文件为主：
+> - `<front-architecture-file>`（前端主依据）
+> - `<backend-plan-file>`（后端主依据）
+> PRD、领域模型、API Contract 作为一致性校验和边界约束的辅助资料。
 
 等待 5B 完成后，展示并要求用户审核 `<backend-plan-file>`：
 
@@ -153,8 +161,9 @@ PRD 子页已生成。请先审核拆分结果，确认后继续？
 5A（前端架构）完成后，根据架构产出，对每个前端模块派发独立的 `front-worker` agent，`run_in_background: true`
 
 **Prompt 要点（每个 worker）：**
-- 传入 `<prd-module-dir>/front-architecture.md` 中对应模块的规划
+- 以 `<front-architecture-file>` 中对应模块的规划为主依据
 - 传入 BFF mock 接口定义
+- PRD/API Contract 仅用于校验功能边界与接口一致性
 - **使用 BFF mock 数据**，不调用真实后端
 - 完成后标记 TaskUpdate: completed
 
@@ -169,6 +178,7 @@ PRD 子页已生成。请先审核拆分结果，确认后继续？
 **Prompt 要点（每个 worker）：**
 - 必须基于 `<backend-plan-file>` 实现，不得偏离数据库设计与事务边界
 - 传入对应子页需求 + 领域模型 + 已确认 API Contract + `<backend-plan-file>`
+- 以 `<backend-plan-file>` 为主，PRD 子页/领域模型/API Contract 作为辅助校验依据
 - 任务：实现 DB migration → Repository → App Service → Resolver
 - 完成后标记 TaskUpdate: completed
 
@@ -241,7 +251,7 @@ just build && just run
 ### 产出物
 - `<prd-module-dir>/api-contract.md`       — 后端协议定义
 - `<backend-plan-file>`                    — 后端落地方案（含数据库设计与思路）
-- `<prd-module-dir>/front-architecture.md` — 前端架构规划
+- `<front-architecture-file>`              — 前端架构规划
 - `<prd-module-dir>/review-result.md`      — 后端验收报告
 
 ### 建议后续步骤
@@ -287,4 +297,6 @@ just build && just run
 - **Step 9 必须等用户手动确认 UI**，不自动进入联调
 - **每个 agent prompt 必须自包含**，包含所有必要上下文（路径、内容摘要、约束）
 - **联调只修改 BFF 层**，不修改前端组件
-- **除后端方案外，工作流产物必须写入 `<prd-module-dir>`**；后端方案固定写入 `plans/` 目录
+- **Step 5 计划产物（前端架构 + 后端方案）固定写入 `plans/` 目录**
+- **除 Step 5 计划产物外，其他工作流产物必须写入 `<prd-module-dir>`**
+- **Step 6 起后续开发默认以 `<front-architecture-file>` 与 `<backend-plan-file>` 为主依据，其他资料为辅助校验**

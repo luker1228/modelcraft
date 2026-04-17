@@ -160,6 +160,77 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 ---
 
+### POST /internal/end-user/auth/register
+
+**请求体**：
+```json
+{ "orgName": "acme", "projectSlug": "crm", "username": "alice", "password": "Abc12345" }
+```
+
+**实现流程**：
+```
+1. 通过 orgName + projectSlug 路由到 private_crm 连接
+   → Project 未关联 Cluster → 503 CLUSTER_NOT_CONFIGURED
+2. 确保 private_crm 库和表已初始化（auto-migrate）
+3. 校验用户名格式 ^[a-zA-Z0-9_-]{3,64}$，密码强度（min 8, 含字母+数字）
+   → 不符合 → 400 PARAM_INVALID
+4. bcrypt.GenerateFromPassword(password, cost=12)
+5. INSERT users（唯一索引冲突 → 409 CONFLICT）
+6. 生成 opaque refresh token（crypto/rand 32 bytes, base64url）
+7. INSERT accounts { user_id, sha256(token), expires_at: +7d }
+8. 返回 { userId, refreshToken, expiresAt }
+```
+
+**错误响应**：
+
+| 状态码 | code | 场景 |
+|--------|------|------|
+| 400 | `PARAM_INVALID` | 用户名/密码格式不合规 |
+| 409 | `CONFLICT` | 用户名已存在 |
+| 503 | `CLUSTER_NOT_CONFIGURED` | Project 未关联 Cluster |
+
+> **注意**：注册成功后行为与 login 相同（返回 refreshToken），BFF 自动签发 access token 并写 Cookie，终端用户注册即登录。
+
+---
+
+### GET /internal/end-user/auth/me
+
+通过 `X-End-User-Id`、`X-Org-Name`、`X-Project-Slug` Header 传递已验证的用户上下文（BFF 验证 JWT 后注入），无需 refreshToken。
+
+**BFF 调用方式**：
+```
+GET /internal/end-user/auth/me
+Headers:
+  X-Internal-Token: <secret>
+  X-End-User-Id: <userId>
+  X-Org-Name: acme
+  X-Project-Slug: crm
+```
+
+**实现流程**：
+```
+1. 读取 X-End-User-Id / X-Org-Name / X-Project-Slug Header
+2. 通过 orgName + projectSlug 路由到 private_crm 连接
+3. 查 users WHERE id=? → 未找到 → 404
+4. is_forbidden=1 → 403 ACCOUNT_DISABLED
+5. 返回 { id, username, createdAt }
+```
+
+**成功响应（200）**：
+```json
+{ "id": "550e8400-...", "username": "alice", "createdAt": "2026-04-10T08:00:00Z" }
+```
+
+**错误响应**：
+
+| 状态码 | code | 场景 |
+|--------|------|------|
+| 403 | `ACCOUNT_DISABLED` | 账号已被禁用（用于数据管理页右上角展示时校验） |
+| 404 | `NOT_FOUND` | 用户不存在（异常情况） |
+| 503 | `CLUSTER_NOT_CONFIGURED` | Project 未关联 Cluster |
+
+---
+
 ### POST /internal/end-user/auth/refresh
 
 ```
@@ -220,12 +291,15 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 | 新文件 | 对应现有文件 |
 |--------|------------|
-| `src/bff/auth/end-user-go-client.ts` | `go-auth-client.ts` |
-| `src/bff/auth/end-user-cookie-utils.ts` | `cookie-utils.ts`（key 改为 `end_user_refresh_token`） |
-| `src/app/api/bff/end-user/auth/login/route.ts` | `api/bff/auth/login/route.ts` |
-| `src/app/api/bff/end-user/auth/refresh/route.ts` | `api/bff/auth/refresh/route.ts` |
-| `src/app/api/bff/end-user/auth/logout/route.ts` | `api/bff/auth/logout/route.ts` |
-| `src/app/api/bff/end-users/route.ts` | — |
+| `src/bff/end-user/end-user-go-client.ts` | `bff/auth/go-auth-client.ts` |
+| `src/bff/end-user/end-user-cookie-utils.ts` | `bff/auth/cookie-utils.ts`（key 改为 `end_user_refresh_token`，path 绑定 Project） |
+| `src/bff/end-user/end-user-jwt-utils.ts` | `bff/auth/jwt-utils.ts`（issuer 改为 `modelcraft-end-user`） |
+| `src/bff/end-user/end-user-auth-client.ts` | `bff/auth/auth-client.ts`（client-side 工具函数） |
+| `src/app/api/bff/end-user/auth/login/route.ts` | `app/api/bff/auth/login/route.ts` |
+| `src/app/api/bff/end-user/auth/register/route.ts` | `app/api/bff/auth/register/route.ts` |
+| `src/app/api/bff/end-user/auth/refresh/route.ts` | `app/api/bff/auth/refresh/route.ts` |
+| `src/app/api/bff/end-user/auth/logout/route.ts` | `app/api/bff/auth/logout/route.ts` |
+| `src/app/api/bff/end-user/auth/me/route.ts` | —（新增，用于获取终端用户信息） |
 
 ---
 
@@ -233,8 +307,8 @@ CREATE TABLE IF NOT EXISTS accounts (
 
 ```typescript
 const END_USER_COOKIE        = 'end_user_refresh_token'
-const END_USER_DATA_RE       = /^\/org\/[^/]+\/project\/[^/]+\/data/
-const END_USER_LOGIN_RE      = /^\/org\/[^/]+\/project\/[^/]+\/user\/login/
+const END_USER_DATA_RE       = /^\/org\/[^/]+\/projects\/[^/]+\/data/
+const END_USER_LOGIN_RE      = /^\/org\/[^/]+\/projects\/[^/]+\/user\/login/
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -247,9 +321,9 @@ export function middleware(request: NextRequest) {
   // 终端用户数据页 → 检查 end_user_refresh_token
   if (END_USER_DATA_RE.test(pathname)) {
     if (!request.cookies.has(END_USER_COOKIE)) {
-      const base = pathname.match(/^(\/org\/[^/]+\/project\/[^/]+)/)?.[1] ?? ''
+      const base = pathname.match(/^(\/org\/[^/]+\/projects\/[^/]+)/)?.[1] ?? ''
       const url  = new URL(`${base}/user/login`, request.url)
-      url.searchParams.set('returnUrl', pathname)
+      url.searchParams.set('redirect', pathname)
       return NextResponse.redirect(url)
     }
     return NextResponse.next()

@@ -7,7 +7,7 @@ import { useAppStore } from '@web/stores/app'
 /**
  * Hook to extract and sync project information from URL path to Zustand store
  * 
- * Route structure: /org/[orgName]/projects/[projectSlug]/*
+ * Route structure: /org/[orgName]/project/[projectSlug]/*
  * 
  * Features:
  * - URL path is the single source of truth
@@ -101,19 +101,19 @@ export function useProjectLink() {
     /**
      * Generate full project-scoped path
      * @param path Relative path like 'dashboard', 'clusters', 'models'
-     * @returns Full project path like '/org/myorg/projects/myproject/dashboard'
+     * @returns Full project path like '/org/myorg/project/myproject/dashboard'
      */
     getLink: (path: string): string => {
       const cleanPath = path.startsWith('/') ? path.slice(1) : path
-      return `/org/${orgName}/projects/${projectSlug}/${cleanPath}`
+      return `/org/${orgName}/project/${projectSlug}/${cleanPath}`
     },
     
     /**
      * Get project root path
-     * @returns Project root path like '/org/myorg/projects/myproject'
+     * @returns Project root path like '/org/myorg/project/myproject'
      */
     getProjectRoot: (): string => {
-      return `/org/${orgName}/projects/${projectSlug}`
+      return `/org/${orgName}/project/${projectSlug}`
     },
     
     projectSlug,

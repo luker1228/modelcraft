@@ -179,9 +179,9 @@ export function AppLayout({
 
   // Project navigation items
   const projectNavItems = [
-    { label: '数据模型', icon: Table2, href: `/org/${orgName}/projects/${projectSlug}/model-editor` },
-    { label: '项目设置', icon: Settings, href: `/org/${orgName}/projects/${projectSlug}/settings` },
-    { label: '枚举管理', icon: List, href: `/org/${orgName}/projects/${projectSlug}/enums` },
+    { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
+    { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
+    { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
   ]
 
   const navItems = showProjectNav ? projectNavItems : workspaceNavItems

@@ -207,7 +207,7 @@ export default function WorkspacePage() {
       projectSlug: project.slug,
       projectTitle: project.title,
       orgName,
-      targetUrl: `/org/${orgName}/projects/${project.slug}`
+      targetUrl: `/org/${orgName}/project/${project.slug}`
     })
 
     setSelectedProject(project)
@@ -221,8 +221,8 @@ export default function WorkspacePage() {
       saveUserPreferences(currentOrg.orgId, project.slug)
     }
 
-    console.log('[WorkspacePage] Navigating to:', `/org/${orgName}/projects/${project.slug}`)
-    router.push(`/org/${orgName}/projects/${project.slug}`)
+    console.log('[WorkspacePage] Navigating to:', `/org/${orgName}/project/${project.slug}`)
+    router.push(`/org/${orgName}/project/${project.slug}`)
   }, [setSelectedProject, router, orgName, currentOrg])
 
   const handleEditProject = useCallback((project: Project) => {

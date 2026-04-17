@@ -80,12 +80,12 @@ export function getOrgPath(orgName: string, path: string = ''): string {
  * @param orgName Organization name
  * @param projectSlug Project name
  * @param path Path after project (e.g., dashboard, clusters)
- * @returns Project-scoped path like /org/myorg/projects/myproject/dashboard
+ * @returns Project-scoped path like /org/myorg/project/myproject/dashboard
  * 
  * @example
  * ```tsx
  * const dashboardPath = getProjectPath('myorg', 'myproject', 'dashboard')
- * // Returns: /org/myorg/projects/myproject/dashboard
+ * // Returns: /org/myorg/project/myproject/dashboard
  * ```
  */
 export function getProjectPath(
@@ -95,7 +95,7 @@ export function getProjectPath(
 ): string {
   const cleanPath = path.startsWith('/') ? path.slice(1) : path
   const pathSuffix = cleanPath ? `/${cleanPath}` : ''
-  return `/org/${orgName}/projects/${projectSlug || ''}${pathSuffix}`
+  return `/org/${orgName}/project/${projectSlug || ''}${pathSuffix}`
 }
 
 /**
