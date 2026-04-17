@@ -18,6 +18,10 @@ type enumMapper struct{}
 func (e *enumMapper) ConvertEnumDefinitionToGraphQL(
 	enum *modeldesign.EnumDefinition,
 ) *generated.EnumDefinition {
+	if enum == nil {
+		return nil
+	}
+
 	options := make([]*generated.EnumOption, 0, len(enum.Options))
 	for _, opt := range enum.Options {
 		description := opt.Description

@@ -76,6 +76,30 @@ func WrapError(err error, code ErrorDefinition, params ...any) *BusinessError {
 
 // GetHTTPStatusCode 根据错误定义返回对应的HTTP状态码
 func (e *BusinessError) GetHTTPStatusCode() int {
+	// Special cases: check full error code first for specific status codes
+	code := e.info.GetCode()
+
+	// INVALID_CREDENTIALS → 401 Unauthorized
+	if code == EndUserInvalidCredentials.Code {
+		return 401
+	}
+
+	// INVALID_REFRESH_TOKEN → 401 Unauthorized
+	if code == EndUserInvalidRefreshToken.Code {
+		return 401
+	}
+
+	// ACCOUNT_DISABLED → 403 Forbidden (account exists but is forbidden)
+	if code == EndUserAccountDisabled.Code {
+		return 403
+	}
+
+	// CLUSTER_NOT_CONFIGURED → 503 Service Unavailable (project not ready for end-user operations)
+	if code == EndUserClusterNotConfigured.Code {
+		return 503
+	}
+
+	// Default: map by error type prefix
 	errorType := e.info.GetErrorType()
 	switch errorType {
 	case ErrorTypeNotFound:

@@ -47,6 +47,10 @@ func convertFormatType2Domain(format generated.FormatType) (modeldesign.FormatTy
 
 // ConvertAddFieldInputToDTO converts GraphQL AddFieldInput to DTO
 func (m *fieldMapper) ConvertAddFieldInputToDTO(input *generated.AddFieldInput) (*dtos.FieldDefinitionDTO, error) {
+	if input == nil {
+		return nil, fmt.Errorf("input cannot be nil")
+	}
+
 	format, err := convertFormatType2Domain(input.Format)
 	if err != nil {
 		return nil, err
