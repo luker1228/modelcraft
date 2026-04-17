@@ -41,6 +41,7 @@ ai-metadata/
 │   │   └── type-conversion.md
 │   ├── testing/                      # 测试策略
 │   │   ├── README.md
+│   │   ├── adapter-testing.md
 │   │   ├── bdd-testing-guidelines.md
 │   │   └── debugging-workflow.md
 │   ├── deployment/                   # 部署指南
@@ -126,6 +127,7 @@ ai-metadata/
 | 路径 | 说明 |
 |------|------|
 | [backend/testing/README.md](./backend/testing/README.md) | 测试策略总览、测试金字塔、覆盖率要求 |
+| [backend/testing/adapter-testing.md](./backend/testing/adapter-testing.md) | Adapter 契约测试规范（table-driven、golden、fuzz、invariants） |
 | [backend/testing/bdd-testing-guidelines.md](./backend/testing/bdd-testing-guidelines.md) | BDD 验收测试注意要点（默认不耦合注册） |
 | [backend/testing/debugging-workflow.md](./backend/testing/debugging-workflow.md) | ⭐ 日常开发调试流程（必读） |
 
