@@ -1,0 +1,211 @@
+{
+  "id": "2026-04-16-222859",
+  "generated_at": "2026-04-16T14:28:59.550602Z",
+  "language": "zh",
+  "pages": [
+    {
+      "slug": "1-xiang-mu-zong-lan-modelcraft-di-dai-ma-shu-ju-mo-xing-guan-li-ping-tai",
+      "title": "项目总览：ModelCraft 低代码数据模型管理平台",
+      "file": "1-xiang-mu-zong-lan-modelcraft-di-dai-ma-shu-ju-mo-xing-guan-li-ping-tai.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "2-kuai-su-qi-dong-huan-jing-da-jian-yu-ben-di-yun-xing",
+      "title": "快速启动：环境搭建与本地运行",
+      "file": "2-kuai-su-qi-dong-huan-jing-da-jian-yu-ben-di-yun-xing.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "3-git-cang-ku-jie-gou-submodule-yu-subtree-xie-zuo-mo-xing",
+      "title": "Git 仓库结构：Submodule 与 Subtree 协作模型",
+      "file": "3-git-cang-ku-jie-gou-submodule-yu-subtree-xie-zuo-mo-xing.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "4-ai-agent-pei-zhi-ti-xi-agents-tong-guan-li",
+      "title": "AI Agent 配置体系：.agents 统一管理",
+      "file": "4-ai-agent-pei-zhi-ti-xi-agents-tong-guan-li.md",
+      "section": "入门指南",
+      "level": "Beginner"
+    },
+    {
+      "slug": "5-she-ji-tai-yu-yun-xing-tai-shuang-jie-duan-jia-gou",
+      "title": "设计态与运行态双阶段架构",
+      "file": "5-she-ji-tai-yu-yun-xing-tai-shuang-jie-duan-jia-gou.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "6-ddd-fen-ceng-jia-gou-domain-application-infrastructure-interfaces",
+      "title": "DDD 分层架构：Domain → Application → Infrastructure → Interfaces",
+      "file": "6-ddd-fen-ceng-jia-gou-domain-application-infrastructure-interfaces.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "7-san-da-api-tong-dao-she-ji-tai-graphql-rest-yun-xing-shi-dong-tai-graphql",
+      "title": "三大 API 通道：设计态 GraphQL、REST、运行时动态 GraphQL",
+      "file": "7-san-da-api-tong-dao-she-ji-tai-graphql-rest-yun-xing-shi-dong-tai-graphql.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Advanced"
+    },
+    {
+      "slug": "8-ling-yu-mo-xing-ti-xi-ren-zheng-zu-hu-xiang-mu-mo-xing-ji-qun-quan-xian",
+      "title": "领域模型体系：认证、租户、项目、模型、集群、权限",
+      "file": "8-ling-yu-mo-xing-ti-xi-ren-zheng-zu-hu-xiang-mu-mo-xing-ji-qun-quan-xian.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Advanced"
+    },
+    {
+      "slug": "9-shu-ju-ceng-sqlc-dai-ma-sheng-cheng-yu-safe-querier-mo-shi",
+      "title": "数据层：sqlc 代码生成与 Safe Querier 模式",
+      "file": "9-shu-ju-ceng-sqlc-dai-ma-sheng-cheng-yu-safe-querier-mo-shi.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Advanced"
+    },
+    {
+      "slug": "10-cuo-wu-chu-li-gui-fan-bizerrors-yu-repositoryerror-shuang-gui-ti-xi",
+      "title": "错误处理规范：bizerrors 与 RepositoryError 双轨体系",
+      "file": "10-cuo-wu-chu-li-gui-fan-bizerrors-yu-repositoryerror-shuang-gui-ti-xi.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "11-casdoor-wei-tuo-ren-zheng-yu-casbin-rbac-quan-xian-kong-zhi",
+      "title": "Casdoor 委托认证与 Casbin RBAC 权限控制",
+      "file": "11-casdoor-wei-tuo-ren-zheng-yu-casbin-rbac-quan-xian-kong-zhi.md",
+      "section": "深度解析",
+      "group": "后端架构与核心设计",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "12-qian-duan-fen-ceng-jia-gou-app-web-bff-shared",
+      "title": "前端分层架构：App → Web → BFF → Shared",
+      "file": "12-qian-duan-fen-ceng-jia-gou-app-web-bff-shared.md",
+      "section": "深度解析",
+      "group": "前端架构与开发实践",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "13-san-chong-apollo-client-shi-li-ce-lue-yu-graphql-cao-zuo-ceng-yue-ding",
+      "title": "三种 Apollo Client 实例策略与 GraphQL 操作层约定",
+      "file": "13-san-chong-apollo-client-shi-li-ce-lue-yu-graphql-cao-zuo-ceng-yue-ding.md",
+      "section": "深度解析",
+      "group": "前端架构与开发实践",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "14-ui-zu-jian-ti-xi-shadcn-ui-radix-ui-tailwind-css-she-ji-xi-tong",
+      "title": "UI 组件体系：shadcn/ui + Radix UI + Tailwind CSS 设计系统",
+      "file": "14-ui-zu-jian-ti-xi-shadcn-ui-radix-ui-tailwind-css-she-ji-xi-tong.md",
+      "section": "深度解析",
+      "group": "前端架构与开发实践",
+      "level": "Beginner"
+    },
+    {
+      "slug": "15-ren-zheng-liu-cheng-casdoor-oauth2-oidc-ji-cheng-yu-token-sheng-ming-zhou-qi-guan-li",
+      "title": "认证流程：Casdoor OAuth2/OIDC 集成与 Token 生命周期管理",
+      "file": "15-ren-zheng-liu-cheng-casdoor-oauth2-oidc-ji-cheng-yu-token-sheng-ming-zhou-qi-guan-li.md",
+      "section": "深度解析",
+      "group": "前端架构与开发实践",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "16-zhuang-tai-guan-li-zustand-stores-yu-huan-cun-ce-lue",
+      "title": "状态管理：Zustand Stores 与缓存策略",
+      "file": "16-zhuang-tai-guan-li-zustand-stores-yu-huan-cun-ce-lue.md",
+      "section": "深度解析",
+      "group": "前端架构与开发实践",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "17-html-first-yuan-xing-gong-zuo-liu",
+      "title": "HTML-First 原型工作流",
+      "file": "17-html-first-yuan-xing-gong-zuo-liu.md",
+      "section": "深度解析",
+      "group": "前端架构与开发实践",
+      "level": "Beginner"
+    },
+    {
+      "slug": "18-api-contract-dan-zhen-xiang-yuan-git-subtree-tong-bu-ji-zhi",
+      "title": "API Contract 单一真相源：Git Subtree 同步机制",
+      "file": "18-api-contract-dan-zhen-xiang-yuan-git-subtree-tong-bu-ji-zhi.md",
+      "section": "深度解析",
+      "group": "API Contract 与代码生成",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "19-graphql-codegen-yu-oapi-codegen-dai-ma-sheng-cheng-liu-shui-xian",
+      "title": "GraphQL Codegen 与 oapi-codegen 代码生成流水线",
+      "file": "19-graphql-codegen-yu-oapi-codegen-dai-ma-sheng-cheng-liu-shui-xian.md",
+      "section": "深度解析",
+      "group": "API Contract 与代码生成",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "20-bdd-yan-shou-ce-shi-cucumber-js-yu-gherkin-chang-jing-qu-dong",
+      "title": "BDD 验收测试：Cucumber.js 与 Gherkin 场景驱动",
+      "file": "20-bdd-yan-shou-ce-shi-cucumber-js-yu-gherkin-chang-jing-qu-dong.md",
+      "section": "深度解析",
+      "group": "测试体系",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "21-hou-duan-dan-yuan-ce-shi-yu-fu-gai-lu-yao-qiu",
+      "title": "后端单元测试与覆盖率要求",
+      "file": "21-hou-duan-dan-yuan-ce-shi-yu-fu-gai-lu-yao-qiu.md",
+      "section": "深度解析",
+      "group": "测试体系",
+      "level": "Advanced"
+    },
+    {
+      "slug": "22-justfile-ming-ling-can-kao-gou-jian-yun-xing-shu-ju-ku-qian-yi",
+      "title": "Justfile 命令参考：构建、运行、数据库迁移",
+      "file": "22-justfile-ming-ling-can-kao-gou-jian-yun-xing-shu-ju-ku-qian-yi.md",
+      "section": "深度解析",
+      "group": "工程化与运维",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "23-docker-rong-qi-hua-bu-shu-yu-wai-bu-mysql-pei-zhi",
+      "title": "Docker 容器化部署与外部 MySQL 配置",
+      "file": "23-docker-rong-qi-hua-bu-shu-yu-wai-bu-mysql-pei-zhi.md",
+      "section": "深度解析",
+      "group": "工程化与运维",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "24-pre-commit-hooks-yu-dai-ma-zhi-liang-men-jin",
+      "title": "Pre-commit Hooks 与代码质量门禁",
+      "file": "24-pre-commit-hooks-yu-dai-ma-zhi-liang-men-jin.md",
+      "section": "深度解析",
+      "group": "工程化与运维",
+      "level": "Intermediate"
+    },
+    {
+      "slug": "25-ai-metadata-zhi-shi-wen-dang-ti-xi-yu-suo-yin",
+      "title": "ai-metadata 知识文档体系与索引",
+      "file": "25-ai-metadata-zhi-shi-wen-dang-ti-xi-yu-suo-yin.md",
+      "section": "深度解析",
+      "group": "知识库与元数据管理",
+      "level": "Beginner"
+    },
+    {
+      "slug": "26-graphify-zhi-shi-tu-pu-yu-dai-ma-jie-gou-ke-shi-hua",
+      "title": "Graphify 知识图谱与代码结构可视化",
+      "file": "26-graphify-zhi-shi-tu-pu-yu-dai-ma-jie-gou-ke-shi-hua.md",
+      "section": "深度解析",
+      "group": "知识库与元数据管理",
+      "level": "Advanced"
+    }
+  ]
+}
