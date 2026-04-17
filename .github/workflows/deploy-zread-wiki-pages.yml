@@ -21,6 +21,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -31,6 +35,13 @@ jobs:
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
+      - name: Debug wiki files
+        run: |
+          echo "workspace: $(pwd)"
+          ls -la
+          ls -la .zread || true
+          ls -la .zread/wiki || true
+
       - name: Ensure no Jekyll processing
         run: touch .zread/wiki/.nojekyll
 
@@ -38,6 +49,7 @@ jobs:
         run: |
           test -f .zread/wiki/current
           test -f .zread/wiki/index.html
+          cat .zread/wiki/current
 
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
