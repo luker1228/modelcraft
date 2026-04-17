@@ -7,15 +7,6 @@ type TokenRequest struct {
 	Code string `json:"code" binding:"required"`
 }
 
-// CasdoorTokenResponse represents the response from Casdoor token endpoint
-type CasdoorTokenResponse struct {
-	AccessToken  string `json:"access_token"`
-	TokenType    string `json:"token_type"`
-	ExpiresIn    int    `json:"expires_in"`
-	RefreshToken string `json:"refresh_token,omitempty"`
-	Scope        string `json:"scope,omitempty"`
-}
-
 // ErrorResponse represents a standard error response
 type ErrorResponse struct {
 	Error       string `json:"error"`

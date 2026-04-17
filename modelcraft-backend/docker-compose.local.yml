@@ -1,11 +1,11 @@
 # Docker Compose for Local Development
-# This file contains ONLY third-party services (MySQL, Redis, Casdoor)
+# This file contains ONLY third-party services (MySQL, Redis)
 # The ModelCraft application should be run natively using `go run cmd/server/main.go`
 
 version: '3.8'
 
 services:
-  # MySQL Database Service for Local Development (shared by ModelCraft and Casdoor)
+  # MySQL Database Service for Local Development
   modelcraft-mysql-local:
     image: mysql:8.0
     container_name: modelcraft-mysql-local
@@ -48,30 +48,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # Casdoor Authentication Service for Local Development
-  casdoor-local:
-    image: casbin/casdoor:latest
-    container_name: modelcraft-casdoor-local
-    ports:
-      - "${CASDOOR_PORT:-8000}:8000"
-    environment:
-      - RUNNING_IN_DOCKER=true
-    volumes:
-      - ./casdoor/conf:/conf
-      - casdoor_local_data:/var/lib/casdoor
-    depends_on:
-      modelcraft-mysql-local:
-        condition: service_healthy
-    networks:
-      - modelcraft-local-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/get-account"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
   # Optional: phpMyAdmin Database Management Tool
   # Start with: docker compose -f docker-compose.local.yml --profile tools up
   modelcraft-phpmyadmin-local:
@@ -97,8 +73,6 @@ volumes:
   mysql_local_data:
     driver: local
   redis_local_data:
-    driver: local
-  casdoor_local_data:
     driver: local
 
 networks:

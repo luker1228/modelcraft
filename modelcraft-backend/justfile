@@ -662,25 +662,12 @@ deploy-app action="start":
         fi
     }
     
-    # Check if Casdoor is configured
-    CASDOOR_ENABLED=false
-    if [ -f ".env" ] && grep -q "CASDOOR_ENDPOINT" .env 2>/dev/null; then
-        CASDOOR_ENABLED=true
-    fi
-    
     case "{{action}}" in
         start)
             echo "🚀 Starting Application Services..."
             echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
             show_env
             echo ""
-            
-            # Start Casdoor if configured
-            if [ "$CASDOOR_ENABLED" = true ]; then
-                echo "🔐 Starting Casdoor..."
-                # TODO: Add Casdoor startup command when available
-                echo "   (Casdoor startup not yet configured)"
-            fi
             
             # Build and start ModelCraft
             echo ""
@@ -709,16 +696,6 @@ deploy-app action="start":
             show_env
             echo ""
             
-            # Casdoor status
-            if [ "$CASDOOR_ENABLED" = true ]; then
-                echo "🔐 Casdoor:"
-                if pgrep -f "casdoor" > /dev/null 2>&1; then
-                    echo "   Status: Running"
-                else
-                    echo "   Status: Not running"
-                fi
-            fi
-            
             # ModelCraft status
             echo ""
             echo "🖥️  ModelCraft:"
@@ -745,12 +722,6 @@ deploy-app action="start":
             pkill -f "go run.*cmd/server/main.go" 2>/dev/null || true
             pkill -f "modelcraft" 2>/dev/null || true
             
-            # Stop Casdoor
-            if [ "$CASDOOR_ENABLED" = true ]; then
-                echo "Stopping Casdoor..."
-                pkill -f "casdoor" 2>/dev/null || true
-            fi
-            
             echo "✅ Application services stopped"
             ;;
         restart)
@@ -760,7 +731,6 @@ deploy-app action="start":
             # Stop
             pkill -f "go run.*cmd/server/main.go" 2>/dev/null || true
             pkill -f "modelcraft" 2>/dev/null || true
-            pkill -f "casdoor" 2>/dev/null || true
             sleep 2
             
             # Start (call self with start action)

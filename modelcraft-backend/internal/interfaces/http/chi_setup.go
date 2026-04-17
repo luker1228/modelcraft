@@ -17,7 +17,6 @@ import (
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	orgHandlers "modelcraft/internal/interfaces/http/handlers/org"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
-	webhookHandlers "modelcraft/internal/interfaces/http/handlers/webhook"
 )
 
 // ChiRouterConfig holds all dependencies needed to set up the Chi router.
@@ -30,7 +29,6 @@ type ChiRouterConfig struct {
 	AuthHandler    *authHandlers.Handler
 	OrgHandler     *orgHandlers.CreateHandler
 	UserHandler    *userHandlers.Handler
-	WebhookHandler *webhookHandlers.CasdoorHandler
 
 	// Design handlers for GraphQL routes
 	DesignHandlers *DesignHandlers
@@ -54,7 +52,6 @@ type ChiRouterConfig struct {
 //	  ├── /graphql/*                              → Gin mount (no auth currently)
 //	  └── /api/* (generated OpenAPI handler)      → Chi with conditional auth
 //	        ├── /api/auth/register, /login, /logout     → public (no auth)
-//	        ├── /api/webhook/casdoor                  → public (no auth)
 //	        └── everything else                       → JWT + Tenant middleware
 func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	r := chi.NewRouter()
@@ -115,13 +112,12 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// ============================================================
 
 	// Create the Server that implements generated.ServerInterface
-	// Only tenant-management (Auth, Org, User) and infrastructure (Webhook) handlers.
+	// Only tenant-management (Auth, Org, User) handlers.
 	// Business domain APIs are served via GraphQL.
 	server := NewServer(
 		cfg.AuthHandler,
 		cfg.OrgHandler,
 		cfg.UserHandler,
-		cfg.WebhookHandler,
 	)
 
 	// Create generated Chi handler with NO built-in middleware.
@@ -142,7 +138,7 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 
 // conditionalAuthMiddleware applies JWT middleware to all routes
 // EXCEPT known public paths that should not require authentication.
-// These routes (Auth, Org, User, Webhook) never require organization context.
+// These routes (Auth, Org, User) never require organization context.
 func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Handler) http.Handler {
 	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
 
@@ -150,9 +146,8 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 	publicPaths := map[string]bool{
 		"/api/auth/register":   true,
 		"/api/auth/login":      true,
-		"/api/auth/logout":     true,
-		"/api/auth/refresh":    true,
-		"/api/webhook/casdoor": true,
+		"/api/auth/logout":  true,
+		"/api/auth/refresh": true,
 	}
 
 	return func(next http.Handler) http.Handler {

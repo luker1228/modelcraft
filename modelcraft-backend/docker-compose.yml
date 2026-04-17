@@ -103,52 +103,6 @@ services:
       timeout: 5s
       retries: 3
 
-  # Casdoor Authentication Service
-  casdoor:
-    image: casbin/casdoor:latest
-    container_name: modelcraft-casdoor
-    ports:
-      - "${CASDOOR_PORT:-8000}:8000"
-    environment:
-      - RUNNING_IN_DOCKER=true
-    volumes:
-      - ./casdoor/conf:/conf
-      - casdoor_data:/var/lib/casdoor
-    depends_on:
-      casdoor-db:
-        condition: service_healthy
-    networks:
-      - modelcraft-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8000/api/get-account"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-
-  # Casdoor Database Service
-  casdoor-db:
-    image: mysql:8.0
-    container_name: modelcraft-casdoor-db
-    environment:
-      MYSQL_ROOT_PASSWORD: ${CASDOOR_DB_PASSWORD:-casdoor_password}
-      MYSQL_DATABASE: ${CASDOOR_DB_NAME:-casdoor}
-      MYSQL_USER: ${CASDOOR_DB_USERNAME:-casdoor}
-      MYSQL_PASSWORD: ${CASDOOR_DB_PASSWORD:-casdoor_password}
-    volumes:
-      - casdoor_mysql_data:/var/lib/mysql
-    networks:
-      - modelcraft-network
-    restart: unless-stopped
-    command: --default-authentication-plugin=mysql_native_password
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${CASDOOR_DB_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 30s
-
   # Optional: phpMyAdmin Database Management Tool
   # Start with: docker compose --profile tools up
   modelcraft-phpmyadmin:
@@ -174,10 +128,6 @@ volumes:
   mysql_data:
     driver: local
   redis_data:
-    driver: local
-  casdoor_mysql_data:
-    driver: local
-  casdoor_data:
     driver: local
 
 networks:

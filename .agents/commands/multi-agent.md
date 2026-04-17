@@ -16,6 +16,22 @@ Analyze a complex task, break it into subtasks with dependency relationships, an
 
 ## Steps
 
+### 0. Workflow-aware preset (backend)
+
+If the input clearly indicates `workflow backend`, apply this preset before normal decomposition:
+
+- Create two parallel tracks immediately:
+  - `backend-worker` track: implement `<backend-plan-file>`
+  - `bdd-test` track: develop/adjust related BDD tests
+- These two tracks run in **Wave 1** concurrently.
+- After both are done, continue with:
+  - `backend-reviewer` (Wave 2)
+  - final `bdd-test` execution/acceptance report (Wave 3, or merged into reviewer handoff if explicitly requested)
+
+Preset intent:
+- enforce "backend implementation and BDD test development can run in parallel"
+- keep reviewer and final BDD acceptance execution after parallel work converges
+
 ### 1. Analyze the task
 
 Parse the user's input to identify:

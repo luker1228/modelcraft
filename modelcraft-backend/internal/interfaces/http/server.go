@@ -10,18 +10,16 @@ import (
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	orgHandlers "modelcraft/internal/interfaces/http/handlers/org"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
-	webhookHandlers "modelcraft/internal/interfaces/http/handlers/webhook"
 )
 
 // Server implements the generated.ServerInterface using standard net/http handlers.
 //
-// Only tenant-management (Auth, Org, User) and infrastructure (Webhook) endpoints are served here.
+// Only tenant-management (Auth, Org, User) endpoints are served here.
 // Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively via GraphQL.
 type Server struct {
 	authHandler    *authHandlers.Handler
 	orgHandler     *orgHandlers.CreateHandler
 	userHandler    *userHandlers.Handler
-	webhookHandler *webhookHandlers.CasdoorHandler
 }
 
 // Ensure compile-time interface compliance
@@ -32,13 +30,11 @@ func NewServer(
 	authHandler *authHandlers.Handler,
 	orgHandler *orgHandlers.CreateHandler,
 	userHandler *userHandlers.Handler,
-	webhookHandler *webhookHandlers.CasdoorHandler,
 ) *Server {
 	return &Server{
 		authHandler:    authHandler,
 		orgHandler:     orgHandler,
 		userHandler:    userHandler,
-		webhookHandler: webhookHandler,
 	}
 }
 
@@ -116,14 +112,6 @@ func (s *Server) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) InitOrganization(w http.ResponseWriter, r *http.Request) {
 	s.orgHandler.Handle(w, r)
-}
-
-// ========================
-// Webhook Endpoints
-// ========================
-
-func (s *Server) HandleCasdoorWebhook(w http.ResponseWriter, r *http.Request) {
-	s.webhookHandler.Handle(w, r)
 }
 
 // GetOpenAPISpec serves the embedded OpenAPI specification.

@@ -5,7 +5,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { refreshAccessToken } from '@bff/auth/public'
 import { useAuthStore } from '@shared/stores/auth-store'
 
-const PUBLIC_ROUTES = ['/login', '/register', '/auth/callback']
+const PUBLIC_ROUTES = ['/login', '/register']
 
 /**
  * AuthProvider — periodic silent token refresh only.

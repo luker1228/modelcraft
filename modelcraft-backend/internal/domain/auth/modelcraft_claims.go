@@ -10,7 +10,7 @@ import (
 
 var (
 	ErrUserNotFound       = errors.New("user not found in ModelCraft database")
-	ErrInvalidCasdoorJWT  = errors.New("invalid Casdoor JWT")
+	ErrInvalidExternalJWT = errors.New("invalid external JWT")
 	ErrTokenGeneration    = errors.New("failed to generate ModelCraft JWT")
 	ErrTokenExpired       = errors.New("token has expired")
 	ErrInvalidToken       = errors.New("invalid or malformed token")
@@ -26,13 +26,13 @@ type MembershipClaimInfo struct {
 }
 
 // ModelCraftClaims represents the custom claims for ModelCraft JWT tokens.
-// This structure separates ModelCraft authentication/authorization from Casdoor tokens.
+// This structure separates ModelCraft authentication/authorization from external provider tokens.
 type ModelCraftClaims struct {
 	jwt.RegisteredClaims
 
 	// User identity
 	UserID     string `json:"user_id"`     // ModelCraft user UUID
-	ExternalID string `json:"external_id"` // Casdoor user ID (from Casdoor sub)
+	ExternalID string `json:"external_id"` // External provider user ID
 	Name       string `json:"name"`
 	Email      string `json:"email"`
 

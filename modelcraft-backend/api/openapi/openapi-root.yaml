@@ -41,12 +41,6 @@ paths:
   /api/org/init:
     $ref: "org.yaml#/paths/~1api~1org~1init"
 
-  # ========================
-  # Webhook Endpoints
-  # ========================
-  /api/webhook/casdoor:
-    $ref: "webhook.yaml#/paths/~1api~1webhook~1casdoor"
-
 components:
   securitySchemes:
     BearerAuth:
@@ -99,12 +93,3 @@ components:
     InitOrganizationResponse:
       $ref: "org.yaml#/schemas/InitOrganizationResponse"
 
-    # -- Webhook --
-    WebhookInvalidPayloadError:
-      $ref: "webhook.yaml#/schemas/WebhookInvalidPayloadError"
-    CasdoorWebhookPayload:
-      $ref: "webhook.yaml#/schemas/CasdoorWebhookPayload"
-    CasdoorExtendedUser:
-      $ref: "webhook.yaml#/schemas/CasdoorExtendedUser"
-    HandleWebhookResponse:
-      $ref: "webhook.yaml#/schemas/HandleWebhookResponse"

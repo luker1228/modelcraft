@@ -15,7 +15,7 @@ type EnhancedTokenResponse struct {
 // UserInfo represents user identity information
 type UserInfo struct {
 	ID         string `json:"id"`         // ModelCraft user UUID
-	ExternalID string `json:"externalId"` // Casdoor user ID
+	ExternalID string `json:"externalId"` // External provider user ID
 	Name       string `json:"name"`
 	Email      string `json:"email"`
 }

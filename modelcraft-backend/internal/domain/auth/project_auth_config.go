@@ -8,9 +8,6 @@ import (
 type ProviderType string
 
 const (
-	// ProviderCasdoor represents the Casdoor authentication provider
-	ProviderCasdoor ProviderType = "casdoor"
-
 	// ProviderKeycloak represents the Keycloak authentication provider (future implementation)
 	ProviderKeycloak ProviderType = "keycloak"
 
@@ -21,7 +18,7 @@ const (
 // IsValid checks if the provider type is one of the supported values.
 func (p ProviderType) IsValid() bool {
 	switch p {
-	case ProviderCasdoor, ProviderKeycloak, ProviderOIDC:
+	case ProviderKeycloak, ProviderOIDC:
 		return true
 	default:
 		return false
@@ -51,7 +48,6 @@ type ProjectAuthConfig struct {
 	Enabled bool
 
 	// Config contains provider-specific configuration as a map
-	// For Casdoor: endpoint, client_id, client_secret, organization, application, certificate
 	// For Keycloak: realm, auth_server_url, jwks_uri, client_id
 	// For OIDC: issuer, jwks_uri, client_id
 	Config map[string]interface{}
@@ -83,8 +79,6 @@ func (c *ProjectAuthConfig) Validate() error {
 
 	// Provider-specific validation
 	switch c.Provider {
-	case ProviderCasdoor:
-		return ValidateCasdoorConfig(c.Config)
 	case ProviderKeycloak:
 		return ValidateKeycloakConfig(c.Config)
 	case ProviderOIDC:

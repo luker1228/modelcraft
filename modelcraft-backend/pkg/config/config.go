@@ -70,10 +70,8 @@ type CryptoConfig struct {
 
 // AuthConfig 认证配置
 type AuthConfig struct {
-	Design          DesignAuthConfig  `mapstructure:"design"`           // 设计时API认证配置
-	Runtime         RuntimeAuthConfig `mapstructure:"runtime"`          // 运行时API认证配置
-	DefaultProvider string            `mapstructure:"default_provider"` // casdoor, keycloak, oidc
-	Casdoor         CasdoorConfig     `mapstructure:"casdoor"`
+	Design  DesignAuthConfig  `mapstructure:"design"`  // 设计时API认证配置
+	Runtime RuntimeAuthConfig `mapstructure:"runtime"` // 运行时API认证配置
 }
 
 // DesignAuthConfig 设计时API认证配置
@@ -82,7 +80,6 @@ type DesignAuthConfig struct {
 	JWTPublicKeyPath    string `mapstructure:"jwt_public_key_path"`   // JWT 公钥路径
 	JWTPublicKey        string `mapstructure:"jwt_public_key"`        // JWT 公钥内容
 	SkipJWTValidation   bool   `mapstructure:"skip_jwt_validation"`   // 是否跳过JWT验证
-	AcceptCasdoorJWT    bool   `mapstructure:"accept_casdoor_jwt"`    // 是否接受 Casdoor JWT (migration flag)
 	AcceptModelcraftJWT bool   `mapstructure:"accept_modelcraft_jwt"` // 是否接受 ModelCraft JWT (migration flag)
 }
 
@@ -90,18 +87,6 @@ type DesignAuthConfig struct {
 type RuntimeAuthConfig struct {
 	Enabled             bool     `mapstructure:"enabled"`
 	OptionalForProjects []string `mapstructure:"optional_for_projects"`
-}
-
-// CasdoorConfig Casdoor认证提供者配置
-type CasdoorConfig struct {
-	Endpoint      string `mapstructure:"endpoint"`
-	ClientID      string `mapstructure:"client_id"`
-	ClientSecret  string `mapstructure:"client_secret"`
-	Organization  string `mapstructure:"organization"`
-	Application   string `mapstructure:"application"`
-	Certificate   string `mapstructure:"certificate"`
-	RedirectURI   string `mapstructure:"redirect_uri"`
-	WebhookSecret string `mapstructure:"webhook_secret"` // Webhook 验证密钥
 }
 
 // ConfigOptions 配置选项
@@ -197,21 +182,11 @@ func setupEnvBindings(v *viper.Viper) {
 
 	// 认证配置环境变量绑定
 	_ = v.BindEnv("auth.design.enabled", "AUTH_DESIGN_ENABLED")
-	_ = v.BindEnv("auth.design.jwt_public_key_path", "CASDOOR_JWT_PUBLIC_KEY_PATH")
-	_ = v.BindEnv("auth.design.jwt_public_key", "CASDOOR_JWT_PUBLIC_KEY")
+	_ = v.BindEnv("auth.design.jwt_public_key_path", "AUTH_JWT_PUBLIC_KEY_PATH")
+	_ = v.BindEnv("auth.design.jwt_public_key", "AUTH_JWT_PUBLIC_KEY")
 	_ = v.BindEnv("auth.design.skip_jwt_validation", "AUTH_SKIP_JWT_VALIDATION")
-	_ = v.BindEnv("auth.design.accept_casdoor_jwt", "AUTH_ACCEPT_CASDOOR_JWT")
 	_ = v.BindEnv("auth.design.accept_modelcraft_jwt", "AUTH_ACCEPT_MODELCRAFT_JWT")
 	_ = v.BindEnv("auth.runtime.enabled", "AUTH_RUNTIME_ENABLED")
-	_ = v.BindEnv("auth.default_provider", "AUTH_DEFAULT_PROVIDER")
-	_ = v.BindEnv("auth.casdoor.endpoint", "CASDOOR_ENDPOINT")
-	_ = v.BindEnv("auth.casdoor.client_id", "CASDOOR_CLIENT_ID")
-	_ = v.BindEnv("auth.casdoor.client_secret", "CASDOOR_CLIENT_SECRET")
-	_ = v.BindEnv("auth.casdoor.organization", "CASDOOR_ORGANIZATION")
-	_ = v.BindEnv("auth.casdoor.application", "CASDOOR_APPLICATION")
-	_ = v.BindEnv("auth.casdoor.certificate", "CASDOOR_CERTIFICATE")
-	_ = v.BindEnv("auth.casdoor.redirect_uri", "CASDOOR_REDIRECT_URI")
-	_ = v.BindEnv("auth.casdoor.webhook_secret", "CASDOOR_WEBHOOK_SECRET")
 }
 
 // loadEnvFile 使用 godotenv 加载环境变量文件

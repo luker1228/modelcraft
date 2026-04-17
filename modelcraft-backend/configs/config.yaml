@@ -37,15 +37,14 @@ auth:
   design:
     # 是否启用认证（开发环境可设为false，生产环境必须为true）
     enabled: false  # Set to true in production
-    # JWT 公钥路径（用于验证 Casdoor JWT token）
+    # JWT 公钥路径
     jwt_public_key_path: ""  # Path to RSA public key file (PEM format)
     # 或者直接配置公钥内容（通过环境变量）
-    jwt_public_key: ""  # Override via CASDOOR_JWT_PUBLIC_KEY
+    jwt_public_key: ""  # Override via AUTH_JWT_PUBLIC_KEY
     # 是否跳过JWT验证（仅用于开发）
     skip_jwt_validation: false  # Set to false in production
-    # Migration flags for dual-token authentication
-    accept_casdoor_jwt: true   # Accept Casdoor JWT during migration period
-    accept_modelcraft_jwt: true # Accept ModelCraft JWT (new dual-token flow)
+    # 是否接受 ModelCraft JWT
+    accept_modelcraft_jwt: true
 
   # 运行态 GraphQL API 认证配置
   runtime:
@@ -53,48 +52,6 @@ auth:
     enabled: true
     # 是否允许特定项目跳过认证（用于迁移期间，生产环境应为空数组）
     optional_for_projects: []  # e.g., ["default"] to allow unauthenticated access for default project
-
-  # 默认认证提供者配置（用于没有特定配置的项目）
-  default_provider: "casdoor"  # casdoor, keycloak, oidc
-
-  # Casdoor 配置（敏感信息通过环境变量覆盖）
-  casdoor:
-    endpoint: "http://9.135.32.8:8000"  # Override via CASDOOR_ENDPOINT
-    client_id: ""  # MUST override via CASDOOR_CLIENT_ID
-    client_secret: ""  # MUST override via CASDOOR_CLIENT_SECRET
-    organization: "built-in"  # Default organization name
-    application: "modelcraft"  # Application name in Casdoor
-    redirect_uri: "http://9.135.32.8:3000/auth/callback"  # OAuth callback URL
-    certificate: |
-      -----BEGIN CERTIFICATE-----
-      MIIE3TCCAsWgAwIBAgIDAeJAMA0GCSqGSIb3DQEBCwUAMCgxDjAMBgNVBAoTBWFk
-      bWluMRYwFAYDVQQDEw1jZXJ0LWJ1aWx0LWluMB4XDTI2MDEzMTEzMjQ1N1oXDTQ2
-      MDEzMTEzMjQ1N1owKDEOMAwGA1UEChMFYWRtaW4xFjAUBgNVBAMTDWNlcnQtYnVp
-      bHQtaW4wggIiMA0GCSqGSIb3DQEBAQUAA4ICDwAwggIKAoICAQCzQwI2gfMjvLFX
-      MwKFovUkcDT2dZeu1zJYJIIo7YED3JCNRBnb8BElOxYYoO4YHMyM1gcRctcazhZs
-      pmsKq6mg/p7eP0E+7Mtz/kqhfTKr5pEYczcbVkYs3TEOHJkPLCjNq2dHUFkDXIF8
-      q6a1OBqDnT9w3gHdXBc+lIC2fMW6C9FOGZCQTCkS0hzaM9BY8XRhURe+dLyK8LOR
-      nPJaaBqoZdNYcE47oLrZPlmPxmFHBHWjc8JkDBgfqCiQQc2P0FoyoliMdR9SqC4A
-      hkP52KJ+DBbVAgDlGNNQAhTN9AJ3o1keMqBqy4Rma7jv/Dt6p9v337i3nIViFzlz
-      Y9BhXkc3+2RyoHdn/SjCjJviY3Gvbuaz+7p49DEoPlITjmJQznJF/SSdUmI/tjO3
-      1d2QoZT/t19ju0Un9jypz1BOJR/BIFFoNqs/1mnSNKdNDCfxNUAk5PLCPVCQnZaQ
-      NW9vVKhRGOKPs2YCGIXWk7vcWcB41UM3MzTexW24CzCsZOZbvbl5qGFjN8Zls8Zp
-      /7r/nZs2ni2+PcoI20cA+OgfZriUyHQlVDGURePw7//4+0JgDRFFYszhAzXqoRJW
-      q/78oemLcZif8n/dHAJJI17y4iMHkaMMlSwVNaycepjcXpyOwUy946WMVSkfkKbN
-      nfsWaAE3ZLSdDU7O3aH+pxfcxw1WUwIDAQABoxAwDjAMBgNVHRMBAf8EAjAAMA0G
-      CSqGSIb3DQEBCwUAA4ICAQAmudI17AzWHz7C5qiOYuayH9C9q6eMmsQn7OMdLbed
-      5JBl8GlMbFnTrEvus7JB2HH+0t6K/2xI60piVfWyQL+jpTCLhEmwbyrneiO5ToTp
-      +krSJ67tS8wSuuKvqueuTr7HPRIQ8PV+geq9NxGSuKYdp+u5u++54pUaaxgRhAIk
-      NtIi9BKeklgtv/POJngJYgZr4yxZFkwjHThRiqOFnH4f97NlgOCWUgtxY5/svci/
-      eXPqmn7puDaTrYdaLnuTGh8LBCfDWnJ1KVIQYC9e6IOxpdEUV5YTm3BmLV+7Q4jo
-      jccPn1tpSh+qwlfvvRQdo+ctBaQt006vFzFbikoRKMOXgpSGh77fSJfHXQTsB/G+
-      O8IVEyOE1LDlqTF91kqm72oNcfAKbx6Kn6OHoRn9tr+sKe4u7IawIxlP1zsVDIuI
-      JJCv1ZpsVrx2EqucfNGAMkzW12e2Rwxx8Z3EpJ5r62ZsdoLChmTlx212KBbP4eh5
-      alqJVsG/VN1qeYPrbDh4YPYs/LSi2pT4wGI5Y+4M7HpH9Hm8FdzEbEUh15SN91C/
-      e1rXbRnWsIVcYBaB5GWQLv0429gZCymgDdi5blcVzfK4hc5/7pYdoqjOYxokN/Fo
-      uyn5FX9k+9PxLDfFylh4IwkAaeKj+kKXUdUab3YRiP+7EJwJS15gjtrAjzHo7/8R
-      rQ==
-      -----END CERTIFICATE-----
 
 # 加密配置
 crypto:

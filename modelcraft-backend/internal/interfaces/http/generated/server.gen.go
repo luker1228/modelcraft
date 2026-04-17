@@ -176,21 +176,6 @@ func (e UserNameAlreadyRegisteredErrorErrorCode) Valid() bool {
 	}
 }
 
-// Defines values for WebhookInvalidPayloadErrorErrorCode.
-const (
-	PARAMINVALIDWEBHOOK WebhookInvalidPayloadErrorErrorCode = "PARAM_INVALID.WEBHOOK"
-)
-
-// Valid indicates whether the value is a known member of the WebhookInvalidPayloadErrorErrorCode enum.
-func (e WebhookInvalidPayloadErrorErrorCode) Valid() bool {
-	switch e {
-	case PARAMINVALIDWEBHOOK:
-		return true
-	default:
-		return false
-	}
-}
-
 // AuthInvalidInputError defines model for AuthInvalidInputError.
 type AuthInvalidInputError struct {
 	Error struct {
@@ -233,31 +218,6 @@ type BaseResponse struct {
 	RequestId string `json:"requestId"`
 }
 
-// CasdoorExtendedUser defines model for CasdoorExtendedUser.
-type CasdoorExtendedUser struct {
-	DisplayName *string `json:"displayName,omitempty"`
-	Email       *string `json:"email,omitempty"`
-	Id          *string `json:"id,omitempty"`
-	Name        *string `json:"name,omitempty"`
-	Owner       *string `json:"owner,omitempty"`
-	Phone       *string `json:"phone,omitempty"`
-}
-
-// CasdoorWebhookPayload defines model for CasdoorWebhookPayload.
-type CasdoorWebhookPayload struct {
-	Action       *string              `json:"action,omitempty"`
-	ExtendedUser *CasdoorExtendedUser `json:"extendedUser,omitempty"`
-	Id           *int                 `json:"id,omitempty"`
-	Name         *string              `json:"name,omitempty"`
-
-	// Object JSON string of user object
-	Object       *string `json:"object,omitempty"`
-	Organization *string `json:"organization,omitempty"`
-	Owner        *string `json:"owner,omitempty"`
-	Response     *string `json:"response,omitempty"`
-	User         *string `json:"user,omitempty"`
-}
-
 // GetMembershipsResponse defines model for GetMembershipsResponse.
 type GetMembershipsResponse struct {
 	// Memberships List of organization memberships
@@ -265,15 +225,6 @@ type GetMembershipsResponse struct {
 
 	// RequestId Unique request identifier
 	RequestId string `json:"requestId"`
-}
-
-// HandleWebhookResponse defines model for HandleWebhookResponse.
-type HandleWebhookResponse struct {
-	Action *string `json:"action,omitempty"`
-
-	// RequestId Unique request trace ID
-	RequestId string  `json:"requestId"`
-	UserID    *string `json:"userID,omitempty"`
 }
 
 // InitOrganizationRequest defines model for InitOrganizationRequest.
@@ -488,18 +439,6 @@ type UserNameAlreadyRegisteredError struct {
 // UserNameAlreadyRegisteredErrorErrorCode defines model for UserNameAlreadyRegisteredError.Error.Code.
 type UserNameAlreadyRegisteredErrorErrorCode string
 
-// WebhookInvalidPayloadError defines model for WebhookInvalidPayloadError.
-type WebhookInvalidPayloadError struct {
-	Error struct {
-		Code    WebhookInvalidPayloadErrorErrorCode `json:"code"`
-		Message string                              `json:"message"`
-	} `json:"error"`
-	RequestId string `json:"requestId"`
-}
-
-// WebhookInvalidPayloadErrorErrorCode defines model for WebhookInvalidPayloadError.Error.Code.
-type WebhookInvalidPayloadErrorErrorCode string
-
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -514,9 +453,6 @@ type RegisterJSONRequestBody = RegisterRequest
 
 // InitOrganizationJSONRequestBody defines body for InitOrganization for application/json ContentType.
 type InitOrganizationJSONRequestBody = InitOrganizationRequest
-
-// HandleCasdoorWebhookJSONRequestBody defines body for HandleCasdoorWebhook for application/json ContentType.
-type HandleCasdoorWebhookJSONRequestBody = CasdoorWebhookPayload
 
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
@@ -538,9 +474,6 @@ type ServerInterface interface {
 	// Get current user's organization memberships
 	// (GET /api/user/memberships)
 	GetUserMemberships(w http.ResponseWriter, r *http.Request)
-	// Handle Casdoor webhook events
-	// (POST /api/webhook/casdoor)
-	HandleCasdoorWebhook(w http.ResponseWriter, r *http.Request)
 }
 
 // Unimplemented server implementation that returns http.StatusNotImplemented for each endpoint.
@@ -580,12 +513,6 @@ func (_ Unimplemented) InitOrganization(w http.ResponseWriter, r *http.Request) 
 // Get current user's organization memberships
 // (GET /api/user/memberships)
 func (_ Unimplemented) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Handle Casdoor webhook events
-// (POST /api/webhook/casdoor)
-func (_ Unimplemented) HandleCasdoorWebhook(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -685,20 +612,6 @@ func (siw *ServerInterfaceWrapper) GetUserMemberships(w http.ResponseWriter, r *
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.GetUserMemberships(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// HandleCasdoorWebhook operation middleware
-func (siw *ServerInterfaceWrapper) HandleCasdoorWebhook(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.HandleCasdoorWebhook(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -839,9 +752,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/user/memberships", wrapper.GetUserMemberships)
 	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/webhook/casdoor", wrapper.HandleCasdoorWebhook)
-	})
 
 	return r
 }
@@ -849,55 +759,51 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"bk+n+f8LAAD//9BghfxbOQAA",
+	"H4sIAAAAAAAC/+xae1PbuBb/Kmd8d2bDrPMiQCn/pZS22aHAhXB37gKXEfaJrVaWXEmGpp189zuSnfiB",
+	"ktAFuu3M9o9OsPU456dzfudhffUCkaSCI9fK2/vqqSDGhNifw0zHI35LGA1HPM30gZRCmhepFClKTdEO",
+	"Q/fjQIRoX/Ms8fYuvJPh6fD99ejoP8PD0evO8Hz8zrvyPT1N0dvzlJaUR97M9xJUikR2ZuPdzPckfsqo",
+	"xNCsZ9cvx5driZsPGGivGI5Kj8L1q5VD/UIh14IGEeSaBkRTwR+Hh0Hg4Gg82h+OR8dH12+Go8OD1z87",
+	"JG8IZRj+A8zM914RhaeoUsEV3le6tl2IKpA0NQB6e945p58yhGIEaEkChNFrs9lnkqTMbCPx0/X2dg93",
+	"t3o93Hx5s9UPtzz/wXK75H2L+j0mNyhVTFO1XPKkHHRf9kOqNIgJCBkRTr9Ym4DqDN+jGhM78xeJE2/P",
+	"+1e3JKBuwT7dUpIRnwgjXiEvkZJM753XSgBpaOxzQlE2IWz3Nwdb2zsvdu2Pxn/m+ctef/MbYPVr4LhA",
+	"HnGqjyvYnOZz76McUpUyMj0iCd5X8F2WEN6WSEJyw7AONicJQmsu34bncJvqePcGVRFBsSyC1k57cwuC",
+	"mEjlAxN3KAOi0AcuIJ6mMXK10YHRBDBJ9dQHkmnRjpCjJBpDmEiRQEWlzlpQq/o/DMjSXgljxxNv72K1",
+	"idX8c+Y3D4Awg+/04DNV2mHoY5kh0AnouIF/MQ/QTMQQWjTEJBUauQaJKmO6ciY3QjAk3Cj0qANfcsru",
+	"xd4ujkU0j9m1jsqCAJWq0OJC6tm9g7ma+d6hiOhyw6544332MDMr/gptCAiHG4Q0FhyBZ8a7QEjIFEpr",
+	"6SGmyEPKIxDVmWMjVtXb+4PdXs/+13Mp2ZhpJZuQjGlvzzt5d3x04PlNA5imaJiunLkHdiS0iqkbRtDz",
+	"s4PTo+F7M3+RCBXrLV65QltKlLoT0sVuCiUsXld1TKbzx/3NgUtLi+L9FS9eYyoxMCZxBf1+O6QR1ZAQ",
+	"yhnhIezHlJPaCXTgXGH1nH5rQA+UK40k7Kw4g5RojdLs/7/+xaD98uryMvz6cvbLWmqo8fkCCBdJFJb4",
+	"xMyAn1MqUQ31fSRPcSJRxaDFR+RgB+bOpalh5RcQkqnK2ZCLO0MEEyETYqwsJBrbZtg3+fKJpAmRU1cI",
+	"mFBpYrGMLEcZh4EbZIJHCrTwDXcRPnXGB5lrMTZKOGJDSvLoWlW1pbSQCAqDTCKbGmcMGEWunRsYYVyB",
+	"+70Ike1LMtFAuTEOwnLBz89t/uNcyA2M9ZKCU5dQZMOsCqEa6vuV475y0l0jVfm2SF4LtA1xS8cpcXGB",
+	"8EFQjqHLHH8XNDc9pUmSAuWQUMaowkDwUEHrnNPPgKkI4o3qfv0Xvd2twfZmz/yrmCjleqeSZZojilAW",
+	"9uk6z5p2xRmWWs3z17ZJYNsmg22TF/2d9tbWzs729tZWbwlXL3UGR9aS5algSRkbdcY0wAbLgJWCLbGs",
+	"XxWYlwbRZgJQW1/ccctSqy0vR69UrJ4MFHJUztlFdccyGlYzlseVYPvHR28OR/vjzvHp2+HR6E9bif18",
+	"JdixjJ6rf/FzA3NignlhL6cYmUxVPrZsX9iMyWt+PkiK0P09s4UjvGuE0UbG8OD8YHXENvsIZ9SWmDIS",
+	"oMpZjIUgOD5nxH6ikHtaGb600FiNST1TEzeaGHKFMDOCAjOJ4wMK/8oObpvKXetEiglleMZJqmLhkJXc",
+	"Ek3kuWQOa/a9Gyqcz2nofMxp8JE7A2RRmEBZmM/H+oCdqGOP7nrYf7W5P1htBesydM8vD3chzyqIlh7j",
+	"8kLopHgDrYRymmQJ7NoGBQk0SrWxsjRKKD9EHunY29t9eKH0kNroSSqetZltnuIP2oPNeU9GaSI13FEd",
+	"A0OzTzfjIUoVCIndvEXjGzfnQFgaE54lKGlwf1Adtw8i5tehsGxMPs8hG2zWEBzUVLsg7S/D9p/X7avi",
+	"V6/98rp99XXTH/QfUN3l0FcKuwoWqw3oiYl7aZq5L9H6TopSCUN4D2qjpDkHrGt8LqOMFRw8l+cv8G6Z",
+	"cc7FcxPu2VRpTB6XH5z992x88P764PT02J0ehKgJZTkfhiE12hF2UllTywwdFvBDpxXnnGQ6FpJ+eWx+",
+	"dX40PB+/Oz4d/fkzfg05L3z4n6SzXHDme7ZhQvX0zLh/ruIrJBLlMDPM+tW7sX+9mWeBv/8x9vz8G63t",
+	"xNq3pb/HWqfezCxMi15EI+s5OBvD8GQEEyFBIyfcxDJOIkyQa2iZXeEy6/U2d6BaTW/MK91Kvpcyok12",
+	"2rnkl/xVpihHpSAUJjaaPRS0TqQwmio/n6d82GeZOXblwwHPErUBxHaN5C2GgJ8Dlil6i2x6yW8pgbeS",
+	"pPG/D4Fo6AoZdb8WdDXrhqhoxLuRGfCJdWAcUwXHKXKjm0oxgEDcolQgOJsW1b+eAuHhJc/VblfURh6m",
+	"gnKtOpc26aO60XWBOW6e75llczAHnV6nZxsSKXKS0uLRII/0sT3MLklp1zBAN08pjUGLPM0xZm3BNeaU",
+	"tyq9hYm9EuE0t3cjrx1P0pQVX1m7H5Tg5cf6dTGl1pCf1S3VcKp9kMdBK/Rmr/fUe8+j7GzmO3v+xUeG",
+	"ScYMoFtPKID7EoNDkGIQUDMKWnlOl5dfG7lQ/ScVqnmPwCFSfRhM7Mf1uWhcaJiIjIcgJNxJwaPFVwEr",
+	"7/YTgliN/w45z4wDS8DifUlr3t7Fle+pLEmInC4O2yaptS86JpWuJHyaRMreBDAkeGUWrPmRyPRKRzLv",
+	"n8eTXIXngxxqy/mxS2S6ZvmrkTOjWxJvxcdGHb+xBrJi8HLMTuvl9w+FXO+pRVhFRla8BbhNUvru/l9Q",
+	"kp/3hTD0jatLzBSGdQv4Uf291mVRYJKE6F4PSug8x1hrxXnKuMqMixHPZcL1VsWDzLf/DNsvt998TNFB",
+	"LM0XWrY2/A2KKg+CvGTc+BGDrb+IBKCFABULOQ/AL79JUMHxAV2AVa3wmb967pqiZnbl0DxXtbjCYCbX",
+	"b4yo7+zKRZ8BKKd6nmAIWTZzH+LjudZ5/8FEcrMWJYx+wYXBES0SGhDGpsu93KT4ZupyB29e+nkmR192",
+	"Ses7x6ulV5wcx1j79FniH0KrcHVzqHVDe3Lnd35tW+H7cg7rc8bW6oVUhyzV9sxf4Zg1eDg+ya47PNvZ",
+	"DQSfMBpoaNk/NTGR8sYUsELH9gZU9Pfn+AsGGJX+XmuF2iZDjBBkUpo62xJE5T5cNeLX3LrkBDOl27hx",
+	"GqHz5o3OJFdAgDmuoOYfuEhpGfN2KTUz8vVBTHygPGCZvU5mv+8bNvsgKIeQaMOReYSigndgsaGGRCgN",
+	"/V6vetG14/kN8nqL2sSL97XLsM9GHktu87oK8AIvi0cV6if2y/ud0DX+CG2YU4WQkFBls8ff/xj/LTnv",
+	"aB4R1XJHeIu6Zuy/qlUXoeemb6zCy1OFSoytNwIvrmYm6NqtlX3bLCYDwiDEW2QitU2tfKzne5lkRWdw",
+	"r9tlZlwslN7b7e32TIby/wAAAP//AunyFQAyAAA=",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

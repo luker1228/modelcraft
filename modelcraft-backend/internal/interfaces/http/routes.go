@@ -21,7 +21,6 @@ import (
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -248,7 +247,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		logfacade.GetLogger(context.Background()).Fatal(
 			context.Background(),
 			"GraphQL authentication enabled but no RSA public key configured. "+
-				"Please configure CASDOOR_CERTIFICATE, CASDOOR_JWT_PUBLIC_KEY_PATH, or CASDOOR_JWT_PUBLIC_KEY",
+				"Please configure AUTH_JWT_PUBLIC_KEY_PATH or AUTH_JWT_PUBLIC_KEY",
 		)
 	}
 
@@ -310,11 +309,10 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 	})
 }
 
-// LoadRSAPublicKey loads the RSA public key from Casdoor certificate configuration.
-// It supports three sources (in priority order):
-// 1. Direct PEM string from config (CASDOOR_CERTIFICATE)
-// 2. PEM file path (CASDOOR_JWT_PUBLIC_KEY_PATH)
-// 3. Direct public key string (CASDOOR_JWT_PUBLIC_KEY)
+// LoadRSAPublicKey loads the RSA public key for design API JWT validation.
+// It supports two sources (in priority order):
+// 1. PEM file path (AUTH_JWT_PUBLIC_KEY_PATH)
+// 2. Direct public key string (AUTH_JWT_PUBLIC_KEY)
 // This function is exported for use by both Gin and Chi middleware setup.
 // rsaPublicKeyOnce ensures LoadRSAPublicKey only parses the key once.
 var (
@@ -340,16 +338,8 @@ func loadRSAPublicKey(cfg *config.Config) (*rsa.PublicKey, error) {
 
 	var pemData []byte
 
-	// Priority 1: Certificate from Casdoor config
-	if cfg.Auth.Casdoor.Certificate != "" {
-		// Replace literal \n with actual newlines for proper PEM parsing
-		certData := strings.ReplaceAll(cfg.Auth.Casdoor.Certificate, "\\n", "\n")
-		pemData = []byte(certData)
-		logger.Infof(context.Background(), "Loading RSA public key from Casdoor certificate config")
-	}
-
-	// Priority 2: Public key file path
-	if pemData == nil && cfg.Auth.Design.JWTPublicKeyPath != "" {
+	// Priority 1: Public key file path
+	if cfg.Auth.Design.JWTPublicKeyPath != "" {
 		data, err := os.ReadFile(cfg.Auth.Design.JWTPublicKeyPath)
 		if err != nil {
 			logger.Errorf(context.Background(),
@@ -360,7 +350,7 @@ func loadRSAPublicKey(cfg *config.Config) (*rsa.PublicKey, error) {
 		}
 	}
 
-	// Priority 3: Direct public key string
+	// Priority 2: Direct public key string
 	if pemData == nil && cfg.Auth.Design.JWTPublicKey != "" {
 		pemData = []byte(cfg.Auth.Design.JWTPublicKey)
 		logger.Infof(context.Background(), "Loading RSA public key from config string")

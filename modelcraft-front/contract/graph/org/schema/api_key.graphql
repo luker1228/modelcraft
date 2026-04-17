@@ -15,6 +15,7 @@ type ApiKey {
   id:          ID!
   name:        String!
   keyPrefix:   String!
+  roleIDs:     [ID!]!
   lastUsedAt:  Time
   expiresAt:   Time
   revokedAt:   Time
@@ -26,17 +27,20 @@ type CreateApiKeyResult {
   name:      String!
   key:       String!
   keyPrefix: String!
+  roleIDs:   [ID!]!
   createdAt: Time!
 }
 
 input CreateApiKeyInput {
   name:      String!
   expiresAt: Time
+  roleIDs:   [ID!]
 }
 
 input UpdateApiKeyInput {
   name:      String
   expiresAt: Time
+  roleIDs:   [ID!]
 }
 
 type CreateApiKeyPayload {

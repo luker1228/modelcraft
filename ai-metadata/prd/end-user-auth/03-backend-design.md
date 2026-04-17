@@ -307,8 +307,8 @@ Headers:
 
 ```typescript
 const END_USER_COOKIE        = 'end_user_refresh_token'
-const END_USER_DATA_RE       = /^\/org\/[^/]+\/projects\/[^/]+\/data/
-const END_USER_LOGIN_RE      = /^\/org\/[^/]+\/projects\/[^/]+\/user\/login/
+const END_USER_DATA_RE       = /^\/org\/[^/]+\/project\/[^/]+\/data/
+const END_USER_LOGIN_RE      = /^\/org\/[^/]+\/project\/[^/]+\/user\/login/
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -321,7 +321,7 @@ export function middleware(request: NextRequest) {
   // 终端用户数据页 → 检查 end_user_refresh_token
   if (END_USER_DATA_RE.test(pathname)) {
     if (!request.cookies.has(END_USER_COOKIE)) {
-      const base = pathname.match(/^(\/org\/[^/]+\/projects\/[^/]+)/)?.[1] ?? ''
+      const base = pathname.match(/^(\/org\/[^/]+\/project\/[^/]+)/)?.[1] ?? ''
       const url  = new URL(`${base}/user/login`, request.url)
       url.searchParams.set('redirect', pathname)
       return NextResponse.redirect(url)
