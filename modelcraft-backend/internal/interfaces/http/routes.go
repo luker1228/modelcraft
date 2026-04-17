@@ -35,11 +35,13 @@ import (
 	appProfile "modelcraft/internal/app/profile"
 
 	appRole "modelcraft/internal/app/role"
+	appEnduser "modelcraft/internal/app/enduser"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
 	domainUser "modelcraft/internal/domain/user"
 	infraAuth "modelcraft/internal/infrastructure/auth"
 
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
+	enduserHandlers "modelcraft/internal/interfaces/http/handlers/enduser"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 
 	"github.com/go-chi/chi/v5"
@@ -77,6 +79,12 @@ type DesignHandlers struct {
 	ModelRepository domainModelDesign.ModelRepository
 	UserRepo        domainUser.UserRepository
 	ClusterManager  *repository.ClusterConnectionManager
+
+	// End-User Services
+	EndUserAuthAppService *appEnduser.EndUserAuthAppService
+	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
+	EndUserAuthHandler    *enduserHandlers.AuthHandler
+	EndUserMgmtHandler    *enduserHandlers.ManagementHandler
 }
 
 // CreateDesignHandlers creates all handlers and services needed for the design API.
@@ -451,4 +459,33 @@ func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers
 	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
 	router.With(runtimeMW).Get(runtimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
+}
+
+// SetupEndUserRoutesOnChi registers End-User management HTTP routes.
+// Routes (internal, X-Internal-Token required):
+//
+//	POST   /internal/end-users                → Create end user
+//	GET    /internal/end-users                → List end users
+//	PATCH  /internal/end-users/{userId}/status → Update status
+//	DELETE /internal/end-users/{userId}       → Delete end user
+//
+// Note: These routes are for BFF/internal consumption only.
+// The PrivateDBManager dependency is not yet implemented;
+// routes will return 501 until Infrastructure layer is ready.
+func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, _ *config.Config) {
+	if handlers.EndUserMgmtHandler == nil {
+		// Handler not configured; skip route registration
+		// This is expected until Infrastructure layer implements PrivateDBManager
+		return
+	}
+
+	// Internal routes use X-Internal-Token authentication
+	// TODO: Add InternalTokenMiddleware when implemented
+	router.Route("/internal/end-users", func(r chi.Router) {
+		r.Use(requestIDInjectorMiddleware)
+		r.Post("/", handlers.EndUserMgmtHandler.Create)
+		r.Get("/", handlers.EndUserMgmtHandler.List)
+		r.Patch("/{userId}/status", handlers.EndUserMgmtHandler.UpdateStatus)
+		r.Delete("/{userId}", handlers.EndUserMgmtHandler.Delete)
+	})
 }

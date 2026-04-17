@@ -7,10 +7,15 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"time"
 )
 
 type AddFieldsError interface {
 	IsAddFieldsError()
+}
+
+type CreateEndUserError interface {
+	IsCreateEndUserError()
 }
 
 type CreateEnumError interface {
@@ -31,6 +36,10 @@ type CreateModelError interface {
 
 type DeleteClusterError interface {
 	IsDeleteClusterError()
+}
+
+type DeleteEndUserError interface {
+	IsDeleteEndUserError()
 }
 
 type DeleteEnumError interface {
@@ -66,6 +75,10 @@ type GetModelError interface {
 	IsGetModelError()
 }
 
+type ListEndUsersError interface {
+	IsListEndUsersError()
+}
+
 type MoveModelToGroupError interface {
 	IsMoveModelToGroupError()
 }
@@ -93,6 +106,10 @@ type TestConnectionError interface {
 
 type UpdateClusterError interface {
 	IsUpdateClusterError()
+}
+
+type UpdateEndUserError interface {
+	IsUpdateEndUserError()
 }
 
 type UpdateEnumError interface {
@@ -196,6 +213,24 @@ func (ClusterNotFound) IsUpdateClusterError() {}
 func (ClusterNotFound) IsDeleteClusterError() {}
 
 func (ClusterNotFound) IsTestConnectionError() {}
+
+func (ClusterNotFound) IsCreateEndUserError() {}
+
+func (ClusterNotFound) IsUpdateEndUserError() {}
+
+func (ClusterNotFound) IsDeleteEndUserError() {}
+
+func (ClusterNotFound) IsListEndUsersError() {}
+
+type CreateEndUserInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type CreateEndUserPayload struct {
+	EndUser *EndUser           `json:"endUser,omitempty"`
+	Error   CreateEndUserError `json:"error,omitempty"`
+}
 
 type CreateEnumInput struct {
 	Name        string             `json:"name"`
@@ -327,6 +362,15 @@ type DeleteClusterPayload struct {
 	Error   DeleteClusterError `json:"error,omitempty"`
 }
 
+type DeleteEndUserInput struct {
+	UserID string `json:"userId"`
+}
+
+type DeleteEndUserPayload struct {
+	Success bool               `json:"success"`
+	Error   DeleteEndUserError `json:"error,omitempty"`
+}
+
 type DeleteEnumPayload struct {
 	Success bool            `json:"success"`
 	Error   DeleteEnumError `json:"error,omitempty"`
@@ -351,6 +395,54 @@ type DeleteModelPayload struct {
 	Success bool             `json:"success"`
 	Error   DeleteModelError `json:"error,omitempty"`
 }
+
+type EndUser struct {
+	ID          string    `json:"id"`
+	Username    string    `json:"username"`
+	IsForbidden bool      `json:"isForbidden"`
+	CreatedBy   string    `json:"createdBy"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+func (EndUser) IsNode()            {}
+func (this EndUser) GetID() string { return this.ID }
+
+type EndUserAlreadyExists struct {
+	Message string `json:"message"`
+}
+
+func (EndUserAlreadyExists) IsError()                {}
+func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
+
+func (EndUserAlreadyExists) IsCreateEndUserError() {}
+
+type EndUserConnection struct {
+	Nodes      []*EndUser `json:"nodes"`
+	PageInfo   *PageInfo  `json:"pageInfo"`
+	TotalCount int32      `json:"totalCount"`
+}
+
+type EndUserNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserNotFound) IsError()                {}
+func (this EndUserNotFound) GetMessage() string { return this.Message }
+
+func (EndUserNotFound) IsUpdateEndUserError() {}
+
+func (EndUserNotFound) IsDeleteEndUserError() {}
+
+type EndUserPasswordTooWeak struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserPasswordTooWeak) IsError()                {}
+func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
+
+func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
 type EnumAlreadyExists struct {
 	Message    string  `json:"message"`
@@ -550,6 +642,10 @@ type InvalidInput struct {
 
 func (InvalidInput) IsUpdateClusterError() {}
 
+func (InvalidInput) IsCreateEndUserError() {}
+
+func (InvalidInput) IsUpdateEndUserError() {}
+
 func (InvalidInput) IsCreateEnumError() {}
 
 func (InvalidInput) IsUpdateEnumError() {}
@@ -573,6 +669,17 @@ type ListDatabasesInput struct {
 	Offset *int32  `json:"offset,omitempty"`
 	Limit  *int32  `json:"limit,omitempty"`
 	Search *string `json:"search,omitempty"`
+}
+
+type ListEndUsersInput struct {
+	Search *string `json:"search,omitempty"`
+	First  *int32  `json:"first,omitempty"`
+	After  *string `json:"after,omitempty"`
+}
+
+type ListEndUsersPayload struct {
+	Connection *EndUserConnection `json:"connection,omitempty"`
+	Error      ListEndUsersError  `json:"error,omitempty"`
 }
 
 type ListTablesInput struct {
@@ -718,6 +825,14 @@ func (ProjectNotFound) IsDeleteClusterError() {}
 
 func (ProjectNotFound) IsTestConnectionError() {}
 
+func (ProjectNotFound) IsCreateEndUserError() {}
+
+func (ProjectNotFound) IsUpdateEndUserError() {}
+
+func (ProjectNotFound) IsDeleteEndUserError() {}
+
+func (ProjectNotFound) IsListEndUsersError() {}
+
 func (ProjectNotFound) IsGetEnumError() {}
 
 func (ProjectNotFound) IsCreateEnumError() {}
@@ -830,6 +945,16 @@ type UpdateClusterConnectionInput struct {
 type UpdateClusterPayload struct {
 	Cluster *DatabaseCluster   `json:"cluster,omitempty"`
 	Error   UpdateClusterError `json:"error,omitempty"`
+}
+
+type UpdateEndUserStatusInput struct {
+	UserID      string `json:"userId"`
+	IsForbidden bool   `json:"isForbidden"`
+}
+
+type UpdateEndUserStatusPayload struct {
+	EndUser *EndUser           `json:"endUser,omitempty"`
+	Error   UpdateEndUserError `json:"error,omitempty"`
 }
 
 type UpdateEnumInput struct {
