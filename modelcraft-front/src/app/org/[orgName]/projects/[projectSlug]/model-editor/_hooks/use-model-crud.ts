@@ -1,10 +1,10 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import { useProjectScopedClient, getOrgScopedClient } from '@bff/apollo/public'
 import { TEST_CLUSTER_CONNECTION } from '@web/graphql/mutations/cluster'
 import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@web/graphql/mutations/model'
-import { GET_MODEL, GET_MODELS } from '@web/graphql/queries/model'
+import { GET_MODEL, GET_MODELS, GET_MODELS_FOR_RELATION } from '@web/graphql/queries/model'
 import { useDatabases } from '@web/hooks/database/use-databases'
 import { toast } from 'sonner'
 import type { ModelEditorState } from './use-model-editor-state'
@@ -29,6 +29,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   const router = useRouter()
   const projectClient = useProjectScopedClient(projectSlug)
   const orgClient = getOrgScopedClient()
+  const [relationModels, setRelationModels] = useState<EditorModel[]>([])
 
   // Connection check
   useEffect(() => {
@@ -96,6 +97,64 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     if (!modelsData?.models?.edges) return []
     return modelsData.models.edges.map((edge) => edge.node)
   }, [modelsData])
+
+  useEffect(() => {
+    if (!projectSlug || state.connectionChecking || state.connectionFailed || databasesLoading) {
+      setRelationModels([])
+      return
+    }
+
+    if (databases.length === 0) {
+      setRelationModels([])
+      return
+    }
+
+    let cancelled = false
+    const loadRelationModels = async () => {
+      try {
+        const results = await Promise.all(
+          databases.map((db) =>
+            projectClient.query<ModelsQueryData>({
+              query: GET_MODELS_FOR_RELATION,
+              variables: {
+                input: {
+                  databaseName: db.name,
+                  limit: 100,
+                },
+              },
+              fetchPolicy: 'network-only',
+            })
+          )
+        )
+        if (cancelled) return
+
+        const merged = results.flatMap((res) => res.data?.models?.edges?.map((edge) => edge.node) ?? [])
+        const uniqueByID = new Map(merged.map((model) => [model.id, model]))
+        setRelationModels(Array.from(uniqueByID.values()))
+      } catch {
+        if (!cancelled) {
+          setRelationModels([])
+        }
+      }
+    }
+
+    void loadRelationModels()
+    return () => {
+      cancelled = true
+    }
+  }, [
+    projectSlug,
+    projectClient,
+    databases,
+    databasesLoading,
+    state.connectionChecking,
+    state.connectionFailed,
+  ])
+
+  const relationCandidateModels = useMemo(() => {
+    if (relationModels.length > 0) return relationModels
+    return models
+  }, [relationModels, models])
 
   const filteredModels = useMemo(() => {
     if (!state.searchQuery) return models
@@ -309,6 +368,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     databases,
     databasesLoading,
     models,
+    relationCandidateModels,
     filteredModels,
     modelsLoading,
     refetchModels,

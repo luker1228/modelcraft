@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"encoding/json"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
@@ -22,12 +23,17 @@ func NewSqlAPIKeyRepository(q dbgen.Querier) domainauth.APIKeyRepository {
 
 // Save persists a new API key.
 func (r *SqlAPIKeyRepository) Save(ctx context.Context, key *domainauth.APIKey) error {
+	roleIDs, err := marshalRoleIDs(key.RoleIDs)
+	if err != nil {
+		return err
+	}
 	return r.q.InsertAPIKey(ctx, dbgen.InsertAPIKeyParams{
 		ID:        key.ID,
 		UserID:    key.UserID,
 		Name:      key.Name,
 		KeyHash:   key.KeyHash,
 		KeyPrefix: key.KeyPrefix,
+		RoleIds:   roleIDs,
 		ExpiresAt: sqlerr.PtrToNullTime(key.ExpiresAt),
 	})
 }
@@ -94,10 +100,16 @@ func (r *SqlAPIKeyRepository) Update(
 	id string,
 	userID string,
 	name string,
+	roleIDs []int,
 	expiresAt *time.Time,
 ) error {
+	roleIDsJSON, err := marshalRoleIDs(roleIDs)
+	if err != nil {
+		return err
+	}
 	return r.q.UpdateAPIKey(ctx, dbgen.UpdateAPIKeyParams{
 		Name:      name,
+		RoleIds:   roleIDsJSON,
 		ExpiresAt: sqlerr.PtrToNullTime(expiresAt),
 		ID:        id,
 		UserID:    userID,
@@ -115,17 +127,34 @@ func (r *SqlAPIKeyRepository) DeleteRevoked(ctx context.Context) error {
 }
 
 func toDomainAPIKey(row dbgen.ApiKey) *domainauth.APIKey {
+	roleIDs := make([]int, 0)
+	if row.RoleIds != nil && len(*row.RoleIds) > 0 {
+		_ = json.Unmarshal(*row.RoleIds, &roleIDs)
+	}
 	return &domainauth.APIKey{
 		ID:         row.ID,
 		UserID:     row.UserID,
 		Name:       row.Name,
 		KeyHash:    row.KeyHash,
 		KeyPrefix:  row.KeyPrefix,
+		RoleIDs:    roleIDs,
 		LastUsedAt: sqlerr.NullTimeToPtr(row.LastUsedAt),
 		ExpiresAt:  sqlerr.NullTimeToPtr(row.ExpiresAt),
 		CreatedAt:  row.CreatedAt,
 		RevokedAt:  sqlerr.NullTimeToPtr(row.RevokedAt),
 	}
+}
+
+func marshalRoleIDs(roleIDs []int) (*json.RawMessage, error) {
+	if len(roleIDs) == 0 {
+		return nil, nil
+	}
+	b, err := json.Marshal(roleIDs)
+	if err != nil {
+		return nil, err
+	}
+	raw := json.RawMessage(b)
+	return &raw, nil
 }
 
 var _ domainauth.APIKeyRepository = (*SqlAPIKeyRepository)(nil)

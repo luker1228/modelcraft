@@ -67,3 +67,75 @@ export const DELETE_ROLE = gql`
     }
   }
 `
+
+// Create API key
+export const CREATE_API_KEY = gql`
+  mutation CreateApiKey($input: CreateApiKeyInput!) {
+    createApiKey(input: $input) {
+      result {
+        id
+        name
+        key
+        keyPrefix
+        roleIDs
+        createdAt
+      }
+      error {
+        __typename
+        ... on ApiKeyLimitExceeded {
+          message
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+// Update API key
+export const UPDATE_API_KEY = gql`
+  mutation UpdateApiKey($id: ID!, $input: UpdateApiKeyInput!) {
+    updateApiKey(id: $id, input: $input) {
+      apiKey {
+        id
+        name
+        keyPrefix
+        roleIDs
+        lastUsedAt
+        expiresAt
+        revokedAt
+        createdAt
+      }
+      error {
+        __typename
+        ... on ApiKeyNotFound {
+          message
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+// Revoke API key
+export const REVOKE_API_KEY = gql`
+  mutation RevokeApiKey($id: ID!) {
+    revokeApiKey(id: $id) {
+      apiKey {
+        id
+        revokedAt
+      }
+      error {
+        __typename
+        ... on ApiKeyNotFound {
+          message
+        }
+      }
+    }
+  }
+`

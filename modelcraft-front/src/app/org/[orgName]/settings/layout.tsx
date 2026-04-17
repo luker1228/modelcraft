@@ -4,9 +4,10 @@ import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { cn } from '@/shared/utils'
-import { Shield } from 'lucide-react'
+import { KeyRound, Shield } from 'lucide-react'
 
 const tabs = [
+  { id: 'api-keys', label: 'API Keys', icon: KeyRound },
   { id: 'roles', label: 'Roles', icon: Shield },
 ]
 
@@ -31,7 +32,7 @@ export default function SettingsLayout({
 
   const activeTab = tabs.find((tab) =>
     pathname?.endsWith(`/settings/${tab.id}`)
-  )?.id || 'roles'
+  )?.id || 'api-keys'
 
   return (
     <AppLayout pageTitle="组织设置">

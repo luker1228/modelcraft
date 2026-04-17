@@ -78,12 +78,13 @@ func (m *mockAPIKeyRepo) Revoke(ctx context.Context, id, userID string) error {
 	return nil
 }
 
-func (m *mockAPIKeyRepo) Update(ctx context.Context, id, userID, name string, expiresAt *time.Time) error {
+func (m *mockAPIKeyRepo) Update(ctx context.Context, id, userID, name string, roleIDs []int, expiresAt *time.Time) error {
 	k := m.keys[id]
 	if k == nil {
 		return nil
 	}
 	k.Name = name
+	k.RoleIDs = roleIDs
 	k.ExpiresAt = expiresAt
 	return nil
 }

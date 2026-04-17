@@ -21,6 +21,17 @@ export interface Role {
   updatedAt: string
 }
 
+export interface ApiKey {
+  id: string
+  name: string
+  keyPrefix: string
+  roleIDs?: string[]
+  lastUsedAt?: string | null
+  expiresAt?: string | null
+  revokedAt?: string | null
+  createdAt: string
+}
+
 export interface OrganizationMember {
   id: string
   userID: string

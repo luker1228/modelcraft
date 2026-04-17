@@ -123,6 +123,7 @@ type APIKey struct {
 	ID         string     `json:"id"`
 	Name       string     `json:"name"`
 	KeyPrefix  string     `json:"keyPrefix"`
+	RoleIDs    []string   `json:"roleIDs"`
 	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
 	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
 	RevokedAt  *time.Time `json:"revokedAt,omitempty"`
@@ -212,6 +213,7 @@ func (ClusterNotFound) IsTestConnectionError() {}
 type CreateAPIKeyInput struct {
 	Name      string     `json:"name"`
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	RoleIDs   []string   `json:"roleIDs,omitempty"`
 }
 
 type CreateAPIKeyPayload struct {
@@ -224,6 +226,7 @@ type CreateAPIKeyResult struct {
 	Name      string    `json:"name"`
 	Key       string    `json:"key"`
 	KeyPrefix string    `json:"keyPrefix"`
+	RoleIDs   []string  `json:"roleIDs"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 
@@ -647,6 +650,7 @@ type TestDatabaseConnectionInput struct {
 type UpdateAPIKeyInput struct {
 	Name      *string    `json:"name,omitempty"`
 	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+	RoleIDs   []string   `json:"roleIDs,omitempty"`
 }
 
 type UpdateAPIKeyPayload struct {

@@ -60,6 +60,7 @@ type ComplexityRoot struct {
 		LastUsedAt func(childComplexity int) int
 		Name       func(childComplexity int) int
 		RevokedAt  func(childComplexity int) int
+		RoleIDs    func(childComplexity int) int
 	}
 
 	ApiKeyLimitExceeded struct {
@@ -108,6 +109,7 @@ type ComplexityRoot struct {
 		Key       func(childComplexity int) int
 		KeyPrefix func(childComplexity int) int
 		Name      func(childComplexity int) int
+		RoleIDs   func(childComplexity int) int
 	}
 
 	CreateCustomRolePayload struct {
@@ -567,6 +569,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ApiKey.RevokedAt(childComplexity), true
+	case "ApiKey.roleIDs":
+		if e.complexity.ApiKey.RoleIDs == nil {
+			break
+		}
+
+		return e.complexity.ApiKey.RoleIDs(childComplexity), true
 
 	case "ApiKeyLimitExceeded.message":
 		if e.complexity.ApiKeyLimitExceeded.Message == nil {
@@ -685,6 +693,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CreateApiKeyResult.Name(childComplexity), true
+	case "CreateApiKeyResult.roleIDs":
+		if e.complexity.CreateApiKeyResult.RoleIDs == nil {
+			break
+		}
+
+		return e.complexity.CreateApiKeyResult.RoleIDs(childComplexity), true
 
 	case "CreateCustomRolePayload.error":
 		if e.complexity.CreateCustomRolePayload.Error == nil {
@@ -2136,6 +2150,7 @@ type ApiKey {
   id:          ID!
   name:        String!
   keyPrefix:   String!
+  roleIDs:     [ID!]!
   lastUsedAt:  Time
   expiresAt:   Time
   revokedAt:   Time
@@ -2147,17 +2162,20 @@ type CreateApiKeyResult {
   name:      String!
   key:       String!
   keyPrefix: String!
+  roleIDs:   [ID!]!
   createdAt: Time!
 }
 
 input CreateApiKeyInput {
   name:      String!
   expiresAt: Time
+  roleIDs:   [ID!]
 }
 
 input UpdateApiKeyInput {
   name:      String
   expiresAt: Time
+  roleIDs:   [ID!]
 }
 
 type CreateApiKeyPayload {
@@ -3481,6 +3499,35 @@ func (ec *executionContext) fieldContext_ApiKey_keyPrefix(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _ApiKey_roleIDs(ctx context.Context, field graphql.CollectedField, obj *APIKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ApiKey_roleIDs,
+		func(ctx context.Context) (any, error) {
+			return obj.RoleIDs, nil
+		},
+		nil,
+		ec.marshalNID2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ApiKey_roleIDs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ApiKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ApiKey_lastUsedAt(ctx context.Context, field graphql.CollectedField, obj *APIKey) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3960,6 +4007,8 @@ func (ec *executionContext) fieldContext_CreateApiKeyPayload_result(_ context.Co
 				return ec.fieldContext_CreateApiKeyResult_key(ctx, field)
 			case "keyPrefix":
 				return ec.fieldContext_CreateApiKeyResult_keyPrefix(ctx, field)
+			case "roleIDs":
+				return ec.fieldContext_CreateApiKeyResult_roleIDs(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_CreateApiKeyResult_createdAt(ctx, field)
 			}
@@ -4109,6 +4158,35 @@ func (ec *executionContext) fieldContext_CreateApiKeyResult_keyPrefix(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateApiKeyResult_roleIDs(ctx context.Context, field graphql.CollectedField, obj *CreateAPIKeyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CreateApiKeyResult_roleIDs,
+		func(ctx context.Context) (any, error) {
+			return obj.RoleIDs, nil
+		},
+		nil,
+		ec.marshalNID2ᚕstringᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_CreateApiKeyResult_roleIDs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateApiKeyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -8933,6 +9011,8 @@ func (ec *executionContext) fieldContext_Query_apiKeys(_ context.Context, field 
 				return ec.fieldContext_ApiKey_name(ctx, field)
 			case "keyPrefix":
 				return ec.fieldContext_ApiKey_keyPrefix(ctx, field)
+			case "roleIDs":
+				return ec.fieldContext_ApiKey_roleIDs(ctx, field)
 			case "lastUsedAt":
 				return ec.fieldContext_ApiKey_lastUsedAt(ctx, field)
 			case "expiresAt":
@@ -9908,6 +9988,8 @@ func (ec *executionContext) fieldContext_RevokeApiKeyPayload_apiKey(_ context.Co
 				return ec.fieldContext_ApiKey_name(ctx, field)
 			case "keyPrefix":
 				return ec.fieldContext_ApiKey_keyPrefix(ctx, field)
+			case "roleIDs":
+				return ec.fieldContext_ApiKey_roleIDs(ctx, field)
 			case "lastUsedAt":
 				return ec.fieldContext_ApiKey_lastUsedAt(ctx, field)
 			case "expiresAt":
@@ -10388,6 +10470,8 @@ func (ec *executionContext) fieldContext_UpdateApiKeyPayload_apiKey(_ context.Co
 				return ec.fieldContext_ApiKey_name(ctx, field)
 			case "keyPrefix":
 				return ec.fieldContext_ApiKey_keyPrefix(ctx, field)
+			case "roleIDs":
+				return ec.fieldContext_ApiKey_roleIDs(ctx, field)
 			case "lastUsedAt":
 				return ec.fieldContext_ApiKey_lastUsedAt(ctx, field)
 			case "expiresAt":
@@ -12699,7 +12783,7 @@ func (ec *executionContext) unmarshalInputCreateApiKeyInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "expiresAt"}
+	fieldsInOrder := [...]string{"name", "expiresAt", "roleIDs"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -12720,6 +12804,13 @@ func (ec *executionContext) unmarshalInputCreateApiKeyInput(ctx context.Context,
 				return it, err
 			}
 			it.ExpiresAt = data
+		case "roleIDs":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roleIDs"))
+			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RoleIDs = data
 		}
 	}
 
@@ -12986,7 +13077,7 @@ func (ec *executionContext) unmarshalInputUpdateApiKeyInput(ctx context.Context,
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "expiresAt"}
+	fieldsInOrder := [...]string{"name", "expiresAt", "roleIDs"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -13007,6 +13098,13 @@ func (ec *executionContext) unmarshalInputUpdateApiKeyInput(ctx context.Context,
 				return it, err
 			}
 			it.ExpiresAt = data
+		case "roleIDs":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("roleIDs"))
+			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.RoleIDs = data
 		}
 	}
 
@@ -14015,6 +14113,11 @@ func (ec *executionContext) _ApiKey(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "roleIDs":
+			out.Values[i] = ec._ApiKey_roleIDs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "lastUsedAt":
 			out.Values[i] = ec._ApiKey_lastUsedAt(ctx, field, obj)
 		case "expiresAt":
@@ -14430,6 +14533,11 @@ func (ec *executionContext) _CreateApiKeyResult(ctx context.Context, sel ast.Sel
 			}
 		case "keyPrefix":
 			out.Values[i] = ec._CreateApiKeyResult_keyPrefix(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "roleIDs":
+			out.Values[i] = ec._CreateApiKeyResult_roleIDs(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -17956,6 +18064,36 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) unmarshalNID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v any) (int32, error) {
 	res, err := graphql.UnmarshalInt32(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -19135,6 +19273,42 @@ func (ec *executionContext) marshalOGetProjectError2modelcraftᚋinternalᚋinte
 		return graphql.Null
 	}
 	return ec._GetProjectError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {

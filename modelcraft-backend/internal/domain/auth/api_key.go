@@ -11,6 +11,7 @@ type APIKey struct {
 	Name       string
 	KeyHash    string
 	KeyPrefix  string
+	RoleIDs    []int
 	LastUsedAt *time.Time
 	ExpiresAt  *time.Time
 	CreatedAt  time.Time

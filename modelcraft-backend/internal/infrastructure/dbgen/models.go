@@ -63,6 +63,8 @@ type ApiKey struct {
 	KeyHash string
 	// 完整 key 前 10 位，如 mc_a1b2c3d4
 	KeyPrefix string
+	// 绑定的角色 ID 列表（roles.id）
+	RoleIds *json.RawMessage
 	// 防抖：距上次 > 1 分钟才更新
 	LastUsedAt sql.NullTime
 	// NULL = 永不过期

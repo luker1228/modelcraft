@@ -51,6 +51,11 @@ export class ModelCraftWorld extends World {
   firstInitOrgName: string | null = null
   secondInitOrgName: string | null = null
 
+  // API Key 场景状态（GraphQL org 域）
+  selectedRoleID: string | null = null
+  currentAPIKeyID: string | null = null
+  currentAPIKeyRoleIDs: string[] = []
+
   constructor(options: IWorldOptions) {
     super(options)
 

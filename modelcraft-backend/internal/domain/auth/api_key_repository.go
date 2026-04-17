@@ -20,7 +20,7 @@ type APIKeyRepository interface {
 	// Revoke revokes a key by id/user scope.
 	Revoke(ctx context.Context, id, userID string) error
 	// Update updates key display name and expiration.
-	Update(ctx context.Context, id, userID, name string, expiresAt *time.Time) error
+	Update(ctx context.Context, id, userID, name string, roleIDs []int, expiresAt *time.Time) error
 	// UpdateLastUsed updates the last-used timestamp.
 	UpdateLastUsed(ctx context.Context, id string) error
 	// DeleteRevoked cleans long-revoked API keys.

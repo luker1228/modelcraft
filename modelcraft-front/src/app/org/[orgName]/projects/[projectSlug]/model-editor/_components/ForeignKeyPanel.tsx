@@ -19,6 +19,15 @@ interface ForeignKeyPanelProps {
 }
 
 export function ForeignKeyPanel({ state, fkOps, models }: ForeignKeyPanelProps) {
+  const currentDatabase = state.editModelData?.databaseName
+  const selectableModels = models
+    .filter((m) => m.id !== state.editModelId)
+    .sort((a, b) => {
+      const dbOrder = a.databaseName.localeCompare(b.databaseName)
+      if (dbOrder !== 0) return dbOrder
+      return a.name.localeCompare(b.name)
+    })
+
   return (
     <div className="px-6">
       <div className="mb-3 flex items-center justify-between">
@@ -148,13 +157,13 @@ export function ForeignKeyPanel({ state, fkOps, models }: ForeignKeyPanelProps) 
                 <SelectValue placeholder="选择引用模型" />
               </SelectTrigger>
               <SelectContent>
-                {models
-                  .filter(m => m.id !== state.editModelId)
-                  .map(m => (
+                {selectableModels.map(m => (
                     <SelectItem key={m.id} value={m.id} className="font-mono text-xs">
-                      {m.name}{m.title && m.title !== m.name ? ` (${m.title})` : ''}
+                      {m.databaseName !== currentDatabase ? `${m.databaseName}.` : ''}
+                      {m.name}
+                      {m.title && m.title !== m.name ? ` (${m.title})` : ''}
                     </SelectItem>
-                  ))}
+                ))}
               </SelectContent>
             </Select>
           </div>

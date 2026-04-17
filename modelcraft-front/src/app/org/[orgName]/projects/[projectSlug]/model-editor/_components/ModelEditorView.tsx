@@ -83,7 +83,7 @@ export function ModelEditorView() {
         fkOps={fkOps}
         orgName={orgName}
         projectSlug={projectSlug}
-        models={crud.models}
+        models={crud.relationCandidateModels}
         onFieldAdded={handleFieldAdded}
       />
 

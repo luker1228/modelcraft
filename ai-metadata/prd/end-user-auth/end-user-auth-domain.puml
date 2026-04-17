@@ -1,0 +1,134 @@
+@startuml end-user-auth
+!theme plain
+skinparam linetype ortho
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+
+title 终端用户认证 - 领域模型
+
+' ═══ 终端用户身份子域 ═══
+rectangle "终端用户身份子域" as IdentitySubdomain {
+
+  package "终端用户账号聚合" as EndUserAccountAggregate <<Aggregate>> #FFFDE7 {
+
+    class EndUserAccount <<Aggregate Root>> #FFEAA7 {
+      --标识--
+      + id : EndUserAccountID
+      --属性--
+      + projectRef : ProjectID
+      + username : String
+      + password : HashedPassword
+      + status : AccountStatus
+      + createdAt : DateTime
+      + updatedAt : DateTime
+      --行为--
+      + enable()
+      + disable()
+      + markDeleted()
+      + verifyPassword(credential : Credential) : Boolean
+      + resetPassword(newCredential : Credential)
+      --不变量--
+      .. username 在同一 Project 内唯一 ..
+      .. DISABLED / DELETED 账号不可登录 ..
+      .. username 创建后不可修改 ..
+    }
+
+    class HashedPassword <<Value Object>> #DCEDC1 {
+      + hash : String
+      + algorithm : String
+      --相等性--
+      .. hash + algorithm 全匹配 ..
+    }
+
+    class Credential <<Value Object>> #DCEDC1 {
+      + username : String
+      + plainPassword : String
+      --备注--
+      .. 仅用于输入验证，不持久化 ..
+    }
+
+    enum AccountStatus <<Enum>> #E8DAEF {
+      ACTIVE
+      DISABLED
+      DELETED
+    }
+
+    EndUserAccount "1" *-- "1" HashedPassword : password
+    EndUserAccount --> AccountStatus
+  }
+
+  note bottom of EndUserAccount
+    <b>生命周期</b>
+    ACTIVE → DISABLED（开发者禁用）
+    DISABLED → ACTIVE（开发者启用）
+    ACTIVE / DISABLED → DELETED（开发者删除）
+    DELETED 为终态，不可逆
+  end note
+}
+
+' ═══ 会话子域 ═══
+rectangle "会话子域" as SessionSubdomain {
+
+  package "终端用户会话聚合" as EndUserSessionAggregate <<Aggregate>> #FFFDE7 {
+
+    class EndUserSession <<Aggregate Root>> #FFEAA7 {
+      --标识--
+      + id : EndUserSessionID
+      --属性--
+      + accountRef : EndUserAccountID
+      + projectRef : ProjectID
+      + token : SessionToken
+      + createdAt : DateTime
+      + expiresAt : DateTime
+      --行为--
+      + invalidate()
+      + isExpired() : Boolean
+      --不变量--
+      .. 过期 Session 不可复用 ..
+      .. 失效 Session 不可复用 ..
+    }
+
+    class SessionToken <<Value Object>> #DCEDC1 {
+      + value : String
+      + tokenType : String
+      --备注--
+      .. 由后端自研签发（验证 Casdoor 凭证后） ..
+      .. role=end_user claim 区分角色 ..
+    }
+
+    EndUserSession "1" *-- "1" SessionToken : token
+  }
+
+  note bottom of EndUserSession
+    <b>生命周期</b>
+    ACTIVE → EXPIRED（自然过期）
+    ACTIVE → INVALIDATED（主动登出）
+  end note
+}
+
+' ═══ 领域服务 ═══
+class EndUserAuthService <<Domain Service>> #FAD9C1 {
+  + authenticate(credential : Credential, projectID : ProjectID) : EndUserSession
+  + signOut(session : EndUserSession)
+}
+
+' ═══ 跨聚合引用 ═══
+EndUserAccount "0..*" ..> "1" Project : projectRef\n（归属 Project）
+EndUserSession "0..*" ..> "1" EndUserAccount : accountRef
+EndUserSession "0..*" ..> "1" Project : projectRef
+
+EndUserAuthService ..> EndUserAccount : 验证凭证
+EndUserAuthService ..> EndUserSession : 创建/失效会话
+
+' ═══ 外部聚合（引用，不展开） ═══
+class Project <<Aggregate Root>> #D5DBDB {
+  + id : ProjectID
+  + slug : String
+  + orgRef : OrgID
+}
+
+' ═══ 待确认问题 ═══
+note "待确认：v2 是否需要\n用户自助注册？\n若是，Credential 需扩展注册凭证" as Q1 #FF7675
+note "待确认：SuperTokens Tenant 隔离\n还是独立 App 隔离？\n影响 projectRef 的绑定方式" as Q2 #FF7675
+
+@enduml

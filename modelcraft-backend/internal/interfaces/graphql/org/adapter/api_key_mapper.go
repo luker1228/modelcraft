@@ -1,6 +1,7 @@
 package adapter
 
 import (
+	"strconv"
 	appAuth "modelcraft/internal/app/auth"
 	domainauth "modelcraft/internal/domain/auth"
 	"modelcraft/internal/interfaces/graphql/org/generated"
@@ -20,6 +21,7 @@ func (m *apiKeyMapper) ConvertAPIKeyToGraphQL(key *domainauth.APIKey) *generated
 		ID:        key.ID,
 		Name:      key.Name,
 		KeyPrefix: key.KeyPrefix,
+		RoleIDs:   convertRoleIDsToGraphQL(key.RoleIDs),
 		CreatedAt: key.CreatedAt,
 	}
 	gql.LastUsedAt = key.LastUsedAt
@@ -47,6 +49,18 @@ func (m *apiKeyMapper) ConvertCreateResultToGraphQL(result *appAuth.CreateAPIKey
 		Name:      result.Key.Name,
 		Key:       result.PlainKey,
 		KeyPrefix: result.Key.KeyPrefix,
+		RoleIDs:   convertRoleIDsToGraphQL(result.Key.RoleIDs),
 		CreatedAt: result.Key.CreatedAt,
 	}
+}
+
+func convertRoleIDsToGraphQL(roleIDs []int) []string {
+	if len(roleIDs) == 0 {
+		return []string{}
+	}
+	result := make([]string, 0, len(roleIDs))
+	for _, roleID := range roleIDs {
+		result = append(result, strconv.Itoa(roleID))
+	}
+	return result
 }

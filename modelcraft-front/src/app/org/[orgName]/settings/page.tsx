@@ -9,7 +9,7 @@ export default function SettingsPage() {
   const orgName = params.orgName as string
 
   useEffect(() => {
-    router.replace(`/org/${orgName}/settings/roles`)
+    router.replace(`/org/${orgName}/settings/api-keys`)
   }, [router, orgName])
 
   return null

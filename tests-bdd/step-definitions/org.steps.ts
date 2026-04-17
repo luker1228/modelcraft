@@ -4,11 +4,67 @@ import { randomUUID } from 'crypto'
 import { ModelCraftWorld } from '../support/world'
 import { InitOrgResponse, RestResult } from '../support/rest-client'
 import { signJWT } from '../support/jwt'
+import { uniqueName } from '../fixtures/factory'
 
 const randomPhone = (): string => {
   const suffix = Math.floor(10000000 + Math.random() * 90000000).toString()
   return `199${suffix}`
 }
+
+const GET_ROLES = `
+  query GetRoles {
+    roles {
+      id
+      name
+      isSystem
+    }
+  }
+`
+
+const CREATE_API_KEY = `
+  mutation CreateApiKey($input: CreateApiKeyInput!) {
+    createApiKey(input: $input) {
+      result {
+        id
+        name
+        roleIDs
+      }
+      error {
+        __typename
+        ... on ApiKeyLimitExceeded { message }
+        ... on InvalidInput { message }
+      }
+    }
+  }
+`
+
+const UPDATE_API_KEY = `
+  mutation UpdateApiKey($id: ID!, $input: UpdateApiKeyInput!) {
+    updateApiKey(id: $id, input: $input) {
+      apiKey {
+        id
+        roleIDs
+      }
+      error {
+        __typename
+        ... on ApiKeyNotFound { message }
+        ... on InvalidInput { message }
+      }
+    }
+  }
+`
+
+const REVOKE_API_KEY = `
+  mutation RevokeApiKey($id: ID!) {
+    revokeApiKey(id: $id) {
+      apiKey { id }
+      error {
+        __typename
+        ... on ApiKeyNotFound { message }
+      }
+    }
+  }
+`
 
 Given('我已登录并持有 access token', async function (this: ModelCraftWorld) {
   const phone = randomPhone()
@@ -134,4 +190,91 @@ Then('当前用户 memberships 数量应为 {int}', async function (this: ModelC
 
   this.lastMembershipsCount = membershipsResult.data.memberships.length
   expect(this.lastMembershipsCount).toBe(expectedCount)
+})
+
+Given('存在一个可绑定的组织角色', async function (this: ModelCraftWorld) {
+  const res = await this.orgClient.query<{
+    roles: Array<{ id: string; name: string; isSystem: boolean }>
+  }>(GET_ROLES)
+
+  expect(Array.isArray(res.roles)).toBe(true)
+  expect(res.roles.length).toBeGreaterThan(0)
+  this.selectedRoleID = res.roles[0].id
+})
+
+When('我创建一个绑定该角色的 API Key', async function (this: ModelCraftWorld) {
+  if (!this.selectedRoleID) {
+    throw new Error('未选中角色 ID，请先执行前置步骤')
+  }
+
+  const name = uniqueName('bdd-api-key')
+  const res = await this.orgClient.mutate<{
+    createApiKey: {
+      result: { id: string; name: string; roleIDs: string[] } | null
+      error: unknown
+    }
+  }>(CREATE_API_KEY, {
+    input: {
+      name,
+      roleIDs: [this.selectedRoleID],
+    },
+  })
+
+  this.lastResponse = { createApiKey: res.createApiKey }
+  this.currentAPIKeyID = res.createApiKey.result?.id ?? null
+  this.currentAPIKeyRoleIDs = res.createApiKey.result?.roleIDs ?? []
+})
+
+Then('API Key 应创建成功且角色包含该角色', function (this: ModelCraftWorld) {
+  const payload = (this.lastResponse as {
+    createApiKey: {
+      result: { id: string; roleIDs: string[] } | null
+      error: unknown
+    }
+  }).createApiKey
+
+  expect(payload.error).toBeNull()
+  expect(payload.result).not.toBeNull()
+  expect(this.currentAPIKeyID).toBeTruthy()
+  expect(this.selectedRoleID).toBeTruthy()
+  expect(payload.result?.roleIDs).toContain(this.selectedRoleID)
+})
+
+When('我将该 API Key 的角色更新为空列表', async function (this: ModelCraftWorld) {
+  if (!this.currentAPIKeyID) {
+    throw new Error('未记录 API Key ID，请先创建 API Key')
+  }
+
+  const res = await this.orgClient.mutate<{
+    updateApiKey: {
+      apiKey: { id: string; roleIDs: string[] } | null
+      error: unknown
+    }
+  }>(UPDATE_API_KEY, {
+    id: this.currentAPIKeyID,
+    input: {
+      roleIDs: [],
+    },
+  })
+
+  this.lastResponse = { updateApiKey: res.updateApiKey }
+  this.currentAPIKeyRoleIDs = res.updateApiKey.apiKey?.roleIDs ?? []
+})
+
+Then('API Key 角色应更新为空', async function (this: ModelCraftWorld) {
+  const payload = (this.lastResponse as {
+    updateApiKey: {
+      apiKey: { id: string; roleIDs: string[] } | null
+      error: unknown
+    }
+  }).updateApiKey
+
+  expect(payload.error).toBeNull()
+  expect(payload.apiKey).not.toBeNull()
+  expect(this.currentAPIKeyRoleIDs).toEqual([])
+
+  // 回收场景创建的 key，避免污染环境
+  if (this.currentAPIKeyID) {
+    await this.orgClient.mutate(REVOKE_API_KEY, { id: this.currentAPIKeyID })
+  }
 })

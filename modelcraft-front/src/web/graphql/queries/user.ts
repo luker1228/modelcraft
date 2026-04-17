@@ -82,3 +82,19 @@ export const GET_ROLES = gql`
     }
   }
 `
+
+// List API keys in current organization scope
+export const GET_API_KEYS = gql`
+  query GetApiKeys {
+    apiKeys {
+      id
+      name
+      keyPrefix
+      roleIDs
+      lastUsedAt
+      expiresAt
+      revokedAt
+      createdAt
+    }
+  }
+`

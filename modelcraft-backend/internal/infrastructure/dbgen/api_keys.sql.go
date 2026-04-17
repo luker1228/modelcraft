@@ -8,6 +8,7 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const countActiveAPIKeysByUserID = `-- name: CountActiveAPIKeysByUserID :one
@@ -33,7 +34,7 @@ func (q *Queries) DeleteRevokedAPIKeys(ctx context.Context) error {
 }
 
 const getAPIKeyByHash = `-- name: GetAPIKeyByHash :one
-SELECT id, user_id, name, key_hash, key_prefix, last_used_at, expires_at, created_at, revoked_at
+SELECT id, user_id, name, key_hash, key_prefix, role_ids, last_used_at, expires_at, created_at, revoked_at
 FROM api_keys
 WHERE key_hash = ?
 LIMIT 1
@@ -48,6 +49,7 @@ func (q *Queries) GetAPIKeyByHash(ctx context.Context, keyHash string) (ApiKey, 
 		&i.Name,
 		&i.KeyHash,
 		&i.KeyPrefix,
+		&i.RoleIds,
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
@@ -57,7 +59,7 @@ func (q *Queries) GetAPIKeyByHash(ctx context.Context, keyHash string) (ApiKey, 
 }
 
 const getAPIKeyByID = `-- name: GetAPIKeyByID :one
-SELECT id, user_id, name, key_hash, key_prefix, last_used_at, expires_at, created_at, revoked_at
+SELECT id, user_id, name, key_hash, key_prefix, role_ids, last_used_at, expires_at, created_at, revoked_at
 FROM api_keys
 WHERE id = ?
 LIMIT 1
@@ -72,6 +74,7 @@ func (q *Queries) GetAPIKeyByID(ctx context.Context, id string) (ApiKey, error) 
 		&i.Name,
 		&i.KeyHash,
 		&i.KeyPrefix,
+		&i.RoleIds,
 		&i.LastUsedAt,
 		&i.ExpiresAt,
 		&i.CreatedAt,
@@ -81,8 +84,8 @@ func (q *Queries) GetAPIKeyByID(ctx context.Context, id string) (ApiKey, error) 
 }
 
 const insertAPIKey = `-- name: InsertAPIKey :exec
-INSERT INTO api_keys (id, user_id, name, key_hash, key_prefix, expires_at, created_at)
-VALUES (?, ?, ?, ?, ?, ?, NOW())
+INSERT INTO api_keys (id, user_id, name, key_hash, key_prefix, role_ids, expires_at, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, NOW())
 `
 
 type InsertAPIKeyParams struct {
@@ -91,6 +94,7 @@ type InsertAPIKeyParams struct {
 	Name      string
 	KeyHash   string
 	KeyPrefix string
+	RoleIds   *json.RawMessage
 	ExpiresAt sql.NullTime
 }
 
@@ -101,13 +105,14 @@ func (q *Queries) InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) erro
 		arg.Name,
 		arg.KeyHash,
 		arg.KeyPrefix,
+		arg.RoleIds,
 		arg.ExpiresAt,
 	)
 	return err
 }
 
 const listAPIKeysByUserID = `-- name: ListAPIKeysByUserID :many
-SELECT id, user_id, name, key_hash, key_prefix, last_used_at, expires_at, created_at, revoked_at
+SELECT id, user_id, name, key_hash, key_prefix, role_ids, last_used_at, expires_at, created_at, revoked_at
 FROM api_keys
 WHERE user_id = ? AND revoked_at IS NULL
 ORDER BY created_at DESC
@@ -128,6 +133,7 @@ func (q *Queries) ListAPIKeysByUserID(ctx context.Context, userID string) ([]Api
 			&i.Name,
 			&i.KeyHash,
 			&i.KeyPrefix,
+			&i.RoleIds,
 			&i.LastUsedAt,
 			&i.ExpiresAt,
 			&i.CreatedAt,
@@ -164,12 +170,13 @@ func (q *Queries) RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) erro
 
 const updateAPIKey = `-- name: UpdateAPIKey :exec
 UPDATE api_keys
-SET name = ?, expires_at = ?
+SET name = ?, role_ids = ?, expires_at = ?
 WHERE id = ? AND user_id = ?
 `
 
 type UpdateAPIKeyParams struct {
 	Name      string
+	RoleIds   *json.RawMessage
 	ExpiresAt sql.NullTime
 	ID        string
 	UserID    string
@@ -178,6 +185,7 @@ type UpdateAPIKeyParams struct {
 func (q *Queries) UpdateAPIKey(ctx context.Context, arg UpdateAPIKeyParams) error {
 	_, err := q.db.ExecContext(ctx, updateAPIKey,
 		arg.Name,
+		arg.RoleIds,
 		arg.ExpiresAt,
 		arg.ID,
 		arg.UserID,

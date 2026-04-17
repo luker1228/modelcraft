@@ -72,6 +72,22 @@ export const GET_MODELS = gql`
   }
 `
 
+// 查询关联关系候选模型（轻量字段）
+export const GET_MODELS_FOR_RELATION = gql`
+  query GetModelsForRelation($input: ModelQueryInput) {
+    models(input: $input) {
+      edges {
+        node {
+          id
+          name
+          title
+          databaseName
+        }
+      }
+    }
+  }
+`
+
 // 查询单个模型
 export const GET_MODEL = gql`
   query GetModel($id: ID!, $withActualSchema: Boolean) {

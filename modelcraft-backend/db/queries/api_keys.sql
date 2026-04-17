@@ -1,15 +1,15 @@
 -- name: InsertAPIKey :exec
-INSERT INTO api_keys (id, user_id, name, key_hash, key_prefix, expires_at, created_at)
-VALUES (?, ?, ?, ?, ?, ?, NOW());
+INSERT INTO api_keys (id, user_id, name, key_hash, key_prefix, role_ids, expires_at, created_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, NOW());
 
 -- name: GetAPIKeyByHash :one
-SELECT id, user_id, name, key_hash, key_prefix, last_used_at, expires_at, created_at, revoked_at
+SELECT id, user_id, name, key_hash, key_prefix, role_ids, last_used_at, expires_at, created_at, revoked_at
 FROM api_keys
 WHERE key_hash = ?
 LIMIT 1;
 
 -- name: ListAPIKeysByUserID :many
-SELECT id, user_id, name, key_hash, key_prefix, last_used_at, expires_at, created_at, revoked_at
+SELECT id, user_id, name, key_hash, key_prefix, role_ids, last_used_at, expires_at, created_at, revoked_at
 FROM api_keys
 WHERE user_id = ? AND revoked_at IS NULL
 ORDER BY created_at DESC;
@@ -25,7 +25,7 @@ WHERE id = ? AND user_id = ?;
 
 -- name: UpdateAPIKey :exec
 UPDATE api_keys
-SET name = ?, expires_at = ?
+SET name = ?, role_ids = ?, expires_at = ?
 WHERE id = ? AND user_id = ?;
 
 -- name: UpdateAPIKeyLastUsed :exec
@@ -34,7 +34,7 @@ SET last_used_at = NOW()
 WHERE id = ?;
 
 -- name: GetAPIKeyByID :one
-SELECT id, user_id, name, key_hash, key_prefix, last_used_at, expires_at, created_at, revoked_at
+SELECT id, user_id, name, key_hash, key_prefix, role_ids, last_used_at, expires_at, created_at, revoked_at
 FROM api_keys
 WHERE id = ?
 LIMIT 1;

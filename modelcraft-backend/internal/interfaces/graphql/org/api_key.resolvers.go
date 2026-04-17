@@ -20,10 +20,25 @@ func (r *mutationResolver) CreateAPIKey(ctx context.Context, input generated.Cre
 	if err != nil {
 		return nil, err
 	}
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	roleIDs, err := r.validateRoleIDs(ctx, orgName, input.RoleIDs)
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			errAdapter := adapter.NewAPIKeyErrorAdapter(ctx)
+			return &generated.CreateAPIKeyPayload{
+				Error: errAdapter.ConvertToCreateError(bizErr),
+			}, nil
+		}
+		return nil, err
+	}
 
 	result, err := r.APIKeyService.CreateAPIKey(ctx, appAuth.CreateAPIKeyCommand{
 		UserID:    userID,
 		Name:      input.Name,
+		RoleIDs:   roleIDs,
 		ExpiresAt: input.ExpiresAt,
 	})
 	if err != nil {
@@ -72,6 +87,20 @@ func (r *mutationResolver) UpdateAPIKey(ctx context.Context, id string, input ge
 	if err != nil {
 		return nil, err
 	}
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	roleIDs, err := r.validateRoleIDs(ctx, orgName, input.RoleIDs)
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			errAdapter := adapter.NewAPIKeyErrorAdapter(ctx)
+			return &generated.UpdateAPIKeyPayload{
+				Error: errAdapter.ConvertToUpdateError(bizErr),
+			}, nil
+		}
+		return nil, err
+	}
 
 	name := ""
 	if input.Name != nil {
@@ -82,6 +111,7 @@ func (r *mutationResolver) UpdateAPIKey(ctx context.Context, id string, input ge
 		ID:        id,
 		UserID:    userID,
 		Name:      name,
+		RoleIDs:   roleIDs,
 		ExpiresAt: input.ExpiresAt,
 	})
 	if err != nil {

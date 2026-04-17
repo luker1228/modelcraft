@@ -14,6 +14,7 @@ import (
 type CreateAPIKeyCommand struct {
 	UserID    string
 	Name      string
+	RoleIDs   []int
 	ExpiresAt *time.Time
 }
 
@@ -28,6 +29,7 @@ type UpdateAPIKeyCommand struct {
 	ID        string
 	UserID    string
 	Name      string
+	RoleIDs   []int
 	ExpiresAt *time.Time
 }
 
@@ -80,6 +82,7 @@ func (s *APIKeyService) CreateAPIKey(ctx context.Context, cmd CreateAPIKeyComman
 		Name:      cmd.Name,
 		KeyHash:   hash,
 		KeyPrefix: plaintext[:10], // 前10位，如 mc_a1b2c3
+		RoleIDs:   cmd.RoleIDs,
 		ExpiresAt: cmd.ExpiresAt,
 		CreatedAt: time.Now(),
 	}
@@ -127,7 +130,7 @@ func (s *APIKeyService) UpdateAPIKey(ctx context.Context, cmd UpdateAPIKeyComman
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.APIKeyNotFound, cmd.ID)
 	}
 
-	if err := s.apiKeyRepo.Update(ctx, cmd.ID, cmd.UserID, cmd.Name, cmd.ExpiresAt); err != nil {
+	if err := s.apiKeyRepo.Update(ctx, cmd.ID, cmd.UserID, cmd.Name, cmd.RoleIDs, cmd.ExpiresAt); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
