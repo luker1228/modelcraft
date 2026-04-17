@@ -89,8 +89,9 @@
       try {
         const currentRes = await fetch('./current');
         if (!currentRes.ok) throw new Error('读取 current 失败');
-        const current = (await currentRes.text()).trim();
-        versionNode.textContent = '当前版本: ' + current;
+        const currentRaw = (await currentRes.text()).trim();
+        const current = currentRaw.replace(/^\.?\/*versions\//, '').replace(/\/+$/, '');
+        versionNode.textContent = '当前版本: ' + currentRaw;
 
         const wikiRes = await fetch('./versions/' + current + '/wiki.json');
         if (!wikiRes.ok) throw new Error('读取 wiki.json 失败');
