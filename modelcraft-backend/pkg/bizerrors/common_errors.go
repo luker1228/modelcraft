@@ -357,6 +357,58 @@ var (
 	}
 )
 
+// 定义 EndUser（终端用户）领域错误
+var (
+	// EndUserInvalidCredentials 凭证无效（用户名不存在或密码错误，统一返回防止用户枚举）
+	EndUserInvalidCredentials = ErrorDefinition{
+		Code:      "INVALID_CREDENTIALS.END_USER",
+		EnMessage: "Invalid credentials",
+		ZhMessage: "用户名或密码错误",
+	}
+
+	// EndUserInvalidRefreshToken 刷新令牌无效（未找到、已过期或已撤销）
+	EndUserInvalidRefreshToken = ErrorDefinition{
+		Code:      "INVALID_REFRESH_TOKEN.END_USER",
+		EnMessage: "Invalid or expired refresh token",
+		ZhMessage: "刷新令牌无效或已过期",
+	}
+
+	// EndUserAccountDisabled 账号已被禁用
+	EndUserAccountDisabled = ErrorDefinition{
+		Code:      "ACCOUNT_DISABLED.END_USER",
+		EnMessage: "Account is disabled",
+		ZhMessage: "账号已被禁用",
+	}
+
+	// EndUserConflict 终端用户已存在（用户名重复）
+	EndUserConflict = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".END_USER",
+		EnMessage: "End user already exists: {0}",
+		ZhMessage: "终端用户已存在: {0}",
+	}
+
+	// EndUserParamInvalid 终端用户参数无效（用户名格式错误、密码强度不足等）
+	EndUserParamInvalid = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".END_USER",
+		EnMessage: "Invalid end user parameter: {0}",
+		ZhMessage: "终端用户参数无效: {0}",
+	}
+
+	// EndUserNotFound 终端用户不存在
+	EndUserNotFound = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".END_USER",
+		EnMessage: "End user not found: {0}",
+		ZhMessage: "终端用户不存在: {0}",
+	}
+
+	// EndUserClusterNotConfigured 项目未配置数据库集群
+	EndUserClusterNotConfigured = ErrorDefinition{
+		Code:      "CLUSTER_NOT_CONFIGURED.END_USER",
+		EnMessage: "Database cluster not configured for this project",
+		ZhMessage: "该项目未配置数据库集群",
+	}
+)
+
 // AllErrorDefinitions 返回所有错误定义（用于测试）
 func AllErrorDefinitions() []ErrorDefinition {
 	return []ErrorDefinition{

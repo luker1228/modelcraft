@@ -1,0 +1,25 @@
+{
+  "id": "enum-1",
+  "orgName": "org-a",
+  "projectSlug": "project-a",
+  "name": "StatusEnum",
+  "displayName": "Status",
+  "description": "status enum",
+  "options": [
+    {
+      "code": "ACTIVE",
+      "label": "Active",
+      "order": 1,
+      "description": "active status"
+    },
+    {
+      "code": "INACTIVE",
+      "label": "Inactive",
+      "order": 2,
+      "description": ""
+    }
+  ],
+  "isMultiSelect": false,
+  "createdAt": "2025-01-02T03:04:05Z",
+  "updatedAt": "2025-01-02T04:05:06Z"
+}
