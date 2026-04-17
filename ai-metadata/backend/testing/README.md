@@ -11,6 +11,7 @@
 | 文档 | 说明 |
 |------|------|
 | [debugging-workflow.md](./debugging-workflow.md) | **开发调试流程** - 日常开发必读 ⭐ |
+| [adapter-testing.md](./adapter-testing.md) | **Adapter 契约测试** - Harness 负责执行守门，正确性由 table/golden/fuzz/invariants 定义 |
 | [bdd-testing-guidelines.md](./bdd-testing-guidelines.md) | BDD 验收测试注意要点（默认不耦合注册） |
 | [integration-testing.md](./integration-testing.md) | 集成测试指南 |
 | [test-strategy.md](./test-strategy.md) | 测试策略总览 |
@@ -63,6 +64,13 @@ task test-integration
 
 - **覆盖范围**: 关键业务流程
 - **特点**: 模拟真实用户场景
+
+### 4. Adapter 契约测试 (Adapter Contract Tests)
+
+- **覆盖范围**: adapter/mapper/converter 的结构体转换逻辑
+- **核心规则**: Harness 负责执行与守门，不替代正确性证明
+- **实现方式**: table-driven（必选）+ golden（推荐）+ fuzz（推荐）+ invariants（必选）
+- **参考文档**: [adapter-testing.md](./adapter-testing.md)
 
 ## 📋 测试命名规范
 
