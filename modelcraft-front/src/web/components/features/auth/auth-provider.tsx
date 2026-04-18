@@ -6,6 +6,7 @@ import { refreshAccessToken } from '@bff/auth/public'
 import { useAuthStore } from '@shared/stores/auth-store'
 
 const PUBLIC_ROUTES = ['/login', '/register']
+const END_USER_ROUTE_RE = /^\/u\/[^/]+\/[^/]+(\/|$)/
 
 /**
  * AuthProvider — periodic silent token refresh only.
@@ -16,6 +17,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
   useEffect(() => {
+    if (END_USER_ROUTE_RE.test(pathname)) return
     if (PUBLIC_ROUTES.includes(pathname)) return
 
     const checkAndRefresh = async () => {

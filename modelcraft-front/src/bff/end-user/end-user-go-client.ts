@@ -6,6 +6,8 @@ import type { GoEndUserError } from '@/types/end-user-auth'
 
 const GO_BACKEND_INTERNAL_URL =
   process.env.GO_BACKEND_INTERNAL_URL ?? 'http://localhost:8080'
+const INTERNAL_TOKEN =
+  process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVICE_TOKEN ?? ''
 
 // 判断是否启用 mock（审计修正：mock 策略在此文件内部，不在 route handler 内联）
 const USE_MOCK = process.env.NEXT_PUBLIC_API_MOCKING === 'enabled'
@@ -84,9 +86,34 @@ export class EndUserClusterNotConfiguredError extends Error {
 
 /** 参数校验失败 */
 export class EndUserParamInvalidError extends Error {
+  requestId?: string
+
   constructor(message = '参数校验失败') {
     super(message)
     this.name = 'EndUserParamInvalidError'
+  }
+}
+
+/** 未授权（通常为 internal token 不匹配） */
+export class EndUserUnauthorizedError extends Error {
+  requestId?: string
+
+  constructor(message = '未授权') {
+    super(message)
+    this.name = 'EndUserUnauthorizedError'
+  }
+}
+
+/** 上游通用错误（保留 HTTP 状态） */
+export class EndUserUpstreamError extends Error {
+  status: number
+  requestId?: string
+  code?: string
+
+  constructor(message: string, status: number) {
+    super(message)
+    this.name = 'EndUserUpstreamError'
+    this.status = status
   }
 }
 
@@ -97,29 +124,69 @@ export class EndUserParamInvalidError extends Error {
 /**
  * 解析 Go 后端错误响应
  */
-async function parseGoError(res: Response): Promise<Error> {
+function attachRequestId<T extends Error>(err: T, requestId?: string): T {
+  if (requestId && typeof err === 'object' && err) {
+    ;(err as T & { requestId?: string }).requestId = requestId
+  }
+  return err
+}
+
+function createInternalHeaders(orgName?: string, projectSlug?: string): { headers: Record<string, string>; requestId: string } {
+  const requestId = `bff-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const scopedHeaders: Record<string, string> = {}
+  if (orgName) scopedHeaders['X-Org-Name'] = orgName
+  if (projectSlug) scopedHeaders['X-Project-Slug'] = projectSlug
+
+  return {
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Internal-Token': INTERNAL_TOKEN,
+      'X-Request-ID': requestId,
+      ...scopedHeaders,
+    },
+    requestId,
+  }
+}
+
+async function parseGoError(res: Response, fallbackRequestId?: string): Promise<Error> {
+  const headerRequestId = res.headers.get('x-request-id') || undefined
+  const requestId = headerRequestId ?? fallbackRequestId
+
   try {
     const data = (await res.json()) as GoEndUserError
     const { code, message } = data.error
 
     switch (code) {
       case 'INVALID_CREDENTIALS':
-        return new EndUserInvalidCredentialsError(message)
+        return attachRequestId(new EndUserInvalidCredentialsError(message), requestId)
       case 'ACCOUNT_DISABLED':
-        return new EndUserAccountDisabledError(message)
+        return attachRequestId(new EndUserAccountDisabledError(message), requestId)
       case 'CONFLICT':
-        return new EndUserConflictError(message)
+        return attachRequestId(new EndUserConflictError(message), requestId)
       case 'INVALID_REFRESH_TOKEN':
-        return new EndUserTokenError(message)
+        return attachRequestId(new EndUserTokenError(message), requestId)
       case 'CLUSTER_NOT_CONFIGURED':
-        return new EndUserClusterNotConfiguredError(message)
+        return attachRequestId(new EndUserClusterNotConfiguredError(message), requestId)
       case 'PARAM_INVALID':
-        return new EndUserParamInvalidError(message)
+        return attachRequestId(new EndUserParamInvalidError(message), requestId)
+      case 'UNAUTHORIZED':
+        return attachRequestId(new EndUserUnauthorizedError(message), requestId)
       default:
-        return new Error(message || `Go backend error: ${res.status}`)
+        const upstream = new EndUserUpstreamError(
+          message || `Go backend error: ${res.status}`,
+          res.status
+        )
+        upstream.requestId = requestId
+        upstream.code = code
+        return upstream
     }
   } catch {
-    return new Error(`Go backend error: ${res.status}`)
+    if (res.status === 401) {
+      return attachRequestId(new EndUserUnauthorizedError(`Go backend error: ${res.status}`), requestId)
+    }
+    const upstream = new EndUserUpstreamError(`Go backend error: ${res.status}`, res.status)
+    upstream.requestId = requestId
+    return upstream
   }
 }
 
@@ -184,17 +251,15 @@ export async function callGoEndUserLogin(params: {
   }
 
   // 真实后端调用（暂返回 NOT_IMPLEMENTED）
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
   const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/login`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Internal-Token': process.env.INTERNAL_SERVICE_TOKEN ?? '',
-    },
+    headers,
     body: JSON.stringify(params),
   })
 
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGoError(res, requestId)
   }
 
   return res.json() as Promise<EndUserLoginResult>
@@ -239,17 +304,15 @@ export async function callGoEndUserRegister(params: {
   }
 
   // 真实后端调用
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
   const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/register`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Internal-Token': process.env.INTERNAL_SERVICE_TOKEN ?? '',
-    },
+    headers,
     body: JSON.stringify(params),
   })
 
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGoError(res, requestId)
   }
 
   return res.json() as Promise<EndUserRegisterResult>
@@ -290,17 +353,15 @@ export async function callGoEndUserRefresh(params: {
   }
 
   // 真实后端调用
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
   const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/refresh`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Internal-Token': process.env.INTERNAL_SERVICE_TOKEN ?? '',
-    },
+    headers,
     body: JSON.stringify(params),
   })
 
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGoError(res, requestId)
   }
 
   return res.json() as Promise<EndUserRefreshResult>
@@ -322,12 +383,10 @@ export async function callGoEndUserLogout(params: {
   }
 
   // 真实后端调用（best-effort）
+  const { headers } = createInternalHeaders(params.orgName, params.projectSlug)
   await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/logout`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Internal-Token': process.env.INTERNAL_SERVICE_TOKEN ?? '',
-    },
+    headers,
     body: JSON.stringify(params),
   }).catch(() => {
     // Ignore errors - Cookie will be cleared regardless
@@ -363,11 +422,11 @@ export async function callGoEndUserMe(params: {
   }
 
   // 真实后端调用
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
   const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/me`, {
     method: 'GET',
     headers: {
-      'Content-Type': 'application/json',
-      'X-Internal-Token': process.env.INTERNAL_SERVICE_TOKEN ?? '',
+      ...headers,
       'X-End-User-Id': params.userId,
       'X-Org-Name': params.orgName,
       'X-Project-Slug': params.projectSlug,
@@ -375,7 +434,7 @@ export async function callGoEndUserMe(params: {
   })
 
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGoError(res, requestId)
   }
 
   return res.json() as Promise<EndUserMeResult>

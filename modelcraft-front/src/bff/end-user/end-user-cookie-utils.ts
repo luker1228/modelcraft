@@ -9,11 +9,11 @@ const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 // 7 days in seconds
 
 /**
  * 获取 Project 级 Cookie path
- * 格式：/org/{orgName}/project/{projectSlug}
+ * 格式：/u/{orgName}/{projectSlug}
  * 确保不同 Project 的终端用户 Cookie 相互隔离
  */
 function getProjectCookiePath(orgName: string, projectSlug: string): string {
-  return `/org/${orgName}/project/${projectSlug}`
+  return `/u/${orgName}/${projectSlug}`
 }
 
 /**

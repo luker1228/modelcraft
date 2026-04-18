@@ -157,6 +157,12 @@ Tailwind 冲突类名：
 - import 顺序：React/Next.js → 第三方库 → 内部模块（`@` 别名）→ 相对导入
 - 是否避免使用 `any`，是否有明确的类型定义
 
+请求风暴防护（新增必检）：
+- 检查 `useEffect` / `useQuery` / `useLazyQuery` 是否因不稳定依赖触发重复请求（如对象/数组引用每次 render 变化）
+- 检查是否存在 `fetchPolicy: 'network-only'` + 频繁 effect 重跑组合，导致 GraphQL 请求被持续刷屏
+- 对请求参数列表建议使用稳定签名（如排序后的字符串/`useMemo` 结果）作为依赖，而不是直接依赖原始数组/对象
+- 检查 Apollo Client 实例是否稳定（避免因 client 实例重建引发 query 重放）
+
 ### 第四步：架构与框架设计审查（按需）
 
 评估架构或框架设计时，检查以下方面：

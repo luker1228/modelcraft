@@ -27,7 +27,7 @@ interface UseModelCRUDParams {
 
 export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams) {
   const router = useRouter()
-  const projectClient = useProjectScopedClient(projectSlug)
+  const projectClient = useProjectScopedClient(projectSlug, orgName)
   const orgClient = getOrgScopedClient()
   const [relationModels, setRelationModels] = useState<EditorModel[]>([])
 
@@ -73,6 +73,10 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     !state.connectionChecking && !state.connectionFailed ? projectSlug : null,
     { initialLimit: 50 }
   )
+  const relationDatabaseNames = useMemo(
+    () => databases.map((db) => db.name).sort(),
+    [databases]
+  )
 
   // Set default selected database when data loads
   useEffect(() => {
@@ -104,7 +108,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
       return
     }
 
-    if (databases.length === 0) {
+    if (relationDatabaseNames.length === 0) {
       setRelationModels([])
       return
     }
@@ -113,12 +117,12 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     const loadRelationModels = async () => {
       try {
         const results = await Promise.all(
-          databases.map((db) =>
+          relationDatabaseNames.map((databaseName) =>
             projectClient.query<ModelsQueryData>({
               query: GET_MODELS_FOR_RELATION,
               variables: {
                 input: {
-                  databaseName: db.name,
+                  databaseName,
                   limit: 100,
                 },
               },
@@ -145,7 +149,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   }, [
     projectSlug,
     projectClient,
-    databases,
+    relationDatabaseNames,
     databasesLoading,
     state.connectionChecking,
     state.connectionFailed,

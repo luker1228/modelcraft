@@ -8,6 +8,8 @@ import {
   EndUserConflictError,
   EndUserParamInvalidError,
   EndUserClusterNotConfiguredError,
+  EndUserUnauthorizedError,
+  EndUserUpstreamError,
 } from '@/bff/end-user/end-user-go-client'
 import { signEndUserAccessToken } from '@/bff/end-user/end-user-jwt-utils'
 import { setEndUserRefreshTokenCookie } from '@/bff/end-user/end-user-cookie-utils'
@@ -18,6 +20,18 @@ interface RegisterRequestBody {
   projectSlug?: unknown
   username?: unknown
   password?: unknown
+}
+
+function extractRequestId(err: unknown): string | undefined {
+  if (
+    err &&
+    typeof err === 'object' &&
+    'requestId' in err &&
+    typeof (err as { requestId?: unknown }).requestId === 'string'
+  ) {
+    return (err as { requestId: string }).requestId
+  }
+  return undefined
 }
 
 export async function POST(req: NextRequest) {
@@ -94,6 +108,8 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'CONFLICT', message: '该用户名已被使用' },
       }
+      const requestId = extractRequestId(err)
+      if (requestId) errorRes.requestId = requestId
       return NextResponse.json(errorRes, { status: 409 })
     }
 
@@ -101,6 +117,7 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'PARAM_INVALID', message: err.message },
       }
+      if (err.requestId) errorRes.requestId = err.requestId
       return NextResponse.json(errorRes, { status: 400 })
     }
 
@@ -108,7 +125,28 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'CLUSTER_NOT_CONFIGURED', message: '服务暂时不可用' },
       }
+      const requestId = extractRequestId(err)
+      if (requestId) errorRes.requestId = requestId
       return NextResponse.json(errorRes, { status: 503 })
+    }
+
+    if (err instanceof EndUserUnauthorizedError) {
+      const errorRes: EndUserBffError = {
+        error: { code: 'UNAUTHORIZED', message: '未授权访问内部注册服务' },
+      }
+      if (err.requestId) errorRes.requestId = err.requestId
+      return NextResponse.json(errorRes, { status: 401 })
+    }
+
+    if (err instanceof EndUserUpstreamError) {
+      const errorRes: EndUserBffError = {
+        error: {
+          code: err.code === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : 'PARAM_INVALID',
+          message: err.message || '上游服务错误',
+        },
+      }
+      if (err.requestId) errorRes.requestId = err.requestId
+      return NextResponse.json(errorRes, { status: err.status || 500 })
     }
 
     // 未知错误
@@ -118,6 +156,8 @@ export async function POST(req: NextRequest) {
         message: err instanceof Error ? err.message : '注册失败，请稍后重试',
       },
     }
+    const requestId = extractRequestId(err)
+    if (requestId) errorRes.requestId = requestId
     return NextResponse.json(errorRes, { status: 400 })
   }
 }

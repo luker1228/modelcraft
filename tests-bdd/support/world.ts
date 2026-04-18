@@ -56,6 +56,14 @@ export class ModelCraftWorld extends World {
   currentAPIKeyID: string | null = null
   currentAPIKeyRoleIDs: string[] = []
 
+  // End-User Auth 相关状态
+  endUserOrgName: string | null = null
+  endUserProjectSlug: string | null = null
+  internalToken: string | null = null
+  currentEndUserId: string | null = null
+  currentEndUserToken: string | null = null
+  lastEndUserInfo: Record<string, unknown> | null = null
+
   constructor(options: IWorldOptions) {
     super(options)
 

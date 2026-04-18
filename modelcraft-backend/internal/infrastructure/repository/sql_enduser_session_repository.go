@@ -17,12 +17,17 @@ import (
 // - It operates in private_{projectSlug} database.
 // - not found -> (nil, nil)
 // - update by id checks RowsAffected.
+type endUserSessionDBTX interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 type SqlEndUserSessionRepository struct {
-	db *sql.DB
+	db endUserSessionDBTX
 }
 
 // NewSqlEndUserSessionRepository creates a SqlEndUserSessionRepository.
-func NewSqlEndUserSessionRepository(db *sql.DB) enduser.EndUserSessionRepository {
+func NewSqlEndUserSessionRepository(db endUserSessionDBTX) enduser.EndUserSessionRepository {
 	return &SqlEndUserSessionRepository{db: db}
 }
 

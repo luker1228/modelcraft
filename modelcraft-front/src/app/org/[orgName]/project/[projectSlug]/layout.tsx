@@ -78,7 +78,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
     <RouteValidator orgName={orgName} projectSlug={projectSlug}>
       <AppLayout showProjectNav>
         {children}
-        
         {/* AI Assistant button - only show when CopilotKit not loaded */}
         {!showCopilot && (
           <AIAssistantButton onClick={() => setShowCopilot(true)} />

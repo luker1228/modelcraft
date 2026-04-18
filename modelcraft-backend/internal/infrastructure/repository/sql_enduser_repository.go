@@ -18,12 +18,18 @@ import (
 // - Query/Save methods follow plan contract:
 //   - not found -> (nil, nil)
 //   - update/delete must check RowsAffected.
+type endUserDBTX interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
 type SqlEndUserRepository struct {
-	db *sql.DB
+	db endUserDBTX
 }
 
 // NewSqlEndUserRepository creates a SqlEndUserRepository.
-func NewSqlEndUserRepository(db *sql.DB) enduser.EndUserRepository {
+func NewSqlEndUserRepository(db endUserDBTX) enduser.EndUserRepository {
 	return &SqlEndUserRepository{db: db}
 }
 

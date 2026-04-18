@@ -40,6 +40,7 @@ export interface EndUserBffError {
     code: EndUserErrorCode
     message: string
   }
+  requestId?: string
 }
 
 // ============================================================
@@ -105,7 +106,7 @@ export function mapEndUserErrorCode(code: string | undefined, httpStatus: number
   if (code === 'CLUSTER_NOT_CONFIGURED') return '服务暂时不可用，请联系管理员'
   if (code === 'PARAM_INVALID') return '输入参数无效，请检查后重试'
   if (code === 'INVALID_REFRESH_TOKEN') return '登录已过期，请重新登录'
-  if (code === 'UNAUTHORIZED') return '未授权，请重新登录'
+  if (code === 'UNAUTHORIZED') return '服务认证失败，请联系管理员检查 INTERNAL_TOKEN 配置'
   if (httpStatus >= 500) return '登录服务暂时不可用，请稍后重试'
   return '登录服务暂时不可用，请稍后重试'
 }

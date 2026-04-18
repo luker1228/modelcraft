@@ -8,7 +8,6 @@ import (
 	"context"
 	stderrors "errors"
 	"sync"
-	"time"
 
 	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
@@ -74,15 +73,14 @@ func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.Cr
 		return nil, err
 	}
 
-	now := time.Now().UTC()
 	return &generated.CreateEndUserPayload{
 		EndUser: &generated.EndUser{
 			ID:          result.ID,
 			Username:    result.Username,
 			IsForbidden: result.IsForbidden,
 			CreatedBy:   result.CreatedBy,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			CreatedAt:   result.CreatedAt,
+			UpdatedAt:   result.UpdatedAt,
 		},
 	}, nil
 }
@@ -124,15 +122,14 @@ func (r *mutationResolver) UpdateEndUserStatus(ctx context.Context, input genera
 		return nil, err
 	}
 
-	now := time.Now().UTC()
 	return &generated.UpdateEndUserStatusPayload{
 		EndUser: &generated.EndUser{
 			ID:          result.ID,
 			Username:    result.Username,
 			IsForbidden: result.IsForbidden,
 			CreatedBy:   result.CreatedBy,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			CreatedAt:   result.CreatedAt,
+			UpdatedAt:   result.UpdatedAt,
 		},
 	}, nil
 }
@@ -211,14 +208,13 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 
 	nodes := make([]*generated.EndUser, 0, len(result.Items))
 	for _, item := range result.Items {
-		now := time.Now().UTC()
 		nodes = append(nodes, &generated.EndUser{
 			ID:          item.ID,
 			Username:    item.Username,
 			IsForbidden: item.IsForbidden,
 			CreatedBy:   item.CreatedBy,
-			CreatedAt:   now,
-			UpdatedAt:   now,
+			CreatedAt:   item.CreatedAt,
+			UpdatedAt:   item.UpdatedAt,
 		})
 	}
 

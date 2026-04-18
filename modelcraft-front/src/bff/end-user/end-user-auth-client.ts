@@ -7,6 +7,11 @@ import type { EndUserInfo, EndUserJWTPayload, EndUserAuthResponse, EndUserMeResp
 
 export type { EndUserInfo }
 
+interface EndUserRefreshParams {
+  orgName: string
+  projectSlug: string
+}
+
 // ============================================================================
 // JWT 解析工具
 // ============================================================================
@@ -57,7 +62,9 @@ let _refreshPromise: Promise<string | null> | null = null
  * 并发调用共享同一个请求。
  * @returns 新的 access token 或 null（刷新失败）
  */
-export async function refreshEndUserAccessToken(): Promise<string | null> {
+export async function refreshEndUserAccessToken(
+  params?: EndUserRefreshParams
+): Promise<string | null> {
   if (_isRefreshing && _refreshPromise) {
     return _refreshPromise
   }
@@ -67,6 +74,11 @@ export async function refreshEndUserAccessToken(): Promise<string | null> {
     try {
       const res = await fetch('/api/bff/end-user/auth/refresh', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgName: params?.orgName,
+          projectSlug: params?.projectSlug,
+        }),
         credentials: 'same-origin',
       })
 

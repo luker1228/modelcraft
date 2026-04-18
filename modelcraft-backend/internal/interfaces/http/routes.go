@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"crypto/x509"
+	"database/sql"
 	"encoding/pem"
 	"errors"
 	"fmt"
@@ -33,8 +34,9 @@ import (
 	appPermission "modelcraft/internal/app/permission"
 	appProfile "modelcraft/internal/app/profile"
 
-	appRole "modelcraft/internal/app/role"
 	appEnduser "modelcraft/internal/app/enduser"
+	appRole "modelcraft/internal/app/role"
+	domainEndUser "modelcraft/internal/domain/enduser"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
 	domainUser "modelcraft/internal/domain/user"
 	infraAuth "modelcraft/internal/infrastructure/auth"
@@ -84,6 +86,51 @@ type DesignHandlers struct {
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
 	EndUserAuthHandler    *enduserHandlers.AuthHandler
 	EndUserMgmtHandler    *enduserHandlers.ManagementHandler
+}
+
+// endUserAuthRepositoryFactory creates end-user repositories from a DB connection.
+type endUserAuthRepositoryFactory struct{}
+
+func (f *endUserAuthRepositoryFactory) NewEndUserRepository(db appEnduser.SQLDBTX) domainEndUser.EndUserRepository {
+	return repository.NewSqlEndUserRepository(db)
+}
+
+func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(db appEnduser.SQLDBTX) domainEndUser.EndUserSessionRepository {
+	return repository.NewSqlEndUserSessionRepository(db)
+}
+
+// endUserTxManager provides real SQL transaction support on private DBs.
+type endUserTxManager struct{}
+
+func (m *endUserTxManager) WithTx(
+	ctx context.Context,
+	db *sql.DB,
+	fn func(ctx context.Context, txDB appEnduser.SQLDBTX) error,
+) error {
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin private transaction: %w", err)
+	}
+
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		}
+	}()
+
+	if err := fn(ctx, tx); err != nil {
+		if rbErr := tx.Rollback(); rbErr != nil {
+			return fmt.Errorf("rollback private transaction failed: %v (original error: %w)", rbErr, err)
+		}
+		return err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit private transaction: %w", err)
+	}
+
+	return nil
 }
 
 // CreateDesignHandlers creates all handlers and services needed for the design API.
@@ -210,6 +257,22 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	apiKeyRepo := repository.NewSqlAPIKeyRepository(dbgen.New(loggingDB))
 	apiKeyService := auth.NewAPIKeyService(apiKeyRepo)
 
+	// Create end-user services and handlers
+	privateDBManager := repository.NewPrivateDBManager(clusterManager, &cfg.Database, logger)
+	endUserTxMgr := &endUserTxManager{}
+	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
+		privateDBManager,
+		&endUserAuthRepositoryFactory{},
+		endUserTxMgr,
+		logger,
+	)
+	endUserMgmtAppService := appEnduser.NewEndUserManagementAppService(
+		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
+		endUserTxMgr,
+	)
+	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
+	endUserMgmtHandler := enduserHandlers.NewManagementHandler(endUserMgmtAppService, logger)
+
 	return &DesignHandlers{
 		AuthHandler:               authHandler,
 		UserHandler:               userHandlers.NewHandler(membershipRepo, logger),
@@ -230,6 +293,10 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 		GroupAppService:           groupAppService,
 		LogicalFKAppService:       logicalFKAppService,
 		APIKeyService:             apiKeyService,
+		EndUserAuthAppService:     endUserAuthAppService,
+		EndUserMgmtAppService:     endUserMgmtAppService,
+		EndUserAuthHandler:        endUserAuthHandler,
+		EndUserMgmtHandler:        endUserMgmtHandler,
 	}, nil
 }
 
@@ -250,15 +317,6 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		APIKeyService:          handlers.APIKeyService,
 	}
 
-	publicKey := LoadRSAPublicKey(cfg)
-	if publicKey == nil && !cfg.Auth.Design.SkipJWTValidation {
-		logfacade.GetLogger(context.Background()).Fatal(
-			context.Background(),
-			"GraphQL authentication enabled but no RSA public key configured. "+
-				"Please configure AUTH_JWT_PUBLIC_KEY_PATH or AUTH_JWT_PUBLIC_KEY",
-		)
-	}
-
 	jwtConfig := &middleware.JWTAuthConfig{
 		ModelCraftSecret: []byte(cfg.JWT.Secret),
 		SkipValidation:   cfg.Auth.Design.SkipJWTValidation,
@@ -274,6 +332,8 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 // SetupProjectGraphQLRoutesOnChi registers GraphQL endpoints for project domain.
 // Route pattern: /graphql/org/{orgName}/project/{projectSlug}/
 func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
+	projectgraphql.SetEndUserManagementAppService(handlers.EndUserMgmtAppService)
+
 	// Create services needed for project domain
 	typeMapper := domainModelDesign.NewMySQLTypeMapper()
 	schemaComparisonService := domainModelDesign.NewMySQLSchemaComparisonService(typeMapper)
@@ -451,31 +511,31 @@ func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 }
 
-// SetupEndUserRoutesOnChi registers End-User management HTTP routes.
-// Routes (internal, X-Internal-Token required):
-//
-//	POST   /internal/end-users                → Create end user
-//	GET    /internal/end-users                → List end users
-//	PATCH  /internal/end-users/{userId}/status → Update status
-//	DELETE /internal/end-users/{userId}       → Delete end user
-//
-// Note: These routes are for BFF/internal consumption only.
-// The PrivateDBManager dependency is not yet implemented;
-// routes will return 501 until Infrastructure layer is ready.
-func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, _ *config.Config) {
-	if handlers.EndUserMgmtHandler == nil {
-		// Handler not configured; skip route registration
-		// This is expected until Infrastructure layer implements PrivateDBManager
-		return
+// SetupEndUserRoutesOnChi registers End-User internal HTTP routes.
+// All routes keep the same internal-route middleware strategy currently used in this package.
+func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
+	internalTokenMW := middleware.ChiInternalTokenMiddleware(cfg.Auth.InternalToken)
+
+	if handlers.EndUserAuthHandler != nil {
+		router.Route("/internal/end-user/auth", func(r chi.Router) {
+			r.Use(requestIDInjectorMiddleware)
+			r.Use(internalTokenMW)
+			r.Post("/register", handlers.EndUserAuthHandler.Register)
+			r.Post("/login", handlers.EndUserAuthHandler.Login)
+			r.Post("/logout", handlers.EndUserAuthHandler.Logout)
+			r.Post("/refresh", handlers.EndUserAuthHandler.Refresh)
+			r.Get("/me", handlers.EndUserAuthHandler.Me)
+		})
 	}
 
-	// Internal routes use X-Internal-Token authentication
-	// TODO: Add InternalTokenMiddleware when implemented
-	router.Route("/internal/end-users", func(r chi.Router) {
-		r.Use(requestIDInjectorMiddleware)
-		r.Post("/", handlers.EndUserMgmtHandler.Create)
-		r.Get("/", handlers.EndUserMgmtHandler.List)
-		r.Patch("/{userId}/status", handlers.EndUserMgmtHandler.UpdateStatus)
-		r.Delete("/{userId}", handlers.EndUserMgmtHandler.Delete)
-	})
+	if handlers.EndUserMgmtHandler != nil {
+		router.Route("/internal/end-users", func(r chi.Router) {
+			r.Use(requestIDInjectorMiddleware)
+			r.Use(internalTokenMW)
+			r.Post("/", handlers.EndUserMgmtHandler.Create)
+			r.Get("/", handlers.EndUserMgmtHandler.List)
+			r.Patch("/{userId}/status", handlers.EndUserMgmtHandler.UpdateStatus)
+			r.Delete("/{userId}", handlers.EndUserMgmtHandler.Delete)
+		})
+	}
 }

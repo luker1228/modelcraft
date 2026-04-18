@@ -70,8 +70,9 @@ type CryptoConfig struct {
 
 // AuthConfig 认证配置
 type AuthConfig struct {
-	Design  DesignAuthConfig  `mapstructure:"design"`  // 设计时API认证配置
-	Runtime RuntimeAuthConfig `mapstructure:"runtime"` // 运行时API认证配置
+	InternalToken string            `mapstructure:"internal_token"` // 内网接口共享令牌（X-Internal-Token）
+	Design        DesignAuthConfig  `mapstructure:"design"`         // 设计时API认证配置
+	Runtime       RuntimeAuthConfig `mapstructure:"runtime"`        // 运行时API认证配置
 }
 
 // DesignAuthConfig 设计时API认证配置
@@ -181,6 +182,7 @@ func setupEnvBindings(v *viper.Viper) {
 	_ = v.BindEnv("logger.compress", "LOG_COMPRESS")
 
 	// 认证配置环境变量绑定
+	_ = v.BindEnv("auth.internal_token", "INTERNAL_TOKEN")
 	_ = v.BindEnv("auth.design.enabled", "AUTH_DESIGN_ENABLED")
 	_ = v.BindEnv("auth.design.jwt_public_key_path", "AUTH_JWT_PUBLIC_KEY_PATH")
 	_ = v.BindEnv("auth.design.jwt_public_key", "AUTH_JWT_PUBLIC_KEY")

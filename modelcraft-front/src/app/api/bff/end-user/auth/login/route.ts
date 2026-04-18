@@ -9,6 +9,8 @@ import {
   EndUserAccountDisabledError,
   EndUserClusterNotConfiguredError,
   EndUserParamInvalidError,
+  EndUserUnauthorizedError,
+  EndUserUpstreamError,
 } from '@/bff/end-user/end-user-go-client'
 import { signEndUserAccessToken } from '@/bff/end-user/end-user-jwt-utils'
 import { setEndUserRefreshTokenCookie } from '@/bff/end-user/end-user-cookie-utils'
@@ -19,6 +21,18 @@ interface LoginRequestBody {
   projectSlug?: unknown
   username?: unknown
   password?: unknown
+}
+
+function extractRequestId(err: unknown): string | undefined {
+  if (
+    err &&
+    typeof err === 'object' &&
+    'requestId' in err &&
+    typeof (err as { requestId?: unknown }).requestId === 'string'
+  ) {
+    return (err as { requestId: string }).requestId
+  }
+  return undefined
 }
 
 export async function POST(req: NextRequest) {
@@ -95,6 +109,8 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'INVALID_CREDENTIALS', message: '用户名或密码错误' },
       }
+      const requestId = extractRequestId(err)
+      if (requestId) errorRes.requestId = requestId
       return NextResponse.json(errorRes, { status: 401 })
     }
 
@@ -102,6 +118,8 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'ACCOUNT_DISABLED', message: '该账号已被禁用' },
       }
+      const requestId = extractRequestId(err)
+      if (requestId) errorRes.requestId = requestId
       return NextResponse.json(errorRes, { status: 403 })
     }
 
@@ -109,6 +127,8 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'CLUSTER_NOT_CONFIGURED', message: '服务暂时不可用' },
       }
+      const requestId = extractRequestId(err)
+      if (requestId) errorRes.requestId = requestId
       return NextResponse.json(errorRes, { status: 503 })
     }
 
@@ -116,7 +136,27 @@ export async function POST(req: NextRequest) {
       const errorRes: EndUserBffError = {
         error: { code: 'PARAM_INVALID', message: err.message },
       }
+      if (err.requestId) errorRes.requestId = err.requestId
       return NextResponse.json(errorRes, { status: 400 })
+    }
+
+    if (err instanceof EndUserUnauthorizedError) {
+      const errorRes: EndUserBffError = {
+        error: { code: 'UNAUTHORIZED', message: '未授权访问内部登录服务' },
+      }
+      if (err.requestId) errorRes.requestId = err.requestId
+      return NextResponse.json(errorRes, { status: 401 })
+    }
+
+    if (err instanceof EndUserUpstreamError) {
+      const errorRes: EndUserBffError = {
+        error: {
+          code: err.code === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : 'INVALID_CREDENTIALS',
+          message: err.message || '上游服务错误',
+        },
+      }
+      if (err.requestId) errorRes.requestId = err.requestId
+      return NextResponse.json(errorRes, { status: err.status || 500 })
     }
 
     // 未知错误
@@ -126,6 +166,8 @@ export async function POST(req: NextRequest) {
         message: err instanceof Error ? err.message : '登录失败，请稍后重试',
       },
     }
+    const requestId = extractRequestId(err)
+    if (requestId) errorRes.requestId = requestId
     return NextResponse.json(errorRes, { status: 401 })
   }
 }

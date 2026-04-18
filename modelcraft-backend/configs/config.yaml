@@ -33,6 +33,9 @@ jwt:
 
 # 认证配置
 auth:
+  # 内网 HTTP 接口共享令牌（X-Internal-Token）
+  internal_token: ""  # Override via INTERNAL_TOKEN
+
   # 设计时 API 认证配置（GraphQL Design API + REST API）
   design:
     # 是否启用认证（开发环境可设为false，生产环境必须为true）
@@ -41,8 +44,6 @@ auth:
     jwt_public_key_path: ""  # Path to RSA public key file (PEM format)
     # 或者直接配置公钥内容（通过环境变量）
     jwt_public_key: ""  # Override via AUTH_JWT_PUBLIC_KEY
-    # 是否跳过JWT验证（仅用于开发）
-    skip_jwt_validation: false  # Set to false in production
     # 是否接受 ModelCraft JWT
     accept_modelcraft_jwt: true
 

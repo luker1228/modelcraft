@@ -1,0 +1,130 @@
+# End-User Auth 终端用户认证 BDD 测试
+# 测试后端内部接口 /internal/end-user/*
+
+Feature: 终端用户认证管理
+  作为开发者或终端用户
+  我希望能管理终端用户账号（注册、登录、禁用、删除等）
+  以便为项目提供终端用户认证能力
+
+  Background:
+    Given 存在已配置数据库集群的组织 "testorg" 和项目 "testproject"
+    And 我以开发者身份登录
+
+  # ==================== 用户管理（GraphQL/开发者侧）====================
+
+  Scenario: 开发者成功创建终端用户
+    When 我创建终端用户，用户名为 "alice"，密码为 "Pass1234"
+    Then 终端用户应该创建成功
+    And 返回的用户名应该是 "alice"
+    And 用户状态应该是启用
+
+  Scenario: 创建终端用户时用户名已存在
+    Given 已存在终端用户 "bob"，密码 "Pass1234"
+    When 我创建终端用户，用户名为 "bob"，密码为 "Pass5678"
+    Then 返回终端用户错误码 "CONFLICT"
+
+  Scenario: 创建终端用户时密码强度不足
+    When 我创建终端用户，用户名为 "weakuser"，密码为 "123"
+    Then 返回终端用户错误码 "PARAM_INVALID"
+
+  Scenario: 创建终端用户时用户名格式不合法
+    When 我创建终端用户，用户名为 "has space"，密码为 "Pass1234"
+    Then 返回终端用户错误码 "PARAM_INVALID"
+
+  Scenario: 开发者分页查询终端用户列表
+    Given 已存在终端用户 "user1"，密码 "Pass1234"
+    And 已存在终端用户 "user2"，密码 "Pass1234"
+    When 我查询终端用户列表，每页 10 条
+    Then 应该返回用户列表
+    And 列表中应该包含用户 "user1"
+    And 列表中应该包含用户 "user2"
+    And 总用户数应该大于等于 2
+
+  Scenario: 开发者搜索终端用户
+    Given 已存在终端用户 "searchable_user"，密码 "Pass1234"
+    When 我搜索终端用户，关键词为 "searchable"
+    Then 应该返回用户列表
+    And 列表中应该包含用户 "searchable_user"
+
+  Scenario: 开发者禁用终端用户
+    Given 已存在终端用户 "tobeforbidden"，密码 "Pass1234"
+    When 我禁用终端用户 "tobeforbidden"
+    Then 用户状态更新成功
+    And 用户状态应该是禁用
+
+  Scenario: 开发者启用被禁用的终端用户
+    Given 已存在被禁用的终端用户 "disableduser"
+    When 我启用终端用户 "disableduser"
+    Then 用户状态更新成功
+    And 用户状态应该是启用
+
+  Scenario: 开发者删除终端用户
+    Given 已存在终端用户 "tobedeleted"，密码 "Pass1234"
+    When 我删除终端用户 "tobedeleted"
+    Then 终端用户应该删除成功
+    And 该用户应该不存在
+
+  # ==================== 终端用户自助认证（OpenAPI/终端用户侧）====================
+
+  Scenario: 终端用户自助注册并自动登录
+    When 终端用户自助注册，用户名为 "selfreg"，密码为 "Pass1234"
+    Then 注册成功并返回 access token
+    And 返回的 token 有效期为 3600 秒
+
+  Scenario: 终端用户使用正确凭证登录
+    Given 已存在终端用户 "logintest"，密码 "Pass1234"
+    When 终端用户登录，用户名为 "logintest"，密码为 "Pass1234"
+    Then 登录成功并返回 access token
+    And 返回 refresh token
+
+  Scenario: 终端用户使用错误密码登录
+    Given 已存在终端用户 "wrongpwd"，密码 "Pass1234"
+    When 终端用户登录，用户名为 "wrongpwd"，密码为 "WrongPass123"
+    Then 返回终端用户错误码 "INVALID_CREDENTIALS"
+    And HTTP 状态码应该是 401
+
+  Scenario: 终端用户使用错误用户名登录
+    When 终端用户登录，用户名为 "nonexistent"，密码为 "Pass1234"
+    Then 返回终端用户错误码 "INVALID_CREDENTIALS"
+
+  Scenario: 被禁用的终端用户无法登录
+    Given 已存在被禁用的终端用户 "forbiddenuser"
+    When 终端用户登录，用户名为 "forbiddenuser"，密码为 "Pass1234"
+    Then 返回终端用户错误码 "ACCOUNT_DISABLED"
+    And HTTP 状态码应该是 403
+
+  Scenario: 终端用户获取自己的信息
+    Given 终端用户 "meuser" 已登录
+    When 终端用户查询自己的信息
+    Then 应该返回用户信息
+    And 返回的用户名应该是 "meuser"
+    And 返回的信息应该包含创建时间
+
+  Scenario: 终端用户登出
+    Given 终端用户 "logoutuser" 已登录
+    When 终端用户登出
+    Then 登出成功
+
+  # ==================== Token 刷新 ====================
+
+  Scenario: 终端用户刷新 access token
+    Given 终端用户 "refreshtest" 已登录并持有 refresh token
+    When 终端用户刷新 token
+    Then 刷新成功并返回新的 access token
+    And 返回新的 refresh token
+
+  Scenario: 使用已撤销的 refresh token 刷新
+    Given 终端用户 "revokedtest" 已登录并持有 refresh token
+    And 该用户的 refresh token 已被撤销
+    When 终端用户刷新 token
+    Then 返回终端用户错误码 "INVALID_REFRESH_TOKEN"
+    And HTTP 状态码应该是 401
+
+  # ==================== 删除用户后 Session 清理 ====================
+
+  Scenario: 删除终端用户后其 session 失效
+    Given 终端用户 "deleteduser" 已登录并持有 refresh token
+    When 开发者删除终端用户 "deleteduser"
+    Then 终端用户应该删除成功
+    When 使用该用户的 refresh token 刷新
+    Then 返回终端用户错误码 "INVALID_REFRESH_TOKEN"

@@ -49,10 +49,13 @@ export function useRequireEndUserAuth(): UseRequireEndUserAuthReturn {
     }
 
     // token 不存在或已过期：尝试 silent refresh
-    const newToken = await refreshEndUserAccessToken()
+    const newToken = await refreshEndUserAccessToken({
+      orgName,
+      projectSlug,
+    })
     if (!newToken) {
       // refresh 失败（cookie 过期/revoked），重定向到登录页
-      const loginUrl = `/org/${orgName}/project/${projectSlug}/user/login`
+      const loginUrl = `/u/${orgName}/${projectSlug}/login`
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
       router.replace(`${loginUrl}?redirect=${encodeURIComponent(currentPath)}`)
       return
@@ -102,7 +105,7 @@ export function useEndUser(): UseEndUserReturn {
     removeEndUserSession()
 
     // 重定向到登录页
-    router.replace(`/org/${orgName}/project/${projectSlug}/user/login`)
+    router.replace(`/u/${orgName}/${projectSlug}/login`)
   }, [orgName, projectSlug, router])
 
   return { user: userInfo, logout }

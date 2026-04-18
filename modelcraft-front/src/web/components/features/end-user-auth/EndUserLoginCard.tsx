@@ -12,20 +12,28 @@ import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import { useEndUserLoginForm, type EndUserLoginFormValues } from '@web/hooks/end-user-auth/useEndUserLoginForm'
-import type { UseFormReturn } from 'react-hook-form'
+import { useEndUserRegisterForm, type EndUserRegisterFormValues } from '@web/hooks/end-user-auth/useEndUserRegisterForm'
+import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
 
 // ============================================================================
 // Sub Components
 // ============================================================================
 
-interface PasswordInputProps {
+interface PasswordInputProps<T extends FieldValues> {
   id: string
   disabled?: boolean
   error?: string
-  register: UseFormReturn<EndUserLoginFormValues>['register']
+  register: UseFormReturn<T>['register']
+  fieldName: Path<T>
 }
 
-function PasswordInput({ id, disabled, error, register }: PasswordInputProps) {
+function PasswordInput<T extends FieldValues>({
+  id,
+  disabled,
+  error,
+  register,
+  fieldName,
+}: PasswordInputProps<T>) {
   const [showPassword, setShowPassword] = React.useState(false)
 
   return (
@@ -38,7 +46,7 @@ function PasswordInput({ id, disabled, error, register }: PasswordInputProps) {
         disabled={disabled}
         aria-invalid={!!error}
         className="pr-10"
-        {...register('password')}
+        {...register(fieldName)}
       />
       <button
         type="button"
@@ -107,6 +115,7 @@ function EndUserLoginFormContent({ orgName, projectSlug }: EndUserLoginFormConte
           disabled={isLoading}
           error={errors.password?.message}
           register={register}
+          fieldName={'password' as Path<EndUserLoginFormValues>}
         />
         {errors.password && (
           <p className="text-sm text-destructive">{errors.password.message}</p>
@@ -117,6 +126,74 @@ function EndUserLoginFormContent({ orgName, projectSlug }: EndUserLoginFormConte
       <Button type="submit" disabled={isLoading} className="w-full">
         {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
         登录
+      </Button>
+    </form>
+  )
+}
+
+function EndUserRegisterFormContent({ orgName, projectSlug }: EndUserLoginFormContentProps) {
+  const { form, onSubmit, isLoading, error } = useEndUserRegisterForm(orgName, projectSlug)
+  const {
+    register,
+    formState: { errors },
+  } = form
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="register-username">用户名</Label>
+        <Input
+          id="register-username"
+          type="text"
+          placeholder="请输入用户名"
+          autoComplete="username"
+          disabled={isLoading}
+          aria-invalid={!!errors.username}
+          {...register('username')}
+        />
+        {errors.username && (
+          <p className="text-sm text-destructive">{errors.username.message}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="register-password">密码</Label>
+        <PasswordInput
+          id="register-password"
+          disabled={isLoading}
+          error={errors.password?.message}
+          register={register}
+          fieldName={'password' as Path<EndUserRegisterFormValues>}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="register-confirm-password">确认密码</Label>
+        <PasswordInput
+          id="register-confirm-password"
+          disabled={isLoading}
+          error={errors.confirmPassword?.message}
+          register={register}
+          fieldName={'confirmPassword' as Path<EndUserRegisterFormValues>}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isLoading} className="w-full">
+        {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+        注册并登录
       </Button>
     </form>
   )
@@ -136,6 +213,8 @@ interface EndUserLoginCardProps {
  * 包含项目品牌展示 + 登录表单。
  */
 export function EndUserLoginCard({ orgName, projectSlug }: EndUserLoginCardProps) {
+  const [mode, setMode] = React.useState<'login' | 'register'>('login')
+
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
       <Card className="w-full max-w-md border bg-background shadow-sm">
@@ -150,9 +229,11 @@ export function EndUserLoginCard({ orgName, projectSlug }: EndUserLoginCardProps
             </span>
           </div>
           <div className="text-center">
-            <CardTitle className="text-2xl">用户登录</CardTitle>
+            <CardTitle className="text-2xl">{mode === 'login' ? '用户登录' : '用户注册'}</CardTitle>
             <CardDescription className="mt-2">
-              登录以访问 {orgName} / {projectSlug} 的数据
+              {mode === 'login'
+                ? `登录以访问 ${orgName} / ${projectSlug} 的数据`
+                : `注册后自动登录并进入 ${orgName} / ${projectSlug} 的数据页`}
             </CardDescription>
           </div>
         </CardHeader>
@@ -166,8 +247,23 @@ export function EndUserLoginCard({ orgName, projectSlug }: EndUserLoginCardProps
               </div>
             }
           >
-            <EndUserLoginFormContent orgName={orgName} projectSlug={projectSlug} />
+            {mode === 'login' ? (
+              <EndUserLoginFormContent orgName={orgName} projectSlug={projectSlug} />
+            ) : (
+              <EndUserRegisterFormContent orgName={orgName} projectSlug={projectSlug} />
+            )}
           </Suspense>
+
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            {mode === 'login' ? '还没有账号？' : '已有账号？'}
+            <button
+              type="button"
+              className="ml-1 font-medium text-primary transition-colors hover:text-primary/80"
+              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            >
+              {mode === 'login' ? '去注册' : '去登录'}
+            </button>
+          </div>
         </CardContent>
       </Card>
     </div>

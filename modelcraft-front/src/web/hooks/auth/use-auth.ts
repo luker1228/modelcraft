@@ -13,11 +13,17 @@ import { useAuthStore } from '@shared/stores/auth-store'
  *
  * No redirect logic here: middleware owns that responsibility.
  */
-export function useRequireAuth() {
+export function useRequireAuth(skipAuthCheck = false) {
   const [isLoading, setIsLoading] = useState(true)
   const [user, setUser] = useState<AuthUser | null>(null)
 
   useEffect(() => {
+    if (skipAuthCheck) {
+      setIsLoading(false)
+      setUser(null)
+      return
+    }
+
     async function restoreSession() {
       let token = getToken()
       console.log('[useRequireAuth] In-memory token present:', !!token)
@@ -36,7 +42,7 @@ export function useRequireAuth() {
     }
 
     restoreSession()
-  }, [])
+  }, [skipAuthCheck])
 
   return { isLoading, user }
 }

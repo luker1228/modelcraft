@@ -31,6 +31,7 @@ import {
   Server,
   Table2,
   List,
+  LogIn,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
@@ -182,6 +183,7 @@ export function AppLayout({
     { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
     { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
     { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
+    { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
   ]
 
   const navItems = showProjectNav ? projectNavItems : workspaceNavItems

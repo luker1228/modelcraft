@@ -11,11 +11,14 @@ import { NextRequest, NextResponse } from 'next/server'
  *    request). We only check presence. The actual token exchange happens client-side via
  *    silent refresh (/api/bff/auth/refresh) after the page loads.
  *
- * End-User Auth Extension (2026-04-16):
- *  - End-user data routes (/org/{orgName}/project/{projectSlug}/data/*) require
- *    `end_user_refresh_token` cookie. If missing, redirect to end-user login page.
- *  - End-user login page (/org/{orgName}/project/{projectSlug}/user/login) is public.
- *  - This branch is checked BEFORE developer auth to avoid false captures.
+ * End-User Auth:
+ *  - End-user routes moved to /u/{orgName}/{projectSlug}/*
+ *  - /u/{orgName}/{projectSlug}/login is public
+ *  - /u/{orgName}/{projectSlug}/data/* requires end_user_refresh_token
+ *
+ * Legacy End-User Routes:
+ *  - /org/{org}/project/{project}/user/* and /data/* are retired immediately.
+ *  - Middleware lets them pass through so Next.js returns 404 directly.
  */
 
 // ============================================
@@ -33,29 +36,12 @@ const COOKIE_NAME = 'refresh_token'
 // ============================================
 const END_USER_COOKIE = 'end_user_refresh_token'
 
-/**
- * 判断路径是否属于终端用户数据路由（需要守卫）。
- * 匹配：/org/{orgName}/project/{projectSlug}/data 及其子路径
- */
-function isEndUserDataRoute(pathname: string): boolean {
-  return /^\/org\/[^/]+\/project\/[^/]+\/data(\/.*)?$/.test(pathname)
-}
+const END_USER_LOGIN_RE = /^\/u\/[^/]+\/[^/]+\/login$/
+const END_USER_DATA_RE = /^\/u\/[^/]+\/[^/]+\/data(\/.*)?$/
+const LEGACY_END_USER_RE = /^\/org\/[^/]+\/project\/[^/]+\/(user(\/.*)?|data(\/.*)?)$/
 
-/**
- * 判断路径是否为终端用户登录页（公开，无需守卫）。
- * 匹配：/org/{orgName}/project/{projectSlug}/user/login
- */
-function isEndUserLoginPage(pathname: string): boolean {
-  return /^\/org\/[^/]+\/project\/[^/]+\/user\/login$/.test(pathname)
-}
-
-/**
- * 从路径中提取 orgName 和 projectSlug，用于构造重定向 URL。
- */
-function extractProjectParams(
-  pathname: string
-): { orgName: string; projectSlug: string } | null {
-  const match = pathname.match(/^\/org\/([^/]+)\/project\/([^/]+)/)
+function extractEndUserParams(pathname: string): { orgName: string; projectSlug: string } | null {
+  const match = pathname.match(/^\/u\/([^/]+)\/([^/]+)/)
   if (!match) return null
   return { orgName: match[1], projectSlug: match[2] }
 }
@@ -69,32 +55,39 @@ export function middleware(request: NextRequest) {
   }
 
   // ===== END USER AUTH START =====
-  // 终端用户路由守卫（新增分支，在开发者守卫之前判断）
+  // 终端用户路径分支（必须在开发者鉴权前处理）
 
-  // 终端用户登录页本身：公开，直接放行
-  if (isEndUserLoginPage(pathname)) {
+  // Legacy 路径立即切断：不做兼容跳转，让 Next.js 直接 404
+  if (LEGACY_END_USER_RE.test(pathname)) {
     return NextResponse.next()
   }
 
-  // 终端用户数据管理路由：需要 end_user_refresh_token cookie
-  if (isEndUserDataRoute(pathname)) {
+  if (END_USER_LOGIN_RE.test(pathname)) {
+    return NextResponse.next()
+  }
+
+  if (END_USER_DATA_RE.test(pathname)) {
     const hasEndUserToken = request.cookies.has(END_USER_COOKIE)
     console.log(`[middleware] end-user route ${pathname} — cookie present: ${hasEndUserToken}`)
 
     if (!hasEndUserToken) {
-      const params = extractProjectParams(pathname)
+      const params = extractEndUserParams(pathname)
       if (params) {
         const loginUrl = new URL(
-          `/org/${params.orgName}/project/${params.projectSlug}/user/login`,
+          `/u/${params.orgName}/${params.projectSlug}/login`,
           request.url
         )
-        // 注意：终端用户用 redirect，开发者用 returnUrl
         loginUrl.searchParams.set('redirect', pathname)
         console.log(`[middleware] No end-user token, redirecting to: ${loginUrl.toString()}`)
         return NextResponse.redirect(loginUrl)
       }
     }
 
+    return NextResponse.next()
+  }
+
+  // 非 data/login 的 /u 路径不归 developer 鉴权，交给 Next.js 正常路由（通常 404）
+  if (pathname.startsWith('/u/')) {
     return NextResponse.next()
   }
 

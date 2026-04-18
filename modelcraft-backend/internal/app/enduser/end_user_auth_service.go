@@ -30,20 +30,28 @@ type PrivateDBProvider interface {
 	GetOrInit(ctx context.Context, orgName, projectSlug string) (*sql.DB, error)
 }
 
-// RepositoryFactory creates repositories from a database connection.
+// SQLDBTX describes the database methods used by end-user repositories.
+// Both *sql.DB and *sql.Tx satisfy this interface.
+type SQLDBTX interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
+
+// RepositoryFactory creates repositories from a DB or Tx connection.
 // This allows the service to work with transaction-scoped repositories.
 type RepositoryFactory interface {
-	// NewEndUserRepository creates an EndUserRepository from a DB connection.
-	NewEndUserRepository(db *sql.DB) enduser.EndUserRepository
-	// NewEndUserSessionRepository creates an EndUserSessionRepository from a DB connection.
-	NewEndUserSessionRepository(db *sql.DB) enduser.EndUserSessionRepository
+	// NewEndUserRepository creates an EndUserRepository from a DB/TX connection.
+	NewEndUserRepository(db SQLDBTX) enduser.EndUserRepository
+	// NewEndUserSessionRepository creates an EndUserSessionRepository from a DB/TX connection.
+	NewEndUserSessionRepository(db SQLDBTX) enduser.EndUserSessionRepository
 }
 
 // TxManager manages database transactions for private databases.
 type TxManager interface {
 	// WithTx begins a transaction on the given db, passes a tx-scoped db to fn,
 	// commits on success, and rolls back on error or panic.
-	WithTx(ctx context.Context, db *sql.DB, fn func(ctx context.Context, txDB *sql.DB) error) error
+	WithTx(ctx context.Context, db *sql.DB, fn func(ctx context.Context, txDB SQLDBTX) error) error
 }
 
 // EndUserAuthAppService handles end-user authentication use cases.
@@ -265,7 +273,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 
 	// 6. Token Rotation (transactional)
 	var result *RefreshResult
-	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB *sql.DB) error {
+	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
 		txSessionRepo := s.repoFactory.NewEndUserSessionRepository(txDB)
 
 		// 6a. Revoke old token

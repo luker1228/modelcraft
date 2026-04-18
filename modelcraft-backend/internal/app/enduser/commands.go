@@ -117,6 +117,8 @@ type CreateEndUserResult struct {
 	Username    string
 	IsForbidden bool
 	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // EndUserDTO represents an end-user data transfer object.
@@ -125,4 +127,6 @@ type EndUserDTO struct {
 	Username    string
 	IsForbidden bool
 	CreatedBy   string
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
