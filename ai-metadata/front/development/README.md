@@ -12,6 +12,10 @@
   - 页面私有 `_components/` + `_hooks/` 拆分规范
   - GraphQL Codegen 流程
   - Types / Hooks 按业务域组织约定
+- **[Workspace 模式边界](./workspace-mode-boundary.md)** - Design 与 End User 复用组件的能力隔离
+  - `workspaceMode` 模式定义（`design` / `end_user`）
+  - 能力矩阵（插入列、字段生命周期管理）
+  - 调用方强制显式传参约定
 
 ### 代码质量
 

@@ -60,6 +60,7 @@ ai-metadata/
 │   │   ├── eslint-rules.md
 │   │   ├── known-issues.md
 │   │   ├── react-best-practices.md
+│   │   ├── workspace-mode-boundary.md
 │   │   └── typescript-guide.md
 │   └── style/
 │       ├── STYLE.md
@@ -166,6 +167,7 @@ ai-metadata/
 | [front/development/eslint-rules.md](./front/development/eslint-rules.md) | ESLint 配置与规则说明 |
 | [front/development/known-issues.md](./front/development/known-issues.md) | 已知问题与临时解决方案 |
 | [front/development/react-best-practices.md](./front/development/react-best-practices.md) | React 组件设计、State 管理、性能优化 |
+| [front/development/workspace-mode-boundary.md](./front/development/workspace-mode-boundary.md) | ⭐ Workspace 复用组件的 Design/End User 能力边界 |
 | [front/development/typescript-guide.md](./front/development/typescript-guide.md) | TypeScript 严格模式、组件类型、Hooks 类型 |
 
 ### 设计系统
@@ -215,4 +217,3 @@ ai-metadata/
 | 路径 | 说明 |
 |------|------|
 | [prd/runtime/field-relation-selector.md](./prd/runtime/field-relation-selector.md) | 多对一外键字段升级为下拉选择器，依赖 → [jsonschema-contract](./backend/design/domain-model/8-runtime/jsonschema-contract.md) |
-

@@ -5,6 +5,7 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { createGlobalErrorHandler } from '@web/hooks/error/use-graphql-error-handler'
 import { removeToken } from '@bff/auth/public'
+import { refreshAccessToken } from '@bff/auth/public'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@shared/utils/uuid'
 import { useAuthStore } from '@shared/stores/auth-store'
@@ -28,16 +29,24 @@ const httpLink = createHttpLink({
 })
 
 // 认证链接（如果需要）
-const authLink = setContext((_: unknown, { headers }: { headers?: Record<string, string> }) => {
+const authLink = setContext(async (_: unknown, { headers }: { headers?: Record<string, string> }) => {
   // 获取认证token（如果有的话）
-  const token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
+  let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
+  if (!token && typeof window !== 'undefined') {
+    token = await refreshAccessToken()
+  }
+
+  const nextHeaders: Record<string, string> = {
+    ...headers,
+    'x-request-id': generateUUID(),
+  }
+
+  if (token) {
+    nextHeaders.authorization = `Bearer ${token}`
+  }
 
   return {
-    headers: {
-      ...headers,
-      authorization: token ? `Bearer ${token}` : "",
-      'x-request-id': generateUUID(),
-    }
+    headers: nextHeaders,
   }
 })
 

@@ -19,6 +19,7 @@ interface ModelRecordInsertMenuProps {
   orgName: string
   existingFieldNames: string[]
   onInsertFieldSuccess: () => void
+  canInsertField?: boolean
 }
 
 export function ModelRecordInsertMenu({
@@ -29,6 +30,7 @@ export function ModelRecordInsertMenu({
   orgName,
   existingFieldNames,
   onInsertFieldSuccess,
+  canInsertField = true,
 }: ModelRecordInsertMenuProps) {
   const [insertColumnOpen, setInsertColumnOpen] = useState(false)
 
@@ -53,26 +55,30 @@ export function ModelRecordInsertMenu({
             <Plus className="mr-2 size-3.5" />
             插入数据
           </DropdownMenuItem>
-          <DropdownMenuItem
-            className="cursor-pointer text-xs focus:bg-selected focus:text-foreground"
-            onClick={() => setInsertColumnOpen(true)}
-          >
-            <Columns className="mr-2 size-3.5" />
-            插入列
-          </DropdownMenuItem>
+          {canInsertField && (
+            <DropdownMenuItem
+              className="cursor-pointer text-xs focus:bg-selected focus:text-foreground"
+              onClick={() => setInsertColumnOpen(true)}
+            >
+              <Columns className="mr-2 size-3.5" />
+              插入列
+            </DropdownMenuItem>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <InsertFieldSheet
-        open={insertColumnOpen}
-        onOpenChange={setInsertColumnOpen}
-        modelId={modelId}
-        modelName={modelName}
-        projectSlug={projectSlug}
-        orgName={orgName}
-        existingFieldNames={existingFieldNames}
-        onSuccess={onInsertFieldSuccess}
-      />
+      {canInsertField && (
+        <InsertFieldSheet
+          open={insertColumnOpen}
+          onOpenChange={setInsertColumnOpen}
+          modelId={modelId}
+          modelName={modelName}
+          projectSlug={projectSlug}
+          orgName={orgName}
+          existingFieldNames={existingFieldNames}
+          onSuccess={onInsertFieldSuccess}
+        />
+      )}
     </>
   )
 }

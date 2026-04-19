@@ -286,6 +286,7 @@ export default function EndUserDataPage() {
               modelId={activeTab.id}
               projectSlug={projectSlug}
               orgName={orgName}
+              workspaceMode="end_user"
             />
           )}
         />

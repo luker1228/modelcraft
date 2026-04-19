@@ -53,6 +53,7 @@ interface ModelRecordTableProps {
   onManageRelations?: (id: string) => void
   onToggleFieldDeprecated?: (fieldInfo: ModelRecordTableFieldInfo) => void
   onDeleteField?: (fieldInfo: ModelRecordTableFieldInfo) => void
+  canManageFieldLifecycle?: boolean
 }
 
 type PairRole = 'label' | 'code'
@@ -76,6 +77,7 @@ export function ModelRecordTable({
   onManageRelations,
   onToggleFieldDeprecated,
   onDeleteField,
+  canManageFieldLifecycle = true,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
 
@@ -256,6 +258,58 @@ export function ModelRecordTable({
                     schemaType: fieldInfo?.schemaType ?? null,
                   }
 
+                  const triggerContent = (
+                    <>
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
+                        <span
+                          className={`truncate text-xs font-semibold ${
+                            isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'
+                          }`}
+                        >
+                          {fieldTitle}
+                        </span>
+                        {isEnumField && (
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(37,99,235,0.22)] bg-[#dbeafe] px-1.5 py-0 text-[9px] font-semibold uppercase leading-4 text-[#1d4ed8]">
+                            Enum
+                          </span>
+                        )}
+                        {isPairedLabel && (
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(5,150,105,0.24)] bg-[#ecfdf5] px-1.5 py-0 text-[9px] font-semibold leading-4 text-[#047857]">
+                            Label
+                          </span>
+                        )}
+                        {isPairedCode && (
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-border/80 bg-muted/60 px-1.5 py-0 text-[9px] font-semibold leading-4 text-muted-foreground">
+                            Code
+                          </span>
+                        )}
+                        {isDeprecated && (
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-amber-300/70 bg-amber-50 px-1.5 py-0 text-[9px] font-semibold leading-4 text-amber-700">
+                            已废弃
+                          </span>
+                        )}
+                      </span>
+                      <span className="flex min-w-0 items-center gap-1.5 text-[10px] leading-4 text-muted-foreground">
+                        {showFieldName && (
+                          <span className="truncate font-mono font-normal text-muted-foreground/90">
+                            {field}
+                          </span>
+                        )}
+                        {isEnumField && (
+                          <span className="flex-shrink-0 rounded border border-border/70 bg-muted/50 px-1.5 py-0 text-[9px] font-medium text-muted-foreground">
+                            {enumOptions.length} 项
+                          </span>
+                        )}
+                        {typeDisplay && (
+                          <span className="flex-shrink-0 font-mono font-normal text-muted-foreground/90">
+                            {typeDisplay}
+                          </span>
+                        )}
+                      </span>
+                    </>
+                  )
+
                   return (
                     <TableHead
                       key={field}
@@ -264,87 +318,47 @@ export function ModelRecordTable({
                       }`}
                       style={{ width: getColumnWidth(field) }}
                     >
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex min-w-0 flex-col items-start gap-1 pr-3 text-left"
-                            title={`${headerLabel}（点击管理字段）`}
-                          >
-                            <span className="flex min-w-0 items-center gap-1.5">
-                              {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
-                              <span
-                                className={`truncate text-xs font-semibold ${
-                                  isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'
-                                }`}
-                              >
-                                {fieldTitle}
-                              </span>
-                              {isEnumField && (
-                                <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(37,99,235,0.22)] bg-[#dbeafe] px-1.5 py-0 text-[9px] font-semibold uppercase leading-4 text-[#1d4ed8]">
-                                  Enum
-                                </span>
-                              )}
-                              {isPairedLabel && (
-                                <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(5,150,105,0.24)] bg-[#ecfdf5] px-1.5 py-0 text-[9px] font-semibold leading-4 text-[#047857]">
-                                  Label
-                                </span>
-                              )}
-                              {isPairedCode && (
-                                <span className="inline-flex flex-shrink-0 items-center rounded border border-border/80 bg-muted/60 px-1.5 py-0 text-[9px] font-semibold leading-4 text-muted-foreground">
-                                  Code
-                                </span>
-                              )}
-                              {isDeprecated && (
-                                <span className="inline-flex flex-shrink-0 items-center rounded border border-amber-300/70 bg-amber-50 px-1.5 py-0 text-[9px] font-semibold leading-4 text-amber-700">
-                                  已废弃
-                                </span>
-                              )}
-                            </span>
-                            <span className="flex min-w-0 items-center gap-1.5 text-[10px] leading-4 text-muted-foreground">
-                              {showFieldName && (
-                                <span className="truncate font-mono font-normal text-muted-foreground/90">
-                                  {field}
-                                </span>
-                              )}
-                              {isEnumField && (
-                                <span className="flex-shrink-0 rounded border border-border/70 bg-muted/50 px-1.5 py-0 text-[9px] font-medium text-muted-foreground">
-                                  {enumOptions.length} 项
-                                </span>
-                              )}
-                              {typeDisplay && (
-                                <span className="flex-shrink-0 font-mono font-normal text-muted-foreground/90">
-                                  {typeDisplay}
-                                </span>
-                              )}
-                            </span>
-                          </button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="start" className="w-36">
-                          <DropdownMenuItem
-                            className={`text-xs ${
-                              isDerivedLabelField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'
-                            }`}
-                            onClick={() => onToggleFieldDeprecated?.(headerFieldInfo)}
-                            disabled={isDerivedLabelField}
-                          >
-                            <Archive className="mr-2 size-3.5" />
-                            {isDeprecated ? '取消废弃' : '废弃字段'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            className={`cursor-pointer text-xs ${
-                              !isDerivedLabelField && isDeprecated
-                                ? 'text-destructive focus:text-destructive'
-                                : 'cursor-not-allowed text-muted-foreground/50'
-                            }`}
-                            onClick={() => onDeleteField?.(headerFieldInfo)}
-                            disabled={!isDeprecated || isDerivedLabelField}
-                          >
-                            <Trash2 className="mr-2 size-3.5" />
-                            删除字段
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                      {canManageFieldLifecycle ? (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <button
+                              type="button"
+                              className="flex min-w-0 flex-col items-start gap-1 pr-3 text-left"
+                              title={`${headerLabel}（点击管理字段）`}
+                            >
+                              {triggerContent}
+                            </button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="start" className="w-36">
+                            <DropdownMenuItem
+                              className={`text-xs ${
+                                isDerivedLabelField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'
+                              }`}
+                              onClick={() => onToggleFieldDeprecated?.(headerFieldInfo)}
+                              disabled={isDerivedLabelField}
+                            >
+                              <Archive className="mr-2 size-3.5" />
+                              {isDeprecated ? '取消废弃' : '废弃字段'}
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              className={`cursor-pointer text-xs ${
+                                !isDerivedLabelField && isDeprecated
+                                  ? 'text-destructive focus:text-destructive'
+                                  : 'cursor-not-allowed text-muted-foreground/50'
+                              }`}
+                              onClick={() => onDeleteField?.(headerFieldInfo)}
+                              disabled={!isDeprecated || isDerivedLabelField}
+                            >
+                              <Trash2 className="mr-2 size-3.5" />
+                              删除字段
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      ) : (
+                        <div className="flex min-w-0 flex-col items-start gap-1 pr-3 text-left" title={headerLabel}>
+                          {triggerContent}
+                        </div>
+                      )}
                       <div
                         className="absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-blue-500/40 group-hover:bg-blue-500/20"
                         onMouseDown={(e) => handleResizeStart(e, field)}

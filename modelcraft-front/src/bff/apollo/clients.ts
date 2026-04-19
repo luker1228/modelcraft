@@ -6,6 +6,7 @@ import { useContext, createContext, useMemo } from 'react'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@/shared/utils/uuid'
 import { useAuthStore } from '@shared/stores/auth-store'
+import { refreshAccessToken } from '@bff/auth/public'
 
 /**
  * Build Runtime GraphQL endpoint URL
@@ -24,14 +25,23 @@ export function buildRuntimeEndpoint(
  * Shared auth link factory — Bearer token + x-request-id header
  */
 function createAuthLink() {
-  return setContext((_, { headers }: { headers?: Record<string, string> }) => {
-    const token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
+  return setContext(async (_, { headers }: { headers?: Record<string, string> }) => {
+    let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
+    if (!token && typeof window !== 'undefined') {
+      token = await refreshAccessToken()
+    }
+
+    const nextHeaders: Record<string, string> = {
+      ...(headers ?? {}),
+      'x-request-id': generateUUID(),
+    }
+
+    if (token) {
+      nextHeaders.authorization = `Bearer ${token}`
+    }
+
     return {
-      headers: {
-        ...(headers ?? {}),
-        authorization: token ? `Bearer ${token}` : '',
-        'x-request-id': generateUUID(),
-      },
+      headers: nextHeaders,
     }
   })
 }

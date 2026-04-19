@@ -61,6 +61,7 @@ interface ModelRecordWorkspaceProps {
   projectSlug: string
   orgName: string
   refreshToken?: number
+  workspaceMode?: 'design' | 'end_user'
 }
 
 interface GetModelQueryData {
@@ -119,7 +120,11 @@ export default function ModelRecordWorkspace({
   projectSlug,
   orgName,
   refreshToken = 0,
+  workspaceMode = 'design',
 }: ModelRecordWorkspaceProps) {
+  const canInsertField = workspaceMode === 'design'
+  const canManageFieldLifecycle = workspaceMode === 'design'
+  const canCopyRuntimeEndpoint = workspaceMode === 'design'
   const projectClient = useProjectScopedClient(projectSlug)
 
   // 创建 project-scoped context
@@ -592,22 +597,24 @@ export default function ModelRecordWorkspace({
                 </button>
               )}
             </h1>
-            <div className="mt-0.5 flex items-center gap-2">
-              <code className="max-w-[300px] truncate rounded border border-border/50 bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                {graphqlEndpoint}
-              </code>
-              <button
-                onClick={handleCopyEndpoint}
-                className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary"
-                title="复制端点"
-              >
-                {endpointCopied ? (
-                  <Check className="size-3.5 text-emerald-600" />
-                ) : (
-                  <Copy className="size-3.5" />
-                )}
-              </button>
-            </div>
+            {canCopyRuntimeEndpoint && (
+              <div className="mt-0.5 flex items-center gap-2">
+                <code className="max-w-[300px] truncate rounded border border-border/50 bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                  {graphqlEndpoint}
+                </code>
+                <button
+                  onClick={handleCopyEndpoint}
+                  className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary"
+                  title="复制端点"
+                >
+                  {endpointCopied ? (
+                    <Check className="size-3.5 text-emerald-600" />
+                  ) : (
+                    <Copy className="size-3.5" />
+                  )}
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -647,6 +654,7 @@ export default function ModelRecordWorkspace({
               projectSlug={projectSlug}
               orgName={orgName}
               existingFieldNames={Object.keys((jsonSchema?.properties as Record<string, unknown>) ?? {})}
+              canInsertField={canInsertField}
               onInsertFieldSuccess={() => {
                 void refetch()
                 void refetchModel()
@@ -692,6 +700,7 @@ export default function ModelRecordWorkspace({
         }}
         onToggleFieldDeprecated={handleToggleFieldDeprecated}
         onDeleteField={handleRequestRemoveField}
+        canManageFieldLifecycle={canManageFieldLifecycle}
       />
 
       <RecordRelationManagerDialog

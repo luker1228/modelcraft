@@ -187,6 +187,7 @@ export function ModelEditorView() {
                 projectSlug={projectSlug}
                 orgName={orgName}
                 refreshToken={schemaRefreshToken}
+                workspaceMode="design"
               />
             </Suspense>
           )}
