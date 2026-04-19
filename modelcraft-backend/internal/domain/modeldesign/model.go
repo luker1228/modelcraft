@@ -67,20 +67,21 @@ func (l *ModelLocator) GetDatabasePath() string {
 
 // ModelMeta 模型元数据
 type ModelMeta struct {
-	ID               string           `json:"id"`
-	ModelLocator                      // 嵌入模型定位器
-	Title            string           `json:"title"`
-	Description      string           `json:"description"`
-	StorageType      string           `json:"storageType"`
-	DisplayField     *string          `json:"displayField"` // 用于 runtime _label 解析的字段名
-	Version          int64            `json:"version"`
-	Status           string           `json:"status"`
-	GroupID          *string          `json:"groupId"`
-	DeploymentStatus DeploymentStatus `json:"deploymentStatus"`
-	LastSyncAt       *time.Time       `json:"lastSyncAt"`
-	SyncError        string           `json:"syncError"`
-	CreatedAt        time.Time        `json:"createdAt"`
-	UpdatedAt        time.Time        `json:"updatedAt"`
+	ID               string              `json:"id"`
+	ModelLocator                         // 嵌入模型定位器
+	Title            string              `json:"title"`
+	Description      string              `json:"description"`
+	StorageType      string              `json:"storageType"`
+	DisplayField     *string             `json:"displayField"` // 用于 runtime _label 解析的字段名
+	Version          int64               `json:"version"`
+	Status           string              `json:"status"`
+	GroupID          *string             `json:"groupId"`
+	DeploymentStatus DeploymentStatus    `json:"deploymentStatus"`
+	CreatedVia       ModelCreationSource `json:"createdVia"` // 模型创建来源：NEW/IMPORTED
+	LastSyncAt       *time.Time          `json:"lastSyncAt"`
+	SyncError        string              `json:"syncError"`
+	CreatedAt        time.Time           `json:"createdAt"`
+	UpdatedAt        time.Time           `json:"updatedAt"`
 }
 
 // DataModel 模型定义实体
@@ -100,6 +101,40 @@ func (m *DataModel) GetField(fieldName string) *FieldDefinition {
 		}
 	}
 	return nil
+}
+
+// HasField 判断模型是否包含指定字段
+// fieldName: 要检查的字段名称
+// 返回: 是否存在
+func (m *DataModel) HasField(fieldName string) bool {
+	return m.GetField(fieldName) != nil
+}
+
+// GetFieldNames 获取模型所有字段名列表
+// 返回: 字段名称列表
+func (m *DataModel) GetFieldNames() []string {
+	names := make([]string, 0, len(m.Fields))
+	for _, field := range m.Fields {
+		names = append(names, field.Name)
+	}
+	return names
+}
+
+// GetOwnerField 获取 owner 字段（EndUserRef 类型）
+// 返回: owner 字段定义，如果不存在则返回 nil
+func (m *DataModel) GetOwnerField() *FieldDefinition {
+	for _, field := range m.Fields {
+		if field.IsEndUserRef() {
+			return field
+		}
+	}
+	return nil
+}
+
+// IsRLSEnabled 判断 RLS 是否启用（有 owner 字段）
+// 返回: true 如果有 EndUserRef 类型的字段
+func (m *DataModel) IsRLSEnabled() bool {
+	return m.GetOwnerField() != nil
 }
 
 // GetModelLocator 获取模型定位器

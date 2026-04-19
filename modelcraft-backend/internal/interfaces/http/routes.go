@@ -482,6 +482,9 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 	lfkRepo := repository.NewSqlLogicalForeignKeyRepository(loggingDB)
 	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo)
 	handler := runtimeHandler.NewModelRuntimeHandler(graphqlAppService)
+	// TODO: Create and wire RLSResolver with policy repository
+	// rlsPolicyRepo := repository.NewSqlModelRLSPolicyRepository(loggingDB)
+	// rlsResolver := runtimeHandler.NewRLSResolver(logfacade.GetLogger(), rlsPolicyRepo)
 	return &RuntimeHandlers{ModelRuntimeHandler: handler}
 }
 

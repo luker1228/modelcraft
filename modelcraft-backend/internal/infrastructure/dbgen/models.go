@@ -54,6 +54,48 @@ func (ns NullLogicalForeignKeysDirection) Value() (driver.Value, error) {
 	return string(ns.LogicalForeignKeysDirection), nil
 }
 
+type ModelsCreatedVia string
+
+const (
+	ModelsCreatedViaNEW      ModelsCreatedVia = "NEW"
+	ModelsCreatedViaIMPORTED ModelsCreatedVia = "IMPORTED"
+)
+
+func (e *ModelsCreatedVia) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelsCreatedVia(s)
+	case string:
+		*e = ModelsCreatedVia(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelsCreatedVia: %T", src)
+	}
+	return nil
+}
+
+type NullModelsCreatedVia struct {
+	ModelsCreatedVia ModelsCreatedVia
+	Valid            bool // Valid is true if ModelsCreatedVia is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelsCreatedVia) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelsCreatedVia, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelsCreatedVia.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelsCreatedVia) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelsCreatedVia), nil
+}
+
 type ApiKey struct {
 	ID     string
 	UserID string
@@ -228,6 +270,8 @@ type Model struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 模型创建来源：NEW=新建，IMPORTED=导入
+	CreatedVia ModelsCreatedVia
 }
 
 // 模型枚举定义表
@@ -290,6 +334,25 @@ type ModelGroup struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+}
+
+// Model RLS 策略配置
+type ModelRlsPolicy struct {
+	ID uint64
+	// 模型 ID
+	ModelID string
+	// SELECT USING 谓词 JSON
+	SelectPredicate string
+	// INSERT WITH CHECK 谓词 JSON
+	InsertCheck string
+	// UPDATE USING 谓词 JSON
+	UpdatePredicate string
+	// UPDATE WITH CHECK 谓词 JSON
+	UpdateCheck string
+	// DELETE USING 谓词 JSON
+	DeletePredicate string
+	CreatedAt       time.Time
+	UpdatedAt       time.Time
 }
 
 // 组织表（多租户容器）
@@ -363,6 +426,19 @@ type ProjectAuthConfig struct {
 	// Record creation timestamp
 	CreatedAt time.Time
 	// Record last update timestamp
+	UpdatedAt time.Time
+}
+
+// Project 认证变量配置
+type ProjectAuthSchema struct {
+	ID uint64
+	// 所属组织名称
+	OrgName string
+	// 所属项目标识符
+	ProjectSlug string
+	// 认证变量列表 [{name, source, type}]
+	Variables json.RawMessage
+	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 

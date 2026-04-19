@@ -397,6 +397,14 @@ func (fd *FieldDefinition) IsEnumArrayField() bool {
 	return fd.Type.Format == FormatEnum && fd.IsArray
 }
 
+// IsEndUserRef 判断是否为 EndUserRef 字段
+func (fd *FieldDefinition) IsEndUserRef() bool {
+	if fd.Type == nil {
+		return false
+	}
+	return fd.Type.Format == FormatEndUserRef
+}
+
 // IsStringifiable 判断字段值是否可以转为字符串用于 _label 显示
 // 可字符串化的类型：STRING、UUID、INTEGER、NUMBER、DECIMAL、DATE、DATETIME、TIME、ENUM、BOOLEAN
 // 不可字符串化的类型：RELATION（对象）、ENUM_ARRAY（数组）
@@ -491,6 +499,9 @@ const (
 	FormatEnum      FormatType = "ENUM"       // 单选枚举
 	FormatEnumArray FormatType = "ENUM_ARRAY" // 多选枚举
 
+	// RLS: EndUserRef 格式 - 指向 private_{projectSlug}.users.id
+	FormatEndUserRef FormatType = "END_USER_REF" // 归属用户
+
 )
 
 // FieldType 字段类型结构（值对象）
@@ -582,6 +593,9 @@ func init() {
 		// 枚举格式
 		FormatEnum:      {SchemaType: SchemaTypeString, Format: FormatEnum, Title: "枚举(单选)"},
 		FormatEnumArray: {SchemaType: SchemaTypeArray, Format: FormatEnumArray, Title: "枚举(多选)"},
+
+		// RLS: EndUserRef 类型
+		FormatEndUserRef: {SchemaType: SchemaTypeString, Format: FormatEndUserRef, Title: "归属用户"},
 	}
 }
 

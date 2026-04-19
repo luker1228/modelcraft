@@ -11,3 +11,10 @@ export {
 export { useRequireAuth, useUser } from './auth/use-auth'
 export { useMyUserProfile } from './user/use-my-user-profile'
 export { useUpdateMyProfile } from './user/use-update-my-profile'
+
+// RLS hooks
+export {
+  useRLSPolicy,
+  useAuthSchema,
+  useRLSExprValidation,
+} from './rls'

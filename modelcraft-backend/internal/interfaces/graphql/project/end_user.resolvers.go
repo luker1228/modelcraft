@@ -6,33 +6,13 @@ package projectgraphql
 
 import (
 	"context"
-	stderrors "errors"
-	"sync"
-
+	"errors"
 	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 )
-
-var (
-	endUserMgmtServiceMu sync.RWMutex
-	endUserMgmtService   *appEnduser.EndUserManagementAppService
-)
-
-// SetEndUserManagementAppService sets the end-user management app service for GraphQL resolvers.
-func SetEndUserManagementAppService(service *appEnduser.EndUserManagementAppService) {
-	endUserMgmtServiceMu.Lock()
-	defer endUserMgmtServiceMu.Unlock()
-	endUserMgmtService = service
-}
-
-func getEndUserManagementAppService() *appEnduser.EndUserManagementAppService {
-	endUserMgmtServiceMu.RLock()
-	defer endUserMgmtServiceMu.RUnlock()
-	return endUserMgmtService
-}
 
 // CreateEndUser is the resolver for the createEndUser field.
 func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.CreateEndUserInput) (*generated.CreateEndUserPayload, error) {
@@ -67,7 +47,7 @@ func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.Cr
 	})
 	if err != nil {
 		var bizErr *bizerrors.BusinessError
-		if stderrors.As(err, &bizErr) {
+		if errors.As(err, &bizErr) {
 			return &generated.CreateEndUserPayload{Error: errorAdapter.ConvertToCreateError(bizErr)}, nil
 		}
 		return nil, err
@@ -116,7 +96,7 @@ func (r *mutationResolver) UpdateEndUserStatus(ctx context.Context, input genera
 	})
 	if err != nil {
 		var bizErr *bizerrors.BusinessError
-		if stderrors.As(err, &bizErr) {
+		if errors.As(err, &bizErr) {
 			return &generated.UpdateEndUserStatusPayload{Error: errorAdapter.ConvertToUpdateError(bizErr)}, nil
 		}
 		return nil, err
@@ -158,7 +138,7 @@ func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.De
 	})
 	if err != nil {
 		var bizErr *bizerrors.BusinessError
-		if stderrors.As(err, &bizErr) {
+		if errors.As(err, &bizErr) {
 			return &generated.DeleteEndUserPayload{Success: false, Error: errorAdapter.ConvertToDeleteError(bizErr)}, nil
 		}
 		return nil, err
@@ -200,7 +180,7 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 	result, err := service.ListEndUsers(ctx, cmd)
 	if err != nil {
 		var bizErr *bizerrors.BusinessError
-		if stderrors.As(err, &bizErr) {
+		if errors.As(err, &bizErr) {
 			return &generated.ListEndUsersPayload{Error: errorAdapter.ConvertToListError(bizErr)}, nil
 		}
 		return nil, err

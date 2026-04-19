@@ -6,6 +6,7 @@ package orggraphql
 
 import (
 	"context"
+	"fmt"
 	clusterApp "modelcraft/internal/app/cluster"
 	appProject "modelcraft/internal/app/project"
 	domainCluster "modelcraft/internal/domain/cluster"
@@ -283,6 +284,11 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 		ConnectionTime: &connectionTime,
 		Error:          nil,
 	}, nil
+}
+
+// SetProjectAuthSchema is the resolver for the setProjectAuthSchema field.
+func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
+	panic(fmt.Errorf("not implemented: SetProjectAuthSchema - setProjectAuthSchema"))
 }
 
 // Project is the resolver for the project field.

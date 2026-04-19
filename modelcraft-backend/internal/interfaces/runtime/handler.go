@@ -4,6 +4,7 @@
 package runtime
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"modelcraft/internal/app/modelruntime"
@@ -15,6 +16,24 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+// runtimeContextKey is the context key for runtime context values.
+type runtimeContextKey struct{}
+
+// runtimeContext holds request-scoped runtime information.
+type runtimeContext struct {
+	OrgName     string
+	ProjectSlug string
+}
+
+// WithRuntimeContext adds runtime context (orgName, projectSlug) to the context.
+func WithRuntimeContext(ctx context.Context, orgName, projectSlug string) context.Context {
+	rctx := &runtimeContext{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+	}
+	return context.WithValue(ctx, runtimeContextKey{}, rctx)
+}
 
 // RuntimeGraphQLRequest represents a GraphQL request for the runtime API.
 type RuntimeGraphQLRequest struct {
@@ -102,7 +121,10 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 		OperationName: req.OperationName,
 	}
 
-	result, err := h.graphqlAppService.Execute(r.Context(), orgName, projectSlug, model, db, cmd)
+	// Inject runtime context (orgName, projectSlug) into context for RLS resolution
+	ctx := WithRuntimeContext(r.Context(), orgName, projectSlug)
+
+	result, err := h.graphqlAppService.Execute(ctx, orgName, projectSlug, model, db, cmd)
 	if err != nil {
 		logger.Error(r.Context(), "Runtime GraphQL execution failed", logfacade.Err(err), logfacade.Stack(err))
 		w.Header().Set("Content-Type", "application/json")

@@ -136,7 +136,7 @@ func (q *Queries) DeleteModel(ctx context.Context, id string) error {
 }
 
 const findModelsByDeploymentStatus = `-- name: FindModelsByDeploymentStatus :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
 WHERE deployment_status IN (/*SLICE:statuses*/?)
 `
 
@@ -177,6 +177,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}
@@ -192,7 +193,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 }
 
 const getAllModels = `-- name: GetAllModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
 `
 
 func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
@@ -222,6 +223,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}
@@ -237,7 +239,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 }
 
 const getModelByID = `-- name: GetModelByID :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models WHERE id = ? LIMIT 1
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models WHERE id = ? LIMIT 1
 `
 
 func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
@@ -261,12 +263,13 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 		&i.SyncError,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedVia,
 	)
 	return i, err
 }
 
 const getModelByName = `-- name: GetModelByName :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
 WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ?
 LIMIT 1
 `
@@ -304,6 +307,7 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 		&i.SyncError,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.CreatedVia,
 	)
 	return i, err
 }
@@ -358,7 +362,7 @@ func (q *Queries) ListModelDatabases(ctx context.Context, arg ListModelDatabases
 }
 
 const listModels = `-- name: ListModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
@@ -427,6 +431,7 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.CreatedVia,
 		); err != nil {
 			return nil, err
 		}

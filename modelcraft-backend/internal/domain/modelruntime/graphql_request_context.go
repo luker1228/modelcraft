@@ -17,23 +17,29 @@ type graphqlRequestContext struct {
 	// relationLoaders 是 per-(tableName/referenceKey) 的 dataloader 实例 map。
 	// 懒初始化：首次访问某个关系时创建，同一请求内复用以聚合批量查询。
 	relationLoaders map[string]*dataloader.Loader[string, map[string]any]
+	// OrgName 是请求的组织名称
+	OrgName string
+	// ProjectSlug 是请求的项目标识
+	ProjectSlug string
 }
 
 // graphqlRequestContextKey 是 graphqlRequestContext 在 context 中的 key 类型。
 type graphqlRequestContextKey struct{}
 
 // newGraphqlRequestContext 创建一个新的请求级上下文。
-func newGraphqlRequestContext(clientRepo ClientDatabaseRepository) *graphqlRequestContext {
+func newGraphqlRequestContext(clientRepo ClientDatabaseRepository, orgName, projectSlug string) *graphqlRequestContext {
 	return &graphqlRequestContext{
 		ClientRepo:      clientRepo,
 		relationLoaders: make(map[string]*dataloader.Loader[string, map[string]any]),
+		OrgName:         orgName,
+		ProjectSlug:     projectSlug,
 	}
 }
 
 // WithGraphqlRequestContext 将请求级上下文注入 context，返回新 context。
 // 由 App 层在每次 graphql.Do 前调用，确保所有 resolver 闭包均可通过 p.Context 取到。
-func WithGraphqlRequestContext(ctx context.Context, clientRepo ClientDatabaseRepository) context.Context {
-	rctx := newGraphqlRequestContext(clientRepo)
+func WithGraphqlRequestContext(ctx context.Context, clientRepo ClientDatabaseRepository, orgName, projectSlug string) context.Context {
+	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug)
 	return context.WithValue(ctx, graphqlRequestContextKey{}, rctx)
 }
 

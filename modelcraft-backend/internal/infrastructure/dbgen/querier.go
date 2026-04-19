@@ -43,8 +43,10 @@ type Querier interface {
 	DeleteMembership(ctx context.Context, id string) error
 	DeleteModel(ctx context.Context, id string) error
 	DeleteModelGroup(ctx context.Context, id string) error
+	DeleteModelRLSPolicy(ctx context.Context, modelID string) error
 	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
 	DeletePermissionsByRole(ctx context.Context, roleID int64) error
+	DeleteProjectAuthSchema(ctx context.Context, arg DeleteProjectAuthSchemaParams) error
 	DeleteRevokedAPIKeys(ctx context.Context) error
 	DeleteRole(ctx context.Context, id int64) error
 	DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
@@ -54,6 +56,7 @@ type Querier interface {
 	ExistsDatabaseClusterByProjectKey(ctx context.Context, arg ExistsDatabaseClusterByProjectKeyParams) (int64, error)
 	ExistsEnumByName(ctx context.Context, arg ExistsEnumByNameParams) (int64, error)
 	ExistsFieldByName(ctx context.Context, arg ExistsFieldByNameParams) (int64, error)
+	ExistsModelRLSPolicy(ctx context.Context, modelID string) (bool, error)
 	ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
 	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
@@ -85,8 +88,19 @@ type Querier interface {
 	GetModelByName(ctx context.Context, arg GetModelByNameParams) (Model, error)
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
+	// ============================================
+	// RLS (Row Level Security) Queries
+	// ============================================
+	// ----------------------------------------
+	// Model RLS Policy Queries
+	// ----------------------------------------
+	GetModelRLSPolicy(ctx context.Context, modelID string) (ModelRlsPolicy, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (Profile, error)
+	// ----------------------------------------
+	// Project Auth Schema Queries
+	// ----------------------------------------
+	GetProjectAuthSchema(ctx context.Context, arg GetProjectAuthSchemaParams) (ProjectAuthSchema, error)
 	GetProjectByClusterID(ctx context.Context, arg GetProjectByClusterIDParams) (Project, error)
 	GetProjectBySlugAndOrg(ctx context.Context, arg GetProjectBySlugAndOrgParams) (Project, error)
 	GetRefreshTokenByHash(ctx context.Context, tokenHash string) (RefreshToken, error)
@@ -145,6 +159,8 @@ type Querier interface {
 	UpdateProfileByUserID(ctx context.Context, arg UpdateProfileByUserIDParams) (sql.Result, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) error
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) error
+	UpsertModelRLSPolicy(ctx context.Context, arg UpsertModelRLSPolicyParams) error
+	UpsertProjectAuthSchema(ctx context.Context, arg UpsertProjectAuthSchemaParams) error
 }
 
 var _ Querier = (*Queries)(nil)

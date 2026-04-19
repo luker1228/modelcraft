@@ -409,6 +409,51 @@ var (
 	}
 )
 
+// 定义 RLS 领域错误
+var (
+	// ModelHasNoOwnerField 模型没有 owner 字段
+	ModelHasNoOwnerField = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RLS.NO_OWNER",
+		EnMessage: "Model has no owner field: {0}",
+		ZhMessage: "模型缺少归属字段: {0}",
+	}
+
+	// EndUserRefAlreadyExists 模型已存在 EndUserRef 字段
+	EndUserRefAlreadyExists = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".FIELD.END_USER_REF",
+		EnMessage: "EndUserRef field already exists in this model",
+		ZhMessage: "每个模型只允许一个归属字段",
+	}
+
+	// InvalidRLSExpression RLS 表达式无效
+	InvalidRLSExpression = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".RLS.EXPR",
+		EnMessage: "Invalid RLS expression: {0}",
+		ZhMessage: "RLS 表达式无效: {0}",
+	}
+
+	// InvalidAuthVariable 认证变量无效
+	InvalidAuthVariable = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".RLS.AUTH_VAR",
+		EnMessage: "Invalid auth variable: {0}",
+		ZhMessage: "认证变量无效: {0}",
+	}
+
+	// RLSCheckViolation RLS CHECK 约束违反
+	RLSCheckViolation = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RLS.CHECK_VIOLATION",
+		EnMessage: "RLS check violation: {0}",
+		ZhMessage: "违反 RLS 策略约束: {0}",
+	}
+
+	// PermissionDeniedRLS RLS 权限拒绝
+	PermissionDeniedRLS = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RLS.PERMISSION_DENIED",
+		EnMessage: "Permission denied by RLS policy: {0}",
+		ZhMessage: "RLS 策略拒绝访问: {0}",
+	}
+)
+
 // AllErrorDefinitions 返回所有错误定义（用于测试）
 func AllErrorDefinitions() []ErrorDefinition {
 	return []ErrorDefinition{

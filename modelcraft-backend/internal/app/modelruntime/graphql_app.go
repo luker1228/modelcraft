@@ -85,7 +85,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 
 	// 将请求级状态（clientRepo、dataloader map）注入 context，
 	// 所有 resolver 闭包通过 p.Context 读取，与 Schema 类型结构完全解耦。
-	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo)
+	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug)
 
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{

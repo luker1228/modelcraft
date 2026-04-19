@@ -4,6 +4,7 @@ import (
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/permission"
+	"modelcraft/internal/app/rls"
 )
 
 // Resolver is the GraphQL resolver for project domain
@@ -27,4 +28,8 @@ type Resolver struct {
 
 	// Field selection checker
 	FieldSelectionChecker *FieldSelectionChecker
+
+	// RLS (Row Level Security)
+	RLSPolicyAppService *rls.ModelRLSPolicyAppService
+	AuthSchemaAppService *rls.AuthSchemaAppService
 }
