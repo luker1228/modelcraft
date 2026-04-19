@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { Plus, Loader2, Trash2, Link2 } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import {
@@ -15,12 +16,43 @@ import type { ForeignKeyOps } from '../_hooks'
 interface ForeignKeyPanelProps {
   state: ModelEditorState
   fkOps: ForeignKeyOps
-  models: EditorModel[]
+  relationDatabaseNames: string[]
+  getRelationModelsForDatabase: (databaseName: string) => EditorModel[]
+  loadRelationModelsForDatabase: (databaseName: string) => Promise<void>
+  isRelationModelsLoading: (databaseName: string) => boolean
 }
 
-export function ForeignKeyPanel({ state, fkOps, models }: ForeignKeyPanelProps) {
-  const currentDatabase = state.editModelData?.databaseName
-  const selectableModels = models
+export function ForeignKeyPanel({
+  state,
+  fkOps,
+  relationDatabaseNames,
+  getRelationModelsForDatabase,
+  loadRelationModelsForDatabase,
+  isRelationModelsLoading,
+}: ForeignKeyPanelProps) {
+  const currentDatabase = state.editModelData?.databaseName ?? ''
+  const [relationDatabaseName, setRelationDatabaseName] = useState('')
+
+  useEffect(() => {
+    if (state.fkFormOpen && !relationDatabaseName && currentDatabase) {
+      setRelationDatabaseName(currentDatabase)
+    }
+  }, [state.fkFormOpen, relationDatabaseName, currentDatabase])
+
+  useEffect(() => {
+    if (!state.fkFormOpen || !relationDatabaseName) return
+    void loadRelationModelsForDatabase(relationDatabaseName)
+  }, [state.fkFormOpen, relationDatabaseName, loadRelationModelsForDatabase])
+
+  const relationModels = useMemo(
+    () => getRelationModelsForDatabase(relationDatabaseName),
+    [getRelationModelsForDatabase, relationDatabaseName]
+  )
+  const relationModelsLoading = relationDatabaseName
+    ? isRelationModelsLoading(relationDatabaseName)
+    : false
+
+  const selectableModels = relationModels
     .filter((m) => m.id !== state.editModelId)
     .sort((a, b) => {
       const dbOrder = a.databaseName.localeCompare(b.databaseName)
@@ -44,6 +76,7 @@ export function ForeignKeyPanel({ state, fkOps, models }: ForeignKeyPanelProps) 
             className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             onClick={() => {
               state.setFkFormOpen(true)
+              setRelationDatabaseName(currentDatabase)
               state.setFkRefModelId('')
               state.setFkMappings([{ sourceField: '', targetField: '' }])
             }}
@@ -148,15 +181,53 @@ export function ForeignKeyPanel({ state, fkOps, models }: ForeignKeyPanelProps) 
 
           {/* Ref model select */}
           <div className="flex items-center gap-2">
-            <label className="w-20 shrink-0 text-xs text-muted-foreground">引用模型</label>
-            <Select value={state.fkRefModelId} onValueChange={(v) => {
-              state.setFkRefModelId(v)
-              state.setFkMappings([{ sourceField: '', targetField: '' }])
-            }}>
+            <label className="w-20 shrink-0 text-xs text-muted-foreground">引用库</label>
+            <Select
+              value={relationDatabaseName}
+              onValueChange={(v) => {
+                setRelationDatabaseName(v)
+                state.setFkRefModelId('')
+                state.setFkMappings([{ sourceField: '', targetField: '' }])
+              }}
+            >
               <SelectTrigger className="h-7 text-xs">
-                <SelectValue placeholder="选择引用模型" />
+                <SelectValue placeholder="选择数据库" />
               </SelectTrigger>
               <SelectContent>
+                {relationDatabaseNames.map((dbName) => (
+                  <SelectItem key={dbName} value={dbName} className="font-mono text-xs">
+                    {dbName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <label className="w-20 shrink-0 text-xs text-muted-foreground">引用模型</label>
+            <Select
+              value={state.fkRefModelId}
+              disabled={!relationDatabaseName || relationModelsLoading}
+              onValueChange={(v) => {
+                state.setFkRefModelId(v)
+                state.setFkMappings([{ sourceField: '', targetField: '' }])
+              }}
+            >
+              <SelectTrigger className="h-7 text-xs">
+                <SelectValue
+                  placeholder={
+                    !relationDatabaseName
+                      ? '先选择数据库'
+                      : relationModelsLoading
+                        ? '加载模型中...'
+                        : '选择引用模型'
+                  }
+                />
+              </SelectTrigger>
+              <SelectContent>
+                {relationModelsLoading && (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">加载中...</div>
+                )}
                 {selectableModels.map(m => (
                     <SelectItem key={m.id} value={m.id} className="font-mono text-xs">
                       {m.databaseName !== currentDatabase ? `${m.databaseName}.` : ''}
@@ -248,6 +319,7 @@ export function ForeignKeyPanel({ state, fkOps, models }: ForeignKeyPanelProps) 
               className="h-7 text-xs"
               onClick={() => {
                 state.setFkFormOpen(false)
+                setRelationDatabaseName('')
                 state.setFkRefModelId('')
                 state.setFkMappings([{ sourceField: '', targetField: '' }])
               }}

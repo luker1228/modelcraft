@@ -40,6 +40,31 @@ export interface EndUserMeResult {
   createdAt: string
 }
 
+export interface EndUserDatabaseLite {
+  name: string
+}
+
+export interface EndUserDatabaseCatalogResult {
+  databases: EndUserDatabaseLite[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
+export interface EndUserModelLite {
+  id: string
+  name: string
+  title: string
+  databaseName: string
+}
+
+export interface EndUserModelCatalogResult {
+  models: EndUserModelLite[]
+  totalCount: number
+  page: number
+  pageSize: number
+}
+
 // ============================================================================
 // 错误类型
 // ============================================================================
@@ -438,4 +463,150 @@ export async function callGoEndUserMe(params: {
   }
 
   return res.json() as Promise<EndUserMeResult>
+}
+
+/**
+ * 调用 Go Backend /internal/end-user/data/database-catalog
+ */
+export async function callGoEndUserDatabaseCatalog(params: {
+  orgName: string
+  projectSlug: string
+  userId: string
+  search?: string
+  page?: number
+  pageSize?: number
+}): Promise<EndUserDatabaseCatalogResult> {
+  if (USE_MOCK) {
+    const allNames = ['modelcraft_app', 'modelcraft_strapi', 'modelcraft_analytics']
+    const keyword = (params.search ?? '').trim().toLowerCase()
+    const filtered = keyword ? allNames.filter((name) => name.toLowerCase().includes(keyword)) : allNames
+    const page = Math.max(1, params.page ?? 1)
+    const pageSize = Math.max(1, params.pageSize ?? 20)
+    const offset = (page - 1) * pageSize
+    const pageItems = filtered.slice(offset, offset + pageSize)
+
+    return {
+      databases: pageItems.map((name) => ({ name })),
+      totalCount: filtered.length,
+      page,
+      pageSize,
+    }
+  }
+
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
+  const searchParams = new URLSearchParams()
+  if (params.search) searchParams.set('search', params.search)
+  searchParams.set('page', String(params.page ?? 1))
+  searchParams.set('pageSize', String(params.pageSize ?? 50))
+
+  const res = await fetch(
+    `${GO_BACKEND_INTERNAL_URL}/internal/end-user/data/database-catalog?${searchParams.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        ...headers,
+        'X-End-User-Id': params.userId,
+      },
+    }
+  )
+
+  if (!res.ok) {
+    throw await parseGoError(res, requestId)
+  }
+
+  type GoCatalogResponse = {
+    databases?: Array<{ name?: string }>
+    totalCount?: number
+    page?: number
+    pageSize?: number
+  }
+  const data = (await res.json()) as GoCatalogResponse
+
+  return {
+    databases: (data.databases ?? [])
+      .map((item) => item?.name ?? '')
+      .filter((name): name is string => name.length > 0)
+      .map((name) => ({ name })),
+    totalCount: data.totalCount ?? 0,
+    page: data.page ?? 1,
+    pageSize: data.pageSize ?? 50,
+  }
+}
+
+/**
+ * 调用 Go Backend /internal/end-user/data/model-catalog
+ */
+export async function callGoEndUserModelCatalog(params: {
+  orgName: string
+  projectSlug: string
+  userId: string
+  databaseName: string
+  search?: string
+  page?: number
+  pageSize?: number
+}): Promise<EndUserModelCatalogResult> {
+  if (USE_MOCK) {
+    const allModels = [
+      { id: 'mock-model-users', name: 'users', title: '用户', databaseName: params.databaseName },
+      { id: 'mock-model-orders', name: 'orders', title: '订单', databaseName: params.databaseName },
+    ]
+    const keyword = (params.search ?? '').trim().toLowerCase()
+    const filtered = keyword
+      ? allModels.filter((m) => m.name.toLowerCase().includes(keyword) || m.title.toLowerCase().includes(keyword))
+      : allModels
+
+    return {
+      models: filtered,
+      totalCount: filtered.length,
+      page: Math.max(1, params.page ?? 1),
+      pageSize: Math.max(1, params.pageSize ?? 50),
+    }
+  }
+
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
+  const searchParams = new URLSearchParams()
+  searchParams.set('databaseName', params.databaseName)
+  if (params.search) searchParams.set('search', params.search)
+  searchParams.set('page', String(params.page ?? 1))
+  searchParams.set('pageSize', String(params.pageSize ?? 200))
+
+  const res = await fetch(
+    `${GO_BACKEND_INTERNAL_URL}/internal/end-user/data/model-catalog?${searchParams.toString()}`,
+    {
+      method: 'GET',
+      headers: {
+        ...headers,
+        'X-End-User-Id': params.userId,
+      },
+    }
+  )
+  if (!res.ok) {
+    throw await parseGoError(res, requestId)
+  }
+
+  type GoModelCatalogResponse = {
+    models?: Array<{
+      id?: string
+      name?: string
+      title?: string
+      databaseName?: string
+    }>
+    totalCount?: number
+    page?: number
+    pageSize?: number
+  }
+  const data = (await res.json()) as GoModelCatalogResponse
+  return {
+    models: (data.models ?? [])
+      .filter((item) => item?.id && item?.name && item?.databaseName)
+      .map((item) => ({
+        id: item.id as string,
+        name: item.name as string,
+        title: item.title ?? '',
+        databaseName: item.databaseName as string,
+      })),
+    totalCount: data.totalCount ?? 0,
+    page: data.page ?? 1,
+    pageSize: data.pageSize ?? 200,
+  }
 }

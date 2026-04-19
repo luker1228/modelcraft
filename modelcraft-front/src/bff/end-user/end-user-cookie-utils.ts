@@ -1,20 +1,12 @@
 // src/bff/end-user/end-user-cookie-utils.ts
 // 终端用户 refresh token Cookie 操作（对称 bff/auth/cookie-utils.ts）
-// 关键差异：Cookie path 绑定到 Project 级，实现不同 Project 的终端用户 session 硬隔离
+// 为确保 /api/bff/end-user/auth/refresh 能读取 Cookie，path 必须覆盖 /api 路径。
+// 项目隔离通过 token 内的 org/project claims 校验保证。
 
 import { cookies } from 'next/headers'
 
 const COOKIE_NAME = 'end_user_refresh_token'
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60 // 7 days in seconds
-
-/**
- * 获取 Project 级 Cookie path
- * 格式：/u/{orgName}/{projectSlug}
- * 确保不同 Project 的终端用户 Cookie 相互隔离
- */
-function getProjectCookiePath(orgName: string, projectSlug: string): string {
-  return `/u/${orgName}/${projectSlug}`
-}
 
 /**
  * 写入终端用户 refresh token Cookie
@@ -27,12 +19,14 @@ export function setEndUserRefreshTokenCookie(
   orgName: string,
   projectSlug: string
 ): void {
+  void orgName
+  void projectSlug
   cookies().set(COOKIE_NAME, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: COOKIE_MAX_AGE,
-    path: getProjectCookiePath(orgName, projectSlug),
+    path: '/',
   })
 }
 
@@ -52,11 +46,13 @@ export function getEndUserRefreshTokenFromCookie(): string | undefined {
  * @param projectSlug - 项目标识
  */
 export function clearEndUserRefreshTokenCookie(orgName: string, projectSlug: string): void {
+  void orgName
+  void projectSlug
   cookies().set(COOKIE_NAME, '', {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
     maxAge: 0, // 立即过期
-    path: getProjectCookiePath(orgName, projectSlug),
+    path: '/',
   })
 }

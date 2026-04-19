@@ -15,6 +15,7 @@ type Querier interface {
 	CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
 	CountMembershipsByUser(ctx context.Context, userID string) (int64, error)
+	CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error)
 	CountModels(ctx context.Context, arg CountModelsParams) (int64, error)
 	CreateDatabaseCluster(ctx context.Context, arg CreateDatabaseClusterParams) error
 	CreateEnumDefinition(ctx context.Context, arg CreateEnumDefinitionParams) error
@@ -111,6 +112,7 @@ type Querier interface {
 	ListMembershipsByUser(ctx context.Context, userID string) ([]UserOrganization, error)
 	ListMembershipsWithOrgDetails(ctx context.Context, arg ListMembershipsWithOrgDetailsParams) ([]ListMembershipsWithOrgDetailsRow, error)
 	ListMembershipsWithUserName(ctx context.Context, orgName string) ([]ListMembershipsWithUserNameRow, error)
+	ListModelDatabases(ctx context.Context, arg ListModelDatabasesParams) ([]string, error)
 	ListModelGroupsByProject(ctx context.Context, arg ListModelGroupsByProjectParams) ([]ModelGroup, error)
 	ListModels(ctx context.Context, arg ListModelsParams) ([]Model, error)
 	ListOrganizationsByUser(ctx context.Context, userID string) ([]Organization, error)

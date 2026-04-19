@@ -438,6 +438,55 @@ func (r *SqlModelDesignRepository) Query(
 	return models, int(total), nil
 }
 
+// ListDatabaseCatalog returns distinct database names for a project with pagination.
+func (r *SqlModelDesignRepository) ListDatabaseCatalog(
+	ctx context.Context,
+	orgName, projectSlug, search string,
+	page, pageSize int,
+) ([]string, int, error) {
+	var limit, offset int32
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	limit = int32(pageSize)
+	offset = int32((page - 1) * pageSize)
+
+	searchFilter, searchArg := nullableTrickArgs(search)
+	rows, err := r.q.ListModelDatabases(ctx, dbgen.ListModelDatabasesParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Column3:     searchFilter,
+		CONCAT:      searchArg,
+		Limit:       limit,
+		Offset:      offset,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	total, err := r.q.CountModelDatabases(ctx, dbgen.CountModelDatabasesParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Column3:     searchFilter,
+		CONCAT:      searchArg,
+	})
+	if err != nil {
+		return nil, 0, err
+	}
+
+	databases := make([]string, 0, len(rows))
+	for _, name := range rows {
+		if name == "" {
+			continue
+		}
+		databases = append(databases, name)
+	}
+	return databases, int(total), nil
+}
+
 // GetAll returns all models without pagination.
 func (r *SqlModelDesignRepository) GetAll(ctx context.Context) ([]modeldesign.DataModel, error) {
 	rows, err := r.q.GetAllModels(ctx)

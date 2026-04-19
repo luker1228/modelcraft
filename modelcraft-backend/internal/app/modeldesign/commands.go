@@ -41,6 +41,15 @@ type ModelQueryCommand struct {
 	PageSize         int
 }
 
+// DatabaseCatalogQueryCommand 数据库目录查询命令（仅返回数据库名称列表，不包含模型详情）。
+type DatabaseCatalogQueryCommand struct {
+	OrgName     string
+	ProjectSlug string
+	Search      string
+	Page        int
+	PageSize    int
+}
+
 // ============================================================================
 // Field Commands
 // ============================================================================

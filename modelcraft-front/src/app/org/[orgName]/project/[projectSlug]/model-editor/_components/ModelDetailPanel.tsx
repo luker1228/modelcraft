@@ -38,7 +38,7 @@ import {
   isSystemGeneratedLabelField,
 } from '@/shared/model/system-field'
 import { ForeignKeyPanel } from './ForeignKeyPanel'
-import type { ModelEditorState, EditorModel } from '../_hooks'
+import type { ModelEditorState } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 import type { FieldOperations } from '../_hooks'
 import type { ForeignKeyOps } from '../_hooks'
@@ -50,7 +50,6 @@ interface ModelDetailPanelProps {
   fkOps: ForeignKeyOps
   orgName: string
   projectSlug: string
-  models: EditorModel[]
   onFieldAdded?: () => void
 }
 
@@ -61,7 +60,6 @@ export function ModelDetailPanel({
   fkOps,
   orgName,
   projectSlug,
-  models,
   onFieldAdded,
 }: ModelDetailPanelProps) {
   const displayFieldOptions = (state.editModelData?.fields || []).filter((field) => field.format !== 'RELATION')
@@ -420,7 +418,14 @@ export function ModelDetailPanel({
               </div>
 
               {/* Foreign keys section */}
-              <ForeignKeyPanel state={state} fkOps={fkOps} models={models} />
+              <ForeignKeyPanel
+                state={state}
+                fkOps={fkOps}
+                relationDatabaseNames={crud.relationDatabaseNames}
+                getRelationModelsForDatabase={crud.getRelationModelsForDatabase}
+                loadRelationModelsForDatabase={crud.loadRelationModelsForDatabase}
+                isRelationModelsLoading={crud.isRelationModelsLoading}
+              />
             </div>
           ) : null}
         </div>

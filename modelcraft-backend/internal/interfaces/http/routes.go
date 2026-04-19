@@ -86,6 +86,7 @@ type DesignHandlers struct {
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
 	EndUserAuthHandler    *enduserHandlers.AuthHandler
 	EndUserMgmtHandler    *enduserHandlers.ManagementHandler
+	EndUserDataHandler    *enduserHandlers.DataHandler
 }
 
 // endUserAuthRepositoryFactory creates end-user repositories from a DB connection.
@@ -272,6 +273,7 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
 	endUserMgmtHandler := enduserHandlers.NewManagementHandler(endUserMgmtAppService, logger)
+	endUserDataHandler := enduserHandlers.NewDataHandler(appService, logger)
 
 	return &DesignHandlers{
 		AuthHandler:               authHandler,
@@ -297,6 +299,7 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 		EndUserMgmtAppService:     endUserMgmtAppService,
 		EndUserAuthHandler:        endUserAuthHandler,
 		EndUserMgmtHandler:        endUserMgmtHandler,
+		EndUserDataHandler:        endUserDataHandler,
 	}, nil
 }
 
@@ -536,6 +539,15 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 			r.Get("/", handlers.EndUserMgmtHandler.List)
 			r.Patch("/{userId}/status", handlers.EndUserMgmtHandler.UpdateStatus)
 			r.Delete("/{userId}", handlers.EndUserMgmtHandler.Delete)
+		})
+	}
+
+	if handlers.EndUserDataHandler != nil {
+		router.Route("/internal/end-user/data", func(r chi.Router) {
+			r.Use(requestIDInjectorMiddleware)
+			r.Use(internalTokenMW)
+			r.Get("/database-catalog", handlers.EndUserDataHandler.DatabaseCatalog)
+			r.Get("/model-catalog", handlers.EndUserDataHandler.ModelCatalog)
 		})
 	}
 }

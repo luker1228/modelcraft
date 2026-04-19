@@ -32,6 +32,22 @@ WHERE org_name = ?
   AND (? IS NULL OR status = ?)
   AND (? IS NULL OR storage_type = ?);
 
+-- name: ListModelDatabases :many
+SELECT DISTINCT database_name
+FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%'))
+ORDER BY database_name ASC
+LIMIT ? OFFSET ?;
+
+-- name: CountModelDatabases :one
+SELECT COUNT(DISTINCT database_name)
+FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%'));
+
 -- name: GetAllModels :many
 SELECT * FROM models;
 

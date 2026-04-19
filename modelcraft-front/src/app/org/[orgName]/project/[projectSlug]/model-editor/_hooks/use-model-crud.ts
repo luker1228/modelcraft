@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import { useProjectScopedClient, getOrgScopedClient } from '@bff/apollo/public'
@@ -29,7 +29,9 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   const router = useRouter()
   const projectClient = useProjectScopedClient(projectSlug, orgName)
   const orgClient = getOrgScopedClient()
-  const [relationModels, setRelationModels] = useState<EditorModel[]>([])
+  const [relationModelsCache, setRelationModelsCache] = useState<Record<string, EditorModel[]>>({})
+  const [relationModelsLoading, setRelationModelsLoading] = useState<Record<string, boolean>>({})
+  const [relationModelsLoaded, setRelationModelsLoaded] = useState<Record<string, boolean>>({})
 
   // Connection check
   useEffect(() => {
@@ -80,8 +82,9 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
 
   // Set default selected database when data loads
   useEffect(() => {
-    if (databases.length > 0 && !state.selectedDatabase) {
-      state.setSelectedDatabase(databases[0].name)
+    const firstDatabaseName = databases[0]?.name
+    if (firstDatabaseName && !state.selectedDatabase) {
+      state.setSelectedDatabase(firstDatabaseName)
     }
   }, [databases, state.selectedDatabase]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -103,62 +106,63 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   }, [modelsData])
 
   useEffect(() => {
-    if (!projectSlug || state.connectionChecking || state.connectionFailed || databasesLoading) {
-      setRelationModels([])
-      return
-    }
+    // project 切换后清空 relation cache，避免串项目数据
+    setRelationModelsCache({})
+    setRelationModelsLoading({})
+    setRelationModelsLoaded({})
+  }, [projectSlug])
 
-    if (relationDatabaseNames.length === 0) {
-      setRelationModels([])
-      return
-    }
+  const getRelationModelsForDatabase = useCallback(
+    (databaseName: string): EditorModel[] => relationModelsCache[databaseName] ?? [],
+    [relationModelsCache]
+  )
 
-    let cancelled = false
-    const loadRelationModels = async () => {
-      try {
-        const results = await Promise.all(
-          relationDatabaseNames.map((databaseName) =>
-            projectClient.query<ModelsQueryData>({
-              query: GET_MODELS_FOR_RELATION,
-              variables: {
-                input: {
-                  databaseName,
-                  limit: 100,
-                },
-              },
-              fetchPolicy: 'network-only',
-            })
-          )
-        )
-        if (cancelled) return
+  const isRelationModelsLoading = useCallback(
+    (databaseName: string): boolean => !!relationModelsLoading[databaseName],
+    [relationModelsLoading]
+  )
 
-        const merged = results.flatMap((res) => res.data?.models?.edges?.map((edge) => edge.node) ?? [])
-        const uniqueByID = new Map(merged.map((model) => [model.id, model]))
-        setRelationModels(Array.from(uniqueByID.values()))
-      } catch {
-        if (!cancelled) {
-          setRelationModels([])
-        }
+  const loadRelationModelsForDatabase = useCallback(
+    async (databaseName: string) => {
+      if (!projectSlug || !databaseName || state.connectionChecking || state.connectionFailed || databasesLoading) {
+        return
       }
-    }
+      if (relationModelsLoaded[databaseName] || relationModelsLoading[databaseName]) {
+        return
+      }
 
-    void loadRelationModels()
-    return () => {
-      cancelled = true
-    }
-  }, [
-    projectSlug,
-    projectClient,
-    relationDatabaseNames,
-    databasesLoading,
-    state.connectionChecking,
-    state.connectionFailed,
-  ])
+      setRelationModelsLoading((prev) => ({ ...prev, [databaseName]: true }))
+      try {
+        const result = await projectClient.query<ModelsQueryData>({
+          query: GET_MODELS_FOR_RELATION,
+          variables: {
+            input: {
+              databaseName,
+              limit: 100,
+            },
+          },
+          fetchPolicy: 'network-only',
+        })
 
-  const relationCandidateModels = useMemo(() => {
-    if (relationModels.length > 0) return relationModels
-    return models
-  }, [relationModels, models])
+        const modelsInDatabase = result.data?.models?.edges?.map((edge) => edge.node) ?? []
+        setRelationModelsCache((prev) => ({ ...prev, [databaseName]: modelsInDatabase }))
+        setRelationModelsLoaded((prev) => ({ ...prev, [databaseName]: true }))
+      } catch {
+        // 保持 loaded=false，允许用户重试
+      } finally {
+        setRelationModelsLoading((prev) => ({ ...prev, [databaseName]: false }))
+      }
+    },
+    [
+      projectSlug,
+      state.connectionChecking,
+      state.connectionFailed,
+      databasesLoading,
+      relationModelsLoaded,
+      relationModelsLoading,
+      projectClient,
+    ]
+  )
 
   const filteredModels = useMemo(() => {
     if (!state.searchQuery) return models
@@ -173,17 +177,21 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   // After switching database, auto select the first available model.
   useEffect(() => {
     if (!state.selectedDatabase) {
-      state.setSelectedModelId(null)
+      if (state.selectedModelId !== null) {
+        state.setSelectedModelId(null)
+      }
       return
     }
 
     if (models.length === 0) {
-      state.setSelectedModelId(null)
+      if (state.selectedModelId !== null) {
+        state.setSelectedModelId(null)
+      }
       return
     }
 
     const hasSelectedModel = !!state.selectedModelId && models.some((model) => model.id === state.selectedModelId)
-    if (!hasSelectedModel) {
+    if (!hasSelectedModel && state.selectedModelId !== models[0].id) {
       state.setSelectedModelId(models[0].id)
     }
   }, [models, state.selectedDatabase, state.selectedModelId]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -372,7 +380,10 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     databases,
     databasesLoading,
     models,
-    relationCandidateModels,
+    relationDatabaseNames,
+    getRelationModelsForDatabase,
+    loadRelationModelsForDatabase,
+    isRelationModelsLoading,
     filteredModels,
     modelsLoading,
     refetchModels,

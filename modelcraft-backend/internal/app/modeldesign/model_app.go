@@ -23,13 +23,13 @@ import (
 
 // ModelDesignAppService 模型设计应用服务，负责模型在平台数据库和客户数据库之间的同步操作
 type ModelDesignAppService struct {
-	deployRepo       modeldesign.DeployRepo
-	modelRepo        modeldesign.ModelRepository
-	fkRepo           modeldesign.LogicalForeignKeyRepository
-	clusterRepo      cluster.DatabaseClusterRepository
-	txManager        repository.TxManager
-	enumAssocRepo    modeldesign.FieldEnumAssociationRepository
-	enumRepo         modeldesign.EnumRepository
+	deployRepo    modeldesign.DeployRepo
+	modelRepo     modeldesign.ModelRepository
+	fkRepo        modeldesign.LogicalForeignKeyRepository
+	clusterRepo   cluster.DatabaseClusterRepository
+	txManager     repository.TxManager
+	enumAssocRepo modeldesign.FieldEnumAssociationRepository
+	enumRepo      modeldesign.EnumRepository
 
 	// Repository factory functions for transaction-bound repository creation
 	modelRepoFactory func(q dbgen.Querier) modeldesign.ModelRepository
@@ -312,6 +312,33 @@ func (s *ModelDesignAppService) QueryModelsWithCommand(
 	}
 
 	return s.QueryModels(ctx, domainQuery)
+}
+
+// QueryDatabaseCatalogWithCommand 查询项目下可用数据库目录（分页）。
+func (s *ModelDesignAppService) QueryDatabaseCatalogWithCommand(
+	ctx context.Context,
+	cmd DatabaseCatalogQueryCommand,
+) ([]string, int, error) {
+	if cmd.OrgName == "" {
+		return nil, 0, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "orgName is required")
+	}
+	if cmd.ProjectSlug == "" {
+		return nil, 0, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "projectSlug is required")
+	}
+
+	page := cmd.Page
+	if page <= 0 {
+		page = 1
+	}
+	pageSize := cmd.PageSize
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+	if pageSize > 100 {
+		pageSize = 100
+	}
+
+	return s.modelRepo.ListDatabaseCatalog(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.Search, page, pageSize)
 }
 
 // AddFieldsWithResults 按字段独立处理添加请求，并返回逐字段结果。

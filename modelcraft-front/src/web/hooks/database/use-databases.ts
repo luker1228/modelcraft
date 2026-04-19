@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { useQuery } from '@apollo/client'
 import { LIST_DATABASES } from '@web/graphql/queries/cluster'
 import { useProjectScopedClient } from '@bff/apollo/public'
@@ -69,16 +70,26 @@ export function useDatabases(
     }
   )
 
-  const databases: Database[] = data?.listDatabases?.edges?.map((edge) => edge.node) || []
+  const databases: Database[] = useMemo(
+    () => data?.listDatabases?.edges?.map((edge) => edge.node) || [],
+    [data?.listDatabases?.edges]
+  )
 
-  const pageInfo: PageInfo = data?.listDatabases?.pageInfo || {
-    hasNextPage: false,
-    hasPreviousPage: false,
-    startCursor: null,
-    endCursor: null,
-  }
+  const pageInfo: PageInfo = useMemo(
+    () =>
+      data?.listDatabases?.pageInfo || {
+        hasNextPage: false,
+        hasPreviousPage: false,
+        startCursor: null,
+        endCursor: null,
+      },
+    [data?.listDatabases?.pageInfo]
+  )
 
-  const totalCount: number = data?.listDatabases?.totalCount || 0
+  const totalCount: number = useMemo(
+    () => data?.listDatabases?.totalCount || 0,
+    [data?.listDatabases?.totalCount]
+  )
 
   const handleFetchMore = (limit: number = 50): Promise<unknown> => {
     if (!pageInfo.hasNextPage || !projectSlug) return Promise.resolve()

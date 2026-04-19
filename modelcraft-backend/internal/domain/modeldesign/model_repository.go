@@ -58,6 +58,11 @@ type ModelRepository interface {
 	) (*DataModel, error)
 	FindByDeploymentStatus(ctx context.Context, statuses ...DeploymentStatus) ([]DataModel, error)
 	Query(ctx context.Context, queryObj ModelQuery) ([]DataModel, int, error)
+	ListDatabaseCatalog(
+		ctx context.Context,
+		orgName, projectSlug, search string,
+		page, pageSize int,
+	) ([]string, int, error)
 
 	AddFields(ctx context.Context, orgName string, field []*FieldDefinition) error
 	AddRelationField(ctx context.Context, orgName string, field *FieldDefinition) error

@@ -97,14 +97,35 @@ export type EndUserErrorCode =
  * 错误码 → 用户提示文案
  * @param code - Go 后端返回的错误码
  * @param httpStatus - HTTP 状态码
+ * @param backendMessage - 后端原始错误文案（可选）
  * @returns 用户可读的错误提示
  */
-export function mapEndUserErrorCode(code: string | undefined, httpStatus: number): string {
+export function mapEndUserErrorCode(
+  code: string | undefined,
+  httpStatus: number,
+  backendMessage?: string
+): string {
+  const msg = backendMessage?.toLowerCase() ?? ''
+
   if (code === 'INVALID_CREDENTIALS') return '用户名或密码错误，请重试'
   if (code === 'ACCOUNT_DISABLED') return '该账号已被禁用，请联系管理员'
   if (code === 'CONFLICT') return '该用户名已被使用'
   if (code === 'CLUSTER_NOT_CONFIGURED') return '服务暂时不可用，请联系管理员'
-  if (code === 'PARAM_INVALID') return '输入参数无效，请检查后重试'
+  if (code === 'PARAM_INVALID') {
+    if (msg.includes('password must be at least 8 characters')) {
+      return '密码至少 8 位'
+    }
+    if (msg.includes('password must contain at least one letter')) {
+      return '密码必须包含至少 1 个字母'
+    }
+    if (msg.includes('password must contain at least one digit')) {
+      return '密码必须包含至少 1 个数字'
+    }
+    if (msg.includes('username must be 3-64 characters')) {
+      return '用户名需为 3-64 位，且仅支持字母、数字、下划线和中划线'
+    }
+    return '输入参数无效，请检查后重试'
+  }
   if (code === 'INVALID_REFRESH_TOKEN') return '登录已过期，请重新登录'
   if (code === 'UNAUTHORIZED') return '服务认证失败，请联系管理员检查 INTERNAL_TOKEN 配置'
   if (httpStatus >= 500) return '登录服务暂时不可用，请稍后重试'

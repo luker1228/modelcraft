@@ -86,7 +86,7 @@ export function useEndUserLoginForm(
 
         if (!res.ok) {
           const data = (await res.json()) as EndUserBffError
-          const errorMessage = mapEndUserErrorCode(data.error?.code, res.status)
+          const errorMessage = mapEndUserErrorCode(data.error?.code, res.status, data.error?.message)
           setError(errorMessage)
 
           // PRD 要求：错误后清空密码字段并自动聚焦

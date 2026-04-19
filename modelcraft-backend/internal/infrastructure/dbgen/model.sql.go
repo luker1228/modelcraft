@@ -11,6 +11,33 @@ import (
 	"strings"
 )
 
+const countModelDatabases = `-- name: CountModelDatabases :one
+SELECT COUNT(DISTINCT database_name)
+FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%'))
+`
+
+type CountModelDatabasesParams struct {
+	OrgName     string
+	ProjectSlug string
+	Column3     interface{}
+	CONCAT      interface{}
+}
+
+func (q *Queries) CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, countModelDatabases,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.Column3,
+		arg.CONCAT,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const countModels = `-- name: CountModels :one
 SELECT COUNT(*) FROM models
 WHERE org_name = ?
@@ -279,6 +306,55 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listModelDatabases = `-- name: ListModelDatabases :many
+SELECT DISTINCT database_name
+FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%'))
+ORDER BY database_name ASC
+LIMIT ? OFFSET ?
+`
+
+type ListModelDatabasesParams struct {
+	OrgName     string
+	ProjectSlug string
+	Column3     interface{}
+	CONCAT      interface{}
+	Limit       int32
+	Offset      int32
+}
+
+func (q *Queries) ListModelDatabases(ctx context.Context, arg ListModelDatabasesParams) ([]string, error) {
+	rows, err := q.db.QueryContext(ctx, listModelDatabases,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.Column3,
+		arg.CONCAT,
+		arg.Limit,
+		arg.Offset,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []string
+	for rows.Next() {
+		var database_name string
+		if err := rows.Scan(&database_name); err != nil {
+			return nil, err
+		}
+		items = append(items, database_name)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listModels = `-- name: ListModels :many

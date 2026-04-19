@@ -1,9 +1,10 @@
 'use client'
 
-import { Suspense, lazy, useState, useCallback } from 'react'
+import { Suspense, lazy, useState, useCallback, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Table2, Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
+import { toast } from 'sonner'
 import {
   Dialog,
   DialogContent,
@@ -19,8 +20,13 @@ import { ModelDetailPanel } from './ModelDetailPanel'
 import { CreateModelDialog } from './CreateModelDialog'
 import { DeleteModelDialog } from './DeleteModelDialog'
 import { FieldEditSheet } from './FieldEditSheet'
+import {
+  DataWorkspacePanel,
+  type DataWorkspaceTab,
+} from '@web/components/features/model-editor/DataWorkspacePanel'
 
 const ModelRecordWorkspace = lazy(() => import('@web/components/features/model-editor/ModelRecordWorkspace'))
+const MAX_MODEL_TABS = 8
 
 export function ModelEditorView() {
   const params = useParams()
@@ -30,6 +36,7 @@ export function ModelEditorView() {
 
   const state = useModelEditorState()
   const [schemaRefreshToken, setSchemaRefreshToken] = useState(0)
+  const [openedTabs, setOpenedTabs] = useState<DataWorkspaceTab[]>([])
   const handleFieldAdded = useCallback(() => {
     setSchemaRefreshToken((prev) => prev + 1)
   }, [])
@@ -37,6 +44,42 @@ export function ModelEditorView() {
   const crud = useModelCRUD({ orgName, projectSlug, state })
   const fieldOps = useFieldOperations({ orgName, projectSlug, state })
   const fkOps = useForeignKeys({ projectSlug, state })
+
+  useEffect(() => {
+    if (!state.selectedModelId) return
+    const selectedModel = crud.models.find((model) => model.id === state.selectedModelId)
+    if (!selectedModel) return
+
+    setOpenedTabs((prev) => {
+      if (prev.some((tab) => tab.id === selectedModel.id)) return prev
+      if (prev.length >= MAX_MODEL_TABS) {
+        toast.warning(`最多可同时打开 ${MAX_MODEL_TABS} 个模型标签`)
+        return prev
+      }
+      return [
+        ...prev,
+        {
+          id: selectedModel.id,
+          name: selectedModel.name,
+          title: selectedModel.title,
+        },
+      ]
+    })
+  }, [state.selectedModelId, crud.models])
+
+  useEffect(() => {
+    setOpenedTabs([])
+  }, [state.selectedDatabase])
+
+  const handleCloseTab = (tabId: string) => {
+    setOpenedTabs((prev) => {
+      const next = prev.filter((tab) => tab.id !== tabId)
+      if (state.selectedModelId === tabId) {
+        state.setSelectedModelId(next[next.length - 1]?.id ?? null)
+      }
+      return next
+    })
+  }
 
   return (
     <div className="relative flex size-full">
@@ -83,7 +126,6 @@ export function ModelEditorView() {
         fkOps={fkOps}
         orgName={orgName}
         projectSlug={projectSlug}
-        models={crud.relationCandidateModels}
         onFieldAdded={handleFieldAdded}
       />
 
@@ -120,39 +162,35 @@ export function ModelEditorView() {
       />
 
       {/* Right Content Area */}
-      <main className="flex min-w-0 flex-1 flex-col bg-sidebar">
-        {state.selectedModelId ? (
-          <Suspense
-            fallback={
-              <div className="flex flex-1 items-center justify-center">
-                <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                  <Loader2 className="size-6 animate-spin" />
-                  <span className="text-sm">加载中...</span>
+      <main className="flex min-w-0 flex-1 flex-col bg-sidebar p-4">
+        <DataWorkspacePanel
+          tabs={openedTabs}
+          activeTabId={state.selectedModelId ?? ''}
+          onTabChange={(tabId) => state.setSelectedModelId(tabId)}
+          onTabClose={handleCloseTab}
+          emptyText="从左侧选择模型以打开数据表"
+          className="h-full"
+          renderContent={(activeTab) => (
+            <Suspense
+              fallback={
+                <div className="flex flex-1 items-center justify-center">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Loader2 className="size-6 animate-spin" />
+                    <span className="text-sm">加载中...</span>
+                  </div>
                 </div>
-              </div>
-            }
-          >
-            <ModelRecordWorkspace
-              key={`${state.selectedModelId}-${schemaRefreshToken}`}
-              modelId={state.selectedModelId}
-              projectSlug={projectSlug}
-              orgName={orgName}
-              refreshToken={schemaRefreshToken}
-            />
-          </Suspense>
-        ) : (
-          <div className="flex flex-1 items-center justify-center">
-            <div className="px-6 text-center text-muted-foreground">
-              <div className="mx-auto mb-5 flex size-20 items-center justify-center rounded-2xl bg-muted/30">
-                <Table2 className="size-10 opacity-30" />
-              </div>
-              <h2 className="mb-2 font-heading text-base font-semibold text-foreground">选择一个模型</h2>
-              <p className="mx-auto max-w-[280px] text-sm leading-relaxed">
-                从左侧选择一个模型开始编辑，或点击 &ldquo;新建模型&rdquo; 创建新模型
-              </p>
-            </div>
-          </div>
-        )}
+              }
+            >
+              <ModelRecordWorkspace
+                key={`${activeTab.id}-${schemaRefreshToken}`}
+                modelId={activeTab.id}
+                projectSlug={projectSlug}
+                orgName={orgName}
+                refreshToken={schemaRefreshToken}
+              />
+            </Suspense>
+          )}
+        />
       </main>
 
       {/* Delete Model Confirmation Dialog */}
