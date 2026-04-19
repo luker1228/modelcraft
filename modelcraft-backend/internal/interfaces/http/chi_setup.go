@@ -115,6 +115,13 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	}
 
 	// ============================================================
+	// GraphQL Routes - End-User API
+	// ============================================================
+	if cfg.DesignHandlers != nil {
+		SetupEndUserGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config)
+	}
+
+	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler
 	// ============================================================
 

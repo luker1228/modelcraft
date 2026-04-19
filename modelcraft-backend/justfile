@@ -295,7 +295,9 @@ install-go-test-coverage:
 [doc("Generate GraphQL code")]
 generate-gql: install-gqlgen
     echo "📊 生成 GraphQL 代码..."
-    go run github.com/99designs/gqlgen generate
+    go run github.com/99designs/gqlgen generate --config gqlgen.org.yml
+    go run github.com/99designs/gqlgen generate --config gqlgen.project.yml
+    go run github.com/99designs/gqlgen generate --config gqlgen.end_user.yml
     echo "✅ GraphQL 代码生成完成"
 
 # 合并并生成 OpenAPI 代码
