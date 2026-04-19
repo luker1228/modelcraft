@@ -23,6 +23,21 @@ interface LoginRequestBody {
   password?: unknown
 }
 
+function parseEndUserRouteContext(referer: string | null): { orgName: string; projectSlug: string } | null {
+  if (!referer) return null
+  try {
+    const url = new URL(referer)
+    const match = url.pathname.match(/^\/u\/([^/]+)\/([^/]+)\//)
+    if (!match) return null
+    return {
+      orgName: decodeURIComponent(match[1]),
+      projectSlug: decodeURIComponent(match[2]),
+    }
+  } catch {
+    return null
+  }
+}
+
 function extractRequestId(err: unknown): string | undefined {
   if (
     err &&
@@ -48,6 +63,8 @@ export async function POST(req: NextRequest) {
 
   const { orgName, projectSlug, username, password } = body
 
+  const routeContext = parseEndUserRouteContext(req.headers.get('referer'))
+
   // 参数校验
   if (!orgName || typeof orgName !== 'string') {
     const errorRes: EndUserBffError = {
@@ -70,6 +87,16 @@ export async function POST(req: NextRequest) {
   if (!password || typeof password !== 'string') {
     const errorRes: EndUserBffError = {
       error: { code: 'PARAM_INVALID', message: '请输入密码' },
+    }
+    return NextResponse.json(errorRes, { status: 400 })
+  }
+
+  if (
+    routeContext &&
+    (routeContext.orgName !== orgName || routeContext.projectSlug !== projectSlug)
+  ) {
+    const errorRes: EndUserBffError = {
+      error: { code: 'PARAM_INVALID', message: 'orgName/projectSlug 与当前页面路由不一致' },
     }
     return NextResponse.json(errorRes, { status: 400 })
   }
