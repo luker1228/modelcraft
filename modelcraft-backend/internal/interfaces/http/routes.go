@@ -27,6 +27,7 @@ import (
 
 	orggraphql "modelcraft/internal/interfaces/graphql/org"
 	projectgraphql "modelcraft/internal/interfaces/graphql/project"
+	endusergraphql "modelcraft/internal/interfaces/graphql/enduser"
 
 	runtimeHandler "modelcraft/internal/interfaces/runtime"
 
@@ -550,4 +551,28 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 			r.Get("/model-catalog", handlers.EndUserDataHandler.ModelCatalog)
 		})
 	}
+}
+
+// SetupEndUserGraphQLRoutesOnChi registers End-User GraphQL endpoint.
+// Route pattern: /graphql/end-user/org/{orgName}/project/{projectSlug}
+// This endpoint is designed for end-user runtime data access only,
+// providing a strict subset of capabilities compared to developer GraphQL.
+func SetupEndUserGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
+	// Create end-user resolver
+	endUserResolver := &endusergraphql.Resolver{
+		ModelDesignService: handlers.ModelAppService,
+	}
+
+	// End-user GraphQL uses internal token auth (BFF-to-backend)
+	internalTokenMW := middleware.ChiInternalTokenMiddleware(cfg.Auth.InternalToken)
+
+	// Register end-user GraphQL endpoint
+	router.Route("/graphql/end-user/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
+		r.Use(requestIDInjectorMiddleware)
+		r.Use(internalTokenMW)
+		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLProjectMiddleware())
+		r.Post("/", endusergraphql.EndUserGraphQLHandler(endUserResolver))
+		r.Get("/", endusergraphql.EndUserPlaygroundHandler())
+	})
 }
