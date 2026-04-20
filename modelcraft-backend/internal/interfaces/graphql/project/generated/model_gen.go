@@ -34,6 +34,10 @@ type CreateModelError interface {
 	IsCreateModelError()
 }
 
+type DatabaseCatalogError interface {
+	IsDatabaseCatalogError()
+}
+
 type DeleteClusterError interface {
 	IsDeleteClusterError()
 }
@@ -328,6 +332,19 @@ type Database struct {
 	Name string `json:"name"`
 }
 
+type DatabaseCatalogInput struct {
+	Search   *string `json:"search,omitempty"`
+	Page     *int32  `json:"page,omitempty"`
+	PageSize *int32  `json:"pageSize,omitempty"`
+}
+
+type DatabaseCatalogPayload struct {
+	Databases  []*DatabaseLite `json:"databases"`
+	TotalCount int32           `json:"totalCount"`
+	Page       int32           `json:"page"`
+	PageSize   int32           `json:"pageSize"`
+}
+
 type DatabaseCluster struct {
 	ID                string                  `json:"id"`
 	ProjectSlug       string                  `json:"projectSlug"`
@@ -381,6 +398,10 @@ type DatabaseConnectionInput struct {
 type DatabaseEdge struct {
 	Node   *Database `json:"node"`
 	Cursor string    `json:"cursor"`
+}
+
+type DatabaseLite struct {
+	Name string `json:"name"`
 }
 
 type DbColumnInfo struct {
@@ -620,6 +641,11 @@ type GetClusterPayload struct {
 	Error   GetClusterError  `json:"error,omitempty"`
 }
 
+type GetDatabaseCatalogPayload struct {
+	Data  *DatabaseCatalogPayload `json:"data,omitempty"`
+	Error DatabaseCatalogError    `json:"error,omitempty"`
+}
+
 type GetEnumPayload struct {
 	Enum  *EnumDefinition `json:"enum,omitempty"`
 	Error GetEnumError    `json:"error,omitempty"`
@@ -700,6 +726,8 @@ type InvalidInput struct {
 }
 
 func (InvalidInput) IsUpdateClusterError() {}
+
+func (InvalidInput) IsDatabaseCatalogError() {}
 
 func (InvalidInput) IsCreateEndUserError() {}
 
@@ -940,6 +968,8 @@ func (ProjectNotFound) IsUpdateClusterError() {}
 func (ProjectNotFound) IsDeleteClusterError() {}
 
 func (ProjectNotFound) IsTestConnectionError() {}
+
+func (ProjectNotFound) IsDatabaseCatalogError() {}
 
 func (ProjectNotFound) IsCreateEndUserError() {}
 

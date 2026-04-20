@@ -154,3 +154,17 @@ func GetSystemFields() []*FieldDefinition {
 		},
 	}
 }
+
+// GetNewModelSystemFields returns system fields for newly-created models.
+// Compared with GetSystemFields(), this adds owner (EndUserRef) to enable RLS by default.
+func GetNewModelSystemFields() []*FieldDefinition {
+	fields := GetSystemFields()
+	fields = append(fields, &FieldDefinition{
+		Name:        "owner",
+		Title:       "Owner",
+		Description: "System Field",
+		Type:        GetFieldTypeByFormat(FormatEndUserRef),
+		NonNull:     true,
+	})
+	return fields
+}

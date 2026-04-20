@@ -6,9 +6,9 @@ import { IdentityFormSection } from '@web/components/ui/identity-form-section'
 import { Badge } from '@web/components/ui/badge'
 import { Separator } from '@web/components/ui/separator'
 
-// ── Demo data ──────────────────────────────────────────────────────────────────
+// ── Sections ───────────────────────────────────────────────────────────────────
 
-const DEMOS = [
+const SECTIONS = [
   { id: 'cluster',   label: '数据库集群' },
   { id: 'model',     label: '数据模型'   },
   { id: 'enum',      label: '枚举类型'   },
@@ -18,9 +18,9 @@ const DEMOS = [
   { id: 'status',    label: '状态变体'   },
 ]
 
-// ── Individual demos ───────────────────────────────────────────────────────────
+// ── Section Variants ───────────────────────────────────────────────────────────
 
-function ClusterDemo() {
+function ClusterSection() {
   const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '主数据库集群' } })
   const dirty = !!formState.dirtyFields.title
   const [saving, setSaving] = useState(false)
@@ -55,7 +55,7 @@ function ClusterDemo() {
   )
 }
 
-function ModelDemo() {
+function ModelSection() {
   const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '用户' } })
   const dirty = !!formState.dirtyFields.title
   const [saving, setSaving] = useState(false)
@@ -87,7 +87,7 @@ function ModelDemo() {
   )
 }
 
-function EnumDemo() {
+function EnumSection() {
   const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '用户角色' } })
   const dirty = !!formState.dirtyFields.title
 
@@ -114,7 +114,7 @@ function EnumDemo() {
   )
 }
 
-function ViewDemo() {
+function ViewSection() {
   return (
     <IdentityFormSection
       mode="view"
@@ -135,7 +135,7 @@ function ViewDemo() {
   )
 }
 
-function ReadOnlyDemo() {
+function ReadOnlySection() {
   const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '用户表' } })
   const dirty = !!formState.dirtyFields.title
 
@@ -172,7 +172,7 @@ function ReadOnlyDemo() {
   )
 }
 
-function PrefixDemo() {
+function PrefixSection() {
   const { control, formState } = useForm<FieldValues>({ defaultValues: { title: '官方文档站' } })
   const dirty = !!formState.dirtyFields.title
 
@@ -200,14 +200,14 @@ function PrefixDemo() {
   )
 }
 
-function StatusDemo() {
+function StatusSection() {
   const statuses = [
     { type: 'auto'    as const, label: '自动生成' },
     { type: 'manual'  as const, label: '手动设置' },
     { type: 'loading' as const, label: '生成中'   },
     { type: 'error'   as const, label: '生成失败', message: '标识符已被占用' },
   ]
-  const { control } = useForm<FieldValues>({ defaultValues: { title: '示例资源' } })
+  const { control } = useForm<FieldValues>({ defaultValues: { title: '资源名称' } })
 
   return (
     <div className="space-y-4">
@@ -231,20 +231,20 @@ function StatusDemo() {
 
 // ── Page ───────────────────────────────────────────────────────────────────────
 
-const DEMO_MAP: Record<string, { title: string; desc: string; component: React.FC }> = {
-  cluster:  { title: '数据库集群',           desc: '标题变更后保存按钮才启用',         component: ClusterDemo  },
-  model:    { title: '数据模型（可重新生成）', desc: '标识符支持重新生成 + 复制',         component: ModelDemo    },
-  enum:     { title: '枚举类型',             desc: '标识符状态为手动设置',             component: EnumDemo     },
-  view:     { title: '查看模式',             desc: '只读展示，不渲染操作栏',           component: ViewDemo     },
-  readonly: { title: '附加只读字段',          desc: 'readOnlyFields 额外展示元数据',   component: ReadOnlyDemo },
-  prefix:   { title: 'URL 前缀',            desc: 'identifierField.prefix 前缀显示', component: PrefixDemo   },
-  status:   { title: '标识符状态变体',        desc: 'auto / manual / loading / error', component: StatusDemo   },
+const SECTION_MAP: Record<string, { title: string; desc: string; component: React.FC }> = {
+  cluster:  { title: '数据库集群',           desc: '标题变更后保存按钮才启用',         component: ClusterSection  },
+  model:    { title: '数据模型（可重新生成）', desc: '标识符支持重新生成 + 复制',         component: ModelSection    },
+  enum:     { title: '枚举类型',             desc: '标识符状态为手动设置',             component: EnumSection     },
+  view:     { title: '查看模式',             desc: '只读展示，不渲染操作栏',           component: ViewSection     },
+  readonly: { title: '附加只读字段',          desc: 'readOnlyFields 额外展示元数据',   component: ReadOnlySection },
+  prefix:   { title: 'URL 前缀',            desc: 'identifierField.prefix 前缀显示', component: PrefixSection   },
+  status:   { title: '标识符状态变体',        desc: 'auto / manual / loading / error', component: StatusSection   },
 }
 
-export default function IdentityDemoPage() {
-  const [active, setActive] = useState('cluster')
-  const demo = DEMO_MAP[active]
-  const DemoComp = demo.component
+export default function IdentitySettingsPage() {
+  const [activeSection, setActiveSection] = useState('cluster')
+  const section = SECTION_MAP[activeSection]
+  const SectionComponent = section.component
 
   return (
     <div className="h-full overflow-auto bg-white">
@@ -253,59 +253,59 @@ export default function IdentityDemoPage() {
         {/* Page header */}
         <div className="mb-8">
           <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-            IdentityFormSection 示例
+            身份配置
           </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            通用身份信息表单组件，用于展示和编辑资源的显示名称与标识符。
+            统一管理集群、模型、枚举等资源的显示名称与标识符配置。
           </p>
         </div>
 
         <div className="flex items-start gap-6">
-          {/* Sidebar nav */}
+          {/* Sidebar navigation */}
           <nav className="w-44 shrink-0 overflow-hidden rounded-lg border border-border bg-white">
             <div className="border-b border-border px-3 py-2">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-                示例场景
+                配置分组
               </p>
             </div>
             <ul className="py-1">
-              {DEMOS.map((d) => (
-                <li key={d.id}>
+              {SECTIONS.map((item) => (
+                <li key={item.id}>
                   <button
-                    onClick={() => setActive(d.id)}
+                    onClick={() => setActiveSection(item.id)}
                     className={`w-full rounded-none px-3 py-2 text-left text-sm transition-colors ${
-                      active === d.id
+                      activeSection === item.id
                         ? 'bg-muted font-semibold text-foreground'
                         : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                     }`}
                   >
-                    {d.label}
+                    {item.label}
                   </button>
                 </li>
               ))}
             </ul>
           </nav>
 
-          {/* Demo panel */}
+          {/* Content panel */}
           <div className="min-w-0 flex-1 space-y-4">
             <div className="flex items-center gap-3">
               <h2 className="font-heading text-base font-semibold text-foreground">
-                {demo.title}
+                {section.title}
               </h2>
               <Badge variant="secondary" className="font-mono text-xs font-normal">
-                {active}
+                {activeSection}
               </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">{demo.desc}</p>
+            <p className="text-sm text-muted-foreground">{section.desc}</p>
             <Separator />
-            <DemoComp />
+            <SectionComponent />
           </div>
         </div>
 
-        {/* Props reference */}
+        {/* Field reference */}
         <div className="mt-12 overflow-hidden rounded-lg border border-border bg-white">
           <div className="border-b border-border bg-muted/30 px-6 py-3">
-            <h3 className="font-heading text-sm font-semibold text-foreground">Props 参考</h3>
+            <h3 className="font-heading text-sm font-semibold text-foreground">配置项说明</h3>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -318,7 +318,7 @@ export default function IdentityDemoPage() {
               </thead>
               <tbody className="divide-y divide-border">
                 {[
-                  ['title',             'string',                          '区块标题，显示在卡片顶部'],
+                  ['title',             'string',                          '配置区块标题，显示在卡片顶部'],
                   ['mode',              "'edit' | 'view'",                 '显示模式，默认 edit'],
                   ['displayNameField',  '{ name, label, control, value… }','显示名称字段配置'],
                   ['identifierField',   '{ name, value, copyable, … }',    '标识符字段配置（只读）'],

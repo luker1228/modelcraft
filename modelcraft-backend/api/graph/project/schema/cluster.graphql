@@ -85,6 +85,24 @@ type Database {
   name: String!
 }
 
+type DatabaseLite {
+  name: String!
+}
+
+type DatabaseCatalogPayload {
+  databases: [DatabaseLite!]!
+  totalCount: Int!
+  page: Int!
+  pageSize: Int!
+}
+
+union DatabaseCatalogError = InvalidInput | ProjectNotFound
+
+type GetDatabaseCatalogPayload {
+  data: DatabaseCatalogPayload
+  error: DatabaseCatalogError
+}
+
 # Table info type
 type TableInfo {
   name: String!
@@ -165,6 +183,12 @@ input ListDatabasesInput {
   search: String # Search by database name
 }
 
+input DatabaseCatalogInput {
+  search: String
+  page: Int = 1
+  pageSize: Int = 20
+}
+
 # List tables input type
 input ListTablesInput {
   databaseName: String!
@@ -193,6 +217,7 @@ enum ProjectStatus {
 # ============================================
 
 extend type Query {
+  databaseCatalog(input: DatabaseCatalogInput): GetDatabaseCatalogPayload! @hasPermission(action: "project:read")
   databaseCluster: GetClusterPayload! @hasPermission(action: "project:read")
   listDatabases(input: ListDatabasesInput!): DatabaseConnection! @hasPermission(action: "project:read")
   listTables(input: ListTablesInput!): TableListConnection! @hasPermission(action: "project:read")

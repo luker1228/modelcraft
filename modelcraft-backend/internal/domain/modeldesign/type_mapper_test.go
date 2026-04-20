@@ -69,6 +69,13 @@ func TestMySQLTypeMapper_MapToMySQL(t *testing.T) {
 			},
 			want: "CHAR(36)",
 		},
+		{
+			name: "end_user_ref",
+			field: &FieldDefinition{
+				Type: GetFieldTypeByFormat(FormatEndUserRef),
+			},
+			want: "CHAR(36)",
+		},
 		// 整数类型测试
 		{
 			name: "integer",

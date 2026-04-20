@@ -7,6 +7,7 @@ import (
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/project"
+	rlsdomain "modelcraft/internal/domain/rls"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/repository"
@@ -100,7 +101,7 @@ func (s *ModelDesignAppService) CreateModelSync(
 	if err != nil {
 		return "", err
 	}
-	fields := modeldesign.GetSystemFields()
+	fields := modeldesign.GetNewModelSystemFields()
 	model.AddFields(fields)
 	s.getLogger(ctx).Infof(ctx, "model: %s", bizutils.MarshalToStringIgnoreErr(model))
 	err = model.Validate()
@@ -162,6 +163,21 @@ func (s *ModelDesignAppService) transactionDeployModel(
 		}
 		if createdModel == nil {
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, model.ID)
+		}
+
+		if createdModel.IsRLSEnabled() {
+			policy := &modeldesign.ModelRLSPolicy{ModelID: createdModel.ID}
+			policy.ApplyPreset(rlsdomain.RLSPresetReadWriteOwner)
+			if err := q.UpsertModelRLSPolicy(ctx, dbgen.UpsertModelRLSPolicyParams{
+				ModelID:         createdModel.ID,
+				SelectPredicate: string(policy.SelectPredicate),
+				InsertCheck:     string(policy.InsertCheck),
+				UpdatePredicate: string(policy.UpdatePredicate),
+				UpdateCheck:     string(policy.UpdateCheck),
+				DeletePredicate: string(policy.DeletePredicate),
+			}); err != nil {
+				return fmt.Errorf("failed to upsert default rls policy: %w", err)
+			}
 		}
 
 		return s.deployRepo.DeployModelToCreate(ctx, createdModel)
@@ -1055,7 +1071,7 @@ func (s *ModelDesignAppService) CreateModelFromSchema(
 	}
 
 	// 添加系统字段
-	systemFields := modeldesign.GetSystemFields()
+	systemFields := modeldesign.GetNewModelSystemFields()
 	model.AddFields(systemFields)
 
 	// 验证模型

@@ -168,7 +168,7 @@ func BuildModelFromTable(
 
 	// 如果没有标准的系统ID，添加一个
 	if !hasSystemID {
-		systemFields := modeldesign.GetSystemFields()
+		systemFields := modeldesign.GetNewModelSystemFields()
 		for _, sysField := range systemFields {
 			sysField.ModelID = modelID
 			sysField.ModelLocator = locator

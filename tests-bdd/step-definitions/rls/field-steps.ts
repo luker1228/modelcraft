@@ -154,6 +154,24 @@ Then('应该返回默认的 READ_WRITE_OWNER 策略', function (this: ModelCraft
   expect(payload.model?.rlsPolicy?.preset).toBe('READ_WRITE_OWNER')
 })
 
+Then('返回结果应同时包含 owner EndUserRef 字段和 READ_WRITE_OWNER 策略', function (this: ModelCraftWorld) {
+  const payload = (this.lastResponse as {
+    model: {
+      model: {
+        fields: Array<{ name: string; format: string }>
+        rlsPolicy: { preset: string } | null
+      } | null
+    }
+  }).model
+
+  expect(payload.model).not.toBeNull()
+  const ownerField = payload.model?.fields.find(f => f.name === 'owner')
+  expect(ownerField).toBeDefined()
+  expect(ownerField?.format).toBe('END_USER_REF')
+  expect(payload.model?.rlsPolicy).not.toBeNull()
+  expect(payload.model?.rlsPolicy?.preset).toBe('READ_WRITE_OWNER')
+})
+
 Then('应该返回 null（无策略）', function (this: ModelCraftWorld) {
   const payload = (this.lastResponse as {
     model: { model: { rlsPolicy: unknown } | null }

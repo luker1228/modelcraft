@@ -40,6 +40,8 @@ func convertFormatType2Domain(format generated.FormatType) (modeldesign.FormatTy
 		return modeldesign.FormatRelation, nil
 	case generated.FormatTypeEnum:
 		return modeldesign.FormatEnum, nil
+	case generated.FormatTypeEndUserRef:
+		return modeldesign.FormatEndUserRef, nil
 	default:
 		return modeldesign.FormatString, fmt.Errorf("unknown format type: %s", format)
 	}

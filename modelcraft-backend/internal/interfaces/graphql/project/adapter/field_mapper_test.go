@@ -28,6 +28,7 @@ func TestConvertFormatType2Domain_TableDriven(t *testing.T) {
 		{name: "decimal", format: generated.FormatTypeDecimal, want: modeldesign.FormatDecimal},
 		{name: "relation", format: generated.FormatTypeRelation, want: modeldesign.FormatRelation},
 		{name: "enum", format: generated.FormatTypeEnum, want: modeldesign.FormatEnum},
+		{name: "end_user_ref", format: generated.FormatTypeEndUserRef, want: modeldesign.FormatEndUserRef},
 		{name: "unknown", format: generated.FormatType("UNKNOWN"), wantErr: true},
 	}
 
@@ -208,6 +209,7 @@ func FuzzFieldMapper_ConvertAddFieldInputToDTO(f *testing.F) {
 		generated.FormatTypeDecimal,
 		generated.FormatTypeRelation,
 		generated.FormatTypeEnum,
+		generated.FormatTypeEndUserRef,
 	}
 
 	f.Fuzz(func(

@@ -20,7 +20,7 @@ interface UseDatabasesOptions {
   search?: string
 }
 
-// ── GraphQL response types ──────────────────────────────────────────
+// -- GraphQL response types ---------------------------------------------------
 
 interface DatabaseEdge {
   node: Database
@@ -51,7 +51,7 @@ export function useDatabases(
   projectSlug: string | null | undefined,
   options?: UseDatabasesOptions
 ): UseDatabasesReturn {
-  // Use project-scoped client — listDatabases lives on the project endpoint
+  // Use project-scoped client -- listDatabases lives on the project endpoint
   // /graphql/org/{orgName}/project/{projectSlug}/
   const client = useProjectScopedClient(projectSlug ?? undefined)
 

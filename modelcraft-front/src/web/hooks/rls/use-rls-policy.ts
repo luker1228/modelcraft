@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
+import { useProjectScopedClient } from '@bff/apollo/public'
 import { GET_MODEL_RLS_POLICY } from '@web/graphql/queries/rls'
 import { SET_MODEL_RLS_POLICY } from '@web/graphql/mutations/rls'
 import type {
@@ -53,11 +54,14 @@ interface UseRLSPolicyReturn {
  * @param modelId - 模型 ID
  * @returns UseRLSPolicyReturn
  */
-export function useRLSPolicy(modelId: string): UseRLSPolicyReturn {
+export function useRLSPolicy(modelId: string, projectSlug?: string): UseRLSPolicyReturn {
+  const projectClient = useProjectScopedClient(projectSlug)
+
   // 查询策略
   const { data, loading, error, refetch } = useQuery<GetModelRLSPolicyData>(
     GET_MODEL_RLS_POLICY,
     {
+      client: projectClient,
       variables: { modelId },
       skip: !modelId,
       onError: (err) => {
@@ -72,6 +76,7 @@ export function useRLSPolicy(modelId: string): UseRLSPolicyReturn {
   const [setModelRLSPolicy, { loading: updating }] = useMutation<SetModelRLSPolicyData>(
     SET_MODEL_RLS_POLICY,
     {
+      client: projectClient,
       onCompleted: (mutationData) => {
         const error = mutationData?.setModelRLSPolicy?.error
         if (error) {

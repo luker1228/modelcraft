@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // TestFieldService_ValidateDuplicates_Success 测试字段重复验证成功
@@ -134,4 +135,17 @@ func TestFieldService_GetSupportedFieldFormats(t *testing.T) {
 	assert.Contains(t, formats, FormatString)
 	assert.Contains(t, formats, FormatInteger)
 	assert.Contains(t, formats, FormatBoolean)
+	assert.Contains(t, formats, FormatEndUserRef)
+}
+
+func TestGetNewModelSystemFields(t *testing.T) {
+	fields := GetNewModelSystemFields()
+	require.Len(t, fields, 2)
+
+	assert.Equal(t, "id", fields[0].Name)
+	assert.Equal(t, FormatUUID, fields[0].Type.Format)
+
+	assert.Equal(t, "owner", fields[1].Name)
+	assert.Equal(t, FormatEndUserRef, fields[1].Type.Format)
+	assert.True(t, fields[1].NonNull)
 }

@@ -7,6 +7,7 @@ package projectgraphql
 import (
 	"context"
 	clusterApp "modelcraft/internal/app/cluster"
+	appmodeldesign "modelcraft/internal/app/modeldesign"
 	domainCluster "modelcraft/internal/domain/cluster"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
@@ -130,6 +131,91 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 		Success:        true,
 		ConnectionTime: &connectionTime,
 		Error:          nil,
+	}, nil
+}
+
+// DatabaseCatalog is the resolver for the databaseCatalog field.
+func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.DatabaseCatalogInput) (*generated.GetDatabaseCatalogPayload, error) {
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.GetDatabaseCatalogPayload{
+			Error: &generated.InvalidInput{Message: "organization context required"},
+		}, nil
+	}
+
+	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
+	if err != nil {
+		return &generated.GetDatabaseCatalogPayload{
+			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
+		}, nil
+	}
+
+	page := 1
+	pageSize := 20
+	search := ""
+
+	if input != nil && input.Page != nil && *input.Page > 0 {
+		page = int(*input.Page)
+	}
+	if input != nil && input.PageSize != nil && *input.PageSize > 0 {
+		pageSize = int(*input.PageSize)
+		if pageSize > 100 {
+			pageSize = 100
+		}
+	}
+	if input != nil && input.Search != nil {
+		search = *input.Search
+	}
+
+	databases, totalCount, err := r.ModelDesignService.QueryDatabaseCatalogWithCommand(
+		ctx,
+		appmodeldesign.DatabaseCatalogQueryCommand{
+			OrgName:     orgName,
+			ProjectSlug: projectSlug,
+			Search:      search,
+			Page:        page,
+			PageSize:    pageSize,
+		},
+	)
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			switch bizErr.Info().GetCode() {
+			case bizerrors.ProjectNotFound.GetCode():
+				return &generated.GetDatabaseCatalogPayload{
+					Error: &generated.ProjectNotFound{Message: bizErr.Msg()},
+				}, nil
+			case bizerrors.ParamInvalid.GetCode():
+				gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
+				if bizErr.Detail() != "" {
+					detail := bizErr.Detail()
+					gqlErr.Suggestion = &detail
+				}
+				return &generated.GetDatabaseCatalogPayload{Error: gqlErr}, nil
+			default:
+				return &generated.GetDatabaseCatalogPayload{
+					Error: &generated.InvalidInput{Message: bizErr.Msg()},
+				}, nil
+			}
+		}
+		return nil, err
+	}
+
+	items := make([]*generated.DatabaseLite, len(databases))
+	for i, db := range databases {
+		items[i] = &generated.DatabaseLite{Name: db}
+	}
+
+	page32 := int32(page)
+	pageSize32 := int32(pageSize)
+	totalCount32 := int32(totalCount)
+
+	return &generated.GetDatabaseCatalogPayload{
+		Data: &generated.DatabaseCatalogPayload{
+			Databases:  items,
+			TotalCount: totalCount32,
+			Page:       page32,
+			PageSize:   pageSize32,
+		},
 	}, nil
 }
 

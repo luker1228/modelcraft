@@ -115,7 +115,6 @@ export function ImportModelDialog({
       const result = await importModel({
         variables: {
           input: {
-            projectSlug,
             databaseName,
             tableName: selectedTable,
           },

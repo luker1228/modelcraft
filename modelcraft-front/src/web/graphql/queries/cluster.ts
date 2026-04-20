@@ -48,3 +48,28 @@ export const LIST_DATABASES = gql`
     }
   }
 `
+
+export const DATABASE_CATALOG = gql`
+  query DatabaseCatalog($input: DatabaseCatalogInput) {
+    databaseCatalog(input: $input) {
+      data {
+        databases {
+          name
+        }
+        totalCount
+        page
+        pageSize
+      }
+      error {
+        __typename
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`

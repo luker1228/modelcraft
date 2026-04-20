@@ -246,6 +246,8 @@ func convertFormatTypeDomain2Model(format modeldesign.FormatType) generated.Form
 		return generated.FormatTypeRelation
 	case modeldesign.FormatEnum:
 		return generated.FormatTypeEnum
+	case modeldesign.FormatEndUserRef:
+		return generated.FormatTypeEndUserRef
 	default:
 		return ""
 	}

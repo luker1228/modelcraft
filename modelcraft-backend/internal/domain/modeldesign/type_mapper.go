@@ -42,6 +42,8 @@ func (m *MySQLTypeMapper) MapToMySQL(field *FieldDefinition) (string, error) {
 		return m.mapString(field)
 	case FormatUUID:
 		return "CHAR(36)", nil
+	case FormatEndUserRef:
+		return "CHAR(36)", nil
 	case FormatDate:
 		return "DATE", nil
 	case FormatDateTime:
