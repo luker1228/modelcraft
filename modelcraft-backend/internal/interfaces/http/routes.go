@@ -163,12 +163,15 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	enumAssocRepository := repository.NewSqlFieldEnumAssociationRepository(dbgen.New(loggingDB))
 	fkRepository := repository.NewSqlLogicalForeignKeyRepository(dbgen.New(loggingDB))
 	enumRepository := repository.NewSqlEnumRepository(dbgen.New(loggingDB))
-	appService := modeldesign.NewModelDesignAppService(
-		ddl.NewDeploymentService(clusterManager),
-		modelRepository, clusterRepository, txManager).
-		WithEnumAssocRepo(enumAssocRepository).
-		WithEnumRepo(enumRepository).
-		WithFKRepo(fkRepository)
+	appService := modeldesign.NewModelDesignAppService(modeldesign.ModelDesignAppServiceDeps{
+		DeployRepo:    ddl.NewDeploymentService(clusterManager),
+		ModelRepo:     modelRepository,
+		FKRepo:        fkRepository,
+		ClusterRepo:   clusterRepository,
+		TxManager:     txManager,
+		EnumAssocRepo: enumAssocRepository,
+		EnumRepo:      enumRepository,
+	})
 
 	// Create logical FK app service
 	logicalFKAppService := modeldesign.NewLogicalFKAppService(fkRepository, modelRepository, txManager)

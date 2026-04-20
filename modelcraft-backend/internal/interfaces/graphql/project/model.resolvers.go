@@ -17,6 +17,27 @@ import (
 	"strconv"
 )
 
+func (r *Resolver) attachModelRLSPolicy(
+	ctx context.Context,
+	model *generated.Model,
+) error {
+	if model == nil || r.RLSPolicyAppService == nil {
+		return nil
+	}
+
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	policy, err := r.RLSPolicyAppService.GetPolicy(ctx, orgName, projectSlug, model.ID)
+	if err != nil {
+		return err
+	}
+	model.RlsPolicy = convertPolicyToGraphQL(policy)
+	return nil
+}
+
 // CreateModel is the resolver for the createModel field.
 func (r *mutationResolver) CreateModel(ctx context.Context, input generated.CreateModelInput) (*generated.CreateModelPayload, error) {
 	errorAdapter := adapter.NewModelErrorAdapter(ctx)
@@ -83,6 +104,11 @@ func (r *mutationResolver) CreateModel(ctx context.Context, input generated.Crea
 		graphqlModel, err = adapter.ModelMapper.ConvertToGraphQLModel(modelEntity)
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
+		}
+		if r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
+			if err := r.attachModelRLSPolicy(ctx, graphqlModel); err != nil {
+				return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
+			}
 		}
 	}
 
@@ -611,6 +637,12 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 		graphqlModel.JSONSchema = &schemaJSON
 	}
 
+	if r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
+		if err := r.attachModelRLSPolicy(ctx, graphqlModel); err != nil {
+			return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
+		}
+	}
+
 	return &generated.GetModelPayload{
 		Model: graphqlModel,
 		Error: nil,
@@ -697,6 +729,11 @@ func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryI
 			if err != nil {
 				return fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 			}
+			if r.FieldSelectionChecker.IsFieldSelected(ctx, "edges.node.rlsPolicy") {
+				if err := r.attachModelRLSPolicy(ctx, graphqlModel); err != nil {
+					return fmt.Errorf("failed to attach model rls policy: %w", err)
+				}
+			}
 			edges[i] = &generated.ModelEdge{
 				Node:   graphqlModel,
 				Cursor: strconv.Itoa(offset + i + 1),
@@ -779,6 +816,11 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 	graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(&models[0])
 	if err != nil {
 		return nil, fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
+	}
+	if r.FieldSelectionChecker != nil && r.FieldSelectionChecker.IsFieldSelected(ctx, "model.rlsPolicy") {
+		if err := r.attachModelRLSPolicy(ctx, graphqlModel); err != nil {
+			return nil, fmt.Errorf("failed to attach model rls policy: %w", err)
+		}
 	}
 
 	return &generated.GetModelPayload{

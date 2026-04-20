@@ -31,51 +31,30 @@ type ModelDesignAppService struct {
 	txManager     repository.TxManager
 	enumAssocRepo modeldesign.FieldEnumAssociationRepository
 	enumRepo      modeldesign.EnumRepository
+}
 
-	// Repository factory functions for transaction-bound repository creation
-	modelRepoFactory func(q dbgen.Querier) modeldesign.ModelRepository
+// ModelDesignAppServiceDeps defines constructor dependencies.
+type ModelDesignAppServiceDeps struct {
+	DeployRepo       modeldesign.DeployRepo
+	ModelRepo        modeldesign.ModelRepository
+	FKRepo           modeldesign.LogicalForeignKeyRepository
+	ClusterRepo      cluster.DatabaseClusterRepository
+	TxManager        repository.TxManager
+	EnumAssocRepo    modeldesign.FieldEnumAssociationRepository
+	EnumRepo         modeldesign.EnumRepository
 }
 
 // NewModelDesignAppService 创建模型设计应用服务实例
-func NewModelDesignAppService(
-	deployRepo modeldesign.DeployRepo,
-	modelRepo modeldesign.ModelRepository,
-	clusterRepo cluster.DatabaseClusterRepository,
-	txManager repository.TxManager,
-) *ModelDesignAppService {
+func NewModelDesignAppService(deps ModelDesignAppServiceDeps) *ModelDesignAppService {
 	return &ModelDesignAppService{
-		txManager:        txManager,
-		deployRepo:       deployRepo,
-		modelRepo:        modelRepo,
-		clusterRepo:      clusterRepo,
-		modelRepoFactory: repository.NewSqlModelDesignRepository,
+		txManager:        deps.TxManager,
+		deployRepo:       deps.DeployRepo,
+		modelRepo:        deps.ModelRepo,
+		fkRepo:           deps.FKRepo,
+		clusterRepo:      deps.ClusterRepo,
+		enumAssocRepo:    deps.EnumAssocRepo,
+		enumRepo:         deps.EnumRepo,
 	}
-}
-
-// WithFKRepo sets the logical foreign key repository dependency.
-func (s *ModelDesignAppService) WithFKRepo(
-	repo modeldesign.LogicalForeignKeyRepository,
-) *ModelDesignAppService {
-	s.fkRepo = repo
-	return s
-}
-
-// WithEnumAssocRepo sets the enum association repository dependency.
-// This is used for wiring during initialization.
-func (s *ModelDesignAppService) WithEnumAssocRepo(
-	repo modeldesign.FieldEnumAssociationRepository,
-) *ModelDesignAppService {
-	s.enumAssocRepo = repo
-	return s
-}
-
-// WithEnumRepo sets the enum repository dependency.
-// This is used for IsArray inference when adding ENUM fields.
-func (s *ModelDesignAppService) WithEnumRepo(
-	repo modeldesign.EnumRepository,
-) *ModelDesignAppService {
-	s.enumRepo = repo
-	return s
 }
 
 // getLogger 获取logger，优先使用context中的logger，降级到baseLogger
@@ -147,6 +126,8 @@ func (s *ModelDesignAppService) transactionDeployModel(
 	orgName string,
 	model *modeldesign.DataModel,
 ) error {
+	hasOwnerField := model.IsRLSEnabled()
+
 	return s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		modelRepository := repository.NewSqlModelDesignRepository(q)
 		if err := modelRepository.Save(ctx, orgName, model); err != nil {
@@ -165,11 +146,11 @@ func (s *ModelDesignAppService) transactionDeployModel(
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, model.ID)
 		}
 
-		if createdModel.IsRLSEnabled() {
-			policy := &modeldesign.ModelRLSPolicy{ModelID: createdModel.ID}
+		if hasOwnerField {
+			policy := &modeldesign.ModelRLSPolicy{ModelID: model.ID}
 			policy.ApplyPreset(rlsdomain.RLSPresetReadWriteOwner)
 			if err := q.UpsertModelRLSPolicy(ctx, dbgen.UpsertModelRLSPolicyParams{
-				ModelID:         createdModel.ID,
+				ModelID:         model.ID,
 				SelectPredicate: string(policy.SelectPredicate),
 				InsertCheck:     string(policy.InsertCheck),
 				UpdatePredicate: string(policy.UpdatePredicate),

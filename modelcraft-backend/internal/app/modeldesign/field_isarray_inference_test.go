@@ -131,18 +131,15 @@ func newTestEnumField(
 func newTestServiceWithEnumRepo(
 	modelRepo modeldesign.ModelRepository,
 	deployRepo modeldesign.DeployRepo,
-	clusterRepo interface{},
 	enumRepo modeldesign.EnumRepository,
 	enumAssocRepo modeldesign.FieldEnumAssociationRepository,
 ) *ModelDesignAppService {
-	svc := &ModelDesignAppService{
-		modelRepo:     modelRepo,
-		deployRepo:    deployRepo,
-		txManager:     nil,
-		enumAssocRepo: enumAssocRepo,
-	}
-	svc.enumRepo = enumRepo
-	return svc
+	return NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:     modelRepo,
+		DeployRepo:    deployRepo,
+		EnumRepo:      enumRepo,
+		EnumAssocRepo: enumAssocRepo,
+	})
 }
 
 // ============================================================================
@@ -159,7 +156,7 @@ func TestAddFieldSync_EnumField_InfersIsArrayFromMultiSelect(t *testing.T) {
 	mockEnumRepo := new(MockEnumRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, nil, mockEnumRepo, mockEnumAssocRepo)
+	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, mockEnumRepo, mockEnumAssocRepo)
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
@@ -207,7 +204,7 @@ func TestAddFieldSync_EnumField_SingleSelectEnumKeepsIsArrayFalse(t *testing.T) 
 	mockEnumRepo := new(MockEnumRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, nil, mockEnumRepo, mockEnumAssocRepo)
+	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, mockEnumRepo, mockEnumAssocRepo)
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
@@ -254,7 +251,7 @@ func TestAddFieldSync_EnumField_IsArrayTrueButEnumNotMultiSelect_ReturnsError(t 
 	mockEnumRepo := new(MockEnumRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, nil, mockEnumRepo, mockEnumAssocRepo)
+	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, mockEnumRepo, mockEnumAssocRepo)
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
@@ -290,7 +287,7 @@ func TestAddFieldSync_NonEnumField_IsArrayNotAffected(t *testing.T) {
 	mockEnumRepo := new(MockEnumRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, nil, mockEnumRepo, mockEnumAssocRepo)
+	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, mockEnumRepo, mockEnumAssocRepo)
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
@@ -334,7 +331,7 @@ func TestAddFieldSync_EnumField_NoEnumName_ReturnsError(t *testing.T) {
 	mockEnumRepo := new(MockEnumRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, nil, mockEnumRepo, mockEnumAssocRepo)
+	svc := newTestServiceWithEnumRepo(mockModelRepo, mockDeployRepo, mockEnumRepo, mockEnumAssocRepo)
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")

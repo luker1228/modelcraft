@@ -343,12 +343,11 @@ func newTestService(
 	deployRepo modeldesign.DeployRepo,
 	clusterRepo cluster.DatabaseClusterRepository,
 ) *ModelDesignAppService {
-	return &ModelDesignAppService{
-		modelRepo:   modelRepo,
-		deployRepo:  deployRepo,
-		clusterRepo: clusterRepo,
-		txManager:   nil,
-	}
+	return NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:   modelRepo,
+		DeployRepo:  deployRepo,
+		ClusterRepo: clusterRepo,
+	})
 }
 
 // ============================================================================
@@ -826,8 +825,11 @@ func TestAddFieldSync_PhysicField_SetsDisplayOrder(t *testing.T) {
 	mockDeployRepo := new(MockDeployRepo)
 	mockEnumRepo := new(MockEnumAssocRepo)
 
-	svc := newTestService(mockModelRepo, mockDeployRepo, nil)
-	svc.WithEnumAssocRepo(mockEnumRepo)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:     mockModelRepo,
+		DeployRepo:    mockDeployRepo,
+		EnumAssocRepo: mockEnumRepo,
+	})
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
@@ -860,8 +862,11 @@ func TestAddFieldSync_MultipleFields_SequentialDisplayOrders(t *testing.T) {
 	mockDeployRepo := new(MockDeployRepo)
 	mockEnumRepo := new(MockEnumAssocRepo)
 
-	svc := newTestService(mockModelRepo, mockDeployRepo, nil)
-	svc.WithEnumAssocRepo(mockEnumRepo)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:     mockModelRepo,
+		DeployRepo:    mockDeployRepo,
+		EnumAssocRepo: mockEnumRepo,
+	})
 
 	locator, _ := modeldesign.NewModelLocator("test-org", "project-1", "db_1", "test_model")
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
@@ -899,8 +904,11 @@ func TestModelDesignAppService_AddFieldsWithResults_PartialSuccess(t *testing.T)
 	mockDeployRepo := new(MockDeployRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestService(mockModelRepo, mockDeployRepo, nil)
-	svc.WithEnumAssocRepo(mockEnumAssocRepo)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:     mockModelRepo,
+		DeployRepo:    mockDeployRepo,
+		EnumAssocRepo: mockEnumAssocRepo,
+	})
 
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
 	locator := &existingModel.ModelLocator
@@ -984,8 +992,11 @@ func TestAddPhysicFields_DeployFailAndRollbackFail_ReturnsCombinedError(t *testi
 	mockDeployRepo := new(MockDeployRepo)
 	mockEnumAssocRepo := new(MockEnumAssocRepo)
 
-	svc := newTestService(mockModelRepo, mockDeployRepo, nil)
-	svc.WithEnumAssocRepo(mockEnumAssocRepo)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:     mockModelRepo,
+		DeployRepo:    mockDeployRepo,
+		EnumAssocRepo: mockEnumAssocRepo,
+	})
 
 	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
 	locator := &existingModel.ModelLocator
@@ -1014,4 +1025,47 @@ func TestAddPhysicFields_DeployFailAndRollbackFail_ReturnsCombinedError(t *testi
 	assert.True(t, errors.Is(err, rollbackErr), "combined error should wrap rollback error")
 	mockModelRepo.AssertExpectations(t)
 	mockDeployRepo.AssertExpectations(t)
+}
+
+func TestAddFieldSync_EnumAssociationCreateFail_ReturnsError(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockDeployRepo := new(MockDeployRepo)
+	mockEnumAssocRepo := new(MockEnumAssocRepo)
+
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:     mockModelRepo,
+		DeployRepo:    mockDeployRepo,
+		EnumAssocRepo: mockEnumAssocRepo,
+	})
+
+	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
+	locator := &existingModel.ModelLocator
+	enumType, _ := modeldesign.NewFieldFormat(modeldesign.FormatEnum)
+	enumField := &modeldesign.FieldDefinition{
+		ModelID:      "model-1",
+		ModelLocator: locator,
+		Name:         "status",
+		Title:        "status",
+		Type:         enumType,
+		EnumName:     "status_enum",
+		Status:       modeldesign.FieldStatusInit,
+		Metadata:     map[string]any{},
+	}
+
+	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
+	mockModelRepo.On("GetTailFieldDisplayOrder", ctx, "model-1").Return("P", nil)
+	mockModelRepo.On("AddFields", ctx, "test-org", mock.Anything).Return(nil)
+	mockDeployRepo.On("DeployModelToAddFields", ctx, existingModel, mock.Anything).Return(nil)
+	mockModelRepo.On("UpdateFieldsStatus", ctx, mock.Anything).Return(nil)
+	mockEnumAssocRepo.On("Create", ctx, mock.Anything).Return(errors.New("assoc create failed"))
+
+	err := svc.AddFieldSync(ctx, AddFieldCommand{
+		ModelID: "model-1",
+		Fields:  []*modeldesign.FieldDefinition{enumField},
+	})
+
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "创建枚举关联失败")
+	assert.Contains(t, err.Error(), "assoc create failed")
 }

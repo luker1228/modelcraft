@@ -12,7 +12,6 @@ const ADD_FIELDS = `
           name
           format
           enumName
-          enumRelationId
         }
       }
       results {
@@ -145,9 +144,6 @@ When('我批量添加字段', async function (this: ModelCraftWorld, table: Data
 
     if (row.relateEnumName) {
       item.relateEnumName = row.relateEnumName === '@lastEnum' ? this.lastEnumName : row.relateEnumName
-    }
-    if (row.enumRelationId) {
-      item.enumRelationId = row.enumRelationId
     }
     return item
   })

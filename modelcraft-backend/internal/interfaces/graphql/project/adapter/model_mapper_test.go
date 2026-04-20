@@ -3,6 +3,7 @@ package adapter
 import (
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/project"
+	"modelcraft/internal/interfaces/graphql/project/generated"
 	"testing"
 	"time"
 
