@@ -7,10 +7,10 @@
 -- 1. models 表新增 created_via 字段
 -- ----------------------------------------
 ALTER TABLE models
-    ADD COLUMN IF NOT EXISTS created_via ENUM('NEW', 'IMPORTED') NOT NULL DEFAULT 'NEW'
+    ADD COLUMN created_via ENUM('NEW', 'IMPORTED') NOT NULL DEFAULT 'NEW'
     COMMENT '模型创建来源：NEW=新建，IMPORTED=导入';
 
-CREATE INDEX IF NOT EXISTS idx_models_created_via ON models(created_via);
+CREATE INDEX idx_models_created_via ON models(created_via);
 
 -- ----------------------------------------
 -- 2. 创建 model_rls_policies 表
@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS model_rls_policies (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='Model RLS 策略配置';
 
-CREATE INDEX IF NOT EXISTS idx_mrp_model_id ON model_rls_policies(model_id);
+CREATE INDEX idx_mrp_model_id ON model_rls_policies(model_id);
 
 -- ----------------------------------------
 -- 3. 创建 project_auth_schemas 表
@@ -59,8 +59,8 @@ CREATE TABLE IF NOT EXISTS project_auth_schemas (
     created_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updated_at      DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
 
-    -- 复合主键
-    PRIMARY KEY (org_name, project_slug),
+    -- 唯一约束：每个项目只有一份 auth schema
+    UNIQUE KEY uk_auth_schemas_project (org_name, project_slug),
 
     -- 索引
     KEY idx_auth_schemas_project (org_name, project_slug) COMMENT '项目查询索引'

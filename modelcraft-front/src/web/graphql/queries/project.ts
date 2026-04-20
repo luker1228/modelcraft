@@ -51,20 +51,3 @@ export const GET_PROJECT = gql`
     }
   }
 `
-
-// 获取项目认证 Schema
-export const GET_PROJECT_AUTH_SCHEMA = gql`
-  query GetProjectAuthSchema($projectSlug: String!) {
-    project(slug: $projectSlug) {
-      project {
-        id
-      }
-      error {
-        __typename
-        ... on ProjectNotFound {
-          message
-        }
-      }
-    }
-  }
-`

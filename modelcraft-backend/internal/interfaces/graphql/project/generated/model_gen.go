@@ -104,6 +104,10 @@ type SetModelRLSPolicyError interface {
 	IsSetModelRLSPolicyError()
 }
 
+type SetProjectAuthSchemaError interface {
+	IsSetProjectAuthSchemaError()
+}
+
 type TestConnectionError interface {
 	IsTestConnectionError()
 }
@@ -720,6 +724,8 @@ func (InvalidInput) IsCreateModelError() {}
 
 func (InvalidInput) IsUpdateModelError() {}
 
+func (InvalidInput) IsSetProjectAuthSchemaError() {}
+
 type InvalidRLSExpression struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -915,6 +921,11 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
+type ProjectAuthSchema struct {
+	// 认证变量列表（不含内置 uid）
+	Variables []*AuthVariable `json:"variables"`
+}
+
 type ProjectNotFound struct {
 	Message string `json:"message"`
 }
@@ -953,6 +964,8 @@ func (ProjectNotFound) IsCreateModelError() {}
 func (ProjectNotFound) IsUpdateModelError() {}
 
 func (ProjectNotFound) IsDeleteModelError() {}
+
+func (ProjectNotFound) IsSetProjectAuthSchemaError() {}
 
 func (ProjectNotFound) IsSetModelRLSPolicyError() {}
 
@@ -1037,6 +1050,16 @@ type SetModelRLSPolicyInput struct {
 type SetModelRLSPolicyPayload struct {
 	Policy *ModelRLSPolicy        `json:"policy,omitempty"`
 	Error  SetModelRLSPolicyError `json:"error,omitempty"`
+}
+
+type SetProjectAuthSchemaInput struct {
+	// 认证变量列表（uid 内置，无需声明）
+	Variables []*AuthVariableInput `json:"variables"`
+}
+
+type SetProjectAuthSchemaPayload struct {
+	AuthSchema *ProjectAuthSchema        `json:"authSchema,omitempty"`
+	Error      SetProjectAuthSchemaError `json:"error,omitempty"`
 }
 
 type SyncModelSchemaInput struct {

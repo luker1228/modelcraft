@@ -18,3 +18,18 @@ export const GET_MODEL_RLS_POLICY = gql`
     }
   }
 `
+
+/**
+ * 获取当前项目认证变量配置（project endpoint）
+ */
+export const GET_PROJECT_AUTH_SCHEMA = gql`
+  query GetProjectAuthSchema {
+    projectAuthSchema {
+      variables {
+        name
+        source
+        type
+      }
+    }
+  }
+`

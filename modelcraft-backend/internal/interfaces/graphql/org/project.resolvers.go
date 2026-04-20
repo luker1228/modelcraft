@@ -21,49 +21,6 @@ import (
 	"time"
 )
 
-func toDomainAuthVarType(t generated.AuthVariableType) domainRLS.AuthVarType {
-	switch t {
-	case generated.AuthVariableTypeUUID:
-		return domainRLS.AuthVarTypeUUID
-	case generated.AuthVariableTypeInteger:
-		return domainRLS.AuthVarTypeInteger
-	case generated.AuthVariableTypeString:
-		fallthrough
-	default:
-		return domainRLS.AuthVarTypeString
-	}
-}
-
-func toGraphQLAuthVarType(t domainRLS.AuthVarType) generated.AuthVariableType {
-	switch t {
-	case domainRLS.AuthVarTypeUUID:
-		return generated.AuthVariableTypeUUID
-	case domainRLS.AuthVarTypeInteger:
-		return generated.AuthVariableTypeInteger
-	case domainRLS.AuthVarTypeString:
-		fallthrough
-	default:
-		return generated.AuthVariableTypeString
-	}
-}
-
-func toGraphQLProjectAuthSchema(authSchema *domainRLS.AuthSchema) *generated.ProjectAuthSchema {
-	if authSchema == nil {
-		return &generated.ProjectAuthSchema{Variables: []*generated.AuthVariable{}}
-	}
-
-	variables := make([]*generated.AuthVariable, 0, len(authSchema.Variables))
-	for _, v := range authSchema.Variables {
-		variables = append(variables, &generated.AuthVariable{
-			Name:   v.Name,
-			Source: v.Source,
-			Type:   toGraphQLAuthVarType(v.Type),
-		})
-	}
-
-	return &generated.ProjectAuthSchema{Variables: variables}
-}
-
 // CreateProject is the resolver for the createProject field.
 func (r *mutationResolver) CreateProject(ctx context.Context, input generated.CreateProjectInput) (*generated.CreateProjectPayload, error) {
 	errorAdapter := adapter.NewProjectErrorAdapter(ctx)
@@ -476,19 +433,4 @@ func (r *queryResolver) DatabaseCluster(ctx context.Context, projectSlug string)
 		Cluster: clusterMapper.ToGraphQLCluster(cluster),
 		Error:   nil,
 	}, nil
-}
-
-// AuthSchema is the resolver for the authSchema field.
-func (r *queryResolver) AuthSchema(ctx context.Context, obj *generated.Project) (*generated.ProjectAuthSchema, error) {
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
-	}
-
-	authSchema, err := r.AuthSchemaAppService.GetAuthSchema(ctx, orgName, obj.Slug)
-	if err != nil {
-		return nil, err
-	}
-
-	return toGraphQLProjectAuthSchema(authSchema), nil
 }

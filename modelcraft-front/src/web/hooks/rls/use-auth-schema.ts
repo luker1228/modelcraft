@@ -3,8 +3,9 @@
 import * as React from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
-import { GET_PROJECT_AUTH_SCHEMA } from '@web/graphql/queries/project'
-import { SET_PROJECT_AUTH_SCHEMA } from '@web/graphql/mutations/project'
+import { useProjectScopedClient } from '@bff/apollo/public'
+import { GET_PROJECT_AUTH_SCHEMA } from '@web/graphql/queries/rls'
+import { SET_PROJECT_AUTH_SCHEMA } from '@web/graphql/mutations/rls'
 import type { AuthVariable, AuthVariableInput } from '@/types/rls'
 
 // ── GraphQL response types ──────────────────────────────────────────
@@ -14,15 +15,7 @@ interface ProjectAuthSchemaData {
 }
 
 interface GetProjectAuthSchemaData {
-  project: {
-    project: {
-      id: string
-    } | null
-    error: {
-      __typename: string
-      message: string
-    } | null
-  } | null
+  projectAuthSchema: ProjectAuthSchemaData | null
 }
 
 interface SetProjectAuthSchemaPayload {
@@ -66,11 +59,13 @@ export function useAuthSchema(
   _orgName: string,
   projectSlug: string
 ): UseAuthSchemaReturn {
+  const projectClient = useProjectScopedClient(projectSlug)
+
   // 查询认证变量配置
   const { data, loading, error, refetch } = useQuery<GetProjectAuthSchemaData>(
     GET_PROJECT_AUTH_SCHEMA,
     {
-      variables: { projectSlug },
+      client: projectClient,
       skip: !projectSlug,
       onError: (err) => {
         toast.error('获取认证变量配置失败', {
@@ -83,6 +78,7 @@ export function useAuthSchema(
   // 更新认证变量配置
   const [setProjectAuthSchema, { loading: updating }] =
     useMutation<SetProjectAuthSchemaData>(SET_PROJECT_AUTH_SCHEMA, {
+      client: projectClient,
       onCompleted: (mutationData) => {
         const error = mutationData?.setProjectAuthSchema?.error
         if (error) {
@@ -113,7 +109,6 @@ export function useAuthSchema(
       const result = await setProjectAuthSchema({
         variables: {
           input: {
-            projectSlug,
             variables,
           },
         },
@@ -129,8 +124,7 @@ export function useAuthSchema(
     }
   }
 
-  // 当前网关 schema 不支持 project.authSchema 查询，先只返回内置 uid，保存仍走 mutation。
-  const variables: AuthVariable[] | undefined = undefined
+  const variables = data?.projectAuthSchema?.variables
   const authSchema: AuthVariable[] = React.useMemo(
     () => [
       { name: 'uid', source: 'jwt.user_id', type: 'UUID', isBuiltin: true },

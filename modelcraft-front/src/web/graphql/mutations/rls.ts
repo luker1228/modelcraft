@@ -69,3 +69,31 @@ export const VALIDATE_RLS_EXPR = gql`
     }
   }
 `
+
+/**
+ * 设置当前项目认证变量配置（project endpoint）
+ */
+export const SET_PROJECT_AUTH_SCHEMA = gql`
+  mutation SetProjectAuthSchema($input: SetProjectAuthSchemaInput!) {
+    setProjectAuthSchema(input: $input) {
+      authSchema {
+        variables {
+          name
+          source
+          type
+        }
+      }
+      error {
+        __typename
+        ... on ProjectNotFound {
+          message
+          suggestion
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`

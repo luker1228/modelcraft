@@ -121,6 +121,13 @@ type AuthVariable {
   type: AuthVariableType!
 }
 
+type ProjectAuthSchema {
+  """
+  认证变量列表（不含内置 uid）
+  """
+  variables: [AuthVariable!]!
+}
+
 type ValidationResult {
   """
   是否校验通过
@@ -181,6 +188,8 @@ type RLSCheckViolation implements Error {
   operation: String
 }
 
+union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+
 type DangerousPolicyNotConfirmed implements Error {
   message: String!
   suggestion: String
@@ -201,6 +210,11 @@ type SetModelRLSPolicyPayload {
 type ValidateRLSExprPayload {
   result: ValidationResult!
   error: ValidateRLSExprError
+}
+
+type SetProjectAuthSchemaPayload {
+  authSchema: ProjectAuthSchema
+  error: SetProjectAuthSchemaError
 }
 
 # ----------------------------------------
@@ -273,6 +287,13 @@ input AuthVariableInput {
   type: AuthVariableType!
 }
 
+input SetProjectAuthSchemaInput {
+  """
+  认证变量列表（uid 内置，无需声明）
+  """
+  variables: [AuthVariableInput!]!
+}
+
 # ----------------------------------------
 # Queries & Mutations
 # ----------------------------------------
@@ -282,6 +303,11 @@ extend type Query {
   获取 Model RLS 策略配置
   """
   modelRLSPolicy(modelId: ID!): ModelRLSPolicy @hasPermission(action: "model:read")
+
+  """
+  获取当前项目 auth_schema
+  """
+  projectAuthSchema: ProjectAuthSchema! @hasPermission(action: "project:read")
 }
 
 extend type Mutation {
@@ -296,4 +322,9 @@ extend type Mutation {
   用于 Policy 配置页面的实时校验
   """
   validateRLSExpr(input: ValidateRLSExprInput!): ValidateRLSExprPayload! @hasPermission(action: "model:read")
+
+  """
+  设置当前项目 auth_schema
+  """
+  setProjectAuthSchema(input: SetProjectAuthSchemaInput!): SetProjectAuthSchemaPayload! @hasPermission(action: "project:update")
 }

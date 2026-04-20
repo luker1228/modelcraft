@@ -504,6 +504,7 @@ type ComplexityRoot struct {
 		ReorderGroup            func(childComplexity int, input ReorderGroupInput) int
 		RepairModel             func(childComplexity int, input RepairModelInput) int
 		SetModelRLSPolicy       func(childComplexity int, input SetModelRLSPolicyInput) int
+		SetProjectAuthSchema    func(childComplexity int, input SetProjectAuthSchemaInput) int
 		SyncModelSchema         func(childComplexity int, input SyncModelSchemaInput) int
 		TestDatabaseConnection  func(childComplexity int, input TestDatabaseConnectionInput) int
 		UndeprecateField        func(childComplexity int, modelID string, fieldName string) int
@@ -520,6 +521,10 @@ type ComplexityRoot struct {
 		HasNextPage     func(childComplexity int) int
 		HasPreviousPage func(childComplexity int) int
 		StartCursor     func(childComplexity int) int
+	}
+
+	ProjectAuthSchema struct {
+		Variables func(childComplexity int) int
 	}
 
 	ProjectNotFound struct {
@@ -545,6 +550,7 @@ type ComplexityRoot struct {
 		Models             func(childComplexity int, input *ModelQueryInput) int
 		Node               func(childComplexity int, id string) int
 		Ping               func(childComplexity int) int
+		ProjectAuthSchema  func(childComplexity int) int
 	}
 
 	RLSCheckViolation struct {
@@ -589,6 +595,11 @@ type ComplexityRoot struct {
 	SetModelRLSPolicyPayload struct {
 		Error  func(childComplexity int) int
 		Policy func(childComplexity int) int
+	}
+
+	SetProjectAuthSchemaPayload struct {
+		AuthSchema func(childComplexity int) int
+		Error      func(childComplexity int) int
 	}
 
 	SyncModelSchemaPayload struct {
@@ -696,6 +707,7 @@ type MutationResolver interface {
 	MoveModelToGroup(ctx context.Context, input MoveModelToGroupInput) (*MoveModelToGroupPayload, error)
 	SetModelRLSPolicy(ctx context.Context, input SetModelRLSPolicyInput) (*SetModelRLSPolicyPayload, error)
 	ValidateRLSExpr(ctx context.Context, input ValidateRLSExprInput) (*ValidateRLSExprPayload, error)
+	SetProjectAuthSchema(ctx context.Context, input SetProjectAuthSchemaInput) (*SetProjectAuthSchemaPayload, error)
 }
 type QueryResolver interface {
 	Hello(ctx context.Context) (string, error)
@@ -716,6 +728,7 @@ type QueryResolver interface {
 	ModelJSONSchema(ctx context.Context, id string) (*ModelJSONSchema, error)
 	ModelGroups(ctx context.Context) ([]*ModelGroup, error)
 	ModelRLSPolicy(ctx context.Context, modelID string) (*ModelRLSPolicy, error)
+	ProjectAuthSchema(ctx context.Context) (*ProjectAuthSchema, error)
 }
 
 type executableSchema struct {
@@ -2366,6 +2379,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SetModelRLSPolicy(childComplexity, args["input"].(SetModelRLSPolicyInput)), true
+	case "Mutation.setProjectAuthSchema":
+		if e.complexity.Mutation.SetProjectAuthSchema == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_setProjectAuthSchema_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.SetProjectAuthSchema(childComplexity, args["input"].(SetProjectAuthSchemaInput)), true
 	case "Mutation.syncModelSchema":
 		if e.complexity.Mutation.SyncModelSchema == nil {
 			break
@@ -2490,6 +2514,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
+
+	case "ProjectAuthSchema.variables":
+		if e.complexity.ProjectAuthSchema.Variables == nil {
+			break
+		}
+
+		return e.complexity.ProjectAuthSchema.Variables(childComplexity), true
 
 	case "ProjectNotFound.message":
 		if e.complexity.ProjectNotFound.Message == nil {
@@ -2671,6 +2702,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Ping(childComplexity), true
+	case "Query.projectAuthSchema":
+		if e.complexity.Query.ProjectAuthSchema == nil {
+			break
+		}
+
+		return e.complexity.Query.ProjectAuthSchema(childComplexity), true
 
 	case "RLSCheckViolation.message":
 		if e.complexity.RLSCheckViolation.Message == nil {
@@ -2816,6 +2853,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.SetModelRLSPolicyPayload.Policy(childComplexity), true
+
+	case "SetProjectAuthSchemaPayload.authSchema":
+		if e.complexity.SetProjectAuthSchemaPayload.AuthSchema == nil {
+			break
+		}
+
+		return e.complexity.SetProjectAuthSchemaPayload.AuthSchema(childComplexity), true
+	case "SetProjectAuthSchemaPayload.error":
+		if e.complexity.SetProjectAuthSchemaPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.SetProjectAuthSchemaPayload.Error(childComplexity), true
 
 	case "SyncModelSchemaPayload.deletedFields":
 		if e.complexity.SyncModelSchemaPayload.DeletedFields == nil {
@@ -3064,6 +3114,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputReorderGroupInput,
 		ec.unmarshalInputRepairModelInput,
 		ec.unmarshalInputSetModelRLSPolicyInput,
+		ec.unmarshalInputSetProjectAuthSchemaInput,
 		ec.unmarshalInputSyncModelSchemaInput,
 		ec.unmarshalInputTestDatabaseConnectionInput,
 		ec.unmarshalInputUpdateClusterConnectionInput,
@@ -4392,6 +4443,13 @@ type AuthVariable {
   type: AuthVariableType!
 }
 
+type ProjectAuthSchema {
+  """
+  认证变量列表（不含内置 uid）
+  """
+  variables: [AuthVariable!]!
+}
+
 type ValidationResult {
   """
   是否校验通过
@@ -4452,6 +4510,8 @@ type RLSCheckViolation implements Error {
   operation: String
 }
 
+union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+
 type DangerousPolicyNotConfirmed implements Error {
   message: String!
   suggestion: String
@@ -4472,6 +4532,11 @@ type SetModelRLSPolicyPayload {
 type ValidateRLSExprPayload {
   result: ValidationResult!
   error: ValidateRLSExprError
+}
+
+type SetProjectAuthSchemaPayload {
+  authSchema: ProjectAuthSchema
+  error: SetProjectAuthSchemaError
 }
 
 # ----------------------------------------
@@ -4544,6 +4609,13 @@ input AuthVariableInput {
   type: AuthVariableType!
 }
 
+input SetProjectAuthSchemaInput {
+  """
+  认证变量列表（uid 内置，无需声明）
+  """
+  variables: [AuthVariableInput!]!
+}
+
 # ----------------------------------------
 # Queries & Mutations
 # ----------------------------------------
@@ -4553,6 +4625,11 @@ extend type Query {
   获取 Model RLS 策略配置
   """
   modelRLSPolicy(modelId: ID!): ModelRLSPolicy @hasPermission(action: "model:read")
+
+  """
+  获取当前项目 auth_schema
+  """
+  projectAuthSchema: ProjectAuthSchema! @hasPermission(action: "project:read")
 }
 
 extend type Mutation {
@@ -4567,6 +4644,11 @@ extend type Mutation {
   用于 Policy 配置页面的实时校验
   """
   validateRLSExpr(input: ValidateRLSExprInput!): ValidateRLSExprPayload! @hasPermission(action: "model:read")
+
+  """
+  设置当前项目 auth_schema
+  """
+  setProjectAuthSchema(input: SetProjectAuthSchemaInput!): SetProjectAuthSchemaPayload! @hasPermission(action: "project:update")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/schema.graphql", Input: `schema {
@@ -4825,6 +4907,17 @@ func (ec *executionContext) field_Mutation_setModelRLSPolicy_args(ctx context.Co
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNSetModelRLSPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetModelRLSPolicyInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_setProjectAuthSchema_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNSetProjectAuthSchemaInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaInput)
 	if err != nil {
 		return nil, err
 	}
@@ -14126,6 +14219,71 @@ func (ec *executionContext) fieldContext_Mutation_validateRLSExpr(ctx context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_setProjectAuthSchema(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_setProjectAuthSchema,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().SetProjectAuthSchema(ctx, fc.Args["input"].(SetProjectAuthSchemaInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "project:update")
+				if err != nil {
+					var zeroVal *SetProjectAuthSchemaPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *SetProjectAuthSchemaPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNSetProjectAuthSchemaPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_setProjectAuthSchema(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "authSchema":
+				return ec.fieldContext_SetProjectAuthSchemaPayload_authSchema(ctx, field)
+			case "error":
+				return ec.fieldContext_SetProjectAuthSchemaPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type SetProjectAuthSchemaPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_setProjectAuthSchema_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14237,6 +14395,43 @@ func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, f
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ProjectAuthSchema_variables(ctx context.Context, field graphql.CollectedField, obj *ProjectAuthSchema) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ProjectAuthSchema_variables,
+		func(ctx context.Context) (any, error) {
+			return obj.Variables, nil
+		},
+		nil,
+		ec.marshalNAuthVariable2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ProjectAuthSchema_variables(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ProjectAuthSchema",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_AuthVariable_name(ctx, field)
+			case "source":
+				return ec.fieldContext_AuthVariable_source(ctx, field)
+			case "type":
+				return ec.fieldContext_AuthVariable_type(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type AuthVariable", field.Name)
 		},
 	}
 	return fc, nil
@@ -15397,6 +15592,57 @@ func (ec *executionContext) fieldContext_Query_modelRLSPolicy(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_projectAuthSchema(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_projectAuthSchema,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ProjectAuthSchema(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "project:read")
+				if err != nil {
+					var zeroVal *ProjectAuthSchema
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *ProjectAuthSchema
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNProjectAuthSchema2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐProjectAuthSchema,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_projectAuthSchema(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "variables":
+				return ec.fieldContext_ProjectAuthSchema_variables(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProjectAuthSchema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16275,6 +16521,68 @@ func (ec *executionContext) fieldContext_SetModelRLSPolicyPayload_error(_ contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type SetModelRLSPolicyError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SetProjectAuthSchemaPayload_authSchema(ctx context.Context, field graphql.CollectedField, obj *SetProjectAuthSchemaPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SetProjectAuthSchemaPayload_authSchema,
+		func(ctx context.Context) (any, error) {
+			return obj.AuthSchema, nil
+		},
+		nil,
+		ec.marshalOProjectAuthSchema2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐProjectAuthSchema,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SetProjectAuthSchemaPayload_authSchema(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SetProjectAuthSchemaPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "variables":
+				return ec.fieldContext_ProjectAuthSchema_variables(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ProjectAuthSchema", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _SetProjectAuthSchemaPayload_error(ctx context.Context, field graphql.CollectedField, obj *SetProjectAuthSchemaPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_SetProjectAuthSchemaPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOSetProjectAuthSchemaError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_SetProjectAuthSchemaPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "SetProjectAuthSchemaPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type SetProjectAuthSchemaError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -19882,6 +20190,33 @@ func (ec *executionContext) unmarshalInputSetModelRLSPolicyInput(ctx context.Con
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSetProjectAuthSchemaInput(ctx context.Context, obj any) (SetProjectAuthSchemaInput, error) {
+	var it SetProjectAuthSchemaInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"variables"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "variables":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("variables"))
+			data, err := ec.unmarshalNAuthVariableInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Variables = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSyncModelSchemaInput(ctx context.Context, obj any) (SyncModelSchemaInput, error) {
 	var it SyncModelSchemaInput
 	asMap := map[string]any{}
@@ -21052,6 +21387,29 @@ func (ec *executionContext) _SetModelRLSPolicyError(ctx context.Context, sel ast
 			return graphql.Null
 		}
 		return ec._InvalidAuthVariable(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _SetProjectAuthSchemaError(ctx context.Context, sel ast.SelectionSet, obj SetProjectAuthSchemaError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -23836,7 +24194,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "SetProjectAuthSchemaError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -24837,6 +25195,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "setProjectAuthSchema":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_setProjectAuthSchema(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -24908,7 +25273,46 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var projectAuthSchemaImplementors = []string{"ProjectAuthSchema"}
+
+func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.SelectionSet, obj *ProjectAuthSchema) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, projectAuthSchemaImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ProjectAuthSchema")
+		case "variables":
+			out.Values[i] = ec._ProjectAuthSchema_variables(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -25353,6 +25757,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "projectAuthSchema":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_projectAuthSchema(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "__type":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Query___type(ctx, field)
@@ -25681,6 +26107,44 @@ func (ec *executionContext) _SetModelRLSPolicyPayload(ctx context.Context, sel a
 			out.Values[i] = ec._SetModelRLSPolicyPayload_policy(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._SetModelRLSPolicyPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var setProjectAuthSchemaPayloadImplementors = []string{"SetProjectAuthSchemaPayload"}
+
+func (ec *executionContext) _SetProjectAuthSchemaPayload(ctx context.Context, sel ast.SelectionSet, obj *SetProjectAuthSchemaPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, setProjectAuthSchemaPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SetProjectAuthSchemaPayload")
+		case "authSchema":
+			out.Values[i] = ec._SetProjectAuthSchemaPayload_authSchema(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._SetProjectAuthSchemaPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -26748,6 +27212,80 @@ func (ec *executionContext) marshalNAddFieldsPayload2ᚖmodelcraftᚋinternalᚋ
 	return ec._AddFieldsPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNAuthVariable2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableᚄ(ctx context.Context, sel ast.SelectionSet, v []*AuthVariable) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNAuthVariable2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariable(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNAuthVariable2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariable(ctx context.Context, sel ast.SelectionSet, v *AuthVariable) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._AuthVariable(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNAuthVariableInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableInputᚄ(ctx context.Context, v any) ([]*AuthVariableInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*AuthVariableInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNAuthVariableInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNAuthVariableInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableInput(ctx context.Context, v any) (*AuthVariableInput, error) {
+	res, err := ec.unmarshalInputAuthVariableInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNAuthVariableType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableType(ctx context.Context, v any) (AuthVariableType, error) {
 	var res AuthVariableType
 	err := res.UnmarshalGQL(v)
@@ -27808,6 +28346,20 @@ func (ec *executionContext) marshalNPageInfo2ᚖmodelcraftᚋinternalᚋinterfac
 	return ec._PageInfo(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNProjectAuthSchema2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐProjectAuthSchema(ctx context.Context, sel ast.SelectionSet, v ProjectAuthSchema) graphql.Marshaler {
+	return ec._ProjectAuthSchema(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNProjectAuthSchema2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐProjectAuthSchema(ctx context.Context, sel ast.SelectionSet, v *ProjectAuthSchema) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ProjectAuthSchema(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNRLSExprType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRLSExprType(ctx context.Context, v any) (RLSExprType, error) {
 	var res RLSExprType
 	err := res.UnmarshalGQL(v)
@@ -27990,6 +28542,25 @@ func (ec *executionContext) marshalNSetModelRLSPolicyPayload2ᚖmodelcraftᚋint
 		return graphql.Null
 	}
 	return ec._SetModelRLSPolicyPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNSetProjectAuthSchemaInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaInput(ctx context.Context, v any) (SetProjectAuthSchemaInput, error) {
+	res, err := ec.unmarshalInputSetProjectAuthSchemaInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNSetProjectAuthSchemaPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaPayload(ctx context.Context, sel ast.SelectionSet, v SetProjectAuthSchemaPayload) graphql.Marshaler {
+	return ec._SetProjectAuthSchemaPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNSetProjectAuthSchemaPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaPayload(ctx context.Context, sel ast.SelectionSet, v *SetProjectAuthSchemaPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._SetProjectAuthSchemaPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -28888,6 +29459,13 @@ func (ec *executionContext) marshalONode2modelcraftᚋinternalᚋinterfacesᚋgr
 	return ec._Node(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOProjectAuthSchema2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐProjectAuthSchema(ctx context.Context, sel ast.SelectionSet, v *ProjectAuthSchema) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ProjectAuthSchema(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalORLSPreset2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRLSPreset(ctx context.Context, v any) (*RLSPreset, error) {
 	if v == nil {
 		return nil, nil
@@ -28930,6 +29508,13 @@ func (ec *executionContext) marshalOSetModelRLSPolicyError2modelcraftᚋinternal
 		return graphql.Null
 	}
 	return ec._SetModelRLSPolicyError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOSetProjectAuthSchemaError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐSetProjectAuthSchemaError(ctx context.Context, sel ast.SelectionSet, v SetProjectAuthSchemaError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SetProjectAuthSchemaError(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

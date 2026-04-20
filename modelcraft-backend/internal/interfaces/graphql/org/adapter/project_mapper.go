@@ -23,6 +23,8 @@ func (p *projectMapper) ConvertProjectToGraphQL(proj *project.Project) *generate
 		Description: proj.Description,
 		Status:      ConvertProjectStatusToGraphQL(proj.Status),
 		OrgName:     proj.OrgName,
+		// Keep non-null contract for Project.authSchema.
+		AuthSchema: &generated.ProjectAuthSchema{Variables: []*generated.AuthVariable{}},
 		// Cluster field is resolved separately via ProjectResolver.Cluster()
 		CreatedAt: proj.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		UpdatedAt: proj.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
