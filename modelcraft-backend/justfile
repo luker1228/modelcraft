@@ -25,7 +25,7 @@ DB_USER := env_var_or_default("DB_USER", "root")
 DB_PASSWORD := env_var_or_default("DB_PASSWORD", "password")
 DB_HOST := env_var_or_default("DB_HOST", "127.0.0.1")
 DB_PORT := env_var_or_default("DB_PORT", "3306")
-DB_NAME := env_var_or_default("DB_NAME", "modelcraft")
+DB_NAME := env_var_or_default("DB_NAME", "mc_meta")
 DB_URL := "mysql://" + DB_USER + ":" + DB_PASSWORD + "@" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
 DB_DEV_URL := "mysql://" + DB_USER + ":" + DB_PASSWORD + "@" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME + "_dev"
 
@@ -358,6 +358,8 @@ lint: install-golangci-lint
     mkdir -p .cache/golangci-lint .cache/go-build
     echo "🔎 预检查：Repository 构造函数必须使用 dbgenwrap.NewSafeQuerier(q)..."
     ! rg -n --multiline --multiline-dotall --pcre2 '^func\s+NewSql\w*Repository\s*\(q\s+dbgen\.Querier\).*?return\s+&\w+\{q:\s*q\}' internal/infrastructure --glob '*.go'
+    echo "🔎 预检查：WithTx 回调必须使用 tx Querier 且不得在回调内调用非 tx repo..."
+    ./scripts/check-withtx-repo-usage.sh
     echo "🔍 运行 golangci-lint 代码检查..."
     GOLANGCI_LINT_CACHE="$(pwd)/.cache/golangci-lint" GOCACHE="$(pwd)/.cache/go-build" golangci-lint run
 
@@ -367,6 +369,8 @@ lint-fix: install-golangci-lint
     mkdir -p .cache/golangci-lint .cache/go-build
     echo "🔎 预检查：Repository 构造函数必须使用 dbgenwrap.NewSafeQuerier(q)..."
     ! rg -n --multiline --multiline-dotall --pcre2 '^func\s+NewSql\w*Repository\s*\(q\s+dbgen\.Querier\).*?return\s+&\w+\{q:\s*q\}' internal/infrastructure --glob '*.go'
+    echo "🔎 预检查：WithTx 回调必须使用 tx Querier 且不得在回调内调用非 tx repo..."
+    ./scripts/check-withtx-repo-usage.sh
     echo "运行 golangci-lint 代码检查并自动修复..."
     GOLANGCI_LINT_CACHE="$(pwd)/.cache/golangci-lint" GOCACHE="$(pwd)/.cache/go-build" golangci-lint run --fix
 

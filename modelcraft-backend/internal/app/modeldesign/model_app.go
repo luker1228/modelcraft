@@ -7,7 +7,6 @@ import (
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/project"
-	rlsdomain "modelcraft/internal/domain/rls"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/repository"
@@ -17,6 +16,8 @@ import (
 	"modelcraft/pkg/lexorder"
 	"modelcraft/pkg/logfacade"
 	"strings"
+
+	rlsdomain "modelcraft/internal/domain/rls"
 
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -35,25 +36,25 @@ type ModelDesignAppService struct {
 
 // ModelDesignAppServiceDeps defines constructor dependencies.
 type ModelDesignAppServiceDeps struct {
-	DeployRepo       modeldesign.DeployRepo
-	ModelRepo        modeldesign.ModelRepository
-	FKRepo           modeldesign.LogicalForeignKeyRepository
-	ClusterRepo      cluster.DatabaseClusterRepository
-	TxManager        repository.TxManager
-	EnumAssocRepo    modeldesign.FieldEnumAssociationRepository
-	EnumRepo         modeldesign.EnumRepository
+	DeployRepo    modeldesign.DeployRepo
+	ModelRepo     modeldesign.ModelRepository
+	FKRepo        modeldesign.LogicalForeignKeyRepository
+	ClusterRepo   cluster.DatabaseClusterRepository
+	TxManager     repository.TxManager
+	EnumAssocRepo modeldesign.FieldEnumAssociationRepository
+	EnumRepo      modeldesign.EnumRepository
 }
 
 // NewModelDesignAppService 创建模型设计应用服务实例
 func NewModelDesignAppService(deps ModelDesignAppServiceDeps) *ModelDesignAppService {
 	return &ModelDesignAppService{
-		txManager:        deps.TxManager,
-		deployRepo:       deps.DeployRepo,
-		modelRepo:        deps.ModelRepo,
-		fkRepo:           deps.FKRepo,
-		clusterRepo:      deps.ClusterRepo,
-		enumAssocRepo:    deps.EnumAssocRepo,
-		enumRepo:         deps.EnumRepo,
+		txManager:     deps.TxManager,
+		deployRepo:    deps.DeployRepo,
+		modelRepo:     deps.ModelRepo,
+		fkRepo:        deps.FKRepo,
+		clusterRepo:   deps.ClusterRepo,
+		enumAssocRepo: deps.EnumAssocRepo,
+		enumRepo:      deps.EnumRepo,
 	}
 }
 

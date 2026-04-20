@@ -1,5 +1,5 @@
 // Package private provides DDL migration utilities for private project databases.
-// Each project has its own private database (private_{projectSlug}) for end-user data isolation.
+// Each project has its own private database (mc_private_{projectSlug}) for end-user data isolation.
 package private
 
 import (
@@ -31,7 +31,7 @@ func NewPrivateMigrator(logger logfacade.Logger) *PrivateMigrator {
 // Parameters:
 //   - ctx: context for cancellation and tracing
 //   - db: database connection (must have CREATE DATABASE privilege)
-//   - projectSlug: the project identifier (used in database name: private_{projectSlug})
+//   - projectSlug: the project identifier (used in database name: mc_private_{projectSlug})
 //
 // Returns error if:
 //   - projectSlug format is invalid (SQL injection prevention)
@@ -43,7 +43,7 @@ func (m *PrivateMigrator) Migrate(ctx context.Context, db *sql.DB, projectSlug s
 		return fmt.Errorf("invalid projectSlug format: %s", projectSlug)
 	}
 
-	dbName := fmt.Sprintf("private_%s", projectSlug)
+	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
 
 	m.logger.Info(ctx, "starting private database migration",
 		logfacade.String("database", dbName),

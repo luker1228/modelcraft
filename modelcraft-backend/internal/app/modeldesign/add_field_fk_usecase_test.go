@@ -4,8 +4,6 @@ import (
 	"context"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/project"
-	"modelcraft/internal/infrastructure/dbgen"
-	"modelcraft/internal/infrastructure/repository"
 	"testing"
 	"time"
 
@@ -85,19 +83,6 @@ func (m *MockLogicalForeignKeyRepository) GetByID(
 	return args.Get(0).(*modeldesign.LogicalForeignKey), args.Error(1)
 }
 
-// MockTxManager is a mock for repository.TxManager.
-type MockTxManager struct {
-	mock.Mock
-}
-
-func (m *MockTxManager) WithTx(ctx context.Context, fn func(ctx context.Context, q dbgen.Querier) error) error {
-	args := m.Called(ctx, fn)
-	return args.Error(0)
-}
-
-// Ensure MockTxManager implements repository.TxManager
-var _ repository.TxManager = (*MockTxManager)(nil)
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -108,16 +93,6 @@ func makeLocator(modelName, dbName, projectSlug string) *modeldesign.ModelLocato
 		ModelName:    modelName,
 		DatabaseName: dbName,
 	}
-}
-
-func makeModel(id, name string) *modeldesign.DataModel {
-	m := &modeldesign.DataModel{}
-	m.ID = id
-	m.ModelName = name
-	m.ProjectSlug = "proj1"
-	m.DatabaseName = "db1"
-	m.Fields = []*modeldesign.FieldDefinition{}
-	return m
 }
 
 func makeFKRow(

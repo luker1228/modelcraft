@@ -11,7 +11,7 @@ database:
   port: 3306
   username: "root"
   password: ""  # MUST override via DB_PASSWORD environment variable or .env file
-  database: "modelcraft"
+  database: "mc_meta"
   charset: "utf8mb4"
   # 连接池配置
   max_open_conns: 100

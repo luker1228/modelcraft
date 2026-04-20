@@ -141,7 +141,7 @@ func (m *PrivateDBManager) createAndCacheConnection(
 		m.migrated.Store(key, true)
 	}
 
-	dbName := fmt.Sprintf("private_%s", projectSlug)
+	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
 	privateDB, err := m.openPrivateDBConnection(connInfo, plainPassword, dbName)
 	if err != nil {
 		return nil, fmt.Errorf("open private DB connection: %w", err)

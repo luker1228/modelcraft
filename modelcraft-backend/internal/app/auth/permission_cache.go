@@ -201,12 +201,6 @@ func (c *PermissionCache) cacheRolePermissions(cacheKey string, rolePerms RolePe
 	c.redis.Set(ctx, cacheKey, data, c.cacheTTL)
 }
 
-// buildCacheKey generates the Redis cache key for user permissions (legacy, kept for reference)
-// Format: "auth:{orgName}:{userId}"
-func (c *PermissionCache) buildCacheKey(orgName, userID string) string {
-	return fmt.Sprintf("auth:%s:%s", orgName, userID)
-}
-
 // buildVersionedCacheKey generates the versioned Redis cache key for user permissions
 // Phase 3 Format: "auth:{orgName}:{userId}:{version}"
 func (c *PermissionCache) buildVersionedCacheKey(orgName, userID string, version int64) string {

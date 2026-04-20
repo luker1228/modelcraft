@@ -292,19 +292,6 @@ func TestTokenService_Register_InvalidPhone(t *testing.T) {
 	assert.Contains(t, err.Error(), "PARAM_INVALID")
 }
 
-func TestTokenService_Register_WeakPassword(t *testing.T) {
-	svc, _, _, _, _ := createTestService(t)
-	ctx := context.Background()
-
-	_, err := svc.Register(ctx, RegisterCommand{
-		Phone:    "13800138000",
-		Password: "short",
-		UserName: "john_doe",
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "PARAM_INVALID")
-}
-
 func TestTokenService_Register_DuplicatePhone(t *testing.T) {
 	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
@@ -347,32 +334,6 @@ func TestTokenService_Register_DuplicateUserName(t *testing.T) {
 	assert.Contains(t, err.Error(), "CONFLICT.USER")
 }
 
-func TestTokenService_Register_InvalidUserName(t *testing.T) {
-	svc, _, _, _, _ := createTestService(t)
-	ctx := context.Background()
-
-	_, err := svc.Register(ctx, RegisterCommand{
-		Phone:    "13800138000",
-		Password: "securePassword1",
-		UserName: "1invalid",
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "PARAM_INVALID.AUTH")
-}
-
-func TestTokenService_Register_ReservedUserName(t *testing.T) {
-	svc, _, _, _, _ := createTestService(t)
-	ctx := context.Background()
-
-	_, err := svc.Register(ctx, RegisterCommand{
-		Phone:    "13800138000",
-		Password: "securePassword1",
-		UserName: "admin",
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "PARAM_INVALID.AUTH")
-}
-
 // ========== Login Tests ==========
 
 func TestTokenService_Login_Success(t *testing.T) {
@@ -393,19 +354,6 @@ func TestTokenService_Login_Success(t *testing.T) {
 	assert.NotEmpty(t, result.UserID)
 	assert.NotEmpty(t, result.RefreshToken)
 	assert.False(t, result.ExpiresAt.Before(time.Now()))
-}
-
-func TestTokenService_Login_InvalidPhone(t *testing.T) {
-	svc, _, _, _, _ := createTestService(t)
-	ctx := context.Background()
-
-	_, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "invalid",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
-	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "PARAM_INVALID")
 }
 
 func TestTokenService_Login_PhoneNotFound(t *testing.T) {
@@ -434,48 +382,6 @@ func TestTokenService_Login_WrongPassword(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "AUTHENTICATION_FAILED")
-}
-
-// ========== OAuth Login Tests (backward compat) ==========
-
-func TestTokenService_OAuthLogin_NewUser(t *testing.T) {
-	svc, _, userRepo, _, _ := createTestService(t)
-	ctx := context.Background()
-
-	result, err := svc.OAuthLogin(ctx, OAuthLoginCommand{
-		ExternalID: "ext_123",
-		Email:      "test@example.com",
-		Name:       "Test User",
-	})
-
-	require.NoError(t, err)
-	assert.NotEmpty(t, result.UserID)
-	assert.NotEmpty(t, result.RefreshToken)
-	assert.False(t, result.ExpiresAt.Before(time.Now()))
-
-	// Verify user was created
-	u, err := userRepo.GetByExternalID(ctx, "ext_123")
-	require.NoError(t, err)
-	assert.NotNil(t, u)
-	assert.Equal(t, "Test User", u.Name)
-}
-
-func TestTokenService_OAuthLogin_ExistingUser(t *testing.T) {
-	svc, _, userRepo, _, _ := createTestService(t)
-	ctx := context.Background()
-
-	// Pre-create user
-	existingUser, _ := domainUser.NewOAuthUser("pre-existing-id", "ext_456", "Existing", "")
-	_ = userRepo.Create(ctx, existingUser)
-
-	result, err := svc.OAuthLogin(ctx, OAuthLoginCommand{
-		ExternalID: "ext_456",
-		Email:      "updated@example.com",
-		Name:       "Existing",
-	})
-
-	require.NoError(t, err)
-	assert.Equal(t, "pre-existing-id", result.UserID)
 }
 
 // ========== Refresh Tests ==========

@@ -412,7 +412,7 @@ func (cm *ClusterConnectionManager) ListDatabases(
 	}
 
 	// 构建基础 WHERE 条件
-	whereClause := "WHERE SCHEMA_NAME NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys')"
+	whereClause := "WHERE SCHEMA_NAME NOT IN ('information_schema', 'mysql', 'performance_schema', 'sys', 'mc_meta')"
 	args := []interface{}{}
 
 	if search != "" {

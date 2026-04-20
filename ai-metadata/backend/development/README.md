@@ -20,6 +20,7 @@
 | [comments.md](./comments.md) | 注释规范 | 代码注释 |
 | [sqlc-custom-types.md](./sqlc-custom-types.md) | sqlc 自定义类型规范 | 自定义类型实现 |
 | [contract-sync.md](./contract-sync.md) | API Contract 共享规范 ⭐ | 修改 `api/` 目录时 |
+| [tx-querier-rules.md](./tx-querier-rules.md) | WithTx/Querier 事务使用规范 ⭐ | 修改 `internal/app/**/*.go` 的事务逻辑时 |
 
 ## 🏛️ 架构分层
 

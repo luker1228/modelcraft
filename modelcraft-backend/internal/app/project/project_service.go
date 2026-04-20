@@ -85,10 +85,13 @@ func (s *ProjectAppService) CreateProject(
 		return nil, bizerrors.Wrapf(err, "failed to generate cluster ID")
 	}
 
-	// Atomically persist project and cluster
-	txErr := s.txManager.WithTx(ctx, func(ctx context.Context, _ dbgen.Querier) error {
+	// Atomically persist project and cluster using tx-scoped repositories
+	txErr := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+		txProjectRepo := repository.NewSqlProjectRepository(q)
+		txClusterRepo := repository.NewSqlDatabaseClusterRepository(q)
+
 		// Save project
-		if err := s.projectRepo.Create(ctx, proj); err != nil {
+		if err := txProjectRepo.Create(ctx, proj); err != nil {
 			return bizerrors.Wrapf(err, "failed to save project")
 		}
 
@@ -118,7 +121,7 @@ func (s *ProjectAppService) CreateProject(
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, err.Error())
 		}
 
-		if err := s.clusterRepo.Create(ctx, clusterEntity); err != nil {
+		if err := txClusterRepo.Create(ctx, clusterEntity); err != nil {
 			return bizerrors.Wrapf(err, "failed to save cluster")
 		}
 
@@ -230,17 +233,20 @@ func (s *ProjectAppService) DeleteProject(
 		)
 	}
 
-	txErr := s.txManager.WithTx(ctx, func(ctx context.Context, _ dbgen.Querier) error {
+	txErr := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+		txProjectRepo := repository.NewSqlProjectRepository(q)
+		txClusterRepo := repository.NewSqlDatabaseClusterRepository(q)
+
 		// Delete cluster if it exists (cascade)
-		clusterEntity, clusterErr := s.clusterRepo.GetByProjectKey(ctx, cmd.OrgName, cmd.Slug)
+		clusterEntity, clusterErr := txClusterRepo.GetByProjectKey(ctx, cmd.OrgName, cmd.Slug)
 		if clusterErr == nil && clusterEntity != nil {
-			if err := s.clusterRepo.Delete(ctx, cmd.OrgName, proj.Slug, clusterEntity.ID); err != nil {
+			if err := txClusterRepo.Delete(ctx, cmd.OrgName, proj.Slug, clusterEntity.ID); err != nil {
 				return bizerrors.Wrapf(err, "failed to delete cluster for project")
 			}
 		}
 
 		// Archive the project
-		if err := s.projectRepo.Archive(ctx, cmd.Slug, cmd.OrgName); err != nil {
+		if err := txProjectRepo.Archive(ctx, cmd.Slug, cmd.OrgName); err != nil {
 			return bizerrors.Wrapf(err, "failed to archive project")
 		}
 

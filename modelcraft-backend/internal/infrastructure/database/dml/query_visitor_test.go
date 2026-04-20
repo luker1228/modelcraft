@@ -458,7 +458,7 @@ func TestConvertToGoquExpression(t *testing.T) {
 				return node
 			}(),
 			expectError: false,
-			expectedSQL: `("age" > ?) AND ("age" < ?)`,
+			expectedSQL: ``,
 		},
 		{
 			name:        "nil node",
@@ -480,6 +480,13 @@ func TestConvertToGoquExpression(t *testing.T) {
 
 				sql, _, err := goqu.From("test").Where(expr).Prepared(true).ToSQL()
 				require.NoError(t, err)
+				if tt.name == "comparison node" {
+					opt1 := `(("age" > ?) AND ("age" < ?))`
+					opt2 := `(("age" < ?) AND ("age" > ?))`
+					assert.Contains(t, []string{opt1, opt2}, sql)
+					return
+				}
+
 				assert.Contains(t, sql, tt.expectedSQL)
 			}
 		})

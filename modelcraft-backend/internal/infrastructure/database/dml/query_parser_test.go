@@ -31,7 +31,7 @@ func TestQueryParser_SimpleConditions(t *testing.T) {
 				"name": "John",
 				"age":  30,
 			},
-			expected: `SELECT * FROM "test" WHERE (("name" = ?) AND ("age" = ?))`, // 应该包含AND逻辑
+			expected: "", // map iteration order is not stable for multi-field AND
 		},
 	}
 
@@ -49,6 +49,22 @@ func TestQueryParser_SimpleConditions(t *testing.T) {
 				t.Logf("sql=%s params=%v, err=%+v", sql, params, err)
 			}
 			t.Logf("sql=%s params=%v", sql, params)
+
+			if tt.name == "multiple fields with AND" {
+				sql1 := `SELECT * FROM "test" WHERE (("name" = ?) AND ("age" = ?))`
+				sql2 := `SELECT * FROM "test" WHERE (("age" = ?) AND ("name" = ?))`
+				if assert.Contains(t, []string{sql1, sql2}, sql, "SQL should be logically equivalent") {
+					if sql == sql1 {
+						assert.Equal(t, "John", params[0])
+						assert.Equal(t, int64(30), params[1])
+					} else {
+						assert.Equal(t, int64(30), params[0])
+						assert.Equal(t, "John", params[1])
+					}
+				}
+				return
+			}
+
 			assert.Equal(t, tt.expected, sql)
 		})
 	}
