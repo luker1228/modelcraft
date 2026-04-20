@@ -15,7 +15,7 @@ linters-settings:
     # 最小匹配长度
     min-len: 3         # 字符串最小长度（默认3）
     min-occurrences: 3 # 最小出现次数（默认3）
-    
+
     # 忽略规则
     ignore-calls: true # 忽略函数调用中的字符串（默认true）
   # 行长度控制
@@ -56,6 +56,12 @@ linters-settings:
   # 格式化增强
   gofumpt:
     extra-rules: true
+
+  # 禁止不安全的 Repository 构造方式
+  forbidigo:
+    forbid:
+      - p: 'return\s+&.*Repository\{q:\s*q\}'
+        msg: 'Repository constructor must use dbgenwrap.NewSafeQuerier(q)'
 
   # 变量命名规范
   varnamelen:
@@ -138,6 +144,9 @@ linters:
     # nil 检查
     - nilnil # 检测返回 (nil, nil) 的函数
 
+    # 禁止特定代码模式
+    - forbidigo # 禁止不安全的 Repository 构造写法
+
 issues:
   exclude-dirs:
     - vendor
@@ -161,6 +170,11 @@ issues:
     - path: internal/domain/modelruntime/model_resolver\.go
       linters:
         - nilnil
+
+    # forbidigo 仅在 internal/infrastructure/** 生效（兼容绝对/相对路径）
+    - path-except: (.*/)?internal/infrastructure/
+      linters:
+        - forbidigo
 
     # 排除测试文件中的硬编码凭证警告（测试用途，非生产凭证）
     - path: _test\.go

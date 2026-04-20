@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 
 	domainRLS "modelcraft/internal/domain/rls"
@@ -31,7 +32,7 @@ type SqlAuthSchemaRepository struct {
 
 // NewSqlAuthSchemaRepository creates a new SqlAuthSchemaRepository.
 func NewSqlAuthSchemaRepository(q dbgen.Querier) AuthSchemaRepository {
-	return &SqlAuthSchemaRepository{q: q}
+	return &SqlAuthSchemaRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // GetByProjectID retrieves an auth schema by org name and project slug.

@@ -318,16 +318,13 @@ generate-oapi:
 
 # 清理 GraphQL 生成的代码 never should be used (commented out)
 
-# 生成 sqlc 代码
-[doc("Generate Go code from SQL queries using sqlc")]
-generate-sqlc: install-sqlc
+# 通用 safe querier 生成（gowrap）
+[doc("Generate safe querier wrapper using gowrap (generic)")]
+generate-safe-querier package_path="./internal/infrastructure/dbgen" interface_name="Querier" output_file="internal/infrastructure/dbgenwrap/safe_querier_gen.go" wrapper_name="SafeQuerier" constructor_name="NewSafeQuerier" delegate_type="dbgen.Querier": install-sqlc
     echo "📊 生成 sqlc 代码..."
     sqlc generate
     echo "✅ sqlc 代码生成完成"
 
-# 通用 safe querier 生成（gowrap）
-[doc("Generate safe querier wrapper using gowrap (generic)")]
-generate-safe-querier package_path="./internal/infrastructure/dbgen" interface_name="Querier" output_file="internal/infrastructure/dbgenwrap/safe_querier_gen.go" wrapper_name="SafeQuerier" constructor_name="NewSafeQuerier" delegate_type="dbgen.Querier":
     chmod +x {{SAFE_QUERIER_GOWRAP_SCRIPT}}
     {{SAFE_QUERIER_GOWRAP_SCRIPT}} \
       --package-path "{{package_path}}" \
@@ -358,20 +355,27 @@ clean-sqlc:
 # 运行 linter
 [doc("Run linter")]
 lint: install-golangci-lint
+    mkdir -p .cache/golangci-lint .cache/go-build
+    echo "🔎 预检查：Repository 构造函数必须使用 dbgenwrap.NewSafeQuerier(q)..."
+    ! rg -n --multiline --multiline-dotall --pcre2 '^func\s+NewSql\w*Repository\s*\(q\s+dbgen\.Querier\).*?return\s+&\w+\{q:\s*q\}' internal/infrastructure --glob '*.go'
     echo "🔍 运行 golangci-lint 代码检查..."
-    golangci-lint run
+    GOLANGCI_LINT_CACHE="$(pwd)/.cache/golangci-lint" GOCACHE="$(pwd)/.cache/go-build" golangci-lint run
 
 # 运行 linter 并自动修复
 [doc("Run linter with auto-fix")]
 lint-fix: install-golangci-lint
+    mkdir -p .cache/golangci-lint .cache/go-build
+    echo "🔎 预检查：Repository 构造函数必须使用 dbgenwrap.NewSafeQuerier(q)..."
+    ! rg -n --multiline --multiline-dotall --pcre2 '^func\s+NewSql\w*Repository\s*\(q\s+dbgen\.Querier\).*?return\s+&\w+\{q:\s*q\}' internal/infrastructure --glob '*.go'
     echo "运行 golangci-lint 代码检查并自动修复..."
-    golangci-lint run --fix
+    GOLANGCI_LINT_CACHE="$(pwd)/.cache/golangci-lint" GOCACHE="$(pwd)/.cache/go-build" golangci-lint run --fix
 
 # 检查包依赖
 [doc("Check package dependencies (depguard only)")]
 check-pkg-dep: install-golangci-lint
+    mkdir -p .cache/golangci-lint .cache/go-build
     echo "检查包依赖使用规范..."
-    golangci-lint run --disable-all --enable=depguard
+    GOLANGCI_LINT_CACHE="$(pwd)/.cache/golangci-lint" GOCACHE="$(pwd)/.cache/go-build" golangci-lint run --disable-all --enable=depguard
 
 # 运行所有检查
 [doc("Run all checks")]

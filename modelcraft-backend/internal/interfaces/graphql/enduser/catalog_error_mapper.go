@@ -2,7 +2,6 @@ package endusergraphql
 
 import (
 	"context"
-
 	"modelcraft/internal/interfaces/graphql/enduser/generated"
 	"modelcraft/pkg/bizerrors"
 )

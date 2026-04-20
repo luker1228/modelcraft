@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strings"
-
 	"modelcraft/internal/domain/modeldesign"
-	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"strings"
+
+	domainRLS "modelcraft/internal/domain/rls"
 )
 
 // getOrgAndProjectFromContext extracts orgName and projectSlug from GraphQL context.

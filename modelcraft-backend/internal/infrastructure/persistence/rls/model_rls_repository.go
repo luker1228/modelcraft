@@ -6,6 +6,7 @@ import (
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
 )
 
@@ -16,7 +17,7 @@ type SqlModelRLSPolicyRepository struct {
 
 // NewSqlModelRLSPolicyRepository creates a new SqlModelRLSPolicyRepository.
 func NewSqlModelRLSPolicyRepository(q dbgen.Querier) modeldesign.ModelRLSPolicyRepository {
-	return &SqlModelRLSPolicyRepository{q: q}
+	return &SqlModelRLSPolicyRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // GetByModelID retrieves an RLS policy by model ID.
