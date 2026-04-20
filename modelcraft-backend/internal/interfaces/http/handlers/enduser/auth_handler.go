@@ -2,12 +2,12 @@ package enduser
 
 import (
 	"encoding/json"
-	"net/http"
-
-	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"net/http"
+
+	appEnduser "modelcraft/internal/app/enduser"
 )
 
 // AuthHandler 处理终端用户认证 HTTP 请求。
@@ -45,6 +45,11 @@ type meResponse struct {
 	EndUser   *EndUserJSON `json:"endUser,omitempty"`
 }
 
+const (
+	missingOrgProjectHeaders = "X-Org-Name and X-Project-Slug headers are required"
+	missingEndUserHeaders    = "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required"
+)
+
 // Register 处理 POST /internal/end-user/auth/register。
 func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -59,7 +64,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingOrgProjectHeaders)
 		return
 	}
 
@@ -96,7 +101,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingOrgProjectHeaders)
 		return
 	}
 
@@ -133,7 +138,7 @@ func (h *AuthHandler) Logout(w http.ResponseWriter, r *http.Request) {
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingOrgProjectHeaders)
 		return
 	}
 
@@ -164,7 +169,7 @@ func (h *AuthHandler) Refresh(w http.ResponseWriter, r *http.Request) {
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingOrgProjectHeaders)
 		return
 	}
 
@@ -195,7 +200,7 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 	endUserID := r.Header.Get("X-End-User-Id")
 	if orgName == "" || projectSlug == "" || endUserID == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingEndUserHeaders)
 		return
 	}
 

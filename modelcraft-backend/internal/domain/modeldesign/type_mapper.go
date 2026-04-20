@@ -87,7 +87,7 @@ func (m *MySQLTypeMapper) mapString(field *FieldDefinition) (string, error) {
 		}
 	}
 	// 没有maxLength或maxLength>255，使用TEXT
-	return "TEXT", nil
+	return storageHintText, nil
 }
 
 // mapDecimal 映射decimal类型

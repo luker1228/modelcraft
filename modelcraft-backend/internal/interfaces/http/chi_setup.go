@@ -26,9 +26,9 @@ type ChiRouterConfig struct {
 	DB     *sql.DB // For health check
 
 	// Handlers for OpenAPI routes (tenant-management only)
-	AuthHandler    *authHandlers.Handler
-	OrgHandler     *orgHandlers.CreateHandler
-	UserHandler    *userHandlers.Handler
+	AuthHandler *authHandlers.Handler
+	OrgHandler  *orgHandlers.CreateHandler
+	UserHandler *userHandlers.Handler
 
 	// Design handlers for GraphQL routes
 	DesignHandlers *DesignHandlers
@@ -158,10 +158,10 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 
 	// Paths that are public and should NOT require authentication
 	publicPaths := map[string]bool{
-		"/api/auth/register":   true,
-		"/api/auth/login":      true,
-		"/api/auth/logout":  true,
-		"/api/auth/refresh": true,
+		"/api/auth/register": true,
+		"/api/auth/login":    true,
+		"/api/auth/logout":   true,
+		"/api/auth/refresh":  true,
 	}
 
 	return func(next http.Handler) http.Handler {

@@ -4,9 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strconv"
-
 	"modelcraft/internal/domain/rls"
+	"strconv"
 )
 
 // PolicyValidator PolicyValidator 实现
@@ -20,8 +19,8 @@ func NewPolicyValidator() *PolicyValidator {
 // Validate 校验 JSON 表达式合法性
 func (v *PolicyValidator) Validate(ctx context.Context, expr rls.JsonExpr,
 	exprType rls.ExprType, modelSchema rls.ModelSchema,
-	authSchema rls.AuthSchemaProvider) []rls.ValidationError {
-
+	authSchema rls.AuthSchemaProvider,
+) []rls.ValidationError {
 	var errors []rls.ValidationError
 
 	// 1. JSON 合法性校验
@@ -54,10 +53,12 @@ func (v *PolicyValidator) Validate(ctx context.Context, expr rls.JsonExpr,
 	return errors
 }
 
-func (v *PolicyValidator) validateNode(ctx context.Context, node map[string]interface{},
+//nolint:gocognit,funlen // recursive validation over expression tree is intentionally explicit
+func (v *PolicyValidator) validateNode(
+	ctx context.Context, node map[string]interface{},
 	path string, exprType rls.ExprType, modelSchema rls.ModelSchema,
-	authSchema rls.AuthSchemaProvider) []rls.ValidationError {
-
+	authSchema rls.AuthSchemaProvider,
+) []rls.ValidationError {
 	var errors []rls.ValidationError
 
 	for key, value := range node {
@@ -156,9 +157,12 @@ func (v *PolicyValidator) validateNode(ctx context.Context, node map[string]inte
 			}
 			if !authSchema.IsValidRef(varName) {
 				errors = append(errors, rls.ValidationError{
-					Path:    currentPath,
-					Message: fmt.Sprintf("Unknown auth variable '%s'. Declare it in project auth_schema first.", varName),
-					Code:    "UNKNOWN_AUTH_VAR",
+					Path: currentPath,
+					Message: fmt.Sprintf(
+						"Unknown auth variable '%s'. Declare it in project auth_schema first.",
+						varName,
+					),
+					Code: "UNKNOWN_AUTH_VAR",
 				})
 			}
 

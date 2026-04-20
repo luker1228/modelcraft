@@ -6,11 +6,12 @@ package orggraphql
 
 import (
 	"context"
-	"fmt"
 	clusterApp "modelcraft/internal/app/cluster"
 	appProject "modelcraft/internal/app/project"
+	appRLS "modelcraft/internal/app/rls"
 	domainCluster "modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/project"
+	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/org/adapter"
 	"modelcraft/internal/interfaces/graphql/org/generated"
 	"modelcraft/pkg/bizerrors"
@@ -19,6 +20,49 @@ import (
 	"modelcraft/pkg/logfacade"
 	"time"
 )
+
+func toDomainAuthVarType(t generated.AuthVariableType) domainRLS.AuthVarType {
+	switch t {
+	case generated.AuthVariableTypeUUID:
+		return domainRLS.AuthVarTypeUUID
+	case generated.AuthVariableTypeInteger:
+		return domainRLS.AuthVarTypeInteger
+	case generated.AuthVariableTypeString:
+		fallthrough
+	default:
+		return domainRLS.AuthVarTypeString
+	}
+}
+
+func toGraphQLAuthVarType(t domainRLS.AuthVarType) generated.AuthVariableType {
+	switch t {
+	case domainRLS.AuthVarTypeUUID:
+		return generated.AuthVariableTypeUUID
+	case domainRLS.AuthVarTypeInteger:
+		return generated.AuthVariableTypeInteger
+	case domainRLS.AuthVarTypeString:
+		fallthrough
+	default:
+		return generated.AuthVariableTypeString
+	}
+}
+
+func toGraphQLProjectAuthSchema(authSchema *domainRLS.AuthSchema) *generated.ProjectAuthSchema {
+	if authSchema == nil {
+		return &generated.ProjectAuthSchema{Variables: []*generated.AuthVariable{}}
+	}
+
+	variables := make([]*generated.AuthVariable, 0, len(authSchema.Variables))
+	for _, v := range authSchema.Variables {
+		variables = append(variables, &generated.AuthVariable{
+			Name:   v.Name,
+			Source: v.Source,
+			Type:   toGraphQLAuthVarType(v.Type),
+		})
+	}
+
+	return &generated.ProjectAuthSchema{Variables: variables}
+}
 
 // CreateProject is the resolver for the createProject field.
 func (r *mutationResolver) CreateProject(ctx context.Context, input generated.CreateProjectInput) (*generated.CreateProjectPayload, error) {
@@ -288,7 +332,52 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 
 // SetProjectAuthSchema is the resolver for the setProjectAuthSchema field.
 func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input generated.SetProjectAuthSchemaInput) (*generated.SetProjectAuthSchemaPayload, error) {
-	panic(fmt.Errorf("not implemented: SetProjectAuthSchema - setProjectAuthSchema"))
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
+	}
+
+	variables := make([]domainRLS.AuthVariable, 0, len(input.Variables))
+	for _, variable := range input.Variables {
+		if variable == nil {
+			continue
+		}
+
+		variables = append(variables, domainRLS.AuthVariable{
+			Name:   variable.Name,
+			Source: variable.Source,
+			Type:   toDomainAuthVarType(variable.Type),
+		})
+	}
+
+	authSchema, err := r.AuthSchemaAppService.SetAuthSchema(ctx, orgName, appRLS.SetProjectAuthSchemaInput{
+		ProjectSlug: input.ProjectSlug,
+		Variables:   variables,
+	})
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			switch bizErr.Info().GetCode() {
+			case bizerrors.ProjectNotFound.GetCode():
+				return &generated.SetProjectAuthSchemaPayload{
+					AuthSchema: nil,
+					Error:      &generated.ProjectNotFound{Message: bizErr.Error()},
+				}, nil
+			case bizerrors.ParamInvalid.GetCode():
+				return &generated.SetProjectAuthSchemaPayload{
+					AuthSchema: nil,
+					Error: &generated.InvalidInput{
+						Message: bizErr.Error(),
+					},
+				}, nil
+			}
+		}
+		return nil, err
+	}
+
+	return &generated.SetProjectAuthSchemaPayload{
+		AuthSchema: toGraphQLProjectAuthSchema(authSchema),
+		Error:      nil,
+	}, nil
 }
 
 // Project is the resolver for the project field.
@@ -387,4 +476,19 @@ func (r *queryResolver) DatabaseCluster(ctx context.Context, projectSlug string)
 		Cluster: clusterMapper.ToGraphQLCluster(cluster),
 		Error:   nil,
 	}, nil
+}
+
+// AuthSchema is the resolver for the authSchema field.
+func (r *queryResolver) AuthSchema(ctx context.Context, obj *generated.Project) (*generated.ProjectAuthSchema, error) {
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
+	}
+
+	authSchema, err := r.AuthSchemaAppService.GetAuthSchema(ctx, orgName, obj.Slug)
+	if err != nil {
+		return nil, err
+	}
+
+	return toGraphQLProjectAuthSchema(authSchema), nil
 }

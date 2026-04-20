@@ -11,6 +11,11 @@ const (
 	relationWidgetMultiReadonly  = "relation-multi-readonly"
 	relationTypeOneToMany        = "ONE_TO_MANY"
 	relationTypeManyToOne        = "MANY_TO_ONE"
+	relationCardinalityManyToOne = "many-to-one"
+
+	storageHintText = "TEXT"
+	formatDate      = "date"
+	formatTime      = "time"
 )
 
 // JSONSchemaGenerator 生成JSON Schema的域服务
@@ -99,13 +104,13 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 		schema["format"] = "uuid"
 	case FormatDate:
 		schema["type"] = string(SchemaTypeString)
-		schema["format"] = "date"
+		schema["format"] = formatDate
 	case FormatDateTime:
 		schema["type"] = string(SchemaTypeString)
 		schema["format"] = "date-time"
 	case FormatTime:
 		schema["type"] = string(SchemaTypeString)
-		schema["format"] = "time"
+		schema["format"] = formatTime
 
 	// Number types
 	case FormatNumber:
@@ -271,7 +276,7 @@ func (g *JSONSchemaGenerator) decideWidget(field *FieldDefinition, fieldSchema m
 	}
 
 	// 2. storageHint == "TEXT" → 多行文本框
-	if field.StorageHint != nil && *field.StorageHint == "TEXT" {
+	if field.StorageHint != nil && *field.StorageHint == storageHintText {
 		return "textarea"
 	}
 
@@ -403,13 +408,16 @@ func (g *JSONSchemaGenerator) isOneToManyRelation(field *FieldDefinition) bool {
 	return false
 }
 
-func (g *JSONSchemaGenerator) detectRelationTypeAndDirection(field *FieldDefinition) (relationType, direction string, ok bool) {
+//nolint:gocognit // relation detection requires checking multiple metadata formats
+func (g *JSONSchemaGenerator) detectRelationTypeAndDirection(
+	field *FieldDefinition,
+) (relationType, direction string, ok bool) {
 	if field == nil {
 		return "", "", false
 	}
 
 	// 优先依据元数据（x-relation.direction / x-relation.cardinality）
-	if field.Metadata != nil {
+	if field.Metadata != nil { //nolint:nestif // metadata traversal requires nested type assertions
 		if relRaw, exists := field.Metadata["x-relation"]; exists && relRaw != nil {
 			switch rel := relRaw.(type) {
 			case map[string]interface{}:
@@ -425,7 +433,7 @@ func (g *JSONSchemaGenerator) detectRelationTypeAndDirection(field *FieldDefinit
 					switch cardinality {
 					case relationCardinalityOneToMany:
 						return relationTypeOneToMany, relationDirectionReverse, true
-					case "many-to-one":
+					case relationCardinalityManyToOne:
 						return relationTypeManyToOne, relationDirectionNormal, true
 					}
 				}
@@ -442,7 +450,7 @@ func (g *JSONSchemaGenerator) detectRelationTypeAndDirection(field *FieldDefinit
 					switch cardinality {
 					case relationCardinalityOneToMany:
 						return relationTypeOneToMany, relationDirectionReverse, true
-					case "many-to-one":
+					case relationCardinalityManyToOne:
 						return relationTypeManyToOne, relationDirectionNormal, true
 					}
 				}

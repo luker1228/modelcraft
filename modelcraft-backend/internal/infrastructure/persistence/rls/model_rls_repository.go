@@ -3,7 +3,6 @@ package rls
 
 import (
 	"context"
-
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -22,7 +21,10 @@ func NewSqlModelRLSPolicyRepository(q dbgen.Querier) modeldesign.ModelRLSPolicyR
 
 // GetByModelID retrieves an RLS policy by model ID.
 // Returns nil, nil if the policy does not exist.
-func (r *SqlModelRLSPolicyRepository) GetByModelID(ctx context.Context, orgName, projectSlug, modelID string) (*modeldesign.ModelRLSPolicy, error) {
+func (r *SqlModelRLSPolicyRepository) GetByModelID(
+	ctx context.Context,
+	orgName, projectSlug, modelID string,
+) (*modeldesign.ModelRLSPolicy, error) {
 	// Note: Currently model_rls_policies table uses model_id as primary key lookup
 	// Multi-tenant isolation is enforced via model_id uniqueness across the system
 	// TODO: Add org_name and project_slug filtering when table schema is updated
@@ -47,7 +49,11 @@ func (r *SqlModelRLSPolicyRepository) GetByModelID(ctx context.Context, orgName,
 }
 
 // Save saves an RLS policy (upsert operation).
-func (r *SqlModelRLSPolicyRepository) Save(ctx context.Context, orgName, projectSlug string, policy *modeldesign.ModelRLSPolicy) error {
+func (r *SqlModelRLSPolicyRepository) Save(
+	ctx context.Context,
+	orgName, projectSlug string,
+	policy *modeldesign.ModelRLSPolicy,
+) error {
 	err := r.q.UpsertModelRLSPolicy(ctx, dbgen.UpsertModelRLSPolicyParams{
 		ModelID:         policy.ModelID,
 		SelectPredicate: string(policy.SelectPredicate),
@@ -72,7 +78,10 @@ func (r *SqlModelRLSPolicyRepository) DeleteByModelID(ctx context.Context, orgNa
 }
 
 // ExistsByModelID checks if an RLS policy exists for the given model ID.
-func (r *SqlModelRLSPolicyRepository) ExistsByModelID(ctx context.Context, orgName, projectSlug, modelID string) (bool, error) {
+func (r *SqlModelRLSPolicyRepository) ExistsByModelID(
+	ctx context.Context,
+	orgName, projectSlug, modelID string,
+) (bool, error) {
 	exists, err := r.q.ExistsModelRLSPolicy(ctx, modelID)
 	if err != nil {
 		return false, sqlerr.WrapSQLError(err)

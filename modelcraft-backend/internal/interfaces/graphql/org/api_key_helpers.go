@@ -2,9 +2,8 @@ package orggraphql
 
 import (
 	"context"
-	"strconv"
-
 	"modelcraft/pkg/bizerrors"
+	"strconv"
 )
 
 func (r *mutationResolver) validateRoleIDs(ctx context.Context, orgName string, roleIDs []string) ([]int, error) {

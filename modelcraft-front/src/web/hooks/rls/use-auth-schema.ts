@@ -1,5 +1,6 @@
 'use client'
 
+import * as React from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
 import { GET_PROJECT_AUTH_SCHEMA } from '@web/graphql/queries/project'
@@ -14,8 +15,13 @@ interface ProjectAuthSchemaData {
 
 interface GetProjectAuthSchemaData {
   project: {
-    id: string
-    authSchema: ProjectAuthSchemaData | null
+    project: {
+      id: string
+    } | null
+    error: {
+      __typename: string
+      message: string
+    } | null
   } | null
 }
 
@@ -57,15 +63,15 @@ interface UseAuthSchemaReturn {
  * @returns UseAuthSchemaReturn
  */
 export function useAuthSchema(
-  orgName: string,
+  _orgName: string,
   projectSlug: string
 ): UseAuthSchemaReturn {
   // 查询认证变量配置
   const { data, loading, error, refetch } = useQuery<GetProjectAuthSchemaData>(
     GET_PROJECT_AUTH_SCHEMA,
     {
-      variables: { orgName, projectSlug },
-      skip: !orgName || !projectSlug,
+      variables: { projectSlug },
+      skip: !projectSlug,
       onError: (err) => {
         toast.error('获取认证变量配置失败', {
           description: err.message,
@@ -123,12 +129,15 @@ export function useAuthSchema(
     }
   }
 
-  // 添加内置 uid 变量到列表开头
-  const variables = data?.project?.authSchema?.variables || []
-  const authSchema: AuthVariable[] = [
-    { name: 'uid', source: 'jwt.user_id', type: 'UUID', isBuiltin: true },
-    ...variables,
-  ]
+  // 当前网关 schema 不支持 project.authSchema 查询，先只返回内置 uid，保存仍走 mutation。
+  const variables: AuthVariable[] | undefined = undefined
+  const authSchema: AuthVariable[] = React.useMemo(
+    () => [
+      { name: 'uid', source: 'jwt.user_id', type: 'UUID', isBuiltin: true },
+      ...(variables || []),
+    ],
+    [variables]
+  )
 
   return {
     authSchema,

@@ -3,12 +3,13 @@ package enduser
 import (
 	"context"
 	"database/sql"
-
-	domainenduser "modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
-	infrrepo "modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+
+	domainenduser "modelcraft/internal/domain/enduser"
+
+	infrrepo "modelcraft/internal/infrastructure/repository"
 )
 
 // PrivateDBManager 定义私有数据库连接管理器接口。

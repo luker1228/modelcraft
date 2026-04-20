@@ -13,8 +13,10 @@ import (
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/modelruntime"
 	"modelcraft/internal/app/project"
+	"modelcraft/internal/app/rls"
 	"modelcraft/internal/infrastructure/database/ddl"
 	"modelcraft/internal/infrastructure/dbgen"
+	rlsRepo "modelcraft/internal/infrastructure/persistence/rls"
 	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/config"
@@ -25,9 +27,9 @@ import (
 	"sync"
 	"time"
 
+	endusergraphql "modelcraft/internal/interfaces/graphql/enduser"
 	orggraphql "modelcraft/internal/interfaces/graphql/org"
 	projectgraphql "modelcraft/internal/interfaces/graphql/project"
-	endusergraphql "modelcraft/internal/interfaces/graphql/enduser"
 
 	runtimeHandler "modelcraft/internal/interfaces/runtime"
 
@@ -68,6 +70,8 @@ type DesignHandlers struct {
 	RoleAppService            *appRole.RoleAppService
 	GroupAppService           *modeldesign.ModelGroupAppService
 	LogicalFKAppService       *modeldesign.LogicalFKAppService
+	RLSPolicyAppService       *rls.ModelRLSPolicyAppService
+	AuthSchemaAppService      *rls.AuthSchemaAppService
 
 	// Casbin Permission Services
 	PermRoleService       *appPermission.RoleService
@@ -97,7 +101,9 @@ func (f *endUserAuthRepositoryFactory) NewEndUserRepository(db appEnduser.SQLDBT
 	return repository.NewSqlEndUserRepository(db)
 }
 
-func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(db appEnduser.SQLDBTX) domainEndUser.EndUserSessionRepository {
+func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(
+	db appEnduser.SQLDBTX,
+) domainEndUser.EndUserSessionRepository {
 	return repository.NewSqlEndUserSessionRepository(db)
 }
 
@@ -138,7 +144,10 @@ func (m *endUserTxManager) WithTx(
 // CreateDesignHandlers creates all handlers and services needed for the design API.
 // Route registration is handled by Chi in chi_setup.go (auth/org/webhook only).
 // Business domain APIs are served via GraphQL, not REST.
-func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config.Config) (*DesignHandlers, error) {
+func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally constructs all services in one place
+	repoFactory *repository.ConnectionFactory,
+	cfg *config.Config,
+) (*DesignHandlers, error) {
 	// Wrap the raw *sql.DB with a logging layer so all sqlc queries are traced.
 	loggingDB := repository.NewSqlcLogger(repoFactory.SqlDB, repository.SqlcLogInfo, 200*time.Millisecond)
 
@@ -184,6 +193,18 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 	// Create model group related services
 	groupRepository := repository.NewSqlModelGroupRepository(dbgen.New(loggingDB))
 	groupAppService := modeldesign.NewModelGroupAppService(groupRepository, modelRepository, txManager)
+
+	// Create RLS related services
+	modelRLSPolicyRepo := rlsRepo.NewSqlModelRLSPolicyRepository(dbgen.New(loggingDB))
+	authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
+	rlsPolicyValidator := rls.NewPolicyValidator()
+	rlsPolicyAppService := rls.NewModelRLSPolicyAppService(
+		modelRLSPolicyRepo,
+		modelRepository,
+		authSchemaRepo,
+		rlsPolicyValidator,
+	)
+	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
@@ -295,6 +316,8 @@ func CreateDesignHandlers(repoFactory *repository.ConnectionFactory, cfg *config
 		ClusterManager:            clusterManager,
 		GroupAppService:           groupAppService,
 		LogicalFKAppService:       logicalFKAppService,
+		RLSPolicyAppService:       rlsPolicyAppService,
+		AuthSchemaAppService:      authSchemaAppService,
 		APIKeyService:             apiKeyService,
 		EndUserAuthAppService:     endUserAuthAppService,
 		EndUserMgmtAppService:     endUserMgmtAppService,
@@ -311,6 +334,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 	orgResolver := &orggraphql.Resolver{
 		ProjectAppService:      handlers.ProjectAppService,
 		ClusterAppService:      handlers.ClusterAppService,
+		AuthSchemaAppService:   handlers.AuthSchemaAppService,
 		OrganizationAppService: handlers.OrgAppService,
 		ProfileAppService:      handlers.ProfileAppService,
 		UserRepo:               handlers.UserRepo,
@@ -364,6 +388,8 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		EnumAppService:           handlers.EnumAppService,
 		UserRoleService:          handlers.PermUserRoleService,
 		FieldSelectionChecker:    projectgraphql.NewFieldSelectionChecker(),
+		RLSPolicyAppService:      handlers.RLSPolicyAppService,
+		AuthSchemaAppService:     handlers.AuthSchemaAppService,
 	}
 
 	jwtConfig := &middleware.JWTAuthConfig{

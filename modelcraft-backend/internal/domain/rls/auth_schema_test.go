@@ -29,12 +29,15 @@ func TestAuthSchemaGetVariable(t *testing.T) {
 				if result != nil {
 					t.Errorf("GetVariable() = %v, want nil", result)
 				}
-			} else {
-				if result == nil {
-					t.Errorf("GetVariable() = nil, want %v", tt.expected)
-				} else if result.Name != tt.expected.Name || result.Source != tt.expected.Source {
-					t.Errorf("GetVariable() = %v, want %v", result, tt.expected)
-				}
+				return
+			}
+
+			if result == nil {
+				t.Errorf("GetVariable() = nil, want %v", tt.expected)
+				return
+			}
+			if result.Name != tt.expected.Name || result.Source != tt.expected.Source {
+				t.Errorf("GetVariable() = %v, want %v", result, tt.expected)
 			}
 		})
 	}

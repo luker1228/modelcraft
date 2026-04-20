@@ -163,35 +163,37 @@ export function ModelEditorView() {
 
       {/* Right Content Area */}
       <main className="flex min-w-0 flex-1 flex-col bg-sidebar p-4">
-        <DataWorkspacePanel
-          tabs={openedTabs}
-          activeTabId={state.selectedModelId ?? ''}
-          onTabChange={(tabId) => state.setSelectedModelId(tabId)}
-          onTabClose={handleCloseTab}
-          emptyText="从左侧选择模型以打开数据表"
-          className="h-full"
-          renderContent={(activeTab) => (
-            <Suspense
-              fallback={
-                <div className="flex flex-1 items-center justify-center">
-                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                    <Loader2 className="size-6 animate-spin" />
-                    <span className="text-sm">加载中...</span>
+        <section className="flex h-full min-h-0 flex-col gap-3">
+          <DataWorkspacePanel
+            tabs={openedTabs}
+            activeTabId={state.selectedModelId ?? ''}
+            onTabChange={(tabId) => state.setSelectedModelId(tabId)}
+            onTabClose={handleCloseTab}
+            emptyText="从左侧选择模型以打开数据表"
+            className="h-full min-h-0"
+            renderContent={(activeTab) => (
+              <Suspense
+                fallback={
+                  <div className="flex flex-1 items-center justify-center">
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                      <Loader2 className="size-6 animate-spin" />
+                      <span className="text-sm">加载中...</span>
+                    </div>
                   </div>
-                </div>
-              }
-            >
-              <ModelRecordWorkspace
-                key={`${activeTab.id}-${schemaRefreshToken}`}
-                modelId={activeTab.id}
-                projectSlug={projectSlug}
-                orgName={orgName}
-                refreshToken={schemaRefreshToken}
-                workspaceMode="design"
-              />
-            </Suspense>
-          )}
-        />
+                }
+              >
+                <ModelRecordWorkspace
+                  key={`${activeTab.id}-${schemaRefreshToken}`}
+                  modelId={activeTab.id}
+                  projectSlug={projectSlug}
+                  orgName={orgName}
+                  refreshToken={schemaRefreshToken}
+                  workspaceMode="design"
+                />
+              </Suspense>
+            )}
+          />
+        </section>
       </main>
 
       {/* Delete Model Confirmation Dialog */}

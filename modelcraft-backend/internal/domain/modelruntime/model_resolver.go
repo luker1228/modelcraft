@@ -798,7 +798,12 @@ func (r *graphqlModelResolver) resolveAutoEnumArrayLabels(
 
 	codes, ok := normalizeEnumArrayCodes(sourceValue)
 	if !ok {
-		logger.Warnf(p.Context, "enum array field %s has invalid type for auto labels: %T", sourceField.Name, sourceValue)
+		logger.Warnf(
+			p.Context,
+			"enum array field %s has invalid type for auto labels: %T",
+			sourceField.Name,
+			sourceValue,
+		)
 		return []string{}, nil
 	}
 

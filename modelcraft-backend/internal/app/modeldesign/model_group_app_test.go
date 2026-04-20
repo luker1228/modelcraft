@@ -114,6 +114,12 @@ func (m *mockModelRepo) Query(ctx context.Context, q modeldesign.ModelQuery) ([]
 	return nil, 0, nil
 }
 
+func (m *mockModelRepo) ListDatabaseCatalog(
+	ctx context.Context, orgName, projectSlug, search string, page, pageSize int,
+) ([]string, int, error) {
+	return nil, 0, nil
+}
+
 func (m *mockModelRepo) AddFields(ctx context.Context, orgName string, f []*modeldesign.FieldDefinition) error {
 	return nil
 }

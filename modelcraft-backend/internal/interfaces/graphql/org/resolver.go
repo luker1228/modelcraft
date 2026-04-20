@@ -7,6 +7,7 @@ import (
 	"modelcraft/internal/app/permission"
 	appProfile "modelcraft/internal/app/profile"
 	"modelcraft/internal/app/project"
+	"modelcraft/internal/app/rls"
 	"modelcraft/internal/app/role"
 	"modelcraft/internal/domain/user"
 )
@@ -14,8 +15,9 @@ import (
 // Resolver is the GraphQL resolver for org domain
 type Resolver struct {
 	// Project CRUD
-	ProjectAppService *project.ProjectAppService
-	ClusterAppService *cluster.DatabaseClusterAppService
+	ProjectAppService    *project.ProjectAppService
+	ClusterAppService    *cluster.DatabaseClusterAppService
+	AuthSchemaAppService *rls.AuthSchemaAppService
 
 	// Organization
 	OrganizationAppService *organization.OrganizationAppService

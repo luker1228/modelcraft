@@ -162,7 +162,14 @@ func TestJSONSchemaParser_ParseSchema_ValidationRules(t *testing.T) {
 			"amount": {
 				"type": "number",
 				"title": "Amount",
-				"x-mc": {"isPrimary": false, "isUnique": false, "displayOrder": "a2", "nullable": true, "precision": 10, "scale": 2}
+				"x-mc": {
+					"isPrimary": false,
+					"isUnique": false,
+					"displayOrder": "a2",
+					"nullable": true,
+					"precision": 10,
+					"scale": 2
+				}
 			}
 		},
 		"required": []

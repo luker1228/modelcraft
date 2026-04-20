@@ -30,6 +30,6 @@ type Resolver struct {
 	FieldSelectionChecker *FieldSelectionChecker
 
 	// RLS (Row Level Security)
-	RLSPolicyAppService *rls.ModelRLSPolicyAppService
+	RLSPolicyAppService  *rls.ModelRLSPolicyAppService
 	AuthSchemaAppService *rls.AuthSchemaAppService
 }

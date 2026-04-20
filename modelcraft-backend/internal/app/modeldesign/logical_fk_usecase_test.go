@@ -45,7 +45,15 @@ func TestLogicalFKAppService_CreateLogicalForeignKey_BindsBelongsToFields(t *tes
 
 	mockFKRepo.On("Save", ctx, mock.AnythingOfType("*modeldesign.LogicalForeignKey")).
 		Return(nil).Twice()
-	mockFKRepo.On("BindBelongsToFields", ctx, "test-org", "model-order", mock.AnythingOfType("string"), []string{"user_id"}).
+	mockFKRepo.
+		On(
+			"BindBelongsToFields",
+			ctx,
+			"test-org",
+			"model-order",
+			mock.AnythingOfType("string"),
+			[]string{"user_id"},
+		).
 		Return(nil).Once()
 
 	mockTxManager.

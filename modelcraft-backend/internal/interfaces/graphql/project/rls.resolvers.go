@@ -2,20 +2,22 @@ package projectgraphql
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-
 	"modelcraft/internal/app/rls"
 	"modelcraft/internal/domain/modeldesign"
-	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"strings"
+
+	domainRLS "modelcraft/internal/domain/rls"
 )
 
 // SetModelRLSPolicy is the resolver for the setModelRLSPolicy field.
-func (r *mutationResolver) SetModelRLSPolicy(ctx context.Context, input generated.SetModelRLSPolicyInput) (*generated.SetModelRLSPolicyPayload, error) {
+func (r *mutationResolver) SetModelRLSPolicy( //nolint:lll // generated resolver signature
+	ctx context.Context, input generated.SetModelRLSPolicyInput,
+) (*generated.SetModelRLSPolicyPayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -50,7 +52,9 @@ func (r *mutationResolver) SetModelRLSPolicy(ctx context.Context, input generate
 }
 
 // ValidateRLSExpr is the resolver for the validateRLSExpr field.
-func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.ValidateRLSExprInput) (*generated.ValidateRLSExprPayload, error) {
+func (r *mutationResolver) ValidateRLSExpr(
+	ctx context.Context, input generated.ValidateRLSExprInput,
+) (*generated.ValidateRLSExprPayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -60,10 +64,13 @@ func (r *mutationResolver) ValidateRLSExpr(ctx context.Context, input generated.
 	exprType := convertGraphQLExprTypeToDomain(input.ExprType)
 
 	// Call AppService
-	validationErrors := r.RLSPolicyAppService.ValidateExpr(ctx, orgName, projectSlug, input.ModelID, domainRLS.ExprType(exprType), domainRLS.JsonExpr(input.Expression))
+	validationErrors := r.RLSPolicyAppService.ValidateExpr(
+		ctx, orgName, projectSlug, input.ModelID,
+		domainRLS.ExprType(exprType), domainRLS.JsonExpr(input.Expression),
+	)
 
 	// Convert validation errors
-	var graphqlErrors []*generated.ValidationError
+	graphqlErrors := make([]*generated.ValidationError, 0, len(validationErrors))
 	for _, e := range validationErrors {
 		graphqlErrors = append(graphqlErrors, &generated.ValidationError{
 			Path:    e.Path,
@@ -94,7 +101,7 @@ func (r *queryResolver) ModelRLSPolicy(ctx context.Context, modelID string) (*ge
 	}
 
 	if policy == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // nil policy with nil error means no policy exists
 	}
 
 	return convertPolicyToGraphQL(policy), nil
@@ -227,50 +234,9 @@ func convertRLSErrorToGraphQLType(ctx context.Context, err error) generated.SetM
 	}
 }
 
-// convertValidateErrorToGraphQLType converts error to GraphQL validate error type
-func convertValidateErrorToGraphQLType(ctx context.Context, err error) generated.ValidateRLSExprError {
-	if err == nil {
-		return nil
-	}
-
-	var bizErr *bizerrors.BusinessError
-	if !errors.As(err, &bizErr) {
-		return nil
-	}
-
-	code := bizErr.Info().GetCode()
-
-	switch code {
-	case bizerrors.ModelNotFound.GetCode():
-		return &generated.ModelNotFound{
-			Message: bizErr.Error(),
-		}
-	default:
-		return nil
-	}
-}
-
 // contains checks if string contains substring
 func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > 0 && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
-}
-
-// Helper to parse JSON string safely
-func parseJSONString(s string) map[string]interface{} {
-	var result map[string]interface{}
-	if err := json.Unmarshal([]byte(s), &result); err != nil {
-		return nil
-	}
-	return result
+	return strings.Contains(s, substr)
 }
 
 // PopulateModelRLSPolicy populates RLS policy for a model (called by ModelMapper)

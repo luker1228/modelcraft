@@ -47,7 +47,7 @@ RLS 依赖一种新的字段 Format：**`EndUserRef`**。
 - **语义**：该字段存储一个 EndUser 的 ID，表示"这条数据归属于哪个终端用户"
 - **存储**：UUID 字符串，数据库层有外键约束指向 `private_{projectSlug}.users.id`
 - **约束**：一个 Model 最多只有一个 `EndUserRef` 字段（第一期）
-- **RLS 绑定**：有 `EndUserRef` 字段 = 可配置 Policy；无 = 无 Policy，全量读写，不显示 Policy 配置入口。
+- **RLS 绑定**：有 `EndUserRef` 字段 = 可配置 Policy；无 = 无 Policy，EndUser DENY ALL，不显示 Policy 配置入口。
 - **字段名**：固定为 `owner`，不可改名
 
 ### owner 字段的可见性
@@ -216,14 +216,14 @@ WITH CHECK 谓词（insertCheck / updateCheck）：
 
 ---
 
-### Story 2：删除 owner 字段，关闭 RLS
+### Story 2：删除 owner 字段，进入默认拒绝（EndUser DENY ALL）
 
-> 作为**开发者**，我有一个 `announcements` Model，所有用户都能看到全部公告，不需要数据隔离。我删除 `owner` 字段，Policy 同步删除，Runtime 不再注入任何 WHERE 条件。
+> 作为**开发者**，我删除 `owner` 字段后，Policy 同步删除。由于 `无 Policy = Default Deny`，该 Model 对 EndUser 的 Runtime 访问将被拒绝；如需公开读取，应显式保留 owner 并将 Policy 调整为 `READ_ALL` 等允许读的策略。
 
 **验收场景**：
 - 删除 `EndUserRef` 字段后，该 Model 的 Policy 同步删除
-- Runtime 请求不再有 WHERE 注入
-- 所有 EndUser 可访问全量数据
+- Runtime 请求不再执行基于 Policy 的 WHERE 注入，但因无 Policy 按 Default Deny 拒绝 EndUser 访问
+- EndUser 调用该 Model 的 Runtime 读写均 DENY ALL（非全量访问）
 - Model 详情页不再显示"访问控制"Tab
 
 ---

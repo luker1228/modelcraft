@@ -17,9 +17,9 @@ import (
 // Only tenant-management (Auth, Org, User) endpoints are served here.
 // Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively via GraphQL.
 type Server struct {
-	authHandler    *authHandlers.Handler
-	orgHandler     *orgHandlers.CreateHandler
-	userHandler    *userHandlers.Handler
+	authHandler *authHandlers.Handler
+	orgHandler  *orgHandlers.CreateHandler
+	userHandler *userHandlers.Handler
 }
 
 // Ensure compile-time interface compliance
@@ -32,9 +32,9 @@ func NewServer(
 	userHandler *userHandlers.Handler,
 ) *Server {
 	return &Server{
-		authHandler:    authHandler,
-		orgHandler:     orgHandler,
-		userHandler:    userHandler,
+		authHandler: authHandler,
+		orgHandler:  orgHandler,
+		userHandler: userHandler,
 	}
 }
 

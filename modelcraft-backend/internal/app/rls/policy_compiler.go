@@ -4,9 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"modelcraft/internal/domain/rls"
+	"strings"
+)
+
+// RLS expression operator constants.
+const (
+	opAnd   = "_and"
+	opOr    = "_or"
+	opNot   = "_not"
+	opConst = "_const"
 )
 
 // PolicyCompiler PolicyCompiler 实现
@@ -40,13 +47,15 @@ func (c *PolicyCompiler) Compile(ctx context.Context, expr rls.JsonExpr) (*rls.C
 	return c.compileNode(ctx, obj, "")
 }
 
-func (c *PolicyCompiler) compileNode(ctx context.Context, node map[string]interface{}, path string) (*rls.CompiledPolicy, error) {
+func (c *PolicyCompiler) compileNode( //nolint:gocognit,funlen // recursive tree-walk compiler is inherently complex
+	ctx context.Context, node map[string]interface{}, path string,
+) (*rls.CompiledPolicy, error) {
 	var conditions []string
 	var params []interface{}
 
 	for key, value := range node {
 		switch key {
-		case "_and":
+		case opAnd:
 			arr, ok := value.([]interface{})
 			if !ok {
 				return nil, fmt.Errorf("_and value must be an array")
@@ -68,7 +77,7 @@ func (c *PolicyCompiler) compileNode(ctx context.Context, node map[string]interf
 				conditions = append(conditions, "("+strings.Join(andConditions, " AND ")+")")
 			}
 
-		case "_or":
+		case opOr:
 			arr, ok := value.([]interface{})
 			if !ok {
 				return nil, fmt.Errorf("_or value must be an array")
@@ -90,7 +99,7 @@ func (c *PolicyCompiler) compileNode(ctx context.Context, node map[string]interf
 				conditions = append(conditions, "("+strings.Join(orConditions, " OR ")+")")
 			}
 
-		case "_not":
+		case opNot:
 			obj, ok := value.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("_not value must be an object")
@@ -102,7 +111,7 @@ func (c *PolicyCompiler) compileNode(ctx context.Context, node map[string]interf
 			conditions = append(conditions, "NOT ("+compiled.SQL+")")
 			params = append(params, compiled.Params...)
 
-		case "_const":
+		case opConst:
 			if b, ok := value.(bool); ok {
 				if b {
 					conditions = append(conditions, "1=1")
@@ -136,7 +145,9 @@ func (c *PolicyCompiler) compileNode(ctx context.Context, node map[string]interf
 	}, nil
 }
 
-func (c *PolicyCompiler) compileFieldComparison(fieldName string, compObj map[string]interface{}) (string, []interface{}, error) {
+func (c *PolicyCompiler) compileFieldComparison(
+	fieldName string, compObj map[string]interface{},
+) (string, []interface{}, error) {
 	var conditions []string
 	var params []interface{}
 

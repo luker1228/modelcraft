@@ -37,27 +37,30 @@ export function DataWorkspacePanel({
 
   return (
     <section className={`min-w-0 flex-1 rounded-xl border border-border bg-background shadow-sm ${className}`}>
-      <div className="flex items-center gap-1 overflow-x-auto border-b border-border px-3 py-2">
+      <div className="flex items-center gap-2 overflow-x-auto border-b border-border p-3">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId
+          const displayTitle = (tab.title || tab.name).trim()
           return (
             <div
               key={tab.id}
-              className={`flex shrink-0 items-center gap-1 rounded-md border px-2 py-1 text-xs ${
+              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2.5 transition-all ${
                 isActive
-                  ? 'border-blue-200 bg-blue-50 text-blue-700'
-                  : 'border-border bg-muted/30 text-muted-foreground'
+                  ? 'border-blue-200 bg-blue-50 text-blue-800 shadow-sm'
+                  : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/50'
               }`}
             >
-              <button onClick={() => onTabChange(tab.id)}>
-                {(tab.title || tab.name).trim()} ({tab.name})
+              <button onClick={() => onTabChange(tab.id)} className="text-left">
+                <span className={`${isActive ? 'text-sm font-semibold' : 'text-sm font-medium'}`}>
+                  {displayTitle} ({tab.name})
+                </span>
               </button>
               <button
                 onClick={() => onTabClose(tab.id)}
                 className="rounded p-0.5 hover:bg-black/5"
-                aria-label={`关闭 ${(tab.title || tab.name).trim()}`}
+                aria-label={`关闭 ${displayTitle}`}
               >
-                <X className="size-3" />
+                <X className="size-3.5" />
               </button>
             </div>
           )

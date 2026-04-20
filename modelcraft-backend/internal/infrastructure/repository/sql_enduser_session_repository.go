@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
-
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/sqlerr"
+	"time"
 )
 
 // SqlEndUserSessionRepository is the MySQL implementation of enduser.EndUserSessionRepository.
@@ -111,7 +110,10 @@ func (r *SqlEndUserSessionRepository) RevokeByID(ctx context.Context, id string)
 
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
-		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, fmt.Sprintf("end-user session not found: %s", id))
+		return shared.NewRepositoryError(
+			shared.ErrTypeNoRowsAffected,
+			fmt.Sprintf("end-user session not found: %s", id),
+		)
 	}
 
 	return nil

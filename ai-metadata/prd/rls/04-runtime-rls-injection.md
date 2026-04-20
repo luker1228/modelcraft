@@ -128,7 +128,7 @@ selectPredicate=OWNER_EQUALS_USER 时，EndUser 显式传入 `where: { owner: <o
 > 默认 Policy = 读写自己（OWNER/OWNER），终端用户自动隔离，CreateOne 时 owner 字段自动填充。
 
 **Story 2**（部分）：删除 owner 字段，关闭 RLS
-> 删除 `EndUserRef` 字段后，Policy 同步删除，`model.getPolicy() == nil`，不再注入 WHERE 条件。
+> 删除 `EndUserRef` 字段后，Policy 同步删除，`model.getPolicy() == nil`；不再执行基于 Policy 的 WHERE 编译注入，但对 EndUser 访问按 Default Deny 拒绝。
 
 **Story 3**：终端用户只能访问自己的数据
 > readScope=OWNER 时，无论 EndUser 传什么查询条件，WHERE 注入保证只能访问 `owner = 自己 ID` 的行。

@@ -1,11 +1,10 @@
 package adapter
 
 import (
-	"testing"
-	"time"
-
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/project"
+	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )

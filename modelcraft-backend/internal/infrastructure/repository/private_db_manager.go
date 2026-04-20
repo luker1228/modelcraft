@@ -4,14 +4,13 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"sync"
-	"time"
-
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/database/private"
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/logfacade"
+	"sync"
+	"time"
 )
 
 // PrivateDBManager manages private database connections for end-user auth.
@@ -196,30 +195,18 @@ func (m *PrivateDBManager) openPrivateDBConnection(
 }
 
 func buildPrivateDSN(username, password, host string, port int, database string, timeoutSeconds int) string {
-	if database == "" {
-		return fmt.Sprintf(
-			"%s:%s@tcp(%s:%d)/?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local&timeout=%ds&readTimeout=%ds&writeTimeout=%ds",
-			username,
-			password,
-			host,
-			port,
-			timeoutSeconds,
-			timeoutSeconds,
-			timeoutSeconds,
-		)
-	}
-
-	return fmt.Sprintf(
-		"%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local&timeout=%ds&readTimeout=%ds&writeTimeout=%ds",
-		username,
-		password,
-		host,
-		port,
-		database,
+	dsnSuffix := "?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local"
+	timeoutSuffix := fmt.Sprintf(
+		"&timeout=%ds&readTimeout=%ds&writeTimeout=%ds",
 		timeoutSeconds,
 		timeoutSeconds,
 		timeoutSeconds,
 	)
+	if database == "" {
+		return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s", username, password, host, port, dsnSuffix, timeoutSuffix)
+	}
+
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s%s%s", username, password, host, port, database, dsnSuffix, timeoutSuffix)
 }
 
 func (m *PrivateDBManager) evictByKey(key string) {

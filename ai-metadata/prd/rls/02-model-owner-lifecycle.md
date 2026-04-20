@@ -30,7 +30,7 @@
 ### 删除 owner 字段的交互
 
 - 开发者删除 `EndUserRef` 字段时，前端展示**二次确认弹窗**
-- 弹窗提示文案：「删除后数据隔离将关闭，该 Model 的所有终端用户将可访问全量数据。」
+- 弹窗提示文案：「删除后将移除该 Model 的访问策略（Policy）；依据 Default Deny 原则，终端用户将无法访问该 Model 数据。」
 - 对应后端行为：`Model.removeField()` 返回 `RemoveFieldResult { warning: RLS_WILL_DISABLE }`
 
 ---
@@ -55,8 +55,8 @@
 **Story 1**：新建 Model，零配置开箱即用
 > 新建 `orders` Model 后，字段列表中自动存在 `owner` 字段。
 
-**Story 2**：删除 owner 字段，关闭 RLS
-> 删除 `EndUserRef` 字段后，该 Model 的 Runtime 请求不再有 WHERE 注入，所有 EndUser 可访问全量数据。
+**Story 2**：删除 owner 字段，进入默认拒绝（EndUser DENY ALL）
+> 删除 `EndUserRef` 字段后，Policy 同步删除；Runtime 不再执行基于 Policy 的 WHERE 注入，但无 Policy 时对 EndUser 访问执行 Default Deny。
 
 **Story 5**：从表导入的 Model 不强制 RLS
 > 导入 Model 后，字段列表中无 `owner` 字段，Runtime 行为与导入前完全一致。
@@ -72,7 +72,7 @@ Model (Aggregate Root)
   - 不变量：createdVia=IMPORTED 时不生成 owner 字段
   + isRLSEnabled(): Boolean
     → 存在 format=END_USER_REF 的字段 → true
-    → 不存在 → false（开放模式）
+    → 不存在 → false（无 Policy，EndUser Default Deny）
   + removeField(name: String): RemoveFieldResult
 
 ModelCreationSource (Enum)

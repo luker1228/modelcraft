@@ -2,11 +2,10 @@ package adapter
 
 import (
 	"context"
-	"strings"
-
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
+	"strings"
 )
 
 // EndUserErrorAdapter converts BusinessError to End-User GraphQL union errors.

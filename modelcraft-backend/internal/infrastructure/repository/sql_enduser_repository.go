@@ -4,11 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
-
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/sqlerr"
+	"time"
 )
 
 // SqlEndUserRepository is the MySQL implementation of enduser.EndUserRepository.

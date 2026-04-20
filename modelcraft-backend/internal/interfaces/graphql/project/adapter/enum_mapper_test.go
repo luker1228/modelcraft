@@ -2,13 +2,12 @@ package adapter
 
 import (
 	"encoding/json"
+	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/project"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"modelcraft/internal/domain/modeldesign"
-	"modelcraft/internal/domain/project"
 
 	"github.com/stretchr/testify/require"
 )

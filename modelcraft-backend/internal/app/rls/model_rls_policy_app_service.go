@@ -2,7 +2,6 @@ package rls
 
 import (
 	"context"
-
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/pkg/bizerrors"
@@ -33,8 +32,8 @@ func NewModelRLSPolicyAppService(
 
 // SetPolicy 设置 Model RLS 策略
 func (s *ModelRLSPolicyAppService) SetPolicy(ctx context.Context, orgName, projectSlug string,
-	input SetModelRLSPolicyInput) (*modeldesign.ModelRLSPolicy, error) {
-
+	input SetModelRLSPolicyInput,
+) (*modeldesign.ModelRLSPolicy, error) {
 	// 1. 检查 Model 是否存在并获取字段
 	model, err := s.modelRepo.GetByID(ctx, input.ModelID)
 	if err != nil {
@@ -100,14 +99,16 @@ func (s *ModelRLSPolicyAppService) SetPolicy(ctx context.Context, orgName, proje
 }
 
 // GetPolicy 获取 Model RLS 策略
-func (s *ModelRLSPolicyAppService) GetPolicy(ctx context.Context, orgName, projectSlug, modelID string) (*modeldesign.ModelRLSPolicy, error) {
+func (s *ModelRLSPolicyAppService) GetPolicy(
+	ctx context.Context, orgName, projectSlug, modelID string,
+) (*modeldesign.ModelRLSPolicy, error) {
 	return s.policyRepo.GetByModelID(ctx, orgName, projectSlug, modelID)
 }
 
 // ApplyPreset 应用预设策略
 func (s *ModelRLSPolicyAppService) ApplyPreset(ctx context.Context, orgName, projectSlug, modelID string,
-	preset rls.RLSPreset) (*modeldesign.ModelRLSPolicy, error) {
-
+	preset rls.RLSPreset,
+) (*modeldesign.ModelRLSPolicy, error) {
 	policy := &modeldesign.ModelRLSPolicy{ModelID: modelID}
 	policy.ApplyPreset(preset)
 
@@ -125,8 +126,8 @@ func (s *ModelRLSPolicyAppService) ApplyPreset(ctx context.Context, orgName, pro
 
 // ValidateExpr 校验 RLS 表达式（用于 UI 实时校验）
 func (s *ModelRLSPolicyAppService) ValidateExpr(ctx context.Context, orgName, projectSlug, modelID string,
-	exprType rls.ExprType, expr rls.JsonExpr) []rls.ValidationError {
-
+	exprType rls.ExprType, expr rls.JsonExpr,
+) []rls.ValidationError {
 	// 获取 Model 和 AuthSchema
 	model, err := s.modelRepo.GetByID(ctx, modelID)
 	if err != nil || model == nil {

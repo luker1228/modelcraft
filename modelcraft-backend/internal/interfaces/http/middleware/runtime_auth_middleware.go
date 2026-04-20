@@ -2,14 +2,15 @@ package middleware
 
 import (
 	"context"
+	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
-
-	"modelcraft/pkg/logfacade"
 )
 
-// EndUserContextKey is the context key for end-user identity.
-const EndUserContextKey = "end_user_identity"
+type endUserContextKeyType string
+
+// endUserContextKey is the context key for end-user identity.
+const endUserContextKey endUserContextKeyType = "end_user_identity"
 
 // EndUserIdentity represents the authenticated end-user identity.
 type EndUserIdentity struct {
@@ -89,7 +90,11 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			m.logger.Warn(ctx, "Invalid JWT issuer for runtime endpoint",
 				logfacade.String("issuer", issuer),
 				logfacade.String("expected", "mc-enduser"))
-			http.Error(w, `{"error": "Unauthorized: Invalid issuer. Runtime endpoints only accept EndUser JWT (mc-enduser)"}`, http.StatusUnauthorized)
+			http.Error(
+				w,
+				`{"error": "Unauthorized: Invalid issuer. Runtime endpoints only accept EndUser JWT (mc-enduser)"}`,
+				http.StatusUnauthorized,
+			)
 			return
 		}
 
@@ -106,7 +111,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			EndUserID: endUserID,
 			Issuer:    issuer,
 		}
-		ctx = context.WithValue(ctx, EndUserContextKey, identity)
+		ctx = context.WithValue(ctx, endUserContextKey, identity)
 
 		m.logger.Debug(ctx, "EndUser authenticated",
 			logfacade.String("endUserId", endUserID),
@@ -119,7 +124,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 // GetEndUserIdentity retrieves the end-user identity from context.
 // Returns nil if no identity is found.
 func GetEndUserIdentity(ctx context.Context) *EndUserIdentity {
-	identity, ok := ctx.Value(EndUserContextKey).(*EndUserIdentity)
+	identity, ok := ctx.Value(endUserContextKey).(*EndUserIdentity)
 	if !ok {
 		return nil
 	}

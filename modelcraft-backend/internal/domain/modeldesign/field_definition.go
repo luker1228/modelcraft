@@ -21,29 +21,29 @@ const (
 
 // FieldDefinition 字段定义实体
 type FieldDefinition struct {
-	ModelID        string            `json:"modelId"`
-	Name           string            `json:"name"`
-	ModelLocator   *ModelLocator     `json:"modelLocator"`
-	Title          string            `json:"title"`
-	Description    string            `json:"description"`
-	Type           *FieldType        `json:"type"`                  // 使用FieldFormat值对象指针（JSON序列化为format字符串）
-	StorageHint    *string           `json:"storageHint,omitempty"` // 存储优化提示
-	NonNull        bool              `json:"nonNull"`               // 字段是否非空，默认true表示不可为空
-	Required       bool              `json:"required"`              // 字段是否必填，默认false表示非必填
-	IsUnique       bool              `json:"isUnique"`
-	IsPrimary      bool              `json:"isPrimary"`
-	IsDeprecated   bool              `json:"isDeprecated"` // 是否已废弃
-	IsArray        bool              `json:"isArray"`      // ENUM 是否为多选
-	Status         StatusType        `json:"status"`
-	Validation     *ValidationConfig `json:"validation"`
-	DisplayOrder   string            `json:"displayOrder"`             // 字典序排序键（lexicographic fractional index）
-	Enum           *EnumDefinition   `json:"enum,omitempty"`           // 关联的枚举详情（查询时加载）
-	EnumName       string         `json:"enumName,omitempty"` // format=ENUM 时使用
-	BelongsToFKID  *string           `json:"belongsToFkId,omitempty"`  // FK 列字段引用的逻辑外键 ID（model_id 侧）
-	RelateFKID     *string           `json:"relateFkId,omitempty"`     // RELATION 格式字段引用的逻辑外键 ID
-	Metadata       map[string]any    `json:"metadata"`
-	CreatedAt      time.Time         `json:"createdAt"`
-	UpdatedAt      time.Time         `json:"updatedAt"`
+	ModelID       string            `json:"modelId"`
+	Name          string            `json:"name"`
+	ModelLocator  *ModelLocator     `json:"modelLocator"`
+	Title         string            `json:"title"`
+	Description   string            `json:"description"`
+	Type          *FieldType        `json:"type"`                  // 使用FieldFormat值对象指针（JSON序列化为format字符串）
+	StorageHint   *string           `json:"storageHint,omitempty"` // 存储优化提示
+	NonNull       bool              `json:"nonNull"`               // 字段是否非空，默认true表示不可为空
+	Required      bool              `json:"required"`              // 字段是否必填，默认false表示非必填
+	IsUnique      bool              `json:"isUnique"`
+	IsPrimary     bool              `json:"isPrimary"`
+	IsDeprecated  bool              `json:"isDeprecated"` // 是否已废弃
+	IsArray       bool              `json:"isArray"`      // ENUM 是否为多选
+	Status        StatusType        `json:"status"`
+	Validation    *ValidationConfig `json:"validation"`
+	DisplayOrder  string            `json:"displayOrder"`            // 字典序排序键（lexicographic fractional index）
+	Enum          *EnumDefinition   `json:"enum,omitempty"`          // 关联的枚举详情（查询时加载）
+	EnumName      string            `json:"enumName,omitempty"`      // format=ENUM 时使用
+	BelongsToFKID *string           `json:"belongsToFkId,omitempty"` // FK 列字段引用的逻辑外键 ID（model_id 侧）
+	RelateFKID    *string           `json:"relateFkId,omitempty"`    // RELATION 格式字段引用的逻辑外键 ID
+	Metadata      map[string]any    `json:"metadata"`
+	CreatedAt     time.Time         `json:"createdAt"`
+	UpdatedAt     time.Time         `json:"updatedAt"`
 }
 
 // EnumDisplayAttributes 枚举展示字段配置。
@@ -347,12 +347,12 @@ func (fd *FieldDefinition) ResolveEnumDisplayFieldName() (string, bool) {
 
 func (fd *FieldDefinition) parseEnumDisplayFromMetadata() (*EnumDisplayAttributes, error) {
 	if fd.Metadata == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // no enumDisplay config is a valid absence state
 	}
 
 	raw, ok := fd.Metadata["enumDisplay"]
 	if !ok || raw == nil {
-		return nil, nil
+		return nil, nil //nolint:nilnil // no enumDisplay config is a valid absence state
 	}
 
 	b, err := json.Marshal(raw)

@@ -7,24 +7,24 @@ import (
 
 // SetModelRLSPolicyInput 设置 RLS 策略输入
 type SetModelRLSPolicyInput struct {
-	ModelID         string          `json:"modelId"`
-	SelectPredicate rls.JsonExpr    `json:"selectPredicate"`
-	InsertCheck     rls.JsonExpr    `json:"insertCheck"`
-	UpdatePredicate rls.JsonExpr    `json:"updatePredicate"`
-	UpdateCheck     rls.JsonExpr    `json:"updateCheck"`
-	DeletePredicate rls.JsonExpr    `json:"deletePredicate"`
+	ModelID         string       `json:"modelId"`
+	SelectPredicate rls.JsonExpr `json:"selectPredicate"`
+	InsertCheck     rls.JsonExpr `json:"insertCheck"`
+	UpdatePredicate rls.JsonExpr `json:"updatePredicate"`
+	UpdateCheck     rls.JsonExpr `json:"updateCheck"`
+	DeletePredicate rls.JsonExpr `json:"deletePredicate"`
 }
 
 // ValidateRLSExprInput 校验 RLS 表达式输入
 type ValidateRLSExprInput struct {
-	ModelID string       `json:"modelId"`
-	Expr    rls.JsonExpr `json:"expr"`
+	ModelID  string       `json:"modelId"`
+	Expr     rls.JsonExpr `json:"expr"`
 	ExprType rls.ExprType `json:"exprType"`
 }
 
 // SetProjectAuthSchemaInput 设置 Project AuthSchema 输入
 type SetProjectAuthSchemaInput struct {
-	ProjectSlug string           `json:"projectSlug"`
+	ProjectSlug string             `json:"projectSlug"`
 	Variables   []rls.AuthVariable `json:"variables"`
 }
 

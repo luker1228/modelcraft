@@ -2,13 +2,13 @@ package enduser
 
 import (
 	"encoding/json"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strconv"
 
 	appModelDesign "modelcraft/internal/app/modeldesign"
-	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/ctxutils"
-	"modelcraft/pkg/logfacade"
 )
 
 // DataHandler handles end-user data metadata APIs.
@@ -16,6 +16,8 @@ type DataHandler struct {
 	modelService *appModelDesign.ModelDesignAppService
 	logger       logfacade.Logger
 }
+
+const missingDataHeaders = "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required"
 
 func NewDataHandler(
 	modelService *appModelDesign.ModelDesignAppService,
@@ -36,7 +38,7 @@ func (h *DataHandler) DatabaseCatalog(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 	endUserID := r.Header.Get("X-End-User-Id")
 	if orgName == "" || projectSlug == "" || endUserID == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingDataHeaders)
 		return
 	}
 
@@ -61,13 +63,16 @@ func (h *DataHandler) DatabaseCatalog(w http.ResponseWriter, r *http.Request) {
 		pageSize = parsed
 	}
 
-	databases, totalCount, err := h.modelService.QueryDatabaseCatalogWithCommand(ctx, appModelDesign.DatabaseCatalogQueryCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Search:      search,
-		Page:        page,
-		PageSize:    pageSize,
-	})
+	databases, totalCount, err := h.modelService.QueryDatabaseCatalogWithCommand(
+		ctx,
+		appModelDesign.DatabaseCatalogQueryCommand{
+			OrgName:     orgName,
+			ProjectSlug: projectSlug,
+			Search:      search,
+			Page:        page,
+			PageSize:    pageSize,
+		},
+	)
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "End-user database catalog failed")
 		return
@@ -96,7 +101,7 @@ func (h *DataHandler) ModelCatalog(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 	endUserID := r.Header.Get("X-End-User-Id")
 	if orgName == "" || projectSlug == "" || endUserID == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingDataHeaders)
 		return
 	}
 

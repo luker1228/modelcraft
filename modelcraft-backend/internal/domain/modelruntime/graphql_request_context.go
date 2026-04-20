@@ -38,7 +38,11 @@ func newGraphqlRequestContext(clientRepo ClientDatabaseRepository, orgName, proj
 
 // WithGraphqlRequestContext 将请求级上下文注入 context，返回新 context。
 // 由 App 层在每次 graphql.Do 前调用，确保所有 resolver 闭包均可通过 p.Context 取到。
-func WithGraphqlRequestContext(ctx context.Context, clientRepo ClientDatabaseRepository, orgName, projectSlug string) context.Context {
+func WithGraphqlRequestContext(
+	ctx context.Context,
+	clientRepo ClientDatabaseRepository,
+	orgName, projectSlug string,
+) context.Context {
 	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug)
 	return context.WithValue(ctx, graphqlRequestContextKey{}, rctx)
 }

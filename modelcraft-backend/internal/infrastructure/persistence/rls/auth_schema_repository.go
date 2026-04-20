@@ -4,38 +4,21 @@ package rls
 import (
 	"context"
 	"encoding/json"
-	"time"
-
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/sqlerr"
+
+	domainRLS "modelcraft/internal/domain/rls"
 )
-
-// AuthVariable represents a single authentication variable definition.
-type AuthVariable struct {
-	Name   string `json:"name"`
-	Source string `json:"source"`
-	Type   string `json:"type"`
-}
-
-// AuthSchema represents the domain model for project authentication schema.
-// This is a temporary domain entity definition until the domain layer is fully implemented.
-type AuthSchema struct {
-	OrgName     string
-	ProjectSlug string
-	Variables   []AuthVariable
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-}
 
 // AuthSchemaRepository defines the interface for project auth schema persistence operations.
 // This interface should be moved to the domain layer when fully implemented.
 type AuthSchemaRepository interface {
 	// GetByProjectID retrieves an auth schema by org name and project slug.
 	// Returns nil, nil if the schema does not exist.
-	GetByProjectID(ctx context.Context, orgName, projectSlug string) (*AuthSchema, error)
+	GetByProjectID(ctx context.Context, orgName, projectSlug string) (*domainRLS.AuthSchema, error)
 
 	// Save saves an auth schema (upsert operation).
-	Save(ctx context.Context, authSchema *AuthSchema) error
+	Save(ctx context.Context, orgName, projectSlug string, authSchema *domainRLS.AuthSchema) error
 
 	// DeleteByProjectID deletes the auth schema for a given project.
 	DeleteByProjectID(ctx context.Context, orgName, projectSlug string) error
@@ -56,7 +39,7 @@ func NewSqlAuthSchemaRepository(q dbgen.Querier) AuthSchemaRepository {
 func (r *SqlAuthSchemaRepository) GetByProjectID(
 	ctx context.Context,
 	orgName, projectSlug string,
-) (*AuthSchema, error) {
+) (*domainRLS.AuthSchema, error) {
 	row, err := r.q.GetProjectAuthSchema(ctx, dbgen.GetProjectAuthSchemaParams{
 		OrgName:     orgName,
 		ProjectSlug: projectSlug,
@@ -68,30 +51,31 @@ func (r *SqlAuthSchemaRepository) GetByProjectID(
 		return nil, sqlerr.WrapSQLError(err)
 	}
 
-	var variables []AuthVariable
+	var variables []domainRLS.AuthVariable
 	if err := json.Unmarshal(row.Variables, &variables); err != nil {
 		return nil, sqlerr.WrapSQLError(err)
 	}
 
-	return &AuthSchema{
-		OrgName:     row.OrgName,
-		ProjectSlug: row.ProjectSlug,
-		Variables:   variables,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+	return &domainRLS.AuthSchema{
+		ProjectID: row.ProjectSlug,
+		Variables: variables,
 	}, nil
 }
 
 // Save saves an auth schema (upsert operation).
-func (r *SqlAuthSchemaRepository) Save(ctx context.Context, authSchema *AuthSchema) error {
+func (r *SqlAuthSchemaRepository) Save(
+	ctx context.Context,
+	orgName, projectSlug string,
+	authSchema *domainRLS.AuthSchema,
+) error {
 	variablesJSON, err := json.Marshal(authSchema.Variables)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
 
 	err = r.q.UpsertProjectAuthSchema(ctx, dbgen.UpsertProjectAuthSchemaParams{
-		OrgName:     authSchema.OrgName,
-		ProjectSlug: authSchema.ProjectSlug,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
 		Variables:   variablesJSON,
 	})
 	if err != nil {
@@ -119,32 +103,32 @@ var _ AuthSchemaRepository = (*SqlAuthSchemaRepository)(nil)
 
 // AuthSchemaToDomain converts a dbgen.ProjectAuthSchema to a domain AuthSchema.
 // This helper function is provided for use by other layers.
-func AuthSchemaToDomain(row dbgen.ProjectAuthSchema) (*AuthSchema, error) {
-	var variables []AuthVariable
+func AuthSchemaToDomain(row dbgen.ProjectAuthSchema) (*domainRLS.AuthSchema, error) {
+	var variables []domainRLS.AuthVariable
 	if err := json.Unmarshal(row.Variables, &variables); err != nil {
 		return nil, err
 	}
 
-	return &AuthSchema{
-		OrgName:     row.OrgName,
-		ProjectSlug: row.ProjectSlug,
-		Variables:   variables,
-		CreatedAt:   row.CreatedAt,
-		UpdatedAt:   row.UpdatedAt,
+	return &domainRLS.AuthSchema{
+		ProjectID: row.ProjectSlug,
+		Variables: variables,
 	}, nil
 }
 
 // AuthSchemaToCreateParams converts a domain AuthSchema to dbgen upsert params.
 // This helper function is provided for use by other layers.
-func AuthSchemaToCreateParams(authSchema *AuthSchema) (dbgen.UpsertProjectAuthSchemaParams, error) {
+func AuthSchemaToCreateParams(
+	orgName, projectSlug string,
+	authSchema *domainRLS.AuthSchema,
+) (dbgen.UpsertProjectAuthSchemaParams, error) {
 	variablesJSON, err := json.Marshal(authSchema.Variables)
 	if err != nil {
 		return dbgen.UpsertProjectAuthSchemaParams{}, err
 	}
 
 	return dbgen.UpsertProjectAuthSchemaParams{
-		OrgName:     authSchema.OrgName,
-		ProjectSlug: authSchema.ProjectSlug,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
 		Variables:   variablesJSON,
 	}, nil
 }

@@ -1,10 +1,9 @@
 package adapter
 
 import (
-	"testing"
-
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/generated"
+	"testing"
 
 	"github.com/stretchr/testify/require"
 )
@@ -52,10 +51,19 @@ func TestConvertFormatType2Domain_TableDriven(t *testing.T) {
 func TestFieldMapper_ConvertAddFieldInputToDTO_TableDriven(t *testing.T) {
 	t.Parallel()
 
+	type addFieldDTOCheckFunc func(
+		t *testing.T,
+		gotName, gotTitle string,
+		gotFormat modeldesign.FormatType,
+		gotNonNull, gotRequired, gotUnique, gotArray bool,
+		gotDescription string,
+		gotEnumName, gotFKID *string,
+	)
+
 	testCases := []struct {
 		name  string
 		input *generated.AddFieldInput
-		check func(t *testing.T, gotName string, gotTitle string, gotFormat modeldesign.FormatType, gotNonNull bool, gotRequired bool, gotUnique bool, gotArray bool, gotDescription string, gotEnumName *string, gotFKID *string)
+		check addFieldDTOCheckFunc
 	}{
 		{
 			name: "enum field keeps enum name and pointer bools",
@@ -70,7 +78,14 @@ func TestFieldMapper_ConvertAddFieldInputToDTO_TableDriven(t *testing.T) {
 				Description:    stringPtr("enum field"),
 				RelateEnumName: stringPtr("StatusEnum"),
 			},
-			check: func(t *testing.T, gotName string, gotTitle string, gotFormat modeldesign.FormatType, gotNonNull bool, gotRequired bool, gotUnique bool, gotArray bool, gotDescription string, gotEnumName *string, gotFKID *string) {
+			check: func(
+				t *testing.T,
+				gotName, gotTitle string,
+				gotFormat modeldesign.FormatType,
+				gotNonNull, gotRequired, gotUnique, gotArray bool,
+				gotDescription string,
+				gotEnumName, gotFKID *string,
+			) {
 				require.Equal(t, "status", gotName)
 				require.Equal(t, "Status", gotTitle)
 				require.Equal(t, modeldesign.FormatEnum, gotFormat)
@@ -93,7 +108,14 @@ func TestFieldMapper_ConvertAddFieldInputToDTO_TableDriven(t *testing.T) {
 				RelateFkID:     stringPtr("fk-user"),
 				RelateEnumName: stringPtr("ShouldBeDropped"),
 			},
-			check: func(t *testing.T, gotName string, gotTitle string, gotFormat modeldesign.FormatType, gotNonNull bool, gotRequired bool, gotUnique bool, gotArray bool, gotDescription string, gotEnumName *string, gotFKID *string) {
+			check: func(
+				t *testing.T,
+				gotName, gotTitle string,
+				gotFormat modeldesign.FormatType,
+				gotNonNull, gotRequired, gotUnique, gotArray bool,
+				gotDescription string,
+				gotEnumName, gotFKID *string,
+			) {
 				require.Equal(t, "user", gotName)
 				require.Equal(t, "User", gotTitle)
 				require.Equal(t, modeldesign.FormatRelation, gotFormat)
@@ -114,7 +136,14 @@ func TestFieldMapper_ConvertAddFieldInputToDTO_TableDriven(t *testing.T) {
 				Title:  "Nickname",
 				Format: generated.FormatTypeString,
 			},
-			check: func(t *testing.T, gotName string, gotTitle string, gotFormat modeldesign.FormatType, gotNonNull bool, gotRequired bool, gotUnique bool, gotArray bool, gotDescription string, gotEnumName *string, gotFKID *string) {
+			check: func(
+				t *testing.T,
+				gotName, gotTitle string,
+				gotFormat modeldesign.FormatType,
+				gotNonNull, gotRequired, gotUnique, gotArray bool,
+				gotDescription string,
+				gotEnumName, gotFKID *string,
+			) {
 				require.Equal(t, "nickname", gotName)
 				require.Equal(t, "Nickname", gotTitle)
 				require.Equal(t, modeldesign.FormatString, gotFormat)

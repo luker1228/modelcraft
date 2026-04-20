@@ -11,10 +11,10 @@ import (
 
 // 密码强度要求：至少 8 位，含字母 + 数字
 var (
-	passwordMinLength  = 8
-	passwordHasLetter  = regexp.MustCompile(`[a-zA-Z]`)
-	passwordHasDigit   = regexp.MustCompile(`[0-9]`)
-	usernamePattern    = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,64}$`)
+	passwordMinLength = 8
+	passwordHasLetter = regexp.MustCompile(`[a-zA-Z]`)
+	passwordHasDigit  = regexp.MustCompile(`[0-9]`)
+	usernamePattern   = regexp.MustCompile(`^[a-zA-Z0-9_-]{3,64}$`)
 )
 
 // ValidatePasswordStrength 验证密码强度

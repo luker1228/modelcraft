@@ -2,15 +2,15 @@ package enduser
 
 import (
 	"encoding/json"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
 
 	appEnduser "modelcraft/internal/app/enduser"
-	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/ctxutils"
-	"modelcraft/pkg/logfacade"
 )
 
 // ManagementHandler 处理终端用户管理 HTTP 请求
@@ -18,6 +18,8 @@ type ManagementHandler struct {
 	appService *appEnduser.EndUserManagementAppService
 	logger     logfacade.Logger
 }
+
+const missingManagementHeaders = "X-Org-Name and X-Project-Slug headers are required"
 
 // NewManagementHandler 创建管理 Handler
 func NewManagementHandler(
@@ -49,7 +51,7 @@ func (h *ManagementHandler) Create(w http.ResponseWriter, r *http.Request) {
 	createdBy := r.Header.Get("X-User-Id") // 开发者 ID
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
 		return
 	}
 
@@ -61,7 +63,6 @@ func (h *ManagementHandler) Create(w http.ResponseWriter, r *http.Request) {
 		Password:    req.Password,
 		CreatedBy:   createdBy,
 	})
-
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "Create end user failed")
 		return
@@ -89,7 +90,7 @@ func (h *ManagementHandler) List(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
 		return
 	}
 
@@ -112,7 +113,6 @@ func (h *ManagementHandler) List(w http.ResponseWriter, r *http.Request) {
 		First:       first,
 		After:       after,
 	})
-
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "List end users failed")
 		return
@@ -170,7 +170,7 @@ func (h *ManagementHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 	projectSlug := r.Header.Get("X-Project-Slug")
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
 		return
 	}
 
@@ -181,7 +181,6 @@ func (h *ManagementHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 		UserID:      userID,
 		IsForbidden: req.IsForbidden,
 	})
-
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "Update end user status failed")
 		return
@@ -216,7 +215,7 @@ func (h *ManagementHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
 		return
 	}
 
@@ -226,7 +225,6 @@ func (h *ManagementHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		ProjectSlug: projectSlug,
 		UserID:      userID,
 	})
-
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "Delete end user failed")
 		return

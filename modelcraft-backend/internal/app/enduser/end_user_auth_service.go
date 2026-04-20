@@ -7,14 +7,13 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
-	"strings"
-	"time"
-
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
+	"strings"
+	"time"
 )
 
 const (
@@ -306,7 +305,6 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 		}
 		return nil
 	})
-
 	if err != nil {
 		// If already a BusinessError, return as-is
 		if _, ok := err.(*bizerrors.BusinessError); ok {

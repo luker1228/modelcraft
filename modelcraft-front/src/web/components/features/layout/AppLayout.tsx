@@ -32,6 +32,7 @@ import {
   Table2,
   List,
   LogIn,
+  Shield,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
@@ -48,6 +49,12 @@ interface MembershipInfo {
   orgName: string
   displayName: string
   role: string
+}
+
+interface NavItem {
+  label: string
+  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  href: string
 }
 
 /**
@@ -172,21 +179,31 @@ export function AppLayout({
   )
 
   // Workspace navigation items
-  const workspaceNavItems = [
+  const workspaceNavItems: NavItem[] = [
     { label: '项目', icon: FolderOpen, href: `/org/${orgName}/workspace` },
     { label: '团队', icon: Users, href: `/org/${orgName}/team` },
     { label: '组织设置', icon: Settings, href: `/org/${orgName}/settings` },
   ]
 
-  // Project navigation items
-  const projectNavItems = [
+  const projectNavItems: NavItem[] = [
     { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
     { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
     { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
+    { label: '认证与授权', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/rls-settings` },
+  ]
+
+  const authNavItems: NavItem[] = [
+    { label: 'RLS 设置', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/rls-settings` },
     { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
   ]
 
   const navItems = showProjectNav ? projectNavItems : workspaceNavItems
+
+  const authBasePath = `/org/${orgName}/project/${projectSlug}`
+  const isAuthSection = pathname === `${authBasePath}/rls-settings`
+    || pathname?.startsWith(`${authBasePath}/rls-settings/`)
+    || pathname === `${authBasePath}/login-settings`
+    || pathname?.startsWith(`${authBasePath}/login-settings/`)
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
@@ -320,7 +337,7 @@ export function AppLayout({
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-md text-sm font-medium transition-all mb-0.5",
+                    "mb-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all",
                     isNavActive(item.href)
                       ? "bg-blue-100 text-blue-600"
                       : "text-muted-foreground hover:bg-gray-100 hover:text-foreground"
@@ -349,8 +366,44 @@ export function AppLayout({
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-y-auto bg-[#fafafa]">
-          {children}
+        <main className="flex-1 overflow-hidden bg-[#fafafa]">
+          {showProjectNav && isAuthSection ? (
+            <div className="flex h-full">
+              <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
+                <div className="p-3">
+                  <p className="px-2 text-sm font-semibold text-foreground">
+                    认证与授权
+                  </p>
+                  <div className="my-2 border-t border-gray-200" />
+                  <nav className="flex flex-col gap-0.5">
+                    {authNavItems.map((item) => (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
+                          isNavActive(item.href)
+                            ? 'bg-blue-100 text-blue-600'
+                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                        )}
+                      >
+                        <item.icon className="size-4 flex-shrink-0" strokeWidth={1.5} />
+                        <span>{item.label}</span>
+                      </a>
+                    ))}
+                  </nav>
+                </div>
+              </aside>
+
+              <div className="flex-1 overflow-y-auto">
+                {children}
+              </div>
+            </div>
+          ) : (
+            <div className="h-full overflow-y-auto">
+              {children}
+            </div>
+          )}
         </main>
       </div>
     </div>

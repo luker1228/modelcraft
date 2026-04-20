@@ -2,7 +2,6 @@ package rls
 
 import (
 	"context"
-
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/rls"
 	"modelcraft/pkg/bizerrors"
@@ -34,8 +33,8 @@ func NewAuthSchemaAppService(
 
 // SetAuthSchema 设置 Project AuthSchema
 func (s *AuthSchemaAppService) SetAuthSchema(ctx context.Context, orgName string,
-	input SetProjectAuthSchemaInput) (*rls.AuthSchema, error) {
-
+	input SetProjectAuthSchemaInput,
+) (*rls.AuthSchema, error) {
 	// 1. 检查 Project 是否存在
 	p, err := s.projectRepo.GetByNameAndOrg(ctx, input.ProjectSlug, orgName)
 	if err != nil {
@@ -67,7 +66,9 @@ func (s *AuthSchemaAppService) SetAuthSchema(ctx context.Context, orgName string
 }
 
 // GetAuthSchema 获取 Project AuthSchema
-func (s *AuthSchemaAppService) GetAuthSchema(ctx context.Context, orgName, projectSlug string) (*rls.AuthSchema, error) {
+func (s *AuthSchemaAppService) GetAuthSchema(
+	ctx context.Context, orgName, projectSlug string,
+) (*rls.AuthSchema, error) {
 	authSchema, err := s.authSchemaRepo.GetByProjectID(ctx, orgName, projectSlug)
 	if err != nil {
 		return nil, err

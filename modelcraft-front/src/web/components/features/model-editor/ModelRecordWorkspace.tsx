@@ -2,8 +2,9 @@
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, ApolloClient } from '@apollo/client'
+import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useProjectScopedClient, createModelRuntimeClient, buildRuntimeEndpoint } from '@bff/apollo/public'
+import { useProjectScopedClient, createModelRuntimeClient } from '@bff/apollo/public'
 import { ModelRecordForm } from './model-record-form'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './model-record-form/ModelRecordTable'
@@ -29,6 +30,7 @@ import {
 } from '@web/graphql/mutations/model'
 import { GET_MODEL_RECORD_WORKSPACE } from '@web/graphql/queries/model'
 import { Button } from '@web/components/ui/button'
+import { Input } from '@web/components/ui/input'
 import {
   Dialog,
   DialogContent,
@@ -50,11 +52,16 @@ import {
   Plus,
   Edit,
   Loader2,
-  Copy,
-  Check,
+  Search,
+  Shield,
+  TerminalSquare,
   RefreshCw,
 } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
+
+function toQueryValue(value: string | null | undefined): string {
+  return (value ?? '').trim()
+}
 
 interface ModelRecordWorkspaceProps {
   modelId: string
@@ -62,6 +69,7 @@ interface ModelRecordWorkspaceProps {
   orgName: string
   refreshToken?: number
   workspaceMode?: 'design' | 'end_user'
+  quickNav?: React.ReactNode
 }
 
 interface GetModelQueryData {
@@ -121,7 +129,9 @@ export default function ModelRecordWorkspace({
   orgName,
   refreshToken = 0,
   workspaceMode = 'design',
+  quickNav,
 }: ModelRecordWorkspaceProps) {
+  const router = useRouter()
   const canInsertField = workspaceMode === 'design'
   const canManageFieldLifecycle = workspaceMode === 'design'
   const canCopyRuntimeEndpoint = workspaceMode === 'design'
@@ -151,10 +161,8 @@ export default function ModelRecordWorkspace({
   const [editSaving, setEditSaving] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
 
-  // 复制端点状态
-  const [endpointCopied, setEndpointCopied] = useState(false)
-  // 复制 name 状态
-  const [nameCopied, setNameCopied] = useState(false)
+  // 搜索关键词
+  const [searchKeyword, setSearchKeyword] = useState('')
 
   // Fetch model details with fields and JSON schema
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_RECORD_WORKSPACE, {
@@ -405,9 +413,12 @@ export default function ModelRecordWorkspace({
     },
   })
 
-  const contentList: ModelRecordTableRow[] = Array.isArray((contentData as Record<string, unknown> | undefined)?.findMany && ((contentData as Record<string, unknown>).findMany as Record<string, unknown>)?.items)
-    ? ((contentData as Record<string, unknown>).findMany as Record<string, unknown>).items as ModelRecordTableRow[]
-    : []
+  const contentList: ModelRecordTableRow[] = useMemo(
+    () => (Array.isArray((contentData as Record<string, unknown> | undefined)?.findMany && ((contentData as Record<string, unknown>).findMany as Record<string, unknown>)?.items)
+      ? ((contentData as Record<string, unknown>).findMany as Record<string, unknown>).items as ModelRecordTableRow[]
+      : []),
+    [contentData]
+  )
 
   useEffect(() => {
     if (!refreshToken) return
@@ -532,22 +543,24 @@ export default function ModelRecordWorkspace({
     }
   }, [model?.id, removeFieldTarget, removeField, projectScopedContext, refetchModel, refetch])
 
-  // 构建 GraphQL 端点 URL
-  const graphqlEndpoint = model
-    ? buildRuntimeEndpoint(orgName, projectSlug, model.databaseName ?? '', model.name ?? '')
-    : ''
-
-  // 复制端点到剪贴板
-  const handleCopyEndpoint = async () => {
-    try {
-      const fullUrl = `${window.location.origin}${graphqlEndpoint}`
-      await navigator.clipboard.writeText(fullUrl)
-      setEndpointCopied(true)
-      setTimeout(() => setEndpointCopied(false), 2000)
-    } catch (error) {
-      console.error('Failed to copy endpoint:', error)
+  const filteredContentList = useMemo(() => {
+    const keyword = searchKeyword.trim().toLowerCase()
+    if (!keyword) {
+      return contentList
     }
-  }
+
+    return contentList.filter((row) => {
+      return Object.values(row).some((value) => {
+        if (value == null) {
+          return false
+        }
+        if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+          return String(value).toLowerCase().includes(keyword)
+        }
+        return false
+      })
+    })
+  }, [contentList, searchKeyword])
 
   if (modelLoading) {
     return (
@@ -570,52 +583,49 @@ export default function ModelRecordWorkspace({
 
   return (
     <div className="flex h-full flex-col">
-      {/* 顶部标题栏 */}
+      {quickNav ?? (workspaceMode !== 'end_user' && (
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-sidebar p-2">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 shrink-0"
+            onClick={() => {
+              const query = new URLSearchParams({
+                database: toQueryValue(model.databaseName),
+                modelName: toQueryValue(model.name),
+                modelId: toQueryValue(model.id),
+              })
+              router.push(`/org/${orgName}/project/${projectSlug}/rls-settings?${query.toString()}`)
+            }}
+          >
+            <Shield className="mr-1.5 size-3.5" />
+            RLS 设置
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-8 shrink-0 text-muted-foreground"
+            disabled
+          >
+            <TerminalSquare className="mr-1.5 size-3.5" />
+            SQL 控制台（敬请期待）
+          </Button>
+        </div>
+      ))}
+
+      {/* 顶部搜索栏 */}
       <div className="flex items-center justify-between border-b border-border bg-sidebar px-4 py-3">
-        <div className="flex items-center gap-4">
-          <div>
-            <h1 className="flex items-center gap-2 font-heading text-base font-semibold text-foreground">
-              {model.title || model.name}
-              {model.title && model.name && (
-                <button
-                  onClick={async () => {
-                    try {
-                      await navigator.clipboard.writeText(model.name)
-                      setNameCopied(true)
-                      setTimeout(() => setNameCopied(false), 2000)
-                    } catch (error) {
-                      console.error('Failed to copy name:', error)
-                    }
-                  }}
-                  className={`cursor-pointer text-sm font-normal transition-colors ${
-                    nameCopied ? 'text-emerald-600' : 'text-muted-foreground hover:text-primary'
-                  }`}
-                  title={nameCopied ? '已复制!' : '点击复制 name'}
-                >
-                  ({model.name})
-                  {nameCopied && <Check className="ml-1 inline size-3" />}
-                </button>
-              )}
-            </h1>
-            {canCopyRuntimeEndpoint && (
-              <div className="mt-0.5 flex items-center gap-2">
-                <code className="max-w-[300px] truncate rounded border border-border/50 bg-muted/60 px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
-                  {graphqlEndpoint}
-                </code>
-                <button
-                  onClick={handleCopyEndpoint}
-                  className="flex-shrink-0 text-muted-foreground transition-colors hover:text-primary"
-                  title="复制端点"
-                >
-                  {endpointCopied ? (
-                    <Check className="size-3.5 text-emerald-600" />
-                  ) : (
-                    <Copy className="size-3.5" />
-                  )}
-                </button>
-              </div>
-            )}
-          </div>
+        <div className="flex w-full max-w-xl items-center gap-2">
+          <Search className="size-4 text-muted-foreground" />
+          <Input
+            value={searchKeyword}
+            onChange={(event) => setSearchKeyword(event.target.value)}
+            placeholder={`搜索 ${model.title || model.name} 的记录...`}
+            className="h-8"
+          />
+        </div>
+        <div className="text-xs text-muted-foreground">
+          {filteredContentList.length} / {contentList.length} 条
         </div>
       </div>
 
@@ -667,7 +677,7 @@ export default function ModelRecordWorkspace({
         <div className="flex items-center gap-2">
           {!contentLoading && (
             <span className="text-xs text-muted-foreground">
-              {contentList.length} 条记录
+              {filteredContentList.length} 条记录
             </span>
           )}
           <Button
@@ -686,7 +696,7 @@ export default function ModelRecordWorkspace({
       {/* 主内容区 - 数据列表 */}
       <ModelRecordTable
         contentLoading={contentLoading}
-        contentList={contentList}
+        contentList={filteredContentList}
         displayFields={displayFields}
         getFieldInfo={getFieldInfo}
         getFieldTypeDisplay={getFieldTypeDisplay}

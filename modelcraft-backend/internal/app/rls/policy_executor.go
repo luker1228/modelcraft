@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"modelcraft/internal/domain/rls"
 )
 
@@ -18,8 +17,8 @@ func NewPolicyExecutor() *PolicyExecutor {
 
 // ToSQL 将编译后的策略绑定运行时 authCtx 生成最终 SQL
 func (e *PolicyExecutor) ToSQL(ctx context.Context, compiled *rls.CompiledPolicy,
-	authCtx *rls.AuthContext) (string, []interface{}, error) {
-
+	authCtx *rls.AuthContext,
+) (string, []interface{}, error) {
 	if compiled == nil {
 		return "", nil, fmt.Errorf("compiled policy is nil")
 	}
@@ -73,8 +72,8 @@ func (e *PolicyExecutor) resolveAuthVar(authCtx *rls.AuthContext, varName string
 
 // ValidateCheck 应用层校验 CHECK 约束
 func (e *PolicyExecutor) ValidateCheck(ctx context.Context, expr rls.JsonExpr,
-	rowData map[string]interface{}, authCtx *rls.AuthContext) error {
-
+	rowData map[string]interface{}, authCtx *rls.AuthContext,
+) error {
 	var root interface{}
 	if err := json.Unmarshal([]byte(expr), &root); err != nil {
 		return fmt.Errorf("invalid JSON: %w", err)
@@ -96,9 +95,11 @@ func (e *PolicyExecutor) ValidateCheck(ctx context.Context, expr rls.JsonExpr,
 	return e.validateCheckNode(ctx, obj, rowData, authCtx)
 }
 
-func (e *PolicyExecutor) validateCheckNode(ctx context.Context, node map[string]interface{},
-	rowData map[string]interface{}, authCtx *rls.AuthContext) error {
-
+//nolint:gocognit // recursive check evaluator over expression tree is intentionally explicit
+func (e *PolicyExecutor) validateCheckNode(
+	ctx context.Context, node map[string]interface{},
+	rowData map[string]interface{}, authCtx *rls.AuthContext,
+) error {
 	for key, value := range node {
 		switch key {
 		case "_and":
@@ -162,8 +163,8 @@ func (e *PolicyExecutor) validateCheckNode(ctx context.Context, node map[string]
 }
 
 func (e *PolicyExecutor) validateFieldComparison(fieldName string, compObj map[string]interface{},
-	rowData map[string]interface{}, authCtx *rls.AuthContext) error {
-
+	rowData map[string]interface{}, authCtx *rls.AuthContext,
+) error {
 	fieldValue, exists := rowData[fieldName]
 
 	for op, expectedValue := range compObj {

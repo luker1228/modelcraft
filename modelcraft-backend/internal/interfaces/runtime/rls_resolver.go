@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/logfacade"
@@ -13,13 +12,13 @@ import (
 
 // RLSFilter represents the resolved RLS filter for a query.
 type RLSFilter struct {
-	SelectPredicate  JSONExpr `json:"selectPredicate"`
-	InsertCheck      JSONExpr `json:"insertCheck"`
-	UpdatePredicate  JSONExpr `json:"updatePredicate"`
-	UpdateCheck      JSONExpr `json:"updateCheck"`
-	DeletePredicate  JSONExpr `json:"deletePredicate"`
-	FieldName        string   `json:"fieldName"`  // Fixed as "owner"
-	EndUserID        string   `json:"endUserId"`
+	SelectPredicate JSONExpr `json:"selectPredicate"`
+	InsertCheck     JSONExpr `json:"insertCheck"`
+	UpdatePredicate JSONExpr `json:"updatePredicate"`
+	UpdateCheck     JSONExpr `json:"updateCheck"`
+	DeletePredicate JSONExpr `json:"deletePredicate"`
+	FieldName       string   `json:"fieldName"` // Fixed as "owner"
+	EndUserID       string   `json:"endUserId"`
 }
 
 // JSONExpr represents a JSON expression for RLS predicates.
@@ -100,7 +99,7 @@ func (f *RLSFilter) ShouldInjectWhere() bool {
 
 // RLSResolver resolves RLS filters for runtime queries.
 type RLSResolver struct {
-	logger   logfacade.Logger
+	logger     logfacade.Logger
 	policyRepo modeldesign.ModelRLSPolicyRepository
 }
 

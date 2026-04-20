@@ -147,7 +147,7 @@ func toDomainAPIKey(row dbgen.ApiKey) *domainauth.APIKey {
 
 func marshalRoleIDs(roleIDs []int) (*json.RawMessage, error) {
 	if len(roleIDs) == 0 {
-		return nil, nil
+		return nil, nil //nolint:nilnil // empty role set is stored as SQL NULL by design
 	}
 	b, err := json.Marshal(roleIDs)
 	if err != nil {

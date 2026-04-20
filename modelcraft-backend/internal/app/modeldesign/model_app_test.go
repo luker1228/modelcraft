@@ -98,6 +98,18 @@ func (m *MockModelRepository) Query(
 	return args.Get(0).([]modeldesign.DataModel), args.Int(1), args.Error(2)
 }
 
+func (m *MockModelRepository) ListDatabaseCatalog(
+	ctx context.Context,
+	orgName, projectSlug, search string,
+	page, pageSize int,
+) ([]string, int, error) {
+	args := m.Called(ctx, orgName, projectSlug, search, page, pageSize)
+	if args.Get(0) == nil {
+		return nil, args.Int(1), args.Error(2)
+	}
+	return args.Get(0).([]string), args.Int(1), args.Error(2)
+}
+
 func (m *MockModelRepository) AddFields(
 	ctx context.Context, orgName string, field []*modeldesign.FieldDefinition,
 ) error {

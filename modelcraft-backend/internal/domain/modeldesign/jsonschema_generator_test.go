@@ -960,22 +960,22 @@ func TestXMC_Validation_Fields(t *testing.T) {
 // TestXMC_NoUnknownFields 遍历 x-mc 所有 key，断言均在白名单内
 func TestXMC_NoUnknownFields(t *testing.T) {
 	whitelist := map[string]bool{
-		"widget":        true,
-		"isPrimary":     true,
-		"isUnique":      true,
-		"displayOrder":  true,
-		"format":        true,
-		"nullable":      true,
-		"storageHint":   true,
-		"validateRule":  true,
-		"precision":     true,
-		"scale":         true,
-		"minDate":       true,
-		"maxDate":       true,
-		"minTime":       true,
-		"maxTime":       true,
-		"relation":      true,
-		"enum":          true,
+		"widget":       true,
+		"isPrimary":    true,
+		"isUnique":     true,
+		"displayOrder": true,
+		"format":       true,
+		"nullable":     true,
+		"storageHint":  true,
+		"validateRule": true,
+		"precision":    true,
+		"scale":        true,
+		"minDate":      true,
+		"maxDate":      true,
+		"minTime":      true,
+		"maxTime":      true,
+		"relation":     true,
+		"enum":         true,
 	}
 
 	fkID := "fk-1"

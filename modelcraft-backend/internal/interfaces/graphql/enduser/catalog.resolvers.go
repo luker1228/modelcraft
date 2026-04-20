@@ -2,11 +2,11 @@ package endusergraphql
 
 import (
 	"context"
-
-	appModelDesign "modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/interfaces/graphql/enduser/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+
+	appModelDesign "modelcraft/internal/app/modeldesign"
 )
 
 // Empty implements the _empty query for schema health check.
@@ -39,28 +39,29 @@ func (r *queryResolver) DatabaseCatalog(
 	pageSize := 20
 	search := ""
 
-	if input != nil {
-		if input.Page != nil && *input.Page > 0 {
-			page = int(*input.Page)
-		}
-		if input.PageSize != nil && *input.PageSize > 0 {
-			pageSize = int(*input.PageSize)
-			if pageSize > 100 {
-				pageSize = 100
-			}
-		}
-		if input.Search != nil {
-			search = *input.Search
+	if input != nil && input.Page != nil && *input.Page > 0 {
+		page = int(*input.Page)
+	}
+	if input != nil && input.PageSize != nil && *input.PageSize > 0 {
+		pageSize = int(*input.PageSize)
+		if pageSize > 100 {
+			pageSize = 100
 		}
 	}
+	if input != nil && input.Search != nil {
+		search = *input.Search
+	}
 
-	databases, totalCount, err := r.ModelDesignService.QueryDatabaseCatalogWithCommand(ctx, appModelDesign.DatabaseCatalogQueryCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Search:      search,
-		Page:        page,
-		PageSize:    pageSize,
-	})
+	databases, totalCount, err := r.ModelDesignService.QueryDatabaseCatalogWithCommand(
+		ctx,
+		appModelDesign.DatabaseCatalogQueryCommand{
+			OrgName:     orgName,
+			ProjectSlug: projectSlug,
+			Search:      search,
+			Page:        page,
+			PageSize:    pageSize,
+		},
+	)
 	if err != nil {
 		return r.mapDatabaseCatalogError(ctx, requestID, err), nil
 	}

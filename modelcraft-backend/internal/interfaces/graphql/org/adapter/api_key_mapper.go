@@ -1,10 +1,10 @@
 package adapter
 
 import (
-	"strconv"
 	appAuth "modelcraft/internal/app/auth"
 	domainauth "modelcraft/internal/domain/auth"
 	"modelcraft/internal/interfaces/graphql/org/generated"
+	"strconv"
 )
 
 type apiKeyMapper struct{}

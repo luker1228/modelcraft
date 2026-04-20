@@ -1,9 +1,8 @@
 package modeldesign
 
 import (
-	"time"
-
 	"modelcraft/internal/domain/rls"
+	"time"
 )
 
 // ModelRLSPolicy RLS 策略实体（五件套 JsonExpr）

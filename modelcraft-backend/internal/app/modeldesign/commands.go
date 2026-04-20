@@ -103,9 +103,7 @@ const (
 	FieldFormatImmutableCode = "FIELD_FORMAT_IMMUTABLE"
 )
 
-var (
-	ErrFieldFormatImmutable = bizerrors.New(FieldFormatImmutableCode)
-)
+var ErrFieldFormatImmutable = bizerrors.New(FieldFormatImmutableCode)
 
 // GetFieldsCommand 获取字段列表命令
 type GetFieldsCommand struct {

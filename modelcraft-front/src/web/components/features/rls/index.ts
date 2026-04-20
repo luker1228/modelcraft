@@ -7,6 +7,7 @@
 // 组件导出
 export { DangerConfirmDialog } from './DangerConfirmDialog'
 export { RLSPresetSelector } from './RLSPresetSelector'
+export { AuthVariableEditor } from './AuthVariableEditor'
 export { PolicyConditionRow } from './PolicyConditionRow'
 export { PolicyConditionBuilder } from './PolicyConditionBuilder'
 export { PolicyJSONPreview } from './PolicyJSONPreview'
