@@ -46,21 +46,30 @@ func (q *Queries) BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongs
 }
 
 const createLogicalForeignKey = `-- name: CreateLogicalForeignKey :exec
-INSERT INTO logical_foreign_keys (id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO logical_foreign_keys (
+  id, pair_id, org_name, direction,
+  model_id, model_name, ref_model_id, ref_model_name,
+  ref_database_name, ref_table_name,
+  source_fields, target_fields, is_deletable,
+  created_at, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateLogicalForeignKeyParams struct {
-	ID           string
-	PairID       string
-	OrgName      string
-	Direction    LogicalForeignKeysDirection
-	ModelID      string
-	ModelName    string
-	RefModelID   string
-	RefModelName string
-	SourceFields json.RawMessage
-	TargetFields json.RawMessage
+	ID              string
+	PairID          string
+	OrgName         string
+	Direction       LogicalForeignKeysDirection
+	ModelID         string
+	ModelName       string
+	RefModelID      sql.NullString
+	RefModelName    string
+	RefDatabaseName sql.NullString
+	RefTableName    sql.NullString
+	SourceFields    json.RawMessage
+	TargetFields    json.RawMessage
+	IsDeletable     bool
 }
 
 func (q *Queries) CreateLogicalForeignKey(ctx context.Context, arg CreateLogicalForeignKeyParams) error {
@@ -73,8 +82,11 @@ func (q *Queries) CreateLogicalForeignKey(ctx context.Context, arg CreateLogical
 		arg.ModelName,
 		arg.RefModelID,
 		arg.RefModelName,
+		arg.RefDatabaseName,
+		arg.RefTableName,
 		arg.SourceFields,
 		arg.TargetFields,
+		arg.IsDeletable,
 	)
 	return err
 }
@@ -262,7 +274,8 @@ func (q *Queries) FindFieldsByRelateFKID(ctx context.Context, arg FindFieldsByRe
 }
 
 const findLogicalForeignKeysByModelID = `-- name: FindLogicalForeignKeysByModelID :many
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE model_id = ?
   AND org_name = ?
@@ -291,8 +304,11 @@ func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, arg FindL
 			&i.ModelName,
 			&i.RefModelID,
 			&i.RefModelName,
+			&i.RefDatabaseName,
+			&i.RefTableName,
 			&i.SourceFields,
 			&i.TargetFields,
+			&i.IsDeletable,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -310,7 +326,8 @@ func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, arg FindL
 }
 
 const findLogicalForeignKeysByPairID = `-- name: FindLogicalForeignKeysByPairID :many
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE pair_id = ?
   AND org_name = ?
@@ -339,8 +356,11 @@ func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLo
 			&i.ModelName,
 			&i.RefModelID,
 			&i.RefModelName,
+			&i.RefDatabaseName,
+			&i.RefTableName,
 			&i.SourceFields,
 			&i.TargetFields,
+			&i.IsDeletable,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -358,14 +378,15 @@ func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLo
 }
 
 const findLogicalForeignKeysByRefModelID = `-- name: FindLogicalForeignKeysByRefModelID :many
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE ref_model_id = ?
   AND org_name = ?
 `
 
 type FindLogicalForeignKeysByRefModelIDParams struct {
-	RefModelID string
+	RefModelID sql.NullString
 	OrgName    string
 }
 
@@ -387,8 +408,11 @@ func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, arg Fi
 			&i.ModelName,
 			&i.RefModelID,
 			&i.RefModelName,
+			&i.RefDatabaseName,
+			&i.RefTableName,
 			&i.SourceFields,
 			&i.TargetFields,
+			&i.IsDeletable,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -406,7 +430,8 @@ func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, arg Fi
 }
 
 const getLogicalForeignKeyByID = `-- name: GetLogicalForeignKeyByID :one
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE id = ?
 LIMIT 1
@@ -424,8 +449,11 @@ func (q *Queries) GetLogicalForeignKeyByID(ctx context.Context, id string) (Logi
 		&i.ModelName,
 		&i.RefModelID,
 		&i.RefModelName,
+		&i.RefDatabaseName,
+		&i.RefTableName,
 		&i.SourceFields,
 		&i.TargetFields,
+		&i.IsDeletable,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

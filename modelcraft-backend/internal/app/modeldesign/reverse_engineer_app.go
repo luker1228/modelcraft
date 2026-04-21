@@ -2,6 +2,7 @@ package modeldesign
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"modelcraft/internal/domain/cluster"
 	"modelcraft/internal/domain/modeldesign"
@@ -211,7 +212,28 @@ func (s *ReverseEngineerAppService) buildModelFromTable(
 	)
 }
 
-// createModel 创建模型（复用现有的创建流程）
+// ImportPrivateModel imports a table from a private database as a model.
+// Implements project.PrivateModelImporter. Skips if the model already exists.
+func (s *ReverseEngineerAppService) ImportPrivateModel(
+	ctx context.Context,
+	orgName, projectSlug, databaseName, tableName string,
+) error {
+	_, err := s.ImportModel(ctx, ImportModelCommand{
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		DatabaseName: databaseName,
+		TableName:    tableName,
+	})
+	if err != nil {
+		// Model already exists is not an error in this context.
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) && bizErr.Info().GetCode() == bizerrors.ModelAlreadyExists.GetCode() {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
 func (s *ReverseEngineerAppService) createModel(
 	ctx context.Context,
 	orgName string,

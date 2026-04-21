@@ -195,6 +195,7 @@ export function AppLayout({
   const authNavItems: NavItem[] = [
     { label: 'RLS 设置', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/rls-settings` },
     { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
+    { label: '用户管理', icon: Users, href: `/org/${orgName}/project/${projectSlug}/end-users` },
   ]
 
   const navItems = showProjectNav ? projectNavItems : workspaceNavItems
@@ -204,6 +205,8 @@ export function AppLayout({
     || pathname?.startsWith(`${authBasePath}/rls-settings/`)
     || pathname === `${authBasePath}/login-settings`
     || pathname?.startsWith(`${authBasePath}/login-settings/`)
+    || pathname === `${authBasePath}/end-users`
+    || pathname?.startsWith(`${authBasePath}/end-users/`)
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"fmt"
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/repository"
@@ -13,12 +14,26 @@ import (
 	domainCluster "modelcraft/internal/domain/cluster"
 )
 
+// PrivateDBProvisioner provisions the private database for a project.
+// Implemented by infrastructure PrivateDBManager.
+type PrivateDBProvisioner interface {
+	Provision(ctx context.Context, orgName, projectSlug string) error
+}
+
+// PrivateModelImporter imports a table from the private database as a model.
+// Implemented by modeldesign.ReverseEngineerAppService.
+type PrivateModelImporter interface {
+	ImportPrivateModel(ctx context.Context, orgName, projectSlug, databaseName, tableName string) error
+}
+
 // ProjectAppService orchestrates project lifecycle use cases.
 type ProjectAppService struct {
 	projectRepo    project.ProjectRepository
 	clusterRepo    domainCluster.DatabaseClusterRepository
 	clusterService *clusterApp.DatabaseClusterAppService
 	txManager      repository.TxManager
+	privateDB      PrivateDBProvisioner  // optional: nil skips provisioning
+	modelImporter  PrivateModelImporter  // optional: nil skips model import
 }
 
 // NewProjectAppService creates a new ProjectAppService with all required dependencies.
@@ -34,6 +49,20 @@ func NewProjectAppService(
 		clusterService: clusterService,
 		txManager:      txManager,
 	}
+}
+
+// WithPrivateDBProvisioner sets the PrivateDBProvisioner used to provision
+// mc_private_{projectSlug} on the project's cluster after creation.
+func (s *ProjectAppService) WithPrivateDBProvisioner(p PrivateDBProvisioner) *ProjectAppService {
+	s.privateDB = p
+	return s
+}
+
+// WithPrivateModelImporter sets the PrivateModelImporter used to import
+// users and accounts tables as models after private DB is provisioned.
+func (s *ProjectAppService) WithPrivateModelImporter(i PrivateModelImporter) *ProjectAppService {
+	s.modelImporter = i
+	return s
 }
 
 // CreateProject atomically creates a project and its associated cluster.
@@ -132,6 +161,32 @@ func (s *ProjectAppService) CreateProject(
 	}
 
 	logger.Infof(ctx, "project and cluster created successfully: project=%s cluster=%s", proj.Slug, clusterID)
+
+	// Provision private database (mc_private_{projectSlug}) on the project's cluster.
+	// This is done outside the transaction so the cluster row is visible to the provisioner.
+	// Failure here is a hard error — private DB creation is mandatory for project consistency.
+	// On failure we roll back by deleting the project (which cascades to the cluster).
+	if s.privateDB != nil {
+		if provErr := s.privateDB.Provision(ctx, cmd.OrgName, proj.Slug); provErr != nil {
+			// Best-effort rollback: delete the project and cluster that were just created.
+			if rollbackErr := s.projectRepo.Archive(ctx, proj.Slug, cmd.OrgName); rollbackErr != nil {
+				logger.Warnf(ctx, "rollback failed after private DB provision error: %v", rollbackErr)
+			}
+			return nil, bizerrors.Wrapf(provErr, "failed to provision private DB for project %s", proj.Slug)
+		}
+	}
+
+	// Import users and accounts tables as models in the private database.
+	// Failures are non-fatal: models can be imported manually later.
+	if s.modelImporter != nil {
+		privateDBName := fmt.Sprintf("mc_private_%s", proj.Slug)
+		for _, table := range []string{"users", "accounts"} {
+			if err := s.modelImporter.ImportPrivateModel(ctx, cmd.OrgName, proj.Slug, privateDBName, table); err != nil {
+				logger.Warnf(ctx, "failed to import private model %s.%s: %v", privateDBName, table, err)
+			}
+		}
+	}
+
 	return proj, nil
 }
 

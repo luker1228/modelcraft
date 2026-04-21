@@ -285,6 +285,11 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	// Create end-user services and handlers
 	privateDBManager := repository.NewPrivateDBManager(clusterManager, &cfg.Database, logger)
+
+	// Wire private DB provisioner into project service so mc_private_{slug} is created on project creation.
+	projectAppService.WithPrivateDBProvisioner(privateDBManager)
+	// Wire model importer so users/accounts tables are imported as models after private DB is provisioned.
+	projectAppService.WithPrivateModelImporter(reverseEngineerApp)
 	endUserTxMgr := &endUserTxManager{}
 	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
 		privateDBManager,

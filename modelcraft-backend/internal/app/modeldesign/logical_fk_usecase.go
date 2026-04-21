@@ -33,17 +33,13 @@ func NewLogicalFKAppService(
 	}
 }
 
-// CreateLogicalForeignKey validates and atomically creates both normal and reverse FK rows.
-//
-// Validation:
-//  1. source_fields and target_fields must have the same count
-//  2. All source_fields must exist on the model with ModelID
-//  3. All target_fields must exist on the model with RefModelID
+// CreateLogicalForeignKey validates and creates FK rows.
+// By default it creates a bidirectional pair (normal + reverse).
+// When cmd.CreateMode is UNIDIRECTIONAL, only the normal row is created.
 func (s *LogicalFKAppService) CreateLogicalForeignKey(
 	ctx context.Context,
 	cmd CreateLogicalForeignKeyCommand,
 ) (*modeldesign.LogicalForeignKey, error) {
-	// 1. Validate field count parity
 	if len(cmd.SourceFields) == 0 {
 		return nil, bizerrors.NewError(bizerrors.FKColumnsNotFound, "source_fields cannot be empty")
 	}
@@ -51,7 +47,6 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 		return nil, bizerrors.NewError(bizerrors.FKFieldCountMismatch, "")
 	}
 
-	// 2. Validate source fields exist on ModelID
 	sourceModel, err := s.modelRepo.GetByID(ctx, cmd.ModelID, modeldesign.NewModelQueryOptions().WithFields())
 	if err != nil {
 		return nil, err
@@ -60,7 +55,6 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 		return nil, bizerrors.NewError(bizerrors.FKColumnsNotFound, err.Error())
 	}
 
-	// 3. Validate target fields exist on RefModelID
 	refModel, err := s.modelRepo.GetByID(ctx, cmd.RefModelID, modeldesign.NewModelQueryOptions().WithFields())
 	if err != nil {
 		return nil, err
@@ -69,14 +63,9 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 		return nil, bizerrors.NewError(bizerrors.FKColumnsNotFound, err.Error())
 	}
 
-	// 4. Generate IDs
 	normalID, err := bizutils.GenerateUUIDV7()
 	if err != nil {
 		return nil, fmt.Errorf("CreateLogicalForeignKey: generate normalID: %w", err)
-	}
-	reverseID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return nil, fmt.Errorf("CreateLogicalForeignKey: generate reverseID: %w", err)
 	}
 	pairID, err := bizutils.GenerateUUIDV7()
 	if err != nil {
@@ -84,8 +73,6 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 	}
 
 	now := time.Now()
-
-	// 5. Create normal row (ModelID owns FK columns)
 	normalRow := &modeldesign.LogicalForeignKey{
 		ID:           normalID,
 		PairID:       pairID,
@@ -97,35 +84,47 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 		RefModelName: refModel.ModelName,
 		SourceFields: cmd.SourceFields,
 		TargetFields: cmd.TargetFields,
+		IsDeletable:  true,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
 
-	// 6. Create reverse row (RefModelID mirrors the FK)
-	reverseRow := &modeldesign.LogicalForeignKey{
-		ID:           reverseID,
-		PairID:       pairID,
-		OrgName:      cmd.OrgName,
-		Direction:    modeldesign.DirectionReverse,
-		ModelID:      cmd.RefModelID,
-		ModelName:    refModel.ModelName,
-		RefModelID:   cmd.ModelID,
-		RefModelName: sourceModel.ModelName,
-		SourceFields: cmd.TargetFields, // mirrored
-		TargetFields: cmd.SourceFields, // mirrored
-		CreatedAt:    now,
-		UpdatedAt:    now,
+	createMode := cmd.CreateMode
+	if createMode == "" {
+		createMode = modeldesign.FKCreateModeBidirectional
 	}
 
-	// 7. Save both rows atomically
 	if err := s.txManager.WithTx(ctx, func(txCtx context.Context, q dbgen.Querier) error {
 		txFKRepo := s.fkRepoFactory(q)
 		if err := txFKRepo.Save(txCtx, normalRow); err != nil {
 			return fmt.Errorf("save normal FK row: %w", err)
 		}
-		if err := txFKRepo.Save(txCtx, reverseRow); err != nil {
-			return fmt.Errorf("save reverse FK row: %w", err)
+
+		if createMode == modeldesign.FKCreateModeBidirectional {
+			reverseID, idErr := bizutils.GenerateUUIDV7()
+			if idErr != nil {
+				return fmt.Errorf("CreateLogicalForeignKey: generate reverseID: %w", idErr)
+			}
+			reverseRow := &modeldesign.LogicalForeignKey{
+				ID:           reverseID,
+				PairID:       pairID,
+				OrgName:      cmd.OrgName,
+				Direction:    modeldesign.DirectionReverse,
+				ModelID:      cmd.RefModelID,
+				ModelName:    refModel.ModelName,
+				RefModelID:   cmd.ModelID,
+				RefModelName: sourceModel.ModelName,
+				SourceFields: cmd.TargetFields,
+				TargetFields: cmd.SourceFields,
+				IsDeletable:  true,
+				CreatedAt:    now,
+				UpdatedAt:    now,
+			}
+			if err := txFKRepo.Save(txCtx, reverseRow); err != nil {
+				return fmt.Errorf("save reverse FK row: %w", err)
+			}
 		}
+
 		if err := txFKRepo.BindBelongsToFields(
 			txCtx,
 			cmd.OrgName,
@@ -143,14 +142,62 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 	return normalRow, nil
 }
 
+// CreateSystemEndUserRefFK creates owner(END_USER_REF) -> users.id unidirectional FK and marks it undeletable.
+func (s *LogicalFKAppService) CreateSystemEndUserRefFK(
+	ctx context.Context,
+	orgName string,
+	model *modeldesign.DataModel,
+) error {
+	owner := model.GetOwnerField()
+	if owner == nil {
+		return nil
+	}
+	if owner.BelongsToFKID != nil && *owner.BelongsToFKID != "" {
+		return nil
+	}
+
+	normalID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return fmt.Errorf("CreateSystemEndUserRefFK: generate normalID: %w", err)
+	}
+	pairID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return fmt.Errorf("CreateSystemEndUserRefFK: generate pairID: %w", err)
+	}
+
+	row := &modeldesign.LogicalForeignKey{
+		ID:              normalID,
+		PairID:          pairID,
+		OrgName:         orgName,
+		Direction:       modeldesign.DirectionNormal,
+		ModelID:         model.ID,
+		ModelName:       model.ModelName,
+		RefModelID:      "", // END_USER_REF points to private users table, not metadata model table
+		RefModelName:    "users",
+		RefDatabaseName: fmt.Sprintf("mc_private_%s", model.ProjectSlug),
+		RefTableName:    "users",
+		SourceFields:    []string{owner.Name},
+		TargetFields:    []string{"id"},
+		IsDeletable:     false,
+		CreatedAt:       time.Now(),
+		UpdatedAt:       time.Now(),
+	}
+
+	if err := s.fkRepo.Save(ctx, row); err != nil {
+		return fmt.Errorf("CreateSystemEndUserRefFK: save FK row: %w", err)
+	}
+	if err := s.fkRepo.BindBelongsToFields(ctx, orgName, model.ID, normalID, []string{owner.Name}); err != nil {
+		return fmt.Errorf("CreateSystemEndUserRefFK: bind owner belongs_to_fk_id: %w", err)
+	}
+	owner.BelongsToFKID = &normalID
+	return nil
+}
+
 // DeleteLogicalForeignKey deletes a FK pair by pair_id.
-//
-// Pre-condition: both FK rows (normal and reverse) must have zero relate_fk_id references.
 func (s *LogicalFKAppService) DeleteLogicalForeignKey(
 	ctx context.Context,
 	cmd DeleteLogicalForeignKeyCommand,
 ) error {
-	// 1. Find the FK pair
 	rows, err := s.fkRepo.FindByPairID(ctx, cmd.OrgName, cmd.PairID)
 	if err != nil {
 		return err
@@ -159,8 +206,10 @@ func (s *LogicalFKAppService) DeleteLogicalForeignKey(
 		return bizerrors.NewError(bizerrors.FKNotFound, cmd.PairID)
 	}
 
-	// 2. Check that no RELATION fields reference either FK row
 	for _, row := range rows {
+		if !row.IsDeletable {
+			return bizerrors.NewError(bizerrors.FKNotDeletable, row.ID)
+		}
 		relateFields, err := s.fkRepo.FindByRelateField(ctx, cmd.OrgName, row.ID)
 		if err != nil {
 			return fmt.Errorf("DeleteLogicalForeignKey: check relate fields for %s: %w", row.ID, err)
@@ -170,7 +219,6 @@ func (s *LogicalFKAppService) DeleteLogicalForeignKey(
 		}
 	}
 
-	// 3. Delete the pair
 	return s.fkRepo.DeleteByPairID(ctx, cmd.OrgName, cmd.PairID)
 }
 

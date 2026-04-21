@@ -3,6 +3,7 @@ package dml
 import (
 	"modelcraft/internal/domain/query"
 	"testing"
+	"strings"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/stretchr/testify/assert"
@@ -483,7 +484,7 @@ func TestConvertToGoquExpression(t *testing.T) {
 				if tt.name == "comparison node" {
 					opt1 := `(("age" > ?) AND ("age" < ?))`
 					opt2 := `(("age" < ?) AND ("age" > ?))`
-					assert.Contains(t, []string{opt1, opt2}, sql)
+					assert.True(t, strings.Contains(sql, opt1) || strings.Contains(sql, opt2))
 					return
 				}
 

@@ -8,6 +8,7 @@ import (
 	"context"
 	"errors"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
+	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
@@ -18,7 +19,6 @@ import (
 func (r *mutationResolver) CreateLogicalForeignKey(ctx context.Context, input generated.CreateLogicalForeignKeyInput) (*generated.CreateLogicalForeignKeyPayload, error) {
 	fkErrorAdapter := adapter.NewFKErrorAdapter(ctx)
 
-	// Extract projectSlug from context
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.CreateLogicalForeignKeyPayload{
@@ -33,6 +33,11 @@ func (r *mutationResolver) CreateLogicalForeignKey(ctx context.Context, input ge
 		}, nil
 	}
 
+	createMode := modeldesign.FKCreateModeBidirectional
+	if input.CreateMode != nil {
+		createMode = modeldesign.LogicalFKCreateMode(*input.CreateMode)
+	}
+
 	cmd := appmodeldesign.CreateLogicalForeignKeyCommand{
 		OrgName:      orgName,
 		ProjectSlug:  projectSlug,
@@ -40,6 +45,7 @@ func (r *mutationResolver) CreateLogicalForeignKey(ctx context.Context, input ge
 		RefModelID:   input.RefModelID,
 		SourceFields: input.SourceFields,
 		TargetFields: input.TargetFields,
+		CreateMode:   createMode,
 	}
 
 	fk, err := r.LogicalFKAppService.CreateLogicalForeignKey(ctx, cmd)
@@ -64,6 +70,7 @@ func (r *mutationResolver) CreateLogicalForeignKey(ctx context.Context, input ge
 			RefModelName: fk.RefModelName,
 			SourceFields: fk.SourceFields,
 			TargetFields: fk.TargetFields,
+			IsDeletable:  fk.IsDeletable,
 		},
 	}, nil
 }
@@ -72,7 +79,6 @@ func (r *mutationResolver) CreateLogicalForeignKey(ctx context.Context, input ge
 func (r *mutationResolver) DeleteLogicalForeignKey(ctx context.Context, pairID string) (*generated.DeleteLogicalForeignKeyPayload, error) {
 	fkErrorAdapter := adapter.NewFKErrorAdapter(ctx)
 
-	// Extract projectSlug from context
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.DeleteLogicalForeignKeyPayload{
@@ -105,15 +111,12 @@ func (r *mutationResolver) DeleteLogicalForeignKey(ctx context.Context, pairID s
 	}
 
 	return &generated.DeleteLogicalForeignKeyPayload{
-		Result: &generated.DeleteLogicalForeignKeySuccess{
-			PairID: pairID,
-		},
+		Result: &generated.DeleteLogicalForeignKeySuccess{PairID: pairID},
 	}, nil
 }
 
 // LogicalForeignKeys is the resolver for the logicalForeignKeys field.
 func (r *queryResolver) LogicalForeignKeys(ctx context.Context, modelID string) ([]*generated.LogicalForeignKey, error) {
-	// Extract projectSlug from context
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -147,6 +150,7 @@ func (r *queryResolver) LogicalForeignKeys(ctx context.Context, modelID string) 
 			RefModelName: fk.RefModelName,
 			SourceFields: fk.SourceFields,
 			TargetFields: fk.TargetFields,
+			IsDeletable:  fk.IsDeletable,
 		})
 	}
 	return result, nil

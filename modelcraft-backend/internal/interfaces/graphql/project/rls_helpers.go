@@ -2,6 +2,7 @@ package projectgraphql
 
 import (
 	"context"
+	rls "modelcraft/internal/app/rls"
 	"errors"
 	"fmt"
 	"modelcraft/internal/domain/modeldesign"
@@ -167,4 +168,26 @@ func toGraphQLProjectAuthSchema(authSchema *domainRLS.AuthSchema) *generated.Pro
 	}
 
 	return &generated.ProjectAuthSchema{Variables: variables}
+}
+
+func attachModelRLSPolicy(
+	ctx context.Context,
+	policySvc *rls.ModelRLSPolicyAppService,
+	model *generated.Model,
+) error {
+	if model == nil || policySvc == nil {
+		return nil
+	}
+
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	policy, err := policySvc.GetPolicy(ctx, orgName, projectSlug, model.ID)
+	if err != nil {
+		return err
+	}
+	model.RlsPolicy = convertPolicyToGraphQL(policy)
+	return nil
 }

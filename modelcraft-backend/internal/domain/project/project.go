@@ -14,6 +14,13 @@ const (
 	ProjectStatusArchived ProjectStatus = "archived"
 )
 
+const (
+	projectSlugMinLen = 3
+	// Keep mc_private_{slug} within MySQL database name length (64).
+	// len("mc_private_") = 11, so slug max is 53.
+	projectSlugMaxLen = 53
+)
+
 // Project represents a project entity in the domain
 // Uses (OrgName, Name) as composite primary key
 type Project struct {
@@ -30,11 +37,11 @@ type Project struct {
 var projectSlugPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 // isValidProjectSlug validates that a project slug follows the required format:
-// - 3-64 characters
+// - 3-53 characters
 // - lowercase letters, digits, and underscores only (no hyphens or special characters)
 // - MUST start with a letter
 func isValidProjectSlug(name string) bool {
-	if len(name) < 3 || len(name) > 64 {
+	if len(name) < projectSlugMinLen || len(name) > projectSlugMaxLen {
 		return false
 	}
 	return projectSlugPattern.MatchString(name)
@@ -50,7 +57,7 @@ func (p *Project) Validate() error {
 	}
 	if !isValidProjectSlug(p.Slug) {
 		return fmt.Errorf(
-			"project slug MUST be 3-64 characters, lowercase letters/digits/underscores only, " +
+			"project slug MUST be 3-53 characters, lowercase letters/digits/underscores only, " +
 				"and start with a letter",
 		)
 	}
@@ -60,7 +67,6 @@ func (p *Project) Validate() error {
 	if p.Status != ProjectStatusActive && p.Status != ProjectStatusArchived {
 		return fmt.Errorf("project status MUST be either 'active' or 'archived'")
 	}
-	// Validate ClusterID if provided (not empty string)
 	if p.ClusterID != nil && *p.ClusterID == "" {
 		return fmt.Errorf("cluster ID cannot be empty if provided")
 	}
@@ -92,11 +98,9 @@ func NewProject(orgName, slug, title, description string) (*Project, error) {
 // UpdateMetadata updates the project's title and description
 // Empty string means "do not update this field" for all parameters
 func (p *Project) UpdateMetadata(title, description string) error {
-	// Store original values for rollback on error
 	originalTitle := p.Title
 	originalDescription := p.Description
 
-	// Update only non-empty fields
 	if title != "" {
 		p.Title = title
 	}
@@ -105,9 +109,7 @@ func (p *Project) UpdateMetadata(title, description string) error {
 	}
 	p.UpdatedAt = time.Now()
 
-	// Validate the changes
 	if err := p.Validate(); err != nil {
-		// Rollback on validation error
 		p.Title = originalTitle
 		p.Description = originalDescription
 		return err

@@ -14,26 +14,35 @@ const (
 	DirectionReverse LogicalFKDirection = "reverse"
 )
 
-// LogicalForeignKey 逻辑外键领域实体
-// 每个 FK 关系由两条记录组成，共享同一个 pair_id：
-//   - direction=normal: 拥有 FK 列的模型（source_fields 是 FK 列）
-//   - direction=reverse: 被引用的模型（镜像存储，source_fields 是被引用列）
+// LogicalFKCreateMode controls whether create operation writes one row or a normal+reverse pair.
+type LogicalFKCreateMode string
+
+const (
+	FKCreateModeBidirectional LogicalFKCreateMode = "BIDIRECTIONAL"
+	FKCreateModeUnidirectional LogicalFKCreateMode = "UNIDIRECTIONAL"
+)
+
+// LogicalForeignKey 逻辑外键领域实体。
+// 默认双向关系会写两条记录（normal + reverse），单向关系只写 normal 一条记录。
 type LogicalForeignKey struct {
-	ID           string             `json:"id"`
-	PairID       string             `json:"pairId"`
-	OrgName      string             `json:"orgName"`
-	Direction    LogicalFKDirection `json:"direction"`
-	ModelID      string             `json:"modelId"`
-	ModelName    string             `json:"modelName"`
-	RefModelID   string             `json:"refModelId"`
-	RefModelName string             `json:"refModelName"`
-	SourceFields []string           `json:"sourceFields"`
-	TargetFields []string           `json:"targetFields"`
-	CreatedAt    time.Time          `json:"createdAt"`
-	UpdatedAt    time.Time          `json:"updatedAt"`
+	ID              string             `json:"id"`
+	PairID          string             `json:"pairId"`
+	OrgName         string             `json:"orgName"`
+	Direction       LogicalFKDirection `json:"direction"`
+	ModelID         string             `json:"modelId"`
+	ModelName       string             `json:"modelName"`
+	RefModelID      string             `json:"refModelId"`
+	RefModelName    string             `json:"refModelName"`
+	RefDatabaseName string             `json:"refDatabaseName"`
+	RefTableName    string             `json:"refTableName"`
+	SourceFields    []string           `json:"sourceFields"`
+	TargetFields    []string           `json:"targetFields"`
+	IsDeletable     bool               `json:"isDeletable"`
+	CreatedAt       time.Time          `json:"createdAt"`
+	UpdatedAt       time.Time          `json:"updatedAt"`
 }
 
-// Validate 验证逻辑外键实体的有效性
+// Validate 验证逻辑外键实体的有效性。
 func (lf *LogicalForeignKey) Validate() error {
 	if lf.ID == "" {
 		return bizerrors.New("logical foreign key ID cannot be empty")
@@ -54,8 +63,8 @@ func (lf *LogicalForeignKey) Validate() error {
 	if lf.ModelName == "" {
 		return bizerrors.New("logical foreign key ModelName cannot be empty")
 	}
-	if lf.RefModelID == "" {
-		return bizerrors.New("logical foreign key RefModelID cannot be empty")
+	if lf.RefModelID == "" && lf.RefTableName == "" {
+		return bizerrors.New("logical foreign key RefModelID or RefTableName cannot both be empty")
 	}
 	if lf.RefModelName == "" {
 		return bizerrors.New("logical foreign key RefModelName cannot be empty")
@@ -75,12 +84,12 @@ func (lf *LogicalForeignKey) Validate() error {
 	return nil
 }
 
-// IsNormal 判断是否为 normal 方向（拥有 FK 列的一侧）
+// IsNormal 判断是否为 normal 方向（拥有 FK 列的一侧）。
 func (lf *LogicalForeignKey) IsNormal() bool {
 	return lf.Direction == DirectionNormal
 }
 
-// IsReverse 判断是否为 reverse 方向（被引用的一侧）
+// IsReverse 判断是否为 reverse 方向（被引用的一侧）。
 func (lf *LogicalForeignKey) IsReverse() bool {
 	return lf.Direction == DirectionReverse
 }

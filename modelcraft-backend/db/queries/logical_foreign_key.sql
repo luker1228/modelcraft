@@ -1,6 +1,12 @@
 -- name: CreateLogicalForeignKey :exec
-INSERT INTO logical_foreign_keys (id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO logical_foreign_keys (
+  id, pair_id, org_name, direction,
+  model_id, model_name, ref_model_id, ref_model_name,
+  ref_database_name, ref_table_name,
+  source_fields, target_fields, is_deletable,
+  created_at, updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: DeleteLogicalForeignKeyByPairID :exec
 DELETE FROM logical_foreign_keys
@@ -8,25 +14,29 @@ WHERE pair_id = ?
   AND org_name = ?;
 
 -- name: FindLogicalForeignKeysByModelID :many
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE model_id = ?
   AND org_name = ?;
 
 -- name: FindLogicalForeignKeysByPairID :many
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE pair_id = ?
   AND org_name = ?;
 
 -- name: FindLogicalForeignKeysByRefModelID :many
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE ref_model_id = ?
   AND org_name = ?;
 
 -- name: GetLogicalForeignKeyByID :one
-SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name, source_fields, target_fields, created_at, updated_at
+SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
+       ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE id = ?
 LIMIT 1;

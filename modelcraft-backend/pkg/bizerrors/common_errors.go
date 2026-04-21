@@ -340,6 +340,12 @@ var (
 		EnMessage: "source_fields and target_fields count must match",
 		ZhMessage: "source_fields 和 target_fields 数量必须一致",
 	}
+
+	FKNotDeletable = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".FK.NOT_DELETABLE",
+		EnMessage: "Logical foreign key cannot be deleted: {0}",
+		ZhMessage: "逻辑外键不可删除: {0}",
+	}
 )
 
 // 定义 APIKey 领域错误

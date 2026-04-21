@@ -106,12 +106,15 @@ CREATE TABLE IF NOT EXISTS `logical_foreign_keys` (
   -- 模型关联字段
   `model_id` VARCHAR(36) NOT NULL COMMENT '所属模型ID',
   `model_name` VARCHAR(255) NOT NULL COMMENT '所属模型名称（冗余存储，model_name 不变）',
-  `ref_model_id` VARCHAR(36) NOT NULL COMMENT '引用模型ID',
+  `ref_model_id` VARCHAR(36) NULL COMMENT '引用模型ID（外部表场景可为空）',
   `ref_model_name` VARCHAR(255) NOT NULL COMMENT '引用模型名称（冗余存储，model_name 不变）',
+  `ref_database_name` VARCHAR(64) NULL COMMENT '引用数据库名（外部表场景）',
+  `ref_table_name` VARCHAR(64) NULL COMMENT '引用表名（外部表场景）',
 
   -- 字段映射配置
   `source_fields` JSON NOT NULL COMMENT '源字段列表（JSON数组）',
   `target_fields` JSON NOT NULL COMMENT '目标字段列表（JSON数组）',
+  `is_deletable` TINYINT(1) NOT NULL DEFAULT 1 COMMENT '是否允许删除（系统FK为0）',
 
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',

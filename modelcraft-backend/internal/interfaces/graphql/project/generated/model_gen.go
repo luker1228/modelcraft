@@ -288,10 +288,11 @@ type CreateGroupPayload struct {
 }
 
 type CreateLogicalForeignKeyInput struct {
-	ModelID      string   `json:"modelId"`
-	RefModelID   string   `json:"refModelId"`
-	SourceFields []string `json:"sourceFields"`
-	TargetFields []string `json:"targetFields"`
+	ModelID      string        `json:"modelId"`
+	RefModelID   string        `json:"refModelId"`
+	SourceFields []string      `json:"sourceFields"`
+	TargetFields []string      `json:"targetFields"`
+	CreateMode   *FKCreateMode `json:"createMode,omitempty"`
 }
 
 type CreateLogicalForeignKeyPayload struct {
@@ -573,6 +574,12 @@ type FKFieldCountMismatchError struct {
 
 func (FKFieldCountMismatchError) IsCreateLogicalForeignKeyResult() {}
 
+type FKNotDeletableError struct {
+	Message string `json:"message"`
+}
+
+func (FKNotDeletableError) IsDeleteLogicalForeignKeyResult() {}
+
 type FKNotFoundError struct {
 	Message string `json:"message"`
 }
@@ -801,6 +808,7 @@ type LogicalForeignKey struct {
 	RefModelName string      `json:"refModelName"`
 	SourceFields []string    `json:"sourceFields"`
 	TargetFields []string    `json:"targetFields"`
+	IsDeletable  bool        `json:"isDeletable"`
 }
 
 func (LogicalForeignKey) IsCreateLogicalForeignKeyResult() {}
@@ -1446,6 +1454,61 @@ func (e *DbTableStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e DbTableStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type FKCreateMode string
+
+const (
+	FKCreateModeBidirectional  FKCreateMode = "BIDIRECTIONAL"
+	FKCreateModeUnidirectional FKCreateMode = "UNIDIRECTIONAL"
+)
+
+var AllFKCreateMode = []FKCreateMode{
+	FKCreateModeBidirectional,
+	FKCreateModeUnidirectional,
+}
+
+func (e FKCreateMode) IsValid() bool {
+	switch e {
+	case FKCreateModeBidirectional, FKCreateModeUnidirectional:
+		return true
+	}
+	return false
+}
+
+func (e FKCreateMode) String() string {
+	return string(e)
+}
+
+func (e *FKCreateMode) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = FKCreateMode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid FKCreateMode", str)
+	}
+	return nil
+}
+
+func (e FKCreateMode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *FKCreateMode) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e FKCreateMode) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

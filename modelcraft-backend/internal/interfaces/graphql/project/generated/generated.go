@@ -295,6 +295,10 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 	}
 
+	FKNotDeletableError struct {
+		Message func(childComplexity int) int
+	}
+
 	FKNotFoundError struct {
 		Message func(childComplexity int) int
 	}
@@ -410,6 +414,7 @@ type ComplexityRoot struct {
 	LogicalForeignKey struct {
 		Direction    func(childComplexity int) int
 		ID           func(childComplexity int) int
+		IsDeletable  func(childComplexity int) int
 		ModelID      func(childComplexity int) int
 		ModelName    func(childComplexity int) int
 		PairID       func(childComplexity int) int
@@ -1508,6 +1513,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.FKFieldCountMismatchError.Message(childComplexity), true
 
+	case "FKNotDeletableError.message":
+		if e.complexity.FKNotDeletableError.Message == nil {
+			break
+		}
+
+		return e.complexity.FKNotDeletableError.Message(childComplexity), true
+
 	case "FKNotFoundError.message":
 		if e.complexity.FKNotFoundError.Message == nil {
 			break
@@ -1886,6 +1898,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.LogicalForeignKey.ID(childComplexity), true
+	case "LogicalForeignKey.isDeletable":
+		if e.complexity.LogicalForeignKey.IsDeletable == nil {
+			break
+		}
+
+		return e.complexity.LogicalForeignKey.IsDeletable(childComplexity), true
 	case "LogicalForeignKey.modelId":
 		if e.complexity.LogicalForeignKey.ModelID == nil {
 			break
@@ -4022,13 +4040,16 @@ extend type Mutation {
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/logical_foreign_key.graphql", Input: `# Logical Foreign Key - types, inputs, mutations and queries
 
-# FKDirection enum
 enum FKDirection {
   NORMAL
   REVERSE
 }
 
-# LogicalForeignKey type
+enum FKCreateMode {
+  BIDIRECTIONAL
+  UNIDIRECTIONAL
+}
+
 type LogicalForeignKey {
   id: ID!
   pairId: String!
@@ -4039,17 +4060,17 @@ type LogicalForeignKey {
   refModelName: String!
   sourceFields: [String!]!
   targetFields: [String!]!
+  isDeletable: Boolean!
 }
 
-# CreateLogicalForeignKeyInput
 input CreateLogicalForeignKeyInput {
   modelId: ID!
   refModelId: ID!
   sourceFields: [String!]!
   targetFields: [String!]!
+  createMode: FKCreateMode = BIDIRECTIONAL
 }
 
-# Error types for FK operations
 type FKColumnsNotFoundError {
   message: String!
 }
@@ -4066,7 +4087,10 @@ type FKFieldCountMismatchError {
   message: String!
 }
 
-# Payloads
+type FKNotDeletableError {
+  message: String!
+}
+
 union CreateLogicalForeignKeyResult =
     LogicalForeignKey
   | FKColumnsNotFoundError
@@ -4080,6 +4104,7 @@ union DeleteLogicalForeignKeyResult =
     DeleteLogicalForeignKeySuccess
   | FKNotFoundError
   | FKPairHasRelateFieldsError
+  | FKNotDeletableError
 
 type DeleteLogicalForeignKeySuccess {
   pairId: String!
@@ -4089,12 +4114,10 @@ type DeleteLogicalForeignKeyPayload {
   result: DeleteLogicalForeignKeyResult!
 }
 
-# Queries
 extend type Query {
   logicalForeignKeys(modelId: ID!): [LogicalForeignKey!]! @hasPermission(action: "model:read")
 }
 
-# Mutations
 extend type Mutation {
   createLogicalForeignKey(input: CreateLogicalForeignKeyInput!): CreateLogicalForeignKeyPayload! @hasPermission(action: "model:update")
   deleteLogicalForeignKey(pairId: String!): DeleteLogicalForeignKeyPayload! @hasPermission(action: "model:update")
@@ -8976,6 +8999,35 @@ func (ec *executionContext) fieldContext_FKFieldCountMismatchError_message(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _FKNotDeletableError_message(ctx context.Context, field graphql.CollectedField, obj *FKNotDeletableError) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_FKNotDeletableError_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_FKNotDeletableError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "FKNotDeletableError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _FKNotFoundError_message(ctx context.Context, field graphql.CollectedField, obj *FKNotFoundError) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11064,6 +11116,35 @@ func (ec *executionContext) fieldContext_LogicalForeignKey_targetFields(_ contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LogicalForeignKey_isDeletable(ctx context.Context, field graphql.CollectedField, obj *LogicalForeignKey) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_LogicalForeignKey_isDeletable,
+		func(ctx context.Context) (any, error) {
+			return obj.IsDeletable, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_LogicalForeignKey_isDeletable(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LogicalForeignKey",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -15565,6 +15646,8 @@ func (ec *executionContext) fieldContext_Query_logicalForeignKeys(ctx context.Co
 				return ec.fieldContext_LogicalForeignKey_sourceFields(ctx, field)
 			case "targetFields":
 				return ec.fieldContext_LogicalForeignKey_targetFields(ctx, field)
+			case "isDeletable":
+				return ec.fieldContext_LogicalForeignKey_isDeletable(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type LogicalForeignKey", field.Name)
 		},
@@ -19902,7 +19985,11 @@ func (ec *executionContext) unmarshalInputCreateLogicalForeignKeyInput(ctx conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"modelId", "refModelId", "sourceFields", "targetFields"}
+	if _, present := asMap["createMode"]; !present {
+		asMap["createMode"] = "BIDIRECTIONAL"
+	}
+
+	fieldsInOrder := [...]string{"modelId", "refModelId", "sourceFields", "targetFields", "createMode"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -19937,6 +20024,13 @@ func (ec *executionContext) unmarshalInputCreateLogicalForeignKeyInput(ctx conte
 				return it, err
 			}
 			it.TargetFields = data
+		case "createMode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createMode"))
+			data, err := ec.unmarshalOFKCreateMode2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFKCreateMode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreateMode = data
 		}
 	}
 
@@ -21351,6 +21445,13 @@ func (ec *executionContext) _DeleteLogicalForeignKeyResult(ctx context.Context, 
 			return graphql.Null
 		}
 		return ec._FKNotFoundError(ctx, sel, obj)
+	case FKNotDeletableError:
+		return ec._FKNotDeletableError(ctx, sel, &obj)
+	case *FKNotDeletableError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._FKNotDeletableError(ctx, sel, obj)
 	case DeleteLogicalForeignKeySuccess:
 		return ec._DeleteLogicalForeignKeySuccess(ctx, sel, &obj)
 	case *DeleteLogicalForeignKeySuccess:
@@ -24087,6 +24188,45 @@ func (ec *executionContext) _FKFieldCountMismatchError(ctx context.Context, sel 
 	return out
 }
 
+var fKNotDeletableErrorImplementors = []string{"FKNotDeletableError", "DeleteLogicalForeignKeyResult"}
+
+func (ec *executionContext) _FKNotDeletableError(ctx context.Context, sel ast.SelectionSet, obj *FKNotDeletableError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, fKNotDeletableErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("FKNotDeletableError")
+		case "message":
+			out.Values[i] = ec._FKNotDeletableError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var fKNotFoundErrorImplementors = []string{"FKNotFoundError", "DeleteLogicalForeignKeyResult"}
 
 func (ec *executionContext) _FKNotFoundError(ctx context.Context, sel ast.SelectionSet, obj *FKNotFoundError) graphql.Marshaler {
@@ -24964,6 +25104,11 @@ func (ec *executionContext) _LogicalForeignKey(ctx context.Context, sel ast.Sele
 			}
 		case "targetFields":
 			out.Values[i] = ec._LogicalForeignKey_targetFields(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isDeletable":
+			out.Values[i] = ec._LogicalForeignKey_isDeletable(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -30007,6 +30152,22 @@ func (ec *executionContext) unmarshalOEnumOptionInput2ᚕᚖmodelcraftᚋinterna
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) unmarshalOFKCreateMode2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFKCreateMode(ctx context.Context, v any) (*FKCreateMode, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(FKCreateMode)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOFKCreateMode2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐFKCreateMode(ctx context.Context, sel ast.SelectionSet, v *FKCreateMode) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {

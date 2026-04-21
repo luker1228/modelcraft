@@ -25,7 +25,6 @@ require (
 
 require (
 	github.com/DATA-DOG/go-sqlmock v1.5.0
-	github.com/alicebob/miniredis/v2 v2.36.1
 	github.com/casbin/casbin/v2 v2.135.0
 	github.com/getkin/kin-openapi v0.133.0
 	github.com/go-chi/chi/v5 v5.2.5
@@ -71,7 +70,6 @@ require (
 	github.com/urfave/cli/v3 v3.6.0 // indirect
 	github.com/vmware-labs/yaml-jsonpath v0.3.2 // indirect
 	github.com/woodsbury/decimal128 v1.3.0 // indirect
-	github.com/yuin/gopher-lua v1.1.1 // indirect
 	golang.org/x/arch v0.4.0 // indirect
 	golang.org/x/mod v0.31.0 // indirect
 	golang.org/x/net v0.48.0 // indirect

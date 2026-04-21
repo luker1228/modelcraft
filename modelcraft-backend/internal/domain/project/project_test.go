@@ -53,7 +53,7 @@ func TestNewProject(t *testing.T) {
 			title:       "Test",
 			description: "",
 			wantErr:     true,
-			errContains: "3-64 characters",
+			errContains: "3-53 characters",
 		},
 		{
 			name:        "name starts with number",
@@ -294,7 +294,7 @@ func TestIsValidProjectSlug(t *testing.T) {
 		{"valid with underscore and digits", "my_project_123", true},
 		{"valid with multiple underscores", "my_test_project", true},
 		{"too short", "ab", false},
-		{"too long", "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz012", false},
+		{"too long", "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrs", false},
 		{"starts with number", "1project", false},
 		{"starts with hyphen", "-project", false},
 		{"starts with underscore", "_project", false},
@@ -302,7 +302,7 @@ func TestIsValidProjectSlug(t *testing.T) {
 		{"with spaces", "my project", false},
 		{"with special chars", "project@123", false},
 		{"minimum length", "abc", true},
-		{"maximum length", "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxy1", true},
+		{"maximum length", "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnop1", true},
 	}
 
 	for _, tt := range tests {

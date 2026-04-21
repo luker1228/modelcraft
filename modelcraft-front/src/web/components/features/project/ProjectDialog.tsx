@@ -31,7 +31,8 @@ import { CheckCircle, Loader2, XCircle } from "lucide-react"
 import type { Project } from "@/types"
 import type { DatabaseConnectionInfo } from "@/types/cluster"
 
-// ── Zod Schema ────────────────────────────────────────────────────────────────
+const PROJECT_SLUG_MIN_LEN = 3
+const PROJECT_SLUG_MAX_LEN = 53
 
 const clusterConnectionSchema = z.object({
   host: z.string().min(1, "主机地址不能为空").max(255),
@@ -46,12 +47,14 @@ const clusterInputSchema = z.object({
   connectionInfo: clusterConnectionSchema,
 })
 
-// Single source-of-truth schema. clusterInput is required on create, stripped on edit.
 export const projectFormSchema = z.object({
   slug: z
     .string()
-    .min(3, "项目标识至少需要3个字符")
-    .max(50)
+    .min(PROJECT_SLUG_MIN_LEN, `项目标识至少需要${PROJECT_SLUG_MIN_LEN}个字符`)
+    .max(
+      PROJECT_SLUG_MAX_LEN,
+      `项目标识最多${PROJECT_SLUG_MAX_LEN}个字符（会用于创建 mc_private_{slug} 数据库）`,
+    )
     .regex(/^[a-z][a-z0-9_]*$/, "必须以字母开头，只能包含小写字母、数字和下划线"),
   title: z.string().min(1, "项目名称不能为空").max(100),
   description: z.string().max(500).optional(),
@@ -60,14 +63,11 @@ export const projectFormSchema = z.object({
 
 export type ProjectFormValues = z.infer<typeof projectFormSchema>
 
-// Runtime refinement: require clusterInput when creating
 const createSchema = projectFormSchema.required({ clusterInput: true }).extend({
   clusterInput: clusterInputSchema,
 })
 
 const editSchema = projectFormSchema.omit({ clusterInput: true })
-
-// ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface ProjectConnectionTestResult {
   success: boolean
@@ -84,8 +84,6 @@ interface ProjectDialogProps {
   ) => Promise<ProjectConnectionTestResult>
   loading?: boolean
 }
-
-// ── Default values ────────────────────────────────────────────────────────────
 
 const CREATE_DEFAULTS: ProjectFormValues = {
   slug: "",
@@ -126,36 +124,25 @@ const CREATE_STEPS = [
   { index: 3 as const, title: "确认创建", description: "确认信息后创建项目" },
 ]
 
-// ── Helper: Generate project name from title ─────────────────────────────────
-
-/**
- * 根据项目名称生成项目标识
- * 规则：中文转拼音，必须以字母开头，只允许小写字母、数字和下划线
- */
 function generateProjectSlug(title: string): string {
   if (!title) return ""
 
-  // 使用拼音库转换中文
   const pinyinStr = pinyin(title, {
     toneType: "none",
     type: "array",
   }).join("")
 
-  // 转小写，移除空格和连字符，只保留小写字母、数字和下划线
   let result = pinyinStr
     .toLowerCase()
-    .replace(/[\s\-]+/g, "_") // 空格和连字符转为下划线
-    .replace(/[^a-z0-9_]/g, "") // 只保留小写字母、数字和下划线
+    .replace(/[\s\-]+/g, "_")
+    .replace(/[^a-z0-9_]/g, "")
 
-  // 确保以字母开头
   if (result && !/^[a-z]/.test(result)) {
-    result = "p" + result // 如果开头不是字母，添加前缀 "p"
+    result = "p" + result
   }
 
-  return result
+  return result.slice(0, PROJECT_SLUG_MAX_LEN)
 }
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function ProjectDialog({
   open,
@@ -178,6 +165,7 @@ export function ProjectDialog({
   const isCreateMode = !isEditing
   const currentStepConfig = CREATE_STEPS[currentStep - 1]
   const createValues = form.watch()
+  const canProceedStep2 = testResult?.success === true
 
   const handleNextStep = async () => {
     if (!isCreateMode || currentStep >= 3) return
@@ -185,6 +173,13 @@ export function ProjectDialog({
     const fields = currentStep === 1 ? CREATE_STEP_1_FIELDS : CREATE_STEP_2_FIELDS
     const passed = await form.trigger(fields, { shouldFocus: true })
     if (!passed) return
+
+    if (currentStep === 2 && !canProceedStep2) {
+      if (!testResult) {
+        setTestResult({ success: false, message: "请先测试连接并确保连接成功" })
+      }
+      return
+    }
 
     setCurrentStep((currentStep + 1) as 1 | 2 | 3)
   }
@@ -285,7 +280,6 @@ export function ProjectDialog({
               </div>
             )}
 
-            {/* ── 项目信息 ── */}
             {(isEditing || currentStep === 1) && (
               <>
                 <FormField
@@ -301,7 +295,6 @@ export function ProjectDialog({
                           onChange={(e) => {
                             const newTitle = e.target.value
                             field.onChange(newTitle)
-                            // 自动生成项目标识（仅在创建模式下）
                             if (!isEditing) {
                               const generatedSlug = generateProjectSlug(newTitle)
                               form.setValue("slug", generatedSlug)
@@ -330,7 +323,7 @@ export function ProjectDialog({
                       </FormControl>
                       {!isEditing && (
                         <FormDescription>
-                          用于 URL 和 API 调用，创建后不可修改
+                          用于 URL、API 和私有库名 `mc_private_&lt;slug&gt;`，创建后不可修改
                         </FormDescription>
                       )}
                       <FormMessage />
@@ -356,11 +349,9 @@ export function ProjectDialog({
                     </FormItem>
                   )}
                 />
-
               </>
             )}
 
-            {/* ── 集群配置（仅创建第2步） ── */}
             {!isEditing && currentStep === 2 && (
               <>
                 <p className="pt-1 text-sm font-semibold text-foreground">数据库集群配置</p>
@@ -437,7 +428,6 @@ export function ProjectDialog({
               </>
             )}
 
-            {/* ── 确认创建（仅创建第3步） ── */}
             {!isEditing && currentStep === 3 && (
               <div className="space-y-3">
                 <p className="text-sm font-semibold text-foreground">请确认以下信息</p>
@@ -516,7 +506,11 @@ export function ProjectDialog({
                 )}
 
                 {currentStep < 3 ? (
-                  <Button type="button" onClick={handleNextStep} disabled={loading}>
+                  <Button
+                    type="button"
+                    onClick={handleNextStep}
+                    disabled={loading || (currentStep === 2 && !canProceedStep2)}
+                  >
                     下一步
                   </Button>
                 ) : (

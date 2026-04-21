@@ -54,6 +54,9 @@ func getGraphqlTypeBy(formatType modeldesign.FormatType) (scalar *graphql.Scalar
 		scalar = GraphQLTime
 	case modeldesign.FormatEnum:
 		scalar = graphql.String
+	case modeldesign.FormatEndUserRef:
+		// END_USER_REF is stored as CHAR(36) and queried like FK key.
+		scalar = graphql.ID
 	default:
 		return nil, bizerrors.Errorf("unknown fmtType: %s", formatType)
 	}

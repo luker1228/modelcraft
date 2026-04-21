@@ -22,7 +22,6 @@ func NewFKErrorAdapter(ctx context.Context) *FKErrorAdapter {
 }
 
 // ConvertToCreateResult converts a business error to CreateLogicalForeignKeyResult union type.
-// Returns nil if err is nil (caller should use the success result).
 func (a *FKErrorAdapter) ConvertToCreateResult(err *bizerrors.BusinessError) generated.CreateLogicalForeignKeyResult {
 	if err == nil {
 		return nil
@@ -39,7 +38,6 @@ func (a *FKErrorAdapter) ConvertToCreateResult(err *bizerrors.BusinessError) gen
 }
 
 // ConvertToDeleteResult converts a business error to DeleteLogicalForeignKeyResult union type.
-// Returns nil if err is nil (caller should use the success result).
 func (a *FKErrorAdapter) ConvertToDeleteResult(err *bizerrors.BusinessError) generated.DeleteLogicalForeignKeyResult {
 	if err == nil {
 		return nil
@@ -49,6 +47,8 @@ func (a *FKErrorAdapter) ConvertToDeleteResult(err *bizerrors.BusinessError) gen
 		return &generated.FKNotFoundError{Message: err.Msg()}
 	case bizerrors.FKPairHasRelateFields.GetCode():
 		return &generated.FKPairHasRelateFieldsError{Message: err.Msg()}
+	case bizerrors.FKNotDeletable.GetCode():
+		return &generated.FKNotDeletableError{Message: err.Msg()}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown FK delete error code: %s", err.Info().GetCode())
 		return &generated.FKNotFoundError{Message: err.Msg()}

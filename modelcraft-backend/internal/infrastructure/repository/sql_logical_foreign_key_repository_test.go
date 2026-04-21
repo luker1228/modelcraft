@@ -85,15 +85,18 @@ func newTestLFRow(id, pairID, direction, modelID, modelName, refModelID, refMode
 	sf, _ := json.Marshal([]string{"userId"})
 	tf, _ := json.Marshal([]string{"id"})
 	return dbgen.LogicalForeignKey{
-		ID:           id,
-		PairID:       pairID,
-		Direction:    dbgen.LogicalForeignKeysDirection(direction),
-		ModelID:      modelID,
-		ModelName:    modelName,
-		RefModelID:   refModelID,
-		RefModelName: refModelName,
-		SourceFields: json.RawMessage(sf),
-		TargetFields: json.RawMessage(tf),
+		ID:              id,
+		PairID:          pairID,
+		Direction:       dbgen.LogicalForeignKeysDirection(direction),
+		ModelID:         modelID,
+		ModelName:       modelName,
+		RefModelID:      sql.NullString{String: refModelID, Valid: refModelID != ""},
+		RefModelName:    refModelName,
+		RefDatabaseName: sql.NullString{},
+		RefTableName:    sql.NullString{},
+		SourceFields:    json.RawMessage(sf),
+		TargetFields:    json.RawMessage(tf),
+		IsDeletable:     true,
 	}
 }
 
@@ -112,6 +115,7 @@ func TestSqlLogicalForeignKeyRepository_Save(t *testing.T) {
 		RefModelName: "User",
 		SourceFields: []string{"userId"},
 		TargetFields: []string{"id"},
+		IsDeletable:  true,
 	}
 
 	mockQ.On("CreateLogicalForeignKey", ctx, mock.AnythingOfType("dbgen.CreateLogicalForeignKeyParams")).Return(nil)
@@ -125,10 +129,7 @@ func TestSqlLogicalForeignKeyRepository_DeleteByPairID(t *testing.T) {
 	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
 	ctx := context.Background()
 
-	expectedArg := dbgen.DeleteLogicalForeignKeyByPairIDParams{
-		PairID:  "pair-001",
-		OrgName: "test-org",
-	}
+	expectedArg := dbgen.DeleteLogicalForeignKeyByPairIDParams{PairID: "pair-001", OrgName: "test-org"}
 	mockQ.On("DeleteLogicalForeignKeyByPairID", ctx, expectedArg).Return(nil)
 	err := repo.DeleteByPairID(ctx, "test-org", "pair-001")
 	assert.NoError(t, err)
@@ -140,15 +141,10 @@ func TestSqlLogicalForeignKeyRepository_FindByModel(t *testing.T) {
 	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
 	ctx := context.Background()
 
-	rows := []dbgen.LogicalForeignKey{
-		newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User"),
-	}
-
-	expectedArg := dbgen.FindLogicalForeignKeysByModelIDParams{
-		OrgName: "test-org",
-		ModelID: "model-order",
-	}
+	rows := []dbgen.LogicalForeignKey{newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User")}
+	expectedArg := dbgen.FindLogicalForeignKeysByModelIDParams{OrgName: "test-org", ModelID: "model-order"}
 	mockQ.On("FindLogicalForeignKeysByModelID", ctx, expectedArg).Return(rows, nil)
+
 	result, err := repo.FindByModel(ctx, "test-org", "model-order")
 	assert.NoError(t, err)
 	assert.Len(t, result, 1)
@@ -168,12 +164,9 @@ func TestSqlLogicalForeignKeyRepository_FindByPairID(t *testing.T) {
 		newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User"),
 		newTestLFRow("lf-002", "pair-001", "reverse", "model-user", "User", "model-order", "Order"),
 	}
-
-	expectedArg := dbgen.FindLogicalForeignKeysByPairIDParams{
-		OrgName: "test-org",
-		PairID:  "pair-001",
-	}
+	expectedArg := dbgen.FindLogicalForeignKeysByPairIDParams{OrgName: "test-org", PairID: "pair-001"}
 	mockQ.On("FindLogicalForeignKeysByPairID", ctx, expectedArg).Return(rows, nil)
+
 	result, err := repo.FindByPairID(ctx, "test-org", "pair-001")
 	assert.NoError(t, err)
 	assert.Len(t, result, 2)
@@ -190,6 +183,7 @@ func TestSqlLogicalForeignKeyRepository_FindByBelongsToField_NoFields(t *testing
 		OrgName:       "test-org",
 	}
 	mockQ.On("FindFieldsByBelongsToFKID", ctx, expectedArg).Return([]dbgen.FindFieldsByBelongsToFKIDRow{}, nil)
+
 	result, err := repo.FindByBelongsToField(ctx, "test-org", "lf-001")
 	assert.NoError(t, err)
 	assert.Empty(t, result)
@@ -206,6 +200,7 @@ func TestSqlLogicalForeignKeyRepository_FindByRelateField_NoFields(t *testing.T)
 		OrgName:    "test-org",
 	}
 	mockQ.On("FindFieldsByRelateFKID", ctx, expectedArg).Return([]dbgen.FindFieldsByRelateFKIDRow{}, nil)
+
 	result, err := repo.FindByRelateField(ctx, "test-org", "lf-001")
 	assert.NoError(t, err)
 	assert.Empty(t, result)
@@ -241,6 +236,7 @@ func TestLogicalForeignKeyToCreateParams(t *testing.T) {
 		RefModelName: "User",
 		SourceFields: []string{"userId", "companyId"},
 		TargetFields: []string{"id", "companyId"},
+		IsDeletable:  true,
 	}
 
 	params, err := LogicalForeignKeyToCreateParams(lf)
@@ -250,10 +246,9 @@ func TestLogicalForeignKeyToCreateParams(t *testing.T) {
 	assert.Equal(t, dbgen.LogicalForeignKeysDirectionNormal, params.Direction)
 	assert.Equal(t, "model-order", params.ModelID)
 	assert.Equal(t, "Order", params.ModelName)
-	assert.Equal(t, "model-user", params.RefModelID)
+	assert.Equal(t, sql.NullString{String: "model-user", Valid: true}, params.RefModelID)
 	assert.Equal(t, "User", params.RefModelName)
-	assert.NotNil(t, params.SourceFields)
-	assert.NotNil(t, params.TargetFields)
+	assert.True(t, params.IsDeletable)
 
 	var sf, tf []string
 	assert.NoError(t, json.Unmarshal(params.SourceFields, &sf))
@@ -275,4 +270,5 @@ func TestLogicalForeignKeyToDomain(t *testing.T) {
 	assert.Equal(t, "User", lf.RefModelName)
 	assert.Equal(t, []string{"userId"}, lf.SourceFields)
 	assert.Equal(t, []string{"id"}, lf.TargetFields)
+	assert.True(t, lf.IsDeletable)
 }

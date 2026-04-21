@@ -229,12 +229,13 @@ type ValidateEnumCodesCommand struct {
 
 // CreateLogicalForeignKeyCommand 创建逻辑外键命令
 type CreateLogicalForeignKeyCommand struct {
-	OrgName      string   // 组织名称（租户隔离）
-	ProjectSlug  string   // 项目标识符
-	ModelID      string   // 拥有 FK 列的模型 ID
-	RefModelID   string   // 被引用的模型 ID
-	SourceFields []string // FK 列（属于 ModelID 的字段名）
-	TargetFields []string // 被引用列（属于 RefModelID 的字段名）
+	OrgName      string                        // 组织名称（租户隔离）
+	ProjectSlug  string                        // 项目标识符
+	ModelID      string                        // 拥有 FK 列的模型 ID
+	RefModelID   string                        // 被引用的模型 ID
+	SourceFields []string                      // FK 列（属于 ModelID 的字段名）
+	TargetFields []string                      // 被引用列（属于 RefModelID 的字段名）
+	CreateMode   modeldesign.LogicalFKCreateMode // 创建模式：双向或单向
 }
 
 // DeleteLogicalForeignKeyCommand 删除逻辑外键命令

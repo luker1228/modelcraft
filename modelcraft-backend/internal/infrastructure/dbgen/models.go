@@ -220,14 +220,20 @@ type LogicalForeignKey struct {
 	ModelID string
 	// 所属模型名称（冗余存储，model_name 不变）
 	ModelName string
-	// 引用模型ID
-	RefModelID string
+	// 引用模型ID（外部表场景可为空）
+	RefModelID sql.NullString
 	// 引用模型名称（冗余存储，model_name 不变）
 	RefModelName string
+	// 引用数据库名（外部表场景）
+	RefDatabaseName sql.NullString
+	// 引用表名（外部表场景）
+	RefTableName sql.NullString
 	// 源字段列表（JSON数组）
 	SourceFields json.RawMessage
 	// 目标字段列表（JSON数组）
 	TargetFields json.RawMessage
+	// 是否允许删除（系统FK为0）
+	IsDeletable bool
 	// 创建时间
 	CreatedAt sql.NullTime
 	// 更新时间

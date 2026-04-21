@@ -223,6 +223,13 @@ func (m *PrivateDBManager) EvictCache(orgName, projectSlug string) {
 	m.evictByKey(privateCacheKey(orgName, projectSlug))
 }
 
+// Provision creates mc_private_{projectSlug} on the project's cluster if it doesn't exist.
+// Implements project.PrivateDBProvisioner.
+func (m *PrivateDBManager) Provision(ctx context.Context, orgName, projectSlug string) error {
+	_, err := m.GetOrInit(ctx, orgName, projectSlug)
+	return err
+}
+
 // CloseAll closes all cached private DB connections.
 func (m *PrivateDBManager) CloseAll() {
 	m.connections.Range(func(key, _ interface{}) bool {

@@ -11,8 +11,8 @@ import (
 )
 
 // projectSlugRegex validates projectSlug to prevent SQL injection.
-// Allowed: lowercase letters, numbers, hyphens, underscores (1-64 chars).
-var projectSlugRegex = regexp.MustCompile(`^[a-z0-9_-]{1,64}$`)
+// Allowed: lowercase letters, numbers, and underscores (3-53 chars), matching project slug rules.
+var projectSlugRegex = regexp.MustCompile(`^[a-z][a-z0-9_]{2,52}$`)
 
 // PrivateMigrator handles DDL initialization for private project databases.
 // All DDL statements use IF NOT EXISTS for idempotency.
@@ -27,18 +27,7 @@ func NewPrivateMigrator(logger logfacade.Logger) *PrivateMigrator {
 
 // Migrate creates the private database and tables if they don't exist.
 // This method is idempotent - safe to call multiple times.
-//
-// Parameters:
-//   - ctx: context for cancellation and tracing
-//   - db: database connection (must have CREATE DATABASE privilege)
-//   - projectSlug: the project identifier (used in database name: mc_private_{projectSlug})
-//
-// Returns error if:
-//   - projectSlug format is invalid (SQL injection prevention)
-//   - database creation fails
-//   - table creation fails
 func (m *PrivateMigrator) Migrate(ctx context.Context, db *sql.DB, projectSlug string) error {
-	// Validate projectSlug to prevent SQL injection
 	if !projectSlugRegex.MatchString(projectSlug) {
 		return fmt.Errorf("invalid projectSlug format: %s", projectSlug)
 	}
@@ -49,18 +38,14 @@ func (m *PrivateMigrator) Migrate(ctx context.Context, db *sql.DB, projectSlug s
 		logfacade.String("database", dbName),
 		logfacade.String("project_slug", projectSlug))
 
-	// Step 1: Create database if not exists
 	if err := m.createDatabase(ctx, db, dbName); err != nil {
 		return fmt.Errorf("create database %s: %w", dbName, err)
 	}
 
-	// Step 2: Switch to the private database
-	// NOCA:yunding/go/sql-injection(design: projectSlug validated by regex)
 	if _, err := db.ExecContext(ctx, fmt.Sprintf("USE `%s`", dbName)); err != nil {
 		return fmt.Errorf("use database %s: %w", dbName, err)
 	}
 
-	// Step 3: Create tables
 	if err := m.createTables(ctx, db, dbName); err != nil {
 		return fmt.Errorf("create tables in %s: %w", dbName, err)
 	}
@@ -73,7 +58,6 @@ func (m *PrivateMigrator) Migrate(ctx context.Context, db *sql.DB, projectSlug s
 
 // createDatabase creates the private database if it doesn't exist.
 func (m *PrivateMigrator) createDatabase(ctx context.Context, db *sql.DB, dbName string) error {
-	// NOCA:yunding/go/sql-injection(design: dbName derived from validated projectSlug)
 	createDBSQL := fmt.Sprintf(`
 		CREATE DATABASE IF NOT EXISTS %s
 		DEFAULT CHARACTER SET utf8mb4
@@ -90,7 +74,6 @@ func (m *PrivateMigrator) createDatabase(ctx context.Context, db *sql.DB, dbName
 
 // createTables creates the users and accounts tables if they don't exist.
 func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName string) error {
-	// Create users table
 	createUsersSQL := `
 		CREATE TABLE IF NOT EXISTS users (
 			id           VARCHAR(36)  NOT NULL PRIMARY KEY,
@@ -109,7 +92,6 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 	}
 	m.logger.Debug(ctx, "ensured users table exists", logfacade.String("database", dbName))
 
-	// Create accounts table (sessions)
 	createAccountsSQL := `
 		CREATE TABLE IF NOT EXISTS accounts (
 			id                 VARCHAR(36)  NOT NULL PRIMARY KEY,
@@ -133,7 +115,6 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 }
 
 // quoteIdentifier quotes a MySQL identifier (database/table name) using backticks.
-// This is safe because the identifier has already been validated by projectSlugRegex.
 func quoteIdentifier(name string) string {
 	return "`" + name + "`"
 }

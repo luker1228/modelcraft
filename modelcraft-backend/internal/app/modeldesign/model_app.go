@@ -160,6 +160,12 @@ func (s *ModelDesignAppService) transactionDeployModel(
 			}); err != nil {
 				return fmt.Errorf("failed to upsert default rls policy: %w", err)
 			}
+
+			txFKRepo := repository.NewSqlLogicalForeignKeyRepository(q)
+			fkSvc := NewLogicalFKAppService(txFKRepo, modelRepository, s.txManager)
+			if err := fkSvc.CreateSystemEndUserRefFK(ctx, orgName, createdModel); err != nil {
+				return fmt.Errorf("failed to create owner logical FK: %w", err)
+			}
 		}
 
 		return s.deployRepo.DeployModelToCreate(ctx, createdModel)
@@ -803,6 +809,9 @@ func (s *ModelDesignAppService) removeFKPairIfUnreferenced(ctx context.Context, 
 	}
 	for _, row := range fkRows {
 		if row.ID == fkID {
+			if !row.IsDeletable {
+				return bizerrors.NewError(bizerrors.FKNotDeletable, row.ID)
+			}
 			if err := s.fkRepo.DeleteByPairID(ctx, orgName, row.PairID); err != nil {
 				return fmt.Errorf("RemoveFieldSync: delete FK pair %s: %w", row.PairID, err)
 			}

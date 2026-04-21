@@ -84,7 +84,7 @@ func (r *SqlLogicalForeignKeyRepository) FindByModel(
 	return logicalForeignKeyRowsToDomain(rows)
 }
 
-// FindByPairID finds both rows of a FK pair by pair_id within the org.
+// FindByPairID finds all rows of a FK pair by pair_id within the org.
 func (r *SqlLogicalForeignKeyRepository) FindByPairID(
 	ctx context.Context, orgName, pairID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
@@ -99,7 +99,6 @@ func (r *SqlLogicalForeignKeyRepository) FindByPairID(
 }
 
 // FindByBelongsToField finds logical foreign keys referenced by the given belongs_to_fk_id within the org.
-// lfID is the logical_foreign_key.id value stored in field_definitions.belongs_to_fk_id.
 func (r *SqlLogicalForeignKeyRepository) FindByBelongsToField(
 	ctx context.Context, orgName, lfID string,
 ) ([]*modeldesign.LogicalForeignKey, error) {
@@ -113,7 +112,6 @@ func (r *SqlLogicalForeignKeyRepository) FindByBelongsToField(
 	if len(fields) == 0 {
 		return []*modeldesign.LogicalForeignKey{}, nil
 	}
-	// Return the FK row itself
 	rows, err := r.FindByPairID(ctx, orgName, lfID)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
@@ -178,16 +176,19 @@ func LogicalForeignKeyToCreateParams(lf *modeldesign.LogicalForeignKey) (dbgen.C
 	sf := json.RawMessage(sourceFieldsJSON)
 	tf := json.RawMessage(targetFieldsJSON)
 	return dbgen.CreateLogicalForeignKeyParams{
-		ID:           lf.ID,
-		PairID:       lf.PairID,
-		OrgName:      lf.OrgName,
-		Direction:    dbgen.LogicalForeignKeysDirection(lf.Direction),
-		ModelID:      lf.ModelID,
-		ModelName:    lf.ModelName,
-		RefModelID:   lf.RefModelID,
-		RefModelName: lf.RefModelName,
-		SourceFields: sf,
-		TargetFields: tf,
+		ID:              lf.ID,
+		PairID:          lf.PairID,
+		OrgName:         lf.OrgName,
+		Direction:       dbgen.LogicalForeignKeysDirection(lf.Direction),
+		ModelID:         lf.ModelID,
+		ModelName:       lf.ModelName,
+		RefModelID:      sql.NullString{String: lf.RefModelID, Valid: lf.RefModelID != ""},
+		RefModelName:    lf.RefModelName,
+		RefDatabaseName: sql.NullString{String: lf.RefDatabaseName, Valid: lf.RefDatabaseName != ""},
+		RefTableName:    sql.NullString{String: lf.RefTableName, Valid: lf.RefTableName != ""},
+		SourceFields:    sf,
+		TargetFields:    tf,
+		IsDeletable:     lf.IsDeletable,
 	}, nil
 }
 
@@ -215,18 +216,21 @@ func LogicalForeignKeyToDomain(row dbgen.LogicalForeignKey) (*modeldesign.Logica
 	}
 
 	return &modeldesign.LogicalForeignKey{
-		ID:           row.ID,
-		PairID:       row.PairID,
-		OrgName:      row.OrgName,
-		Direction:    modeldesign.LogicalFKDirection(row.Direction),
-		ModelID:      row.ModelID,
-		ModelName:    row.ModelName,
-		RefModelID:   row.RefModelID,
-		RefModelName: row.RefModelName,
-		SourceFields: sourceFields,
-		TargetFields: targetFields,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
+		ID:              row.ID,
+		PairID:          row.PairID,
+		OrgName:         row.OrgName,
+		Direction:       modeldesign.LogicalFKDirection(row.Direction),
+		ModelID:         row.ModelID,
+		ModelName:       row.ModelName,
+		RefModelID:      row.RefModelID.String,
+		RefModelName:    row.RefModelName,
+		RefDatabaseName: row.RefDatabaseName.String,
+		RefTableName:    row.RefTableName.String,
+		SourceFields:    sourceFields,
+		TargetFields:    targetFields,
+		IsDeletable:     row.IsDeletable,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}, nil
 }
 
@@ -243,5 +247,4 @@ func logicalForeignKeyRowsToDomain(rows []dbgen.LogicalForeignKey) ([]*modeldesi
 	return result, nil
 }
 
-// compile-time interface check
 var _ modeldesign.LogicalForeignKeyRepository = (*SqlLogicalForeignKeyRepository)(nil)
