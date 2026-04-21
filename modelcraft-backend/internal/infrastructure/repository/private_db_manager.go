@@ -246,10 +246,6 @@ func (m *PrivateDBManager) Provision(ctx context.Context, orgName, projectSlug s
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if conn := m.getHealthyFromCache(ctx, key); conn != nil {
-		return nil
-	}
-
 	connectionInfo, plainPassword, err := m.getClusterConnectionInfo(ctx, orgName, projectSlug)
 	if err != nil {
 		return err
@@ -266,6 +262,7 @@ func (m *PrivateDBManager) Provision(ctx context.Context, orgName, projectSlug s
 	}
 
 	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
+	m.evictByKey(key)
 	privateDB, err := m.openPrivateDBConnection(connectionInfo, plainPassword, dbName)
 	if err != nil {
 		return fmt.Errorf("open private DB connection after migration: %w", err)

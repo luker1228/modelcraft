@@ -114,7 +114,7 @@ export default function EndUsersPage() {
   const orgName = params.orgName as string
   const projectSlug = params.projectSlug as string
 
-  const projectClient = useProjectScopedClient(projectSlug)
+  const projectClient = useProjectScopedClient(projectSlug, orgName)
 
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')

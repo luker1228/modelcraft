@@ -605,6 +605,65 @@ func TestModelDesignAppService_GetModelByID(t *testing.T) {
 		assert.Equal(t, bizerrors.ModelNotFound.GetCode(), bizErr.Info().GetCode())
 		mockModelRepo.AssertExpectations(t)
 	})
+
+	t.Run("fills external FK relation metadata for END_USER_REF owner", func(t *testing.T) {
+		mockModelRepo := new(MockModelRepository)
+		mockFKRepo := new(MockLogicalForeignKeyRepository)
+		service := NewModelDesignAppService(ModelDesignAppServiceDeps{
+			ModelRepo: mockModelRepo,
+			FKRepo:    mockFKRepo,
+		})
+
+		ownerFKID := "fk-owner-1"
+		ownerType := modeldesign.GetFieldTypeByFormat(modeldesign.FormatEndUserRef)
+		ownerField := &modeldesign.FieldDefinition{
+			ModelID:      "model-1",
+			Name:         "owner",
+			Title:        "Owner",
+			Type:         ownerType,
+			BelongsToFKID: &ownerFKID,
+		}
+
+		testModel := newTestModel("model-1", "project-1", "orders", "db_1")
+		testModel.Fields = []*modeldesign.FieldDefinition{ownerField}
+
+		mockModelRepo.On("GetByID", mock.Anything, "model-1", mock.Anything).Return(testModel, nil).Once()
+		mockFKRepo.On("GetByID", mock.Anything, ownerFKID).Return(&modeldesign.LogicalForeignKey{
+			ID:              ownerFKID,
+			PairID:          "pair-owner-1",
+			OrgName:         "test-org",
+			Direction:       modeldesign.DirectionNormal,
+			ModelID:         "model-1",
+			ModelName:       "orders",
+			RefModelID:      "",
+			RefModelName:    "users",
+			RefDatabaseName: "mc_private_project-1",
+			RefTableName:    "users",
+			SourceFields:    []string{"owner"},
+			TargetFields:    []string{"id"},
+			IsDeletable:     false,
+		}, nil).Once()
+
+		opts := NewGetModelOptions()
+		opts.GetFields = true
+		model, err := service.GetModelByID(ctx, "model-1", opts)
+
+		require.NoError(t, err)
+		require.NotNil(t, model)
+		require.Len(t, model.Fields, 1)
+
+		relationRaw, ok := model.Fields[0].Metadata["x-relation"]
+		require.True(t, ok)
+		relation, ok := relationRaw.(map[string]string)
+		require.True(t, ok)
+		assert.Equal(t, "mc_private_project-1", relation["databaseName"])
+		assert.Equal(t, "users", relation["modelName"])
+		assert.Equal(t, "normal", relation["direction"])
+		assert.Equal(t, "many-to-one", relation["cardinality"])
+
+		mockFKRepo.AssertExpectations(t)
+		mockModelRepo.AssertExpectations(t)
+	})
 }
 
 // ============================================================================
@@ -1068,4 +1127,90 @@ func TestAddFieldSync_EnumAssociationCreateFail_ReturnsError(t *testing.T) {
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "创建枚举关联失败")
 	assert.Contains(t, err.Error(), "assoc create failed")
+}
+
+func TestModelDesignAppService_DeleteModelSync_ProtectedSystemModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockDeployRepo := new(MockDeployRepo)
+	service := newTestService(mockModelRepo, mockDeployRepo, nil)
+
+	protectedModel := newTestModel("model-protected", "project-1", "users", "mc_private_project-1")
+	protectedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+
+	mockModelRepo.On("GetByID", ctx, "model-protected", mock.Anything).Return(protectedModel, nil)
+
+	err := service.DeleteModelSync(ctx, "model-protected", "project-1", true)
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.OperationDenied.GetCode(), bizErr.Info().GetCode())
+	assert.Contains(t, bizErr.Msg(), "cannot delete protected system model")
+
+	mockModelRepo.AssertExpectations(t)
+	mockDeployRepo.AssertNotCalled(t, "DeployModelToDrop", mock.Anything, mock.Anything)
+	mockModelRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_AddFieldSync_ProtectedSystemModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockDeployRepo := new(MockDeployRepo)
+
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo:  mockModelRepo,
+		DeployRepo: mockDeployRepo,
+	})
+
+	protectedModel := newTestModel("model-protected", "project-1", "accounts", "mc_private_project-1")
+	protectedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+
+	locator := protectedModel.GetModelLocator()
+	newField := newTestField("model-protected", "new_field", locator)
+
+	mockModelRepo.On("GetByID", ctx, "model-protected", mock.Anything).Return(protectedModel, nil)
+
+	err := svc.AddFieldSync(ctx, AddFieldCommand{
+		ModelID: "model-protected",
+		Fields:  []*modeldesign.FieldDefinition{newField},
+	})
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.OperationDenied.GetCode(), bizErr.Info().GetCode())
+	assert.Contains(t, bizErr.Msg(), "cannot add fields to protected system model")
+
+	mockModelRepo.AssertExpectations(t)
+	mockModelRepo.AssertNotCalled(t, "AddFields", mock.Anything, mock.Anything, mock.Anything)
+	mockDeployRepo.AssertNotCalled(t, "DeployModelToAddFields", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_RemoveFieldSync_ProtectedSystemModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{
+		ModelRepo: mockModelRepo,
+	})
+
+	protectedModel := newTestModel("model-protected", "project-1", "users", "mc_private_project-1")
+	protectedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+
+	mockModelRepo.On("GetByID", ctx, "model-protected", mock.Anything).Return(protectedModel, nil)
+
+	err := svc.RemoveFieldSync(ctx, RemoveFieldCommand{
+		ModelID:   "model-protected",
+		FieldName: "name",
+	})
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.OperationDenied.GetCode(), bizErr.Info().GetCode())
+	assert.Contains(t, bizErr.Msg(), "cannot remove fields from protected system model")
+
+	mockModelRepo.AssertExpectations(t)
+	mockModelRepo.AssertNotCalled(t, "BulkDeleteFields", mock.Anything, mock.Anything)
 }

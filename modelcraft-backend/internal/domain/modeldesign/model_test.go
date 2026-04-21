@@ -463,6 +463,74 @@ func TestDataModel_GetFieldsByNames(t *testing.T) {
 	}
 }
 
+func TestDataModel_IsProtectedSystemModel(t *testing.T) {
+	tests := []struct {
+		name  string
+		model *DataModel
+		want  bool
+	}{
+		{
+			name: "protected users model",
+			model: &DataModel{ModelMeta: ModelMeta{
+				CreatedVia: ModelCreationSourceImported,
+				ModelLocator: ModelLocator{
+					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "mc_private_p1",
+					ModelName:    "users",
+				},
+			}},
+			want: true,
+		},
+		{
+			name: "protected accounts model",
+			model: &DataModel{ModelMeta: ModelMeta{
+				CreatedVia: ModelCreationSourceImported,
+				ModelLocator: ModelLocator{
+					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "mc_private_p1",
+					ModelName:    "accounts",
+				},
+			}},
+			want: true,
+		},
+		{
+			name: "new users model is not protected",
+			model: &DataModel{ModelMeta: ModelMeta{
+				CreatedVia: ModelCreationSourceNew,
+				ModelLocator: ModelLocator{
+					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "mc_private_p1",
+					ModelName:    "users",
+				},
+			}},
+			want: false,
+		},
+		{
+			name: "imported normal db model is not protected",
+			model: &DataModel{ModelMeta: ModelMeta{
+				CreatedVia: ModelCreationSourceImported,
+				ModelLocator: ModelLocator{
+					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "app_db",
+					ModelName:    "users",
+				},
+			}},
+			want: false,
+		},
+		{
+			name: "nil model",
+			model: nil,
+			want: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			assert.Equal(t, tt.want, tt.model.IsProtectedSystemModel())
+		})
+	}
+}
+
 func TestDataModel_Update(t *testing.T) {
 	tests := []struct {
 		name             string

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useLazyQuery } from '@apollo/client'
+import { ApolloError } from '@apollo/client/errors'
 import { useRouter } from 'next/navigation'
 import { useProjectScopedClient, getOrgScopedClient } from '@bff/apollo/public'
 import { TEST_CLUSTER_CONNECTION } from '@web/graphql/mutations/cluster'
@@ -23,6 +24,23 @@ interface UseModelCRUDParams {
   orgName: string
   projectSlug: string
   state: ModelEditorState
+}
+
+function getApolloErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof ApolloError) {
+    const graphQLErrorMessage = error.graphQLErrors.find((item) => !!item.message)?.message
+    if (graphQLErrorMessage) return graphQLErrorMessage
+
+    if (error.networkError) {
+      return error.networkError.message || fallback
+    }
+  }
+
+  if (error instanceof Error && error.message) {
+    return error.message
+  }
+
+  return fallback
 }
 
 export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams) {
@@ -205,11 +223,11 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   // Create model
   const handleConfirmCreateModel = async () => {
     if (!state.newModelName.trim() || !state.newModelTitle.trim()) {
-      alert('请填写模型标识和展示名称')
+      toast.error('请填写模型标识和展示名称')
       return
     }
     if (!state.selectedDatabase || !projectSlug) {
-      alert('缺少必要参数')
+      toast.error('缺少必要参数')
       return
     }
 
@@ -226,6 +244,12 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         },
       })
 
+      const graphQLErrorMessage = result.errors?.find((item) => !!item.message)?.message
+      if (graphQLErrorMessage) {
+        toast.error(graphQLErrorMessage)
+        return
+      }
+
       if (result.data?.createModel?.model) {
         const modelId = result.data.createModel.model.id
         state.setCreateModelOpen(false)
@@ -234,11 +258,13 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         refetchModels()
         state.setSelectedModelId(modelId)
       } else if (result.data?.createModel?.error) {
-        alert(result.data.createModel.error.message || '创建失败')
+        toast.error(result.data.createModel.error.message || '创建失败')
+      } else {
+        toast.error('创建失败')
       }
     } catch (error) {
       console.error('创建模型失败:', error)
-      alert('创建模型失败')
+      toast.error(getApolloErrorMessage(error, '创建模型失败'))
     } finally {
       state.setCreating(false)
     }
@@ -267,12 +293,12 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setFkRefModelId('')
         // loadForeignKeys is handled in useForeignKeys hook via effect
       } else if (data?.model?.error) {
-        alert(data.model.error.message || '获取模型详情失败')
+        toast.error(data.model.error.message || '获取模型详情失败')
         state.setEditModelOpen(false)
       }
     } catch (error) {
       console.error('获取模型详情失败:', error)
-      alert('获取模型详情失败')
+      toast.error(getApolloErrorMessage(error, '获取模型详情失败'))
       state.setEditModelOpen(false)
     } finally {
       state.setEditModelLoading(false)

@@ -467,7 +467,9 @@ export default function RLSSettingsPage() {
                   <span className="truncate text-muted-foreground">
                     {databasesLoading
                       ? '数据库：加载中...'
-                      : `数据库：${selectedDatabase || '未选择'}`}
+                      : databaseOptions.length === 0
+                        ? '没有数据库'
+                        : `数据库：${selectedDatabase || '未选择'}`}
                   </span>
                   <ChevronsUpDown className="size-3.5 opacity-60" />
                 </Button>
@@ -517,7 +519,11 @@ export default function RLSSettingsPage() {
                 >
                   <span className="truncate text-muted-foreground">
                     {!selectedDatabase
-                      ? '请先选择数据库'
+                      ? databaseOptions.length === 0
+                        ? '没有模型先创建模型'
+                        : '请先选择数据库'
+                      : modelOptions.length === 0 && !modelsLoading
+                        ? '没有模型先创建模型'
                       : modelsLoading
                         ? '选择模型策略：加载中...'
                         : `选择模型策略：${selectedModel?.name || queryModelName || '未选择'}`}

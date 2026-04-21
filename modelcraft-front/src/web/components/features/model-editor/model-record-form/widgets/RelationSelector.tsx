@@ -87,7 +87,7 @@ function getRouteContextFromPathname(): { orgName?: string; projectSlug?: string
     return {}
   }
 
-  const match = window.location.pathname.match(/\/org\/([^/]+)\/projects\/([^/]+)/)
+  const match = window.location.pathname.match(/\/org\/([^/]+)\/project\/([^/]+)/)
   if (!match) {
     return {}
   }

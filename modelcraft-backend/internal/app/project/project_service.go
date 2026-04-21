@@ -177,12 +177,21 @@ func (s *ProjectAppService) CreateProject(
 	}
 
 	// Import users and accounts tables as models in the private database.
-	// Failures are non-fatal: models can be imported manually later.
+	// This is mandatory for runtime auth-related relations (e.g. owner END_USER_REF).
+	// On failure we roll back by archiving the project.
 	if s.modelImporter != nil {
 		privateDBName := fmt.Sprintf("mc_private_%s", proj.Slug)
 		for _, table := range []string{"users", "accounts"} {
 			if err := s.modelImporter.ImportPrivateModel(ctx, cmd.OrgName, proj.Slug, privateDBName, table); err != nil {
-				logger.Warnf(ctx, "failed to import private model %s.%s: %v", privateDBName, table, err)
+				if rollbackErr := s.projectRepo.Archive(ctx, proj.Slug, cmd.OrgName); rollbackErr != nil {
+					logger.Warnf(ctx, "rollback failed after private model import error: %v", rollbackErr)
+				}
+				return nil, bizerrors.Wrapf(err,
+					"failed to import private model %s.%s for project %s",
+					privateDBName,
+					table,
+					proj.Slug,
+				)
 			}
 		}
 	}

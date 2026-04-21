@@ -264,12 +264,33 @@ export function AppLayout({
         <div className="flex flex-1 items-center pl-4">
           <nav className="flex items-center text-sm">
             <span className="font-medium text-foreground">
-              {currentOrg?.displayName || currentOrg?.orgName || orgName || 'Organization'}
+              {currentOrg?.orgName || orgName || 'Organization'}
             </span>
             <span className="mx-2 text-muted-foreground/50">/</span>
             <span className="text-foreground">
-              {currentProject?.title || pageTitle || '所有项目'}
+              {currentProject?.slug || projectSlug || pageTitle || '所有项目'}
             </span>
+            {showProjectNav && (() => {
+              const activeNavItem = projectNavItems.find((item) =>
+                pathname === item.href || pathname?.startsWith(item.href + '/')
+              )
+              if (!activeNavItem) return null
+              const activeAuthItem = isAuthSection
+                ? authNavItems.find((item) => pathname === item.href || pathname?.startsWith(item.href + '/'))
+                : null
+              return (
+                <>
+                  <span className="mx-2 text-muted-foreground/50">/</span>
+                  <span className="text-foreground">{activeNavItem.label}</span>
+                  {activeAuthItem && (
+                    <>
+                      <span className="mx-2 text-muted-foreground/50">/</span>
+                      <span className="text-foreground">{activeAuthItem.label}</span>
+                    </>
+                  )}
+                </>
+              )
+            })()}
           </nav>
         </div>
 

@@ -137,6 +137,20 @@ func (m *DataModel) IsRLSEnabled() bool {
 	return m.GetOwnerField() != nil
 }
 
+// IsProtectedSystemModel indicates whether this model is a protected private auth model.
+// Protected models cannot be deleted and cannot accept schema extension fields.
+func (m *DataModel) IsProtectedSystemModel() bool {
+	if m == nil {
+		return false
+	}
+
+	if !strings.HasPrefix(m.DatabaseName, "mc_private_") {
+		return false
+	}
+
+	return m.ModelName == "users" || m.ModelName == "accounts"
+}
+
 // GetModelLocator 获取模型定位器
 // 返回包含模型名称、集群名称和数据库名称的定位器实例
 func (m *DataModel) GetModelLocator() *ModelLocator {

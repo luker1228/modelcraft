@@ -223,6 +223,10 @@ func (s *ModelDesignAppService) DeleteModelSync(ctx context.Context, id, project
 	if model == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
 	}
+	if model.IsProtectedSystemModel() {
+		return bizerrors.NewError(bizerrors.OperationDenied,
+			fmt.Sprintf("cannot delete protected system model '%s'", model.ModelName))
+	}
 	if dropTable {
 		err = s.deployRepo.DeployModelToDrop(ctx, model)
 		if err != nil {
@@ -391,6 +395,10 @@ func (s *ModelDesignAppService) AddFieldSync(ctx context.Context, cmd AddFieldCo
 	}
 	if model == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+	if model.IsProtectedSystemModel() {
+		return bizerrors.NewError(bizerrors.OperationDenied,
+			fmt.Sprintf("cannot add fields to protected system model '%s'", model.ModelName))
 	}
 
 	toAddFields := cmd.Fields
@@ -741,6 +749,10 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 	if dataModel == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound)
 	}
+	if dataModel.IsProtectedSystemModel() {
+		return bizerrors.NewError(bizerrors.OperationDenied,
+			fmt.Sprintf("cannot remove fields from protected system model '%s'", dataModel.ModelName))
+	}
 
 	field := dataModel.GetField(fieldName)
 	if field == nil {
@@ -943,6 +955,26 @@ func (s *ModelDesignAppService) fillRelationMetadata(
 		if err != nil {
 			logfacade.GetLogger(ctx).Warnf(ctx,
 				"fillRelationMetadata: GetByID fkID=%s err=%v", fkID, err)
+			continue
+		}
+
+		if lf.RefModelID == "" {
+			if lf.RefDatabaseName == "" || lf.RefModelName == "" {
+				logfacade.GetLogger(ctx).Warnf(ctx,
+					"fillRelationMetadata: missing external ref metadata fkID=%s refDatabaseName=%s refModelName=%s",
+					fkID,
+					lf.RefDatabaseName,
+					lf.RefModelName,
+				)
+				continue
+			}
+
+			fkIDToRelation[fkID] = &relationInfo{
+				databaseName: lf.RefDatabaseName,
+				modelName:    lf.RefModelName,
+				direction:    string(lf.Direction),
+				cardinality:  relationCardinalityFromDirection(lf.Direction),
+			}
 			continue
 		}
 

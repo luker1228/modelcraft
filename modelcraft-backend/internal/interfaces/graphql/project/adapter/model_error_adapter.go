@@ -137,7 +137,7 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 			Message: err.Msg(),
 		}
 	case bizerrors.OperationDenied.GetCode():
-		// Handle operation denied errors (e.g., deleting deployed models)
+		// Handle operation denied errors (e.g., protected system models)
 		return &generated.CannotDeleteDeployedModel{
 			Message: err.Msg(),
 		}
@@ -174,6 +174,9 @@ func (a *ModelErrorAdapter) ConvertToUpdateFieldError(err error) generated.Updat
 		}
 	}
 	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		if bizErr.Info().GetCode() == bizerrors.OperationDenied.GetCode() {
+			return &generated.InvalidInput{Message: bizErr.Msg()}
+		}
 		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
 		if bizErr.Detail() != "" {
 			detail := bizErr.Detail()
@@ -191,6 +194,9 @@ func (a *ModelErrorAdapter) ConvertToRemoveFieldError(err error) generated.Remov
 	}
 	// Convert error types
 	if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+		if bizErr.Info().GetCode() == bizerrors.OperationDenied.GetCode() {
+			return &generated.InvalidInput{Message: bizErr.Msg()}
+		}
 		gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
 		if bizErr.Detail() != "" {
 			detail := bizErr.Detail()

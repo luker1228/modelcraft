@@ -810,6 +810,28 @@ func TestXMC_Widget_RelationSelector(t *testing.T) {
 	assert.Equal(t, "normal", rel["relationDirection"])
 }
 
+func TestJSONSchemaGenerator_EndUserRef_HasStringType(t *testing.T) {
+	field := &FieldDefinition{
+		Name: "owner", Title: "Owner",
+		Type:         GetFieldTypeByFormat(FormatEndUserRef),
+		DisplayOrder: "a0",
+	}
+
+	generator := NewJSONSchemaGenerator()
+	model := makeMinimalModel([]*FieldDefinition{field})
+	schemaJSON, err := generator.GenerateSchema(model)
+	require.NoError(t, err)
+
+	var schema map[string]interface{}
+	require.NoError(t, json.Unmarshal([]byte(schemaJSON), &schema))
+	props := schema["properties"].(map[string]interface{})
+	owner := props["owner"].(map[string]interface{})
+
+	assert.Equal(t, "string", owner["type"])
+	xmc := getXMC(owner)
+	assert.Equal(t, "END_USER_REF", xmc["format"])
+}
+
 // TestXMC_Widget_None 验证普通 STRING 字段不写 widget 键
 func TestXMC_Widget_None(t *testing.T) {
 	field := &FieldDefinition{

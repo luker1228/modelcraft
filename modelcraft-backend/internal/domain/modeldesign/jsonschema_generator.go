@@ -102,6 +102,9 @@ func (g *JSONSchemaGenerator) applyTypeAndFormat(schema map[string]interface{}, 
 	case FormatUUID:
 		schema["type"] = string(SchemaTypeString)
 		schema["format"] = "uuid"
+	case FormatEndUserRef:
+		// END_USER_REF is stored as FK-like scalar id in runtime payloads.
+		schema["type"] = string(SchemaTypeString)
 	case FormatDate:
 		schema["type"] = string(SchemaTypeString)
 		schema["format"] = formatDate
