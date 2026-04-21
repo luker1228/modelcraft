@@ -82,9 +82,10 @@ type DesignHandlers struct {
 	APIKeyService *auth.APIKeyService
 
 	// Repositories
-	ModelRepository domainModelDesign.ModelRepository
-	UserRepo        domainUser.UserRepository
-	ClusterManager  *repository.ClusterConnectionManager
+	ModelRepository  domainModelDesign.ModelRepository
+	UserRepo         domainUser.UserRepository
+	ClusterManager   *repository.ClusterConnectionManager
+	PrivateDBManager *repository.PrivateDBManager
 
 	// End-User Services
 	EndUserAuthAppService *appEnduser.EndUserAuthAppService
@@ -303,7 +304,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
 	endUserMgmtHandler := enduserHandlers.NewManagementHandler(endUserMgmtAppService, logger)
-	endUserDataHandler := enduserHandlers.NewDataHandler(appService, logger)
+	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, logger)
 
 	return &DesignHandlers{
 		AuthHandler:               authHandler,
@@ -322,6 +323,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		ModelRepository:           modelRepository,
 		UserRepo:                  userRepo,
 		ClusterManager:            clusterManager,
+		PrivateDBManager:          privateDBManager,
 		GroupAppService:           groupAppService,
 		LogicalFKAppService:       logicalFKAppService,
 		RLSPolicyAppService:       rlsPolicyAppService,
@@ -398,6 +400,7 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		FieldSelectionChecker:    projectgraphql.NewFieldSelectionChecker(),
 		RLSPolicyAppService:      handlers.RLSPolicyAppService,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
+		PrivateDBManager:         handlers.PrivateDBManager,
 	}
 
 	jwtConfig := &middleware.JWTAuthConfig{
@@ -586,6 +589,7 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 			r.Use(internalTokenMW)
 			r.Get("/database-catalog", handlers.EndUserDataHandler.DatabaseCatalog)
 			r.Get("/model-catalog", handlers.EndUserDataHandler.ModelCatalog)
+			r.Post("/init-private-db", handlers.EndUserDataHandler.InitPrivateDB)
 		})
 	}
 }

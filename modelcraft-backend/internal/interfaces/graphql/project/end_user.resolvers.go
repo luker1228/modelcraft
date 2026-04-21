@@ -147,6 +147,41 @@ func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.De
 	return &generated.DeleteEndUserPayload{Success: true}, nil
 }
 
+// InitPrivateDb is the resolver for the initPrivateDB field.
+func (r *mutationResolver) InitPrivateDb(ctx context.Context) (*generated.InitPrivateDBPayload, error) {
+	if r.PrivateDBManager == nil {
+		return &generated.InitPrivateDBPayload{
+			Success: false,
+			Error:   &generated.InitPrivateDBError{Message: "private DB manager not initialized"},
+		}, nil
+	}
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.InitPrivateDBPayload{
+			Success: false,
+			Error:   &generated.ProjectNotFound{Message: "orgName not found in context"},
+		}, nil
+	}
+
+	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
+	if err != nil {
+		return &generated.InitPrivateDBPayload{
+			Success: false,
+			Error:   &generated.ProjectNotFound{Message: "projectSlug not found in context"},
+		}, nil
+	}
+
+	if err := r.PrivateDBManager.Provision(ctx, orgName, projectSlug); err != nil {
+		return &generated.InitPrivateDBPayload{
+			Success: false,
+			Error:   &generated.InitPrivateDBError{Message: err.Error()},
+		}, nil
+	}
+
+	return &generated.InitPrivateDBPayload{Success: true}, nil
+}
+
 // ListEndUsers is the resolver for the listEndUsers field.
 func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListEndUsersInput) (*generated.ListEndUsersPayload, error) {
 	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)

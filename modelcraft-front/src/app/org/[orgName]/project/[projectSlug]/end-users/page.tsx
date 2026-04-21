@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Eye,
   EyeOff,
+  Wrench,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useProjectScopedClient } from '@bff/apollo/public'
@@ -42,6 +43,7 @@ import {
   CREATE_END_USER,
   UPDATE_END_USER_STATUS,
   DELETE_END_USER,
+  INIT_PRIVATE_DB,
 } from '@web/graphql/mutations/end-user'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -93,6 +95,13 @@ interface UpdateEndUserStatusData {
 
 interface DeleteEndUserData {
   deleteEndUser: {
+    success: boolean
+    error: { __typename: string; message: string } | null
+  }
+}
+
+interface InitPrivateDBData {
+  initPrivateDB: {
     success: boolean
     error: { __typename: string; message: string } | null
   }
@@ -197,6 +206,23 @@ export default function EndUsersPage() {
       },
     })
 
+  const [initPrivateDB, { loading: initMutationLoading }] =
+    useMutation<InitPrivateDBData>(INIT_PRIVATE_DB, {
+      client: projectClient,
+      onCompleted: (d) => {
+        const payload = d.initPrivateDB
+        if (payload.error) {
+          toast.error('初始化失败', { description: payload.error.message })
+          return
+        }
+        toast.success('私有库初始化成功')
+        refetch()
+      },
+      onError: (err) => {
+        toast.error('初始化失败', { description: err.message })
+      },
+    })
+
   // ── Handlers ─────────────────────────────────────────────────────
 
   const handleSearchChange = useCallback(
@@ -228,12 +254,36 @@ export default function EndUsersPage() {
     deleteEndUser({ variables: { input: { userId: deleteTarget.id } } })
   }
 
+  const handleInitPrivateDB = () => {
+    void initPrivateDB()
+  }
+
   // ── Data ─────────────────────────────────────────────────────────
 
   const connection = data?.listEndUsers?.connection
   const users = connection?.nodes ?? []
   const totalCount = connection?.totalCount ?? 0
   const listError = data?.listEndUsers?.error
+
+  const showInitPrivateDBAction = Boolean(
+    listError
+      && listError.__typename === 'ClusterNotFound'
+      && (
+        listError.message.includes('私有库尚未初始化')
+        || /unknown database/i.test(listError.message)
+        || listError.message.includes('mc_private_')
+        || listError.message.includes('PRIVATE_DB_NOT_INITIALIZED')
+      )
+  )
+
+  const displayListErrorMessage = (() => {
+    if (!listError) return ''
+    if (showInitPrivateDBAction) {
+      return '项目私有库尚未初始化，初始化后即可管理终端用户。'
+    }
+    return listError.message
+  })()
+
 
   // ── Render ───────────────────────────────────────────────────────
 
@@ -277,8 +327,22 @@ export default function EndUsersPage() {
 
         {/* Error state */}
         {listError && (
-          <div className="rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {listError.message}
+          <div className="space-y-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+            <div>{displayListErrorMessage}</div>
+            {showInitPrivateDBAction && (
+              <div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleInitPrivateDB()}
+                  disabled={initMutationLoading}
+                  className="h-8 border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                >
+                  <Wrench className="mr-1 size-3.5" />
+                  {initMutationLoading ? '初始化中...' : '初始化私有库'}
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/infrastructure/database/private"
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/logfacade"
+	"strings"
 	"sync"
 	"time"
 )
@@ -16,13 +17,14 @@ import (
 // PrivateDBManager manages private database connections for end-user auth.
 //
 // Cache key: orgName.projectSlug
-// Target DB: private_{projectSlug}
+// Target DB: mc_private_{projectSlug}
 //
 // Behavior:
 // 1. Return cached healthy connection
 // 2. Rebuild when connection invalid
-// 3. Run migrate on first initialization for a key
-// 4. Keep one dedicated *sql.DB per project key
+// 3. GetOrInit only connects existing private DB (no auto creation)
+// 4. Provision explicitly creates/migrates private DB
+// 5. Keep one dedicated *sql.DB per project key
 //
 // Note:
 // It reuses ClusterConnectionManager's repository in the same package,
@@ -30,7 +32,6 @@ import (
 // cross-project database switching side effects.
 type PrivateDBManager struct {
 	connections sync.Map // key: orgName.projectSlug -> *sql.DB
-	migrated    sync.Map // key: orgName.projectSlug -> bool
 
 	clusterMgr *ClusterConnectionManager
 	migrator   *private.PrivateMigrator
@@ -58,7 +59,10 @@ func privateCacheKey(orgName, projectSlug string) string {
 	return orgName + "." + projectSlug
 }
 
-// GetOrInit gets or initializes private_{projectSlug} DB connection.
+// GetOrInit gets an existing private DB connection.
+//
+// NOTE: This method does NOT auto-initialize database anymore.
+// If mc_private_{projectSlug} does not exist, it returns a typed not-found repository error.
 func (m *PrivateDBManager) GetOrInit(ctx context.Context, orgName, projectSlug string) (*sql.DB, error) {
 	key := privateCacheKey(orgName, projectSlug)
 
@@ -107,52 +111,55 @@ func (m *PrivateDBManager) createAndCacheConnection(
 	ctx context.Context,
 	orgName, projectSlug, key string,
 ) (*sql.DB, error) {
+	connectionInfo, plainPassword, err := m.getClusterConnectionInfo(ctx, orgName, projectSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
+	privateDB, err := m.openPrivateDBConnection(connectionInfo, plainPassword, dbName)
+	if err != nil {
+		if isUnknownDatabaseError(err) {
+			return nil, shared.NewRepositoryError(
+				shared.ErrTypeNotFound,
+				fmt.Sprintf("private database not initialized for project: %s/%s", orgName, projectSlug),
+			).WithCause(err)
+		}
+		return nil, fmt.Errorf("open private DB connection: %w", err)
+	}
+
+	m.connections.Store(key, privateDB)
+	m.logger.Info(ctx, "private DB connected",
+		logfacade.String("key", key),
+		logfacade.String("database", dbName))
+
+	return privateDB, nil
+}
+
+func (m *PrivateDBManager) getClusterConnectionInfo(
+	ctx context.Context,
+	orgName, projectSlug string,
+) (cluster.ConnectionInfo, string, error) {
 	if m.clusterMgr == nil || m.clusterMgr.repo == nil {
-		return nil, fmt.Errorf("cluster manager not initialized")
+		return cluster.ConnectionInfo{}, "", fmt.Errorf("cluster manager not initialized")
 	}
 
 	clusterInfo, err := m.clusterMgr.repo.GetByProjectKey(ctx, orgName, projectSlug)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
-			return nil, shared.NewNotFoundError(
+			return cluster.ConnectionInfo{}, "", shared.NewNotFoundError(
 				fmt.Sprintf("cluster not configured for project: %s/%s", orgName, projectSlug),
 			)
 		}
-		return nil, fmt.Errorf("get cluster by project key: %w", err)
+		return cluster.ConnectionInfo{}, "", fmt.Errorf("get cluster by project key: %w", err)
 	}
 
 	connInfo := clusterInfo.GetConnectionInfo()
 	plainPassword, err := connInfo.Password.GetPlainPassword()
 	if err != nil {
-		return nil, fmt.Errorf("decrypt cluster password: %w", err)
+		return cluster.ConnectionInfo{}, "", fmt.Errorf("decrypt cluster password: %w", err)
 	}
-
-	// Use root connection (no selected database) for migration
-	rootDB, err := m.openPrivateDBConnection(connInfo, plainPassword, "")
-	if err != nil {
-		return nil, fmt.Errorf("open cluster root connection: %w", err)
-	}
-	defer func() { _ = rootDB.Close() }()
-
-	if _, migrated := m.migrated.Load(key); !migrated {
-		if err = m.migrator.Migrate(ctx, rootDB, projectSlug); err != nil {
-			return nil, fmt.Errorf("migrate private DB: %w", err)
-		}
-		m.migrated.Store(key, true)
-	}
-
-	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
-	privateDB, err := m.openPrivateDBConnection(connInfo, plainPassword, dbName)
-	if err != nil {
-		return nil, fmt.Errorf("open private DB connection: %w", err)
-	}
-
-	m.connections.Store(key, privateDB)
-	m.logger.Info(ctx, "private DB initialized",
-		logfacade.String("key", key),
-		logfacade.String("database", dbName))
-
-	return privateDB, nil
+	return connInfo, plainPassword, nil
 }
 
 func (m *PrivateDBManager) openPrivateDBConnection(
@@ -194,6 +201,14 @@ func (m *PrivateDBManager) openPrivateDBConnection(
 	return db, nil
 }
 
+func isUnknownDatabaseError(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "error 1049") || strings.Contains(msg, "unknown database")
+}
+
 func buildPrivateDSN(username, password, host string, port int, database string, timeoutSeconds int) string {
 	dsnSuffix := "?charset=utf8mb4&collation=utf8mb4_unicode_ci&parseTime=true&loc=Local"
 	timeoutSuffix := fmt.Sprintf(
@@ -215,7 +230,6 @@ func (m *PrivateDBManager) evictByKey(key string) {
 			_ = db.Close()
 		}
 	}
-	m.migrated.Delete(key)
 }
 
 // EvictCache evicts one project's connection cache.
@@ -223,11 +237,45 @@ func (m *PrivateDBManager) EvictCache(orgName, projectSlug string) {
 	m.evictByKey(privateCacheKey(orgName, projectSlug))
 }
 
-// Provision creates mc_private_{projectSlug} on the project's cluster if it doesn't exist.
+// Provision creates mc_private_{projectSlug} on the project's cluster if it doesn't exist,
+// and warms the private DB connection cache.
 // Implements project.PrivateDBProvisioner.
 func (m *PrivateDBManager) Provision(ctx context.Context, orgName, projectSlug string) error {
-	_, err := m.GetOrInit(ctx, orgName, projectSlug)
-	return err
+	key := privateCacheKey(orgName, projectSlug)
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	if conn := m.getHealthyFromCache(ctx, key); conn != nil {
+		return nil
+	}
+
+	connectionInfo, plainPassword, err := m.getClusterConnectionInfo(ctx, orgName, projectSlug)
+	if err != nil {
+		return err
+	}
+
+	rootDB, err := m.openPrivateDBConnection(connectionInfo, plainPassword, "")
+	if err != nil {
+		return fmt.Errorf("open cluster root connection: %w", err)
+	}
+	defer func() { _ = rootDB.Close() }()
+
+	if err = m.migrator.Migrate(ctx, rootDB, projectSlug); err != nil {
+		return fmt.Errorf("migrate private DB: %w", err)
+	}
+
+	dbName := fmt.Sprintf("mc_private_%s", projectSlug)
+	privateDB, err := m.openPrivateDBConnection(connectionInfo, plainPassword, dbName)
+	if err != nil {
+		return fmt.Errorf("open private DB connection after migration: %w", err)
+	}
+
+	m.connections.Store(key, privateDB)
+	m.logger.Info(ctx, "private DB provisioned",
+		logfacade.String("key", key),
+		logfacade.String("database", dbName))
+	return nil
 }
 
 // CloseAll closes all cached private DB connections.

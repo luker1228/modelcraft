@@ -4,6 +4,7 @@ import {
   EndUserAccountDisabledError,
   EndUserInvalidCredentialsError,
   EndUserParamInvalidError,
+  EndUserPrivateDBNotInitializedError,
   EndUserUnauthorizedError,
   EndUserUpstreamError,
 } from '@/bff/end-user/end-user-go-client'
@@ -87,10 +88,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json(errorRes, { status: 401 })
     }
 
+    if (err instanceof EndUserPrivateDBNotInitializedError) {
+      const errorRes: EndUserBffError = {
+        error: { code: 'PRIVATE_DB_NOT_INITIALIZED', message: err.message || '私有库未初始化' },
+      }
+      if (err.requestId) errorRes.requestId = err.requestId
+      return NextResponse.json(errorRes, { status: 409 })
+    }
+
     if (err instanceof EndUserUpstreamError) {
       const errorRes: EndUserBffError = {
         error: {
-          code: err.code === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : 'PARAM_INVALID',
+          code: err.code === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : err.code ?? 'PARAM_INVALID',
           message: err.message || '上游服务错误',
         },
       }

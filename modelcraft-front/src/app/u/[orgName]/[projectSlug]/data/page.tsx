@@ -7,6 +7,16 @@ import { toast } from 'sonner'
 import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@web/components/ui/alert-dialog'
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -25,6 +35,13 @@ type DataModel = {
   databaseName: string
 }
 
+type BffErrorPayload = {
+  error?: {
+    code?: string
+    message?: string
+  }
+}
+
 const MAX_MODEL_TABS = 8
 
 export default function EndUserDataPage() {
@@ -41,51 +58,61 @@ export default function EndUserDataPage() {
   const [databasesLoading, setDatabasesLoading] = useState(false)
   const [models, setModels] = useState<DataModel[]>([])
   const [modelsLoading, setModelsLoading] = useState(false)
+  const [privateDbInitDialogOpen, setPrivateDbInitDialogOpen] = useState(false)
+  const [initPrivateDbLoading, setInitPrivateDbLoading] = useState(false)
+
+  const loadDatabaseCatalog = async (): Promise<void> => {
+    const accessToken = getEndUserToken()
+    if (!accessToken || !orgName || !projectSlug) return
+
+    setDatabasesLoading(true)
+    try {
+      const res = await fetch('/api/bff/end-user/data/database-catalog?page=1&pageSize=100', {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      const data = (await res.json()) as {
+        databases?: Array<{ name?: string }>
+      } & BffErrorPayload
+
+      if (!res.ok) {
+        if (data.error?.code === 'PRIVATE_DB_NOT_INITIALIZED') {
+          setDatabases([])
+          setSelectedDatabase('')
+          setModels([])
+          setPrivateDbInitDialogOpen(true)
+          return
+        }
+        throw new Error(data.error?.message || '加载数据库目录失败')
+      }
+
+      setDatabases(
+        (data.databases ?? [])
+          .map((item) => item?.name ?? '')
+          .filter((name): name is string => name.length > 0)
+      )
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '加载数据库目录失败'
+      toast.error(message)
+      setDatabases([])
+    } finally {
+      setDatabasesLoading(false)
+    }
+  }
 
   useEffect(() => {
     let cancelled = false
 
-    const loadDatabaseCatalog = async () => {
-      const accessToken = getEndUserToken()
-      if (!accessToken || !orgName || !projectSlug) return
-
-      setDatabasesLoading(true)
-      try {
-        const res = await fetch('/api/bff/end-user/data/database-catalog?page=1&pageSize=100', {
-          method: 'GET',
-          credentials: 'same-origin',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        })
-
-        const data = (await res.json()) as {
-          databases?: Array<{ name?: string }>
-          error?: { message?: string }
-        }
-
-        if (!res.ok) {
-          throw new Error(data.error?.message || '加载数据库目录失败')
-        }
-
-        if (cancelled) return
-
-        setDatabases(
-          (data.databases ?? [])
-            .map((item) => item?.name ?? '')
-            .filter((name): name is string => name.length > 0)
-        )
-      } catch (err) {
-        if (cancelled) return
-        const message = err instanceof Error ? err.message : '加载数据库目录失败'
-        toast.error(message)
-        setDatabases([])
-      } finally {
-        if (!cancelled) setDatabasesLoading(false)
-      }
+    const run = async () => {
+      await loadDatabaseCatalog()
+      if (cancelled) return
     }
 
-    void loadDatabaseCatalog()
+    void run()
     return () => {
       cancelled = true
     }
@@ -126,10 +153,14 @@ export default function EndUserDataPage() {
 
         const data = (await res.json()) as {
           models?: Array<DataModel>
-          error?: { message?: string }
-        }
+        } & BffErrorPayload
 
         if (!res.ok) {
+          if (data.error?.code === 'PRIVATE_DB_NOT_INITIALIZED') {
+            setModels([])
+            setPrivateDbInitDialogOpen(true)
+            return
+          }
           throw new Error(data.error?.message || '加载模型目录失败')
         }
         if (cancelled) return
@@ -163,6 +194,39 @@ export default function EndUserDataPage() {
       (model.title ?? '').toLowerCase().includes(keyword) || model.name.toLowerCase().includes(keyword)
     )
   }, [models, modelFilter])
+
+  const handleInitPrivateDB = async () => {
+    const accessToken = getEndUserToken()
+    if (!accessToken) return
+
+    setInitPrivateDbLoading(true)
+    try {
+      const res = await fetch('/api/bff/end-user/data/init-private-db', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      })
+
+      const data = (await res.json()) as {
+        success?: boolean
+      } & BffErrorPayload
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error?.message || '初始化私有库失败')
+      }
+
+      setPrivateDbInitDialogOpen(false)
+      toast.success('私有库初始化成功')
+      await loadDatabaseCatalog()
+    } catch (err) {
+      const message = err instanceof Error ? err.message : '初始化私有库失败'
+      toast.error(message)
+    } finally {
+      setInitPrivateDbLoading(false)
+    }
+  }
 
   const handleOpenModelTab = (model: DataModel) => {
     setOpenedTabs((prev) => {
@@ -291,6 +355,23 @@ export default function EndUserDataPage() {
           )}
         />
       </div>
+
+      <AlertDialog open={privateDbInitDialogOpen} onOpenChange={setPrivateDbInitDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>私有库未初始化</AlertDialogTitle>
+            <AlertDialogDescription>
+              检测到私有库 mc_private_{projectSlug} 不存在。请确认是否立即初始化后继续访问数据。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={initPrivateDbLoading}>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={() => void handleInitPrivateDB()} disabled={initPrivateDbLoading}>
+              {initPrivateDbLoading ? '初始化中...' : '确认初始化'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   )
 }

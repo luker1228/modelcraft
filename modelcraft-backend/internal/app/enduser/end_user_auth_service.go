@@ -347,13 +347,27 @@ func (s *EndUserAuthAppService) GetEndUserMe(ctx context.Context, cmd GetMeComma
 
 // convertDBProviderError converts PrivateDBProvider errors to BusinessErrors.
 func (s *EndUserAuthAppService) convertDBProviderError(ctx context.Context, err error) *bizerrors.BusinessError {
-	// Check if it's a "cluster not configured" error
-	// This would be determined by the PrivateDBProvider implementation
-	// For now, we check if error message contains relevant keywords
-	if err != nil && (shared.IsNotFoundError(err) || containsClusterNotConfigured(err)) {
+	if err == nil {
+		return nil
+	}
+	if shared.IsNotFoundError(err) {
+		if containsPrivateDBNotInitialized(err) {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPrivateDBNotInitialized)
+		}
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
+	}
+	if containsClusterNotConfigured(err) {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
 	}
 	return bizerrors.ConvertRepositoryError(ctx, err)
+}
+
+func containsPrivateDBNotInitialized(err error) bool {
+	if err == nil {
+		return false
+	}
+	msg := strings.ToLower(err.Error())
+	return strings.Contains(msg, "private database not initialized")
 }
 
 // containsClusterNotConfigured checks if error indicates cluster is not configured.

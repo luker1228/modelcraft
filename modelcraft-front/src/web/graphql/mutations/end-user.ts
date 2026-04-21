@@ -92,3 +92,23 @@ export const DELETE_END_USER = gql`
     }
   }
 `
+
+/**
+ * 初始化项目私有库（mc_private_{projectSlug}）
+ */
+export const INIT_PRIVATE_DB = gql`
+  mutation InitPrivateDB {
+    initPrivateDB {
+      success
+      error {
+        __typename
+        ... on InitPrivateDBError {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`

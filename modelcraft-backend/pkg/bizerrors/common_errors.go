@@ -413,6 +413,13 @@ var (
 		EnMessage: "Database cluster not configured for this project",
 		ZhMessage: "该项目未配置数据库集群",
 	}
+
+	// EndUserPrivateDBNotInitialized 私有库未初始化（mc_private_{projectSlug} 不存在）
+	EndUserPrivateDBNotInitialized = ErrorDefinition{
+		Code:      "PRIVATE_DB_NOT_INITIALIZED.END_USER",
+		EnMessage: "Private database is not initialized for this project",
+		ZhMessage: "该项目私有库尚未初始化",
+	}
 )
 
 // 定义 RLS 领域错误

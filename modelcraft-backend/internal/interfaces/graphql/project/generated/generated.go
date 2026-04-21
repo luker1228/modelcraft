@@ -384,6 +384,15 @@ type ComplexityRoot struct {
 		SkippedFields func(childComplexity int) int
 	}
 
+	InitPrivateDBError struct {
+		Message func(childComplexity int) int
+	}
+
+	InitPrivateDBPayload struct {
+		Error   func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	InvalidAuthVariable struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -518,6 +527,7 @@ type ComplexityRoot struct {
 		DeleteModel             func(childComplexity int, id string, dropTable *bool) int
 		DeprecateField          func(childComplexity int, modelID string, fieldName string) int
 		ImportModel             func(childComplexity int, input ImportModelInput) int
+		InitPrivateDb           func(childComplexity int) int
 		MoveModelToGroup        func(childComplexity int, input MoveModelToGroupInput) int
 		Pong                    func(childComplexity int) int
 		RemoveField             func(childComplexity int, modelID string, fieldName string) int
@@ -705,6 +715,7 @@ type MutationResolver interface {
 	CreateEndUser(ctx context.Context, input CreateEndUserInput) (*CreateEndUserPayload, error)
 	UpdateEndUserStatus(ctx context.Context, input UpdateEndUserStatusInput) (*UpdateEndUserStatusPayload, error)
 	DeleteEndUser(ctx context.Context, input DeleteEndUserInput) (*DeleteEndUserPayload, error)
+	InitPrivateDb(ctx context.Context) (*InitPrivateDBPayload, error)
 	CreateEnum(ctx context.Context, input CreateEnumInput) (*CreateEnumPayload, error)
 	UpdateEnum(ctx context.Context, name string, input UpdateEnumInput) (*UpdateEnumPayload, error)
 	DeleteEnum(ctx context.Context, name string) (*DeleteEnumPayload, error)
@@ -1809,6 +1820,26 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ImportModelPayload.SkippedFields(childComplexity), true
 
+	case "InitPrivateDBError.message":
+		if e.complexity.InitPrivateDBError.Message == nil {
+			break
+		}
+
+		return e.complexity.InitPrivateDBError.Message(childComplexity), true
+
+	case "InitPrivateDBPayload.error":
+		if e.complexity.InitPrivateDBPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.InitPrivateDBPayload.Error(childComplexity), true
+	case "InitPrivateDBPayload.success":
+		if e.complexity.InitPrivateDBPayload.Success == nil {
+			break
+		}
+
+		return e.complexity.InitPrivateDBPayload.Success(childComplexity), true
+
 	case "InvalidAuthVariable.message":
 		if e.complexity.InvalidAuthVariable.Message == nil {
 			break
@@ -2388,6 +2419,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.ImportModel(childComplexity, args["input"].(ImportModelInput)), true
+	case "Mutation.initPrivateDB":
+		if e.complexity.Mutation.InitPrivateDb == nil {
+			break
+		}
+
+		return e.complexity.Mutation.InitPrivateDb(childComplexity), true
 	case "Mutation.moveModelToGroup":
 		if e.complexity.Mutation.MoveModelToGroup == nil {
 			break
@@ -3614,6 +3651,13 @@ union UpdateEndUserError = EndUserNotFound | ClusterNotFound | InvalidInput | Pr
 union DeleteEndUserError = EndUserNotFound | ClusterNotFound | ProjectNotFound
 union ListEndUsersError = ClusterNotFound | ProjectNotFound
 
+# InitPrivateDBError indicates private DB initialization failures.
+type InitPrivateDBError implements Error {
+  message: String!
+}
+
+union InitPrivateDBPayloadError = InitPrivateDBError | ProjectNotFound
+
 # ============================================
 # End User Types
 # ============================================
@@ -3657,6 +3701,11 @@ type ListEndUsersPayload {
   error: ListEndUsersError
 }
 
+type InitPrivateDBPayload {
+  success: Boolean!
+  error: InitPrivateDBPayloadError
+}
+
 # ============================================
 # Input Types
 # ============================================
@@ -3693,6 +3742,7 @@ extend type Mutation {
   createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
+  initPrivateDB: InitPrivateDBPayload! @hasPermission(action: "end-user:create")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/enum.graphql", Input: `# Enum-related types, inputs and mutations
@@ -10504,6 +10554,93 @@ func (ec *executionContext) fieldContext_ImportModelPayload_skippedFields(_ cont
 	return fc, nil
 }
 
+func (ec *executionContext) _InitPrivateDBError_message(ctx context.Context, field graphql.CollectedField, obj *InitPrivateDBError) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InitPrivateDBError_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InitPrivateDBError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InitPrivateDBError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InitPrivateDBPayload_success(ctx context.Context, field graphql.CollectedField, obj *InitPrivateDBPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InitPrivateDBPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_InitPrivateDBPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InitPrivateDBPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _InitPrivateDBPayload_error(ctx context.Context, field graphql.CollectedField, obj *InitPrivateDBPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_InitPrivateDBPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOInitPrivateDBPayloadError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayloadError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_InitPrivateDBPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "InitPrivateDBPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type InitPrivateDBPayloadError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _InvalidAuthVariable_message(ctx context.Context, field graphql.CollectedField, obj *InvalidAuthVariable) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -12992,6 +13129,59 @@ func (ec *executionContext) fieldContext_Mutation_deleteEndUser(ctx context.Cont
 	if fc.Args, err = ec.field_Mutation_deleteEndUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_initPrivateDB(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_initPrivateDB,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Mutation().InitPrivateDb(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:create")
+				if err != nil {
+					var zeroVal *InitPrivateDBPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *InitPrivateDBPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNInitPrivateDBPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_initPrivateDB(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_InitPrivateDBPayload_success(ctx, field)
+			case "error":
+				return ec.fieldContext_InitPrivateDBPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type InitPrivateDBPayload", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -21568,6 +21758,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._InvalidAuthVariable(ctx, sel, obj)
+	case InitPrivateDBError:
+		return ec._InitPrivateDBError(ctx, sel, &obj)
+	case *InitPrivateDBError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InitPrivateDBError(ctx, sel, obj)
 	case GroupNotFound:
 		return ec._GroupNotFound(ctx, sel, &obj)
 	case *GroupNotFound:
@@ -21763,6 +21960,29 @@ func (ec *executionContext) _GetModelError(ctx context.Context, sel ast.Selectio
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _InitPrivateDBPayloadError(ctx context.Context, sel ast.SelectionSet, obj InitPrivateDBPayloadError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InitPrivateDBError:
+		return ec._InitPrivateDBError(ctx, sel, &obj)
+	case *InitPrivateDBError:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InitPrivateDBError(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -24845,6 +25065,86 @@ func (ec *executionContext) _ImportModelPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
+var initPrivateDBErrorImplementors = []string{"InitPrivateDBError", "Error", "InitPrivateDBPayloadError"}
+
+func (ec *executionContext) _InitPrivateDBError(ctx context.Context, sel ast.SelectionSet, obj *InitPrivateDBError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, initPrivateDBErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InitPrivateDBError")
+		case "message":
+			out.Values[i] = ec._InitPrivateDBError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var initPrivateDBPayloadImplementors = []string{"InitPrivateDBPayload"}
+
+func (ec *executionContext) _InitPrivateDBPayload(ctx context.Context, sel ast.SelectionSet, obj *InitPrivateDBPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, initPrivateDBPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("InitPrivateDBPayload")
+		case "success":
+			out.Values[i] = ec._InitPrivateDBPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._InitPrivateDBPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var invalidAuthVariableImplementors = []string{"InvalidAuthVariable", "Error", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _InvalidAuthVariable(ctx context.Context, sel ast.SelectionSet, obj *InvalidAuthVariable) graphql.Marshaler {
@@ -25773,6 +26073,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "initPrivateDB":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_initPrivateDB(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createEnum":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEnum(ctx, field)
@@ -26052,7 +26359,7 @@ func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "DatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "DatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -28861,6 +29168,20 @@ func (ec *executionContext) marshalNImportModelPayload2ᚖmodelcraftᚋinternal�
 	return ec._ImportModelPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNInitPrivateDBPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayload(ctx context.Context, sel ast.SelectionSet, v InitPrivateDBPayload) graphql.Marshaler {
+	return ec._InitPrivateDBPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNInitPrivateDBPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayload(ctx context.Context, sel ast.SelectionSet, v *InitPrivateDBPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._InitPrivateDBPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int32(ctx context.Context, v any) (int32, error) {
 	res, err := graphql.UnmarshalInt32(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -30224,6 +30545,13 @@ func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.Se
 	_ = ctx
 	res := graphql.MarshalID(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOInitPrivateDBPayloadError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐInitPrivateDBPayloadError(ctx context.Context, sel ast.SelectionSet, v InitPrivateDBPayloadError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._InitPrivateDBPayloadError(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {

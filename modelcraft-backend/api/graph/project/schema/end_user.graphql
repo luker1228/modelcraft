@@ -32,6 +32,13 @@ union UpdateEndUserError = EndUserNotFound | ClusterNotFound | InvalidInput | Pr
 union DeleteEndUserError = EndUserNotFound | ClusterNotFound | ProjectNotFound
 union ListEndUsersError = ClusterNotFound | ProjectNotFound
 
+# InitPrivateDBError indicates private DB initialization failures.
+type InitPrivateDBError implements Error {
+  message: String!
+}
+
+union InitPrivateDBPayloadError = InitPrivateDBError | ProjectNotFound
+
 # ============================================
 # End User Types
 # ============================================
@@ -75,6 +82,11 @@ type ListEndUsersPayload {
   error: ListEndUsersError
 }
 
+type InitPrivateDBPayload {
+  success: Boolean!
+  error: InitPrivateDBPayloadError
+}
+
 # ============================================
 # Input Types
 # ============================================
@@ -111,4 +123,5 @@ extend type Mutation {
   createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
+  initPrivateDB: InitPrivateDBPayload! @hasPermission(action: "end-user:create")
 }

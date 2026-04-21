@@ -9,23 +9,27 @@ import (
 	"strconv"
 
 	appModelDesign "modelcraft/internal/app/modeldesign"
+	"modelcraft/internal/infrastructure/repository"
 )
 
 // DataHandler handles end-user data metadata APIs.
 type DataHandler struct {
-	modelService *appModelDesign.ModelDesignAppService
-	logger       logfacade.Logger
+	modelService     *appModelDesign.ModelDesignAppService
+	privateDBManager *repository.PrivateDBManager
+	logger           logfacade.Logger
 }
 
 const missingDataHeaders = "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required"
 
 func NewDataHandler(
 	modelService *appModelDesign.ModelDesignAppService,
+	privateDBManager *repository.PrivateDBManager,
 	logger logfacade.Logger,
 ) *DataHandler {
 	return &DataHandler{
-		modelService: modelService,
-		logger:       logger,
+		modelService:     modelService,
+		privateDBManager: privateDBManager,
+		logger:           logger,
 	}
 }
 
@@ -36,9 +40,8 @@ func (h *DataHandler) DatabaseCatalog(w http.ResponseWriter, r *http.Request) {
 
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
-	endUserID := r.Header.Get("X-End-User-Id")
-	if orgName == "" || projectSlug == "" || endUserID == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingDataHeaders)
+	if orgName == "" || projectSlug == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
 		return
 	}
 
@@ -160,6 +163,35 @@ func (h *DataHandler) ModelCatalog(w http.ResponseWriter, r *http.Request) {
 		TotalCount: int64(totalCount),
 		Page:       page,
 		PageSize:   pageSize,
+	})
+}
+
+// InitPrivateDB handles POST /internal/end-user/data/init-private-db.
+// This is a project-level operation and only requires org/project headers.
+func (h *DataHandler) InitPrivateDB(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	orgName := r.Header.Get("X-Org-Name")
+	projectSlug := r.Header.Get("X-Project-Slug")
+	if orgName == "" || projectSlug == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		return
+	}
+
+	if h.privateDBManager == nil {
+		h.writeError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "private DB manager is not configured")
+		return
+	}
+
+	if err := h.privateDBManager.Provision(ctx, orgName, projectSlug); err != nil {
+		h.handleBusinessError(w, r, requestID, bizerrors.ConvertRepositoryError(ctx, err), "Init private DB failed")
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId": requestID,
+		"success":   true,
 	})
 }
 

@@ -79,6 +79,10 @@ type GetModelError interface {
 	IsGetModelError()
 }
 
+type InitPrivateDBPayloadError interface {
+	IsInitPrivateDBPayloadError()
+}
+
 type ListEndUsersError interface {
 	IsListEndUsersError()
 }
@@ -702,6 +706,20 @@ type ImportModelPayload struct {
 	SkippedFields []string `json:"skippedFields"`
 }
 
+type InitPrivateDBError struct {
+	Message string `json:"message"`
+}
+
+func (InitPrivateDBError) IsError()                {}
+func (this InitPrivateDBError) GetMessage() string { return this.Message }
+
+func (InitPrivateDBError) IsInitPrivateDBPayloadError() {}
+
+type InitPrivateDBPayload struct {
+	Success bool                      `json:"success"`
+	Error   InitPrivateDBPayloadError `json:"error,omitempty"`
+}
+
 type InvalidAuthVariable struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -986,6 +1004,8 @@ func (ProjectNotFound) IsUpdateEndUserError() {}
 func (ProjectNotFound) IsDeleteEndUserError() {}
 
 func (ProjectNotFound) IsListEndUsersError() {}
+
+func (ProjectNotFound) IsInitPrivateDBPayloadError() {}
 
 func (ProjectNotFound) IsGetEnumError() {}
 

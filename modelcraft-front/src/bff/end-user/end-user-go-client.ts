@@ -65,6 +65,11 @@ export interface EndUserModelCatalogResult {
   pageSize: number
 }
 
+export interface EndUserInitPrivateDBResult {
+  success: boolean
+  requestId?: string
+}
+
 // ============================================================================
 // 错误类型
 // ============================================================================
@@ -106,6 +111,14 @@ export class EndUserClusterNotConfiguredError extends Error {
   constructor(message = '服务暂时不可用') {
     super(message)
     this.name = 'EndUserClusterNotConfiguredError'
+  }
+}
+
+/** Private DB 未初始化（需要用户确认后初始化） */
+export class EndUserPrivateDBNotInitializedError extends Error {
+  constructor(message = '私有库未初始化') {
+    super(message)
+    this.name = 'EndUserPrivateDBNotInitializedError'
   }
 }
 
@@ -173,6 +186,11 @@ function createInternalHeaders(orgName?: string, projectSlug?: string): { header
   }
 }
 
+function normalizeGoErrorCode(code?: string): string {
+  if (!code) return ''
+  return code.split('.')[0] || code
+}
+
 async function parseGoError(res: Response, fallbackRequestId?: string): Promise<Error> {
   const headerRequestId = res.headers.get('x-request-id') || undefined
   const requestId = headerRequestId ?? fallbackRequestId
@@ -180,8 +198,9 @@ async function parseGoError(res: Response, fallbackRequestId?: string): Promise<
   try {
     const data = (await res.json()) as GoEndUserError
     const { code, message } = data.error
+    const normalizedCode = normalizeGoErrorCode(code)
 
-    switch (code) {
+    switch (normalizedCode) {
       case 'INVALID_CREDENTIALS':
         return attachRequestId(new EndUserInvalidCredentialsError(message), requestId)
       case 'ACCOUNT_DISABLED':
@@ -192,6 +211,8 @@ async function parseGoError(res: Response, fallbackRequestId?: string): Promise<
         return attachRequestId(new EndUserTokenError(message), requestId)
       case 'CLUSTER_NOT_CONFIGURED':
         return attachRequestId(new EndUserClusterNotConfiguredError(message), requestId)
+      case 'PRIVATE_DB_NOT_INITIALIZED':
+        return attachRequestId(new EndUserPrivateDBNotInitializedError(message), requestId)
       case 'PARAM_INVALID':
         return attachRequestId(new EndUserParamInvalidError(message), requestId)
       case 'UNAUTHORIZED':
@@ -202,7 +223,7 @@ async function parseGoError(res: Response, fallbackRequestId?: string): Promise<
           res.status
         )
         upstream.requestId = requestId
-        upstream.code = code
+        upstream.code = normalizedCode || code
         return upstream
     }
   } catch {
@@ -536,6 +557,44 @@ export async function callGoEndUserDatabaseCatalog(params: {
 /**
  * 调用 Go Backend /internal/end-user/data/model-catalog
  */
+
+/**
+ * 调用 Go Backend /internal/end-user/data/init-private-db
+ */
+export async function callGoEndUserInitPrivateDB(params: {
+  orgName: string
+  projectSlug: string
+  userId?: string
+}): Promise<EndUserInitPrivateDBResult> {
+  if (USE_MOCK) {
+    return { success: true }
+  }
+
+  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
+  const requestHeaders: Record<string, string> = {
+    ...headers,
+  }
+  if (params.userId) {
+    requestHeaders['X-End-User-Id'] = params.userId
+  }
+
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/data/init-private-db`, {
+    method: 'POST',
+    headers: requestHeaders,
+  })
+
+  if (!res.ok) {
+    throw await parseGoError(res, requestId)
+  }
+
+  type GoInitResp = { success?: boolean; requestId?: string }
+  const data = (await res.json()) as GoInitResp
+  return {
+    success: Boolean(data.success),
+    requestId: data.requestId,
+  }
+}
+
 export async function callGoEndUserModelCatalog(params: {
   orgName: string
   projectSlug: string

@@ -6,6 +6,7 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+	"strings"
 
 	domainenduser "modelcraft/internal/domain/enduser"
 
@@ -225,6 +226,9 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 
 func (s *EndUserManagementAppService) convertDBError(ctx context.Context, err error) error {
 	if shared.IsNotFoundError(err) {
+		if strings.Contains(strings.ToLower(err.Error()), "private database not initialized") {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPrivateDBNotInitialized)
+		}
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
 	}
 	return bizerrors.ConvertRepositoryError(ctx, err)

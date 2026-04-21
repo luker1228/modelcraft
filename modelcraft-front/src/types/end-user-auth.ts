@@ -74,7 +74,7 @@ export interface GoEndUserMeResponse {
 
 export interface GoEndUserError {
   error: {
-    code: EndUserErrorCode
+    code: string
     message: string
   }
 }
@@ -89,6 +89,7 @@ export type EndUserErrorCode =
   | 'CONFLICT' // 用户名已存在
   | 'INVALID_REFRESH_TOKEN' // refresh token 无效/过期/已 revoke
   | 'CLUSTER_NOT_CONFIGURED' // Project 未关联 Cluster
+  | 'PRIVATE_DB_NOT_INITIALIZED' // Private DB 缺失，需用户确认初始化
   | 'PARAM_INVALID' // 参数校验失败
   | 'UNAUTHORIZED' // JWT 缺失或无效
   | 'NOT_IMPLEMENTED' // 真实后端分支未实现
@@ -111,6 +112,7 @@ export function mapEndUserErrorCode(
   if (code === 'ACCOUNT_DISABLED') return '该账号已被禁用，请联系管理员'
   if (code === 'CONFLICT') return '该用户名已被使用'
   if (code === 'CLUSTER_NOT_CONFIGURED') return '服务暂时不可用，请联系管理员'
+  if (code === 'PRIVATE_DB_NOT_INITIALIZED') return '私有库尚未初始化，请先确认初始化'
   if (code === 'PARAM_INVALID') {
     if (msg.includes('password must be at least 8 characters')) {
       return '密码至少 8 位'

@@ -99,6 +99,11 @@ func (e *BusinessError) GetHTTPStatusCode() int {
 		return 503
 	}
 
+	// PRIVATE_DB_NOT_INITIALIZED → 409 Conflict (requires explicit user confirmation to initialize)
+	if code == EndUserPrivateDBNotInitialized.Code {
+		return 409
+	}
+
 	// Default: map by error type prefix
 	errorType := e.info.GetErrorType()
 	switch errorType {
