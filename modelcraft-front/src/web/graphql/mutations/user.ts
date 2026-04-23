@@ -68,6 +68,54 @@ export const DELETE_ROLE = gql`
   }
 `
 
+// Add permission to role (permission management domain)
+export const ADD_PERMISSION_TO_ROLE = gql`
+  mutation AddPermissionToRole($roleId: Int!, $obj: String!, $act: String!) {
+    addPermissionToRole(roleId: $roleId, obj: $obj, act: $act) {
+      success
+      error {
+        __typename
+        ... on PermissionRoleNotFound {
+          message
+          suggestion
+        }
+        ... on PermissionSystemRoleCannotBeModified {
+          message
+          suggestion
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+// Remove permission from role (permission management domain)
+export const REMOVE_PERMISSION_FROM_ROLE = gql`
+  mutation RemovePermissionFromRole($roleId: Int!, $obj: String!, $act: String!) {
+    removePermissionFromRole(roleId: $roleId, obj: $obj, act: $act) {
+      success
+      error {
+        __typename
+        ... on PermissionRoleNotFound {
+          message
+          suggestion
+        }
+        ... on PermissionSystemRoleCannotBeModified {
+          message
+          suggestion
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
 // Create API key
 export const CREATE_API_KEY = gql`
   mutation CreateApiKey($input: CreateApiKeyInput!) {

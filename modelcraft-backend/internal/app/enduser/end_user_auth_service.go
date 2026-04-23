@@ -21,10 +21,10 @@ const (
 	defaultRefreshTTL = 7 * 24 * time.Hour
 )
 
-// PrivateDBProvider provides database connections for private_{projectSlug} databases.
+// PrivateDBProvider provides database connections for end-user auth storage.
 // This interface allows decoupling from infrastructure layer (PrivateDBManager).
 type PrivateDBProvider interface {
-	// GetOrInit returns (or initializes) a database connection for private_{projectSlug}.
+	// GetOrInit returns a database connection for the project tenant scope.
 	// Returns error if project's cluster is not configured.
 	GetOrInit(ctx context.Context, orgName, projectSlug string) (*sql.DB, error)
 }
@@ -41,9 +41,9 @@ type SQLDBTX interface {
 // This allows the service to work with transaction-scoped repositories.
 type RepositoryFactory interface {
 	// NewEndUserRepository creates an EndUserRepository from a DB/TX connection.
-	NewEndUserRepository(db SQLDBTX) enduser.EndUserRepository
+	NewEndUserRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserRepository
 	// NewEndUserSessionRepository creates an EndUserSessionRepository from a DB/TX connection.
-	NewEndUserSessionRepository(db SQLDBTX) enduser.EndUserSessionRepository
+	NewEndUserSessionRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserSessionRepository
 }
 
 // TxManager manages database transactions for private databases.
@@ -115,7 +115,7 @@ func (s *EndUserAuthAppService) RegisterEndUser(ctx context.Context, cmd Registe
 	}
 
 	// 7. Save user
-	userRepo := s.repoFactory.NewEndUserRepository(db)
+	userRepo := s.repoFactory.NewEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	if err := userRepo.Save(ctx, user); err != nil {
 		if shared.IsDuplicateKeyError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserConflict, cmd.Username)
@@ -138,7 +138,7 @@ func (s *EndUserAuthAppService) RegisterEndUser(ctx context.Context, cmd Registe
 	session := enduser.NewEndUserSession(sessionID, user.ID, tokenHash, expiresAt)
 
 	// 10. Save session
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db)
+	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	if err := sessionRepo.Save(ctx, session); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -161,7 +161,7 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 	}
 
 	// 2. Find user by username
-	userRepo := s.repoFactory.NewEndUserRepository(db)
+	userRepo := s.repoFactory.NewEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	user, err := userRepo.GetByUsername(ctx, cmd.Username)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -196,7 +196,7 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 	expiresAt := time.Now().Add(s.refreshTTL)
 	session := enduser.NewEndUserSession(sessionID, user.ID, tokenHash, expiresAt)
 
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db)
+	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	if err := sessionRepo.Save(ctx, session); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -222,7 +222,7 @@ func (s *EndUserAuthAppService) LogoutEndUser(ctx context.Context, cmd LogoutCom
 	tokenHash := hashToken(cmd.RefreshToken)
 
 	// 3. Find session
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db)
+	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	session, err := sessionRepo.GetByTokenHash(ctx, tokenHash)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
@@ -254,7 +254,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 	tokenHash := hashToken(cmd.RefreshToken)
 
 	// 3. Find session
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db)
+	sessionRepo := s.repoFactory.NewEndUserSessionRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	session, err := sessionRepo.GetByTokenHash(ctx, tokenHash)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -273,7 +273,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 	// 6. Token Rotation (transactional)
 	var result *RefreshResult
 	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
-		txSessionRepo := s.repoFactory.NewEndUserSessionRepository(txDB)
+		txSessionRepo := s.repoFactory.NewEndUserSessionRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
 
 		// 6a. Revoke old token
 		if err := txSessionRepo.RevokeByID(ctx, session.ID); err != nil {
@@ -326,7 +326,7 @@ func (s *EndUserAuthAppService) GetEndUserMe(ctx context.Context, cmd GetMeComma
 	}
 
 	// 2. Find user by ID
-	userRepo := s.repoFactory.NewEndUserRepository(db)
+	userRepo := s.repoFactory.NewEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	user, err := userRepo.GetByID(ctx, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -351,23 +351,12 @@ func (s *EndUserAuthAppService) convertDBProviderError(ctx context.Context, err 
 		return nil
 	}
 	if shared.IsNotFoundError(err) {
-		if containsPrivateDBNotInitialized(err) {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPrivateDBNotInitialized)
-		}
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
 	}
 	if containsClusterNotConfigured(err) {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
 	}
 	return bizerrors.ConvertRepositoryError(ctx, err)
-}
-
-func containsPrivateDBNotInitialized(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "private database not initialized")
 }
 
 // containsClusterNotConfigured checks if error indicates cluster is not configured.

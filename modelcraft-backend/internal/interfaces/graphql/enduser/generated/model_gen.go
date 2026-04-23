@@ -2,10 +2,6 @@
 
 package generated
 
-type DatabaseCatalogError interface {
-	IsDatabaseCatalogError()
-}
-
 type Error interface {
 	IsError()
 	GetMessage() string
@@ -15,31 +11,40 @@ type ModelCatalogError interface {
 	IsModelCatalogError()
 }
 
-type DatabaseCatalogInput struct {
-	Search   *string `json:"search,omitempty"`
-	Page     *int32  `json:"page,omitempty"`
-	PageSize *int32  `json:"pageSize,omitempty"`
+type ModelDatabaseCatalogError interface {
+	IsModelDatabaseCatalogError()
 }
 
-type DatabaseCatalogPayload struct {
-	Databases  []*DatabaseLite `json:"databases"`
-	TotalCount int32           `json:"totalCount"`
-	Page       int32           `json:"page"`
-	PageSize   int32           `json:"pageSize"`
+type RuntimeUserQueryError interface {
+	IsRuntimeUserQueryError()
 }
 
 type DatabaseLite struct {
 	Name string `json:"name"`
 }
 
-type GetDatabaseCatalogPayload struct {
-	Data  *DatabaseCatalogPayload `json:"data,omitempty"`
-	Error DatabaseCatalogError    `json:"error,omitempty"`
+type EndUserNotFound struct {
+	Message string `json:"message"`
 }
+
+func (EndUserNotFound) IsError()                {}
+func (this EndUserNotFound) GetMessage() string { return this.Message }
+
+func (EndUserNotFound) IsRuntimeUserQueryError() {}
 
 type GetModelCatalogPayload struct {
 	Data  *ModelCatalogPayload `json:"data,omitempty"`
 	Error ModelCatalogError    `json:"error,omitempty"`
+}
+
+type GetModelDatabaseCatalogPayload struct {
+	Data  *ModelDatabaseCatalogPayload `json:"data,omitempty"`
+	Error ModelDatabaseCatalogError    `json:"error,omitempty"`
+}
+
+type GetRuntimeUserPayload struct {
+	Data  *RuntimeUser          `json:"data,omitempty"`
+	Error RuntimeUserQueryError `json:"error,omitempty"`
 }
 
 type InvalidInput struct {
@@ -49,9 +54,22 @@ type InvalidInput struct {
 func (InvalidInput) IsError()                {}
 func (this InvalidInput) GetMessage() string { return this.Message }
 
-func (InvalidInput) IsDatabaseCatalogError() {}
+func (InvalidInput) IsModelDatabaseCatalogError() {}
 
 func (InvalidInput) IsModelCatalogError() {}
+
+func (InvalidInput) IsRuntimeUserQueryError() {}
+
+type ListRuntimeUsersInput struct {
+	Search *string `json:"search,omitempty"`
+	First  *int32  `json:"first,omitempty"`
+	After  *string `json:"after,omitempty"`
+}
+
+type ListRuntimeUsersPayload struct {
+	Data  *RuntimeUserConnection `json:"data,omitempty"`
+	Error RuntimeUserQueryError  `json:"error,omitempty"`
+}
 
 type ModelCatalogInput struct {
 	DatabaseName string  `json:"databaseName"`
@@ -65,6 +83,19 @@ type ModelCatalogPayload struct {
 	TotalCount int32        `json:"totalCount"`
 	Page       int32        `json:"page"`
 	PageSize   int32        `json:"pageSize"`
+}
+
+type ModelDatabaseCatalogInput struct {
+	Search   *string `json:"search,omitempty"`
+	Page     *int32  `json:"page,omitempty"`
+	PageSize *int32  `json:"pageSize,omitempty"`
+}
+
+type ModelDatabaseCatalogPayload struct {
+	Databases  []*DatabaseLite `json:"databases"`
+	TotalCount int32           `json:"totalCount"`
+	Page       int32           `json:"page"`
+	PageSize   int32           `json:"pageSize"`
 }
 
 type ModelLite struct {
@@ -81,11 +112,29 @@ type ProjectNotFound struct {
 func (ProjectNotFound) IsError()                {}
 func (this ProjectNotFound) GetMessage() string { return this.Message }
 
-func (ProjectNotFound) IsDatabaseCatalogError() {}
+func (ProjectNotFound) IsModelDatabaseCatalogError() {}
 
 func (ProjectNotFound) IsModelCatalogError() {}
 
+func (ProjectNotFound) IsRuntimeUserQueryError() {}
+
 type Query struct {
+}
+
+type RuntimeUser struct {
+	ID          string  `json:"id"`
+	Username    string  `json:"username"`
+	IsForbidden bool    `json:"isForbidden"`
+	CreatedBy   *string `json:"createdBy,omitempty"`
+	CreatedAt   string  `json:"createdAt"`
+	UpdatedAt   string  `json:"updatedAt"`
+}
+
+type RuntimeUserConnection struct {
+	Items       []*RuntimeUser `json:"items"`
+	TotalCount  int32          `json:"totalCount"`
+	HasNextPage bool           `json:"hasNextPage"`
+	EndCursor   *string        `json:"endCursor,omitempty"`
 }
 
 type Unauthorized struct {
@@ -95,6 +144,8 @@ type Unauthorized struct {
 func (Unauthorized) IsError()                {}
 func (this Unauthorized) GetMessage() string { return this.Message }
 
-func (Unauthorized) IsDatabaseCatalogError() {}
+func (Unauthorized) IsModelDatabaseCatalogError() {}
 
 func (Unauthorized) IsModelCatalogError() {}
+
+func (Unauthorized) IsRuntimeUserQueryError() {}

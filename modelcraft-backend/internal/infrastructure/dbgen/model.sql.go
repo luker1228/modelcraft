@@ -83,8 +83,8 @@ func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64
 }
 
 const createModel = `-- name: CreateModel :exec
-INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO models (id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_via, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateModelParams struct {
@@ -103,6 +103,7 @@ type CreateModelParams struct {
 	DeploymentStatus sql.NullString
 	LastSyncAt       sql.NullTime
 	SyncError        sql.NullString
+	CreatedVia       ModelsCreatedVia
 }
 
 func (q *Queries) CreateModel(ctx context.Context, arg CreateModelParams) error {
@@ -122,6 +123,7 @@ func (q *Queries) CreateModel(ctx context.Context, arg CreateModelParams) error 
 		arg.DeploymentStatus,
 		arg.LastSyncAt,
 		arg.SyncError,
+		arg.CreatedVia,
 	)
 	return err
 }

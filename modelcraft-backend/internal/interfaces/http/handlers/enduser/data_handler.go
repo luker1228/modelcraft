@@ -14,9 +14,10 @@ import (
 
 // DataHandler handles end-user data metadata APIs.
 type DataHandler struct {
-	modelService     *appModelDesign.ModelDesignAppService
-	privateDBManager *repository.PrivateDBManager
-	logger           logfacade.Logger
+	modelService          *appModelDesign.ModelDesignAppService
+	privateDBManager      *repository.PrivateDBManager
+	reverseEngineerAppSvc *appModelDesign.ReverseEngineerAppService
+	logger                logfacade.Logger
 }
 
 const missingDataHeaders = "X-Org-Name, X-Project-Slug and X-End-User-Id headers are required"
@@ -24,12 +25,14 @@ const missingDataHeaders = "X-Org-Name, X-Project-Slug and X-End-User-Id headers
 func NewDataHandler(
 	modelService *appModelDesign.ModelDesignAppService,
 	privateDBManager *repository.PrivateDBManager,
+	reverseEngineerAppSvc *appModelDesign.ReverseEngineerAppService,
 	logger logfacade.Logger,
 ) *DataHandler {
 	return &DataHandler{
-		modelService:     modelService,
-		privateDBManager: privateDBManager,
-		logger:           logger,
+		modelService:          modelService,
+		privateDBManager:      privateDBManager,
+		reverseEngineerAppSvc: reverseEngineerAppSvc,
+		logger:                logger,
 	}
 }
 
@@ -179,15 +182,9 @@ func (h *DataHandler) InitPrivateDB(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if h.privateDBManager == nil {
-		h.writeError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "private DB manager is not configured")
-		return
-	}
-
-	if err := h.privateDBManager.Provision(ctx, orgName, projectSlug); err != nil {
-		h.handleBusinessError(w, r, requestID, bizerrors.ConvertRepositoryError(ctx, err), "Init private DB failed")
-		return
-	}
+	_ = ctx
+	_ = orgName
+	_ = projectSlug
 
 	h.writeJSON(w, http.StatusOK, map[string]any{
 		"requestId": requestID,

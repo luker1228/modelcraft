@@ -13,7 +13,8 @@ import (
 // SqlEndUserSessionRepository is the MySQL implementation of enduser.EndUserSessionRepository.
 //
 // Note:
-// - It operates in private_{projectSlug} database.
+// - It operates on end_user_accounts in mc_meta.
+// - Tenant isolation is enforced by (org_name, project_slug).
 // - not found -> (nil, nil)
 // - update by id checks RowsAffected.
 type endUserSessionDBTX interface {
@@ -22,23 +23,36 @@ type endUserSessionDBTX interface {
 }
 
 type SqlEndUserSessionRepository struct {
-	db endUserSessionDBTX
+	db          endUserSessionDBTX
+	orgName     string
+	projectSlug string
 }
 
 // NewSqlEndUserSessionRepository creates a SqlEndUserSessionRepository.
-func NewSqlEndUserSessionRepository(db endUserSessionDBTX) enduser.EndUserSessionRepository {
-	return &SqlEndUserSessionRepository{db: db}
+func NewSqlEndUserSessionRepository(
+	db endUserSessionDBTX,
+	orgName, projectSlug string,
+) enduser.EndUserSessionRepository {
+	return &SqlEndUserSessionRepository{
+		db:          db,
+		orgName:     orgName,
+		projectSlug: projectSlug,
+	}
 }
 
 // Save creates a new session record.
 func (r *SqlEndUserSessionRepository) Save(ctx context.Context, session *enduser.EndUserSession) error {
 	const query = `
-		INSERT INTO accounts (id, user_id, refresh_token_hash, expires_at, revoked, created_at)
-		VALUES (?, ?, ?, ?, 0, NOW())
+		INSERT INTO end_user_accounts (
+			id, org_name, project_slug, user_id, refresh_token_hash, expires_at, revoked, created_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
 		session.ID,
+		r.orgName,
+		r.projectSlug,
 		session.UserID,
 		session.RefreshTokenHash,
 		session.ExpiresAt,
@@ -58,11 +72,11 @@ func (r *SqlEndUserSessionRepository) GetByTokenHash(
 ) (*enduser.EndUserSession, error) {
 	const query = `
 		SELECT id, user_id, refresh_token_hash, expires_at, revoked, created_at
-		FROM accounts
-		WHERE refresh_token_hash = ?
+		FROM end_user_accounts
+		WHERE refresh_token_hash = ? AND org_name = ? AND project_slug = ?
 	`
 
-	row := r.db.QueryRowContext(ctx, query, tokenHash)
+	row := r.db.QueryRowContext(ctx, query, tokenHash, r.orgName, r.projectSlug)
 
 	var (
 		sessionID        string
@@ -101,9 +115,13 @@ func (r *SqlEndUserSessionRepository) GetByTokenHash(
 // RevokeByID marks a session as revoked.
 // Returns NO_ROWS_AFFECTED when session does not exist.
 func (r *SqlEndUserSessionRepository) RevokeByID(ctx context.Context, id string) error {
-	const query = `UPDATE accounts SET revoked = 1 WHERE id = ?`
+	const query = `
+		UPDATE end_user_accounts
+		SET revoked = 1
+		WHERE id = ? AND org_name = ? AND project_slug = ?
+	`
 
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.db.ExecContext(ctx, query, id, r.orgName, r.projectSlug)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -121,9 +139,13 @@ func (r *SqlEndUserSessionRepository) RevokeByID(ctx context.Context, id string)
 
 // RevokeAllByUserID marks all sessions for the user as revoked.
 func (r *SqlEndUserSessionRepository) RevokeAllByUserID(ctx context.Context, userID string) error {
-	const query = `UPDATE accounts SET revoked = 1 WHERE user_id = ?`
+	const query = `
+		UPDATE end_user_accounts
+		SET revoked = 1
+		WHERE user_id = ? AND org_name = ? AND project_slug = ?
+	`
 
-	_, err := r.db.ExecContext(ctx, query, userID)
+	_, err := r.db.ExecContext(ctx, query, userID, r.orgName, r.projectSlug)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}

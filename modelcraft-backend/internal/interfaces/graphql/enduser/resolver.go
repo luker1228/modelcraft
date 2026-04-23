@@ -1,6 +1,7 @@
 package endusergraphql
 
 import (
+	"modelcraft/internal/app/enduser"
 	"modelcraft/internal/app/modeldesign"
 )
 
@@ -9,4 +10,6 @@ import (
 type Resolver struct {
 	// Model design service for catalog queries
 	ModelDesignService *modeldesign.ModelDesignAppService
+	// End-user management service for standard user queries.
+	EndUserMgmtService *enduser.EndUserManagementAppService
 }

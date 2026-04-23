@@ -48,6 +48,7 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 			LastSyncAt:       sqlerr.NullTimeToPtr(row.LastSyncAt),
 			SyncError:        row.SyncError.String,
 			CreatedAt:        createdAt,
+			CreatedVia:       modeldesign.ModelCreationSource(row.CreatedVia),
 			UpdatedAt:        updatedAt,
 		},
 	}
@@ -55,6 +56,11 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 
 // ModelToCreateParams converts a domain DataModel to dbgen.CreateModelParams.
 func ModelToCreateParams(m *modeldesign.DataModel, orgName string) dbgen.CreateModelParams {
+	createdVia := m.CreatedVia
+	if createdVia == "" {
+		createdVia = modeldesign.ModelCreationSourceNew
+	}
+
 	return dbgen.CreateModelParams{
 		ID:               m.ID,
 		OrgName:          orgName,
@@ -68,6 +74,7 @@ func ModelToCreateParams(m *modeldesign.DataModel, orgName string) dbgen.CreateM
 		Version:          sql.NullInt64{Int64: m.Version, Valid: m.Version != 0},
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
 		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
+		CreatedVia:       dbgen.ModelsCreatedVia(createdVia),
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
 		LastSyncAt:       sqlerr.PtrToNullTime(m.LastSyncAt),
 		SyncError:        sql.NullString{String: m.SyncError, Valid: m.SyncError != ""},

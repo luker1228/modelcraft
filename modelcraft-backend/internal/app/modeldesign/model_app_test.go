@@ -617,10 +617,10 @@ func TestModelDesignAppService_GetModelByID(t *testing.T) {
 		ownerFKID := "fk-owner-1"
 		ownerType := modeldesign.GetFieldTypeByFormat(modeldesign.FormatEndUserRef)
 		ownerField := &modeldesign.FieldDefinition{
-			ModelID:      "model-1",
-			Name:         "owner",
-			Title:        "Owner",
-			Type:         ownerType,
+			ModelID:       "model-1",
+			Name:          "owner",
+			Title:         "Owner",
+			Type:          ownerType,
 			BelongsToFKID: &ownerFKID,
 		}
 
@@ -636,9 +636,9 @@ func TestModelDesignAppService_GetModelByID(t *testing.T) {
 			ModelID:         "model-1",
 			ModelName:       "orders",
 			RefModelID:      "",
-			RefModelName:    "users",
-			RefDatabaseName: "mc_private_project-1",
-			RefTableName:    "users",
+			RefModelName:    "end_user_users",
+			RefDatabaseName: "mc_meta",
+			RefTableName:    "end_user_users",
 			SourceFields:    []string{"owner"},
 			TargetFields:    []string{"id"},
 			IsDeletable:     false,
@@ -656,8 +656,8 @@ func TestModelDesignAppService_GetModelByID(t *testing.T) {
 		require.True(t, ok)
 		relation, ok := relationRaw.(map[string]string)
 		require.True(t, ok)
-		assert.Equal(t, "mc_private_project-1", relation["databaseName"])
-		assert.Equal(t, "users", relation["modelName"])
+		assert.Equal(t, "mc_meta", relation["databaseName"])
+		assert.Equal(t, "end_user_users", relation["modelName"])
 		assert.Equal(t, "normal", relation["direction"])
 		assert.Equal(t, "many-to-one", relation["cardinality"])
 
@@ -1135,7 +1135,7 @@ func TestModelDesignAppService_DeleteModelSync_ProtectedSystemModelDenied(t *tes
 	mockDeployRepo := new(MockDeployRepo)
 	service := newTestService(mockModelRepo, mockDeployRepo, nil)
 
-	protectedModel := newTestModel("model-protected", "project-1", "users", "mc_private_project-1")
+	protectedModel := newTestModel("model-protected", "project-1", "end_user_users", "mc_meta")
 	protectedModel.CreatedVia = modeldesign.ModelCreationSourceImported
 
 	mockModelRepo.On("GetByID", ctx, "model-protected", mock.Anything).Return(protectedModel, nil)
@@ -1163,7 +1163,7 @@ func TestModelDesignAppService_AddFieldSync_ProtectedSystemModelDenied(t *testin
 		DeployRepo: mockDeployRepo,
 	})
 
-	protectedModel := newTestModel("model-protected", "project-1", "accounts", "mc_private_project-1")
+	protectedModel := newTestModel("model-protected", "project-1", "end_user_accounts", "mc_meta")
 	protectedModel.CreatedVia = modeldesign.ModelCreationSourceImported
 
 	locator := protectedModel.GetModelLocator()
@@ -1195,7 +1195,7 @@ func TestModelDesignAppService_RemoveFieldSync_ProtectedSystemModelDenied(t *tes
 		ModelRepo: mockModelRepo,
 	})
 
-	protectedModel := newTestModel("model-protected", "project-1", "users", "mc_private_project-1")
+	protectedModel := newTestModel("model-protected", "project-1", "end_user_users", "mc_meta")
 	protectedModel.CreatedVia = modeldesign.ModelCreationSourceImported
 
 	mockModelRepo.On("GetByID", ctx, "model-protected", mock.Anything).Return(protectedModel, nil)

@@ -3,7 +3,7 @@ package enduser
 import "time"
 
 // EndUserSession represents a refresh token session for an end-user.
-// Stored in the accounts table of private_{projectSlug} database.
+// Stored in mc_meta.end_user_accounts with tenant scope (org_name, project_slug).
 type EndUserSession struct {
 	ID               string    // UUID, primary key
 	UserID           string    // FK to users.id

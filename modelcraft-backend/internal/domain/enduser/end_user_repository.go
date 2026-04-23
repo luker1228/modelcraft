@@ -3,7 +3,7 @@ package enduser
 import "context"
 
 // EndUserRepository defines persistence operations for end-users.
-// Operations target the private_{projectSlug} database (already tenant-isolated by database name).
+// Operations target mc_meta.end_user_users and are tenant-scoped by org/project.
 type EndUserRepository interface {
 	// Save creates a new end-user (INSERT, unique conflict returns shared.ErrTypeDuplicatedKey).
 	Save(ctx context.Context, user *EndUser) error

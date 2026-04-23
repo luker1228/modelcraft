@@ -6,7 +6,7 @@ import (
 )
 
 // EndUser represents an end-user entity (aggregate root).
-// EndUser exists within a project's private database (private_{projectSlug}).
+// EndUser is stored in mc_meta.end_user_users with tenant scope (org_name, project_slug).
 type EndUser struct {
 	ID          string         // UUID, primary key
 	Username    string         // 3-64 chars, ^[a-zA-Z0-9_-]+$, unique within project

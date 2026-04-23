@@ -160,12 +160,6 @@ func (s *ModelDesignAppService) transactionDeployModel(
 			}); err != nil {
 				return fmt.Errorf("failed to upsert default rls policy: %w", err)
 			}
-
-			txFKRepo := repository.NewSqlLogicalForeignKeyRepository(q)
-			fkSvc := NewLogicalFKAppService(txFKRepo, modelRepository, s.txManager)
-			if err := fkSvc.CreateSystemEndUserRefFK(ctx, orgName, createdModel); err != nil {
-				return fmt.Errorf("failed to create owner logical FK: %w", err)
-			}
 		}
 
 		return s.deployRepo.DeployModelToCreate(ctx, createdModel)

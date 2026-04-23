@@ -144,11 +144,14 @@ func (m *DataModel) IsProtectedSystemModel() bool {
 		return false
 	}
 
-	if !strings.HasPrefix(m.DatabaseName, "mc_private_") {
+	if m.DatabaseName != "mc_meta" {
+		return false
+	}
+	if m.CreatedVia != ModelCreationSourceImported {
 		return false
 	}
 
-	return m.ModelName == "users" || m.ModelName == "accounts"
+	return m.ModelName == "end_user_users" || m.ModelName == "end_user_accounts"
 }
 
 // GetModelLocator 获取模型定位器

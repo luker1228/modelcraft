@@ -12,7 +12,7 @@ type ModelLite {
   databaseName: String!
 }
 
-input DatabaseCatalogInput {
+input ModelDatabaseCatalogInput {
   search: String
   page: Int = 1
   pageSize: Int = 20
@@ -25,7 +25,7 @@ input ModelCatalogInput {
   pageSize: Int = 50
 }
 
-type DatabaseCatalogPayload {
+type ModelDatabaseCatalogPayload {
   databases: [DatabaseLite!]!
   totalCount: Int!
   page: Int!
@@ -39,12 +39,12 @@ type ModelCatalogPayload {
   pageSize: Int!
 }
 
-union DatabaseCatalogError = InvalidInput | Unauthorized | ProjectNotFound
+union ModelDatabaseCatalogError = InvalidInput | Unauthorized | ProjectNotFound
 union ModelCatalogError = InvalidInput | Unauthorized | ProjectNotFound
 
-type GetDatabaseCatalogPayload {
-  data: DatabaseCatalogPayload
-  error: DatabaseCatalogError
+type GetModelDatabaseCatalogPayload {
+  data: ModelDatabaseCatalogPayload
+  error: ModelDatabaseCatalogError
 }
 
 type GetModelCatalogPayload {
@@ -53,6 +53,6 @@ type GetModelCatalogPayload {
 }
 
 extend type Query {
-  databaseCatalog(input: DatabaseCatalogInput): GetDatabaseCatalogPayload!
+  modelDatabaseCatalog(input: ModelDatabaseCatalogInput): GetModelDatabaseCatalogPayload!
   modelCatalog(input: ModelCatalogInput!): GetModelCatalogPayload!
 }

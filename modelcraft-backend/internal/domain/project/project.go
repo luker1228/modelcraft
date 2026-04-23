@@ -16,9 +16,7 @@ const (
 
 const (
 	projectSlugMinLen = 3
-	// Keep mc_private_{slug} within MySQL database name length (64).
-	// len("mc_private_") = 11, so slug max is 53.
-	projectSlugMaxLen = 53
+	projectSlugMaxLen = 64
 )
 
 // Project represents a project entity in the domain
@@ -37,7 +35,7 @@ type Project struct {
 var projectSlugPattern = regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 
 // isValidProjectSlug validates that a project slug follows the required format:
-// - 3-53 characters
+// - 3-64 characters
 // - lowercase letters, digits, and underscores only (no hyphens or special characters)
 // - MUST start with a letter
 func isValidProjectSlug(name string) bool {
@@ -57,7 +55,7 @@ func (p *Project) Validate() error {
 	}
 	if !isValidProjectSlug(p.Slug) {
 		return fmt.Errorf(
-			"project slug MUST be 3-53 characters, lowercase letters/digits/underscores only, " +
+			"project slug MUST be 3-64 characters, lowercase letters/digits/underscores only, " +
 				"and start with a letter",
 		)
 	}

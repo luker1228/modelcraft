@@ -50,8 +50,8 @@ export const LIST_DATABASES = gql`
 `
 
 export const DATABASE_CATALOG = gql`
-  query DatabaseCatalog($input: DatabaseCatalogInput) {
-    databaseCatalog(input: $input) {
+  query ModelDatabaseCatalog($input: ModelDatabaseCatalogInput) {
+    modelDatabaseCatalog(input: $input) {
       data {
         databases {
           name

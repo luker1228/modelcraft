@@ -34,9 +34,9 @@ func TestCreateSystemEndUserRefFK_CreatesUndeletableUnidirectionalFK(t *testing.
 
 	fkRepo.On("Save", ctx, mock.MatchedBy(func(lf *modeldesign.LogicalForeignKey) bool {
 		return lf.Direction == modeldesign.DirectionNormal &&
-			lf.RefModelName == "users" &&
-			lf.RefTableName == "users" &&
-			lf.RefDatabaseName == "mc_private_myproject" &&
+			lf.RefModelName == "end_user_users" &&
+			lf.RefTableName == "end_user_users" &&
+			lf.RefDatabaseName == "mc_meta" &&
 			!lf.IsDeletable
 	})).Return(nil)
 	fkRepo.On("BindBelongsToFields", ctx, "org1", "m1", mock.AnythingOfType("string"), []string{"owner"}).Return(nil)
@@ -60,8 +60,8 @@ func TestDeleteLogicalForeignKey_RejectsUndeletable(t *testing.T) {
 		Direction:    modeldesign.DirectionNormal,
 		ModelID:      "m1",
 		ModelName:    "orders",
-		RefModelName: "users",
-		RefTableName: "users",
+		RefModelName: "end_user_users",
+		RefTableName: "end_user_users",
 		SourceFields: []string{"owner"},
 		TargetFields: []string{"id"},
 		IsDeletable:  false,

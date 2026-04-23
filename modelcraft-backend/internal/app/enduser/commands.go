@@ -130,3 +130,10 @@ type EndUserDTO struct {
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
+
+// GetEndUserCommand represents a request to get a single end-user.
+type GetEndUserCommand struct {
+	OrgName     string
+	ProjectSlug string
+	UserID      string
+}

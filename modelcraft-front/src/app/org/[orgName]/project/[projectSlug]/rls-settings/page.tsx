@@ -120,8 +120,8 @@ interface ModelsForRelationData {
   }
 }
 
-interface DatabaseCatalogData {
-  databaseCatalog: {
+interface ModelDatabaseCatalogData {
+  modelDatabaseCatalog: {
     data: {
       databases: Array<{
         name: string
@@ -172,7 +172,7 @@ export default function RLSSettingsPage() {
   const [selectedDatabase, setSelectedDatabase] = React.useState(initialDatabaseName)
   const [selectedModelId, setSelectedModelId] = React.useState(queryModelId)
 
-  const { data: databaseData, loading: databasesLoading } = useQuery<DatabaseCatalogData>(
+  const { data: databaseData, loading: databasesLoading } = useQuery<ModelDatabaseCatalogData>(
     DATABASE_CATALOG,
     {
       variables: {
@@ -187,7 +187,7 @@ export default function RLSSettingsPage() {
   )
 
   const databaseOptions = React.useMemo(() => {
-    const options = (databaseData?.databaseCatalog?.data?.databases ?? [])
+    const options = (databaseData?.modelDatabaseCatalog?.data?.databases ?? [])
       .map((item) => item.name)
       .filter((name) => name.trim() !== '')
 

@@ -138,6 +138,7 @@ func TestModelToCreateParams(t *testing.T) {
 		assert.Equal(t, lastSync, p.LastSyncAt.Time)
 		assert.True(t, p.SyncError.Valid)
 		assert.Equal(t, "some error", p.SyncError.String)
+		assert.Equal(t, dbgen.ModelsCreatedViaNEW, p.CreatedVia)
 	})
 
 	t.Run("minimal model, nullable fields empty", func(t *testing.T) {
@@ -163,6 +164,26 @@ func TestModelToCreateParams(t *testing.T) {
 		assert.False(t, p.DeploymentStatus.Valid)
 		assert.False(t, p.LastSyncAt.Valid)
 		assert.False(t, p.SyncError.Valid)
+		assert.Equal(t, dbgen.ModelsCreatedViaNEW, p.CreatedVia)
+	})
+
+	t.Run("imported model persists created_via imported", func(t *testing.T) {
+		m := &modeldesign.DataModel{
+			ModelMeta: modeldesign.ModelMeta{
+				ID: "mid3",
+				ModelLocator: modeldesign.ModelLocator{
+					ProjectScope: project.ProjectScope{OrgName: "org", ProjectSlug: "proj"},
+					ModelName:    "accounts",
+					DatabaseName: "db",
+				},
+				Title:       "Accounts",
+				StorageType: "table",
+				CreatedVia:  modeldesign.ModelCreationSourceImported,
+			},
+		}
+
+		p := repository.ModelToCreateParams(m, "org")
+		assert.Equal(t, dbgen.ModelsCreatedViaIMPORTED, p.CreatedVia)
 	})
 }
 

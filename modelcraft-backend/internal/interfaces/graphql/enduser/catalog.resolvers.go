@@ -11,8 +11,8 @@ import (
 	"modelcraft/pkg/ctxutils"
 )
 
-// DatabaseCatalog implements the databaseCatalog query.
-func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.DatabaseCatalogInput) (*generated.GetDatabaseCatalogPayload, error) {
+// ModelDatabaseCatalog implements the modelDatabaseCatalog query.
+func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generated.ModelDatabaseCatalogInput) (*generated.GetModelDatabaseCatalogPayload, error) {
 	requestID := ctxutils.GetRequestID(ctx)
 
 	// Extract context from context (set by middleware)
@@ -20,7 +20,7 @@ func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.Da
 	projectSlug, _ := ctxutils.GetProjectSlugFromContext(ctx)
 
 	if orgName == "" || projectSlug == "" {
-		return &generated.GetDatabaseCatalogPayload{
+		return &generated.GetModelDatabaseCatalogPayload{
 			Error: generated.InvalidInput{
 				Message: "Organization and project context required",
 			},
@@ -56,7 +56,7 @@ func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.Da
 		},
 	)
 	if err != nil {
-		return r.mapDatabaseCatalogError(ctx, requestID, err), nil
+		return r.mapModelDatabaseCatalogError(ctx, requestID, err), nil
 	}
 
 	// Convert to GraphQL types
@@ -69,8 +69,8 @@ func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.Da
 	pageSize32 := int32(pageSize)
 	totalCount32 := int32(totalCount)
 
-	return &generated.GetDatabaseCatalogPayload{
-		Data: &generated.DatabaseCatalogPayload{
+	return &generated.GetModelDatabaseCatalogPayload{
+		Data: &generated.ModelDatabaseCatalogPayload{
 			Databases:  items,
 			TotalCount: totalCount32,
 			Page:       page32,

@@ -13,7 +13,8 @@ import (
 // SqlEndUserRepository is the MySQL implementation of enduser.EndUserRepository.
 //
 // Note:
-// - It operates in private_{projectSlug} database, isolated by DB name.
+// - It operates on end_user_users in mc_meta.
+// - Tenant isolation is enforced by (org_name, project_slug).
 // - Query/Save methods follow plan contract:
 //   - not found -> (nil, nil)
 //   - update/delete must check RowsAffected.
@@ -24,29 +25,39 @@ type endUserDBTX interface {
 }
 
 type SqlEndUserRepository struct {
-	db endUserDBTX
+	db          endUserDBTX
+	orgName     string
+	projectSlug string
 }
 
 // NewSqlEndUserRepository creates a SqlEndUserRepository.
-func NewSqlEndUserRepository(db endUserDBTX) enduser.EndUserRepository {
-	return &SqlEndUserRepository{db: db}
+func NewSqlEndUserRepository(db endUserDBTX, orgName, projectSlug string) enduser.EndUserRepository {
+	return &SqlEndUserRepository{
+		db:          db,
+		orgName:     orgName,
+		projectSlug: projectSlug,
+	}
 }
 
 // Save creates a new end-user.
 func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) error {
 	const query = `
-		INSERT INTO users (id, username, password, is_forbidden, created_by, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, NOW(), NOW())
+		INSERT INTO end_user_users (
+			id, org_name, project_slug, username, password, is_forbidden, created_by, created_at, updated_at
+		)
+		VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
 	`
 
 	_, err := r.db.ExecContext(
 		ctx,
 		query,
 		user.ID,
+		r.orgName,
+		r.projectSlug,
 		user.Username,
 		user.Password.Hash,
 		boolToTinyInt(user.IsForbidden),
-		user.CreatedBy,
+		nullableCreatedBy(user.CreatedBy),
 	)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
@@ -60,11 +71,11 @@ func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) 
 func (r *SqlEndUserRepository) GetByID(ctx context.Context, id string) (*enduser.EndUser, error) {
 	const query = `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
-		FROM users
-		WHERE id = ?
+		FROM end_user_users
+		WHERE id = ? AND org_name = ? AND project_slug = ?
 	`
 
-	row := r.db.QueryRowContext(ctx, query, id)
+	row := r.db.QueryRowContext(ctx, query, id, r.orgName, r.projectSlug)
 	return scanEndUser(row)
 }
 
@@ -73,11 +84,11 @@ func (r *SqlEndUserRepository) GetByID(ctx context.Context, id string) (*enduser
 func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, username string) (*enduser.EndUser, error) {
 	const query = `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
-		FROM users
-		WHERE username = ?
+		FROM end_user_users
+		WHERE username = ? AND org_name = ? AND project_slug = ?
 	`
 
-	row := r.db.QueryRowContext(ctx, query, username)
+	row := r.db.QueryRowContext(ctx, query, username, r.orgName, r.projectSlug)
 	return scanEndUser(row)
 }
 
@@ -87,7 +98,7 @@ func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
 		username    string
 		password    string
 		isForbidden int
-		createdBy   string
+		createdBy   sql.NullString
 		createdAt   time.Time
 		updatedAt   time.Time
 	)
@@ -113,22 +124,29 @@ func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
 		Username:    username,
 		Password:    enduser.NewHashedPasswordFromHash(password),
 		IsForbidden: isForbidden == 1,
-		CreatedBy:   createdBy,
+		CreatedBy:   createdBy.String,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}, nil
+}
+
+func nullableCreatedBy(createdBy string) any {
+	if createdBy == "" {
+		return nil
+	}
+	return createdBy
 }
 
 // UpdateStatus updates user's is_forbidden field.
 // Returns NO_ROWS_AFFECTED when user does not exist.
 func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, id string, isForbidden bool) error {
 	const query = `
-		UPDATE users
+		UPDATE end_user_users
 		SET is_forbidden = ?, updated_at = NOW()
-		WHERE id = ?
+		WHERE id = ? AND org_name = ? AND project_slug = ?
 	`
 
-	result, err := r.db.ExecContext(ctx, query, boolToTinyInt(isForbidden), id)
+	result, err := r.db.ExecContext(ctx, query, boolToTinyInt(isForbidden), id, r.orgName, r.projectSlug)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -144,9 +162,9 @@ func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, id string, isFo
 // Delete physically deletes an end-user.
 // Returns NO_ROWS_AFFECTED when user does not exist.
 func (r *SqlEndUserRepository) Delete(ctx context.Context, id string) error {
-	const query = `DELETE FROM users WHERE id = ?`
+	const query = `DELETE FROM end_user_users WHERE id = ? AND org_name = ? AND project_slug = ?`
 
-	result, err := r.db.ExecContext(ctx, query, id)
+	result, err := r.db.ExecContext(ctx, query, id, r.orgName, r.projectSlug)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -173,10 +191,11 @@ func (r *SqlEndUserRepository) ListWithTotal(
 	}
 
 	// Total count (without cursor, with optional search)
-	countSQL := `SELECT COUNT(*) FROM users`
-	countArgs := make([]interface{}, 0, 1)
+	countSQL := `SELECT COUNT(*) FROM end_user_users WHERE org_name = ? AND project_slug = ?`
+	countArgs := make([]interface{}, 0, 3)
+	countArgs = append(countArgs, r.orgName, r.projectSlug)
 	if query.Search != "" {
-		countSQL += ` WHERE username LIKE CONCAT('%', ?, '%')`
+		countSQL += ` AND username LIKE CONCAT('%', ?, '%')`
 		countArgs = append(countArgs, query.Search)
 	}
 
@@ -188,14 +207,25 @@ func (r *SqlEndUserRepository) ListWithTotal(
 	// List with search + cursor
 	listSQL := `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
-		FROM users
-		WHERE (? = '' OR username LIKE CONCAT('%', ?, '%'))
+		FROM end_user_users
+		WHERE org_name = ? AND project_slug = ?
+		  AND (? = '' OR username LIKE CONCAT('%', ?, '%'))
 		  AND (? = '' OR id > ?)
 		ORDER BY id ASC
 		LIMIT ?
 	`
 
-	rows, err := r.db.QueryContext(ctx, listSQL, query.Search, query.Search, query.After, query.After, first)
+	rows, err := r.db.QueryContext(
+		ctx,
+		listSQL,
+		r.orgName,
+		r.projectSlug,
+		query.Search,
+		query.Search,
+		query.After,
+		query.After,
+		first,
+	)
 	if err != nil {
 		return nil, 0, sqlerr.WrapSQLError(err)
 	}
@@ -208,7 +238,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 			username    string
 			password    string
 			isForbidden int
-			createdBy   string
+			createdBy   sql.NullString
 			createdAt   time.Time
 			updatedAt   time.Time
 		)
@@ -230,7 +260,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 			Username:    username,
 			Password:    enduser.NewHashedPasswordFromHash(password),
 			IsForbidden: isForbidden == 1,
-			CreatedBy:   createdBy,
+			CreatedBy:   createdBy.String,
 			CreatedAt:   createdAt,
 			UpdatedAt:   updatedAt,
 		})

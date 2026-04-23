@@ -134,18 +134,18 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 	}, nil
 }
 
-// DatabaseCatalog is the resolver for the databaseCatalog field.
-func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.DatabaseCatalogInput) (*generated.GetDatabaseCatalogPayload, error) {
+// ModelDatabaseCatalog is the resolver for the modelDatabaseCatalog field.
+func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generated.ModelDatabaseCatalogInput) (*generated.GetModelDatabaseCatalogPayload, error) {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
-		return &generated.GetDatabaseCatalogPayload{
+		return &generated.GetModelDatabaseCatalogPayload{
 			Error: &generated.InvalidInput{Message: "organization context required"},
 		}, nil
 	}
 
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
-		return &generated.GetDatabaseCatalogPayload{
+		return &generated.GetModelDatabaseCatalogPayload{
 			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
 		}, nil
 	}
@@ -181,7 +181,7 @@ func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.Da
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProjectNotFound.GetCode():
-				return &generated.GetDatabaseCatalogPayload{
+				return &generated.GetModelDatabaseCatalogPayload{
 					Error: &generated.ProjectNotFound{Message: bizErr.Msg()},
 				}, nil
 			case bizerrors.ParamInvalid.GetCode():
@@ -190,9 +190,9 @@ func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.Da
 					detail := bizErr.Detail()
 					gqlErr.Suggestion = &detail
 				}
-				return &generated.GetDatabaseCatalogPayload{Error: gqlErr}, nil
+				return &generated.GetModelDatabaseCatalogPayload{Error: gqlErr}, nil
 			default:
-				return &generated.GetDatabaseCatalogPayload{
+				return &generated.GetModelDatabaseCatalogPayload{
 					Error: &generated.InvalidInput{Message: bizErr.Msg()},
 				}, nil
 			}
@@ -209,8 +209,8 @@ func (r *queryResolver) DatabaseCatalog(ctx context.Context, input *generated.Da
 	pageSize32 := int32(pageSize)
 	totalCount32 := int32(totalCount)
 
-	return &generated.GetDatabaseCatalogPayload{
-		Data: &generated.DatabaseCatalogPayload{
+	return &generated.GetModelDatabaseCatalogPayload{
+		Data: &generated.ModelDatabaseCatalogPayload{
 			Databases:  items,
 			TotalCount: totalCount32,
 			Page:       page32,

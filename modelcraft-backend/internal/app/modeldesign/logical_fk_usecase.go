@@ -142,7 +142,7 @@ func (s *LogicalFKAppService) CreateLogicalForeignKey(
 	return normalRow, nil
 }
 
-// CreateSystemEndUserRefFK creates owner(END_USER_REF) -> users.id unidirectional FK and marks it undeletable.
+// CreateSystemEndUserRefFK creates owner(END_USER_REF) -> mc_meta.end_user_users.id.
 func (s *LogicalFKAppService) CreateSystemEndUserRefFK(
 	ctx context.Context,
 	orgName string,
@@ -172,10 +172,10 @@ func (s *LogicalFKAppService) CreateSystemEndUserRefFK(
 		Direction:       modeldesign.DirectionNormal,
 		ModelID:         model.ID,
 		ModelName:       model.ModelName,
-		RefModelID:      "", // END_USER_REF points to private users table, not metadata model table
-		RefModelName:    "users",
-		RefDatabaseName: fmt.Sprintf("mc_private_%s", model.ProjectSlug),
-		RefTableName:    "users",
+		RefModelID:      "", // END_USER_REF points to system end-user model table.
+		RefModelName:    "end_user_users",
+		RefDatabaseName: "mc_meta",
+		RefTableName:    "end_user_users",
 		SourceFields:    []string{owner.Name},
 		TargetFields:    []string{"id"},
 		IsDeletable:     false,

@@ -132,13 +132,6 @@ type ComplexityRoot struct {
 		Name func(childComplexity int) int
 	}
 
-	DatabaseCatalogPayload struct {
-		Databases  func(childComplexity int) int
-		Page       func(childComplexity int) int
-		PageSize   func(childComplexity int) int
-		TotalCount func(childComplexity int) int
-	}
-
 	DatabaseCluster struct {
 		ConnectionInfo    func(childComplexity int) int
 		ConnectionTimeout func(childComplexity int) int
@@ -353,13 +346,13 @@ type ComplexityRoot struct {
 		Error   func(childComplexity int) int
 	}
 
-	GetDatabaseCatalogPayload struct {
-		Data  func(childComplexity int) int
+	GetEnumPayload struct {
+		Enum  func(childComplexity int) int
 		Error func(childComplexity int) int
 	}
 
-	GetEnumPayload struct {
-		Enum  func(childComplexity int) int
+	GetModelDatabaseCatalogPayload struct {
+		Data  func(childComplexity int) int
 		Error func(childComplexity int) int
 	}
 
@@ -459,6 +452,13 @@ type ComplexityRoot struct {
 	ModelConnection struct {
 		Edges      func(childComplexity int) int
 		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	ModelDatabaseCatalogPayload struct {
+		Databases  func(childComplexity int) int
+		Page       func(childComplexity int) int
+		PageSize   func(childComplexity int) int
 		TotalCount func(childComplexity int) int
 	}
 
@@ -563,26 +563,26 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		DatabaseCatalog    func(childComplexity int, input *DatabaseCatalogInput) int
-		DatabaseCluster    func(childComplexity int) int
-		Enum               func(childComplexity int, name string) int
-		EnumReferences     func(childComplexity int, name string) int
-		Enums              func(childComplexity int) int
-		Fields             func(childComplexity int, modelID string) int
-		Hello              func(childComplexity int) int
-		ListDatabases      func(childComplexity int, input ListDatabasesInput) int
-		ListEndUsers       func(childComplexity int, input *ListEndUsersInput) int
-		ListTables         func(childComplexity int, input ListTablesInput) int
-		LogicalForeignKeys func(childComplexity int, modelID string) int
-		Model              func(childComplexity int, id string, withActualSchema *bool) int
-		ModelByName        func(childComplexity int, name string, databaseName string) int
-		ModelGroups        func(childComplexity int) int
-		ModelJSONSchema    func(childComplexity int, id string) int
-		ModelRLSPolicy     func(childComplexity int, modelID string) int
-		Models             func(childComplexity int, input *ModelQueryInput) int
-		Node               func(childComplexity int, id string) int
-		Ping               func(childComplexity int) int
-		ProjectAuthSchema  func(childComplexity int) int
+		DatabaseCluster      func(childComplexity int) int
+		Enum                 func(childComplexity int, name string) int
+		EnumReferences       func(childComplexity int, name string) int
+		Enums                func(childComplexity int) int
+		Fields               func(childComplexity int, modelID string) int
+		Hello                func(childComplexity int) int
+		ListDatabases        func(childComplexity int, input ListDatabasesInput) int
+		ListEndUsers         func(childComplexity int, input *ListEndUsersInput) int
+		ListTables           func(childComplexity int, input ListTablesInput) int
+		LogicalForeignKeys   func(childComplexity int, modelID string) int
+		Model                func(childComplexity int, id string, withActualSchema *bool) int
+		ModelByName          func(childComplexity int, name string, databaseName string) int
+		ModelDatabaseCatalog func(childComplexity int, input *ModelDatabaseCatalogInput) int
+		ModelGroups          func(childComplexity int) int
+		ModelJSONSchema      func(childComplexity int, id string) int
+		ModelRLSPolicy       func(childComplexity int, modelID string) int
+		Models               func(childComplexity int, input *ModelQueryInput) int
+		Node                 func(childComplexity int, id string) int
+		Ping                 func(childComplexity int) int
+		ProjectAuthSchema    func(childComplexity int) int
 	}
 
 	RLSCheckViolation struct {
@@ -746,7 +746,7 @@ type QueryResolver interface {
 	Hello(ctx context.Context) (string, error)
 	Ping(ctx context.Context) (string, error)
 	Node(ctx context.Context, id string) (Node, error)
-	DatabaseCatalog(ctx context.Context, input *DatabaseCatalogInput) (*GetDatabaseCatalogPayload, error)
+	ModelDatabaseCatalog(ctx context.Context, input *ModelDatabaseCatalogInput) (*GetModelDatabaseCatalogPayload, error)
 	DatabaseCluster(ctx context.Context) (*GetClusterPayload, error)
 	ListDatabases(ctx context.Context, input ListDatabasesInput) (*DatabaseConnection, error)
 	ListTables(ctx context.Context, input ListTablesInput) (*TableListConnection, error)
@@ -1004,31 +1004,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Database.Name(childComplexity), true
-
-	case "DatabaseCatalogPayload.databases":
-		if e.complexity.DatabaseCatalogPayload.Databases == nil {
-			break
-		}
-
-		return e.complexity.DatabaseCatalogPayload.Databases(childComplexity), true
-	case "DatabaseCatalogPayload.page":
-		if e.complexity.DatabaseCatalogPayload.Page == nil {
-			break
-		}
-
-		return e.complexity.DatabaseCatalogPayload.Page(childComplexity), true
-	case "DatabaseCatalogPayload.pageSize":
-		if e.complexity.DatabaseCatalogPayload.PageSize == nil {
-			break
-		}
-
-		return e.complexity.DatabaseCatalogPayload.PageSize(childComplexity), true
-	case "DatabaseCatalogPayload.totalCount":
-		if e.complexity.DatabaseCatalogPayload.TotalCount == nil {
-			break
-		}
-
-		return e.complexity.DatabaseCatalogPayload.TotalCount(childComplexity), true
 
 	case "DatabaseCluster.connectionInfo":
 		if e.complexity.DatabaseCluster.ConnectionInfo == nil {
@@ -1736,19 +1711,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.GetClusterPayload.Error(childComplexity), true
 
-	case "GetDatabaseCatalogPayload.data":
-		if e.complexity.GetDatabaseCatalogPayload.Data == nil {
-			break
-		}
-
-		return e.complexity.GetDatabaseCatalogPayload.Data(childComplexity), true
-	case "GetDatabaseCatalogPayload.error":
-		if e.complexity.GetDatabaseCatalogPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.GetDatabaseCatalogPayload.Error(childComplexity), true
-
 	case "GetEnumPayload.enum":
 		if e.complexity.GetEnumPayload.Enum == nil {
 			break
@@ -1761,6 +1723,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.GetEnumPayload.Error(childComplexity), true
+
+	case "GetModelDatabaseCatalogPayload.data":
+		if e.complexity.GetModelDatabaseCatalogPayload.Data == nil {
+			break
+		}
+
+		return e.complexity.GetModelDatabaseCatalogPayload.Data(childComplexity), true
+	case "GetModelDatabaseCatalogPayload.error":
+		if e.complexity.GetModelDatabaseCatalogPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.GetModelDatabaseCatalogPayload.Error(childComplexity), true
 
 	case "GetModelPayload.error":
 		if e.complexity.GetModelPayload.Error == nil {
@@ -2100,6 +2075,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelConnection.TotalCount(childComplexity), true
+
+	case "ModelDatabaseCatalogPayload.databases":
+		if e.complexity.ModelDatabaseCatalogPayload.Databases == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseCatalogPayload.Databases(childComplexity), true
+	case "ModelDatabaseCatalogPayload.page":
+		if e.complexity.ModelDatabaseCatalogPayload.Page == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseCatalogPayload.Page(childComplexity), true
+	case "ModelDatabaseCatalogPayload.pageSize":
+		if e.complexity.ModelDatabaseCatalogPayload.PageSize == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseCatalogPayload.PageSize(childComplexity), true
+	case "ModelDatabaseCatalogPayload.totalCount":
+		if e.complexity.ModelDatabaseCatalogPayload.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseCatalogPayload.TotalCount(childComplexity), true
 
 	case "ModelEdge.cursor":
 		if e.complexity.ModelEdge.Cursor == nil {
@@ -2647,17 +2647,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ProjectNotFound.Message(childComplexity), true
 
-	case "Query.databaseCatalog":
-		if e.complexity.Query.DatabaseCatalog == nil {
-			break
-		}
-
-		args, err := ec.field_Query_databaseCatalog_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.DatabaseCatalog(childComplexity, args["input"].(*DatabaseCatalogInput)), true
 	case "Query.databaseCluster":
 		if e.complexity.Query.DatabaseCluster == nil {
 			break
@@ -2775,6 +2764,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ModelByName(childComplexity, args["name"].(string), args["databaseName"].(string)), true
+	case "Query.modelDatabaseCatalog":
+		if e.complexity.Query.ModelDatabaseCatalog == nil {
+			break
+		}
+
+		args, err := ec.field_Query_modelDatabaseCatalog_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ModelDatabaseCatalog(childComplexity, args["input"].(*ModelDatabaseCatalogInput)), true
 	case "Query.modelGroups":
 		if e.complexity.Query.ModelGroups == nil {
 			break
@@ -3230,7 +3230,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateLogicalForeignKeyInput,
 		ec.unmarshalInputCreateModelFromSchemaInput,
 		ec.unmarshalInputCreateModelInput,
-		ec.unmarshalInputDatabaseCatalogInput,
 		ec.unmarshalInputDatabaseConnectionInput,
 		ec.unmarshalInputDeleteEndUserInput,
 		ec.unmarshalInputEnumOptionInput,
@@ -3238,6 +3237,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListDatabasesInput,
 		ec.unmarshalInputListEndUsersInput,
 		ec.unmarshalInputListTablesInput,
+		ec.unmarshalInputModelDatabaseCatalogInput,
 		ec.unmarshalInputModelQueryInput,
 		ec.unmarshalInputMoveModelToGroupInput,
 		ec.unmarshalInputRenameGroupInput,
@@ -3474,18 +3474,18 @@ type DatabaseLite {
   name: String!
 }
 
-type DatabaseCatalogPayload {
+type ModelDatabaseCatalogPayload {
   databases: [DatabaseLite!]!
   totalCount: Int!
   page: Int!
   pageSize: Int!
 }
 
-union DatabaseCatalogError = InvalidInput | ProjectNotFound
+union ModelDatabaseCatalogError = InvalidInput | ProjectNotFound
 
-type GetDatabaseCatalogPayload {
-  data: DatabaseCatalogPayload
-  error: DatabaseCatalogError
+type GetModelDatabaseCatalogPayload {
+  data: ModelDatabaseCatalogPayload
+  error: ModelDatabaseCatalogError
 }
 
 # Table info type
@@ -3568,7 +3568,7 @@ input ListDatabasesInput {
   search: String # Search by database name
 }
 
-input DatabaseCatalogInput {
+input ModelDatabaseCatalogInput {
   search: String
   page: Int = 1
   pageSize: Int = 20
@@ -3602,7 +3602,7 @@ enum ProjectStatus {
 # ============================================
 
 extend type Query {
-  databaseCatalog(input: DatabaseCatalogInput): GetDatabaseCatalogPayload! @hasPermission(action: "project:read")
+  modelDatabaseCatalog(input: ModelDatabaseCatalogInput): GetModelDatabaseCatalogPayload! @hasPermission(action: "project:read")
   databaseCluster: GetClusterPayload! @hasPermission(action: "project:read")
   listDatabases(input: ListDatabasesInput!): DatabaseConnection! @hasPermission(action: "project:read")
   listTables(input: ListTablesInput!): TableListConnection! @hasPermission(action: "project:read")
@@ -5233,17 +5233,6 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_databaseCatalog_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalODatabaseCatalogInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCatalogInput)
-	if err != nil {
-		return nil, err
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
 func (ec *executionContext) field_Query_enumReferences_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -5334,6 +5323,17 @@ func (ec *executionContext) field_Query_modelByName_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["databaseName"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_modelDatabaseCatalog_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalOModelDatabaseCatalogInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseCatalogInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -6582,126 +6582,6 @@ func (ec *executionContext) fieldContext_Database_name(_ context.Context, field 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabaseCatalogPayload_databases(ctx context.Context, field graphql.CollectedField, obj *DatabaseCatalogPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DatabaseCatalogPayload_databases,
-		func(ctx context.Context) (any, error) {
-			return obj.Databases, nil
-		},
-		nil,
-		ec.marshalNDatabaseLite2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseLiteᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_DatabaseCatalogPayload_databases(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabaseCatalogPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "name":
-				return ec.fieldContext_DatabaseLite_name(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DatabaseLite", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabaseCatalogPayload_totalCount(ctx context.Context, field graphql.CollectedField, obj *DatabaseCatalogPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DatabaseCatalogPayload_totalCount,
-		func(ctx context.Context) (any, error) {
-			return obj.TotalCount, nil
-		},
-		nil,
-		ec.marshalNInt2int32,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_DatabaseCatalogPayload_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabaseCatalogPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabaseCatalogPayload_page(ctx context.Context, field graphql.CollectedField, obj *DatabaseCatalogPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DatabaseCatalogPayload_page,
-		func(ctx context.Context) (any, error) {
-			return obj.Page, nil
-		},
-		nil,
-		ec.marshalNInt2int32,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_DatabaseCatalogPayload_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabaseCatalogPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _DatabaseCatalogPayload_pageSize(ctx context.Context, field graphql.CollectedField, obj *DatabaseCatalogPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_DatabaseCatalogPayload_pageSize,
-		func(ctx context.Context) (any, error) {
-			return obj.PageSize, nil
-		},
-		nil,
-		ec.marshalNInt2int32,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_DatabaseCatalogPayload_pageSize(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "DatabaseCatalogPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -10113,74 +9993,6 @@ func (ec *executionContext) fieldContext_GetClusterPayload_error(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _GetDatabaseCatalogPayload_data(ctx context.Context, field graphql.CollectedField, obj *GetDatabaseCatalogPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_GetDatabaseCatalogPayload_data,
-		func(ctx context.Context) (any, error) {
-			return obj.Data, nil
-		},
-		nil,
-		ec.marshalODatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCatalogPayload,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_GetDatabaseCatalogPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "GetDatabaseCatalogPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "databases":
-				return ec.fieldContext_DatabaseCatalogPayload_databases(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_DatabaseCatalogPayload_totalCount(ctx, field)
-			case "page":
-				return ec.fieldContext_DatabaseCatalogPayload_page(ctx, field)
-			case "pageSize":
-				return ec.fieldContext_DatabaseCatalogPayload_pageSize(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type DatabaseCatalogPayload", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _GetDatabaseCatalogPayload_error(ctx context.Context, field graphql.CollectedField, obj *GetDatabaseCatalogPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_GetDatabaseCatalogPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalODatabaseCatalogError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCatalogError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_GetDatabaseCatalogPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "GetDatabaseCatalogPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type DatabaseCatalogError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _GetEnumPayload_enum(ctx context.Context, field graphql.CollectedField, obj *GetEnumPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10256,6 +10068,74 @@ func (ec *executionContext) fieldContext_GetEnumPayload_error(_ context.Context,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type GetEnumError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GetModelDatabaseCatalogPayload_data(ctx context.Context, field graphql.CollectedField, obj *GetModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GetModelDatabaseCatalogPayload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalOModelDatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseCatalogPayload,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GetModelDatabaseCatalogPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GetModelDatabaseCatalogPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "databases":
+				return ec.fieldContext_ModelDatabaseCatalogPayload_databases(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_ModelDatabaseCatalogPayload_totalCount(ctx, field)
+			case "page":
+				return ec.fieldContext_ModelDatabaseCatalogPayload_page(ctx, field)
+			case "pageSize":
+				return ec.fieldContext_ModelDatabaseCatalogPayload_pageSize(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabaseCatalogPayload", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GetModelDatabaseCatalogPayload_error(ctx context.Context, field graphql.CollectedField, obj *GetModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GetModelDatabaseCatalogPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOModelDatabaseCatalogError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseCatalogError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GetModelDatabaseCatalogPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GetModelDatabaseCatalogPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ModelDatabaseCatalogError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -11949,6 +11829,126 @@ func (ec *executionContext) _ModelConnection_totalCount(ctx context.Context, fie
 func (ec *executionContext) fieldContext_ModelConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ModelConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseCatalogPayload_databases(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseCatalogPayload_databases,
+		func(ctx context.Context) (any, error) {
+			return obj.Databases, nil
+		},
+		nil,
+		ec.marshalNDatabaseLite2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseLiteᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseCatalogPayload_databases(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseCatalogPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_DatabaseLite_name(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DatabaseLite", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseCatalogPayload_totalCount(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseCatalogPayload_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseCatalogPayload_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseCatalogPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseCatalogPayload_page(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseCatalogPayload_page,
+		func(ctx context.Context) (any, error) {
+			return obj.Page, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseCatalogPayload_page(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseCatalogPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseCatalogPayload_pageSize(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseCatalogPayload_pageSize,
+		func(ctx context.Context) (any, error) {
+			return obj.PageSize, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseCatalogPayload_pageSize(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseCatalogPayload",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -15164,15 +15164,15 @@ func (ec *executionContext) fieldContext_Query_node(ctx context.Context, field g
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_databaseCatalog(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_modelDatabaseCatalog(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_Query_databaseCatalog,
+		ec.fieldContext_Query_modelDatabaseCatalog,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().DatabaseCatalog(ctx, fc.Args["input"].(*DatabaseCatalogInput))
+			return ec.resolvers.Query().ModelDatabaseCatalog(ctx, fc.Args["input"].(*ModelDatabaseCatalogInput))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -15180,11 +15180,11 @@ func (ec *executionContext) _Query_databaseCatalog(ctx context.Context, field gr
 			directive1 := func(ctx context.Context) (any, error) {
 				action, err := ec.unmarshalNString2string(ctx, "project:read")
 				if err != nil {
-					var zeroVal *GetDatabaseCatalogPayload
+					var zeroVal *GetModelDatabaseCatalogPayload
 					return zeroVal, err
 				}
 				if ec.directives.HasPermission == nil {
-					var zeroVal *GetDatabaseCatalogPayload
+					var zeroVal *GetModelDatabaseCatalogPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
 				return ec.directives.HasPermission(ctx, nil, directive0, action)
@@ -15193,13 +15193,13 @@ func (ec *executionContext) _Query_databaseCatalog(ctx context.Context, field gr
 			next = directive1
 			return next
 		},
-		ec.marshalNGetDatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetDatabaseCatalogPayload,
+		ec.marshalNGetModelDatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetModelDatabaseCatalogPayload,
 		true,
 		true,
 	)
 }
 
-func (ec *executionContext) fieldContext_Query_databaseCatalog(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_Query_modelDatabaseCatalog(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -15208,11 +15208,11 @@ func (ec *executionContext) fieldContext_Query_databaseCatalog(ctx context.Conte
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "data":
-				return ec.fieldContext_GetDatabaseCatalogPayload_data(ctx, field)
+				return ec.fieldContext_GetModelDatabaseCatalogPayload_data(ctx, field)
 			case "error":
-				return ec.fieldContext_GetDatabaseCatalogPayload_error(ctx, field)
+				return ec.fieldContext_GetModelDatabaseCatalogPayload_error(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type GetDatabaseCatalogPayload", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type GetModelDatabaseCatalogPayload", field.Name)
 		},
 	}
 	defer func() {
@@ -15222,7 +15222,7 @@ func (ec *executionContext) fieldContext_Query_databaseCatalog(ctx context.Conte
 		}
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_databaseCatalog_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+	if fc.Args, err = ec.field_Query_modelDatabaseCatalog_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -20316,54 +20316,6 @@ func (ec *executionContext) unmarshalInputCreateModelInput(ctx context.Context, 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputDatabaseCatalogInput(ctx context.Context, obj any) (DatabaseCatalogInput, error) {
-	var it DatabaseCatalogInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	if _, present := asMap["page"]; !present {
-		asMap["page"] = 1
-	}
-	if _, present := asMap["pageSize"]; !present {
-		asMap["pageSize"] = 20
-	}
-
-	fieldsInOrder := [...]string{"search", "page", "pageSize"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "search":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Search = data
-		case "page":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
-			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Page = data
-		case "pageSize":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pageSize"))
-			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.PageSize = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputDatabaseConnectionInput(ctx context.Context, obj any) (DatabaseConnectionInput, error) {
 	var it DatabaseConnectionInput
 	asMap := map[string]any{}
@@ -20652,6 +20604,54 @@ func (ec *executionContext) unmarshalInputListTablesInput(ctx context.Context, o
 				return it, err
 			}
 			it.Offset = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputModelDatabaseCatalogInput(ctx context.Context, obj any) (ModelDatabaseCatalogInput, error) {
+	var it ModelDatabaseCatalogInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	if _, present := asMap["page"]; !present {
+		asMap["page"] = 1
+	}
+	if _, present := asMap["pageSize"]; !present {
+		asMap["pageSize"] = 20
+	}
+
+	fieldsInOrder := [...]string{"search", "page", "pageSize"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "search":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Search = data
+		case "page":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("page"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Page = data
+		case "pageSize":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pageSize"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PageSize = data
 		}
 	}
 
@@ -21495,29 +21495,6 @@ func (ec *executionContext) _CreateModelError(ctx context.Context, sel ast.Selec
 	}
 }
 
-func (ec *executionContext) _DatabaseCatalogError(ctx context.Context, sel ast.SelectionSet, obj DatabaseCatalogError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case InvalidInput:
-		return ec._InvalidInput(ctx, sel, &obj)
-	case *InvalidInput:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._InvalidInput(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
 func (ec *executionContext) _DeleteClusterError(ctx context.Context, sel ast.SelectionSet, obj DeleteClusterError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -22006,6 +21983,29 @@ func (ec *executionContext) _ListEndUsersError(ctx context.Context, sel ast.Sele
 			return graphql.Null
 		}
 		return ec._ClusterNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _ModelDatabaseCatalogError(ctx context.Context, sel ast.SelectionSet, obj ModelDatabaseCatalogError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -23099,60 +23099,6 @@ func (ec *executionContext) _Database(ctx context.Context, sel ast.SelectionSet,
 			out.Values[i] = graphql.MarshalString("Database")
 		case "name":
 			out.Values[i] = ec._Database_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var databaseCatalogPayloadImplementors = []string{"DatabaseCatalogPayload"}
-
-func (ec *executionContext) _DatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, obj *DatabaseCatalogPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, databaseCatalogPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DatabaseCatalogPayload")
-		case "databases":
-			out.Values[i] = ec._DatabaseCatalogPayload_databases(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "totalCount":
-			out.Values[i] = ec._DatabaseCatalogPayload_totalCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "page":
-			out.Values[i] = ec._DatabaseCatalogPayload_page(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "pageSize":
-			out.Values[i] = ec._DatabaseCatalogPayload_pageSize(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -24817,21 +24763,21 @@ func (ec *executionContext) _GetClusterPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var getDatabaseCatalogPayloadImplementors = []string{"GetDatabaseCatalogPayload"}
+var getEnumPayloadImplementors = []string{"GetEnumPayload"}
 
-func (ec *executionContext) _GetDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, obj *GetDatabaseCatalogPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, getDatabaseCatalogPayloadImplementors)
+func (ec *executionContext) _GetEnumPayload(ctx context.Context, sel ast.SelectionSet, obj *GetEnumPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, getEnumPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("GetDatabaseCatalogPayload")
-		case "data":
-			out.Values[i] = ec._GetDatabaseCatalogPayload_data(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("GetEnumPayload")
+		case "enum":
+			out.Values[i] = ec._GetEnumPayload_enum(ctx, field, obj)
 		case "error":
-			out.Values[i] = ec._GetDatabaseCatalogPayload_error(ctx, field, obj)
+			out.Values[i] = ec._GetEnumPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -24855,21 +24801,21 @@ func (ec *executionContext) _GetDatabaseCatalogPayload(ctx context.Context, sel 
 	return out
 }
 
-var getEnumPayloadImplementors = []string{"GetEnumPayload"}
+var getModelDatabaseCatalogPayloadImplementors = []string{"GetModelDatabaseCatalogPayload"}
 
-func (ec *executionContext) _GetEnumPayload(ctx context.Context, sel ast.SelectionSet, obj *GetEnumPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, getEnumPayloadImplementors)
+func (ec *executionContext) _GetModelDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, obj *GetModelDatabaseCatalogPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, getModelDatabaseCatalogPayloadImplementors)
 
 	out := graphql.NewFieldSet(fields)
 	deferred := make(map[string]*graphql.FieldSet)
 	for i, field := range fields {
 		switch field.Name {
 		case "__typename":
-			out.Values[i] = graphql.MarshalString("GetEnumPayload")
-		case "enum":
-			out.Values[i] = ec._GetEnumPayload_enum(ctx, field, obj)
+			out.Values[i] = graphql.MarshalString("GetModelDatabaseCatalogPayload")
+		case "data":
+			out.Values[i] = ec._GetModelDatabaseCatalogPayload_data(ctx, field, obj)
 		case "error":
-			out.Values[i] = ec._GetEnumPayload_error(ctx, field, obj)
+			out.Values[i] = ec._GetModelDatabaseCatalogPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -25229,7 +25175,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "DatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "SetProjectAuthSchemaError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "SetProjectAuthSchemaError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -25596,6 +25542,60 @@ func (ec *executionContext) _ModelConnection(ctx context.Context, sel ast.Select
 			}
 		case "totalCount":
 			out.Values[i] = ec._ModelConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var modelDatabaseCatalogPayloadImplementors = []string{"ModelDatabaseCatalogPayload"}
+
+func (ec *executionContext) _ModelDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, obj *ModelDatabaseCatalogPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, modelDatabaseCatalogPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModelDatabaseCatalogPayload")
+		case "databases":
+			out.Values[i] = ec._ModelDatabaseCatalogPayload_databases(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._ModelDatabaseCatalogPayload_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "page":
+			out.Values[i] = ec._ModelDatabaseCatalogPayload_page(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageSize":
+			out.Values[i] = ec._ModelDatabaseCatalogPayload_pageSize(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -26359,7 +26359,7 @@ func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "DatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -26480,7 +26480,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "databaseCatalog":
+		case "modelDatabaseCatalog":
 			field := field
 
 			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
@@ -26489,7 +26489,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_databaseCatalog(ctx, field)
+				res = ec._Query_modelDatabaseCatalog(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -29081,20 +29081,6 @@ func (ec *executionContext) marshalNGetClusterPayload2ᚖmodelcraftᚋinternal�
 	return ec._GetClusterPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNGetDatabaseCatalogPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, v GetDatabaseCatalogPayload) graphql.Marshaler {
-	return ec._GetDatabaseCatalogPayload(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNGetDatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, v *GetDatabaseCatalogPayload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._GetDatabaseCatalogPayload(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNGetEnumPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetEnumPayload(ctx context.Context, sel ast.SelectionSet, v GetEnumPayload) graphql.Marshaler {
 	return ec._GetEnumPayload(ctx, sel, &v)
 }
@@ -29107,6 +29093,20 @@ func (ec *executionContext) marshalNGetEnumPayload2ᚖmodelcraftᚋinternalᚋin
 		return graphql.Null
 	}
 	return ec._GetEnumPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNGetModelDatabaseCatalogPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetModelDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, v GetModelDatabaseCatalogPayload) graphql.Marshaler {
+	return ec._GetModelDatabaseCatalogPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGetModelDatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetModelDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, v *GetModelDatabaseCatalogPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GetModelDatabaseCatalogPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNGetModelPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGetModelPayload(ctx context.Context, sel ast.SelectionSet, v GetModelPayload) graphql.Marshaler {
@@ -30341,28 +30341,6 @@ func (ec *executionContext) marshalOCreateModelError2modelcraftᚋinternalᚋint
 	return ec._CreateModelError(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalODatabaseCatalogError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCatalogError(ctx context.Context, sel ast.SelectionSet, v DatabaseCatalogError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DatabaseCatalogError(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalODatabaseCatalogInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCatalogInput(ctx context.Context, v any) (*DatabaseCatalogInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputDatabaseCatalogInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalODatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, v *DatabaseCatalogPayload) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DatabaseCatalogPayload(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalODatabaseCluster2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseCluster(ctx context.Context, sel ast.SelectionSet, v *DatabaseCluster) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -30610,6 +30588,28 @@ func (ec *executionContext) marshalOModel2ᚖmodelcraftᚋinternalᚋinterfaces�
 		return graphql.Null
 	}
 	return ec._Model(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOModelDatabaseCatalogError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseCatalogError(ctx context.Context, sel ast.SelectionSet, v ModelDatabaseCatalogError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ModelDatabaseCatalogError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOModelDatabaseCatalogInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseCatalogInput(ctx context.Context, v any) (*ModelDatabaseCatalogInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputModelDatabaseCatalogInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOModelDatabaseCatalogPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, v *ModelDatabaseCatalogPayload) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ModelDatabaseCatalogPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOModelGroup2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelGroup(ctx context.Context, sel ast.SelectionSet, v *ModelGroup) graphql.Marshaler {

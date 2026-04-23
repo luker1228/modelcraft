@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/interfaces/graphql/enduser/generated"
 	"modelcraft/pkg/ctxutils"
 	"net/http"
+	"strings"
 
 	playgroundpkg "modelcraft/pkg/graphql"
 
@@ -48,7 +49,10 @@ func EndUserPlaygroundHandler() http.HandlerFunc {
 		if projectSlug == "" {
 			projectSlug = "default"
 		}
-		endpoint := "/graphql/end-user/org/" + orgName + "/project/" + projectSlug
+		endpoint := strings.TrimSuffix(r.URL.Path, "/")
+		if endpoint == "" {
+			endpoint = "/graphql/end-user/org/" + orgName + "/project/" + projectSlug
+		}
 		ginHandler := playgroundpkg.Handler(playgroundpkg.PlaygroundConfig{
 			Endpoint: endpoint,
 			Title:    "GraphQL Playground - End-User API (" + orgName + "/" + projectSlug + ")",

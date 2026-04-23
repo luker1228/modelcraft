@@ -98,14 +98,18 @@ type DesignHandlers struct {
 // endUserAuthRepositoryFactory creates end-user repositories from a DB connection.
 type endUserAuthRepositoryFactory struct{}
 
-func (f *endUserAuthRepositoryFactory) NewEndUserRepository(db appEnduser.SQLDBTX) domainEndUser.EndUserRepository {
-	return repository.NewSqlEndUserRepository(db)
+func (f *endUserAuthRepositoryFactory) NewEndUserRepository(
+	db appEnduser.SQLDBTX,
+	orgName, projectSlug string,
+) domainEndUser.EndUserRepository {
+	return repository.NewSqlEndUserRepository(db, orgName, projectSlug)
 }
 
 func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(
 	db appEnduser.SQLDBTX,
+	orgName, projectSlug string,
 ) domainEndUser.EndUserSessionRepository {
-	return repository.NewSqlEndUserSessionRepository(db)
+	return repository.NewSqlEndUserSessionRepository(db, orgName, projectSlug)
 }
 
 // endUserTxManager provides real SQL transaction support on private DBs.
@@ -287,10 +291,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	// Create end-user services and handlers
 	privateDBManager := repository.NewPrivateDBManager(clusterManager, &cfg.Database, logger)
 
-	// Wire private DB provisioner into project service so mc_private_{slug} is created on project creation.
-	projectAppService.WithPrivateDBProvisioner(privateDBManager)
-	// Wire model importer so users/accounts tables are imported as models after private DB is provisioned.
-	projectAppService.WithPrivateModelImporter(reverseEngineerApp)
 	endUserTxMgr := &endUserTxManager{}
 	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
 		privateDBManager,
@@ -304,7 +304,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
 	endUserMgmtHandler := enduserHandlers.NewManagementHandler(endUserMgmtAppService, logger)
-	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, logger)
+	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, reverseEngineerApp, logger)
 
 	return &DesignHandlers{
 		AuthHandler:               authHandler,
@@ -602,6 +602,7 @@ func SetupEndUserGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 	// Create end-user resolver
 	endUserResolver := &endusergraphql.Resolver{
 		ModelDesignService: handlers.ModelAppService,
+		EndUserMgmtService: handlers.EndUserMgmtAppService,
 	}
 
 	// End-user GraphQL uses internal token auth (BFF-to-backend)
@@ -609,6 +610,16 @@ func SetupEndUserGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 
 	// Register end-user GraphQL endpoint
 	router.Route("/graphql/end-user/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
+		r.Use(requestIDInjectorMiddleware)
+		r.Use(internalTokenMW)
+		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLProjectMiddleware())
+		r.Post("/", endusergraphql.EndUserGraphQLHandler(endUserResolver))
+		r.Get("/", endusergraphql.EndUserPlaygroundHandler())
+	})
+
+	// Standard runtime endpoint for user resource queries (used by EndUserRef component).
+	router.Route("/graphql/runtime/org/{orgName}/project/{projectSlug}/user", func(r chi.Router) {
 		r.Use(requestIDInjectorMiddleware)
 		r.Use(internalTokenMW)
 		r.Use(middleware.ChiGraphQLOrgMiddleware())

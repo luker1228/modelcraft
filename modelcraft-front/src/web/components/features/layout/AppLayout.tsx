@@ -33,6 +33,7 @@ import {
   List,
   LogIn,
   Shield,
+  KeyRound,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
@@ -189,11 +190,11 @@ export function AppLayout({
     { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
     { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
     { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
-    { label: '认证与授权', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/rls-settings` },
+    { label: '角色管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
   ]
 
   const authNavItems: NavItem[] = [
-    { label: 'RLS 设置', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/rls-settings` },
+    { label: '角色管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
     { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
     { label: '用户管理', icon: Users, href: `/org/${orgName}/project/${projectSlug}/end-users` },
   ]
@@ -203,6 +204,8 @@ export function AppLayout({
   const authBasePath = `/org/${orgName}/project/${projectSlug}`
   const isAuthSection = pathname === `${authBasePath}/rls-settings`
     || pathname?.startsWith(`${authBasePath}/rls-settings/`)
+    || pathname === `${authBasePath}/roles`
+    || pathname?.startsWith(`${authBasePath}/roles/`)
     || pathname === `${authBasePath}/login-settings`
     || pathname?.startsWith(`${authBasePath}/login-settings/`)
     || pathname === `${authBasePath}/end-users`

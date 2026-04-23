@@ -20,3 +20,7 @@ type Unauthorized implements Error {
 type ProjectNotFound implements Error {
   message: String!
 }
+
+type EndUserNotFound implements Error {
+  message: String!
+}

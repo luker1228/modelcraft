@@ -83,6 +83,31 @@ export const GET_ROLES = gql`
   }
 `
 
+// Permission roles (permission management domain)
+export const GET_PERMISSION_ROLES = gql`
+  query GetPermissionRoles($orgName: String!, $includeSystem: Boolean) {
+    permissionRoles(orgName: $orgName, includeSystem: $includeSystem) {
+      id
+      name
+      description
+      isSystem
+      orgName
+      createdAt
+      updatedAt
+    }
+  }
+`
+
+// List permissions for a specific role
+export const GET_ROLE_PERMISSIONS_LIST = gql`
+  query GetRolePermissionsList($roleId: Int!) {
+    rolePermissionsList(roleId: $roleId) {
+      obj
+      act
+    }
+  }
+`
+
 // List API keys in current organization scope
 export const GET_API_KEYS = gql`
   query GetApiKeys {

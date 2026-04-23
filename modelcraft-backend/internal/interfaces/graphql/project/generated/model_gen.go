@@ -34,10 +34,6 @@ type CreateModelError interface {
 	IsCreateModelError()
 }
 
-type DatabaseCatalogError interface {
-	IsDatabaseCatalogError()
-}
-
 type DeleteClusterError interface {
 	IsDeleteClusterError()
 }
@@ -85,6 +81,10 @@ type InitPrivateDBPayloadError interface {
 
 type ListEndUsersError interface {
 	IsListEndUsersError()
+}
+
+type ModelDatabaseCatalogError interface {
+	IsModelDatabaseCatalogError()
 }
 
 type MoveModelToGroupError interface {
@@ -335,19 +335,6 @@ func (this DangerousPolicyNotConfirmed) GetMessage() string { return this.Messag
 
 type Database struct {
 	Name string `json:"name"`
-}
-
-type DatabaseCatalogInput struct {
-	Search   *string `json:"search,omitempty"`
-	Page     *int32  `json:"page,omitempty"`
-	PageSize *int32  `json:"pageSize,omitempty"`
-}
-
-type DatabaseCatalogPayload struct {
-	Databases  []*DatabaseLite `json:"databases"`
-	TotalCount int32           `json:"totalCount"`
-	Page       int32           `json:"page"`
-	PageSize   int32           `json:"pageSize"`
 }
 
 type DatabaseCluster struct {
@@ -652,14 +639,14 @@ type GetClusterPayload struct {
 	Error   GetClusterError  `json:"error,omitempty"`
 }
 
-type GetDatabaseCatalogPayload struct {
-	Data  *DatabaseCatalogPayload `json:"data,omitempty"`
-	Error DatabaseCatalogError    `json:"error,omitempty"`
-}
-
 type GetEnumPayload struct {
 	Enum  *EnumDefinition `json:"enum,omitempty"`
 	Error GetEnumError    `json:"error,omitempty"`
+}
+
+type GetModelDatabaseCatalogPayload struct {
+	Data  *ModelDatabaseCatalogPayload `json:"data,omitempty"`
+	Error ModelDatabaseCatalogError    `json:"error,omitempty"`
 }
 
 type GetModelPayload struct {
@@ -752,7 +739,7 @@ type InvalidInput struct {
 
 func (InvalidInput) IsUpdateClusterError() {}
 
-func (InvalidInput) IsDatabaseCatalogError() {}
+func (InvalidInput) IsModelDatabaseCatalogError() {}
 
 func (InvalidInput) IsCreateEndUserError() {}
 
@@ -867,6 +854,19 @@ type ModelConnection struct {
 	Edges      []*ModelEdge `json:"edges"`
 	PageInfo   *PageInfo    `json:"pageInfo"`
 	TotalCount int32        `json:"totalCount"`
+}
+
+type ModelDatabaseCatalogInput struct {
+	Search   *string `json:"search,omitempty"`
+	Page     *int32  `json:"page,omitempty"`
+	PageSize *int32  `json:"pageSize,omitempty"`
+}
+
+type ModelDatabaseCatalogPayload struct {
+	Databases  []*DatabaseLite `json:"databases"`
+	TotalCount int32           `json:"totalCount"`
+	Page       int32           `json:"page"`
+	PageSize   int32           `json:"pageSize"`
 }
 
 type ModelEdge struct {
@@ -995,7 +995,7 @@ func (ProjectNotFound) IsDeleteClusterError() {}
 
 func (ProjectNotFound) IsTestConnectionError() {}
 
-func (ProjectNotFound) IsDatabaseCatalogError() {}
+func (ProjectNotFound) IsModelDatabaseCatalogError() {}
 
 func (ProjectNotFound) IsCreateEndUserError() {}
 

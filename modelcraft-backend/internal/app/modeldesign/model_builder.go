@@ -75,6 +75,7 @@ func newModelFromCommand(ctx context.Context, cmd CreateModelCommand) (*modeldes
 			Version:          1, // 初始版本号为1
 			Status:           "draft",
 			DeploymentStatus: modeldesign.DeploymentPending, // 新创建的模型待同步
+			CreatedVia:       modeldesign.ModelCreationSourceNew,
 			LastSyncAt:       nil,
 			SyncError:        "",
 			CreatedAt:        now,
@@ -143,6 +144,7 @@ func BuildModelFromTable(
 			SyncError:        "",
 			CreatedAt:        now,
 			UpdatedAt:        now,
+			CreatedVia:       modeldesign.ModelCreationSourceImported,
 		},
 		Fields: make([]*modeldesign.FieldDefinition, 0),
 	}
@@ -157,34 +159,8 @@ func BuildModelFromTable(
 		primaryKeyMap[pk] = true
 	}
 
-	// 检查是否需要添加系统ID字段
-	hasSystemID := false
-	if len(primaryKeys) == 1 {
-		pkCol := findColumn(columns, primaryKeys[0])
-		if pkCol != nil && pkCol.Name == "id" && pkCol.DataType == "BIGINT" && pkCol.AutoIncrement {
-			hasSystemID = true
-		}
-	}
-
-	// 如果没有标准的系统ID，添加一个
-	if !hasSystemID {
-		systemFields := modeldesign.GetNewModelSystemFields()
-		for _, sysField := range systemFields {
-			sysField.ModelID = modelID
-			sysField.ModelLocator = locator
-			sysField.CreatedAt = now
-			sysField.UpdatedAt = now
-			model.Fields = append(model.Fields, sysField)
-		}
-	}
-
 	// 转换每个列
 	for _, col := range columns {
-		// 如果是系统ID字段且已经被处理，则跳过
-		if hasSystemID && col.Name == "id" {
-			continue
-		}
-
 		// 构建字段定义
 		fieldDef, mappingResult := reverseMapper.BuildFieldDefinition(col, modelID, locator)
 
@@ -198,7 +174,7 @@ func BuildModelFromTable(
 			continue
 		}
 
-		// 设置主键标记
+		// 导入场景需要保留主键信息，但不注入系统字段。
 		if primaryKeyMap[col.Name] {
 			fieldDef.IsPrimary = true
 			fieldDef.IsUnique = true
@@ -213,7 +189,7 @@ func BuildModelFromTable(
 	}
 
 	// 如果所有字段都被跳过，返回错误
-	if len(model.Fields) == 0 || (hasSystemID && len(model.Fields) == 0) {
+	if len(model.Fields) == 0 {
 		return nil, fmt.Errorf("all fields were skipped, cannot create model")
 	}
 

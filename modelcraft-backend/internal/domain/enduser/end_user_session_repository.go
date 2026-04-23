@@ -3,7 +3,7 @@ package enduser
 import "context"
 
 // EndUserSessionRepository defines persistence operations for end-user sessions.
-// Operations target the accounts table in private_{projectSlug} database.
+// Operations target mc_meta.end_user_accounts and are tenant-scoped by org/project.
 type EndUserSessionRepository interface {
 	// Save creates a new session record.
 	Save(ctx context.Context, session *EndUserSession) error

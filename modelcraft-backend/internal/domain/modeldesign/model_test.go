@@ -470,37 +470,37 @@ func TestDataModel_IsProtectedSystemModel(t *testing.T) {
 		want  bool
 	}{
 		{
-			name: "protected users model",
+			name: "protected end user users model",
 			model: &DataModel{ModelMeta: ModelMeta{
 				CreatedVia: ModelCreationSourceImported,
 				ModelLocator: ModelLocator{
-					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
-					DatabaseName: "mc_private_p1",
-					ModelName:    "users",
+					ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "mc_meta",
+					ModelName:    "end_user_users",
 				},
 			}},
 			want: true,
 		},
 		{
-			name: "protected accounts model",
+			name: "protected end user accounts model",
 			model: &DataModel{ModelMeta: ModelMeta{
 				CreatedVia: ModelCreationSourceImported,
 				ModelLocator: ModelLocator{
-					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
-					DatabaseName: "mc_private_p1",
-					ModelName:    "accounts",
+					ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "mc_meta",
+					ModelName:    "end_user_accounts",
 				},
 			}},
 			want: true,
 		},
 		{
-			name: "new users model is not protected",
+			name: "new end user users model is not protected",
 			model: &DataModel{ModelMeta: ModelMeta{
 				CreatedVia: ModelCreationSourceNew,
 				ModelLocator: ModelLocator{
-					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
-					DatabaseName: "mc_private_p1",
-					ModelName:    "users",
+					ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					DatabaseName: "mc_meta",
+					ModelName:    "end_user_users",
 				},
 			}},
 			want: false,
@@ -510,7 +510,7 @@ func TestDataModel_IsProtectedSystemModel(t *testing.T) {
 			model: &DataModel{ModelMeta: ModelMeta{
 				CreatedVia: ModelCreationSourceImported,
 				ModelLocator: ModelLocator{
-					ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
+					ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "p1"},
 					DatabaseName: "app_db",
 					ModelName:    "users",
 				},
@@ -518,9 +518,9 @@ func TestDataModel_IsProtectedSystemModel(t *testing.T) {
 			want: false,
 		},
 		{
-			name: "nil model",
+			name:  "nil model",
 			model: nil,
-			want: false,
+			want:  false,
 		},
 	}
 

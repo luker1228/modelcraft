@@ -72,7 +72,7 @@ func (m *PrivateMigrator) createDatabase(ctx context.Context, db *sql.DB, dbName
 	return nil
 }
 
-// createTables creates the users and accounts tables if they don't exist.
+// createTables creates the private auth tables if they don't exist.
 func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName string) error {
 	createUsersSQL := `
 		CREATE TABLE IF NOT EXISTS users (
@@ -110,6 +110,40 @@ func (m *PrivateMigrator) createTables(ctx context.Context, db *sql.DB, dbName s
 		return fmt.Errorf("create accounts table: %w", err)
 	}
 	m.logger.Debug(ctx, "ensured accounts table exists", logfacade.String("database", dbName))
+
+	createRolesSQL := `
+		CREATE TABLE IF NOT EXISTS roles (
+			id          VARCHAR(36)  NOT NULL PRIMARY KEY,
+			name        VARCHAR(64)  NOT NULL,
+			description VARCHAR(255) NULL,
+			created_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			updated_at  DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+			UNIQUE KEY uq_roles_name (name)
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`
+
+	if _, err := db.ExecContext(ctx, createRolesSQL); err != nil {
+		return fmt.Errorf("create roles table: %w", err)
+	}
+	m.logger.Debug(ctx, "ensured roles table exists", logfacade.String("database", dbName))
+
+	createRolesUsersSQL := `
+		CREATE TABLE IF NOT EXISTS roles_users (
+			id         VARCHAR(36) NOT NULL PRIMARY KEY,
+			role_id    VARCHAR(36) NOT NULL,
+			user_id    VARCHAR(36) NOT NULL,
+			created_at DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+			UNIQUE KEY uq_roles_users_role_user (role_id, user_id),
+			INDEX idx_roles_users_user_id (user_id),
+			CONSTRAINT fk_roles_users_role FOREIGN KEY (role_id) REFERENCES roles(id) ON DELETE CASCADE,
+			CONSTRAINT fk_roles_users_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+	`
+
+	if _, err := db.ExecContext(ctx, createRolesUsersSQL); err != nil {
+		return fmt.Errorf("create roles_users table: %w", err)
+	}
+	m.logger.Debug(ctx, "ensured roles_users table exists", logfacade.String("database", dbName))
 
 	return nil
 }

@@ -6,7 +6,6 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
-	"strings"
 
 	domainenduser "modelcraft/internal/domain/enduser"
 
@@ -67,7 +66,7 @@ func (s *EndUserManagementAppService) CreateEndUser(
 		return nil, bizerrors.Wrapf(err, "failed to create end user entity")
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db)
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	if err := repo.Save(ctx, user); err != nil {
 		return nil, s.convertRepoError(ctx, err, cmd.Username)
 	}
@@ -100,7 +99,7 @@ func (s *EndUserManagementAppService) ListEndUsers(
 		first = 100
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db)
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	users, totalCount, err := repo.ListWithTotal(ctx, domainenduser.ListEndUsersQuery{
 		Search: cmd.Search,
 		First:  first,
@@ -129,6 +128,28 @@ func (s *EndUserManagementAppService) ListEndUsers(
 	}, nil
 }
 
+// GetEndUser gets a single end-user by ID.
+func (s *EndUserManagementAppService) GetEndUser(
+	ctx context.Context,
+	cmd GetEndUserCommand,
+) (*EndUserDTO, error) {
+	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
+	if err != nil {
+		return nil, s.convertDBError(ctx, err)
+	}
+
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	user, err := repo.GetByID(ctx, cmd.UserID)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if user == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
+	}
+
+	return s.toDTO(user), nil
+}
+
 // UpdateEndUserStatus 更新终端用户状态。
 func (s *EndUserManagementAppService) UpdateEndUserStatus(
 	ctx context.Context,
@@ -139,7 +160,7 @@ func (s *EndUserManagementAppService) UpdateEndUserStatus(
 		return nil, s.convertDBError(ctx, err)
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db)
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	user, err := repo.GetByID(ctx, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -179,7 +200,7 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 		return s.convertDBError(ctx, err)
 	}
 
-	userRepo := infrrepo.NewSqlEndUserRepository(db)
+	userRepo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	user, err := userRepo.GetByID(ctx, cmd.UserID)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
@@ -189,8 +210,8 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	}
 
 	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
-		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB)
-		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB)
+		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
+		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
 
 		if err := txSessionRepo.RevokeAllByUserID(ctx, cmd.UserID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
@@ -226,9 +247,6 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 
 func (s *EndUserManagementAppService) convertDBError(ctx context.Context, err error) error {
 	if shared.IsNotFoundError(err) {
-		if strings.Contains(strings.ToLower(err.Error()), "private database not initialized") {
-			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPrivateDBNotInitialized)
-		}
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
 	}
 	return bizerrors.ConvertRepositoryError(ctx, err)
