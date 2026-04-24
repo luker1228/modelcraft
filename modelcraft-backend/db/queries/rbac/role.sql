@@ -42,10 +42,12 @@ WHERE id = ?
 -- name: AssignBundleToRole :exec
 INSERT INTO end_user_role_bundles (
   id,
+  org_name,
+  project_slug,
   role_id,
   bundle_id
 )
-VALUES (?, ?, ?);
+VALUES (?, ?, ?, ?, ?);
 
 -- name: RevokeBundleFromRole :execresult
 DELETE FROM end_user_role_bundles

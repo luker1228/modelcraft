@@ -2,9 +2,9 @@ package projectgraphql
 
 import (
 	"context"
-	rls "modelcraft/internal/app/rls"
 	"errors"
 	"fmt"
+	rls "modelcraft/internal/app/rls"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"

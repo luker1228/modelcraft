@@ -10,12 +10,40 @@ import (
 	"time"
 )
 
+type AddEndUserPermissionToBundleError interface {
+	IsAddEndUserPermissionToBundleError()
+}
+
 type AddFieldsError interface {
 	IsAddFieldsError()
 }
 
+type AssignBundleToEndUserError interface {
+	IsAssignBundleToEndUserError()
+}
+
+type AssignBundleToEndUserRoleError interface {
+	IsAssignBundleToEndUserRoleError()
+}
+
+type AssignEndUserRoleError interface {
+	IsAssignEndUserRoleError()
+}
+
 type CreateEndUserError interface {
 	IsCreateEndUserError()
+}
+
+type CreateEndUserPermissionBundleError interface {
+	IsCreateEndUserPermissionBundleError()
+}
+
+type CreateEndUserPermissionError interface {
+	IsCreateEndUserPermissionError()
+}
+
+type CreateEndUserRoleError interface {
+	IsCreateEndUserRoleError()
 }
 
 type CreateEnumError interface {
@@ -42,6 +70,18 @@ type DeleteEndUserError interface {
 	IsDeleteEndUserError()
 }
 
+type DeleteEndUserPermissionBundleError interface {
+	IsDeleteEndUserPermissionBundleError()
+}
+
+type DeleteEndUserPermissionError interface {
+	IsDeleteEndUserPermissionError()
+}
+
+type DeleteEndUserRoleError interface {
+	IsDeleteEndUserRoleError()
+}
+
 type DeleteEnumError interface {
 	IsDeleteEnumError()
 }
@@ -65,6 +105,10 @@ type Error interface {
 
 type GetClusterError interface {
 	IsGetClusterError()
+}
+
+type GetEffectivePermissionsError interface {
+	IsGetEffectivePermissionsError()
 }
 
 type GetEnumError interface {
@@ -96,6 +140,10 @@ type Node interface {
 	GetID() string
 }
 
+type RemoveEndUserPermissionFromBundleError interface {
+	IsRemoveEndUserPermissionFromBundleError()
+}
+
 type RemoveFieldError interface {
 	IsRemoveFieldError()
 }
@@ -106,6 +154,18 @@ type RenameGroupError interface {
 
 type ReorderGroupError interface {
 	IsReorderGroupError()
+}
+
+type RevokeBundleFromEndUserError interface {
+	IsRevokeBundleFromEndUserError()
+}
+
+type RevokeBundleFromEndUserRoleError interface {
+	IsRevokeBundleFromEndUserRoleError()
+}
+
+type RevokeEndUserRoleError interface {
+	IsRevokeEndUserRoleError()
 }
 
 type SetModelRLSPolicyError interface {
@@ -128,6 +188,18 @@ type UpdateEndUserError interface {
 	IsUpdateEndUserError()
 }
 
+type UpdateEndUserPermissionBundleError interface {
+	IsUpdateEndUserPermissionBundleError()
+}
+
+type UpdateEndUserPermissionError interface {
+	IsUpdateEndUserPermissionError()
+}
+
+type UpdateEndUserRoleError interface {
+	IsUpdateEndUserRoleError()
+}
+
 type UpdateEnumError interface {
 	IsUpdateEnumError()
 }
@@ -148,6 +220,17 @@ type ActualForeignKey struct {
 	ReferencedTable  string `json:"referencedTable"`
 	ReferencedColumn string `json:"referencedColumn"`
 	ConstraintName   string `json:"constraintName"`
+}
+
+type AddEndUserPermissionToBundleInput struct {
+	BundleID     string `json:"bundleId"`
+	PermissionID string `json:"permissionId"`
+	SortOrder    *int32 `json:"sortOrder,omitempty"`
+}
+
+type AddEndUserPermissionToBundlePayload struct {
+	Bundle *EndUserPermissionBundle          `json:"bundle,omitempty"`
+	Error  AddEndUserPermissionToBundleError `json:"error,omitempty"`
 }
 
 type AddFieldInput struct {
@@ -175,6 +258,38 @@ type AddFieldsPayload struct {
 	Model   *Model                `json:"model,omitempty"`
 	Results []*AddFieldItemResult `json:"results"`
 	Error   AddFieldsError        `json:"error,omitempty"`
+}
+
+type AssignBundleToEndUserInput struct {
+	EndUserID string `json:"endUserId"`
+	BundleID  string `json:"bundleId"`
+}
+
+type AssignBundleToEndUserPayload struct {
+	EndUserID string                     `json:"endUserId"`
+	Bundle    *EndUserPermissionBundle   `json:"bundle,omitempty"`
+	Error     AssignBundleToEndUserError `json:"error,omitempty"`
+}
+
+type AssignBundleToEndUserRoleInput struct {
+	RoleID   string `json:"roleId"`
+	BundleID string `json:"bundleId"`
+}
+
+type AssignBundleToEndUserRolePayload struct {
+	Role  *EndUserRole                   `json:"role,omitempty"`
+	Error AssignBundleToEndUserRoleError `json:"error,omitempty"`
+}
+
+type AssignEndUserRoleInput struct {
+	EndUserID string `json:"endUserId"`
+	RoleID    string `json:"roleId"`
+}
+
+type AssignEndUserRolePayload struct {
+	EndUserID string                 `json:"endUserId"`
+	Role      *EndUserRole           `json:"role,omitempty"`
+	Error     AssignEndUserRoleError `json:"error,omitempty"`
 }
 
 type AuthVariable struct {
@@ -260,6 +375,28 @@ func (ClusterNotFound) IsDeleteEndUserError() {}
 
 func (ClusterNotFound) IsListEndUsersError() {}
 
+type ColumnPolicy struct {
+	DefaultMode ColumnAccessMode `json:"defaultMode"`
+	Rules       []*ColumnRule    `json:"rules"`
+}
+
+type ColumnPolicyInput struct {
+	DefaultMode ColumnAccessMode   `json:"defaultMode"`
+	Rules       []*ColumnRuleInput `json:"rules"`
+}
+
+type ColumnRule struct {
+	FieldName   string           `json:"fieldName"`
+	Mode        ColumnAccessMode `json:"mode"`
+	MaskPattern *string          `json:"maskPattern,omitempty"`
+}
+
+type ColumnRuleInput struct {
+	FieldName   string           `json:"fieldName"`
+	Mode        ColumnAccessMode `json:"mode"`
+	MaskPattern *string          `json:"maskPattern,omitempty"`
+}
+
 type CreateEndUserInput struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
@@ -268,6 +405,40 @@ type CreateEndUserInput struct {
 type CreateEndUserPayload struct {
 	EndUser *EndUser           `json:"endUser,omitempty"`
 	Error   CreateEndUserError `json:"error,omitempty"`
+}
+
+type CreateEndUserPermissionBundleInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+
+type CreateEndUserPermissionBundlePayload struct {
+	Bundle *EndUserPermissionBundle           `json:"bundle,omitempty"`
+	Error  CreateEndUserPermissionBundleError `json:"error,omitempty"`
+}
+
+type CreateEndUserPermissionInput struct {
+	ModelID      string             `json:"modelId"`
+	Action       RbacAction         `json:"action"`
+	ColumnPolicy *ColumnPolicyInput `json:"columnPolicy"`
+	RowScope     RowScopeType       `json:"rowScope"`
+	DisplayName  *string            `json:"displayName,omitempty"`
+	Description  *string            `json:"description,omitempty"`
+}
+
+type CreateEndUserPermissionPayload struct {
+	Permission *EndUserPermission           `json:"permission,omitempty"`
+	Error      CreateEndUserPermissionError `json:"error,omitempty"`
+}
+
+type CreateEndUserRoleInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+}
+
+type CreateEndUserRolePayload struct {
+	Role  *EndUserRole           `json:"role,omitempty"`
+	Error CreateEndUserRoleError `json:"error,omitempty"`
 }
 
 type CreateEnumInput struct {
@@ -422,6 +593,21 @@ type DeleteEndUserPayload struct {
 	Error   DeleteEndUserError `json:"error,omitempty"`
 }
 
+type DeleteEndUserPermissionBundlePayload struct {
+	Success bool                               `json:"success"`
+	Error   DeleteEndUserPermissionBundleError `json:"error,omitempty"`
+}
+
+type DeleteEndUserPermissionPayload struct {
+	Success bool                         `json:"success"`
+	Error   DeleteEndUserPermissionError `json:"error,omitempty"`
+}
+
+type DeleteEndUserRolePayload struct {
+	Success bool                   `json:"success"`
+	Error   DeleteEndUserRoleError `json:"error,omitempty"`
+}
+
 type DeleteEnumPayload struct {
 	Success bool            `json:"success"`
 	Error   DeleteEnumError `json:"error,omitempty"`
@@ -447,6 +633,25 @@ type DeleteModelPayload struct {
 	Error   DeleteModelError `json:"error,omitempty"`
 }
 
+type EffectiveGrant struct {
+	Action       RbacAction    `json:"action"`
+	ColumnPolicy *ColumnPolicy `json:"columnPolicy"`
+	RowScope     RowScopeType  `json:"rowScope"`
+}
+
+type EffectivePermissionSources struct {
+	DirectBundles       []*EndUserPermissionBundle `json:"directBundles"`
+	ExplicitRoleBundles []*EndUserRoleBundleSource `json:"explicitRoleBundles"`
+	ImplicitRoleBundles []*EndUserRoleBundleSource `json:"implicitRoleBundles"`
+}
+
+type EffectivePermissions struct {
+	EndUserID string                      `json:"endUserId"`
+	ModelID   string                      `json:"modelId"`
+	Grants    []*EffectiveGrant           `json:"grants"`
+	Sources   *EffectivePermissionSources `json:"sources"`
+}
+
 type EndUser struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
@@ -468,11 +673,44 @@ func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
 
 func (EndUserAlreadyExists) IsCreateEndUserError() {}
 
+type EndUserBundleAssignment struct {
+	EndUserID  string                   `json:"endUserId"`
+	Bundle     *EndUserPermissionBundle `json:"bundle"`
+	AssignedAt time.Time                `json:"assignedAt"`
+}
+
+type EndUserBundlePermissionEntry struct {
+	SortOrder  int32              `json:"sortOrder"`
+	Permission *EndUserPermission `json:"permission"`
+}
+
+type EndUserCannotAssignImplicitRole struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserCannotAssignImplicitRole) IsError()                {}
+func (this EndUserCannotAssignImplicitRole) GetMessage() string { return this.Message }
+
+func (EndUserCannotAssignImplicitRole) IsAssignEndUserRoleError() {}
+
 type EndUserConnection struct {
 	Nodes      []*EndUser `json:"nodes"`
 	PageInfo   *PageInfo  `json:"pageInfo"`
 	TotalCount int32      `json:"totalCount"`
 }
+
+type EndUserImplicitRoleCannotBeModified struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserImplicitRoleCannotBeModified) IsError()                {}
+func (this EndUserImplicitRoleCannotBeModified) GetMessage() string { return this.Message }
+
+func (EndUserImplicitRoleCannotBeModified) IsUpdateEndUserRoleError() {}
+
+func (EndUserImplicitRoleCannotBeModified) IsDeleteEndUserRoleError() {}
 
 type EndUserNotFound struct {
 	Message string `json:"message"`
@@ -485,6 +723,23 @@ func (EndUserNotFound) IsUpdateEndUserError() {}
 
 func (EndUserNotFound) IsDeleteEndUserError() {}
 
+type EndUserNotFoundInProject struct {
+	Message string `json:"message"`
+}
+
+func (EndUserNotFoundInProject) IsError()                {}
+func (this EndUserNotFoundInProject) GetMessage() string { return this.Message }
+
+func (EndUserNotFoundInProject) IsAssignBundleToEndUserError() {}
+
+func (EndUserNotFoundInProject) IsRevokeBundleFromEndUserError() {}
+
+func (EndUserNotFoundInProject) IsAssignEndUserRoleError() {}
+
+func (EndUserNotFoundInProject) IsRevokeEndUserRoleError() {}
+
+func (EndUserNotFoundInProject) IsGetEffectivePermissionsError() {}
+
 type EndUserPasswordTooWeak struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -495,6 +750,125 @@ func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
 
 func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
+type EndUserPermission struct {
+	ID           string        `json:"id"`
+	ModelID      string        `json:"modelId"`
+	Action       RbacAction    `json:"action"`
+	ColumnPolicy *ColumnPolicy `json:"columnPolicy"`
+	RowScope     RowScopeType  `json:"rowScope"`
+	DisplayName  *string       `json:"displayName,omitempty"`
+	Description  *string       `json:"description,omitempty"`
+	CreatedAt    time.Time     `json:"createdAt"`
+	UpdatedAt    time.Time     `json:"updatedAt"`
+}
+
+func (EndUserPermission) IsNode()            {}
+func (this EndUserPermission) GetID() string { return this.ID }
+
+type EndUserPermissionBundle struct {
+	ID          string                          `json:"id"`
+	Name        string                          `json:"name"`
+	Description *string                         `json:"description,omitempty"`
+	Permissions []*EndUserBundlePermissionEntry `json:"permissions"`
+	CreatedAt   time.Time                       `json:"createdAt"`
+	UpdatedAt   time.Time                       `json:"updatedAt"`
+}
+
+func (EndUserPermissionBundle) IsNode()            {}
+func (this EndUserPermissionBundle) GetID() string { return this.ID }
+
+type EndUserPermissionBundleAlreadyExists struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserPermissionBundleAlreadyExists) IsError()                {}
+func (this EndUserPermissionBundleAlreadyExists) GetMessage() string { return this.Message }
+
+func (EndUserPermissionBundleAlreadyExists) IsCreateEndUserPermissionBundleError() {}
+
+func (EndUserPermissionBundleAlreadyExists) IsUpdateEndUserPermissionBundleError() {}
+
+type EndUserPermissionBundleConnection struct {
+	Edges      []*EndUserPermissionBundleEdge `json:"edges"`
+	PageInfo   *PageInfo                      `json:"pageInfo"`
+	TotalCount int32                          `json:"totalCount"`
+}
+
+type EndUserPermissionBundleEdge struct {
+	Node   *EndUserPermissionBundle `json:"node"`
+	Cursor string                   `json:"cursor"`
+}
+
+type EndUserPermissionBundleInUse struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserPermissionBundleInUse) IsError()                {}
+func (this EndUserPermissionBundleInUse) GetMessage() string { return this.Message }
+
+func (EndUserPermissionBundleInUse) IsDeleteEndUserPermissionBundleError() {}
+
+type EndUserPermissionBundleNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserPermissionBundleNotFound) IsError()                {}
+func (this EndUserPermissionBundleNotFound) GetMessage() string { return this.Message }
+
+func (EndUserPermissionBundleNotFound) IsUpdateEndUserPermissionBundleError() {}
+
+func (EndUserPermissionBundleNotFound) IsDeleteEndUserPermissionBundleError() {}
+
+func (EndUserPermissionBundleNotFound) IsAddEndUserPermissionToBundleError() {}
+
+func (EndUserPermissionBundleNotFound) IsRemoveEndUserPermissionFromBundleError() {}
+
+func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserRoleError() {}
+
+func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserRoleError() {}
+
+func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserError() {}
+
+func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserError() {}
+
+type EndUserPermissionConnection struct {
+	Edges      []*EndUserPermissionEdge `json:"edges"`
+	PageInfo   *PageInfo                `json:"pageInfo"`
+	TotalCount int32                    `json:"totalCount"`
+}
+
+type EndUserPermissionEdge struct {
+	Node   *EndUserPermission `json:"node"`
+	Cursor string             `json:"cursor"`
+}
+
+type EndUserPermissionInUse struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserPermissionInUse) IsError()                {}
+func (this EndUserPermissionInUse) GetMessage() string { return this.Message }
+
+func (EndUserPermissionInUse) IsDeleteEndUserPermissionError() {}
+
+type EndUserPermissionNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserPermissionNotFound) IsError()                {}
+func (this EndUserPermissionNotFound) GetMessage() string { return this.Message }
+
+func (EndUserPermissionNotFound) IsUpdateEndUserPermissionError() {}
+
+func (EndUserPermissionNotFound) IsDeleteEndUserPermissionError() {}
+
+func (EndUserPermissionNotFound) IsAddEndUserPermissionToBundleError() {}
+
+func (EndUserPermissionNotFound) IsRemoveEndUserPermissionFromBundleError() {}
+
 type EndUserRefAlreadyExists struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -502,6 +876,77 @@ type EndUserRefAlreadyExists struct {
 
 func (EndUserRefAlreadyExists) IsError()                {}
 func (this EndUserRefAlreadyExists) GetMessage() string { return this.Message }
+
+type EndUserRole struct {
+	ID                string                    `json:"id"`
+	Name              string                    `json:"name"`
+	Description       *string                   `json:"description,omitempty"`
+	IsImplicit        bool                      `json:"isImplicit"`
+	PermissionBundles []*EndUserRoleBundleEntry `json:"permissionBundles"`
+	CreatedAt         time.Time                 `json:"createdAt"`
+	UpdatedAt         time.Time                 `json:"updatedAt"`
+}
+
+func (EndUserRole) IsNode()            {}
+func (this EndUserRole) GetID() string { return this.ID }
+
+type EndUserRoleAlreadyExists struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserRoleAlreadyExists) IsError()                {}
+func (this EndUserRoleAlreadyExists) GetMessage() string { return this.Message }
+
+func (EndUserRoleAlreadyExists) IsCreateEndUserRoleError() {}
+
+func (EndUserRoleAlreadyExists) IsUpdateEndUserRoleError() {}
+
+type EndUserRoleAssignment struct {
+	EndUserID  string       `json:"endUserId"`
+	Role       *EndUserRole `json:"role"`
+	AssignedAt time.Time    `json:"assignedAt"`
+}
+
+type EndUserRoleBundleEntry struct {
+	Bundle     *EndUserPermissionBundle `json:"bundle"`
+	AssignedAt time.Time                `json:"assignedAt"`
+}
+
+type EndUserRoleBundleSource struct {
+	Role    *EndUserRole               `json:"role"`
+	Bundles []*EndUserPermissionBundle `json:"bundles"`
+}
+
+type EndUserRoleConnection struct {
+	Edges      []*EndUserRoleEdge `json:"edges"`
+	PageInfo   *PageInfo          `json:"pageInfo"`
+	TotalCount int32              `json:"totalCount"`
+}
+
+type EndUserRoleEdge struct {
+	Node   *EndUserRole `json:"node"`
+	Cursor string       `json:"cursor"`
+}
+
+type EndUserRoleNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserRoleNotFound) IsError()                {}
+func (this EndUserRoleNotFound) GetMessage() string { return this.Message }
+
+func (EndUserRoleNotFound) IsUpdateEndUserRoleError() {}
+
+func (EndUserRoleNotFound) IsDeleteEndUserRoleError() {}
+
+func (EndUserRoleNotFound) IsAssignBundleToEndUserRoleError() {}
+
+func (EndUserRoleNotFound) IsRevokeBundleFromEndUserRoleError() {}
+
+func (EndUserRoleNotFound) IsAssignEndUserRoleError() {}
+
+func (EndUserRoleNotFound) IsRevokeEndUserRoleError() {}
 
 type EnumAlreadyExists struct {
 	Message    string  `json:"message"`
@@ -639,6 +1084,16 @@ type GetClusterPayload struct {
 	Error   GetClusterError  `json:"error,omitempty"`
 }
 
+type GetEffectivePermissionsInput struct {
+	EndUserID string `json:"endUserId"`
+	ModelID   string `json:"modelId"`
+}
+
+type GetEffectivePermissionsPayload struct {
+	EffectivePermissions *EffectivePermissions        `json:"effectivePermissions,omitempty"`
+	Error                GetEffectivePermissionsError `json:"error,omitempty"`
+}
+
 type GetEnumPayload struct {
 	Enum  *EnumDefinition `json:"enum,omitempty"`
 	Error GetEnumError    `json:"error,omitempty"`
@@ -764,6 +1219,20 @@ func (InvalidInput) IsCreateModelError() {}
 
 func (InvalidInput) IsUpdateModelError() {}
 
+func (InvalidInput) IsCreateEndUserPermissionError() {}
+
+func (InvalidInput) IsUpdateEndUserPermissionError() {}
+
+func (InvalidInput) IsCreateEndUserPermissionBundleError() {}
+
+func (InvalidInput) IsUpdateEndUserPermissionBundleError() {}
+
+func (InvalidInput) IsAddEndUserPermissionToBundleError() {}
+
+func (InvalidInput) IsCreateEndUserRoleError() {}
+
+func (InvalidInput) IsUpdateEndUserRoleError() {}
+
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
 
 type InvalidRLSExpression struct {
@@ -783,6 +1252,26 @@ type ListDatabasesInput struct {
 	Offset *int32  `json:"offset,omitempty"`
 	Limit  *int32  `json:"limit,omitempty"`
 	Search *string `json:"search,omitempty"`
+}
+
+type ListEndUserPermissionBundlesInput struct {
+	Search *string `json:"search,omitempty"`
+	First  *int32  `json:"first,omitempty"`
+	After  *string `json:"after,omitempty"`
+}
+
+type ListEndUserPermissionsInput struct {
+	ModelID *string     `json:"modelId,omitempty"`
+	Action  *RbacAction `json:"action,omitempty"`
+	First   *int32      `json:"first,omitempty"`
+	After   *string     `json:"after,omitempty"`
+}
+
+type ListEndUserRolesInput struct {
+	IncludeImplicit *bool   `json:"includeImplicit,omitempty"`
+	Search          *string `json:"search,omitempty"`
+	First           *int32  `json:"first,omitempty"`
+	After           *string `json:"after,omitempty"`
 }
 
 type ListEndUsersInput struct {
@@ -913,6 +1402,10 @@ func (ModelNotFound) IsDeleteModelError() {}
 
 func (ModelNotFound) IsMoveModelToGroupError() {}
 
+func (ModelNotFound) IsCreateEndUserPermissionError() {}
+
+func (ModelNotFound) IsGetEffectivePermissionsError() {}
+
 func (ModelNotFound) IsSetModelRLSPolicyError() {}
 
 func (ModelNotFound) IsValidateRLSExprError() {}
@@ -1023,6 +1516,42 @@ func (ProjectNotFound) IsUpdateModelError() {}
 
 func (ProjectNotFound) IsDeleteModelError() {}
 
+func (ProjectNotFound) IsCreateEndUserPermissionError() {}
+
+func (ProjectNotFound) IsUpdateEndUserPermissionError() {}
+
+func (ProjectNotFound) IsDeleteEndUserPermissionError() {}
+
+func (ProjectNotFound) IsCreateEndUserPermissionBundleError() {}
+
+func (ProjectNotFound) IsUpdateEndUserPermissionBundleError() {}
+
+func (ProjectNotFound) IsDeleteEndUserPermissionBundleError() {}
+
+func (ProjectNotFound) IsAddEndUserPermissionToBundleError() {}
+
+func (ProjectNotFound) IsRemoveEndUserPermissionFromBundleError() {}
+
+func (ProjectNotFound) IsCreateEndUserRoleError() {}
+
+func (ProjectNotFound) IsUpdateEndUserRoleError() {}
+
+func (ProjectNotFound) IsDeleteEndUserRoleError() {}
+
+func (ProjectNotFound) IsAssignBundleToEndUserRoleError() {}
+
+func (ProjectNotFound) IsRevokeBundleFromEndUserRoleError() {}
+
+func (ProjectNotFound) IsAssignBundleToEndUserError() {}
+
+func (ProjectNotFound) IsRevokeBundleFromEndUserError() {}
+
+func (ProjectNotFound) IsAssignEndUserRoleError() {}
+
+func (ProjectNotFound) IsRevokeEndUserRoleError() {}
+
+func (ProjectNotFound) IsGetEffectivePermissionsError() {}
+
 func (ProjectNotFound) IsSetProjectAuthSchemaError() {}
 
 func (ProjectNotFound) IsSetModelRLSPolicyError() {}
@@ -1039,6 +1568,16 @@ type RLSCheckViolation struct {
 
 func (RLSCheckViolation) IsError()                {}
 func (this RLSCheckViolation) GetMessage() string { return this.Message }
+
+type RemoveEndUserPermissionFromBundleInput struct {
+	BundleID     string `json:"bundleId"`
+	PermissionID string `json:"permissionId"`
+}
+
+type RemoveEndUserPermissionFromBundlePayload struct {
+	Bundle *EndUserPermissionBundle               `json:"bundle,omitempty"`
+	Error  RemoveEndUserPermissionFromBundleError `json:"error,omitempty"`
+}
 
 type RemoveFieldPayload struct {
 	Model *Model           `json:"model,omitempty"`
@@ -1081,6 +1620,50 @@ type RepairModelPayload struct {
 	ExtraFieldsRemoved []string       `json:"extraFieldsRemoved"`
 	FieldsAdded        []string       `json:"fieldsAdded"`
 }
+
+type RevokeBundleFromEndUserInput struct {
+	EndUserID string `json:"endUserId"`
+	BundleID  string `json:"bundleId"`
+}
+
+type RevokeBundleFromEndUserPayload struct {
+	Success bool                         `json:"success"`
+	Error   RevokeBundleFromEndUserError `json:"error,omitempty"`
+}
+
+type RevokeBundleFromEndUserRoleInput struct {
+	RoleID   string `json:"roleId"`
+	BundleID string `json:"bundleId"`
+}
+
+type RevokeBundleFromEndUserRolePayload struct {
+	Role  *EndUserRole                     `json:"role,omitempty"`
+	Error RevokeBundleFromEndUserRoleError `json:"error,omitempty"`
+}
+
+type RevokeEndUserRoleInput struct {
+	EndUserID string `json:"endUserId"`
+	RoleID    string `json:"roleId"`
+}
+
+type RevokeEndUserRolePayload struct {
+	Success bool                   `json:"success"`
+	Error   RevokeEndUserRoleError `json:"error,omitempty"`
+}
+
+type RowScopeFieldMissing struct {
+	Message            string       `json:"message"`
+	MissingField       string       `json:"missingField"`
+	RequiredByRowScope RowScopeType `json:"requiredByRowScope"`
+	Suggestion         *string      `json:"suggestion,omitempty"`
+}
+
+func (RowScopeFieldMissing) IsError()                {}
+func (this RowScopeFieldMissing) GetMessage() string { return this.Message }
+
+func (RowScopeFieldMissing) IsCreateEndUserPermissionError() {}
+
+func (RowScopeFieldMissing) IsUpdateEndUserPermissionError() {}
 
 type SchemaIssue struct {
 	Type        SchemaIssueType `json:"type"`
@@ -1165,6 +1748,37 @@ type UpdateClusterPayload struct {
 	Error   UpdateClusterError `json:"error,omitempty"`
 }
 
+type UpdateEndUserPermissionBundleInput struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+type UpdateEndUserPermissionBundlePayload struct {
+	Bundle *EndUserPermissionBundle           `json:"bundle,omitempty"`
+	Error  UpdateEndUserPermissionBundleError `json:"error,omitempty"`
+}
+
+type UpdateEndUserPermissionInput struct {
+	ColumnPolicy *ColumnPolicyInput `json:"columnPolicy,omitempty"`
+	DisplayName  *string            `json:"displayName,omitempty"`
+	Description  *string            `json:"description,omitempty"`
+}
+
+type UpdateEndUserPermissionPayload struct {
+	Permission *EndUserPermission           `json:"permission,omitempty"`
+	Error      UpdateEndUserPermissionError `json:"error,omitempty"`
+}
+
+type UpdateEndUserRoleInput struct {
+	Name        *string `json:"name,omitempty"`
+	Description *string `json:"description,omitempty"`
+}
+
+type UpdateEndUserRolePayload struct {
+	Role  *EndUserRole           `json:"role,omitempty"`
+	Error UpdateEndUserRoleError `json:"error,omitempty"`
+}
+
 type UpdateEndUserStatusInput struct {
 	UserID      string `json:"userId"`
 	IsForbidden bool   `json:"isForbidden"`
@@ -1208,6 +1822,24 @@ type UpdateModelMetaPayload struct {
 	Model   *Model           `json:"model,omitempty"`
 	Error   UpdateModelError `json:"error,omitempty"`
 }
+
+type UserBundleAlreadyAssigned struct {
+	Message string `json:"message"`
+}
+
+func (UserBundleAlreadyAssigned) IsError()                {}
+func (this UserBundleAlreadyAssigned) GetMessage() string { return this.Message }
+
+func (UserBundleAlreadyAssigned) IsAssignBundleToEndUserError() {}
+
+type UserRoleAlreadyAssigned struct {
+	Message string `json:"message"`
+}
+
+func (UserRoleAlreadyAssigned) IsError()                {}
+func (this UserRoleAlreadyAssigned) GetMessage() string { return this.Message }
+
+func (UserRoleAlreadyAssigned) IsAssignEndUserRoleError() {}
 
 type ValidateRLSExprInput struct {
 	// 所属模型 ID（用于字段名白名单校验）
@@ -1417,6 +2049,70 @@ func (e *ClusterStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e ClusterStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+// 列访问模式
+type ColumnAccessMode string
+
+const (
+	// 可见且可编辑
+	ColumnAccessModeVisible ColumnAccessMode = "VISIBLE"
+	// 可见但只读
+	ColumnAccessModeReadonly ColumnAccessMode = "READONLY"
+	// 脱敏显示
+	ColumnAccessModeMasked ColumnAccessMode = "MASKED"
+	// 完全隐藏
+	ColumnAccessModeHidden ColumnAccessMode = "HIDDEN"
+)
+
+var AllColumnAccessMode = []ColumnAccessMode{
+	ColumnAccessModeVisible,
+	ColumnAccessModeReadonly,
+	ColumnAccessModeMasked,
+	ColumnAccessModeHidden,
+}
+
+func (e ColumnAccessMode) IsValid() bool {
+	switch e {
+	case ColumnAccessModeVisible, ColumnAccessModeReadonly, ColumnAccessModeMasked, ColumnAccessModeHidden:
+		return true
+	}
+	return false
+}
+
+func (e ColumnAccessMode) String() string {
+	return string(e)
+}
+
+func (e *ColumnAccessMode) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ColumnAccessMode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ColumnAccessMode", str)
+	}
+	return nil
+}
+
+func (e ColumnAccessMode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ColumnAccessMode) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ColumnAccessMode) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil
@@ -1965,6 +2661,68 @@ func (e RLSPreset) MarshalJSON() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
+// 数据操作动作：终端用户对数据表可执行的操作类型
+type RbacAction string
+
+const (
+	RbacActionSelect RbacAction = "SELECT"
+	RbacActionInsert RbacAction = "INSERT"
+	RbacActionUpdate RbacAction = "UPDATE"
+	RbacActionDelete RbacAction = "DELETE"
+	RbacActionExport RbacAction = "EXPORT"
+)
+
+var AllRbacAction = []RbacAction{
+	RbacActionSelect,
+	RbacActionInsert,
+	RbacActionUpdate,
+	RbacActionDelete,
+	RbacActionExport,
+}
+
+func (e RbacAction) IsValid() bool {
+	switch e {
+	case RbacActionSelect, RbacActionInsert, RbacActionUpdate, RbacActionDelete, RbacActionExport:
+		return true
+	}
+	return false
+}
+
+func (e RbacAction) String() string {
+	return string(e)
+}
+
+func (e *RbacAction) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RbacAction(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RbacAction", str)
+	}
+	return nil
+}
+
+func (e RbacAction) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RbacAction) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RbacAction) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
 type RepairMode string
 
 const (
@@ -2017,6 +2775,71 @@ func (e *RepairMode) UnmarshalJSON(b []byte) error {
 }
 
 func (e RepairMode) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+// 行策略范围：控制终端用户可见哪些数据行
+//
+// ALL                — 全部行，不过滤
+// SELF               — 仅当前用户自己的行
+// DEPT               — 仅当前用户所在部门的行
+// DEPT_AND_CHILDREN  — 当前部门及所有下级部门的行
+type RowScopeType string
+
+const (
+	RowScopeTypeAll             RowScopeType = "ALL"
+	RowScopeTypeSelf            RowScopeType = "SELF"
+	RowScopeTypeDept            RowScopeType = "DEPT"
+	RowScopeTypeDeptAndChildren RowScopeType = "DEPT_AND_CHILDREN"
+)
+
+var AllRowScopeType = []RowScopeType{
+	RowScopeTypeAll,
+	RowScopeTypeSelf,
+	RowScopeTypeDept,
+	RowScopeTypeDeptAndChildren,
+}
+
+func (e RowScopeType) IsValid() bool {
+	switch e {
+	case RowScopeTypeAll, RowScopeTypeSelf, RowScopeTypeDept, RowScopeTypeDeptAndChildren:
+		return true
+	}
+	return false
+}
+
+func (e RowScopeType) String() string {
+	return string(e)
+}
+
+func (e *RowScopeType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RowScopeType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RowScopeType", str)
+	}
+	return nil
+}
+
+func (e RowScopeType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RowScopeType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RowScopeType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

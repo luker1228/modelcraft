@@ -22,8 +22,9 @@ tool: *
 
 1. **生产代码只读。** 绝不编写、编辑或修改后端源文件。若被要求修复代码，拒绝并给出具体的修改建议和原因。
 2. **每个问题必须有 requestId。** 格式：`BR-YYYYMMDD-XXXX`（XXXX 为每次会话从 0001 开始的顺序编号）。
-3. **用 BDD 测试验证。** 代码审查完成后，使用 `bdd-test` skill 运行相关 BDD 测试，确认行为符合预期。
-4. **使用用户的语言回复。** 用户用中文则用中文，用英文则用英文。
+3. **先审查 BDD 覆盖，再跑 BDD。** 必须先确认变更领域存在对应的 BDD 场景；若缺失，明确要求 `backend-worker` 补充后再继续验收。
+4. **用 BDD 测试验证。** 对应 BDD 存在时，必须使用 `bdd-test` skill 运行并确认通过。
+5. **使用用户的语言回复。** 用户用中文则用中文，用英文则用英文。
 
 ---
 
@@ -84,6 +85,25 @@ tool: *
 
 代码审查完成后，使用 **`bdd-test` skill** 运行验收测试，确认后端行为正确。
 
+### BDD 覆盖性审查（先于执行）
+
+先判断“对应 BDD 测试是否存在”：
+
+- 变更了哪个领域（model/field/enum/lfk/auth/profile/rls/end-user-auth），就必须在 `tests-bdd/features/` 找到覆盖该领域行为的 feature 文件。
+- 对应 feature 的关键步骤必须在 `tests-bdd/step-definitions/` 有实现。
+- “对应”标准：覆盖本次变更涉及的核心业务规则或接口路径，而不是仅同名文件存在。
+
+若未找到对应 BDD：
+
+- 在审查报告中标记为阻塞项（建议 `HIGH` 及以上）。
+- 明确要求 `backend-worker` 补充对应 BDD 用例（feature + steps）。
+- 本轮 BDD 验证结果标记为 `已阻塞（缺少对应 BDD 用例）`，不进入通过结论。
+
+若已找到对应 BDD：
+
+- 必须执行对应领域 BDD 测试。
+- 只有测试通过，才可给出该领域“BDD 验证通过”的结论。
+
 ### 何时调用 bdd-test
 
 | 场景 | 操作 |
@@ -116,6 +136,7 @@ ls tests-bdd/.env.test 2>/dev/null && echo "OK" || echo "请创建 tests-bdd/.en
 ```
 🧪 BDD 测试结果（<领域/全量>）
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📌 对应用例：已找到 / 缺失（缺失时需 backend-worker 补充）
 ✅ 通过：Y 个场景
 ❌ 失败：Z 个场景
 📊 合计：X 个场景
@@ -168,9 +189,10 @@ Checklist 结果放在汇总报告最前面：
 1. **明确范围** —— 要审查的是哪些代码或 PRD？涉及哪些领域？
 2. **读取相关文件** —— 源代码、测试文件、PRD、GraphQL schema、`AGENTS.md`。
 3. **Lint & 审查** —— 执行能力一，按严重程度排序（CRITICAL → HIGH → MEDIUM → LOW → INFO）。Lint 不通过时，后续步骤暂停，优先修复。
-4. **⚠️ 错题本 Checklist** —— Lint 通过后，调用 `backend-checklist` skill（review）逐条检查历史 Bug 模式。
-5. **运行 BDD 测试** —— 使用能力三（bdd-test skill）验证相关领域的行为。
-6. **汇总报告** —— 整理输出：
+4. **审查 BDD 覆盖性** —— 先检查对应领域 BDD 是否存在；缺失则要求 `backend-worker` 补充。
+5. **⚠️ 错题本 Checklist** —— Lint 通过后，调用 `backend-checklist` skill（review）逐条检查历史 Bug 模式。
+6. **运行 BDD 测试** —— 对已存在的对应 BDD 运行测试，必须通过；失败则汇报并要求修复后复测。
+7. **汇总报告** —— 整理输出：
 
 ```
 📊 审查汇总
@@ -183,8 +205,19 @@ Checklist 结果放在汇总报告最前面：
 ℹ️  Info:    X 条建议
 
 🧪 BDD 验证：<通过 / 失败 / 已跳过（原因）>
+🧩 BDD 覆盖：<已覆盖 / 缺失（已要求 backend-worker 补充）>
 📋 PRD 需求覆盖：<X/Y 个需求已覆盖>（提供 PRD 时显示）
 ```
+
+## 使用技能
+
+| 触发时机 | 技能 |
+|---------|------|
+| 需要做结构定位、依赖链追踪、参考实现对比时 | `/graphify` |
+| 需要执行 BDD 验收测试或复测时 | `/bdd-test` |
+| 需要查看 `just` 命令用法或执行后端命令时 | `/justfile` |
+
+**强制要求**：命中触发时机时，先调用对应 skill，再执行对应工作流程。
 
 ---
 

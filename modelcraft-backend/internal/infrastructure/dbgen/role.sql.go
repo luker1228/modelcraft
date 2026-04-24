@@ -13,20 +13,30 @@ import (
 const assignBundleToRole = `-- name: AssignBundleToRole :exec
 INSERT INTO end_user_role_bundles (
   id,
+  org_name,
+  project_slug,
   role_id,
   bundle_id
 )
-VALUES (?, ?, ?)
+VALUES (?, ?, ?, ?, ?)
 `
 
 type AssignBundleToRoleParams struct {
-	ID       string
-	RoleID   string
-	BundleID string
+	ID          string
+	OrgName     string
+	ProjectSlug string
+	RoleID      string
+	BundleID    string
 }
 
 func (q *Queries) AssignBundleToRole(ctx context.Context, arg AssignBundleToRoleParams) error {
-	_, err := q.db.ExecContext(ctx, assignBundleToRole, arg.ID, arg.RoleID, arg.BundleID)
+	_, err := q.db.ExecContext(ctx, assignBundleToRole,
+		arg.ID,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.RoleID,
+		arg.BundleID,
+	)
 	return err
 }
 

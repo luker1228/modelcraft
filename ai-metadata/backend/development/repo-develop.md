@@ -164,11 +164,24 @@ func (r *SqlModelRepo) Save(ctx context.Context, model *DataModel) error {
 
 ### 规则 3: 使用 `sqlerr` 包辅助函数处理错误
 
+若 Repository 构造函数已使用 `dbgenwrap.NewSafeQuerier(q)`，则 `r.q` 的方法在 `safe_querier_gen.go` 中已统一执行 `WrapSQLErrorInPlace`。此时不要再写 `sqlerr.WrapSQLError(r.q.XXX(...))`，避免重复包装。
+
+```go
+// ✅ 正确：SafeQuerier 已包装，直接返回
+func (r *SqlEndUserPermissionRepository) CreatePermission(ctx context.Context, p *rbac.EndUserPermission) error {
+    params := toCreateParams(p)
+    return r.q.CreateEndUserPermission(ctx, params)
+}
+
+// ❌ 错误：重复包装
+return sqlerr.WrapSQLError(r.q.CreateEndUserPermission(ctx, params))
+```
+
 错误处理辅助函数位于 `internal/infrastructure/sqlerr/sqlerr.go`：
 
 ```go
-// 1. WrapSQLError - 包装任意 SQL 错误
-err := r.q.CreateModel(ctx, params)
+// 1. WrapSQLError - 包装任意 SQL 错误（仅在 err 未经过 SafeQuerier 时）
+err := rawQ.CreateModel(ctx, params)
 return sqlerr.WrapSQLError(err)  // 自动分类错误类型
 
 // 2. ExecWithErrorHandling - 用于写操作 (INSERT/UPDATE/DELETE)

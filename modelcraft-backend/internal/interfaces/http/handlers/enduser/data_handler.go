@@ -2,6 +2,7 @@ package enduser
 
 import (
 	"encoding/json"
+	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
@@ -9,7 +10,6 @@ import (
 	"strconv"
 
 	appModelDesign "modelcraft/internal/app/modeldesign"
-	"modelcraft/internal/infrastructure/repository"
 )
 
 // DataHandler handles end-user data metadata APIs.

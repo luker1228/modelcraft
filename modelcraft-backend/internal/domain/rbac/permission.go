@@ -55,10 +55,12 @@ func (p *EndUserPermission) Validate() error {
 		return bizerrors.NewValidationError("rbac.permission.invalid_action: invalid action: %s", string(p.Action))
 	}
 	if !p.RowScope.IsValid() {
-		return bizerrors.NewValidationError("rbac.permission.invalid_row_scope: invalid rowScope: %s", string(p.RowScope))
+		return bizerrors.NewValidationError(
+			"rbac.permission.invalid_row_scope: invalid rowScope: %s", string(p.RowScope))
 	}
 	if p.ColumnPolicy != nil && !p.ColumnPolicy.DefaultMode.IsValid() {
-		return bizerrors.NewValidationError("rbac.permission.invalid_column_default_mode: invalid default column access mode")
+		return bizerrors.NewValidationError(
+			"rbac.permission.invalid_column_default_mode: invalid default column access mode")
 	}
 	return nil
 }

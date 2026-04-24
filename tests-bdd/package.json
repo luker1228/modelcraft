@@ -11,6 +11,7 @@
     "test:auth": "cucumber-js features/auth",
     "test:end-user-auth": "cucumber-js features/end-user-auth",
     "test:rls": "cucumber-js features/rls",
+    "test:rbac": "cucumber-js features/rbac",
     "test:org": "cucumber-js features/org",
     "test:smoke": "cucumber-js --tags @smoke",
     "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html"

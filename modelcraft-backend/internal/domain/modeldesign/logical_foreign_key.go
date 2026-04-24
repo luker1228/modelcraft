@@ -18,7 +18,7 @@ const (
 type LogicalFKCreateMode string
 
 const (
-	FKCreateModeBidirectional LogicalFKCreateMode = "BIDIRECTIONAL"
+	FKCreateModeBidirectional  LogicalFKCreateMode = "BIDIRECTIONAL"
 	FKCreateModeUnidirectional LogicalFKCreateMode = "UNIDIRECTIONAL"
 )
 

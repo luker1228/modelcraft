@@ -19,11 +19,12 @@ func NewEndUserAuthzService(rbacRepo rbacdomain.EndUserPermissionRepository) *En
 // GetEffectivePermissions 获取用户在指定 Project 下的有效权限集
 //
 // 5 步鉴权（来自 prd/rbac/03-auth-flow.md）：
-//   Step 1: 查 end_user_user_bundles（直接授权）
-//   Step 2: 查 end_user_role_users → end_user_role_bundles（显式角色，单次 JOIN）
-//   Step 3: 查 end_user_roles WHERE is_implicit=true → end_user_role_bundles（隐式角色，对所有认证用户执行）
-//   Step 4: 展开所有权限点（GetPermissionsByBundleIDs，动态 IN）
-//   Step 5: 合并取并集（rowScope 取最宽泛范围）
+//
+//	Step 1: 查 end_user_user_bundles（直接授权）
+//	Step 2: 查 end_user_role_users → end_user_role_bundles（显式角色，单次 JOIN）
+//	Step 3: 查 end_user_roles WHERE is_implicit=true → end_user_role_bundles（隐式角色，对所有认证用户执行）
+//	Step 4: 展开所有权限点（GetPermissionsByBundleIDs，动态 IN）
+//	Step 5: 合并取并集（rowScope 取最宽泛范围）
 //
 // 返回：
 //   - 有效权限集，key = "modelID:action"；空集合（无任何授权）不报错

@@ -3,14 +3,13 @@ package repository
 import (
 	"context"
 	"encoding/json"
-
-	"github.com/google/uuid"
-
 	"modelcraft/internal/domain/rbac"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
+
+	"github.com/google/uuid"
 )
 
 // SqlEndUserPermissionRepository is the sqlc-based implementation of
@@ -89,7 +88,7 @@ func (r *SqlEndUserPermissionRepository) CreatePermission(ctx context.Context, p
 		RowScope:     dbgen.EndUserPermissionsRowScope(p.RowScope),
 	}
 
-	return sqlerr.WrapSQLError(r.q.CreateEndUserPermission(ctx, params))
+	return r.q.CreateEndUserPermission(ctx, params)
 }
 
 func (r *SqlEndUserPermissionRepository) GetPermissionByID(
@@ -435,12 +434,14 @@ func (r *SqlEndUserPermissionRepository) DeleteRole(ctx context.Context, orgName
 
 func (r *SqlEndUserPermissionRepository) AssignBundleToRole(
 	ctx context.Context,
-	roleID, bundleID string,
+	orgName, projectSlug, roleID, bundleID string,
 ) error {
 	params := dbgen.AssignBundleToRoleParams{
-		ID:       uuid.NewString(),
-		RoleID:   roleID,
-		BundleID: bundleID,
+		ID:          uuid.NewString(),
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		RoleID:      roleID,
+		BundleID:    bundleID,
 	}
 
 	return sqlerr.WrapSQLError(r.q.AssignBundleToRole(ctx, params))
@@ -547,9 +548,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleIDsByUserDirect(
 	}
 
 	ids := make([]string, 0, len(rows))
-	for _, row := range rows {
-		ids = append(ids, row)
-	}
+	ids = append(ids, rows...)
 	return ids, nil
 }
 
@@ -567,9 +566,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleIDsByUserExplicitRoles(
 	}
 
 	ids := make([]string, 0, len(rows))
-	for _, row := range rows {
-		ids = append(ids, row)
-	}
+	ids = append(ids, rows...)
 	return ids, nil
 }
 
@@ -586,9 +583,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleIDsByImplicitRoles(
 	}
 
 	ids := make([]string, 0, len(rows))
-	for _, row := range rows {
-		ids = append(ids, row)
-	}
+	ids = append(ids, rows...)
 	return ids, nil
 }
 

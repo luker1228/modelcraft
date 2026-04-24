@@ -467,6 +467,100 @@ var (
 	}
 )
 
+// 定义 RBAC（数据行列级权限）领域错误
+var (
+	// EndUserPermissionNotFound 权限点不存在
+	EndUserPermissionNotFound = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".RBAC.PERMISSION",
+		EnMessage: "End user permission not found: {0}",
+		ZhMessage: "权限点不存在: {0}",
+	}
+
+	// EndUserPermissionBundleNotFound 权限包不存在
+	EndUserPermissionBundleNotFound = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".RBAC.BUNDLE",
+		EnMessage: "End user permission bundle not found: {0}",
+		ZhMessage: "权限包不存在: {0}",
+	}
+
+	// EndUserPermissionBundleAlreadyExists 权限包名称重复
+	EndUserPermissionBundleAlreadyExists = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".RBAC.BUNDLE",
+		EnMessage: "End user permission bundle already exists: {0}",
+		ZhMessage: "权限包已存在: {0}",
+	}
+
+	// EndUserRoleNotFound RBAC 角色不存在
+	EndUserRoleNotFound = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".RBAC.ROLE",
+		EnMessage: "End user role not found: {0}",
+		ZhMessage: "RBAC 角色不存在: {0}",
+	}
+
+	// EndUserRoleAlreadyExists RBAC 角色名称重复
+	EndUserRoleAlreadyExists = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".RBAC.ROLE",
+		EnMessage: "End user role already exists: {0}",
+		ZhMessage: "RBAC 角色已存在: {0}",
+	}
+
+	// EndUserImplicitRoleCannotBeModified 内置隐式角色不可修改或删除
+	EndUserImplicitRoleCannotBeModified = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.IMPLICIT_ROLE",
+		EnMessage: "Implicit role cannot be modified or deleted: {0}",
+		ZhMessage: "内置隐式角色不可修改或删除: {0}",
+	}
+
+	// EndUserCannotAssignImplicitRole 不可手动分配隐式角色
+	EndUserCannotAssignImplicitRole = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.ASSIGN_IMPLICIT",
+		EnMessage: "Implicit role cannot be manually assigned to users",
+		ZhMessage: "内置隐式角色不可手动分配给用户",
+	}
+
+	// UserBundleAlreadyAssigned 用户已绑定该权限包
+	UserBundleAlreadyAssigned = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".RBAC.USER_BUNDLE",
+		EnMessage: "User already has this permission bundle assigned",
+		ZhMessage: "用户已绑定该权限包",
+	}
+
+	// UserRoleAlreadyAssigned 用户已绑定该角色
+	UserRoleAlreadyAssigned = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".RBAC.USER_ROLE",
+		EnMessage: "User already has this role assigned",
+		ZhMessage: "用户已绑定该角色",
+	}
+
+	// EndUserNotFoundInProject 终端用户在项目中不存在（RBAC 上下文）
+	EndUserNotFoundInProject = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".RBAC.END_USER",
+		EnMessage: "End user not found in project: {0}",
+		ZhMessage: "终端用户在项目中不存在: {0}",
+	}
+
+	// EndUserPermissionBundleInUse 权限包已被角色或用户绑定，无法删除
+	EndUserPermissionBundleInUse = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.BUNDLE_IN_USE",
+		EnMessage: "Permission bundle is still in use and cannot be deleted: {0}",
+		ZhMessage: "权限包仍被使用中，无法删除: {0}",
+	}
+
+	// EndUserPermissionInUse 权限点已被权限包引用，无法删除
+	EndUserPermissionInUse = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.PERMISSION_IN_USE",
+		EnMessage: "Permission is still referenced by bundles and cannot be deleted: {0}",
+		ZhMessage: "权限点仍被权限包引用，无法删除: {0}",
+	}
+
+	// EndUserRowScopeFieldMissing rowScope 要求 Model 上存在特定字段，但字段不存在
+	EndUserRowScopeFieldMissing = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".RBAC.ROW_SCOPE_FIELD",
+		EnMessage: "Row scope '{0}' requires field '{1}' on the model, but it does not exist",
+		ZhMessage: "行策略 '{0}' 要求模型存在字段 '{1}'，但该字段不存在",
+	}
+)
+
 // AllErrorDefinitions 返回所有错误定义（用于测试）
 func AllErrorDefinitions() []ErrorDefinition {
 	return []ErrorDefinition{

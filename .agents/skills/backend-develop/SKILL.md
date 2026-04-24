@@ -82,6 +82,7 @@ Interfaces (Resolver)
 - 手改 `api/openapi/openapi.yaml`（聚合文件，由工具生成）
 - Domain 层依赖 Infrastructure 或 App
 - Repository 层返回 `*BusinessError`
+- 对已通过 `dbgenwrap.NewSafeQuerier` 包装的 `r.q.*` 调用再次 `sqlerr.WrapSQLError(...)`（重复包装）
 - **Domain Repository 接口方法缺少 `ctx context.Context`**（第一个参数必须是 ctx）
 - **`FindByID` / `GetByID` 等按 ID 查询方法缺少 `orgName`**（租户隔离漏洞，攻击者可跨租户读取）
 

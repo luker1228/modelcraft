@@ -72,7 +72,7 @@ type EndUserPermissionRepository interface {
 	DeleteRole(ctx context.Context, orgName, id string) error
 
 	// AssignBundleToRole 将权限包授予角色（M:N）
-	AssignBundleToRole(ctx context.Context, roleID, bundleID string) error
+	AssignBundleToRole(ctx context.Context, orgName, projectSlug, roleID, bundleID string) error
 
 	// RevokeBundleFromRole 撤销角色对权限包的关联
 	RevokeBundleFromRole(ctx context.Context, roleID, bundleID string) error

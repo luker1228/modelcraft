@@ -234,6 +234,7 @@ func (s *ReverseEngineerAppService) ImportPrivateModel(
 	}
 	return nil
 }
+
 func (s *ReverseEngineerAppService) createModel(
 	ctx context.Context,
 	orgName string,

@@ -93,8 +93,13 @@ tool: *
 | 触发时机 | 技能 |
 |---------|------|
 | 开始任何后端功能开发前（了解 Schema-First 流程、事务、日志规范、代码模式） | `/backend-develop` |
+| 进行 modelruntime 相关开发（`internal/domain/modelruntime/`、`internal/app/modelruntime/`、动态 Schema、关系解析、dataloader） | `/modelruntime-dev` |
 | 需要执行 `just` 命令（构建、代码生成、lint、运行服务等） | `/justfile` |
 | 需要搜索代码、理解模块结构、查找函数/类型实现位置时 | `/graphify` |
+| 出现后端报错、requestId、接口异常，需要日志链路定位时 | `/backend-debug` |
+| 需要运行/补充/验证 BDD 验收测试（或 reviewer 要求补 BDD） | `/bdd-test` |
+
+**强制要求**：命中触发时机时，先调用对应 skill，再执行对应工作流程。
 
 ## 使用知识图谱导航代码
 

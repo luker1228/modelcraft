@@ -4,6 +4,7 @@ import (
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/permission"
+	apprbac "modelcraft/internal/app/rbac"
 	"modelcraft/internal/app/rls"
 	"modelcraft/internal/infrastructure/repository"
 )
@@ -36,4 +37,10 @@ type Resolver struct {
 
 	// Private DB
 	PrivateDBManager *repository.PrivateDBManager
+
+	// RBAC (Data-Level Row & Column Permission)
+	RBACPermissionSvc *apprbac.EndUserPermissionAppService
+	RBACBundleSvc     *apprbac.EndUserBundleAppService
+	RBACRoleSvc       *apprbac.EndUserRoleAppService
+	RBACAuthzSvc      *apprbac.EndUserAuthzService
 }

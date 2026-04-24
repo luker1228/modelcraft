@@ -1,0 +1,566 @@
+# ============================================================
+# RBAC — Data-Level Row & Column Permission Management
+# File: api/graph/project/schema/rbac.graphql
+#
+# 依赖（定义于其他文件，此处直接引用）：
+#   - interface Error           → cluster.graphql
+#   - type InvalidInput         → field.graphql
+#   - type ProjectNotFound      → cluster.graphql
+#   - type ModelNotFound        → model.graphql
+#   - type EndUser              → end_user.graphql
+#   - scalar Time               → base.graphql
+#   - interface Node            → base.graphql
+#   - type PageInfo             → base.graphql
+# ============================================================
+
+
+# ============================================================
+# Enums
+# ============================================================
+
+"""
+数据操作动作：终端用户对数据表可执行的操作类型
+"""
+enum RbacAction {
+  SELECT
+  INSERT
+  UPDATE
+  DELETE
+  EXPORT
+}
+
+"""
+行策略范围：控制终端用户可见哪些数据行
+
+ALL                — 全部行，不过滤
+SELF               — 仅当前用户自己的行
+DEPT               — 仅当前用户所在部门的行
+DEPT_AND_CHILDREN  — 当前部门及所有下级部门的行
+"""
+enum RowScopeType {
+  ALL
+  SELF
+  DEPT
+  DEPT_AND_CHILDREN
+}
+
+"""
+列访问模式
+"""
+enum ColumnAccessMode {
+  """可见且可编辑"""
+  VISIBLE
+  """可见但只读"""
+  READONLY
+  """脱敏显示"""
+  MASKED
+  """完全隐藏"""
+  HIDDEN
+}
+
+
+# ============================================================
+# Column Policy
+# ============================================================
+
+type ColumnRule {
+  fieldName: String!
+  mode: ColumnAccessMode!
+  maskPattern: String
+}
+
+type ColumnPolicy {
+  defaultMode: ColumnAccessMode!
+  rules: [ColumnRule!]!
+}
+
+input ColumnPolicyInput {
+  defaultMode: ColumnAccessMode!
+  rules: [ColumnRuleInput!]!
+}
+
+input ColumnRuleInput {
+  fieldName: String!
+  mode: ColumnAccessMode!
+  maskPattern: String
+}
+
+
+# ============================================================
+# EndUserPermission（权限点）
+# ============================================================
+
+type EndUserPermission implements Node {
+  id: ID!
+  modelId: ID!
+  action: RbacAction!
+  columnPolicy: ColumnPolicy!
+  rowScope: RowScopeType!
+  displayName: String
+  description: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EndUserPermissionEdge {
+  node: EndUserPermission!
+  cursor: String!
+}
+
+type EndUserPermissionConnection {
+  edges: [EndUserPermissionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+
+# ============================================================
+# EndUserPermissionBundle（权限包）
+# ============================================================
+
+type EndUserPermissionBundle implements Node {
+  id: ID!
+  name: String!
+  description: String
+  permissions: [EndUserBundlePermissionEntry!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EndUserBundlePermissionEntry {
+  sortOrder: Int!
+  permission: EndUserPermission!
+}
+
+type EndUserPermissionBundleEdge {
+  node: EndUserPermissionBundle!
+  cursor: String!
+}
+
+type EndUserPermissionBundleConnection {
+  edges: [EndUserPermissionBundleEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+
+# ============================================================
+# EndUserRole（RBAC 角色）
+# ============================================================
+
+type EndUserRole implements Node {
+  id: ID!
+  name: String!
+  description: String
+  isImplicit: Boolean!
+  permissionBundles: [EndUserRoleBundleEntry!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EndUserRoleBundleEntry {
+  bundle: EndUserPermissionBundle!
+  assignedAt: Time!
+}
+
+type EndUserRoleEdge {
+  node: EndUserRole!
+  cursor: String!
+}
+
+type EndUserRoleConnection {
+  edges: [EndUserRoleEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+
+# ============================================================
+# 授权关联类型
+# ============================================================
+
+type EndUserBundleAssignment {
+  endUserId: ID!
+  bundle: EndUserPermissionBundle!
+  assignedAt: Time!
+}
+
+type EndUserRoleAssignment {
+  endUserId: ID!
+  role: EndUserRole!
+  assignedAt: Time!
+}
+
+
+# ============================================================
+# 有效权限查询结果
+# ============================================================
+
+type EffectivePermissions {
+  endUserId: ID!
+  modelId: ID!
+  grants: [EffectiveGrant!]!
+  sources: EffectivePermissionSources!
+}
+
+type EffectiveGrant {
+  action: RbacAction!
+  columnPolicy: ColumnPolicy!
+  rowScope: RowScopeType!
+}
+
+type EffectivePermissionSources {
+  directBundles: [EndUserPermissionBundle!]!
+  explicitRoleBundles: [EndUserRoleBundleSource!]!
+  implicitRoleBundles: [EndUserRoleBundleSource!]!
+}
+
+type EndUserRoleBundleSource {
+  role: EndUserRole!
+  bundles: [EndUserPermissionBundle!]!
+}
+
+
+# ============================================================
+# Error Types
+# ============================================================
+
+type EndUserPermissionNotFound implements Error {
+  message: String!
+}
+
+type EndUserPermissionBundleNotFound implements Error {
+  message: String!
+}
+
+type EndUserPermissionBundleAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type EndUserRoleNotFound implements Error {
+  message: String!
+}
+
+type EndUserRoleAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type RowScopeFieldMissing implements Error {
+  message: String!
+  missingField: String!
+  requiredByRowScope: RowScopeType!
+  suggestion: String
+}
+
+type EndUserImplicitRoleCannotBeModified implements Error {
+  message: String!
+  suggestion: String
+}
+
+type EndUserCannotAssignImplicitRole implements Error {
+  message: String!
+  suggestion: String
+}
+
+type UserBundleAlreadyAssigned implements Error {
+  message: String!
+}
+
+type UserRoleAlreadyAssigned implements Error {
+  message: String!
+}
+
+type EndUserNotFoundInProject implements Error {
+  message: String!
+}
+
+type EndUserPermissionBundleInUse implements Error {
+  message: String!
+  suggestion: String
+}
+
+type EndUserPermissionInUse implements Error {
+  message: String!
+  suggestion: String
+}
+
+
+# ============================================================
+# Error Unions
+# ============================================================
+
+union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
+union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
+union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
+
+union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
+union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
+union DeleteEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleInUse | ProjectNotFound
+
+union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | InvalidInput | ProjectNotFound
+union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
+
+union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
+union UpdateEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
+union DeleteEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | ProjectNotFound
+
+union AssignBundleToEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
+union RevokeBundleFromEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
+
+union AssignBundleToEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | UserBundleAlreadyAssigned | ProjectNotFound
+union RevokeBundleFromEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | ProjectNotFound
+
+union AssignEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned | ProjectNotFound
+union RevokeEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | ProjectNotFound
+
+union GetEffectivePermissionsError = EndUserNotFoundInProject | ModelNotFound | ProjectNotFound
+
+
+# ============================================================
+# Payload Types
+# ============================================================
+
+# EndUserPermission
+type CreateEndUserPermissionPayload {
+  permission: EndUserPermission
+  error: CreateEndUserPermissionError
+}
+type UpdateEndUserPermissionPayload {
+  permission: EndUserPermission
+  error: UpdateEndUserPermissionError
+}
+type DeleteEndUserPermissionPayload {
+  success: Boolean!
+  error: DeleteEndUserPermissionError
+}
+
+# EndUserPermissionBundle
+type CreateEndUserPermissionBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: CreateEndUserPermissionBundleError
+}
+type UpdateEndUserPermissionBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: UpdateEndUserPermissionBundleError
+}
+type DeleteEndUserPermissionBundlePayload {
+  success: Boolean!
+  error: DeleteEndUserPermissionBundleError
+}
+type AddEndUserPermissionToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: AddEndUserPermissionToBundleError
+}
+type RemoveEndUserPermissionFromBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: RemoveEndUserPermissionFromBundleError
+}
+
+# EndUserRole
+type CreateEndUserRolePayload {
+  role: EndUserRole
+  error: CreateEndUserRoleError
+}
+type UpdateEndUserRolePayload {
+  role: EndUserRole
+  error: UpdateEndUserRoleError
+}
+type DeleteEndUserRolePayload {
+  success: Boolean!
+  error: DeleteEndUserRoleError
+}
+type AssignBundleToEndUserRolePayload {
+  role: EndUserRole
+  error: AssignBundleToEndUserRoleError
+}
+type RevokeBundleFromEndUserRolePayload {
+  role: EndUserRole
+  error: RevokeBundleFromEndUserRoleError
+}
+
+# User↔Bundle
+type AssignBundleToEndUserPayload {
+  endUserId: ID!
+  bundle: EndUserPermissionBundle
+  error: AssignBundleToEndUserError
+}
+type RevokeBundleFromEndUserPayload {
+  success: Boolean!
+  error: RevokeBundleFromEndUserError
+}
+
+# User↔Role
+type AssignEndUserRolePayload {
+  endUserId: ID!
+  role: EndUserRole
+  error: AssignEndUserRoleError
+}
+type RevokeEndUserRolePayload {
+  success: Boolean!
+  error: RevokeEndUserRoleError
+}
+
+# 有效权限
+type GetEffectivePermissionsPayload {
+  effectivePermissions: EffectivePermissions
+  error: GetEffectivePermissionsError
+}
+
+
+# ============================================================
+# Input Types
+# ============================================================
+
+input CreateEndUserPermissionInput {
+  modelId: ID!
+  action: RbacAction!
+  columnPolicy: ColumnPolicyInput!
+  rowScope: RowScopeType!
+  displayName: String
+  description: String
+}
+
+input UpdateEndUserPermissionInput {
+  columnPolicy: ColumnPolicyInput
+  displayName: String
+  description: String
+}
+
+input ListEndUserPermissionsInput {
+  modelId: ID
+  action: RbacAction
+  first: Int
+  after: String
+}
+
+input CreateEndUserPermissionBundleInput {
+  name: String!
+  description: String
+}
+
+input UpdateEndUserPermissionBundleInput {
+  name: String
+  description: String
+}
+
+input ListEndUserPermissionBundlesInput {
+  search: String
+  first: Int
+  after: String
+}
+
+input AddEndUserPermissionToBundleInput {
+  bundleId: ID!
+  permissionId: ID!
+  sortOrder: Int
+}
+
+input RemoveEndUserPermissionFromBundleInput {
+  bundleId: ID!
+  permissionId: ID!
+}
+
+input CreateEndUserRoleInput {
+  name: String!
+  description: String
+}
+
+input UpdateEndUserRoleInput {
+  name: String
+  description: String
+}
+
+input ListEndUserRolesInput {
+  includeImplicit: Boolean = true
+  search: String
+  first: Int
+  after: String
+}
+
+input AssignBundleToEndUserRoleInput {
+  roleId: ID!
+  bundleId: ID!
+}
+
+input RevokeBundleFromEndUserRoleInput {
+  roleId: ID!
+  bundleId: ID!
+}
+
+input AssignBundleToEndUserInput {
+  endUserId: ID!
+  bundleId: ID!
+}
+
+input RevokeBundleFromEndUserInput {
+  endUserId: ID!
+  bundleId: ID!
+}
+
+input AssignEndUserRoleInput {
+  endUserId: ID!
+  roleId: ID!
+}
+
+input RevokeEndUserRoleInput {
+  endUserId: ID!
+  roleId: ID!
+}
+
+input GetEffectivePermissionsInput {
+  endUserId: ID!
+  modelId: ID!
+}
+
+
+# ============================================================
+# Query Extensions
+# ============================================================
+
+extend type Query {
+  endUserPermission(id: ID!): EndUserPermission @hasPermission(action: "rbac:read")
+  endUserPermissions(input: ListEndUserPermissionsInput): EndUserPermissionConnection! @hasPermission(action: "rbac:read")
+  endUserPermissionBundle(id: ID!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
+  endUserPermissionBundles(input: ListEndUserPermissionBundlesInput): EndUserPermissionBundleConnection! @hasPermission(action: "rbac:read")
+  endUserRole(id: ID!): EndUserRole @hasPermission(action: "rbac:read")
+  endUserRoles(input: ListEndUserRolesInput): EndUserRoleConnection! @hasPermission(action: "rbac:read")
+  endUserBundleAssignments(endUserId: ID!): [EndUserBundleAssignment!]! @hasPermission(action: "rbac:read")
+  endUserRoleAssignments(endUserId: ID!): [EndUserRoleAssignment!]! @hasPermission(action: "rbac:read")
+  effectivePermissions(input: GetEffectivePermissionsInput!): GetEffectivePermissionsPayload! @hasPermission(action: "rbac:read")
+}
+
+
+# ============================================================
+# Mutation Extensions
+# ============================================================
+
+extend type Mutation {
+  # EndUserPermission CRUD
+  createEndUserPermission(input: CreateEndUserPermissionInput!): CreateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
+  updateEndUserPermission(id: ID!, input: UpdateEndUserPermissionInput!): UpdateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
+  deleteEndUserPermission(id: ID!): DeleteEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
+
+  # EndUserPermissionBundle CRUD
+  createEndUserPermissionBundle(input: CreateEndUserPermissionBundleInput!): CreateEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
+  updateEndUserPermissionBundle(id: ID!, input: UpdateEndUserPermissionBundleInput!): UpdateEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
+  deleteEndUserPermissionBundle(id: ID!): DeleteEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
+  addEndUserPermissionToBundle(input: AddEndUserPermissionToBundleInput!): AddEndUserPermissionToBundlePayload! @hasPermission(action: "rbac:manage")
+  removeEndUserPermissionFromBundle(input: RemoveEndUserPermissionFromBundleInput!): RemoveEndUserPermissionFromBundlePayload! @hasPermission(action: "rbac:manage")
+
+  # EndUserRole CRUD
+  createEndUserRole(input: CreateEndUserRoleInput!): CreateEndUserRolePayload! @hasPermission(action: "rbac:manage")
+  updateEndUserRole(id: ID!, input: UpdateEndUserRoleInput!): UpdateEndUserRolePayload! @hasPermission(action: "rbac:manage")
+  deleteEndUserRole(id: ID!): DeleteEndUserRolePayload! @hasPermission(action: "rbac:manage")
+  assignBundleToEndUserRole(input: AssignBundleToEndUserRoleInput!): AssignBundleToEndUserRolePayload! @hasPermission(action: "rbac:manage")
+  revokeBundleFromEndUserRole(input: RevokeBundleFromEndUserRoleInput!): RevokeBundleFromEndUserRolePayload! @hasPermission(action: "rbac:manage")
+
+  # User↔Bundle (Channel 1)
+  assignBundleToEndUser(input: AssignBundleToEndUserInput!): AssignBundleToEndUserPayload! @hasPermission(action: "rbac:manage")
+  revokeBundleFromEndUser(input: RevokeBundleFromEndUserInput!): RevokeBundleFromEndUserPayload! @hasPermission(action: "rbac:manage")
+
+  # User↔Role (Channel 2)
+  assignEndUserRole(input: AssignEndUserRoleInput!): AssignEndUserRolePayload! @hasPermission(action: "rbac:manage")
+  revokeEndUserRole(input: RevokeEndUserRoleInput!): RevokeEndUserRolePayload! @hasPermission(action: "rbac:manage")
+}

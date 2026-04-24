@@ -1,10 +1,10 @@
 ---
 name: doBackend
-description: "后端开发全流程：backend-develop / modelruntime-dev 实现代码，schema-sync-cascade 同步生成代码，test-driven-development 补充高价值逻辑测试，backend-debug 排查问题，bdd-test 流程验收"
+description: "后端四步流：Plan 模式 → backend-worker 并行开发 → review 前环境准备（db up + just run --force）→ backend-reviewer 串行收口（失败回流 backend-worker）"
 argument-hint: "[plan file path or requirement description]"
 ---
 
-执行后端开发完整流程，覆盖实现、Schema 同步、逻辑测试、调试、验收五个阶段。
+执行后端开发四步流程：Plan 模式、backend-worker 并行开发、review 前环境准备、backend-reviewer 串行收口。
 
 ## 测试分工说明
 
@@ -19,13 +19,25 @@ argument-hint: "[plan file path or requirement description]"
 
 ## 流程
 
+### Step 0 — 进入 Plan 模式（必需）
+
+- 在开始任何实现、生成、测试或调试动作前，必须先进入 Plan 模式
+- 先在 Plan 中明确任务边界、影响文件、测试策略与验收标准
+- 只有在 Plan 获批后，才能继续执行 Step 1~Step 4
+
 ### Step 1 — 输入校验
 
 - 检查 `$ARGUMENTS` 是否提供了计划文件路径或需求描述
 - 如果是文件路径，校验文件存在且可读；缺失则立即停止并提示
 - 如果未提供任何输入，提示用户补充计划文件路径或需求说明
 
-### Step 2 — 实现
+### Step 2 — 多 Agent 并行实现（必需）
+
+- 开始实现前必须先拆分任务，并采用多 Agent 并行开发
+- 必须在同一条消息中并行派发多个 `backend-worker` agent
+- 每个 Agent 必须有明确 ownership（文件/目录边界），避免并发修改同一文件
+- 推荐按分层拆分：migration / repository / app / resolver / adapter
+- 并行开发后串行收口：使用 `backend-reviewer` 做统一代码审查、冲突处理、回归验证
 
 根据任务是否涉及 `internal/domain/modelruntime/` 或 `internal/app/modelruntime/`，选择对应 skill：
 
@@ -41,64 +53,55 @@ argument-hint: "[plan file path or requirement description]"
 
 #### 情况 B — 常规后端开发
 
-- 使用 `backend-develop` skill
+- 优先使用 `backend-worker` agent 并行实现
+- 如需技能辅助，可在 worker 内调用 `backend-develop` skill
 - 按照 DDD 分层架构实现
 - 涵盖：DB migration / Repository / App / Resolver / GraphQL Schema
 
 - 产出：可运行的后端实现代码
 - 人工确认后继续
 
-### Step 3 — `schema-sync-cascade` 同步生成代码
+### Step 3 — Review 前环境准备（必需）
 
-- 若 Step 2 中修改了 `.graphql` 文件、`.sql` 文件、`gqlgen.*.yml` 或 `sqlc.yaml`，必须执行此步骤
-- 使用 `schema-sync-cascade` skill 确保所有生成代码与 Schema 保持同步
-- 涵盖：`just generate-gql` / `just generate-sqlc`，同步前后端引用
-- 产出：生成代码更新完成，`go build ./...` 无编译错误
-- 若 Step 2 未涉及 Schema 变更（如仅改业务逻辑），可跳过此步骤
+- 在进入 `backend-reviewer` 之前，必须先调用 `db-develop` skill
+- 按 `db-develop` 规范同步数据库：在 `modelcraft-backend/` 执行 `just db up`（如有需要可指定 env 文件）
+- 数据库同步完成后，在 `modelcraft-backend/` 执行 `just run --force`，强制重启后端服务
+- 建议执行健康检查（如 `curl -sf http://localhost:8080/health`），确认服务可用后再进入审查
 
-### Step 4 — `test-driven-development` 高价值逻辑测试
+推荐执行顺序（必须在 `modelcraft-backend/` 目录下）：
 
-针对以下高价值逻辑补充单元/集成测试（优先级由高到低）：
+```bash
+# 1) 先调 db-develop skill（理解当前 env 和迁移策略）
+# 2) 同步数据库
+just db up
 
-1. **Adapter 测试**（最高优先级）
-   - 针对所有新增或修改的 Adapter / Converter 编写契约测试
-   - 必须包含 **Fuzz 测试**：覆盖边界值、零值、异常输入、随机数据
-   - 使用 table-driven 风格，覆盖正常路径 + 错误路径
+# 3) 强制重启后端
+just run --force
 
-2. **Schema 生成测试**
-   - 若涉及动态 GraphQL Schema 构建（如 modelruntime），测试 Schema 结构正确性
-   - 覆盖字段类型、关系字段、可选/必填约束
+# 4) 健康检查
+curl -sf http://localhost:8080/health
+```
 
-3. **SQL 生成测试**
-   - 若涉及动态 SQL 拼接或 sqlc 查询，测试生成的 SQL 语义正确性
-   - 覆盖过滤条件、排序、分页、JOIN 逻辑
+任一命令失败时：立即停止流程，修复后重新执行 Step 3，不得直接进入 `backend-reviewer`。
 
-> **不写的测试**：Use Case / Application Service 的业务流程测试 — 这部分由 `bdd-test` 覆盖。
+### Step 4 — `backend-reviewer` 串行收口（必需）
 
-- 产出：测试文件（`*_test.go`），所有测试通过
-- 人工确认后继续
-
-### Step 5 — `backend-debug` 排查（按需）
-
-- 如果 Step 2/3/4 过程中或完成后发现错误（接口报错、日志异常、测试失败）
-- 使用 `backend-debug` skill 定位根因并修复
-- 产出：问题修复记录
-- 修复后回到对应步骤重新验证
-
-### Step 6 — `bdd-test` 流程验收
-
-- 使用 `bdd-test` skill 运行相关领域的 BDD 验收测试
-- 覆盖完整业务流程（Use Case 级别）
-- 产出：测试报告（通过 / 失败 / 跳过）
-- 如有失败，返回 Step 5 排查修复，循环直至全部通过
+- 使用 `backend-reviewer` 对 Step 2 产出进行统一审查与验收
+- 审查范围包含：分层约束、行为正确性、回归风险、测试结果
+- 审核通过：流程完成
+- 审核失败：**回到 Step 2**，由 `backend-worker` 按审查意见继续迭代修复
 
 ## 约束
 
+- 开始工作前必须先进入 Plan 模式并获得批准
+- 必须采用多 Agent 并行开发（使用 `backend-worker` 并行实现，`backend-reviewer` 串行收口）
 - 必须按 DDD 分层架构实现，不得跨层调用
 - **modelruntime 模块**：涉及 `internal/domain/modelruntime/` 或 `internal/app/modelruntime/` 时必须使用 `modelruntime-dev` skill，不得用 `backend-develop` 替代
 - **modelruntime 架构红线**：`graphqlModelResolver` 禁止持有 `context.Context` 字段；关联关系 resolver 必须返回 Thunk；请求级状态只能通过 `getGraphqlRequestContext(p.Context)` 获取
-- `test-driven-development` 阶段禁止写 Use Case 测试，只写逻辑测试
-- Adapter 测试必须包含 Fuzz 测试，不可省略
-- 禁止跳过 BDD 验收直接宣布完成
+- backend-worker 内部应完成 schema 同步、必要逻辑测试、调试与 bdd 验收
+- domain 单测与 bdd 验收为必需；adapter/converter 需补充 Fuzz；repository 默认不新增测试
+- **进入 backend-reviewer 前，必须先调用 `db-develop` skill 并完成 `just db up`**
+- **进入 backend-reviewer 前，必须执行 `just run --force` 重启后端服务**
+- 禁止跳过 backend-reviewer 串行收口直接宣布完成
+- backend-reviewer 审核失败时，必须回流到 backend-worker 流程继续修复
 - 如果缺少必要输入文件，立即停止并提示具体缺失路径
-- debug 阶段只修复问题，不引入新功能或重构

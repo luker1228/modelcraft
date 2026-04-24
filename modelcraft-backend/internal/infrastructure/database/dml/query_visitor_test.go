@@ -2,8 +2,8 @@ package dml
 
 import (
 	"modelcraft/internal/domain/query"
-	"testing"
 	"strings"
+	"testing"
 
 	"github.com/doug-martin/goqu/v9"
 	"github.com/stretchr/testify/assert"

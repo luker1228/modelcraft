@@ -38,6 +38,7 @@ import (
 	appProfile "modelcraft/internal/app/profile"
 
 	appEnduser "modelcraft/internal/app/enduser"
+	appRbac "modelcraft/internal/app/rbac"
 	appRole "modelcraft/internal/app/role"
 	domainEndUser "modelcraft/internal/domain/enduser"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
@@ -93,6 +94,12 @@ type DesignHandlers struct {
 	EndUserAuthHandler    *enduserHandlers.AuthHandler
 	EndUserMgmtHandler    *enduserHandlers.ManagementHandler
 	EndUserDataHandler    *enduserHandlers.DataHandler
+
+	// RBAC Services (Data-Level Row & Column Permission)
+	RBACPermissionSvc *appRbac.EndUserPermissionAppService
+	RBACBundleSvc     *appRbac.EndUserBundleAppService
+	RBACRoleSvc       *appRbac.EndUserRoleAppService
+	RBACAuthzSvc      *appRbac.EndUserAuthzService
 }
 
 // endUserAuthRepositoryFactory creates end-user repositories from a DB connection.
@@ -214,6 +221,13 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 
+	// Create RBAC (Data-Level Row & Column Permission) services
+	rbacRepo := repository.NewSqlEndUserPermissionRepository(dbgen.New(loggingDB))
+	rbacPermSvc := appRbac.NewEndUserPermissionAppService(rbacRepo, modelRepository)
+	rbacBundleSvc := appRbac.NewEndUserBundleAppService(rbacRepo)
+	rbacRoleSvc := appRbac.NewEndUserRoleAppService(rbacRepo)
+	rbacAuthzSvc := appRbac.NewEndUserAuthzService(rbacRepo)
+
 	// Create user management related services
 	userRepo := repository.NewSqlUserRepository(dbgen.New(loggingDB))
 	profileRepo := repository.NewSqlProfileRepository(dbgen.New(loggingDB))
@@ -334,6 +348,10 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		EndUserAuthHandler:        endUserAuthHandler,
 		EndUserMgmtHandler:        endUserMgmtHandler,
 		EndUserDataHandler:        endUserDataHandler,
+		RBACPermissionSvc:         rbacPermSvc,
+		RBACBundleSvc:             rbacBundleSvc,
+		RBACRoleSvc:               rbacRoleSvc,
+		RBACAuthzSvc:              rbacAuthzSvc,
 	}, nil
 }
 
@@ -401,6 +419,10 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		RLSPolicyAppService:      handlers.RLSPolicyAppService,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
 		PrivateDBManager:         handlers.PrivateDBManager,
+		RBACPermissionSvc:        handlers.RBACPermissionSvc,
+		RBACBundleSvc:            handlers.RBACBundleSvc,
+		RBACRoleSvc:              handlers.RBACRoleSvc,
+		RBACAuthzSvc:             handlers.RBACAuthzSvc,
 	}
 
 	jwtConfig := &middleware.JWTAuthConfig{
