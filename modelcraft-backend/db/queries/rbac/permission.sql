@@ -1,0 +1,47 @@
+-- name: CreateEndUserPermission :exec
+INSERT INTO end_user_permissions (
+  id,
+  org_name,
+  project_slug,
+  model_id,
+  name,
+  description,
+  action,
+  column_policy,
+  row_scope
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+
+-- name: GetEndUserPermissionByID :one
+SELECT *
+FROM end_user_permissions
+WHERE id = ?
+  AND org_name = ?;
+
+-- name: ListEndUserPermissionsByProject :many
+SELECT *
+FROM end_user_permissions
+WHERE org_name = ?
+  AND project_slug = ?
+ORDER BY created_at;
+
+-- name: ListEndUserPermissionsByModel :many
+SELECT *
+FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+ORDER BY action, row_scope;
+
+-- name: UpdateEndUserPermission :execresult
+UPDATE end_user_permissions
+SET name = ?,
+    description = ?,
+    column_policy = ?,
+    updated_at = NOW(3)
+WHERE id = ?
+  AND org_name = ?;
+
+-- name: DeleteEndUserPermission :execresult
+DELETE FROM end_user_permissions
+WHERE id = ?
+  AND org_name = ?;

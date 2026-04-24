@@ -10,7 +10,10 @@ import (
 )
 
 type Querier interface {
+	AddPermissionToBundle(ctx context.Context, arg AddPermissionToBundleParams) error
 	ArchiveProject(ctx context.Context, arg ArchiveProjectParams) error
+	AssignBundleToRole(ctx context.Context, arg AssignBundleToRoleParams) error
+	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongsToFKIDToFieldsParams) error
 	CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
@@ -18,6 +21,9 @@ type Querier interface {
 	CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error)
 	CountModels(ctx context.Context, arg CountModelsParams) (int64, error)
 	CreateDatabaseCluster(ctx context.Context, arg CreateDatabaseClusterParams) error
+	CreateEndUserBundle(ctx context.Context, arg CreateEndUserBundleParams) error
+	CreateEndUserPermission(ctx context.Context, arg CreateEndUserPermissionParams) error
+	CreateEndUserRole(ctx context.Context, arg CreateEndUserRoleParams) error
 	CreateEnumDefinition(ctx context.Context, arg CreateEnumDefinitionParams) error
 	CreateFieldDefinition(ctx context.Context, arg CreateFieldDefinitionParams) error
 	CreateFieldEnumAssociation(ctx context.Context, arg CreateFieldEnumAssociationParams) error
@@ -33,6 +39,10 @@ type Querier interface {
 	CreateUser(ctx context.Context, arg CreateUserParams) error
 	CreateUserRole(ctx context.Context, arg CreateUserRoleParams) (sql.Result, error)
 	DeleteDatabaseCluster(ctx context.Context, arg DeleteDatabaseClusterParams) error
+	DeleteEndUserBundle(ctx context.Context, arg DeleteEndUserBundleParams) (sql.Result, error)
+	DeleteEndUserPermission(ctx context.Context, arg DeleteEndUserPermissionParams) (sql.Result, error)
+	// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
+	DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRoleParams) (sql.Result, error)
 	DeleteEnum(ctx context.Context, arg DeleteEnumParams) error
 	DeleteExpiredRefreshTokens(ctx context.Context) error
 	DeleteFieldEnumAssociation(ctx context.Context, arg DeleteFieldEnumAssociationParams) error
@@ -70,8 +80,17 @@ type Querier interface {
 	GetAPIKeyByHash(ctx context.Context, keyHash string) (ApiKey, error)
 	GetAPIKeyByID(ctx context.Context, id string) (ApiKey, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
+	// ⚡ 鉴权链 Step 3: 隐式角色关联的权限包 ID 列表（对所有认证用户执行，无需 user_id）
+	GetBundleIDsByImplicitRoles(ctx context.Context, arg GetBundleIDsByImplicitRolesParams) ([]string, error)
+	// ⚡ 鉴权链 Step 1: 用户直接关联的权限包 ID 列表
+	GetBundleIDsByUserDirect(ctx context.Context, arg GetBundleIDsByUserDirectParams) ([]string, error)
+	// ⚡ 鉴权链 Step 2: 通过显式角色关联的权限包 ID 列表（单次 JOIN 查询，避免 N+1）
+	GetBundleIDsByUserExplicitRoles(ctx context.Context, arg GetBundleIDsByUserExplicitRolesParams) ([]string, error)
 	GetDatabaseClusterByID(ctx context.Context, arg GetDatabaseClusterByIDParams) (DatabaseCluster, error)
 	GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDatabaseClusterByProjectKeyParams) (DatabaseCluster, error)
+	GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundleByIDParams) (EndUserPermissionBundle, error)
+	GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPermissionByIDParams) (EndUserPermission, error)
+	GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByIDParams) (EndUserRole, error)
 	GetEnumByID(ctx context.Context, id string) (ModelEnum, error)
 	GetEnumByName(ctx context.Context, arg GetEnumByNameParams) (ModelEnum, error)
 	GetEnumReferencesByName(ctx context.Context, arg GetEnumReferencesByNameParams) ([]GetEnumReferencesByNameRow, error)
@@ -96,6 +115,8 @@ type Querier interface {
 	// ----------------------------------------
 	GetModelRLSPolicy(ctx context.Context, modelID string) (ModelRlsPolicy, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
+	// ⚡ 鉴权链 Step 4: 展开权限包 → 权限点（动态 IN，适用于 Step 1~3 合并后的 bundle_id 集合）
+	GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissionsByBundleIDsParams) ([]EndUserPermission, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (Profile, error)
 	// ----------------------------------------
 	// Project Auth Schema Queries
@@ -115,12 +136,19 @@ type Querier interface {
 	GetUserByName(ctx context.Context, name string) (GetUserByNameRow, error)
 	GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
+	GrantBundleToUser(ctx context.Context, arg GrantBundleToUserParams) error
 	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
 	ListAPIKeysByUserID(ctx context.Context, userID string) ([]ApiKey, error)
+	ListBundlesByRole(ctx context.Context, roleID string) ([]EndUserPermissionBundle, error)
+	ListBundlesByUser(ctx context.Context, arg ListBundlesByUserParams) ([]EndUserPermissionBundle, error)
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
 	ListDatabaseClustersUpdatedAfter(ctx context.Context, arg ListDatabaseClustersUpdatedAfterParams) ([]DatabaseCluster, error)
+	ListEndUserBundlesByProject(ctx context.Context, arg ListEndUserBundlesByProjectParams) ([]EndUserPermissionBundle, error)
+	ListEndUserPermissionsByModel(ctx context.Context, arg ListEndUserPermissionsByModelParams) ([]EndUserPermission, error)
+	ListEndUserPermissionsByProject(ctx context.Context, arg ListEndUserPermissionsByProjectParams) ([]EndUserPermission, error)
+	ListEndUserRolesByProject(ctx context.Context, arg ListEndUserRolesByProjectParams) ([]EndUserRole, error)
 	ListEnums(ctx context.Context, arg ListEnumsParams) ([]ModelEnum, error)
 	ListMembershipsByOrg(ctx context.Context, orgName string) ([]UserOrganization, error)
 	ListMembershipsByUser(ctx context.Context, userID string) ([]UserOrganization, error)
@@ -132,19 +160,29 @@ type Querier interface {
 	ListOrganizationsByUser(ctx context.Context, userID string) ([]Organization, error)
 	ListPermissionsByRole(ctx context.Context, roleID int64) ([]RolePermission, error)
 	ListPermissionsByRoleAndOrg(ctx context.Context, arg ListPermissionsByRoleAndOrgParams) ([]RolePermission, error)
+	ListPermissionsInBundle(ctx context.Context, bundleID string) ([]EndUserPermission, error)
 	ListProjects(ctx context.Context) ([]Project, error)
 	ListProjectsByOrg(ctx context.Context, orgName string) ([]Project, error)
 	ListRoleUsers(ctx context.Context, arg ListRoleUsersParams) ([]UserRole, error)
 	ListRoles(ctx context.Context) ([]Role, error)
 	ListRolesByOrg(ctx context.Context, orgName string) ([]Role, error)
 	ListRolesByOrgIncludeSystem(ctx context.Context, orgName string) ([]Role, error)
+	ListRolesByUser(ctx context.Context, arg ListRolesByUserParams) ([]string, error)
 	ListUserRoles(ctx context.Context, arg ListUserRolesParams) ([]UserRole, error)
+	RemovePermissionFromBundle(ctx context.Context, arg RemovePermissionFromBundleParams) (sql.Result, error)
 	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
+	RevokeBundleFromRole(ctx context.Context, arg RevokeBundleFromRoleParams) (sql.Result, error)
+	RevokeBundleFromUser(ctx context.Context, arg RevokeBundleFromUserParams) (sql.Result, error)
 	RevokeRefreshToken(ctx context.Context, id string) error
+	RevokeRoleFromUser(ctx context.Context, arg RevokeRoleFromUserParams) (sql.Result, error)
 	UpdateAPIKey(ctx context.Context, arg UpdateAPIKeyParams) error
 	UpdateAPIKeyLastUsed(ctx context.Context, id string) error
 	UpdateDatabaseClusterWithVersion(ctx context.Context, arg UpdateDatabaseClusterWithVersionParams) (sql.Result, error)
+	UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBundleParams) (sql.Result, error)
+	UpdateEndUserPermission(ctx context.Context, arg UpdateEndUserPermissionParams) (sql.Result, error)
+	// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
+	UpdateEndUserRole(ctx context.Context, arg UpdateEndUserRoleParams) (sql.Result, error)
 	UpdateEnum(ctx context.Context, arg UpdateEnumParams) error
 	UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.Result, error)
 	UpdateFieldDisplayOrder(ctx context.Context, arg UpdateFieldDisplayOrderParams) error

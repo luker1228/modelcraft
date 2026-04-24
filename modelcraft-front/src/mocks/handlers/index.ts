@@ -4,6 +4,7 @@ import {
   createMockUpdateMyProfilePayload,
 } from '../data/org/profile-factory'
 import { endUserAuthHandlers } from './end-user/auth-handlers'
+import { rbacHandlers } from './project/rbac-handlers'
 
 type ProfileScenarioType = 'success' | 'profileNotFound' | 'invalidInput'
 
@@ -87,6 +88,7 @@ const profileHandlers = [
 export const handlers = [
   ...profileHandlers,
   ...endUserAuthHandlers,
+  ...rbacHandlers,
   // TODO(profile-contract-ready): contract 同步并重新执行 npm run codegen 后，
   // 接入 org/generated.ts 与 project/generated.ts 的自动生成 handlers
 ]

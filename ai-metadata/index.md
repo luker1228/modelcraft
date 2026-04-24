@@ -75,13 +75,19 @@ ai-metadata/
     │   ├── auth-domain.puml
     │   ├── 01-auth-login.md
     │   └── 02-auth-register.md
-    └── model-enum/
-        ├── 00-model-enum.md
-        ├── 01-field-create-enum-binding.md
-        ├── 02-field-edit-format-immutable.md
-        ├── 03-backend-design.md
-        ├── 04-frontend-subpage-design.md
-        └── model-enum-domain.puml
+    ├── model-enum/
+    │   ├── 00-model-enum.md
+    │   ├── 01-field-create-enum-binding.md
+    │   ├── 02-field-edit-format-immutable.md
+    │   ├── 03-backend-design.md
+    │   ├── 04-frontend-subpage-design.md
+    │   └── model-enum-domain.puml
+    └── rbac/                             # ⭐ 权限模型（RBAC）
+        ├── 00-rbac-overview.md           # 总览：三层定位、核心原则
+        ├── 01-permission-model.md        # 权限点、权限包、授权对象
+        ├── 02-implicit-roles.md          # 内置隐式角色
+        ├── 03-auth-flow.md               # 鉴权流程与判定规则
+        └── 04-department-scope.md        # 部门与数据范围
 ```
 
 ---
@@ -217,3 +223,15 @@ ai-metadata/
 | 路径 | 说明 |
 |------|------|
 | [prd/runtime/field-relation-selector.md](./prd/runtime/field-relation-selector.md) | 多对一外键字段升级为下拉选择器，依赖 → [jsonschema-contract](./backend/design/domain-model/8-runtime/jsonschema-contract.md) |
+
+### 权限模型（RBAC）
+
+> 与 `end-user-auth/`（认证层）和 `rls/`（数据隔离层）协同，负责业务鉴权。
+
+| 路径 | 说明 |
+|------|------|
+| [prd/rbac/00-rbac-overview.md](./prd/rbac/00-rbac-overview.md) | ⭐ 总览：三层定位关系、核心设计原则、子页索引 |
+| [prd/rbac/01-permission-model.md](./prd/rbac/01-permission-model.md) | 权限点、权限包、授权对象完整数据模型 |
+| [prd/rbac/02-implicit-roles.md](./prd/rbac/02-implicit-roles.md) | 内置隐式角色：落库定义、关系隐式、运行时自动注入 |
+| [prd/rbac/03-auth-flow.md](./prd/rbac/03-auth-flow.md) | 鉴权流程：三通道权限来源合并 → 展开 → 判定 |
+| [prd/rbac/04-department-scope.md](./prd/rbac/04-department-scope.md) | 部门职责定位：数据范围计算上下文，非授权载体 |

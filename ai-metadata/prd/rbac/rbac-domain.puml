@@ -1,0 +1,223 @@
+@startuml rbac-domain
+
+title RBAC 权限域领域模型（EndUser 侧）
+
+skinparam classAttributeIconSize 0
+skinparam class {
+  BackgroundColor White
+  BorderColor #555555
+  ArrowColor #333333
+  HeaderBackgroundColor #DDEEFF
+}
+skinparam enum {
+  BackgroundColor #FFFBE6
+  BorderColor #CCAA00
+}
+skinparam note {
+  BackgroundColor #FFFFF0
+  BorderColor #AAAAAA
+}
+
+' ─────────────────────────────────────────
+' 枚举类型
+' ─────────────────────────────────────────
+
+enum Action {
+  select
+  insert
+  update
+  delete
+  export
+}
+
+enum RowScope {
+  ALL
+  ' 全部行，无过滤
+  SELF
+  ' 仅自己创建的行（Model 须含 owner 字段）
+  DEPT
+  ' 仅同部门行（Model 须含 dept_id 字段）
+  DEPT_AND_CHILDREN
+  ' 本部门及所有子孙部门行（Model 须含 dept_id 字段）
+}
+
+' ─────────────────────────────────────────
+' 核心实体（均为 EndUser 侧，与开发者 Casbin 权限体系无关）
+' ─────────────────────────────────────────
+
+class Model {
+  + id : UUID
+  + name : String
+  ' 对应数据库表名，可授权的最小资源单元
+  --
+  ' 注：若含 EndUserRef 类型字段，
+  ' 则支持 rowScope = SELF
+  ' 若含 dept_id 字段，
+  ' 则支持 rowScope = DEPT / DEPT_AND_CHILDREN
+}
+
+class EndUserPermission {
+  + id : UUID
+  + modelId : UUID
+  + action : Action
+  + columnPolicy : JSON
+  ' 列策略：可见 / 可编辑 / 脱敏，按字段名映射
+  + rowScope : RowScope
+  --
+  ' 最小权限定义单元，绑定到一张 Model（表）
+  ' 系统仅支持 allow，不支持 deny
+}
+
+class EndUserPermissionBundle {
+  + id : UUID
+  + name : String
+  + description : String
+  --
+  ' 多个权限点的有序组合
+  ' 唯一正式授权单位：
+  '   授权必须通过 EndUserPermissionBundle，
+  '   不可直接授予单个 EndUserPermission
+}
+
+class EndUserPermissionBundleItem {
+  + bundleId : UUID
+  + permissionId : UUID
+  + sortOrder : Int
+  --
+  ' EndUserPermissionBundle 与 EndUserPermission 的中间表
+  ' 维护有序的权限点组合
+}
+
+class EndUserRole {
+  + id : UUID
+  + name : String
+  + isImplicit : Boolean
+  --
+  ' isImplicit = true 表示内置隐式角色
+  ' 内置隐式角色的用户归属关系不落库，
+  ' 鉴权时由运行时自动注入，无需 EndUserRoleAssignment 记录
+}
+
+class EndUser {
+  + id : UUID
+  + name : String
+  --
+  ' 终端用户（Runtime 侧登录用户）
+  ' ⚠️ 非系统开发者 User（Casbin 权限体系）
+  ' 多对多归属 EndUserDepartment（通过 EndUserDeptMembership）
+}
+
+class EndUserDepartment {
+  + id : UUID
+  + name : String
+  + parentId : UUID
+  ' 可为 null（根部门）
+  --
+  ' ⚠️ 非系统组织 Department
+  ' 非授权载体，仅提供行权限数据范围
+  ' 自引用树状结构，支持多级嵌套
+}
+
+class EndUserDeptMembership {
+  + endUserId : UUID
+  + departmentId : UUID
+  + isPrimary : Boolean
+  ' 主归属部门（行策略展开时优先使用）
+  --
+  ' EndUser ↔ EndUserDepartment 多对多中间表
+  ' 第一版可只设一条 isPrimary=true 记录
+}
+
+' ─────────────────────────────────────────
+' 授权关联表
+' ─────────────────────────────────────────
+
+class EndUserBundleAssignment {
+  + endUserId : UUID
+  + bundleId : UUID
+  + grantedAt : Timestamp
+  --
+  ' 直接授权：EndUser → EndUserPermissionBundle
+}
+
+class EndUserRoleAssignment {
+  + endUserId : UUID
+  + roleId : UUID
+  + assignedAt : Timestamp
+  --
+  ' EndUser → EndUserRole 的显式绑定
+  ' 注意：isImplicit=true 的角色成员关系
+  ' 不在此表中存储，由运行时自动注入
+}
+
+class EndUserRoleBundleAssignment {
+  + roleId : UUID
+  + bundleId : UUID
+  + grantedAt : Timestamp
+  --
+  ' EndUserRole → EndUserPermissionBundle 的授权关联
+}
+
+' ─────────────────────────────────────────
+' 关联关系
+' ─────────────────────────────────────────
+
+' EndUserPermission 属于一个 Model
+Model "1" <-- "N" EndUserPermission : modelId\n(权限点绑定到表)
+
+' EndUserPermission 使用枚举类型
+EndUserPermission --> Action : action
+EndUserPermission --> RowScope : rowScope
+
+' EndUserPermissionBundle 通过中间表包含多个 EndUserPermission
+EndUserPermissionBundle "1" *-- "N" EndUserPermissionBundleItem : 组合 >
+EndUserPermissionBundleItem "N" --> "1" EndUserPermission : permissionId
+
+' 终端用户直接授权
+EndUser "1" *-- "N" EndUserBundleAssignment : 直接授权 >
+EndUserBundleAssignment "N" --> "1" EndUserPermissionBundle : bundleId
+
+' 终端用户 → 角色（显式绑定，隐式角色不落库）
+EndUser "1" *-- "N" EndUserRoleAssignment : 角色归属 >
+EndUserRoleAssignment "N" --> "1" EndUserRole : roleId
+
+' 角色 → 权限包
+EndUserRole "1" *-- "N" EndUserRoleBundleAssignment : 角色授权 >
+EndUserRoleBundleAssignment "N" --> "1" EndUserPermissionBundle : bundleId
+
+' 终端用户归属部门（多对多，通过中间表）
+EndUser "N" *-- "N" EndUserDepartment
+(EndUser, EndUserDepartment) .. EndUserDeptMembership
+
+' 部门自引用树状结构
+EndUserDepartment "0..1" <-- "N" EndUserDepartment : parentId\n(父子部门)
+
+' ─────────────────────────────────────────
+' 设计约束说明
+' ─────────────────────────────────────────
+
+note bottom of RowScope
+  **rowScope 使用约束：**
+  • SELF → Model 必须含有 EndUserRef 类型的 owner 字段
+  • DEPT → Model 必须含有 dept_id 字段
+  • DEPT_AND_CHILDREN → 同 DEPT，额外递归子孙部门
+  • ALL → 无约束，查询全部行
+end note
+
+note bottom of EndUserRole
+  **内置隐式角色说明：**
+  isImplicit = true 的角色为系统预置，
+  其成员资格在鉴权时由运行时自动推导注入，
+  EndUserRoleAssignment 表中不存储对应记录。
+  例：项目创建者自动获得 ProjectOwner 角色。
+end note
+
+note bottom of EndUserPermissionBundle
+  **鉴权权限合并规则（三通道）：**
+  1. 直接授权通道：EndUser → EndUserBundleAssignment → EndUserPermissionBundle
+  2. 角色通道：EndUser → EndUserRoleAssignment → EndUserRole → EndUserRoleBundleAssignment → EndUserPermissionBundle
+  3. 隐式角色通道：运行时注入 → EndUserRole → EndUserRoleBundleAssignment → EndUserPermissionBundle
+  三通道权限取并集，不支持 deny 覆盖。
+end note
+
+@enduml

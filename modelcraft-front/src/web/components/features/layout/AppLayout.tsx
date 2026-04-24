@@ -174,9 +174,14 @@ export function AppLayout({
   // Check if nav item is active
   const isNavActive = useCallback(
     (href: string) => {
-      return pathname === href || pathname?.startsWith(href + '/')
+      if (pathname === href || pathname?.startsWith(href + '/')) return true
+      // /roles 和 /rbac/* 都高亮「权限管理」菜单项
+      const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
+      const rbacBase = `/org/${orgName}/project/${projectSlug}/rbac`
+      if (href === rolesHref && pathname?.startsWith(rbacBase)) return true
+      return false
     },
-    [pathname]
+    [pathname, orgName, projectSlug]
   )
 
   // Workspace navigation items
@@ -190,11 +195,11 @@ export function AppLayout({
     { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
     { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
     { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
-    { label: '角色管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+    { label: '权限管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
   ]
 
   const authNavItems: NavItem[] = [
-    { label: '角色管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+    { label: '权限管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
     { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
     { label: '用户管理', icon: Users, href: `/org/${orgName}/project/${projectSlug}/end-users` },
   ]
@@ -210,6 +215,8 @@ export function AppLayout({
     || pathname?.startsWith(`${authBasePath}/login-settings/`)
     || pathname === `${authBasePath}/end-users`
     || pathname?.startsWith(`${authBasePath}/end-users/`)
+    || pathname === `${authBasePath}/rbac`
+    || pathname?.startsWith(`${authBasePath}/rbac/`)
 
   return (
     <div className="flex h-full flex-col overflow-hidden">

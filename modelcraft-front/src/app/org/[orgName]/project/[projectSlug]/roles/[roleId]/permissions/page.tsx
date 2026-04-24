@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronDown, ChevronRight, KeyRound, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { getOrgScopedClient, useProjectScopedClient } from '@bff/apollo/public'
 import { Badge } from '@web/components/ui/badge'
 import {
   Dialog,
@@ -156,6 +156,7 @@ export default function RolePermissionsPage() {
   const projectSlug = String(params?.projectSlug ?? '')
   const roleIdParam = String(params?.roleId ?? '')
 
+  const orgClient = getOrgScopedClient()
   const projectClient = useProjectScopedClient(projectSlug, orgName)
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
@@ -170,7 +171,7 @@ export default function RolePermissionsPage() {
   const { data: rolesData, loading: roleLoading, refetch: refetchRoles } = useQuery<PermissionRolesData>(
     GET_PERMISSION_ROLES,
     {
-      client: projectClient,
+      client: orgClient,
       variables: { orgName, includeSystem: true },
       skip: !orgName,
     }
@@ -195,7 +196,7 @@ export default function RolePermissionsPage() {
   const { data: rolePermsData, loading: permsLoading, refetch: refetchPermissions } = useQuery<RolePermissionsListData>(
     GET_ROLE_PERMISSIONS_LIST,
     {
-      client: projectClient,
+      client: orgClient,
       variables: { roleId: roleId ?? -1 },
       skip: !roleId,
     }
@@ -292,11 +293,11 @@ export default function RolePermissionsPage() {
 
   const [addPermissionToRole, { loading: addingPermission }] = useMutation<AddPermissionMutationData>(
     ADD_PERMISSION_TO_ROLE,
-    { client: projectClient }
+    { client: orgClient }
   )
   const [removePermissionFromRole, { loading: removingPermission }] = useMutation<RemovePermissionMutationData>(
     REMOVE_PERMISSION_FROM_ROLE,
-    { client: projectClient }
+    { client: orgClient }
   )
   const [setModelRLSPolicy, { loading: savingRLS }] = useMutation<SetRLSPolicyMutationData>(
     SET_MODEL_RLS_POLICY,

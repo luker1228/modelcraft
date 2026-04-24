@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-04-24T00:00:00Z",
+  "title": "Design System: ModelCraft",
+  "extensions": {
+    "colorMeta": {
+      "action-blue":         { "role": "primary",   "displayName": "Action Blue",          "canonical": "oklch(51% 0.21 264)", "tonalRamp": ["#172554","#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#dbeafe"] },
+      "action-blue-surface": { "role": "secondary",  "displayName": "Action Blue Surface",  "canonical": "oklch(93% 0.06 264)", "tonalRamp": ["#1e3a8a","#1d4ed8","#2563eb","#3b82f6","#60a5fa","#93c5fd","#bfdbfe","#dbeafe"] },
+      "canvas":              { "role": "neutral",    "displayName": "Canvas",               "canonical": "oklch(98.5% 0.002 264)", "tonalRamp": ["#0a0e1a","#1e2330","#374151","#6b7280","#9ca3af","#d1d5db","#f1f3f7","#fafafa"] },
+      "surface":             { "role": "neutral",    "displayName": "Surface",              "canonical": "oklch(100% 0 0)",   "tonalRamp": ["#0a0e1a","#1e2330","#374151","#6b7280","#9ca3af","#d1d5db","#f1f3f7","#ffffff"] },
+      "ink-deep":            { "role": "neutral",    "displayName": "Ink Deep",             "canonical": "oklch(12% 0.04 264)", "tonalRamp": ["#050d1f","#0f1b38","#1e3055","#2a4172","#374151","#6b7280","#9ca3af","#e5e7eb"] },
+      "ink-mid":             { "role": "neutral",    "displayName": "Ink Mid",              "canonical": "oklch(33% 0.02 264)", "tonalRamp": ["#111827","#1f2937","#374151","#4b5563","#6b7280","#9ca3af","#d1d5db","#f9fafb"] },
+      "ink-muted":           { "role": "neutral",    "displayName": "Ink Muted",            "canonical": "oklch(51% 0.01 264)", "tonalRamp": ["#1f2937","#374151","#4b5563","#6b7280","#9ca3af","#d1d5db","#e5e7eb","#f9fafb"] },
+      "structure-border":    { "role": "neutral",    "displayName": "Structure Border",     "canonical": "oklch(91% 0.01 264)", "tonalRamp": ["#374151","#6b7280","#9ca3af","#d1d5db","#e2e6ec","#f1f3f7","#f9fafb","#ffffff"] },
+      "structure-muted":     { "role": "neutral",    "displayName": "Structure Muted",      "canonical": "oklch(95% 0.008 264)", "tonalRamp": ["#4b5563","#9ca3af","#d1d5db","#e5e7eb","#f1f3f7","#f3f4f6","#f9fafb","#ffffff"] },
+      "selected-state":      { "role": "neutral",    "displayName": "Selected State",       "canonical": "oklch(88% 0.01 264)", "tonalRamp": ["#374151","#6b7280","#9ca3af","#c4c9d3","#dadee5","#e5e7eb","#f1f3f7","#f9fafb"] },
+      "signal-critical":     { "role": "semantic",   "displayName": "Signal Critical",      "canonical": "oklch(60% 0.22 27)",  "tonalRamp": ["#450a0a","#7f1d1d","#b91c1c","#dc2626","#f04343","#f87171","#fca5a5","#fee2e2"] },
+      "signal-success":      { "role": "semantic",   "displayName": "Signal Success",       "canonical": "oklch(62% 0.17 162)", "tonalRamp": ["#052e16","#14532d","#166534","#15803d","#10b981","#34d399","#6ee7b7","#d1fae5"] },
+      "signal-warning":      { "role": "semantic",   "displayName": "Signal Warning",       "canonical": "oklch(72% 0.17 80)",  "tonalRamp": ["#451a03","#78350f","#b45309","#d97706","#f59e0b","#fbbf24","#fde68a","#fef3c7"] }
+    },
+    "typographyMeta": {
+      "display":  { "displayName": "Display",  "purpose": "Page-level landmark headings. Once per view." },
+      "headline": { "displayName": "Headline", "purpose": "Section titles, sheet headers, card titles. Font-heading class." },
+      "title":    { "displayName": "Title",    "purpose": "Sub-section labels, form group headers." },
+      "body":     { "displayName": "Body",     "purpose": "Table content, descriptions, form values. 65-75ch max line length." },
+      "label":    { "displayName": "Label",    "purpose": "Column headers, badge text, metadata. Never all-caps." },
+      "mono":     { "displayName": "Mono",     "purpose": "Technical identifiers: model slugs, field names, IDs." }
+    },
+    "shadows": [
+      { "name": "ambient-lift", "value": "0 1px 2px rgba(0,0,0,0.05)", "purpose": "Resting state on interactive surfaces (default buttons). Functional minimum." },
+      { "name": "overlay",      "value": "0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)", "purpose": "Floating layers: popovers, select dropdowns, context menus." },
+      { "name": "modal",        "value": "0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)", "purpose": "Dialogs, sheets, alert dialogs. Highest elevation layer." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "ease-out",                          "purpose": "Default state transitions (hover, focus)." },
+      { "name": "ease-enter",    "value": "cubic-bezier(0, 0, 0.2, 1)",        "purpose": "Elements entering the viewport (fade-in, slide-in). 200-250ms." },
+      { "name": "ease-exit",     "value": "cubic-bezier(0.4, 0, 1, 1)",        "purpose": "Elements leaving (fade-out). 150-200ms." },
+      { "name": "sheet-open",    "value": "ease-in-out 500ms",                 "purpose": "Sheet / drawer opening." },
+      { "name": "sheet-close",   "value": "ease-in-out 300ms",                 "purpose": "Sheet / drawer closing." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "2xl", "value": "1400px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The single most consequential action on any given surface. One per page section.",
+      "html": "<button class=\"ds-btn-primary\">保存配置</button>",
+      "css": ".ds-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; background: #2563eb; color: #ffffff; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; line-height: 1; border: none; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; transition: background 150ms ease-out; white-space: nowrap; } .ds-btn-primary:hover { background: #1d4ed8; } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px #2563eb; } .ds-btn-primary:disabled { opacity: 0.5; pointer-events: none; }"
+    },
+    {
+      "name": "Outline Button",
+      "kind": "button",
+      "refersTo": "button-outline",
+      "description": "Secondary actions needing visual presence without primary weight. Used for edit, add, cancel.",
+      "html": "<button class=\"ds-btn-outline\">添加权限包</button>",
+      "css": ".ds-btn-outline { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 36px; padding: 0 16px; background: transparent; color: #374151; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border: 1px solid #e2e6ec; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.05); cursor: pointer; transition: background 150ms ease-out, border-color 150ms ease-out; white-space: nowrap; } .ds-btn-outline:hover { background: #f1f3f7; border-color: #d1d5db; } .ds-btn-outline:focus-visible { outline: none; box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px #2563eb; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Low-emphasis actions in dense contexts. Table row controls, icon-only toolbar buttons.",
+      "html": "<button class=\"ds-btn-ghost\"><svg width=\"14\" height=\"14\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M3 6h18M8 6V4h8v2M19 6l-1 14H6L5 6\"/></svg>删除</button>",
+      "css": ".ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; padding: 0 12px; background: transparent; color: #6b7280; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; border: none; border-radius: 6px; cursor: pointer; transition: background 150ms ease-out, color 150ms ease-out; white-space: nowrap; } .ds-btn-ghost:hover { background: #f1f3f7; color: #050d1f; } .ds-btn-ghost:focus-visible { outline: none; box-shadow: 0 0 0 1px #ffffff, 0 0 0 3px #2563eb; }"
+    },
+    {
+      "name": "Badge Secondary",
+      "kind": "chip",
+      "refersTo": "badge-secondary",
+      "description": "Status labels, role tags, classification chips. The workhorse badge variant.",
+      "html": "<span class=\"ds-badge-secondary\">内置隐式</span>",
+      "css": ".ds-badge-secondary { display: inline-flex; align-items: center; padding: 2px 10px; background: #dbeafe; color: #1d4ed8; font-family: Inter, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; line-height: 1.4; border-radius: 9999px; border: 1px solid transparent; white-space: nowrap; }"
+    },
+    {
+      "name": "Badge Outline",
+      "kind": "chip",
+      "refersTo": "badge-outline",
+      "description": "Neutral classification tags where color would overload the signal budget.",
+      "html": "<span class=\"ds-badge-outline\">系统角色</span>",
+      "css": ".ds-badge-outline { display: inline-flex; align-items: center; padding: 2px 10px; background: transparent; color: #374151; font-family: Inter, system-ui, sans-serif; font-size: 0.75rem; font-weight: 600; line-height: 1.4; border-radius: 9999px; border: 1px solid #e2e6ec; white-space: nowrap; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input-default",
+      "description": "Standard single-line field for forms, search, and settings values.",
+      "html": "<div class=\"ds-input-wrapper\"><input class=\"ds-input\" type=\"text\" placeholder=\"角色名称\" /></div>",
+      "css": ".ds-input-wrapper { position: relative; width: 100%; } .ds-input { display: flex; width: 100%; height: 36px; padding: 0 12px; background: transparent; color: #050d1f; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 400; border: 1px solid #e2e6ec; border-radius: 6px; box-shadow: 0 1px 2px rgba(0,0,0,0.04); transition: border-color 150ms ease-out, box-shadow 150ms ease-out; outline: none; box-sizing: border-box; } .ds-input::placeholder { color: #9ca3af; } .ds-input:focus { border-color: #2563eb; box-shadow: 0 0 0 1px #2563eb; } .ds-input:disabled { opacity: 0.5; cursor: not-allowed; }"
+    },
+    {
+      "name": "Data Table Row",
+      "kind": "custom",
+      "refersTo": null,
+      "description": "The primary data surface. Flat, bordered, with ghost action controls on each row.",
+      "html": "<table class=\"ds-table\"><thead><tr><th class=\"ds-th\">角色名</th><th class=\"ds-th\">描述</th><th class=\"ds-th\" style=\"text-align:right\">操作</th></tr></thead><tbody><tr class=\"ds-tr\"><td class=\"ds-td\"><span class=\"ds-cell-primary\">Admin</span><span class=\"ds-badge-secondary\" style=\"margin-left:8px\">系统</span></td><td class=\"ds-td ds-cell-muted\">系统管理员，拥有全部权限</td><td class=\"ds-td\" style=\"text-align:right\"><button class=\"ds-btn-ghost\" style=\"height:28px;font-size:0.75rem;padding:0 10px\">授权用户</button><button class=\"ds-btn-ghost\" style=\"height:28px;font-size:0.75rem;padding:0 10px\">权限管理</button></td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; } .ds-th { padding: 8px 16px; text-align: left; font-size: 0.75rem; font-weight: 600; color: #6b7280; background: rgba(241,243,247,0.5); border-bottom: 1px solid #e2e6ec; } .ds-tr { border-bottom: 1px solid #e2e6ec; transition: background 100ms ease-out; } .ds-tr:last-child { border-bottom: none; } .ds-tr:hover { background: #f9fafb; } .ds-td { padding: 12px 16px; color: #050d1f; vertical-align: middle; } .ds-cell-primary { font-weight: 500; } .ds-cell-muted { color: #6b7280; } .ds-badge-secondary { display: inline-flex; align-items: center; padding: 2px 8px; background: #dbeafe; color: #1d4ed8; font-size: 0.7rem; font-weight: 600; border-radius: 9999px; } .ds-btn-ghost { display: inline-flex; align-items: center; justify-content: center; gap: 4px; height: 28px; padding: 0 10px; background: transparent; color: #6b7280; font-family: Inter, system-ui, sans-serif; font-size: 0.75rem; font-weight: 500; border: none; border-radius: 4px; cursor: pointer; transition: background 100ms ease-out, color 100ms ease-out; } .ds-btn-ghost:hover { background: #f1f3f7; color: #050d1f; }"
+    },
+    {
+      "name": "Sidebar Nav Item",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "Left sidebar navigation entry. Active state uses action-blue-surface fill with action-blue text.",
+      "html": "<nav class=\"ds-sidenav\"><a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><path d=\"M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z\"/></svg>权限管理</a><a class=\"ds-nav-item\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.5\"><rect x=\"3\" y=\"3\" width=\"18\" height=\"18\" rx=\"2\"/><path d=\"M3 9h18M9 21V9\"/></svg>数据模型</a></nav>",
+      "css": ".ds-sidenav { display: flex; flex-direction: column; gap: 2px; padding: 8px; } .ds-nav-item { display: flex; align-items: center; gap: 8px; height: 36px; padding: 0 12px; color: #6b7280; font-family: Inter, system-ui, sans-serif; font-size: 0.875rem; font-weight: 500; border-radius: 6px; text-decoration: none; transition: background 150ms ease-out, color 150ms ease-out; } .ds-nav-item:hover { background: #f1f3f7; color: #050d1f; } .ds-nav-item--active { background: #dbeafe; color: #2563eb; } .ds-nav-item svg { flex-shrink: 0; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Engineering Blueprint",
+    "overview": "ModelCraft's visual system is built for operators, not audiences. Every screen is a structured working surface: hierarchy is visible, states are unambiguous, and nothing decorates itself at the expense of the task at hand. The metaphor is a well-drafted technical drawing — each element occupies exactly the space it needs, labels are terse and accurate, and white space exists to separate, not impress.\n\nThe type system runs on two distinct voices. Space Grotesk carries headings and structural labels with a quiet geometric confidence. Inter handles everything at reading scale. Fira Code appears wherever a string is also a technical value.\n\nThe color system is deliberately narrow. Action blue (#2563eb) is the only saturated color with semantic weight. The rest of the palette is cool-leaning neutrals that hold content without competing with it.",
+    "keyCharacteristics": [
+      "Flat surfaces with structural borders; shadows only for floating layers",
+      "Two-font system: display weight for structure, text weight for content",
+      "Blue as action color only; no purely decorative use of hue",
+      "Spacing rhythm varies deliberately: tighter in tables, more open in forms",
+      "States are always explicit: selected, hover, loading, empty, error each have a distinct visual signature"
+    ],
+    "rules": [
+      { "name": "The One Voice Rule",          "body": "Action blue is the single saturated color with behavioral meaning. Any other use of hue is a signal color. If you are reaching for a second accent color for variety, you are wrong.",                "section": "colors" },
+      { "name": "The Signal Purity Rule",       "body": "Status colors (critical, success, warning) exist only when communicating a state. Never decorative.",                                                                                                        "section": "colors" },
+      { "name": "The Serif Exception",          "body": "The .font-label utility (Times New Roman) is used exclusively for static, decorative section labels, not for any interactive or data-bearing text.",                                                         "section": "typography" },
+      { "name": "The Scale Minimum",            "body": "No text appears at less than 12px (0.75rem). Below this threshold, the label is not communication; it is noise.",                                                                                           "section": "typography" },
+      { "name": "The Flat-By-Default Rule",     "body": "Cards, table rows, sidebar items, nav entries — all flat at rest. Shadows appear only when an element is elevated above the document flow or has lifted into a state requiring spatial separation.",        "section": "elevation" }
+    ],
+    "dos": [
+      "Do use action blue (#2563eb) only on primary interactive elements: buttons, active nav, focus rings, and selected-state accents.",
+      "Do flatten surfaces at rest. Cards, panels, and table rows have border definition, not shadow lift.",
+      "Do use font-heading (Space Grotesk) for structural titles and font-sans (Inter) for all content text.",
+      "Do show explicit states for every interactive surface: empty, loading, error, success.",
+      "Do use ghost and outline button variants for table row actions.",
+      "Do keep text at or above 0.75rem (12px).",
+      "Do vary spacing deliberately: 16px between form fields, 24px between sections, 8px inside compact nav items."
+    ],
+    "donts": [
+      "Don't use Oracle/SAP-style thick panels, deeply layered card shadows, or heavy chrome.",
+      "Don't use consumer-product softness: gradients, candy-colored badges, rounded-2xl pills everywhere, or encouraging/gamified copy.",
+      "Don't use glassmorphism, backdrop-filter blurs, gradient-filled cards, or animated gradient text.",
+      "Don't use border-left or border-right greater than 1px as a colored accent stripe on cards, list items, or alerts.",
+      "Don't use background-clip gradient text.",
+      "Don't place action blue on backgrounds, headers, or decorative elements.",
+      "Don't invent a third accent color.",
+      "Don't use information density so low that users must scroll through three screens to find one configuration option."
+    ]
+  }
+}

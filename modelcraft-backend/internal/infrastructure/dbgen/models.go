@@ -12,6 +12,95 @@ import (
 	"time"
 )
 
+type EndUserPermissionsAction string
+
+const (
+	EndUserPermissionsActionSelect EndUserPermissionsAction = "select"
+	EndUserPermissionsActionInsert EndUserPermissionsAction = "insert"
+	EndUserPermissionsActionUpdate EndUserPermissionsAction = "update"
+	EndUserPermissionsActionDelete EndUserPermissionsAction = "delete"
+	EndUserPermissionsActionExport EndUserPermissionsAction = "export"
+)
+
+func (e *EndUserPermissionsAction) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EndUserPermissionsAction(s)
+	case string:
+		*e = EndUserPermissionsAction(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EndUserPermissionsAction: %T", src)
+	}
+	return nil
+}
+
+type NullEndUserPermissionsAction struct {
+	EndUserPermissionsAction EndUserPermissionsAction
+	Valid                    bool // Valid is true if EndUserPermissionsAction is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEndUserPermissionsAction) Scan(value interface{}) error {
+	if value == nil {
+		ns.EndUserPermissionsAction, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EndUserPermissionsAction.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEndUserPermissionsAction) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EndUserPermissionsAction), nil
+}
+
+type EndUserPermissionsRowScope string
+
+const (
+	EndUserPermissionsRowScopeALL             EndUserPermissionsRowScope = "ALL"
+	EndUserPermissionsRowScopeSELF            EndUserPermissionsRowScope = "SELF"
+	EndUserPermissionsRowScopeDEPT            EndUserPermissionsRowScope = "DEPT"
+	EndUserPermissionsRowScopeDEPTANDCHILDREN EndUserPermissionsRowScope = "DEPT_AND_CHILDREN"
+)
+
+func (e *EndUserPermissionsRowScope) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = EndUserPermissionsRowScope(s)
+	case string:
+		*e = EndUserPermissionsRowScope(s)
+	default:
+		return fmt.Errorf("unsupported scan type for EndUserPermissionsRowScope: %T", src)
+	}
+	return nil
+}
+
+type NullEndUserPermissionsRowScope struct {
+	EndUserPermissionsRowScope EndUserPermissionsRowScope
+	Valid                      bool // Valid is true if EndUserPermissionsRowScope is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullEndUserPermissionsRowScope) Scan(value interface{}) error {
+	if value == nil {
+		ns.EndUserPermissionsRowScope, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.EndUserPermissionsRowScope.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullEndUserPermissionsRowScope) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.EndUserPermissionsRowScope), nil
+}
+
 type LogicalForeignKeysDirection string
 
 const (
@@ -154,6 +243,163 @@ type DatabaseCluster struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+}
+
+// 终端用户会话表（租户隔离）
+type EndUserAccount struct {
+	// 会话 ID (UUID)
+	ID string
+	// 租户组织名
+	OrgName string
+	// 租户项目标识
+	ProjectSlug string
+	// 终端用户 ID
+	UserID string
+	// 刷新令牌哈希
+	RefreshTokenHash string
+	// 过期时间
+	ExpiresAt time.Time
+	// 是否已撤销
+	Revoked   bool
+	CreatedAt time.Time
+}
+
+// 权限包-权限点 有序中间表
+type EndUserBundlePermission struct {
+	// UUID
+	ID string
+	// 权限包 ID，FK → end_user_permission_bundles.id
+	BundleID string
+	// 权限点 ID，FK → end_user_permissions.id
+	PermissionID string
+	// 显示排序权重（ASC）
+	SortOrder int32
+	CreatedAt time.Time
+}
+
+// 权限点：每行描述对某模型某动作的行列级权限配置
+type EndUserPermission struct {
+	// 权限点 UUID
+	ID string
+	// 所属组织（冗余，不做 FK）
+	OrgName string
+	// 所属项目（冗余，不做 FK）
+	ProjectSlug string
+	// 关联模型 ID，FK → models.id
+	ModelID string
+	// 权限点名称，人类可读
+	Name string
+	// 权限点描述
+	Description sql.NullString
+	// 操作动作
+	Action EndUserPermissionsAction
+	// 列策略 JSON，结构见注释
+	ColumnPolicy *json.RawMessage
+	// 行范围：ALL全量/SELF本人/DEPT本部门/DEPT_AND_CHILDREN含子部门
+	RowScope  EndUserPermissionsRowScope
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// 权限包：权限点的命名集合，用于角色授权或用户直接授权
+type EndUserPermissionBundle struct {
+	// 权限包 UUID
+	ID string
+	// 所属组织
+	OrgName string
+	// 所属项目
+	ProjectSlug string
+	// 权限包名称
+	Name string
+	// 权限包描述
+	Description sql.NullString
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+// 终端用户角色表（租户隔离）
+type EndUserRole struct {
+	// 角色 ID (UUID)
+	ID string
+	// 租户组织名
+	OrgName string
+	// 租户项目标识
+	ProjectSlug string
+	// 角色名（租户内唯一）
+	Name string
+	// 角色描述
+	Description sql.NullString
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+	// 内置隐式角色标志：0=显式角色（用户手动分配），1=隐式角色（系统自动注入）
+	IsImplicit bool
+}
+
+// 角色-权限包 关联：角色持有哪些权限包
+type EndUserRoleBundle struct {
+	// UUID
+	ID string
+	// 所属组织（冗余，快速查询）
+	OrgName string
+	// 所属项目（冗余，快速查询）
+	ProjectSlug string
+	// 角色 ID，FK → end_user_roles.id
+	RoleID string
+	// 权限包 ID，FK → end_user_permission_bundles.id
+	BundleID string
+	// 授权时间
+	GrantedAt time.Time
+}
+
+// 终端用户角色-用户关联表（租户隔离）
+type EndUserRoleUser struct {
+	// 关联 ID (UUID)
+	ID string
+	// 租户组织名
+	OrgName string
+	// 租户项目标识
+	ProjectSlug string
+	// 角色 ID
+	RoleID string
+	// 终端用户 ID
+	UserID    string
+	CreatedAt time.Time
+}
+
+// 终端用户账号表（租户隔离）
+type EndUserUser struct {
+	// 终端用户 ID (UUID)
+	ID string
+	// 租户组织名
+	OrgName string
+	// 租户项目标识
+	ProjectSlug string
+	// 项目内唯一用户名
+	Username string
+	// bcrypt 密码哈希
+	Password string
+	// 是否禁用
+	IsForbidden bool
+	// 创建者（平台用户 ID）
+	CreatedBy sql.NullString
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+// 用户直接授权-权限包：绕过角色直接给用户授予权限包
+type EndUserUserBundle struct {
+	// UUID
+	ID string
+	// 所属组织
+	OrgName string
+	// 所属项目
+	ProjectSlug string
+	// 用户 ID（复合 FK 的 id 部分）
+	UserID string
+	// 权限包 ID，FK → end_user_permission_bundles.id
+	BundleID string
+	// 授权时间
+	GrantedAt time.Time
 }
 
 // 模型字段定义表

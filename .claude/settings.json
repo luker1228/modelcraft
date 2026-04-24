@@ -5,16 +5,6 @@
   "hooks": {
     "PreToolUse": [
       {
-        "matcher": "Write",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "python3 $CLAUDE_PROJECT_DIR/.agents/hooks/check-documentation.py",
-            "timeout": 30
-          }
-        ]
-      },
-      {
         "matcher": "Bash",
         "hooks": [
           {

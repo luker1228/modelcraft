@@ -1,7 +1,9 @@
 version: "2"
 sql:
   - engine: "mysql"
-    queries: "db/queries/"
+    queries:
+      - "db/queries/"
+      - "db/queries/rbac/"
     schema: "db/schema/mysql/"
     gen:
       go:

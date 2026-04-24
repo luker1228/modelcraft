@@ -1,0 +1,1669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RBAC 权限管理 — ModelCraft</title>
+<style>
+:root {
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-light: #dbeafe;
+  --success: #059669;
+  --success-light: #ecfdf5;
+  --warning: #d97706;
+  --warning-light: #fef3c7;
+  --destructive: #dc2626;
+  --destructive-light: #fee2e2;
+  --purple: #7c3aed;
+  --purple-light: #ede9fe;
+  --text-primary: #111827;
+  --text-secondary: #6b7280;
+  --text-tertiary: #9ca3af;
+  --border: #e5e7eb;
+  --border-strong: #d1d5db;
+  --bg-page: #f3f4f6;
+  --bg-card: #ffffff;
+  --bg-muted: #fafafa;
+  --selected: #dadee5;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-size: 14px;
+  color: var(--text-primary);
+  background: var(--bg-page);
+  line-height: 1.5;
+}
+
+/* ─── Layout ─── */
+.app-header {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 52px;
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 24px; gap: 12px;
+}
+.app-logo {
+  font-size: 16px; font-weight: 600; color: var(--primary);
+  letter-spacing: -0.3px;
+}
+.app-logo span { color: var(--text-secondary); font-weight: 400; }
+.app-header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--primary-light); color: var(--primary);
+  font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center;
+}
+
+.app-body {
+  display: flex;
+  padding-top: 52px;
+  min-height: 100vh;
+}
+
+.sidebar {
+  position: fixed; left: 0; top: 52px; bottom: 0;
+  width: 200px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  padding: 16px 0;
+  overflow-y: auto;
+}
+.sidebar-section-label {
+  padding: 4px 16px 6px;
+  font-size: 11px; font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.6px;
+}
+.sidebar-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-left: 3px solid transparent;
+  transition: background 0.1s;
+}
+.sidebar-item:hover { background: var(--bg-muted); }
+.sidebar-item.active {
+  background: var(--primary-light);
+  color: var(--primary);
+  border-left-color: var(--primary);
+  font-weight: 500;
+}
+.sidebar-icon { font-size: 16px; flex-shrink: 0; }
+
+.main {
+  margin-left: 200px;
+  flex: 1;
+  padding: 32px;
+  min-height: calc(100vh - 52px);
+}
+
+.section { display: none; }
+.section.active { display: block; }
+
+/* ─── Page Header ─── */
+.page-header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  margin-bottom: 24px;
+}
+.page-title { font-size: 20px; font-weight: 600; }
+.page-subtitle { color: var(--text-secondary); font-size: 13px; margin-top: 2px; }
+
+/* ─── Card ─── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* ─── Table ─── */
+table { width: 100%; border-collapse: collapse; }
+thead tr { background: var(--bg-muted); border-bottom: 1px solid var(--border); }
+thead th {
+  padding: 10px 16px;
+  text-align: left;
+  font-size: 12px; font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+tbody tr:last-child { border-bottom: none; }
+tbody tr:hover { background: var(--bg-muted); }
+tbody td { padding: 12px 16px; font-size: 14px; }
+.table-empty {
+  text-align: center; padding: 48px 16px;
+  color: var(--text-tertiary); font-size: 13px;
+}
+
+/* ─── Badge ─── */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px; border-radius: 4px;
+  font-size: 12px; font-weight: 500;
+  white-space: nowrap;
+}
+.badge-default  { background: #f3f4f6; color: var(--text-secondary); }
+.badge-blue     { background: var(--primary-light); color: var(--primary); }
+.badge-green    { background: var(--success-light); color: var(--success); }
+.badge-orange   { background: var(--warning-light); color: var(--warning); }
+.badge-purple   { background: var(--purple-light); color: var(--purple); }
+.badge-red      { background: var(--destructive-light); color: var(--destructive); }
+
+/* ─── Buttons ─── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 14px; height: 34px; border-radius: 6px;
+  font-size: 14px; font-weight: 500; cursor: pointer;
+  border: none; white-space: nowrap;
+  transition: background 0.1s;
+}
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-secondary {
+  background: #fff; color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+}
+.btn-secondary:hover { background: var(--bg-muted); }
+.btn-ghost { background: transparent; color: var(--text-secondary); }
+.btn-ghost:hover { background: var(--bg-muted); color: var(--text-primary); }
+.btn-danger { background: var(--destructive-light); color: var(--destructive); }
+.btn-danger:hover { background: #fecaca; }
+.btn-sm { height: 28px; padding: 0 10px; font-size: 13px; }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ─── Modal ─── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.35);
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: #fff; border-radius: 10px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.14);
+  width: 520px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-lg { width: 700px; }
+.modal-xl { width: 860px; }
+.modal-header {
+  padding: 20px 24px 0;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-title { font-size: 16px; font-weight: 600; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; border: none; background: transparent;
+  color: var(--text-secondary); font-size: 18px; line-height: 1;
+}
+.modal-close:hover { background: var(--bg-muted); }
+.modal-body { padding: 20px 24px; }
+.modal-footer {
+  padding: 16px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; justify-content: flex-end; gap: 8px;
+}
+
+/* ─── Form ─── */
+.form-group { margin-bottom: 16px; }
+.form-label {
+  display: block; font-size: 13px; font-weight: 600;
+  margin-bottom: 6px; color: var(--text-primary);
+}
+.form-label .hint {
+  font-weight: 400; color: var(--text-tertiary); margin-left: 4px;
+}
+.form-control {
+  width: 100%; height: 36px; padding: 0 12px;
+  border: 1px solid var(--border-strong); border-radius: 6px;
+  font-size: 14px; color: var(--text-primary);
+  background: #fff; outline: none;
+  transition: border-color 0.15s;
+}
+.form-control:focus { border-color: var(--primary); }
+.form-control:disabled { background: var(--bg-muted); color: var(--text-tertiary); }
+textarea.form-control { height: auto; padding: 8px 12px; resize: vertical; }
+select.form-control { cursor: pointer; }
+
+.form-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 4px; }
+.form-error { font-size: 12px; color: var(--destructive); margin-top: 4px; }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* ─── Radio / Checkbox group ─── */
+.radio-group, .checkbox-group {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.radio-item, .checkbox-item {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 8px 12px; border-radius: 6px;
+  border: 1px solid var(--border); cursor: pointer;
+  transition: border-color 0.1s, background 0.1s;
+}
+.radio-item:hover:not(.disabled), .checkbox-item:hover:not(.disabled) {
+  border-color: var(--primary); background: #fafbff;
+}
+.radio-item.selected, .checkbox-item.selected {
+  border-color: var(--primary); background: var(--primary-light);
+}
+.radio-item.disabled, .checkbox-item.disabled {
+  opacity: 0.5; cursor: not-allowed; background: var(--bg-muted);
+}
+.radio-item input, .checkbox-item input { margin-top: 2px; flex-shrink: 0; }
+.radio-item-body .label { font-weight: 500; font-size: 14px; }
+.radio-item-body .desc { font-size: 12px; color: var(--text-secondary); margin-top: 1px; }
+
+/* ─── Tabs ─── */
+.tabs { display: flex; border-bottom: 1px solid var(--border); margin-bottom: 20px; }
+.tab-item {
+  padding: 10px 16px; cursor: pointer;
+  font-size: 14px; font-weight: 500;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.tab-item:hover { color: var(--text-primary); }
+.tab-item.active { color: var(--primary); border-bottom-color: var(--primary); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ─── Split panel (权限包编辑) ─── */
+.split-panel {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+.split-panel-box {
+  border: 1px solid var(--border); border-radius: 6px;
+  overflow: hidden;
+}
+.split-panel-box-header {
+  padding: 8px 12px;
+  background: var(--bg-muted); border-bottom: 1px solid var(--border);
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.split-panel-box-body { padding: 8px; max-height: 300px; overflow-y: auto; }
+
+.perm-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; border-radius: 4px; cursor: pointer;
+}
+.perm-item:hover { background: var(--bg-muted); }
+.perm-item.selected-perm { background: var(--primary-light); }
+.perm-item input[type=checkbox] { flex-shrink: 0; }
+.perm-item-label { flex: 1; }
+.perm-item-model { font-weight: 500; font-size: 13px; }
+.perm-item-detail { font-size: 12px; color: var(--text-secondary); }
+
+.selected-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--primary-light); color: var(--primary);
+  padding: 3px 8px; border-radius: 4px; margin: 3px;
+  font-size: 12px; font-weight: 500;
+}
+.selected-tag-remove {
+  cursor: pointer; font-size: 14px; line-height: 1;
+  opacity: 0.6;
+}
+.selected-tag-remove:hover { opacity: 1; }
+
+/* ─── Permission preview table ─── */
+.preview-section { margin-bottom: 16px; }
+.preview-section-title {
+  font-size: 12px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.4px;
+  margin-bottom: 8px;
+}
+.preview-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.preview-table th {
+  padding: 6px 10px; text-align: left;
+  background: var(--bg-muted); border: 1px solid var(--border);
+  font-weight: 600; font-size: 12px; color: var(--text-secondary);
+}
+.preview-table td {
+  padding: 6px 10px; border: 1px solid var(--border);
+}
+.source-tag {
+  font-size: 11px; padding: 1px 6px; border-radius: 3px;
+  background: #f3f4f6; color: var(--text-secondary);
+}
+.source-tag.direct { background: var(--primary-light); color: var(--primary); }
+.source-tag.implicit { background: var(--success-light); color: var(--success); }
+
+/* ─── Info box ─── */
+.info-box {
+  padding: 12px 14px; border-radius: 6px;
+  border: 1px solid var(--primary-light);
+  background: #f8faff;
+  font-size: 13px; color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.info-box.warning {
+  border-color: var(--warning-light);
+  background: #fffbf0;
+}
+
+/* ─── Divider ─── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ─── Permission Accordion ─── */
+.db-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--bg-card); border-radius: 8px 8px 0 0; padding: 0 16px;
+}
+.db-tab {
+  padding: 12px 16px; cursor: pointer; font-size: 13px; font-weight: 500;
+  color: var(--text-secondary); border-bottom: 2px solid transparent;
+  margin-bottom: -1px; white-space: nowrap;
+}
+.db-tab:hover { color: var(--text-primary); }
+.db-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+
+/* Model 行 */
+.model-row {
+  display: flex; align-items: center; padding: 12px 16px;
+  border-bottom: 1px solid var(--border); cursor: pointer;
+  user-select: none; transition: background 0.1s;
+}
+.model-row:hover { background: var(--bg-muted); }
+.model-row.open { background: #f8faff; border-bottom-color: transparent; }
+.model-row-chevron {
+  font-size: 12px; color: var(--text-tertiary);
+  margin-right: 10px; transition: transform 0.15s; flex-shrink: 0;
+}
+.model-row.open .model-row-chevron { transform: rotate(90deg); }
+.model-name { font-weight: 500; font-size: 14px; flex: 1; }
+.model-fields { display: flex; gap: 6px; align-items: center; }
+.field-tag { font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 500; }
+.field-tag-owner { background: var(--success-light); color: var(--success); }
+.field-tag-dept  { background: var(--warning-light); color: var(--warning); }
+.model-policy-count { font-size: 12px; color: var(--text-tertiary); margin-left: 12px; }
+.model-policy-count span { color: var(--primary); font-weight: 500; }
+
+/* Model 展开面板 */
+.model-action-panel { display: none; border-bottom: 1px solid var(--border); }
+.model-action-panel.open { display: block; }
+
+/* 策略列表表格 */
+.policy-table { width: 100%; border-collapse: collapse; }
+.policy-table thead tr { background: var(--bg-muted); border-bottom: 1px solid var(--border); }
+.policy-table thead th {
+  padding: 8px 12px; text-align: left;
+  font-size: 11px; font-weight: 600; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.4px;
+}
+.policy-table tbody tr { border-bottom: 1px solid var(--border); }
+.policy-table tbody tr:last-child { border-bottom: none; }
+.policy-table tbody td { padding: 10px 12px; font-size: 14px; vertical-align: middle; }
+.policy-name-cell { font-weight: 500; }
+.policy-desc-cell { color: var(--text-secondary); font-size: 13px; max-width: 260px; }
+.policy-builtin-badge { font-size: 11px; color: var(--text-tertiary); margin-left: 6px; }
+
+/* 策略详情展开 */
+.policy-detail-row td { padding: 0 !important; background: #f8faff; }
+.policy-detail-row.hidden { display: none; }
+.policy-detail-inner { padding: 12px 16px 16px 32px; }
+
+/* 动作行 */
+.action-row {
+  display: flex; align-items: center;
+  padding: 8px 0; border-bottom: 1px solid var(--border); gap: 0;
+}
+.action-row:last-child { border-bottom: none; }
+.action-row-header { padding: 6px 0; }
+.action-row-header .action-col-name,
+.action-row-header .action-col-check { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+
+.action-col-name  { width: 130px; flex-shrink: 0; }
+.action-col-check { width: 64px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.action-col-scope { flex: 1; padding: 0 10px; border-left: 1px solid var(--border); min-height: 28px; display: flex; align-items: center; }
+.scope-col-label  { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.4px; }
+
+.action-checkbox { width: 15px; height: 15px; cursor: pointer; accent-color: var(--primary); }
+.action-label-name { font-size: 13px; font-weight: 500; }
+.action-label-key  { font-size: 11px; color: var(--text-tertiary); }
+.check-readonly { font-size: 13px; font-weight: 600; }
+.check-on  { color: var(--success); }
+.check-off { color: var(--text-tertiary); font-weight: 400; }
+
+.scope-cell { display: flex; align-items: center; }
+.scope-cell-na { font-size: 12px; color: var(--text-tertiary); }
+.scope-btn {
+  font-size: 12px; padding: 2px 10px; border-radius: 4px;
+  border: 1px solid var(--border-strong); background: var(--bg-muted);
+  color: var(--text-secondary); cursor: pointer; white-space: nowrap; transition: all 0.1s;
+}
+.scope-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+.scope-btn.scope-self   { border-color: #bfdbfe; color: var(--primary);  background: var(--primary-light); }
+.scope-btn.scope-dept   { border-color: #fde68a; color: var(--warning);  background: var(--warning-light); }
+.scope-btn.scope-dept-children { border-color: #ddd6fe; color: var(--purple); background: var(--purple-light); }
+.scope-btn.scope-all    { border-color: var(--border); color: var(--text-secondary); background: var(--bg-muted); }
+
+/* 添加策略行 */
+.add-policy-row td {
+  padding: 10px 16px;
+  background: var(--bg-muted);
+}
+
+/* 内置策略折叠行 */
+.builtin-toggle-row td {
+  padding: 10px 16px;
+  background: var(--bg-muted);
+  font-size: 13px; color: var(--text-secondary);
+  cursor: pointer; user-select: none;
+  border-top: 1px dashed var(--border);
+}
+.builtin-toggle-row:hover td { color: var(--primary); background: #f0f4ff; }
+.builtin-toggle-chevron {
+  font-size: 11px; margin-right: 6px;
+  display: inline-block; transition: transform 0.15s;
+}
+.builtin-toggle-chevron.open { transform: rotate(90deg); }
+
+/* 策略编辑 modal 内 name input */
+.policy-name-input { margin-bottom: 12px; }
+.policy-detail-rows { margin-top: 12px; }
+.scope-hint { font-size: 12px; color: var(--text-tertiary); }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="app-header">
+  <div class="app-logo">ModelCraft <span>/ 权限管理</span></div>
+  <div class="app-header-right">
+    <div class="avatar">管</div>
+  </div>
+</header>
+
+<!-- Sidebar -->
+<aside class="sidebar">
+  <div class="sidebar-section-label">权限配置</div>
+  <div class="sidebar-item active" onclick="navigate('permissions')">
+    <span class="sidebar-icon">🔑</span> 权限点
+  </div>
+  <div class="sidebar-item" onclick="navigate('bundles')">
+    <span class="sidebar-icon">📦</span> 权限包
+  </div>
+  <div class="sidebar-item" onclick="navigate('roles')">
+    <span class="sidebar-icon">👥</span> 角色
+  </div>
+  <div class="sidebar-item" onclick="navigate('users')">
+    <span class="sidebar-icon">👤</span> 用户授权
+  </div>
+</aside>
+
+<!-- Main -->
+<div class="app-body">
+<main class="main">
+
+<!-- ════════════════════════════════════════
+     SECTION 1: 权限点管理
+════════════════════════════════════════ -->
+<div class="section active" id="section-permissions">
+  <div class="page-header">
+    <div>
+      <div class="page-title">权限点管理</div>
+      <div class="page-subtitle">勾选操作权限后可配置数据范围（行策略），默认查看全部</div>
+    </div>
+  </div>
+
+  <!-- Database Tabs -->
+  <div class="card">
+    <div class="db-tabs" id="db-tabs"></div>
+    <div id="perm-matrix-container"></div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 2: 权限包管理
+════════════════════════════════════════ -->
+<div class="section" id="section-bundles">
+  <div class="page-header">
+    <div>
+      <div class="page-title">权限包管理</div>
+      <div class="page-subtitle">组合权限点，作为正式授权单位分配给用户或角色</div>
+    </div>
+    <button class="btn btn-primary" onclick="openBundleModal()">+ 创建权限包</button>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>权限包名</th>
+          <th>描述</th>
+          <th>包含权限点</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="bundle-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 3: 角色管理
+════════════════════════════════════════ -->
+<div class="section" id="section-roles">
+  <div class="page-header">
+    <div>
+      <div class="page-title">角色管理</div>
+      <div class="page-subtitle">内置隐式角色在鉴权时自动注入，无需手工分配</div>
+    </div>
+    <button class="btn btn-primary" onclick="openRoleModal()">+ 创建角色</button>
+  </div>
+
+  <div class="info-box">
+    <strong>内置隐式角色规则：</strong>角色落库，关系隐式；定义可见，授予自动。所有已登录用户自动拥有隐式角色的权限，无需管理员分配。
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>角色名</th>
+          <th>类型</th>
+          <th>绑定权限包</th>
+          <th style="width:80px;text-align:center">成员</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="role-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     SECTION 4: 用户授权
+════════════════════════════════════════ -->
+<div class="section" id="section-users">
+  <div class="page-header">
+    <div>
+      <div class="page-title">用户授权</div>
+      <div class="page-subtitle">为用户分配权限包或角色，权限来源取三通道并集</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead>
+        <tr>
+          <th>用户名</th>
+          <th>所在部门</th>
+          <th>直接权限包</th>
+          <th>角色</th>
+          <th>操作</th>
+        </tr>
+      </thead>
+      <tbody id="user-tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODAL: 策略编辑（新建/编辑自定义策略）
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="policy-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="policy-modal-title">新建策略</div>
+      <button class="modal-close" onclick="closeModal('policy-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">策略名称</label>
+          <input class="form-control" id="policy-name-input" type="text" placeholder="如：部门主管策略">
+        </div>
+        <div class="form-group">
+          <label class="form-label">策略描述 <span class="hint">可选</span></label>
+          <input class="form-control" id="policy-desc-input" type="text" placeholder="简要说明该策略的用途">
+        </div>
+      </div>
+      <hr class="divider">
+      <div id="policy-action-rows"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('policy-modal')">取消</button>
+      <button class="btn btn-primary" onclick="savePolicy()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODAL: 范围选择（策略编辑中）
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="scope-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="scope-modal-title">配置范围</div>
+      <button class="modal-close" onclick="closeModal('scope-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="info-box" id="scope-modal-info"></div>
+      <div class="form-group">
+        <label class="form-label">数据范围</label>
+        <div class="radio-group" id="scope-radios"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('scope-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveScope()">确定</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODAL: 创建/编辑权限包
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="bundle-modal">
+  <div class="modal modal-xl">
+    <div class="modal-header">
+      <div class="modal-title" id="bundle-modal-title">创建权限包</div>
+      <button class="modal-close" onclick="closeModal('bundle-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">权限包名称</label>
+          <input class="form-control" id="bundle-name" type="text" placeholder="如：订单查看包">
+        </div>
+        <div class="form-group">
+          <label class="form-label">描述 <span class="hint">可选</span></label>
+          <input class="form-control" id="bundle-desc" type="text" placeholder="简要说明用途">
+        </div>
+      </div>
+      <hr class="divider">
+      <div class="split-panel">
+        <div class="split-panel-box">
+          <div class="split-panel-box-header">全部策略（点击选择）</div>
+          <div class="split-panel-box-body" id="bundle-perm-list"></div>
+        </div>
+        <div class="split-panel-box">
+          <div class="split-panel-box-header">已选权限点</div>
+          <div class="split-panel-box-body" id="bundle-selected-perms">
+            <div style="color:var(--text-tertiary);font-size:13px;padding:8px">暂未选择权限点</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('bundle-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveBundle()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODAL: 创建/编辑角色
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="role-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="role-modal-title">创建角色</div>
+      <button class="modal-close" onclick="closeModal('role-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label class="form-label">角色名称</label>
+        <input class="form-control" id="role-name" type="text" placeholder="如：销售、运营">
+      </div>
+      <div class="tabs" style="margin-top:8px">
+        <div class="tab-item active" onclick="switchTab('role','bundles')">权限包</div>
+        <div class="tab-item" onclick="switchTab('role','members')">成员</div>
+      </div>
+      <!-- Tab: 权限包 -->
+      <div class="tab-panel active" id="role-tab-bundles">
+        <div class="checkbox-group" id="role-bundle-list"></div>
+        <div class="form-hint" style="margin-top:8px">可选择多个权限包</div>
+      </div>
+      <!-- Tab: 成员 -->
+      <div class="tab-panel" id="role-tab-members">
+        <div class="info-box" style="margin-bottom:12px">勾选后该用户将拥有此角色的所有权限。</div>
+        <div class="checkbox-group" id="role-member-list"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('role-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveRole()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════
+     MODAL: 用户授权编辑
+════════════════════════════════════════ -->
+<div class="modal-overlay" id="user-modal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="user-modal-title">用户授权</div>
+      <button class="modal-close" onclick="closeModal('user-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="tabs">
+        <div class="tab-item active" onclick="switchTab('user', 'direct')">直接权限包</div>
+        <div class="tab-item" onclick="switchTab('user', 'roles')">角色分配</div>
+        <div class="tab-item" onclick="switchTab('user', 'preview')">权限预览</div>
+      </div>
+
+      <!-- Tab: 直接权限包 -->
+      <div class="tab-panel active" id="user-tab-direct">
+        <div class="info-box">直接分配给用户的权限包，不经由角色。</div>
+        <div id="user-direct-bundle-list" class="checkbox-group"></div>
+      </div>
+
+      <!-- Tab: 角色分配 -->
+      <div class="tab-panel" id="user-tab-roles">
+        <div class="info-box">通过角色获得权限包。角色关联的所有权限包均对用户生效。</div>
+        <div id="user-role-list"></div>
+      </div>
+
+      <!-- Tab: 权限预览 -->
+      <div class="tab-panel" id="user-tab-preview">
+        <div class="info-box">
+          以下为该用户的 <strong>最终有效权限</strong>，来自三个通道并集：<br>
+          <span class="badge badge-blue" style="margin-top:6px">直接权限包</span>&nbsp;
+          <span class="badge badge-default">角色权限包</span>&nbsp;
+          <span class="badge badge-green">隐式角色（自动）</span>
+          <br><small style="margin-top:4px;display:block">同一资源同一动作存在多个行策略时，取范围最广（ALL > DEPT_AND_CHILDREN > DEPT > SELF）</small>
+        </div>
+        <div id="user-preview-content"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal('user-modal')">取消</button>
+      <button class="btn btn-primary" onclick="saveUser()">保存</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── Mock 数据 ───────────────────────────────────────────
+const DATABASES = [
+  {
+    id: 'db1', name: 'crm_db',
+    models: [
+      { id: 'm1', name: 'orders',    fields: ['id', 'owner', 'dept_id', 'status', 'amount', 'remark'] },
+      { id: 'm2', name: 'tasks',     fields: ['id', 'owner', 'title', 'status', 'due_date'] },
+      { id: 'm3', name: 'customers', fields: ['id', 'owner', 'dept_id', 'name', 'email', 'phone'] },
+    ]
+  },
+  {
+    id: 'db2', name: 'product_db',
+    models: [
+      { id: 'm4', name: 'products',   fields: ['id', 'name', 'price', 'stock'] },
+      { id: 'm5', name: 'categories', fields: ['id', 'owner', 'dept_id', 'name', 'parent_id'] },
+    ]
+  },
+  {
+    id: 'db3', name: 'hr_db',
+    models: [
+      { id: 'm6', name: 'employees',  fields: ['id', 'owner', 'dept_id', 'name', 'salary', 'position'] },
+      { id: 'm7', name: 'leaves',     fields: ['id', 'owner', 'dept_id', 'type', 'days', 'status'] },
+    ]
+  },
+];
+
+// 扁平化，保留 dbId / dbName 反查
+const MODELS = DATABASES.flatMap(db => db.models.map(m => ({ ...m, dbId: db.id, dbName: db.name })));
+
+let permissions = [
+  { id: 'p1', modelId:'m1', action:'select', viewScope:'SELF'  },
+  { id: 'p2', modelId:'m1', action:'insert', checkScope:'SELF' },
+  { id: 'p3', modelId:'m1', action:'update', viewScope:'ALL', checkScope:'ALL' },
+  { id: 'pa', modelId:'m1', action:'delete', viewScope:'SELF'  },
+  { id: 'p4', modelId:'m2', action:'select', viewScope:'SELF'  },
+  { id: 'p5', modelId:'m2', action:'insert', checkScope:'ALL'  },
+  { id: 'p6', modelId:'m4', action:'select', viewScope:'ALL'   },
+  { id: 'p9', modelId:'m6', action:'select', viewScope:'DEPT'  },
+];
+
+let bundles = [
+  { id: 'b1', name:'订单查看包',   desc:'查看本人及本部门订单',      permIds:['bi_ro_m1', 'bi_rws_m1'] },
+  { id: 'b2', name:'订单管理包',   desc:'查看全部订单并可修改状态',  permIds:['bi_rwa_m1'] },
+  { id: 'b3', name:'任务自服务包', desc:'登录用户查看自己的任务',    permIds:['bi_rws_m2'] },
+  { id: 'b4', name:'商品目录包',   desc:'查看全部商品信息',          permIds:['bi_ro_m4'] },
+];
+
+let roles = [
+  { id: 'r1', name:'销售',                     isImplicit:false, bundleIds:['b1'] },
+  { id: 'r2', name:'运营',                     isImplicit:false, bundleIds:['b1','b2'] },
+  { id: 'r3', name:'SYSTEM_AUTHENTICATED_USER', isImplicit:true,  bundleIds:['b3'] },
+];
+
+let users = [
+  { id: 'u1', name:'张三', dept:'销售部', directBundleIds:[],     roleIds:['r1'] },
+  { id: 'u2', name:'李四', dept:'运营部', directBundleIds:['b2'], roleIds:['r1'] },
+  { id: 'u3', name:'王五', dept:'产品部', directBundleIds:['b4'], roleIds:[] },
+];
+
+let editingBundleId = null;
+let editingRoleId   = null;
+let editingUserId   = null;
+let bundleSelectedPerms = [];
+let userActiveTab = 'direct';
+let activDbId = null;
+let scopeEditContext = null; // { policyId, action, type }
+let editingPolicyCtx = null; // { modelId, policyId|null }
+// draft state while editing policy in modal
+let draftActions = {}; // action → { enabled, viewScope, checkScope }
+
+// ─── Helpers ─────────────────────────────────────────────
+const getModel    = id => MODELS.find(m => m.id === id);
+const modelLabel  = id => { const m = getModel(id); return m ? `${m.dbName}.${m.name}` : id; };
+const getPermById = id => {
+  for (const pol of modelPolicies) for (const a of pol.actions) if (a.id === id) return a;
+};
+const getBundle  = id => bundles.find(b => b.id === id);
+const getRole    = id => roles.find(r => r.id === id);
+const getUser    = id => users.find(u => u.id === id);
+
+const ACTIONS_LIST = ['select', 'insert', 'update', 'delete'];
+const ACTION_LABELS = { select:'查询', insert:'新增', update:'修改', delete:'删除' };
+const ACTION_SCOPE_CONFIG = {
+  select: { view: true,  check: false },
+  insert: { view: false, check: true  },
+  update: { view: true,  check: true  },
+  delete: { view: true,  check: false },
+};
+
+const ROW_SCOPES = [
+  { value:'ALL',               label:'全部数据',     desc:'不限制，可访问所有行',                    field:null,     cls:'scope-all'           },
+  { value:'SELF',              label:'仅本人',       desc:'只能访问 owner 字段等于自己的行',          field:'owner',  cls:'scope-self'          },
+  { value:'DEPT',              label:'本部门',       desc:'只能访问 dept_id 等于当前部门的行',        field:'dept_id',cls:'scope-dept'          },
+  { value:'DEPT_AND_CHILDREN', label:'本部门及下级', desc:'dept_id 在当前部门及所有子部门范围内的行', field:'dept_id',cls:'scope-dept-children' },
+];
+
+// ─── 策略数据 ─────────────────────────────────────────────
+// modelPolicies: [{ id, modelId, name, desc, builtin, actions:[{action,enabled,viewScope?,checkScope?}] }]
+
+function makeBuiltinPolicy(id, modelId, name, desc, cfg) {
+  return {
+    id, modelId, name, desc, builtin: true,
+    actions: ACTIONS_LIST.map(action => {
+      const pc = cfg[action];
+      const aCfg = ACTION_SCOPE_CONFIG[action];
+      const entry = { id: id+'_'+action, action, enabled: pc.enabled };
+      if (pc.enabled) {
+        if (aCfg.view)  entry.viewScope  = pc.viewScope  || 'ALL';
+        if (aCfg.check) entry.checkScope = pc.checkScope || 'ALL';
+      }
+      return entry;
+    })
+  };
+}
+
+const BUILTIN_CFGS = [
+  { id:'bi_no',   name:'无权限',       desc:'禁止所有操作',              cfg:{ select:{enabled:false}, insert:{enabled:false}, update:{enabled:false}, delete:{enabled:false} } },
+  { id:'bi_ro',   name:'只读',         desc:'只能查询，不能写入',          cfg:{ select:{enabled:true,viewScope:'ALL'}, insert:{enabled:false}, update:{enabled:false}, delete:{enabled:false} } },
+  { id:'bi_rws',  name:'读写本人',     desc:'只能读写自己的数据',          cfg:{ select:{enabled:true,viewScope:'SELF'}, insert:{enabled:true,checkScope:'SELF'}, update:{enabled:true,viewScope:'SELF',checkScope:'SELF'}, delete:{enabled:true,viewScope:'SELF'} } },
+  { id:'bi_ras',  name:'读所有写自己', desc:'可查询所有，但只能写自己的',  cfg:{ select:{enabled:true,viewScope:'ALL'}, insert:{enabled:true,checkScope:'SELF'}, update:{enabled:true,viewScope:'ALL',checkScope:'SELF'}, delete:{enabled:true,viewScope:'SELF'} } },
+  { id:'bi_rwa',  name:'读写全部',     desc:'可读写所有数据',              cfg:{ select:{enabled:true,viewScope:'ALL'}, insert:{enabled:true,checkScope:'ALL'}, update:{enabled:true,viewScope:'ALL',checkScope:'ALL'}, delete:{enabled:true,viewScope:'ALL'} } },
+];
+
+// 为每个 Model 生成内置策略
+let modelPolicies = MODELS.flatMap(m =>
+  BUILTIN_CFGS.map(bc => makeBuiltinPolicy(bc.id+'_'+m.id, m.id, bc.name, bc.desc, bc.cfg))
+);
+
+// 自定义策略 mock
+modelPolicies.push({
+  id: 'custom_m1_1', modelId: 'm1', name: '部门主管策略', desc: '主管可查看全部订单，但只能修改本部门数据',
+  builtin: false,
+  actions: [
+    { id:'cm1_s', action:'select', enabled:true,  viewScope:'ALL'  },
+    { id:'cm1_i', action:'insert', enabled:true,  checkScope:'DEPT' },
+    { id:'cm1_u', action:'update', enabled:true,  viewScope:'ALL', checkScope:'DEPT' },
+    { id:'cm1_d', action:'delete', enabled:false },
+  ]
+});
+
+// ─── perm helpers (for bundle picker, keeps old interface) ─
+// flatten policies → actions for bundle compatibility
+function getAllPermEntries() {
+  return modelPolicies.flatMap(pol =>
+    pol.actions.filter(a => a.enabled).map(a => ({
+      id: a.id, modelId: pol.modelId, policyId: pol.id, policyName: pol.name, action: a.action,
+      viewScope: a.viewScope, checkScope: a.checkScope,
+    }))
+  );
+}
+
+function rowScopeBadge(rs) {
+  const s = ROW_SCOPES.find(r => r.value === rs);
+  const clsMap = { 'scope-all':'badge-default','scope-self':'badge-blue','scope-dept':'badge-orange','scope-dept-children':'badge-purple' };
+  return `<span class="badge ${clsMap[s?.cls]||'badge-default'}">${s?.label||rs}</span>`;
+}
+function actionBadge(a) {
+  const map = { select:'badge-blue',insert:'badge-green',update:'badge-orange',delete:'badge-red' };
+  return `<span class="badge ${map[a]||'badge-default'}">${a}</span>`;
+}
+function genId(prefix) {
+  return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2,5);
+}
+
+// ─── Navigation ──────────────────────────────────────────
+function navigate(page) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item').forEach(s => s.classList.remove('active'));
+  document.getElementById('section-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+  renderAll();
+}
+
+function renderAll() {
+  renderPermMatrix();
+  renderBundles();
+  renderRoles();
+  renderUsers();
+}
+
+// ── Permission Matrix (Policy List) ──────────────────────
+const openModels   = new Set();
+const openBuiltins = new Set();
+
+function renderPermMatrix() {
+  const tabsEl    = document.getElementById('db-tabs');
+  const container = document.getElementById('perm-matrix-container');
+  if (!activDbId) activDbId = DATABASES[0].id;
+
+  tabsEl.innerHTML = DATABASES.map(db =>
+    `<div class="db-tab${db.id === activDbId ? ' active' : ''}" onclick="switchDb('${db.id}')">${db.name}</div>`
+  ).join('');
+
+  const db = DATABASES.find(d => d.id === activDbId);
+  if (!db) return;
+  container.innerHTML = db.models.map(m => renderModelBlock(m)).join('');
+}
+
+function renderModelBlock(m) {
+  const isOpen         = openModels.has(m.id);
+  const allPolicies    = modelPolicies.filter(p => p.modelId === m.id);
+  const customPolicies = allPolicies.filter(p => !p.builtin);
+  const builtinPolicies= allPolicies.filter(p =>  p.builtin);
+  const builtinOpen    = openBuiltins.has(m.id);
+
+  const fieldTags = [
+    m.fields.includes('owner')   ? `<span class="field-tag field-tag-owner">owner</span>`  : '',
+    m.fields.includes('dept_id') ? `<span class="field-tag field-tag-dept">dept_id</span>` : '',
+  ].filter(Boolean).join('');
+
+  const countLabel = customPolicies.length > 0
+    ? `<span>${customPolicies.length}</span> 条自定义策略`
+    : '<span style="color:var(--text-tertiary)">无自定义策略</span>';
+
+  const customRows = customPolicies.length > 0
+    ? customPolicies.map(pol => renderPolicyRow(m, pol)).join('')
+    : `<tr><td colspan="5" style="padding:12px 16px;color:var(--text-tertiary);font-size:13px">暂无自定义策略</td></tr>`;
+
+  const builtinToggleRow = `
+    <tr class="builtin-toggle-row" onclick="toggleBuiltins('${m.id}')">
+      <td colspan="5">
+        <span class="builtin-toggle-chevron${builtinOpen ? ' open' : ''}">▶</span>
+        查看内置策略（${builtinPolicies.length} 条）
+      </td>
+    </tr>`;
+
+  const builtinRows = builtinOpen
+    ? builtinPolicies.map(pol => renderPolicyRow(m, pol)).join('')
+    : '';
+
+  const tableBody = `
+    <table class="policy-table">
+      <thead><tr>
+        <th style="width:160px">策略名</th>
+        <th>策略描述</th>
+        <th style="width:80px;text-align:center">查看</th>
+        <th style="width:60px;text-align:center">编辑</th>
+        <th style="width:60px;text-align:center">删除</th>
+      </tr></thead>
+      <tbody>
+        ${customRows}
+        <tr class="add-policy-row">
+          <td colspan="5">
+            <button class="btn btn-ghost btn-sm" onclick="openPolicyModal('${m.id}',null)">+ 添加策略</button>
+          </td>
+        </tr>
+        ${builtinToggleRow}
+        ${builtinRows}
+      </tbody>
+    </table>`;
+
+  return `
+    <div class="model-row${isOpen?' open':''}" onclick="toggleModel('${m.id}')">
+      <span class="model-row-chevron">▶</span>
+      <span class="model-name">${m.name}</span>
+      <div class="model-fields">${fieldTags}</div>
+      <span class="model-policy-count">${countLabel}</span>
+    </div>
+    <div class="model-action-panel${isOpen?' open':''}" id="panel-${m.id}">
+      ${tableBody}
+    </div>`;
+}
+
+function toggleBuiltins(modelId) {
+  event.stopPropagation();
+  openBuiltins.has(modelId) ? openBuiltins.delete(modelId) : openBuiltins.add(modelId);
+  renderPermMatrix();
+}
+function toggleModel(modelId) {
+  openModels.has(modelId) ? openModels.delete(modelId) : openModels.add(modelId);
+  renderPermMatrix();
+}
+function switchDb(dbId) {
+  activDbId = dbId; openModels.clear(); openBuiltins.clear(); renderPermMatrix();
+}
+
+function renderPolicyRow(m, pol) {
+  const detailId = `detail-${pol.id}`;
+  return `
+    <tr style="${pol.builtin ? 'background:#fafbff' : ''}">
+      <td class="policy-name-cell">
+        ${pol.name}
+        ${pol.builtin ? `<span class="policy-builtin-badge">内置</span>` : ''}
+      </td>
+      <td class="policy-desc-cell">${pol.desc}</td>
+      <td style="text-align:center">
+        <button class="btn btn-ghost btn-sm" onclick="togglePolicyDetail('${detailId}')">查看</button>
+      </td>
+      <td style="text-align:center">
+        ${pol.builtin
+          ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:0.35;cursor:not-allowed">编辑</button>`
+          : `<button class="btn btn-ghost btn-sm" onclick="openPolicyModal('${m.id}','${pol.id}')">编辑</button>`}
+      </td>
+      <td style="text-align:center">
+        ${pol.builtin
+          ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:0.35;cursor:not-allowed">删除</button>`
+          : `<button class="btn btn-danger btn-sm" onclick="deletePolicy('${pol.id}')">删除</button>`}
+      </td>
+    </tr>
+    <tr id="${detailId}" class="policy-detail-row hidden">
+      <td colspan="5">
+        <div class="policy-detail-inner">
+          ${renderActionDetailTable(m, pol, false)}
+        </div>
+      </td>
+    </tr>`;
+}
+
+function togglePolicyDetail(detailId) {
+  const row = document.getElementById(detailId);
+  if (row) row.classList.toggle('hidden');
+}
+
+function renderActionDetailTable(m, pol, editable) {
+  const headerRow = `
+    <div class="action-row action-row-header">
+      <div class="action-col-name">操作</div>
+      <div class="action-col-check">可操作</div>
+      <div class="action-col-scope scope-col-label">查看范围</div>
+      <div class="action-col-scope scope-col-label">修改范围</div>
+    </div>`;
+
+  const rows = ACTIONS_LIST.map(action => {
+    const cfg    = ACTION_SCOPE_CONFIG[action];
+    const aEntry = pol.actions.find(a => a.action === action) || { action, enabled: false };
+    const checked = aEntry.enabled;
+
+    const viewCell = cfg.view
+      ? (checked ? scopeCell(m, pol.id, action, 'view',  aEntry.viewScope,  editable) : `<div class="scope-cell scope-cell-na">—</div>`)
+      : `<div class="scope-cell scope-cell-na">—</div>`;
+    const checkCell = cfg.check
+      ? (checked ? scopeCell(m, pol.id, action, 'check', aEntry.checkScope, editable) : `<div class="scope-cell scope-cell-na">—</div>`)
+      : `<div class="scope-cell scope-cell-na">—</div>`;
+
+    const checkCol = editable
+      ? `<input type="checkbox" class="action-checkbox" ${checked ? 'checked' : ''} onchange="draftToggle('${action}',this.checked)">`
+      : (checked ? `<span class="check-readonly check-on">✓</span>` : `<span class="check-readonly check-off">—</span>`);
+
+    return `
+      <div class="action-row${!editable ? ' action-row-readonly' : ''}">
+        <div class="action-col-name">
+          <div class="action-label-name">${ACTION_LABELS[action]}</div>
+          <div class="action-label-key">${action}</div>
+        </div>
+        <div class="action-col-check">${checkCol}</div>
+        <div class="action-col-scope">${viewCell}</div>
+        <div class="action-col-scope">${checkCell}</div>
+      </div>`;
+  }).join('');
+
+  return `<div style="border:1px solid var(--border);border-radius:6px;overflow:hidden">
+    ${headerRow}${rows}
+  </div>`;
+}
+
+function scopeCell(m, policyId, action, type, currentVal, editable) {
+  const rs = currentVal || 'ALL';
+  const si = ROW_SCOPES.find(r => r.value === rs) || ROW_SCOPES[0];
+  const badgeClsMap = { 'scope-all':'badge-default', 'scope-self':'badge-blue', 'scope-dept':'badge-orange', 'scope-dept-children':'badge-purple' };
+  if (editable) {
+    return `<div class="scope-cell">
+      <button class="scope-btn ${si.cls}" onclick="openScopeModal('${policyId}','${action}','${type}')">${si.label}</button>
+    </div>`;
+  }
+  return `<div class="scope-cell">
+    <span class="badge ${badgeClsMap[si.cls] || 'badge-default'}">${si.label}</span>
+  </div>`;
+}
+
+function deletePolicy(policyId) {
+  if (!confirm('确定删除该策略？')) return;
+  modelPolicies = modelPolicies.filter(p => p.id !== policyId);
+  renderPermMatrix();
+}
+
+// ── Policy Modal ─────────────────────────────────────────
+function openPolicyModal(modelId, policyId) {
+  editingPolicyCtx = { modelId, policyId };
+  const m   = getModel(modelId);
+  const pol = policyId ? modelPolicies.find(p => p.id === policyId) : null;
+
+  document.getElementById('policy-modal-title').textContent = pol ? `编辑策略 — ${modelLabel(m.id)}` : `新建策略 — ${modelLabel(m.id)}`;
+  document.getElementById('policy-name-input').value = pol ? pol.name : '';
+  document.getElementById('policy-desc-input').value = pol ? pol.desc : '';
+
+  // init draft
+  draftActions = {};
+  ACTIONS_LIST.forEach(action => {
+    const aEntry = pol ? (pol.actions.find(a => a.action === action) || { action, enabled: false }) : { action, enabled: false };
+    const cfg = ACTION_SCOPE_CONFIG[action];
+    draftActions[action] = {
+      enabled:    aEntry.enabled,
+      viewScope:  cfg.view  ? (aEntry.viewScope  || 'ALL') : undefined,
+      checkScope: cfg.check ? (aEntry.checkScope || 'ALL') : undefined,
+    };
+  });
+
+  renderPolicyModalActions(m);
+  openModal('policy-modal');
+}
+
+function renderPolicyModalActions(m) {
+  const fakePolicy = {
+    id: '__draft__', modelId: m.id, builtin: false,
+    actions: ACTIONS_LIST.map(action => {
+      const d = draftActions[action];
+      return { action, enabled: d.enabled, viewScope: d.viewScope, checkScope: d.checkScope };
+    })
+  };
+  document.getElementById('policy-action-rows').innerHTML = renderActionDetailTable(m, fakePolicy, true);
+}
+
+function draftToggle(action, checked) {
+  draftActions[action].enabled = checked;
+  const m = getModel(editingPolicyCtx.modelId);
+  renderPolicyModalActions(m);
+}
+
+function savePolicy() {
+  const { modelId, policyId } = editingPolicyCtx;
+  const name = document.getElementById('policy-name-input').value.trim();
+  const desc = document.getElementById('policy-desc-input').value.trim();
+  if (!name) { alert('请填写策略名称'); return; }
+
+  const actions = ACTIONS_LIST.map(action => {
+    const d = draftActions[action];
+    const cfg = ACTION_SCOPE_CONFIG[action];
+    const entry = { id: genId('a'), action, enabled: d.enabled };
+    if (d.enabled) {
+      if (cfg.view)  entry.viewScope  = d.viewScope  || 'ALL';
+      if (cfg.check) entry.checkScope = d.checkScope || 'ALL';
+    }
+    return entry;
+  });
+
+  if (policyId) {
+    const pol = modelPolicies.find(p => p.id === policyId);
+    pol.name = name; pol.desc = desc; pol.actions = actions;
+  } else {
+    modelPolicies.push({ id: genId('pol'), modelId, name, desc, builtin: false, actions });
+  }
+  closeModal('policy-modal');
+  renderPermMatrix();
+}
+
+// ── Scope Modal (policy editing) ─────────────────────────
+function openScopeModal(policyId, action, type) {
+  scopeEditContext = { policyId, action, type };
+
+  // find model
+  const pol = policyId === '__draft__' ? { modelId: editingPolicyCtx.modelId } : modelPolicies.find(p => p.id === policyId);
+  const m = getModel(pol.modelId);
+
+  const typeLabel = type === 'view' ? '查看范围' : '修改范围';
+  document.getElementById('scope-modal-title').textContent = `${typeLabel} — ${modelLabel(m.id)} · ${ACTION_LABELS[action]}`;
+  document.getElementById('scope-modal-info').innerHTML =
+    `Model: <strong>${modelLabel(m.id)}</strong> &nbsp;|&nbsp; 操作: <strong>${ACTION_LABELS[action]}</strong>
+     <span style="margin-top:4px;display:block;color:var(--text-tertiary)">字段：${m.fields.join(', ')}</span>`;
+
+  const hasOwner  = m.fields.includes('owner');
+  const hasDeptId = m.fields.includes('dept_id');
+
+  // current value
+  let currentRs = 'ALL';
+  if (policyId === '__draft__') {
+    currentRs = (type === 'view' ? draftActions[action].viewScope : draftActions[action].checkScope) || 'ALL';
+  } else {
+    const aEntry = modelPolicies.find(p => p.id === policyId)?.actions.find(a => a.action === action);
+    currentRs = (type === 'view' ? aEntry?.viewScope : aEntry?.checkScope) || 'ALL';
+  }
+
+  document.getElementById('scope-radios').innerHTML = ROW_SCOPES.map(rs => {
+    const ok = !rs.field || (rs.field==='owner'&&hasOwner) || (rs.field==='dept_id'&&hasDeptId);
+    const sel = currentRs === rs.value;
+    return `<label class="radio-item${sel?' selected':''}${!ok?' disabled':''}" ${!ok?'title="' + rs.field + ' 字段不存在"':''}>
+      <input type="radio" name="scope-rs" value="${rs.value}" ${sel?'checked':''} ${!ok?'disabled':''} onchange="onScopeRsChange(this)">
+      <div class="radio-item-body">
+        <div class="label">${rs.label}</div>
+        <div class="desc">${rs.desc}${!ok?` — <span style="color:var(--destructive)">缺少 ${rs.field} 字段</span>`:''}</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  openModal('scope-modal');
+}
+
+function onScopeRsChange(radio) {
+  document.querySelectorAll('#scope-radios .radio-item').forEach(el => el.classList.remove('selected'));
+  radio.closest('.radio-item').classList.add('selected');
+}
+
+function saveScope() {
+  const { policyId, action, type } = scopeEditContext;
+  const val = document.querySelector('input[name="scope-rs"]:checked')?.value;
+  if (!val) return;
+
+  if (policyId === '__draft__') {
+    if (type === 'view')  draftActions[action].viewScope  = val;
+    if (type === 'check') draftActions[action].checkScope = val;
+    const m = getModel(editingPolicyCtx.modelId);
+    renderPolicyModalActions(m);
+  } else {
+    const aEntry = modelPolicies.find(p => p.id === policyId)?.actions.find(a => a.action === action);
+    if (aEntry) {
+      if (type === 'view')  aEntry.viewScope  = val;
+      if (type === 'check') aEntry.checkScope = val;
+    }
+    renderPermMatrix();
+  }
+  closeModal('scope-modal');
+}
+// ─── Bundle Modal ────────────────────────────────────────
+function renderBundles() {
+  const tbody = document.getElementById('bundle-tbody');
+  if (!bundles.length) {
+    tbody.innerHTML = `<tr><td colspan="4" class="table-empty">暂无权限包</td></tr>`;
+    return;
+  }
+  tbody.innerHTML = bundles.map(b => {
+    const policyBadges = b.permIds.map(polId => {
+      const pol = modelPolicies.find(p => p.id === polId);
+      if (!pol) return '';
+      const m = getModel(pol.modelId);
+      return `<span class="badge badge-default" style="margin-right:4px">${pol ? modelLabel(pol.modelId) : '?'} · ${pol.name}</span>`;
+    }).join('');
+    return `<tr>
+      <td><strong>${b.name}</strong></td>
+      <td style="color:var(--text-secondary)">${b.desc}</td>
+      <td>${policyBadges || '<span style="color:var(--text-tertiary)">无</span>'}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openBundleModal('${b.id}')">编辑</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBundle('${b.id}')">删除</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+
+function openBundleModal(id) {
+  editingBundleId = id || null;
+  const b = id ? getBundle(id) : null;
+  document.getElementById('bundle-modal-title').textContent = id ? '编辑权限包' : '创建权限包';
+  document.getElementById('bundle-name').value = b ? b.name : '';
+  document.getElementById('bundle-desc').value = b ? b.desc : '';
+  bundleSelectedPerms = b ? [...b.permIds] : [];
+  renderBundlePermList();
+  openModal('bundle-modal');
+}
+
+function renderBundlePermList() {
+  const list = document.getElementById('bundle-perm-list');
+  const byModel = {};
+  modelPolicies.forEach(pol => {
+    const key = modelLabel(pol.modelId);
+    if (!byModel[key]) byModel[key] = [];
+    byModel[key].push(pol);
+  });
+
+  list.innerHTML = Object.entries(byModel).map(([label, policies]) => `
+    <div style="margin-bottom:4px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-tertiary);text-transform:uppercase;letter-spacing:0.4px;padding:6px 8px 2px">${label}</div>
+      ${policies.map(pol => {
+        const selected = bundleSelectedPerms.includes(pol.id);
+        const enabled = pol.actions.filter(a => a.enabled).map(a => ACTION_LABELS[a.action]).join('、');
+        return `<div class="perm-item${selected ? ' selected-perm' : ''}" onclick="toggleBundlePerm('${pol.id}','${pol.modelId}')">
+          <input type="checkbox" ${selected ? 'checked' : ''} onclick="event.stopPropagation();toggleBundlePerm('${pol.id}','${pol.modelId}')">
+          <div class="perm-item-label">
+            <div class="perm-item-model">${pol.name}${pol.builtin ? ' <span style="color:var(--text-tertiary);font-size:11px">内置</span>' : ''}</div>
+            <div class="perm-item-detail">${enabled || '无操作权限'}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>
+  `).join('') || '<div style="color:var(--text-tertiary);font-size:13px;padding:8px">暂无可用策略</div>';
+
+  const selBox = document.getElementById('bundle-selected-perms');
+  if (!bundleSelectedPerms.length) {
+    selBox.innerHTML = '<div style="color:var(--text-tertiary);font-size:13px;padding:8px">暂未选择</div>';
+  } else {
+    selBox.innerHTML = bundleSelectedPerms.map(polId => {
+      const pol = modelPolicies.find(p => p.id === polId);
+      return `<div class="selected-tag">
+        ${pol ? modelLabel(pol.modelId) : '?'} · ${pol ? pol.name : polId}
+        <span class="selected-tag-remove" onclick="toggleBundlePerm('${polId}','${pol ? pol.modelId : ''}')">×</span>
+      </div>`;
+    }).join('');
+  }
+}
+
+function toggleBundlePerm(polId, modelId) {
+  const idx = bundleSelectedPerms.indexOf(polId);
+  if (idx >= 0) {
+    // deselect
+    bundleSelectedPerms.splice(idx, 1);
+  } else {
+    // remove any existing selection for the same modelId (互斥)
+    const sameModel = modelPolicies
+      .filter(p => p.modelId === modelId)
+      .map(p => p.id);
+    bundleSelectedPerms = bundleSelectedPerms.filter(id => !sameModel.includes(id));
+    bundleSelectedPerms.push(polId);
+  }
+  renderBundlePermList();
+}
+
+function saveBundle() {
+  const name = document.getElementById('bundle-name').value.trim();
+  if (!name) { alert('请填写权限包名称'); return; }
+  if (!bundleSelectedPerms.length) { alert('请至少选择一个策略'); return; }
+  if (editingBundleId) {
+    const b = getBundle(editingBundleId);
+    b.name = name; b.desc = document.getElementById('bundle-desc').value.trim();
+    b.permIds = [...bundleSelectedPerms];
+  } else {
+    bundles.push({ id: genId('b'), name, desc: document.getElementById('bundle-desc').value.trim(), permIds: [...bundleSelectedPerms] });
+  }
+  renderBundles();
+  closeModal('bundle-modal');
+}
+
+function deleteBundle(id) {
+  if (!confirm('确定删除该权限包？关联用户和角色将失去该包的权限。')) return;
+  bundles = bundles.filter(b => b.id !== id);
+  roles.forEach(r => r.bundleIds = r.bundleIds.filter(bid => bid !== id));
+  users.forEach(u => u.directBundleIds = u.directBundleIds.filter(bid => bid !== id));
+  renderAll();
+}
+
+function renderRoles() {
+  const tbody = document.getElementById('role-tbody');
+  tbody.innerHTML = roles.map(r => {
+    const bundleBadges = r.bundleIds.map(bid => {
+      const b = getBundle(bid);
+      return b ? `<span class="badge badge-blue" style="margin-right:4px">${b.name}</span>` : '';
+    }).join('');
+    const typeBadge = r.isImplicit
+      ? `<span class="badge badge-green">内置隐式</span>`
+      : `<span class="badge badge-default">普通角色</span>`;
+    const rowStyle = r.isImplicit ? 'background:#f9fffe' : '';
+    const memberCount = users.filter(u => u.roleIds.includes(r.id)).length;
+    return `<tr style="${rowStyle}">
+      <td><strong>${r.name}</strong></td>
+      <td>${typeBadge}</td>
+      <td>${bundleBadges || '<span style="color:var(--text-tertiary)">无</span>'}</td>
+      <td style="text-align:center"><span class="badge badge-default">${memberCount} 人</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="openRoleModal('${r.id}')">编辑</button>
+        ${r.isImplicit
+          ? `<button class="btn btn-ghost btn-sm" disabled title="内置隐式角色不可删除" style="opacity:0.35;cursor:not-allowed">删除</button>`
+          : `<button class="btn btn-danger btn-sm" onclick="deleteRole('${r.id}')">删除</button>`
+        }
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openRoleModal(id) {
+  editingRoleId = id || null;
+  const r = id ? getRole(id) : null;
+  document.getElementById('role-modal-title').textContent = id ? '编辑角色' : '创建角色';
+  const nameInput = document.getElementById('role-name');
+  nameInput.value = r ? r.name : '';
+  nameInput.disabled = !!(r && r.isImplicit);
+
+  const bundleList = document.getElementById('role-bundle-list');
+  bundleList.innerHTML = bundles.map(b => {
+    const selected = r && r.bundleIds.includes(b.id);
+    return `<label class="checkbox-item${selected?' selected':''}">
+      <input type="checkbox" name="role-bundles" value="${b.id}" ${selected?'checked':''}
+        onchange="this.closest('label').classList.toggle('selected',this.checked)">
+      <div class="radio-item-body">
+        <div class="label">${b.name}</div>
+        <div class="desc">${b.desc}</div>
+      </div>
+    </label>`;
+  }).join('') || '<div style="color:var(--text-tertiary);font-size:13px">暂无权限包</div>';
+
+  const memberList = document.getElementById('role-member-list');
+  memberList.innerHTML = users.map(u => {
+    const selected = r && u.roleIds.includes(r.id);
+    return `<label class="checkbox-item${selected?' selected':''}">
+      <input type="checkbox" name="role-members" value="${u.id}" ${selected?'checked':''}
+        onchange="this.closest('label').classList.toggle('selected',this.checked)">
+      <div class="radio-item-body">
+        <div class="label">${u.name}</div>
+        <div class="desc">${u.dept}</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  switchTab('role', 'bundles');
+  openModal('role-modal');
+}
+
+function saveRole() {
+  const name = document.getElementById('role-name').value.trim();
+  if (!name) { alert('请填写角色名'); return; }
+  const bundleIds = Array.from(document.querySelectorAll('input[name="role-bundles"]:checked')).map(c => c.value);
+  const memberIds = Array.from(document.querySelectorAll('input[name="role-members"]:checked')).map(c => c.value);
+
+  let roleId = editingRoleId;
+  if (editingRoleId) {
+    const r = getRole(editingRoleId);
+    if (!r.isImplicit) r.name = name;
+    r.bundleIds = bundleIds;
+  } else {
+    roleId = genId('r');
+    roles.push({ id: roleId, name, isImplicit: false, bundleIds });
+  }
+  users.forEach(u => {
+    const has  = u.roleIds.includes(roleId);
+    const want = memberIds.includes(u.id);
+    if (want && !has)  u.roleIds.push(roleId);
+    if (!want && has)  u.roleIds = u.roleIds.filter(rid => rid !== roleId);
+  });
+  renderAll();
+  closeModal('role-modal');
+}
+
+function deleteRole(id) {
+  if (!confirm('确定删除该角色？')) return;
+  roles = roles.filter(r => r.id !== id);
+  users.forEach(u => u.roleIds = u.roleIds.filter(rid => rid !== id));
+  renderAll();
+}
+
+// ─── User Modal ───────────────────────────────────────────
+function openUserModal(id) {
+  editingUserId = id;
+  const u = getUser(id);
+  document.getElementById('user-modal-title').textContent = `配置权限 — ${u.name}（${u.dept}）`;
+
+  // Tab: direct bundles
+  const directList = document.getElementById('user-direct-bundle-list');
+  directList.innerHTML = bundles.map(b => {
+    const sel = u.directBundleIds.includes(b.id);
+    const permsDesc = b.permIds.map(pid => {
+      const p = getPermById(pid); const m = p ? getModel(p.modelId) : null;
+      return m ? `${m.name}.${p.action}` : '';
+    }).filter(Boolean).join('、');
+    return `<label class="checkbox-item${sel?' selected':''}">
+      <input type="checkbox" name="user-direct-bundles" value="${b.id}" ${sel?'checked':''}
+        onchange="this.closest('label').classList.toggle('selected',this.checked)">
+      <div class="radio-item-body">
+        <div class="label">${b.name}</div>
+        <div class="desc">${b.desc}${permsDesc?' — '+permsDesc:''}</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  // Tab: roles
+  const roleList = document.getElementById('user-role-list');
+  roleList.innerHTML = roles.filter(r => !r.isImplicit).map(r => {
+    const sel = u.roleIds.includes(r.id);
+    const bundlesDesc = r.bundleIds.map(bid => getBundle(bid)?.name).filter(Boolean).join('、');
+    return `<label class="checkbox-item${sel?' selected':''}">
+      <input type="checkbox" name="user-roles" value="${r.id}" ${sel?'checked':''}
+        onchange="this.closest('label').classList.toggle('selected',this.checked);refreshPreview()">
+      <div class="radio-item-body">
+        <div class="label">${r.name}</div>
+        <div class="desc">${bundlesDesc ? '权限包：' + bundlesDesc : '暂无权限包'}</div>
+      </div>
+    </label>`;
+  }).join('');
+
+  switchTab('user', 'direct');
+  refreshPreview();
+  openModal('user-modal');
+}
+
+function refreshPreview() {
+  const u = getUser(editingUserId);
+  if (!u) return;
+
+  // Collect checked direct bundles and roles
+  const checkedDirectBundleIds = Array.from(document.querySelectorAll('input[name="user-direct-bundles"]:checked')).map(c => c.value);
+  const checkedRoleIds = Array.from(document.querySelectorAll('input[name="user-roles"]:checked')).map(c => c.value);
+  const implicitRoleIds = roles.filter(r => r.isImplicit).map(r => r.id);
+
+  // Collect all perm ids with source
+  const permWithSource = [];
+  checkedDirectBundleIds.forEach(bid => {
+    const b = getBundle(bid);
+    if (b) b.permIds.forEach(pid => permWithSource.push({ pid, source: 'direct', sourceName: b.name }));
+  });
+  checkedRoleIds.forEach(rid => {
+    const r = getRole(rid);
+    if (r) r.bundleIds.forEach(bid => {
+      const b = getBundle(bid);
+      if (b) b.permIds.forEach(pid => permWithSource.push({ pid, source: 'role', sourceName: r.name }));
+    });
+  });
+  implicitRoleIds.forEach(rid => {
+    const r = getRole(rid);
+    if (r) r.bundleIds.forEach(bid => {
+      const b = getBundle(bid);
+      if (b) b.permIds.forEach(pid => permWithSource.push({ pid, source: 'implicit', sourceName: r.name }));
+    });
+  });
+
+  // Group by model
+  const RS_RANK = { 'ALL': 4, 'DEPT_AND_CHILDREN': 3, 'DEPT': 2, 'SELF': 1 };
+  const byModel = {};
+  permWithSource.forEach(({ pid, source, sourceName }) => {
+    const p = getPermById(pid); if (!p) return;
+    const m = getModel(p.modelId); if (!m) return;
+    const key = `${p.modelId}::${p.action}`;
+    if (!byModel[m.name]) byModel[m.name] = {};
+    if (!byModel[m.name][key]) byModel[m.name][key] = { action: p.action, rowScope: p.rowScope, sources: [] };
+    const entry = byModel[m.name][key];
+    // merge rowScope: take max rank
+    if ((RS_RANK[p.rowScope] || 0) > (RS_RANK[entry.rowScope] || 0)) {
+      entry.rowScope = p.rowScope;
+    }
+    entry.sources.push({ source, sourceName });
+  });
+
+  const container = document.getElementById('user-preview-content');
+  if (!Object.keys(byModel).length) {
+    container.innerHTML = '<div style="color:var(--text-tertiary);text-align:center;padding:32px">该用户暂无任何有效权限</div>';
+    return;
+  }
+
+  container.innerHTML = Object.entries(byModel).map(([modelName, actions]) => `
+    <div class="preview-section">
+      <div class="preview-section-title">${modelName}</div>
+      <table class="preview-table">
+        <thead>
+          <tr><th>动作</th><th>数据范围</th><th>来源</th></tr>
+        </thead>
+        <tbody>
+          ${Object.values(actions).map(a => `
+            <tr>
+              <td>${actionBadge(a.action)}</td>
+              <td>${rowScopeBadge(a.rowScope)}</td>
+              <td>${[...new Set(a.sources.map(s => `<span class="source-tag ${s.source==='direct'?'direct':s.source==='implicit'?'implicit':''}">${s.sourceName}</span>`))].join(' ')}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
+}
+
+function saveUser() {
+  const u = getUser(editingUserId);
+  u.directBundleIds = Array.from(document.querySelectorAll('input[name="user-direct-bundles"]:checked')).map(c => c.value);
+  u.roleIds = Array.from(document.querySelectorAll('input[name="user-roles"]:checked')).map(c => c.value);
+  renderUsers();
+  closeModal('user-modal');
+}
+
+// ─── Tabs ─────────────────────────────────────────────────
+function switchTab(ctx, tab) {
+  const tabItems = document.querySelectorAll(`#${ctx}-modal .tab-item`);
+  const tabPanels = document.querySelectorAll(`#${ctx}-modal .tab-panel`);
+  const tabMap = { direct: 0, roles: 1, preview: 2 };
+  tabItems.forEach((t, i) => t.classList.toggle('active', i === tabMap[tab]));
+  tabPanels.forEach((p, i) => p.classList.toggle('active', i === tabMap[tab]));
+  userActiveTab = tab;
+  if (tab === 'preview') refreshPreview();
+}
+
+// ─── Modal helpers ────────────────────────────────────────
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+// ─── Init ─────────────────────────────────────────────────
+renderAll();
+</script>
+</body>
+</html>
