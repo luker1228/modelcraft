@@ -175,7 +175,7 @@ export function AppLayout({
   const isNavActive = useCallback(
     (href: string) => {
       if (pathname === href || pathname?.startsWith(href + '/')) return true
-      // /roles 和 /rbac/* 都高亮「权限管理」菜单项
+      // /roles 和 /rbac/* 都高亮「访问控制」菜单项
       const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
       const rbacBase = `/org/${orgName}/project/${projectSlug}/rbac`
       if (href === rolesHref && pathname?.startsWith(rbacBase)) return true
@@ -195,11 +195,11 @@ export function AppLayout({
     { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
     { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
     { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
-    { label: '权限管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+    { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
   ]
 
   const authNavItems: NavItem[] = [
-    { label: '权限管理', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+    { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
     { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
     { label: '用户管理', icon: Users, href: `/org/${orgName}/project/${projectSlug}/end-users` },
   ]
@@ -373,8 +373,8 @@ export function AppLayout({
                   className={cn(
                     "mb-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all",
                     isNavActive(item.href)
-                      ? "bg-blue-100 text-blue-600"
-                      : "text-muted-foreground hover:bg-gray-100 hover:text-foreground"
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
                   )}
                 >
                   <item.icon className="size-4 flex-shrink-0" strokeWidth={1.5} />
@@ -405,10 +405,6 @@ export function AppLayout({
             <div className="flex h-full">
               <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
                 <div className="p-3">
-                  <p className="px-2 text-sm font-semibold text-foreground">
-                    认证与授权
-                  </p>
-                  <div className="my-2 border-t border-gray-200" />
                   <nav className="flex flex-col gap-0.5">
                     {authNavItems.map((item) => (
                       <a
@@ -417,8 +413,8 @@ export function AppLayout({
                         className={cn(
                           'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
                           isNavActive(item.href)
-                            ? 'bg-blue-100 text-blue-600'
-                            : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                            ? 'bg-accent text-foreground'
+                            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                         )}
                       >
                         <item.icon className="size-4 flex-shrink-0" strokeWidth={1.5} />

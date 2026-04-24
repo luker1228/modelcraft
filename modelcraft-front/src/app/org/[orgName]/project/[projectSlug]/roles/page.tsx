@@ -243,7 +243,7 @@ function LegacyBundlesSheet({ roleId, roleName, orgName, projectSlug, open, onOp
           </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>取消</Button>
-            <Button onClick={handleAddConfirm} disabled={selectedBundleIds.length === 0 || adding}>
+            <Button onClick={handleAddConfirm} disabled={selectedBundleIds.length === 0 || adding} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {adding
                 ? <><Loader2 className="mr-2 size-4 animate-spin" />添加中...</>
                 : `添加${selectedBundleIds.length > 0 ? ` (${selectedBundleIds.length})` : ''}`
@@ -400,7 +400,7 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
             className="pl-9"
           />
         </div>
-        <Button onClick={() => setCreateOpen(true)} disabled={!canManageRoles} size="sm">
+        <Button onClick={() => setCreateOpen(true)} disabled={!canManageRoles} size="sm" className="bg-primary text-primary-foreground hover:bg-primary/90">
           <Plus className="size-4" strokeWidth={1.5} />
           新建角色
         </Button>
@@ -519,7 +519,7 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button onClick={handleCreate}>创建</Button>
+            <Button onClick={handleCreate} className="bg-primary text-primary-foreground hover:bg-primary/90">创建</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -655,11 +655,11 @@ export default function RolesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
+    <div className="mx-auto max-w-6xl px-6 py-8">
       {/* Page header — title belongs to the tabs, not above them */}
       <div className="mb-6">
         <h1 className="text-3xl font-bold tracking-tighter text-foreground">权限管理</h1>
-        <p className="mt-1 text-sm text-muted-foreground">管理项目角色、权限包、权限点和用户授权</p>
+        <div className="mt-1 h-5" />
       </div>
 
       {/* Tab navigation — underline style */}

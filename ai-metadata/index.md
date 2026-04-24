@@ -184,6 +184,7 @@ ai-metadata/
 | [front/style/color-system.md](./front/style/color-system.md) | 颜色系统与语义化变量 |
 | [front/style/quick-start.md](./front/style/quick-start.md) | 设计系统快速上手 |
 | [front/style/tailwind-usage-policy.md](./front/style/tailwind-usage-policy.md) | Tailwind CSS 使用策略 |
+| [front/style/ui-checklist.md](./front/style/ui-checklist.md) | ⭐ UI Checklist — 选中态、颜色、布局、Lint 提交前必查 |
 | [front/style/design-system-demo-v2.html](./front/style/design-system-demo-v2.html) | 设计系统可视化 Demo |
 
 ---

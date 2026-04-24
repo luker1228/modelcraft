@@ -129,7 +129,7 @@ interface PermissionRowProps {
 
 function PermissionRow({ permission, onDelete, deletingId }: PermissionRowProps) {
   return (
-    <TableRow className="hover:bg-muted/30">
+    <TableRow className="hover:bg-muted/50">
       {/* Action */}
       <TableCell className="py-3 pl-4">
         <Badge
@@ -227,14 +227,14 @@ function ModelGroup({
       <CollapsibleTrigger asChild>
         <button
           type="button"
-          className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/20 focus-visible:outline-none"
+          className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/50 focus-visible:outline-none"
         >
           {open ? (
             <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
           ) : (
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           )}
-          <span className="text-sm font-semibold text-foreground">{modelDisplayName}</span>
+          <span className="text-sm font-medium text-foreground">{modelDisplayName}</span>
           <span className="font-mono text-xs text-muted-foreground">({modelId})</span>
           <span className="ml-auto text-xs text-muted-foreground">
             {permissions.length} 个权限点
@@ -248,19 +248,19 @@ function ModelGroup({
           <Table>
             <TableHeader>
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-9 pl-4 text-xs font-semibold text-muted-foreground">
+                <TableHead className="h-8 pl-4 text-xs font-medium text-muted-foreground">
                   动作
                 </TableHead>
-                <TableHead className="h-9 text-xs font-semibold text-muted-foreground">
+                <TableHead className="h-8 text-xs font-medium text-muted-foreground">
                   行范围
                 </TableHead>
-                <TableHead className="h-9 text-xs font-semibold text-muted-foreground">
+                <TableHead className="h-8 text-xs font-medium text-muted-foreground">
                   列策略
                 </TableHead>
-                <TableHead className="h-9 text-xs font-semibold text-muted-foreground">
+                <TableHead className="h-8 text-xs font-medium text-muted-foreground">
                   名称
                 </TableHead>
-                <TableHead className="h-9 w-10 pr-4" />
+                <TableHead className="h-8 w-10 pr-4" />
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -319,19 +319,13 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header — title left, CTA right */}
-      <section className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-xl font-semibold tracking-tight">权限点</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            管理项目的终端用户权限点，每个权限点描述一个 Model 上的操作能力（动作 × 行策略 × 列策略）。
-          </p>
-        </div>
+      {/* Toolbar */}
+      <div className="flex justify-end">
         <Button size="sm" onClick={handleCreateNew} className="shrink-0">
           <Plus className="mr-1.5 size-4" />
           创建权限点
         </Button>
-      </section>
+      </div>
 
       {/* Error banner */}
       {error && (
@@ -346,9 +340,9 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
       ) : modelEntries.length === 0 ? (
         /* Empty state — icon + title + hint + action */
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-          <ShieldAlert className="mb-3 size-10 text-muted-foreground/40" />
-          <p className="text-sm font-semibold text-foreground">暂无权限点</p>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <ShieldAlert className="mb-3 size-10 text-muted-foreground/25" />
+          <p className="text-sm font-medium text-foreground">暂无权限点</p>
+          <p className="mt-1 text-xs text-muted-foreground">
             点击「创建权限点」添加第一个权限点
           </p>
           <Button

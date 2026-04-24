@@ -145,7 +145,7 @@ function CreateRoleDialog({ open, onOpenChange, onSubmit, submitting }: CreateRo
             />
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={submitting}>取消</Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 {submitting ? <><Loader2 className="mr-2 size-4 animate-spin" />创建中...</> : '创建'}
               </Button>
             </DialogFooter>
@@ -233,8 +233,8 @@ function UsersSheet({ role, open, onOpenChange }: UsersSheetProps) {
           <ScrollArea className="mt-3 flex-1">
             {assignedUsers.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <Users className="mb-3 size-10 text-muted-foreground/30" />
-                <p className="text-sm font-semibold text-foreground">暂无授权用户</p>
+                <Users className="mb-3 size-10 text-muted-foreground/25" />
+                <p className="text-sm font-medium text-foreground">暂无授权用户</p>
                 <p className="mt-1 text-xs text-muted-foreground">点击「添加用户」将终端用户分配到此角色</p>
               </div>
             ) : (
@@ -242,9 +242,9 @@ function UsersSheet({ role, open, onOpenChange }: UsersSheetProps) {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>用户名</TableHead>
-                      <TableHead>创建时间</TableHead>
-                      <TableHead className="w-16 text-right">操作</TableHead>
+                      <TableHead className="font-medium text-muted-foreground">用户名</TableHead>
+                      <TableHead className="font-medium text-muted-foreground">创建时间</TableHead>
+                      <TableHead className="w-16 text-right font-medium text-muted-foreground">操作</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -307,6 +307,7 @@ function UsersSheet({ role, open, onOpenChange }: UsersSheetProps) {
             <Button
               onClick={handleAddConfirm}
               disabled={selectedToAdd.length === 0}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
               添加 {selectedToAdd.length > 0 && `(${selectedToAdd.length})`}
             </Button>
@@ -414,8 +415,8 @@ function BundlesSheet({ role, orgName, projectSlug, open, onOpenChange }: Bundle
               </div>
             ) : assignedBundles.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
-                <KeyRound className="mb-3 size-10 text-muted-foreground/30" />
-                <p className="text-sm font-semibold text-foreground">尚未关联权限包</p>
+                <KeyRound className="mb-3 size-10 text-muted-foreground/25" />
+                <p className="text-sm font-medium text-foreground">尚未关联权限包</p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   点击「添加权限包」为此角色授予权限
                 </p>
@@ -428,7 +429,7 @@ function BundlesSheet({ role, orgName, projectSlug, open, onOpenChange }: Bundle
                     className="flex items-start justify-between gap-3 rounded-md border bg-card px-4 py-3"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-foreground">{bundle.name}</p>
+                      <p className="truncate text-sm text-foreground">{bundle.name}</p>
                       {bundle.description && (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{bundle.description}</p>
                       )}
@@ -495,7 +496,7 @@ function BundlesSheet({ role, orgName, projectSlug, open, onOpenChange }: Bundle
           </ScrollArea>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddBundleDialogOpen(false)}>取消</Button>
-            <Button onClick={handleAddConfirm} disabled={selectedBundleIds.length === 0 || adding}>
+            <Button onClick={handleAddConfirm} disabled={selectedBundleIds.length === 0 || adding} className="bg-primary text-primary-foreground hover:bg-primary/90">
               {adding ? <><Loader2 className="mr-2 size-4 animate-spin" />添加中...</> : `添加${selectedBundleIds.length > 0 ? ` (${selectedBundleIds.length})` : ''}`}
             </Button>
           </DialogFooter>
@@ -513,10 +514,10 @@ function RoleTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[200px]">角色名</TableHead>
-            <TableHead>描述</TableHead>
-            <TableHead className="w-[80px]">权限包</TableHead>
-            <TableHead className="w-[200px] text-right">操作</TableHead>
+            <TableHead className="w-[200px] font-medium text-muted-foreground">角色名</TableHead>
+            <TableHead className="font-medium text-muted-foreground">描述</TableHead>
+            <TableHead className="w-[80px] font-medium text-muted-foreground">权限包</TableHead>
+            <TableHead className="w-[200px] text-right font-medium text-muted-foreground">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -588,14 +589,8 @@ export function RolesTab({ orgName, projectSlug }: RolesTabProps) {
   return (
     <TooltipProvider>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-xl font-semibold tracking-tight text-foreground">终端用户角色</h2>
-            <p className="text-sm text-muted-foreground">
-              为每个角色配置权限包，再将角色分配给终端用户。
-            </p>
-          </div>
+        {/* Toolbar */}
+        <div className="flex justify-end">
           <Button size="sm" onClick={() => setCreateDialogOpen(true)} className="shrink-0">
             <Plus className="mr-1.5 size-4" />
             创建角色
@@ -614,8 +609,8 @@ export function RolesTab({ orgName, projectSlug }: RolesTabProps) {
           <RoleTableSkeleton />
         ) : roles.length === 0 ? (
           <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-            <ShieldOff className="mb-3 size-10 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground">暂无角色</p>
+            <ShieldOff className="mb-3 size-10 text-muted-foreground/25" />
+            <p className="text-sm font-medium text-foreground">暂无角色</p>
             <p className="mt-1 text-sm text-muted-foreground">点击「创建角色」开始配置权限</p>
             <Button size="sm" variant="outline" className="mt-4" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-1.5 size-4" />
@@ -627,15 +622,15 @@ export function RolesTab({ orgName, projectSlug }: RolesTabProps) {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead className="w-[200px]">角色名</TableHead>
-                  <TableHead>描述</TableHead>
-                  <TableHead className="w-[80px]">权限包</TableHead>
-                  <TableHead className="w-[220px] text-right">操作</TableHead>
+                  <TableHead className="w-[200px] font-medium text-muted-foreground">角色名</TableHead>
+                  <TableHead className="font-medium text-muted-foreground">描述</TableHead>
+                  <TableHead className="w-[80px] font-medium text-muted-foreground">权限包</TableHead>
+                  <TableHead className="w-[220px] text-right font-medium text-muted-foreground">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {roles.map((role) => (
-                  <TableRow key={role.id} className={role.isImplicit ? 'opacity-75' : undefined}>
+                  <TableRow key={role.id} className={role.isImplicit ? 'opacity-75 hover:bg-muted/50' : 'hover:bg-muted/50'}>
                     <TableCell>
                       <div className="flex items-center gap-2">
                         <span className="font-semibold text-foreground">{role.name}</span>

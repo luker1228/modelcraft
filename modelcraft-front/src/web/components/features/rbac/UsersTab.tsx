@@ -138,16 +138,16 @@ function UserTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[180px] text-xs font-semibold text-muted-foreground">
+            <TableHead className="w-[180px] text-xs font-medium text-muted-foreground">
               用户名
             </TableHead>
-            <TableHead className="text-xs font-semibold text-muted-foreground">
+            <TableHead className="text-xs font-medium text-muted-foreground">
               已分配角色
             </TableHead>
-            <TableHead className="w-[160px] text-xs font-semibold text-muted-foreground">
+            <TableHead className="w-[160px] text-xs font-medium text-muted-foreground">
               注册时间
             </TableHead>
-            <TableHead className="w-[100px] text-right text-xs font-semibold text-muted-foreground">
+            <TableHead className="w-[100px] text-right text-xs font-medium text-muted-foreground">
               操作
             </TableHead>
           </TableRow>
@@ -235,7 +235,7 @@ function RoleTab({
             className="flex items-center justify-between rounded-md border border-border px-3 py-2 opacity-75"
           >
             <div className="min-w-0 flex-1">
-              <span className="truncate text-sm font-semibold text-foreground">
+              <span className="truncate text-sm text-foreground">
                 {role.name}
               </span>
               {role.description && (
@@ -254,7 +254,7 @@ function RoleTab({
             className="flex items-center justify-between rounded-md border border-border px-3 py-2"
           >
             <div className="min-w-0 flex-1">
-              <span className="truncate text-sm font-semibold text-foreground">
+              <span className="truncate text-sm text-foreground">
                 {role.name}
               </span>
               {role.description && (
@@ -297,7 +297,7 @@ function RoleTab({
           </Select>
           <Button
             size="sm"
-            className="h-8 shrink-0"
+            className="h-8 shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
             disabled={!selectedRoleId || assigning}
             onClick={handleAssign}
           >
@@ -388,6 +388,7 @@ function AssignBundleDialog({
           <Button
             onClick={handleConfirm}
             disabled={!selectedId || assigning || availableBundles.length === 0}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             {assigning ? '授权中...' : '确认授权'}
           </Button>
@@ -448,7 +449,7 @@ function BundleTab({
             className="flex items-start justify-between rounded-md border border-border px-3 py-2"
           >
             <div className="min-w-0 flex-1">
-              <span className="block truncate text-sm font-semibold text-foreground">
+              <span className="block truncate text-sm text-foreground">
                 {bundle.name}
               </span>
               {bundle.description && (
@@ -529,7 +530,7 @@ function ModelGrantGroup({ modelId, permissions }: ModelGrantGroupProps) {
           ) : (
             <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
           )}
-          <span className="text-sm font-semibold text-foreground">{modelId}</span>
+          <span className="text-sm font-medium text-foreground">{modelId}</span>
           <span className="text-xs text-muted-foreground">{grants.length} 条授权</span>
         </div>
       </button>
@@ -580,8 +581,8 @@ function EffectivePermissionsTab({
   if (nonEmpty.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-10 text-center">
-        <Lock className="mb-3 size-8 text-muted-foreground/40" />
-        <p className="text-sm font-semibold text-foreground">该用户暂无任何权限</p>
+        <Lock className="mb-3 size-8 text-muted-foreground/25" />
+        <p className="text-sm font-medium text-foreground">该用户暂无任何权限</p>
         <p className="mt-1 text-xs text-muted-foreground">
           通过「角色」或「直接权限包」为该用户授权后，有效权限将在此展示
         </p>
@@ -810,19 +811,11 @@ export function UsersTab({ orgName, projectSlug }: UsersTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <section className="space-y-1">
-        <h2 className="text-xl font-semibold tracking-tight">用户授权</h2>
-        <p className="text-sm text-muted-foreground">
-          为终端用户分配角色或直接授予权限包，管理其在该项目中的访问权限。
-        </p>
-      </section>
-
       {/* Table */}
       {users.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-          <Users className="mb-3 size-10 text-muted-foreground/40" />
-          <p className="text-sm font-semibold text-foreground">暂无终端用户</p>
+          <Users className="mb-3 size-10 text-muted-foreground/25" />
+          <p className="text-sm font-medium text-foreground">暂无终端用户</p>
           <p className="mt-1 text-sm text-muted-foreground">
             终端用户注册后将显示在此列表
           </p>
@@ -832,16 +825,16 @@ export function UsersTab({ orgName, projectSlug }: UsersTabProps) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[180px] text-xs font-semibold text-muted-foreground">
+                <TableHead className="w-[180px] text-xs font-medium text-muted-foreground">
                   用户名
                 </TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">
+                <TableHead className="text-xs font-medium text-muted-foreground">
                   已分配角色
                 </TableHead>
-                <TableHead className="w-[160px] text-xs font-semibold text-muted-foreground">
+                <TableHead className="w-[160px] text-xs font-medium text-muted-foreground">
                   注册时间
                 </TableHead>
-                <TableHead className="w-[100px] text-right text-xs font-semibold text-muted-foreground">
+                <TableHead className="w-[100px] text-right text-xs font-medium text-muted-foreground">
                   操作
                 </TableHead>
               </TableRow>
@@ -852,11 +845,11 @@ export function UsersTab({ orgName, projectSlug }: UsersTabProps) {
                   key={user.id}
                   className={
                     selectedUser?.id === user.id
-                      ? 'bg-muted/30'
-                      : undefined
+                      ? 'bg-muted/30 hover:bg-muted/50'
+                      : 'hover:bg-muted/50'
                   }
                 >
-                  <TableCell className="font-semibold text-foreground">
+                  <TableCell className="text-foreground">
                     {user.username}
                   </TableCell>
                   <TableCell>

@@ -8,8 +8,8 @@ import {
   MoreVertical,
   ChevronsUpDown,
   X,
-  Filter,
   Loader2,
+  Database,
   Edit,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
@@ -29,14 +29,14 @@ import {
 import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 
-interface Database {
+interface DatabaseOption {
   name: string
 }
 
 interface ModelSidebarProps {
   state: ModelEditorState
   crud: ModelCRUD
-  databases: Database[]
+  databases: DatabaseOption[]
   databasesLoading: boolean
   filteredModels: EditorModel[]
   modelsLoading: boolean
@@ -64,97 +64,111 @@ export function ModelSidebar({
 
   return (
     <aside className="flex w-[260px] flex-shrink-0 flex-col border-r border-border bg-sidebar">
-      {/* Header */}
-      <header className="flex min-h-[var(--header-height,56px)] items-center border-b border-border px-6">
-        <h1 className="font-heading text-lg font-semibold text-foreground">模型编辑器</h1>
-      </header>
 
-      {/* Content */}
-      <div className="flex flex-1 flex-col gap-4 overflow-hidden pt-4">
-        {/* Controls Section */}
-        <div className="flex flex-col gap-2 px-4">
-          {/* Database Selector */}
-          <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                variant="outline"
-                size="sm"
-                className="border-strong hover:border-stronger h-7 w-full justify-between bg-muted px-2.5 text-xs font-normal transition-colors hover:bg-accent"
-                disabled={databasesLoading}
-              >
-                <span className="flex items-center gap-1.5 truncate">
-                  <span className="text-muted-foreground">database</span>
-                  {databasesLoading ? (
-                    <Loader2 className="size-3 animate-spin" />
-                  ) : (
-                    <span className="text-foreground">{state.selectedDatabase || 'Select...'}</span>
-                  )}
-                </span>
-                <ChevronsUpDown className="size-3.5 shrink-0 text-muted-foreground" />
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-[228px] border border-slate-200 p-1 shadow-lg" align="start">
-              {databases.length === 0 ? (
-                <div className="px-2.5 py-3 text-center text-sm text-muted-foreground">
-                  No databases found
-                </div>
-              ) : (
-                databases.map((db) => (
-                  <button
-                    key={db.name}
-                    type="button"
-                    className={cn(
-                      'w-full text-left px-2.5 py-1.5 text-sm rounded-sm transition-colors cursor-pointer',
-                      state.selectedDatabase === db.name
-                        ? 'bg-selected text-foreground'
-                        : 'text-muted-foreground hover:bg-selected hover:text-foreground'
-                    )}
-                    onClick={() => {
-                      state.setSelectedDatabase(db.name)
-                      state.setSelectedModelId(null)
-                      state.setDatabaseOpen(false)
-                    }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span>{db.name}</span>
-                    </div>
-                  </button>
-                ))
+      {/* ── Zone 1: Database Context ── */}
+      <div className="p-3">
+        <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              size="sm"
+              className={cn(
+                'h-9 w-full justify-between px-3 text-sm font-medium transition-colors',
+                state.selectedDatabase
+                  ? 'border-primary/40 bg-primary/5 text-foreground hover:border-primary/60 hover:bg-primary/10'
+                  : 'border-dashed border-muted-foreground/40 bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground'
               )}
-            </PopoverContent>
-          </Popover>
+              disabled={databasesLoading}
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <Database className={cn('size-3.5 shrink-0', state.selectedDatabase ? 'text-primary' : 'text-muted-foreground')} />
+                {databasesLoading ? (
+                  <><Loader2 className="size-3 shrink-0 animate-spin" /><span className="text-muted-foreground">加载中...</span></>
+                ) : state.selectedDatabase ? (
+                  <span className="truncate font-medium text-foreground">{state.selectedDatabase}</span>
+                ) : (
+                  <span>选择数据库</span>
+                )}
+              </span>
+              <ChevronsUpDown className="ml-2 size-3.5 shrink-0 text-muted-foreground" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[228px] border border-border p-1 shadow-lg" align="start">
+            {databases.length === 0 ? (
+              <div className="px-2.5 py-3 text-center text-sm text-muted-foreground">
+                No databases found
+              </div>
+            ) : (
+              databases.map((db) => (
+                <button
+                  key={db.name}
+                  type="button"
+                  className={cn(
+                    'w-full text-left px-2.5 py-1.5 text-sm rounded-sm transition-colors cursor-pointer',
+                    state.selectedDatabase === db.name
+                      ? 'bg-accent text-foreground'
+                      : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                  )}
+                  onClick={() => {
+                    state.setSelectedDatabase(db.name)
+                    state.setSelectedModelId(null)
+                    state.setDatabaseOpen(false)
+                  }}
+                >
+                  {db.name}
+                </button>
+              ))
+            )}
+          </PopoverContent>
+        </Popover>
+      </div>
 
-          {/* New Model Button */}
+      {/* ── Divider ── */}
+      <div className="border-t border-border" />
+
+      {/* ── Zone 2: Models ── */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+
+        {/* Action buttons */}
+        <div className="flex flex-col gap-1 px-3 py-2.5">
           <Button
             size="sm"
-            className="h-7 w-full justify-start border-0 bg-[#2563eb] px-2.5 text-xs font-normal text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40'
+            )}
             onClick={handleCreateModel}
+            disabled={!state.selectedDatabase}
           >
-            <Plus className="mr-1.5 size-3.5" />
-            <span>新建模型</span>
+            <Plus className="mr-1 size-3.5" />
+            新建模型
           </Button>
-
-          {/* Import Model Button */}
-          <button
-            className="border-strong hover:border-stronger inline-flex h-7 w-full items-center justify-start gap-2 rounded-md border bg-muted px-2.5 text-xs font-normal shadow-sm transition-colors hover:bg-accent hover:text-accent-foreground"
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40'
+            )}
             onClick={() => state.setImportDialogOpen(true)}
             disabled={!state.selectedDatabase}
           >
-            <Download className="mr-1.5 size-3.5" strokeWidth={1.5} />
-            <span>导入模型</span>
-          </button>
+            <Download className="mr-1 size-3.5" strokeWidth={1.5} />
+            导入模型
+          </Button>
         </div>
 
-        {/* Search & Filter */}
-        <div className="flex items-center gap-2 px-4">
-          <div className="relative flex-1">
+        {/* Search */}
+        <div className="px-3 pb-2">
+          <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="text"
               placeholder="查询模型..."
               value={state.searchQuery}
               onChange={(e) => state.setSearchQuery(e.target.value)}
-              className="border-control focus-visible:ring-background-control h-7 bg-foreground/[.026] px-8 text-xs focus-visible:ring-2 md:h-7"
+              className="h-7 bg-foreground/[.026] px-8 text-xs"
             />
             {state.searchQuery && (
               <button
@@ -166,13 +180,6 @@ export function ModelSidebar({
               </button>
             )}
           </div>
-          <Button
-            variant="outline"
-            size="icon"
-            className="border-strong hover:border-stronger size-7 shrink-0 border-dashed bg-transparent transition-colors hover:bg-accent"
-          >
-            <Filter className="size-3.5 text-muted-foreground" />
-          </Button>
         </div>
 
         {/* Model List */}
@@ -193,52 +200,35 @@ export function ModelSidebar({
                 onClick={() => handleModelDetailClick(model.id)}
                 onKeyDown={(e) => e.key === 'Enter' && handleModelDetailClick(model.id)}
                 className={cn(
-                  'group relative flex items-center gap-3 h-7 pl-4 pr-1 rounded-sm cursor-pointer text-sm transition-colors select-none',
-                  state.selectedModelId === model.id
-                    ? 'bg-selected text-foreground'
-                    : 'text-muted-foreground hover:bg-selected/50 hover:text-foreground'
+                  'group flex items-center gap-2 h-7 px-2 rounded-md cursor-pointer transition-colors select-none',
+                  'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                 )}
               >
-                {/* Active indicator */}
-                {state.selectedModelId === model.id && (
-                  <div className="absolute inset-y-0 left-0 w-0.5 bg-foreground" />
-                )}
+                <Table2 className="size-[15px] shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
 
-                {/* Icon */}
-                <Table2 className="group-hover:text-foreground-lighter size-[15px] shrink-0 text-muted-foreground transition-colors" />
-
-                {/* Name */}
-                <span className={cn(
-                  'truncate flex-1 text-sm transition-colors',
-                  state.selectedModelId === model.id ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'
-                )}>
+                <span className="min-w-0 flex-1 truncate text-xs">
                   {model.name}
                 </span>
 
-                {/* Title tooltip */}
                 {model.title && model.title !== model.name && (
-                  <span className="max-w-[60px] truncate text-xs text-muted-foreground" title={model.title}>
+                  <span className="max-w-[56px] shrink-0 truncate text-xs text-muted-foreground/60" title={model.title}>
                     {model.title}
                   </span>
                 )}
 
-                {/* More menu */}
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className={cn(
-                        'opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 flex items-center justify-center hover:bg-accent rounded',
-                        state.selectedModelId === model.id && 'opacity-100'
-                      )}
+                      className="flex size-5 shrink-0 items-center justify-center rounded opacity-0 transition-opacity hover:bg-accent hover:!opacity-100 group-hover:opacity-60"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <MoreVertical className="size-3.5" />
+                      <MoreVertical className="size-3" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-40 border border-slate-200 shadow-lg">
+                  <DropdownMenuContent align="end" className="w-40 border border-border shadow-lg">
                     <DropdownMenuItem
-                      className="cursor-pointer text-xs focus:bg-selected focus:text-foreground"
+                      className="cursor-pointer text-xs focus:bg-accent focus:text-foreground"
                       onClick={(e) => {
                         e.stopPropagation()
                         crud.handleEditModel(model.id)
@@ -248,7 +238,7 @@ export function ModelSidebar({
                       编辑模型
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="cursor-pointer text-xs focus:bg-selected focus:text-foreground"
+                      className="cursor-pointer text-xs focus:bg-accent focus:text-foreground"
                       onClick={async (e) => {
                         e.stopPropagation()
                         try {
@@ -258,18 +248,16 @@ export function ModelSidebar({
                         }
                       }}
                     >
-                      <X className="mr-2 size-3.5 opacity-0" />
                       复制名称
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="cursor-pointer text-xs text-destructive focus:bg-selected focus:text-destructive"
+                      className="cursor-pointer text-xs text-destructive focus:bg-accent focus:text-destructive"
                       onClick={(e) => {
                         e.stopPropagation()
                         state.setModelToDelete(model)
                         state.setDeleteModelDialogOpen(true)
                       }}
                     >
-                      <X className="mr-2 size-3.5 opacity-0" />
                       删除模型
                     </DropdownMenuItem>
                   </DropdownMenuContent>
@@ -286,7 +274,7 @@ export function ModelSidebar({
 
             {!state.selectedDatabase && !databasesLoading && (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                <Table2 className="mb-3 size-10 opacity-20" />
+                <Database className="mb-3 size-8 opacity-20" />
                 <p className="text-sm">请先选择数据库</p>
               </div>
             )}

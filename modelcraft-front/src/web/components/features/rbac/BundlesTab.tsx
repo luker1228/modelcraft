@@ -158,7 +158,7 @@ function CreateBundleDialog({
               >
                 取消
               </Button>
-              <Button type="submit" disabled={submitting}>
+              <Button type="submit" disabled={submitting} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 {submitting ? '创建中...' : '创建'}
               </Button>
             </DialogFooter>
@@ -177,11 +177,11 @@ function BundleTableSkeleton() {
       <Table>
         <TableHeader>
           <TableRow className="h-9">
-            <TableHead className="w-[200px] text-xs font-semibold text-muted-foreground">名称</TableHead>
-            <TableHead className="text-xs font-semibold text-muted-foreground">描述</TableHead>
-            <TableHead className="w-[100px] text-xs font-semibold text-muted-foreground">权限点数量</TableHead>
-            <TableHead className="w-[180px] text-xs font-semibold text-muted-foreground">创建时间</TableHead>
-            <TableHead className="w-[120px] text-right text-xs font-semibold text-muted-foreground">操作</TableHead>
+            <TableHead className="w-[200px] text-xs font-medium text-muted-foreground">名称</TableHead>
+            <TableHead className="text-xs font-medium text-muted-foreground">描述</TableHead>
+            <TableHead className="w-[100px] text-xs font-medium text-muted-foreground">权限点数量</TableHead>
+            <TableHead className="w-[180px] text-xs font-medium text-muted-foreground">创建时间</TableHead>
+            <TableHead className="w-[120px] text-right text-xs font-medium text-muted-foreground">操作</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -288,14 +288,8 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Header */}
-      <section className="flex items-start justify-between gap-4">
-        <div>
-          <h2 className="text-base font-semibold text-foreground">权限包</h2>
-          <p className="mt-0.5 text-sm text-muted-foreground">
-            管理项目的终端用户权限包，一个权限包包含一组权限点，可授予用户或角色。
-          </p>
-        </div>
+      {/* Toolbar */}
+      <div className="flex justify-end">
         <Button
           size="sm"
           onClick={() => setCreateDialogOpen(true)}
@@ -304,7 +298,7 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
           <Plus className="mr-1.5 size-4" />
           创建权限包
         </Button>
-      </section>
+      </div>
 
       {/* Error */}
       {error && (
@@ -318,8 +312,8 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
         <BundleTableSkeleton />
       ) : bundles.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-          <PackageOpen className="mb-3 size-10 text-muted-foreground/30" />
-          <p className="text-sm font-semibold text-foreground">暂无权限包</p>
+          <PackageOpen className="mb-3 size-10 text-muted-foreground/25" />
+          <p className="text-sm font-medium text-foreground">暂无权限包</p>
           <p className="mt-1 text-xs text-muted-foreground">
             点击「创建权限包」添加第一个权限包
           </p>
@@ -338,16 +332,16 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
           <Table>
             <TableHeader>
               <TableRow className="h-9">
-                <TableHead className="w-[200px] text-xs font-semibold text-muted-foreground">名称</TableHead>
-                <TableHead className="text-xs font-semibold text-muted-foreground">描述</TableHead>
-                <TableHead className="w-[100px] text-xs font-semibold text-muted-foreground">权限点数量</TableHead>
-                <TableHead className="w-[180px] text-xs font-semibold text-muted-foreground">创建时间</TableHead>
-                <TableHead className="w-[120px] text-right text-xs font-semibold text-muted-foreground">操作</TableHead>
+                <TableHead className="w-[200px] text-xs font-medium text-muted-foreground">名称</TableHead>
+                <TableHead className="text-xs font-medium text-muted-foreground">描述</TableHead>
+                <TableHead className="w-[100px] text-xs font-medium text-muted-foreground">权限点数量</TableHead>
+                <TableHead className="w-[180px] text-xs font-medium text-muted-foreground">创建时间</TableHead>
+                <TableHead className="w-[120px] text-right text-xs font-medium text-muted-foreground">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {bundles.map((bundle) => (
-                <TableRow key={bundle.id}>
+                <TableRow key={bundle.id} className="hover:bg-muted/50">
                   <TableCell className="font-semibold text-foreground">
                     {bundle.name}
                   </TableCell>
