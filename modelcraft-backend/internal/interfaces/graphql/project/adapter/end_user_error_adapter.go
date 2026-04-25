@@ -84,8 +84,8 @@ func (a *EndUserErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError)
 	}
 }
 
-// ConvertToListError converts business error to ListEndUsersError union type.
-func (a *EndUserErrorAdapter) ConvertToListError(err *bizerrors.BusinessError) generated.ListEndUsersError {
+// ConvertToListError converts business error to ListProjectEndUsersError union type.
+func (a *EndUserErrorAdapter) ConvertToListError(err *bizerrors.BusinessError) generated.ListProjectEndUsersError {
 	if err == nil {
 		return nil
 	}

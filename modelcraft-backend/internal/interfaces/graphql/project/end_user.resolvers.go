@@ -14,172 +14,24 @@ import (
 	"modelcraft/pkg/ctxutils"
 )
 
-// CreateEndUser is the resolver for the createEndUser field.
-func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.CreateEndUserInput) (*generated.CreateEndUserPayload, error) {
+// ListProjectEndUsers is the resolver for the listProjectEndUsers field.
+func (r *queryResolver) ListProjectEndUsers(ctx context.Context, input *generated.ListProjectEndUsersInput) (*generated.ListProjectEndUsersPayload, error) {
 	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
 	service := r.EndUserMgmtAppService
 	if service == nil {
 		service = getEndUserManagementAppService()
 	}
 	if service == nil {
-		return &generated.CreateEndUserPayload{
-			Error: &generated.InvalidInput{Message: "end-user service not initialized"},
-		}, nil
+		return &generated.ListProjectEndUsersPayload{Error: &generated.ClusterNotFound{Message: "end-user service not initialized"}}, nil
 	}
 
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
-		return &generated.CreateEndUserPayload{
-			Error: &generated.InvalidInput{Message: "orgName not found in context"},
-		}, nil
+		return &generated.ListProjectEndUsersPayload{Error: &generated.ClusterNotFound{Message: "orgName not found in context"}}, nil
 	}
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
-		return &generated.CreateEndUserPayload{
-			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
-		}, nil
-	}
-
-	createdBy, _ := ctxutils.GetUserIDFromContext(ctx)
-	result, err := service.CreateEndUser(ctx, appEnduser.CreateEndUserCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Username:    input.Username,
-		Password:    input.Password,
-		CreatedBy:   createdBy,
-	})
-	if err != nil {
-		var bizErr *bizerrors.BusinessError
-		if errors.As(err, &bizErr) {
-			return &generated.CreateEndUserPayload{Error: errorAdapter.ConvertToCreateError(bizErr)}, nil
-		}
-		return nil, err
-	}
-
-	return &generated.CreateEndUserPayload{
-		EndUser: &generated.EndUser{
-			ID:          result.ID,
-			Username:    result.Username,
-			IsForbidden: result.IsForbidden,
-			CreatedBy:   result.CreatedBy,
-			CreatedAt:   result.CreatedAt,
-			UpdatedAt:   result.UpdatedAt,
-		},
-	}, nil
-}
-
-// UpdateEndUserStatus is the resolver for the updateEndUserStatus field.
-func (r *mutationResolver) UpdateEndUserStatus(ctx context.Context, input generated.UpdateEndUserStatusInput) (*generated.UpdateEndUserStatusPayload, error) {
-	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := r.EndUserMgmtAppService
-	if service == nil {
-		service = getEndUserManagementAppService()
-	}
-	if service == nil {
-		return &generated.UpdateEndUserStatusPayload{
-			Error: &generated.InvalidInput{Message: "end-user service not initialized"},
-		}, nil
-	}
-
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return &generated.UpdateEndUserStatusPayload{
-			Error: &generated.InvalidInput{Message: "orgName not found in context"},
-		}, nil
-	}
-	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
-	if err != nil {
-		return &generated.UpdateEndUserStatusPayload{
-			Error: &generated.InvalidInput{Message: "projectSlug not found in context"},
-		}, nil
-	}
-
-	result, err := service.UpdateEndUserStatus(ctx, appEnduser.UpdateEndUserStatusCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		UserID:      input.UserID,
-		IsForbidden: input.IsForbidden,
-	})
-	if err != nil {
-		var bizErr *bizerrors.BusinessError
-		if errors.As(err, &bizErr) {
-			return &generated.UpdateEndUserStatusPayload{Error: errorAdapter.ConvertToUpdateError(bizErr)}, nil
-		}
-		return nil, err
-	}
-
-	return &generated.UpdateEndUserStatusPayload{
-		EndUser: &generated.EndUser{
-			ID:          result.ID,
-			Username:    result.Username,
-			IsForbidden: result.IsForbidden,
-			CreatedBy:   result.CreatedBy,
-			CreatedAt:   result.CreatedAt,
-			UpdatedAt:   result.UpdatedAt,
-		},
-	}, nil
-}
-
-// DeleteEndUser is the resolver for the deleteEndUser field.
-func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.DeleteEndUserInput) (*generated.DeleteEndUserPayload, error) {
-	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := r.EndUserMgmtAppService
-	if service == nil {
-		service = getEndUserManagementAppService()
-	}
-	if service == nil {
-		return &generated.DeleteEndUserPayload{Success: false, Error: &generated.ClusterNotFound{Message: "end-user service not initialized"}}, nil
-	}
-
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return &generated.DeleteEndUserPayload{Success: false, Error: &generated.ClusterNotFound{Message: "orgName not found in context"}}, nil
-	}
-	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
-	if err != nil {
-		return &generated.DeleteEndUserPayload{Success: false, Error: &generated.ClusterNotFound{Message: "projectSlug not found in context"}}, nil
-	}
-
-	err = service.DeleteEndUser(ctx, appEnduser.DeleteEndUserCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		UserID:      input.UserID,
-	})
-	if err != nil {
-		var bizErr *bizerrors.BusinessError
-		if errors.As(err, &bizErr) {
-			return &generated.DeleteEndUserPayload{Success: false, Error: errorAdapter.ConvertToDeleteError(bizErr)}, nil
-		}
-		return nil, err
-	}
-
-	return &generated.DeleteEndUserPayload{Success: true}, nil
-}
-
-// InitPrivateDb is the resolver for the initPrivateDB field.
-func (r *mutationResolver) InitPrivateDb(ctx context.Context) (*generated.InitPrivateDBPayload, error) {
-	_ = ctx
-	return &generated.InitPrivateDBPayload{Success: true}, nil
-}
-
-// ListEndUsers is the resolver for the listEndUsers field.
-func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListEndUsersInput) (*generated.ListEndUsersPayload, error) {
-	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := r.EndUserMgmtAppService
-	if service == nil {
-		service = getEndUserManagementAppService()
-	}
-	if service == nil {
-		return &generated.ListEndUsersPayload{Error: &generated.ClusterNotFound{Message: "end-user service not initialized"}}, nil
-	}
-
-	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
-	if err != nil {
-		return &generated.ListEndUsersPayload{Error: &generated.ClusterNotFound{Message: "orgName not found in context"}}, nil
-	}
-	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
-	if err != nil {
-		return &generated.ListEndUsersPayload{Error: &generated.ClusterNotFound{Message: "projectSlug not found in context"}}, nil
+		return &generated.ListProjectEndUsersPayload{Error: &generated.ClusterNotFound{Message: "projectSlug not found in context"}}, nil
 	}
 
 	cmd := appEnduser.ListEndUsersCommand{OrgName: orgName, ProjectSlug: projectSlug}
@@ -199,7 +51,7 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 	if err != nil {
 		var bizErr *bizerrors.BusinessError
 		if errors.As(err, &bizErr) {
-			return &generated.ListEndUsersPayload{Error: errorAdapter.ConvertToListError(bizErr)}, nil
+			return &generated.ListProjectEndUsersPayload{Error: errorAdapter.ConvertToListError(bizErr)}, nil
 		}
 		return nil, err
 	}
@@ -227,7 +79,7 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 		pageInfo.EndCursor = &end
 	}
 
-	return &generated.ListEndUsersPayload{
+	return &generated.ListProjectEndUsersPayload{
 		Connection: &generated.EndUserConnection{
 			Nodes:      nodes,
 			PageInfo:   pageInfo,

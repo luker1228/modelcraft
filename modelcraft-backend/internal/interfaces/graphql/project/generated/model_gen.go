@@ -127,12 +127,12 @@ type InitPrivateDBPayloadError interface {
 	IsInitPrivateDBPayloadError()
 }
 
-type ListEndUsersError interface {
-	IsListEndUsersError()
-}
-
 type ListProjectEndUserAccessError interface {
 	IsListProjectEndUserAccessError()
+}
+
+type ListProjectEndUsersError interface {
+	IsListProjectEndUsersError()
 }
 
 type ModelDatabaseCatalogError interface {
@@ -389,7 +389,7 @@ func (ClusterNotFound) IsUpdateEndUserError() {}
 
 func (ClusterNotFound) IsDeleteEndUserError() {}
 
-func (ClusterNotFound) IsListEndUsersError() {}
+func (ClusterNotFound) IsListProjectEndUsersError() {}
 
 type ColumnPolicy struct {
 	DefaultMode ColumnAccessMode `json:"defaultMode"`
@@ -1350,17 +1350,6 @@ type ListEndUserRolesInput struct {
 	After           *string `json:"after,omitempty"`
 }
 
-type ListEndUsersInput struct {
-	Search *string `json:"search,omitempty"`
-	First  *int32  `json:"first,omitempty"`
-	After  *string `json:"after,omitempty"`
-}
-
-type ListEndUsersPayload struct {
-	Connection *EndUserConnection `json:"connection,omitempty"`
-	Error      ListEndUsersError  `json:"error,omitempty"`
-}
-
 type ListProjectEndUserAccessInput struct {
 	Search *string `json:"search,omitempty"`
 	First  *int32  `json:"first,omitempty"`
@@ -1370,6 +1359,17 @@ type ListProjectEndUserAccessInput struct {
 type ListProjectEndUserAccessPayload struct {
 	Connection *EndUserProjectAccessConnection `json:"connection,omitempty"`
 	Error      ListProjectEndUserAccessError   `json:"error,omitempty"`
+}
+
+type ListProjectEndUsersInput struct {
+	Search *string `json:"search,omitempty"`
+	First  *int32  `json:"first,omitempty"`
+	After  *string `json:"after,omitempty"`
+}
+
+type ListProjectEndUsersPayload struct {
+	Connection *EndUserConnection       `json:"connection,omitempty"`
+	Error      ListProjectEndUsersError `json:"error,omitempty"`
 }
 
 type ListTablesInput struct {
@@ -1583,7 +1583,7 @@ func (ProjectNotFound) IsUpdateEndUserError() {}
 
 func (ProjectNotFound) IsDeleteEndUserError() {}
 
-func (ProjectNotFound) IsListEndUsersError() {}
+func (ProjectNotFound) IsListProjectEndUsersError() {}
 
 func (ProjectNotFound) IsInitPrivateDBPayloadError() {}
 
