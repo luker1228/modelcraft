@@ -6,10 +6,11 @@ import (
 )
 
 // EndUser represents an end-user entity (aggregate root).
-// EndUser is stored in mc_meta.end_user_users with tenant scope (org_name, project_slug).
+// EndUser is stored in mc_meta.end_user_users with org tenant scope (org_name).
 type EndUser struct {
 	ID          string         // UUID, primary key
-	Username    string         // 3-64 chars, ^[a-zA-Z0-9_-]+$, unique within project
+	OrgName     string         // org scope key
+	Username    string         // 3-64 chars, ^[a-zA-Z0-9_-]+$, unique within org
 	Password    HashedPassword // bcrypt hashed
 	IsForbidden bool           // whether the account is disabled
 	CreatedBy   string         // developer user_id from mc_meta (empty for self-registration)
@@ -19,9 +20,12 @@ type EndUser struct {
 
 // NewEndUser creates a new EndUser with validation.
 // The password must already be hashed.
-func NewEndUser(id, username, createdBy string, hashedPwd HashedPassword) (*EndUser, error) {
+func NewEndUser(id, orgName, username, createdBy string, hashedPwd HashedPassword) (*EndUser, error) {
 	if id == "" {
 		return nil, fmt.Errorf("user ID is required")
+	}
+	if orgName == "" {
+		return nil, fmt.Errorf("org name is required")
 	}
 
 	if err := ValidateUsername(username); err != nil {
@@ -31,6 +35,7 @@ func NewEndUser(id, username, createdBy string, hashedPwd HashedPassword) (*EndU
 	now := time.Now()
 	return &EndUser{
 		ID:          id,
+		OrgName:     orgName,
 		Username:    username,
 		Password:    hashedPwd,
 		IsForbidden: false,

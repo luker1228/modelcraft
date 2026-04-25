@@ -55,18 +55,20 @@ SELECT * FROM enum_definitions WHERE id = ? AND org_name = ?
 SELECT * FROM enum_definitions WHERE id = ?
 ```
 
-### 规则 3：`projectSlug` 按业务范围决定是否传入
+### 规则 3：`projectSlug` 按 API Contract 归属决定是否传入
 
-`projectSlug` 只用于**项目域（Project-scoped）业务**，即该资源归属于某个具体项目时才需要。
+判断 `org scoped` 还是 `org + project scoped`，**优先看 GraphQL Contract 所在目录**（`modelcraft-backend/api/graph/`）：
 
-| 资源类型 | 是否需要 `projectSlug` | 说明 |
-|----------|----------------------|------|
-| `EnumDefinition` | ✅ 需要 | 枚举属于项目范围 |
-| `FieldDefinition` | ✅ 需要 | 字段属于项目范围 |
-| `DataModel` | ✅ 需要 | 模型属于项目范围 |
-| `Project` | ❌ 不需要 | Project 本身是 org 范围 |
-| `Cluster` | ❌ 不需要 | Cluster 归属 org 范围 |
-| `Organization` | ❌ 不需要 | 组织本身就是 org 范围 |
+| Contract 目录 | 领域范围 | 方法参数要求 |
+|--------------|---------|-------------|
+| `api/graph/org/schema/` | `org scoped` | `ctx + orgName` |
+| `api/graph/project/schema/` | `org + project scoped` | `ctx + orgName + projectSlug` |
+
+也就是说：
+- 当功能定义在 `api/graph/org/schema/` 下，Repository 查询/删除/检查方法通常不需要 `projectSlug`
+- 当功能定义在 `api/graph/project/schema/` 下，Repository 查询/删除/检查方法必须带 `projectSlug`
+
+> 该判定规则比“记资源名”更可靠，新增模块时也不会漏。
 
 ---
 
@@ -156,7 +158,7 @@ func (r *SqlEnumRepo) Create(ctx context.Context, enum *EnumDefinition) error {
 
 - [ ] **所有方法第一个参数是 `ctx context.Context`**
 - [ ] **所有查询/删除/检查方法都有显式 `orgName` 参数**（包括 `FindByID`、`GetByID`）
-- [ ] **项目域资源的方法有 `projectSlug` 参数**
+- [ ] **若 Contract 在 `api/graph/project/schema/` 下，则方法必须包含 `projectSlug` 参数**
 - [ ] `Create` / `Update` 方法通过实体对象携带 `orgName`（而非重复传参），但 Infrastructure 实现必须用到它
 - [ ] 接口方法签名有注释说明 scope（`org scoped` 或 `org + project scoped`）
 

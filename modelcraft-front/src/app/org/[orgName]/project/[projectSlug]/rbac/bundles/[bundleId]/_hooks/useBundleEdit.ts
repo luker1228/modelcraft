@@ -57,7 +57,7 @@ export function useBundleEdit({
     error: bundleError,
   } = useQuery(GET_END_USER_BUNDLE, {
     client,
-    variables: { projectSlug, id: bundleId },
+    variables: { id: bundleId },
     skip: !projectSlug || !bundleId || !orgName,
   })
 
@@ -67,7 +67,6 @@ export function useBundleEdit({
     error: permissionsError,
   } = useQuery(GET_END_USER_PERMISSIONS, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
@@ -94,7 +93,6 @@ export function useBundleEdit({
     async (input: UpdateBundleInput): Promise<MutationResult> => {
       const result = await updateBundleMutation({
         variables: {
-          projectSlug,
           id: bundleId,
           input: {
             name: input.name,
@@ -102,47 +100,57 @@ export function useBundleEdit({
           },
         },
       })
-      const payload = result.data?.updateEndUserBundle
+      const payload = result.data?.updateEndUserPermissionBundle
       if (payload?.error) {
         return { success: false, errorMessage: payload.error.message ?? '更新权限包失败' }
       }
       return { success: true }
     },
-    [updateBundleMutation, projectSlug, bundleId]
+    [updateBundleMutation, bundleId]
   )
 
   const addPermission = useCallback(
     async (permissionId: string): Promise<MutationResult> => {
       const result = await addPermissionMutation({
-        variables: { projectSlug, bundleId, permissionId },
+        variables: {
+          input: {
+            bundleId,
+            permissionId,
+          },
+        },
       })
-      const payload = result.data?.addPermissionToBundle
+      const payload = result.data?.addEndUserPermissionToBundle
       if (payload?.error) {
         return { success: false, errorMessage: payload.error.message ?? '添加权限点失败' }
       }
       return { success: true }
     },
-    [addPermissionMutation, projectSlug, bundleId]
+    [addPermissionMutation, bundleId]
   )
 
   const removePermission = useCallback(
     async (permissionId: string): Promise<MutationResult> => {
       const result = await removePermissionMutation({
-        variables: { projectSlug, bundleId, permissionId },
+        variables: {
+          input: {
+            bundleId,
+            permissionId,
+          },
+        },
       })
-      const payload = result.data?.removePermissionFromBundle
+      const payload = result.data?.removeEndUserPermissionFromBundle
       if (payload?.error) {
         return { success: false, errorMessage: payload.error.message ?? '移除权限点失败' }
       }
       return { success: true }
     },
-    [removePermissionMutation, projectSlug, bundleId]
+    [removePermissionMutation, bundleId]
   )
 
   // ── Return ─────────────────────────────────────────────────────────────────
 
-  const bundle: EndUserPermissionBundle | null = bundleData?.endUserBundle ?? null
-  const allPermissions: EndUserPermission[] = permissionsData?.endUserPermissions ?? []
+  const bundle: EndUserPermissionBundle | null = bundleData?.endUserPermissionBundle ?? null
+  const allPermissions: EndUserPermission[] = permissionsData?.endUserPermissions?.edges?.map((edge: any) => edge.node) ?? []
   const loading = bundleLoading || permissionsLoading
   const error = bundleError ?? permissionsError
 

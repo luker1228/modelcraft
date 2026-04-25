@@ -17,6 +17,7 @@
 | [logging.md](./logging.md) | 日志规范 | 日志记录 |
 | [type-conversion.md](./type-conversion.md) | 类型转换规范 | 类型转换 |
 | [context-handling.md](./context-handling.md) | Context 处理规范 | Context 使用 |
+| [tenant-scope-and-propagation.md](./tenant-scope-and-propagation.md) | 租户隔离与参数传递规范 ⭐ | 涉及 org / org+project 隔离与参数链路时 |
 | [comments.md](./comments.md) | 注释规范 | 代码注释 |
 | [sqlc-custom-types.md](./sqlc-custom-types.md) | sqlc 自定义类型规范 | 自定义类型实现 |
 | [contract-sync.md](./contract-sync.md) | API Contract 共享规范 ⭐ | 修改 `api/` 目录时 |

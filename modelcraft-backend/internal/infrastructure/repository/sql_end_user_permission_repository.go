@@ -340,7 +340,6 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 
 	return &rbac.EndUserRole{
 		OrgName:     row.OrgName,
-		ProjectSlug: row.ProjectSlug,
 		ID:          row.ID,
 		Name:        row.Name,
 		Description: description,
@@ -352,7 +351,6 @@ func (r *SqlEndUserPermissionRepository) CreateRole(ctx context.Context, role *r
 	params := dbgen.CreateEndUserRoleParams{
 		ID:          role.ID,
 		OrgName:     role.OrgName,
-		ProjectSlug: role.ProjectSlug,
 		Name:        role.Name,
 		Description: sqlerr.PtrToNullStr(role.Description),
 		IsImplicit:  role.IsImplicit,
@@ -511,11 +509,10 @@ func (r *SqlEndUserPermissionRepository) AssignRoleToUser(
 	userID, orgName, projectSlug, roleID string,
 ) error {
 	params := dbgen.AssignRoleToUserParams{
-		ID:          uuid.NewString(),
-		UserID:      userID,
-		RoleID:      roleID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
+		ID:      uuid.NewString(),
+		UserID:  userID,
+		RoleID:  roleID,
+		OrgName: orgName,
 	}
 
 	return sqlerr.WrapSQLError(r.q.AssignRoleToUser(ctx, params))
@@ -526,10 +523,9 @@ func (r *SqlEndUserPermissionRepository) RevokeRoleFromUser(
 	userID, orgName, projectSlug, roleID string,
 ) error {
 	_, err := r.q.RevokeRoleFromUser(ctx, dbgen.RevokeRoleFromUserParams{
-		UserID:      userID,
-		RoleID:      roleID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
+		UserID:  userID,
+		RoleID:  roleID,
+		OrgName: orgName,
 	})
 	return sqlerr.WrapSQLError(err)
 }

@@ -2,12 +2,11 @@
 INSERT INTO end_user_roles (
   id,
   org_name,
-  project_slug,
   name,
   description,
   is_implicit
 )
-VALUES (?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?);
 
 -- name: GetEndUserRoleByID :one
 SELECT *
@@ -16,11 +15,14 @@ WHERE id = ?
   AND org_name = ?;
 
 -- name: ListEndUserRolesByProject :many
-SELECT *
-FROM end_user_roles
-WHERE org_name = ?
-  AND project_slug = ?
-ORDER BY is_implicit DESC, name;
+SELECT DISTINCT r.*
+FROM end_user_roles r
+  LEFT JOIN end_user_role_bundles rb
+    ON rb.role_id = r.id
+   AND rb.org_name = r.org_name
+WHERE r.org_name = ?
+  AND (rb.project_slug = ? OR r.is_implicit = TRUE)
+ORDER BY r.is_implicit DESC, r.name;
 
 -- name: UpdateEndUserRole :execresult
 -- 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束

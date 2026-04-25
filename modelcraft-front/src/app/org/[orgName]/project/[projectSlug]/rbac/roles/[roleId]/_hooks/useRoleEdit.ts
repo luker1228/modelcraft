@@ -33,7 +33,7 @@ export function useRoleEdit({ orgName, projectSlug, roleId }: UseRoleEditProps):
     error: roleError,
   } = useQuery(GET_END_USER_ROLE, {
     client,
-    variables: { projectSlug, id: roleId },
+    variables: { id: roleId },
     skip: !projectSlug || !orgName || !roleId,
   })
 
@@ -43,7 +43,6 @@ export function useRoleEdit({ orgName, projectSlug, roleId }: UseRoleEditProps):
     error: bundlesError,
   } = useQuery(GET_END_USER_BUNDLES, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
@@ -58,15 +57,20 @@ export function useRoleEdit({ orgName, projectSlug, roleId }: UseRoleEditProps):
   })
 
   const role: EndUserRole | null = roleData?.endUserRole ?? null
-  const allBundles: EndUserPermissionBundle[] = bundlesData?.endUserBundles ?? []
+  const allBundles: EndUserPermissionBundle[] = bundlesData?.endUserPermissionBundles?.edges?.map((edge: any) => edge.node) ?? []
 
   const assignBundle = useCallback(
     async (bundleId: string) => {
       const result = await assignBundleMutation({
-        variables: { projectSlug, roleId, bundleId },
+        variables: {
+          input: {
+            roleId,
+            bundleId,
+          },
+        },
       })
 
-      const payload = result.data?.assignBundleToRole
+      const payload = result.data?.assignBundleToEndUserRole
       if (payload?.error) {
         return {
           success: false,
@@ -75,16 +79,21 @@ export function useRoleEdit({ orgName, projectSlug, roleId }: UseRoleEditProps):
       }
       return { success: true }
     },
-    [assignBundleMutation, projectSlug, roleId]
+    [assignBundleMutation, roleId]
   )
 
   const revokeBundle = useCallback(
     async (bundleId: string) => {
       const result = await revokeBundleMutation({
-        variables: { projectSlug, roleId, bundleId },
+        variables: {
+          input: {
+            roleId,
+            bundleId,
+          },
+        },
       })
 
-      const payload = result.data?.revokeBundleFromRole
+      const payload = result.data?.revokeBundleFromEndUserRole
       if (payload?.error) {
         return {
           success: false,
@@ -93,7 +102,7 @@ export function useRoleEdit({ orgName, projectSlug, roleId }: UseRoleEditProps):
       }
       return { success: true }
     },
-    [revokeBundleMutation, projectSlug, roleId]
+    [revokeBundleMutation, roleId]
   )
 
   return {

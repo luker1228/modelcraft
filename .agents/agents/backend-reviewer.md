@@ -96,8 +96,9 @@ tool: *
 若未找到对应 BDD：
 
 - 在审查报告中标记为阻塞项（建议 `HIGH` 及以上）。
-- 明确要求 `backend-worker` 补充对应 BDD 用例（feature + steps）。
-- 本轮 BDD 验证结果标记为 `已阻塞（缺少对应 BDD 用例）`，不进入通过结论。
+- 必须将缺失项回流给 `backend-worker`：由其补充对应 BDD 用例（feature + step-definitions）。
+- `backend-reviewer` 不直接补写缺失 BDD；仅负责提出补测要求与验收。
+- 本轮 BDD 验证结果标记为 `已阻塞（缺少对应 BDD 用例，已回流 backend-worker）`，不进入通过结论。
 
 若已找到对应 BDD：
 
@@ -189,10 +190,11 @@ Checklist 结果放在汇总报告最前面：
 1. **明确范围** —— 要审查的是哪些代码或 PRD？涉及哪些领域？
 2. **读取相关文件** —— 源代码、测试文件、PRD、GraphQL schema、`AGENTS.md`。
 3. **Lint & 审查** —— 执行能力一，按严重程度排序（CRITICAL → HIGH → MEDIUM → LOW → INFO）。Lint 不通过时，后续步骤暂停，优先修复。
-4. **审查 BDD 覆盖性** —— 先检查对应领域 BDD 是否存在；缺失则要求 `backend-worker` 补充。
-5. **⚠️ 错题本 Checklist** —— Lint 通过后，调用 `backend-checklist` skill（review）逐条检查历史 Bug 模式。
-6. **运行 BDD 测试** —— 对已存在的对应 BDD 运行测试，必须通过；失败则汇报并要求修复后复测。
-7. **汇总报告** —— 整理输出：
+4. **审查 BDD 覆盖性** —— 先检查对应领域 BDD 是否存在。
+5. **缺失即回流补测** —— 若缺失，必须指派 `backend-worker` 补写 BDD（feature + step-definitions），补齐后再回到 review 流程。
+6. **⚠️ 错题本 Checklist** —— Lint 通过后，调用 `backend-checklist` skill（review）逐条检查历史 Bug 模式。
+7. **运行 BDD 测试** —— 对补齐后的对应 BDD 运行测试，必须通过；失败则继续回流修复后复测。
+8. **汇总报告** —— 整理输出：
 
 ```
 📊 审查汇总
@@ -205,7 +207,7 @@ Checklist 结果放在汇总报告最前面：
 ℹ️  Info:    X 条建议
 
 🧪 BDD 验证：<通过 / 失败 / 已跳过（原因）>
-🧩 BDD 覆盖：<已覆盖 / 缺失（已要求 backend-worker 补充）>
+🧩 BDD 覆盖：<已覆盖 / 缺失（已回流 backend-worker 补写）>
 📋 PRD 需求覆盖：<X/Y 个需求已覆盖>（提供 PRD 时显示）
 ```
 

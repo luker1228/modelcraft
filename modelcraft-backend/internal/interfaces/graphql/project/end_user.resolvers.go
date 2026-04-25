@@ -17,7 +17,10 @@ import (
 // CreateEndUser is the resolver for the createEndUser field.
 func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.CreateEndUserInput) (*generated.CreateEndUserPayload, error) {
 	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := getEndUserManagementAppService()
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		service = getEndUserManagementAppService()
+	}
 	if service == nil {
 		return &generated.CreateEndUserPayload{
 			Error: &generated.InvalidInput{Message: "end-user service not initialized"},
@@ -68,7 +71,10 @@ func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.Cr
 // UpdateEndUserStatus is the resolver for the updateEndUserStatus field.
 func (r *mutationResolver) UpdateEndUserStatus(ctx context.Context, input generated.UpdateEndUserStatusInput) (*generated.UpdateEndUserStatusPayload, error) {
 	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := getEndUserManagementAppService()
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		service = getEndUserManagementAppService()
+	}
 	if service == nil {
 		return &generated.UpdateEndUserStatusPayload{
 			Error: &generated.InvalidInput{Message: "end-user service not initialized"},
@@ -117,7 +123,10 @@ func (r *mutationResolver) UpdateEndUserStatus(ctx context.Context, input genera
 // DeleteEndUser is the resolver for the deleteEndUser field.
 func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.DeleteEndUserInput) (*generated.DeleteEndUserPayload, error) {
 	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := getEndUserManagementAppService()
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		service = getEndUserManagementAppService()
+	}
 	if service == nil {
 		return &generated.DeleteEndUserPayload{Success: false, Error: &generated.ClusterNotFound{Message: "end-user service not initialized"}}, nil
 	}
@@ -156,7 +165,10 @@ func (r *mutationResolver) InitPrivateDb(ctx context.Context) (*generated.InitPr
 // ListEndUsers is the resolver for the listEndUsers field.
 func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListEndUsersInput) (*generated.ListEndUsersPayload, error) {
 	errorAdapter := adapter.NewEndUserErrorAdapter(ctx)
-	service := getEndUserManagementAppService()
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		service = getEndUserManagementAppService()
+	}
 	if service == nil {
 		return &generated.ListEndUsersPayload{Error: &generated.ClusterNotFound{Message: "end-user service not initialized"}}, nil
 	}

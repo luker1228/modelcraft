@@ -151,10 +151,10 @@ CREATE TABLE `end_user_user_bundles` (
   UNIQUE KEY `uq_user_bundles_org_project_user_bundle`
     (`org_name`, `project_slug`, `user_id`, `bundle_id`),
   INDEX `idx_user_bundles_bundle_id` (`bundle_id`),
-  -- 复合 FK → end_user_users(org_name, project_slug, id)
+  -- FK → end_user_users(org_name, id)
   CONSTRAINT `fk_user_bundles_user`
-    FOREIGN KEY (`org_name`, `project_slug`, `user_id`)
-    REFERENCES `end_user_users` (`org_name`, `project_slug`, `id`)
+    FOREIGN KEY (`org_name`, `user_id`)
+    REFERENCES `end_user_users` (`org_name`, `id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_user_bundles_bundle`
     FOREIGN KEY (`bundle_id`) REFERENCES `end_user_permission_bundles` (`id`)

@@ -35,7 +35,6 @@ export type EndUserRowScope = 'ALL' | 'SELF' | 'DEPT' | 'DEPT_AND_CHILDREN'
 export interface EndUserPermission {
   id: string
   modelId: string
-  modelDisplayName: string
   action: EndUserPermissionAction
   rowScope: EndUserRowScope
   columnPolicy: ColumnPolicy
@@ -79,7 +78,7 @@ export interface EndUserRole {
 export interface EndUserBundleAssignment {
   endUserId: string
   bundle: EndUserPermissionBundle
-  grantedAt: string
+  assignedAt: string
 }
 
 /** 授予用户的角色关联 */

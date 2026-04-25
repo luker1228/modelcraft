@@ -24,6 +24,7 @@ import (
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"os"
+	"sort"
 	"sync"
 	"time"
 
@@ -40,6 +41,7 @@ import (
 	appEnduser "modelcraft/internal/app/enduser"
 	appRbac "modelcraft/internal/app/rbac"
 	appRole "modelcraft/internal/app/role"
+	domainAuth "modelcraft/internal/domain/auth"
 	domainEndUser "modelcraft/internal/domain/enduser"
 	domainModelDesign "modelcraft/internal/domain/modeldesign"
 	domainUser "modelcraft/internal/domain/user"
@@ -50,6 +52,7 @@ import (
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // DesignHandlers holds all handlers and services needed for the design-time API.
@@ -89,11 +92,13 @@ type DesignHandlers struct {
 	PrivateDBManager *repository.PrivateDBManager
 
 	// End-User Services
-	EndUserAuthAppService *appEnduser.EndUserAuthAppService
-	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
-	EndUserAuthHandler    *enduserHandlers.AuthHandler
-	EndUserMgmtHandler    *enduserHandlers.ManagementHandler
-	EndUserDataHandler    *enduserHandlers.DataHandler
+	EndUserAuthAppService    *appEnduser.EndUserAuthAppService
+	OrgEndUserMgmtAppService *appEnduser.EndUserManagementAppService
+	EndUserMgmtAppService    *appEnduser.EndUserManagementAppService
+	EndUserAccessAppService  *appEnduser.EndUserProjectAccessAppService
+	EndUserAuthHandler       *enduserHandlers.AuthHandler
+	EndUserMgmtHandler       *enduserHandlers.ManagementHandler
+	EndUserDataHandler       *enduserHandlers.DataHandler
 
 	// RBAC Services (Data-Level Row & Column Permission)
 	RBACPermissionSvc *appRbac.EndUserPermissionAppService
@@ -117,6 +122,78 @@ func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(
 	orgName, projectSlug string,
 ) domainEndUser.EndUserSessionRepository {
 	return repository.NewSqlEndUserSessionRepository(db, orgName, projectSlug)
+}
+
+func (f *endUserAuthRepositoryFactory) NewEndUserProjectAccessRepository(
+	db appEnduser.SQLDBTX,
+	orgName, projectSlug string,
+) domainEndUser.EndUserProjectAccessRepository {
+	return repository.NewSqlEndUserProjectAccessRepository(db, orgName, projectSlug)
+}
+
+type endUserAuthDBProvider struct {
+	db *sql.DB
+}
+
+func (p *endUserAuthDBProvider) GetOrInit(_ context.Context, _, _ string) (*sql.DB, error) {
+	if p.db == nil {
+		return nil, fmt.Errorf("end-user auth database is not configured")
+	}
+	return p.db, nil
+}
+
+type endUserJWTClaims struct {
+	jwt.RegisteredClaims
+	UserID       string   `json:"user_id"`
+	OrgName      string   `json:"org_name"`
+	ProjectSlugs []string `json:"project_slugs,omitempty"`
+}
+
+type endUserJWTIssuer struct {
+	secret []byte
+	ttl    time.Duration
+}
+
+func (i *endUserJWTIssuer) IssueEndUserToken(
+	_ context.Context,
+	input appEnduser.EndUserTokenIssueInput,
+) (*appEnduser.EndUserTokenIssueResult, error) {
+	if len(i.secret) == 0 {
+		return nil, fmt.Errorf("jwt secret is empty")
+	}
+
+	ttl := i.ttl
+	if ttl <= 0 {
+		ttl = time.Hour
+	}
+
+	now := time.Now().UTC()
+	expiresAt := now.Add(ttl)
+	projectSlugs := append([]string(nil), input.ProjectSlugs...)
+	sort.Strings(projectSlugs)
+
+	claims := endUserJWTClaims{
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    string(domainAuth.IssuerEndUser),
+			Subject:   input.UserID,
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(expiresAt),
+		},
+		UserID:       input.UserID,
+		OrgName:      input.OrgName,
+		ProjectSlugs: projectSlugs,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
+	signedToken, err := token.SignedString(i.secret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &appEnduser.EndUserTokenIssueResult{
+		AccessToken: signedToken,
+		ExpiresAt:   expiresAt,
+	}, nil
 }
 
 // endUserTxManager provides real SQL transaction support on private DBs.
@@ -307,17 +384,25 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	endUserTxMgr := &endUserTxManager{}
 	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
-		privateDBManager,
+		&endUserAuthDBProvider{db: repoFactory.SqlDB},
 		&endUserAuthRepositoryFactory{},
 		endUserTxMgr,
+		&endUserJWTIssuer{secret: []byte(cfg.JWT.Secret), ttl: cfg.JWT.Expiration},
 		logger,
+	)
+	orgEndUserMgmtAppService := appEnduser.NewEndUserManagementAppService(
+		&endUserAuthDBProvider{db: repoFactory.SqlDB},
+		endUserTxMgr,
 	)
 	endUserMgmtAppService := appEnduser.NewEndUserManagementAppService(
 		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
 		endUserTxMgr,
 	)
+	endUserAccessAppService := appEnduser.NewEndUserProjectAccessAppService(
+		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
+	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
-	endUserMgmtHandler := enduserHandlers.NewManagementHandler(endUserMgmtAppService, logger)
+	endUserMgmtHandler := enduserHandlers.NewManagementHandler(orgEndUserMgmtAppService, logger)
 	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, reverseEngineerApp, logger)
 
 	return &DesignHandlers{
@@ -344,7 +429,9 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		AuthSchemaAppService:      authSchemaAppService,
 		APIKeyService:             apiKeyService,
 		EndUserAuthAppService:     endUserAuthAppService,
+		OrgEndUserMgmtAppService:  orgEndUserMgmtAppService,
 		EndUserMgmtAppService:     endUserMgmtAppService,
+		EndUserAccessAppService:   endUserAccessAppService,
 		EndUserAuthHandler:        endUserAuthHandler,
 		EndUserMgmtHandler:        endUserMgmtHandler,
 		EndUserDataHandler:        endUserDataHandler,
@@ -371,6 +458,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		PermissionService:      handlers.PermPermissionService,
 		UserRoleService:        handlers.PermUserRoleService,
 		APIKeyService:          handlers.APIKeyService,
+		EndUserMgmtAppService:  handlers.OrgEndUserMgmtAppService,
 	}
 
 	jwtConfig := &middleware.JWTAuthConfig{
@@ -419,6 +507,8 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		RLSPolicyAppService:      handlers.RLSPolicyAppService,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
 		PrivateDBManager:         handlers.PrivateDBManager,
+		EndUserMgmtAppService:    handlers.EndUserMgmtAppService,
+		EndUserAccessAppService:  handlers.EndUserAccessAppService,
 		RBACPermissionSvc:        handlers.RBACPermissionSvc,
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,
@@ -588,6 +678,7 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 			r.Use(internalTokenMW)
 			r.Post("/register", handlers.EndUserAuthHandler.Register)
 			r.Post("/login", handlers.EndUserAuthHandler.Login)
+			r.Post("/select-project", handlers.EndUserAuthHandler.SelectProject)
 			r.Post("/logout", handlers.EndUserAuthHandler.Logout)
 			r.Post("/refresh", handlers.EndUserAuthHandler.Refresh)
 			r.Get("/me", handlers.EndUserAuthHandler.Me)

@@ -23,7 +23,7 @@ func ToEndUserPermissionDTO(p *rbacdomain.EndUserPermission) *generated.EndUserP
 	return &generated.EndUserPermission{
 		ID:           p.ID,
 		ModelID:      p.ModelID,
-		Action:       generated.RbacAction(p.Action),
+		Action:       generated.RbacAction(strings.ToUpper(string(p.Action))),
 		ColumnPolicy: ToColumnPolicyDTO(p.ColumnPolicy),
 		RowScope:     generated.RowScopeType(p.RowScope),
 		DisplayName:  displayName,

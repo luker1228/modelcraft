@@ -6,12 +6,11 @@ import { gql } from '@apollo/client'
  * 创建终端用户权限点
  */
 export const CREATE_END_USER_PERMISSION = gql`
-  mutation CreateEndUserPermission($projectSlug: String!, $input: CreateEndUserPermissionInput!) {
-    createEndUserPermission(projectSlug: $projectSlug, input: $input) {
+  mutation CreateEndUserPermission($input: CreateEndUserPermissionInput!) {
+    createEndUserPermission(input: $input) {
       permission {
         id
         modelId
-        modelDisplayName
         action
         rowScope
         displayName
@@ -27,11 +26,17 @@ export const CREATE_END_USER_PERMISSION = gql`
         __typename
         ... on InvalidInput {
           message
-          suggestion
+        }
+        ... on ModelNotFound {
+          message
         }
         ... on ProjectNotFound {
           message
-          suggestion
+        }
+        ... on RowScopeFieldMissing {
+          message
+          missingField
+          requiredByRowScope
         }
       }
     }
@@ -42,18 +47,19 @@ export const CREATE_END_USER_PERMISSION = gql`
  * 删除终端用户权限点
  */
 export const DELETE_END_USER_PERMISSION = gql`
-  mutation DeleteEndUserPermission($projectSlug: String!, $id: ID!) {
-    deleteEndUserPermission(projectSlug: $projectSlug, id: $id) {
+  mutation DeleteEndUserPermission($id: ID!) {
+    deleteEndUserPermission(id: $id) {
       success
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserPermissionNotFound {
           message
-          suggestion
         }
-        ... on InvalidInput {
+        ... on EndUserPermissionInUse {
           message
-          suggestion
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -66,18 +72,20 @@ export const DELETE_END_USER_PERMISSION = gql`
  * 创建权限包
  */
 export const CREATE_END_USER_BUNDLE = gql`
-  mutation CreateEndUserBundle($projectSlug: String!, $input: CreateEndUserBundleInput!) {
-    createEndUserBundle(projectSlug: $projectSlug, input: $input) {
+  mutation CreateEndUserBundle($input: CreateEndUserPermissionBundleInput!) {
+    createEndUserPermissionBundle(input: $input) {
       bundle {
         id
         name
         description
         permissions {
-          id
-          modelId
-          modelDisplayName
-          action
-          rowScope
+          sortOrder
+          permission {
+            id
+            modelId
+            action
+            rowScope
+          }
         }
         createdAt
         updatedAt
@@ -86,11 +94,12 @@ export const CREATE_END_USER_BUNDLE = gql`
         __typename
         ... on InvalidInput {
           message
-          suggestion
+        }
+        ... on EndUserPermissionBundleAlreadyExists {
+          message
         }
         ... on ProjectNotFound {
           message
-          suggestion
         }
       }
     }
@@ -101,8 +110,8 @@ export const CREATE_END_USER_BUNDLE = gql`
  * 更新权限包基本信息
  */
 export const UPDATE_END_USER_BUNDLE = gql`
-  mutation UpdateEndUserBundle($projectSlug: String!, $id: ID!, $input: UpdateEndUserBundleInput!) {
-    updateEndUserBundle(projectSlug: $projectSlug, id: $id, input: $input) {
+  mutation UpdateEndUserBundle($id: ID!, $input: UpdateEndUserPermissionBundleInput!) {
+    updateEndUserPermissionBundle(id: $id, input: $input) {
       bundle {
         id
         name
@@ -111,13 +120,17 @@ export const UPDATE_END_USER_BUNDLE = gql`
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserPermissionBundleNotFound {
           message
-          suggestion
+        }
+        ... on EndUserPermissionBundleAlreadyExists {
+          message
         }
         ... on InvalidInput {
           message
-          suggestion
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -128,18 +141,19 @@ export const UPDATE_END_USER_BUNDLE = gql`
  * 删除权限包
  */
 export const DELETE_END_USER_BUNDLE = gql`
-  mutation DeleteEndUserBundle($projectSlug: String!, $id: ID!) {
-    deleteEndUserBundle(projectSlug: $projectSlug, id: $id) {
+  mutation DeleteEndUserBundle($id: ID!) {
+    deleteEndUserPermissionBundle(id: $id) {
       success
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserPermissionBundleNotFound {
           message
-          suggestion
         }
-        ... on BundleInUse {
+        ... on EndUserPermissionBundleInUse {
           message
-          suggestion
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -150,28 +164,34 @@ export const DELETE_END_USER_BUNDLE = gql`
  * 向权限包添加权限点
  */
 export const ADD_PERMISSION_TO_BUNDLE = gql`
-  mutation AddPermissionToBundle($projectSlug: String!, $bundleId: ID!, $permissionId: ID!) {
-    addPermissionToBundle(projectSlug: $projectSlug, bundleId: $bundleId, permissionId: $permissionId) {
+  mutation AddPermissionToBundle($input: AddEndUserPermissionToBundleInput!) {
+    addEndUserPermissionToBundle(input: $input) {
       bundle {
         id
         name
         permissions {
-          id
-          modelId
-          modelDisplayName
-          action
-          rowScope
+          sortOrder
+          permission {
+            id
+            modelId
+            action
+            rowScope
+          }
         }
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserPermissionBundleNotFound {
           message
-          suggestion
+        }
+        ... on EndUserPermissionNotFound {
+          message
         }
         ... on InvalidInput {
           message
-          suggestion
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -182,24 +202,31 @@ export const ADD_PERMISSION_TO_BUNDLE = gql`
  * 从权限包移除权限点
  */
 export const REMOVE_PERMISSION_FROM_BUNDLE = gql`
-  mutation RemovePermissionFromBundle($projectSlug: String!, $bundleId: ID!, $permissionId: ID!) {
-    removePermissionFromBundle(projectSlug: $projectSlug, bundleId: $bundleId, permissionId: $permissionId) {
+  mutation RemovePermissionFromBundle($input: RemoveEndUserPermissionFromBundleInput!) {
+    removeEndUserPermissionFromBundle(input: $input) {
       bundle {
         id
         name
         permissions {
-          id
-          modelId
-          modelDisplayName
-          action
-          rowScope
+          sortOrder
+          permission {
+            id
+            modelId
+            action
+            rowScope
+          }
         }
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserPermissionBundleNotFound {
           message
-          suggestion
+        }
+        ... on EndUserPermissionNotFound {
+          message
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -212,16 +239,18 @@ export const REMOVE_PERMISSION_FROM_BUNDLE = gql`
  * 创建终端用户角色
  */
 export const CREATE_END_USER_ROLE = gql`
-  mutation CreateEndUserRole($projectSlug: String!, $input: CreateEndUserRoleInput!) {
-    createEndUserRole(projectSlug: $projectSlug, input: $input) {
+  mutation CreateEndUserRole($input: CreateEndUserRoleInput!) {
+    createEndUserRole(input: $input) {
       role {
         id
         name
         description
         isImplicit
         permissionBundles {
-          id
-          name
+          bundle {
+            id
+            name
+          }
         }
         createdAt
         updatedAt
@@ -230,11 +259,12 @@ export const CREATE_END_USER_ROLE = gql`
         __typename
         ... on InvalidInput {
           message
-          suggestion
+        }
+        ... on EndUserRoleAlreadyExists {
+          message
         }
         ... on ProjectNotFound {
           message
-          suggestion
         }
       }
     }
@@ -245,22 +275,19 @@ export const CREATE_END_USER_ROLE = gql`
  * 删除终端用户角色（隐式角色不可删除）
  */
 export const DELETE_END_USER_ROLE = gql`
-  mutation DeleteEndUserRole($projectSlug: String!, $id: ID!) {
-    deleteEndUserRole(projectSlug: $projectSlug, id: $id) {
+  mutation DeleteEndUserRole($id: ID!) {
+    deleteEndUserRole(id: $id) {
       success
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserRoleNotFound {
           message
-          suggestion
         }
-        ... on ImplicitRoleDeletion {
+        ... on EndUserImplicitRoleCannotBeModified {
           message
-          suggestion
         }
-        ... on RoleInUse {
+        ... on ProjectNotFound {
           message
-          suggestion
         }
       }
     }
@@ -271,26 +298,29 @@ export const DELETE_END_USER_ROLE = gql`
  * 为角色添加权限包
  */
 export const ASSIGN_BUNDLE_TO_ROLE = gql`
-  mutation AssignBundleToRole($projectSlug: String!, $roleId: ID!, $bundleId: ID!) {
-    assignBundleToRole(projectSlug: $projectSlug, roleId: $roleId, bundleId: $bundleId) {
+  mutation AssignBundleToRole($input: AssignBundleToEndUserRoleInput!) {
+    assignBundleToEndUserRole(input: $input) {
       role {
         id
         name
         permissionBundles {
-          id
-          name
-          description
+          bundle {
+            id
+            name
+            description
+          }
         }
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserRoleNotFound {
           message
-          suggestion
         }
-        ... on InvalidInput {
+        ... on EndUserPermissionBundleNotFound {
           message
-          suggestion
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -301,22 +331,29 @@ export const ASSIGN_BUNDLE_TO_ROLE = gql`
  * 从角色移除权限包
  */
 export const REVOKE_BUNDLE_FROM_ROLE = gql`
-  mutation RevokeBundleFromRole($projectSlug: String!, $roleId: ID!, $bundleId: ID!) {
-    revokeBundleFromRole(projectSlug: $projectSlug, roleId: $roleId, bundleId: $bundleId) {
+  mutation RevokeBundleFromRole($input: RevokeBundleFromEndUserRoleInput!) {
+    revokeBundleFromEndUserRole(input: $input) {
       role {
         id
         name
         permissionBundles {
-          id
-          name
-          description
+          bundle {
+            id
+            name
+            description
+          }
         }
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserRoleNotFound {
           message
-          suggestion
+        }
+        ... on EndUserPermissionBundleNotFound {
+          message
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -329,25 +366,29 @@ export const REVOKE_BUNDLE_FROM_ROLE = gql`
  * 为终端用户分配角色
  */
 export const ASSIGN_END_USER_ROLE_TO_USER = gql`
-  mutation AssignEndUserRoleToUser($projectSlug: String!, $endUserId: ID!, $roleId: ID!) {
-    assignEndUserRoleToUser(projectSlug: $projectSlug, endUserId: $endUserId, roleId: $roleId) {
-      assignment {
-        endUserId
-        role {
-          id
-          name
-        }
-        assignedAt
+  mutation AssignEndUserRole($input: AssignEndUserRoleInput!) {
+    assignEndUserRole(input: $input) {
+      endUserId
+      role {
+        id
+        name
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserNotFoundInProject {
           message
-          suggestion
         }
-        ... on InvalidInput {
+        ... on EndUserRoleNotFound {
           message
-          suggestion
+        }
+        ... on EndUserCannotAssignImplicitRole {
+          message
+        }
+        ... on UserRoleAlreadyAssigned {
+          message
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -358,14 +399,19 @@ export const ASSIGN_END_USER_ROLE_TO_USER = gql`
  * 撤销终端用户的角色
  */
 export const REVOKE_END_USER_ROLE_FROM_USER = gql`
-  mutation RevokeEndUserRoleFromUser($projectSlug: String!, $endUserId: ID!, $roleId: ID!) {
-    revokeEndUserRoleFromUser(projectSlug: $projectSlug, endUserId: $endUserId, roleId: $roleId) {
+  mutation RevokeEndUserRole($input: RevokeEndUserRoleInput!) {
+    revokeEndUserRole(input: $input) {
       success
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserNotFoundInProject {
           message
-          suggestion
+        }
+        ... on EndUserRoleNotFound {
+          message
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -376,25 +422,26 @@ export const REVOKE_END_USER_ROLE_FROM_USER = gql`
  * 直接为终端用户授予权限包
  */
 export const ASSIGN_BUNDLE_TO_END_USER = gql`
-  mutation AssignBundleToEndUser($projectSlug: String!, $endUserId: ID!, $bundleId: ID!) {
-    assignBundleToEndUser(projectSlug: $projectSlug, endUserId: $endUserId, bundleId: $bundleId) {
-      assignment {
-        endUserId
-        bundle {
-          id
-          name
-        }
-        grantedAt
+  mutation AssignBundleToEndUser($input: AssignBundleToEndUserInput!) {
+    assignBundleToEndUser(input: $input) {
+      endUserId
+      bundle {
+        id
+        name
       }
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserNotFoundInProject {
           message
-          suggestion
         }
-        ... on InvalidInput {
+        ... on EndUserPermissionBundleNotFound {
           message
-          suggestion
+        }
+        ... on UserBundleAlreadyAssigned {
+          message
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }
@@ -405,14 +452,19 @@ export const ASSIGN_BUNDLE_TO_END_USER = gql`
  * 撤销终端用户的直接权限包授权
  */
 export const REVOKE_BUNDLE_FROM_END_USER = gql`
-  mutation RevokeBundleFromEndUser($projectSlug: String!, $endUserId: ID!, $bundleId: ID!) {
-    revokeBundleFromEndUser(projectSlug: $projectSlug, endUserId: $endUserId, bundleId: $bundleId) {
+  mutation RevokeBundleFromEndUser($input: RevokeBundleFromEndUserInput!) {
+    revokeBundleFromEndUser(input: $input) {
       success
       error {
         __typename
-        ... on NotFound {
+        ... on EndUserNotFoundInProject {
           message
-          suggestion
+        }
+        ... on EndUserPermissionBundleNotFound {
+          message
+        }
+        ... on ProjectNotFound {
+          message
         }
       }
     }

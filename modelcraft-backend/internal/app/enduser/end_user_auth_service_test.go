@@ -1,0 +1,649 @@
+package enduser
+
+import (
+	"context"
+	"database/sql"
+	"database/sql/driver"
+	"errors"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/logfacade"
+	"testing"
+	"time"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	domainenduser "modelcraft/internal/domain/enduser"
+)
+
+type fakeDBProvider struct{}
+
+func (p *fakeDBProvider) GetOrInit(
+	_ context.Context,
+	_, _ string,
+) (*sql.DB, error) {
+	return &sql.DB{}, nil
+}
+
+type fakeTokenIssuer struct {
+	forceErr     error
+	issuedInputs []EndUserTokenIssueInput
+}
+
+func (i *fakeTokenIssuer) IssueEndUserToken(
+	_ context.Context,
+	input EndUserTokenIssueInput,
+) (*EndUserTokenIssueResult, error) {
+	if i.forceErr != nil {
+		return nil, i.forceErr
+	}
+
+	recordedInput := input
+	recordedInput.ProjectSlugs = append([]string(nil), input.ProjectSlugs...)
+	i.issuedInputs = append(i.issuedInputs, recordedInput)
+
+	return &EndUserTokenIssueResult{
+		AccessToken: "token-for-" + input.UserID,
+		ExpiresAt:   time.Now().Add(time.Hour),
+	}, nil
+}
+
+type fakeRepoFactory struct {
+	userRepo          *inMemoryEndUserRepo
+	sessionRepo       *inMemoryEndUserSessionRepo
+	projectAccessRepo *inMemoryEndUserProjectAccessRepo
+}
+
+func (f *fakeRepoFactory) NewEndUserRepository(
+	_ SQLDBTX,
+	_, _ string,
+) domainenduser.EndUserRepository {
+	return f.userRepo
+}
+
+func (f *fakeRepoFactory) NewEndUserSessionRepository(
+	_ SQLDBTX,
+	_, _ string,
+) domainenduser.EndUserSessionRepository {
+	return f.sessionRepo
+}
+
+func (f *fakeRepoFactory) NewEndUserProjectAccessRepository(
+	_ SQLDBTX,
+	_, _ string,
+) domainenduser.EndUserProjectAccessRepository {
+	return f.projectAccessRepo
+}
+
+type fakeTxManager struct{}
+
+func (m *fakeTxManager) WithTx(
+	ctx context.Context,
+	_ *sql.DB,
+	fn func(ctx context.Context, txDB SQLDBTX) error,
+) error {
+	return fn(ctx, noopSQLDBTX{})
+}
+
+type noopSQLDBTX struct{}
+
+type noopResult struct{}
+
+func (noopResult) LastInsertId() (int64, error) { return 0, nil }
+func (noopResult) RowsAffected() (int64, error) { return 0, nil }
+
+func (noopSQLDBTX) ExecContext(
+	_ context.Context,
+	_ string,
+	_ ...any,
+) (sql.Result, error) {
+	return noopResult{}, nil
+}
+
+func (noopSQLDBTX) QueryContext(
+	_ context.Context,
+	_ string,
+	_ ...any,
+) (*sql.Rows, error) {
+	return nil, errors.New("not implemented in noop SQLDBTX")
+}
+
+func (noopSQLDBTX) QueryRowContext(
+	_ context.Context,
+	_ string,
+	_ ...any,
+) *sql.Row {
+	return &sql.Row{}
+}
+
+type inMemoryEndUserRepo struct {
+	usersByID       map[string]*domainenduser.EndUser
+	usersByOrgName  map[string]map[string]*domainenduser.EndUser
+	forceSaveErr    error
+	forceLookupErr  error
+	forceDeleteErr  error
+	forceUpdateErr  error
+	forceListErr    error
+	forceGetByIDErr error
+}
+
+func newInMemoryEndUserRepo() *inMemoryEndUserRepo {
+	return &inMemoryEndUserRepo{
+		usersByID:      make(map[string]*domainenduser.EndUser),
+		usersByOrgName: make(map[string]map[string]*domainenduser.EndUser),
+	}
+}
+
+func (r *inMemoryEndUserRepo) Save(
+	_ context.Context,
+	user *domainenduser.EndUser,
+) error {
+	if r.forceSaveErr != nil {
+		return r.forceSaveErr
+	}
+	if _, ok := r.usersByOrgName[user.OrgName]; !ok {
+		r.usersByOrgName[user.OrgName] = make(map[string]*domainenduser.EndUser)
+	}
+	r.usersByID[user.ID] = user
+	r.usersByOrgName[user.OrgName][user.Username] = user
+	return nil
+}
+
+func (r *inMemoryEndUserRepo) GetByID(
+	_ context.Context,
+	orgName,
+	id string,
+) (*domainenduser.EndUser, error) {
+	if r.forceGetByIDErr != nil {
+		return nil, r.forceGetByIDErr
+	}
+	user, ok := r.usersByID[id]
+	if !ok || user.OrgName != orgName {
+		return nil, nil
+	}
+	return user, nil
+}
+
+func (r *inMemoryEndUserRepo) GetByUsername(
+	_ context.Context,
+	orgName,
+	username string,
+) (*domainenduser.EndUser, error) {
+	if r.forceLookupErr != nil {
+		return nil, r.forceLookupErr
+	}
+	usersInOrg, ok := r.usersByOrgName[orgName]
+	if !ok {
+		return nil, nil
+	}
+	user, ok := usersInOrg[username]
+	if !ok {
+		return nil, nil
+	}
+	return user, nil
+}
+
+func (r *inMemoryEndUserRepo) UpdateStatus(
+	_ context.Context,
+	orgName,
+	id string,
+	isForbidden bool,
+) error {
+	if r.forceUpdateErr != nil {
+		return r.forceUpdateErr
+	}
+	user, ok := r.usersByID[id]
+	if !ok || user.OrgName != orgName {
+		return nil
+	}
+	user.IsForbidden = isForbidden
+	return nil
+}
+
+func (r *inMemoryEndUserRepo) Delete(
+	_ context.Context,
+	orgName,
+	id string,
+) error {
+	if r.forceDeleteErr != nil {
+		return r.forceDeleteErr
+	}
+	user, ok := r.usersByID[id]
+	if !ok || user.OrgName != orgName {
+		return nil
+	}
+	delete(r.usersByID, id)
+	delete(r.usersByOrgName[orgName], user.Username)
+	return nil
+}
+
+func (r *inMemoryEndUserRepo) ListWithTotal(
+	_ context.Context,
+	_ domainenduser.ListEndUsersQuery,
+) ([]*domainenduser.EndUser, int64, error) {
+	if r.forceListErr != nil {
+		return nil, 0, r.forceListErr
+	}
+	return []*domainenduser.EndUser{}, 0, nil
+}
+
+type inMemoryEndUserSessionRepo struct {
+	sessionsByID   map[string]*domainenduser.EndUserSession
+	sessionsByHash map[string]*domainenduser.EndUserSession
+	forceSaveErr   error
+	forceFindErr   error
+	forceRevokeErr error
+}
+
+func newInMemoryEndUserSessionRepo() *inMemoryEndUserSessionRepo {
+	return &inMemoryEndUserSessionRepo{
+		sessionsByID:   make(map[string]*domainenduser.EndUserSession),
+		sessionsByHash: make(map[string]*domainenduser.EndUserSession),
+	}
+}
+
+func (r *inMemoryEndUserSessionRepo) Save(
+	_ context.Context,
+	session *domainenduser.EndUserSession,
+) error {
+	if r.forceSaveErr != nil {
+		return r.forceSaveErr
+	}
+	s := *session
+	r.sessionsByID[s.ID] = &s
+	r.sessionsByHash[s.RefreshTokenHash] = &s
+	return nil
+}
+
+func (r *inMemoryEndUserSessionRepo) GetByTokenHash(
+	_ context.Context,
+	tokenHash string,
+) (*domainenduser.EndUserSession, error) {
+	if r.forceFindErr != nil {
+		return nil, r.forceFindErr
+	}
+	session, ok := r.sessionsByHash[tokenHash]
+	if !ok {
+		return nil, nil
+	}
+	return session, nil
+}
+
+func (r *inMemoryEndUserSessionRepo) RevokeByID(
+	_ context.Context,
+	id string,
+) error {
+	if r.forceRevokeErr != nil {
+		return r.forceRevokeErr
+	}
+	session, ok := r.sessionsByID[id]
+	if !ok {
+		return nil
+	}
+	session.Revoked = true
+	return nil
+}
+
+func (r *inMemoryEndUserSessionRepo) RevokeAllByUserID(
+	_ context.Context,
+	userID string,
+) error {
+	for _, session := range r.sessionsByID {
+		if session.UserID == userID {
+			session.Revoked = true
+		}
+	}
+	return nil
+}
+
+type inMemoryEndUserProjectAccessRepo struct {
+	projectsByUserID map[string][]domainenduser.AccessibleProject
+}
+
+func newInMemoryEndUserProjectAccessRepo() *inMemoryEndUserProjectAccessRepo {
+	return &inMemoryEndUserProjectAccessRepo{projectsByUserID: make(map[string][]domainenduser.AccessibleProject)}
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) Grant(_ context.Context, _ *domainenduser.EndUserProjectAccess) error {
+	return nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) GetByID(
+	_ context.Context,
+	_, _, _ string,
+) (*domainenduser.EndUserProjectAccess, error) {
+	return nil, nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) UpdatePermissionBundle(
+	_ context.Context,
+	_, _, _, _ string,
+) error {
+	return nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) Revoke(_ context.Context, _, _, _ string) error {
+	return nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) RemoveByEndUserID(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) PermissionBundleExists(_ context.Context, _, _, _ string) (bool, error) {
+	return true, nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) ListWithTotal(
+	_ context.Context,
+	_ domainenduser.ListEndUserProjectAccessQuery,
+) ([]*domainenduser.EndUserProjectAccess, int64, error) {
+	return nil, 0, nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) ListAccessibleProjectsByUserID(
+	_ context.Context,
+	_ string,
+	endUserID string,
+) ([]domainenduser.AccessibleProject, error) {
+	return r.projectsByUserID[endUserID], nil
+}
+
+func (r *inMemoryEndUserProjectAccessRepo) HasProjectAccess(
+	_ context.Context,
+	_ string,
+	endUserID, projectSlug string,
+) (bool, error) {
+	for _, p := range r.projectsByUserID[endUserID] {
+		if p.ProjectSlug == projectSlug {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func createEndUserAuthServiceForTest(t *testing.T) (
+	*EndUserAuthAppService,
+	*inMemoryEndUserRepo,
+	*inMemoryEndUserSessionRepo,
+	*inMemoryEndUserProjectAccessRepo,
+) {
+	t.Helper()
+
+	userRepo := newInMemoryEndUserRepo()
+	sessionRepo := newInMemoryEndUserSessionRepo()
+	projectAccessRepo := newInMemoryEndUserProjectAccessRepo()
+
+	svc := NewEndUserAuthAppService(
+		&fakeDBProvider{},
+		&fakeRepoFactory{userRepo: userRepo, sessionRepo: sessionRepo, projectAccessRepo: projectAccessRepo},
+		&fakeTxManager{},
+		&fakeTokenIssuer{},
+		logfacade.GetLogger(context.Background()),
+	)
+
+	return svc, userRepo, sessionRepo, projectAccessRepo
+}
+
+func seedEndUser(
+	t *testing.T,
+	repo *inMemoryEndUserRepo,
+	orgName,
+	userID,
+	username,
+	plainPassword string,
+	disabled bool,
+) {
+	t.Helper()
+
+	hashed, err := domainenduser.NewHashedPasswordFromPlain(plainPassword)
+	require.NoError(t, err)
+
+	user, err := domainenduser.NewEndUser(userID, orgName, username, "", hashed)
+	require.NoError(t, err)
+	if disabled {
+		user.Disable()
+	}
+	require.NoError(t, repo.Save(context.Background(), user))
+}
+
+func requireBusinessErrorCode(t *testing.T, err error, code string) {
+	t.Helper()
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, code, bizErr.Info().GetCode())
+}
+
+func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
+	svc, userRepo, sessionRepo, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
+		{ProjectSlug: "project-b", ProjectTitle: "Project B"},
+	}
+
+	result, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "user-1", result.UserID)
+	assert.NotEmpty(t, result.AccessToken)
+	assert.Len(t, result.Projects, 2)
+	assert.NotEmpty(t, result.RefreshToken)
+	assert.Len(t, sessionRepo.sessionsByID, 1)
+
+	issuer, ok := svc.tokenIssuer.(*fakeTokenIssuer)
+	require.True(t, ok)
+	require.Len(t, issuer.issuedInputs, 1)
+	assert.Equal(t, "user-1", issuer.issuedInputs[0].UserID)
+	assert.Equal(t, "org-a", issuer.issuedInputs[0].OrgName)
+	assert.Equal(t, []string{"project-a", "project-b"}, issuer.issuedInputs[0].ProjectSlugs)
+}
+
+func TestEndUserAuthAppService_LoginEndUser_NoProjectAccess(t *testing.T) {
+	svc, userRepo, _, _ := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+
+	_, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserNoProjectAccess.GetCode())
+}
+
+func TestEndUserAuthAppService_LoginEndUser_DisabledAccount(t *testing.T) {
+	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", true)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	_, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserAccountDisabled.GetCode())
+}
+
+func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
+	svc, userRepo, sessionRepo, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	refreshResult, err := svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+		OrgName:      "org-a",
+		RefreshToken: loginResult.RefreshToken,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, refreshResult)
+
+	assert.NotEqual(t, loginResult.RefreshToken, refreshResult.RefreshToken)
+	assert.Equal(t, "user-1", refreshResult.UserID)
+	assert.NotEmpty(t, refreshResult.AccessToken)
+	assert.Len(t, refreshResult.Projects, 1)
+
+	oldHash := hashToken(loginResult.RefreshToken)
+	oldSession := sessionRepo.sessionsByHash[oldHash]
+	require.NotNil(t, oldSession)
+	assert.True(t, oldSession.Revoked)
+}
+
+func TestEndUserAuthAppService_RefreshEndUserToken_InvalidToken(t *testing.T) {
+	svc, _, _, _ := createEndUserAuthServiceForTest(t)
+
+	_, err := svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+		OrgName:      "org-a",
+		RefreshToken: "invalid-token",
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserInvalidRefreshToken.GetCode())
+}
+
+func TestEndUserAuthAppService_RefreshEndUserToken_DisabledAccount(t *testing.T) {
+	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	user, getErr := userRepo.GetByID(context.Background(), "org-a", "user-1")
+	require.NoError(t, getErr)
+	require.NotNil(t, user)
+	user.Disable()
+	require.NoError(t, userRepo.UpdateStatus(context.Background(), "org-a", "user-1", true))
+
+	_, err = svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+		OrgName:      "org-a",
+		RefreshToken: loginResult.RefreshToken,
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserAccountDisabled.GetCode())
+}
+
+func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T) {
+	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	projectAccessRepo.projectsByUserID["user-1"] = nil
+
+	_, err = svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+		OrgName:      "org-a",
+		RefreshToken: loginResult.RefreshToken,
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserNoProjectAccess.GetCode())
+}
+
+func TestEndUserAuthAppService_SelectProjectContext_Success(t *testing.T) {
+	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	result, err := svc.SelectProjectContext(context.Background(), SelectProjectCommand{
+		OrgName:      "org-a",
+		ProjectSlug:  "project-a",
+		RefreshToken: loginResult.RefreshToken,
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "user-1", result.UserID)
+	assert.Equal(t, "project-a", result.ProjectSlug)
+}
+
+func TestEndUserAuthAppService_SelectProjectContext_Denied(t *testing.T) {
+	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	_, err = svc.SelectProjectContext(context.Background(), SelectProjectCommand{
+		OrgName:      "org-a",
+		ProjectSlug:  "project-b",
+		RefreshToken: loginResult.RefreshToken,
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserProjectAccessDenied.GetCode())
+}
+
+func TestEndUserAuthAppService_SelectProjectContext_DisabledAccount(t *testing.T) {
+	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	require.NoError(t, userRepo.UpdateStatus(context.Background(), "org-a", "user-1", true))
+
+	_, err = svc.SelectProjectContext(context.Background(), SelectProjectCommand{
+		OrgName:      "org-a",
+		ProjectSlug:  "project-a",
+		RefreshToken: loginResult.RefreshToken,
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserAccountDisabled.GetCode())
+}
+
+var (
+	_ driver.Result                                = noopResult{}
+	_ SQLDBTX                                      = noopSQLDBTX{}
+	_ domainenduser.EndUserRepository              = (*inMemoryEndUserRepo)(nil)
+	_ domainenduser.EndUserSessionRepository       = (*inMemoryEndUserSessionRepo)(nil)
+	_ domainenduser.EndUserProjectAccessRepository = (*inMemoryEndUserProjectAccessRepo)(nil)
+)

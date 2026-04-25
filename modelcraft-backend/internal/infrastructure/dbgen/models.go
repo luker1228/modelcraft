@@ -245,14 +245,12 @@ type DatabaseCluster struct {
 	UpdatedAt sql.NullTime
 }
 
-// 终端用户会话表（租户隔离）
+// 终端用户会话表（Org 级隔离）
 type EndUserAccount struct {
 	// 会话 ID (UUID)
 	ID string
-	// 租户组织名
+	// 所属 Org
 	OrgName string
-	// 租户项目标识
-	ProjectSlug string
 	// 终端用户 ID
 	UserID string
 	// 刷新令牌哈希
@@ -317,15 +315,31 @@ type EndUserPermissionBundle struct {
 	UpdatedAt   time.Time
 }
 
-// 终端用户角色表（租户隔离）
+// EndUser ↔ Project 授权关联表（多对多）
+type EndUserProjectAccess struct {
+	// 记录 ID (UUID)
+	ID string
+	// 终端用户 ID
+	EndUserID string
+	// 所属 Org
+	OrgName string
+	// 项目标识
+	ProjectSlug string
+	// 分配的权限包 ID（NULL = 仅访问）
+	PermissionBundleID sql.NullString
+	// 授权者（平台用户 ID）
+	GrantedBy sql.NullString
+	// 授权时间
+	GrantedAt time.Time
+}
+
+// 终端用户角色表（Org 级隔离）
 type EndUserRole struct {
 	// 角色 ID (UUID)
 	ID string
-	// 租户组织名
+	// 所属 Org
 	OrgName string
-	// 租户项目标识
-	ProjectSlug string
-	// 角色名（租户内唯一）
+	// Org 内唯一角色名
 	Name string
 	// 角色描述
 	Description sql.NullString
@@ -351,14 +365,12 @@ type EndUserRoleBundle struct {
 	GrantedAt time.Time
 }
 
-// 终端用户角色-用户关联表（租户隔离）
+// 终端用户角色-用户关联表（Org 级隔离）
 type EndUserRoleUser struct {
 	// 关联 ID (UUID)
 	ID string
-	// 租户组织名
+	// 所属 Org
 	OrgName string
-	// 租户项目标识
-	ProjectSlug string
 	// 角色 ID
 	RoleID string
 	// 终端用户 ID
@@ -366,15 +378,13 @@ type EndUserRoleUser struct {
 	CreatedAt time.Time
 }
 
-// 终端用户账号表（租户隔离）
+// 终端用户账号表（Org 级隔离）
 type EndUserUser struct {
 	// 终端用户 ID (UUID)
 	ID string
-	// 租户组织名
+	// 所属 Org
 	OrgName string
-	// 租户项目标识
-	ProjectSlug string
-	// 项目内唯一用户名
+	// Org 内唯一用户名
 	Username string
 	// bcrypt 密码哈希
 	Password string

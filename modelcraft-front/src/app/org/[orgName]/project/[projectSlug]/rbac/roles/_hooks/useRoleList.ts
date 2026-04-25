@@ -31,7 +31,6 @@ export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRole
 
   const { data, loading, error } = useQuery(GET_END_USER_ROLES, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
@@ -45,13 +44,12 @@ export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRole
     refetchQueries: [GET_END_USER_ROLES],
   })
 
-  const roles: EndUserRole[] = data?.endUserRoles ?? []
+  const roles: EndUserRole[] = data?.endUserRoles?.edges?.map((edge: any) => edge.node) ?? []
 
   const createRole = useCallback(
     async (input: CreateRoleInput) => {
       const result = await createRoleMutation({
         variables: {
-          projectSlug,
           input: {
             name: input.name,
             description: input.description ?? '',
@@ -68,7 +66,7 @@ export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRole
       }
       return { success: true }
     },
-    [createRoleMutation, projectSlug]
+    [createRoleMutation]
   )
 
   const deleteRole = useCallback(
@@ -82,7 +80,7 @@ export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRole
       }
 
       const result = await deleteRoleMutation({
-        variables: { projectSlug, id: role.id },
+        variables: { id: role.id },
       })
 
       const payload = result.data?.deleteEndUserRole
@@ -94,7 +92,7 @@ export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRole
       }
       return { success: true }
     },
-    [deleteRoleMutation, projectSlug]
+    [deleteRoleMutation]
   )
 
   return {

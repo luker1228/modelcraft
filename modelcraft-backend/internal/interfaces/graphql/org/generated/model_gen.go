@@ -22,6 +22,10 @@ type CreateCustomRoleError interface {
 	IsCreateCustomRoleError()
 }
 
+type CreateEndUserError interface {
+	IsCreateEndUserError()
+}
+
 type CreateProjectError interface {
 	IsCreateProjectError()
 }
@@ -32,6 +36,10 @@ type CreateRoleError interface {
 
 type DeleteClusterError interface {
 	IsDeleteClusterError()
+}
+
+type DeleteEndUserError interface {
+	IsDeleteEndUserError()
 }
 
 type DeletePermissionRoleError interface {
@@ -65,6 +73,10 @@ type GetOrganizationError interface {
 
 type GetProjectError interface {
 	IsGetProjectError()
+}
+
+type ListEndUsersError interface {
+	IsListEndUsersError()
 }
 
 type Node interface {
@@ -104,6 +116,10 @@ type UpdateAPIKeyError interface {
 
 type UpdateClusterError interface {
 	IsUpdateClusterError()
+}
+
+type UpdateEndUserError interface {
+	IsUpdateEndUserError()
 }
 
 type UpdateMyProfileError interface {
@@ -263,6 +279,16 @@ type CreateCustomRolePayload struct {
 	Error CreateCustomRoleError `json:"error,omitempty"`
 }
 
+type CreateEndUserInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type CreateEndUserPayload struct {
+	EndUser *EndUser           `json:"endUser,omitempty"`
+	Error   CreateEndUserError `json:"error,omitempty"`
+}
+
 type CreateProjectInput struct {
 	Slug               string                  `json:"slug"`
 	Title              string                  `json:"title"`
@@ -348,6 +374,15 @@ type DeleteClusterPayload struct {
 	Error   DeleteClusterError `json:"error,omitempty"`
 }
 
+type DeleteEndUserInput struct {
+	UserID string `json:"userId"`
+}
+
+type DeleteEndUserPayload struct {
+	Success bool               `json:"success"`
+	Error   DeleteEndUserError `json:"error,omitempty"`
+}
+
 type DeletePermissionRolePayload struct {
 	Success bool                      `json:"success"`
 	Error   DeletePermissionRoleError `json:"error,omitempty"`
@@ -362,6 +397,54 @@ type DeleteRolePayload struct {
 	Success bool            `json:"success"`
 	Error   DeleteRoleError `json:"error,omitempty"`
 }
+
+type EndUser struct {
+	ID          string    `json:"id"`
+	Username    string    `json:"username"`
+	IsForbidden bool      `json:"isForbidden"`
+	CreatedBy   *string   `json:"createdBy,omitempty"`
+	CreatedAt   time.Time `json:"createdAt"`
+	UpdatedAt   time.Time `json:"updatedAt"`
+}
+
+func (EndUser) IsNode()            {}
+func (this EndUser) GetID() string { return this.ID }
+
+type EndUserAlreadyExists struct {
+	Message string `json:"message"`
+}
+
+func (EndUserAlreadyExists) IsError()                {}
+func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
+
+func (EndUserAlreadyExists) IsCreateEndUserError() {}
+
+type EndUserConnection struct {
+	Nodes      []*EndUser `json:"nodes"`
+	PageInfo   *PageInfo  `json:"pageInfo"`
+	TotalCount int32      `json:"totalCount"`
+}
+
+type EndUserNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserNotFound) IsError()                {}
+func (this EndUserNotFound) GetMessage() string { return this.Message }
+
+func (EndUserNotFound) IsUpdateEndUserError() {}
+
+func (EndUserNotFound) IsDeleteEndUserError() {}
+
+type EndUserPasswordTooWeak struct {
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (EndUserPasswordTooWeak) IsError()                {}
+func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
+
+func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
 type GetClusterPayload struct {
 	Cluster *DatabaseCluster `json:"cluster,omitempty"`
@@ -395,6 +478,12 @@ func (InvalidInput) IsUpdateAPIKeyError() {}
 func (InvalidInput) IsError()                {}
 func (this InvalidInput) GetMessage() string { return this.Message }
 
+func (InvalidInput) IsCreateEndUserError() {}
+
+func (InvalidInput) IsUpdateEndUserError() {}
+
+func (InvalidInput) IsListEndUsersError() {}
+
 func (InvalidInput) IsCreateCustomRoleError() {}
 
 func (InvalidInput) IsUpdatePermissionRoleError() {}
@@ -414,6 +503,17 @@ func (InvalidInput) IsUpdateClusterError() {}
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
 
 func (InvalidInput) IsCreateRoleError() {}
+
+type ListEndUsersInput struct {
+	Search *string `json:"search,omitempty"`
+	First  *int32  `json:"first,omitempty"`
+	After  *string `json:"after,omitempty"`
+}
+
+type ListEndUsersPayload struct {
+	Connection *EndUserConnection `json:"connection,omitempty"`
+	Error      ListEndUsersError  `json:"error,omitempty"`
+}
 
 type ListProjectsInput struct {
 	Status *ProjectStatus `json:"status,omitempty"`
@@ -713,6 +813,16 @@ type UpdateClusterConnectionInput struct {
 type UpdateClusterPayload struct {
 	Cluster *DatabaseCluster   `json:"cluster,omitempty"`
 	Error   UpdateClusterError `json:"error,omitempty"`
+}
+
+type UpdateEndUserStatusInput struct {
+	UserID      string `json:"userId"`
+	IsForbidden bool   `json:"isForbidden"`
+}
+
+type UpdateEndUserStatusPayload struct {
+	EndUser *EndUser           `json:"endUser,omitempty"`
+	Error   UpdateEndUserError `json:"error,omitempty"`
 }
 
 type UpdateMyProfileInput struct {

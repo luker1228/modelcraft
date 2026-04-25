@@ -19,35 +19,61 @@ type RegisterResult struct {
 	ExpiresAt    time.Time
 }
 
+// AccessibleProject represents one project that the end-user can access.
+type AccessibleProject struct {
+	Slug  string
+	Title string
+}
+
 // LoginCommand represents a login request from an end-user.
 type LoginCommand struct {
-	OrgName     string
-	ProjectSlug string
-	Username    string
-	Password    string
+	OrgName  string
+	Username string
+	Password string
 }
 
 // LoginResult represents the result of a successful login.
-// Alias to RegisterResult as they have identical structure.
-type LoginResult = RegisterResult
+type LoginResult struct {
+	UserID       string
+	AccessToken  string
+	Projects     []AccessibleProject
+	RefreshToken string // opaque token plaintext (returned only once)
+	ExpiresAt    time.Time
+}
 
 // LogoutCommand represents a logout request from an end-user.
 type LogoutCommand struct {
 	OrgName      string
-	ProjectSlug  string
 	RefreshToken string // opaque token plaintext
 }
 
 // RefreshCommand represents a token refresh request from an end-user.
 type RefreshCommand struct {
 	OrgName      string
-	ProjectSlug  string
 	RefreshToken string // opaque token plaintext
 }
 
 // RefreshResult represents the result of a successful token refresh.
-// Alias to RegisterResult as they have identical structure.
-type RefreshResult = RegisterResult
+type RefreshResult struct {
+	UserID       string
+	AccessToken  string
+	Projects     []AccessibleProject
+	RefreshToken string
+	ExpiresAt    time.Time
+}
+
+// SelectProjectCommand represents project context selection after login.
+type SelectProjectCommand struct {
+	OrgName      string
+	ProjectSlug  string
+	RefreshToken string
+}
+
+// SelectProjectResult represents project context selection result.
+type SelectProjectResult struct {
+	UserID      string
+	ProjectSlug string
+}
 
 // GetMeCommand represents a request to get the current end-user's profile.
 type GetMeCommand struct {
@@ -107,6 +133,59 @@ type DeleteEndUserCommand struct {
 	OrgName     string
 	ProjectSlug string
 	UserID      string
+}
+
+// --- End-User Project Access Commands (by developers) ---
+
+// GrantEndUserProjectAccessCommand grants one permission bundle to an end-user in project scope.
+type GrantEndUserProjectAccessCommand struct {
+	OrgName            string
+	ProjectSlug        string
+	EndUserID          string
+	PermissionBundleID string
+	GrantedBy          string
+}
+
+// UpdateEndUserProjectAccessCommand updates the permission bundle of an existing access grant.
+type UpdateEndUserProjectAccessCommand struct {
+	OrgName            string
+	ProjectSlug        string
+	AccessID           string
+	PermissionBundleID string
+}
+
+// RevokeEndUserProjectAccessCommand revokes one access grant by access ID.
+type RevokeEndUserProjectAccessCommand struct {
+	OrgName     string
+	ProjectSlug string
+	AccessID    string
+}
+
+// ListEndUserProjectAccessCommand lists project access grants with pagination.
+type ListEndUserProjectAccessCommand struct {
+	OrgName     string
+	ProjectSlug string
+	Search      string
+	First       int
+	After       string
+}
+
+// ListEndUserProjectAccessResult represents list result of project access grants.
+type ListEndUserProjectAccessResult struct {
+	Items       []*EndUserProjectAccessDTO
+	TotalCount  int64
+	HasNextPage bool
+	EndCursor   string
+}
+
+// EndUserProjectAccessDTO represents one project access grant item.
+type EndUserProjectAccessDTO struct {
+	ID                   string
+	EndUser              *EndUserDTO
+	PermissionBundleID   string
+	PermissionBundleName string
+	GrantedBy            string
+	GrantedAt            time.Time
 }
 
 // --- Result Types for User Management (required by end_user_app_service.go) ---

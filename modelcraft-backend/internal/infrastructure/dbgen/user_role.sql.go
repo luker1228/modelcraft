@@ -15,18 +15,16 @@ INSERT INTO end_user_role_users (
   id,
   user_id,
   role_id,
-  org_name,
-  project_slug
+  org_name
 )
-VALUES (?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?)
 `
 
 type AssignRoleToUserParams struct {
-	ID          string
-	UserID      string
-	RoleID      string
-	OrgName     string
-	ProjectSlug string
+	ID      string
+	UserID  string
+	RoleID  string
+	OrgName string
 }
 
 func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error {
@@ -35,7 +33,6 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 		arg.UserID,
 		arg.RoleID,
 		arg.OrgName,
-		arg.ProjectSlug,
 	)
 	return err
 }
@@ -45,17 +42,15 @@ SELECT role_id
 FROM end_user_role_users
 WHERE user_id = ?
   AND org_name = ?
-  AND project_slug = ?
 `
 
 type ListRolesByUserParams struct {
-	UserID      string
-	OrgName     string
-	ProjectSlug string
+	UserID  string
+	OrgName string
 }
 
 func (q *Queries) ListRolesByUser(ctx context.Context, arg ListRolesByUserParams) ([]string, error) {
-	rows, err := q.db.QueryContext(ctx, listRolesByUser, arg.UserID, arg.OrgName, arg.ProjectSlug)
+	rows, err := q.db.QueryContext(ctx, listRolesByUser, arg.UserID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
@@ -82,21 +77,14 @@ DELETE FROM end_user_role_users
 WHERE user_id = ?
   AND role_id = ?
   AND org_name = ?
-  AND project_slug = ?
 `
 
 type RevokeRoleFromUserParams struct {
-	UserID      string
-	RoleID      string
-	OrgName     string
-	ProjectSlug string
+	UserID  string
+	RoleID  string
+	OrgName string
 }
 
 func (q *Queries) RevokeRoleFromUser(ctx context.Context, arg RevokeRoleFromUserParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, revokeRoleFromUser,
-		arg.UserID,
-		arg.RoleID,
-		arg.OrgName,
-		arg.ProjectSlug,
-	)
+	return q.db.ExecContext(ctx, revokeRoleFromUser, arg.UserID, arg.RoleID, arg.OrgName)
 }

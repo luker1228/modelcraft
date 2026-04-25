@@ -947,6 +947,28 @@ db action="up" env_file=".env" print_sql="0":
             ;;
     esac
 
+# EndUser v2 数据回填（tasks 1.4）
+[doc("Backfill enduser-v2 data (merge duplicate usernames and generate project access)")]
+enduser-v2-backfill env_file=".env" run_id="":
+    #!/usr/bin/env bash
+    if [ -n "{{run_id}}" ]; then
+        ./scripts/enduser-v2-backfill.sh "{{env_file}}" "{{run_id}}"
+    else
+        ./scripts/enduser-v2-backfill.sh "{{env_file}}"
+    fi
+
+# EndUser v2 迁移校验（tasks 1.5）
+[doc("Validate enduser-v2 migration consistency and conflict list")]
+enduser-v2-validate env_file=".env" source_run_id="" validate_run_id="":
+    #!/usr/bin/env bash
+    if [ -n "{{source_run_id}}" ] && [ -n "{{validate_run_id}}" ]; then
+        ./scripts/enduser-v2-validate.sh "{{env_file}}" "{{source_run_id}}" "{{validate_run_id}}"
+    elif [ -n "{{source_run_id}}" ]; then
+        ./scripts/enduser-v2-validate.sh "{{env_file}}" "{{source_run_id}}"
+    else
+        ./scripts/enduser-v2-validate.sh "{{env_file}}"
+    fi
+
 # ========================
 # 🔌 端口管理
 # ========================

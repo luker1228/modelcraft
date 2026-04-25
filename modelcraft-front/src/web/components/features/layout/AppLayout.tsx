@@ -188,6 +188,7 @@ export function AppLayout({
   const workspaceNavItems: NavItem[] = [
     { label: '项目', icon: FolderOpen, href: `/org/${orgName}/workspace` },
     { label: '团队', icon: Users, href: `/org/${orgName}/team` },
+    { label: '终端用户', icon: KeyRound, href: `/org/${orgName}/end-users` },
     { label: '组织设置', icon: Settings, href: `/org/${orgName}/settings` },
   ]
 
@@ -202,6 +203,7 @@ export function AppLayout({
     { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
     { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
     { label: '用户管理', icon: Users, href: `/org/${orgName}/project/${projectSlug}/end-users` },
+    { label: '终端用户访问', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
   ]
 
   const navItems = showProjectNav ? projectNavItems : workspaceNavItems
@@ -215,6 +217,8 @@ export function AppLayout({
     || pathname?.startsWith(`${authBasePath}/login-settings/`)
     || pathname === `${authBasePath}/end-users`
     || pathname?.startsWith(`${authBasePath}/end-users/`)
+    || pathname === `${authBasePath}/end-user-access`
+    || pathname?.startsWith(`${authBasePath}/end-user-access/`)
     || pathname === `${authBasePath}/rbac`
     || pathname?.startsWith(`${authBasePath}/rbac/`)
 

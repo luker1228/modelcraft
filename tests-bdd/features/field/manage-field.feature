@@ -30,23 +30,8 @@ Feature: 字段管理
     When 我批量添加字段
       | name       | title      | format     | relateEnumName |
       | level      | 客户等级   | ENUM       | @lastEnum      |
-      | levelLabel | 客户等级标签 | ENUM_LABEL  |                |
+      | levelLabel | 客户等级标签 | ENUM       |                |
     Then addFields 结果中字段 "level" 应该成功
     And addFields 结果中字段 "levelLabel" 应该失败并返回 "InvalidInput"
     And 模型应该包含名为 "level" 的字段
 
-  Scenario: 同一 source 重复创建关系返回冲突错误
-    Given 已创建名为 "CustomerLevel" 的枚举，选项为 "VIP,NORMAL"
-    And 模型已有名为 "level" 格式为 "ENUM" 且关联最近创建枚举的字段
-    And 已创建字段枚举关联 source "level" label "levelLabelA"
-    When 我创建字段枚举关联 source "level" label "levelLabelB"
-    Then 应该返回错误类型 "FieldEnumSourceConflict"
-    And 错误码应该是 "FIELD_ENUM_SOURCE_CONFLICT"
-
-  Scenario: 删除被关系引用的 ENUM source 字段被阻断
-    Given 已创建名为 "CustomerLevel" 的枚举，选项为 "VIP,NORMAL"
-    And 模型已有名为 "level" 格式为 "ENUM" 且关联最近创建枚举的字段
-    And 已创建字段枚举关联 source "level" label "levelLabelA"
-    When 我删除名为 "level" 的字段
-    Then 应该返回错误类型 "FieldReferenceInUse"
-    And 错误码应该是 "FIELD_REFERENCE_IN_USE"

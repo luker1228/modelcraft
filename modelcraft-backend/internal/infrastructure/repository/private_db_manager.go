@@ -14,7 +14,10 @@ import (
 
 // PrivateDBManager manages private database connections for end-user auth.
 //
-// Cache key: orgName.projectSlug
+// Deprecated: Cache key uses orgName.projectSlug but EndUser is now Org-scoped.
+// The projectSlug dimension will be removed in a future cleanup — connections
+// should be keyed by orgName only.
+//
 // Target DB: mc_meta
 //
 // Behavior:

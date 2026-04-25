@@ -31,7 +31,6 @@ export function useBundleList({ orgName, projectSlug }: UseBundleListProps): Use
 
   const { data, loading, error } = useQuery(GET_END_USER_BUNDLES, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
@@ -45,13 +44,12 @@ export function useBundleList({ orgName, projectSlug }: UseBundleListProps): Use
     refetchQueries: [GET_END_USER_BUNDLES],
   })
 
-  const bundles: EndUserPermissionBundle[] = data?.endUserBundles ?? []
+  const bundles: EndUserPermissionBundle[] = data?.endUserPermissionBundles?.edges?.map((edge: any) => edge.node) ?? []
 
   const createBundle = useCallback(
     async (input: CreateBundleInput) => {
       const result = await createBundleMutation({
         variables: {
-          projectSlug,
           input: {
             name: input.name,
             description: input.description ?? '',
@@ -59,7 +57,7 @@ export function useBundleList({ orgName, projectSlug }: UseBundleListProps): Use
         },
       })
 
-      const payload = result.data?.createEndUserBundle
+      const payload = result.data?.createEndUserPermissionBundle
       if (payload?.error) {
         return {
           success: false,
@@ -68,16 +66,16 @@ export function useBundleList({ orgName, projectSlug }: UseBundleListProps): Use
       }
       return { success: true }
     },
-    [createBundleMutation, projectSlug]
+    [createBundleMutation]
   )
 
   const deleteBundle = useCallback(
     async (id: string) => {
       const result = await deleteBundleMutation({
-        variables: { projectSlug, id },
+        variables: { id },
       })
 
-      const payload = result.data?.deleteEndUserBundle
+      const payload = result.data?.deleteEndUserPermissionBundle
       if (payload?.error) {
         return {
           success: false,
@@ -86,7 +84,7 @@ export function useBundleList({ orgName, projectSlug }: UseBundleListProps): Use
       }
       return { success: true }
     },
-    [deleteBundleMutation, projectSlug]
+    [deleteBundleMutation]
   )
 
   return {

@@ -1,13 +1,4 @@
-import type { Metadata } from 'next'
-import { EndUserLoginCard } from '@web/components/features/end-user-auth/EndUserLoginCard'
-
-export const metadata: Metadata = {
-  title: '用户登录',
-  robots: {
-    index: false,
-    follow: false,
-  },
-}
+import { redirect } from 'next/navigation'
 
 interface EndUserLoginPageProps {
   params: Promise<{
@@ -16,8 +7,11 @@ interface EndUserLoginPageProps {
   }>
 }
 
+/**
+ * 旧的 Project 级终端用户登录页。
+ * EndUser v2 将账号管理上移到 Org 级，此页面重定向到新的 Org 级登录页。
+ */
 export default async function EndUserLoginPage({ params }: EndUserLoginPageProps) {
-  const { orgName, projectSlug } = await params
-  return <EndUserLoginCard orgName={orgName} projectSlug={projectSlug} />
+  const { orgName } = await params
+  redirect(`/u/${orgName}/login`)
 }
-

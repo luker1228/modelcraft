@@ -28,7 +28,6 @@ export function usePermissionList({
 
   const { data, loading, error } = useQuery(GET_END_USER_PERMISSIONS, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
@@ -37,7 +36,7 @@ export function usePermissionList({
     refetchQueries: [GET_END_USER_PERMISSIONS],
   })
 
-  const allPermissions: EndUserPermission[] = data?.endUserPermissions ?? []
+  const allPermissions: EndUserPermission[] = data?.endUserPermissions?.edges?.map((edge: any) => edge.node) ?? []
 
   // Group permissions by modelId
   const groupedPermissions = useMemo<Record<string, EndUserPermission[]>>(() => {
@@ -54,7 +53,7 @@ export function usePermissionList({
   const deletePermission = useCallback(
     async (id: string) => {
       const result = await deletePermissionMutation({
-        variables: { projectSlug, id },
+        variables: { id },
       })
 
       const payload = result.data?.deleteEndUserPermission
@@ -66,7 +65,7 @@ export function usePermissionList({
       }
       return { success: true }
     },
-    [deletePermissionMutation, projectSlug]
+    [deletePermissionMutation]
   )
 
   return {

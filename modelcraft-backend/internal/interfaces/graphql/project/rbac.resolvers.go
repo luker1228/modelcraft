@@ -6,28 +6,13 @@ package projectgraphql
 
 import (
 	"context"
-	"errors"
-
 	apprbac "modelcraft/internal/app/rbac"
+	domainproject "modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
-	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
 )
-
-// ─── helpers ──────────────────────────────────────────────────────────────────
-
-// toBizErr converts any error to *bizerrors.BusinessError for adapter use.
-func toBizErr(err error) *bizerrors.BusinessError {
-	var be *bizerrors.BusinessError
-	if errors.As(err, &be) {
-		return be
-	}
-	return bizerrors.NewError(bizerrors.SystemError, err.Error())
-}
-
-// ─── Mutation Resolvers: EndUserPermission ────────────────────────────────────
 
 // CreateEndUserPermission is the resolver for the createEndUserPermission field.
 func (r *mutationResolver) CreateEndUserPermission(ctx context.Context, input generated.CreateEndUserPermissionInput) (*generated.CreateEndUserPermissionPayload, error) {
@@ -42,8 +27,7 @@ func (r *mutationResolver) CreateEndUserPermission(ctx context.Context, input ge
 	}
 
 	perm, appErr := r.RBACPermissionSvc.CreatePermission(ctx, apprbac.CreatePermissionCommand{
-		OrgName:      orgName,
-		ProjectSlug:  projectSlug,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 		ModelID:      input.ModelID,
 		Name:         derefString(input.DisplayName),
 		Description:  input.Description,
@@ -116,8 +100,6 @@ func (r *mutationResolver) DeleteEndUserPermission(ctx context.Context, id strin
 	return &generated.DeleteEndUserPermissionPayload{Success: true}, nil
 }
 
-// ─── Mutation Resolvers: EndUserPermissionBundle ──────────────────────────────
-
 // CreateEndUserPermissionBundle is the resolver for the createEndUserPermissionBundle field.
 func (r *mutationResolver) CreateEndUserPermissionBundle(ctx context.Context, input generated.CreateEndUserPermissionBundleInput) (*generated.CreateEndUserPermissionBundlePayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
@@ -126,10 +108,9 @@ func (r *mutationResolver) CreateEndUserPermissionBundle(ctx context.Context, in
 	}
 
 	bundle, appErr := r.RBACBundleSvc.CreateBundle(ctx, apprbac.CreateBundleCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Name:        input.Name,
-		Description: input.Description,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		Name:         input.Name,
+		Description:  input.Description,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -244,8 +225,6 @@ func (r *mutationResolver) RemoveEndUserPermissionFromBundle(ctx context.Context
 	}, nil
 }
 
-// ─── Mutation Resolvers: EndUserRole ─────────────────────────────────────────
-
 // CreateEndUserRole is the resolver for the createEndUserRole field.
 func (r *mutationResolver) CreateEndUserRole(ctx context.Context, input generated.CreateEndUserRoleInput) (*generated.CreateEndUserRolePayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
@@ -254,10 +233,9 @@ func (r *mutationResolver) CreateEndUserRole(ctx context.Context, input generate
 	}
 
 	role, appErr := r.RBACRoleSvc.CreateRole(ctx, apprbac.CreateRoleCommand{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Name:        input.Name,
-		Description: input.Description,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		Name:         input.Name,
+		Description:  input.Description,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -320,15 +298,15 @@ func (r *mutationResolver) DeleteEndUserRole(ctx context.Context, id string) (*g
 
 // AssignBundleToEndUserRole is the resolver for the assignBundleToEndUserRole field.
 func (r *mutationResolver) AssignBundleToEndUserRole(ctx context.Context, input generated.AssignBundleToEndUserRoleInput) (*generated.AssignBundleToEndUserRolePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	role, appErr := r.RBACRoleSvc.AssignBundleToRole(ctx, apprbac.AssignBundleToRoleCommand{
-		OrgName:  orgName,
-		RoleID:   input.RoleID,
-		BundleID: input.BundleID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		RoleID:       input.RoleID,
+		BundleID:     input.BundleID,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -344,15 +322,15 @@ func (r *mutationResolver) AssignBundleToEndUserRole(ctx context.Context, input 
 
 // RevokeBundleFromEndUserRole is the resolver for the revokeBundleFromEndUserRole field.
 func (r *mutationResolver) RevokeBundleFromEndUserRole(ctx context.Context, input generated.RevokeBundleFromEndUserRoleInput) (*generated.RevokeBundleFromEndUserRolePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	role, appErr := r.RBACRoleSvc.RevokeBundleFromRole(ctx, apprbac.RevokeBundleFromRoleCommand{
-		OrgName:  orgName,
-		RoleID:   input.RoleID,
-		BundleID: input.BundleID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		RoleID:       input.RoleID,
+		BundleID:     input.BundleID,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -366,8 +344,6 @@ func (r *mutationResolver) RevokeBundleFromEndUserRole(ctx context.Context, inpu
 	}, nil
 }
 
-// ─── Mutation Resolvers: User↔Bundle / User↔Role ─────────────────────────────
-
 // AssignBundleToEndUser is the resolver for the assignBundleToEndUser field.
 func (r *mutationResolver) AssignBundleToEndUser(ctx context.Context, input generated.AssignBundleToEndUserInput) (*generated.AssignBundleToEndUserPayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
@@ -376,10 +352,9 @@ func (r *mutationResolver) AssignBundleToEndUser(ctx context.Context, input gene
 	}
 
 	appErr := r.RBACBundleSvc.GrantBundleToUser(ctx, apprbac.GrantBundleToUserCommand{
-		UserID:      input.EndUserID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		BundleID:    input.BundleID,
+		UserID:       input.EndUserID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		BundleID:     input.BundleID,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -400,10 +375,9 @@ func (r *mutationResolver) RevokeBundleFromEndUser(ctx context.Context, input ge
 	}
 
 	appErr := r.RBACBundleSvc.RevokeBundleFromUser(ctx, apprbac.RevokeBundleFromUserCommand{
-		UserID:      input.EndUserID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		BundleID:    input.BundleID,
+		UserID:       input.EndUserID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		BundleID:     input.BundleID,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -424,10 +398,9 @@ func (r *mutationResolver) AssignEndUserRole(ctx context.Context, input generate
 	}
 
 	appErr := r.RBACRoleSvc.AssignRoleToUser(ctx, apprbac.AssignRoleToUserCommand{
-		UserID:      input.EndUserID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		RoleID:      input.RoleID,
+		UserID:       input.EndUserID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		RoleID:       input.RoleID,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -448,10 +421,9 @@ func (r *mutationResolver) RevokeEndUserRole(ctx context.Context, input generate
 	}
 
 	appErr := r.RBACRoleSvc.RevokeRoleFromUser(ctx, apprbac.RevokeRoleFromUserCommand{
-		UserID:      input.EndUserID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		RoleID:      input.RoleID,
+		UserID:       input.EndUserID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		RoleID:       input.RoleID,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -463,8 +435,6 @@ func (r *mutationResolver) RevokeEndUserRole(ctx context.Context, input generate
 	}
 	return &generated.RevokeEndUserRolePayload{Success: true}, nil
 }
-
-// ─── Query Resolvers ──────────────────────────────────────────────────────────
 
 // EndUserPermission is the resolver for the endUserPermission field.
 func (r *queryResolver) EndUserPermission(ctx context.Context, id string) (*generated.EndUserPermission, error) {
@@ -603,9 +573,8 @@ func (r *queryResolver) EffectivePermissions(ctx context.Context, input generate
 	}
 
 	eps, appErr := r.RBACAuthzSvc.GetEffectivePermissions(ctx, apprbac.GetEffectivePermissionsQuery{
-		UserID:      input.EndUserID,
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
+		UserID:       input.EndUserID,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -634,12 +603,4 @@ func (r *queryResolver) EffectivePermissions(ctx context.Context, input generate
 			},
 		},
 	}, nil
-}
-
-// derefString safely dereferences a *string.
-func derefString(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
 }

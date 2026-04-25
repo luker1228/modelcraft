@@ -420,6 +420,20 @@ var (
 		EnMessage: "Private database is not initialized for this project",
 		ZhMessage: "该项目私有库尚未初始化",
 	}
+
+	// EndUserNoProjectAccess 账号无任何项目访问权限
+	EndUserNoProjectAccess = ErrorDefinition{
+		Code:      "NO_PROJECT_ACCESS.END_USER",
+		EnMessage: "No accessible projects for this account",
+		ZhMessage: "该账号暂无可访问项目",
+	}
+
+	// EndUserProjectAccessDenied 当前项目未授权
+	EndUserProjectAccessDenied = ErrorDefinition{
+		Code:      "PROJECT_ACCESS_DENIED.END_USER",
+		EnMessage: "No access to project: {0}",
+		ZhMessage: "无该项目访问权限: {0}",
+	}
 )
 
 // 定义 RLS 领域错误

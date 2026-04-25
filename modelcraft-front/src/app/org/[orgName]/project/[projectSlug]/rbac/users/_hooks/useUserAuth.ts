@@ -102,13 +102,11 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
 
   const { data: rolesData, loading: rolesLoading } = useQuery(GET_END_USER_ROLES, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
   const { data: bundlesData, loading: bundlesLoading } = useQuery(GET_END_USER_BUNDLES, {
     client,
-    variables: { projectSlug },
     skip: !projectSlug || !orgName,
   })
 
@@ -116,7 +114,7 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
     GET_END_USER_EFFECTIVE_PERMISSIONS,
     {
       client,
-      variables: { projectSlug, endUserId: selectedUser?.id ?? '' },
+      variables: { endUserId: selectedUser?.id ?? '', modelId: '' },
       skip: !selectedUser,
     }
   )
@@ -130,12 +128,12 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
 
   // ── Derived Data ───────────────────────────────────────────────────────────
 
-  const roles: EndUserRole[] = rolesData?.endUserRoles ?? []
-  const bundles: EndUserPermissionBundle[] = bundlesData?.endUserBundles ?? []
+  const roles: EndUserRole[] = rolesData?.endUserRoles?.edges?.map((edge: any) => edge.node) ?? []
+  const bundles: EndUserPermissionBundle[] = bundlesData?.endUserPermissionBundles?.edges?.map((edge: any) => edge.node) ?? []
 
   // GET_END_USER_EFFECTIVE_PERMISSIONS 返回的是单个对象（endUserId + modelId + grants），
   // 后续扩展时后端可能返回数组，这里统一包成数组方便 UI 迭代
-  const rawEffective = effectiveData?.endUserEffectivePermissions
+  const rawEffective = effectiveData?.effectivePermissions?.effectivePermissions
   const effectivePermissions: EffectivePermissions[] = rawEffective
     ? [rawEffective]
     : []
@@ -145,35 +143,35 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
   const assignRole = useCallback(
     async (endUserId: string, roleId: string): Promise<MutationResult> => {
       const result = await assignRoleMutation({
-        variables: { projectSlug, endUserId, roleId },
+        variables: { endUserId, roleId },
       })
-      const payload = result.data?.assignEndUserRoleToUser
+      const payload = result.data?.assignEndUserRole
       if (payload?.error) {
         return { success: false, errorMessage: payload.error.message ?? '分配角色失败' }
       }
       return { success: true }
     },
-    [assignRoleMutation, projectSlug]
+    [assignRoleMutation]
   )
 
   const revokeRole = useCallback(
     async (endUserId: string, roleId: string): Promise<MutationResult> => {
       const result = await revokeRoleMutation({
-        variables: { projectSlug, endUserId, roleId },
+        variables: { endUserId, roleId },
       })
-      const payload = result.data?.revokeEndUserRoleFromUser
+      const payload = result.data?.revokeEndUserRole
       if (payload?.error) {
         return { success: false, errorMessage: payload.error.message ?? '撤销角色失败' }
       }
       return { success: true }
     },
-    [revokeRoleMutation, projectSlug]
+    [revokeRoleMutation]
   )
 
   const assignBundle = useCallback(
     async (endUserId: string, bundleId: string): Promise<MutationResult> => {
       const result = await assignBundleMutation({
-        variables: { projectSlug, endUserId, bundleId },
+        variables: { endUserId, bundleId },
       })
       const payload = result.data?.assignBundleToEndUser
       if (payload?.error) {
@@ -181,13 +179,13 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
       }
       return { success: true }
     },
-    [assignBundleMutation, projectSlug]
+    [assignBundleMutation]
   )
 
   const revokeBundle = useCallback(
     async (endUserId: string, bundleId: string): Promise<MutationResult> => {
       const result = await revokeBundleMutation({
-        variables: { projectSlug, endUserId, bundleId },
+        variables: { endUserId, bundleId },
       })
       const payload = result.data?.revokeBundleFromEndUser
       if (payload?.error) {
@@ -195,7 +193,7 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
       }
       return { success: true }
     },
-    [revokeBundleMutation, projectSlug]
+    [revokeBundleMutation]
   )
 
   return {

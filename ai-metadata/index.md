@@ -38,6 +38,7 @@ ai-metadata/
 │   │   ├── logging.md
 │   │   ├── repo-develop.md
 │   │   ├── sqlc-custom-types.md
+│   │   ├── tenant-scope-and-propagation.md
 │   │   └── type-conversion.md
 │   ├── testing/                      # 测试策略
 │   │   ├── README.md
@@ -82,12 +83,19 @@ ai-metadata/
     │   ├── 03-backend-design.md
     │   ├── 04-frontend-subpage-design.md
     │   └── model-enum-domain.puml
-    └── rbac/                             # ⭐ 权限模型（RBAC）
-        ├── 00-rbac-overview.md           # 总览：三层定位、核心原则
-        ├── 01-permission-model.md        # 权限点、权限包、授权对象
-        ├── 02-implicit-roles.md          # 内置隐式角色
-        ├── 03-auth-flow.md               # 鉴权流程与判定规则
-        └── 04-department-scope.md        # 部门与数据范围
+    ├── rbac/                             # ⭐ 权限模型（RBAC）
+    │   ├── 00-rbac-overview.md           # 总览：三层定位、核心原则
+    │   ├── 01-permission-model.md        # 权限点、权限包、授权对象
+    │   ├── 02-implicit-roles.md          # 内置隐式角色
+    │   ├── 03-auth-flow.md               # 鉴权流程与判定规则
+    │   └── 04-department-scope.md        # 部门与数据范围
+    └── enduser-v2/                       # ⭐ EndUser 身份系统 v2（Org 级账号）
+        ├── 10-redesign-overview.md       # 总览：问题、目标、核心设计决策
+        ├── 11-domain-model-changes.md    # 领域模型变更（实体/关系图）
+        ├── 12-graphql-api-design.md      # GraphQL API 设计（Org/Project Schema）
+        ├── 13-database-schema.md         # 数据库 Schema 变更（Atlas 迁移）
+        ├── 14-frontend-design.md         # 前端页面/路由/BFF 变更
+        └── 15-bdd-scenarios.md           # BDD 验收场景
 ```
 
 ---
@@ -127,6 +135,7 @@ ai-metadata/
 | [backend/development/logging.md](./backend/development/logging.md) | logfacade 使用规范、Stack() 使用约束 |
 | [backend/development/repo-develop.md](./backend/development/repo-develop.md) | Repository 层开发规范，Go Wrapper 架构 |
 | [backend/development/sqlc-custom-types.md](./backend/development/sqlc-custom-types.md) | sqlc 自定义类型实现标准 |
+| [backend/development/tenant-scope-and-propagation.md](./backend/development/tenant-scope-and-propagation.md) | 租户隔离（org / org+project）与参数全链路传递规范 |
 | [backend/development/type-conversion.md](./backend/development/type-conversion.md) | 类型转换规范 |
 
 ### 测试策略
@@ -236,3 +245,16 @@ ai-metadata/
 | [prd/rbac/02-implicit-roles.md](./prd/rbac/02-implicit-roles.md) | 内置隐式角色：落库定义、关系隐式、运行时自动注入 |
 | [prd/rbac/03-auth-flow.md](./prd/rbac/03-auth-flow.md) | 鉴权流程：三通道权限来源合并 → 展开 → 判定 |
 | [prd/rbac/04-department-scope.md](./prd/rbac/04-department-scope.md) | 部门职责定位：数据范围计算上下文，非授权载体 |
+
+### EndUser 身份系统 v2（Org 级账号）
+
+> EndUser 账号从 Project 级上移到 Org 级，建立 EndUser ↔ Project 多对多授权关系。
+
+| 路径 | 说明 |
+|------|------|
+| [prd/enduser-v2/10-redesign-overview.md](./prd/enduser-v2/10-redesign-overview.md) | ⭐ 总览：问题陈述、目标、核心原则（Org 管人 Project 管权）、登录流程 |
+| [prd/enduser-v2/11-domain-model-changes.md](./prd/enduser-v2/11-domain-model-changes.md) | 领域模型变更：EndUser 实体、新增 EndUserProjectAccess、Repository 接口更新 |
+| [prd/enduser-v2/12-graphql-api-design.md](./prd/enduser-v2/12-graphql-api-design.md) | GraphQL API 设计：Org Schema 新接口、Project Schema access 接口、BFF 路由变更 |
+| [prd/enduser-v2/13-database-schema.md](./prd/enduser-v2/13-database-schema.md) | 数据库 Schema 变更：DDL 对比、迁移策略、Atlas 操作指南 |
+| [prd/enduser-v2/14-frontend-design.md](./prd/enduser-v2/14-frontend-design.md) | 前端设计：路由变更、新增页面、BFF 接口、登录流程时序 |
+| [prd/enduser-v2/15-bdd-scenarios.md](./prd/enduser-v2/15-bdd-scenarios.md) | BDD 验收场景：账号管理、访问控制、登录流程、数据隔离、兼容性 |

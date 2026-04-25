@@ -14,7 +14,7 @@ import (
 //
 // Note:
 // - It operates on end_user_users in mc_meta.
-// - Tenant isolation is enforced by (org_name, project_slug).
+// - Tenant isolation is enforced by org_name.
 // - Query/Save methods follow plan contract:
 //   - not found -> (nil, nil)
 //   - update/delete must check RowsAffected.
@@ -25,17 +25,15 @@ type endUserDBTX interface {
 }
 
 type SqlEndUserRepository struct {
-	db          endUserDBTX
-	orgName     string
-	projectSlug string
+	db      endUserDBTX
+	orgName string
 }
 
 // NewSqlEndUserRepository creates a SqlEndUserRepository.
-func NewSqlEndUserRepository(db endUserDBTX, orgName, projectSlug string) enduser.EndUserRepository {
+func NewSqlEndUserRepository(db endUserDBTX, orgName, _ string) enduser.EndUserRepository {
 	return &SqlEndUserRepository{
-		db:          db,
-		orgName:     orgName,
-		projectSlug: projectSlug,
+		db:      db,
+		orgName: orgName,
 	}
 }
 
@@ -43,17 +41,21 @@ func NewSqlEndUserRepository(db endUserDBTX, orgName, projectSlug string) enduse
 func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) error {
 	const query = `
 		INSERT INTO end_user_users (
-			id, org_name, project_slug, username, password, is_forbidden, created_by, created_at, updated_at
+			id, org_name, username, password, is_forbidden, created_by, created_at, updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+		VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())
 	`
+
+	orgName := user.OrgName
+	if orgName == "" {
+		orgName = r.orgName
+	}
 
 	_, err := r.db.ExecContext(
 		ctx,
 		query,
 		user.ID,
-		r.orgName,
-		r.projectSlug,
+		orgName,
 		user.Username,
 		user.Password.Hash,
 		boolToTinyInt(user.IsForbidden),
@@ -68,31 +70,39 @@ func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) 
 
 // GetByID retrieves an end-user by ID.
 // Returns (nil, nil) when not found.
-func (r *SqlEndUserRepository) GetByID(ctx context.Context, id string) (*enduser.EndUser, error) {
+func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) (*enduser.EndUser, error) {
 	const query = `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
 		FROM end_user_users
-		WHERE id = ? AND org_name = ? AND project_slug = ?
+		WHERE id = ? AND org_name = ?
 	`
 
-	row := r.db.QueryRowContext(ctx, query, id, r.orgName, r.projectSlug)
-	return scanEndUser(row)
+	if orgName == "" {
+		orgName = r.orgName
+	}
+
+	row := r.db.QueryRowContext(ctx, query, id, orgName)
+	return scanEndUser(row, orgName)
 }
 
 // GetByUsername retrieves an end-user by username.
 // Returns (nil, nil) when not found.
-func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, username string) (*enduser.EndUser, error) {
+func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, username string) (*enduser.EndUser, error) {
 	const query = `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
 		FROM end_user_users
-		WHERE username = ? AND org_name = ? AND project_slug = ?
+		WHERE username = ? AND org_name = ?
 	`
 
-	row := r.db.QueryRowContext(ctx, query, username, r.orgName, r.projectSlug)
-	return scanEndUser(row)
+	if orgName == "" {
+		orgName = r.orgName
+	}
+
+	row := r.db.QueryRowContext(ctx, query, username, orgName)
+	return scanEndUser(row, orgName)
 }
 
-func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
+func scanEndUser(row *sql.Row, orgName string) (*enduser.EndUser, error) {
 	var (
 		id          string
 		username    string
@@ -121,6 +131,7 @@ func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
 
 	return &enduser.EndUser{
 		ID:          id,
+		OrgName:     orgName,
 		Username:    username,
 		Password:    enduser.NewHashedPasswordFromHash(password),
 		IsForbidden: isForbidden == 1,
@@ -139,14 +150,18 @@ func nullableCreatedBy(createdBy string) any {
 
 // UpdateStatus updates user's is_forbidden field.
 // Returns NO_ROWS_AFFECTED when user does not exist.
-func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, id string, isForbidden bool) error {
+func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error {
 	const query = `
 		UPDATE end_user_users
 		SET is_forbidden = ?, updated_at = NOW()
-		WHERE id = ? AND org_name = ? AND project_slug = ?
+		WHERE id = ? AND org_name = ?
 	`
 
-	result, err := r.db.ExecContext(ctx, query, boolToTinyInt(isForbidden), id, r.orgName, r.projectSlug)
+	if orgName == "" {
+		orgName = r.orgName
+	}
+
+	result, err := r.db.ExecContext(ctx, query, boolToTinyInt(isForbidden), id, orgName)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -161,10 +176,14 @@ func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, id string, isFo
 
 // Delete physically deletes an end-user.
 // Returns NO_ROWS_AFFECTED when user does not exist.
-func (r *SqlEndUserRepository) Delete(ctx context.Context, id string) error {
-	const query = `DELETE FROM end_user_users WHERE id = ? AND org_name = ? AND project_slug = ?`
+func (r *SqlEndUserRepository) Delete(ctx context.Context, orgName, id string) error {
+	const query = `DELETE FROM end_user_users WHERE id = ? AND org_name = ?`
 
-	result, err := r.db.ExecContext(ctx, query, id, r.orgName, r.projectSlug)
+	if orgName == "" {
+		orgName = r.orgName
+	}
+
+	result, err := r.db.ExecContext(ctx, query, id, orgName)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -191,9 +210,9 @@ func (r *SqlEndUserRepository) ListWithTotal(
 	}
 
 	// Total count (without cursor, with optional search)
-	countSQL := `SELECT COUNT(*) FROM end_user_users WHERE org_name = ? AND project_slug = ?`
-	countArgs := make([]interface{}, 0, 3)
-	countArgs = append(countArgs, r.orgName, r.projectSlug)
+	countSQL := `SELECT COUNT(*) FROM end_user_users WHERE org_name = ?`
+	countArgs := make([]interface{}, 0, 2)
+	countArgs = append(countArgs, query.OrgName)
 	if query.Search != "" {
 		countSQL += ` AND username LIKE CONCAT('%', ?, '%')`
 		countArgs = append(countArgs, query.Search)
@@ -208,7 +227,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 	listSQL := `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
 		FROM end_user_users
-		WHERE org_name = ? AND project_slug = ?
+		WHERE org_name = ?
 		  AND (? = '' OR username LIKE CONCAT('%', ?, '%'))
 		  AND (? = '' OR id > ?)
 		ORDER BY id ASC
@@ -218,8 +237,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 	rows, err := r.db.QueryContext(
 		ctx,
 		listSQL,
-		r.orgName,
-		r.projectSlug,
+		query.OrgName,
 		query.Search,
 		query.Search,
 		query.After,
@@ -257,6 +275,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 
 		items = append(items, &enduser.EndUser{
 			ID:          id,
+			OrgName:     query.OrgName,
 			Username:    username,
 			Password:    enduser.NewHashedPasswordFromHash(password),
 			IsForbidden: isForbidden == 1,

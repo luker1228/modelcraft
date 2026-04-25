@@ -419,6 +419,29 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 	}
 
+	EndUserProjectAccess struct {
+		EndUser              func(childComplexity int) int
+		GrantedAt            func(childComplexity int) int
+		GrantedBy            func(childComplexity int) int
+		ID                   func(childComplexity int) int
+		PermissionBundleID   func(childComplexity int) int
+		PermissionBundleName func(childComplexity int) int
+	}
+
+	EndUserProjectAccessAlreadyExists struct {
+		Message func(childComplexity int) int
+	}
+
+	EndUserProjectAccessConnection struct {
+		Nodes      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	EndUserProjectAccessNotFound struct {
+		Message func(childComplexity int) int
+	}
+
 	EndUserRefAlreadyExists struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -585,6 +608,11 @@ type ComplexityRoot struct {
 		Model func(childComplexity int) int
 	}
 
+	GrantEndUserProjectAccessPayload struct {
+		Access func(childComplexity int) int
+		Error  func(childComplexity int) int
+	}
+
 	GroupAlreadyExists struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -633,6 +661,11 @@ type ComplexityRoot struct {
 	}
 
 	ListEndUsersPayload struct {
+		Connection func(childComplexity int) int
+		Error      func(childComplexity int) int
+	}
+
+	ListProjectEndUserAccessPayload struct {
 		Connection func(childComplexity int) int
 		Error      func(childComplexity int) int
 	}
@@ -760,6 +793,7 @@ type ComplexityRoot struct {
 		DeleteLogicalForeignKey           func(childComplexity int, pairID string) int
 		DeleteModel                       func(childComplexity int, id string, dropTable *bool) int
 		DeprecateField                    func(childComplexity int, modelID string, fieldName string) int
+		GrantEndUserProjectAccess         func(childComplexity int, input GrantEndUserProjectAccessInput) int
 		ImportModel                       func(childComplexity int, input ImportModelInput) int
 		InitPrivateDb                     func(childComplexity int) int
 		MoveModelToGroup                  func(childComplexity int, input MoveModelToGroupInput) int
@@ -771,6 +805,7 @@ type ComplexityRoot struct {
 		RepairModel                       func(childComplexity int, input RepairModelInput) int
 		RevokeBundleFromEndUser           func(childComplexity int, input RevokeBundleFromEndUserInput) int
 		RevokeBundleFromEndUserRole       func(childComplexity int, input RevokeBundleFromEndUserRoleInput) int
+		RevokeEndUserProjectAccess        func(childComplexity int, input RevokeEndUserProjectAccessInput) int
 		RevokeEndUserRole                 func(childComplexity int, input RevokeEndUserRoleInput) int
 		SetModelRLSPolicy                 func(childComplexity int, input SetModelRLSPolicyInput) int
 		SetProjectAuthSchema              func(childComplexity int, input SetProjectAuthSchemaInput) int
@@ -779,6 +814,7 @@ type ComplexityRoot struct {
 		UndeprecateField                  func(childComplexity int, modelID string, fieldName string) int
 		UpdateEndUserPermission           func(childComplexity int, id string, input UpdateEndUserPermissionInput) int
 		UpdateEndUserPermissionBundle     func(childComplexity int, id string, input UpdateEndUserPermissionBundleInput) int
+		UpdateEndUserProjectAccess        func(childComplexity int, input UpdateEndUserProjectAccessInput) int
 		UpdateEndUserRole                 func(childComplexity int, id string, input UpdateEndUserRoleInput) int
 		UpdateEndUserStatus               func(childComplexity int, input UpdateEndUserStatusInput) int
 		UpdateEnum                        func(childComplexity int, name string, input UpdateEnumInput) int
@@ -821,6 +857,7 @@ type ComplexityRoot struct {
 		Hello                    func(childComplexity int) int
 		ListDatabases            func(childComplexity int, input ListDatabasesInput) int
 		ListEndUsers             func(childComplexity int, input *ListEndUsersInput) int
+		ListProjectEndUserAccess func(childComplexity int, input *ListProjectEndUserAccessInput) int
 		ListTables               func(childComplexity int, input ListTablesInput) int
 		LogicalForeignKeys       func(childComplexity int, modelID string) int
 		Model                    func(childComplexity int, id string, withActualSchema *bool) int
@@ -879,6 +916,11 @@ type ComplexityRoot struct {
 	RevokeBundleFromEndUserRolePayload struct {
 		Error func(childComplexity int) int
 		Role  func(childComplexity int) int
+	}
+
+	RevokeEndUserProjectAccessPayload struct {
+		Error   func(childComplexity int) int
+		Success func(childComplexity int) int
 	}
 
 	RevokeEndUserRolePayload struct {
@@ -949,6 +991,11 @@ type ComplexityRoot struct {
 		Permission func(childComplexity int) int
 	}
 
+	UpdateEndUserProjectAccessPayload struct {
+		Access func(childComplexity int) int
+		Error  func(childComplexity int) int
+	}
+
 	UpdateEndUserRolePayload struct {
 		Error func(childComplexity int) int
 		Role  func(childComplexity int) int
@@ -1016,6 +1063,9 @@ type MutationResolver interface {
 	UpdateEndUserStatus(ctx context.Context, input UpdateEndUserStatusInput) (*UpdateEndUserStatusPayload, error)
 	DeleteEndUser(ctx context.Context, input DeleteEndUserInput) (*DeleteEndUserPayload, error)
 	InitPrivateDb(ctx context.Context) (*InitPrivateDBPayload, error)
+	GrantEndUserProjectAccess(ctx context.Context, input GrantEndUserProjectAccessInput) (*GrantEndUserProjectAccessPayload, error)
+	UpdateEndUserProjectAccess(ctx context.Context, input UpdateEndUserProjectAccessInput) (*UpdateEndUserProjectAccessPayload, error)
+	RevokeEndUserProjectAccess(ctx context.Context, input RevokeEndUserProjectAccessInput) (*RevokeEndUserProjectAccessPayload, error)
 	CreateEnum(ctx context.Context, input CreateEnumInput) (*CreateEnumPayload, error)
 	UpdateEnum(ctx context.Context, name string, input UpdateEnumInput) (*UpdateEnumPayload, error)
 	DeleteEnum(ctx context.Context, name string) (*DeleteEnumPayload, error)
@@ -1068,6 +1118,7 @@ type QueryResolver interface {
 	ListDatabases(ctx context.Context, input ListDatabasesInput) (*DatabaseConnection, error)
 	ListTables(ctx context.Context, input ListTablesInput) (*TableListConnection, error)
 	ListEndUsers(ctx context.Context, input *ListEndUsersInput) (*ListEndUsersPayload, error)
+	ListProjectEndUserAccess(ctx context.Context, input *ListProjectEndUserAccessInput) (*ListProjectEndUserAccessPayload, error)
 	Enum(ctx context.Context, name string) (*GetEnumPayload, error)
 	Enums(ctx context.Context) ([]*EnumDefinition, error)
 	EnumReferences(ctx context.Context, name string) ([]string, error)
@@ -2203,6 +2254,76 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.EndUserPermissionNotFound.Message(childComplexity), true
 
+	case "EndUserProjectAccess.endUser":
+		if e.complexity.EndUserProjectAccess.EndUser == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccess.EndUser(childComplexity), true
+	case "EndUserProjectAccess.grantedAt":
+		if e.complexity.EndUserProjectAccess.GrantedAt == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccess.GrantedAt(childComplexity), true
+	case "EndUserProjectAccess.grantedBy":
+		if e.complexity.EndUserProjectAccess.GrantedBy == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccess.GrantedBy(childComplexity), true
+	case "EndUserProjectAccess.id":
+		if e.complexity.EndUserProjectAccess.ID == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccess.ID(childComplexity), true
+	case "EndUserProjectAccess.permissionBundleId":
+		if e.complexity.EndUserProjectAccess.PermissionBundleID == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccess.PermissionBundleID(childComplexity), true
+	case "EndUserProjectAccess.permissionBundleName":
+		if e.complexity.EndUserProjectAccess.PermissionBundleName == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccess.PermissionBundleName(childComplexity), true
+
+	case "EndUserProjectAccessAlreadyExists.message":
+		if e.complexity.EndUserProjectAccessAlreadyExists.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccessAlreadyExists.Message(childComplexity), true
+
+	case "EndUserProjectAccessConnection.nodes":
+		if e.complexity.EndUserProjectAccessConnection.Nodes == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccessConnection.Nodes(childComplexity), true
+	case "EndUserProjectAccessConnection.pageInfo":
+		if e.complexity.EndUserProjectAccessConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccessConnection.PageInfo(childComplexity), true
+	case "EndUserProjectAccessConnection.totalCount":
+		if e.complexity.EndUserProjectAccessConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccessConnection.TotalCount(childComplexity), true
+
+	case "EndUserProjectAccessNotFound.message":
+		if e.complexity.EndUserProjectAccessNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserProjectAccessNotFound.Message(childComplexity), true
+
 	case "EndUserRefAlreadyExists.message":
 		if e.complexity.EndUserRefAlreadyExists.Message == nil {
 			break
@@ -2740,6 +2861,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.GetModelPayload.Model(childComplexity), true
 
+	case "GrantEndUserProjectAccessPayload.access":
+		if e.complexity.GrantEndUserProjectAccessPayload.Access == nil {
+			break
+		}
+
+		return e.complexity.GrantEndUserProjectAccessPayload.Access(childComplexity), true
+	case "GrantEndUserProjectAccessPayload.error":
+		if e.complexity.GrantEndUserProjectAccessPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.GrantEndUserProjectAccessPayload.Error(childComplexity), true
+
 	case "GroupAlreadyExists.message":
 		if e.complexity.GroupAlreadyExists.Message == nil {
 			break
@@ -2881,6 +3015,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ListEndUsersPayload.Error(childComplexity), true
+
+	case "ListProjectEndUserAccessPayload.connection":
+		if e.complexity.ListProjectEndUserAccessPayload.Connection == nil {
+			break
+		}
+
+		return e.complexity.ListProjectEndUserAccessPayload.Connection(childComplexity), true
+	case "ListProjectEndUserAccessPayload.error":
+		if e.complexity.ListProjectEndUserAccessPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.ListProjectEndUserAccessPayload.Error(childComplexity), true
 
 	case "LogicalForeignKey.direction":
 		if e.complexity.LogicalForeignKey.Direction == nil {
@@ -3508,6 +3655,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.DeprecateField(childComplexity, args["modelID"].(string), args["fieldName"].(string)), true
+	case "Mutation.grantEndUserProjectAccess":
+		if e.complexity.Mutation.GrantEndUserProjectAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_grantEndUserProjectAccess_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.GrantEndUserProjectAccess(childComplexity, args["input"].(GrantEndUserProjectAccessInput)), true
 	case "Mutation.importModel":
 		if e.complexity.Mutation.ImportModel == nil {
 			break
@@ -3619,6 +3777,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RevokeBundleFromEndUserRole(childComplexity, args["input"].(RevokeBundleFromEndUserRoleInput)), true
+	case "Mutation.revokeEndUserProjectAccess":
+		if e.complexity.Mutation.RevokeEndUserProjectAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_revokeEndUserProjectAccess_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RevokeEndUserProjectAccess(childComplexity, args["input"].(RevokeEndUserProjectAccessInput)), true
 	case "Mutation.revokeEndUserRole":
 		if e.complexity.Mutation.RevokeEndUserRole == nil {
 			break
@@ -3707,6 +3876,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateEndUserPermissionBundle(childComplexity, args["id"].(string), args["input"].(UpdateEndUserPermissionBundleInput)), true
+	case "Mutation.updateEndUserProjectAccess":
+		if e.complexity.Mutation.UpdateEndUserProjectAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateEndUserProjectAccess_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateEndUserProjectAccess(childComplexity, args["input"].(UpdateEndUserProjectAccessInput)), true
 	case "Mutation.updateEndUserRole":
 		if e.complexity.Mutation.UpdateEndUserRole == nil {
 			break
@@ -3996,6 +4176,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ListEndUsers(childComplexity, args["input"].(*ListEndUsersInput)), true
+	case "Query.listProjectEndUserAccess":
+		if e.complexity.Query.ListProjectEndUserAccess == nil {
+			break
+		}
+
+		args, err := ec.field_Query_listProjectEndUserAccess_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListProjectEndUserAccess(childComplexity, args["input"].(*ListProjectEndUserAccessInput)), true
 	case "Query.listTables":
 		if e.complexity.Query.ListTables == nil {
 			break
@@ -4254,6 +4445,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RevokeBundleFromEndUserRolePayload.Role(childComplexity), true
 
+	case "RevokeEndUserProjectAccessPayload.error":
+		if e.complexity.RevokeEndUserProjectAccessPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.RevokeEndUserProjectAccessPayload.Error(childComplexity), true
+	case "RevokeEndUserProjectAccessPayload.success":
+		if e.complexity.RevokeEndUserProjectAccessPayload.Success == nil {
+			break
+		}
+
+		return e.complexity.RevokeEndUserProjectAccessPayload.Success(childComplexity), true
+
 	case "RevokeEndUserRolePayload.error":
 		if e.complexity.RevokeEndUserRolePayload.Error == nil {
 			break
@@ -4458,6 +4662,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UpdateEndUserPermissionPayload.Permission(childComplexity), true
 
+	case "UpdateEndUserProjectAccessPayload.access":
+		if e.complexity.UpdateEndUserProjectAccessPayload.Access == nil {
+			break
+		}
+
+		return e.complexity.UpdateEndUserProjectAccessPayload.Access(childComplexity), true
+	case "UpdateEndUserProjectAccessPayload.error":
+		if e.complexity.UpdateEndUserProjectAccessPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.UpdateEndUserProjectAccessPayload.Error(childComplexity), true
+
 	case "UpdateEndUserRolePayload.error":
 		if e.complexity.UpdateEndUserRolePayload.Error == nil {
 			break
@@ -4649,12 +4866,14 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputDeleteEndUserInput,
 		ec.unmarshalInputEnumOptionInput,
 		ec.unmarshalInputGetEffectivePermissionsInput,
+		ec.unmarshalInputGrantEndUserProjectAccessInput,
 		ec.unmarshalInputImportModelInput,
 		ec.unmarshalInputListDatabasesInput,
 		ec.unmarshalInputListEndUserPermissionBundlesInput,
 		ec.unmarshalInputListEndUserPermissionsInput,
 		ec.unmarshalInputListEndUserRolesInput,
 		ec.unmarshalInputListEndUsersInput,
+		ec.unmarshalInputListProjectEndUserAccessInput,
 		ec.unmarshalInputListTablesInput,
 		ec.unmarshalInputModelDatabaseCatalogInput,
 		ec.unmarshalInputModelQueryInput,
@@ -4665,6 +4884,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputRepairModelInput,
 		ec.unmarshalInputRevokeBundleFromEndUserInput,
 		ec.unmarshalInputRevokeBundleFromEndUserRoleInput,
+		ec.unmarshalInputRevokeEndUserProjectAccessInput,
 		ec.unmarshalInputRevokeEndUserRoleInput,
 		ec.unmarshalInputSetModelRLSPolicyInput,
 		ec.unmarshalInputSetProjectAuthSchemaInput,
@@ -4673,6 +4893,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateClusterConnectionInput,
 		ec.unmarshalInputUpdateEndUserPermissionBundleInput,
 		ec.unmarshalInputUpdateEndUserPermissionInput,
+		ec.unmarshalInputUpdateEndUserProjectAccessInput,
 		ec.unmarshalInputUpdateEndUserRoleInput,
 		ec.unmarshalInputUpdateEndUserStatusInput,
 		ec.unmarshalInputUpdateEnumInput,
@@ -5169,6 +5390,117 @@ extend type Mutation {
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
   initPrivateDB: InitPrivateDBPayload! @hasPermission(action: "end-user:create")
+}
+`, BuiltIn: false},
+	{Name: "../../../../../api/graph/project/schema/end_user_access.graphql", Input: `# EndUser project access management in Project scope (enduser-v2)
+#
+# Dependencies (defined in other files, referenced here):
+#   - interface Error                      → cluster.graphql
+#   - type InvalidInput                    → field.graphql
+#   - type ProjectNotFound                 → cluster.graphql
+#   - type EndUserNotFound                 → end_user.graphql
+#   - type EndUserPermissionBundleNotFound → rbac.graphql
+#   - type EndUser                         → end_user.graphql
+#   - scalar Time                          → base.graphql
+#   - interface Node                       → base.graphql
+#   - type PageInfo                        → base.graphql
+
+# ============================================
+# EndUser Project Access Error Types
+# ============================================
+
+type EndUserProjectAccessNotFound implements Error {
+  message: String!
+}
+
+type EndUserProjectAccessAlreadyExists implements Error {
+  message: String!
+}
+
+union GrantEndUserProjectAccessError = EndUserNotFound | EndUserProjectAccessAlreadyExists | EndUserPermissionBundleNotFound | InvalidInput | ProjectNotFound
+union UpdateEndUserProjectAccessError = EndUserProjectAccessNotFound | EndUserPermissionBundleNotFound | InvalidInput | ProjectNotFound
+union RevokeEndUserProjectAccessError = EndUserProjectAccessNotFound | ProjectNotFound
+union ListProjectEndUserAccessError = InvalidInput | ProjectNotFound
+
+# ============================================
+# Types
+# ============================================
+
+type EndUserProjectAccess implements Node {
+  id: ID!
+  endUser: EndUser!
+  permissionBundleId: ID!
+  permissionBundleName: String!
+  grantedBy: String!
+  grantedAt: Time!
+}
+
+type EndUserProjectAccessConnection {
+  nodes: [EndUserProjectAccess!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# ============================================
+# Payload Types
+# ============================================
+
+type GrantEndUserProjectAccessPayload {
+  access: EndUserProjectAccess
+  error: GrantEndUserProjectAccessError
+}
+
+type UpdateEndUserProjectAccessPayload {
+  access: EndUserProjectAccess
+  error: UpdateEndUserProjectAccessError
+}
+
+type RevokeEndUserProjectAccessPayload {
+  success: Boolean!
+  error: RevokeEndUserProjectAccessError
+}
+
+type ListProjectEndUserAccessPayload {
+  connection: EndUserProjectAccessConnection
+  error: ListProjectEndUserAccessError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input GrantEndUserProjectAccessInput {
+  endUserId: ID! # Org-scoped EndUser ID
+  permissionBundleId: ID! # PermissionBundle granted in current project
+}
+
+input UpdateEndUserProjectAccessInput {
+  accessId: ID!
+  permissionBundleId: ID!
+}
+
+input RevokeEndUserProjectAccessInput {
+  accessId: ID!
+}
+
+input ListProjectEndUserAccessInput {
+  search: String # EndUser username fuzzy search
+  first: Int
+  after: String
+}
+
+# ============================================
+# Query & Mutation
+# ============================================
+
+extend type Query {
+  listProjectEndUserAccess(input: ListProjectEndUserAccessInput): ListProjectEndUserAccessPayload! @hasPermission(action: "end-user-access:read")
+}
+
+extend type Mutation {
+  grantEndUserProjectAccess(input: GrantEndUserProjectAccessInput!): GrantEndUserProjectAccessPayload! @hasPermission(action: "end-user-access:grant")
+  updateEndUserProjectAccess(input: UpdateEndUserProjectAccessInput!): UpdateEndUserProjectAccessPayload! @hasPermission(action: "end-user-access:update")
+  revokeEndUserProjectAccess(input: RevokeEndUserProjectAccessInput!): RevokeEndUserProjectAccessPayload! @hasPermission(action: "end-user-access:revoke")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/enum.graphql", Input: `# Enum-related types, inputs and mutations
@@ -7108,6 +7440,17 @@ func (ec *executionContext) field_Mutation_deprecateField_args(ctx context.Conte
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_grantEndUserProjectAccess_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNGrantEndUserProjectAccessInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_importModel_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7205,6 +7548,17 @@ func (ec *executionContext) field_Mutation_revokeBundleFromEndUser_args(ctx cont
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRevokeBundleFromEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeBundleFromEndUserInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_revokeEndUserProjectAccess_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRevokeEndUserProjectAccessInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessInput)
 	if err != nil {
 		return nil, err
 	}
@@ -7312,6 +7666,17 @@ func (ec *executionContext) field_Mutation_updateEndUserPermission_args(ctx cont
 		return nil, err
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateEndUserProjectAccess_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateEndUserProjectAccessInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -7575,6 +7940,17 @@ func (ec *executionContext) field_Query_listEndUsers_args(ctx context.Context, r
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalOListEndUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListEndUsersInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_listProjectEndUserAccess_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalOListProjectEndUserAccessInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessInput)
 	if err != nil {
 		return nil, err
 	}
@@ -13202,6 +13578,363 @@ func (ec *executionContext) fieldContext_EndUserPermissionNotFound_message(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _EndUserProjectAccess_id(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccess) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccess_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccess_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccess_endUser(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccess) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccess_endUser,
+		func(ctx context.Context) (any, error) {
+			return obj.EndUser, nil
+		},
+		nil,
+		ec.marshalNEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUser,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccess_endUser(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUser_username(ctx, field)
+			case "isForbidden":
+				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_EndUser_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUser_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUser_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccess_permissionBundleId(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccess) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccess_permissionBundleId,
+		func(ctx context.Context) (any, error) {
+			return obj.PermissionBundleID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccess_permissionBundleId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccess_permissionBundleName(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccess) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccess_permissionBundleName,
+		func(ctx context.Context) (any, error) {
+			return obj.PermissionBundleName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccess_permissionBundleName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccess_grantedBy(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccess) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccess_grantedBy,
+		func(ctx context.Context) (any, error) {
+			return obj.GrantedBy, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccess_grantedBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccess_grantedAt(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccess) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccess_grantedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.GrantedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccess_grantedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccess",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccessAlreadyExists_message(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccessAlreadyExists) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccessAlreadyExists_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccessAlreadyExists_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccessAlreadyExists",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccessConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccessConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccessConnection_nodes,
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		ec.marshalNEndUserProjectAccess2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccessᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccessConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccessConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserProjectAccess_id(ctx, field)
+			case "endUser":
+				return ec.fieldContext_EndUserProjectAccess_endUser(ctx, field)
+			case "permissionBundleId":
+				return ec.fieldContext_EndUserProjectAccess_permissionBundleId(ctx, field)
+			case "permissionBundleName":
+				return ec.fieldContext_EndUserProjectAccess_permissionBundleName(ctx, field)
+			case "grantedBy":
+				return ec.fieldContext_EndUserProjectAccess_grantedBy(ctx, field)
+			case "grantedAt":
+				return ec.fieldContext_EndUserProjectAccess_grantedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserProjectAccess", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccessConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccessConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccessConnection_pageInfo,
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		ec.marshalNPageInfo2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐPageInfo,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccessConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccessConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccessConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccessConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccessConnection_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccessConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccessConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserProjectAccessNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserProjectAccessNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserProjectAccessNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserProjectAccessNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserProjectAccessNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EndUserRefAlreadyExists_message(ctx context.Context, field graphql.CollectedField, obj *EndUserRefAlreadyExists) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -15927,6 +16660,78 @@ func (ec *executionContext) fieldContext_GetModelPayload_error(_ context.Context
 	return fc, nil
 }
 
+func (ec *executionContext) _GrantEndUserProjectAccessPayload_access(ctx context.Context, field graphql.CollectedField, obj *GrantEndUserProjectAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GrantEndUserProjectAccessPayload_access,
+		func(ctx context.Context) (any, error) {
+			return obj.Access, nil
+		},
+		nil,
+		ec.marshalOEndUserProjectAccess2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccess,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GrantEndUserProjectAccessPayload_access(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GrantEndUserProjectAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserProjectAccess_id(ctx, field)
+			case "endUser":
+				return ec.fieldContext_EndUserProjectAccess_endUser(ctx, field)
+			case "permissionBundleId":
+				return ec.fieldContext_EndUserProjectAccess_permissionBundleId(ctx, field)
+			case "permissionBundleName":
+				return ec.fieldContext_EndUserProjectAccess_permissionBundleName(ctx, field)
+			case "grantedBy":
+				return ec.fieldContext_EndUserProjectAccess_grantedBy(ctx, field)
+			case "grantedAt":
+				return ec.fieldContext_EndUserProjectAccess_grantedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserProjectAccess", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _GrantEndUserProjectAccessPayload_error(ctx context.Context, field graphql.CollectedField, obj *GrantEndUserProjectAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_GrantEndUserProjectAccessPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOGrantEndUserProjectAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_GrantEndUserProjectAccessPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "GrantEndUserProjectAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type GrantEndUserProjectAccessError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _GroupAlreadyExists_message(ctx context.Context, field graphql.CollectedField, obj *GroupAlreadyExists) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16568,6 +17373,72 @@ func (ec *executionContext) fieldContext_ListEndUsersPayload_error(_ context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ListEndUsersError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListProjectEndUserAccessPayload_connection(ctx context.Context, field graphql.CollectedField, obj *ListProjectEndUserAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListProjectEndUserAccessPayload_connection,
+		func(ctx context.Context) (any, error) {
+			return obj.Connection, nil
+		},
+		nil,
+		ec.marshalOEndUserProjectAccessConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccessConnection,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListProjectEndUserAccessPayload_connection(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListProjectEndUserAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "nodes":
+				return ec.fieldContext_EndUserProjectAccessConnection_nodes(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_EndUserProjectAccessConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_EndUserProjectAccessConnection_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserProjectAccessConnection", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListProjectEndUserAccessPayload_error(ctx context.Context, field graphql.CollectedField, obj *ListProjectEndUserAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListProjectEndUserAccessPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOListProjectEndUserAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListProjectEndUserAccessPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListProjectEndUserAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ListProjectEndUserAccessError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -18878,6 +19749,201 @@ func (ec *executionContext) fieldContext_Mutation_initPrivateDB(_ context.Contex
 			}
 			return nil, fmt.Errorf("no field named %q was found under type InitPrivateDBPayload", field.Name)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_grantEndUserProjectAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_grantEndUserProjectAccess,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().GrantEndUserProjectAccess(ctx, fc.Args["input"].(GrantEndUserProjectAccessInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user-access:grant")
+				if err != nil {
+					var zeroVal *GrantEndUserProjectAccessPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *GrantEndUserProjectAccessPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNGrantEndUserProjectAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_grantEndUserProjectAccess(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "access":
+				return ec.fieldContext_GrantEndUserProjectAccessPayload_access(ctx, field)
+			case "error":
+				return ec.fieldContext_GrantEndUserProjectAccessPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type GrantEndUserProjectAccessPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_grantEndUserProjectAccess_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateEndUserProjectAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateEndUserProjectAccess,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateEndUserProjectAccess(ctx, fc.Args["input"].(UpdateEndUserProjectAccessInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user-access:update")
+				if err != nil {
+					var zeroVal *UpdateEndUserProjectAccessPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *UpdateEndUserProjectAccessPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNUpdateEndUserProjectAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateEndUserProjectAccess(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "access":
+				return ec.fieldContext_UpdateEndUserProjectAccessPayload_access(ctx, field)
+			case "error":
+				return ec.fieldContext_UpdateEndUserProjectAccessPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UpdateEndUserProjectAccessPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateEndUserProjectAccess_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_revokeEndUserProjectAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_revokeEndUserProjectAccess,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RevokeEndUserProjectAccess(ctx, fc.Args["input"].(RevokeEndUserProjectAccessInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user-access:revoke")
+				if err != nil {
+					var zeroVal *RevokeEndUserProjectAccessPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *RevokeEndUserProjectAccessPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNRevokeEndUserProjectAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_revokeEndUserProjectAccess(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_RevokeEndUserProjectAccessPayload_success(ctx, field)
+			case "error":
+				return ec.fieldContext_RevokeEndUserProjectAccessPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RevokeEndUserProjectAccessPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_revokeEndUserProjectAccess_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -22284,6 +23350,71 @@ func (ec *executionContext) fieldContext_Query_listEndUsers(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_listProjectEndUserAccess(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_listProjectEndUserAccess,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ListProjectEndUserAccess(ctx, fc.Args["input"].(*ListProjectEndUserAccessInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user-access:read")
+				if err != nil {
+					var zeroVal *ListProjectEndUserAccessPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *ListProjectEndUserAccessPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNListProjectEndUserAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_listProjectEndUserAccess(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "connection":
+				return ec.fieldContext_ListProjectEndUserAccessPayload_connection(ctx, field)
+			case "error":
+				return ec.fieldContext_ListProjectEndUserAccessPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListProjectEndUserAccessPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_listProjectEndUserAccess_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_enum(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -24605,6 +25736,64 @@ func (ec *executionContext) fieldContext_RevokeBundleFromEndUserRolePayload_erro
 	return fc, nil
 }
 
+func (ec *executionContext) _RevokeEndUserProjectAccessPayload_success(ctx context.Context, field graphql.CollectedField, obj *RevokeEndUserProjectAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RevokeEndUserProjectAccessPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RevokeEndUserProjectAccessPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RevokeEndUserProjectAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RevokeEndUserProjectAccessPayload_error(ctx context.Context, field graphql.CollectedField, obj *RevokeEndUserProjectAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RevokeEndUserProjectAccessPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalORevokeEndUserProjectAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RevokeEndUserProjectAccessPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RevokeEndUserProjectAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type RevokeEndUserProjectAccessError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _RevokeEndUserRolePayload_success(ctx context.Context, field graphql.CollectedField, obj *RevokeEndUserRolePayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -25646,6 +26835,78 @@ func (ec *executionContext) fieldContext_UpdateEndUserPermissionPayload_error(_ 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type UpdateEndUserPermissionError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateEndUserProjectAccessPayload_access(ctx context.Context, field graphql.CollectedField, obj *UpdateEndUserProjectAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UpdateEndUserProjectAccessPayload_access,
+		func(ctx context.Context) (any, error) {
+			return obj.Access, nil
+		},
+		nil,
+		ec.marshalOEndUserProjectAccess2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccess,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UpdateEndUserProjectAccessPayload_access(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateEndUserProjectAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserProjectAccess_id(ctx, field)
+			case "endUser":
+				return ec.fieldContext_EndUserProjectAccess_endUser(ctx, field)
+			case "permissionBundleId":
+				return ec.fieldContext_EndUserProjectAccess_permissionBundleId(ctx, field)
+			case "permissionBundleName":
+				return ec.fieldContext_EndUserProjectAccess_permissionBundleName(ctx, field)
+			case "grantedBy":
+				return ec.fieldContext_EndUserProjectAccess_grantedBy(ctx, field)
+			case "grantedAt":
+				return ec.fieldContext_EndUserProjectAccess_grantedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserProjectAccess", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateEndUserProjectAccessPayload_error(ctx context.Context, field graphql.CollectedField, obj *UpdateEndUserProjectAccessPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UpdateEndUserProjectAccessPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOUpdateEndUserProjectAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UpdateEndUserProjectAccessPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateEndUserProjectAccessPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UpdateEndUserProjectAccessError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -28920,6 +30181,40 @@ func (ec *executionContext) unmarshalInputGetEffectivePermissionsInput(ctx conte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputGrantEndUserProjectAccessInput(ctx context.Context, obj any) (GrantEndUserProjectAccessInput, error) {
+	var it GrantEndUserProjectAccessInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"endUserId", "permissionBundleId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "endUserId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("endUserId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.EndUserID = data
+		case "permissionBundleId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("permissionBundleId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PermissionBundleID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputImportModelInput(ctx context.Context, obj any) (ImportModelInput, error) {
 	var it ImportModelInput
 	asMap := map[string]any{}
@@ -29138,6 +30433,47 @@ func (ec *executionContext) unmarshalInputListEndUserRolesInput(ctx context.Cont
 
 func (ec *executionContext) unmarshalInputListEndUsersInput(ctx context.Context, obj any) (ListEndUsersInput, error) {
 	var it ListEndUsersInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"search", "first", "after"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "search":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Search = data
+		case "first":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.First = data
+		case "after":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.After = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListProjectEndUserAccessInput(ctx context.Context, obj any) (ListProjectEndUserAccessInput, error) {
+	var it ListProjectEndUserAccessInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -29570,6 +30906,33 @@ func (ec *executionContext) unmarshalInputRevokeBundleFromEndUserRoleInput(ctx c
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputRevokeEndUserProjectAccessInput(ctx context.Context, obj any) (RevokeEndUserProjectAccessInput, error) {
+	var it RevokeEndUserProjectAccessInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"accessId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "accessId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accessId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccessID = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputRevokeEndUserRoleInput(ctx context.Context, obj any) (RevokeEndUserRoleInput, error) {
 	var it RevokeEndUserRoleInput
 	asMap := map[string]any{}
@@ -29878,6 +31241,40 @@ func (ec *executionContext) unmarshalInputUpdateEndUserPermissionInput(ctx conte
 				return it, err
 			}
 			it.Description = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateEndUserProjectAccessInput(ctx context.Context, obj any) (UpdateEndUserProjectAccessInput, error) {
+	var it UpdateEndUserProjectAccessInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"accessId", "permissionBundleId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "accessId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("accessId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.AccessID = data
+		case "permissionBundleId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("permissionBundleId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.PermissionBundleID = data
 		}
 	}
 
@@ -31021,6 +32418,20 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserRefAlreadyExists(ctx, sel, obj)
+	case EndUserProjectAccessNotFound:
+		return ec._EndUserProjectAccessNotFound(ctx, sel, &obj)
+	case *EndUserProjectAccessNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserProjectAccessNotFound(ctx, sel, obj)
+	case EndUserProjectAccessAlreadyExists:
+		return ec._EndUserProjectAccessAlreadyExists(ctx, sel, &obj)
+	case *EndUserProjectAccessAlreadyExists:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserProjectAccessAlreadyExists(ctx, sel, obj)
 	case EndUserPermissionNotFound:
 		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
 	case *EndUserPermissionNotFound:
@@ -31258,6 +32669,50 @@ func (ec *executionContext) _GetModelError(ctx context.Context, sel ast.Selectio
 	}
 }
 
+func (ec *executionContext) _GrantEndUserProjectAccessError(ctx context.Context, sel ast.SelectionSet, obj GrantEndUserProjectAccessError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserProjectAccessAlreadyExists:
+		return ec._EndUserProjectAccessAlreadyExists(ctx, sel, &obj)
+	case *EndUserProjectAccessAlreadyExists:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserProjectAccessAlreadyExists(ctx, sel, obj)
+	case EndUserPermissionBundleNotFound:
+		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
+	case *EndUserPermissionBundleNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+	case EndUserNotFound:
+		return ec._EndUserNotFound(ctx, sel, &obj)
+	case *EndUserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _InitPrivateDBPayloadError(ctx context.Context, sel ast.SelectionSet, obj InitPrivateDBPayloadError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -31299,6 +32754,29 @@ func (ec *executionContext) _ListEndUsersError(ctx context.Context, sel ast.Sele
 			return graphql.Null
 		}
 		return ec._ClusterNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _ListProjectEndUserAccessError(ctx context.Context, sel ast.SelectionSet, obj ListProjectEndUserAccessError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -31368,6 +32846,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._EndUserRole(ctx, sel, obj)
+	case EndUserProjectAccess:
+		return ec._EndUserProjectAccess(ctx, sel, &obj)
+	case *EndUserProjectAccess:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserProjectAccess(ctx, sel, obj)
 	case EndUserPermissionBundle:
 		return ec._EndUserPermissionBundle(ctx, sel, &obj)
 	case *EndUserPermissionBundle:
@@ -31555,6 +33040,29 @@ func (ec *executionContext) _RevokeBundleFromEndUserRoleError(ctx context.Contex
 			return graphql.Null
 		}
 		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _RevokeEndUserProjectAccessError(ctx context.Context, sel ast.SelectionSet, obj RevokeEndUserProjectAccessError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case EndUserProjectAccessNotFound:
+		return ec._EndUserProjectAccessNotFound(ctx, sel, &obj)
+	case *EndUserProjectAccessNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserProjectAccessNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -31830,6 +33338,43 @@ func (ec *executionContext) _UpdateEndUserPermissionError(ctx context.Context, s
 			return graphql.Null
 		}
 		return ec._EndUserPermissionNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _UpdateEndUserProjectAccessError(ctx context.Context, sel ast.SelectionSet, obj UpdateEndUserProjectAccessError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserProjectAccessNotFound:
+		return ec._EndUserProjectAccessNotFound(ctx, sel, &obj)
+	case *EndUserProjectAccessNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserProjectAccessNotFound(ctx, sel, obj)
+	case EndUserPermissionBundleNotFound:
+		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
+	case *EndUserPermissionBundleNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34334,7 +35879,7 @@ func (ec *executionContext) _EndUserImplicitRoleCannotBeModified(ctx context.Con
 	return out
 }
 
-var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError"}
+var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError", "GrantEndUserProjectAccessError"}
 
 func (ec *executionContext) _EndUserNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserNotFoundImplementors)
@@ -34762,7 +36307,7 @@ func (ec *executionContext) _EndUserPermissionBundleInUse(ctx context.Context, s
 	return out
 }
 
-var endUserPermissionBundleNotFoundImplementors = []string{"EndUserPermissionBundleNotFound", "Error", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError"}
+var endUserPermissionBundleNotFoundImplementors = []string{"EndUserPermissionBundleNotFound", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "Error", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError"}
 
 func (ec *executionContext) _EndUserPermissionBundleNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionBundleNotFoundImplementors)
@@ -34948,6 +36493,197 @@ func (ec *executionContext) _EndUserPermissionNotFound(ctx context.Context, sel 
 			out.Values[i] = graphql.MarshalString("EndUserPermissionNotFound")
 		case "message":
 			out.Values[i] = ec._EndUserPermissionNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserProjectAccessImplementors = []string{"EndUserProjectAccess", "Node"}
+
+func (ec *executionContext) _EndUserProjectAccess(ctx context.Context, sel ast.SelectionSet, obj *EndUserProjectAccess) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserProjectAccessImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserProjectAccess")
+		case "id":
+			out.Values[i] = ec._EndUserProjectAccess_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endUser":
+			out.Values[i] = ec._EndUserProjectAccess_endUser(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permissionBundleId":
+			out.Values[i] = ec._EndUserProjectAccess_permissionBundleId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permissionBundleName":
+			out.Values[i] = ec._EndUserProjectAccess_permissionBundleName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "grantedBy":
+			out.Values[i] = ec._EndUserProjectAccess_grantedBy(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "grantedAt":
+			out.Values[i] = ec._EndUserProjectAccess_grantedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserProjectAccessAlreadyExistsImplementors = []string{"EndUserProjectAccessAlreadyExists", "Error", "GrantEndUserProjectAccessError"}
+
+func (ec *executionContext) _EndUserProjectAccessAlreadyExists(ctx context.Context, sel ast.SelectionSet, obj *EndUserProjectAccessAlreadyExists) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserProjectAccessAlreadyExistsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserProjectAccessAlreadyExists")
+		case "message":
+			out.Values[i] = ec._EndUserProjectAccessAlreadyExists_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserProjectAccessConnectionImplementors = []string{"EndUserProjectAccessConnection"}
+
+func (ec *executionContext) _EndUserProjectAccessConnection(ctx context.Context, sel ast.SelectionSet, obj *EndUserProjectAccessConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserProjectAccessConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserProjectAccessConnection")
+		case "nodes":
+			out.Values[i] = ec._EndUserProjectAccessConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._EndUserProjectAccessConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._EndUserProjectAccessConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserProjectAccessNotFoundImplementors = []string{"EndUserProjectAccessNotFound", "Error", "UpdateEndUserProjectAccessError", "RevokeEndUserProjectAccessError"}
+
+func (ec *executionContext) _EndUserProjectAccessNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserProjectAccessNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserProjectAccessNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserProjectAccessNotFound")
+		case "message":
+			out.Values[i] = ec._EndUserProjectAccessNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -36242,6 +37978,44 @@ func (ec *executionContext) _GetModelPayload(ctx context.Context, sel ast.Select
 	return out
 }
 
+var grantEndUserProjectAccessPayloadImplementors = []string{"GrantEndUserProjectAccessPayload"}
+
+func (ec *executionContext) _GrantEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, obj *GrantEndUserProjectAccessPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, grantEndUserProjectAccessPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GrantEndUserProjectAccessPayload")
+		case "access":
+			out.Values[i] = ec._GrantEndUserProjectAccessPayload_access(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._GrantEndUserProjectAccessPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var groupAlreadyExistsImplementors = []string{"GroupAlreadyExists", "Error", "CreateGroupError", "RenameGroupError"}
 
 func (ec *executionContext) _GroupAlreadyExists(ctx context.Context, sel ast.SelectionSet, obj *GroupAlreadyExists) graphql.Marshaler {
@@ -36540,7 +38314,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "SetProjectAuthSchemaError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "ListProjectEndUserAccessError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "SetProjectAuthSchemaError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -36639,6 +38413,44 @@ func (ec *executionContext) _ListEndUsersPayload(ctx context.Context, sel ast.Se
 			out.Values[i] = ec._ListEndUsersPayload_connection(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._ListEndUsersPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var listProjectEndUserAccessPayloadImplementors = []string{"ListProjectEndUserAccessPayload"}
+
+func (ec *executionContext) _ListProjectEndUserAccessPayload(ctx context.Context, sel ast.SelectionSet, obj *ListProjectEndUserAccessPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listProjectEndUserAccessPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListProjectEndUserAccessPayload")
+		case "connection":
+			out.Values[i] = ec._ListProjectEndUserAccessPayload_connection(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._ListProjectEndUserAccessPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -37445,6 +39257,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "grantEndUserProjectAccess":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_grantEndUserProjectAccess(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateEndUserProjectAccess":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateEndUserProjectAccess(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "revokeEndUserProjectAccess":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_revokeEndUserProjectAccess(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createEnum":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEnum(ctx, field)
@@ -37843,7 +39676,7 @@ func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListEndUsersError", "InitPrivateDBPayloadError", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "RevokeEndUserProjectAccessError", "ListProjectEndUserAccessError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -38062,6 +39895,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_listEndUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "listProjectEndUserAccess":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_listProjectEndUserAccess(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -38898,6 +40753,47 @@ func (ec *executionContext) _RevokeBundleFromEndUserRolePayload(ctx context.Cont
 	return out
 }
 
+var revokeEndUserProjectAccessPayloadImplementors = []string{"RevokeEndUserProjectAccessPayload"}
+
+func (ec *executionContext) _RevokeEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, obj *RevokeEndUserProjectAccessPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, revokeEndUserProjectAccessPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RevokeEndUserProjectAccessPayload")
+		case "success":
+			out.Values[i] = ec._RevokeEndUserProjectAccessPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._RevokeEndUserProjectAccessPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var revokeEndUserRolePayloadImplementors = []string{"RevokeEndUserRolePayload"}
 
 func (ec *executionContext) _RevokeEndUserRolePayload(ctx context.Context, sel ast.SelectionSet, obj *RevokeEndUserRolePayload) graphql.Marshaler {
@@ -39392,6 +41288,44 @@ func (ec *executionContext) _UpdateEndUserPermissionPayload(ctx context.Context,
 			out.Values[i] = ec._UpdateEndUserPermissionPayload_permission(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._UpdateEndUserPermissionPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var updateEndUserProjectAccessPayloadImplementors = []string{"UpdateEndUserProjectAccessPayload"}
+
+func (ec *executionContext) _UpdateEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, obj *UpdateEndUserProjectAccessPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateEndUserProjectAccessPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateEndUserProjectAccessPayload")
+		case "access":
+			out.Values[i] = ec._UpdateEndUserProjectAccessPayload_access(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._UpdateEndUserProjectAccessPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -41521,6 +43455,60 @@ func (ec *executionContext) marshalNEndUserPermissionEdge2ᚖmodelcraftᚋintern
 	return ec._EndUserPermissionEdge(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEndUserProjectAccess2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccessᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserProjectAccess) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUserProjectAccess2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccess(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEndUserProjectAccess2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccess(ctx context.Context, sel ast.SelectionSet, v *EndUserProjectAccess) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUserProjectAccess(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNEndUserRole2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserRole(ctx context.Context, sel ast.SelectionSet, v *EndUserRole) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -42102,6 +44090,25 @@ func (ec *executionContext) marshalNGetModelPayload2ᚖmodelcraftᚋinternalᚋi
 	return ec._GetModelPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNGrantEndUserProjectAccessInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessInput(ctx context.Context, v any) (GrantEndUserProjectAccessInput, error) {
+	res, err := ec.unmarshalInputGrantEndUserProjectAccessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNGrantEndUserProjectAccessPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, v GrantEndUserProjectAccessPayload) graphql.Marshaler {
+	return ec._GrantEndUserProjectAccessPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGrantEndUserProjectAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, v *GrantEndUserProjectAccessPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._GrantEndUserProjectAccessPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNHealthStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐHealthStatus(ctx context.Context, v any) (HealthStatus, error) {
 	var res HealthStatus
 	err := res.UnmarshalGQL(v)
@@ -42210,6 +44217,20 @@ func (ec *executionContext) marshalNListEndUsersPayload2ᚖmodelcraftᚋinternal
 		return graphql.Null
 	}
 	return ec._ListEndUsersPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNListProjectEndUserAccessPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessPayload(ctx context.Context, sel ast.SelectionSet, v ListProjectEndUserAccessPayload) graphql.Marshaler {
+	return ec._ListProjectEndUserAccessPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListProjectEndUserAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessPayload(ctx context.Context, sel ast.SelectionSet, v *ListProjectEndUserAccessPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ListProjectEndUserAccessPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNListTablesInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListTablesInput(ctx context.Context, v any) (ListTablesInput, error) {
@@ -42648,6 +44669,25 @@ func (ec *executionContext) marshalNRevokeBundleFromEndUserRolePayload2ᚖmodelc
 	return ec._RevokeBundleFromEndUserRolePayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNRevokeEndUserProjectAccessInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessInput(ctx context.Context, v any) (RevokeEndUserProjectAccessInput, error) {
+	res, err := ec.unmarshalInputRevokeEndUserProjectAccessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRevokeEndUserProjectAccessPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, v RevokeEndUserProjectAccessPayload) graphql.Marshaler {
+	return ec._RevokeEndUserProjectAccessPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRevokeEndUserProjectAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, v *RevokeEndUserProjectAccessPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RevokeEndUserProjectAccessPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNRevokeEndUserRoleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserRoleInput(ctx context.Context, v any) (RevokeEndUserRoleInput, error) {
 	res, err := ec.unmarshalInputRevokeEndUserRoleInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -43012,6 +45052,25 @@ func (ec *executionContext) marshalNUpdateEndUserPermissionPayload2ᚖmodelcraft
 		return graphql.Null
 	}
 	return ec._UpdateEndUserPermissionPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNUpdateEndUserProjectAccessInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessInput(ctx context.Context, v any) (UpdateEndUserProjectAccessInput, error) {
+	res, err := ec.unmarshalInputUpdateEndUserProjectAccessInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpdateEndUserProjectAccessPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, v UpdateEndUserProjectAccessPayload) graphql.Marshaler {
+	return ec._UpdateEndUserProjectAccessPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUpdateEndUserProjectAccessPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessPayload(ctx context.Context, sel ast.SelectionSet, v *UpdateEndUserProjectAccessPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UpdateEndUserProjectAccessPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNUpdateEndUserRoleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserRoleInput(ctx context.Context, v any) (UpdateEndUserRoleInput, error) {
@@ -43659,6 +45718,20 @@ func (ec *executionContext) marshalOEndUserPermissionBundle2ᚖmodelcraftᚋinte
 	return ec._EndUserPermissionBundle(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOEndUserProjectAccess2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccess(ctx context.Context, sel ast.SelectionSet, v *EndUserProjectAccess) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUserProjectAccess(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEndUserProjectAccessConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccessConnection(ctx context.Context, sel ast.SelectionSet, v *EndUserProjectAccessConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUserProjectAccessConnection(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOEndUserRole2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserRole(ctx context.Context, sel ast.SelectionSet, v *EndUserRole) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -43750,6 +45823,13 @@ func (ec *executionContext) marshalOGetModelError2modelcraftᚋinternalᚋinterf
 		return graphql.Null
 	}
 	return ec._GetModelError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOGrantEndUserProjectAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐGrantEndUserProjectAccessError(ctx context.Context, sel ast.SelectionSet, v GrantEndUserProjectAccessError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._GrantEndUserProjectAccessError(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
@@ -43849,6 +45929,21 @@ func (ec *executionContext) unmarshalOListEndUsersInput2ᚖmodelcraftᚋinternal
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputListEndUsersInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOListProjectEndUserAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessError(ctx context.Context, sel ast.SelectionSet, v ListProjectEndUserAccessError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ListProjectEndUserAccessError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOListProjectEndUserAccessInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserAccessInput(ctx context.Context, v any) (*ListProjectEndUserAccessInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListProjectEndUserAccessInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
@@ -44005,6 +46100,13 @@ func (ec *executionContext) marshalORevokeBundleFromEndUserRoleError2modelcraft�
 	return ec._RevokeBundleFromEndUserRoleError(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalORevokeEndUserProjectAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserProjectAccessError(ctx context.Context, sel ast.SelectionSet, v RevokeEndUserProjectAccessError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RevokeEndUserProjectAccessError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalORevokeEndUserRoleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeEndUserRoleError(ctx context.Context, sel ast.SelectionSet, v RevokeEndUserRoleError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -44077,6 +46179,13 @@ func (ec *executionContext) marshalOUpdateEndUserPermissionError2modelcraftᚋin
 		return graphql.Null
 	}
 	return ec._UpdateEndUserPermissionError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOUpdateEndUserProjectAccessError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserProjectAccessError(ctx context.Context, sel ast.SelectionSet, v UpdateEndUserProjectAccessError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._UpdateEndUserProjectAccessError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUpdateEndUserRoleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateEndUserRoleError(ctx context.Context, sel ast.SelectionSet, v UpdateEndUserRoleError) graphql.Marshaler {

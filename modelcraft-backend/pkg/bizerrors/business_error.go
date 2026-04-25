@@ -104,6 +104,11 @@ func (e *BusinessError) GetHTTPStatusCode() int {
 		return 409
 	}
 
+	// NO_PROJECT_ACCESS / PROJECT_ACCESS_DENIED → 403 Forbidden
+	if code == EndUserNoProjectAccess.Code || code == EndUserProjectAccessDenied.Code {
+		return 403
+	}
+
 	// Default: map by error type prefix
 	errorType := e.info.GetErrorType()
 	switch errorType {

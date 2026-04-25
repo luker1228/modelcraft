@@ -123,6 +123,11 @@ type ComplexityRoot struct {
 		Role  func(childComplexity int) int
 	}
 
+	CreateEndUserPayload struct {
+		EndUser func(childComplexity int) int
+		Error   func(childComplexity int) int
+	}
+
 	CreateProjectPayload struct {
 		Error   func(childComplexity int) int
 		Project func(childComplexity int) int
@@ -174,6 +179,11 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
+	DeleteEndUserPayload struct {
+		Error   func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	DeletePermissionRolePayload struct {
 		Error   func(childComplexity int) int
 		Success func(childComplexity int) int
@@ -187,6 +197,34 @@ type ComplexityRoot struct {
 	DeleteRolePayload struct {
 		Error   func(childComplexity int) int
 		Success func(childComplexity int) int
+	}
+
+	EndUser struct {
+		CreatedAt   func(childComplexity int) int
+		CreatedBy   func(childComplexity int) int
+		ID          func(childComplexity int) int
+		IsForbidden func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
+		Username    func(childComplexity int) int
+	}
+
+	EndUserAlreadyExists struct {
+		Message func(childComplexity int) int
+	}
+
+	EndUserConnection struct {
+		Nodes      func(childComplexity int) int
+		PageInfo   func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	EndUserNotFound struct {
+		Message func(childComplexity int) int
+	}
+
+	EndUserPasswordTooWeak struct {
+		Message    func(childComplexity int) int
+		Suggestion func(childComplexity int) int
 	}
 
 	GetClusterPayload struct {
@@ -214,13 +252,20 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
+	ListEndUsersPayload struct {
+		Connection func(childComplexity int) int
+		Error      func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AddPermissionToRole      func(childComplexity int, roleID int32, obj string, act string) int
 		AssignRoleToUser         func(childComplexity int, userID string, roleID int32, orgName string) int
 		CreateAPIKey             func(childComplexity int, input CreateAPIKeyInput) int
 		CreateCustomRole         func(childComplexity int, input CreateCustomRoleInput) int
+		CreateEndUser            func(childComplexity int, input CreateEndUserInput) int
 		CreateProject            func(childComplexity int, input CreateProjectInput) int
 		CreateRole               func(childComplexity int, input CreateRoleInput) int
+		DeleteEndUser            func(childComplexity int, input DeleteEndUserInput) int
 		DeletePermissionRole     func(childComplexity int, roleID int32) int
 		DeleteProject            func(childComplexity int, slug string) int
 		DeleteRole               func(childComplexity int, id string) int
@@ -231,6 +276,7 @@ type ComplexityRoot struct {
 		SetProjectAuthSchema     func(childComplexity int, input SetProjectAuthSchemaInput) int
 		TestDatabaseConnection   func(childComplexity int, input TestDatabaseConnectionInput) int
 		UpdateAPIKey             func(childComplexity int, id string, input UpdateAPIKeyInput) int
+		UpdateEndUserStatus      func(childComplexity int, input UpdateEndUserStatusInput) int
 		UpdateMyProfile          func(childComplexity int, input UpdateMyProfileInput) int
 		UpdateOrganization       func(childComplexity int, input UpdateOrganizationInput) int
 		UpdatePermissionRole     func(childComplexity int, roleID int32, input UpdateRoleInput) int
@@ -359,6 +405,7 @@ type ComplexityRoot struct {
 		APIKeys             func(childComplexity int) int
 		DatabaseCluster     func(childComplexity int, projectSlug string) int
 		Hello               func(childComplexity int) int
+		ListEndUsers        func(childComplexity int, input *ListEndUsersInput) int
 		Me                  func(childComplexity int) int
 		MyOrganizations     func(childComplexity int) int
 		MyUserProfile       func(childComplexity int) int
@@ -428,6 +475,11 @@ type ComplexityRoot struct {
 		Error   func(childComplexity int) int
 	}
 
+	UpdateEndUserStatusPayload struct {
+		EndUser func(childComplexity int) int
+		Error   func(childComplexity int) int
+	}
+
 	UpdateMyProfilePayload struct {
 		Error   func(childComplexity int) int
 		Profile func(childComplexity int) int
@@ -476,6 +528,9 @@ type MutationResolver interface {
 	CreateAPIKey(ctx context.Context, input CreateAPIKeyInput) (*CreateAPIKeyPayload, error)
 	RevokeAPIKey(ctx context.Context, id string) (*RevokeAPIKeyPayload, error)
 	UpdateAPIKey(ctx context.Context, id string, input UpdateAPIKeyInput) (*UpdateAPIKeyPayload, error)
+	CreateEndUser(ctx context.Context, input CreateEndUserInput) (*CreateEndUserPayload, error)
+	UpdateEndUserStatus(ctx context.Context, input UpdateEndUserStatusInput) (*UpdateEndUserStatusPayload, error)
+	DeleteEndUser(ctx context.Context, input DeleteEndUserInput) (*DeleteEndUserPayload, error)
 	CreateCustomRole(ctx context.Context, input CreateCustomRoleInput) (*CreateCustomRolePayload, error)
 	UpdatePermissionRole(ctx context.Context, roleID int32, input UpdateRoleInput) (*UpdatePermissionRolePayload, error)
 	DeletePermissionRole(ctx context.Context, roleID int32) (*DeletePermissionRolePayload, error)
@@ -499,6 +554,7 @@ type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
 	Node(ctx context.Context, id string) (Node, error)
 	APIKeys(ctx context.Context) ([]*APIKey, error)
+	ListEndUsers(ctx context.Context, input *ListEndUsersInput) (*ListEndUsersPayload, error)
 	PermissionRoles(ctx context.Context, orgName string, includeSystem *bool) ([]*PermissionRole, error)
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
@@ -750,6 +806,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.CreateCustomRolePayload.Role(childComplexity), true
 
+	case "CreateEndUserPayload.endUser":
+		if e.complexity.CreateEndUserPayload.EndUser == nil {
+			break
+		}
+
+		return e.complexity.CreateEndUserPayload.EndUser(childComplexity), true
+	case "CreateEndUserPayload.error":
+		if e.complexity.CreateEndUserPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.CreateEndUserPayload.Error(childComplexity), true
+
 	case "CreateProjectPayload.error":
 		if e.complexity.CreateProjectPayload.Error == nil {
 			break
@@ -937,6 +1006,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.DeleteClusterPayload.Success(childComplexity), true
 
+	case "DeleteEndUserPayload.error":
+		if e.complexity.DeleteEndUserPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.DeleteEndUserPayload.Error(childComplexity), true
+	case "DeleteEndUserPayload.success":
+		if e.complexity.DeleteEndUserPayload.Success == nil {
+			break
+		}
+
+		return e.complexity.DeleteEndUserPayload.Success(childComplexity), true
+
 	case "DeletePermissionRolePayload.error":
 		if e.complexity.DeletePermissionRolePayload.Error == nil {
 			break
@@ -975,6 +1057,89 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DeleteRolePayload.Success(childComplexity), true
+
+	case "EndUser.createdAt":
+		if e.complexity.EndUser.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.EndUser.CreatedAt(childComplexity), true
+	case "EndUser.createdBy":
+		if e.complexity.EndUser.CreatedBy == nil {
+			break
+		}
+
+		return e.complexity.EndUser.CreatedBy(childComplexity), true
+	case "EndUser.id":
+		if e.complexity.EndUser.ID == nil {
+			break
+		}
+
+		return e.complexity.EndUser.ID(childComplexity), true
+	case "EndUser.isForbidden":
+		if e.complexity.EndUser.IsForbidden == nil {
+			break
+		}
+
+		return e.complexity.EndUser.IsForbidden(childComplexity), true
+	case "EndUser.updatedAt":
+		if e.complexity.EndUser.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.EndUser.UpdatedAt(childComplexity), true
+	case "EndUser.username":
+		if e.complexity.EndUser.Username == nil {
+			break
+		}
+
+		return e.complexity.EndUser.Username(childComplexity), true
+
+	case "EndUserAlreadyExists.message":
+		if e.complexity.EndUserAlreadyExists.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserAlreadyExists.Message(childComplexity), true
+
+	case "EndUserConnection.nodes":
+		if e.complexity.EndUserConnection.Nodes == nil {
+			break
+		}
+
+		return e.complexity.EndUserConnection.Nodes(childComplexity), true
+	case "EndUserConnection.pageInfo":
+		if e.complexity.EndUserConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.EndUserConnection.PageInfo(childComplexity), true
+	case "EndUserConnection.totalCount":
+		if e.complexity.EndUserConnection.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.EndUserConnection.TotalCount(childComplexity), true
+
+	case "EndUserNotFound.message":
+		if e.complexity.EndUserNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserNotFound.Message(childComplexity), true
+
+	case "EndUserPasswordTooWeak.message":
+		if e.complexity.EndUserPasswordTooWeak.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserPasswordTooWeak.Message(childComplexity), true
+	case "EndUserPasswordTooWeak.suggestion":
+		if e.complexity.EndUserPasswordTooWeak.Suggestion == nil {
+			break
+		}
+
+		return e.complexity.EndUserPasswordTooWeak.Suggestion(childComplexity), true
 
 	case "GetClusterPayload.cluster":
 		if e.complexity.GetClusterPayload.Cluster == nil {
@@ -1041,6 +1206,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.InvalidInput.Suggestion(childComplexity), true
 
+	case "ListEndUsersPayload.connection":
+		if e.complexity.ListEndUsersPayload.Connection == nil {
+			break
+		}
+
+		return e.complexity.ListEndUsersPayload.Connection(childComplexity), true
+	case "ListEndUsersPayload.error":
+		if e.complexity.ListEndUsersPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.ListEndUsersPayload.Error(childComplexity), true
+
 	case "Mutation.addPermissionToRole":
 		if e.complexity.Mutation.AddPermissionToRole == nil {
 			break
@@ -1085,6 +1263,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateCustomRole(childComplexity, args["input"].(CreateCustomRoleInput)), true
+	case "Mutation.createEndUser":
+		if e.complexity.Mutation.CreateEndUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createEndUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateEndUser(childComplexity, args["input"].(CreateEndUserInput)), true
 	case "Mutation.createProject":
 		if e.complexity.Mutation.CreateProject == nil {
 			break
@@ -1107,6 +1296,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateRole(childComplexity, args["input"].(CreateRoleInput)), true
+	case "Mutation.deleteEndUser":
+		if e.complexity.Mutation.DeleteEndUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_deleteEndUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.DeleteEndUser(childComplexity, args["input"].(DeleteEndUserInput)), true
 	case "Mutation.deletePermissionRole":
 		if e.complexity.Mutation.DeletePermissionRole == nil {
 			break
@@ -1212,6 +1412,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateAPIKey(childComplexity, args["id"].(string), args["input"].(UpdateAPIKeyInput)), true
+	case "Mutation.updateEndUserStatus":
+		if e.complexity.Mutation.UpdateEndUserStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateEndUserStatus_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateEndUserStatus(childComplexity, args["input"].(UpdateEndUserStatusInput)), true
 	case "Mutation.updateMyProfile":
 		if e.complexity.Mutation.UpdateMyProfile == nil {
 			break
@@ -1687,6 +1898,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Hello(childComplexity), true
+	case "Query.listEndUsers":
+		if e.complexity.Query.ListEndUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_listEndUsers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ListEndUsers(childComplexity, args["input"].(*ListEndUsersInput)), true
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -1955,6 +2177,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.UpdateClusterPayload.Error(childComplexity), true
 
+	case "UpdateEndUserStatusPayload.endUser":
+		if e.complexity.UpdateEndUserStatusPayload.EndUser == nil {
+			break
+		}
+
+		return e.complexity.UpdateEndUserStatusPayload.EndUser(childComplexity), true
+	case "UpdateEndUserStatusPayload.error":
+		if e.complexity.UpdateEndUserStatusPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.UpdateEndUserStatusPayload.Error(childComplexity), true
+
 	case "UpdateMyProfilePayload.error":
 		if e.complexity.UpdateMyProfilePayload.Error == nil {
 			break
@@ -2100,14 +2335,18 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputClusterConnectionInput,
 		ec.unmarshalInputCreateApiKeyInput,
 		ec.unmarshalInputCreateCustomRoleInput,
+		ec.unmarshalInputCreateEndUserInput,
 		ec.unmarshalInputCreateProjectInput,
 		ec.unmarshalInputCreateRoleInput,
 		ec.unmarshalInputDatabaseConnectionInput,
+		ec.unmarshalInputDeleteEndUserInput,
+		ec.unmarshalInputListEndUsersInput,
 		ec.unmarshalInputListProjectsInput,
 		ec.unmarshalInputSetProjectAuthSchemaInput,
 		ec.unmarshalInputTestDatabaseConnectionInput,
 		ec.unmarshalInputUpdateApiKeyInput,
 		ec.unmarshalInputUpdateClusterConnectionInput,
+		ec.unmarshalInputUpdateEndUserStatusInput,
 		ec.unmarshalInputUpdateMyProfileInput,
 		ec.unmarshalInputUpdateOrganizationInput,
 		ec.unmarshalInputUpdateProjectInput,
@@ -2316,6 +2555,118 @@ type Query {
 
 type Mutation {
   pong: String!
+}
+`, BuiltIn: false},
+	{Name: "../../../../../api/graph/org/schema/end_user.graphql", Input: `# EndUser account lifecycle in Org scope (enduser-v2)
+#
+# Dependencies (defined in other files, referenced here):
+#   - interface Error           → project.graphql
+#   - type InvalidInput         → base.graphql
+#   - scalar Time               → base.graphql
+#   - interface Node            → base.graphql
+#   - type PageInfo             → base.graphql
+
+# ============================================
+# EndUser Error Types
+# ============================================
+
+type EndUserNotFound implements Error {
+  message: String!
+}
+
+type EndUserAlreadyExists implements Error {
+  message: String!
+}
+
+type EndUserPasswordTooWeak implements Error {
+  message: String!
+  suggestion: String
+}
+
+union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
+union UpdateEndUserError = EndUserNotFound | InvalidInput
+union DeleteEndUserError = EndUserNotFound
+union ListEndUsersError = InvalidInput
+
+# ============================================
+# EndUser Types
+# ============================================
+
+type EndUser implements Node {
+  id: ID!
+  username: String!
+  isForbidden: Boolean!
+  createdBy: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EndUserConnection {
+  nodes: [EndUser!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# ============================================
+# Payload Types
+# ============================================
+
+type CreateEndUserPayload {
+  endUser: EndUser
+  error: CreateEndUserError
+}
+
+type UpdateEndUserStatusPayload {
+  endUser: EndUser
+  error: UpdateEndUserError
+}
+
+type DeleteEndUserPayload {
+  success: Boolean!
+  error: DeleteEndUserError
+}
+
+type ListEndUsersPayload {
+  connection: EndUserConnection
+  error: ListEndUsersError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input CreateEndUserInput {
+  username: String! # 3–64 chars, ^[a-zA-Z0-9_-]+$
+  password: String! # at least 8 chars, must contain letter + digit
+}
+
+input UpdateEndUserStatusInput {
+  userId: ID!
+  isForbidden: Boolean!
+}
+
+input DeleteEndUserInput {
+  userId: ID!
+}
+
+input ListEndUsersInput {
+  search: String # username fuzzy search
+  first: Int # page size, default 20
+  after: String # cursor
+}
+
+# ============================================
+# Query & Mutation
+# ============================================
+
+extend type Query {
+  listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
+}
+
+extend type Mutation {
+  createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
+  updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
+  deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/permission.graphql", Input: `# Permission Management Types
@@ -3166,6 +3517,17 @@ func (ec *executionContext) field_Mutation_createCustomRole_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_createEndUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_createProject_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3181,6 +3543,17 @@ func (ec *executionContext) field_Mutation_createRole_args(ctx context.Context, 
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateRoleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateRoleInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_deleteEndUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNDeleteEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserInput)
 	if err != nil {
 		return nil, err
 	}
@@ -3312,6 +3685,17 @@ func (ec *executionContext) field_Mutation_updateApiKey_args(ctx context.Context
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_updateEndUserStatus_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateEndUserStatusInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserStatusInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateMyProfile_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -3396,6 +3780,17 @@ func (ec *executionContext) field_Query_databaseCluster_args(ctx context.Context
 		return nil, err
 	}
 	args["projectSlug"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_listEndUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalOListEndUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -4566,6 +4961,78 @@ func (ec *executionContext) fieldContext_CreateCustomRolePayload_error(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _CreateEndUserPayload_endUser(ctx context.Context, field graphql.CollectedField, obj *CreateEndUserPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CreateEndUserPayload_endUser,
+		func(ctx context.Context) (any, error) {
+			return obj.EndUser, nil
+		},
+		nil,
+		ec.marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CreateEndUserPayload_endUser(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateEndUserPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUser_username(ctx, field)
+			case "isForbidden":
+				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_EndUser_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUser_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUser_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateEndUserPayload_error(ctx context.Context, field graphql.CollectedField, obj *CreateEndUserPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CreateEndUserPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOCreateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CreateEndUserPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateEndUserPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CreateEndUserError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CreateProjectPayload_project(ctx context.Context, field graphql.CollectedField, obj *CreateProjectPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5514,6 +5981,64 @@ func (ec *executionContext) fieldContext_DeleteClusterPayload_error(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _DeleteEndUserPayload_success(ctx context.Context, field graphql.CollectedField, obj *DeleteEndUserPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_DeleteEndUserPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_DeleteEndUserPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DeleteEndUserPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _DeleteEndUserPayload_error(ctx context.Context, field graphql.CollectedField, obj *DeleteEndUserPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_DeleteEndUserPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalODeleteEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_DeleteEndUserPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "DeleteEndUserPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DeleteEndUserError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _DeletePermissionRolePayload_success(ctx context.Context, field graphql.CollectedField, obj *DeletePermissionRolePayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5683,6 +6208,407 @@ func (ec *executionContext) fieldContext_DeleteRolePayload_error(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type DeleteRoleError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUser_id(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUser_username(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_username,
+		func(ctx context.Context) (any, error) {
+			return obj.Username, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_username(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUser_isForbidden(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_isForbidden,
+		func(ctx context.Context) (any, error) {
+			return obj.IsForbidden, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_isForbidden(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUser_createdBy(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_createdBy,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUser_createdAt(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUser_updatedAt(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserAlreadyExists_message(ctx context.Context, field graphql.CollectedField, obj *EndUserAlreadyExists) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserAlreadyExists_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserAlreadyExists_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserAlreadyExists",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *EndUserConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserConnection_nodes,
+		func(ctx context.Context) (any, error) {
+			return obj.Nodes, nil
+		},
+		nil,
+		ec.marshalNEndUser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUser_username(ctx, field)
+			case "isForbidden":
+				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_EndUser_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUser_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUser_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *EndUserConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserConnection_pageInfo,
+		func(ctx context.Context) (any, error) {
+			return obj.PageInfo, nil
+		},
+		nil,
+		ec.marshalNPageInfo2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐPageInfo,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "hasPreviousPage":
+				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
+			case "startCursor":
+				return ec.fieldContext_PageInfo_startCursor(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *EndUserConnection) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserConnection_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPasswordTooWeak_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPasswordTooWeak) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPasswordTooWeak_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPasswordTooWeak_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPasswordTooWeak",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPasswordTooWeak_suggestion(ctx context.Context, field graphql.CollectedField, obj *EndUserPasswordTooWeak) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPasswordTooWeak_suggestion,
+		func(ctx context.Context) (any, error) {
+			return obj.Suggestion, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPasswordTooWeak_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPasswordTooWeak",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6054,6 +6980,72 @@ func (ec *executionContext) fieldContext_InvalidInput_suggestion(_ context.Conte
 	return fc, nil
 }
 
+func (ec *executionContext) _ListEndUsersPayload_connection(ctx context.Context, field graphql.CollectedField, obj *ListEndUsersPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListEndUsersPayload_connection,
+		func(ctx context.Context) (any, error) {
+			return obj.Connection, nil
+		},
+		nil,
+		ec.marshalOEndUserConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserConnection,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListEndUsersPayload_connection(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListEndUsersPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "nodes":
+				return ec.fieldContext_EndUserConnection_nodes(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_EndUserConnection_pageInfo(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_EndUserConnection_totalCount(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserConnection", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListEndUsersPayload_error(ctx context.Context, field graphql.CollectedField, obj *ListEndUsersPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListEndUsersPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOListEndUsersError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListEndUsersPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListEndUsersPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ListEndUsersError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_pong(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -6272,6 +7264,201 @@ func (ec *executionContext) fieldContext_Mutation_updateApiKey(ctx context.Conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_updateApiKey_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createEndUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createEndUser,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateEndUser(ctx, fc.Args["input"].(CreateEndUserInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:create")
+				if err != nil {
+					var zeroVal *CreateEndUserPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *CreateEndUserPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNCreateEndUserPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createEndUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "endUser":
+				return ec.fieldContext_CreateEndUserPayload_endUser(ctx, field)
+			case "error":
+				return ec.fieldContext_CreateEndUserPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateEndUserPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createEndUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateEndUserStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateEndUserStatus,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateEndUserStatus(ctx, fc.Args["input"].(UpdateEndUserStatusInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:update")
+				if err != nil {
+					var zeroVal *UpdateEndUserStatusPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *UpdateEndUserStatusPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNUpdateEndUserStatusPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserStatusPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateEndUserStatus(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "endUser":
+				return ec.fieldContext_UpdateEndUserStatusPayload_endUser(ctx, field)
+			case "error":
+				return ec.fieldContext_UpdateEndUserStatusPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UpdateEndUserStatusPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateEndUserStatus_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_deleteEndUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_deleteEndUser,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().DeleteEndUser(ctx, fc.Args["input"].(DeleteEndUserInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:delete")
+				if err != nil {
+					var zeroVal *DeleteEndUserPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *DeleteEndUserPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNDeleteEndUserPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_deleteEndUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_DeleteEndUserPayload_success(ctx, field)
+			case "error":
+				return ec.fieldContext_DeleteEndUserPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type DeleteEndUserPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_deleteEndUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -9440,6 +10627,71 @@ func (ec *executionContext) fieldContext_Query_apiKeys(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_listEndUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_listEndUsers,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ListEndUsers(ctx, fc.Args["input"].(*ListEndUsersInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:read")
+				if err != nil {
+					var zeroVal *ListEndUsersPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *ListEndUsersPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNListEndUsersPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_listEndUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "connection":
+				return ec.fieldContext_ListEndUsersPayload_connection(ctx, field)
+			case "error":
+				return ec.fieldContext_ListEndUsersPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListEndUsersPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_listEndUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_permissionRoles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11069,6 +12321,78 @@ func (ec *executionContext) fieldContext_UpdateClusterPayload_error(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type UpdateClusterError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateEndUserStatusPayload_endUser(ctx context.Context, field graphql.CollectedField, obj *UpdateEndUserStatusPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UpdateEndUserStatusPayload_endUser,
+		func(ctx context.Context) (any, error) {
+			return obj.EndUser, nil
+		},
+		nil,
+		ec.marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UpdateEndUserStatusPayload_endUser(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateEndUserStatusPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUser_username(ctx, field)
+			case "isForbidden":
+				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_EndUser_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUser_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUser_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UpdateEndUserStatusPayload_error(ctx context.Context, field graphql.CollectedField, obj *UpdateEndUserStatusPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UpdateEndUserStatusPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOUpdateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UpdateEndUserStatusPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UpdateEndUserStatusPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type UpdateEndUserError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13377,6 +14701,40 @@ func (ec *executionContext) unmarshalInputCreateCustomRoleInput(ctx context.Cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateEndUserInput(ctx context.Context, obj any) (CreateEndUserInput, error) {
+	var it CreateEndUserInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"username", "password"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "username":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Username = data
+		case "password":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Password = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputCreateProjectInput(ctx context.Context, obj any) (CreateProjectInput, error) {
 	var it CreateProjectInput
 	asMap := map[string]any{}
@@ -13522,6 +14880,74 @@ func (ec *executionContext) unmarshalInputDatabaseConnectionInput(ctx context.Co
 				return it, err
 			}
 			it.ConnectionTimeout = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputDeleteEndUserInput(ctx context.Context, obj any) (DeleteEndUserInput, error) {
+	var it DeleteEndUserInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"userId"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "userId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputListEndUsersInput(ctx context.Context, obj any) (ListEndUsersInput, error) {
+	var it ListEndUsersInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"search", "first", "after"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "search":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Search = data
+		case "first":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.First = data
+		case "after":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.After = data
 		}
 	}
 
@@ -13706,6 +15132,40 @@ func (ec *executionContext) unmarshalInputUpdateClusterConnectionInput(ctx conte
 				return it, err
 			}
 			it.SkipConnectionTest = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateEndUserStatusInput(ctx context.Context, obj any) (UpdateEndUserStatusInput, error) {
+	var it UpdateEndUserStatusInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"userId", "isForbidden"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "userId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		case "isForbidden":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isForbidden"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsForbidden = data
 		}
 	}
 
@@ -13935,6 +15395,36 @@ func (ec *executionContext) _CreateCustomRoleError(ctx context.Context, sel ast.
 	}
 }
 
+func (ec *executionContext) _CreateEndUserError(ctx context.Context, sel ast.SelectionSet, obj CreateEndUserError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserPasswordTooWeak:
+		return ec._EndUserPasswordTooWeak(ctx, sel, &obj)
+	case *EndUserPasswordTooWeak:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
+	case EndUserAlreadyExists:
+		return ec._EndUserAlreadyExists(ctx, sel, &obj)
+	case *EndUserAlreadyExists:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserAlreadyExists(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _CreateProjectError(ctx context.Context, sel ast.SelectionSet, obj CreateProjectError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -14006,6 +15496,22 @@ func (ec *executionContext) _DeleteClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ClusterNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _DeleteEndUserError(ctx context.Context, sel ast.SelectionSet, obj DeleteEndUserError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case EndUserNotFound:
+		return ec._EndUserNotFound(ctx, sel, &obj)
+	case *EndUserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14140,6 +15646,27 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserPasswordTooWeak:
+		return ec._EndUserPasswordTooWeak(ctx, sel, &obj)
+	case *EndUserPasswordTooWeak:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
+	case EndUserNotFound:
+		return ec._EndUserNotFound(ctx, sel, &obj)
+	case *EndUserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserNotFound(ctx, sel, obj)
+	case EndUserAlreadyExists:
+		return ec._EndUserAlreadyExists(ctx, sel, &obj)
+	case *EndUserAlreadyExists:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserAlreadyExists(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -14279,6 +15806,22 @@ func (ec *executionContext) _GetProjectError(ctx context.Context, sel ast.Select
 	}
 }
 
+func (ec *executionContext) _ListEndUsersError(ctx context.Context, sel ast.SelectionSet, obj ListEndUsersError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj Node) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -14304,6 +15847,13 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._Profile(ctx, sel, obj)
+	case EndUser:
+		return ec._EndUser(ctx, sel, &obj)
+	case *EndUser:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUser(ctx, sel, obj)
 	case DatabaseCluster:
 		return ec._DatabaseCluster(ctx, sel, &obj)
 	case *DatabaseCluster:
@@ -14530,6 +16080,29 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ClusterNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.SelectionSet, obj UpdateEndUserError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserNotFound:
+		return ec._EndUserNotFound(ctx, sel, &obj)
+	case *EndUserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -15232,6 +16805,44 @@ func (ec *executionContext) _CreateCustomRolePayload(ctx context.Context, sel as
 	return out
 }
 
+var createEndUserPayloadImplementors = []string{"CreateEndUserPayload"}
+
+func (ec *executionContext) _CreateEndUserPayload(ctx context.Context, sel ast.SelectionSet, obj *CreateEndUserPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createEndUserPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateEndUserPayload")
+		case "endUser":
+			out.Values[i] = ec._CreateEndUserPayload_endUser(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._CreateEndUserPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var createProjectPayloadImplementors = []string{"CreateProjectPayload"}
 
 func (ec *executionContext) _CreateProjectPayload(ctx context.Context, sel ast.SelectionSet, obj *CreateProjectPayload) graphql.Marshaler {
@@ -15593,6 +17204,47 @@ func (ec *executionContext) _DeleteClusterPayload(ctx context.Context, sel ast.S
 	return out
 }
 
+var deleteEndUserPayloadImplementors = []string{"DeleteEndUserPayload"}
+
+func (ec *executionContext) _DeleteEndUserPayload(ctx context.Context, sel ast.SelectionSet, obj *DeleteEndUserPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, deleteEndUserPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("DeleteEndUserPayload")
+		case "success":
+			out.Values[i] = ec._DeleteEndUserPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._DeleteEndUserPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var deletePermissionRolePayloadImplementors = []string{"DeletePermissionRolePayload"}
 
 func (ec *executionContext) _DeletePermissionRolePayload(ctx context.Context, sel ast.SelectionSet, obj *DeletePermissionRolePayload) graphql.Marshaler {
@@ -15693,6 +17345,235 @@ func (ec *executionContext) _DeleteRolePayload(ctx context.Context, sel ast.Sele
 			}
 		case "error":
 			out.Values[i] = ec._DeleteRolePayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserImplementors = []string{"EndUser", "Node"}
+
+func (ec *executionContext) _EndUser(ctx context.Context, sel ast.SelectionSet, obj *EndUser) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUser")
+		case "id":
+			out.Values[i] = ec._EndUser_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "username":
+			out.Values[i] = ec._EndUser_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isForbidden":
+			out.Values[i] = ec._EndUser_isForbidden(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdBy":
+			out.Values[i] = ec._EndUser_createdBy(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._EndUser_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._EndUser_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserAlreadyExistsImplementors = []string{"EndUserAlreadyExists", "Error", "CreateEndUserError"}
+
+func (ec *executionContext) _EndUserAlreadyExists(ctx context.Context, sel ast.SelectionSet, obj *EndUserAlreadyExists) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserAlreadyExistsImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserAlreadyExists")
+		case "message":
+			out.Values[i] = ec._EndUserAlreadyExists_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserConnectionImplementors = []string{"EndUserConnection"}
+
+func (ec *executionContext) _EndUserConnection(ctx context.Context, sel ast.SelectionSet, obj *EndUserConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserConnection")
+		case "nodes":
+			out.Values[i] = ec._EndUserConnection_nodes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._EndUserConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._EndUserConnection_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError"}
+
+func (ec *executionContext) _EndUserNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserNotFound")
+		case "message":
+			out.Values[i] = ec._EndUserNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError"}
+
+func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast.SelectionSet, obj *EndUserPasswordTooWeak) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPasswordTooWeakImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserPasswordTooWeak")
+		case "message":
+			out.Values[i] = ec._EndUserPasswordTooWeak_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggestion":
+			out.Values[i] = ec._EndUserPasswordTooWeak_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15868,7 +17749,7 @@ func (ec *executionContext) _GetProjectPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "CreateApiKeyError", "UpdateApiKeyError", "Error", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
+var invalidInputImplementors = []string{"InvalidInput", "CreateApiKeyError", "UpdateApiKeyError", "Error", "CreateEndUserError", "UpdateEndUserError", "ListEndUsersError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -15886,6 +17767,44 @@ func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.Selection
 			}
 		case "suggestion":
 			out.Values[i] = ec._InvalidInput_suggestion(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var listEndUsersPayloadImplementors = []string{"ListEndUsersPayload"}
+
+func (ec *executionContext) _ListEndUsersPayload(ctx context.Context, sel ast.SelectionSet, obj *ListEndUsersPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listEndUsersPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListEndUsersPayload")
+		case "connection":
+			out.Values[i] = ec._ListEndUsersPayload_connection(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._ListEndUsersPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15952,6 +17871,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "updateApiKey":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateApiKey(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createEndUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createEndUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateEndUserStatus":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateEndUserStatus(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "deleteEndUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_deleteEndUser(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -17093,6 +19033,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "listEndUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_listEndUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "permissionRoles":
 			field := field
 
@@ -17783,6 +19745,44 @@ func (ec *executionContext) _UpdateClusterPayload(ctx context.Context, sel ast.S
 			out.Values[i] = ec._UpdateClusterPayload_cluster(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._UpdateClusterPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var updateEndUserStatusPayloadImplementors = []string{"UpdateEndUserStatusPayload"}
+
+func (ec *executionContext) _UpdateEndUserStatusPayload(ctx context.Context, sel ast.SelectionSet, obj *UpdateEndUserStatusPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, updateEndUserStatusPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UpdateEndUserStatusPayload")
+		case "endUser":
+			out.Values[i] = ec._UpdateEndUserStatusPayload_endUser(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._UpdateEndUserStatusPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -18695,6 +20695,25 @@ func (ec *executionContext) marshalNCreateCustomRolePayload2ᚖmodelcraftᚋinte
 	return ec._CreateCustomRolePayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNCreateEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserInput(ctx context.Context, v any) (CreateEndUserInput, error) {
+	res, err := ec.unmarshalInputCreateEndUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCreateEndUserPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserPayload(ctx context.Context, sel ast.SelectionSet, v CreateEndUserPayload) graphql.Marshaler {
+	return ec._CreateEndUserPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateEndUserPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserPayload(ctx context.Context, sel ast.SelectionSet, v *CreateEndUserPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateEndUserPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNCreateProjectInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateProjectInput(ctx context.Context, v any) (CreateProjectInput, error) {
 	res, err := ec.unmarshalInputCreateProjectInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -18762,6 +20781,25 @@ func (ec *executionContext) unmarshalNDatabaseConnectionInput2ᚖmodelcraftᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalNDeleteEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserInput(ctx context.Context, v any) (DeleteEndUserInput, error) {
+	res, err := ec.unmarshalInputDeleteEndUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDeleteEndUserPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserPayload(ctx context.Context, sel ast.SelectionSet, v DeleteEndUserPayload) graphql.Marshaler {
+	return ec._DeleteEndUserPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNDeleteEndUserPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserPayload(ctx context.Context, sel ast.SelectionSet, v *DeleteEndUserPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._DeleteEndUserPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNDeletePermissionRolePayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeletePermissionRolePayload(ctx context.Context, sel ast.SelectionSet, v DeletePermissionRolePayload) graphql.Marshaler {
 	return ec._DeletePermissionRolePayload(ctx, sel, &v)
 }
@@ -18802,6 +20840,60 @@ func (ec *executionContext) marshalNDeleteRolePayload2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._DeleteRolePayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEndUser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUser) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUser(ctx context.Context, sel ast.SelectionSet, v *EndUser) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUser(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNGetClusterPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetClusterPayload(ctx context.Context, sel ast.SelectionSet, v GetClusterPayload) graphql.Marshaler {
@@ -18922,6 +21014,20 @@ func (ec *executionContext) marshalNInt642int(ctx context.Context, sel ast.Selec
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNListEndUsersPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersPayload(ctx context.Context, sel ast.SelectionSet, v ListEndUsersPayload) graphql.Marshaler {
+	return ec._ListEndUsersPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListEndUsersPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersPayload(ctx context.Context, sel ast.SelectionSet, v *ListEndUsersPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ListEndUsersPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNMembershipStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐMembershipStatus(ctx context.Context, v any) (MembershipStatus, error) {
@@ -19542,6 +21648,25 @@ func (ec *executionContext) marshalNUpdateClusterPayload2ᚖmodelcraftᚋinterna
 	return ec._UpdateClusterPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNUpdateEndUserStatusInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserStatusInput(ctx context.Context, v any) (UpdateEndUserStatusInput, error) {
+	res, err := ec.unmarshalInputUpdateEndUserStatusInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpdateEndUserStatusPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserStatusPayload(ctx context.Context, sel ast.SelectionSet, v UpdateEndUserStatusPayload) graphql.Marshaler {
+	return ec._UpdateEndUserStatusPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUpdateEndUserStatusPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserStatusPayload(ctx context.Context, sel ast.SelectionSet, v *UpdateEndUserStatusPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UpdateEndUserStatusPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNUpdateMyProfileInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfileInput(ctx context.Context, v any) (UpdateMyProfileInput, error) {
 	res, err := ec.unmarshalInputUpdateMyProfileInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -20000,6 +22125,13 @@ func (ec *executionContext) marshalOCreateCustomRoleError2modelcraftᚋinternal�
 	return ec._CreateCustomRoleError(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOCreateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateEndUserError(ctx context.Context, sel ast.SelectionSet, v CreateEndUserError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CreateEndUserError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOCreateProjectError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateProjectError(ctx context.Context, sel ast.SelectionSet, v CreateProjectError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -20036,6 +22168,13 @@ func (ec *executionContext) marshalODeleteClusterError2modelcraftᚋinternalᚋi
 	return ec._DeleteClusterError(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalODeleteEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteEndUserError(ctx context.Context, sel ast.SelectionSet, v DeleteEndUserError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DeleteEndUserError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalODeletePermissionRoleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeletePermissionRoleError(ctx context.Context, sel ast.SelectionSet, v DeletePermissionRoleError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -20055,6 +22194,20 @@ func (ec *executionContext) marshalODeleteRoleError2modelcraftᚋinternalᚋinte
 		return graphql.Null
 	}
 	return ec._DeleteRoleError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUser(ctx context.Context, sel ast.SelectionSet, v *EndUser) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUser(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEndUserConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserConnection(ctx context.Context, sel ast.SelectionSet, v *EndUserConnection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUserConnection(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
@@ -20154,6 +22307,21 @@ func (ec *executionContext) marshalOInt2ᚖint32(ctx context.Context, sel ast.Se
 	_ = ctx
 	res := graphql.MarshalInt32(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOListEndUsersError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersError(ctx context.Context, sel ast.SelectionSet, v ListEndUsersError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ListEndUsersError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOListEndUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListEndUsersInput(ctx context.Context, v any) (*ListEndUsersInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputListEndUsersInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOListProjectsInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐListProjectsInput(ctx context.Context, v any) (*ListProjectsInput, error) {
@@ -20312,6 +22480,13 @@ func (ec *executionContext) marshalOUpdateClusterError2modelcraftᚋinternalᚋi
 		return graphql.Null
 	}
 	return ec._UpdateClusterError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOUpdateEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateEndUserError(ctx context.Context, sel ast.SelectionSet, v UpdateEndUserError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._UpdateEndUserError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUpdateMyProfileError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUpdateMyProfileError(ctx context.Context, sel ast.SelectionSet, v UpdateMyProfileError) graphql.Marshaler {

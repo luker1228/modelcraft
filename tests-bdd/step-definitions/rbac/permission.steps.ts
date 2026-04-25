@@ -72,6 +72,7 @@ declare module '../../support/world' {
     createdBundleIds: string[]
     currentRoleId: string | null
     createdRoleIds: string[]
+    lastPermissionDisplayName: string | null
   }
 }
 
@@ -82,6 +83,7 @@ function initRbacState(world: ModelCraftWorld) {
   if (world.createdBundleIds === undefined) world.createdBundleIds = []
   if (world.currentRoleId === undefined) world.currentRoleId = null
   if (world.createdRoleIds === undefined) world.createdRoleIds = []
+  if (world.lastPermissionDisplayName === undefined) world.lastPermissionDisplayName = null
 }
 
 // ── Given ─────────────────────────────────────────────────────
@@ -119,6 +121,7 @@ Given(
 
     this.currentPermissionId = perm.id
     this.createdPermissionIds.push(perm.id)
+    this.lastPermissionDisplayName = displayName
     this.lastResponse = { createEndUserPermission: res.createEndUserPermission }
   }
 )
@@ -173,8 +176,8 @@ When(
     const modelId = this.currentModelId
     if (!modelId) throw new Error('没有可用的模型 ID')
 
-    // 使用相同的 uniqueName base，但实际上 DB 约束是 model_id+action+row_scope+name
-    // 为了触发重名，使用和 Given 相同的 baseName 生成同名 displayName（注：这里直接用 baseName 不加随机后缀）
+    // 复用 Given 步骤创建的 displayName（带唯一后缀），触发 DB 唯一约束 (model_id, action, row_scope, name)
+    const displayName = this.lastPermissionDisplayName ?? baseName
     const res = await this.projectClient.mutate<{
       createEndUserPermission: {
         permission: { id: string } | null
@@ -185,7 +188,7 @@ When(
         modelId,
         action,
         rowScope,
-        displayName: baseName, // 不加随机后缀，与 Given 中的名称冲突（DB unique constraint）
+        displayName,
         columnPolicy: { defaultMode: 'VISIBLE', rules: [] },
       },
     })

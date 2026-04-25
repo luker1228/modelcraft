@@ -14,6 +14,8 @@ import (
 
 // PrivateDBManager 定义私有数据库连接管理器接口。
 type PrivateDBManager interface {
+	// Deprecated: GetOrInit still accepts projectSlug for backward compatibility,
+	// but EndUser is now Org-scoped. The projectSlug parameter will be removed.
 	GetOrInit(ctx context.Context, orgName, projectSlug string) (*sql.DB, error)
 }
 
@@ -61,7 +63,7 @@ func (s *EndUserManagementAppService) CreateEndUser(
 		return nil, bizerrors.Wrapf(err, "failed to generate end user id")
 	}
 
-	user, err := domainenduser.NewEndUser(userID, cmd.Username, cmd.CreatedBy, hashedPwd)
+	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, cmd.CreatedBy, hashedPwd)
 	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to create end user entity")
 	}
@@ -101,9 +103,10 @@ func (s *EndUserManagementAppService) ListEndUsers(
 
 	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 	users, totalCount, err := repo.ListWithTotal(ctx, domainenduser.ListEndUsersQuery{
-		Search: cmd.Search,
-		First:  first,
-		After:  cmd.After,
+		OrgName: cmd.OrgName,
+		Search:  cmd.Search,
+		First:   first,
+		After:   cmd.After,
 	})
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -139,7 +142,7 @@ func (s *EndUserManagementAppService) GetEndUser(
 	}
 
 	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
-	user, err := repo.GetByID(ctx, cmd.UserID)
+	user, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -161,7 +164,7 @@ func (s *EndUserManagementAppService) UpdateEndUserStatus(
 	}
 
 	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
-	user, err := repo.GetByID(ctx, cmd.UserID)
+	user, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -175,11 +178,11 @@ func (s *EndUserManagementAppService) UpdateEndUserStatus(
 		user.Enable()
 	}
 
-	if err := repo.UpdateStatus(ctx, cmd.UserID, user.IsForbidden); err != nil {
+	if err := repo.UpdateStatus(ctx, cmd.OrgName, cmd.UserID, user.IsForbidden); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	updated, err := repo.GetByID(ctx, cmd.UserID)
+	updated, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -201,7 +204,7 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	}
 
 	userRepo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
-	user, err := userRepo.GetByID(ctx, cmd.UserID)
+	user, err := userRepo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -212,11 +215,15 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
 		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
 		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
+		txAccessRepo := infrrepo.NewSqlEndUserProjectAccessRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
 
 		if err := txSessionRepo.RevokeAllByUserID(ctx, cmd.UserID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
-		if err := txUserRepo.Delete(ctx, cmd.UserID); err != nil {
+		if err := txAccessRepo.RemoveByEndUserID(ctx, cmd.OrgName, cmd.UserID); err != nil {
+			return bizerrors.ConvertRepositoryError(ctx, err)
+		}
+		if err := txUserRepo.Delete(ctx, cmd.OrgName, cmd.UserID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
 		return nil

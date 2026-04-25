@@ -141,8 +141,12 @@ func TestSqlLogicalForeignKeyRepository_FindByModel(t *testing.T) {
 	repo := &SqlLogicalForeignKeyRepository{q: mockQ}
 	ctx := context.Background()
 
-	rows := []dbgen.LogicalForeignKey{newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User")}
-	expectedArg := dbgen.FindLogicalForeignKeysByModelIDParams{OrgName: "test-org", ModelID: "model-order"}
+	row := newTestLFRow("lf-001", "pair-001", "normal", "model-order", "Order", "model-user", "User")
+	rows := []dbgen.LogicalForeignKey{row}
+	expectedArg := dbgen.FindLogicalForeignKeysByModelIDParams{
+		OrgName: "test-org",
+		ModelID: "model-order",
+	}
 	mockQ.On("FindLogicalForeignKeysByModelID", ctx, expectedArg).Return(rows, nil)
 
 	result, err := repo.FindByModel(ctx, "test-org", "model-order")

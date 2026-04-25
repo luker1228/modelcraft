@@ -13,9 +13,11 @@ import (
 const getBundleIDsByImplicitRoles = `-- name: GetBundleIDsByImplicitRoles :many
 SELECT DISTINCT rb.bundle_id
 FROM end_user_roles r
-  JOIN end_user_role_bundles rb ON r.id = rb.role_id
+  JOIN end_user_role_bundles rb
+    ON r.id = rb.role_id
+   AND r.org_name = rb.org_name
 WHERE r.org_name = ?
-  AND r.project_slug = ?
+  AND rb.project_slug = ?
   AND r.is_implicit = TRUE
 `
 
@@ -89,10 +91,12 @@ func (q *Queries) GetBundleIDsByUserDirect(ctx context.Context, arg GetBundleIDs
 const getBundleIDsByUserExplicitRoles = `-- name: GetBundleIDsByUserExplicitRoles :many
 SELECT DISTINCT rb.bundle_id
 FROM end_user_role_users ur
-  JOIN end_user_role_bundles rb ON ur.role_id = rb.role_id
+  JOIN end_user_role_bundles rb
+    ON ur.role_id = rb.role_id
+   AND ur.org_name = rb.org_name
 WHERE ur.user_id = ?
   AND ur.org_name = ?
-  AND ur.project_slug = ?
+  AND rb.project_slug = ?
 `
 
 type GetBundleIDsByUserExplicitRolesParams struct {

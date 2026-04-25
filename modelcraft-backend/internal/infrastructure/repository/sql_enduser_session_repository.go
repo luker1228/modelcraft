@@ -14,7 +14,7 @@ import (
 //
 // Note:
 // - It operates on end_user_accounts in mc_meta.
-// - Tenant isolation is enforced by (org_name, project_slug).
+// - Tenant isolation is enforced by org_name.
 // - not found -> (nil, nil)
 // - update by id checks RowsAffected.
 type endUserSessionDBTX interface {
@@ -23,20 +23,18 @@ type endUserSessionDBTX interface {
 }
 
 type SqlEndUserSessionRepository struct {
-	db          endUserSessionDBTX
-	orgName     string
-	projectSlug string
+	db      endUserSessionDBTX
+	orgName string
 }
 
 // NewSqlEndUserSessionRepository creates a SqlEndUserSessionRepository.
 func NewSqlEndUserSessionRepository(
 	db endUserSessionDBTX,
-	orgName, projectSlug string,
+	orgName, _ string,
 ) enduser.EndUserSessionRepository {
 	return &SqlEndUserSessionRepository{
-		db:          db,
-		orgName:     orgName,
-		projectSlug: projectSlug,
+		db:      db,
+		orgName: orgName,
 	}
 }
 
@@ -44,15 +42,14 @@ func NewSqlEndUserSessionRepository(
 func (r *SqlEndUserSessionRepository) Save(ctx context.Context, session *enduser.EndUserSession) error {
 	const query = `
 		INSERT INTO end_user_accounts (
-			id, org_name, project_slug, user_id, refresh_token_hash, expires_at, revoked, created_at
+			id, org_name, user_id, refresh_token_hash, expires_at, revoked, created_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, 0, NOW())
+		VALUES (?, ?, ?, ?, ?, 0, NOW())
 	`
 
 	_, err := r.db.ExecContext(ctx, query,
 		session.ID,
 		r.orgName,
-		r.projectSlug,
 		session.UserID,
 		session.RefreshTokenHash,
 		session.ExpiresAt,
@@ -73,10 +70,10 @@ func (r *SqlEndUserSessionRepository) GetByTokenHash(
 	const query = `
 		SELECT id, user_id, refresh_token_hash, expires_at, revoked, created_at
 		FROM end_user_accounts
-		WHERE refresh_token_hash = ? AND org_name = ? AND project_slug = ?
+		WHERE refresh_token_hash = ? AND org_name = ?
 	`
 
-	row := r.db.QueryRowContext(ctx, query, tokenHash, r.orgName, r.projectSlug)
+	row := r.db.QueryRowContext(ctx, query, tokenHash, r.orgName)
 
 	var (
 		sessionID        string
@@ -118,10 +115,10 @@ func (r *SqlEndUserSessionRepository) RevokeByID(ctx context.Context, id string)
 	const query = `
 		UPDATE end_user_accounts
 		SET revoked = 1
-		WHERE id = ? AND org_name = ? AND project_slug = ?
+		WHERE id = ? AND org_name = ?
 	`
 
-	result, err := r.db.ExecContext(ctx, query, id, r.orgName, r.projectSlug)
+	result, err := r.db.ExecContext(ctx, query, id, r.orgName)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -142,10 +139,10 @@ func (r *SqlEndUserSessionRepository) RevokeAllByUserID(ctx context.Context, use
 	const query = `
 		UPDATE end_user_accounts
 		SET revoked = 1
-		WHERE user_id = ? AND org_name = ? AND project_slug = ?
+		WHERE user_id = ? AND org_name = ?
 	`
 
-	_, err := r.db.ExecContext(ctx, query, userID, r.orgName, r.projectSlug)
+	_, err := r.db.ExecContext(ctx, query, userID, r.orgName)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}

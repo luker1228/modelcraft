@@ -12,14 +12,23 @@ import {
 // ── Query Handlers ─────────────────────────────────────────────────────────────
 
 export const rbacHandlers = [
-  // GetEndUserPermissions — 返回 3-5 个权限点
+  // GetEndUserPermissions — 返回 3-5 个权限点（现在返回 Connection 类型）
   graphql.query('GetEndUserPermissions', () => {
     const permissions = Array.from(
       { length: 4 },
       () => createMockEndUserPermission()
     )
     return HttpResponse.json({
-      data: { endUserPermissions: permissions },
+      data: {
+        endUserPermissions: {
+          edges: permissions.map(node => ({ node, cursor: node.id })),
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: permissions[permissions.length - 1]?.id,
+          },
+          totalCount: permissions.length,
+        },
+      },
     })
   }),
 
@@ -30,7 +39,16 @@ export const rbacHandlers = [
       () => createMockEndUserBundle()
     )
     return HttpResponse.json({
-      data: { endUserBundles: bundles },
+      data: {
+        endUserPermissionBundles: {
+          edges: bundles.map(node => ({ node, cursor: node.id })),
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: bundles[bundles.length - 1]?.id,
+          },
+          totalCount: bundles.length,
+        },
+      },
     })
   }),
 
@@ -38,7 +56,7 @@ export const rbacHandlers = [
   graphql.query('GetEndUserBundle', ({ variables }) => {
     const bundle = createMockEndUserBundle({ id: variables.id as string })
     return HttpResponse.json({
-      data: { endUserBundle: bundle },
+      data: { endUserPermissionBundle: bundle },
     })
   }),
 
@@ -50,7 +68,16 @@ export const rbacHandlers = [
       createMockEndUserRole(),
     ]
     return HttpResponse.json({
-      data: { endUserRoles: roles },
+      data: {
+        endUserRoles: {
+          edges: roles.map(node => ({ node, cursor: node.id })),
+          pageInfo: {
+            hasNextPage: false,
+            endCursor: roles[roles.length - 1]?.id,
+          },
+          totalCount: roles.length,
+        },
+      },
     })
   }),
 
@@ -65,14 +92,17 @@ export const rbacHandlers = [
     })
   }),
 
-  // GetEndUserEffectivePermissions — 返回空 grants（无权限时的初始状态）
+  // GetEndUserEffectivePermissions — 返回有效权限
   graphql.query('GetEndUserEffectivePermissions', ({ variables }) => {
     return HttpResponse.json({
       data: {
-        endUserEffectivePermissions: {
-          endUserId: variables.endUserId,
-          modelId: '',
-          grants: [],
+        effectivePermissions: {
+          effectivePermissions: {
+            endUserId: variables.endUserId,
+            modelId: variables.modelId,
+            grants: [],
+          },
+          error: null,
         },
       },
     })
@@ -104,12 +134,12 @@ export const rbacHandlers = [
     })
   }),
 
-  // CreateEndUserBundle
+  // CreateEndUserBundle (formerly CreateEndUserBundle)
   graphql.mutation('CreateEndUserBundle', ({ variables }) => {
     const input = variables.input as { name?: string; description?: string }
     return HttpResponse.json({
       data: {
-        createEndUserBundle: {
+        createEndUserPermissionBundle: {
           bundle: createMockEndUserBundle({
             name: input?.name,
             description: input?.description,
@@ -120,12 +150,12 @@ export const rbacHandlers = [
     })
   }),
 
-  // UpdateEndUserBundle
+  // UpdateEndUserBundle (formerly UpdateEndUserBundle)
   graphql.mutation('UpdateEndUserBundle', ({ variables }) => {
     const input = variables.input as { name?: string; description?: string }
     return HttpResponse.json({
       data: {
-        updateEndUserBundle: {
+        updateEndUserPermissionBundle: {
           bundle: createMockEndUserBundle({
             id: variables.id as string,
             name: input?.name,
@@ -137,11 +167,11 @@ export const rbacHandlers = [
     })
   }),
 
-  // DeleteEndUserBundle
+  // DeleteEndUserBundle (formerly DeleteEndUserBundle)
   graphql.mutation('DeleteEndUserBundle', () => {
     return HttpResponse.json({
       data: {
-        deleteEndUserBundle: {
+        deleteEndUserPermissionBundle: {
           success: true,
           error: null,
         },
@@ -149,24 +179,24 @@ export const rbacHandlers = [
     })
   }),
 
-  // AddPermissionToBundle
+  // AddPermissionToBundle (formerly AddPermissionToBundle)
   graphql.mutation('AddPermissionToBundle', ({ variables }) => {
     return HttpResponse.json({
       data: {
-        addPermissionToBundle: {
-          bundle: createMockEndUserBundle({ id: variables.bundleId as string }),
+        addEndUserPermissionToBundle: {
+          bundle: createMockEndUserBundle({ id: variables.input.bundleId as string }),
           error: null,
         },
       },
     })
   }),
 
-  // RemovePermissionFromBundle
+  // RemovePermissionFromBundle (formerly RemovePermissionFromBundle)
   graphql.mutation('RemovePermissionFromBundle', ({ variables }) => {
     return HttpResponse.json({
       data: {
-        removePermissionFromBundle: {
-          bundle: createMockEndUserBundle({ id: variables.bundleId as string }),
+        removeEndUserPermissionFromBundle: {
+          bundle: createMockEndUserBundle({ id: variables.input.bundleId as string }),
           error: null,
         },
       },
@@ -201,51 +231,48 @@ export const rbacHandlers = [
     })
   }),
 
-  // AssignBundleToRole
+  // AssignBundleToRole (formerly AssignBundleToRole)
   graphql.mutation('AssignBundleToRole', ({ variables }) => {
     return HttpResponse.json({
       data: {
-        assignBundleToRole: {
-          role: createMockEndUserRole({ id: variables.roleId as string }),
+        assignBundleToEndUserRole: {
+          role: createMockEndUserRole({ id: variables.input.roleId as string }),
           error: null,
         },
       },
     })
   }),
 
-  // RevokeBundleFromRole
+  // RevokeBundleFromRole (formerly RevokeBundleFromRole)
   graphql.mutation('RevokeBundleFromRole', ({ variables }) => {
     return HttpResponse.json({
       data: {
-        revokeBundleFromRole: {
-          role: createMockEndUserRole({ id: variables.roleId as string }),
+        revokeBundleFromEndUserRole: {
+          role: createMockEndUserRole({ id: variables.input.roleId as string }),
           error: null,
         },
       },
     })
   }),
 
-  // AssignEndUserRoleToUser
+  // AssignEndUserRoleToUser (formerly AssignEndUserRoleToUser)
   graphql.mutation('AssignEndUserRoleToUser', ({ variables }) => {
     return HttpResponse.json({
       data: {
-        assignEndUserRoleToUser: {
-          assignment: {
-            endUserId: variables.endUserId,
-            role: createMockEndUserRole({ id: variables.roleId as string }),
-            assignedAt: new Date().toISOString(),
-          },
+        assignEndUserRole: {
+          endUserId: variables.input.endUserId,
+          role: createMockEndUserRole({ id: variables.input.roleId as string }),
           error: null,
         },
       },
     })
   }),
 
-  // RevokeEndUserRoleFromUser
+  // RevokeEndUserRoleFromUser (formerly RevokeEndUserRoleFromUser)
   graphql.mutation('RevokeEndUserRoleFromUser', () => {
     return HttpResponse.json({
       data: {
-        revokeEndUserRoleFromUser: {
+        revokeEndUserRole: {
           success: true,
           error: null,
         },
@@ -258,11 +285,8 @@ export const rbacHandlers = [
     return HttpResponse.json({
       data: {
         assignBundleToEndUser: {
-          assignment: {
-            endUserId: variables.endUserId,
-            bundle: createMockEndUserBundle({ id: variables.bundleId as string }),
-            grantedAt: new Date().toISOString(),
-          },
+          endUserId: variables.input.endUserId,
+          bundle: createMockEndUserBundle({ id: variables.input.bundleId as string }),
           error: null,
         },
       },

@@ -15,7 +15,6 @@ import type {
 
 const ACTIONS: EndUserPermissionAction[] = ['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'EXPORT']
 const ROW_SCOPES: EndUserRowScope[] = ['ALL', 'SELF', 'DEPT', 'DEPT_AND_CHILDREN']
-const MODEL_NAMES = ['orders', 'customers', 'products', 'invoices', 'tickets']
 
 // ── ColumnPolicy 工厂 ─────────────────────────────────────────────────────────
 
@@ -32,17 +31,15 @@ export function createMockColumnPolicy(override: Partial<ColumnPolicy> = {}): Co
 export function createMockEndUserPermission(
   override: Partial<EndUserPermission> = {}
 ): EndUserPermission {
-  const modelName = faker.helpers.arrayElement(MODEL_NAMES)
   const action = faker.helpers.arrayElement(ACTIONS)
 
   return {
     id: faker.string.uuid(),
     modelId: faker.string.uuid(),
-    modelDisplayName: modelName.charAt(0).toUpperCase() + modelName.slice(1),
     action,
     rowScope: faker.helpers.arrayElement(ROW_SCOPES),
     columnPolicy: createMockColumnPolicy(),
-    displayName: `${modelName} ${faker.word.adjective()} 权限`,
+    displayName: `${action} 权限`,
     description: faker.lorem.sentence(),
     createdAt: faker.date.recent({ days: 30 }).toISOString(),
     updatedAt: faker.date.recent({ days: 7 }).toISOString(),

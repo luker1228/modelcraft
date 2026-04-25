@@ -66,9 +66,9 @@ Feature: 终端用户认证管理
 
   # ==================== 终端用户自助认证（OpenAPI/终端用户侧）====================
 
-  Scenario: 终端用户自助注册并自动登录
+  Scenario: 终端用户自助注册
     When 终端用户自助注册，用户名为 "selfreg"，密码为 "Pass1234"
-    Then 注册成功并返回 access token
+    Then 注册成功并返回 refresh token
     And 返回的 token 有效期为 3600 秒
 
   Scenario: 终端用户使用正确凭证登录
@@ -76,6 +76,8 @@ Feature: 终端用户认证管理
     When 终端用户登录，用户名为 "logintest"，密码为 "Pass1234"
     Then 登录成功并返回 access token
     And 返回 refresh token
+    And 返回可访问项目列表
+    And 可访问项目列表应包含 "testproject"
 
   Scenario: 终端用户使用错误密码登录
     Given 已存在终端用户 "wrongpwd"，密码 "Pass1234"
@@ -119,6 +121,25 @@ Feature: 终端用户认证管理
     When 终端用户刷新 token
     Then 返回终端用户错误码 "INVALID_REFRESH_TOKEN"
     And HTTP 状态码应该是 401
+
+  Scenario: 被禁用的终端用户无法刷新 token
+    Given 已存在并登录后被禁用的终端用户 "disabledrefresh"
+    When 使用该用户的 refresh token 刷新
+    Then 返回终端用户错误码 "ACCOUNT_DISABLED"
+    And HTTP 状态码应该是 403
+
+  Scenario: 终端用户选择已授权项目上下文
+    Given 终端用户 "projectselector" 已登录并持有 refresh token
+    When 终端用户选择项目上下文 "testproject"
+    Then 选择项目成功并返回用户信息
+    And 返回已选择项目 "testproject"
+    And 返回中不应包含 access token
+
+  Scenario: 被禁用的终端用户无法选择项目上下文
+    Given 已存在并登录后被禁用的终端用户 "disabledselect"
+    When 使用该用户的 refresh token 选择项目 "testproject"
+    Then 返回终端用户错误码 "ACCOUNT_DISABLED"
+    And HTTP 状态码应该是 403
 
   # ==================== 删除用户后 Session 清理 ====================
 
