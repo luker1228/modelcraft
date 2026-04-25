@@ -1,5 +1,5 @@
 // src/bff/end-user/end-user-pending-session.ts
-// v2 pending session：登录成功但需选择 Project 时，签发短期临时 token
+// v1 pending session：登录成功但需选择 Project 时，签发短期临时 token
 // 区别于正式 access token：不含 projectSlug，issuer = 'modelcraft-end-user-pending'
 
 import { SignJWT, jwtVerify } from 'jose'

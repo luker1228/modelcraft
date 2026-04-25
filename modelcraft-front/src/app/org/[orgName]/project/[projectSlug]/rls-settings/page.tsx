@@ -631,7 +631,7 @@ export default function RLSSettingsPage() {
                   </div>
                 </div>
               ) : (
-                <div className="overflow-x-auto rounded-md border">
+                <div className="overflow-hidden overflow-x-auto rounded-lg border border-border bg-card">
                   <table className="w-full table-fixed text-sm">
                     <thead className="bg-muted/40 text-xs text-muted-foreground">
                       <tr>

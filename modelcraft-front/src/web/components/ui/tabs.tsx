@@ -93,7 +93,7 @@ export function TabsTrigger({ value, children, className, disabled }: TabsTrigge
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2',
         'disabled:pointer-events-none disabled:opacity-50',
         isSelected 
-          ? 'bg-white text-foreground shadow-sm' 
+          ? 'bg-white text-primary shadow-sm' 
           : 'hover:bg-gray-50 hover:text-foreground',
         className
       )}

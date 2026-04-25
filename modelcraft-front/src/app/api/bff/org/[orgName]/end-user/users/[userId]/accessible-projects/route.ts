@@ -1,5 +1,5 @@
 // src/app/api/bff/org/[orgName]/end-user/users/[userId]/accessible-projects/route.ts
-// BFF: 获取指定终端用户可访问的 Project 列表（EndUser v2）
+// BFF: 获取指定终端用户可访问的 Project 列表（EndUser v1）
 
 import { NextRequest, NextResponse } from 'next/server'
 import { callGoGetUserAccessibleProjects } from '@/bff/end-user/end-user-go-client-v2'

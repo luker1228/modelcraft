@@ -8,9 +8,9 @@ const maxWidthMap = {
 } as const
 
 const paddingMap = {
-  default: 'px-8 py-6',      // 32px H / 24px V — Stripe standard
-  compact: 'px-8 py-4',
-  spacious: 'px-8 py-8 xl:px-10',
+  default: 'px-16 py-8',     // 64px H / 32px V — breathing room
+  compact: 'px-16 py-4',
+  spacious: 'px-16 py-10 xl:px-20',
   none: '',
 } as const
 
@@ -35,7 +35,7 @@ export function PageLayout({
 }: PageLayoutProps) {
   return (
     <div className={cn('h-full overflow-auto', background === 'card' && 'bg-card')}>
-      <div className={cn('mx-auto', maxWidthMap[maxWidth], paddingMap[padding], className)}>
+      <div className={cn(maxWidthMap[maxWidth], paddingMap[padding], className)}>
         {children}
       </div>
     </div>

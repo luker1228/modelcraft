@@ -271,7 +271,7 @@ const MOCK_REFRESH_TOKENS: Record<string, string> = {
 // ============================================================================
 
 /**
- * 调用 Go Backend /internal/end-user/auth/login
+ * 调用 Go Backend /internal/v1/end-user/auth/login
  */
 export async function callGoEndUserLogin(params: {
   orgName: string
@@ -300,7 +300,7 @@ export async function callGoEndUserLogin(params: {
 
   // 真实后端调用（暂返回 NOT_IMPLEMENTED）
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/login`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/login`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -314,7 +314,7 @@ export async function callGoEndUserLogin(params: {
 }
 
 /**
- * 调用 Go Backend /internal/end-user/auth/register
+ * 调用 Go Backend /internal/v1/end-user/auth/register
  */
 export async function callGoEndUserRegister(params: {
   orgName: string
@@ -353,7 +353,7 @@ export async function callGoEndUserRegister(params: {
 
   // 真实后端调用
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/register`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/register`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -367,7 +367,7 @@ export async function callGoEndUserRegister(params: {
 }
 
 /**
- * 调用 Go Backend /internal/end-user/auth/refresh (token rotation)
+ * 调用 Go Backend /internal/v1/end-user/auth/refresh (token rotation)
  */
 export async function callGoEndUserRefresh(params: {
   orgName: string
@@ -402,7 +402,7 @@ export async function callGoEndUserRefresh(params: {
 
   // 真实后端调用
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/refresh`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/refresh`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -416,7 +416,7 @@ export async function callGoEndUserRefresh(params: {
 }
 
 /**
- * 调用 Go Backend /internal/end-user/auth/logout
+ * 调用 Go Backend /internal/v1/end-user/auth/logout
  * Best-effort，catch 静默失败
  */
 export async function callGoEndUserLogout(params: {
@@ -432,7 +432,7 @@ export async function callGoEndUserLogout(params: {
 
   // 真实后端调用（best-effort）
   const { headers } = createInternalHeaders(params.orgName, params.projectSlug)
-  await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/logout`, {
+  await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/logout`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -442,7 +442,7 @@ export async function callGoEndUserLogout(params: {
 }
 
 /**
- * 调用 Go Backend /internal/end-user/auth/me
+ * 调用 Go Backend /internal/v1/end-user/auth/me
  * BFF 已验证 JWT，传 userId/orgName/projectSlug 给 Go（X-End-User-Id 等 Header）
  */
 export async function callGoEndUserMe(params: {
@@ -471,7 +471,7 @@ export async function callGoEndUserMe(params: {
 
   // 真实后端调用
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/auth/me`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/me`, {
     method: 'GET',
     headers: {
       ...headers,

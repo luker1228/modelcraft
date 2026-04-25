@@ -673,7 +673,7 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 	internalTokenMW := middleware.ChiInternalTokenMiddleware(cfg.Auth.InternalToken)
 
 	if handlers.EndUserAuthHandler != nil {
-		router.Route("/internal/end-user/auth", func(r chi.Router) {
+		router.Route("/internal/v1/end-user/auth", func(r chi.Router) {
 			r.Use(requestIDInjectorMiddleware)
 			r.Use(internalTokenMW)
 			r.Post("/register", handlers.EndUserAuthHandler.Register)

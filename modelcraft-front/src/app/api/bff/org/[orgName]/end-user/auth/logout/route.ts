@@ -1,5 +1,5 @@
 // src/app/api/bff/org/[orgName]/end-user/auth/logout/route.ts
-// v2 登出：清除 pending session cookie 和 refresh token cookie
+// v1 登出：清除 pending session cookie 和 refresh token cookie
 
 import { NextRequest, NextResponse } from 'next/server'
 import { clearEndUserRefreshTokenCookie } from '@/bff/end-user/end-user-cookie-utils'

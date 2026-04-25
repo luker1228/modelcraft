@@ -13,7 +13,7 @@ import { NextRequest, NextResponse } from 'next/server'
  *
  * End-User Auth:
  *  - End-user routes moved to /u/{orgName}/{projectSlug}/*
- *  - /u/{orgName}/{projectSlug}/login is public
+ *  - /u/{orgName}/login is public
  *  - /u/{orgName}/{projectSlug}/data/* requires end_user_refresh_token
  *
  * Legacy End-User Routes:
@@ -36,7 +36,7 @@ const COOKIE_NAME = 'refresh_token'
 // ============================================
 const END_USER_COOKIE = 'end_user_refresh_token'
 
-const END_USER_LOGIN_RE = /^\/u\/[^/]+\/[^/]+\/login$/
+const END_USER_LOGIN_RE = /^\/u\/[^/]+\/login$/
 const END_USER_DATA_RE = /^\/u\/[^/]+\/[^/]+\/data(\/.*)?$/
 const LEGACY_END_USER_RE = /^\/org\/[^/]+\/project\/[^/]+\/(user(\/.*)?|data(\/.*)?)$/
 
@@ -73,10 +73,7 @@ export function middleware(request: NextRequest) {
     if (!hasEndUserToken) {
       const params = extractEndUserParams(pathname)
       if (params) {
-        const loginUrl = new URL(
-          `/u/${params.orgName}/${params.projectSlug}/login`,
-          request.url
-        )
+        const loginUrl = new URL(`/u/${params.orgName}/login`, request.url)
         loginUrl.searchParams.set('redirect', pathname)
         console.log(`[middleware] No end-user token, redirecting to: ${loginUrl.toString()}`)
         return NextResponse.redirect(loginUrl)

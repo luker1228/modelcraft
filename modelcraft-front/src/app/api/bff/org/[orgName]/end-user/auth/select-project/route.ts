@@ -1,5 +1,5 @@
 // src/app/api/bff/org/[orgName]/end-user/auth/select-project/route.ts
-// v2 选择 Project，验证 pending session 并签发带 projectSlug 的正式 JWT
+// v1 选择 Project，验证 pending session 并签发带 projectSlug 的正式 JWT
 
 import { NextRequest, NextResponse } from 'next/server'
 import { signEndUserAccessToken } from '@/bff/end-user/end-user-jwt-utils'

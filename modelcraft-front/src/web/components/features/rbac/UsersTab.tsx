@@ -821,7 +821,7 @@ export function UsersTab({ orgName, projectSlug }: UsersTabProps) {
           </p>
         </div>
       ) : (
-        <div className="overflow-hidden rounded-md border">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow>

@@ -1,5 +1,5 @@
 // src/app/api/bff/org/[orgName]/project/[projectSlug]/end-user-access/route.ts
-// Project 级终端用户访问控制列表 + 授权 BFF（EndUser v2）
+// Project 级终端用户访问控制列表 + 授权 BFF（EndUser v1）
 
 import { NextRequest, NextResponse } from 'next/server'
 import {

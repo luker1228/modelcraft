@@ -160,22 +160,22 @@ export interface EndUserInfo {
 }
 
 // ============================================================
-// EndUser v2 — Org 级登录类型
+// EndUser v1 — Org 级登录类型
 // ============================================================
 
-/** v2 可访问的 Project */
+/** v1 可访问的 Project */
 export interface EndUserAccessibleProject {
   slug: string
   title: string
 }
 
 /**
- * v2 BFF 登录响应（三种结果）
+ * v1 BFF 登录响应（三种结果）
  * - singleProject: true  → 直接跳转，accessToken 已签发
  * - singleProject: false → 进入 select-project 页面
  * - error                → 登录失败（凭证错误 / 无项目权限 / 账号禁用）
  */
-export type EndUserLoginResponseV2 =
+export type EndUserLoginResponse =
   | {
       singleProject: true
       projectSlug: string
@@ -192,18 +192,18 @@ export type EndUserLoginResponseV2 =
       }
     }
 
-/** v2 BFF select-project 请求 */
+/** v1 BFF select-project 请求 */
 export interface EndUserSelectProjectRequest {
   projectSlug: string
 }
 
-/** v2 BFF select-project 响应 */
+/** v1 BFF select-project 响应 */
 export interface EndUserSelectProjectResponse {
   accessToken: string
   projectSlug: string
 }
 
-/** v2 BFF select-project 错误 */
+/** v1 BFF select-project 错误 */
 export interface EndUserSelectProjectError {
   error: {
     code: 'PROJECT_ACCESS_DENIED' | 'PENDING_SESSION_INVALID' | 'PARAM_INVALID'
@@ -211,7 +211,7 @@ export interface EndUserSelectProjectError {
   }
 }
 
-/** v2 pending session JWT payload（临时，不含 projectSlug） */
+/** v1 pending session JWT payload（临时，不含 projectSlug） */
 export interface EndUserPendingSessionPayload {
   userId: string
   orgName: string

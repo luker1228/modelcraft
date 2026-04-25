@@ -19,7 +19,7 @@ type ManagementHandler struct {
 	logger     logfacade.Logger
 }
 
-const missingManagementHeaders = "X-Org-Name and X-Project-Slug headers are required"
+const missingManagementOrgHeader = "X-Org-Name header is required"
 
 // NewManagementHandler 创建管理 Handler
 func NewManagementHandler(
@@ -45,13 +45,13 @@ func (h *ManagementHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. 从 Header 提取 orgName 和 projectSlug
+	// 2. 从 Header 提取 orgName（projectSlug 兼容保留为可选）
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	createdBy := r.Header.Get("X-User-Id") // 开发者 ID
 
-	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
+	if orgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementOrgHeader)
 		return
 	}
 
@@ -85,12 +85,12 @@ func (h *ManagementHandler) List(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := ctxutils.GetRequestID(ctx)
 
-	// 1. 从 Header 提取 orgName 和 projectSlug
+	// 1. 从 Header 提取 orgName（projectSlug 兼容保留为可选）
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 
-	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
+	if orgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementOrgHeader)
 		return
 	}
 
@@ -165,12 +165,12 @@ func (h *ManagementHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// 3. 从 Header 提取 orgName 和 projectSlug
+	// 3. 从 Header 提取 orgName（projectSlug 兼容保留为可选）
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 
-	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
+	if orgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementOrgHeader)
 		return
 	}
 
@@ -210,12 +210,12 @@ func (h *ManagementHandler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// 2. 从 Header 提取 orgName 和 projectSlug
+	// 2. 从 Header 提取 orgName（projectSlug 兼容保留为可选）
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 
-	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementHeaders)
+	if orgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", missingManagementOrgHeader)
 		return
 	}
 

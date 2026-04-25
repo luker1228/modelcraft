@@ -426,7 +426,7 @@ export default function RoleEditPage() {
                     </Button>
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-lg bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                  <div className="overflow-hidden rounded-lg border border-border bg-card">
                     <Table>
                       <TableHeader>
                         <TableRow>

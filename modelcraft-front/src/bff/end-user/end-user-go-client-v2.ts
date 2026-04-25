@@ -1,5 +1,5 @@
 // src/bff/end-user/end-user-go-client-v2.ts
-// EndUser v2 — Org 级账号管理 + Project 访问控制 Go Client
+// EndUser v1 — Org 级账号管理 + Project 访问控制 Go Client
 // Mock 策略与 end-user-go-client.ts 保持一致（NEXT_PUBLIC_API_MOCKING=enabled）
 
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
@@ -22,7 +22,7 @@ const USE_MOCK = process.env.NEXT_PUBLIC_API_MOCKING === 'enabled'
 // 结果类型
 // ============================================================================
 
-export interface EndUserV2LoginResult {
+export interface EndUserOrgLoginResult {
   userId: string
   /** 该用户可访问的 Project 列表（Org 级，不含 projectSlug 的 refresh token） */
   accessibleProjects: EndUserAccessibleProject[]
@@ -61,7 +61,7 @@ export interface EndUserProjectAccessConnection {
 // ============================================================================
 
 function createInternalHeaders(orgName?: string, projectSlug?: string) {
-  const requestId = `bff-v2-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const requestId = `bff-v1-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   const scopedHeaders: Record<string, string> = {}
   if (orgName) scopedHeaders['X-Org-Name'] = orgName
   if (projectSlug) scopedHeaders['X-Project-Slug'] = projectSlug
@@ -78,9 +78,13 @@ function createInternalHeaders(orgName?: string, projectSlug?: string) {
 }
 
 async function parseGoError(res: Response, fallbackRequestId?: string): Promise<Error> {
-  const requestId = res.headers.get('x-request-id') ?? fallbackRequestId
+  const headerRequestId = res.headers.get('x-request-id') ?? undefined
   try {
-    const data = (await res.json()) as { error?: { code?: string; message?: string } }
+    const data = (await res.json()) as {
+      requestId?: string
+      error?: { code?: string; message?: string }
+    }
+    const requestId = data.requestId ?? headerRequestId ?? fallbackRequestId
     const code = data.error?.code ?? ''
     const message = data.error?.message ?? ''
     switch (code) {
@@ -95,6 +99,7 @@ async function parseGoError(res: Response, fallbackRequestId?: string): Promise<
       }
     }
   } catch {
+    const requestId = headerRequestId ?? fallbackRequestId
     const err = new EndUserUpstreamError(`Go backend error: ${res.status}`, res.status)
     err.requestId = requestId ?? undefined
     return err
@@ -115,7 +120,7 @@ export interface MockOrgUser {
   updatedAt: string
 }
 
-// Org 级用户池（v2：不绑定 project）
+// Org 级用户池（v1：不绑定 project）
 const MOCK_ORG_USERS: Record<string, MockOrgUser> = {
   alice: {
     id: 'mock-user-001', username: 'alice', password: 'password123',
@@ -165,18 +170,18 @@ const MOCK_PROJECTS: EndUserAccessibleProject[] = [
 ]
 
 // ============================================================================
-// v2 登录（返回 accessible projects，不签发 projectSlug JWT）
+// v1 登录（返回 accessible projects，不签发 projectSlug JWT）
 // ============================================================================
 
 /**
- * 调用 Go Backend /internal/v2/end-user/auth/login
+ * 调用 Go Backend /internal/v1/end-user/auth/login
  * 返回 userId + 该用户在当前 Org 下可访问的 Project 列表
  */
-export async function callGoEndUserLoginV2(params: {
+export async function callGoEndUserLoginOrg(params: {
   orgName: string
   username: string
   password: string
-}): Promise<EndUserV2LoginResult> {
+}): Promise<EndUserOrgLoginResult> {
   if (USE_MOCK) {
     const user = MOCK_ORG_USERS[params.username]
     if (!user || user.password !== params.password) throw new EndUserInvalidCredentialsError()
@@ -197,13 +202,23 @@ export async function callGoEndUserLoginV2(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/auth/login`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/login`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
   })
   if (!res.ok) throw await parseGoError(res, requestId)
-  return res.json() as Promise<EndUserV2LoginResult>
+
+  const data = await res.json() as {
+    userId: string
+    accessibleProjects?: EndUserAccessibleProject[]
+    projects?: EndUserAccessibleProject[]
+  }
+
+  return {
+    userId: data.userId,
+    accessibleProjects: data.accessibleProjects ?? data.projects ?? [],
+  }
 }
 
 // ============================================================================

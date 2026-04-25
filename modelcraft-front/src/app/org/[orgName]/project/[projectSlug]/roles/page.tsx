@@ -407,19 +407,19 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
       </div>
 
       {/* Table */}
-      <div className="overflow-hidden rounded-lg border">
+      <div className="overflow-hidden rounded-lg border border-border bg-card">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="w-[200px]">角色名称</TableHead>
-              <TableHead>描述</TableHead>
-              <TableHead className="w-[220px] text-right">操作</TableHead>
+            <TableRow className="border-b-2 border-border bg-card hover:bg-card">
+              <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground w-[200px]">角色名称</TableHead>
+              <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">描述</TableHead>
+              <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground w-[220px] text-right">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filteredRoles.map((role) => (
-              <TableRow key={role.id}>
-                <TableCell>
+              <TableRow key={role.id} className="group border-b border-border last:border-0 hover:bg-foreground/[0.015]">
+                <TableCell className="h-12 text-[13px]">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground">{role.name}</span>
                     {role.isSystem && (
@@ -427,15 +427,15 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
                     )}
                   </div>
                 </TableCell>
-                <TableCell className="text-muted-foreground">
+                <TableCell className="h-12 text-[13px] text-muted-foreground">
                   {role.description || <span className="text-muted-foreground/40">—</span>}
                 </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-1">
+                <TableCell className="h-12 text-right">
+                  <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 gap-1.5 text-xs"
+                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                       onClick={() => { setSheetRole(role); setUserToAssign('') }}
                     >
                       <Users className="size-3.5" strokeWidth={1.5} />
@@ -444,22 +444,23 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-8 gap-1.5 text-xs"
+                      className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
                       onClick={() => setBundlesSheetRoleId(role.id)}
                     >
                       <KeyRound className="size-3.5" strokeWidth={1.5} />
                       权限管理
                     </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
-                      disabled={role.isSystem || !canManageRoles}
-                      onClick={() => setDeleteTarget(role)}
-                    >
-                      <Trash2 className="size-3.5" strokeWidth={1.5} />
-                      删除
-                    </Button>
+                    {!role.isSystem && canManageRoles && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-destructive"
+                        onClick={() => setDeleteTarget(role)}
+                      >
+                        <Trash2 className="size-3.5" strokeWidth={1.5} />
+                        删除
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>
@@ -655,7 +656,7 @@ export default function RolesPage() {
   }
 
   return (
-    <PageLayout maxWidth="6xl">
+    <PageLayout maxWidth="7xl">
       <PageHeader title="权限管理" />
 
       {/* Tab navigation — underline style */}
@@ -663,19 +664,19 @@ export default function RolesPage() {
         <TabsList className="h-auto w-full justify-start gap-0 rounded-none border-b bg-transparent p-0">
           <TabsTrigger
             value="roles"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:bg-transparent hover:text-foreground aria-selected:border-primary aria-selected:bg-transparent aria-selected:text-primary aria-selected:shadow-none"
           >
             角色
           </TabsTrigger>
           <TabsTrigger
             value="bundles"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:bg-transparent hover:text-foreground aria-selected:border-primary aria-selected:bg-transparent aria-selected:text-primary aria-selected:shadow-none"
           >
             权限包
           </TabsTrigger>
           <TabsTrigger
             value="permissions"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
+            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:bg-transparent hover:text-foreground aria-selected:border-primary aria-selected:bg-transparent aria-selected:text-primary aria-selected:shadow-none"
           >
             权限点
           </TabsTrigger>

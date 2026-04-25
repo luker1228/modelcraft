@@ -10,7 +10,7 @@ export default function ProjectEndUserAccessPage() {
   const projectSlug = params?.projectSlug as string
 
   return (
-    <PageLayout maxWidth="6xl">
+    <PageLayout maxWidth="7xl">
       <PageHeader title="用户管理" />
       <EndUserManagementTable orgName={orgName} projectSlug={projectSlug} />
     </PageLayout>

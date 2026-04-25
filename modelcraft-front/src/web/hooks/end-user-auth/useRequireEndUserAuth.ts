@@ -55,7 +55,7 @@ export function useRequireEndUserAuth(): UseRequireEndUserAuthReturn {
     })
     if (!newToken) {
       // refresh 失败（cookie 过期/revoked），重定向到登录页
-      const loginUrl = `/u/${orgName}/${projectSlug}/login`
+      const loginUrl = `/u/${orgName}/login`
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
       router.replace(`${loginUrl}?redirect=${encodeURIComponent(currentPath)}`)
       return
@@ -87,10 +87,9 @@ interface UseEndUserReturn {
 export function useEndUser(): UseEndUserReturn {
   const userInfo = useEndUserAuthStore((s) => s.userInfo)
   const router = useRouter()
-  const params = useParams<{ orgName: string; projectSlug: string }>()
+  const params = useParams<{ orgName: string }>()
 
   const orgName = params.orgName
-  const projectSlug = params.projectSlug
 
   const logout = useCallback(async () => {
     // 调用 BFF logout（best-effort）
@@ -105,8 +104,8 @@ export function useEndUser(): UseEndUserReturn {
     removeEndUserSession()
 
     // 重定向到登录页
-    router.replace(`/u/${orgName}/${projectSlug}/login`)
-  }, [orgName, projectSlug, router])
+    router.replace(`/u/${orgName}/login`)
+  }, [orgName, router])
 
   return { user: userInfo, logout }
 }

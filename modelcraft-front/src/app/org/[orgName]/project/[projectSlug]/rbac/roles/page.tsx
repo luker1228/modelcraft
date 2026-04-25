@@ -322,7 +322,7 @@ export default function RoleListPage() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)]">
+            <div className="overflow-hidden rounded-lg border border-border bg-card">
               <Table>
                 <TableHeader>
                   <TableRow>

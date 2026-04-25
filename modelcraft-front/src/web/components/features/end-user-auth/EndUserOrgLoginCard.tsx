@@ -15,6 +15,10 @@ import {
   useEndUserOrgLoginForm,
   type EndUserOrgLoginFormValues,
 } from '@web/hooks/end-user-auth-v2/useEndUserOrgLoginForm'
+import {
+  useEndUserOrgRegisterForm,
+  type EndUserOrgRegisterFormValues,
+} from '@web/hooks/end-user-auth-v2/useEndUserOrgRegisterForm'
 import type { Path, UseFormReturn, FieldValues } from 'react-hook-form'
 
 // ============================================================================
@@ -74,6 +78,74 @@ interface EndUserOrgLoginCardProps {
   orgName: string
 }
 
+function EndUserOrgRegisterFormContent({ orgName }: EndUserOrgLoginCardProps) {
+  const { form, onSubmit, isLoading, error } = useEndUserOrgRegisterForm(orgName)
+  const {
+    register,
+    formState: { errors },
+  } = form
+
+  return (
+    <form onSubmit={onSubmit} className="flex flex-col gap-5">
+      {error && (
+        <Alert variant="destructive">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      )}
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="register-username">用户名</Label>
+        <Input
+          id="register-username"
+          type="text"
+          placeholder="请输入用户名"
+          autoComplete="username"
+          disabled={isLoading}
+          aria-invalid={!!errors.username}
+          {...register('username')}
+        />
+        {errors.username && (
+          <p className="text-sm text-destructive">{errors.username.message}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="register-password">密码</Label>
+        <PasswordInput
+          id="register-password"
+          disabled={isLoading}
+          error={errors.password?.message}
+          register={register}
+          fieldName={'password' as Path<EndUserOrgRegisterFormValues>}
+        />
+        {errors.password && (
+          <p className="text-sm text-destructive">{errors.password.message}</p>
+        )}
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label htmlFor="register-confirm-password">确认密码</Label>
+        <PasswordInput
+          id="register-confirm-password"
+          disabled={isLoading}
+          error={errors.confirmPassword?.message}
+          register={register}
+          fieldName={'confirmPassword' as Path<EndUserOrgRegisterFormValues>}
+        />
+        {errors.confirmPassword && (
+          <p className="text-sm text-destructive">{errors.confirmPassword.message}</p>
+        )}
+      </div>
+
+      <Button type="submit" disabled={isLoading} className="w-full">
+        {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+        注册并登录
+      </Button>
+    </form>
+  )
+}
+
 /**
  * Org 级终端用户登录卡片（EndUser v2）。
  * 登录分支由 useEndUserOrgLoginForm 处理：
@@ -82,6 +154,7 @@ interface EndUserOrgLoginCardProps {
  * - 0 个可访问 Project → 显示无权限错误
  */
 export function EndUserOrgLoginCard({ orgName }: EndUserOrgLoginCardProps) {
+  const [mode, setMode] = React.useState<'login' | 'register'>('login')
   const { form, onSubmit, isLoading, error } = useEndUserOrgLoginForm(orgName)
   const {
     register,
@@ -100,61 +173,77 @@ export function EndUserOrgLoginCard({ orgName }: EndUserOrgLoginCardProps) {
             <span className="text-xl font-semibold text-foreground">{orgName}</span>
           </div>
           <div className="text-center">
-            <CardTitle className="text-2xl">终端用户登录</CardTitle>
+            <CardTitle className="text-2xl">
+              {mode === 'login' ? '终端用户登录' : '终端用户注册'}
+            </CardTitle>
             <CardDescription className="mt-2">
-              登录后访问 {orgName} 的数据项目
+              {mode === 'login'
+                ? `登录后访问 ${orgName} 的数据项目`
+                : `注册后自动登录并进入 ${orgName} 的数据项目`}
             </CardDescription>
           </div>
         </CardHeader>
 
         <CardContent className="px-8 pb-8">
-          <form onSubmit={onSubmit} className="flex flex-col gap-5">
-            {/* Error Banner */}
-            {error && (
-              <Alert variant="destructive">
-                <AlertCircle className="size-4" />
-                <AlertDescription>{error}</AlertDescription>
-              </Alert>
-            )}
-
-            {/* Username Field */}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="username">用户名</Label>
-              <Input
-                id="username"
-                type="text"
-                placeholder="请输入用户名"
-                autoComplete="username"
-                disabled={isLoading}
-                aria-invalid={!!errors.username}
-                {...register('username')}
-              />
-              {errors.username && (
-                <p className="text-sm text-destructive">{errors.username.message}</p>
+          {mode === 'login' ? (
+            <form onSubmit={onSubmit} className="flex flex-col gap-5">
+              {error && (
+                <Alert variant="destructive">
+                  <AlertCircle className="size-4" />
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
-            </div>
 
-            {/* Password Field */}
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="password">密码</Label>
-              <PasswordInput
-                id="password"
-                disabled={isLoading}
-                error={errors.password?.message}
-                register={register}
-                fieldName={'password' as Path<EndUserOrgLoginFormValues>}
-              />
-              {errors.password && (
-                <p className="text-sm text-destructive">{errors.password.message}</p>
-              )}
-            </div>
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="username">用户名</Label>
+                <Input
+                  id="username"
+                  type="text"
+                  placeholder="请输入用户名"
+                  autoComplete="username"
+                  disabled={isLoading}
+                  aria-invalid={!!errors.username}
+                  {...register('username')}
+                />
+                {errors.username && (
+                  <p className="text-sm text-destructive">{errors.username.message}</p>
+                )}
+              </div>
 
-            {/* Submit Button */}
-            <Button type="submit" disabled={isLoading} className="w-full">
-              {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
-              登录
+              <div className="flex flex-col gap-2">
+                <Label htmlFor="password">密码</Label>
+                <PasswordInput
+                  id="password"
+                  disabled={isLoading}
+                  error={errors.password?.message}
+                  register={register}
+                  fieldName={'password' as Path<EndUserOrgLoginFormValues>}
+                />
+                {errors.password && (
+                  <p className="text-sm text-destructive">{errors.password.message}</p>
+                )}
+              </div>
+
+              <Button type="submit" disabled={isLoading} className="w-full">
+                {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
+                登录
+              </Button>
+            </form>
+          ) : (
+            <EndUserOrgRegisterFormContent orgName={orgName} />
+          )}
+
+          <div className="mt-4 text-center text-sm text-muted-foreground">
+            {mode === 'login' ? '还没有账号？' : '已有账号？'}
+            <Button
+              type="button"
+              variant="link"
+              className="h-auto px-2 py-0 text-sm"
+              onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
+            >
+              {mode === 'login' ? '去注册' : '去登录'}
             </Button>
-          </form>
+          </div>
         </CardContent>
       </Card>
     </div>

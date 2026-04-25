@@ -109,7 +109,7 @@ export function EndUserAccessTable({ orgName, projectSlug }: EndUserAccessTableP
 
       {/* Table */}
       {!error && (
-        <div className="rounded-lg border">
+        <div className="overflow-hidden rounded-lg border border-border bg-card">
           <Table>
             <TableHeader>
               <TableRow>

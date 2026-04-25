@@ -358,7 +358,7 @@ export function AppLayout({
         </aside>
 
         {/* Content area */}
-        <main className="flex-1 overflow-hidden bg-background">
+        <main className="flex-1 overflow-hidden bg-card">
           <div className="h-full overflow-y-auto">
             {children}
           </div>
