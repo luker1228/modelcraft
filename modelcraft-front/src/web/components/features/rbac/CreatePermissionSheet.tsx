@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { useParams, useRouter } from 'next/navigation'
 import { ChevronLeft, ChevronRight, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -16,17 +15,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from '@web/components/ui/sheet'
+import { ScrollArea } from '@web/components/ui/scroll-area'
 import { RowScopeSelector, ColumnPolicyEditor } from '@web/components/features/rbac'
 
 import {
   useCreatePermissionWizard,
   type WizardStep,
-} from './_hooks/useCreatePermissionWizard'
+} from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/new/_hooks/useCreatePermissionWizard'
 import type { EndUserPermissionAction } from '@/types'
 import { cn } from '@/shared/utils'
 
 // ---------------------------------------------------------------------------
-// Mocks (Wave 1)
+// Mocks (Wave 1) — mirrors new/page.tsx, replaced by real data in Wave 2
 // ---------------------------------------------------------------------------
 
 const MOCK_MODELS = [
@@ -62,43 +69,45 @@ const ACTIONS: ActionMeta[] = [
   { value: 'EXPORT', label: '导出', description: '导出数据为文件' },
 ]
 
-interface ActionCardProps {
+function ActionCard({
+  meta,
+  checked,
+  onChange,
+}: {
   meta: ActionMeta
   checked: boolean
   onChange: () => void
-}
-
-function ActionCard({ meta, checked, onChange }: ActionCardProps) {
+}) {
   return (
     <label
       className={cn(
-        'flex cursor-pointer flex-col gap-1 rounded-md border border-border px-4 py-3 transition-colors',
+        'flex cursor-pointer flex-col gap-1 rounded-md border px-3 py-2.5 transition-colors',
         checked
           ? 'border-primary bg-primary/5'
-          : 'hover:bg-muted/40',
+          : 'border-border hover:bg-muted/40',
       )}
     >
       <div className="flex items-center gap-2">
         <input
           type="radio"
-          name="permission-action"
+          name="permission-action-sheet"
           value={meta.value}
           checked={checked}
           onChange={onChange}
-          className="size-4 accent-primary"
+          className="size-3.5 accent-primary"
         />
         <span className="text-sm font-semibold text-foreground">{meta.label}</span>
         <span className="ml-1 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
           {meta.value}
         </span>
       </div>
-      <p className="pl-6 text-xs text-muted-foreground">{meta.description}</p>
+      <p className="pl-5 text-xs text-muted-foreground">{meta.description}</p>
     </label>
   )
 }
 
 // ---------------------------------------------------------------------------
-// Progress indicator
+// Step progress indicator (horizontal, compact)
 // ---------------------------------------------------------------------------
 
 const STEPS: { key: WizardStep; label: string }[] = [
@@ -107,11 +116,7 @@ const STEPS: { key: WizardStep; label: string }[] = [
   { key: 'column-policy', label: '列策略' },
 ]
 
-interface StepIndicatorProps {
-  currentStep: WizardStep
-}
-
-function StepIndicator({ currentStep }: StepIndicatorProps) {
+function StepIndicator({ currentStep }: { currentStep: WizardStep }) {
   const currentIndex = STEPS.findIndex((s) => s.key === currentStep)
 
   return (
@@ -122,11 +127,10 @@ function StepIndicator({ currentStep }: StepIndicatorProps) {
 
         return (
           <React.Fragment key={step.key}>
-            {/* Circle */}
-            <div className="flex flex-col items-center gap-1.5">
+            <div className="flex flex-col items-center gap-1">
               <div
                 className={cn(
-                  'flex size-7 items-center justify-center rounded-full text-xs font-semibold transition-colors',
+                  'flex size-6 items-center justify-center rounded-full text-xs font-semibold transition-colors',
                   isActive
                     ? 'bg-primary text-primary-foreground'
                     : isDone
@@ -138,19 +142,17 @@ function StepIndicator({ currentStep }: StepIndicatorProps) {
               </div>
               <span
                 className={cn(
-                  'w-20 text-center text-xs',
+                  'w-16 text-center text-[11px]',
                   isActive ? 'font-semibold text-foreground' : 'text-muted-foreground',
                 )}
               >
                 {step.label}
               </span>
             </div>
-
-            {/* Connector line (not after last item) */}
             {index < STEPS.length - 1 && (
               <div
                 className={cn(
-                  'mb-5 h-px w-12 transition-colors',
+                  'mb-4 h-px w-8 transition-colors',
                   isDone ? 'bg-primary/40' : 'bg-border',
                 )}
               />
@@ -163,21 +165,8 @@ function StepIndicator({ currentStep }: StepIndicatorProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Step content panels
+// Step panels
 // ---------------------------------------------------------------------------
-
-// ── Step 1 ──────────────────────────────────────────────────────────────────
-
-interface StepModelActionProps {
-  modelId: string
-  onModelChange: (id: string, displayName: string) => void
-  action: EndUserPermissionAction | null
-  onActionChange: (action: EndUserPermissionAction) => void
-  displayName: string
-  onDisplayNameChange: (v: string) => void
-  description: string
-  onDescriptionChange: (v: string) => void
-}
 
 function StepModelAction({
   modelId,
@@ -188,11 +177,20 @@ function StepModelAction({
   onDisplayNameChange,
   description,
   onDescriptionChange,
-}: StepModelActionProps) {
+}: {
+  modelId: string
+  onModelChange: (id: string, displayName: string) => void
+  action: EndUserPermissionAction | null
+  onActionChange: (action: EndUserPermissionAction) => void
+  displayName: string
+  onDisplayNameChange: (v: string) => void
+  description: string
+  onDescriptionChange: (v: string) => void
+}) {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       {/* Model select */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <Label className="text-sm font-semibold text-foreground">
           目标模型 <span className="text-destructive">*</span>
         </Label>
@@ -203,7 +201,7 @@ function StepModelAction({
             onModelChange(val, model?.displayName ?? val)
           }}
         >
-          <SelectTrigger className="w-full max-w-sm">
+          <SelectTrigger className="w-full">
             <SelectValue placeholder="选择模型…" />
           </SelectTrigger>
           <SelectContent>
@@ -217,11 +215,11 @@ function StepModelAction({
       </div>
 
       {/* Action cards */}
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
         <Label className="text-sm font-semibold text-foreground">
           操作动作 <span className="text-destructive">*</span>
         </Label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
           {ACTIONS.map((meta) => (
             <ActionCard
               key={meta.value}
@@ -234,48 +232,47 @@ function StepModelAction({
       </div>
 
       {/* Optional metadata */}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="perm-display-name" className="text-sm font-semibold text-foreground">
-            显示名称
-            <span className="ml-1 text-xs font-normal text-muted-foreground">（选填）</span>
-          </Label>
-          <Input
-            id="perm-display-name"
-            placeholder="如：订单查询权限"
-            value={displayName}
-            onChange={(e) => onDisplayNameChange(e.target.value)}
-          />
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="perm-description" className="text-sm font-semibold text-foreground">
-            描述
-            <span className="ml-1 text-xs font-normal text-muted-foreground">（选填）</span>
-          </Label>
-          <Textarea
-            id="perm-description"
-            placeholder="描述该权限点的用途…"
-            className="resize-none"
-            rows={3}
-            value={description}
-            onChange={(e) => onDescriptionChange(e.target.value)}
-          />
-        </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="sheet-perm-display-name" className="text-sm font-semibold text-foreground">
+          显示名称
+          <span className="ml-1 text-xs font-normal text-muted-foreground">（选填）</span>
+        </Label>
+        <Input
+          id="sheet-perm-display-name"
+          placeholder="如：订单查询权限"
+          value={displayName}
+          onChange={(e) => onDisplayNameChange(e.target.value)}
+        />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label htmlFor="sheet-perm-description" className="text-sm font-semibold text-foreground">
+          描述
+          <span className="ml-1 text-xs font-normal text-muted-foreground">（选填）</span>
+        </Label>
+        <Textarea
+          id="sheet-perm-description"
+          placeholder="描述该权限点的用途…"
+          className="resize-none"
+          rows={3}
+          value={description}
+          onChange={(e) => onDescriptionChange(e.target.value)}
+        />
       </div>
     </div>
   )
 }
 
-// ── Step 2 ──────────────────────────────────────────────────────────────────
-
-interface StepRowScopeProps {
+function StepRowScope({
+  value,
+  onChange,
+  hasOwnerField,
+  hasDeptIdField,
+}: {
   value: import('@/types').EndUserRowScope
   onChange: (scope: import('@/types').EndUserRowScope) => void
   hasOwnerField: boolean
   hasDeptIdField: boolean
-}
-
-function StepRowScope({ value, onChange, hasOwnerField, hasDeptIdField }: StepRowScopeProps) {
+}) {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-md border border-border bg-muted/20 px-4 py-3">
@@ -293,15 +290,15 @@ function StepRowScope({ value, onChange, hasOwnerField, hasDeptIdField }: StepRo
   )
 }
 
-// ── Step 3 ──────────────────────────────────────────────────────────────────
-
-interface StepColumnPolicyProps {
+function StepColumnPolicy({
+  action,
+  value,
+  onChange,
+}: {
   action: EndUserPermissionAction | null
   value: import('@/types').ColumnPolicy
   onChange: (policy: import('@/types').ColumnPolicy) => void
-}
-
-function StepColumnPolicy({ action, value, onChange }: StepColumnPolicyProps) {
+}) {
   return (
     <div className="flex flex-col gap-4">
       <div className="rounded-md border border-border bg-muted/20 px-4 py-3">
@@ -320,34 +317,48 @@ function StepColumnPolicy({ action, value, onChange }: StepColumnPolicyProps) {
 }
 
 // ---------------------------------------------------------------------------
-// Page
+// CreatePermissionSheet
 // ---------------------------------------------------------------------------
 
-export default function CreatePermissionPage() {
-  const params = useParams<{ orgName: string; projectSlug: string }>()
-  const router = useRouter()
-  const orgName = params.orgName
-  const projectSlug = params.projectSlug
+export interface CreatePermissionSheetProps {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  orgName: string
+  projectSlug: string
+}
 
-  const { state, updateField, goNext, goBack, submit, submitting, submitError } =
+export function CreatePermissionSheet({
+  open,
+  onOpenChange,
+  orgName,
+  projectSlug,
+}: CreatePermissionSheetProps) {
+  const { state, updateField, goNext, goBack, reset, submit, submitting, submitError } =
     useCreatePermissionWizard(orgName, projectSlug, () => {
-      router.push(`/org/${orgName}/project/${projectSlug}/rbac/permissions`)
+      toast.success('权限点创建成功')
+      onOpenChange(false)
     })
+
+  // Reset wizard state when sheet opens
+  const prevOpen = React.useRef(false)
+  React.useEffect(() => {
+    if (open && !prevOpen.current) {
+      reset()
+    }
+    prevOpen.current = open
+  }, [open, reset])
 
   const currentStepIndex = STEPS.findIndex((s) => s.key === state.step)
   const isLastStep = currentStepIndex === STEPS.length - 1
   const isFirstStep = currentStepIndex === 0
 
-  // ── Step 1 validation: model + action are required to proceed
   const canProceedFromStep1 = state.modelId !== '' && state.action !== null
-
   const canGoNext = state.step === 'model-action' ? canProceedFromStep1 : true
 
   const handleNext = async () => {
     if (isLastStep) {
       try {
         await submit()
-        toast.success('权限点创建成功')
       } catch (err) {
         toast.error(err instanceof Error ? err.message : '创建权限点失败，请重试')
       }
@@ -356,116 +367,120 @@ export default function CreatePermissionPage() {
     }
   }
 
-  return (
-    <main className="size-full overflow-y-auto bg-background">
-      <div className="mx-auto w-full max-w-[760px] px-6 pb-16 pt-10 xl:px-8">
-        {/* Page header */}
-        <div className="mb-8 space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">创建权限点</h1>
-          <p className="text-sm text-muted-foreground">
-            配置一个 Model 上的操作能力（动作 × 行策略 × 列策略）
-          </p>
-        </div>
+  const stepTitle =
+    state.step === 'model-action'
+      ? '选择模型与动作'
+      : state.step === 'row-scope'
+        ? '配置行策略'
+        : '配置列策略'
 
-        {/* Progress indicator */}
-        <div className="mb-10 flex justify-center">
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent
+        className="flex w-full flex-col gap-0 p-0 sm:max-w-lg"
+        onInteractOutside={(e) => {
+          // Prevent accidental close while submitting
+          if (submitting) e.preventDefault()
+        }}
+      >
+        {/* Header */}
+        <SheetHeader className="border-b border-border px-6 py-5">
+          <SheetTitle>创建权限点</SheetTitle>
+          <SheetDescription>
+            配置一个 Model 上的操作能力（动作 × 行策略 × 列策略）
+          </SheetDescription>
+        </SheetHeader>
+
+        {/* Step indicator */}
+        <div className="flex justify-center border-b border-border px-6 py-4">
           <StepIndicator currentStep={state.step} />
         </div>
 
-        {/* Step content card */}
-        <div className="rounded-lg border border-border bg-card px-6 py-6 shadow-sm">
-          {/* Step title */}
-          <h2 className="mb-5 text-base font-semibold text-foreground">
-            {state.step === 'model-action' && '选择模型与动作'}
-            {state.step === 'row-scope' && '配置行策略'}
-            {state.step === 'column-policy' && '配置列策略'}
-          </h2>
+        {/* Scrollable step content */}
+        <ScrollArea className="flex-1">
+          <div className="px-6 py-5">
+            {/* Step subtitle */}
+            <p className="mb-4 text-sm font-semibold text-foreground">{stepTitle}</p>
 
-          {/* Step panels */}
-          {state.step === 'model-action' && (
-            <StepModelAction
-              modelId={state.modelId}
-              onModelChange={(id, displayName) => {
-                updateField('modelId', id)
-                updateField('modelDisplayName', displayName)
-              }}
-              action={state.action}
-              onActionChange={(action) => updateField('action', action)}
-              displayName={state.displayName}
-              onDisplayNameChange={(v) => updateField('displayName', v)}
-              description={state.description}
-              onDescriptionChange={(v) => updateField('description', v)}
-            />
-          )}
+            {state.step === 'model-action' && (
+              <StepModelAction
+                modelId={state.modelId}
+                onModelChange={(id, displayName) => {
+                  updateField('modelId', id)
+                  updateField('modelDisplayName', displayName)
+                }}
+                action={state.action}
+                onActionChange={(action) => updateField('action', action)}
+                displayName={state.displayName}
+                onDisplayNameChange={(v) => updateField('displayName', v)}
+                description={state.description}
+                onDescriptionChange={(v) => updateField('description', v)}
+              />
+            )}
 
-          {state.step === 'row-scope' && (
-            <StepRowScope
-              value={state.rowScope}
-              onChange={(scope) => updateField('rowScope', scope)}
-              hasOwnerField={state.hasOwnerField}
-              hasDeptIdField={state.hasDeptIdField}
-            />
-          )}
+            {state.step === 'row-scope' && (
+              <StepRowScope
+                value={state.rowScope}
+                onChange={(scope) => updateField('rowScope', scope)}
+                hasOwnerField={state.hasOwnerField}
+                hasDeptIdField={state.hasDeptIdField}
+              />
+            )}
 
-          {state.step === 'column-policy' && (
-            <StepColumnPolicy
-              action={state.action}
-              value={state.columnPolicy}
-              onChange={(policy) => updateField('columnPolicy', policy)}
-            />
-          )}
-        </div>
+            {state.step === 'column-policy' && (
+              <StepColumnPolicy
+                action={state.action}
+                value={state.columnPolicy}
+                onChange={(policy) => updateField('columnPolicy', policy)}
+              />
+            )}
 
-        {/* Submit error */}
-        {submitError && (
-          <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-            {submitError}
+            {/* Submit error */}
+            {submitError && (
+              <div className="mt-4 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+                {submitError}
+              </div>
+            )}
           </div>
-        )}
+        </ScrollArea>
 
-        {/* Bottom action row */}
-        <div className="mt-6 flex items-center justify-between gap-3">
-          {/* Left: back button */}
+        {/* Footer action bar */}
+        <div className="flex items-center justify-between border-t border-border px-6 py-4">
           <div>
             {!isFirstStep && (
-              <Button
-                variant="outline"
-                onClick={goBack}
-                disabled={submitting}
-              >
-                <ChevronLeft className="mr-1 size-4" />
+              <Button variant="outline" size="sm" onClick={goBack} disabled={submitting}>
+                <ChevronLeft className="mr-1 size-3.5" />
                 上一步
               </Button>
             )}
           </div>
-
-          {/* Right: cancel + next/submit */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
-              onClick={() => router.back()}
+              size="sm"
+              onClick={() => onOpenChange(false)}
               disabled={submitting}
             >
               取消
             </Button>
-
             <Button
+              size="sm"
               onClick={() => { void handleNext() }}
               disabled={!canGoNext || submitting}
             >
-              {submitting && <Loader2 className="mr-1.5 size-4 animate-spin" />}
+              {submitting && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
               {isLastStep ? (
                 submitting ? '创建中…' : '创建权限点'
               ) : (
                 <>
                   下一步
-                  <ChevronRight className="ml-1 size-4" />
+                  <ChevronRight className="ml-1 size-3.5" />
                 </>
               )}
             </Button>
           </div>
         </div>
-      </div>
-    </main>
+      </SheetContent>
+    </Sheet>
   )
 }

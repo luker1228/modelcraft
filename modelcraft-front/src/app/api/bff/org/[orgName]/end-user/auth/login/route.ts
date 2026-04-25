@@ -3,7 +3,7 @@
 // 登录成功后返回可访问 Project 列表，由前端决定是否需要选择 Project
 
 import { NextRequest, NextResponse } from 'next/server'
-import { callGoEndUserLoginOrg } from '@/bff/end-user/end-user-go-client-v2'
+import { callGoEndUserLoginOrg } from '@/bff/end-user/end-user-go-client'
 import { signEndUserAccessToken } from '@/bff/end-user/end-user-jwt-utils'
 import { setEndUserRefreshTokenCookie } from '@/bff/end-user/end-user-cookie-utils'
 import {
@@ -74,12 +74,15 @@ export async function POST(
   try {
     const { userId, accessibleProjects } = await callGoEndUserLoginOrg({ orgName, username, password })
 
-    // 无任何可访问项目 → 报错
+    // 无任何可访问项目 → 登录成功但进入待授权页（不视为错误）
     if (accessibleProjects.length === 0) {
       const res: EndUserLoginResponse = {
-        error: { code: 'NO_PROJECT_ACCESS', message: '您暂无项目访问权限，请联系管理员授权' },
+        singleProject: false,
+        projects: [],
+        noProjectAccess: true,
+        message: '该账号暂无可访问项目，请联系管理员申请项目访问权限',
       }
-      return NextResponse.json(res, { status: 403 })
+      return NextResponse.json(res)
     }
 
     // 只有一个项目 → 直接签发正式 JWT
@@ -135,17 +138,19 @@ export async function POST(
       let normalizedCode = rawCode
       let normalizedMessage = err.message || '上游服务异常'
 
+      if (rawCode === 'NO_PROJECT_ACCESS' || isNoProjectAccessMessage(err.message || '')) {
+        const res: EndUserLoginResponse = {
+          singleProject: false,
+          projects: [],
+          noProjectAccess: true,
+          message: '该账号暂无可访问项目，请联系管理员申请项目访问权限',
+        }
+        return NextResponse.json(res)
+      }
+
       if (rawCode === 'PARAM_INVALID' && isInvalidCredentialMessage(err.message)) {
         normalizedCode = 'INVALID_CREDENTIALS'
       }
-      if (
-        rawCode === 'NO_PROJECT_ACCESS' ||
-        (rawCode === 'PARAM_INVALID' && isNoProjectAccessMessage(err.message))
-      ) {
-        normalizedCode = 'NO_PROJECT_ACCESS'
-        normalizedMessage = '该账号暂无可访问项目，请联系管理员申请项目访问权限'
-      }
-
       return NextResponse.json(
         {
           error: { code: normalizedCode, message: normalizedMessage },

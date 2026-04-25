@@ -43,14 +43,48 @@ interface UserProjectBadgesProps {
   userId: string
 }
 
+const accessibleProjectsCache = new Map<string, AccessibleProject[]>()
+const accessibleProjectsInflight = new Map<string, Promise<AccessibleProject[]>>()
+
+async function fetchAccessibleProjects(orgName: string, userId: string): Promise<AccessibleProject[]> {
+  const key = `${orgName}:${userId}`
+  if (accessibleProjectsCache.has(key)) {
+    return accessibleProjectsCache.get(key) ?? []
+  }
+
+  const pending = accessibleProjectsInflight.get(key)
+  if (pending) {
+    return pending
+  }
+
+  const request = fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/accessible-projects`)
+    .then((r) => r.json() as Promise<AccessibleProjectsBffResponse>)
+    .then((d) => d.projects ?? [])
+    .catch(() => [])
+    .then((projects) => {
+      accessibleProjectsCache.set(key, projects)
+      accessibleProjectsInflight.delete(key)
+      return projects
+    })
+
+  accessibleProjectsInflight.set(key, request)
+  return request
+}
+
 function UserProjectBadges({ orgName, userId }: UserProjectBadgesProps) {
   const [projects, setProjects] = useState<AccessibleProject[] | null>(null)
 
   useEffect(() => {
-    fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/accessible-projects`)
-      .then((r) => r.json() as Promise<AccessibleProjectsBffResponse>)
-      .then((d) => setProjects(d.projects ?? []))
-      .catch(() => setProjects([]))
+    let cancelled = false
+    fetchAccessibleProjects(orgName, userId).then((items) => {
+      if (!cancelled) {
+        setProjects(items)
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
   }, [orgName, userId])
 
   if (projects === null) {

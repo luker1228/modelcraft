@@ -2668,6 +2668,7 @@ extend type Mutation {
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
 }
+
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/permission.graphql", Input: `# Permission Management Types
 

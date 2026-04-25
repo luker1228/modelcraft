@@ -13,12 +13,14 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { UserMenu } from '@web/components/features/layout/UserMenu'
 import { useOrganizationStore } from '@shared/stores/organization'
+import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@bff/auth/public'
 import {
   Sparkles,
   Search,
   HelpCircle,
+  ChevronRight,
   FolderOpen,
   Users,
   Settings,
@@ -32,6 +34,7 @@ import {
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
+import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -82,7 +85,6 @@ export function AppLayout({
   const displayName = userInfo?.name || userInfo?.userName || storedUserName || userInfo?.phone || 'User'
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [memberships, setMemberships] = useState<MembershipInfo[]>([])
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
 
   const storedMemberships = useOrganizationStore((state) => state.memberships)
@@ -95,22 +97,28 @@ export function AppLayout({
     setStoredUserName(localStorage.getItem('defaultUserName') || '')
   }, [])
 
-  useEffect(() => {
-    if (storedMemberships && storedMemberships.length > 0) {
-      setMemberships(storedMemberships)
-      return
+  const memberships = useMemo<MembershipInfo[]>(() => {
+    if (storedMemberships.length > 0) {
+      return storedMemberships as MembershipInfo[]
     }
+
+    const cached = getCachedMemberships()
+    return cached ?? []
+  }, [storedMemberships])
+
+  useEffect(() => {
+    if (memberships.length > 0) return
+
     const token = getToken()
     if (!token) return
-    loadMembershipsStore(token, false).then((data) => {
-      setMemberships(data)
-    }).catch((error) => {
+
+    loadMembershipsStore(token, false).catch((error) => {
       console.error('[AppLayout] Failed to fetch memberships:', error)
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [memberships.length, loadMembershipsStore])
 
-  const { projects: storeProjects } = useProjectStore()
+  const storeProjects = useProjectStore((state) => state.projects)
+  const selectedProject = useProjectStore((state) => state.selectedProject)
 
   const filteredOrgs = useMemo(() => {
     if (!orgSearchQuery) return memberships
@@ -124,6 +132,26 @@ export function AppLayout({
   const currentOrg = useMemo(() => {
     return memberships.find((m) => m.orgName === orgName)
   }, [memberships, orgName])
+
+  const currentProject = useMemo(() => {
+    if (!projectSlug) return null
+
+    if (selectedProject?.slug === projectSlug) {
+      return selectedProject
+    }
+
+    return storeProjects.find((project) => project.slug === projectSlug) || null
+  }, [projectSlug, selectedProject, storeProjects])
+
+  const breadcrumbs = useMemo(() => {
+    return buildAppLayoutBreadcrumbs({
+      showProjectNav,
+      orgName,
+      orgDisplayName: currentOrg?.displayName || currentOrg?.orgName,
+      projectSlug,
+      projectDisplayName: currentProject?.title,
+    })
+  }, [showProjectNav, orgName, currentOrg?.displayName, currentOrg?.orgName, projectSlug, currentProject?.title])
 
   const handleLogout = useCallback(() => {
     removeToken()
@@ -208,7 +236,7 @@ export function AppLayout({
     <div className="flex h-full flex-col overflow-hidden">
 
       {/* ── Topbar (48px) ─────────────────────────────────────────────────── */}
-      <header className="flex h-12 flex-shrink-0 items-center border-b border-border bg-card px-4 gap-3">
+      <header className="flex h-12 flex-shrink-0 items-center gap-3 border-b border-border bg-card px-4">
 
         {/* Org selector */}
         <DropdownMenu>
@@ -257,6 +285,34 @@ export function AppLayout({
             </div>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {breadcrumbs.length > 0 && (
+          <nav className="flex min-w-0 items-center gap-1 text-xs" aria-label="breadcrumb">
+            {breadcrumbs.map((item, index) => (
+              <div key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
+                {index > 0 && <ChevronRight className="size-3 text-muted-foreground" strokeWidth={1.5} />}
+                {item.href ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push(item.href)}
+                    className="max-w-[180px] truncate rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  >
+                    {item.label}
+                  </button>
+                ) : (
+                  <span
+                    className={cn(
+                      'max-w-[180px] truncate px-1 py-0.5 text-foreground',
+                      item.isCurrent && 'font-medium'
+                    )}
+                  >
+                    {item.label}
+                  </span>
+                )}
+              </div>
+            ))}
+          </nav>
+        )}
 
         {/* Spacer */}
         <div className="flex-1" />

@@ -40,7 +40,7 @@ export function ProjectCard({
 }: ProjectCardProps) {
   return (
     <div
-      className="group relative flex cursor-pointer flex-col rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] transition-shadow duration-150 hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.02)]"
+      className="group relative flex cursor-pointer flex-col rounded-lg border border-border bg-card transition-colors duration-150 hover:border-foreground/20"
       onClick={() => onSelect(project)}
     >
       {/* Card body */}

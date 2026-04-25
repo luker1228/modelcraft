@@ -428,7 +428,7 @@ export default function WorkspacePage() {
                 {filteredProjects.map((project) => (
                   <div
                     key={project.id}
-                    className="group flex cursor-pointer items-center gap-4 rounded-lg bg-card px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
+                    className="group flex cursor-pointer items-center gap-4 rounded-lg border border-border bg-card px-4 py-3 transition-colors duration-150 hover:border-foreground/20"
                     onClick={() => handleSelectProject(project)}
                   >
                     {/* Icon */}

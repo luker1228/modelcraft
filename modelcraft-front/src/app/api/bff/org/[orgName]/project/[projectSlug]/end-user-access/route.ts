@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   callGoListProjectEndUserAccesses,
   callGoGrantEndUserProjectAccess,
-} from '@/bff/end-user/end-user-go-client-v2'
+} from '@/bff/end-user/end-user-go-client'
 import { EndUserConflictError, EndUserParamInvalidError } from '@/bff/end-user/end-user-go-client'
 
 interface RouteParams {
@@ -35,7 +35,7 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
 export async function POST(req: NextRequest, { params }: RouteParams) {
   const { orgName, projectSlug } = await params
   try {
-    const body = await req.json()
+    const body: unknown = await req.json()
     const { userId, permissionBundle } = body as { userId?: unknown; permissionBundle?: unknown }
     if (typeof userId !== 'string' || !userId.trim()) {
       return NextResponse.json({ error: { code: 'PARAM_INVALID', message: '用户 ID 不能为空' } }, { status: 400 })

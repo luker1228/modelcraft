@@ -1,9 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useCallback } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { Users, Plus, Trash2, Search, KeyRound, X, PackagePlus, Loader2, ShieldOff } from 'lucide-react'
+import { Users, Plus, Trash2, Search, KeyRound, X, PackagePlus, Loader2, ShieldOff, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
+import { useQuery, useMutation } from '@apollo/client'
 import { Input } from '@web/components/ui/input'
 import { Textarea } from '@web/components/ui/textarea'
 import { Button } from '@web/components/ui/button'
@@ -49,48 +50,26 @@ import {
 import { ScrollArea } from '@web/components/ui/scroll-area'
 import { Checkbox } from '@web/components/ui/checkbox'
 import { Skeleton } from '@web/components/ui/skeleton'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web/components/ui/select'
 import { usePermission } from '@web/hooks/auth/use-permission'
 import { useRoleEdit } from '@/app/org/[orgName]/project/[projectSlug]/rbac/roles/[roleId]/_hooks/useRoleEdit'
+import { useRoleList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/roles/_hooks/useRoleList'
 import {
   BundlesTab,
   PermissionsTab,
 } from '@web/components/features/rbac'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
-import type { Role } from '@/types'
+import { useProjectScopedClient } from '@bff/apollo/public'
+import {
+  LIST_END_USERS,
+  GET_END_USER_ROLE_ASSIGNMENTS,
+  ASSIGN_END_USER_ROLE_TO_USER,
+  REVOKE_END_USER_ROLE_FROM_USER,
+} from '@web/graphql'
+import type { EndUserRole } from '@/types'
 
 // ── Types ────────────────────────────────────────────────────────────
 
-interface MockUser {
-  id: string
-  name: string
-  email: string
-}
-
-interface RoleMock extends Role {
-  userIds: string[]
-}
-
 type TabValue = 'roles' | 'bundles' | 'permissions'
-
-// ── Constants ────────────────────────────────────────────────────────
-
-const MOCK_USERS: MockUser[] = [
-  { id: 'u-1', name: 'Alice', email: 'alice@demo.io' },
-  { id: 'u-2', name: 'Bob', email: 'bob@demo.io' },
-  { id: 'u-3', name: 'Carol', email: 'carol@demo.io' },
-  { id: 'u-4', name: 'David', email: 'david@demo.io' },
-]
-
-function nowISO(): string {
-  return new Date().toISOString()
-}
 
 // ── LegacyBundlesSheet ───────────────────────────────────────────────
 
@@ -219,7 +198,7 @@ function LegacyBundlesSheet({ roleId, roleName, orgName, projectSlug, open, onOp
                 {unassignedBundles.map((bundle) => (
                   <label
                     key={bundle.id}
-                    className="flex cursor-pointer items-start gap-3 rounded-md px-2 py-2 hover:bg-muted"
+                    className="flex cursor-pointer items-start gap-3 rounded-md p-2 hover:bg-muted"
                   >
                     <Checkbox
                       className="mt-0.5"
@@ -256,53 +235,213 @@ function LegacyBundlesSheet({ roleId, roleName, orgName, projectSlug, open, onOp
   )
 }
 
-// ── LegacyRolesContent ───────────────────────────────────────────────
+// ── RoleUsersSheet ────────────────────────────────────────────────────
 
-interface LegacyRolesContentProps {
+interface RoleUsersSheetProps {
+  role: EndUserRole
+  orgName: string
+  projectSlug: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+function RoleUsersSheet({ role, orgName, projectSlug, open, onOpenChange }: RoleUsersSheetProps) {
+  const canManageRoles = usePermission('*')
+  const client = useProjectScopedClient(projectSlug, orgName)
+
+  const [search, setSearch] = useState('')
+  const [assigningId, setAssigningId] = useState<string | null>(null)
+  const [revokingId, setRevokingId] = useState<string | null>(null)
+
+  // 获取所有 EndUser
+  const { data: usersData, loading: usersLoading } = useQuery<{
+    listEndUsers?: { connection?: { nodes?: EndUserNode[] } }
+  }>(LIST_END_USERS, {
+    client,
+    variables: { input: { first: 100 } },
+    skip: !open,
+  })
+
+  type EndUserNode = { id: string; username: string; isForbidden: boolean }
+
+  const filteredUsers = useMemo(() => {
+    const nodes = (usersData as { listEndUsers?: { connection?: { nodes?: EndUserNode[] } } } | undefined)
+      ?.listEndUsers?.connection?.nodes ?? []
+    return nodes.filter((u) =>
+      u.username.toLowerCase().includes(search.toLowerCase())
+    )
+  }, [usersData, search])
+
+  const [assignedUserIds, setAssignedUserIds] = useState<Set<string>>(new Set())
+
+  // 使用 GET_END_USER_ROLE_ASSIGNMENTS 需要逐个用户查，不实用
+  // 改为在分配/撤销时本地维护已分配状态（乐观更新），初始从 API 获取用户的角色列表
+
+  type AssignPayload = { assignEndUserRole?: { error?: { message?: string } | null } }
+  type RevokePayload = { revokeEndUserRole?: { error?: { message?: string } | null; success?: boolean } }
+
+  const [assignRoleMutation] = useMutation(ASSIGN_END_USER_ROLE_TO_USER, { client })
+  const [revokeRoleMutation] = useMutation(REVOKE_END_USER_ROLE_FROM_USER, { client })
+
+  const handleAssign = useCallback(async (userId: string) => {
+    setAssigningId(userId)
+    try {
+      const result = await assignRoleMutation({
+        variables: { input: { endUserId: userId, roleId: role.id } },
+      })
+      const payload = (result.data as AssignPayload | undefined)?.assignEndUserRole
+      if (payload?.error) {
+        toast.error(payload.error.message ?? '分配失败')
+      } else {
+        setAssignedUserIds((prev) => new Set([...prev, userId]))
+        toast.success('角色已分配')
+      }
+    } catch {
+      toast.error('分配失败')
+    } finally {
+      setAssigningId(null)
+    }
+  }, [assignRoleMutation, role.id])
+
+  const handleRevoke = useCallback(async (userId: string, username: string) => {
+    setRevokingId(userId)
+    try {
+      const result = await revokeRoleMutation({
+        variables: { input: { endUserId: userId, roleId: role.id } },
+      })
+      const payload = (result.data as RevokePayload | undefined)?.revokeEndUserRole
+      if (payload?.error) {
+        toast.error(payload.error.message ?? '撤销失败')
+      } else {
+        setAssignedUserIds((prev) => {
+          const next = new Set(prev)
+          next.delete(userId)
+          return next
+        })
+        toast.success(`已撤销用户「${username}」的角色`)
+      }
+    } catch {
+      toast.error('撤销失败')
+    } finally {
+      setRevokingId(null)
+    }
+  }, [revokeRoleMutation, role.id])
+
+  return (
+    <Sheet open={open} onOpenChange={(v) => { if (!v) setSearch(''); onOpenChange(v) }}>
+      <SheetContent className="flex w-full flex-col sm:max-w-lg">
+        <SheetHeader className="shrink-0">
+          <SheetTitle className="flex items-center gap-2">
+            <Users className="size-4 text-muted-foreground" strokeWidth={1.5} />
+            {role.name} · 用户管理
+            {role.isImplicit && <Badge variant="secondary">内置</Badge>}
+          </SheetTitle>
+          <SheetDescription>{role.description || '为终端用户分配或撤销此角色'}</SheetDescription>
+        </SheetHeader>
+
+        <div className="relative mt-4 shrink-0">
+          <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" strokeWidth={1.5} />
+          <Input
+            placeholder="搜索用户..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        <ScrollArea className="mt-3 flex-1">
+          {usersLoading ? (
+            <div className="space-y-2">
+              {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-12 w-full rounded-md" />)}
+            </div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Users className="mb-3 size-10 text-muted-foreground/30" strokeWidth={1} />
+              <p className="text-sm font-semibold text-foreground">
+                {search ? '未找到匹配用户' : '暂无终端用户'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {filteredUsers.map((user) => {
+                const assigned = assignedUserIds.has(user.id)
+                const isAssigning = assigningId === user.id
+                const isRevoking = revokingId === user.id
+                return (
+                  <div
+                    key={user.id}
+                    className="flex items-center justify-between gap-3 rounded-md border bg-card px-4 py-3"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-foreground">{user.username}</p>
+                      {user.isForbidden && (
+                        <p className="mt-0.5 text-xs text-destructive">已禁用</p>
+                      )}
+                    </div>
+                    {canManageRoles && !role.isImplicit && (
+                      assigned ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 gap-1 text-xs text-muted-foreground hover:text-destructive"
+                          disabled={isRevoking}
+                          onClick={() => handleRevoke(user.id, user.username)}
+                        >
+                          {isRevoking
+                            ? <Loader2 className="size-3.5 animate-spin" />
+                            : <X className="size-3.5" />
+                          }
+                          撤销
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 shrink-0 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                          disabled={isAssigning || user.isForbidden}
+                          onClick={() => handleAssign(user.id)}
+                        >
+                          {isAssigning
+                            ? <Loader2 className="size-3.5 animate-spin" />
+                            : <UserPlus className="size-3.5" />
+                          }
+                          分配
+                        </Button>
+                      )
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </ScrollArea>
+      </SheetContent>
+    </Sheet>
+  )
+}
+
+// ── RolesContent ─────────────────────────────────────────────────────
+
+interface RolesContentProps {
   orgName: string
   projectSlug: string
 }
 
-function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
+function RolesContent({ orgName, projectSlug }: RolesContentProps) {
   const canManageRoles = usePermission('*')
 
-  const [roles, setRoles] = useState<RoleMock[]>([
-    {
-      id: 'r-admin',
-      name: 'Admin',
-      description: '系统管理员，拥有全部权限',
-      permissions: [],
-      isSystem: true,
-      createdAt: nowISO(),
-      updatedAt: nowISO(),
-      userIds: ['u-1'],
-    },
-    {
-      id: 'r-ops',
-      name: 'Ops',
-      description: '运营角色，只读权限',
-      permissions: [],
-      isSystem: false,
-      createdAt: nowISO(),
-      updatedAt: nowISO(),
-      userIds: ['u-2', 'u-3'],
-    },
-  ])
+  const { roles, loading, createRole, deleteRole } = useRoleList({ orgName, projectSlug })
 
   const [search, setSearch] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
   const [newName, setNewName] = useState('')
   const [newDescription, setNewDescription] = useState('')
-  const [deleteTarget, setDeleteTarget] = useState<RoleMock | null>(null)
+  const [creating, setCreating] = useState(false)
+  const [deleteTarget, setDeleteTarget] = useState<EndUserRole | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
-  const [sheetRole, setSheetRole] = useState<RoleMock | null>(null)
-  const [userToAssign, setUserToAssign] = useState('')
-
-  const [bundlesSheetRoleId, setBundlesSheetRoleId] = useState<string | null>(null)
-  const bundlesSheetRole = useMemo(
-    () => roles.find((r) => r.id === bundlesSheetRoleId) ?? null,
-    [roles, bundlesSheetRoleId]
-  )
+  const [usersSheetRole, setUsersSheetRole] = useState<EndUserRole | null>(null)
+  const [bundlesSheetRole, setBundlesSheetRole] = useState<EndUserRole | null>(null)
 
   // ── Derived ───────────────────────────────────────────────────────
 
@@ -315,75 +454,47 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
     [roles, search]
   )
 
-  const liveSheetRole = useMemo(
-    () => sheetRole ? roles.find((r) => r.id === sheetRole.id) ?? null : null,
-    [roles, sheetRole]
-  )
-
-  const sheetUsers = useMemo(
-    () => liveSheetRole ? MOCK_USERS.filter((u) => liveSheetRole.userIds.includes(u.id)) : [],
-    [liveSheetRole]
-  )
-
-  const assignableUsers = useMemo(
-    () => liveSheetRole ? MOCK_USERS.filter((u) => !liveSheetRole.userIds.includes(u.id)) : [],
-    [liveSheetRole]
-  )
-
   // ── Handlers ─────────────────────────────────────────────────────
 
-  const handleCreate = () => {
+  const handleCreate = async () => {
     if (!newName.trim()) { toast.error('请输入角色名称'); return }
-    if (roles.some((r) => r.name.toLowerCase() === newName.trim().toLowerCase())) {
-      toast.error('角色名称已存在'); return
+    setCreating(true)
+    const result = await createRole({ name: newName.trim(), description: newDescription.trim() || undefined })
+    setCreating(false)
+    if (result.success) {
+      toast.success('角色已创建')
+      setCreateOpen(false)
+      setNewName('')
+      setNewDescription('')
+    } else {
+      toast.error(result.errorMessage ?? '创建角色失败')
     }
-    setRoles((prev) => [
-      {
-        id: `r-${Date.now()}`,
-        name: newName.trim(),
-        description: newDescription.trim() || undefined,
-        permissions: [],
-        isSystem: false,
-        createdAt: nowISO(),
-        updatedAt: nowISO(),
-        userIds: [],
-      },
-      ...prev,
-    ])
-    toast.success('角色已创建')
-    setCreateOpen(false)
-    setNewName('')
-    setNewDescription('')
   }
 
-  const handleDeleteConfirm = () => {
+  const handleDeleteConfirm = async () => {
     if (!deleteTarget) return
-    setRoles((prev) => prev.filter((r) => r.id !== deleteTarget.id))
-    toast.success(`已删除角色「${deleteTarget.name}」`)
-    setDeleteTarget(null)
+    setDeleting(true)
+    const result = await deleteRole(deleteTarget)
+    setDeleting(false)
+    if (result.success) {
+      toast.success(`已删除角色「${deleteTarget.name}」`)
+      setDeleteTarget(null)
+    } else {
+      toast.error(result.errorMessage ?? '删除失败')
+    }
   }
 
-  const assignUser = () => {
-    if (!liveSheetRole || !userToAssign) return
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.id === liveSheetRole.id
-          ? { ...r, userIds: [...r.userIds, userToAssign], updatedAt: nowISO() }
-          : r
-      )
-    )
-    setUserToAssign('')
-    toast.success('用户已分配')
-  }
-
-  const removeUser = (userId: string) => {
-    if (!liveSheetRole) return
-    setRoles((prev) =>
-      prev.map((r) =>
-        r.id === liveSheetRole.id
-          ? { ...r, userIds: r.userIds.filter((id) => id !== userId), updatedAt: nowISO() }
-          : r
-      )
+  if (loading) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <Skeleton className="h-9 w-48" />
+          <Skeleton className="h-9 w-24" />
+        </div>
+        <div className="overflow-hidden rounded-lg border border-border">
+          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-12 w-full border-b last:border-0" />)}
+        </div>
+      </div>
     )
   }
 
@@ -411,9 +522,9 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
         <Table>
           <TableHeader>
             <TableRow className="border-b-2 border-border bg-card hover:bg-card">
-              <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground w-[200px]">角色名称</TableHead>
+              <TableHead className="h-10 w-[200px] text-[11px] font-medium uppercase tracking-wider text-foreground">角色名称</TableHead>
               <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">描述</TableHead>
-              <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground w-[220px] text-right">操作</TableHead>
+              <TableHead className="h-10 w-[220px] text-right text-[11px] font-medium uppercase tracking-wider text-foreground">操作</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -422,8 +533,8 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
                 <TableCell className="h-12 text-[13px]">
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-foreground">{role.name}</span>
-                    {role.isSystem && (
-                      <Badge variant="secondary" className="text-xs">系统</Badge>
+                    {role.isImplicit && (
+                      <Badge variant="secondary" className="text-xs">内置</Badge>
                     )}
                   </div>
                 </TableCell>
@@ -436,7 +547,7 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
                       variant="ghost"
                       size="sm"
                       className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => { setSheetRole(role); setUserToAssign('') }}
+                      onClick={() => setUsersSheetRole(role)}
                     >
                       <Users className="size-3.5" strokeWidth={1.5} />
                       用户管理
@@ -445,12 +556,12 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
                       variant="ghost"
                       size="sm"
                       className="h-7 gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                      onClick={() => setBundlesSheetRoleId(role.id)}
+                      onClick={() => setBundlesSheetRole(role)}
                     >
                       <KeyRound className="size-3.5" strokeWidth={1.5} />
                       权限管理
                     </Button>
-                    {!role.isSystem && canManageRoles && (
+                    {!role.isImplicit && canManageRoles && (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -504,7 +615,7 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="例如：Editor"
-                onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+                onKeyDown={(e) => e.key === 'Enter' && !creating && handleCreate()}
               />
             </div>
             <div className="space-y-1.5">
@@ -520,7 +631,9 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCreateOpen(false)}>取消</Button>
-            <Button onClick={handleCreate} className="bg-primary text-primary-foreground hover:bg-primary/90">创建</Button>
+            <Button onClick={handleCreate} disabled={creating} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              {creating ? <><Loader2 className="mr-2 size-4 animate-spin" />创建中...</> : '创建'}
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -539,86 +652,24 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleDeleteConfirm}
+              disabled={deleting}
             >
-              确认删除
+              {deleting ? <><Loader2 className="mr-2 size-4 animate-spin" />删除中...</> : '确认删除'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Users Sheet */}
-      <Sheet open={!!sheetRole} onOpenChange={(open) => { if (!open) setSheetRole(null) }}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          {liveSheetRole && (
-            <>
-              <SheetHeader className="mb-6">
-                <SheetTitle className="flex items-center gap-2">
-                  <Users className="size-4 text-muted-foreground" strokeWidth={1.5} />
-                  {liveSheetRole.name} · 用户管理
-                  {liveSheetRole.isSystem && <Badge variant="secondary">系统</Badge>}
-                </SheetTitle>
-                <SheetDescription>{liveSheetRole.description || '无描述'}</SheetDescription>
-              </SheetHeader>
-
-              <div className="mb-4 flex gap-2">
-                <Select value={userToAssign} onValueChange={setUserToAssign}>
-                  <SelectTrigger className="flex-1 text-sm">
-                    <SelectValue placeholder="选择用户分配到此角色" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {assignableUsers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} · {u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <Button onClick={assignUser} disabled={!userToAssign || !canManageRoles}>
-                  分配
-                </Button>
-              </div>
-
-              <div className="overflow-hidden rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="text-xs">用户</TableHead>
-                      <TableHead className="text-xs">邮箱</TableHead>
-                      <TableHead className="w-16 text-right text-xs">操作</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {sheetUsers.map((user) => (
-                      <TableRow key={user.id}>
-                        <TableCell className="font-medium">{user.name}</TableCell>
-                        <TableCell className="text-muted-foreground">{user.email}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
-                            disabled={!canManageRoles}
-                            onClick={() => removeUser(user.id)}
-                          >
-                            移除
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {sheetUsers.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={3} className="py-6 text-center text-sm text-muted-foreground">
-                          暂无绑定用户
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
+      {usersSheetRole && (
+        <RoleUsersSheet
+          role={usersSheetRole}
+          orgName={orgName}
+          projectSlug={projectSlug}
+          open={!!usersSheetRole}
+          onOpenChange={(open) => { if (!open) setUsersSheetRole(null) }}
+        />
+      )}
 
       {/* Bundles Sheet */}
       {bundlesSheetRole && (
@@ -627,8 +678,8 @@ function LegacyRolesContent({ orgName, projectSlug }: LegacyRolesContentProps) {
           roleName={bundlesSheetRole.name}
           orgName={orgName}
           projectSlug={projectSlug}
-          open={!!bundlesSheetRoleId}
-          onOpenChange={(open) => { if (!open) setBundlesSheetRoleId(null) }}
+          open={!!bundlesSheetRole}
+          onOpenChange={(open) => { if (!open) setBundlesSheetRole(null) }}
         />
       )}
     </div>
@@ -683,7 +734,7 @@ export default function RolesPage() {
         </TabsList>
 
         <TabsContent value="roles" className="mt-6">
-          <LegacyRolesContent orgName={orgName} projectSlug={projectSlug} />
+          <RolesContent orgName={orgName} projectSlug={projectSlug} />
         </TabsContent>
 
         <TabsContent value="bundles" className="mt-6">

@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   callGoRevokeEndUserProjectAccess,
   callGoUpdateEndUserProjectAccess,
-} from '@/bff/end-user/end-user-go-client-v2'
+} from '@/bff/end-user/end-user-go-client'
 
 interface RouteParams {
   params: Promise<{ orgName: string; projectSlug: string; accessId: string }>
@@ -24,7 +24,7 @@ export async function DELETE(_req: NextRequest, { params }: RouteParams) {
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
   const { orgName, projectSlug, accessId } = await params
   try {
-    const body = await req.json()
+    const body: unknown = await req.json()
     const { permissionBundle } = body as { permissionBundle?: unknown }
     if (typeof permissionBundle !== 'string') {
       return NextResponse.json(

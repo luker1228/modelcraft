@@ -1,5 +1,4 @@
 import * as React from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { Plus, ChevronDown, ChevronRight, Trash2, ShieldAlert } from 'lucide-react'
 
@@ -31,6 +30,7 @@ import {
   TableRow,
 } from '@web/components/ui/table'
 
+import { CreatePermissionSheet } from './CreatePermissionSheet'
 import { usePermissionList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/_hooks/usePermissionList'
 import type {
   EndUserPermission,
@@ -283,8 +283,7 @@ function ModelGroup({
 // ── PermissionsTab ────────────────────────────────────────────────────────────
 
 export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
-  const router = useRouter()
-
+  const [sheetOpen, setSheetOpen] = React.useState(false)
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
 
   const { groupedPermissions, loading, error, deletePermission } = usePermissionList({
@@ -314,11 +313,18 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
   )
 
   const handleCreateNew = React.useCallback(() => {
-    router.push(`/org/${orgName}/project/${projectSlug}/rbac/permissions/new`)
-  }, [router, orgName, projectSlug])
+    setSheetOpen(true)
+  }, [])
 
   return (
     <div className="space-y-4">
+      <CreatePermissionSheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        orgName={orgName}
+        projectSlug={projectSlug}
+      />
+
       {/* Toolbar */}
       <div className="flex justify-end">
         <Button size="sm" onClick={handleCreateNew} className="shrink-0">

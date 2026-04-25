@@ -1,5 +1,4 @@
 import { useState, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
 import { useMutation } from '@apollo/client'
 
 import { useProjectScopedClient } from '@bff/apollo/public'
@@ -67,6 +66,7 @@ export interface UseCreatePermissionWizardReturn {
   updateField: <K extends keyof WizardState>(key: K, value: WizardState[K]) => void
   goNext: () => void
   goBack: () => void
+  reset: () => void
   submit: () => Promise<void>
   submitting: boolean
   /** Non-null when the last submit call produced an error */
@@ -80,8 +80,9 @@ export interface UseCreatePermissionWizardReturn {
 export function useCreatePermissionWizard(
   orgName: string,
   projectSlug: string,
+  /** Called on successful creation. Default: navigate to permissions list. */
+  onSuccess?: () => void,
 ): UseCreatePermissionWizardReturn {
-  const router = useRouter()
   const client = useProjectScopedClient(projectSlug, orgName)
 
   const [state, setState] = useState<WizardState>(INITIAL_STATE)
@@ -129,6 +130,11 @@ export function useCreatePermissionWizard(
     })
   }, [])
 
+  const reset = useCallback(() => {
+    setState(INITIAL_STATE)
+    setSubmitError(null)
+  }, [])
+
   // ---- submit ----
 
   const submit = useCallback(async () => {
@@ -165,14 +171,18 @@ export function useCreatePermissionWizard(
         return
       }
 
-      // Success — navigate back to the permissions list
-      router.push(`/org/${orgName}/project/${projectSlug}/rbac/permissions`)
+      // Success — call the provided callback or navigate back to the permissions list
+      if (onSuccess) {
+        onSuccess()
+      } else {
+        window.location.href = `/org/${orgName}/project/${projectSlug}/rbac/permissions`
+      }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : '创建权限点时发生错误，请重试')
     } finally {
       setSubmitting(false)
     }
-  }, [createPermissionMutation, orgName, projectSlug, router, state])
+  }, [createPermissionMutation, orgName, projectSlug, onSuccess, state])
 
-  return { state, updateField, goNext, goBack, submit, submitting, submitError }
+  return { state, updateField, goNext, goBack, reset, submit, submitting, submitError }
 }

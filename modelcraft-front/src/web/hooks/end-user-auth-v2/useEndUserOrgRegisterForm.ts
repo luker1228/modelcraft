@@ -19,6 +19,8 @@ interface EndUserOrgRegisterBffResponse {
   expiresIn?: number
   projectSlug?: string
   projects?: EndUserAccessibleProject[]
+  noProjectAccess?: boolean
+  message?: string
 }
 
 const orgRegisterSchema = z.object({
@@ -99,6 +101,11 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
           setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
           router.push(`/u/${orgName}/${data.projectSlug ?? ''}/data`)
         } else {
+          if (data.noProjectAccess) {
+            router.push(`/u/${orgName}/no-project-access`)
+            return
+          }
+
           const projects: EndUserAccessibleProject[] = data.projects ?? []
           sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
           router.push(`/u/${orgName}/select-project`)

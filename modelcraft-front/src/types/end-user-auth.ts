@@ -173,7 +173,8 @@ export interface EndUserAccessibleProject {
  * v1 BFF 登录响应（三种结果）
  * - singleProject: true  → 直接跳转，accessToken 已签发
  * - singleProject: false → 进入 select-project 页面
- * - error                → 登录失败（凭证错误 / 无项目权限 / 账号禁用）
+ * - noProjectAccess: true → 登录成功但暂无项目权限，进入待授权页
+ * - error                 → 登录失败（凭证错误 / 账号禁用 / 参数错误）
  */
 export type EndUserLoginResponse =
   | {
@@ -184,10 +185,12 @@ export type EndUserLoginResponse =
   | {
       singleProject: false
       projects: EndUserAccessibleProject[]
+      noProjectAccess?: boolean
+      message?: string
     }
   | {
       error: {
-        code: 'NO_PROJECT_ACCESS' | 'INVALID_CREDENTIALS' | 'ACCOUNT_DISABLED' | 'PARAM_INVALID'
+        code: 'INVALID_CREDENTIALS' | 'ACCOUNT_DISABLED' | 'PARAM_INVALID'
         message: string
       }
     }

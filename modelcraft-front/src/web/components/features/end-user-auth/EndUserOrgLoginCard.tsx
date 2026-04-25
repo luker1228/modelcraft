@@ -151,7 +151,7 @@ function EndUserOrgRegisterFormContent({ orgName }: EndUserOrgLoginCardProps) {
  * 登录分支由 useEndUserOrgLoginForm 处理：
  * - 1 个可访问 Project → 直接跳转数据页
  * - N 个可访问 Project → 跳转 select-project 页
- * - 0 个可访问 Project → 显示无权限错误
+ * - 0 个可访问 Project → 跳转待授权页
  */
 export function EndUserOrgLoginCard({ orgName }: EndUserOrgLoginCardProps) {
   const [mode, setMode] = React.useState<'login' | 'register'>('login')

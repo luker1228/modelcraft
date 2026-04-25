@@ -6,7 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import {
   callGoCreateOrgEndUser,
   callGoEndUserLoginOrg,
-} from '@/bff/end-user/end-user-go-client-v2'
+} from '@/bff/end-user/end-user-go-client'
 import { signEndUserAccessToken } from '@/bff/end-user/end-user-jwt-utils'
 import { setEndUserRefreshTokenCookie } from '@/bff/end-user/end-user-cookie-utils'
 import {
@@ -26,6 +26,14 @@ import type { EndUserLoginResponse } from '@/types/end-user-auth'
 interface RegisterBody {
   username?: unknown
   password?: unknown
+}
+
+function isNoProjectAccessMessage(message: string): boolean {
+  return (
+    message.includes('暂无可访问项目') ||
+    message.includes('暂无项目访问权限') ||
+    message.toLowerCase().includes('no project access')
+  )
 }
 
 function extractRequestId(err: unknown): string | undefined {
@@ -73,9 +81,12 @@ export async function POST(
 
     if (accessibleProjects.length === 0) {
       const res: EndUserLoginResponse = {
-        error: { code: 'NO_PROJECT_ACCESS', message: '您暂无项目访问权限，请联系管理员授权' },
+        singleProject: false,
+        projects: [],
+        noProjectAccess: true,
+        message: '该账号暂无可访问项目，请联系管理员申请项目访问权限',
       }
-      return NextResponse.json(res, { status: 403 })
+      return NextResponse.json(res)
     }
 
     if (accessibleProjects.length === 1) {
@@ -142,6 +153,17 @@ export async function POST(
     if (err instanceof EndUserUpstreamError) {
       const status = err.status || 500
       const code = err.code || (status >= 500 ? 'UPSTREAM_ERROR' : 'PARAM_INVALID')
+
+      if (code === 'NO_PROJECT_ACCESS' || isNoProjectAccessMessage(err.message || '')) {
+        const res: EndUserLoginResponse = {
+          singleProject: false,
+          projects: [],
+          noProjectAccess: true,
+          message: '该账号暂无可访问项目，请联系管理员申请项目访问权限',
+        }
+        return NextResponse.json(res)
+      }
+
       return NextResponse.json(
         {
           error: { code, message: err.message || '上游服务异常' },

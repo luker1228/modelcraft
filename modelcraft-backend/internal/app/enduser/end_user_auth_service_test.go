@@ -447,13 +447,17 @@ func TestEndUserAuthAppService_LoginEndUser_NoProjectAccess(t *testing.T) {
 	svc, userRepo, _, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
 
-	_, err := svc.LoginEndUser(context.Background(), LoginCommand{
+	result, err := svc.LoginEndUser(context.Background(), LoginCommand{
 		OrgName:  "org-a",
 		Username: "alice",
 		Password: "Password123",
 	})
-	require.Error(t, err)
-	requireBusinessErrorCode(t, err, bizerrors.EndUserNoProjectAccess.GetCode())
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "user-1", result.UserID)
+	assert.Empty(t, result.AccessToken)
+	assert.Empty(t, result.Projects)
+	assert.NotEmpty(t, result.RefreshToken)
 }
 
 func TestEndUserAuthAppService_LoginEndUser_DisabledAccount(t *testing.T) {
@@ -559,12 +563,16 @@ func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T)
 
 	projectAccessRepo.projectsByUserID["user-1"] = nil
 
-	_, err = svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+	refreshResult, err := svc.RefreshEndUserToken(context.Background(), RefreshCommand{
 		OrgName:      "org-a",
 		RefreshToken: loginResult.RefreshToken,
 	})
-	require.Error(t, err)
-	requireBusinessErrorCode(t, err, bizerrors.EndUserNoProjectAccess.GetCode())
+	require.NoError(t, err)
+	require.NotNil(t, refreshResult)
+	assert.Equal(t, "user-1", refreshResult.UserID)
+	assert.Empty(t, refreshResult.AccessToken)
+	assert.Empty(t, refreshResult.Projects)
+	assert.NotEmpty(t, refreshResult.RefreshToken)
 }
 
 func TestEndUserAuthAppService_SelectProjectContext_Success(t *testing.T) {

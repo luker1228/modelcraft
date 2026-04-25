@@ -23,6 +23,8 @@ interface EndUserOrgLoginBffResponse {
   expiresIn?: number
   projectSlug?: string
   projects?: EndUserAccessibleProject[]
+  noProjectAccess?: boolean
+  message?: string
 }
 
 // ============================================================================
@@ -72,6 +74,7 @@ function getErrorMessage(code?: string, fallback?: string): string {
  *
  * 登录分支：
  * - singleProject: true  → 直接写入 store，跳转数据页
+ * - singleProject: false + noProjectAccess=true → 跳转待授权页
  * - singleProject: false → 跳转选择 Project 页（accessible projects 存入 sessionStorage）
  * - error                → 显示错误信息
  */
@@ -110,6 +113,11 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
           setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
           router.push(`/u/${orgName}/${data.projectSlug ?? ''}/data`)
         } else {
+          if (data.noProjectAccess) {
+            router.push(`/u/${orgName}/no-project-access`)
+            return
+          }
+
           // 多个可访问项目 → 存入 sessionStorage，跳转选择页
           const projects: EndUserAccessibleProject[] = data.projects ?? []
           sessionStorage.setItem(

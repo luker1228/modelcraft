@@ -203,18 +203,19 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if len(accessibleProjects) == 0 {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNoProjectAccess)
-	}
 
-	projectSlugs := make([]string, 0, len(accessibleProjects))
-	for _, item := range accessibleProjects {
-		projectSlugs = append(projectSlugs, item.ProjectSlug)
-	}
+	accessToken := ""
+	if len(accessibleProjects) > 0 {
+		projectSlugs := make([]string, 0, len(accessibleProjects))
+		for _, item := range accessibleProjects {
+			projectSlugs = append(projectSlugs, item.ProjectSlug)
+		}
 
-	tokenResult, err := s.issueAccessToken(ctx, user.ID, cmd.OrgName, projectSlugs)
-	if err != nil {
-		return nil, err
+		tokenResult, issueErr := s.issueAccessToken(ctx, user.ID, cmd.OrgName, projectSlugs)
+		if issueErr != nil {
+			return nil, issueErr
+		}
+		accessToken = tokenResult.AccessToken
 	}
 
 	plaintext, tokenHash, err := generateRefreshToken()
@@ -244,7 +245,7 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 
 	return &LoginResult{
 		UserID:       user.ID,
-		AccessToken:  tokenResult.AccessToken,
+		AccessToken:  accessToken,
 		Projects:     toAppAccessibleProjects(accessibleProjects),
 		RefreshToken: plaintext,
 		ExpiresAt:    expiresAt,
@@ -357,18 +358,19 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if len(accessibleProjects) == 0 {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNoProjectAccess)
-	}
 
-	projectSlugs := make([]string, 0, len(accessibleProjects))
-	for _, item := range accessibleProjects {
-		projectSlugs = append(projectSlugs, item.ProjectSlug)
-	}
+	accessToken := ""
+	if len(accessibleProjects) > 0 {
+		projectSlugs := make([]string, 0, len(accessibleProjects))
+		for _, item := range accessibleProjects {
+			projectSlugs = append(projectSlugs, item.ProjectSlug)
+		}
 
-	tokenResult, err := s.issueAccessToken(ctx, session.UserID, cmd.OrgName, projectSlugs)
-	if err != nil {
-		return nil, err
+		tokenResult, issueErr := s.issueAccessToken(ctx, session.UserID, cmd.OrgName, projectSlugs)
+		if issueErr != nil {
+			return nil, issueErr
+		}
+		accessToken = tokenResult.AccessToken
 	}
 
 	var result *RefreshResult
@@ -397,7 +399,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 
 		result = &RefreshResult{
 			UserID:       session.UserID,
-			AccessToken:  tokenResult.AccessToken,
+			AccessToken:  accessToken,
 			Projects:     toAppAccessibleProjects(accessibleProjects),
 			RefreshToken: newPlaintext,
 			ExpiresAt:    expiresAt,

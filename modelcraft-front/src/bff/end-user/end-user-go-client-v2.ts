@@ -1,6 +1,6 @@
 // src/bff/end-user/end-user-go-client-v2.ts
 // EndUser v1 — Org 级账号管理 + Project 访问控制 Go Client
-// Mock 策略与 end-user-go-client.ts 保持一致（NEXT_PUBLIC_API_MOCKING=enabled）
+// 默认走真实后端；仅在 END_USER_V2_MOCKING=enabled 时启用 mock
 
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 import {
@@ -16,7 +16,9 @@ const GO_BACKEND_INTERNAL_URL =
 const INTERNAL_TOKEN =
   process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVICE_TOKEN ?? ''
 
-const USE_MOCK = process.env.NEXT_PUBLIC_API_MOCKING === 'enabled'
+function shouldUseEndUserV2Mock(): boolean {
+  return process.env.END_USER_V2_MOCKING === 'enabled'
+}
 
 // ============================================================================
 // 结果类型
@@ -182,7 +184,7 @@ export async function callGoEndUserLoginOrg(params: {
   username: string
   password: string
 }): Promise<EndUserOrgLoginResult> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const user = MOCK_ORG_USERS[params.username]
     if (!user || user.password !== params.password) throw new EndUserInvalidCredentialsError()
     if (user.isForbidden) throw new EndUserAccountDisabledError()
@@ -238,7 +240,7 @@ export async function callGoListOrgEndUsers(params: {
   first?: number
   after?: string
 }): Promise<EndUserOrgUserConnection> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     let nodes = Object.values(MOCK_ORG_USERS).filter((u) => u.username !== 'noaccess')
     if (params.search) {
       nodes = nodes.filter((u) => u.username.includes(params.search!))
@@ -266,7 +268,7 @@ export async function callGoCreateOrgEndUser(params: {
   username: string
   password: string
 }): Promise<EndUserOrgUser> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     if (MOCK_ORG_USERS[params.username]) throw new EndUserConflictError()
     if (params.password.length < 8) throw new EndUserParamInvalidError('密码至少 8 位，含字母与数字')
     const id = `mock-user-${Date.now()}`
@@ -293,7 +295,7 @@ export async function callGoUpdateOrgEndUserStatus(params: {
   userId: string
   isForbidden: boolean
 }): Promise<EndUserOrgUser> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const user = Object.values(MOCK_ORG_USERS).find((u) => u.id === params.userId)
     if (!user) throw new EndUserParamInvalidError('用户不存在')
     user.isForbidden = params.isForbidden
@@ -315,7 +317,7 @@ export async function callGoDeleteOrgEndUser(params: {
   orgName: string
   userId: string
 }): Promise<void> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const key = Object.keys(MOCK_ORG_USERS).find((k) => MOCK_ORG_USERS[k].id === params.userId)
     if (!key) throw new EndUserParamInvalidError('用户不存在')
     delete MOCK_ORG_USERS[key]
@@ -339,7 +341,7 @@ export async function callGoListProjectEndUserAccesses(params: {
   search?: string
   first?: number
 }): Promise<EndUserProjectAccessConnection> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const projectAccesses = MOCK_PROJECT_ACCESSES[params.projectSlug] ?? {}
     let nodes: EndUserProjectAccess[] = Object.entries(projectAccesses).map(([userId, a]) => {
       const user = Object.values(MOCK_ORG_USERS).find((u) => u.id === userId)
@@ -377,7 +379,7 @@ export async function callGoGrantEndUserProjectAccess(params: {
   permissionBundleId: string
   permissionBundleName: string
 }): Promise<EndUserProjectAccess> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const user = Object.values(MOCK_ORG_USERS).find((u) => u.id === params.endUserId)
     if (!user) throw new EndUserParamInvalidError('用户不存在')
     const projectAccesses = MOCK_PROJECT_ACCESSES[params.projectSlug] ?? {}
@@ -413,7 +415,7 @@ export async function callGoRevokeEndUserProjectAccess(params: {
   projectSlug: string
   accessId: string
 }): Promise<void> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const projectAccesses = MOCK_PROJECT_ACCESSES[params.projectSlug] ?? {}
     const userId = Object.keys(projectAccesses).find(
       (uid) => projectAccesses[uid].accessId === params.accessId
@@ -437,7 +439,7 @@ export async function callGoUpdateEndUserProjectAccess(params: {
   permissionBundleId: string
   permissionBundleName: string
 }): Promise<EndUserProjectAccess> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     const projectAccesses = MOCK_PROJECT_ACCESSES[params.projectSlug] ?? {}
     const entry = Object.entries(projectAccesses).find(([, a]) => a.accessId === params.accessId)
     if (!entry) throw new EndUserParamInvalidError('访问权不存在')
@@ -469,7 +471,7 @@ export async function callGoGetUserAccessibleProjects(params: {
   orgName: string
   userId: string
 }): Promise<EndUserAccessibleProject[]> {
-  if (USE_MOCK) {
+  if (shouldUseEndUserV2Mock()) {
     return MOCK_PROJECTS.filter((p) => {
       const projectAccesses = MOCK_PROJECT_ACCESSES[p.slug]
       return projectAccesses && params.userId in projectAccesses

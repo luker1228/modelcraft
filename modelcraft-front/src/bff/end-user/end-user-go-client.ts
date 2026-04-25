@@ -671,3 +671,6 @@ export async function callGoEndUserModelCatalog(params: {
     pageSize: data.pageSize ?? 200,
   }
 }
+
+// Re-export org/project-scoped end-user management APIs so callers can use a single client module path.
+export * from './end-user-go-client-v2'

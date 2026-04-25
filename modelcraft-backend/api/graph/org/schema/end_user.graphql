@@ -109,3 +109,4 @@ extend type Mutation {
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
 }
+

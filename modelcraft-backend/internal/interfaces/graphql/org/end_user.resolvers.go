@@ -7,13 +7,12 @@ package orggraphql
 import (
 	"context"
 	"errors"
-	"strings"
-
 	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/internal/interfaces/graphql/org/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"strings"
 )
 
 // CreateEndUser is the resolver for the createEndUser field.
@@ -278,7 +277,14 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 	}, nil
 }
 
-func convertOrgCreateEndUserError(err *bizerrors.BusinessError) generated.CreateEndUserError {
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func convertOrgCreateEndUserError(err *bizerrors.BusinessError) generated.CreateEndUserError {
 	if err == nil {
 		return nil
 	}
@@ -296,7 +302,6 @@ func convertOrgCreateEndUserError(err *bizerrors.BusinessError) generated.Create
 		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
-
 func convertOrgUpdateEndUserError(err *bizerrors.BusinessError) generated.UpdateEndUserError {
 	if err == nil {
 		return nil
@@ -311,21 +316,18 @@ func convertOrgUpdateEndUserError(err *bizerrors.BusinessError) generated.Update
 		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
-
 func convertOrgDeleteEndUserError(err *bizerrors.BusinessError) generated.DeleteEndUserError {
 	if err == nil {
 		return nil
 	}
 	return &generated.EndUserNotFound{Message: err.Msg()}
 }
-
 func convertOrgListEndUsersError(err *bizerrors.BusinessError) generated.ListEndUsersError {
 	if err == nil {
 		return nil
 	}
 	return &generated.InvalidInput{Message: err.Msg()}
 }
-
 func toOrgOptionalString(value string) *string {
 	if strings.TrimSpace(value) == "" {
 		return nil
@@ -333,3 +335,4 @@ func toOrgOptionalString(value string) *string {
 	v := value
 	return &v
 }
+*/

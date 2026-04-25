@@ -2,7 +2,7 @@
 // Org 级终端用户删除 BFF
 
 import { NextRequest, NextResponse } from 'next/server'
-import { callGoDeleteOrgEndUser } from '@/bff/end-user/end-user-go-client-v2'
+import { callGoDeleteOrgEndUser } from '@/bff/end-user/end-user-go-client'
 
 interface RouteParams {
   params: Promise<{ orgName: string; userId: string }>
