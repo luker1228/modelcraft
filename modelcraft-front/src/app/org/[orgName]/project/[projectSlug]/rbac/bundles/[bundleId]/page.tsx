@@ -178,7 +178,7 @@ function AddPermissionDialog({
     if (!q) return available
     return available.filter(
       (p) =>
-        p.modelDisplayName.toLowerCase().includes(q) ||
+        (p.modelDisplayName ?? p.modelId).toLowerCase().includes(q) ||
         (ACTION_LABEL[p.action] ?? p.action).toLowerCase().includes(q)
     )
   }, [available, search])

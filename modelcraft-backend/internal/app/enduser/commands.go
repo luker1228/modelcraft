@@ -216,3 +216,9 @@ type GetEndUserCommand struct {
 	ProjectSlug string
 	UserID      string
 }
+
+// AccessibleProjectItem represents one project that an end-user can access in an org.
+type AccessibleProjectItem struct {
+	Slug  string
+	Title string
+}

@@ -39,6 +39,7 @@ export interface EndUserPermission {
   rowScope: EndUserRowScope
   columnPolicy: ColumnPolicy
   displayName?: string
+  modelDisplayName?: string
   description?: string
   createdAt: string
   updatedAt: string

@@ -41,7 +41,7 @@ export default function RBACLayout({ children }: RBACLayoutProps) {
     <PageLayout maxWidth="7xl">
       <PageHeader
         title="终端用户权限"
-        description="管理项目的权限点、权限包、角色及用户授权。"
+        spacing="compact"
       />
 
       {/* Tab Navigation */}

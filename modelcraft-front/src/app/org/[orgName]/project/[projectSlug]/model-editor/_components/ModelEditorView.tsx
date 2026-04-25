@@ -95,7 +95,7 @@ export function ModelEditorView() {
               <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-destructive/10">
                 <AlertTriangle className="size-5 text-destructive" />
               </div>
-              <DialogTitle className="font-heading text-base">数据库连接失败</DialogTitle>
+              <DialogTitle className="text-base">数据库连接失败</DialogTitle>
             </div>
             <DialogDescription className="pl-[52px] text-sm leading-relaxed">
               {state.connectionError}
@@ -162,7 +162,7 @@ export function ModelEditorView() {
       />
 
       {/* Right Content Area */}
-      <main className="flex min-w-0 flex-1 flex-col bg-sidebar p-4">
+      <main className="flex min-w-0 flex-1 flex-col bg-background p-4">
         <section className="flex h-full min-h-0 flex-col gap-3">
           <DataWorkspacePanel
             tabs={openedTabs}

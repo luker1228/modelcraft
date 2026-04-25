@@ -8,9 +8,9 @@ const maxWidthMap = {
 } as const
 
 const paddingMap = {
-  default: 'px-6 py-8',
-  compact: 'p-6',
-  spacious: 'px-6 pb-12 pt-10 xl:px-10',
+  default: 'px-8 py-6',      // 32px H / 24px V — Stripe standard
+  compact: 'px-8 py-4',
+  spacious: 'px-8 py-8 xl:px-10',
   none: '',
 } as const
 
@@ -18,9 +18,9 @@ interface PageLayoutProps {
   children: React.ReactNode
   /** Content max-width. Default: '7xl' */
   maxWidth?: keyof typeof maxWidthMap
-  /** Background. Default: 'default' (inherits bg-muted from AppLayout) */
+  /** Background. Default: 'default' (inherits bg-background from AppLayout) */
   background?: 'default' | 'card'
-  /** Padding preset. Default: 'default' (px-6 py-8) */
+  /** Padding preset. Default: 'default' (px-8 py-6) */
   padding?: keyof typeof paddingMap
   /** Extra className on the inner container */
   className?: string

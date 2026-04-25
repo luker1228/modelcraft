@@ -40,8 +40,8 @@ export default function SettingsLayout({
     <AppLayout pageTitle="组织设置">
       <PageLayout maxWidth="5xl">
         <PageHeader
-          title="Settings"
-          description="Manage your organization settings, members, and roles."
+          title="组织设置"
+          spacing="compact"
         />
 
         {/* Tab Navigation */}

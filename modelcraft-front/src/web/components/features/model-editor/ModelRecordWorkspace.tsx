@@ -584,7 +584,7 @@ export default function ModelRecordWorkspace({
   return (
     <div className="flex h-full flex-col">
       {quickNav ?? (workspaceMode !== 'end_user' && (
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-sidebar p-2">
+        <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-card p-2">
           <Button
             variant="outline"
             size="sm"
@@ -614,7 +614,7 @@ export default function ModelRecordWorkspace({
       ))}
 
       {/* 顶部搜索栏 */}
-      <div className="flex items-center justify-between border-b border-border bg-sidebar px-4 py-3">
+      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
         <div className="flex w-full max-w-xl items-center gap-2">
           <Search className="size-4 text-muted-foreground" />
           <Input
@@ -630,7 +630,7 @@ export default function ModelRecordWorkspace({
       </div>
 
       {/* 紧凑工具栏 - 数据列表上方 */}
-      <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-sidebar p-1.5">
+      <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
         <div className="flex items-center gap-4">
           {/* Filter & Sort */}
           <div className="flex items-center gap-1">

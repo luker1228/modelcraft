@@ -13,7 +13,7 @@ import { useAuthSchema } from '@web/hooks/rls/use-auth-schema'
 import { DATABASE_CATALOG } from '@web/graphql/queries/cluster'
 import { GET_MODELS_FOR_RELATION } from '@web/graphql/queries/model'
 import { getPresetExpressions } from '@/mocks/data/project/rls-factory'
-import type { AuthVariable, AuthVariableInput, RLSPreset } from '@/types/rls'
+import type { AuthVariable, AuthVariableInput, JsonExpr, RLSPreset } from '@/types/rls'
 
 import { cn } from '@/shared/utils'
 import { Badge } from '@/web/components/ui/badge'
@@ -140,11 +140,11 @@ const COMMAND_TO_TAB_KEY: Record<PolicyCommand, keyof ExprState> = {
   删除: 'deletePredicate',
 }
 
-function parseExpr(input: string): Record<string, unknown> | null {
+function parseExpr(input: string): JsonExpr | null {
   try {
     if (input === 'true') return { _const: true }
     if (input === 'false') return { _const: false }
-    return JSON.parse(input) as Record<string, unknown>
+    return JSON.parse(input) as JsonExpr
   } catch {
     return null
   }
@@ -768,7 +768,7 @@ export default function RLSSettingsPage() {
                         }))
                       }}
                     />
-                    <PolicyJSONPreview value={parsed[key]} />
+                    {parsed[key] && <PolicyJSONPreview value={parsed[key]} />}
                   </TabsContent>
                 ))}
               </Tabs>

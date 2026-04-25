@@ -693,6 +693,7 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 			r.Get("/", handlers.EndUserMgmtHandler.List)
 			r.Patch("/{userId}/status", handlers.EndUserMgmtHandler.UpdateStatus)
 			r.Delete("/{userId}", handlers.EndUserMgmtHandler.Delete)
+			r.Get("/{userId}/accessible-projects", handlers.EndUserMgmtHandler.GetAccessibleProjects)
 		})
 	}
 

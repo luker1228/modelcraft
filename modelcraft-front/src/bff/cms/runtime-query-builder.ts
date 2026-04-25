@@ -43,7 +43,7 @@ function isRelationField(field: FieldDefinition): boolean {
  * Protocol: relation fields only request `id` and `_displayName` (computed display name).
  */
 export function buildFieldSelections(
-  fields: string[] | FieldDefinition[]
+  fields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
 ): (string | Record<string, string[]>)[] {
   if (fields.length === 0) {
     return ['id']
@@ -67,7 +67,7 @@ export function buildFieldSelections(
  */
 export function buildFindManyQuery(
   modelName: string,
-  fields: string[] | FieldDefinition[]
+  fields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
 ): DocumentNode {
   const fieldSelection = buildFieldSelections(fields)
 
@@ -231,7 +231,7 @@ export function extractWritableFieldNamesFromSchema(
  * - Drops only `undefined` values
  */
 export function sanitizeMutationInputData(
-  data: Record<string, unknown>,
+  data: Record<string, unknown> | null | undefined,
   allowedFieldNames: readonly string[]
 ): Record<string, unknown> {
   if (!data || typeof data !== 'object' || allowedFieldNames.length === 0) {

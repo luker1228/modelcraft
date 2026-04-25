@@ -210,6 +210,13 @@ export async function callGoEndUserLoginV2(params: {
 // Org 级 EndUser CRUD
 // ============================================================================
 
+// ── 后端响应类型（/internal/end-users 使用 items 字段，非 nodes）──────────────
+interface InternalListEndUsersResponse {
+  items: EndUserOrgUser[]
+  totalCount: number
+  pageInfo: { hasNextPage: boolean; endCursor?: string }
+}
+
 export async function callGoListOrgEndUsers(params: {
   orgName: string
   search?: string
@@ -230,11 +237,13 @@ export async function callGoListOrgEndUsers(params: {
   if (params.first)  qs.set('first', String(params.first))
   if (params.after)  qs.set('after', params.after)
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/users?${qs}`,
+    `${GO_BACKEND_INTERNAL_URL}/internal/end-users?${qs}`,
     { headers }
   )
   if (!res.ok) throw await parseGoError(res, requestId)
-  return res.json() as Promise<EndUserOrgUserConnection>
+  const data = await res.json() as InternalListEndUsersResponse
+  // 后端返回 items，转换为前端期望的 nodes 结构
+  return { nodes: data.items ?? [], totalCount: data.totalCount ?? 0 }
 }
 
 export async function callGoCreateOrgEndUser(params: {
@@ -255,12 +264,13 @@ export async function callGoCreateOrgEndUser(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/users`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-users`, {
     method: 'POST', headers,
     body: JSON.stringify({ username: params.username, password: params.password }),
   })
   if (!res.ok) throw await parseGoError(res, requestId)
-  return res.json() as Promise<EndUserOrgUser>
+  const data = await res.json() as { endUser: EndUserOrgUser }
+  return data.endUser
 }
 
 export async function callGoUpdateOrgEndUserStatus(params: {
@@ -277,12 +287,13 @@ export async function callGoUpdateOrgEndUserStatus(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/users/${params.userId}/status`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-users/${params.userId}/status`, {
     method: 'PATCH', headers,
     body: JSON.stringify({ isForbidden: params.isForbidden }),
   })
   if (!res.ok) throw await parseGoError(res, requestId)
-  return res.json() as Promise<EndUserOrgUser>
+  const data = await res.json() as { endUser: EndUserOrgUser }
+  return data.endUser
 }
 
 export async function callGoDeleteOrgEndUser(params: {
@@ -297,7 +308,7 @@ export async function callGoDeleteOrgEndUser(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/users/${params.userId}`, {
+  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-users/${params.userId}`, {
     method: 'DELETE', headers,
   })
   if (!res.ok) throw await parseGoError(res, requestId)
@@ -452,9 +463,10 @@ export async function callGoGetUserAccessibleProjects(params: {
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/users/${params.userId}/accessible-projects`,
+    `${GO_BACKEND_INTERNAL_URL}/internal/end-users/${params.userId}/accessible-projects`,
     { headers }
   )
   if (!res.ok) throw await parseGoError(res, requestId)
-  return res.json() as Promise<EndUserAccessibleProject[]>
+  const data = await res.json() as { projects: EndUserAccessibleProject[] }
+  return data.projects ?? []
 }

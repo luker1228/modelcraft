@@ -237,6 +237,41 @@ func (h *ManagementHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// GetAccessibleProjects handles GET /internal/end-users/{userId}/accessible-projects
+func (h *ManagementHandler) GetAccessibleProjects(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	userID := chi.URLParam(r, "userId")
+	if userID == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "userId is required")
+		return
+	}
+
+	orgName := r.Header.Get("X-Org-Name")
+	if orgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name header is required")
+		return
+	}
+
+	items, err := h.appService.ListAccessibleProjects(ctx, orgName, userID)
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "Get accessible projects failed")
+		return
+	}
+
+	projects := make([]*AccessibleProjectJSON, 0, len(items))
+	for _, p := range items {
+		slug, title := p.Slug, p.Title
+		projects = append(projects, &AccessibleProjectJSON{Slug: slug, Title: title})
+	}
+
+	h.writeJSON(w, http.StatusOK, GetAccessibleProjectsResponse{
+		RequestID: requestID,
+		Projects:  projects,
+	})
+}
+
 // ---------------------------------------------------------------------------
 // Helper Functions
 // ---------------------------------------------------------------------------

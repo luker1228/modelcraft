@@ -219,13 +219,13 @@ export function ModelRecordTable({
 
   return (
     <TooltipProvider>
-      <div className="flex flex-1 flex-col overflow-hidden bg-sidebar">
+      <div className="flex flex-1 flex-col overflow-hidden bg-card">
         <div className="flex-1 overflow-auto">
           <Table ref={tableRef} className="table-fixed">
-            <TableHeader className="sticky top-0 z-10 bg-sidebar">
+            <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow className="border-b border-border hover:bg-transparent">
                 <TableHead
-                  className="bg-sidebar py-2.5 text-xs font-semibold text-muted-foreground"
+                  className="bg-card py-2.5 text-xs font-medium uppercase tracking-wider text-muted-foreground"
                   style={{ width: INDEX_COLUMN_WIDTH }}
                 >
                   #
@@ -261,7 +261,7 @@ export function ModelRecordTable({
                   const triggerContent = (
                     <>
                       <span className="flex min-w-0 items-center gap-1.5">
-                        {isPrimary && <Key className="size-3 flex-shrink-0 text-blue-500" />}
+                        {isPrimary && <Key className="size-3 flex-shrink-0 text-[#D97706]" />}
                         <span
                           className={`truncate text-xs font-semibold ${
                             isDeprecated ? 'text-muted-foreground line-through' : 'text-foreground'
@@ -270,12 +270,12 @@ export function ModelRecordTable({
                           {fieldTitle}
                         </span>
                         {isEnumField && (
-                          <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(37,99,235,0.22)] bg-[#dbeafe] px-1.5 py-0 text-[9px] font-semibold uppercase leading-4 text-[#1d4ed8]">
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-primary/20 bg-primary/[0.08] px-1.5 py-0 text-[9px] font-medium uppercase leading-4 text-primary">
                             Enum
                           </span>
                         )}
                         {isPairedLabel && (
-                          <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(5,150,105,0.24)] bg-[#ecfdf5] px-1.5 py-0 text-[9px] font-semibold leading-4 text-[#047857]">
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(5,150,105,0.2)] bg-[rgba(5,150,105,0.08)] px-1.5 py-0 text-[9px] font-medium leading-4 text-[#059669]">
                             Label
                           </span>
                         )}
@@ -285,7 +285,7 @@ export function ModelRecordTable({
                           </span>
                         )}
                         {isDeprecated && (
-                          <span className="inline-flex flex-shrink-0 items-center rounded border border-amber-300/70 bg-amber-50 px-1.5 py-0 text-[9px] font-semibold leading-4 text-amber-700">
+                          <span className="inline-flex flex-shrink-0 items-center rounded border border-[rgba(217,119,6,0.2)] bg-[rgba(217,119,6,0.08)] px-1.5 py-0 text-[9px] font-medium leading-4 text-[#D97706]">
                             已废弃
                           </span>
                         )}
@@ -314,7 +314,7 @@ export function ModelRecordTable({
                     <TableHead
                       key={field}
                       className={`group relative py-2.5 text-xs font-semibold text-foreground ${
-                        isPairedLabel || isPairedCode ? 'bg-[#f8fbff]' : 'bg-sidebar'
+                        isPairedLabel || isPairedCode ? 'bg-primary/[0.04]' : 'bg-card'
                       }`}
                       style={{ width: getColumnWidth(field) }}
                     >
@@ -360,7 +360,7 @@ export function ModelRecordTable({
                         </div>
                       )}
                       <div
-                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-blue-500/40 group-hover:bg-blue-500/20"
+                        className="absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-primary/40 group-hover:bg-primary/20"
                         onMouseDown={(e) => handleResizeStart(e, field)}
                         style={{
                           backgroundColor:
@@ -371,7 +371,7 @@ export function ModelRecordTable({
                   )
                 })}
                 <TableHead
-                  className="bg-sidebar py-2.5 text-right text-xs font-semibold text-muted-foreground"
+                  className="bg-card py-2.5 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground"
                   style={{ width: ACTION_COLUMN_WIDTH }}
                 >
                   操作
@@ -394,7 +394,7 @@ export function ModelRecordTable({
                       <p className="mb-3 text-sm text-muted-foreground">暂无数据</p>
                       <Button
                         size="sm"
-                        className="border-0 bg-[#2563eb] text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
+                        className="border-0 bg-primary text-white transition-colors duration-150 hover:bg-primary/90"
                         onClick={onCreate}
                       >
                         <Plus className="mr-1.5 size-3.5" />
@@ -410,7 +410,7 @@ export function ModelRecordTable({
                   return (
                     <TableRow
                       key={rowId}
-                      className="border-b border-border/50 bg-sidebar transition-colors hover:bg-selected"
+                      className="border-b border-border/60 bg-card transition-colors hover:bg-foreground/[0.015]"
                     >
                       <TableCell
                         className="py-2 text-xs tabular-nums text-muted-foreground"
@@ -429,7 +429,7 @@ export function ModelRecordTable({
                           return (
                             <TableCell
                               key={field}
-                              className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-[#f8fbff]' : ''}`}
+                              className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-primary/[0.03]' : ''}`}
                               style={{ width: getColumnWidth(field) }}
                             >
                               <span className="font-mono text-xs text-muted-foreground/50">NULL</span>
@@ -443,7 +443,7 @@ export function ModelRecordTable({
                         return (
                           <TableCell
                             key={field}
-                            className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-[#f8fbff]' : ''}`}
+                            className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-primary/[0.03]' : ''}`}
                             style={{ width: getColumnWidth(field) }}
                           >
                             <Tooltip delayDuration={300}>
@@ -509,7 +509,7 @@ export function ModelRecordTable({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-selected hover:text-foreground"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                             onClick={() => onManageRelations?.(rowId)}
                             title="关联管理"
                           >
@@ -518,7 +518,7 @@ export function ModelRecordTable({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-selected hover:text-foreground"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                             onClick={() => onEdit(rowId)}
                             title="编辑"
                           >

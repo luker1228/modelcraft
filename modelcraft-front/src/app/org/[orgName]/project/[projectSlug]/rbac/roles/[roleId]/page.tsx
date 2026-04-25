@@ -318,7 +318,7 @@ export default function RoleEditPage() {
           <div className="space-y-6">
             {/* Page title */}
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-semibold tracking-tight">{role.name}</h1>
+              <h1 className="text-xl font-semibold tracking-tight">{role.name}</h1>
               {role.isImplicit && (
                 <Badge variant="secondary">内置隐式</Badge>
               )}
@@ -417,21 +417,16 @@ export default function RoleEditPage() {
               </CardHeader>
               <CardContent>
                 {role.permissionBundles.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-10">
-                    <PackageOpen className="mb-3 size-8 text-muted-foreground/40" />
-                    <p className="text-sm text-muted-foreground">暂未关联任何权限包</p>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-3"
-                      onClick={() => setAddBundleDialogOpen(true)}
-                    >
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <PackageOpen className="mb-3 size-8 text-muted-foreground/30" />
+                    <p className="text-[13px] text-muted-foreground">暂未关联任何权限包</p>
+                    <Button size="sm" className="mt-4" onClick={() => setAddBundleDialogOpen(true)}>
                       <Plus className="mr-1.5 size-4" />
                       添加权限包
                     </Button>
                   </div>
                 ) : (
-                  <div className="overflow-hidden rounded-md border">
+                  <div className="overflow-hidden rounded-lg bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                     <Table>
                       <TableHeader>
                         <TableRow>

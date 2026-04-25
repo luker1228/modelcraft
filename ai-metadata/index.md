@@ -196,7 +196,8 @@ ai-metadata/
 
 | 路径 | 说明 |
 |------|------|
-| [front/style/STYLE.md](./front/style/STYLE.md) | 设计系统整体规范 |
+| [front/style/ui-spec.md](./front/style/ui-spec.md) | ⭐ **UI 规范 v2（单一真相源）** — Stripe 方向：token、组件规范、禁止事项全集 |
+| [front/style/STYLE.md](./front/style/STYLE.md) | 设计系统整体规范（旧版，ui-spec.md 优先）|
 | [front/style/color-system.md](./front/style/color-system.md) | 颜色系统与语义化变量 |
 | [front/style/quick-start.md](./front/style/quick-start.md) | 设计系统快速上手 |
 | [front/style/tailwind-usage-policy.md](./front/style/tailwind-usage-policy.md) | Tailwind CSS 使用策略 |

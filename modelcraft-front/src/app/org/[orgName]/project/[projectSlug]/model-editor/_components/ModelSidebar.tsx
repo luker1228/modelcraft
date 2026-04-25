@@ -200,11 +200,13 @@ export function ModelSidebar({
                 onClick={() => handleModelDetailClick(model.id)}
                 onKeyDown={(e) => e.key === 'Enter' && handleModelDetailClick(model.id)}
                 className={cn(
-                  'group flex items-center gap-2 h-7 px-2 rounded-md cursor-pointer transition-colors select-none',
-                  'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                  'group flex items-center gap-2 h-7 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
+                  state.selectedModelId === model.id
+                    ? 'bg-primary/[0.08] text-primary border-l-primary'
+                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground border-l-transparent'
                 )}
               >
-                <Table2 className="size-[15px] shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
+                <Table2 className={cn('size-[15px] shrink-0 transition-colors', state.selectedModelId === model.id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
 
                 <span className="min-w-0 flex-1 truncate text-xs">
                   {model.name}

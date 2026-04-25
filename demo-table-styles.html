@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Table Style Options — ModelCraft</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, sans-serif;
+  color: #1A1F36;
+  padding: 40px 32px;
+  min-height: 100vh;
+}
+
+:root {
+  --primary: #4F46E5;
+  --primary-muted: rgba(79,70,229,0.08);
+  --text-primary: #1A1F36;
+  --text-secondary: #697386;
+  --text-tertiary: #8792A2;
+  --border: #E3E8EE;
+  --success: #059669;
+  --warning: #D97706;
+  --destructive: #EF4444;
+  --shadow-md: 0 2px 4px rgba(0,0,0,0.04), 0 4px 8px rgba(0,0,0,0.04), 0 1px 1px rgba(0,0,0,0.02);
+  --radius-lg: 8px;
+  --radius-md: 6px;
+  --radius-sm: 4px;
+}
+
+h1 { font-size: 18px; font-weight: 600; letter-spacing: -0.01em; margin-bottom: 4px; }
+.subtitle { font-size: 13px; color: var(--text-secondary); margin-bottom: 48px; }
+
+/* Section */
+.section { margin-bottom: 56px; }
+.section-label {
+  font-size: 11px; font-weight: 500; color: var(--text-tertiary);
+  text-transform: uppercase; letter-spacing: 0.06em;
+  margin-bottom: 20px; padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Option grid */
+.options-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; }
+.option-wrap { }
+.option-label {
+  font-size: 13px; font-weight: 600; color: var(--text-primary);
+  margin-bottom: 4px;
+}
+.option-desc { font-size: 12px; color: var(--text-secondary); margin-bottom: 12px; line-height: 1.5; }
+
+/* Shared table shell */
+.table-card {
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.toolbar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 10px 14px; border-bottom: 1px solid var(--border);
+}
+table { width: 100%; border-collapse: collapse; }
+th {
+  padding: 0 14px; height: 38px; text-align: left;
+  font-size: 11px; font-weight: 500; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.06em; white-space: nowrap;
+}
+td {
+  padding: 0 14px; height: 44px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px; color: var(--text-primary); vertical-align: middle;
+}
+tr:last-child td { border-bottom: none; }
+.muted { color: var(--text-secondary); }
+.mono { font-family: 'Fira Code', monospace; font-size: 12px; }
+
+.badge {
+  display: inline-flex; align-items: center; height: 20px; padding: 0 7px;
+  border-radius: var(--radius-sm); font-size: 11px; font-weight: 500;
+}
+.badge-green { background: rgba(5,150,105,0.08); color: var(--success); }
+.badge-amber { background: rgba(217,119,6,0.08); color: var(--warning); }
+.badge-red { background: rgba(239,68,68,0.08); color: var(--destructive); }
+.badge-indigo { background: var(--primary-muted); color: var(--primary); }
+.badge-neutral { background: #F6F8FA; color: var(--text-secondary); border: 1px solid var(--border); }
+
+.search-box {
+  display: flex; align-items: center; gap: 7px;
+  height: 28px; border-radius: var(--radius-md);
+  padding: 0 10px; font-size: 12px; color: var(--text-tertiary);
+  flex: 1; max-width: 200px;
+}
+.search-box svg { width: 12px; height: 12px; stroke-width: 1.5; flex-shrink: 0; }
+.btn-sm {
+  height: 28px; padding: 0 10px; border-radius: var(--radius-md);
+  font-size: 12px; font-weight: 500; cursor: pointer; display: inline-flex;
+  align-items: center; gap: 5px; font-family: inherit; border: none;
+}
+.btn-sm svg { width: 12px; height: 12px; stroke-width: 1.5; }
+.btn-outline-sm { background: transparent; color: var(--text-primary); border: 1px solid var(--border); }
+.btn-outline-sm:hover { background: rgba(0,0,0,0.03); }
+
+/* Separator */
+.divider { border: none; border-top: 1px dashed var(--border); margin: 40px 0; }
+
+/* =============================================
+   PART 1: thead 4 variants
+   ============================================= */
+
+/* A: current — subtle bg fill */
+.thead-a tr { background: #F6F8FA; border-bottom: 1px solid var(--border); }
+.thead-a .toolbar { background: #ffffff; }
+.thead-a .table-card { background: #ffffff; }
+
+/* B: pure white — border only separates, no fill */
+.thead-b tr { background: #ffffff; border-bottom: 2px solid var(--border); }
+.thead-b th { color: var(--text-primary); font-size: 11px; }
+.thead-b .table-card { background: #ffffff; }
+
+/* C: indigo tinted — brand subtle wash */
+.thead-c tr { background: rgba(79,70,229,0.04); border-bottom: 1px solid rgba(79,70,229,0.12); }
+.thead-c th { color: #4338CA; }
+.thead-c .table-card { background: #ffffff; }
+
+/* D: no background, thick bottom line only */
+.thead-d tr { background: transparent; border-bottom: none; }
+.thead-d th { 
+  border-bottom: 2px solid var(--text-primary); 
+  color: var(--text-primary); font-size: 11px; padding-bottom: 2px;
+}
+.thead-d .table-card { background: #ffffff; }
+
+/* =============================================
+   PART 2: outer bg 4 variants
+   ============================================= */
+
+.bg-sample {
+  border-radius: var(--radius-lg); overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.06);
+}
+
+/* bg option A: current #F6F8FA cool blue-gray */
+.bg-A { background: #F6F8FA; padding: 20px; }
+/* bg option B: pure white — no bg tint */
+.bg-B { background: #FFFFFF; padding: 20px; }
+/* bg option C: slate — slightly darker, more contrast */
+.bg-C { background: #EEF2F7; padding: 20px; }
+/* bg option D: warm off-white — subtle warm neutral */
+.bg-D { background: #F8F7F5; padding: 20px; }
+
+/* Content block preview */
+.preview-block {
+  background: #ffffff;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+.preview-header {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.preview-title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.preview-title svg { width: 14px; height: 14px; stroke-width: 1.5; color: var(--text-secondary); }
+.preview-meta { font-size: 12px; color: var(--text-secondary); }
+.preview-toolbar {
+  padding: 8px 16px; border-bottom: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: center;
+  background: #F6F8FA;
+}
+.preview-row {
+  display: flex; align-items: center; gap: 0;
+  border-bottom: 1px solid var(--border); height: 40px;
+  padding: 0 16px; font-size: 13px;
+}
+.preview-row:last-child { border-bottom: none; }
+.preview-row .cell { flex: 1; }
+.preview-row .cell.narrow { flex: 0 0 80px; }
+.preview-row .cell.muted { color: var(--text-secondary); font-size: 12px; }
+.preview-thead {
+  display: flex; align-items: center; gap: 0;
+  height: 36px; padding: 0 16px;
+  font-size: 11px; font-weight: 500; color: var(--text-secondary);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border);
+}
+.preview-thead .cell { flex: 1; }
+.preview-thead .cell.narrow { flex: 0 0 80px; }
+
+/* bg selection tag */
+.tag-note {
+  display: inline-block; font-size: 11px; padding: 2px 8px;
+  border-radius: 4px; margin-top: 6px;
+}
+.tag-current { background: rgba(79,70,229,0.08); color: #4F46E5; }
+.tag-new { background: rgba(5,150,105,0.08); color: #059669; }
+</style>
+</head>
+<body>
+
+<h1>表格样式方案选择</h1>
+<p class="subtitle">两个独立问题：① thead 表头背景的4种处理方式 ② 最外层容器背景色的4种方案</p>
+
+<!-- =================== PART 1: THEAD =================== -->
+<div class="section">
+  <div class="section-label">Part 1 — 表头（thead）背景处理方式</div>
+  <div class="options-grid">
+
+    <!-- Option A: current -->
+    <div class="option-wrap">
+      <div class="option-label">A · 浅灰填充（当前方案）</div>
+      <div class="option-desc">thead 背景 #F6F8FA，和页面背景同色。<br>效果：表头与数据行之间通过边框 + 轻微灰度区分，最通用。</div>
+      <div class="table-card thead-a">
+        <div class="toolbar thead-a">
+          <div class="search-box" style="background:#F6F8FA;border:1px solid var(--border);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+          </div>
+          <button class="btn-sm btn-outline-sm">筛选</button>
+          <button class="btn-sm btn-outline-sm">列</button>
+        </div>
+        <table>
+          <thead class="thead-a">
+            <tr>
+              <th>角色名</th><th>描述</th><th>状态</th><th>权限包</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-weight:500;">编辑员</td><td class="muted">可编辑数据</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">2</td></tr>
+            <tr><td style="font-weight:500;">只读分析师</td><td class="muted">仅查询权限</td><td><span class="badge badge-neutral">内置</span></td><td class="muted">1</td></tr>
+            <tr><td style="font-weight:500;">运营专员</td><td class="muted" style="font-style:italic;color:var(--text-tertiary);">无描述</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Option B: pure white, border only -->
+    <div class="option-wrap">
+      <div class="option-label">B · 纯白 + 加粗下边框</div>
+      <div class="option-desc">表头无背景填充，靠 2px 实线下边框分隔数据行。<br>效果：最简洁，接近 Linear/Notion 风格，"无界面感"。</div>
+      <div class="table-card thead-b">
+        <div class="toolbar" style="background:#fff;">
+          <div class="search-box" style="background:#F6F8FA;border:1px solid var(--border);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+          </div>
+          <button class="btn-sm btn-outline-sm">筛选</button>
+          <button class="btn-sm btn-outline-sm">列</button>
+        </div>
+        <table>
+          <thead class="thead-b">
+            <tr>
+              <th>角色名</th><th>描述</th><th>状态</th><th>权限包</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-weight:500;">编辑员</td><td class="muted">可编辑数据</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">2</td></tr>
+            <tr><td style="font-weight:500;">只读分析师</td><td class="muted">仅查询权限</td><td><span class="badge badge-neutral">内置</span></td><td class="muted">1</td></tr>
+            <tr><td style="font-weight:500;">运营专员</td><td class="muted" style="font-style:italic;color:var(--text-tertiary);">无描述</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Option C: indigo tinted -->
+    <div class="option-wrap">
+      <div class="option-label">C · Indigo 微染色</div>
+      <div class="option-desc">表头背景 rgba(79,70,229,0.04)，文字染 indigo-700。<br>效果：有品牌感，强调表头是"结构性标签"，Airtable 风格。</div>
+      <div class="table-card thead-c">
+        <div class="toolbar" style="background:#fff;">
+          <div class="search-box" style="background:#F6F8FA;border:1px solid var(--border);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+          </div>
+          <button class="btn-sm btn-outline-sm">筛选</button>
+          <button class="btn-sm btn-outline-sm">列</button>
+        </div>
+        <table>
+          <thead class="thead-c">
+            <tr>
+              <th>角色名</th><th>描述</th><th>状态</th><th>权限包</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-weight:500;">编辑员</td><td class="muted">可编辑数据</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">2</td></tr>
+            <tr><td style="font-weight:500;">只读分析师</td><td class="muted">仅查询权限</td><td><span class="badge badge-neutral">内置</span></td><td class="muted">1</td></tr>
+            <tr><td style="font-weight:500;">运营专员</td><td class="muted" style="font-style:italic;color:var(--text-tertiary);">无描述</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Option D: no bg, foreground border only -->
+    <div class="option-wrap">
+      <div class="option-label">D · 无填充 + 前景色粗下划线</div>
+      <div class="option-desc">完全无背景，表头文字用深色（#1A1F36），2px 实底线。<br>效果：最有"文档感"，类似 Stripe Data 表格、GitHub 风格。</div>
+      <div class="table-card thead-d">
+        <div class="toolbar" style="background:#fff;border-bottom:1px solid var(--border);">
+          <div class="search-box" style="background:#F6F8FA;border:1px solid var(--border);">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+          </div>
+          <button class="btn-sm btn-outline-sm">筛选</button>
+          <button class="btn-sm btn-outline-sm">列</button>
+        </div>
+        <table>
+          <thead class="thead-d">
+            <tr>
+              <th>角色名</th><th>描述</th><th>状态</th><th>权限包</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="font-weight:500;">编辑员</td><td class="muted">可编辑数据</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">2</td></tr>
+            <tr><td style="font-weight:500;">只读分析师</td><td class="muted">仅查询权限</td><td><span class="badge badge-neutral">内置</span></td><td class="muted">1</td></tr>
+            <tr><td style="font-weight:500;">运营专员</td><td class="muted" style="font-style:italic;color:var(--text-tertiary);">无描述</td><td><span class="badge badge-indigo">自定义</span></td><td class="muted">4</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<hr class="divider">
+
+<!-- =================== PART 2: OUTER BG =================== -->
+<div class="section">
+  <div class="section-label">Part 2 — 最外层背景色方案（含 Toolbar 搜索框联动）</div>
+  <div class="options-grid">
+
+    <!-- bg A: current #F6F8FA -->
+    <div class="option-wrap">
+      <div class="option-label">A · 冷蓝灰 #F6F8FA（当前方案）<span class="tag-note tag-current">Stripe</span></div>
+      <div class="option-desc">页面背景带冷蓝色调。搜索框 #F6F8FA，工具栏 #FFF。<br>白色卡片浮在其上，阴影定义层级。</div>
+      <div class="bg-sample">
+        <div class="bg-A">
+          <div class="preview-block">
+            <div class="preview-header">
+              <div class="preview-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                users
+              </div>
+              <span class="preview-meta">1,284 条</span>
+            </div>
+            <div class="preview-toolbar" style="background:#F6F8FA;">
+              <div class="search-box" style="background:#EBEEF2;border:1px solid #D8DDE5;flex:1;max-width:180px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+              </div>
+              <button class="btn-sm btn-outline-sm">筛选</button>
+            </div>
+            <div class="preview-thead" style="background:#F6F8FA;">
+              <div class="cell">用户名</div><div class="cell">邮箱</div><div class="cell narrow">状态</div>
+            </div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">张伟</div><div class="cell muted">zhang@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">王芳</div><div class="cell muted">wang@ex.com</div><div class="cell narrow"><span class="badge badge-amber" style="font-size:10px;height:18px;padding:0 6px;">停用</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">赵雪</div><div class="cell muted">zhao@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- bg B: pure white -->
+    <div class="option-wrap">
+      <div class="option-label">B · 纯白 #FFFFFF（无背景色）</div>
+      <div class="option-desc">页面背景纯白，卡片靠更重的阴影浮起。搜索框用 #F6F8FA。<br>风格：极简，接近 Vercel Dashboard 风格，视觉最干净。</div>
+      <div class="bg-sample">
+        <div class="bg-B">
+          <div class="preview-block" style="box-shadow: 0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.06);">
+            <div class="preview-header">
+              <div class="preview-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                users
+              </div>
+              <span class="preview-meta">1,284 条</span>
+            </div>
+            <div class="preview-toolbar" style="background:#fff;">
+              <div class="search-box" style="background:#F6F8FA;border:1px solid var(--border);flex:1;max-width:180px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+              </div>
+              <button class="btn-sm btn-outline-sm">筛选</button>
+            </div>
+            <div class="preview-thead" style="background:#F6F8FA;">
+              <div class="cell">用户名</div><div class="cell">邮箱</div><div class="cell narrow">状态</div>
+            </div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">张伟</div><div class="cell muted">zhang@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">王芳</div><div class="cell muted">wang@ex.com</div><div class="cell narrow"><span class="badge badge-amber" style="font-size:10px;height:18px;padding:0 6px;">停用</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">赵雪</div><div class="cell muted">zhao@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- bg C: deeper slate -->
+    <div class="option-wrap">
+      <div class="option-label">C · 深一档蓝灰 #EEF2F7</div>
+      <div class="option-desc">比 A 方案暗约 4%，卡片与背景的对比更明显。<br>搜索框使用 #E4E9F0（更深）。更强的"dashboard 感"。</div>
+      <div class="bg-sample">
+        <div class="bg-C">
+          <div class="preview-block">
+            <div class="preview-header">
+              <div class="preview-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                users
+              </div>
+              <span class="preview-meta">1,284 条</span>
+            </div>
+            <div class="preview-toolbar" style="background:#EEF2F7;">
+              <div class="search-box" style="background:#E4E9F0;border:1px solid #D0D8E4;flex:1;max-width:180px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+              </div>
+              <button class="btn-sm btn-outline-sm">筛选</button>
+            </div>
+            <div class="preview-thead" style="background:#EEF2F7;">
+              <div class="cell">用户名</div><div class="cell">邮箱</div><div class="cell narrow">状态</div>
+            </div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">张伟</div><div class="cell muted">zhang@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">王芳</div><div class="cell muted">wang@ex.com</div><div class="cell narrow"><span class="badge badge-amber" style="font-size:10px;height:18px;padding:0 6px;">停用</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">赵雪</div><div class="cell muted">zhao@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- bg D: warm off-white -->
+    <div class="option-wrap">
+      <div class="option-label">D · 暖米白 #F8F7F5</div>
+      <div class="option-desc">去掉蓝色调，改用暖灰。搜索框 #EFEDE9。<br>风格：偏纸张质感，更亲和，适合内容密度低的页面。不适合当前冷色方向。</div>
+      <div class="bg-sample">
+        <div class="bg-D">
+          <div class="preview-block">
+            <div class="preview-header">
+              <div class="preview-title">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/></svg>
+                users
+              </div>
+              <span class="preview-meta">1,284 条</span>
+            </div>
+            <div class="preview-toolbar" style="background:#F0EEE9;">
+              <div class="search-box" style="background:#EFEDE9;border:1px solid #DDD9D1;flex:1;max-width:180px;">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>搜索...
+              </div>
+              <button class="btn-sm" style="background:transparent;color:#1A1F36;border:1px solid #DDD9D1;">筛选</button>
+            </div>
+            <div class="preview-thead" style="background:#F0EEE9;">
+              <div class="cell">用户名</div><div class="cell">邮箱</div><div class="cell narrow">状态</div>
+            </div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">张伟</div><div class="cell muted">zhang@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">王芳</div><div class="cell muted">wang@ex.com</div><div class="cell narrow"><span class="badge badge-amber" style="font-size:10px;height:18px;padding:0 6px;">停用</span></div></div>
+            <div class="preview-row"><div class="cell" style="font-weight:500;">赵雪</div><div class="cell muted">zhao@ex.com</div><div class="cell narrow"><span class="badge badge-green" style="font-size:10px;height:18px;padding:0 6px;">活跃</span></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Summary -->
+<div style="margin-top:40px;padding:20px 24px;background:#fff;border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,0.06);font-size:13px;color:var(--text-secondary);line-height:1.8;">
+  <div style="font-weight:600;color:var(--text-primary);margin-bottom:8px;font-size:14px;">快速决策建议</div>
+  <div><b style="color:var(--text-primary);">表头：</b>B（纯白+粗线）最简洁，A（浅灰）最通用，C（indigo 染色）最有品牌感，D（前景色线）最有文档感</div>
+  <div style="margin-top:6px;"><b style="color:var(--text-primary);">背景：</b>A（#F6F8FA）和 B（#FFF）适合 Stripe 冷色方向；C（#EEF2F7）更强对比；D（暖米白）不推荐用于当前方向</div>
+  <div style="margin-top:6px;"><b style="color:var(--text-primary);">搜索框：</b>背景色决定搜索框颜色，搜索框应比 toolbar 深一档，才有"凹进去"的质感</div>
+</div>
+
+</body>
+</html>

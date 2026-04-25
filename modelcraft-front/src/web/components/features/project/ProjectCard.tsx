@@ -1,4 +1,3 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card"
 import { Button } from "@web/components/ui/button"
 import { Badge } from "@web/components/ui/badge"
 import {
@@ -19,69 +18,64 @@ interface ProjectCardProps {
   onDelete: (project: Project) => void
 }
 
+function StatusBadge({ status }: { status: string }) {
+  switch (status) {
+    case 'ACTIVE':
+    case 'active':
+      return <Badge variant="success">活跃</Badge>
+    case 'archived':
+      return <Badge variant="secondary">已归档</Badge>
+    case 'draft':
+      return <Badge variant="warning">草稿</Badge>
+    default:
+      return <Badge variant="secondary">{status}</Badge>
+  }
+}
+
 export function ProjectCard({
   project,
   onSelect,
   onEdit,
   onDelete,
 }: ProjectCardProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'active':
-        return (
-          <Badge className="border-0 bg-gradient-to-r from-emerald-100 to-teal-100 text-xs font-semibold text-emerald-700 shadow-sm">
-            活跃
-          </Badge>
-        )
-      case 'archived':
-        return (
-          <Badge className="border-0 bg-gradient-to-r from-slate-100 to-slate-200 text-xs font-semibold text-muted-foreground shadow-sm">
-            已归档
-          </Badge>
-        )
-      case 'draft':
-        return (
-          <Badge className="border-0 bg-gradient-to-r from-amber-100 to-orange-100 text-xs font-semibold text-amber-700 shadow-sm">
-            草稿
-          </Badge>
-        )
-      default:
-        return <Badge variant="outline">{status}</Badge>
-    }
-  }
-
   return (
-    <Card className="group cursor-pointer border border-slate-200/60 bg-white/80 shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-[1.01] hover:border-slate-300 hover:bg-white hover:shadow-lg">
-      <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
-          <div className="flex-1" onClick={() => onSelect(project)}>
-            <CardTitle className="text-lg font-semibold text-foreground transition-all group-hover:text-primary">
-              {project.title}
-            </CardTitle>
-            <CardDescription className="mt-1 line-clamp-2 text-sm text-muted-foreground">
-              {project.description || '暂无描述'}
-            </CardDescription>
-          </div>
+    <div
+      className="group relative flex cursor-pointer flex-col rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] transition-shadow duration-150 hover:shadow-[0_4px_8px_rgba(0,0,0,0.06),0_8px_24px_rgba(0,0,0,0.06),0_1px_2px_rgba(0,0,0,0.02)]"
+      onClick={() => onSelect(project)}
+    >
+      {/* Card body */}
+      <div className="flex flex-1 flex-col gap-2 p-5">
+        {/* Title row */}
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="line-clamp-1 text-[15px] font-semibold leading-snug text-foreground">
+            {project.title}
+          </h3>
+
+          {/* Actions — stop propagation so click doesn't open project */}
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="size-8 opacity-0 transition-opacity hover:bg-selected group-hover:opacity-100">
+            <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 flex-shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+              >
                 <MoreHorizontal className="size-4" />
                 <span className="sr-only">打开菜单</span>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="border-slate-200 bg-white/95 backdrop-blur-sm">
-              <DropdownMenuItem onClick={() => onSelect(project)}>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onSelect(project) }}>
                 <FolderOpen className="mr-2 size-4" />
                 打开项目
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onEdit(project)}>
+              <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(project) }}>
                 <Edit className="mr-2 size-4" />
                 编辑
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
-                onClick={() => onDelete(project)}
-                className="text-rose-600 focus:text-rose-600"
+                onClick={(e) => { e.stopPropagation(); onDelete(project) }}
+                className="text-destructive focus:text-destructive"
               >
                 <Trash2 className="mr-2 size-4" />
                 删除
@@ -89,19 +83,29 @@ export function ProjectCard({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </CardHeader>
-      <CardContent onClick={() => onSelect(project)}>
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-2">
-            {getStatusBadge(project.status)}
-          </div>
-          <span className="text-muted-foreground">更新于 {formatDateSafe(project.updatedAt, {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric',
-          })}</span>
-        </div>
-      </CardContent>
-    </Card>
+
+        {/* Slug */}
+        <p className="font-mono text-[12px] text-muted-foreground/70">
+          {project.slug}
+        </p>
+
+        {/* Description */}
+        {project.description ? (
+          <p className="line-clamp-2 text-[13px] leading-relaxed text-muted-foreground">
+            {project.description}
+          </p>
+        ) : (
+          <p className="text-[13px] italic text-muted-foreground/40">暂无描述</p>
+        )}
+      </div>
+
+      {/* Card footer */}
+      <div className="flex items-center justify-between border-t border-border px-5 py-3">
+        <StatusBadge status={project.status} />
+        <span className="text-[12px] text-muted-foreground">
+          {formatDateSafe(project.updatedAt, { month: 'short', day: 'numeric' })}
+        </span>
+      </div>
+    </div>
   )
 }

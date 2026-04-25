@@ -87,7 +87,7 @@ export function ModelDetailPanel({
         {/* Header */}
         <div className="flex shrink-0 items-start justify-between border-b border-border px-6 py-4">
           <div className="min-w-0">
-            <h2 className="font-heading text-base font-semibold text-foreground">
+            <h2 className="text-base font-semibold text-foreground">
               {state.editModelData?.title || state.editModelData?.name || '模型详情'}
             </h2>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{state.editModelData?.name}</p>
@@ -231,7 +231,7 @@ export function ModelDetailPanel({
                     </Button>
                     <Button
                       size="sm"
-                      className="h-7 bg-[#2563eb] px-4 text-xs text-white hover:bg-[#1d4ed8]"
+                      className="h-7 px-4 text-xs"
                       disabled={state.metaSaving}
                       onClick={async () => {
                         await crud.handleSaveMeta()
@@ -250,7 +250,7 @@ export function ModelDetailPanel({
                 <div className="mb-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <span className="text-sm font-semibold text-foreground">字段定义</span>
-                    <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                       {state.editModelData.fields?.length || 0}
                     </span>
                   </div>
@@ -264,28 +264,28 @@ export function ModelDetailPanel({
                   </button>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-border bg-card">
+                <div className="overflow-hidden rounded-lg border border-border bg-card shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                   {state.editModelData.fields && state.editModelData.fields.length > 0 ? (
                     <div className="overflow-x-auto">
                       <table className="w-full text-sm">
                         <thead>
-                          <tr className="border-b border-border bg-muted/30">
-                            <th className="w-[180px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                          <tr className="border-b-2 border-border bg-card">
+                            <th className="w-[180px] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">
                               标识(名称)
                             </th>
-                            <th className="w-[90px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                            <th className="w-[90px] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">
                               格式
                             </th>
-                            <th className="w-[90px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                            <th className="w-[90px] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">
                               类型
                             </th>
-                            <th className="w-[80px] px-3 py-2 text-left text-xs font-medium text-muted-foreground">
+                            <th className="w-[80px] px-3 py-2 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">
                               默认值
                             </th>
-                            <th className="w-[60px] px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+                            <th className="w-[60px] px-3 py-2 text-center text-[11px] font-medium uppercase tracking-wider text-foreground">
                               主键
                             </th>
-                            <th className="w-[50px] px-3 py-2 text-center text-xs font-medium text-muted-foreground">
+                            <th className="w-[50px] px-3 py-2 text-center text-[11px] font-medium uppercase tracking-wider text-foreground">
                               
                             </th>
                           </tr>
@@ -312,7 +312,7 @@ export function ModelDetailPanel({
                                       </span>
                                     )}
                                     {field.isDeprecated && (
-                                      <span className="inline-flex items-center rounded bg-orange-50 px-1.5 py-0.5 font-mono text-xs text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+                                      <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 font-mono text-[11px] text-warning">
                                         已废弃
                                       </span>
                                     )}
@@ -335,12 +335,12 @@ export function ModelDetailPanel({
                                 </div>
                               </td>
                               <td className="px-3 py-2">
-                                <span className="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 font-mono text-xs text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                                <span className="inline-flex items-center rounded bg-primary/[0.08] px-1.5 py-0.5 font-mono text-[11px] text-primary">
                                   {field.format || '-'}
                                 </span>
                               </td>
                               <td className="px-3 py-2">
-                                <span className="inline-flex items-center rounded bg-blue-50 px-1.5 py-0.5 font-mono text-xs text-blue-700 dark:bg-blue-900/30 dark:text-blue-400">
+                                <span className="inline-flex items-center rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">
                                   {field.dbColumn?.columnType || field.storageHint || field.schemaType || 'String'}
                                 </span>
                               </td>
@@ -351,9 +351,9 @@ export function ModelDetailPanel({
                               </td>
                               <td className="px-3 py-2 text-center">
                                 {field.isPrimary ? (
-                                  <span className="inline-flex size-5 items-center justify-center rounded bg-amber-100 dark:bg-amber-900/30">
-                                    <Key className="size-3 text-amber-600 dark:text-amber-400" />
-                                  </span>
+                                    <span className="inline-flex size-5 items-center justify-center rounded bg-warning/10">
+                                        <Key className="size-3 text-warning" />
+                                      </span>
                                 ) : (
                                   <span className="text-muted-foreground/30">-</span>
                                 )}

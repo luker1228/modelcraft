@@ -116,6 +116,8 @@ export class EndUserClusterNotConfiguredError extends Error {
 
 /** Private DB 未初始化（需要用户确认后初始化） */
 export class EndUserPrivateDBNotInitializedError extends Error {
+  requestId?: string
+
   constructor(message = '私有库未初始化') {
     super(message)
     this.name = 'EndUserPrivateDBNotInitializedError'

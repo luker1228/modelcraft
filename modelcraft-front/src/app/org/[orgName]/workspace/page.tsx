@@ -6,7 +6,6 @@ import { useQuery, useMutation } from "@apollo/client"
 import { Button } from "@web/components/ui/button"
 import { SearchInput } from "@web/components/ui/search-input"
 import { Badge } from "@web/components/ui/badge"
-import { Card, CardContent } from "@web/components/ui/card"
 import { ViewToggle, type ViewMode } from "@web/components/ui/view-toggle"
 import {
   DropdownMenu,
@@ -35,10 +34,6 @@ import {
   Settings,
   MoreVertical,
   Clock,
-  Database,
-  Users,
-  RefreshCw,
-  Search
 } from "lucide-react"
 import { toast } from "sonner"
 import { saveUserPreferences } from "@web/routing/smart-redirect"
@@ -379,38 +374,33 @@ export default function WorkspacePage() {
   return (
     <>
       <AppLayout pageTitle="所有项目">
-        <PageLayout maxWidth="full" padding="compact">
-          <PageHeader title="所有项目" />
+        <PageLayout maxWidth="7xl">
+          <PageHeader
+            title="所有项目"
+            spacing="compact"
+            actions={
+              <Button
+                onClick={handleOpenCreateDialog}
+                size="sm"
+              >
+                <Plus className="mr-1.5 size-3.5" />
+                新建项目
+              </Button>
+            }
+          />
 
             {/* Toolbar */}
-            <div className="mb-6 flex items-center justify-between gap-4">
-              {/* Search */}
-              <div className="max-w-md flex-1">
+            <div className="mb-6 flex items-center gap-3">
+              <div className="max-w-xs flex-1">
                 <SearchInput
                   placeholder="搜索项目..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   onClear={() => setSearchTerm('')}
                   clearable
-                  className="border-slate-200 bg-white transition-all focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
-
-              {/* Actions */}
-              <div className="flex items-center gap-3">
-                {/* View Toggle */}
-                <ViewToggle value={viewMode} onValueChange={setViewMode} />
-
-                {/* Create Project Button */}
-                <Button
-                  onClick={handleOpenCreateDialog}
-                  size="sm"
-                  className="bg-primary text-white hover:bg-primary/90"
-                >
-                  <Plus className="mr-1.5 size-3.5" />
-                  新建项目
-                </Button>
-              </div>
+              <ViewToggle value={viewMode} onValueChange={setViewMode} />
             </div>
 
             {/* Projects Grid/List */}
@@ -434,81 +424,87 @@ export default function WorkspacePage() {
                 ))}
               </div>
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-1.5">
                 {filteredProjects.map((project) => (
-                  <Card
+                  <div
                     key={project.id}
-                    className="group cursor-pointer border bg-white transition-all duration-300 hover:border-blue-100 hover:shadow-sm"
+                    className="group flex cursor-pointer items-center gap-4 rounded-lg bg-card px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-shadow duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.06)]"
                     onClick={() => handleSelectProject(project)}
                   >
-                    <CardContent className="flex items-center justify-between p-4">
-                      <div className="flex flex-1 items-center gap-4">
-                        <div className="flex size-10 items-center justify-center rounded-xl bg-blue-500">
-                          <Database className="size-4 text-white" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-1 flex items-center gap-2">
-                            <span className="font-semibold text-foreground">{project.title}</span>
-                            <span className="font-mono text-xs text-muted-foreground">/ {project.slug}</span>
-                            <Badge
-                              variant={project.status === 'ACTIVE' ? 'default' : 'secondary'}
-                              className={`text-xs ${project.status === 'ACTIVE' ? 'border-0 bg-emerald-100 text-emerald-700' : ''}`}
-                            >
-                              {project.status === 'ACTIVE' ? '活跃' : '已归档'}
-                            </Badge>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{project.description}</p>
-                        </div>
+                    {/* Icon */}
+                    <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-md bg-primary/[0.08]">
+                      <FolderOpen className="size-4 text-primary" strokeWidth={1.5} />
+                    </div>
+
+                    {/* Info */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-medium text-foreground">{project.title}</span>
+                        <span className="font-mono text-[12px] text-muted-foreground/60">{project.slug}</span>
+                        <Badge
+                          variant={project.status === 'ACTIVE' ? 'success' : 'secondary'}
+                        >
+                          {project.status === 'ACTIVE' ? '活跃' : '已归档'}
+                        </Badge>
                       </div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Clock className="size-3.5" />
-                          <span>{formatDateSafe(project.updatedAt)}</span>
-                        </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="size-8 p-0 opacity-0 transition-opacity hover:bg-selected group-hover:opacity-100"
-                            >
-                              <MoreVertical className="size-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="border-slate-200 bg-white">
-                            <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditProject(project) }}>
-                              <Settings className="mr-2 size-4" />
-                              设置
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-rose-600" onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(project) }}>删除</DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                      {project.description && (
+                        <p className="mt-0.5 line-clamp-1 text-[13px] text-muted-foreground">{project.description}</p>
+                      )}
+                    </div>
+
+                    {/* Meta */}
+                    <div className="flex flex-shrink-0 items-center gap-3">
+                      <div className="flex items-center gap-1 text-[12px] text-muted-foreground">
+                        <Clock className="size-3.5" strokeWidth={1.5} />
+                        <span>{formatDateSafe(project.updatedAt)}</span>
                       </div>
-                      </CardContent>
-                    </Card>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-7 p-0 opacity-0 group-hover:opacity-100"
+                          >
+                            <MoreVertical className="size-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => { e.stopPropagation(); handleEditProject(project) }}>
+                            <Settings className="mr-2 size-4" />
+                            编辑
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={(e) => { e.stopPropagation(); handleOpenDeleteDialog(project) }}
+                          >
+                            删除
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
 
             {/* Empty State */}
             {filteredProjects.length === 0 && !loading && (
-              <Card className="border-2 border-dashed border-slate-300 bg-white">
-                <CardContent className="p-16 text-center">
-                  <div className="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-blue-100">
-                    <Search className="size-8 text-blue-600" />
-                  </div>
-                  <p className="mb-2 text-lg font-semibold text-foreground">未找到匹配的项目</p>
-                  <p className="mb-6 text-sm text-muted-foreground">尝试调整搜索条件或创建新项目</p>
-                  <Button
-                    className="h-10 bg-primary font-semibold text-white hover:bg-primary/90"
-                    onClick={handleOpenCreateDialog}
-                  >
-                    <Plus className="mr-2 size-4" />
-                    创建项目
+              <div className="flex flex-col items-center justify-center py-20">
+                <FolderOpen className="mb-4 size-10 text-muted-foreground/30" strokeWidth={1.5} />
+                <p className="text-[14px] font-medium text-foreground">
+                  {searchTerm ? '未找到匹配的项目' : '暂无项目'}
+                </p>
+                <p className="mt-1 text-[13px] text-muted-foreground">
+                  {searchTerm ? '尝试调整搜索条件' : '创建第一个项目，开始数据建模'}
+                </p>
+                {!searchTerm && (
+                  <Button size="sm" className="mt-5" onClick={handleOpenCreateDialog}>
+                    <Plus className="mr-1.5 size-3.5" />
+                    新建项目
                   </Button>
-                </CardContent>
-              </Card>
+                )}
+              </div>
             )}
         </PageLayout>
       </AppLayout>

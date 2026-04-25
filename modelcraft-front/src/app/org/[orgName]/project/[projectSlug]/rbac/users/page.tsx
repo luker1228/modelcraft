@@ -128,7 +128,7 @@ function RoleBadges({ roles, maxVisible = 2 }: RoleBadgesProps) {
 
 function UserTableSkeleton() {
   return (
-    <div className="overflow-hidden rounded-md border">
+    <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04)]">
       <Table>
         <TableHeader>
           <TableRow>
@@ -809,24 +809,21 @@ export default function UserAuthPage() {
     <>
 
       {/* Header */}
-      <section className="mb-8 space-y-1">
-          <h2 className="text-2xl font-semibold tracking-tight">用户授权</h2>
-          <p className="text-sm text-muted-foreground">
-            为终端用户分配角色或直接授予权限包，管理其在该项目中的访问权限。
-          </p>
+      <section className="mb-6 space-y-0">
+          <h2 className="text-xl font-semibold tracking-tight">用户授权</h2>
         </section>
 
         {/* Table */}
         {users.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-            <Users className="mb-3 size-10 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground">暂无终端用户</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+          <div className="flex flex-col items-center justify-center py-16">
+            <Users className="mb-4 size-10 text-muted-foreground/30" />
+            <p className="text-[14px] font-medium text-foreground">暂无终端用户</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">
               终端用户注册后将显示在此列表
             </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-md border">
+          <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)]">
             <Table>
               <TableHeader>
                 <TableRow>

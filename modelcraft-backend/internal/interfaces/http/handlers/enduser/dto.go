@@ -101,6 +101,19 @@ type PageInfoJSON struct {
 	EndCursor   *string `json:"endCursor,omitempty"`
 }
 
+// AccessibleProjectJSON represents one accessible project for an end-user.
+type AccessibleProjectJSON struct {
+	Slug  string `json:"slug"`
+	Title string `json:"title"`
+}
+
+// GetAccessibleProjectsResponse 获取用户可访问项目列表的响应
+type GetAccessibleProjectsResponse struct {
+	RequestID string                   `json:"requestId"`
+	Projects  []*AccessibleProjectJSON `json:"projects"`
+	Error     *ErrorJSON               `json:"error,omitempty"`
+}
+
 // ErrorJSON 错误 JSON 表示
 type ErrorJSON struct {
 	Code    string `json:"code"`

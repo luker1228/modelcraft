@@ -277,10 +277,10 @@ export default function RoleListPage() {
     <TooltipProvider>
       <>
         {/* Header */}
-        <section className="mb-8 flex items-start justify-between gap-4">
-            <div className="space-y-1">
-              <h2 className="text-2xl font-semibold tracking-tight">角色</h2>
-              <p className="text-sm text-muted-foreground">
+        <section className="mb-6 flex items-start justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-semibold tracking-tight text-foreground">角色</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
                 管理项目的终端用户角色，每个角色可关联多个权限包，授予用户后生效。
               </p>
             </div>
@@ -305,10 +305,10 @@ export default function RoleListPage() {
           {loading ? (
             <RoleTableSkeleton />
           ) : roles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
+            <div className="flex flex-col items-center justify-center py-16">
               <ShieldOff className="mb-3 size-10 text-muted-foreground/40" />
-              <p className="text-sm font-semibold text-foreground">暂无角色</p>
-              <p className="mt-1 text-sm text-muted-foreground">
+              <p className="text-sm font-medium text-foreground">暂无角色</p>
+              <p className="mt-1 text-[13px] text-muted-foreground">
                 点击「创建角色」添加第一个角色
               </p>
               <Button
@@ -322,7 +322,7 @@ export default function RoleListPage() {
               </Button>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-md border">
+            <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)]">
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -340,11 +340,11 @@ export default function RoleListPage() {
                     >
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
+                          <span className="font-medium text-foreground">
                             {role.name}
                           </span>
                           {role.isImplicit && (
-                            <Badge variant="secondary" className="text-xs">
+                            <Badge variant="secondary" className="text-[11px]">
                               内置隐式
                             </Badge>
                           )}
@@ -363,10 +363,10 @@ export default function RoleListPage() {
                           <Button
                             variant="outline"
                             size="sm"
-                            className="h-7 px-2 text-xs"
+                            className="h-7 gap-1 px-2 text-xs"
                             onClick={() => handleEdit(role)}
                           >
-                            <Pencil className="mr-1 size-3" />
+                            <Pencil className="size-3" />
                             编辑
                           </Button>
 
@@ -377,10 +377,10 @@ export default function RoleListPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                    className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive"
                                     disabled
                                   >
-                                    <Trash2 className="mr-1 size-3" />
+                                    <Trash2 className="size-3" />
                                     删除
                                   </Button>
                                 </span>
@@ -395,10 +395,10 @@ export default function RoleListPage() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  className="h-7 px-2 text-xs text-destructive hover:text-destructive"
+                                  className="h-7 gap-1 px-2 text-xs text-destructive hover:text-destructive"
                                   disabled={deletingId === role.id}
                                 >
-                                  <Trash2 className="mr-1 size-3" />
+                                  <Trash2 className="size-3" />
                                   {deletingId === role.id ? '删除中...' : '删除'}
                                 </Button>
                               </AlertDialogTrigger>

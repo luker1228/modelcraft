@@ -36,31 +36,40 @@ export function DataWorkspacePanel({
   )
 
   return (
-    <section className={`min-w-0 flex-1 rounded-xl border border-border bg-background shadow-sm ${className}`}>
-      <div className="flex items-center gap-2 overflow-x-auto border-b border-border p-3">
+    <section className={`min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] ${className}`}>
+      {/* Tab bar */}
+      <div className="flex items-center gap-0 overflow-x-auto border-b border-border bg-card">
         {tabs.map((tab) => {
           const isActive = tab.id === activeTabId
           const displayTitle = (tab.title || tab.name).trim()
           return (
             <div
               key={tab.id}
-              className={`flex shrink-0 items-center gap-2 rounded-lg border px-3 py-2.5 transition-all ${
+              className={`flex shrink-0 items-center gap-1.5 border-b-2 px-4 py-2.5 transition-colors ${
                 isActive
-                  ? 'border-blue-200 bg-blue-50 text-blue-800 shadow-sm'
-                  : 'border-border bg-muted/20 text-muted-foreground hover:bg-muted/50'
+                  ? 'border-b-primary bg-card text-foreground'
+                  : 'border-b-transparent text-muted-foreground hover:text-foreground'
               }`}
             >
-              <button onClick={() => onTabChange(tab.id)} className="text-left">
-                <span className={`${isActive ? 'text-sm font-semibold' : 'text-sm font-medium'}`}>
-                  {displayTitle} ({tab.name})
+              <button
+                onClick={() => onTabChange(tab.id)}
+                className="flex items-center gap-1.5 text-left"
+              >
+                <span className={`font-mono text-[12px] ${isActive ? 'font-medium' : 'font-normal'}`}>
+                  {displayTitle}
                 </span>
+                {tab.title && tab.title !== tab.name && (
+                  <span className="text-[11px] text-muted-foreground">
+                    ({tab.name})
+                  </span>
+                )}
               </button>
               <button
                 onClick={() => onTabClose(tab.id)}
-                className="rounded p-0.5 hover:bg-black/5"
+                className="flex size-4 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 aria-label={`关闭 ${displayTitle}`}
               >
-                <X className="size-3.5" />
+                <X className="size-3" />
               </button>
             </div>
           )
@@ -68,7 +77,7 @@ export function DataWorkspacePanel({
       </div>
 
       {!activeTab ? (
-        <div className="flex min-h-[420px] items-center justify-center text-sm text-muted-foreground">
+        <div className="flex min-h-[420px] items-center justify-center text-[13px] text-muted-foreground">
           {emptyText}
         </div>
       ) : (

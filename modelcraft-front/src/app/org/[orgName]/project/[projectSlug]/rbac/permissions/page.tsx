@@ -24,6 +24,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@web/components/ui/collapsible'
+import { PageHeader } from '@web/components/features/layout'
 
 import { usePermissionList } from './_hooks/usePermissionList'
 import type {
@@ -276,19 +277,16 @@ export default function PermissionListPage() {
 
   return (
     <>
-      {/* Header */}
-      <section className="mb-8 flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">权限点</h2>
-            <p className="text-sm text-muted-foreground">
-              管理项目的终端用户权限点，每个权限点描述一个 Model 上的操作能力（动作 × 行策略 × 列策略）。
-            </p>
-          </div>
-          <Button size="sm" onClick={handleCreateNew} className="shrink-0">
+      <PageHeader
+        title="权限点"
+        spacing="compact"
+        actions={
+          <Button size="sm" onClick={handleCreateNew}>
             <Plus className="mr-1.5 size-4" />
             创建权限点
           </Button>
-        </section>
+        }
+      />
 
         {/* Error */}
         {error && (
@@ -301,18 +299,11 @@ export default function PermissionListPage() {
         {loading ? (
           <PermissionListSkeleton />
         ) : modelEntries.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-            <ShieldAlert className="mb-3 size-10 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground">暂无权限点</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              点击「创建权限点」添加第一个权限点
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-4"
-              onClick={handleCreateNew}
-            >
+          <div className="flex flex-col items-center justify-center py-16">
+            <ShieldAlert className="mb-4 size-10 text-muted-foreground/30" />
+            <p className="text-[14px] font-medium text-foreground">暂无权限点</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">创建第一个权限点，开始配置访问控制</p>
+            <Button size="sm" className="mt-5" onClick={handleCreateNew}>
               <Plus className="mr-1.5 size-4" />
               创建权限点
             </Button>

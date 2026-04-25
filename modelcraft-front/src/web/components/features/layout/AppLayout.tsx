@@ -17,9 +17,7 @@ import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@bff/auth/public'
 import {
   Sparkles,
-  RefreshCw,
   Search,
-  Bell,
   HelpCircle,
   FolderOpen,
   Users,
@@ -27,12 +25,11 @@ import {
   Check,
   PanelLeftClose,
   PanelLeft,
-  LayoutDashboard,
-  Server,
   Table2,
   List,
   Shield,
   KeyRound,
+  type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 
@@ -40,7 +37,7 @@ interface AppLayoutProps {
   children: ReactNode
   /** Whether to show project-specific navigation in sidebar */
   showProjectNav?: boolean
-  /** Current page title for breadcrumb */
+  /** Kept for backward-compat, no longer used for breadcrumb */
   pageTitle?: string
 }
 
@@ -53,27 +50,27 @@ interface MembershipInfo {
 
 interface NavItem {
   label: string
-  icon: React.ComponentType<{ className?: string; strokeWidth?: number }>
+  icon: LucideIcon
   href: string
 }
 
+interface NavSection {
+  header?: string
+  items: NavItem[]
+}
+
 /**
- * AppLayout - Global Application Layout
+ * AppLayout — Global Application Layout
  *
- * Full-width topbar layout:
- * - Topbar spans full width: left org selector + center breadcrumb + right actions
- * - Main area: sidebar + content
- *
- * Design specs:
- * - Topbar height: 56px
- * - Sidebar width: 200px (expanded) / 64px (collapsed)
- * - Logo background: #2563eb
- * - Selected nav: #dadee5
+ * Design specs (Stripe-inspired):
+ * - Topbar height: 48px
+ * - Sidebar width: 240px (expanded) / 64px (collapsed)
+ * - Sidebar: section headers + indigo active state (left stripe)
+ * - Content bg: bg-background (#F6F8FA)
  */
 export function AppLayout({
   children,
   showProjectNav = false,
-  pageTitle,
 }: AppLayoutProps) {
   const router = useRouter()
   const params = useParams()
@@ -84,18 +81,13 @@ export function AppLayout({
   const [storedUserName, setStoredUserName] = useState('')
   const displayName = userInfo?.name || userInfo?.userName || storedUserName || userInfo?.phone || 'User'
 
-  // Sidebar collapse state
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-
-  // State for dropdowns
   const [memberships, setMemberships] = useState<MembershipInfo[]>([])
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
 
-  // Get memberships from store
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
 
-  // Current context
   const orgName = params.orgName as string
   const projectSlug = params.projectSlug as string
 
@@ -103,16 +95,13 @@ export function AppLayout({
     setStoredUserName(localStorage.getItem('defaultUserName') || '')
   }, [])
 
-  // Fetch memberships once from store
   useEffect(() => {
     if (storedMemberships && storedMemberships.length > 0) {
       setMemberships(storedMemberships)
       return
     }
-
     const token = getToken()
     if (!token) return
-
     loadMembershipsStore(token, false).then((data) => {
       setMemberships(data)
     }).catch((error) => {
@@ -121,10 +110,8 @@ export function AppLayout({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // Get projects from store (needed for currentProject)
   const { projects: storeProjects } = useProjectStore()
 
-  // Filter orgs by search query
   const filteredOrgs = useMemo(() => {
     if (!orgSearchQuery) return memberships
     return memberships.filter(
@@ -134,17 +121,10 @@ export function AppLayout({
     )
   }, [memberships, orgSearchQuery])
 
-  // Current org display
   const currentOrg = useMemo(() => {
     return memberships.find((m) => m.orgName === orgName)
   }, [memberships, orgName])
 
-  // Current project display
-  const currentProject = useMemo(() => {
-    return storeProjects.find((p) => p.slug === projectSlug)
-  }, [storeProjects, projectSlug])
-
-  // Handlers
   const handleLogout = useCallback(() => {
     removeToken()
     localStorage.removeItem('defaultUserName')
@@ -152,10 +132,6 @@ export function AppLayout({
     useOrganizationStore.getState().clearOrganization()
     router.push('/login')
   }, [router])
-
-  const handleRefresh = useCallback(() => {
-    window.location.reload()
-  }, [])
 
   const handleOrgSelect = useCallback(
     (org: MembershipInfo) => {
@@ -170,11 +146,10 @@ export function AppLayout({
     setSidebarCollapsed((prev) => !prev)
   }, [])
 
-  // Check if nav item is active
   const isNavActive = useCallback(
     (href: string) => {
       if (pathname === href || pathname?.startsWith(href + '/')) return true
-      // /roles 和 /rbac/* 都高亮「访问控制」菜单项
+      // rbac/* 路由高亮「访问控制」
       const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
       const rbacBase = `/org/${orgName}/project/${projectSlug}/rbac`
       if (href === rolesHref && pathname?.startsWith(rbacBase)) return true
@@ -183,154 +158,111 @@ export function AppLayout({
     [pathname, orgName, projectSlug]
   )
 
-  // Workspace navigation items
-  const workspaceNavItems: NavItem[] = [
-    { label: '项目', icon: FolderOpen, href: `/org/${orgName}/workspace` },
-    { label: '团队', icon: Users, href: `/org/${orgName}/team` },
-    { label: '终端用户', icon: KeyRound, href: `/org/${orgName}/end-users` },
-    { label: '组织设置', icon: Settings, href: `/org/${orgName}/settings` },
+  // ── Navigation structure ──────────────────────────────────────────────────
+
+  const workspaceNavSections: NavSection[] = [
+    {
+      header: '工作区',
+      items: [
+        { label: '项目', icon: FolderOpen, href: `/org/${orgName}/workspace` },
+        { label: '团队', icon: Users, href: `/org/${orgName}/team` },
+        { label: '终端用户', icon: KeyRound, href: `/org/${orgName}/end-users` },
+      ],
+    },
+    {
+      header: '设置',
+      items: [
+        { label: '组织设置', icon: Settings, href: `/org/${orgName}/settings` },
+      ],
+    },
   ]
 
-  const projectNavItems: NavItem[] = [
-    { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
-    { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
-    { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
-    { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+  const projectNavSections: NavSection[] = [
+    {
+      header: '数据建模',
+      items: [
+        { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
+        { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
+      ],
+    },
+    {
+      header: '权限管理',
+      items: [
+        { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+        { label: '终端用户管理', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
+      ],
+    },
+    {
+      header: '设置',
+      items: [
+        { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
+      ],
+    },
   ]
 
-  const authNavItems: NavItem[] = [
-    { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
-    { label: '用户管理', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
-  ]
+  const navSections = showProjectNav ? projectNavSections : workspaceNavSections
 
-  const navItems = showProjectNav ? projectNavItems : workspaceNavItems
-
-  const authBasePath = `/org/${orgName}/project/${projectSlug}`
-  const isAuthSection = pathname === `${authBasePath}/rls-settings`
-    || pathname?.startsWith(`${authBasePath}/rls-settings/`)
-    || pathname === `${authBasePath}/roles`
-    || pathname?.startsWith(`${authBasePath}/roles/`)
-    || pathname === `${authBasePath}/end-user-access`
-    || pathname?.startsWith(`${authBasePath}/end-user-access/`)
-    || pathname === `${authBasePath}/rbac`
-    || pathname?.startsWith(`${authBasePath}/rbac/`)
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
     <div className="flex h-full flex-col overflow-hidden">
-      {/* ===== Full-Width Topbar ===== */}
-      <header className="flex h-14 flex-shrink-0 items-center border-b border-border bg-card px-4">
-        {/* Left Section - Organization Selector */}
-        <div className="w-auto flex-shrink-0 transition-all duration-300">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-accent">
-                <div
-                  className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary"
+
+      {/* ── Topbar (48px) ─────────────────────────────────────────────────── */}
+      <header className="flex h-12 flex-shrink-0 items-center border-b border-border bg-card px-4 gap-3">
+
+        {/* Org selector */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent">
+              <div className="flex size-6 flex-shrink-0 items-center justify-center rounded bg-primary">
+                <Sparkles className="size-3.5 text-white" strokeWidth={1.5} />
+              </div>
+              {!sidebarCollapsed && (
+                <span className="max-w-[120px] truncate text-[13px]">
+                  {currentOrg?.displayName || currentOrg?.orgName || orgName}
+                </span>
+              )}
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent className="w-64" align="start">
+            <div className="p-2">
+              <div className="relative">
+                <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  placeholder="搜索组织..."
+                  value={orgSearchQuery}
+                  onChange={(e) => setOrgSearchQuery(e.target.value)}
+                  className="h-8 pl-8 text-sm"
+                  onClick={(e) => e.stopPropagation()}
+                />
+              </div>
+            </div>
+            <DropdownMenuSeparator />
+            <div className="max-h-[240px] overflow-y-auto">
+              {filteredOrgs.map((org) => (
+                <DropdownMenuItem
+                  key={org.orgId}
+                  onClick={() => handleOrgSelect(org)}
+                  className="flex cursor-pointer items-center justify-between"
                 >
-                  <Sparkles className="size-4 text-white" strokeWidth={1.5} />
-                </div>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-64" align="start">
-              <div className="p-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    placeholder="搜索组织..."
-                    value={orgSearchQuery}
-                    onChange={(e) => setOrgSearchQuery(e.target.value)}
-                    className="h-8 pl-8 text-sm"
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-              </div>
-              <DropdownMenuSeparator />
-              <div className="max-h-[240px] overflow-y-auto">
-                {filteredOrgs.map((org) => (
-                  <DropdownMenuItem
-                    key={org.orgId}
-                    onClick={() => handleOrgSelect(org)}
-                    className="flex cursor-pointer items-center justify-between"
-                  >
-                    <span>{org.displayName}</span>
-                    {org.orgName === orgName && (
-                      <Check className="size-4 text-blue-600" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-                {filteredOrgs.length === 0 && (
-                  <div className="px-3 py-2 text-sm text-muted-foreground">未找到组织</div>
-                )}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Center Section - Breadcrumb */}
-        <div className="flex flex-1 items-center pl-4">
-          <nav className="flex items-center text-sm">
-            <span className="font-medium text-foreground">
-              {currentOrg?.orgName || orgName || 'Organization'}
-            </span>
-            <span className="mx-2 text-muted-foreground/50">/</span>
-            <span className="text-foreground">
-              {currentProject?.slug || projectSlug || pageTitle || '所有项目'}
-            </span>
-            {showProjectNav && (() => {
-              const activeNavItem = projectNavItems.find((item) =>
-                pathname === item.href || pathname?.startsWith(item.href + '/')
-              )
-              if (!activeNavItem) return null
-              const activeAuthItem = isAuthSection
-                ? authNavItems.find((item) => pathname === item.href || pathname?.startsWith(item.href + '/'))
-                : null
-              return (
-                <>
-                  <span className="mx-2 text-muted-foreground/50">/</span>
-                  <span className="text-foreground">{activeNavItem.label}</span>
-                  {activeAuthItem && (
-                    <>
-                      <span className="mx-2 text-muted-foreground/50">/</span>
-                      <span className="text-foreground">{activeAuthItem.label}</span>
-                    </>
+                  <span className="text-[13px]">{org.displayName}</span>
+                  {org.orgName === orgName && (
+                    <Check className="size-3.5 text-primary" />
                   )}
-                </>
-              )
-            })()}
-          </nav>
-        </div>
+                </DropdownMenuItem>
+              ))}
+              {filteredOrgs.length === 0 && (
+                <div className="px-3 py-2 text-sm text-muted-foreground">未找到组织</div>
+              )}
+            </div>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
-        {/* Right Section - Actions */}
+        {/* Spacer */}
+        <div className="flex-1" />
+
+        {/* Right actions: Help + User only */}
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="搜索"
-          >
-            <Search className="size-4" strokeWidth={1.5} />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            className="relative size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="通知"
-          >
-            <Bell className="size-4" strokeWidth={1.5} />
-            <span className="absolute right-1.5 top-1.5 size-1.5 rounded-full bg-red-500" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
-            title="刷新"
-          >
-            <RefreshCw className="size-4" strokeWidth={1.5} />
-          </Button>
-
           <Button
             variant="ghost"
             size="sm"
@@ -340,8 +272,6 @@ export function AppLayout({
             <HelpCircle className="size-4" strokeWidth={1.5} />
           </Button>
 
-          <div className="mx-2 h-5 w-px bg-border" />
-
           <UserMenu
             userName={displayName}
             userEmail={userInfo?.phone}
@@ -350,41 +280,73 @@ export function AppLayout({
         </div>
       </header>
 
-      {/* ===== Main Area (Sidebar + Content) ===== */}
+      {/* ── Main Area (Sidebar + Content) ─────────────────────────────────── */}
       <div className="flex flex-1 overflow-hidden">
+
         {/* Sidebar */}
         <aside
           className={cn(
-            "bg-card border-r border-border flex flex-col overflow-hidden flex-shrink-0 transition-all duration-300",
-            sidebarCollapsed ? "w-16" : "w-[240px]"
+            'flex flex-shrink-0 flex-col overflow-hidden border-r border-border bg-card transition-all duration-200',
+            sidebarCollapsed ? 'w-16' : 'w-[240px]'
           )}
         >
-          {/* Sidebar Content */}
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
-            <nav>
-              {navItems.map((item) => (
-                <a
-                  key={item.href}
-                  href={item.href}
-                  className={cn(
-                    "mb-0.5 flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-all",
-                    isNavActive(item.href)
-                      ? "bg-accent text-foreground"
-                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
-                  )}
-                >
-                  <item.icon className="size-4 flex-shrink-0" strokeWidth={1.5} />
-                  {!sidebarCollapsed && <span>{item.label}</span>}
-                </a>
-              ))}
-            </nav>
+          {/* Nav sections */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-2 pt-3">
+            {navSections.map((section, si) => (
+              <div key={si} className={cn(si > 0 && 'mt-4')}>
+                {/* Section header */}
+                {section.header && !sidebarCollapsed && (
+                  <div className="mb-1 px-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground/70">
+                    {section.header}
+                  </div>
+                )}
+                {/* Section divider when collapsed */}
+                {si > 0 && sidebarCollapsed && (
+                  <div className="mb-2 border-t border-border" />
+                )}
+                <nav className="flex flex-col gap-0.5">
+                  {section.items.map((item) => {
+                    const active = isNavActive(item.href)
+                    return (
+                      <a
+                        key={item.href}
+                        href={item.href}
+                        className={cn(
+                          'flex items-center gap-2.5 rounded-md py-2 text-[13px] font-medium transition-colors duration-150',
+                          sidebarCollapsed ? 'justify-center px-2' : 'px-3',
+                          // Left border indicator — only when expanded
+                          !sidebarCollapsed && 'border-l-[3px]',
+                          active
+                            ? [
+                                'bg-primary/[0.08] text-primary',
+                                !sidebarCollapsed && 'border-l-primary',
+                              ]
+                            : [
+                                'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                                !sidebarCollapsed && 'border-l-transparent',
+                              ]
+                        )}
+                        title={sidebarCollapsed ? item.label : undefined}
+                      >
+                        <item.icon
+                          className={cn('size-4 flex-shrink-0', active ? 'text-primary' : 'text-muted-foreground')}
+                          strokeWidth={1.5}
+                        />
+                        {!sidebarCollapsed && <span>{item.label}</span>}
+                      </a>
+                    )
+                  })}
+                </nav>
+              </div>
+            ))}
           </div>
 
-          {/* Sidebar Footer - Toggle */}
-          <div className="flex h-12 flex-shrink-0 items-center border-t border-border px-2">
+          {/* Sidebar footer — toggle button */}
+          <div className="flex h-11 flex-shrink-0 items-center border-t border-border px-2">
             <button
               onClick={toggleSidebar}
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
             >
               {sidebarCollapsed ? (
                 <PanelLeft className="size-4" strokeWidth={1.5} />
@@ -395,41 +357,11 @@ export function AppLayout({
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 overflow-hidden bg-muted">
-          {showProjectNav && isAuthSection ? (
-            <div className="flex h-full">
-              <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-border bg-card">
-                <div className="p-3">
-                  <nav className="flex flex-col gap-0.5">
-                    {authNavItems.map((item) => (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors duration-150',
-                          isNavActive(item.href)
-                            ? 'bg-accent text-foreground'
-                            : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground'
-                        )}
-                      >
-                        <item.icon className="size-4 flex-shrink-0" strokeWidth={1.5} />
-                        <span>{item.label}</span>
-                      </a>
-                    ))}
-                  </nav>
-                </div>
-              </aside>
-
-              <div className="flex-1 overflow-y-auto">
-                {children}
-              </div>
-            </div>
-          ) : (
-            <div className="h-full overflow-y-auto">
-              {children}
-            </div>
-          )}
+        {/* Content area */}
+        <main className="flex-1 overflow-hidden bg-background">
+          <div className="h-full overflow-y-auto">
+            {children}
+          </div>
         </main>
       </div>
     </div>

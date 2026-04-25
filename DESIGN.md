@@ -2,18 +2,19 @@
 name: ModelCraft
 description: Data model and access-control configuration platform for enterprise ops teams
 colors:
-  action-blue: "#2563eb"
-  action-blue-hover: "#1d4ed8"
-  action-blue-surface: "#dbeafe"
-  canvas: "#fafafa"
+  action-indigo: "#4F46E5"
+  action-indigo-hover: "#6366F1"
+  action-indigo-surface: "rgba(79,70,229,0.08)"
+  canvas: "#F6F8FA"
   surface: "#ffffff"
-  ink-deep: "#050d1f"
-  ink-mid: "#374151"
-  ink-muted: "#6b7280"
-  structure-border: "#e2e6ec"
-  structure-muted: "#f1f3f7"
-  selected-state: "#dadee5"
-  selected-foreground: "#1e2a3b"
+  ink-deep: "#1A1F36"
+  ink-mid: "#697386"
+  ink-muted: "#8792A2"
+  structure-border: "#E3E8EE"
+  structure-muted: "#EBEEF2"
+  structure-muted-border: "#D8DDE5"
+  selected-state: "rgba(79,70,229,0.08)"
+  selected-foreground: "#4F46E5"
   signal-critical: "#f04343"
   signal-success: "#10b981"
   signal-warning: "#f59e0b"
@@ -25,8 +26,8 @@ colors:
 dark-mode:
   background: "hsl(224, 71.4%, 4.1%)"
   foreground: "hsl(210, 20%, 98%)"
-  primary: "hsl(213, 97%, 87%)"
-  primary-foreground: "hsl(221, 83%, 20%)"
+  primary: "hsl(239, 84%, 67%)"
+  primary-foreground: "hsl(0, 0%, 100%)"
   muted: "hsl(215, 27.9%, 16.9%)"
   muted-foreground: "hsl(217.9, 10.6%, 64.9%)"
   border: "hsl(215, 27.9%, 16.9%)"
@@ -36,28 +37,29 @@ sidebar:
   foreground: "hsl(240, 5.3%, 26.1%)"
   primary: "hsl(240, 5.9%, 10%)"
   primary-foreground: "hsl(0, 0%, 98%)"
-  accent: "#dadee5"
+  accent: "rgba(79,70,229,0.08)"
   accent-foreground: "#1e2a3b"
   border: "hsl(220, 13%, 91%)"
   ring: "hsl(217.2, 91.2%, 59.8%)"
 typography:
   display:
-    fontFamily: "Space Grotesk, system-ui, sans-serif"
-    fontSize: "1.5rem"
-    fontWeight: 700
-    lineHeight: 1.25
-    letterSpacing: "-0.01em"
-  headline:
-    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "1.25rem"
     fontWeight: 600
     lineHeight: 1.3
-    letterSpacing: "-0.005em"
+    letterSpacing: "-0.01em"
+  headline:
+    fontFamily: "Inter, system-ui, sans-serif"
+    fontSize: "1.25rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    letterSpacing: "-0.01em"
   title:
-    fontFamily: "Space Grotesk, system-ui, sans-serif"
+    fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 600
     lineHeight: 1.4
+    letterSpacing: "-0.01em"
   body:
     fontFamily: "Inter, system-ui, sans-serif"
     fontSize: "0.875rem"
@@ -65,13 +67,14 @@ typography:
     lineHeight: 1.5
   label:
     fontFamily: "Inter, system-ui, sans-serif"
-    fontSize: "0.75rem"
+    fontSize: "0.6875rem"
     fontWeight: 500
     lineHeight: 1.4
-    letterSpacing: "0.01em"
+    letterSpacing: "0.06em"
+    textTransform: "uppercase"
   mono:
     fontFamily: "Fira Code, monospace"
-    fontSize: "0.8125rem"
+    fontSize: "0.75rem"
     fontWeight: 400
     lineHeight: 1.6
 rounded:
@@ -109,99 +112,139 @@ motion:
     easing: "ease-in-out"
 components:
   button-primary:
-    backgroundColor: "{colors.action-blue}"
+    backgroundColor: "{colors.action-indigo}"
     textColor: "{colors.surface}"
     rounded: "{rounded.md}"
     padding: "8px 16px"
     height: "36px"
+    fontWeight: 500
   button-primary-hover:
-    backgroundColor: "{colors.action-blue-hover}"
+    backgroundColor: "{colors.action-indigo-hover}"
     textColor: "{colors.surface}"
     rounded: "{rounded.md}"
   button-outline:
     backgroundColor: "transparent"
-    textColor: "{colors.ink-mid}"
+    textColor: "{colors.ink-deep}"
+    border: "1px solid {colors.structure-border}"
     rounded: "{rounded.md}"
     padding: "8px 16px"
     height: "36px"
+    fontWeight: 500
   button-ghost:
     backgroundColor: "transparent"
-    textColor: "{colors.ink-muted}"
+    textColor: "{colors.ink-mid}"
     rounded: "{rounded.md}"
     padding: "8px 12px"
     height: "36px"
+    fontWeight: 500
   button-ghost-hover:
-    backgroundColor: "{colors.structure-muted}"
+    backgroundColor: "rgba(0,0,0,0.04)"
     textColor: "{colors.ink-deep}"
     rounded: "{rounded.md}"
   badge-default:
-    backgroundColor: "{colors.action-blue}"
-    textColor: "{colors.surface}"
-    rounded: "9999px"
-    padding: "2px 10px"
-  badge-secondary:
-    backgroundColor: "{colors.action-blue-surface}"
-    textColor: "{colors.action-blue}"
-    rounded: "9999px"
-    padding: "2px 10px"
-  badge-outline:
-    backgroundColor: "transparent"
+    backgroundColor: "{colors.action-indigo-surface}"
+    textColor: "{colors.action-indigo}"
+    rounded: "{rounded.sm}"
+    padding: "0 7px"
+    height: "20px"
+    fontSize: "11px"
+    fontWeight: 500
+  badge-success:
+    backgroundColor: "rgba(5,150,105,0.08)"
+    textColor: "#059669"
+    rounded: "{rounded.sm}"
+  badge-warning:
+    backgroundColor: "rgba(217,119,6,0.08)"
+    textColor: "#D97706"
+    rounded: "{rounded.sm}"
+  badge-destructive:
+    backgroundColor: "rgba(239,68,68,0.08)"
+    textColor: "#EF4444"
+    rounded: "{rounded.sm}"
+  badge-neutral:
+    backgroundColor: "{colors.canvas}"
     textColor: "{colors.ink-mid}"
-    rounded: "9999px"
-    padding: "2px 10px"
+    border: "1px solid {colors.structure-border}"
+    rounded: "{rounded.sm}"
   input-default:
     backgroundColor: "transparent"
     textColor: "{colors.ink-deep}"
+    border: "1px solid {colors.structure-border}"
     rounded: "{rounded.md}"
     padding: "4px 12px"
     height: "36px"
+  input-focus:
+    borderColor: "{colors.action-indigo}"
+    boxShadow: "0 0 0 3px rgba(79,70,229,0.1)"
+  toolbar-search:
+    backgroundColor: "{colors.structure-muted}"
+    border: "1px solid {colors.structure-muted-border}"
+    rounded: "{rounded.md}"
+    height: "30px"
+    note: "搜索框比 toolbar 背景深一档，形成凹入质感"
   card-default:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink-deep}"
     rounded: "{rounded.lg}"
     padding: "24px"
+    shadow: "stripe-md"
+  table-thead:
+    backgroundColor: "{colors.surface}"
+    borderBottom: "2px solid {colors.structure-border}"
+    thColor: "{colors.ink-deep}"
+    thFontSize: "11px"
+    thFontWeight: 500
+    thTextTransform: "uppercase"
+    thLetterSpacing: "0.06em"
+    note: "纯白背景 + 2px 前景色下边框，无灰色填充"
+  table-toolbar:
+    backgroundColor: "{colors.canvas}"
+    note: "Toolbar 与页面背景同色 #F6F8FA"
 ---
 
 # Design System: ModelCraft
 
 ## 1. Overview
 
-**Creative North Star: "The Engineering Blueprint"**
+**Creative North Star: "Stripe Dashboard — Precision Tool"**
 
-ModelCraft's visual system is built for operators, not audiences. Every screen is a structured working surface: hierarchy is visible, states are unambiguous, and nothing decorates itself at the expense of the task at hand. The metaphor is a well-drafted technical drawing -- each element occupies exactly the space it needs, labels are terse and accurate, and white space exists to separate, not impress.
+ModelCraft's visual system is built for operators, not audiences. Every screen is a structured working surface: hierarchy is visible, states are unambiguous, and nothing decorates itself at the expense of the task at hand. The design philosophy is restraint — premium feel through removal, not addition.
 
-The type system runs on two distinct voices. Space Grotesk carries headings and structural labels with a quiet geometric confidence -- the kind of precision a brief has, not the kind a poster has. Inter handles everything at reading scale: body copy, table rows, input labels. Fira Code appears wherever a string is also a technical value (model names, field identifiers, table slugs). Together they create density without noise.
+The type system runs on a single voice: Inter at all scales. Headers, labels, body copy, and navigation all use Inter. Fira Code appears wherever a string is also a technical value (model names, field identifiers, table slugs, SQL). One font family creates cohesion without personality competition.
 
-The color system is deliberately narrow. Action blue (#2563eb) is the only saturated color with semantic weight. It appears on primary buttons, active nav items, and selected states -- never decoratively. Status colors (critical, success, warning) exist only in explicit feedback contexts and never coexist with action blue on the same element. The rest of the palette is cool-leaning neutrals that hold content without competing with it.
+The color system is deliberately narrow. Action Indigo (#4F46E5) is the only saturated color with semantic weight. It appears on primary buttons, active nav items, tab underlines, and selected states — never decoratively. Status colors (critical, success, warning) exist only in explicit feedback contexts. The rest of the palette is cool blue-gray neutrals: canvas #F6F8FA, surface #FFFFFF, borders #E3E8EE.
 
 **Key Characteristics:**
-- Flat surfaces with structural borders; shadows used only for floating layers (dropdowns, dialogs, sheets)
-- Two-font system: display weight for structure, text weight for content
-- Blue as action color only; no purely decorative use of hue
-- Spacing rhythm varies deliberately: compact in navigation (nav items scan fast), generous in data tables (py-3 rows) and forms, with visible breathing room between section groups
+- Page background #F6F8FA (cool blue-gray); white surface cards float above with subtle multi-layer shadow
+- Table headers: pure white background + 2px foreground-color bottom border; no gray fill
+- Toolbar background matches page canvas (#F6F8FA); search input one step darker (#EBEEF2) for recessed feel
+- Shadow-first hierarchy: cards use shadow-md, floating layers use shadow-lg; borders are structural not decorative
+- Single font: Inter only; Fira Code for technical identifiers
+- Indigo as action color only; no purely decorative use of hue
+- Spacing rhythm: compact in navigation, comfortable in tables (48px rows) and forms
 - States are always explicit: selected, hover, loading, empty, error each have a distinct visual signature
-- Motion is purposeful and brief: entrance animations under 250ms, layout transitions under 300ms, no decorative or looping animation
-- Container max-width 1400px, center-aligned with 2rem horizontal padding
+- Motion is purposeful and brief: 150ms ease-out for interactions, no decorative animation
+- Container max-width 1400px, left-aligned content within
 
 ## 2. Colors: The Blueprint Palette
 
 A narrow, functional palette where the neutrals do the heavy lifting and action blue earns every appearance.
 
 ### Primary
-- **Action Blue** (`#2563eb`): Primary button fills, active sidebar nav, focus rings, selected-state accents, and link text. Never used as background outside of button fills and nav states.
-- **Action Blue Hover** (`#1d4ed8`): Darkened action blue for hover/pressed states on primary buttons. Do not use independently.
-- **Action Blue Surface** (`#dbeafe`): Tinted background for selected nav items, secondary badges, and tag chips. Pairs with action-blue text. No standalone use as a decorative fill.
+- **Action Indigo** (`#4F46E5`): Primary button fills, active sidebar nav left-stripe, tab underlines, focus rings, selected-state accents. Never used as background outside of button fills and nav states.
+- **Action Indigo Hover** (`#6366F1`): Lightened indigo for hover states on primary buttons.
+- **Action Indigo Surface** (`rgba(79,70,229,0.08)`): Tinted background for selected nav items, info badges, and selected-state chips. Pairs with action-indigo text.
 
 ### Neutral
-- **Canvas** (`#fafafa`): Page-level background. The ground surface on which all panels sit.
-- **Surface** (`#ffffff`): Cards, table backgrounds, sidebar, popover. Lifted one step above canvas.
-- **Ink Deep** (`#050d1f`): Primary text: headings, labels, table cell primary content.
-- **Ink Mid** (`#374151`): Secondary text: descriptions, supporting copy, outlined button labels.
-- **Ink Muted** (`#6b7280`): De-emphasized text: placeholder copy, metadata, icon fills at rest.
-- **Structure Border** (`#e2e6ec`): Table borders, card borders, dividers, input outlines.
-- **Structure Muted** (`#f1f3f7`): Alternating table row backgrounds, hover states for ghost buttons and nav items, disabled fills.
-- **Selected State** (`#dadee5`): Explicit selected / active state background for list items and nav entries. More visible than muted, less prominent than primary.
-- **Selected Foreground** (`#1e2a3b`): Text color paired with selected-state background. Darker than ink-mid for contrast.
+- **Canvas** (`#F6F8FA`): Page-level background. Cool blue-gray, 2% darker than pure white. All panels sit on this surface.
+- **Surface** (`#FFFFFF`): Cards, table backgrounds, sidebar, topbar, popover. Lifted above canvas via shadow.
+- **Structure Muted** (`#EBEEF2`): Search input background inside toolbars. One step darker than canvas for recessed/inset feel. Border: `#D8DDE5`.
+- **Ink Deep** (`#1A1F36`): Primary text: headings, table cell primary content, active thead labels.
+- **Ink Mid** (`#697386`): Secondary text: descriptions, metadata, supporting copy.
+- **Ink Muted** (`#8792A2`): De-emphasized text: placeholder copy, icon fills at rest, section headers.
+- **Structure Border** (`#E3E8EE`): Table borders, card borders, dividers, input outlines. Cool blue-gray tint.
+- **Selected State** (`rgba(79,70,229,0.08)`): Active background for sidebar nav items and selected list entries. Pairs with action-indigo text and left border accent.
+- **Selected Foreground** (`#4F46E5`): Text/icon color paired with selected-state background.
 
 ### Signal
 - **Critical** (`#f04343`): Destructive actions, error messages, error-state input rings. Appears in badge-destructive and inline form errors. Never decorative.
@@ -308,12 +351,13 @@ The button vocabulary is small and intentional. Each variant has exactly one beh
 - **Size scale:** default (h-9), sm (h-8, px-3, text-xs), icon (36x36, padding 0).
 
 ### Badges / Status Chips
-Fully-rounded pills (9999px) for labeling and status communication. Text at 0.75rem, font-weight 600.
+Square-rounded (4px) for labeling and status communication. Text at 11px (0.6875rem), font-weight 500. Height 20px. No pills (rounded-full banned).
 
-- **Default** (action-blue fill): Rare. Reserved for primary state labels like active/enabled.
-- **Secondary** (blue-100 surface, blue-600 text): Most common. Selected/active state labels, system role tags.
-- **Outline** (transparent fill, border, foreground text): Neutral classification tags.
-- **Success / Warning / Destructive**: Signal colors only. Status badges for health, warnings, errors.
+- **Default** (indigo-surface bg, indigo text): Custom/user-defined labels.
+- **Success** (rgba green 8%, green text): Active/healthy states.
+- **Warning** (rgba amber 8%, amber text): Degraded/warning states.
+- **Destructive** (rgba red 8%, red text): Error/banned states.
+- **Neutral** (canvas bg, border, muted text): System/implicit labels, neutral classification.
 
 ### Cards / Containers
 - **Corner Style:** Softly rounded (8px, `rounded-lg`).
@@ -323,13 +367,14 @@ Fully-rounded pills (9999px) for labeling and status communication. Text at 0.75
 - **Internal Padding:** 24px all sides (`p-6`) for card panels. `p-4` for compact content areas inside settings.
 
 ### Tables
-The primary data surface. Tables are flat, borderless between rows, with hairline separators.
+The primary data surface. Tables are flat with hairline row separators.
 
-- **Header row:** `bg-muted/50`, `font-semibold text-muted-foreground`, 12px label size.
-- **Body rows:** alternating between `bg-background` and `bg-muted/20`. Border-bottom on each row except last.
-- **Hover state:** `hover:bg-muted/50`. No animated fills.
-- **Action column:** right-aligned ghost buttons. Visible on row hover in compact tables, always visible in explicit management tables.
-- **Empty state:** centered, icon + headline + brief instruction. No tables without an empty state.
+- **Header row:** Pure white background (`#FFFFFF`). 2px solid `#E3E8EE` bottom border. Text `#1A1F36`, 11px uppercase, font-weight 500, letter-spacing 0.06em. Height 38-40px.
+- **Toolbar:** Background matches page canvas (`#F6F8FA`). Search input uses `#EBEEF2` background + `#D8DDE5` border — one step darker than toolbar for inset feel.
+- **Body rows:** White background, 48px height (comfortable) or 40px (dense). Border-bottom 1px `#E3E8EE` on each row except last. Hover: `rgba(0,0,0,0.015)`.
+- **Text alignment:** Primary text left, numbers right, status badges centered.
+- **Action column:** Ghost icon button (⋮), visible on row hover.
+- **Empty state:** Simple — gray icon + short text + primary CTA. No dashed cards, no colored circles.
 
 ### Inputs / Fields
 - **Style:** Transparent background, single border (`border border-input`), 6px radius, height 36px.
@@ -338,13 +383,13 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 - **Disabled:** `opacity-50 cursor-not-allowed`. Background unchanged.
 
 ### Navigation (App Sidebar)
-- **Structure:** Left sidebar, surface-white background (`--sidebar-background`), hairline right border (`--sidebar-border`). Fixed width at rest.
-- **Nav items:** 36px tap target, 12px horizontal padding, `rounded-md`. Icon left + text label.
-- **Default state:** `sidebar-foreground` icon and text.
-- **Hover:** `bg-muted text-foreground`.
-- **Active:** `bg-sidebar-accent text-sidebar-accent-foreground`. The selected-state color (`--sidebar-accent: #dadee5`) is shared with the global `--selected` token. No underlines, no side-stripe accents.
-- **Section headers:** `text-xs font-semibold text-foreground` in all-lowercase (not uppercase). 8px top padding above first item in section.
-- **Ring:** Focus ring on keyboard navigation uses `--sidebar-ring`.
+- **Structure:** Left sidebar, surface-white (`#FFFFFF`) background, 1px `#E3E8EE` right border. Fixed width 240px expanded / 64px icon-only collapsed.
+- **Nav items:** 36px height, 10px H padding, `rounded-md`. Icon (16px, stroke-width 1.5) + text label. 3px left border (transparent by default).
+- **Default state:** Text `#697386`, icon `#8792A2`.
+- **Hover:** `rgba(0,0,0,0.04)` background, text `#1A1F36`.
+- **Active:** `rgba(79,70,229,0.08)` background, text `#4F46E5`, font-weight 500, left border `3px solid #4F46E5`.
+- **Section headers:** 11px uppercase, font-weight 500, color `#8792A2`, letter-spacing 0.06em. Margin-top 16px between sections. Not clickable.
+- **User area:** Bottom of sidebar, not in topbar.
 
 ### Sheets / Drawers
 - **Trigger:** from the right, `sm:max-w-lg` (512px). Slides in with `ease-in-out`, 500ms open / 300ms close.
@@ -361,9 +406,9 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 ## 7. Do's and Don'ts
 
 ### Do:
-- **Do** use action blue (`#2563eb`) only on primary interactive elements: buttons, active nav, focus rings, and selected-state accents. Its scarcity is what makes it legible as "this is the action."
-- **Do** flatten surfaces at rest. Cards, panels, and table rows have border definition, not shadow lift. Reserve `shadow-md` and `shadow-lg` for floating layers.
-- **Do** use `font-heading` (Space Grotesk) for structural titles and `font-sans` (Inter) for all content text. The distinction is consistent throughout the product.
+- **Do** use action indigo (`#4F46E5`) only on primary interactive elements: buttons, active nav left-stripe, tab underlines, focus rings. Its scarcity is what makes it legible as "this is the action."
+- **Do** use shadow-first hierarchy: cards use `shadow-md`, floating layers use `shadow-lg`. Borders are structural (always 1px `#E3E8EE`), not the primary depth signal.
+- **Do** use Inter for all text. Fira Code only for technical identifiers (model names, field slugs, IDs, SQL).
 - **Do** show explicit states for every interactive surface: empty, loading, error, success. A component with no empty state is an unfinished component.
 - **Do** use `ghost` and `outline` button variants for table row actions. Primary buttons belong to primary actions on a screen, not to every row in a table.
 - **Do** keep text at or above 0.75rem (12px). Below this, the content is not communication; it is visual noise.
@@ -372,15 +417,17 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 - **Do** use `transform` and `opacity` for animations. These are GPU-composited and do not trigger layout recalculation.
 
 ### Don't:
-- **Don't** use Oracle/SAP-style thick panels, deeply layered card shadows, or heavy chrome. If the UI looks like enterprise software from 2012, the shadows are too dark and the containers too nested.
-- **Don't** use consumer-product softness -- Canva/Shopify-style gradients, candy-colored badges, rounded-2xl pills everywhere, or encouraging/gamified copy. This is a professional tool.
-- **Don't** use glassmorphism, backdrop-filter blurs, gradient-filled cards, or animated gradient text. These are decorations that fight legibility on a working surface.
-- **Don't** use `border-left` or `border-right` greater than 1px as a colored accent stripe on cards, list items, or alerts. Rewrite with a tinted background or full border.
-- **Don't** use background-clip gradient text. Use a single solid color; add emphasis via weight or size.
-- **Don't** place action blue on backgrounds, headers, or decorative elements. Its appearance should predict interactivity or selection.
-- **Don't** invent a third accent color. The palette is action blue + neutrals + signal colors. There is no room for a second brand color at this stage.
+- **Don't** use Oracle/SAP-style thick panels, deeply layered card shadows, or heavy chrome.
+- **Don't** use consumer-product softness — gradients, candy-colored badges, `rounded-full` pills, `hover:scale` zoom, or gamified copy.
+- **Don't** use glassmorphism, `backdrop-filter`, gradient-filled cards, or animated gradient text.
+- **Don't** use `bg-white/80` or any semi-transparent white backgrounds — always use solid `#FFFFFF`.
+- **Don't** use a gray fill for table headers (thead). Use pure white background + 2px bottom border instead.
+- **Don't** use the same background color for both the toolbar and the search input inside it — the search box must be one step darker to feel recessed.
+- **Don't** place action indigo on backgrounds, headers, or decorative elements. Its appearance should predict interactivity or selection.
+- **Don't** use `font-bold` (700) or heavier. Weight scale stops at `font-semibold` (600).
+- **Don't** use Space Grotesk. Inter is the only permitted font family (Fira Code for mono).
+- **Don't** use badge shape `rounded-full`. Badges use `rounded-sm` (4px).
 - **Don't** use information density so low that users must scroll through three screens to find one configuration option. Appropriate density is a feature.
-- **Don't** use hard-coded Tailwind color classes (`text-gray-600`, `bg-slate-200`, `border-gray-100`). Always use the semantic token equivalents (`text-muted-foreground`, `bg-muted`, `border-border`).
-- **Don't** use `transition-all`. Specify the exact properties being transitioned (`transition-colors`, `transition-opacity`, `transition-transform`). `transition-all` animates every property change including layout, which causes unnecessary repaints.
-- **Don't** use `font-extrabold` or `font-black`. The weight scale stops at 700 (bold), and even that is reserved for display headings only.
+- **Don't** use hard-coded Tailwind color classes (`text-gray-600`, `bg-slate-200`). Always use semantic token equivalents.
+- **Don't** use `transition-all`. Specify exact properties: `transition-colors`, `transition-shadow`, `transition-opacity`.
 - **Don't** animate `width`, `height`, `left`, `right`, or `top` on document-flow elements. Use `transform: translate()` instead.

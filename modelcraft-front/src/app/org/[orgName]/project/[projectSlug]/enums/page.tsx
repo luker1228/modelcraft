@@ -384,27 +384,33 @@ export default function EnumsPage() {
   )
 
   return (
-    <PageLayout maxWidth="7xl" background="card" padding="compact">
+    <PageLayout maxWidth="7xl" padding="default">
       <PageHeader
         title="枚举管理"
-        description="管理系统中的枚举定义，用于构建类型安全的字段选项"
+        spacing="compact"
+        actions={
+          <Button size="sm" onClick={openDialog} className="gap-1.5">
+            <Plus className="size-4" strokeWidth={1.5} />
+            创建枚举
+          </Button>
+        }
       />
 
         {/* Error Banner */}
         {deleteError && (
-          <div className="mb-4 flex items-start gap-3 rounded-md border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600">
+          <div className="mb-4 flex items-start gap-3 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
             <span>{deleteError}</span>
             <button
               onClick={() => setDeleteError(null)}
-              className="ml-auto shrink-0 text-red-400 hover:text-red-600"
+              className="ml-auto shrink-0 text-destructive/60 hover:text-destructive"
             >
               ✕
             </button>
           </div>
         )}
 
-        {/* Header Actions */}
-        <div className="mb-6 flex items-center gap-3">
+        {/* Toolbar */}
+        <div className="mb-5 flex items-center gap-3">
           <div className="relative max-w-xs flex-1">
             <Search
               className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground"
@@ -415,86 +421,81 @@ export default function EnumsPage() {
               placeholder="搜索枚举..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-9 border border-slate-200 bg-white pl-9 text-sm text-foreground placeholder:text-muted-foreground focus:border-blue-600 focus:ring-1 focus:ring-blue-100"
+              className="h-9 pl-9"
             />
           </div>
-          <button
+          <Button
+            variant="outline"
+            size="sm"
             onClick={handleRefresh}
             disabled={refreshing || loading}
-            className="inline-flex h-9 items-center justify-center rounded-md border border-slate-200 bg-white px-3 text-muted-foreground transition-colors hover:bg-slate-50 hover:text-foreground disabled:opacity-50"
             title="刷新列表"
+            className="size-9 p-0"
           >
             <RefreshCw className={`size-4 ${refreshing ? 'animate-spin' : ''}`} strokeWidth={1.5} />
-          </button>
-          <Button
-            onClick={openDialog}
-            className="h-9 gap-2 rounded-md border-0 bg-primary px-4 text-sm font-medium text-white transition-all duration-200 hover:bg-primary/90"
-          >
-            <Plus className="size-4" strokeWidth={1.5} />
-            创建枚举
           </Button>
         </div>
 
         {/* Table */}
-        <div className="overflow-hidden rounded-lg border border-slate-200 bg-white">
+        <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)]">
           {loading ? (
             <div className="flex items-center justify-center py-12 text-sm text-muted-foreground">
               加载中…
             </div>
           ) : error ? (
-            <div className="flex items-center justify-center py-12 text-sm text-red-500">
+            <div className="flex items-center justify-center py-12 text-sm text-destructive">
               加载失败：{error.message}
             </div>
           ) : (
             <>
               <div className="overflow-x-auto">
                 <table className="w-full border-collapse text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50">
+                  <thead className="border-b-2 border-border bg-card">
                     <tr>
-                      <th className="h-10 px-4 py-3 text-left font-semibold text-foreground">枚举名称</th>
-                      <th className="h-10 px-4 py-3 text-left font-semibold text-foreground">显示标题</th>
-                      <th className="h-10 px-4 py-3 text-left font-semibold text-foreground">描述</th>
-                      <th className="h-10 px-4 py-3 text-right font-semibold text-foreground">操作</th>
+                      <th className="h-10 px-4 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">枚举名称</th>
+                      <th className="h-10 px-4 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">显示标题</th>
+                      <th className="h-10 px-4 text-left text-[11px] font-medium uppercase tracking-wider text-foreground">描述</th>
+                      <th className="h-10 px-4 text-right text-[11px] font-medium uppercase tracking-wider text-foreground">操作</th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredEnums.map((enumItem) => (
                       <tr
                         key={enumItem.id}
-                        className="border-b border-slate-200 transition-colors last:border-0 hover:bg-slate-50"
+                        className="border-b border-border transition-colors last:border-0 hover:bg-foreground/[0.015]"
                       >
-                        <td className="px-4 py-3 font-mono text-sm text-foreground">
+                        <td className="h-12 px-4 font-mono text-[12px] text-foreground">
                           {enumItem.name}
                         </td>
-                        <td className="px-4 py-3 text-sm font-medium text-foreground">
+                        <td className="h-12 px-4 text-[13px] font-medium text-foreground">
                           {enumItem.displayName}
                         </td>
-                        <td className="px-4 py-3 text-sm text-muted-foreground">
+                        <td className="h-12 px-4 text-[13px] text-muted-foreground">
                           {enumItem.description}
                         </td>
-                        <td className="px-4 py-3 text-right">
+                        <td className="h-12 px-4 text-right">
                           <div className="flex items-center justify-end gap-1">
                             <button
                               onClick={() => setViewingEnum(enumItem)}
-                              className="inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+                              className="inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[12px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                               title="查看选项详情"
                             >
-                              <Eye className="size-4" strokeWidth={1.5} />
+                              <Eye className="size-3.5" strokeWidth={1.5} />
                               <span>查看</span>
                             </button>
                             <button
                               onClick={() => handleEdit(enumItem)}
-                              className="inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+                              className="inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[12px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                             >
-                              <Edit className="size-4" strokeWidth={1.5} />
+                              <Edit className="size-3.5" strokeWidth={1.5} />
                               <span>编辑</span>
                             </button>
                             <button
                               onClick={() => handleDelete(enumItem.name)}
                               disabled={deletingName === enumItem.name}
-                              className="inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-md px-3 text-sm text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                              className="inline-flex h-7 items-center justify-center gap-1.5 rounded-md px-2.5 text-[12px] text-muted-foreground transition-colors hover:bg-destructive/5 hover:text-destructive disabled:opacity-50"
                             >
-                              <Trash2 className="size-4" strokeWidth={1.5} />
+                              <Trash2 className="size-3.5" strokeWidth={1.5} />
                               <span>{deletingName === enumItem.name ? '删除中…' : '删除'}</span>
                             </button>
                           </div>
@@ -536,9 +537,9 @@ export default function EnumsPage() {
             </div>
 
             {viewingEnum && viewingEnum.options.length > 0 ? (
-              <div className="overflow-hidden rounded-md border border-slate-200">
+              <div className="overflow-hidden rounded-md border border-border">
                 <table className="w-full border-collapse text-sm">
-                  <thead className="border-b border-slate-200 bg-slate-50">
+                  <thead className="border-b-2 border-border bg-card">
                     <tr>
                       <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">代码</th>
                       <th className="px-3 py-2 text-left text-xs font-medium text-muted-foreground">显示名称</th>
@@ -550,7 +551,7 @@ export default function EnumsPage() {
                       .slice()
                       .sort((a, b) => a.order - b.order)
                       .map((opt) => (
-                        <tr key={opt.code} className="border-b border-slate-100 last:border-0">
+                        <tr key={opt.code} className="border-b border-border last:border-0">
                           <td className="px-3 py-2 font-mono text-xs text-foreground">{opt.code}</td>
                           <td className="px-3 py-2 text-sm text-foreground">{opt.label}</td>
                           <td className="px-3 py-2 text-sm text-muted-foreground">{opt.description || '—'}</td>
@@ -560,7 +561,7 @@ export default function EnumsPage() {
                 </table>
               </div>
             ) : (
-              <div className="rounded-md border border-slate-200 py-6 text-center text-sm text-muted-foreground">
+              <div className="py-6 text-center text-sm text-muted-foreground">
                 暂无选项
               </div>
             )}
@@ -570,7 +571,7 @@ export default function EnumsPage() {
             <button
               type="button"
               onClick={() => setViewingEnum(null)}
-              className="h-9 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-slate-50"
+              className="h-9 rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-accent"
             >
               关闭
             </button>
@@ -582,7 +583,7 @@ export default function EnumsPage() {
                   handleEdit(viewingEnum)
                 }
               }}
-              className="h-9 rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700"
+              className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90"
             >
               编辑
             </button>
@@ -601,7 +602,7 @@ export default function EnumsPage() {
             <div className="space-y-4 py-2">
               {/* Server error */}
               {formError && (
-                <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                <div className="rounded-md border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
                   {formError}
                 </div>
               )}
@@ -609,7 +610,7 @@ export default function EnumsPage() {
               {/* Name */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  枚举名称 <span className="text-red-500">*</span>
+                  枚举名称 <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
@@ -620,10 +621,10 @@ export default function EnumsPage() {
                   }}
                   disabled={!!editingEnum}
                   placeholder="例如：OrderStatus"
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100/50 disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-muted-foreground"
+                  className="w-full rounded-md px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
                 />
                 {nameError ? (
-                  <p className="mt-1 text-xs text-red-500">{nameError}</p>
+                  <p className="mt-1 text-xs text-destructive">{nameError}</p>
                 ) : (
                   <p className="mt-1 text-xs text-muted-foreground">
                     {editingEnum ? '枚举名称创建后不可修改' : '英文字母开头，仅含字母和数字'}
@@ -634,7 +635,7 @@ export default function EnumsPage() {
               {/* Title */}
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  显示标题 <span className="text-red-500">*</span>
+                  显示标题 <span className="text-destructive">*</span>
                 </label>
                 <input
                   type="text"
@@ -644,10 +645,10 @@ export default function EnumsPage() {
                     setDisplayNameError(null)
                   }}
                   placeholder="例如：订单状态"
-                  className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100/50"
+                  className="w-full rounded-md px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
                 {displayNameError && (
-                  <p className="mt-1 text-xs text-red-500">{displayNameError}</p>
+                  <p className="mt-1 text-xs text-destructive">{displayNameError}</p>
                 )}
               </div>
 
@@ -661,14 +662,14 @@ export default function EnumsPage() {
                   onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="可选，描述此枚举的用途"
                   rows={2}
-                  className="w-full resize-none rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100/50"
+                  className="w-full resize-none rounded-md px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                 />
               </div>
 
               {/* Options */}
-              <div className="border-t border-slate-100 pt-4">
+              <div className="border-t border-border pt-4">
                 <label className="mb-3 block text-sm font-medium text-foreground">
-                  枚举选项 <span className="text-red-500">*</span>
+                  枚举选项 <span className="text-destructive">*</span>
                 </label>
 
                 <div className="mb-1 flex items-center gap-2 pr-9 text-xs text-muted-foreground">
@@ -685,10 +686,10 @@ export default function EnumsPage() {
                           value={opt.code}
                           onChange={(e) => updateOption(idx, 'code', e.target.value)}
                           placeholder="如：admin"
-                          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100/50"
+                          className="w-full rounded-md px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                         {optionErrors[idx]?.code && (
-                          <p className="mt-1 text-xs text-red-500">{optionErrors[idx].code}</p>
+                          <p className="mt-1 text-xs text-destructive">{optionErrors[idx].code}</p>
                         )}
                       </div>
                       <div className="flex-1">
@@ -697,17 +698,17 @@ export default function EnumsPage() {
                           value={opt.label}
                           onChange={(e) => updateOption(idx, 'label', e.target.value)}
                           placeholder="如：管理员"
-                          className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-foreground transition-all duration-200 placeholder:text-muted-foreground focus:border-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-100/50"
+                          className="w-full rounded-md px-3 py-2 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                         />
                         {optionErrors[idx]?.label && (
-                          <p className="mt-1 text-xs text-red-500">{optionErrors[idx].label}</p>
+                          <p className="mt-1 text-xs text-destructive">{optionErrors[idx].label}</p>
                         )}
                       </div>
                       <button
                         type="button"
                         onClick={() => removeOption(idx)}
                         disabled={options.length <= 1}
-                        className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-500 ${options.length <= 1 ? 'invisible' : ''}`}
+                        className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-destructive/5 hover:text-destructive ${options.length <= 1 ? 'invisible' : ''}`}
                         title="删除此选项"
                       >
                         <Trash2 className="size-3.5" strokeWidth={1.5} />
@@ -719,7 +720,7 @@ export default function EnumsPage() {
                 <button
                   type="button"
                   onClick={addOption}
-                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-slate-100 hover:text-foreground"
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-md px-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                 >
                   <Plus className="size-3.5" strokeWidth={1.5} />
                   添加选项
@@ -733,7 +734,7 @@ export default function EnumsPage() {
               type="button"
               onClick={() => setDialogOpen(false)}
               disabled={submitting}
-              className="h-9 rounded-md border border-slate-200 bg-white px-4 text-sm font-medium text-foreground hover:border-slate-300 hover:bg-slate-50 disabled:opacity-50"
+              className="h-9 rounded-md border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-accent disabled:opacity-50"
             >
               取消
             </button>
@@ -741,7 +742,7 @@ export default function EnumsPage() {
               type="button"
               onClick={handleSubmit}
               disabled={submitting}
-              className="h-9 rounded-md bg-blue-600 px-4 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+              className="h-9 rounded-md bg-primary px-4 text-sm font-medium text-white hover:bg-primary/90 disabled:opacity-50"
             >
               {submitting
                 ? editingEnum ? '保存中...' : '创建中...'

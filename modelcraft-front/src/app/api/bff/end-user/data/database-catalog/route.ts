@@ -9,7 +9,7 @@ import {
   EndUserUpstreamError,
 } from '@/bff/end-user/end-user-go-client'
 import { verifyEndUserAccessToken } from '@/bff/end-user/end-user-jwt-utils'
-import type { EndUserBffError } from '@/types/end-user-auth'
+import type { EndUserBffError, EndUserErrorCode } from '@/types/end-user-auth'
 
 export async function GET(req: NextRequest) {
   const authHeader = req.headers.get('Authorization')
@@ -99,7 +99,7 @@ export async function GET(req: NextRequest) {
     if (err instanceof EndUserUpstreamError) {
       const errorRes: EndUserBffError = {
         error: {
-          code: err.code === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : err.code ?? 'PARAM_INVALID',
+          code: err.code === 'UNAUTHORIZED' ? 'UNAUTHORIZED' : (err.code as EndUserErrorCode) ?? 'PARAM_INVALID',
           message: err.message || '上游服务错误',
         },
       }

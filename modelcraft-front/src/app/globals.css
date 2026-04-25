@@ -31,52 +31,45 @@
 
 
   :root {
-    /* ModelCraft - 和谐蓝色主题配色 */
-    --background: 0 0% 100%;
-    --foreground: 224 71.4% 4.1%;
-    --card: 0 0% 100%;
-    --card-foreground: 224 71.4% 4.1%;
+    /* ModelCraft — Stripe-inspired Indigo direction */
+    --background: 210 17% 98%;      /* #F6F8FA cool blue-gray canvas */
+    --foreground: 228 45% 16%;      /* #1A1F36 ink-deep */
+    --card: 0 0% 100%;              /* #FFFFFF pure surface */
+    --card-foreground: 228 45% 16%;
     --popover: 0 0% 100%;
-    --popover-foreground: 224 71.4% 4.1%;
-    --primary: 221 83% 53%; /* #2563eb Blue-600 */
+    --popover-foreground: 228 45% 16%;
+    --primary: 239 84% 59%;         /* #4F46E5 Indigo-600 */
     --primary-foreground: 0 0% 100%;
-    --secondary: 214 95% 93%; /* #dbeafe blue-100 */
-    --secondary-foreground: 221 83% 40%;
-    --muted: 220 14.3% 95.9%;
-    --muted-foreground: 220 8.9% 46.1%;
-    --accent: 214 95% 93%;
-    --accent-foreground: 221 83% 40%;
-    --destructive: 0 84.2% 60.2%;
+    --secondary: 213 19% 93%;       /* #E8EDF3 subtle secondary */
+    --secondary-foreground: 228 45% 16%;
+    --muted: 210 17% 98%;           /* same as background */
+    --muted-foreground: 217 14% 49%; /* #697386 ink-mid */
+    --accent: 239 84% 59% / 0.08;  /* rgba(79,70,229,0.08) indigo surface */
+    --accent-foreground: 239 84% 47%; /* #4338CA indigo-700 */
+    --destructive: 0 84.2% 60.2%;  /* #EF4444 */
     --destructive-foreground: 210 20% 98%;
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
-    --ring: 221 83% 53%;
+    --border: 213 19% 91%;          /* #E3E8EE cool blue-gray border */
+    --input: 213 19% 91%;
+    --ring: 239 84% 59%;            /* match primary */
     --radius: 0.5rem;
-    --success: 160 84% 39%; /* #10B981 Emerald - 和谐的绿色 */
-    --warning: 38 92% 50%;
+    --success: 160 96% 31%;         /* #059669 */
+    --warning: 33 95% 44%;          /* #D97706 */
 
-    /* Unified Selected/Hover State - More visible gray */
-    --selected: 215 20% 88%; /* slate-250 equivalent: #DADEE5 - 更深的灰色，更明显 */
-    --selected-foreground: 215 28% 17%; /* 深色文字 */
+    /* Selected / active state */
+    --selected: 239 84% 59% / 0.08; /* same as accent */
+    --selected-foreground: 239 84% 47%;
 
-    /* Tech Background - Modern white with subtle gradient */
-    --tech-bg: 0 0% 98%; /* Very light gray-white: #FAFAFA */
-    --tech-bg-pattern: linear-gradient(135deg, hsl(0 0% 100%) 0%, hsl(220 14% 98%) 100%);
-    --tech-surface: 0 0% 100% / 0.7; /* Semi-transparent white for glass effect */
-    --tech-surface-hover: 0 0% 100% / 0.9; /* More opaque on hover */
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 228 45% 16%;
+    --sidebar-primary: 239 84% 59%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 239 84% 59% / 0.08;
+    --sidebar-accent-foreground: 239 84% 47%;
+    --sidebar-border: 213 19% 91%;
+    --sidebar-ring: 239 84% 59%;
 
-    /* Sidebar - Light theme (tech white background with unified selected color) */
-    --sidebar-background: 0 0% 100%; /* Pure white - same as cards background */
-    --sidebar-foreground: 240 5.3% 26.1%; /* Dark text */
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 215 20% 88%; /* Use unified selected color - same as --selected */
-    --sidebar-accent-foreground: 215 28% 17%; /* Dark text on accent - same as --selected-foreground */
-    --sidebar-border: 220 13% 91%; /* Light border */
-    --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* Unified Container Background - Used across sidebar, cards, and main content areas */
-    --container-bg: 0 0% 100%; /* Pure white background */
+    --container-bg: 0 0% 100%;
 
     /* Chart colors */
     --chart-1: 12 76% 61%;

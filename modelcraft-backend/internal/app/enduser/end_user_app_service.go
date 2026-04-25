@@ -252,6 +252,32 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 	}
 }
 
+// ListAccessibleProjects 获取指定终端用户在当前 Org 下可访问的项目列表。
+func (s *EndUserManagementAppService) ListAccessibleProjects(
+	ctx context.Context,
+	orgName, userID string,
+) ([]AccessibleProjectItem, error) {
+	db, err := s.privateDBManager.GetOrInit(ctx, orgName, "")
+	if err != nil {
+		return nil, s.convertDBError(ctx, err)
+	}
+
+	repo := infrrepo.NewSqlEndUserProjectAccessRepository(db, orgName, "")
+	projects, err := repo.ListAccessibleProjectsByUserID(ctx, orgName, userID)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	items := make([]AccessibleProjectItem, 0, len(projects))
+	for _, p := range projects {
+		items = append(items, AccessibleProjectItem{
+			Slug:  p.ProjectSlug,
+			Title: p.ProjectTitle,
+		})
+	}
+	return items, nil
+}
+
 func (s *EndUserManagementAppService) convertDBError(ctx context.Context, err error) error {
 	if shared.IsNotFoundError(err) {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)

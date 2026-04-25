@@ -8,6 +8,8 @@ import { z } from 'zod'
 import { toast } from 'sonner'
 import { Plus, Pencil, Trash2, PackageOpen } from 'lucide-react'
 
+import { PageHeader } from '@web/components/features/layout'
+
 import { Button } from '@web/components/ui/button'
 import {
   Dialog,
@@ -286,23 +288,16 @@ export default function BundleListPage() {
 
   return (
     <>
-      {/* Header */}
-      <section className="mb-8 flex items-start justify-between gap-4">
-          <div className="space-y-1">
-            <h2 className="text-2xl font-semibold tracking-tight">权限包</h2>
-            <p className="text-sm text-muted-foreground">
-              管理项目的终端用户权限包，一个权限包包含一组权限点，可授予用户或角色。
-            </p>
-          </div>
-          <Button
-            size="sm"
-            onClick={() => setCreateDialogOpen(true)}
-            className="shrink-0"
-          >
+      <PageHeader
+        title="权限包"
+        spacing="compact"
+        actions={
+          <Button size="sm" onClick={() => setCreateDialogOpen(true)}>
             <Plus className="mr-1.5 size-4" />
             创建权限包
           </Button>
-        </section>
+        }
+      />
 
         {/* Error */}
         {error && (
@@ -315,24 +310,17 @@ export default function BundleListPage() {
         {loading ? (
           <BundleTableSkeleton />
         ) : bundles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-            <PackageOpen className="mb-3 size-10 text-muted-foreground/40" />
-            <p className="text-sm font-semibold text-foreground">暂无权限包</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              点击「创建权限包」添加第一个权限包
-            </p>
-            <Button
-              size="sm"
-              variant="outline"
-              className="mt-4"
-              onClick={() => setCreateDialogOpen(true)}
-            >
+          <div className="flex flex-col items-center justify-center py-16">
+            <PackageOpen className="mb-4 size-10 text-muted-foreground/30" />
+            <p className="text-[14px] font-medium text-foreground">暂无权限包</p>
+            <p className="mt-1 text-[13px] text-muted-foreground">创建第一个权限包，开始配置用户权限</p>
+            <Button size="sm" className="mt-5" onClick={() => setCreateDialogOpen(true)}>
               <Plus className="mr-1.5 size-4" />
               创建权限包
             </Button>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-md border">
+          <div className="overflow-hidden rounded-lg bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -368,7 +356,7 @@ export default function BundleListPage() {
                           className="h-7 px-2 text-xs"
                           onClick={() => handleEdit(bundle)}
                         >
-                          <Pencil className="mr-1 size-3" />
+                          <Pencil className="size-3" />
                           编辑
                         </Button>
 
