@@ -285,12 +285,11 @@ export default function BundleListPage() {
   )
 
   return (
-    <main className="size-full overflow-y-auto bg-background">
-      <div className="mx-auto w-full max-w-[1200px] px-6 pb-12 pt-10 xl:px-10">
-        {/* Header */}
-        <section className="mb-8 flex items-start justify-between gap-4">
+    <>
+      {/* Header */}
+      <section className="mb-8 flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">权限包</h1>
+            <h2 className="text-2xl font-semibold tracking-tight">权限包</h2>
             <p className="text-sm text-muted-foreground">
               管理项目的终端用户权限包，一个权限包包含一组权限点，可授予用户或角色。
             </p>
@@ -412,7 +411,6 @@ export default function BundleListPage() {
             </Table>
           </div>
         )}
-      </div>
 
       <CreateBundleDialog
         open={createDialogOpen}
@@ -420,6 +418,6 @@ export default function BundleListPage() {
         onSubmit={handleCreate}
         submitting={submitting}
       />
-    </main>
+    </>
   )
 }

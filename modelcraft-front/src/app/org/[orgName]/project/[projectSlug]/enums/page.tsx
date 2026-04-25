@@ -14,6 +14,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@web/components/ui/dialog'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { Plus, Search, Edit, Trash2, RefreshCw, Eye } from 'lucide-react'
 import { GET_ENUMS } from '@web/graphql/queries/enum'
 import { DELETE_ENUM, CREATE_ENUM, UPDATE_ENUM } from '@web/graphql/mutations/enum'
@@ -383,17 +384,11 @@ export default function EnumsPage() {
   )
 
   return (
-    <div className="h-full overflow-auto bg-white">
-      <div className="mx-auto max-w-7xl p-6">
-        {/* Page Title */}
-        <div className="mb-8">
-          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-            枚举管理
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            管理系统中的枚举定义，用于构建类型安全的字段选项
-          </p>
-        </div>
+    <PageLayout maxWidth="7xl" background="card" padding="compact">
+      <PageHeader
+        title="枚举管理"
+        description="管理系统中的枚举定义，用于构建类型安全的字段选项"
+      />
 
         {/* Error Banner */}
         {deleteError && (
@@ -433,7 +428,7 @@ export default function EnumsPage() {
           </button>
           <Button
             onClick={openDialog}
-            className="h-9 gap-2 rounded-md border-0 bg-blue-600 px-4 text-sm font-medium text-white transition-all duration-200 hover:bg-blue-700"
+            className="h-9 gap-2 rounded-md border-0 bg-primary px-4 text-sm font-medium text-white transition-all duration-200 hover:bg-primary/90"
           >
             <Plus className="size-4" strokeWidth={1.5} />
             创建枚举
@@ -518,7 +513,6 @@ export default function EnumsPage() {
             </>
           )}
         </div>
-      </div>
 
       {/* View Options Detail Dialog */}
       <Dialog open={!!viewingEnum} onOpenChange={(open) => { if (!open) setViewingEnum(null) }}>
@@ -757,6 +751,6 @@ export default function EnumsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageLayout>
   )
 }

@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation'
 import { useQuery } from '@apollo/client'
 import { Users } from 'lucide-react'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { Badge } from '@web/components/ui/badge'
 import {
   Table,
@@ -64,15 +65,8 @@ export default function TeamPage() {
 
   return (
     <AppLayout pageTitle="团队">
-      <div className="h-full overflow-auto bg-white">
-        <div>
-          <div className="mx-auto max-w-7xl p-6">
-            {/* Page Header */}
-            <div className="mb-6">
-              <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-                团队成员
-              </h1>
-            </div>
+      <PageLayout maxWidth="7xl" background="card" padding="compact">
+        <PageHeader title="团队成员" spacing="compact" />
 
             {/* Error State */}
             {error && !loading && (
@@ -152,9 +146,7 @@ export default function TeamPage() {
                 共 {members.length} 名成员
               </p>
             )}
-          </div>
-        </div>
-      </div>
+      </PageLayout>
     </AppLayout>
   )
 }

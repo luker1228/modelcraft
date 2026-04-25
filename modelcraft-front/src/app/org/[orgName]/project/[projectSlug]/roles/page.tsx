@@ -61,8 +61,8 @@ import { useRoleEdit } from '@/app/org/[orgName]/project/[projectSlug]/rbac/role
 import {
   BundlesTab,
   PermissionsTab,
-  UsersTab,
 } from '@web/components/features/rbac'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 import type { Role } from '@/types'
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -77,7 +77,7 @@ interface RoleMock extends Role {
   userIds: string[]
 }
 
-type TabValue = 'roles' | 'bundles' | 'permissions' | 'users'
+type TabValue = 'roles' | 'bundles' | 'permissions'
 
 // ── Constants ────────────────────────────────────────────────────────
 
@@ -645,7 +645,7 @@ export default function RolesPage() {
   const projectSlug = params?.projectSlug as string
 
   const rawTab = searchParams.get('tab') as TabValue | null
-  const VALID_TABS: TabValue[] = ['roles', 'bundles', 'permissions', 'users']
+  const VALID_TABS: TabValue[] = ['roles', 'bundles', 'permissions']
   const activeTab: TabValue = rawTab && VALID_TABS.includes(rawTab) ? rawTab : 'roles'
 
   const handleTabChange = (value: string) => {
@@ -655,12 +655,8 @@ export default function RolesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-8">
-      {/* Page header — title belongs to the tabs, not above them */}
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold tracking-tighter text-foreground">权限管理</h1>
-        <div className="mt-1 h-5" />
-      </div>
+    <PageLayout maxWidth="6xl">
+      <PageHeader title="权限管理" />
 
       {/* Tab navigation — underline style */}
       <Tabs value={activeTab} onValueChange={handleTabChange}>
@@ -683,12 +679,6 @@ export default function RolesPage() {
           >
             权限点
           </TabsTrigger>
-          <TabsTrigger
-            value="users"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:text-foreground data-[state=active]:border-foreground data-[state=active]:text-foreground data-[state=active]:shadow-none"
-          >
-            用户授权
-          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="roles" className="mt-6">
@@ -702,11 +692,7 @@ export default function RolesPage() {
         <TabsContent value="permissions" className="mt-6">
           <PermissionsTab orgName={orgName} projectSlug={projectSlug} />
         </TabsContent>
-
-        <TabsContent value="users" className="mt-6">
-          <UsersTab orgName={orgName} projectSlug={projectSlug} />
-        </TabsContent>
       </Tabs>
-    </div>
+    </PageLayout>
   )
 }

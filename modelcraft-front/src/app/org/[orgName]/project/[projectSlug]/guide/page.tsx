@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   Play
 } from "lucide-react"
+import { PageLayout } from '@web/components/features/layout'
 
 const guideSteps = [
   {
@@ -101,7 +102,7 @@ export default function GuidePage() {
   }
 
   return (
-    <div className="max-w-7xl space-y-8">
+    <PageLayout maxWidth="7xl" padding="default" className="space-y-8">
       {/* Hero Section */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary via-primary/80 to-primary p-8 shadow-2xl shadow-primary/25">
         {/* Decorative Elements */}
@@ -242,6 +243,6 @@ export default function GuidePage() {
           ))}
         </div>
       </div>
-    </div>
+    </PageLayout>
   )
 }

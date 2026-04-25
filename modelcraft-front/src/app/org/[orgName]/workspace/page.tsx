@@ -17,6 +17,7 @@ import {
 } from "@web/components/ui/dropdown-menu"
 import { ProjectCard, ProjectDialog, DeleteProjectDialog } from "@web/components/features/project"
 import { AppLayout } from "@web/components/features/layout/AppLayout"
+import { PageLayout, PageHeader } from "@web/components/features/layout"
 import { useProjectStore } from "@web/stores/project"
 import { useAppStore } from "@web/stores"
 import { useOrganizationStore } from "@shared/stores/organization"
@@ -378,11 +379,8 @@ export default function WorkspacePage() {
   return (
     <>
       <AppLayout pageTitle="所有项目">
-        <div className="w-full p-6">
-            {/* Page Header */}
-            <div className="mb-8">
-              <h1 className="text-2xl font-semibold text-foreground">所有项目</h1>
-            </div>
+        <PageLayout maxWidth="full" padding="compact">
+          <PageHeader title="所有项目" />
 
             {/* Toolbar */}
             <div className="mb-6 flex items-center justify-between gap-4">
@@ -407,7 +405,7 @@ export default function WorkspacePage() {
                 <Button
                   onClick={handleOpenCreateDialog}
                   size="sm"
-                  className="bg-[#2563eb] text-white hover:bg-[#1d4ed8]"
+                  className="bg-primary text-white hover:bg-primary/90"
                 >
                   <Plus className="mr-1.5 size-3.5" />
                   新建项目
@@ -503,7 +501,7 @@ export default function WorkspacePage() {
                   <p className="mb-2 text-lg font-semibold text-foreground">未找到匹配的项目</p>
                   <p className="mb-6 text-sm text-muted-foreground">尝试调整搜索条件或创建新项目</p>
                   <Button
-                    className="h-10 bg-[#2563eb] font-semibold text-white hover:bg-[#1d4ed8]"
+                    className="h-10 bg-primary font-semibold text-white hover:bg-primary/90"
                     onClick={handleOpenCreateDialog}
                   >
                     <Plus className="mr-2 size-4" />
@@ -512,7 +510,7 @@ export default function WorkspacePage() {
                 </CardContent>
               </Card>
             )}
-          </div>
+        </PageLayout>
       </AppLayout>
 
       {/* Dialogs */}

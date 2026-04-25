@@ -275,12 +275,11 @@ export default function RoleListPage() {
 
   return (
     <TooltipProvider>
-      <main className="size-full overflow-y-auto bg-background">
-        <div className="mx-auto w-full max-w-[1200px] px-6 pb-12 pt-10 xl:px-10">
-          {/* Header */}
-          <section className="mb-8 flex items-start justify-between gap-4">
+      <>
+        {/* Header */}
+        <section className="mb-8 flex items-start justify-between gap-4">
             <div className="space-y-1">
-              <h1 className="text-2xl font-semibold tracking-tight">角色</h1>
+              <h2 className="text-2xl font-semibold tracking-tight">角色</h2>
               <p className="text-sm text-muted-foreground">
                 管理项目的终端用户角色，每个角色可关联多个权限包，授予用户后生效。
               </p>
@@ -431,7 +430,6 @@ export default function RoleListPage() {
               </Table>
             </div>
           )}
-        </div>
 
         <CreateRoleDialog
           open={createDialogOpen}
@@ -439,7 +437,7 @@ export default function RoleListPage() {
           onSubmit={handleCreate}
           submitting={submitting}
         />
-      </main>
+      </>
     </TooltipProvider>
   )
 }

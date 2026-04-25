@@ -5,6 +5,7 @@
 
 import { useParams } from 'next/navigation'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { EndUsersManagementTable } from '@web/components/features/end-users/EndUsersManagementTable'
 
 export default function OrgEndUsersPage() {
@@ -13,19 +14,10 @@ export default function OrgEndUsersPage() {
 
   return (
     <AppLayout pageTitle="终端用户">
-      <div className="h-full overflow-auto bg-white">
-        <div className="mx-auto max-w-7xl p-6">
-          <div className="mb-6">
-            <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-              终端用户管理
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              管理 {orgName} 组织下的所有终端用户账号。终端用户访问权限在各项目中单独配置。
-            </p>
-          </div>
-          <EndUsersManagementTable orgName={orgName} />
-        </div>
-      </div>
+      <PageLayout maxWidth="7xl">
+        <PageHeader title="终端用户管理" bordered />
+        <EndUsersManagementTable orgName={orgName} />
+      </PageLayout>
     </AppLayout>
   )
 }

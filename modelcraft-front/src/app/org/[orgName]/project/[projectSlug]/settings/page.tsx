@@ -12,6 +12,7 @@ import { UPDATE_PROJECT_CLUSTER } from '@web/graphql/mutations/project'
 import { cn } from '@/shared/utils'
 import { IdentityFormSection } from '@web/components/ui/identity-form-section'
 import { DatabaseConfigFields } from '@web/components/features/database/DatabaseConfigFields'
+import { PageHeader } from '@web/components/features/layout'
 import {
   Database,
   CheckCircle,
@@ -113,13 +114,13 @@ const settingsNavItems: SettingsNavItem[] = [
 const statusConfig = {
   ACTIVE: {
     label: '已连接',
-    dot: 'bg-[#059669] animate-pulse',
-    badge: 'bg-[#ecfdf5] text-[#059669]',
+    dot: 'bg-emerald-600 animate-pulse',
+    badge: 'bg-emerald-50 text-emerald-600',
   },
   DISABLED: {
     label: '未连接',
-    dot: 'bg-gray-400',
-    badge: 'bg-gray-100 text-gray-500',
+    dot: 'bg-muted-foreground/50',
+    badge: 'bg-muted text-muted-foreground',
   },
 }
 
@@ -307,7 +308,7 @@ export default function SettingsPage() {
     <div className="flex h-full overflow-hidden">
 
       {/* ===== Settings Sidebar ===== */}
-      <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
+      <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-border bg-card">
         <div className="p-3">
           <p className="mb-1 px-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
             配置
@@ -320,7 +321,7 @@ export default function SettingsPage() {
                 className={cn(
                   'flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-medium transition-colors duration-150',
                   activeNav === item.id
-                    ? 'bg-blue-100 text-blue-600'
+                    ? 'bg-primary/10 text-primary'
                     : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                 )}
               >
@@ -333,14 +334,10 @@ export default function SettingsPage() {
       </aside>
 
       {/* ===== Main Content ===== */}
-      <div className="flex-1 overflow-y-auto bg-gray-50">
+      <div className="flex-1 overflow-y-auto bg-muted">
         <div className="mx-auto max-w-3xl p-8">
 
-          {/* Page Header */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-semibold text-foreground">项目设置</h1>
-            <p className="mt-1 text-sm text-muted-foreground">管理您的项目配置和数据库连接</p>
-          </div>
+          <PageHeader title="项目设置" description="管理您的项目配置和数据库连接" />
 
           {/* Loading */}
           {loading && (
@@ -352,8 +349,8 @@ export default function SettingsPage() {
 
           {/* No Cluster */}
           {!loading && !cluster && (
-            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-gray-200 bg-white py-20">
-              <div className="flex size-12 items-center justify-center rounded-lg bg-gray-100">
+            <div className="flex flex-col items-center justify-center gap-3 rounded-lg border border-border bg-card py-20">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-muted">
                 <Database className="size-5 text-muted-foreground" strokeWidth={1.5} />
               </div>
               <div className="space-y-1 text-center">
@@ -389,9 +386,9 @@ export default function SettingsPage() {
 
               {/* ── Connection Config Section ── */}
               <Form {...form}>
-                <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                <div className="overflow-hidden rounded-lg border border-border bg-card">
                   {/* Section header */}
-                  <div className="flex items-center gap-2 border-b border-gray-200 px-5 py-4">
+                  <div className="flex items-center gap-2 border-b border-border px-5 py-4">
                     <Database className="size-4 text-muted-foreground" strokeWidth={1.5} />
                     <h2 className="text-sm font-semibold text-foreground">连接配置</h2>
                     <span
@@ -417,14 +414,14 @@ export default function SettingsPage() {
                   </div>
 
                   {/* Section footer */}
-                  <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-5 py-3">
+                  <div className="flex items-center justify-between border-t border-border bg-muted px-5 py-3">
                     {/* Test result feedback */}
                     <div className="min-h-[20px]">
                       {testResult && (
                         <span
                           className={cn(
                             'flex items-center gap-1.5 text-sm',
-                            testResult.success ? 'text-[#059669]' : 'text-[#ef4444]'
+                            testResult.success ? 'text-emerald-600' : 'text-destructive'
                           )}
                         >
                           {testResult.success ? (
@@ -475,7 +472,7 @@ export default function SettingsPage() {
                         size="sm"
                         onClick={handleSaveConnection}
                         disabled={!formData.host || !testResult?.success}
-                        className="h-9 border-0 bg-[#2563eb] px-4 text-sm font-medium text-white transition-colors duration-200 hover:bg-[#1d4ed8]"
+                        className="h-9 border-0 bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors duration-200 hover:bg-primary/90"
                       >
                         保存
                       </Button>
@@ -485,7 +482,7 @@ export default function SettingsPage() {
               </Form>
 
               {/* ── Danger Zone Section ── */}
-              <div className="overflow-hidden rounded-lg border border-red-200 bg-white">
+              <div className="overflow-hidden rounded-lg border border-destructive/30 bg-card">
                 <div className="border-b border-red-200 bg-red-50 px-5 py-4">
                   <h2 className="text-sm font-semibold text-red-600">危险区域</h2>
                   <p className="mt-0.5 text-xs text-red-400">以下操作不可撤销，请谨慎操作</p>

@@ -6,4 +6,6 @@
  */
 
 export { AppLayout } from './AppLayout'
+export { PageHeader } from './PageHeader'
+export { PageLayout } from './PageLayout'
 export { UserMenu } from './UserMenu'

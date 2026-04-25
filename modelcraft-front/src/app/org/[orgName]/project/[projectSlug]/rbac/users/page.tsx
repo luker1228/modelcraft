@@ -806,12 +806,11 @@ export default function UserAuthPage() {
   )
 
   return (
-    <main className="size-full overflow-y-auto bg-background">
-      <div className="mx-auto w-full max-w-[1200px] px-6 pb-12 pt-10 xl:px-10">
+    <>
 
-        {/* Header */}
-        <section className="mb-8 space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight">用户授权</h1>
+      {/* Header */}
+      <section className="mb-8 space-y-1">
+          <h2 className="text-2xl font-semibold tracking-tight">用户授权</h2>
           <p className="text-sm text-muted-foreground">
             为终端用户分配角色或直接授予权限包，管理其在该项目中的访问权限。
           </p>
@@ -872,7 +871,6 @@ export default function UserAuthPage() {
             </Table>
           </div>
         )}
-      </div>
 
       {/* Right-side Sheet */}
       <UserDetailSheet
@@ -891,6 +889,6 @@ export default function UserAuthPage() {
         onAssignBundle={handleAssignBundle}
         onRevokeBundle={handleRevokeBundle}
       />
-    </main>
+    </>
   )
 }

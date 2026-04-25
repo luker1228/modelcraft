@@ -5,6 +5,7 @@ import { useForm, type FieldValues } from 'react-hook-form'
 import { IdentityFormSection } from '@web/components/ui/identity-form-section'
 import { Badge } from '@web/components/ui/badge'
 import { Separator } from '@web/components/ui/separator'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 
 // ── Sections ───────────────────────────────────────────────────────────────────
 
@@ -247,22 +248,15 @@ export default function IdentitySettingsPage() {
   const SectionComponent = section.component
 
   return (
-    <div className="h-full overflow-auto bg-white">
-      <div className="mx-auto max-w-7xl p-6">
-
-        {/* Page header */}
-        <div className="mb-8">
-          <h1 className="font-heading text-xl font-semibold tracking-tight text-foreground">
-            身份配置
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            统一管理集群、模型、枚举等资源的显示名称与标识符配置。
-          </p>
-        </div>
+    <PageLayout maxWidth="7xl" background="card" padding="compact">
+      <PageHeader
+        title="身份配置"
+        description="统一管理集群、模型、枚举等资源的显示名称与标识符配置。"
+      />
 
         <div className="flex items-start gap-6">
           {/* Sidebar navigation */}
-          <nav className="w-44 shrink-0 overflow-hidden rounded-lg border border-border bg-white">
+          <nav className="w-44 shrink-0 overflow-hidden rounded-lg border border-border bg-card">
             <div className="border-b border-border px-3 py-2">
               <p className="font-mono text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 配置分组
@@ -303,7 +297,7 @@ export default function IdentitySettingsPage() {
         </div>
 
         {/* Field reference */}
-        <div className="mt-12 overflow-hidden rounded-lg border border-border bg-white">
+        <div className="mt-12 overflow-hidden rounded-lg border border-border bg-card">
           <div className="border-b border-border bg-muted/30 px-6 py-3">
             <h3 className="font-heading text-sm font-semibold text-foreground">配置项说明</h3>
           </div>
@@ -344,7 +338,6 @@ export default function IdentitySettingsPage() {
           </div>
         </div>
 
-      </div>
-    </div>
+    </PageLayout>
   )
 }

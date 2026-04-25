@@ -3,6 +3,7 @@
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { Layers, Lock, Shield, Users } from 'lucide-react'
 import { cn } from '@/shared/utils'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 
 const tabs = [
   { id: 'bundles',     label: '权限包',   icon: Layers },
@@ -37,14 +38,11 @@ export default function RBACLayout({ children }: RBACLayoutProps) {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-6 py-8">
-      {/* Page header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-semibold text-foreground">终端用户权限</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          管理项目的权限点、权限包、角色及用户授权。
-        </p>
-      </div>
+    <PageLayout maxWidth="7xl">
+      <PageHeader
+        title="终端用户权限"
+        description="管理项目的权限点、权限包、角色及用户授权。"
+      />
 
       {/* Tab Navigation */}
       <div className="mb-6 border-b border-border">
@@ -74,6 +72,6 @@ export default function RBACLayout({ children }: RBACLayoutProps) {
 
       {/* Tab Content */}
       {children}
-    </div>
+    </PageLayout>
   )
 }

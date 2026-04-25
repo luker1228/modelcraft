@@ -18,6 +18,7 @@ import type { AuthVariable, AuthVariableInput, RLSPreset } from '@/types/rls'
 import { cn } from '@/shared/utils'
 import { Badge } from '@/web/components/ui/badge'
 import { Button } from '@/web/components/ui/button'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 import {
   Card,
   CardContent,
@@ -446,15 +447,10 @@ export default function RLSSettingsPage() {
   }, [authVariables, updateAuthSchema])
 
   return (
-    <main className="size-full overflow-y-auto overflow-x-hidden bg-background">
-      <div className="mx-auto w-full max-w-[1600px] px-6 pb-12 pt-10 xl:px-10">
-        <section className="mb-10 flex flex-col gap-4">
-          <div className="space-y-1">
-            <h1 className="text-2xl font-semibold tracking-tight">策略</h1>
-            <p className="text-sm text-muted-foreground">管理各模型的行级安全（RLS）策略</p>
-          </div>
+    <PageLayout maxWidth="full" padding="spacious">
+      <PageHeader title="策略" description="管理各模型的行级安全（RLS）策略" />
 
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-center">
+      <div className="mb-10 flex flex-col gap-2 lg:flex-row lg:items-center">
             <Popover open={databaseSelectorOpen} onOpenChange={setDatabaseSelectorOpen}>
               <PopoverTrigger asChild>
                 <Button
@@ -559,8 +555,7 @@ export default function RLSSettingsPage() {
                 </Command>
               </PopoverContent>
             </Popover>
-          </div>
-        </section>
+      </div>
 
         <section className="space-y-4 pb-8">
           <Card>
@@ -720,7 +715,6 @@ export default function RLSSettingsPage() {
             </CardContent>
           </Card>
         </section>
-      </div>
 
       <Sheet open={policyDetailOpen} onOpenChange={setPolicyDetailOpen}>
         <SheetContent side="right" className="w-[760px] overflow-y-auto p-0 sm:max-w-[860px]">
@@ -788,6 +782,6 @@ export default function RLSSettingsPage() {
           </div>
         </SheetContent>
       </Sheet>
-    </main>
+    </PageLayout>
   )
 }

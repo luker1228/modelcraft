@@ -31,7 +31,6 @@ import {
   Server,
   Table2,
   List,
-  LogIn,
   Shield,
   KeyRound,
 } from 'lucide-react'
@@ -201,9 +200,7 @@ export function AppLayout({
 
   const authNavItems: NavItem[] = [
     { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
-    { label: '登录配置', icon: LogIn, href: `/org/${orgName}/project/${projectSlug}/login-settings` },
-    { label: '用户管理', icon: Users, href: `/org/${orgName}/project/${projectSlug}/end-users` },
-    { label: '终端用户访问', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
+    { label: '用户管理', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
   ]
 
   const navItems = showProjectNav ? projectNavItems : workspaceNavItems
@@ -213,10 +210,6 @@ export function AppLayout({
     || pathname?.startsWith(`${authBasePath}/rls-settings/`)
     || pathname === `${authBasePath}/roles`
     || pathname?.startsWith(`${authBasePath}/roles/`)
-    || pathname === `${authBasePath}/login-settings`
-    || pathname?.startsWith(`${authBasePath}/login-settings/`)
-    || pathname === `${authBasePath}/end-users`
-    || pathname?.startsWith(`${authBasePath}/end-users/`)
     || pathname === `${authBasePath}/end-user-access`
     || pathname?.startsWith(`${authBasePath}/end-user-access/`)
     || pathname === `${authBasePath}/rbac`
@@ -225,15 +218,14 @@ export function AppLayout({
   return (
     <div className="flex h-full flex-col overflow-hidden">
       {/* ===== Full-Width Topbar ===== */}
-      <header className="flex h-14 flex-shrink-0 items-center border-b border-gray-200 bg-white px-4">
+      <header className="flex h-14 flex-shrink-0 items-center border-b border-border bg-card px-4">
         {/* Left Section - Organization Selector */}
         <div className="w-auto flex-shrink-0 transition-all duration-300">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-[#fafafa]">
+              <button className="flex items-center justify-center rounded-lg p-2 transition-colors hover:bg-accent">
                 <div
-                  className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg"
-                  style={{ background: '#2563eb' }}
+                  className="flex size-8 flex-shrink-0 items-center justify-center rounded-lg bg-primary"
                 >
                   <Sparkles className="size-4 text-white" strokeWidth={1.5} />
                 </div>
@@ -313,7 +305,7 @@ export function AppLayout({
           <Button
             variant="ghost"
             size="sm"
-            className="size-8 p-0 text-muted-foreground hover:bg-[#fafafa] hover:text-foreground"
+            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
             title="搜索"
           >
             <Search className="size-4" strokeWidth={1.5} />
@@ -322,7 +314,7 @@ export function AppLayout({
           <Button
             variant="ghost"
             size="sm"
-            className="relative size-8 p-0 text-muted-foreground hover:bg-[#fafafa] hover:text-foreground"
+            className="relative size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
             title="通知"
           >
             <Bell className="size-4" strokeWidth={1.5} />
@@ -333,7 +325,7 @@ export function AppLayout({
             variant="ghost"
             size="sm"
             onClick={handleRefresh}
-            className="size-8 p-0 text-muted-foreground hover:bg-[#fafafa] hover:text-foreground"
+            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
             title="刷新"
           >
             <RefreshCw className="size-4" strokeWidth={1.5} />
@@ -342,13 +334,13 @@ export function AppLayout({
           <Button
             variant="ghost"
             size="sm"
-            className="size-8 p-0 text-muted-foreground hover:bg-[#fafafa] hover:text-foreground"
+            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
             title="帮助"
           >
             <HelpCircle className="size-4" strokeWidth={1.5} />
           </Button>
 
-          <div className="mx-2 h-5 w-px bg-gray-200" />
+          <div className="mx-2 h-5 w-px bg-border" />
 
           <UserMenu
             userName={displayName}
@@ -363,7 +355,7 @@ export function AppLayout({
         {/* Sidebar */}
         <aside
           className={cn(
-            "bg-white border-r border-gray-200 flex flex-col overflow-hidden flex-shrink-0 transition-all duration-300",
+            "bg-card border-r border-border flex flex-col overflow-hidden flex-shrink-0 transition-all duration-300",
             sidebarCollapsed ? "w-16" : "w-[240px]"
           )}
         >
@@ -389,10 +381,10 @@ export function AppLayout({
           </div>
 
           {/* Sidebar Footer - Toggle */}
-          <div className="flex h-12 flex-shrink-0 items-center border-t border-gray-200 px-2">
+          <div className="flex h-12 flex-shrink-0 items-center border-t border-border px-2">
             <button
               onClick={toggleSidebar}
-              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-[#fafafa] hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
             >
               {sidebarCollapsed ? (
                 <PanelLeft className="size-4" strokeWidth={1.5} />
@@ -404,10 +396,10 @@ export function AppLayout({
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 overflow-hidden bg-[#fafafa]">
+        <main className="flex-1 overflow-hidden bg-muted">
           {showProjectNav && isAuthSection ? (
             <div className="flex h-full">
-              <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-gray-200 bg-white">
+              <aside className="w-[200px] flex-shrink-0 overflow-y-auto border-r border-border bg-card">
                 <div className="p-3">
                   <nav className="flex flex-col gap-0.5">
                     {authNavItems.map((item) => (

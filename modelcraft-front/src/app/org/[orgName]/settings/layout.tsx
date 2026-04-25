@@ -3,12 +3,14 @@
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
+import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { cn } from '@/shared/utils'
-import { KeyRound, Shield } from 'lucide-react'
+import { KeyRound, Shield, LogIn } from 'lucide-react'
 
 const tabs = [
   { id: 'api-keys', label: 'API Keys', icon: KeyRound },
   { id: 'roles', label: 'Roles', icon: Shield },
+  { id: 'login-settings', label: '登录配置', icon: LogIn },
 ]
 
 export default function SettingsLayout({
@@ -36,13 +38,11 @@ export default function SettingsLayout({
 
   return (
     <AppLayout pageTitle="组织设置">
-      <div className="mx-auto max-w-5xl px-6 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-foreground">Settings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Manage your organization settings, members, and roles.
-          </p>
-        </div>
+      <PageLayout maxWidth="5xl">
+        <PageHeader
+          title="Settings"
+          description="Manage your organization settings, members, and roles."
+        />
 
         {/* Tab Navigation */}
         <div className="mb-6 border-b border-border">
@@ -73,7 +73,7 @@ export default function SettingsLayout({
 
         {/* Tab Content */}
         {children}
-      </div>
+      </PageLayout>
     </AppLayout>
   )
 }
