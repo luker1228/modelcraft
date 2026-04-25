@@ -208,3 +208,47 @@ export const GET_END_USER_EFFECTIVE_PERMISSIONS = gql`
     }
   }
 `
+
+/**
+ * 查询某个终端用户已分配的角色列表
+ */
+export const GET_END_USER_ROLE_ASSIGNMENTS = gql`
+  query GetEndUserRoleAssignments($endUserId: ID!) {
+    endUserRoleAssignments(endUserId: $endUserId) {
+      endUserId
+      assignedAt
+      role {
+        id
+        name
+        description
+        isImplicit
+      }
+    }
+  }
+`
+
+/**
+ * 查询某个终端用户已直接授权的权限包列表
+ */
+export const GET_END_USER_BUNDLE_ASSIGNMENTS = gql`
+  query GetEndUserBundleAssignments($endUserId: ID!) {
+    endUserBundleAssignments(endUserId: $endUserId) {
+      endUserId
+      assignedAt
+      bundle {
+        id
+        name
+        description
+        permissions {
+          sortOrder
+          permission {
+            id
+            modelId
+            action
+            rowScope
+          }
+        }
+      }
+    }
+  }
+`

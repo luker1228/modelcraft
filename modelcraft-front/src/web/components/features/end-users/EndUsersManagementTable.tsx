@@ -3,7 +3,7 @@
 // src/web/components/features/end-users/EndUsersManagementTable.tsx
 // Org 级终端用户管理表格（EndUser v2）
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Plus, MoreHorizontal, RefreshCw, Users } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
@@ -24,6 +24,57 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { CreateEndUserDialog } from './CreateEndUserDialog'
 import { useOrgEndUsers, type OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
+
+// ============================================================================
+// UserProjectBadges — fetches and renders the project list for one user
+// ============================================================================
+
+interface AccessibleProject {
+  slug: string
+  title: string
+}
+
+interface AccessibleProjectsBffResponse {
+  projects?: AccessibleProject[]
+}
+
+interface UserProjectBadgesProps {
+  orgName: string
+  userId: string
+}
+
+function UserProjectBadges({ orgName, userId }: UserProjectBadgesProps) {
+  const [projects, setProjects] = useState<AccessibleProject[] | null>(null)
+
+  useEffect(() => {
+    fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/accessible-projects`)
+      .then((r) => r.json() as Promise<AccessibleProjectsBffResponse>)
+      .then((d) => setProjects(d.projects ?? []))
+      .catch(() => setProjects([]))
+  }, [orgName, userId])
+
+  if (projects === null) {
+    return <div className="h-4 w-20 animate-pulse rounded bg-muted" />
+  }
+
+  if (projects.length === 0) {
+    return <span className="text-xs text-muted-foreground">暂无</span>
+  }
+
+  return (
+    <div className="flex flex-wrap gap-1">
+      {projects.map((p) => (
+        <Badge key={p.slug} variant="outline" className="text-xs font-medium text-foreground">
+          {p.title}
+        </Badge>
+      ))}
+    </div>
+  )
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
 
 function formatDate(dateStr: string): string {
   try {
@@ -66,21 +117,19 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
-            <Plus className="mr-1.5 size-4" />
-            新增用户
-          </Button>
-          <Button size="sm" variant="outline" onClick={reload} disabled={isLoading}>
-            <RefreshCw className={`mr-1.5 size-4 ${isLoading ? 'animate-spin' : ''}`} />
-            刷新
-          </Button>
-        </div>
-        {actionError && (
-          <p className="text-sm text-destructive">{actionError}</p>
-        )}
+      <div className="flex items-center gap-2">
+        <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Plus className="mr-1.5 size-4" />
+          新增用户
+        </Button>
+        <Button size="sm" variant="outline" onClick={reload} disabled={isLoading}>
+          <RefreshCw className={`mr-1.5 size-4 ${isLoading ? 'animate-spin' : ''}`} />
+          刷新
+        </Button>
       </div>
+      {actionError && (
+        <p className="text-sm text-destructive">{actionError}</p>
+      )}
 
       {/* Error State */}
       {error && !isLoading && (
@@ -101,6 +150,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
               <TableRow>
                 <TableHead className="font-semibold">用户名</TableHead>
                 <TableHead className="font-semibold">显示名称</TableHead>
+                <TableHead className="w-56 font-semibold">关联项目</TableHead>
                 <TableHead className="font-semibold">状态</TableHead>
                 <TableHead className="font-semibold">创建时间</TableHead>
                 <TableHead className="w-12" />
@@ -110,7 +160,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 5 }).map((__, j) => (
+                    {Array.from({ length: 6 }).map((__, j) => (
                       <TableCell key={j}>
                         <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
                       </TableCell>
@@ -120,7 +170,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
 
               {!isLoading && users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={5}>
+                  <TableCell colSpan={6}>
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <Users className="mb-3 size-10 text-muted-foreground/50" />
                       <p className="text-sm text-muted-foreground">暂无终端用户</p>
@@ -142,7 +192,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-primary text-sm font-semibold text-primary-foreground">
+                        <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
                           {user.username.charAt(0).toUpperCase()}
                         </div>
                         <span className="text-sm font-semibold">{user.username}</span>
@@ -152,8 +202,12 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                       {user.displayName || '-'}
                     </TableCell>
                     <TableCell>
+                      <UserProjectBadges orgName={orgName} userId={user.id} />
+                    </TableCell>
+                    <TableCell>
                       <Badge
-                        variant={user.status === 'ACTIVE' ? 'default' : 'destructive'}
+                        variant={user.status === 'ACTIVE' ? 'outline' : 'destructive'}
+                        className={user.status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ''}
                       >
                         {user.status === 'ACTIVE' ? '正常' : '已禁用'}
                       </Badge>

@@ -29,6 +29,10 @@ import {
 import type { OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
 import type { GrantAccessPayload } from '@web/hooks/end-user-access/useProjectEndUserAccess'
 
+interface OrgEndUserListBffResponse {
+  users?: OrgEndUser[]
+}
+
 const schema = z.object({
   userId: z.string().min(1, '请选择用户'),
   permissionBundle: z.string().optional(),
@@ -69,8 +73,8 @@ export function GrantEndUserAccessDialog({
     if (!open) return
     setUsersLoading(true)
     fetch(`/api/bff/org/${orgName}/end-user/users`)
-      .then((r) => r.json())
-      .then((d) => setUsers((d.users as OrgEndUser[]) ?? []))
+      .then((r) => r.json() as Promise<OrgEndUserListBffResponse>)
+      .then((d) => setUsers(d.users ?? []))
       .catch(() => setUsers([]))
       .finally(() => setUsersLoading(false))
   }, [open, orgName])

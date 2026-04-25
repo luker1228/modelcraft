@@ -3,6 +3,7 @@ name: ModelCraft
 description: Data model and access-control configuration platform for enterprise ops teams
 colors:
   action-blue: "#2563eb"
+  action-blue-hover: "#1d4ed8"
   action-blue-surface: "#dbeafe"
   canvas: "#fafafa"
   surface: "#ffffff"
@@ -12,14 +13,38 @@ colors:
   structure-border: "#e2e6ec"
   structure-muted: "#f1f3f7"
   selected-state: "#dadee5"
+  selected-foreground: "#1e2a3b"
   signal-critical: "#f04343"
   signal-success: "#10b981"
   signal-warning: "#f59e0b"
+  chart-1: "hsl(12, 76%, 61%)"
+  chart-2: "hsl(173, 58%, 39%)"
+  chart-3: "hsl(197, 37%, 24%)"
+  chart-4: "hsl(43, 74%, 66%)"
+  chart-5: "hsl(27, 87%, 67%)"
+dark-mode:
+  background: "hsl(224, 71.4%, 4.1%)"
+  foreground: "hsl(210, 20%, 98%)"
+  primary: "hsl(213, 97%, 87%)"
+  primary-foreground: "hsl(221, 83%, 20%)"
+  muted: "hsl(215, 27.9%, 16.9%)"
+  muted-foreground: "hsl(217.9, 10.6%, 64.9%)"
+  border: "hsl(215, 27.9%, 16.9%)"
+  destructive: "hsl(0, 62.8%, 30.6%)"
+sidebar:
+  background: "#ffffff"
+  foreground: "hsl(240, 5.3%, 26.1%)"
+  primary: "hsl(240, 5.9%, 10%)"
+  primary-foreground: "hsl(0, 0%, 98%)"
+  accent: "#dadee5"
+  accent-foreground: "#1e2a3b"
+  border: "hsl(220, 13%, 91%)"
+  ring: "hsl(217.2, 91.2%, 59.8%)"
 typography:
   display:
     fontFamily: "Space Grotesk, system-ui, sans-serif"
     fontSize: "1.5rem"
-    fontWeight: 600
+    fontWeight: 700
     lineHeight: 1.25
     letterSpacing: "-0.01em"
   headline:
@@ -54,12 +79,34 @@ rounded:
   md: "6px"
   lg: "8px"
   xl: "12px"
+  2xl: "16px"
 spacing:
   xs: "4px"
   sm: "8px"
   md: "16px"
   lg: "24px"
   xl: "32px"
+breakpoints:
+  container-max: "1400px"
+  container-padding: "2rem"
+motion:
+  fade-in:
+    duration: "0.25s"
+    easing: "ease-out"
+    transform: "translateY(4px) -> translateY(0)"
+  slide-in-right:
+    duration: "0.25s"
+    easing: "ease-out"
+    transform: "translateX(10px) -> translateX(0)"
+  accordion:
+    duration: "0.2s"
+    easing: "ease-out"
+  sheet-open:
+    duration: "0.5s"
+    easing: "ease-in-out"
+  sheet-close:
+    duration: "0.3s"
+    easing: "ease-in-out"
 components:
   button-primary:
     backgroundColor: "{colors.action-blue}"
@@ -68,7 +115,7 @@ components:
     padding: "8px 16px"
     height: "36px"
   button-primary-hover:
-    backgroundColor: "#1d4ed8"
+    backgroundColor: "{colors.action-blue-hover}"
     textColor: "{colors.surface}"
     rounded: "{rounded.md}"
   button-outline:
@@ -121,11 +168,11 @@ components:
 
 **Creative North Star: "The Engineering Blueprint"**
 
-ModelCraft's visual system is built for operators, not audiences. Every screen is a structured working surface: hierarchy is visible, states are unambiguous, and nothing decorates itself at the expense of the task at hand. The metaphor is a well-drafted technical drawing — each element occupies exactly the space it needs, labels are terse and accurate, and white space exists to separate, not impress.
+ModelCraft's visual system is built for operators, not audiences. Every screen is a structured working surface: hierarchy is visible, states are unambiguous, and nothing decorates itself at the expense of the task at hand. The metaphor is a well-drafted technical drawing -- each element occupies exactly the space it needs, labels are terse and accurate, and white space exists to separate, not impress.
 
-The type system runs on two distinct voices. Space Grotesk carries headings and structural labels with a quiet geometric confidence — the kind of precision a brief has, not the kind a poster has. Inter handles everything at reading scale: body copy, table rows, input labels. Fira Code appears wherever a string is also a technical value (model names, field identifiers, table slugs). Together they create density without noise.
+The type system runs on two distinct voices. Space Grotesk carries headings and structural labels with a quiet geometric confidence -- the kind of precision a brief has, not the kind a poster has. Inter handles everything at reading scale: body copy, table rows, input labels. Fira Code appears wherever a string is also a technical value (model names, field identifiers, table slugs). Together they create density without noise.
 
-The color system is deliberately narrow. Action blue (#2563eb) is the only saturated color with semantic weight. It appears on primary buttons, active nav items, and selected states — never decoratively. Status colors (critical, success, warning) exist only in explicit feedback contexts and never coexist with action blue on the same element. The rest of the palette is cool-leaning neutrals that hold content without competing with it.
+The color system is deliberately narrow. Action blue (#2563eb) is the only saturated color with semantic weight. It appears on primary buttons, active nav items, and selected states -- never decoratively. Status colors (critical, success, warning) exist only in explicit feedback contexts and never coexist with action blue on the same element. The rest of the palette is cool-leaning neutrals that hold content without competing with it.
 
 **Key Characteristics:**
 - Flat surfaces with structural borders; shadows used only for floating layers (dropdowns, dialogs, sheets)
@@ -133,6 +180,8 @@ The color system is deliberately narrow. Action blue (#2563eb) is the only satur
 - Blue as action color only; no purely decorative use of hue
 - Spacing rhythm varies deliberately: compact in navigation (nav items scan fast), generous in data tables (py-3 rows) and forms, with visible breathing room between section groups
 - States are always explicit: selected, hover, loading, empty, error each have a distinct visual signature
+- Motion is purposeful and brief: entrance animations under 250ms, layout transitions under 300ms, no decorative or looping animation
+- Container max-width 1400px, center-aligned with 2rem horizontal padding
 
 ## 2. Colors: The Blueprint Palette
 
@@ -140,6 +189,7 @@ A narrow, functional palette where the neutrals do the heavy lifting and action 
 
 ### Primary
 - **Action Blue** (`#2563eb`): Primary button fills, active sidebar nav, focus rings, selected-state accents, and link text. Never used as background outside of button fills and nav states.
+- **Action Blue Hover** (`#1d4ed8`): Darkened action blue for hover/pressed states on primary buttons. Do not use independently.
 - **Action Blue Surface** (`#dbeafe`): Tinted background for selected nav items, secondary badges, and tag chips. Pairs with action-blue text. No standalone use as a decorative fill.
 
 ### Neutral
@@ -151,11 +201,32 @@ A narrow, functional palette where the neutrals do the heavy lifting and action 
 - **Structure Border** (`#e2e6ec`): Table borders, card borders, dividers, input outlines.
 - **Structure Muted** (`#f1f3f7`): Alternating table row backgrounds, hover states for ghost buttons and nav items, disabled fills.
 - **Selected State** (`#dadee5`): Explicit selected / active state background for list items and nav entries. More visible than muted, less prominent than primary.
+- **Selected Foreground** (`#1e2a3b`): Text color paired with selected-state background. Darker than ink-mid for contrast.
 
 ### Signal
 - **Critical** (`#f04343`): Destructive actions, error messages, error-state input rings. Appears in badge-destructive and inline form errors. Never decorative.
 - **Success** (`#10b981`): Success toasts, status badges, confirmation states. Never paired with action blue.
 - **Warning** (`#f59e0b`): Advisory states, cautionary badges. Reserved for genuine warnings only.
+
+### Chart Colors
+Five distinct hues for data visualization contexts only. Never used as UI accent colors.
+- **Chart 1** (`hsl(12, 76%, 61%)`): Warm coral
+- **Chart 2** (`hsl(173, 58%, 39%)`): Teal
+- **Chart 3** (`hsl(197, 37%, 24%)`): Deep slate-blue
+- **Chart 4** (`hsl(43, 74%, 66%)`): Amber
+- **Chart 5** (`hsl(27, 87%, 67%)`): Orange
+
+### Dark Mode
+
+Dark mode inverts the surface hierarchy while preserving the same semantic roles. Key shifts:
+- **Background** flips from `#fafafa` (canvas) to `hsl(224, 71.4%, 4.1%)` (near-black).
+- **Primary** shifts from saturated blue to a lighter `hsl(213, 97%, 87%)` for adequate contrast on dark surfaces.
+- **Muted / border** tokens compress into the same dark band (`hsl(215, 27.9%, 16.9%)`), distinguishable by opacity in use.
+- **Signal colors** (success, warning) are not re-declared and fall through from light mode. Critical darkens to `hsl(0, 62.8%, 30.6%)`.
+
+CSS custom properties handle the swap via `.dark` class on `<html>`. All Tailwind utilities consume tokens through `hsl(var(--*))`, so dark mode requires zero class changes in components.
+
+> **Current state:** Dark mode tokens are defined in CSS but the product does not ship a dark mode toggle. The tokens exist for future readiness and for users who force `prefers-color-scheme: dark` at the OS level.
 
 ### Named Rules
 **The One Voice Rule.** Action blue is the single saturated color with behavioral meaning. Any other use of hue is a signal color (critical / success / warning). If you are reaching for a second accent color for variety, you are wrong. The palette's restraint is not a limitation; it is the point.
@@ -171,21 +242,30 @@ A narrow, functional palette where the neutrals do the heavy lifting and action 
 **Character:** Space Grotesk brings a structured, slightly unconventional geometry that reads as precise without being cold. Inter at small sizes is pure instrument: invisible utility, no ego. Fira Code signals technical identity for any value that is simultaneously a display string and a machine-readable identifier.
 
 ### Hierarchy
-- **Display** (Space Grotesk, 600, 1.5rem/24px, line-height 1.25, tracking -0.01em): Page-level headings. Used once per view for the primary landmark ("权限管理", "数据模型"). Never duplicated.
+- **Display** (Space Grotesk, 700, 1.5rem/24px, line-height 1.25, tracking -0.01em): Page-level headings. Used once per view for the primary landmark. The only weight-700 usage in the system; all other headings use 600.
 - **Headline** (Space Grotesk, 600, 1.25rem/20px, line-height 1.3, tracking -0.005em): Section titles within a page, card titles, sheet headers. The `font-heading` utility class.
 - **Title** (Space Grotesk, 600, 1rem/16px, line-height 1.4): Sub-section labels, table panel headers, form group labels.
-- **Body** (Inter, 400, 0.875rem/14px, line-height 1.5): Table cell content, form field values, description text. Maximum line length 65–75ch on prose surfaces.
+- **Body** (Inter, 400, 0.875rem/14px, line-height 1.5): Table cell content, form field values, description text. Maximum line length 65-75ch on prose surfaces.
 - **Label** (Inter, 500, 0.75rem/12px, line-height 1.4, tracking 0.01em): Column headers, metadata tags, badge text, compact UI labels. Never in all-caps.
 - **Mono** (Fira Code, 400, 0.8125rem/13px, line-height 1.6): Technical identifiers: model names, field slugs, SQL expressions, IDs. Applied via `font-mono` utility.
 
+### Weight Policy
+The weight scale is intentionally narrow:
+- **400 (normal):** Body text, form inputs, descriptions. The default.
+- **500 (medium):** Reserved exclusively for technical identifiers rendered in `font-mono` (code, enum names, API identifiers). Never on Inter or Space Grotesk.
+- **600 (semibold):** Headings (headline, title), section labels, table headers, badges. The primary emphasis weight.
+- **700 (bold):** Page-level display headings only (`pageTitle` in `typography.ts`). One per view. Do not use for inline emphasis or sub-headings.
+
+`font-extrabold` (800) and `font-black` (900) are banned entirely.
+
 ### Named Rules
-**The Serif Exception.** The `.font-label` utility (Times New Roman) exists as a section label ornament — a nod to the engineering-document register. Use it exclusively for static, decorative section labels, not for any interactive or data-bearing text.
+**The Serif Exception.** The `.font-label` utility (Times New Roman) exists as a section label ornament -- a nod to the engineering-document register. Use it exclusively for static, decorative section labels, not for any interactive or data-bearing text.
 
 **The Scale Minimum.** No text appears at less than 12px (0.75rem). Below this threshold, the label is not legible in standard office lighting; it is noise.
 
 ## 4. Elevation
 
-This system is flat by default. Surfaces are differentiated primarily through background color contrast (canvas → surface) and structural borders, not shadow depth. Shadows are reserved for floating or detached layers, not for resting state surface hierarchy.
+This system is flat by default. Surfaces are differentiated primarily through background color contrast (canvas -> surface) and structural borders, not shadow depth. Shadows are reserved for floating or detached layers, not for resting state surface hierarchy.
 
 **Scene context:** An operator at a desk in an office, 27-inch monitor, standard ambient light, mid-day. Shadows that work in a darkened showroom become noise in this environment. The response is a flat system that reads clearly in any ambient condition.
 
@@ -195,9 +275,26 @@ This system is flat by default. Surfaces are differentiated primarily through ba
 - **Modal** (`shadow-lg`: `0 10px 15px -3px rgba(0,0,0,0.1)`): Dialogs, sheets, alert dialogs. The highest elevation layer.
 
 ### Named Rules
-**The Flat-By-Default Rule.** Cards, table rows, sidebar items, nav entries — all flat at rest. Shadows appear only when an element is elevated above the document flow (floating) or has lifted into a hover/active state that needs spatial separation. If you are adding a shadow to a resting card, you are decorating, not communicating.
+**The Flat-By-Default Rule.** Cards, table rows, sidebar items, nav entries -- all flat at rest. Shadows appear only when an element is elevated above the document flow (floating) or has lifted into a hover/active state that needs spatial separation. If you are adding a shadow to a resting card, you are decorating, not communicating.
 
-## 5. Components
+## 5. Motion
+
+Motion in ModelCraft is functional, not expressive. Every animation exists to orient the user spatially (where did this element come from?) or to smooth a state transition (accordion expand). No animation loops, no decorative motion, no attention-seeking entrance sequences.
+
+### Animation Vocabulary
+- **Fade In** (`animate-fade-in`, 250ms ease-out): Content appearing in place. Translates 4px upward while fading in. Used for page section reveals and lazy-loaded content.
+- **Slide In Right** (`animate-slide-in-right`, 250ms ease-out): Side-panel content. Translates 10px from right while fading in. Used for sheet/drawer body content after the container has opened.
+- **Accordion** (`animate-accordion-down` / `animate-accordion-up`, 200ms ease-out): Radix collapsible content. Height animates to/from `var(--radix-accordion-content-height)`.
+- **Sheet Open/Close** (500ms / 300ms ease-in-out): Drawer slides from edge. Asymmetric timing: opening is slower (deliberate reveal), closing is faster (dismissal should feel instant).
+
+### Named Rules
+**The 300ms Ceiling.** No entrance animation exceeds 300ms. Sheet open (500ms) is the sole exception because it animates a large surface area and uses ease-in-out to prevent jarring snap. Everything else completes in 250ms or less.
+
+**The No-Layout-Animation Rule.** Never animate `width`, `height`, `left`, `right`, or `top` on elements in the document flow. These trigger layout recalculation. Use `transform` and `opacity` exclusively. Accordion is the one exception (height animation on a collapsible, managed by Radix).
+
+**The No-Loop Rule.** No CSS animation uses `infinite` iteration. Skeleton pulses are the only acceptable repeating pattern, and those use Tailwind's built-in `animate-pulse`.
+
+## 6. Components
 
 ### Buttons
 The button vocabulary is small and intentional. Each variant has exactly one behavioral role.
@@ -205,17 +302,17 @@ The button vocabulary is small and intentional. Each variant has exactly one beh
 - **Shape:** Gently rounded (6px radius). Not pill-shaped; not sharp-cornered.
 - **Primary** (`bg-primary text-white shadow-sm`, height 36px, padding 8px 16px): The single most consequential action on any given surface. Only one primary button per page section.
 - **Hover / Focus:** Primary darkens to `#1d4ed8`; focus ring is 1px `ring-ring`. No scale transforms, no glow effects.
-- **Outline** (`border border-input bg-background`, height 36px, padding 8px 16px): Secondary actions that need presence without dominance. Used for "编辑", "添加", cancel controls.
+- **Outline** (`border border-input bg-background`, height 36px, padding 8px 16px): Secondary actions that need presence without dominance. Used for "edit", "add", cancel controls.
 - **Ghost** (`hover:bg-muted`, height 36px, padding 8px 12px): Low-emphasis actions in dense contexts (table row actions, icon buttons). Background appears only on hover.
 - **Destructive** (`bg-destructive text-white`): Reserved for confirmed irreversible actions inside AlertDialog confirmations. Never as the first action presented.
-- **Size scale:** default (h-9), sm (h-8, px-3, text-xs), icon (36×36, padding 0).
+- **Size scale:** default (h-9), sm (h-8, px-3, text-xs), icon (36x36, padding 0).
 
 ### Badges / Status Chips
 Fully-rounded pills (9999px) for labeling and status communication. Text at 0.75rem, font-weight 600.
 
 - **Default** (action-blue fill): Rare. Reserved for primary state labels like active/enabled.
 - **Secondary** (blue-100 surface, blue-600 text): Most common. Selected/active state labels, system role tags.
-- **Outline** (transparent fill, border, foreground text): Neutral classification tags. "系统", "普通".
+- **Outline** (transparent fill, border, foreground text): Neutral classification tags.
 - **Success / Warning / Destructive**: Signal colors only. Status badges for health, warnings, errors.
 
 ### Cards / Containers
@@ -230,7 +327,7 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 
 - **Header row:** `bg-muted/50`, `font-semibold text-muted-foreground`, 12px label size.
 - **Body rows:** alternating between `bg-background` and `bg-muted/20`. Border-bottom on each row except last.
-- **Hover state:** `hover:bg-muted/50` or `hover:bg-slate-50`. No animated fills.
+- **Hover state:** `hover:bg-muted/50`. No animated fills.
 - **Action column:** right-aligned ghost buttons. Visible on row hover in compact tables, always visible in explicit management tables.
 - **Empty state:** centered, icon + headline + brief instruction. No tables without an empty state.
 
@@ -241,12 +338,13 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 - **Disabled:** `opacity-50 cursor-not-allowed`. Background unchanged.
 
 ### Navigation (App Sidebar)
-- **Structure:** Left sidebar, 100% white surface, hairline right border. Fixed width at rest.
+- **Structure:** Left sidebar, surface-white background (`--sidebar-background`), hairline right border (`--sidebar-border`). Fixed width at rest.
 - **Nav items:** 36px tap target, 12px horizontal padding, `rounded-md`. Icon left + text label.
-- **Default state:** `text-muted-foreground` icon and text.
-- **Hover:** `bg-muted text-foreground` or `hover:bg-gray-100`.
-- **Active:** `bg-blue-100 text-blue-600`. The selected-state color pulls from action-blue-surface. No underlines, no side-stripe accents.
+- **Default state:** `sidebar-foreground` icon and text.
+- **Hover:** `bg-muted text-foreground`.
+- **Active:** `bg-sidebar-accent text-sidebar-accent-foreground`. The selected-state color (`--sidebar-accent: #dadee5`) is shared with the global `--selected` token. No underlines, no side-stripe accents.
 - **Section headers:** `text-xs font-semibold text-foreground` in all-lowercase (not uppercase). 8px top padding above first item in section.
+- **Ring:** Focus ring on keyboard navigation uses `--sidebar-ring`.
 
 ### Sheets / Drawers
 - **Trigger:** from the right, `sm:max-w-lg` (512px). Slides in with `ease-in-out`, 500ms open / 300ms close.
@@ -260,7 +358,7 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 - **Shadow:** `shadow-lg`.
 - **Destructive confirm button:** `bg-destructive text-destructive-foreground`. Cancel comes first visually.
 
-## 6. Do's and Don'ts
+## 7. Do's and Don'ts
 
 ### Do:
 - **Do** use action blue (`#2563eb`) only on primary interactive elements: buttons, active nav, focus rings, and selected-state accents. Its scarcity is what makes it legible as "this is the action."
@@ -270,13 +368,19 @@ The primary data surface. Tables are flat, borderless between rows, with hairlin
 - **Do** use `ghost` and `outline` button variants for table row actions. Primary buttons belong to primary actions on a screen, not to every row in a table.
 - **Do** keep text at or above 0.75rem (12px). Below this, the content is not communication; it is visual noise.
 - **Do** vary spacing deliberately: 16px between form fields, 24px between sections, 8px inside compact nav items. Uniform padding everywhere produces monotony, not order.
+- **Do** use semantic Tailwind tokens (`bg-primary`, `text-foreground`, `border-border`) instead of raw color values (`bg-blue-600`, `text-gray-700`). Semantic tokens are the only path to dark mode and theme consistency.
+- **Do** use `transform` and `opacity` for animations. These are GPU-composited and do not trigger layout recalculation.
 
 ### Don't:
 - **Don't** use Oracle/SAP-style thick panels, deeply layered card shadows, or heavy chrome. If the UI looks like enterprise software from 2012, the shadows are too dark and the containers too nested.
-- **Don't** use consumer-product softness — Canva/Shopify-style gradients, candy-colored badges, rounded-2xl pills everywhere, or encouraging/gamified copy. This is a professional tool.
+- **Don't** use consumer-product softness -- Canva/Shopify-style gradients, candy-colored badges, rounded-2xl pills everywhere, or encouraging/gamified copy. This is a professional tool.
 - **Don't** use glassmorphism, backdrop-filter blurs, gradient-filled cards, or animated gradient text. These are decorations that fight legibility on a working surface.
 - **Don't** use `border-left` or `border-right` greater than 1px as a colored accent stripe on cards, list items, or alerts. Rewrite with a tinted background or full border.
 - **Don't** use background-clip gradient text. Use a single solid color; add emphasis via weight or size.
 - **Don't** place action blue on backgrounds, headers, or decorative elements. Its appearance should predict interactivity or selection.
 - **Don't** invent a third accent color. The palette is action blue + neutrals + signal colors. There is no room for a second brand color at this stage.
 - **Don't** use information density so low that users must scroll through three screens to find one configuration option. Appropriate density is a feature.
+- **Don't** use hard-coded Tailwind color classes (`text-gray-600`, `bg-slate-200`, `border-gray-100`). Always use the semantic token equivalents (`text-muted-foreground`, `bg-muted`, `border-border`).
+- **Don't** use `transition-all`. Specify the exact properties being transitioned (`transition-colors`, `transition-opacity`, `transition-transform`). `transition-all` animates every property change including layout, which causes unnecessary repaints.
+- **Don't** use `font-extrabold` or `font-black`. The weight scale stops at 700 (bold), and even that is reserved for display headings only.
+- **Don't** animate `width`, `height`, `left`, `right`, or `top` on document-flow elements. Use `transform: translate()` instead.

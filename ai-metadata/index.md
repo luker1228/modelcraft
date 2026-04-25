@@ -89,13 +89,20 @@ ai-metadata/
     │   ├── 02-implicit-roles.md          # 内置隐式角色
     │   ├── 03-auth-flow.md               # 鉴权流程与判定规则
     │   └── 04-department-scope.md        # 部门与数据范围
-    └── enduser-v2/                       # ⭐ EndUser 身份系统 v2（Org 级账号）
-        ├── 10-redesign-overview.md       # 总览：问题、目标、核心设计决策
-        ├── 11-domain-model-changes.md    # 领域模型变更（实体/关系图）
-        ├── 12-graphql-api-design.md      # GraphQL API 设计（Org/Project Schema）
-        ├── 13-database-schema.md         # 数据库 Schema 变更（Atlas 迁移）
-        ├── 14-frontend-design.md         # 前端页面/路由/BFF 变更
-        └── 15-bdd-scenarios.md           # BDD 验收场景
+    ├── enduser-v2/                       # ⭐ EndUser 身份系统 v2（Org 级账号）
+    │   ├── 10-redesign-overview.md       # 总览：问题、目标、核心设计决策
+    │   ├── 11-domain-model-changes.md    # 领域模型变更（实体/关系图）
+    │   ├── 12-graphql-api-design.md      # GraphQL API 设计（Org/Project Schema）
+    │   ├── 13-database-schema.md         # 数据库 Schema 变更（Atlas 迁移）
+    │   ├── 14-frontend-design.md         # 前端页面/路由/BFF 变更
+    │   └── 15-bdd-scenarios.md           # BDD 验收场景
+    └── cli/                              # ⭐ ModelCraft CLI（Agent-First）
+        ├── 00-cli-overview.md            # 总览：设计目标、命令树、v1 范围
+        ├── 01-auth-flow.md               # 认证流程与 Token 管理
+        ├── 02-data-commands.md           # 数据命令（query/get/create/update/delete）
+        ├── 03-discovery-and-introspection.md  # 资源发现与 Agent 自省
+        ├── 04-error-handling.md          # 错误处理与 Limit 机制
+        └── 05-architecture.md            # CLI 架构与后端变更需求
 ```
 
 ---
@@ -258,3 +265,16 @@ ai-metadata/
 | [prd/enduser-v2/13-database-schema.md](./prd/enduser-v2/13-database-schema.md) | 数据库 Schema 变更：DDL 对比、迁移策略、Atlas 操作指南 |
 | [prd/enduser-v2/14-frontend-design.md](./prd/enduser-v2/14-frontend-design.md) | 前端设计：路由变更、新增页面、BFF 接口、登录流程时序 |
 | [prd/enduser-v2/15-bdd-scenarios.md](./prd/enduser-v2/15-bdd-scenarios.md) | BDD 验收场景：账号管理、访问控制、登录流程、数据隔离、兼容性 |
+
+### ModelCraft CLI（Agent-First 命令行工具）
+
+> EndUser 通过 CLI 登录、查询和操作数据。第一版本面向 AI Agent，输出结构化 JSON。
+
+| 路径 | 说明 |
+|------|------|
+| [prd/cli/00-cli-overview.md](./prd/cli/00-cli-overview.md) | ⭐ 总览：设计目标、资源路径约定、命令树、v1 范围 |
+| [prd/cli/01-auth-flow.md](./prd/cli/01-auth-flow.md) | 认证流程：公共端点设计、登录时序、Token 管理 |
+| [prd/cli/02-data-commands.md](./prd/cli/02-data-commands.md) | 数据命令：query/get/create/update/delete/count/aggregate |
+| [prd/cli/03-discovery-and-introspection.md](./prd/cli/03-discovery-and-introspection.md) | 资源发现与 Agent 自省：catalog/describe/schema |
+| [prd/cli/04-error-handling.md](./prd/cli/04-error-handling.md) | 错误处理：统一格式、退出码、Agent 自修正、Limit 机制 |
+| [prd/cli/05-architecture.md](./prd/cli/05-architecture.md) | CLI 内部架构与后端变更需求 |

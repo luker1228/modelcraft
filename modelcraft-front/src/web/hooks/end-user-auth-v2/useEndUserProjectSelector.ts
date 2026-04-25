@@ -9,6 +9,17 @@ import { useRouter } from 'next/navigation'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
+// ============================================================================
+// BFF Response Types
+// ============================================================================
+
+interface SelectProjectBffResponse {
+  error?: { code?: string; message?: string }
+  accessToken?: string
+  expiresIn?: number
+  projectSlug?: string
+}
+
 export interface UseEndUserProjectSelectorReturn {
   projects: EndUserAccessibleProject[]
   selectedSlug: string | null
@@ -71,7 +82,7 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
         body: JSON.stringify({ projectSlug: selectedSlug }),
       })
 
-      const data = await res.json()
+      const data = (await res.json()) as SelectProjectBffResponse
 
       if (!res.ok) {
         if (res.status === 401) {
@@ -79,15 +90,15 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
           setTimeout(() => router.push(`/u/${orgName}/login`), 1500)
           return
         }
-        setError(data?.error?.message ?? '选择项目失败，请重试')
+        setError(data.error?.message ?? '选择项目失败，请重试')
         return
       }
 
       // Clean up sessionStorage
       sessionStorage.removeItem(`eu_accessible_projects_${orgName}`)
 
-      setEndUserToken(data.accessToken, data.expiresIn ?? 3600)
-      router.push(`/u/${orgName}/${data.projectSlug}/data`)
+      setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
+      router.push(`/u/${orgName}/${data.projectSlug ?? ''}/data`)
     } catch {
       setError('网络错误，请检查连接后重试')
     } finally {

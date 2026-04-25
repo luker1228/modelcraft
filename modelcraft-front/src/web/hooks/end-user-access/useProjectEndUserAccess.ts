@@ -19,6 +19,19 @@ export interface GrantAccessPayload {
   permissionBundle?: string
 }
 
+// ============================================================================
+// BFF Response Types
+// ============================================================================
+
+interface AccessListBffResponse {
+  accesses: EndUserProjectAccessEntry[]
+  error?: { message?: string }
+}
+
+interface AccessBffErrorResponse {
+  error?: { message?: string }
+}
+
 interface UseProjectEndUserAccessReturn {
   accesses: EndUserProjectAccessEntry[]
   isLoading: boolean
@@ -47,8 +60,11 @@ export function useProjectEndUserAccess(
 
     fetch(`/api/bff/org/${orgName}/project/${projectSlug}/end-user-access`)
       .then(async (res) => {
-        if (!res.ok) throw new Error((await res.json())?.error?.message ?? '加载失败')
-        return res.json() as Promise<{ accesses: EndUserProjectAccessEntry[] }>
+        if (!res.ok) {
+          const errData = (await res.json()) as AccessBffErrorResponse
+          throw new Error(errData.error?.message ?? '加载失败')
+        }
+        return res.json() as Promise<AccessListBffResponse>
       })
       .then((data) => setAccesses(data.accesses))
       .catch((e: unknown) => setError(e instanceof Error ? e.message : '加载访问控制列表失败'))
@@ -66,8 +82,8 @@ export function useProjectEndUserAccess(
         }
       )
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data?.error?.message ?? '授权失败')
+        const data = (await res.json()) as AccessBffErrorResponse
+        throw new Error(data.error?.message ?? '授权失败')
       }
       reload()
     },
@@ -81,8 +97,8 @@ export function useProjectEndUserAccess(
         { method: 'DELETE' }
       )
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data?.error?.message ?? '撤销授权失败')
+        const data = (await res.json()) as AccessBffErrorResponse
+        throw new Error(data.error?.message ?? '撤销授权失败')
       }
       reload()
     },
@@ -100,8 +116,8 @@ export function useProjectEndUserAccess(
         }
       )
       if (!res.ok) {
-        const data = await res.json()
-        throw new Error(data?.error?.message ?? '更新权限失败')
+        const data = (await res.json()) as AccessBffErrorResponse
+        throw new Error(data.error?.message ?? '更新权限失败')
       }
       reload()
     },
