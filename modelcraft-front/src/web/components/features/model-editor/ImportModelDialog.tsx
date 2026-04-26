@@ -15,8 +15,8 @@ import {
 import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
-import { LIST_TABLES } from '@web/graphql/queries/project'
-import { IMPORT_MODEL } from '@web/graphql/mutations/model'
+import { LIST_TABLES } from '@/api-client/project'
+import { IMPORT_MODEL } from '@/api-client/model'
 import { useProjectScopedClient } from '@api-client/apollo/public'
 
 const PAGE_SIZE = 20

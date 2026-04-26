@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@apollo/client'
-import { GET_PROJECTS } from '@web/graphql/queries/project'
-import { CREATE_PROJECT, UPDATE_PROJECT, DELETE_PROJECT } from '@web/graphql/mutations/project'
+import { GET_PROJECTS } from '@/api-client/project'
+import { CREATE_PROJECT, UPDATE_PROJECT, DELETE_PROJECT } from '@/api-client/project'
 import { useProjectStore } from '@web/stores'
 import { useGraphQLErrorHandler } from '@web/hooks/error/use-graphql-error-handler'
 import type { Project, CreateProjectInput, UpdateProjectInput } from '@/types'

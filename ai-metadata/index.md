@@ -56,7 +56,7 @@ ai-metadata/
 │   ├── development/
 │   │   ├── README.md                 # 前端开发规范总览
 │   │   ├── architecture.md
-│   │   ├── bff-design.md
+│   │   ├── api-client-design.md
 │   │   ├── code-conventions.md
 │   │   ├── eslint-rules.md
 │   │   ├── known-issues.md
@@ -184,7 +184,7 @@ ai-metadata/
 |------|------|
 | [front/development/README.md](./front/development/README.md) | 前端开发规范总览、快速开始、常见错误 |
 | [front/development/architecture.md](./front/development/architecture.md) | 目录分层、组件约定、GraphQL Codegen |
-| [front/development/bff-design.md](./front/development/bff-design.md) | BFF 层设计规范 |
+| [front/development/api-client-design.md](./front/development/api-client-design.md) | API Client 层设计规范（GraphQL 文档分模块 + 页面级 MSW mock） |
 | [front/development/code-conventions.md](./front/development/code-conventions.md) | 命名约定、导入顺序、代码风格 |
 | [front/development/eslint-rules.md](./front/development/eslint-rules.md) | ESLint 配置与规则说明 |
 | [front/development/known-issues.md](./front/development/known-issues.md) | 已知问题与临时解决方案 |

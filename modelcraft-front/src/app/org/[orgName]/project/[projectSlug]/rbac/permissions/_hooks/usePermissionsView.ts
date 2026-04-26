@@ -5,8 +5,8 @@ import {
   GET_END_USER_PERMISSIONS,
   DELETE_END_USER_PERMISSION,
   CREATE_END_USER_PERMISSION,
-} from '@web/graphql'
-import { GET_MODELS, GET_MODEL_GROUPS } from '@web/graphql/queries/model'
+} from '@/api-client/rbac'
+import { GET_MODELS, GET_MODEL_GROUPS } from '@/api-client/model'
 import type { EndUserPermission, Model, ModelGroup } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────

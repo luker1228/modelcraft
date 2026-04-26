@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useOrganization } from '@web/hooks/organization/use-organization'
-import { UPDATE_MY_PROFILE } from '@web/graphql/mutations/profile'
-import { MY_USER_PROFILE } from '@web/graphql/queries/profile'
+import { UPDATE_MY_PROFILE } from '@/api-client/profile'
+import { MY_USER_PROFILE } from '@/api-client/profile'
 import type {
   ProfileDomainError,
   UpdateMyProfileFormValues,

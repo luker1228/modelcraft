@@ -5,7 +5,7 @@ import {
   GET_END_USER_BUNDLES,
   CREATE_END_USER_BUNDLE,
   DELETE_END_USER_BUNDLE,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type { EndUserPermissionBundle } from '@/types'
 
 interface UseBundleListProps {

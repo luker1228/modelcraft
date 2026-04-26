@@ -329,4 +329,4 @@ v2 的 Cookie path 结构不变（`/u/[orgName]/[projectSlug]/`），但 pending
 - [12-graphql-api-design.md](./12-graphql-api-design.md) — GraphQL API 接口定义
 - [13-database-schema.md](./13-database-schema.md) — DB Schema 变更
 - [前端架构总览](../../front/development/architecture.md) — 目录规范
-- [BFF 设计规范](../../front/development/bff-design.md) — BFF 层规范
+- [API Client 设计规范](../../front/development/api-client-design.md) — API Client 层规范

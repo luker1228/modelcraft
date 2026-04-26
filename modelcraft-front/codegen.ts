@@ -5,7 +5,7 @@ const config: CodegenConfig = {
     'contract/graph/org/schema/*.graphql',
     'contract/graph/project/schema/*.graphql',
   ],
-  documents: 'src/web/graphql/**/*.ts',
+  documents: 'src/api-client/**/*.ts',
   generates: {
     // 1. TypeScript 类型生成
     'src/generated/graphql.ts': {

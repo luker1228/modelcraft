@@ -9,7 +9,7 @@ import {
   CREATE_API_KEY,
   UPDATE_API_KEY,
   REVOKE_API_KEY,
-} from '@web/graphql'
+} from '@/api-client/user'
 import {
   AlertDialog,
   AlertDialogAction,

@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { useMutation } from '@apollo/client'
 import { toast } from 'sonner'
-import { VALIDATE_RLS_EXPR } from '@web/graphql/mutations/rls'
+import { VALIDATE_RLS_EXPR } from '@/api-client/rls'
 import type {
   RLSExprType,
   ValidateRLSExprInput,

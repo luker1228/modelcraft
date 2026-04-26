@@ -5,7 +5,7 @@ import { useQuery } from '@apollo/client'
 import type { RJSFSchema } from '@rjsf/utils'
 import { createModelRuntimeClient, useProjectScopedClient } from '@api-client/apollo/public'
 import { buildCountQuery, buildFindManyQuery, buildUpdateMutation } from '@api-client/cms/public'
-import { GET_LOGICAL_FOREIGN_KEYS } from '@web/graphql'
+import { GET_LOGICAL_FOREIGN_KEYS } from '@/api-client/model'
 import {
   Dialog,
   DialogContent,

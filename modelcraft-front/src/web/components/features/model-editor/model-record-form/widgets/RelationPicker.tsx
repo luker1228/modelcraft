@@ -5,7 +5,7 @@ import type { WidgetProps, RJSFSchema } from '@rjsf/utils'
 import { useQuery } from '@apollo/client'
 import { createModelRuntimeClient } from '@api-client/apollo/public'
 import { buildFindManyQuery } from '@api-client/cms/public'
-import { NOOP_QUERY } from '@web/graphql'
+import { NOOP_QUERY } from '@/api-client/noop'
 import {
   Select,
   SelectContent,

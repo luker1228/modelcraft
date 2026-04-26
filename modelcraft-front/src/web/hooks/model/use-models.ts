@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@apollo/client'
-import { GET_MODELS, GET_MODEL_GROUPS } from '@web/graphql/queries/model'
-import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@web/graphql/mutations/model'
+import { GET_MODELS, GET_MODEL_GROUPS } from '@/api-client/model'
+import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@/api-client/model'
 import { useModelStore, useAppStore } from '@web/stores'
 import type { Model, ModelGroup, CreateModelInput, UpdateModelMetaInput } from '@/types'
 

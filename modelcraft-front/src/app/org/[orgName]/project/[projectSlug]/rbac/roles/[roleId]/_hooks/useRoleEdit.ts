@@ -6,7 +6,7 @@ import {
   GET_END_USER_BUNDLES,
   ASSIGN_BUNDLE_TO_ROLE,
   REVOKE_BUNDLE_FROM_ROLE,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type { EndUserRole, EndUserPermissionBundle } from '@/types'
 
 interface UseRoleEditProps {

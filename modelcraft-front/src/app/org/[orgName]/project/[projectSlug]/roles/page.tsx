@@ -59,12 +59,12 @@ import {
 } from '@web/components/features/rbac'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { useProjectScopedClient } from '@api-client/apollo/public'
+import { LIST_END_USERS } from '@/api-client/end-user'
 import {
-  LIST_END_USERS,
   GET_END_USER_ROLE_ASSIGNMENTS,
   ASSIGN_END_USER_ROLE_TO_USER,
   REVOKE_END_USER_ROLE_FROM_USER,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type { EndUserRole } from '@/types'
 
 // ── Types ────────────────────────────────────────────────────────────

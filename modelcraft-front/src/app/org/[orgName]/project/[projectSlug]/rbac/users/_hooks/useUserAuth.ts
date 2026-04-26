@@ -9,7 +9,7 @@ import {
   REVOKE_END_USER_ROLE_FROM_USER,
   ASSIGN_BUNDLE_TO_END_USER,
   REVOKE_BUNDLE_FROM_END_USER,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type {
   EndUserRole,
   EndUserPermissionBundle,

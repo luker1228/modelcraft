@@ -21,6 +21,8 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@api-client/cms/*": ["./src/bff/cms/*"],
+      "@api-client/*": ["./src/api-client/*"],
       "@bff/*": ["./src/bff/*"],
       "@web/*": ["./src/web/*"],
       "@shared/*": ["./src/shared/*"]

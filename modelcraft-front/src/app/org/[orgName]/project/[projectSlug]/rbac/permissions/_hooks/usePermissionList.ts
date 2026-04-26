@@ -4,7 +4,7 @@ import { useProjectScopedClient } from '@api-client/apollo/public'
 import {
   GET_END_USER_PERMISSIONS,
   DELETE_END_USER_PERMISSION,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type { EndUserPermission } from '@/types'
 
 interface UsePermissionListProps {

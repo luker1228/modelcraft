@@ -22,13 +22,13 @@ import {
   sanitizeMutationInputData,
 } from '@api-client/cms/public'
 import type { FieldDefinition } from '@api-client/cms/public'
-import { NOOP_MUTATION, NOOP_QUERY } from '@web/graphql'
+import { NOOP_MUTATION, NOOP_QUERY } from '@/api-client/noop'
 import {
   DEPRECATE_FIELD,
   REMOVE_FIELD,
   UNDEPRECATE_FIELD,
-} from '@web/graphql/mutations/model'
-import { GET_MODEL_RECORD_WORKSPACE } from '@web/graphql/queries/model'
+} from '@/api-client/model'
+import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import {

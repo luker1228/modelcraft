@@ -1,11 +1,11 @@
 import { useEffect } from 'react'
 import { useLazyQuery } from '@apollo/client'
 import { useProjectScopedClient } from '@api-client/apollo/public'
-import { GET_LOGICAL_FOREIGN_KEYS, GET_MODEL } from '@web/graphql/queries/model'
+import { GET_LOGICAL_FOREIGN_KEYS, GET_MODEL } from '@/api-client/model'
 import {
   CREATE_LOGICAL_FOREIGN_KEY,
   DELETE_LOGICAL_FOREIGN_KEY,
-} from '@web/graphql/mutations/model'
+} from '@/api-client/model'
 import { toast } from 'sonner'
 import type { ModelEditorState } from './use-model-editor-state'
 import type {

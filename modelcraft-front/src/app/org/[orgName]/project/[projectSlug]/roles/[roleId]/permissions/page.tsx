@@ -23,17 +23,17 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@web/components/ui/select'
 import { Textarea } from '@web/components/ui/textarea'
-import { DATABASE_CATALOG } from '@web/graphql/queries/cluster'
-import { GET_MODELS_FOR_RELATION } from '@web/graphql/queries/model'
+import { DATABASE_CATALOG } from '@/api-client/cluster'
+import { GET_MODELS_FOR_RELATION } from '@/api-client/model'
 import {
   GET_PERMISSION_ROLES,
   GET_ROLE_PERMISSIONS_LIST,
-} from '@web/graphql/queries/user'
+} from '@/api-client/user'
 import {
   ADD_PERMISSION_TO_ROLE,
   REMOVE_PERMISSION_FROM_ROLE,
-} from '@web/graphql/mutations/user'
-import { SET_MODEL_RLS_POLICY } from '@web/graphql/mutations/rls'
+} from '@/api-client/user'
+import { SET_MODEL_RLS_POLICY } from '@/api-client/rls'
 
 type Action = 'read' | 'create' | 'update' | 'delete'
 type RLSPreset = 'READ_WRITE_OWNER' | 'READ_ALL_WRITE_OWNER' | 'READ_ALL' | 'READ_WRITE_ALL' | 'NO_ACCESS' | 'CUSTOM'

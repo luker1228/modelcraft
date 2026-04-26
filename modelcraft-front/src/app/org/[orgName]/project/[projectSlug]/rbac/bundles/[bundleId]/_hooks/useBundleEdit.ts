@@ -7,7 +7,7 @@ import {
   UPDATE_END_USER_BUNDLE,
   ADD_PERMISSION_TO_BUNDLE,
   REMOVE_PERMISSION_FROM_BUNDLE,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type { EndUserPermission, EndUserPermissionBundle } from '@/types'
 
 // ── Props ────────────────────────────────────────────────────────────────────

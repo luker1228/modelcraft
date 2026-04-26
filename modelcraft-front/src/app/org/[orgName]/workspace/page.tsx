@@ -21,13 +21,13 @@ import { useProjectStore } from "@web/stores/project"
 import { useAppStore } from "@web/stores"
 import { useOrganizationStore } from "@shared/stores/organization"
 import { useRequireAuth } from "@web/hooks/auth/use-auth"
-import { GET_PROJECTS } from "@web/graphql/queries/project"
+import { GET_PROJECTS } from "@/api-client/project"
 import {
   CREATE_PROJECT,
   UPDATE_PROJECT,
   DELETE_PROJECT
-} from "@web/graphql/mutations/project"
-import { TEST_CLUSTER_CONNECTION } from "@web/graphql/mutations/cluster"
+} from "@/api-client/project"
+import { TEST_CLUSTER_CONNECTION } from "@/api-client/cluster"
 import {
   Plus,
   FolderOpen,

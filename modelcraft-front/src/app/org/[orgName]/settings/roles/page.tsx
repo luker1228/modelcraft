@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
-import { GET_ROLES, CREATE_ROLE, DELETE_ROLE } from '@web/graphql'
+import { GET_ROLES, CREATE_ROLE, DELETE_ROLE } from '@/api-client/user'
 import { RoleTable } from '@web/components/features/settings/RoleTable'
 import { CreateRoleDialog } from '@web/components/features/settings/CreateRoleDialog'
 import { Button } from '@web/components/ui/button'

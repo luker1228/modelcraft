@@ -5,7 +5,7 @@ import {
   GET_END_USER_ROLES,
   CREATE_END_USER_ROLE,
   DELETE_END_USER_ROLE,
-} from '@web/graphql'
+} from '@/api-client/rbac'
 import type { EndUserRole } from '@/types'
 
 interface UseRoleListProps {

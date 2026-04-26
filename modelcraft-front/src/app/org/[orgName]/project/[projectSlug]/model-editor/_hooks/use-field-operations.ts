@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react'
 import { queryModelEnumContext } from '@api-client/model-enum/public'
 import { useProjectScopedClient } from '@api-client/apollo/public'
-import { REMOVE_FIELD } from '@web/graphql/mutations/model'
+import { REMOVE_FIELD } from '@/api-client/model'
 import { toast } from 'sonner'
 import { isSystemGeneratedLabelField } from '@/shared/model/system-field'
 import type {
