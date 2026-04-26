@@ -17,7 +17,7 @@ import {
   getToken,
   removeToken,
   isAuthenticated,
-} from '@bff/auth/public'
+} from '@api-client/auth/public'
 import type { AuthUser } from '@/types/auth'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { useCurrentOrg } from '@web/stores'

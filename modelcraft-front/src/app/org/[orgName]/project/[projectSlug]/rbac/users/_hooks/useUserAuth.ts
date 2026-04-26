@@ -1,6 +1,6 @@
 import { useQuery, useMutation } from '@apollo/client'
 import { useCallback, useState } from 'react'
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 import {
   GET_END_USER_ROLES,
   GET_END_USER_BUNDLES,

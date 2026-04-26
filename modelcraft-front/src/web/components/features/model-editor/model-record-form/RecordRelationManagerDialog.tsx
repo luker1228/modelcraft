@@ -3,8 +3,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import type { RJSFSchema } from '@rjsf/utils'
-import { createModelRuntimeClient, useProjectScopedClient } from '@bff/apollo/public'
-import { buildCountQuery, buildFindManyQuery, buildUpdateMutation } from '@bff/cms/public'
+import { createModelRuntimeClient, useProjectScopedClient } from '@api-client/apollo/public'
+import { buildCountQuery, buildFindManyQuery, buildUpdateMutation } from '@api-client/cms/public'
 import { GET_LOGICAL_FOREIGN_KEYS } from '@web/graphql'
 import {
   Dialog,

@@ -6,24 +6,20 @@ import { useContext, createContext, useMemo } from 'react'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@/shared/utils/uuid'
 import { useAuthStore } from '@shared/stores/auth-store'
-import { refreshAccessToken } from '@bff/auth/public'
+import { refreshAccessToken } from '@api-client/auth/public'
 
-/**
- * Build Runtime GraphQL endpoint URL
- * URL format: /graphql/org/:orgName/project/:projectSlug/db/:databaseName/model/:modelName
- */
+// Gateway base URL — empty string means same-origin (when behind a reverse proxy)
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''
+
 export function buildRuntimeEndpoint(
   orgName: string,
   projectSlug: string,
   databaseName: string,
   modelName: string
 ): string {
-  return `/graphql/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
+  return `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
 }
 
-/**
- * Shared auth link factory — Bearer token + x-request-id header
- */
 function createAuthLink() {
   return setContext(async (_, { headers }: { headers?: Record<string, string> }) => {
     let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
@@ -40,100 +36,70 @@ function createAuthLink() {
       nextHeaders.authorization = `Bearer ${token}`
     }
 
-    return {
-      headers: nextHeaders,
-    }
+    return { headers: nextHeaders }
   })
 }
 
 /**
  * Org-Scoped Apollo Client
- * Endpoint: /api/bff/graphql/org/{orgName}/  (BFF proxy → Go backend)
- * Handles: Projects, Clusters, Users, Roles, Organization management
+ * Endpoint: {gateway}/graphql/org/{orgName}/
+ * Gateway validates Bearer token and proxies to Go backend with X-Internal-Token.
  */
 function createOrgScopedClient() {
   const httpLink = createHttpLink({
-    uri: (operation) => {
+    uri: () => {
       const currentOrg = typeof window !== 'undefined' ? useOrganizationStore.getState().currentOrg : null
-      if (currentOrg) {
-        return `/api/bff/graphql/org/${currentOrg}/`
-      }
-      return '/api/bff/graphql/org/'
+      return currentOrg
+        ? `${GATEWAY_URL}/graphql/org/${currentOrg}/`
+        : `${GATEWAY_URL}/graphql/org/`
     },
+    credentials: 'include',
   })
 
   return new ApolloClient({
     link: createAuthLink().concat(httpLink),
     cache: new InMemoryCache({
       typePolicies: {
-        Model: {
-          keyFields: ['id'],
-        },
-        Field: {
-          keyFields: ['name'],
-        },
+        Model: { keyFields: ['id'] },
+        Field: { keyFields: ['name'] },
       },
     }),
     defaultOptions: {
-      watchQuery: {
-        errorPolicy: 'all',
-      },
-      query: {
-        errorPolicy: 'all',
-      },
-      mutate: {
-        errorPolicy: 'all',
-      },
+      watchQuery: { errorPolicy: 'all' },
+      query: { errorPolicy: 'all' },
+      mutate: { errorPolicy: 'all' },
     },
   })
 }
 
 /**
  * Project-Scoped Apollo Client factory
- * Endpoint: /graphql/org/{orgName}/project/{projectSlug}/
- * Handles: Models, Fields, Enums, Logical Foreign Keys
- *
- * Creates a fresh instance per project — NOT a singleton — to avoid cache conflicts
- * between different projects.
+ * Endpoint: {gateway}/graphql/org/{orgName}/project/{projectSlug}/
+ * Creates a fresh instance per project to avoid cache conflicts.
  */
 export function createProjectScopedClient(
   orgName: string,
   projectSlug: string
 ): ApolloClient<object> {
-  const uri = `/api/bff/graphql/org/${orgName}/project/${projectSlug}/`
-
-  const httpLink = createHttpLink({ uri })
+  const uri = `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}/`
+  const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   return new ApolloClient({
     link: createAuthLink().concat(httpLink),
     cache: new InMemoryCache({
       typePolicies: {
-        Model: {
-          keyFields: ['id'],
-        },
-        Field: {
-          keyFields: ['name'],
-        },
+        Model: { keyFields: ['id'] },
+        Field: { keyFields: ['name'] },
       },
     }),
     defaultOptions: {
-      watchQuery: {
-        errorPolicy: 'all',
-      },
-      query: {
-        errorPolicy: 'all',
-      },
-      mutate: {
-        errorPolicy: 'all',
-      },
+      watchQuery: { errorPolicy: 'all' },
+      query: { errorPolicy: 'all' },
+      mutate: { errorPolicy: 'all' },
     },
   })
 }
 
-/**
- * Create a Runtime Apollo Client for a specific model
- * URL format: /graphql/org/:orgName/project/:projectSlug/db/:databaseName/model/:modelName
- */
 export function createModelRuntimeClient(
   orgName: string,
   projectSlug: string,
@@ -141,33 +107,21 @@ export function createModelRuntimeClient(
   modelName: string
 ): ApolloClient<object> {
   const uri = buildRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
-
-  const httpLink = createHttpLink({ uri })
+  const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   return new ApolloClient({
     link: createAuthLink().concat(httpLink),
     cache: new InMemoryCache(),
     defaultOptions: {
-      watchQuery: {
-        errorPolicy: 'all',
-      },
-      query: {
-        errorPolicy: 'all',
-      },
-      mutate: {
-        errorPolicy: 'all',
-      },
+      watchQuery: { errorPolicy: 'all' },
+      query: { errorPolicy: 'all' },
+      mutate: { errorPolicy: 'all' },
     },
   })
 }
 
-// Org-scoped singleton
 let orgScopedClient: ApolloClient<object> | null = null
 
-/**
- * Get or create Org-Scoped Apollo Client (singleton)
- * Use for org-level operations: Projects, Clusters, Users, Roles
- */
 export function getOrgScopedClient(): ApolloClient<object> {
   if (!orgScopedClient) {
     orgScopedClient = createOrgScopedClient()
@@ -175,18 +129,6 @@ export function getOrgScopedClient(): ApolloClient<object> {
   return orgScopedClient
 }
 
-/**
- * Hook to get the appropriate Apollo Client based on context.
- * - If projectSlug is provided: returns a project-scoped client (fresh instance)
- *   pointing to /api/bff/graphql/org/{orgName}/project/{projectSlug}/
- * - Otherwise: returns the org-scoped singleton
- *   pointing to /api/bff/graphql/org/{orgName}/
- *
- * @param projectSlug - The project slug for project-scoped operations
- * @param orgNameOverride - Explicit org name. If omitted, falls back to the organization store.
- *   Pass this when orgName is already available from URL params to avoid a stale-store edge case
- *   where currentOrg has not yet been set and the client would fall back to the org-level endpoint.
- */
 export function useProjectScopedClient(
   projectSlug?: string,
   orgNameOverride?: string
@@ -202,23 +144,14 @@ export function useProjectScopedClient(
   }, [projectSlug, resolvedOrg])
 }
 
-// React Context for org-scoped client
 const OrgScopedClientContext = createContext<ApolloClient<object> | null>(null)
 
 /**
- * Hook to access the Org-Scoped Apollo Client.
- * Falls back to singleton if no context provider is present.
- *
  * @deprecated Prefer useProjectScopedClient() for project-level operations.
- * Kept for backward compatibility with existing consumers (ModelRecordWorkspace, InsertFieldSheet, FormRenderer).
  */
 export function useDesignTimeClient(): ApolloClient<object> {
   const client = useContext(OrgScopedClientContext)
-  if (!client) {
-    return getOrgScopedClient()
-  }
-  return client
+  return client ?? getOrgScopedClient()
 }
 
-// Export context for provider usage if needed
 export { OrgScopedClientContext as DesignTimeClientContext }

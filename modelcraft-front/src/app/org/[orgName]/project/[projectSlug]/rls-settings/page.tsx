@@ -6,7 +6,7 @@ import { useSearchParams, useParams } from 'next/navigation'
 import { Check, ChevronsUpDown, Shield, UserRoundCog } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 import { useAppStore } from '@web/stores/app'
 import { useRLSPolicy } from '@web/hooks/rls/use-rls-policy'
 import { useAuthSchema } from '@web/hooks/rls/use-auth-schema'

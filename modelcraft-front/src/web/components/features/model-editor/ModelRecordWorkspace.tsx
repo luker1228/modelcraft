@@ -4,7 +4,7 @@ import React, { useMemo, useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, ApolloClient } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useProjectScopedClient, createModelRuntimeClient } from '@bff/apollo/public'
+import { useProjectScopedClient, createModelRuntimeClient } from '@api-client/apollo/public'
 import { ModelRecordForm } from './model-record-form'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './model-record-form/ModelRecordTable'
@@ -20,8 +20,8 @@ import {
   extractFieldsFromSchema,
   extractWritableFieldNamesFromSchema,
   sanitizeMutationInputData,
-} from '@bff/cms/public'
-import type { FieldDefinition } from '@bff/cms/public'
+} from '@api-client/cms/public'
+import type { FieldDefinition } from '@api-client/cms/public'
 import { NOOP_MUTATION, NOOP_QUERY } from '@web/graphql'
 import {
   DEPRECATE_FIELD,

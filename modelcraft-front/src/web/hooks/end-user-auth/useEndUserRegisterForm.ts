@@ -6,7 +6,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
-import { fetchAndCacheEndUserInfo, getEndUserInfoFromToken } from '@bff/end-user/public'
+import { fetchAndCacheEndUserInfo, getEndUserInfoFromToken } from '@api-client/end-user/public'
 import { mapEndUserErrorCode, type EndUserAuthResponse, type EndUserBffError } from '@/types/end-user-auth'
 
 const endUserRegisterSchema = z.object({
@@ -59,7 +59,7 @@ export function useEndUserRegisterForm(
       setError(null)
 
       try {
-        const res = await fetch('/api/bff/end-user/auth/register', {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/end-user/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

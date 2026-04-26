@@ -23,7 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { getEndUserToken } from '@bff/end-user/public'
+import { getEndUserToken } from '@api-client/end-user/public'
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
 import ModelRecordWorkspace from '@web/components/features/model-editor/ModelRecordWorkspace'
 import { DataWorkspacePanel } from '@web/components/features/model-editor/DataWorkspacePanel'

@@ -3,7 +3,7 @@
 import { useEffect } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import { useAppStore } from '@web/stores'
-import { getOrgPath, getWelcomePath } from '@bff/auth/public'
+import { getOrgPath, getWelcomePath } from '@api-client/auth/public'
 
 // 需要项目上下文的路由
 const PROTECTED_ROUTES = [

@@ -1,37 +1,31 @@
-// src/bff/auth/go-auth-client.ts
+// src/api-client/auth/go-auth-client.ts
+// 调用 modelcraft-gateway 的 /auth/* 端点
+// Gateway 负责：认证、JWT 签发、httpOnly Cookie 管理
+// 本文件运行在浏览器侧，不持有 INTERNAL_TOKEN
 import type {
   IdentifierType,
-  GoLoginResponse,
-  GoRegisterResponse,
   GoAuthError,
-  RegisterProfileSnapshot,
 } from '@/types/auth'
 
-const GO_BACKEND_INTERNAL_URL =
-  process.env.GO_BACKEND_INTERNAL_URL ?? 'http://localhost:8080'
+const GATEWAY_URL =
+  typeof window !== 'undefined'
+    ? (process.env.NEXT_PUBLIC_GATEWAY_URL ?? '')
+    : (process.env.GATEWAY_URL ?? 'http://localhost:8090')
 
 // ============================================================================
-// 结果类型（BFF 内部使用）
+// 结果类型
 // ============================================================================
 
 export interface GoLoginResult {
-  userId: string
-  userName: string
-  orgName: string
-  refreshToken: string
-  expiresAt: string
+  accessToken: string
 }
 
 export interface GoRegisterResult {
-  userId: string
-  orgName: string
-  profile?: RegisterProfileSnapshot
+  accessToken: string
 }
 
 export interface GoRefreshResult {
-  userId: string
-  refreshToken: string
-  expiresAt: string
+  accessToken: string
 }
 
 // ============================================================================
@@ -74,130 +68,109 @@ export class TokenReuseError extends Error {
 }
 
 // ============================================================================
-// API 调用函数
+// 错误解析
 // ============================================================================
 
-/**
- * 解析 Go 后端错误响应
- */
-async function parseGoError(res: Response): Promise<Error> {
+async function parseGatewayError(res: Response): Promise<Error> {
   try {
-    const data = (await res.json()) as GoAuthError
-    const { code, message } = data.error
+    const data = (await res.json()) as { code?: string; message?: string } | GoAuthError
+    const code = 'error' in data ? data.error.code : (data as { code?: string }).code ?? ''
+    const message =
+      'error' in data ? data.error.message : (data as { message?: string }).message ?? `Gateway error: ${res.status}`
 
-    if (code === 'PARAM_INVALID.AUTH') {
+    if (code === 'PARAM_INVALID' || code === 'PARAM_INVALID.AUTH') {
       return new AuthParamInvalidError(message)
     }
     if (code === 'CONFLICT.USER') {
       return new UserConflictError(message)
     }
-    if (code === 'AUTHENTICATION_FAILED') {
+    if (code === 'AUTHENTICATION_FAILED' || code === 'AUTH_FAILED') {
       return new AuthenticationError(message, code)
     }
-    return new Error(message || `Go backend error: ${res.status}`)
+    return new Error(message)
   } catch {
-    return new Error(`Go backend error: ${res.status}`)
+    return new Error(`Gateway error: ${res.status}`)
   }
 }
 
+// ============================================================================
+// API 调用函数
+// ============================================================================
+
 /**
- * 调用 Go Backend /api/auth/login
- * @param params identifier + identifierType + password
+ * 调用 Gateway POST /auth/login
+ * Gateway 处理：验证凭证（→ Backend）、签发 access JWT、设 httpOnly Cookie
  */
 export async function callGoLogin(params: {
   identifier: string
   identifierType: IdentifierType
   password: string
 }): Promise<GoLoginResult> {
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/login`, {
+  const res = await fetch(`${GATEWAY_URL}/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(params),
   })
 
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGatewayError(res)
   }
 
-  const data = (await res.json()) as GoLoginResponse
-  return {
-    userId: data.userId,
-    userName: data.userName,
-    orgName: data.orgName,
-    refreshToken: data.refreshToken,
-    expiresAt: data.expiresAt,
-  }
+  return res.json() as Promise<GoLoginResult>
 }
 
 /**
- * 调用 Go Backend /api/auth/register
- * @param params phone + userName + password
+ * 调用 Gateway POST /auth/register
  */
 export async function callGoRegister(params: {
   phone: string
   userName: string
   password: string
 }): Promise<GoRegisterResult> {
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/register`, {
+  const res = await fetch(`${GATEWAY_URL}/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
     body: JSON.stringify(params),
   })
 
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGatewayError(res)
   }
 
-  const data = (await res.json()) as GoRegisterResponse
-
-  const profile = data.profile
-    ? {
-        id: data.profile.id,
-        userId: data.profile.userId,
-        nickname: data.profile.nickname,
-        avatarUrl: data.profile.avatarUrl,
-        bio: data.profile.bio,
-      }
-    : undefined
-
-  return {
-    userId: data.userId,
-    orgName: data.orgName,
-    profile,
-  }
+  return res.json() as Promise<GoRegisterResult>
 }
 
 /**
- * 调用 Go Backend /api/auth/refresh (token rotation)
+ * 调用 Gateway POST /auth/refresh
+ * refresh token 通过 httpOnly Cookie 自动携带，无需手动传入
  */
-export async function callGoRefresh(
-  refreshToken: string
-): Promise<GoRefreshResult> {
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/refresh`, {
+export async function callGoRefresh(): Promise<GoRefreshResult> {
+  const res = await fetch(`${GATEWAY_URL}/auth/refresh`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   })
 
   if (res.status === 401) {
     throw new TokenReuseError('Refresh token revoked or reused')
   }
   if (!res.ok) {
-    throw await parseGoError(res)
+    throw await parseGatewayError(res)
   }
 
   return res.json() as Promise<GoRefreshResult>
 }
 
 /**
- * 调用 Go Backend /api/auth/logout
+ * 调用 Gateway POST /auth/logout
+ * Gateway 负责告知后端撤销 token 并清除 Cookie
  */
-export async function callGoLogout(refreshToken: string): Promise<void> {
-  await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/logout`, {
+export async function callGoLogout(): Promise<void> {
+  await fetch(`${GATEWAY_URL}/auth/logout`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ refreshToken }),
+    credentials: 'include',
   }).catch(() => {
-    // Ignore errors - Cookie will be cleared regardless
+    // Ignore errors — UI logout proceeds regardless
   })
 }

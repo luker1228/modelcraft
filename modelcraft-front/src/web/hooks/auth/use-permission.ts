@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { getToken, getUserInfoFromToken } from '@bff/auth/public'
+import { getToken, getUserInfoFromToken } from '@api-client/auth/public'
 
 /**
  * Check if a permission list grants the required permission.

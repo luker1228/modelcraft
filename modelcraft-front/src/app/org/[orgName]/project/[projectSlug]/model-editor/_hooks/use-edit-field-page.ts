@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { updateFieldMeta } from '@bff/model-enum/public'
+import { updateFieldMeta } from '@api-client/model-enum/public'
 import type { ModelEnumDomainError, UpdateFieldMetaFormValues } from '@/types'
 
 interface UseEditFieldPageParams {

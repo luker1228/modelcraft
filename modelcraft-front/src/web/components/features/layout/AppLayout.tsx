@@ -15,7 +15,7 @@ import { UserMenu } from '@web/components/features/layout/UserMenu'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
-import { getToken, getUserInfoFromToken, removeToken } from '@bff/auth/public'
+import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
 import {
   Sparkles,
   Search,

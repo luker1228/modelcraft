@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import { createEnumField } from '@bff/model-enum/public'
+import { createEnumField } from '@api-client/model-enum/public'
 import type { CreateEnumFieldFormValues, ModelEnumDomainError } from '@/types'
 
 interface UseCreateEnumFieldPageParams {

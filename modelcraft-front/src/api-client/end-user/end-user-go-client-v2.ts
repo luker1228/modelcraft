@@ -11,13 +11,12 @@ import {
   EndUserUpstreamError,
 } from './end-user-go-client'
 
-const GO_BACKEND_INTERNAL_URL =
-  process.env.GO_BACKEND_INTERNAL_URL ?? 'http://localhost:8080'
-const INTERNAL_TOKEN =
+const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''
+  process.env.GATEWAY_URL ?? 'http://localhost:8080'
   process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVICE_TOKEN ?? ''
 
 function shouldUseEndUserV2Mock(): boolean {
-  return process.env.END_USER_V2_MOCKING === 'enabled'
+  return process.env.NEXT_PUBLIC_END_USER_V2_MOCKING === 'enabled'
 }
 
 // ============================================================================
@@ -63,7 +62,7 @@ export interface EndUserProjectAccessConnection {
 // ============================================================================
 
 function createInternalHeaders(orgName?: string, projectSlug?: string) {
-  const requestId = `bff-v1-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  const requestId = `gw-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
   const scopedHeaders: Record<string, string> = {}
   if (orgName) scopedHeaders['X-Org-Name'] = orgName
   if (projectSlug) scopedHeaders['X-Project-Slug'] = projectSlug
@@ -71,7 +70,7 @@ function createInternalHeaders(orgName?: string, projectSlug?: string) {
   return {
     headers: {
       'Content-Type': 'application/json',
-      'X-Internal-Token': INTERNAL_TOKEN,
+      
       'X-Request-ID': requestId,
       ...scopedHeaders,
     } as Record<string, string>,
@@ -204,7 +203,7 @@ export async function callGoEndUserLoginOrg(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/login`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/v1/end-user/auth/login`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -254,8 +253,8 @@ export async function callGoListOrgEndUsers(params: {
   if (params.first)  qs.set('first', String(params.first))
   if (params.after)  qs.set('after', params.after)
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/end-users?${qs}`,
-    { headers }
+    `${GATEWAY_URL}/internal/end-users?${qs}`,
+    { headers, credentials: 'include' }
   )
   if (!res.ok) throw await parseGoError(res, requestId)
   const data = await res.json() as InternalListEndUsersResponse
@@ -281,7 +280,7 @@ export async function callGoCreateOrgEndUser(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-users`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/end-users`, {
     method: 'POST', headers,
     body: JSON.stringify({ username: params.username, password: params.password }),
   })
@@ -304,7 +303,7 @@ export async function callGoUpdateOrgEndUserStatus(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-users/${params.userId}/status`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/end-users/${params.userId}/status`, {
     method: 'PATCH', headers,
     body: JSON.stringify({ isForbidden: params.isForbidden }),
   })
@@ -325,7 +324,7 @@ export async function callGoDeleteOrgEndUser(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-users/${params.userId}`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/end-users/${params.userId}`, {
     method: 'DELETE', headers,
   })
   if (!res.ok) throw await parseGoError(res, requestId)
@@ -365,8 +364,8 @@ export async function callGoListProjectEndUserAccesses(params: {
   if (params.search) qs.set('search', params.search)
   if (params.first)  qs.set('first', String(params.first))
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/project-accesses?${qs}`,
-    { headers }
+    `${GATEWAY_URL}/internal/v2/end-user/project-accesses?${qs}`,
+    { headers, credentials: 'include' }
   )
   if (!res.ok) throw await parseGoError(res, requestId)
   return res.json() as Promise<EndUserProjectAccessConnection>
@@ -402,7 +401,7 @@ export async function callGoGrantEndUserProjectAccess(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/project-accesses`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/v2/end-user/project-accesses`, {
     method: 'POST', headers,
     body: JSON.stringify({ endUserId: params.endUserId, permissionBundleId: params.permissionBundleId }),
   })
@@ -426,7 +425,7 @@ export async function callGoRevokeEndUserProjectAccess(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/project-accesses/${params.accessId}`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/v2/end-user/project-accesses/${params.accessId}`, {
     method: 'DELETE', headers,
   })
   if (!res.ok) throw await parseGoError(res, requestId)
@@ -458,7 +457,7 @@ export async function callGoUpdateEndUserProjectAccess(params: {
   }
 
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v2/end-user/project-accesses/${params.accessId}`, {
+  const res = await fetch(`${GATEWAY_URL}/internal/v2/end-user/project-accesses/${params.accessId}`, {
     method: 'PATCH', headers,
     body: JSON.stringify({ permissionBundleId: params.permissionBundleId }),
   })
@@ -480,8 +479,8 @@ export async function callGoGetUserAccessibleProjects(params: {
 
   const { headers, requestId } = createInternalHeaders(params.orgName)
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/end-users/${params.userId}/accessible-projects`,
-    { headers }
+    `${GATEWAY_URL}/internal/end-users/${params.userId}/accessible-projects`,
+    { headers, credentials: 'include' }
   )
   if (!res.ok) throw await parseGoError(res, requestId)
   const data = await res.json() as { projects: EndUserAccessibleProject[] }

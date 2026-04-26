@@ -12,7 +12,7 @@ import {
   refreshEndUserAccessToken,
   fetchAndCacheEndUserInfo,
   removeEndUserSession,
-} from '@bff/end-user/public'
+} from '@api-client/end-user/public'
 import type { EndUserInfo } from '@/types/end-user-auth'
 
 interface UseRequireEndUserAuthReturn {
@@ -93,7 +93,7 @@ export function useEndUser(): UseEndUserReturn {
 
   const logout = useCallback(async () => {
     // 调用 BFF logout（best-effort）
-    await fetch('/api/bff/end-user/auth/logout', {
+    await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/end-user/auth/logout`, {
       method: 'POST',
       credentials: 'same-origin',
     }).catch(() => {

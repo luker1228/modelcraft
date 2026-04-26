@@ -1,4 +1,4 @@
-import type { FieldDefinition } from '@bff/cms/public'
+import type { FieldDefinition } from '@api-client/cms/public'
 import type { ModelRecordTableFieldInfo } from '../ModelRecordTable'
 
 export interface ModelField {

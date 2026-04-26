@@ -2,8 +2,8 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { createModelRuntimeClient } from '@bff/apollo/public'
-import { buildFindManyQuery, buildFindUniqueQuery } from '@bff/cms/public'
+import { createModelRuntimeClient } from '@api-client/apollo/public'
+import { buildFindManyQuery, buildFindUniqueQuery } from '@api-client/cms/public'
 import {
   Popover,
   PopoverContent,

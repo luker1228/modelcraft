@@ -5,8 +5,8 @@ import {
   createEnumField,
   queryModelEnumContext,
   updateFieldMeta,
-} from '@bff/model-enum/public'
-import { useProjectScopedClient } from '@bff/apollo/public'
+} from '@api-client/model-enum/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 import type { RawGraphQLErrorLike } from '@/shared/errors/model-enum-error-mapper'
 import { mapModelEnumError } from '@/shared/errors/model-enum-error-mapper'
 import type {

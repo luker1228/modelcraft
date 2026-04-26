@@ -58,7 +58,7 @@ import {
   PermissionsTab,
 } from '@web/components/features/rbac'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 import {
   LIST_END_USERS,
   GET_END_USER_ROLE_ASSIGNMENTS,

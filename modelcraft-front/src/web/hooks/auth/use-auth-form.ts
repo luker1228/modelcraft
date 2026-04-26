@@ -31,7 +31,7 @@ export function useLogin(): UseLoginReturn {
     setError(null)
 
     try {
-      const res = await fetch('/api/bff/auth/login', {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -76,7 +76,7 @@ export function useRegister(): UseRegisterReturn {
 
     try {
       // Step 1: 注册
-      const registerRes = await fetch('/api/bff/auth/register', {
+      const registerRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -94,7 +94,7 @@ export function useRegister(): UseRegisterReturn {
       }
 
       // Step 2: 自动登录获取 accessToken（使用刚注册的手机号 + 密码）
-      const loginRes = await fetch('/api/bff/auth/login', {
+      const loginRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

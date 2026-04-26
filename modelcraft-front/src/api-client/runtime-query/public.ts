@@ -1,4 +1,4 @@
-// Public API for Web layer to access CMS utilities
+// Public API for Web layer to access runtime query builder utilities
 export {
   buildFindUniqueQuery,
   buildCreateMutation,

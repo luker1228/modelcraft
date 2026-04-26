@@ -14,7 +14,7 @@ import {
   NumberPicker,
   Submit,
 } from '@formily/antd-v5'
-import { useProjectScopedClient, createModelRuntimeClient } from '@bff/apollo/public'
+import { useProjectScopedClient, createModelRuntimeClient } from '@api-client/apollo/public'
 import {
   transformToFormilySchema,
   parseAndTransformSchema,
@@ -28,7 +28,7 @@ import {
   extractFieldsFromSchema,
   extractWritableFieldNamesFromSchema,
   sanitizeMutationInputData,
-} from '@bff/cms/public'
+} from '@api-client/cms/public'
 
 // GraphQL query to fetch Model JSON Schema from Design-Time API
 const MODEL_JSON_SCHEMA_QUERY = gql`

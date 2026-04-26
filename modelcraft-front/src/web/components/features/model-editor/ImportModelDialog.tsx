@@ -17,7 +17,7 @@ import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
 import { LIST_TABLES } from '@web/graphql/queries/project'
 import { IMPORT_MODEL } from '@web/graphql/mutations/model'
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 
 const PAGE_SIZE = 20
 

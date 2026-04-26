@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { getToken, getUserInfoFromToken, removeToken } from '@bff/auth/public'
-import { refreshAccessToken } from '@bff/auth/public'
+import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
+import { refreshAccessToken } from '@api-client/auth/public'
 import type { AuthUser } from '@/types/auth'
 import { useAuthStore } from '@shared/stores/auth-store'
 

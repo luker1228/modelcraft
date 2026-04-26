@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useLazyQuery } from '@apollo/client'
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 import { GET_LOGICAL_FOREIGN_KEYS, GET_MODEL } from '@web/graphql/queries/model'
 import {
   CREATE_LOGICAL_FOREIGN_KEY,

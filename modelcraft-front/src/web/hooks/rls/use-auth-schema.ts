@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
-import { useProjectScopedClient } from '@bff/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/public'
 import { GET_PROJECT_AUTH_SCHEMA } from '@web/graphql/queries/rls'
 import { SET_PROJECT_AUTH_SCHEMA } from '@web/graphql/mutations/rls'
 import type { AuthVariable, AuthVariableInput } from '@/types/rls'

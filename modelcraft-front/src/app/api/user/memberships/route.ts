@@ -1,1 +1,1 @@
-export { GET } from '@bff/api/user/memberships'
+export { GET } from '@api-client/api/user/memberships'

@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
-import { refreshAccessToken } from '@bff/auth/public'
+import { refreshAccessToken } from '@api-client/auth/public'
 import { useAuthStore } from '@shared/stores/auth-store'
 
 const PUBLIC_ROUTES = ['/login', '/register']

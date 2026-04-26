@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
-import { getCurrentOrgName } from '@bff/auth/public'
+import { getCurrentOrgName } from '@api-client/auth/public'
 
 /**
  * Hook to get current organization name from URL params

@@ -1,1 +1,1 @@
-export { POST } from '@bff/api/org/init'
+export { POST } from '@api-client/api/org/init'
