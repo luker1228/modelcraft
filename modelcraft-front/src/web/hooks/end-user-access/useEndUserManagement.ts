@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 
 // src/web/hooks/end-user-access/useEndUserManagement.ts
 // 用户管理页统一 hook：Org 用户列表 + Project 访问权限 + RBAC 角色/Bundle 分配

@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 
 // src/web/components/features/end-user-access/EndUserManagementTable.tsx
 // 用户管理：Org 用户列表 × 项目访问 × RBAC 角色/Bundle

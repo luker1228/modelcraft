@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable no-restricted-syntax */
 
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'

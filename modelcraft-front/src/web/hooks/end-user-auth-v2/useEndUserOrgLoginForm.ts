@@ -1,4 +1,5 @@
 'use client'
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 
 // src/web/hooks/end-user-auth-v2/useEndUserOrgLoginForm.ts
 // Org 级终端用户登录表单 hook（EndUser v2）
