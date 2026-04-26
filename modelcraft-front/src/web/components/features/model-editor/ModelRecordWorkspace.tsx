@@ -53,7 +53,6 @@ import {
   Edit,
   Loader2,
   Search,
-  Shield,
   TerminalSquare,
   RefreshCw,
 } from 'lucide-react'
@@ -585,22 +584,6 @@ export default function ModelRecordWorkspace({
     <div className="flex h-full flex-col">
       {quickNav ?? (workspaceMode !== 'end_user' && (
         <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-card p-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 shrink-0"
-            onClick={() => {
-              const query = new URLSearchParams({
-                database: toQueryValue(model.databaseName),
-                modelName: toQueryValue(model.name),
-                modelId: toQueryValue(model.id),
-              })
-              router.push(`/org/${orgName}/project/${projectSlug}/rls-settings?${query.toString()}`)
-            }}
-          >
-            <Shield className="mr-1.5 size-3.5" />
-            RLS 设置
-          </Button>
           <Button
             variant="ghost"
             size="sm"

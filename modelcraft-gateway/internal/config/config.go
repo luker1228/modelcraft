@@ -29,7 +29,7 @@ func Load() *Config {
 	return &Config{
 		Port: getEnv("GATEWAY_PORT", "8090"),
 
-		JWTSecret:         mustEnv("JWT_SECRET"),
+		JWTSecret:         getEnv("JWT_SECRET", "dev-jwt-secret-change-me"),
 		AccessTokenTTL:    time.Hour,
 		RefreshTokenTTL:   7 * 24 * time.Hour,
 		RefreshCookieName: "mc_refresh_token",

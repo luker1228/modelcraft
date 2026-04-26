@@ -19,8 +19,8 @@ const features = [
   },
   {
     icon: <ShieldCheck className="size-5" strokeWidth={1.5} />,
-    title: '行级权限控制 (RLS)',
-    desc: '基于用户身份的细粒度数据访问策略',
+    title: '权限管理',
+    desc: '基于角色的细粒度数据访问权限控制',
     bgColor: 'bg-emerald-600',
   },
   {

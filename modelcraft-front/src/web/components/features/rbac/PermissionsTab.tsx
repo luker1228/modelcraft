@@ -42,14 +42,12 @@ import {
 } from '@web/components/ui/table'
 
 import { usePermissionsView, type ModelWithPermissions } from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/_hooks/usePermissionsView'
-import { useRLSPolicy } from '@web/hooks/rls/use-rls-policy'
 import type {
   EndUserPermission,
   EndUserPermissionAction,
   EndUserRowScope,
   ColumnPolicy,
 } from '@/types'
-import type { RLSPreset } from '@/types/rls'
 import { cn } from '@/shared/utils'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -76,37 +74,6 @@ const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
   DEPT_AND_CHILDREN: '本部门及下级',
 }
 
-const RLS_PRESET_CONFIG: Record<
-  RLSPreset,
-  { label: string; description: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }
-> = {
-  READ_WRITE_OWNER: {
-    label: '读写自己',
-    description: '每人只能读写自己的数据',
-    variant: 'default',
-  },
-  READ_ALL_WRITE_OWNER: {
-    label: '读全部 / 写自己',
-    description: '所有人可读，每人只能写自己的数据',
-    variant: 'secondary',
-  },
-  READ_ALL: {
-    label: '只读全部',
-    description: '所有人只能读取，不能写入',
-    variant: 'secondary',
-  },
-  READ_WRITE_ALL: {
-    label: '读写全部',
-    description: '所有人可读写全部数据（高危）',
-    variant: 'destructive',
-  },
-  NO_ACCESS: {
-    label: '禁止访问',
-    description: '任何人均无法访问',
-    variant: 'outline',
-  },
-}
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatColumnPolicySummary(policy: ColumnPolicy | undefined | null): string {
@@ -120,43 +87,6 @@ function formatColumnPolicySummary(policy: ColumnPolicy | undefined | null): str
   const rulesCount = policy.rules?.length ?? 0
   if (rulesCount === 0) return defaultLabel
   return `${defaultLabel} +${rulesCount} 规则`
-}
-
-// ── RLS Preset Badge (lazy-loads per model) ───────────────────────────────────
-
-function RLSPresetBadge({
-  modelId,
-  projectSlug,
-}: {
-  modelId: string
-  projectSlug: string
-}) {
-  const { policy, loading } = useRLSPolicy(modelId, projectSlug)
-
-  if (loading) {
-    return <Skeleton className="h-5 w-20" />
-  }
-  if (!policy) return null
-
-  const preset = policy.preset
-  if (!preset) {
-    return (
-      <Badge variant="outline" className="text-[11px] font-normal text-muted-foreground">
-        自定义策略
-      </Badge>
-    )
-  }
-
-  const config = RLS_PRESET_CONFIG[preset]
-  return (
-    <Badge
-      variant={config.variant}
-      className="text-[11px] font-normal"
-      title={config.description}
-    >
-      {config.label}
-    </Badge>
-  )
 }
 
 // ── Inline Add Permission Row ─────────────────────────────────────────────────
@@ -364,15 +294,6 @@ function ModelCard({
           <span className="font-mono text-[11px] text-muted-foreground">{model.name}</span>
         </div>
 
-        {/* RLS preset badge — only for models with owner field */}
-        {hasOwnerField ? (
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] text-muted-foreground">行隔离:</span>
-            <RLSPresetBadge modelId={model.id} projectSlug={projectSlug} />
-          </div>
-        ) : (
-          <span className="text-[11px] text-muted-foreground/50">无行隔离</span>
-        )}
 
         <Button
           variant="ghost"

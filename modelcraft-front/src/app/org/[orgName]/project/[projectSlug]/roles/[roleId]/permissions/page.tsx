@@ -15,28 +15,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@web/components/ui/dialog'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@web/components/ui/dropdown-menu'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@web/components/ui/select'
-import { Textarea } from '@web/components/ui/textarea'
 import { DATABASE_CATALOG } from '@/api-client/cluster'
 import { GET_MODELS_FOR_RELATION } from '@/api-client/model'
 import {
   GET_PERMISSION_ROLES,
   GET_ROLE_PERMISSIONS_LIST,
-} from '@/api-client/user'
-import {
   ADD_PERMISSION_TO_ROLE,
   REMOVE_PERMISSION_FROM_ROLE,
 } from '@/api-client/user'
-import { SET_MODEL_RLS_POLICY } from '@/api-client/rls'
-
-type Action = 'read' | 'create' | 'update' | 'delete'
-type RLSPreset = 'READ_WRITE_OWNER' | 'READ_ALL_WRITE_OWNER' | 'READ_ALL' | 'READ_WRITE_ALL' | 'NO_ACCESS' | 'CUSTOM'
 
 type RolePermissionDef = {
   obj: string
@@ -93,46 +80,6 @@ type RemovePermissionMutationData = {
   removePermissionFromRole: RolePermissionMutationResult
 }
 
-type SetRLSPolicyMutationData = {
-  setModelRLSPolicy: {
-    policy: {
-      preset: RLSPreset | null
-    } | null
-    error: {
-      __typename: string
-      message: string
-      suggestion?: string
-      path?: string
-      variable?: string
-    } | null
-  }
-}
-
-const PRESET_LABELS: Record<RLSPreset, string> = {
-  READ_WRITE_OWNER: '仅所有者可读写',
-  READ_ALL_WRITE_OWNER: '全员可读，仅所有者可写',
-  READ_ALL: '全员只读',
-  READ_WRITE_ALL: '全员可读写',
-  NO_ACCESS: '禁止访问',
-  CUSTOM: '自定义策略',
-}
-
-const PRESET_VALUES: RLSPreset[] = [
-  'READ_WRITE_OWNER',
-  'READ_ALL_WRITE_OWNER',
-  'READ_ALL',
-  'READ_WRITE_ALL',
-  'NO_ACCESS',
-  'CUSTOM',
-]
-
-const DEFAULT_CUSTOM_EXPRESSIONS: Record<Action, string> = {
-  read: '{"ownerId":{"_eq":{"_auth":"uid"}}}',
-  create: '{"ownerId":{"_eq":{"_auth":"uid"}}}',
-  update: '{"ownerId":{"_eq":{"_auth":"uid"}}}',
-  delete: '{"ownerId":{"_eq":{"_auth":"uid"}}}',
-}
-
 function normalizeRoleKey(raw: string): string {
   return raw.toLowerCase().replace(/^r-/, '').replace(/^role-/, '')
 }
@@ -164,9 +111,6 @@ export default function RolePermissionsPage() {
   const [addOpen, setAddOpen] = useState(false)
   const [addDb, setAddDb] = useState('')
   const [addModel, setAddModel] = useState('')
-  const [customEditorOpen, setCustomEditorOpen] = useState(false)
-  const [customTarget, setCustomTarget] = useState<{ database: string; modelName: string; modelId: string | null } | null>(null)
-  const [customDraft, setCustomDraft] = useState<Record<Action, string>>(DEFAULT_CUSTOM_EXPRESSIONS)
 
   const { data: rolesData, loading: roleLoading, refetch: refetchRoles } = useQuery<PermissionRolesData>(
     GET_PERMISSION_ROLES,
@@ -243,17 +187,8 @@ export default function RolePermissionsPage() {
   )
 
   const modelCatalog = useMemo(() => {
-    const list = modelsData?.models?.edges?.map((edge) => edge.node) ?? []
-    return list
+    return modelsData?.models?.edges?.map((edge) => edge.node) ?? []
   }, [modelsData])
-
-  const modelIdByName = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const model of modelCatalog) {
-      map.set(model.name, model.id)
-    }
-    return map
-  }, [modelCatalog])
 
   const rolePermissions = useMemo(
     () => rolePermsData?.rolePermissionsList ?? [],
@@ -261,23 +196,19 @@ export default function RolePermissionsPage() {
   )
 
   const boundRows = useMemo(() => {
-    const rows: Array<{ database: string; modelName: string; preset: RLSPreset; modelId: string | null }> = []
+    const rows: Array<{ database: string; modelName: string; act: string }> = []
     for (const perm of rolePermissions) {
       const modelName = parseModelFromObj(perm.obj, projectSlug, selectedDatabase)
       if (!modelName) continue
-
-      const normalizedAct = perm.act as RLSPreset
-      const preset = PRESET_VALUES.includes(normalizedAct) ? normalizedAct : 'CUSTOM'
       rows.push({
         database: selectedDatabase,
         modelName,
-        preset,
-        modelId: modelIdByName.get(modelName) ?? null,
+        act: perm.act,
       })
     }
     rows.sort((a, b) => a.modelName.localeCompare(b.modelName))
     return rows
-  }, [modelIdByName, projectSlug, rolePermissions, selectedDatabase])
+  }, [projectSlug, rolePermissions, selectedDatabase])
 
   const addModelOptions = useMemo(() => {
     const existing = new Set(boundRows.map((row) => row.modelName))
@@ -298,10 +229,6 @@ export default function RolePermissionsPage() {
   const [removePermissionFromRole, { loading: removingPermission }] = useMutation<RemovePermissionMutationData>(
     REMOVE_PERMISSION_FROM_ROLE,
     { client: orgClient }
-  )
-  const [setModelRLSPolicy, { loading: savingRLS }] = useMutation<SetRLSPolicyMutationData>(
-    SET_MODEL_RLS_POLICY,
-    { client: projectClient }
   )
 
   const refreshPageData = async () => {
@@ -329,45 +256,6 @@ export default function RolePermissionsPage() {
     return rolePermissions.find((item) => item.obj === obj) ?? null
   }
 
-  const persistPreset = async (database: string, modelName: string, preset: RLSPreset) => {
-    if (!roleId) return false
-
-    const obj = buildPermissionObj(projectSlug, database, modelName)
-    const current = getCurrentPermission(database, modelName)
-
-    if (current?.act === preset) return true
-
-    if (current) {
-      const removeRes = await removePermissionFromRole({
-        variables: {
-          roleId,
-          obj,
-          act: current.act,
-        },
-      })
-      const removePayload = removeRes.data?.removePermissionFromRole
-      if (!removePayload?.success) {
-        toast.error(removePayload?.error?.message || '移除旧策略失败')
-        return false
-      }
-    }
-
-    const addRes = await addPermissionToRole({
-      variables: {
-        roleId,
-        obj,
-        act: preset,
-      },
-    })
-    const addPayload = addRes.data?.addPermissionToRole
-    if (!addPayload?.success) {
-      toast.error(addPayload?.error?.message || '设置策略失败')
-      return false
-    }
-
-    return true
-  }
-
   const handleAddPermission = async () => {
     if (!roleId) {
       toast.error('角色不存在，无法新增权限')
@@ -382,29 +270,20 @@ export default function RolePermissionsPage() {
       return
     }
 
-    const ok = await persistPreset(addDb, addModel, 'NO_ACCESS')
-    if (!ok) return
+    const obj = buildPermissionObj(projectSlug, addDb, addModel)
+    const addRes = await addPermissionToRole({
+      variables: { roleId, obj, act: 'NO_ACCESS' },
+    })
+    const addPayload = addRes.data?.addPermissionToRole
+    if (!addPayload?.success) {
+      toast.error(addPayload?.error?.message || '新增权限失败')
+      return
+    }
 
     await refreshPageData()
     setAddOpen(false)
     setAddModel('')
     toast.success('权限已新增')
-  }
-
-  const applyPreset = async (database: string, modelName: string, preset: RLSPreset, modelId: string | null) => {
-    if (!canManage) return
-
-    if (preset === 'CUSTOM') {
-      setCustomTarget({ database, modelName, modelId })
-      setCustomDraft(DEFAULT_CUSTOM_EXPRESSIONS)
-      setCustomEditorOpen(true)
-      return
-    }
-
-    const ok = await persistPreset(database, modelName, preset)
-    if (!ok) return
-    await refreshPageData()
-    toast.success(`已应用预设策略：${PRESET_LABELS[preset]}`)
   }
 
   const handleDeletePermission = async (database: string, modelName: string) => {
@@ -428,49 +307,7 @@ export default function RolePermissionsPage() {
     toast.success(`已删除 ${modelName} 权限`)
   }
 
-  const handleSaveCustomStrategy = async () => {
-    if (!customTarget || !roleId) return
-
-    const persisted = await persistPreset(customTarget.database, customTarget.modelName, 'CUSTOM')
-    if (!persisted) return
-
-    if (!customTarget.modelId) {
-      await refreshPageData()
-      toast.success('已保存自定义策略标记')
-      setCustomEditorOpen(false)
-      return
-    }
-
-    const readExpr = customDraft.read.trim() || 'false'
-    const createExpr = customDraft.create.trim() || 'false'
-    const updateExpr = customDraft.update.trim() || 'false'
-    const deleteExpr = customDraft.delete.trim() || 'false'
-
-    const rlsRes = await setModelRLSPolicy({
-      variables: {
-        input: {
-          modelId: customTarget.modelId,
-          selectPredicate: readExpr,
-          insertCheck: createExpr,
-          updatePredicate: updateExpr,
-          updateCheck: updateExpr,
-          deletePredicate: deleteExpr,
-        },
-      },
-    })
-
-    const rlsPayload = rlsRes.data?.setModelRLSPolicy
-    if (rlsPayload?.error) {
-      toast.error(rlsPayload.error.message)
-      return
-    }
-
-    await refreshPageData()
-    setCustomEditorOpen(false)
-    toast.success('已保存自定义策略')
-  }
-
-  const isBusy = addingPermission || removingPermission || savingRLS
+  const isBusy = addingPermission || removingPermission
 
   return (
     <div className="mx-auto max-w-4xl space-y-6 p-6">
@@ -559,7 +396,7 @@ export default function RolePermissionsPage() {
                     <thead className="border-b border-slate-100 bg-muted/20">
                       <tr>
                         <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">模型</th>
-                        <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">生效策略</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-muted-foreground">权限标识</th>
                         <th className="px-4 py-2 text-right text-xs font-medium text-muted-foreground">操作</th>
                       </tr>
                     </thead>
@@ -574,55 +411,26 @@ export default function RolePermissionsPage() {
                           </td>
                           <td className="px-4 py-3">
                             <Badge variant="outline" className="text-xs">
-                              {PRESET_LABELS[row.preset]}
+                              {row.act}
                             </Badge>
                           </td>
-                          <td className="w-56 p-3 text-right">
-                            <div className="flex items-center justify-end gap-2">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <button
-                                    type="button"
-                                    disabled={!canManage || isBusy}
-                                    className="inline-flex h-7 items-center rounded-md border border-slate-300 px-2 text-xs font-medium text-foreground hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                  >
-                                    编辑策略
-                                  </button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-52">
-                                  {PRESET_VALUES.map((presetKey) => (
-                                    <DropdownMenuItem
-                                      key={presetKey}
-                                      className="flex items-center justify-between text-xs"
-                                      onClick={() => applyPreset(db, row.modelName, presetKey, row.modelId)}
-                                    >
-                                      <span>{PRESET_LABELS[presetKey]}</span>
-                                      {row.preset === presetKey && (
-                                        <span className="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] text-blue-700">
-                                          当前
-                                        </span>
-                                      )}
-                                    </DropdownMenuItem>
-                                  ))}
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                              <button
-                                type="button"
-                                onClick={() => handleDeletePermission(db, row.modelName)}
-                                disabled={!canManage || isBusy}
-                                className="inline-flex size-7 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
-                                aria-label={`删除 ${row.modelName} 权限`}
-                              >
-                                <Trash2 className="size-3.5" strokeWidth={1.6} />
-                              </button>
-                            </div>
+                          <td className="w-32 p-3 text-right">
+                            <button
+                              type="button"
+                              onClick={() => handleDeletePermission(db, row.modelName)}
+                              disabled={!canManage || isBusy}
+                              className="inline-flex size-7 items-center justify-center rounded-md border border-red-200 text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40"
+                              aria-label={`删除 ${row.modelName} 权限`}
+                            >
+                              <Trash2 className="size-3.5" strokeWidth={1.6} />
+                            </button>
                           </td>
                         </tr>
                       ))}
                       {rows.length === 0 && (
                         <tr>
                           <td colSpan={3} className="px-4 py-6 text-center text-sm text-muted-foreground">
-                            暂无模型权限，点击右上角“新增权限”
+                            暂无模型权限，点击右上角"新增权限"
                           </td>
                         </tr>
                       )}
@@ -699,56 +507,6 @@ export default function RolePermissionsPage() {
               className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
             >
               新增权限
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={customEditorOpen} onOpenChange={setCustomEditorOpen}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>
-              自定义策略
-              {customTarget ? ` · ${customTarget.modelName}` : ''}
-            </DialogTitle>
-          </DialogHeader>
-
-          <div className="grid grid-cols-1 gap-3 py-2 md:grid-cols-2">
-            {([
-              { key: 'read', label: '查看' },
-              { key: 'create', label: '新增' },
-              { key: 'update', label: '编辑' },
-              { key: 'delete', label: '删除' },
-            ] as Array<{ key: Action; label: string }>).map((item) => (
-              <div key={item.key} className="space-y-1.5 rounded-md border border-border p-3">
-                <div className="text-sm font-medium text-foreground">{item.label}</div>
-                <div className="text-xs text-muted-foreground">填写表达式，`false` 表示禁止该动作</div>
-                <Textarea
-                  value={customDraft[item.key]}
-                  onChange={(e) => setCustomDraft((prev) => ({ ...prev, [item.key]: e.target.value }))}
-                  rows={4}
-                  placeholder='例如: {"ownerId":{"_eq":{"_auth":"uid"}}}'
-                  className="font-mono text-xs"
-                />
-              </div>
-            ))}
-          </div>
-
-          <DialogFooter>
-            <button
-              type="button"
-              onClick={() => setCustomEditorOpen(false)}
-              className="inline-flex h-9 items-center rounded-md border border-slate-300 px-3 text-sm text-foreground hover:bg-slate-50"
-            >
-              取消
-            </button>
-            <button
-              type="button"
-              onClick={handleSaveCustomStrategy}
-              disabled={!canManage || isBusy}
-              className="inline-flex h-9 items-center rounded-md bg-blue-600 px-4 text-sm text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              保存自定义策略
             </button>
           </DialogFooter>
         </DialogContent>
