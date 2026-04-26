@@ -29,7 +29,7 @@ const PUBLIC_PATHS = [
   '/register',
 ]
 
-const COOKIE_NAME = 'refresh_token'
+const COOKIE_NAME = 'mc_refresh_token'
 
 // ============================================
 // 终端用户认证配置（新增）
@@ -51,6 +51,11 @@ export function middleware(request: NextRequest) {
 
   // Allow all /api/* routes (BFF endpoints, rewrites, etc.)
   if (pathname.startsWith('/api/')) {
+    return NextResponse.next()
+  }
+
+  // Allow /auth/* routes (proxied to backend, must not be gated)
+  if (pathname.startsWith('/auth/')) {
     return NextResponse.next()
   }
 

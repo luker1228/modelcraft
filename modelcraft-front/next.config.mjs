@@ -84,6 +84,11 @@ const nextConfig = {
   // API 代理配置
   async rewrites() {
     return [
+      // 认证 API 代理（让 Set-Cookie 从 localhost 下发，浏览器才能保存）
+      {
+        source: '/auth/:path*',
+        destination: `${backendUrl}/auth/:path*`,
+      },
       // 认证 API 代理到 Go 后端 (端口 8080) - login-url, logout, check-org
       {
         source: '/api/auth/login-url',

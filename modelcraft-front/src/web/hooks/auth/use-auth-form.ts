@@ -31,9 +31,10 @@ export function useLogin(): UseLoginReturn {
     setError(null)
 
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/auth/login`, {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           identifier: values.identifier,
           identifierType: values.identifierType,
@@ -41,20 +42,27 @@ export function useLogin(): UseLoginReturn {
         }),
       })
 
-      const data = (await res.json()) as LoginResponse & { error?: string }
+      const data = (await res.json()) as { accessToken?: string; error?: string; message?: string; orgName?: string; expiresIn?: number; userName?: string }
 
       if (!res.ok) {
-        setError(data.error ?? '登录失败，请稍后重试')
+        setError(data.message ?? data.error ?? '登录失败，请稍后重试')
         return
       }
 
+      const accessToken = data.accessToken ?? ''
+
       // 存储 access token
-      useAuthStore.getState().setAccessToken(data.accessToken, data.expiresIn)
+      useAuthStore.getState().setAccessToken(accessToken, data.expiresIn ?? 3600)
+
+      // 从 JWT payload 或响应字段中提取 userName / orgName
+      const payload = parseJwtPayload(accessToken)
+      const userName = data.userName ?? (payload.username as string) ?? ''
+      const orgName = data.orgName ?? (payload.orgName as string) ?? userName
 
       // 记录默认组织和昵称并跳转到 workspace
-      localStorage.setItem('defaultOrgName', data.orgName)
-      localStorage.setItem('defaultUserName', data.userName)
-      router.push(`/org/${data.orgName}/workspace`)
+      localStorage.setItem('defaultOrgName', orgName)
+      localStorage.setItem('defaultUserName', userName)
+      router.push(`/org/${orgName}/workspace`)
     } catch {
       setError('网络错误，请检查网络连接')
     } finally {
@@ -63,6 +71,16 @@ export function useLogin(): UseLoginReturn {
   }
 
   return { login, isLoading, error, identifierType, setIdentifierType }
+}
+
+/** 解析 JWT payload（不验签，仅读取字段） */
+function parseJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(base64)) as Record<string, unknown>
+  } catch {
+    return {}
+  }
 }
 
 export function useRegister(): UseRegisterReturn {
@@ -76,9 +94,10 @@ export function useRegister(): UseRegisterReturn {
 
     try {
       // Step 1: 注册
-      const registerRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/auth/register`, {
+      const registerRes = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           phone: values.phone,
           userName: values.userName,
@@ -86,17 +105,18 @@ export function useRegister(): UseRegisterReturn {
         }),
       })
 
-      const registerData = (await registerRes.json()) as RegisterResponse & { error?: string }
+      const registerData = (await registerRes.json()) as { accessToken?: string; error?: string; message?: string }
 
       if (!registerRes.ok) {
-        setError(registerData.error ?? '注册失败，请稍后重试')
+        setError(registerData.message ?? registerData.error ?? '注册失败，请稍后重试')
         return
       }
 
-      // Step 2: 自动登录获取 accessToken（使用刚注册的手机号 + 密码）
-      const loginRes = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/auth/login`, {
+      // Step 2: 登录以获取 refresh_token cookie
+      const loginRes = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
         body: JSON.stringify({
           identifier: values.phone,
           identifierType: 'PHONE',
@@ -104,22 +124,27 @@ export function useRegister(): UseRegisterReturn {
         }),
       })
 
-      const loginData = (await loginRes.json()) as LoginResponse & { error?: string }
+      const loginData = (await loginRes.json()) as { accessToken?: string; error?: string; message?: string; orgName?: string; expiresIn?: number; userName?: string }
 
       if (!loginRes.ok) {
-        // 注册成功但登录失败，跳转到登录页让用户手动登录
         setError('注册成功，请重新登录')
-        router.push('/auth/login')
+        router.push('/login')
         return
       }
 
-      // Step 3: 存储 access token
-      useAuthStore.getState().setAccessToken(loginData.accessToken, loginData.expiresIn)
+      const accessToken = loginData.accessToken ?? registerData.accessToken ?? ''
 
-      // Step 4: 记录默认组织和昵称并跳转到 workspace
-      localStorage.setItem('defaultOrgName', loginData.orgName)
-      localStorage.setItem('defaultUserName', registerData.profile.nickname || values.userName)
-      router.push(`/org/${loginData.orgName}/workspace`)
+      // Step 3: 存储 access token
+      useAuthStore.getState().setAccessToken(accessToken, loginData.expiresIn ?? 3600)
+
+      // Step 4: 从 JWT payload 或响应字段中提取 userName / orgName
+      const payload = parseJwtPayload(accessToken)
+      const userName = loginData.userName ?? (payload.username as string) ?? values.userName
+      const orgName = loginData.orgName ?? (payload.orgName as string) ?? userName
+
+      localStorage.setItem('defaultOrgName', orgName)
+      localStorage.setItem('defaultUserName', userName)
+      router.push(`/org/${orgName}/workspace`)
     } catch {
       setError('网络错误，请检查网络连接')
     } finally {

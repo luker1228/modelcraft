@@ -4,7 +4,7 @@
 
 import { type NextRequest, NextResponse } from 'next/server'
 
-const GO_BACKEND_INTERNAL_URL = process.env.GO_BACKEND_INTERNAL_URL ?? 'http://localhost:8080'
+const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
 const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVICE_TOKEN ?? ''
 
 /**
@@ -13,7 +13,7 @@ const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVIC
  * @param backendPath - The backend path to forward to (e.g. /graphql/org/myorg/)
  */
 export async function proxyGraphQL(req: NextRequest, backendPath: string): Promise<NextResponse> {
-  const url = `${GO_BACKEND_INTERNAL_URL}${backendPath}`
+  const url = `${BACKEND_URL}${backendPath}`
 
   const body = await req.text()
 

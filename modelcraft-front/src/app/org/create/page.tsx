@@ -90,7 +90,7 @@ export default function CreateOrgPage() {
       }
 
       // Call backend API to initialize organization
-      const response = await fetch("/api/org/init", {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/api/org/init`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

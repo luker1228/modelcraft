@@ -59,6 +59,7 @@
     "lucide-react": "^0.294.0",
     "next": "^14.2.0",
     "pinyin-pro": "^3.28.0",
+    "playwright": "^1.59.1",
     "puppeteer": "^24.40.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

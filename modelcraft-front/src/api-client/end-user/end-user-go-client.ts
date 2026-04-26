@@ -4,8 +4,8 @@
 
 import type { GoEndUserError } from '@/types/end-user-auth'
 
-const GO_BACKEND_INTERNAL_URL =
-  process.env.GO_BACKEND_INTERNAL_URL ?? 'http://localhost:8080'
+const BACKEND_URL =
+  process.env.BACKEND_URL ?? 'http://localhost:8080'
 const INTERNAL_TOKEN =
   process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVICE_TOKEN ?? ''
 
@@ -300,7 +300,7 @@ export async function callGoEndUserLogin(params: {
 
   // 真实后端调用（暂返回 NOT_IMPLEMENTED）
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/login`, {
+  const res = await fetch(`${BACKEND_URL}/internal/v1/end-user/auth/login`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -353,7 +353,7 @@ export async function callGoEndUserRegister(params: {
 
   // 真实后端调用
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/register`, {
+  const res = await fetch(`${BACKEND_URL}/internal/v1/end-user/auth/register`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -402,7 +402,7 @@ export async function callGoEndUserRefresh(params: {
 
   // 真实后端调用
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/refresh`, {
+  const res = await fetch(`${BACKEND_URL}/internal/v1/end-user/auth/refresh`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -432,7 +432,7 @@ export async function callGoEndUserLogout(params: {
 
   // 真实后端调用（best-effort）
   const { headers } = createInternalHeaders(params.orgName, params.projectSlug)
-  await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/logout`, {
+  await fetch(`${BACKEND_URL}/internal/v1/end-user/auth/logout`, {
     method: 'POST',
     headers,
     body: JSON.stringify(params),
@@ -471,7 +471,7 @@ export async function callGoEndUserMe(params: {
 
   // 真实后端调用
   const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/v1/end-user/auth/me`, {
+  const res = await fetch(`${BACKEND_URL}/internal/v1/end-user/auth/me`, {
     method: 'GET',
     headers: {
       ...headers,
@@ -523,7 +523,7 @@ export async function callGoEndUserDatabaseCatalog(params: {
   searchParams.set('pageSize', String(params.pageSize ?? 50))
 
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/end-user/data/database-catalog?${searchParams.toString()}`,
+    `${BACKEND_URL}/internal/end-user/data/database-catalog?${searchParams.toString()}`,
     {
       method: 'GET',
       headers: {
@@ -580,7 +580,7 @@ export async function callGoEndUserInitPrivateDB(params: {
     requestHeaders['X-End-User-Id'] = params.userId
   }
 
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/internal/end-user/data/init-private-db`, {
+  const res = await fetch(`${BACKEND_URL}/internal/end-user/data/init-private-db`, {
     method: 'POST',
     headers: requestHeaders,
   })
@@ -632,7 +632,7 @@ export async function callGoEndUserModelCatalog(params: {
   searchParams.set('pageSize', String(params.pageSize ?? 200))
 
   const res = await fetch(
-    `${GO_BACKEND_INTERNAL_URL}/internal/end-user/data/model-catalog?${searchParams.toString()}`,
+    `${BACKEND_URL}/internal/end-user/data/model-catalog?${searchParams.toString()}`,
     {
       method: 'GET',
       headers: {

@@ -7,8 +7,8 @@ import type {
   RegisterProfileSnapshot,
 } from '@/types/auth'
 
-const GO_BACKEND_INTERNAL_URL =
-  process.env.GO_BACKEND_INTERNAL_URL ?? 'http://localhost:8080'
+const BACKEND_URL =
+  process.env.BACKEND_URL ?? 'http://localhost:8080'
 
 // ============================================================================
 // 结果类型（BFF 内部使用）
@@ -109,7 +109,7 @@ export async function callGoLogin(params: {
   identifierType: IdentifierType
   password: string
 }): Promise<GoLoginResult> {
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/login`, {
+  const res = await fetch(`${BACKEND_URL}/api/auth/login`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -138,7 +138,7 @@ export async function callGoRegister(params: {
   userName: string
   password: string
 }): Promise<GoRegisterResult> {
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/register`, {
+  const res = await fetch(`${BACKEND_URL}/api/auth/register`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(params),
@@ -173,7 +173,7 @@ export async function callGoRegister(params: {
 export async function callGoRefresh(
   refreshToken: string
 ): Promise<GoRefreshResult> {
-  const res = await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/refresh`, {
+  const res = await fetch(`${BACKEND_URL}/api/auth/refresh`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),
@@ -193,7 +193,7 @@ export async function callGoRefresh(
  * 调用 Go Backend /api/auth/logout
  */
 export async function callGoLogout(refreshToken: string): Promise<void> {
-  await fetch(`${GO_BACKEND_INTERNAL_URL}/api/auth/logout`, {
+  await fetch(`${BACKEND_URL}/api/auth/logout`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ refreshToken }),

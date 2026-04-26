@@ -12,8 +12,8 @@ export async function register() {
       description: 'Secret used by BFF to sign access tokens',
     },
     {
-      name: 'GO_BACKEND_INTERNAL_URL',
-      description: 'Internal URL of the Go backend (e.g. http://9.135.32.8:8080)',
+      name: 'BACKEND_URL',
+      description: 'Internal URL of the Go backend (e.g. http://9.135.32.8:8090)',
     },
   ]
 

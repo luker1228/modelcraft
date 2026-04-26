@@ -103,7 +103,7 @@ function saveToLocalStorage(data: MembershipInfo[]): void {
  * Fetch memberships from API
  */
 async function fetchMembershipsFromAPI(token: string): Promise<MembershipInfo[]> {
-  const response = await fetch('/api/user/memberships', {
+  const response = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/api/user/memberships`, {
     headers: {
       Authorization: `Bearer ${token}`,
     },
