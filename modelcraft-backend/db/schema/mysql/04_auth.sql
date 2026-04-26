@@ -2,7 +2,7 @@
 -- Authentication Configuration Schema
 -- ============================================================================
 -- This schema defines project-level authentication configuration for ModelCraft.
--- Each project can configure its own authentication provider (Casdoor, Keycloak, OIDC).
+-- Each project can configure its own authentication provider (AuthProvider, Keycloak, OIDC).
 
 -- Create project_auth_configs table
 CREATE TABLE IF NOT EXISTS project_auth_configs (
@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS project_auth_configs (
     org_name VARCHAR(36) NOT NULL COMMENT '所属组织名称（来自projects表复合主键）',
     project_slug VARCHAR(64) NOT NULL COMMENT '所属项目标识符（来自projects表复合主键）',
 
-    provider VARCHAR(32) NOT NULL COMMENT 'Authentication provider type: casdoor, keycloak, oidc',
+    provider VARCHAR(32) NOT NULL COMMENT 'Authentication provider type: auth_provider, keycloak, oidc',
     enabled BOOLEAN NOT NULL DEFAULT TRUE COMMENT 'Whether authentication is enabled for this project',
     config JSON NOT NULL COMMENT 'Provider-specific configuration (endpoint, client_id, certificate, etc.)',
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'Record creation timestamp',
@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS project_auth_configs (
 
     -- Check constraint: provider must be one of supported values
     CONSTRAINT chk_provider_type
-        CHECK (provider IN ('casdoor', 'keycloak', 'oidc'))
+        CHECK (provider IN ('auth_provider', 'keycloak', 'oidc'))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Project-level authentication configuration';
 
 -- Create index on project for fast lookups
@@ -37,9 +37,9 @@ CREATE INDEX idx_project_auth_configs_provider ON project_auth_configs (provider
 -- ============================================================================
 -- Example Configuration JSON Structure
 -- ============================================================================
--- Casdoor Configuration:
+-- AuthProvider Configuration:
 -- {
---   "endpoint": "https://casdoor.example.com",
+--   "endpoint": "https://auth_provider.example.com",
 --   "client_id": "abc123",
 --   "client_secret": "secret",
 --   "organization": "tenant1",

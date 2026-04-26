@@ -469,11 +469,11 @@ cp src/lib/apollo-clients.ts src/bff/apollo/clients.ts
 - [ ] **Step 2: 审查导入并更新**
 
 打开 `src/bff/apollo/clients.ts`，检查所有 import：
-- `@/lib/auth/casdoor` → 后续会迁到 `@bff/auth/casdoor`，改为 `@bff/auth/casdoor`
+- `@/lib/auth/auth_provider` → 后续会迁到 `@bff/auth/auth_provider`，改为 `@bff/auth/auth_provider`
 - `@/lib/cms/runtime-query-builder` → 后续会迁到 `@bff/cms`，改为 `@bff/cms/runtime-query-builder`
 - `@shared/*` → 保持不变
 
-此时 `@bff/auth/casdoor` 还不存在，会导致 type-check 报错，这是预期的。
+此时 `@bff/auth/auth_provider` 还不存在，会导致 type-check 报错，这是预期的。
 
 - [ ] **Step 3: 使用 grep 找引用 apollo-clients.ts 的文件**
 
@@ -502,7 +502,7 @@ import { getOrgScopedClient } from '@bff/apollo/clients'
 pnpm type-check 2>&1 | head -30
 ```
 
-预期有关于 `@bff/auth/casdoor` 等尚未迁移的模块的错误。
+预期有关于 `@bff/auth/auth_provider` 等尚未迁移的模块的错误。
 
 - [ ] **Step 6: 提交**
 
@@ -516,13 +516,13 @@ git commit -m "chore: move apollo clients to @bff/apollo layer"
 ### Task 3.2: 迁移认证相关代码
 
 **文件**:
-- Move: `src/lib/auth/casdoor.ts` → `src/bff/auth/casdoor.ts`
+- Move: `src/lib/auth/auth_provider.ts` → `src/bff/auth/auth_provider.ts`
 - Move: `src/lib/auth/token-utils.ts` → `src/bff/auth/token-utils.ts`
 
 - [ ] **Step 1: 复制文件**
 
 ```bash
-cp src/lib/auth/casdoor.ts src/bff/auth/
+cp src/lib/auth/auth_provider.ts src/bff/auth/
 cp src/lib/auth/token-utils.ts src/bff/auth/
 ```
 
@@ -542,7 +542,7 @@ grep -r "from ['\"]@/lib/auth" src/ --include="*.ts" --include="*.tsx"
 
 - [ ] **Step 4: 更新这些文件的导入**
 
-将 `@/lib/auth/casdoor` 改为 `@bff/auth/casdoor`，`@/lib/auth/token-utils` 改为 `@bff/auth/token-utils`。
+将 `@/lib/auth/auth_provider` 改为 `@bff/auth/auth_provider`，`@/lib/auth/token-utils` 改为 `@bff/auth/token-utils`。
 
 - [ ] **Step 5: 验证 apollo/clients.ts 现在能否编译**
 
@@ -550,13 +550,13 @@ grep -r "from ['\"]@/lib/auth" src/ --include="*.ts" --include="*.tsx"
 pnpm type-check src/bff/apollo/clients.ts 2>&1 | head -20
 ```
 
-应该不再有关于 `@bff/auth/casdoor` 找不到的错误。
+应该不再有关于 `@bff/auth/auth_provider` 找不到的错误。
 
 - [ ] **Step 6: 提交**
 
 ```bash
 git add src/bff/auth/
-git commit -m "chore: move auth (casdoor, token-utils) to @bff layer"
+git commit -m "chore: move auth (auth_provider, token-utils) to @bff layer"
 ```
 
 ---
@@ -914,7 +914,7 @@ src/bff/api/org/init.ts
 src/bff/api/user/memberships.ts
 src/bff/api/copilotkit.ts
 src/bff/apollo/clients.ts
-src/bff/auth/casdoor.ts
+src/bff/auth/auth_provider.ts
 src/bff/auth/token-utils.ts
 src/bff/cms/runtime-query-builder.ts
 ```
@@ -955,7 +955,7 @@ cp src/lib/apollo-wrapper.tsx src/web/providers/
 打开 `src/web/providers/apollo-wrapper.tsx`，查找所有 import：
 - `@/lib/apollo-clients` → 改为 `@bff/apollo/clients`
 - `@/lib/auth/token-utils` → 改为 `@bff/auth/token-utils`
-- `@/lib/auth/casdoor` → 改为 `@bff/auth/casdoor`
+- `@/lib/auth/auth_provider` → 改为 `@bff/auth/auth_provider`
 - 其他 `@/lib/` → 改为 `@shared/` 或 `@web/`（根据文件位置）
 
 - [ ] **Step 3: 找引用 apollo-wrapper 的文件**
@@ -1040,7 +1040,7 @@ cp src/lib/memberships-cache.ts src/web/cache/
 
 打开文件，检查所有 import，特别是：
 - `@/lib/auth/token-utils` → 改为 `@bff/auth/token-utils`
-- `@/lib/auth/casdoor` → 改为 `@bff/auth/casdoor`
+- `@/lib/auth/auth_provider` → 改为 `@bff/auth/auth_provider`
 - `@shared/*` 保持不变
 
 - [ ] **Step 3: 找引用**

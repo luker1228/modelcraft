@@ -13,7 +13,7 @@ internal/domain/organization/organization.go
 
 Organization
 ├── ID           string      // UUID
-├── Name         string      // 唯一标识符，来自 Casdoor 组织名
+├── Name         string      // 唯一标识符，来自 AuthProvider 组织名
 │                            // 格式：2-64 字符，小写字母开头，允许数字/下划线/连字符
 ├── DisplayName  string      // UI 显示名称（可选）
 ├── OwnerID      string      // 创建者用户 ID
@@ -46,10 +46,10 @@ NewOrganization()
    deleted（软删除，不可恢复）
 ```
 
-## 与 Casdoor 的关系
+## 与 AuthProvider 的关系
 
-- Org 的 `Name` 与 Casdoor 中的 Organization Name 保持一致
-- ModelCraft 不自管 Org 创建流程，由 Casdoor webhook 触发同步
+- Org 的 `Name` 与 AuthProvider 中的 Organization Name 保持一致
+- ModelCraft 不自管 Org 创建流程，由 AuthProvider webhook 触发同步
 
 ## 相关文件
 

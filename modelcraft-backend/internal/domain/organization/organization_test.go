@@ -55,7 +55,7 @@ func TestIsValidOrgName(t *testing.T) {
 		"my-company",           // 含连字符
 		"my_company",           // 含下划线
 		"acme123",              // 含数字
-		"company-x9k2j7",       // Casdoor 风格后缀
+		"company-x9k2j7",       // AuthProvider 风格后缀
 		"abcdefghijklmnopqrst", // 长名称
 	}
 	for _, name := range validNames {

@@ -18,7 +18,7 @@ const (
 // Organization 组织实体
 // 多租户逻辑容器，用于隔离项目、集群、模型等资源
 type Organization struct {
-	Name        string    // 唯一标识符（来自 Casdoor 组织名称），也是主键
+	Name        string    // 唯一标识符（来自 AuthProvider 组织名称），也是主键
 	DisplayName string    // 可选的 UI 显示名称
 	OwnerID     string    // 组织创建者/所有者的用户 ID
 	Status      OrgStatus // 组织状态

@@ -49,7 +49,7 @@ ERROR 1267 (HY000): Illegal mix of collations (utf8mb4_0900_ai_ci,IMPLICIT) and 
    - viewer: 查看者 - 只读访问
 
 2. **默认组织**（如果需要）
-   - 通过 Casdoor 同步或应用初始化
+   - 通过 AuthProvider 同步或应用初始化
 
 ### 移除的文件
 - ❌ `db/schema/mysql/99_seed_data.sql` - 已删除

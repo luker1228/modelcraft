@@ -19,7 +19,7 @@ ModelCraft 目前只有**开发者**角色可以登录，使用自研 JWT 认证
 
 ## 技术栈与架构
 
-**认证层：BFF（Next.js）作为轻量网关代理，Go Backend 使用 `goth` 实现终端用户认证，不依赖 Casdoor 等外部服务。**
+**认证层：BFF（Next.js）作为轻量网关代理，Go Backend 使用 `goth` 实现终端用户认证，不依赖 AuthProvider 等外部服务。**
 
 ```
 终端用户浏览器

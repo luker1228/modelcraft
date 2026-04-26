@@ -1,20 +1,20 @@
 -- =============================================================================
 -- 用户管理 (User Management)
 -- 包含：用户表、用户-组织关联表
--- 混合认证：支持手机号+密码本地注册，同时兼容外部认证提供者（Casdoor）
+-- 混合认证：支持手机号+密码本地注册，同时兼容外部认证提供者（AuthProvider）
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
 -- 1. 用户表 (Users)
--- 混合认证设计：支持手机号+密码本地注册登录，同时兼容外部认证提供者（Casdoor）
+-- 混合认证设计：支持手机号+密码本地注册登录，同时兼容外部认证提供者（AuthProvider）
 -- external_id 可为 NULL（本地注册用户无外部 ID）
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `users` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '内部 UUID',
-  `external_id` VARCHAR(255) NULL COMMENT '外部认证提供者用户 ID（来自 JWT.sub，Casdoor 用户有值，本地注册用户为 NULL）',
+  `external_id` VARCHAR(255) NULL COMMENT '外部认证提供者用户 ID（来自 JWT.sub，AuthProvider 用户有值，本地注册用户为 NULL）',
   `name` VARCHAR(255) NOT NULL COMMENT '用户名（userName）',
   `phone` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '用户手机号',
-  `password_hash` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'bcrypt 密码哈希（本地注册用户有值，Casdoor 用户为空）',
+  `password_hash` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'bcrypt 密码哈希（本地注册用户有值，AuthProvider 用户为空）',
   `display_name` VARCHAR(255) COMMENT '用于 UI 显示的名称',
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',

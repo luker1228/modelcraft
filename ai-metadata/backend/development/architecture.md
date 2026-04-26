@@ -94,7 +94,7 @@ internal/infrastructure/
 │   ├── ddl/       # DDL 执行（部署模型到客户 DB）
 │   └── dml/       # DML 执行（运行时查询）
 ├── dbgen/         # sqlc 生成的 DB 访问代码
-└── auth/          # Casbin、Casdoor 客户端
+└── auth/          # Casbin、AuthProvider 客户端
 ```
 
 **Infrastructure 层规则**：

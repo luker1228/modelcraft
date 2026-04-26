@@ -1,8 +1,6 @@
 package auth
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"net/http"
 	"time"
@@ -70,15 +68,10 @@ func (s *Service) VerifyAccessToken(tokenString string) (*Claims, error) {
 	return claims, nil
 }
 
-// GenerateRefreshToken creates a cryptographically random opaque refresh token.
-func GenerateRefreshToken() (string, error) {
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		return "", err
-	}
-	return base64.URLEncoding.EncodeToString(b), nil
-}
-
+// GenerateRefreshToken — removed.
+// Refresh token lifecycle (generation, rotation, revocation) is fully owned by
+// the Go backend (modelcraft-backend). The gateway only proxies the opaque token
+// via an httpOnly cookie; it never generates or stores refresh tokens itself.
 // SetRefreshCookie writes the refresh token as an httpOnly, Secure, SameSite=Strict cookie.
 func (s *Service) SetRefreshCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{

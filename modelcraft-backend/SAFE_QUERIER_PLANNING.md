@@ -235,8 +235,8 @@ clean-sqlc:
 | 文件 | 用途 |
 |------|------|
 | `db-env.sh` | 数据库环境配置 (781B) |
-| `setup-casdoor.sh` | Casdoor认证配置 (2.7KB) |
-| `verify-casdoor-integration.sh` | 验证认证集成 |
+| `setup-auth_provider.sh` | AuthProvider认证配置 (2.7KB) |
+| `verify-auth_provider-integration.sh` | 验证认证集成 |
 | `add-missing-tests.sh` | 补充测试 (2.2KB) |
 | `ai-generate-test.sh` | AI生成测试 (6.2KB) |
 | `analyze-uncovered.sh` | 覆盖率分析 (2.1KB) |

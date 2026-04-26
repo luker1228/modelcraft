@@ -131,7 +131,7 @@ task deploy:all
 
 # 或分层启动：
 task deploy:infra    # 仅启动 MySQL, Redis
-task deploy:app      # 仅启动应用 (Casdoor, ModelCraft)
+task deploy:app      # 仅启动应用 (AuthProvider, ModelCraft)
 
 # 4. 查看部署状态
 task deploy:all -- --status

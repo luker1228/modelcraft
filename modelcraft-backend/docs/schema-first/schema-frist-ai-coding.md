@@ -173,7 +173,7 @@ OpenAPI 是前端或第三方与我们交互的协议契约。Schema-First 的�
 /api/auth/login-url:
   get:
     operationId: getLoginURL
-    summary: Get Casdoor login URL
+    summary: Get AuthProvider login URL
     parameters:
       - name: state
         in: query

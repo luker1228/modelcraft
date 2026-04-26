@@ -16,7 +16,7 @@
 | **UI 组件** | shadcn/ui + Radix UI | 基础 UI 原语 |
 | **样式** | Tailwind CSS | 工具类样式 |
 | **图标** | Lucide React | 统一图标库 |
-| **认证** | Casdoor SDK (OAuth2/OIDC) | Token 生命周期管理 |
+| **认证** | AuthProvider SDK (OAuth2/OIDC) | Token 生命周期管理 |
 | **表单** | React Hook Form + Zod | 表单与验证 |
 
 ---
@@ -38,7 +38,7 @@ src/
 ├── bff/            # Backend For Frontend 层
 │   ├── api/        # REST 接口封装（auth / org / user）
 │   ├── apollo/     # Apollo Client 工厂（3 种实例策略）
-│   ├── auth/       # Casdoor Token 管理
+│   ├── auth/       # AuthProvider Token 管理
 │   └── cms/        # CMS 数据适配
 ├── web/            # Web 层（UI 渲染相关）
 │   ├── components/
@@ -135,7 +135,7 @@ graph TD
 
 | 路由 | 说明 |
 |------|------|
-| `/login` | 触发 Casdoor 登录跳转 |
+| `/login` | 触发 AuthProvider 登录跳转 |
 | `/auth/callback` | OAuth 回调，交换 code 为 Token |
 | `/org-selector` | 登录后选择组织 |
 | `/org/create` | 创建新组织 |
@@ -158,7 +158,7 @@ graph TD
 sequenceDiagram
     participant U as 用户
     participant F as 前端
-    participant C as Casdoor
+    participant C as AuthProvider
     participant B as Go Backend
 
     U->>F: 访问受保护页面

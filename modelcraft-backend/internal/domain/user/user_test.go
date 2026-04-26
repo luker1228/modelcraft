@@ -62,11 +62,11 @@ func TestNewUser(t *testing.T) {
 
 func TestNewOAuthUser(t *testing.T) {
 	t.Run("should create OAuth user with valid input", func(t *testing.T) {
-		user, err := NewOAuthUser("uuid-123", "casdoor-user-001", "Luke", "13800138000")
+		user, err := NewOAuthUser("uuid-123", "auth_provider-user-001", "Luke", "13800138000")
 		require.NoError(t, err)
 		assert.NotNil(t, user)
 		assert.Equal(t, "uuid-123", user.ID)
-		assert.Equal(t, "casdoor-user-001", user.ExternalID)
+		assert.Equal(t, "auth_provider-user-001", user.ExternalID)
 		assert.Equal(t, "Luke", user.Name)
 		assert.Equal(t, "13800138000", user.Phone.String())
 		assert.Empty(t, user.PasswordHash)
@@ -90,7 +90,7 @@ func TestNewOAuthUser(t *testing.T) {
 	})
 
 	t.Run("should return error when ID is empty", func(t *testing.T) {
-		user, err := NewOAuthUser("", "casdoor-user-001", "", "")
+		user, err := NewOAuthUser("", "auth_provider-user-001", "", "")
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "user ID is required")

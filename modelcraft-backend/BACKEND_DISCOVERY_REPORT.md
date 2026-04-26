@@ -355,7 +355,7 @@ type ModelCraftClaims struct {
 
     // 用户身份
     UserID     string `json:"user_id"`         // ModelCraft 内部 UUID
-    ExternalID string `json:"external_id"`     // 外部 IdP 用户 ID（Casdoor）
+    ExternalID string `json:"external_id"`     // 外部 IdP 用户 ID（AuthProvider）
     Name       string `json:"name"`
     Email      string `json:"email"`
 
@@ -396,10 +396,10 @@ type UserClaims struct {
 ### 1. 认证流程
 
 ```
-客户端 (Casdoor)
+客户端 (AuthProvider)
     │
-    ├─ 用户登录 Casdoor
-    ├─ Casdoor 签发 JWT Token（RS256 公钥签名）
+    ├─ 用户登录 AuthProvider
+    ├─ AuthProvider 签发 JWT Token（RS256 公钥签名）
     │
     ▼
 ModelCraft 后端
@@ -410,28 +410,28 @@ ModelCraft 后端
     │   ├─ 使用 ModelCraft 密钥验证签名（HMAC-SHA256）
     │   └─ 提取 UserClaims（userID）
     │
-    ├─ 从 JWT 提取 ExternalID（Casdoor 用户 ID）
+    ├─ 从 JWT 提取 ExternalID（AuthProvider 用户 ID）
     │
     ├─ 查找或创建本地 User 记录（通过 ExternalID 关联）
     │
     └─ 注入 context，传递给下游
 ```
 
-### 2. Casdoor 集成
+### 2. AuthProvider 集成
 
 **核心配置**：
 ```go
 type ProjectAuthConfig struct {
     OrgName      string                    // 组织名
     ProjectSlug  string                    // 项目标识
-    Provider     ProviderType              // 认证提供者：casdoor, keycloak, oidc
+    Provider     ProviderType              // 认证提供者：auth_provider, keycloak, oidc
     Enabled      bool                      // 是否启用
     Config       map[string]interface{}    // Provider 专属配置
 }
 ```
 
-**Casdoor 提供者支持**：
-- 完整实现：✅ Casdoor
+**AuthProvider 提供者支持**：
+- 完整实现：✅ AuthProvider
 - 预留结构：❌ Keycloak（未实现）
 - 预留结构：❌ OIDC（未实现）
 
@@ -573,7 +573,7 @@ CREATE TABLE `models` (
 ```sql
 CREATE TABLE `users` (
   `id` VARCHAR(36) PRIMARY KEY,                  -- 内部 UUID
-  `external_id` VARCHAR(255),                    -- 外部 IdP 用户 ID（Casdoor）
+  `external_id` VARCHAR(255),                    -- 外部 IdP 用户 ID（AuthProvider）
   `name` VARCHAR(255) NOT NULL,                  -- 用户名
   `phone` VARCHAR(32),                           -- 手机号（本地注册用）
   `password_hash` VARCHAR(255),                  -- bcrypt 哈希（本地注册用）
@@ -909,7 +909,7 @@ db, err := sql.Open("postgres", dsn)
 ### 5. 当前认证系统的局限
 
 ✅ 已实现：
-- Casdoor 集成
+- AuthProvider 集成
 - JWT 验证（HMAC-SHA256）
 - 本地密码注册（手机号 + bcrypt）
 - 混合认证模式

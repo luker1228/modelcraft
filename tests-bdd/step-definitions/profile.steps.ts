@@ -250,7 +250,7 @@ Given('存在一个仅有 user 无 profile 的用户', async function (this: Mod
     },
   }
 
-  const result = await this.restClient.handleCasdoorWebhook(payload)
+  const result = await this.restClient.handleAuthProviderWebhook(payload)
   if (!result.data?.userID) {
     throw new Error(`创建仅 user 账号失败 — ${JSON.stringify(result.error ?? result.data)}`)
   }

@@ -92,7 +92,7 @@ rectangle "会话子域" as SessionSubdomain {
       + value : String
       + tokenType : String
       --备注--
-      .. 由后端自研签发（验证 Casdoor 凭证后） ..
+      .. 由后端自研签发（验证 AuthProvider 凭证后） ..
       .. role=end_user claim 区分角色 ..
     }
 

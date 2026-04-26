@@ -22,7 +22,7 @@ const (
 // Project represents a project entity in the domain
 // Uses (OrgName, Name) as composite primary key
 type Project struct {
-	OrgName     string // Organization name (from Casdoor) - part of primary key
+	OrgName     string // Organization name (from AuthProvider) - part of primary key
 	Slug        string // Project slug (unique within org) - part of primary key
 	Title       string // Display title
 	Description string

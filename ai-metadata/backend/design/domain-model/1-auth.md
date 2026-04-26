@@ -4,7 +4,7 @@
 
 ## 概述
 
-ModelCraft 不自建用户体系，认证委托给外部 IdP（当前为 Casdoor）。系统只负责验证 JWT token 的合法性，并从中提取用户身份。
+ModelCraft 不自建用户体系，认证委托给外部 IdP（当前为 AuthProvider）。系统只负责验证 JWT token 的合法性，并从中提取用户身份。
 
 ## 核心实体
 
@@ -14,9 +14,9 @@ internal/domain/user/user.go
 
 User
 ├── ID          string    // ModelCraft 内部 UUID
-├── ExternalID  string    // 来自 JWT.sub（Casdoor 用户 ID）
-├── Name        string    // 来自 Casdoor
-└── Phone       string    // 来自 Casdoor
+├── ExternalID  string    // 来自 JWT.sub（AuthProvider 用户 ID）
+├── Name        string    // 来自 AuthProvider
+└── Phone       string    // 来自 AuthProvider
 ```
 
 User 的 `ExternalID` 是与外部 IdP 的绑定点，首次登录时自动创建本地 User 记录。
@@ -28,7 +28,7 @@ internal/domain/auth/project_auth_config.go
 ProjectAuthConfig
 ├── OrgName      string
 ├── ProjectSlug  string
-├── Provider     ProviderType   // casdoor | keycloak | oidc
+├── Provider     ProviderType   // auth_provider | keycloak | oidc
 ├── Enabled      bool
 └── Config       map[string]interface{}  // provider 专属配置
 ```
@@ -41,7 +41,7 @@ ProjectAuthConfig
 客户端携带 JWT token
         │
         ▼
-ModelCraft 验证 token 签名（使用 Casdoor 公钥）
+ModelCraft 验证 token 签名（使用 AuthProvider 公钥）
         │
         ▼
 从 JWT Claims 提取 ExternalID / OrgName / 权限信息
@@ -55,7 +55,7 @@ ModelCraft 验证 token 签名（使用 Casdoor 公钥）
 
 ## 当前状态
 
-- Casdoor 集成：**完整实现**
+- AuthProvider 集成：**完整实现**
 - Keycloak / OIDC：**预留结构，未实现**（`ProviderType` 已定义）
 
 ## 相关文件

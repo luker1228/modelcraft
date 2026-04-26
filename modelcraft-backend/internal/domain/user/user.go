@@ -11,7 +11,7 @@ import (
 // User 用户实体
 type User struct {
 	ID           string      // ModelCraft 内部 UUID
-	ExternalID   string      // 外部认证提供者用户 ID（来自 JWT.sub，通常为 Casdoor 用户 ID）
+	ExternalID   string      // 外部认证提供者用户 ID（来自 JWT.sub，通常为 AuthProvider 用户 ID）
 	Name         string      // 用户姓名
 	Phone        PhoneNumber // 用户手机号（值对象）
 	PasswordHash string      // 密码哈希（仅手机号+密码注册的用户有值）

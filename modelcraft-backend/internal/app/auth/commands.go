@@ -56,7 +56,7 @@ type LoginResult struct {
 	ExpiresAt    time.Time
 }
 
-// OAuthLoginCommand BFF 通过 OAuth 登录时传入的用户信息（来自 Casdoor token）
+// OAuthLoginCommand BFF 通过 OAuth 登录时传入的用户信息（来自 AuthProvider token）
 // Deprecated: 保留兼容，新流程使用 LoginCommand
 type OAuthLoginCommand struct {
 	ExternalID string

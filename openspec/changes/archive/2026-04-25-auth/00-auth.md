@@ -2,7 +2,7 @@
 
 ## 是什么问题
 
-现有认证方案基于 Casdoor，但实际只用到登录和注册两个功能，Casdoor 的部署和维护成本远超实际需求。目标是用自研轻量方案替换 Casdoor，降低系统复杂度。
+现有认证方案基于 AuthProvider，但实际只用到登录和注册两个功能，AuthProvider 的部署和维护成本远超实际需求。目标是用自研轻量方案替换 AuthProvider，降低系统复杂度。
 
 ## 目标用户
 
@@ -50,11 +50,11 @@
 - 不做邮箱注册
 - 不做图形验证码 / 人机校验
 - 不做多端 Token 管理 / 强制下线
-- 不迁移 Casdoor 的其他能力（OAuth Server、权限管理等均不需要）
+- 不迁移 AuthProvider 的其他能力（OAuth Server、权限管理等均不需要）
 - 无存量用户数据，不需要数据迁移
 
-## 替换 Casdoor 的影响范围
+## 替换 AuthProvider 的影响范围
 
-- 后端：移除 Casdoor SDK 依赖，自行实现 JWT 签发与校验
+- 后端：移除 AuthProvider SDK 依赖，自行实现 JWT 签发与校验
 - 前端：替换登录/注册页面，调整 Token 存储与请求头携带方式
-- 基础设施：Casdoor 服务可下线，减少一个部署依赖
+- 基础设施：AuthProvider 服务可下线，减少一个部署依赖

@@ -679,7 +679,7 @@ type ProjectAuthConfig struct {
 	OrgName string
 	// 所属项目标识符（来自projects表复合主键）
 	ProjectSlug string
-	// Authentication provider type: casdoor, keycloak, oidc
+	// Authentication provider type: auth_provider, keycloak, oidc
 	Provider string
 	// Whether authentication is enabled for this project
 	Enabled bool
@@ -763,13 +763,13 @@ type SecurityAuditLog struct {
 type User struct {
 	// 内部 UUID
 	ID string
-	// 外部认证提供者用户 ID（来自 JWT.sub，Casdoor 用户有值，本地注册用户为 NULL）
+	// 外部认证提供者用户 ID（来自 JWT.sub，AuthProvider 用户有值，本地注册用户为 NULL）
 	ExternalID sql.NullString
 	// 用户名（userName）
 	Name string
 	// 用户手机号
 	Phone string
-	// bcrypt 密码哈希（本地注册用户有值，Casdoor 用户为空）
+	// bcrypt 密码哈希（本地注册用户有值，AuthProvider 用户为空）
 	PasswordHash string
 	// 用于 UI 显示的名称
 	DisplayName sql.NullString

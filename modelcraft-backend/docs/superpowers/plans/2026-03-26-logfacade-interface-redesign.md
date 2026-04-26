@@ -387,8 +387,8 @@ Test file changes will be committed together with their corresponding main code 
 - `internal/infrastructure/repository/sqlc_logger.go`
 - `internal/infrastructure/repository/user_model.go`
 - `internal/infrastructure/auth/casbin_enforcer.go`
-- `internal/infrastructure/auth/casdoor_provider.go`
-- `internal/infrastructure/casdoor/client.go`
+- `internal/infrastructure/auth/auth_provider_provider.go`
+- `internal/infrastructure/auth_provider/client.go`
 - `internal/infrastructure/database/dml/client_db_repo_impl.go`
 
 - [ ] **Step 1: Find and replace `.WithContext(` calls**
@@ -677,7 +677,7 @@ git commit -m "refactor: update GraphQL interface layer logfacade calls with ctx
 - `internal/interfaces/http/handlers/auth/token_handler.go`
 - `internal/interfaces/http/handlers/org/create_handler.go`
 - `internal/interfaces/http/handlers/user/handler.go`
-- `internal/interfaces/http/handlers/webhook/casdoor_handler.go`
+- `internal/interfaces/http/handlers/webhook/auth_provider_handler.go`
 - `internal/interfaces/http/routes.go`
 - `internal/interfaces/http/server.go`
 - `internal/interfaces/runtime/handler.go`

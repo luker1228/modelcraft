@@ -28,7 +28,7 @@ src/
 │   ├── apollo-clients.ts     # Apollo 客户端工厂（BFF 逻辑）
 │   ├── apollo-wrapper.tsx    # ApolloProvider（Web 逻辑，待拆分）
 │   ├── memberships-cache.ts  # 三层缓存（Web 逻辑，待重分类）
-│   ├── auth/casdoor.ts       # OAuth（BFF 逻辑）
+│   ├── auth/auth_provider.ts       # OAuth（BFF 逻辑）
 │   ├── auth/token-utils.ts   # Token 工具（BFF 逻辑）
 │   ├── cms/runtime-query-builder.ts  # 动态查询（BFF 逻辑）
 │   ├── cms/schema-transformer.ts     # 纯转换（shared）
@@ -66,7 +66,7 @@ src/
 │   │   ├── clients.ts              ← 原 lib/apollo-clients.ts
 │   │   └── links.ts                ← ErrorLink/AuthLink 拆分出来
 │   ├── auth/                       ← 认证相关
-│   │   ├── casdoor.ts              ← 原 lib/auth/casdoor.ts
+│   │   ├── auth_provider.ts              ← 原 lib/auth/auth_provider.ts
 │   │   └── token-utils.ts          ← 原 lib/auth/token-utils.ts
 │   └── cms/
 │       └── runtime-query-builder.ts ← 原 lib/cms/runtime-query-builder.ts
@@ -119,7 +119,7 @@ src/
 |--------|--------|------|
 | `apollo-clients.ts` | `@bff/apollo/clients.ts` | Apollo 客户端初始化，无 React 依赖 |
 | `apollo-wrapper.tsx` | `@web/providers/apollo-wrapper.tsx` | React Provider 组件，依赖 JSX/hooks |
-| `auth/casdoor.ts` | `@bff/auth/casdoor.ts` | OAuth 认证，服务端逻辑 |
+| `auth/auth_provider.ts` | `@bff/auth/auth_provider.ts` | OAuth 认证，服务端逻辑 |
 | `auth/token-utils.ts` | `@bff/auth/token-utils.ts` | Token 管理，服务端逻辑 |
 | `cms/runtime-query-builder.ts` | `@bff/cms/runtime-query-builder.ts` | 动态构建 GraphQL query |
 | `memberships-cache.ts` | `@web/cache/memberships-cache.ts` | 三层缓存含 localStorage，运行在客户端 |

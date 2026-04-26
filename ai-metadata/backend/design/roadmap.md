@@ -22,7 +22,7 @@
 
 ### ✅ 用户与成员管理（基础可用）
 
-- User 自动创建（首次登录时通过 ExternalID 关联 Casdoor 用户）
+- User 自动创建（首次登录时通过 ExternalID 关联 AuthProvider 用户）
 - Membership：用户加入 Org，邀请流程（invited → active）
 - 成员挂起 / 激活
 
@@ -35,7 +35,7 @@
 
 ### ✅ 认证（部分完成）
 
-- Casdoor JWT 集成：token 验证、Claims 提取
+- AuthProvider JWT 集成：token 验证、Claims 提取
 - 项目级 ProjectAuthConfig，支持配置多种 provider
 - ⚠️ Keycloak / OIDC：结构预留，未完整实现
 

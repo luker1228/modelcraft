@@ -226,8 +226,8 @@ export class RestClient {
     return { status: res.status, error: body as RestErrorResponse }
   }
 
-  async handleCasdoorWebhook(payload: Record<string, unknown>): Promise<RestResult<WebhookResponse>> {
-    const res = await fetch(`${API_BASE_URL}/api/webhook/casdoor`, {
+  async handleAuthProviderWebhook(payload: Record<string, unknown>): Promise<RestResult<WebhookResponse>> {
+    const res = await fetch(`${API_BASE_URL}/api/webhook/auth_provider`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),

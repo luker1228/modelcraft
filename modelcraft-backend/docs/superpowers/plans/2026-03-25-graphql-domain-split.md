@@ -859,7 +859,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 	if publicKey == nil && !cfg.Auth.Design.SkipJWTValidation {
 		logfacade.GetLogger(context.Background()).Fatal(
 			"GraphQL authentication enabled but no RSA public key configured. " +
-				"Please configure CASDOOR_CERTIFICATE, CASDOOR_JWT_PUBLIC_KEY_PATH, or CASDOOR_JWT_PUBLIC_KEY",
+				"Please configure AUTH_PROVIDER_CERTIFICATE, AUTH_PROVIDER_JWT_PUBLIC_KEY_PATH, or AUTH_PROVIDER_JWT_PUBLIC_KEY",
 		)
 	}
 
@@ -867,7 +867,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		PublicKey:           publicKey,
 		ModelCraftSecret:    []byte(cfg.JWT.Secret),
 		SkipValidation:      cfg.Auth.Design.SkipJWTValidation,
-		AcceptCasdoorJWT:    cfg.Auth.Design.AcceptCasdoorJWT,
+		AcceptAuthProviderJWT:    cfg.Auth.Design.AcceptAuthProviderJWT,
 		AcceptModelcraftJWT: cfg.Auth.Design.AcceptModelcraftJWT,
 	}
 
@@ -917,7 +917,7 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 	if publicKey == nil && !cfg.Auth.Design.SkipJWTValidation {
 		logfacade.GetLogger(context.Background()).Fatal(
 			"GraphQL authentication enabled but no RSA public key configured. " +
-				"Please configure CASDOOR_CERTIFICATE, CASDOOR_JWT_PUBLIC_KEY_PATH, or CASDOOR_JWT_PUBLIC_KEY",
+				"Please configure AUTH_PROVIDER_CERTIFICATE, AUTH_PROVIDER_JWT_PUBLIC_KEY_PATH, or AUTH_PROVIDER_JWT_PUBLIC_KEY",
 		)
 	}
 
@@ -925,7 +925,7 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		PublicKey:           publicKey,
 		ModelCraftSecret:    []byte(cfg.JWT.Secret),
 		SkipValidation:      cfg.Auth.Design.SkipJWTValidation,
-		AcceptCasdoorJWT:    cfg.Auth.Design.AcceptCasdoorJWT,
+		AcceptAuthProviderJWT:    cfg.Auth.Design.AcceptAuthProviderJWT,
 		AcceptModelcraftJWT: cfg.Auth.Design.AcceptModelcraftJWT,
 	}
 
