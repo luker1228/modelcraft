@@ -20,7 +20,6 @@ import {
   createMockUpdateMyProfilePayload,
 } from '../data/org/profile-factory'
 import { endUserAuthHandlers } from './end-user/auth-handlers'
-import { rbacHandlers } from './project/rbac-handlers'
 import { modelHandlers } from './model/handlers'
 import { enumHandlers } from './enum/handlers'
 
@@ -94,7 +93,6 @@ const profileHandlers = [
  *   - 'model-editor'  → modelHandlers
  *   - 'enum-list'     → enumHandlers
  *   - 'enum-detail'   → enumHandlers
- *   - 'rbac'          → rbacHandlers
  */
 function buildHandlers() {
   const active = [
@@ -108,10 +106,6 @@ function buildHandlers() {
 
   if (isMockPage('enum-list') || isMockPage('enum-detail')) {
     active.push(...enumHandlers)
-  }
-
-  if (isMockPage('rbac')) {
-    active.push(...rbacHandlers)
   }
 
   // TODO(profile-contract-ready): contract 同步并重新执行 npm run codegen 后，

@@ -207,11 +207,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 // ---- backend client helpers ----
 
 func (h *Handler) callBackendLogin(ctx context.Context, req loginRequest) (*backendLoginResponse, error) {
-	body := backendLoginRequest{
-		Identifier:     req.Identifier,
-		IdentifierType: req.IdentifierType,
-		Password:       req.Password,
-	}
+	body := backendLoginRequest(req)
 	var resp backendLoginResponse
 	if err := h.postBackend(ctx, "/api/auth/login", body, &resp); err != nil {
 		return nil, err
@@ -220,11 +216,7 @@ func (h *Handler) callBackendLogin(ctx context.Context, req loginRequest) (*back
 }
 
 func (h *Handler) callBackendRegister(ctx context.Context, req registerRequest) (*backendRegisterResponse, error) {
-	body := backendRegisterRequest{
-		Phone:    req.Phone,
-		UserName: req.UserName,
-		Password: req.Password,
-	}
+	body := backendRegisterRequest(req)
 	var resp backendRegisterResponse
 	if err := h.postBackend(ctx, "/api/auth/register", body, &resp); err != nil {
 		return nil, err
