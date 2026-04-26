@@ -150,7 +150,7 @@ export default function SettingsPage() {
 
   const orgScopedContext = useMemo(() => {
     if (!orgName) return undefined
-    return { uri: `/graphql/org/${orgName}/` }
+    return { uri: `/api/bff/graphql/org/${orgName}/` }
   }, [orgName])
 
   const { loading } = useQuery<ClusterQueryData>(GET_CLUSTER, {

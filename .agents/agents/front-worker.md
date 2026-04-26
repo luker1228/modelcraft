@@ -149,7 +149,28 @@ const client = new ApolloClient(...)
 const url = `/graphql/org/${orgName}/project/${slug}/`
 ```
 
-### 6. GraphQL 三种作用域客户端
+### 6. 服务端 BFF route 调后端用 X-Internal-Token，不转发用户 JWT
+
+BFF route 在服务端，有两种合法方式调后端：
+
+```ts
+// ✅ 方式一：用已有的 callGoXxx() 封装（优先）
+import { callGoListOrgEndUsers } from '@/bff/end-user/end-user-go-client'
+const result = await callGoListOrgEndUsers({ orgName })
+
+// ✅ 方式二：用 X-Internal-Token + X-Org-Name 直接调 GraphQL
+const res = await fetch(`${GO_BACKEND_URL}/graphql/org/${orgName}/`, {
+  headers: { 'X-Internal-Token': INTERNAL_TOKEN, 'X-Org-Name': orgName, ... },
+})
+
+// ❌ 错误：转发浏览器 JWT（依赖客户端主动传 token，不稳定）
+const authorization = req.headers.get('authorization')
+headers.authorization = authorization
+```
+
+**浏览器端**（hook / 组件）直接用 Apollo Client，auth link 自动注入 Design JWT。
+
+### 7. GraphQL 三种作用域客户端
 
 ```tsx
 // Org 级别（项目、集群、用户、角色）→ 单例
@@ -533,3 +554,4 @@ python3 -c "from graphify.watch import _rebuild_code; from pathlib import Path; 
 - [ ] 开发阶段 `NEXT_PUBLIC_API_MOCKING=enabled` 已设置
 - [ ] 新增 BFF 模块时已创建 `public.ts` 门面，内部实现未直接暴露
 - [ ] 联调前已确认关闭 MSW（`.env.local` 中移除 `NEXT_PUBLIC_API_MOCKING`）
+- [ ] Web 层未直接调用 `/graphql/org/...` 或 `/graphql/org/.../project/...`（应走 BFF route 或 Apollo Client）

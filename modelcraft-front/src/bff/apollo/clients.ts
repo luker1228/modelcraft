@@ -48,22 +48,17 @@ function createAuthLink() {
 
 /**
  * Org-Scoped Apollo Client
- * Endpoint: /graphql/org/{orgName}/
+ * Endpoint: /api/bff/graphql/org/{orgName}/  (BFF proxy → Go backend)
  * Handles: Projects, Clusters, Users, Roles, Organization management
  */
 function createOrgScopedClient() {
   const httpLink = createHttpLink({
     uri: (operation) => {
-      // Get current organization from store
       const currentOrg = typeof window !== 'undefined' ? useOrganizationStore.getState().currentOrg : null
-
-      // Use org-scoped endpoint if org is available
       if (currentOrg) {
-        return `/graphql/org/${currentOrg}/`
+        return `/api/bff/graphql/org/${currentOrg}/`
       }
-
-      // Fallback when org is not yet loaded
-      return '/api/graphql'
+      return '/api/bff/graphql/org/'
     },
   })
 
@@ -105,7 +100,7 @@ export function createProjectScopedClient(
   orgName: string,
   projectSlug: string
 ): ApolloClient<object> {
-  const uri = `/graphql/org/${orgName}/project/${projectSlug}/`
+  const uri = `/api/bff/graphql/org/${orgName}/project/${projectSlug}/`
 
   const httpLink = createHttpLink({ uri })
 
@@ -183,9 +178,9 @@ export function getOrgScopedClient(): ApolloClient<object> {
 /**
  * Hook to get the appropriate Apollo Client based on context.
  * - If projectSlug is provided: returns a project-scoped client (fresh instance)
- *   pointing to /graphql/org/{orgName}/project/{projectSlug}/
+ *   pointing to /api/bff/graphql/org/{orgName}/project/{projectSlug}/
  * - Otherwise: returns the org-scoped singleton
- *   pointing to /graphql/org/{orgName}/
+ *   pointing to /api/bff/graphql/org/{orgName}/
  *
  * @param projectSlug - The project slug for project-scoped operations
  * @param orgNameOverride - Explicit org name. If omitted, falls back to the organization store.

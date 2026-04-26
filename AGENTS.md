@@ -15,6 +15,8 @@ This is the ModelCraft project with separate frontend and backend codebases:
 
 `ai-metadata/` 是项目中**唯一的**知识文档存放位置，不存在其他知识文档目录。
 
+除非用户明确要求，agent 不得随意创建总结/复盘/说明类文档。
+
 完整路径索引见 @./ai-metadata/index.md
 
 知识按模块组织：

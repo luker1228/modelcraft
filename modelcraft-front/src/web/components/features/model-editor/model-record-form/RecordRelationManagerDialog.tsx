@@ -186,7 +186,7 @@ export function RecordRelationManagerDialog({
 
   const projectScopedContext = useMemo(() => {
     if (!orgName || !projectSlug) return undefined
-    return { uri: `/graphql/org/${orgName}/project/${projectSlug}/` }
+    return { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` }
   }, [orgName, projectSlug])
 
   const { data: fkData } = useQuery<{ logicalForeignKeys: LogicalForeignKey[] }>(

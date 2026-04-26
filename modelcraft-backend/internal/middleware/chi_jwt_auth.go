@@ -14,6 +14,10 @@ type JWTAuthConfig struct {
 	ModelCraftSecret []byte
 	SkipValidation   bool
 	APIKeyVerifier   APIKeyVerifier
+	// InternalToken allows BFF server-side callers to authenticate via X-Internal-Token header,
+	// bypassing the requirement for a user JWT. When set, requests carrying a matching
+	// X-Internal-Token are granted access without a userID in context.
+	InternalToken string
 }
 
 // writeJSONError is a helper for writing JSON error responses.
@@ -26,11 +30,16 @@ func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
 // ChiJWTAuthMiddleware validates JWT tokens or API keys from the Authorization header.
 // Token path: "Bearer <jwt>" — HMAC-SHA256 signed ModelCraft JWT
 // API Key path: "Bearer mc_*" — hashed lookup (A6 will inject real verifier)
+// Internal Token path: "X-Internal-Token" header — BFF server-side callers bypass JWT requirement
 func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if config.SkipValidation {
 				next.ServeHTTP(w, r)
+				return
+			}
+
+			if tryInternalTokenAuth(config, w, r, next) {
 				return
 			}
 
@@ -67,6 +76,24 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// tryInternalTokenAuth checks for X-Internal-Token header and handles the request if present.
+// Returns true if the request was handled (either accepted or rejected), false if not an internal token request.
+func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.Request, next http.Handler) bool {
+	if config.InternalToken == "" {
+		return false
+	}
+	provided := r.Header.Get("X-Internal-Token")
+	if provided == "" {
+		return false
+	}
+	if !matchInternalToken(config.InternalToken, provided) {
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return true
+	}
+	next.ServeHTTP(w, r)
+	return true
 }
 
 // extractBearerToken extracts the Bearer token from the Authorization header.

@@ -155,7 +155,7 @@ export function useUpdateMyProfile(): UseUpdateMyProfileReturn {
     }
 
     return {
-      uri: `/graphql/org/${orgName}/`,
+      uri: `/api/bff/graphql/org/${orgName}/`,
     }
   }, [orgName])
 

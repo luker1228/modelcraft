@@ -20,7 +20,7 @@ const httpLink = createHttpLink({
 
     // Use org-scoped endpoint if org is available
     if (currentOrg) {
-      return `/graphql/org/${currentOrg}/`
+      return `/api/bff/graphql/org/${currentOrg}/`
     }
 
     // Fallback when org is not yet loaded

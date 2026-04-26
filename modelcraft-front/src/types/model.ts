@@ -40,6 +40,7 @@ export type FormatType =
   | 'RELATION'
   | 'ENUM'
   | 'ENUM_ARRAY'
+  | 'END_USER_REF'
 
 export type ActualConstraintType = 'UNIQUE' | 'NOT_NULL'
 

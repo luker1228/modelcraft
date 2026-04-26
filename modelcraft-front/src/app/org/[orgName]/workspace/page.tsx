@@ -139,7 +139,7 @@ export default function WorkspacePage() {
   const orgScopedContext = useMemo(() => {
     if (!orgName) return undefined
     return {
-      uri: `/graphql/org/${orgName}/`,
+      uri: `/api/bff/graphql/org/${orgName}/`,
     }
   }, [orgName])
 

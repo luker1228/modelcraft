@@ -139,7 +139,7 @@ const EMPTY_FORM: ApiKeyFormState = {
 export default function ApiKeysPage() {
   const params = useParams()
   const orgName = params?.orgName as string
-  const orgScopedContext = useMemo(() => ({ uri: `/graphql/org/${orgName}/` }), [orgName])
+  const orgScopedContext = useMemo(() => ({ uri: `/api/bff/graphql/org/${orgName}/` }), [orgName])
 
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState<ApiKeyFormState>(EMPTY_FORM)

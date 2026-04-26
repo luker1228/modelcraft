@@ -3,6 +3,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import {
+  callGoListOrgEndUsers,
   callGoCreateOrgEndUser,
 } from '@/bff/end-user/end-user-go-client'
 import { EndUserConflictError, EndUserParamInvalidError } from '@/bff/end-user/end-user-go-client'
@@ -11,90 +12,11 @@ interface RouteParams {
   params: Promise<{ orgName: string }>
 }
 
-interface GraphQLErrorItem {
-  message?: string
-}
-
-interface OrgListEndUsersGraphQLData {
-  listEndUsers?: {
-    connection?: {
-      nodes?: Array<{
-        id: string
-        username: string
-        isForbidden: boolean
-        createdAt: string
-      }>
-    }
-  }
-}
-
-const ORG_LIST_END_USERS_QUERY = `
-  query ListOrgEndUsers($input: ListEndUsersInput) {
-    listEndUsers(input: $input) {
-      connection {
-        nodes {
-          id
-          username
-          isForbidden
-          createdAt
-        }
-      }
-    }
-  }
-`
-
-async function postGraphQL<TData>(
-  req: NextRequest,
-  graphqlPath: string,
-  query: string,
-  variables?: Record<string, unknown>
-): Promise<TData> {
-  const url = new URL(graphqlPath, req.nextUrl.origin)
-  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
-  const cookie = req.headers.get('cookie')
-  const authorization = req.headers.get('authorization')
-  if (cookie) headers.cookie = cookie
-  if (authorization) headers.authorization = authorization
-
-  const response = await fetch(url.toString(), {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ query, variables }),
-    cache: 'no-store',
-  })
-
-  if (!response.ok) {
-    throw new Error(`GraphQL request failed: ${response.status}`)
-  }
-
-  const payload = (await response.json()) as {
-    data?: TData
-    errors?: GraphQLErrorItem[]
-  }
-
-  if (payload.errors && payload.errors.length > 0) {
-    throw new Error(payload.errors[0]?.message || 'GraphQL error')
-  }
-
-  if (!payload.data) {
-    throw new Error('GraphQL response missing data')
-  }
-
-  return payload.data
-}
-
-export async function GET(req: NextRequest, { params }: RouteParams) {
+export async function GET(_req: NextRequest, { params }: RouteParams) {
   const { orgName } = await params
   try {
-    const data = await postGraphQL<OrgListEndUsersGraphQLData>(
-      req,
-      `/graphql/org/${orgName}/`,
-      ORG_LIST_END_USERS_QUERY,
-      { input: { first: 500 } }
-    )
-
-    const nodes = data.listEndUsers?.connection?.nodes ?? []
-    const users = nodes.map((u) => ({
+    const result = await callGoListOrgEndUsers({ orgName, first: 500 })
+    const users = result.nodes.map((u) => ({
       id: u.id,
       username: u.username,
       displayName: undefined,

@@ -50,3 +50,50 @@ export function useProjectScopedClient(projectSlug?: string): ApolloClient<any> 
 1. **Hook 中返回的对象必须稳定** — 任何在 hook 中动态创建并返回给 `useQuery`/`useMutation` 的对象（client、context、cache 等），都必须用 `useMemo` 或 `useRef` 确保引用稳定，否则会导致无限重渲染。
 2. **`useQuery({ client })` 对 client 引用敏感** — Apollo Client 的 `useQuery` hook 会比较 client 引用，引用变化等同于 query 配置变化，会触发重新获取。
 3. **创建 ApolloClient 的开销很大** — 每次创建包含完整的 cache、link chain，不应该在渲染路径中反复执行。
+
+---
+
+## Issue: Hook 绕过 BFF 直接调用后端 GraphQL → 401 Unauthorized
+
+**日期**: 2026-04-25
+
+**症状**: GraphQL 请求返回 HTTP 401，response body 为 `Unauthorized`，请求没有进入 resolver，后端日志中 `request_id` 为空。
+
+**根因**: Web 层 hook（`useOrgEndUsers`）自己写了 `postOrgGraphQL` 函数，直接 `fetch('/graphql/org/{orgName}/')` 绕过了 BFF，而 BFF route（`/api/bff/org/[orgName]/end-user/users`）已经存在且正确处理了认证转发。
+
+正确的架构是：**Web 层 → BFF route → 后端**。BFF route 负责把客户端的 cookie/authorization header 转发给后端，Web 层完全不用关心认证细节。
+
+```
+❌ 错误路径（hook 绕过 BFF）
+useOrgEndUsers.postOrgGraphQL()
+    → fetch('/graphql/org/{orgName}/')     ← 直接打后端，无 Authorization → 401
+
+✅ 正确路径（经过 BFF）
+useOrgEndUsers
+    → fetch('/api/bff/org/{orgName}/end-user/users')   ← 打 BFF route
+    → BFF route 转发 authorization header
+    → fetch('/graphql/org/{orgName}/')                  ← BFF 打后端 → 正常
+```
+
+**涉及文件**:
+- `src/web/hooks/end-users/useOrgEndUsers.ts` — 自写 `postOrgGraphQL` 绕过了已有的 BFF route
+
+**修复方案**: 删除 hook 内的 `postOrgGraphQL`，改为调用 BFF REST 接口：
+
+```ts
+// ❌ 错误：hook 自己绕过 BFF 打 GraphQL
+fetch(`/graphql/org/${orgName}/`, { method: 'POST', ... })
+
+// ✅ 正确：hook 调用 BFF，由 BFF 负责认证和后端通信
+fetch(`/api/bff/org/${orgName}/end-user/users`, { cache: 'no-store' })
+fetch(`/api/bff/org/${orgName}/end-user/users`, { method: 'POST', ... })
+fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/status`, { method: 'PATCH', ... })
+fetch(`/api/bff/org/${orgName}/end-user/users/${userId}`, { method: 'DELETE' })
+```
+
+**经验教训**:
+
+1. **先检查是否已有 BFF route** — 写 hook 前先看 `/api/bff/...` 目录是否已有对应路由，直接 `fetch('/api/bff/...')` 即可，不要自己造 raw fetch 调用链。
+2. **浏览器端可以直接用 Apollo Client 调 Org/Project GraphQL** — `listEndUsers`、`listProjects` 等接口，在 hook 里直接 `useQuery` 即可，auth link 自动注入 JWT。
+3. **服务端 BFF route 用 X-Internal-Token 认证，不转发用户 JWT** — BFF 应该用服务端持有的 `X-Internal-Token`（配合 `X-Org-Name`/`X-Project-Slug` header）自主完成认证，优先用 `callGoXxx()` 封装，也可以直接打 GraphQL（带 Internal Token）。
+4. **症状识别** — 后端 `request_id` 为空 + HTTP 401 = 请求被 JWT 中间件拦截，检查认证 header 是否正确传递。

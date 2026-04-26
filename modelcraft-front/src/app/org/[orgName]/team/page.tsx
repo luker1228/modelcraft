@@ -53,7 +53,7 @@ export default function TeamPage() {
   const { isLoading: authLoading } = useRequireAuth()
 
   const orgScopedContext = useMemo(() => ({
-    uri: `/graphql/org/${orgName}/`,
+    uri: `/api/bff/graphql/org/${orgName}/`,
   }), [orgName])
 
   const { data, loading, error } = useQuery<MembersQueryData>(GET_ORGANIZATION_MEMBERS, {

@@ -140,7 +140,7 @@ export default function ModelRecordWorkspace({
   // 创建 project-scoped context
   const projectScopedContext = useMemo(() => {
     if (!orgName || !projectSlug) return undefined
-    return { uri: `/graphql/org/${orgName}/project/${projectSlug}/` }
+    return { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` }
   }, [orgName, projectSlug])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)

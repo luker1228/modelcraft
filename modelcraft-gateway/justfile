@@ -1,0 +1,55 @@
+# justfile - ModelCraft Gateway 命令运行器
+
+set dotenv-load
+set shell := ["bash", "-cu"]
+
+BINARY_NAME := "modelcraft-gateway"
+SERVER_PATH  := "./cmd/gateway"
+
+# ========================
+# 🚀 开发
+# ========================
+
+# 显示所有可用命令
+default:
+    @just --list
+
+# 本地运行（需要 .env 文件）
+run:
+    go run {{SERVER_PATH}}/...
+
+# 编译二进制
+build:
+    go build -o bin/{{BINARY_NAME}} {{SERVER_PATH}}/...
+
+# ========================
+# 🔍 代码质量
+# ========================
+
+# 运行所有测试
+test:
+    go test ./...
+
+# 格式化代码
+fmt:
+    gofumpt -w .
+
+# 静态检查（需要安装 golangci-lint）
+lint:
+    golangci-lint run
+
+# 自动修复可修复的 lint 问题
+lint-fix:
+    golangci-lint run --fix
+
+# ========================
+# 🛠️ 依赖管理
+# ========================
+
+# 拉取依赖
+tidy:
+    go mod tidy
+
+# 验证依赖
+verify:
+    go mod verify

@@ -1,6 +1,15 @@
+'use client'
+
 import * as React from 'react'
 import { toast } from 'sonner'
-import { Plus, ChevronDown, ChevronRight, Trash2, ShieldAlert } from 'lucide-react'
+import {
+  Plus,
+  Trash2,
+  ShieldAlert,
+  Lock,
+  Check,
+  X,
+} from 'lucide-react'
 
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
@@ -17,10 +26,12 @@ import {
 } from '@web/components/ui/alert-dialog'
 import { Skeleton } from '@web/components/ui/skeleton'
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@web/components/ui/collapsible'
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@web/components/ui/select'
 import {
   Table,
   TableBody,
@@ -30,38 +41,25 @@ import {
   TableRow,
 } from '@web/components/ui/table'
 
-import { CreatePermissionSheet } from './CreatePermissionSheet'
-import { usePermissionList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/_hooks/usePermissionList'
+import { usePermissionsView, type ModelWithPermissions } from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/_hooks/usePermissionsView'
+import { useRLSPolicy } from '@web/hooks/rls/use-rls-policy'
 import type {
   EndUserPermission,
   EndUserPermissionAction,
   EndUserRowScope,
   ColumnPolicy,
 } from '@/types'
+import type { RLSPreset } from '@/types/rls'
+import { cn } from '@/shared/utils'
 
-// ── Props ────────────────────────────────────────────────────────────────────
+// ── Props ─────────────────────────────────────────────────────────────────────
 
 export interface PermissionsTabProps {
   orgName: string
   projectSlug: string
 }
 
-// ── Action badge config ───────────────────────────────────────────────────────
-
-type BadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'
-
-const ACTION_BADGE_VARIANT: Record<EndUserPermissionAction, BadgeVariant> = {
-  SELECT: 'secondary',
-  EXPORT: 'secondary',
-  INSERT: 'outline',
-  UPDATE: 'outline',
-  DELETE: 'outline',
-}
-
-// DELETE gets a subdued destructive tint — visible but not alarming in a list
-const ACTION_BADGE_EXTRA_CLASS: Partial<Record<EndUserPermissionAction, string>> = {
-  DELETE: 'text-destructive border-destructive/30',
-}
+// ── Constants ─────────────────────────────────────────────────────────────────
 
 const ACTION_LABEL: Record<EndUserPermissionAction, string> = {
   SELECT: '查询',
@@ -71,8 +69,6 @@ const ACTION_LABEL: Record<EndUserPermissionAction, string> = {
   EXPORT: '导出',
 }
 
-// ── Row scope labels (plain text, no badge) ───────────────────────────────────
-
 const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
   ALL: '全部行',
   SELF: '本人行',
@@ -80,10 +76,41 @@ const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
   DEPT_AND_CHILDREN: '本部门及下级',
 }
 
-// ── Column policy summary ─────────────────────────────────────────────────────
+const RLS_PRESET_CONFIG: Record<
+  RLSPreset,
+  { label: string; description: string; variant: 'default' | 'secondary' | 'outline' | 'destructive' }
+> = {
+  READ_WRITE_OWNER: {
+    label: '读写自己',
+    description: '每人只能读写自己的数据',
+    variant: 'default',
+  },
+  READ_ALL_WRITE_OWNER: {
+    label: '读全部 / 写自己',
+    description: '所有人可读，每人只能写自己的数据',
+    variant: 'secondary',
+  },
+  READ_ALL: {
+    label: '只读全部',
+    description: '所有人只能读取，不能写入',
+    variant: 'secondary',
+  },
+  READ_WRITE_ALL: {
+    label: '读写全部',
+    description: '所有人可读写全部数据（高危）',
+    variant: 'destructive',
+  },
+  NO_ACCESS: {
+    label: '禁止访问',
+    description: '任何人均无法访问',
+    variant: 'outline',
+  },
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatColumnPolicySummary(policy: ColumnPolicy | undefined | null): string {
-  if (!policy) return '默认: 全部可见'
+  if (!policy) return '全部可见'
   const defaultLabel =
     policy.defaultMode === 'VISIBLE' ? '全部可见'
     : policy.defaultMode === 'HIDDEN' ? '全部隐藏'
@@ -91,35 +118,140 @@ function formatColumnPolicySummary(policy: ColumnPolicy | undefined | null): str
     : policy.defaultMode === 'MASKED' ? '脱敏'
     : policy.defaultMode
   const rulesCount = policy.rules?.length ?? 0
-  if (rulesCount === 0) return `默认: ${defaultLabel}`
-  return `默认: ${defaultLabel}  +${rulesCount} 条规则`
+  if (rulesCount === 0) return defaultLabel
+  return `${defaultLabel} +${rulesCount} 规则`
 }
 
-// ── Skeleton ──────────────────────────────────────────────────────────────────
+// ── RLS Preset Badge (lazy-loads per model) ───────────────────────────────────
 
-function PermissionListSkeleton() {
+function RLSPresetBadge({
+  modelId,
+  projectSlug,
+}: {
+  modelId: string
+  projectSlug: string
+}) {
+  const { policy, loading } = useRLSPolicy(modelId, projectSlug)
+
+  if (loading) {
+    return <Skeleton className="h-5 w-20" />
+  }
+  if (!policy) return null
+
+  const preset = policy.preset
+  if (!preset) {
+    return (
+      <Badge variant="outline" className="text-[11px] font-normal text-muted-foreground">
+        自定义策略
+      </Badge>
+    )
+  }
+
+  const config = RLS_PRESET_CONFIG[preset]
   return (
-    <div className="space-y-2">
-      {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-md border p-4 space-y-2">
-          <Skeleton className="h-5 w-40" />
-          <div className="space-y-2 pt-2">
-            {Array.from({ length: 2 }).map((_, j) => (
-              <div key={j} className="flex items-center gap-3">
-                <Skeleton className="h-5 w-14" />
-                <Skeleton className="h-4 w-16" />
-                <Skeleton className="h-4 w-48" />
-                <Skeleton className="ml-auto h-7 w-7" />
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
-    </div>
+    <Badge
+      variant={config.variant}
+      className="text-[11px] font-normal"
+      title={config.description}
+    >
+      {config.label}
+    </Badge>
   )
 }
 
-// ── PermissionRow (TableRow) ──────────────────────────────────────────────────
+// ── Inline Add Permission Row ─────────────────────────────────────────────────
+
+interface InlineAddRowProps {
+  modelId: string
+  onConfirm: (action: EndUserPermissionAction, rowScope: EndUserRowScope) => Promise<void>
+  onCancel: () => void
+  saving: boolean
+}
+
+function InlineAddRow({ modelId: _modelId, onConfirm, onCancel, saving }: InlineAddRowProps) {
+  const [action, setAction] = React.useState<EndUserPermissionAction>('SELECT')
+  const [rowScope, setRowScope] = React.useState<EndUserRowScope>('ALL')
+
+  return (
+    <TableRow className="bg-primary/[0.03]">
+      {/* Action */}
+      <TableCell className="py-2 pl-4">
+        <Select
+          value={action}
+          onValueChange={(v) => setAction(v as EndUserPermissionAction)}
+          disabled={saving}
+        >
+          <SelectTrigger className="h-7 w-24 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(ACTION_LABEL) as EndUserPermissionAction[]).map((a) => (
+              <SelectItem key={a} value={a} className="text-xs">
+                {ACTION_LABEL[a]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+
+      {/* Row scope */}
+      <TableCell className="py-2">
+        <Select
+          value={rowScope}
+          onValueChange={(v) => setRowScope(v as EndUserRowScope)}
+          disabled={saving}
+        >
+          <SelectTrigger className="h-7 w-28 text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(ROW_SCOPE_LABEL) as EndUserRowScope[]).map((s) => (
+              <SelectItem key={s} value={s} className="text-xs">
+                {ROW_SCOPE_LABEL[s]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </TableCell>
+
+      {/* Column policy — default VISIBLE, configurable later */}
+      <TableCell className="py-2">
+        <span className="text-xs text-muted-foreground">全部可见</span>
+      </TableCell>
+
+      {/* Name placeholder */}
+      <TableCell className="py-2">
+        <span className="text-xs text-muted-foreground/40">—</span>
+      </TableCell>
+
+      {/* Confirm / cancel */}
+      <TableCell className="py-2 pr-4 text-right">
+        <div className="flex items-center justify-end gap-1">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-muted-foreground hover:text-destructive"
+            onClick={onCancel}
+            disabled={saving}
+          >
+            <X className="size-3.5" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="size-7 text-primary hover:bg-primary/10"
+            onClick={() => void onConfirm(action, rowScope)}
+            disabled={saving}
+          >
+            <Check className="size-3.5" />
+          </Button>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
+}
+
+// ── Permission Row ────────────────────────────────────────────────────────────
 
 interface PermissionRowProps {
   permission: EndUserPermission
@@ -128,50 +260,41 @@ interface PermissionRowProps {
 }
 
 function PermissionRow({ permission, onDelete, deletingId }: PermissionRowProps) {
+  const isDeleting = deletingId === permission.id
   return (
-    <TableRow className="hover:bg-muted/50">
-      {/* Action */}
-      <TableCell className="py-3 pl-4">
-        <Badge
-          variant={ACTION_BADGE_VARIANT[permission.action]}
-          className={ACTION_BADGE_EXTRA_CLASS[permission.action]}
-        >
+    <TableRow className={cn('group hover:bg-muted/30', isDeleting && 'opacity-50')}>
+      <TableCell className="py-2.5 pl-4">
+        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-[11px] text-foreground">
           {ACTION_LABEL[permission.action]}
-        </Badge>
+        </span>
       </TableCell>
 
-      {/* Row scope — inline text, intentionally not a badge */}
-      <TableCell className="py-3">
+      <TableCell className="py-2.5">
         <span className="text-xs text-muted-foreground">
           {ROW_SCOPE_LABEL[permission.rowScope]}
         </span>
       </TableCell>
 
-      {/* Column policy summary */}
-      <TableCell className="py-3">
+      <TableCell className="py-2.5">
         <span className="text-xs text-muted-foreground">
-          {formatColumnPolicySummary(
-            permission.columnPolicy as ColumnPolicy | undefined
-          )}
+          {formatColumnPolicySummary(permission.columnPolicy as ColumnPolicy | undefined)}
         </span>
       </TableCell>
 
-      {/* Display name (if any) */}
-      <TableCell className="py-3">
+      <TableCell className="py-2.5">
         {permission.displayName && (
-          <span className="text-sm text-foreground">{permission.displayName}</span>
+          <span className="text-xs text-muted-foreground">{permission.displayName}</span>
         )}
       </TableCell>
 
-      {/* Delete — icon-only ghost, hover red */}
-      <TableCell className="py-3 pr-4 text-right">
+      <TableCell className="py-2.5 pr-4 text-right">
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 text-muted-foreground hover:text-destructive"
-              disabled={deletingId === permission.id}
+              className="size-7 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+              disabled={isDeleting}
             >
               <Trash2 className="size-3.5" />
               <span className="sr-only">删除</span>
@@ -181,16 +304,15 @@ function PermissionRow({ permission, onDelete, deletingId }: PermissionRowProps)
             <AlertDialogHeader>
               <AlertDialogTitle>确认删除权限点</AlertDialogTitle>
               <AlertDialogDescription>
-                确定要删除该权限点（
-                {ACTION_LABEL[permission.action]} · {ROW_SCOPE_LABEL[permission.rowScope]}
-                ）吗？已包含该权限点的权限包将自动失去此能力，此操作不可撤销。
+                确定要删除「{ACTION_LABEL[permission.action]} · {ROW_SCOPE_LABEL[permission.rowScope]}」吗？
+                已包含该权限点的权限包将自动失去此能力，此操作不可撤销。
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>取消</AlertDialogCancel>
               <AlertDialogAction
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                onClick={() => onDelete(permission)}
+                onClick={() => void onDelete(permission)}
               >
                 确认删除
               </AlertDialogAction>
@@ -202,96 +324,147 @@ function PermissionRow({ permission, onDelete, deletingId }: PermissionRowProps)
   )
 }
 
-// ── ModelGroup ────────────────────────────────────────────────────────────────
+// ── Model Card ────────────────────────────────────────────────────────────────
 
-interface ModelGroupProps {
-  modelId: string
-  modelDisplayName: string
-  permissions: EndUserPermission[]
-  onDelete: (permission: EndUserPermission) => Promise<void>
+interface ModelCardProps {
+  item: ModelWithPermissions
+  projectSlug: string
   deletingId: string | null
+  onDelete: (permission: EndUserPermission) => Promise<void>
+  onCreate: (modelId: string, action: EndUserPermissionAction, rowScope: EndUserRowScope) => Promise<void>
+  savingModelId: string | null
 }
 
-function ModelGroup({
-  modelId,
-  modelDisplayName,
-  permissions,
-  onDelete,
+function ModelCard({
+  item,
+  projectSlug,
   deletingId,
-}: ModelGroupProps) {
-  const [open, setOpen] = React.useState(true)
+  onDelete,
+  onCreate,
+  savingModelId,
+}: ModelCardProps) {
+  const [adding, setAdding] = React.useState(false)
+  const { model, permissions, hasOwnerField } = item
+  const saving = savingModelId === model.id
+
+  const handleConfirmAdd = async (action: EndUserPermissionAction, rowScope: EndUserRowScope) => {
+    await onCreate(model.id, action, rowScope)
+    setAdding(false)
+  }
 
   return (
-    <Collapsible open={open} onOpenChange={setOpen} className="rounded-md border">
-      {/* Group trigger */}
-      <CollapsibleTrigger asChild>
-        <button
-          type="button"
-          className="flex w-full items-center gap-2 px-4 py-3 text-left hover:bg-muted/50 focus-visible:outline-none"
-        >
-          {open ? (
-            <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-          )}
-          <span className="text-sm font-medium text-foreground">{modelDisplayName}</span>
-          <span className="font-mono text-xs text-muted-foreground">({modelId})</span>
-          <span className="ml-auto text-xs text-muted-foreground">
-            {permissions.length} 个权限点
+    <div className="rounded-md border border-border bg-card">
+      {/* Card header */}
+      <div className="flex items-center gap-3 border-b border-border px-4 py-3">
+        <Lock className="size-3.5 shrink-0 text-muted-foreground/60" />
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <span className="text-sm font-semibold text-foreground">
+            {model.title || model.name}
           </span>
-        </button>
-      </CollapsibleTrigger>
-
-      {/* Expanded: flat table, no extra padding wrapper */}
-      <CollapsibleContent>
-        <div className="border-t">
-          <Table>
-            <TableHeader>
-              <TableRow className="hover:bg-transparent">
-                <TableHead className="h-8 pl-4 text-xs font-medium text-muted-foreground">
-                  动作
-                </TableHead>
-                <TableHead className="h-8 text-xs font-medium text-muted-foreground">
-                  行范围
-                </TableHead>
-                <TableHead className="h-8 text-xs font-medium text-muted-foreground">
-                  列策略
-                </TableHead>
-                <TableHead className="h-8 text-xs font-medium text-muted-foreground">
-                  名称
-                </TableHead>
-                <TableHead className="h-8 w-10 pr-4" />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {permissions.map((permission) => (
-                <PermissionRow
-                  key={permission.id}
-                  permission={permission}
-                  onDelete={onDelete}
-                  deletingId={deletingId}
-                />
-              ))}
-            </TableBody>
-          </Table>
+          <span className="font-mono text-[11px] text-muted-foreground">{model.name}</span>
         </div>
-      </CollapsibleContent>
-    </Collapsible>
+
+        {/* RLS preset badge — only for models with owner field */}
+        {hasOwnerField ? (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[11px] text-muted-foreground">行隔离:</span>
+            <RLSPresetBadge modelId={model.id} projectSlug={projectSlug} />
+          </div>
+        ) : (
+          <span className="text-[11px] text-muted-foreground/50">无行隔离</span>
+        )}
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 shrink-0 px-2 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() => setAdding(true)}
+          disabled={adding || saving}
+        >
+          <Plus className="mr-1 size-3" />
+          新增
+        </Button>
+      </div>
+
+      {/* Permissions table */}
+      {(permissions.length > 0 || adding) ? (
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="h-7 pl-4 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                动作
+              </TableHead>
+              <TableHead className="h-7 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                行范围
+              </TableHead>
+              <TableHead className="h-7 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                列策略
+              </TableHead>
+              <TableHead className="h-7 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                名称
+              </TableHead>
+              <TableHead className="h-7 w-10 pr-4" />
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {permissions.map((perm) => (
+              <PermissionRow
+                key={perm.id}
+                permission={perm}
+                onDelete={onDelete}
+                deletingId={deletingId}
+              />
+            ))}
+            {adding && (
+              <InlineAddRow
+                modelId={model.id}
+                onConfirm={handleConfirmAdd}
+                onCancel={() => setAdding(false)}
+                saving={saving}
+              />
+            )}
+          </TableBody>
+        </Table>
+      ) : (
+        /* No permissions yet, not in adding mode */
+        <div className="flex items-center gap-2 px-4 py-3">
+          <span className="text-xs text-muted-foreground/50">暂无自定义权限点</span>
+          <button
+            type="button"
+            className="text-xs text-primary hover:underline"
+            onClick={() => setAdding(true)}
+          >
+            添加一个
+          </button>
+        </div>
+      )}
+    </div>
   )
 }
 
 // ── PermissionsTab ────────────────────────────────────────────────────────────
 
 export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
-  const [sheetOpen, setSheetOpen] = React.useState(false)
+  const [selectedDb, setSelectedDb] = React.useState<string>('')
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
+  const [savingModelId, setSavingModelId] = React.useState<string | null>(null)
 
-  const { groupedPermissions, loading, error, deletePermission } = usePermissionList({
-    orgName,
-    projectSlug,
-  })
+  const {
+    databaseNames,
+    modelsForDb,
+    loadingDatabases,
+    loadingModels,
+    error,
+    deletePermission,
+    createPermission,
+  } = usePermissionsView({ orgName, projectSlug, selectedDatabaseName: selectedDb })
 
-  const modelEntries = Object.entries(groupedPermissions)
+  // Auto-select first database when list loads
+  React.useEffect(() => {
+    if (!selectedDb && databaseNames.length > 0) {
+      setSelectedDb(databaseNames[0]!)
+    }
+  }, [databaseNames, selectedDb])
 
   const handleDelete = React.useCallback(
     async (permission: EndUserPermission) => {
@@ -304,78 +477,131 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
           toast.error(result.errorMessage ?? '删除失败，请重试')
         }
       } catch {
-        toast.error('删除权限点时发生错误，请重试')
+        toast.error('删除权限点时发生错误')
       } finally {
         setDeletingId(null)
       }
     },
-    [deletePermission]
+    [deletePermission],
   )
 
-  const handleCreateNew = React.useCallback(() => {
-    setSheetOpen(true)
-  }, [])
+  const handleCreate = React.useCallback(
+    async (
+      modelId: string,
+      action: EndUserPermissionAction,
+      rowScope: EndUserRowScope,
+    ) => {
+      setSavingModelId(modelId)
+      try {
+        const result = await createPermission({
+          modelId,
+          action,
+          rowScope,
+          columnPolicy: { defaultMode: 'VISIBLE', rules: [] },
+        })
+        if (result.success) {
+          toast.success('权限点已添加')
+        } else {
+          toast.error(result.errorMessage ?? '添加失败，请重试')
+        }
+      } catch {
+        toast.error('添加权限点时发生错误')
+      } finally {
+        setSavingModelId(null)
+      }
+    },
+    [createPermission],
+  )
+
+  if (loadingDatabases) {
+    return (
+      <div className="space-y-3">
+        <Skeleton className="h-8 w-44" />
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="rounded-md border p-4">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-5 w-16" />
+              <Skeleton className="ml-auto h-6 w-14" />
+            </div>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+        加载失败：{error.message}
+      </div>
+    )
+  }
+
+  if (databaseNames.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
+        <ShieldAlert className="mb-3 size-10 text-muted-foreground/25" />
+        <p className="text-sm font-medium text-foreground">暂无模型</p>
+        <p className="mt-1 text-xs text-muted-foreground">请先在数据模型页面创建模型</p>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-4">
-      <CreatePermissionSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        orgName={orgName}
-        projectSlug={projectSlug}
-      />
-
-      {/* Toolbar */}
-      <div className="flex justify-end">
-        <Button size="sm" onClick={handleCreateNew} className="shrink-0">
-          <Plus className="mr-1.5 size-4" />
-          创建权限点
-        </Button>
+      {/* Database selector */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-medium text-muted-foreground">数据库</span>
+        <Select value={selectedDb} onValueChange={setSelectedDb}>
+          <SelectTrigger className="h-8 w-44 text-sm">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {databaseNames.map((db) => (
+              <SelectItem key={db} value={db} className="text-sm font-mono">
+                {db}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!loadingModels && modelsForDb.length > 0 && (
+          <span className="text-xs text-muted-foreground">
+            {modelsForDb.length} 个模型
+          </span>
+        )}
       </div>
 
-      {/* Error banner */}
-      {error && (
-        <div className="rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
-          加载权限点失败：{error.message}
+      {/* Model cards */}
+      {loadingModels ? (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="rounded-md border p-4 space-y-3">
+              <div className="flex items-center gap-3">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="ml-auto h-6 w-14" />
+              </div>
+            </div>
+          ))}
         </div>
-      )}
-
-      {/* Content */}
-      {loading ? (
-        <PermissionListSkeleton />
-      ) : modelEntries.length === 0 ? (
-        /* Empty state — icon + title + hint + action */
-        <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-16">
-          <ShieldAlert className="mb-3 size-10 text-muted-foreground/25" />
-          <p className="text-sm font-medium text-foreground">暂无权限点</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            点击「创建权限点」添加第一个权限点
-          </p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="mt-4"
-            onClick={handleCreateNew}
-          >
-            <Plus className="mr-1.5 size-4" />
-            创建权限点
-          </Button>
+      ) : modelsForDb.length > 0 ? (
+        <div className="space-y-3">
+          {modelsForDb.map((item) => (
+            <ModelCard
+              key={item.model.id}
+              item={item}
+              projectSlug={projectSlug}
+              deletingId={deletingId}
+              onDelete={handleDelete}
+              onCreate={handleCreate}
+              savingModelId={savingModelId}
+            />
+          ))}
         </div>
       ) : (
-        <div className="space-y-3">
-          {modelEntries.map(([modelId, permissions]) => {
-            const modelDisplayName = permissions[0]?.modelDisplayName ?? modelId
-            return (
-              <ModelGroup
-                key={modelId}
-                modelId={modelId}
-                modelDisplayName={modelDisplayName}
-                permissions={permissions}
-                onDelete={handleDelete}
-                deletingId={deletingId}
-              />
-            )
-          })}
+        <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-12">
+          <p className="text-sm text-muted-foreground">该数据库下暂无模型</p>
         </div>
       )}
     </div>

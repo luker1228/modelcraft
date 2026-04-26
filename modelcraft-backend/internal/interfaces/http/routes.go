@@ -464,6 +464,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 	jwtConfig := &middleware.JWTAuthConfig{
 		ModelCraftSecret: []byte(cfg.JWT.Secret),
 		SkipValidation:   cfg.Auth.Design.SkipJWTValidation,
+		InternalToken:    cfg.Auth.InternalToken,
 	}
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
@@ -518,6 +519,7 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 	jwtConfig := &middleware.JWTAuthConfig{
 		ModelCraftSecret: []byte(cfg.JWT.Secret),
 		SkipValidation:   cfg.Auth.Design.SkipJWTValidation,
+		InternalToken:    cfg.Auth.InternalToken,
 	}
 
 	// Register project endpoint: /graphql/org/{orgName}/project/{projectSlug}

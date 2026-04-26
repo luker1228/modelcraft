@@ -36,7 +36,17 @@ module.exports = {
         selector: 'JSXAttribute[name.name="className"] TemplateLiteral > TemplateElement[value.raw=/\\btext-gray-(400|500|600|700|800|900)\\b/]',
         message: '禁止使用 text-gray-* 具体值。主文本用 text-foreground，次要文本用 text-muted-foreground。参见 STYLE.md §1.3。',
       },
-      // 文字颜色：禁止 text-slate-{400-900}，应改用语义化变量
+      // 架构守则：禁止 web 层和 app 页面直连后端 GraphQL 端点
+      // 所有 GraphQL 请求必须经过 BFF 代理（/api/bff/graphql/org/...）
+      // 参见 ai-metadata/front/development/bff-design.md
+      {
+        selector: 'Literal[value=/(?<!\\/api\\/bff)\\/graphql\\/org\\//]',
+        message: '禁止直连后端 GraphQL 端点。请使用 BFF 代理路径：/api/bff/graphql/org/... 参见 bff-design.md',
+      },
+      {
+        selector: 'TemplateLiteral > TemplateElement[value.raw=/(?<!\\/api\\/bff)\\/graphql\\/org\\//]',
+        message: '禁止直连后端 GraphQL 端点。请使用 BFF 代理路径：/api/bff/graphql/org/... 参见 bff-design.md',
+      },
       {
         selector: 'JSXAttribute[name.name="className"] Literal[value=/\\btext-slate-(400|500|600|700|800|900)\\b/]',
         message: '禁止使用 text-slate-* 具体值。主文本用 text-foreground，次要文本用 text-muted-foreground。参见 STYLE.md §1.3。',
@@ -96,6 +106,16 @@ module.exports = {
             },
           ],
         }],
+      },
+    },
+    // BFF 代理路由和 go-client 本身需要引用后端路径，豁免直连检测
+    {
+      files: [
+        'src/app/api/bff/**/*.{ts,tsx}',
+        'src/bff/**/*.{ts,tsx}',
+      ],
+      rules: {
+        'no-restricted-syntax': 'off',
       },
     },
   ],
