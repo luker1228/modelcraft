@@ -70,6 +70,11 @@ type ComplexityRoot struct {
 		Results func(childComplexity int) int
 	}
 
+	ApplyEndUserPresetPolicyPayload struct {
+		Error       func(childComplexity int) int
+		Permissions func(childComplexity int) int
+	}
+
 	AssignBundleToEndUserPayload struct {
 		Bundle    func(childComplexity int) int
 		EndUserID func(childComplexity int) int
@@ -361,6 +366,7 @@ type ComplexityRoot struct {
 		DisplayName  func(childComplexity int) int
 		ID           func(childComplexity int) int
 		ModelID      func(childComplexity int) int
+		Preset       func(childComplexity int) int
 		RowScope     func(childComplexity int) int
 		UpdatedAt    func(childComplexity int) int
 	}
@@ -772,6 +778,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AddEndUserPermissionToBundle      func(childComplexity int, input AddEndUserPermissionToBundleInput) int
 		AddFields                         func(childComplexity int, modelID string, input []*AddFieldInput) int
+		ApplyEndUserPresetPolicy          func(childComplexity int, input ApplyEndUserPresetPolicyInput) int
 		AssignBundleToEndUser             func(childComplexity int, input AssignBundleToEndUserInput) int
 		AssignBundleToEndUserRole         func(childComplexity int, input AssignBundleToEndUserRoleInput) int
 		AssignEndUserRole                 func(childComplexity int, input AssignEndUserRoleInput) int
@@ -825,6 +832,12 @@ type ComplexityRoot struct {
 		HasNextPage     func(childComplexity int) int
 		HasPreviousPage func(childComplexity int) int
 		StartCursor     func(childComplexity int) int
+	}
+
+	PresetRequiresOwnerField struct {
+		Message    func(childComplexity int) int
+		Preset     func(childComplexity int) int
+		Suggestion func(childComplexity int) int
 	}
 
 	ProjectAuthSchema struct {
@@ -1083,6 +1096,7 @@ type MutationResolver interface {
 	CreateEndUserPermission(ctx context.Context, input CreateEndUserPermissionInput) (*CreateEndUserPermissionPayload, error)
 	UpdateEndUserPermission(ctx context.Context, id string, input UpdateEndUserPermissionInput) (*UpdateEndUserPermissionPayload, error)
 	DeleteEndUserPermission(ctx context.Context, id string) (*DeleteEndUserPermissionPayload, error)
+	ApplyEndUserPresetPolicy(ctx context.Context, input ApplyEndUserPresetPolicyInput) (*ApplyEndUserPresetPolicyPayload, error)
 	CreateEndUserPermissionBundle(ctx context.Context, input CreateEndUserPermissionBundleInput) (*CreateEndUserPermissionBundlePayload, error)
 	UpdateEndUserPermissionBundle(ctx context.Context, id string, input UpdateEndUserPermissionBundleInput) (*UpdateEndUserPermissionBundlePayload, error)
 	DeleteEndUserPermissionBundle(ctx context.Context, id string) (*DeleteEndUserPermissionBundlePayload, error)
@@ -1222,6 +1236,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AddFieldsPayload.Results(childComplexity), true
+
+	case "ApplyEndUserPresetPolicyPayload.error":
+		if e.complexity.ApplyEndUserPresetPolicyPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.ApplyEndUserPresetPolicyPayload.Error(childComplexity), true
+	case "ApplyEndUserPresetPolicyPayload.permissions":
+		if e.complexity.ApplyEndUserPresetPolicyPayload.Permissions == nil {
+			break
+		}
+
+		return e.complexity.ApplyEndUserPresetPolicyPayload.Permissions(childComplexity), true
 
 	case "AssignBundleToEndUserPayload.bundle":
 		if e.complexity.AssignBundleToEndUserPayload.Bundle == nil {
@@ -2079,6 +2106,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermission.ModelID(childComplexity), true
+	case "EndUserPermission.preset":
+		if e.complexity.EndUserPermission.Preset == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermission.Preset(childComplexity), true
 	case "EndUserPermission.rowScope":
 		if e.complexity.EndUserPermission.RowScope == nil {
 			break
@@ -3416,6 +3449,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AddFields(childComplexity, args["modelID"].(string), args["input"].([]*AddFieldInput)), true
+	case "Mutation.applyEndUserPresetPolicy":
+		if e.complexity.Mutation.ApplyEndUserPresetPolicy == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_applyEndUserPresetPolicy_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ApplyEndUserPresetPolicy(childComplexity, args["input"].(ApplyEndUserPresetPolicyInput)), true
 	case "Mutation.assignBundleToEndUser":
 		if e.complexity.Mutation.AssignBundleToEndUser == nil {
 			break
@@ -3942,6 +3986,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PageInfo.StartCursor(childComplexity), true
+
+	case "PresetRequiresOwnerField.message":
+		if e.complexity.PresetRequiresOwnerField.Message == nil {
+			break
+		}
+
+		return e.complexity.PresetRequiresOwnerField.Message(childComplexity), true
+	case "PresetRequiresOwnerField.preset":
+		if e.complexity.PresetRequiresOwnerField.Preset == nil {
+			break
+		}
+
+		return e.complexity.PresetRequiresOwnerField.Preset(childComplexity), true
+	case "PresetRequiresOwnerField.suggestion":
+		if e.complexity.PresetRequiresOwnerField.Suggestion == nil {
+			break
+		}
+
+		return e.complexity.PresetRequiresOwnerField.Suggestion(childComplexity), true
 
 	case "ProjectAuthSchema.variables":
 		if e.complexity.ProjectAuthSchema.Variables == nil {
@@ -4799,6 +4862,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 	inputUnmarshalMap := graphql.BuildUnmarshalerMap(
 		ec.unmarshalInputAddEndUserPermissionToBundleInput,
 		ec.unmarshalInputAddFieldInput,
+		ec.unmarshalInputApplyEndUserPresetPolicyInput,
 		ec.unmarshalInputAssignBundleToEndUserInput,
 		ec.unmarshalInputAssignBundleToEndUserRoleInput,
 		ec.unmarshalInputAssignEndUserRoleInput,
@@ -6245,6 +6309,28 @@ enum RowScopeType {
 }
 
 """
+权限点预设策略类型。
+
+应用预设时会替换该模型下所有 preset != null 的权限点，
+preset = null（手动创建）的权限点不受影响。
+
+READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
+                      SELECT ALL + INSERT ALL + UPDATE ALL + DELETE ALL
+READ_ALL            — 只读全部（不依赖 END_USER_REF 字段）
+                      SELECT ALL
+READ_WRITE_OWNER    — 读写自己（依赖 END_USER_REF 字段）
+                      SELECT SELF + INSERT SELF + UPDATE SELF + DELETE SELF
+READ_ALL_WRITE_OWNER — 读所有写自己（依赖 END_USER_REF 字段）
+                      SELECT ALL + INSERT SELF + UPDATE SELF + DELETE SELF
+"""
+enum EndUserPermissionPreset {
+  READ_WRITE_ALL
+  READ_ALL
+  READ_WRITE_OWNER
+  READ_ALL_WRITE_OWNER
+}
+
+"""
 列访问模式
 """
 enum ColumnAccessMode {
@@ -6296,6 +6382,10 @@ type EndUserPermission implements Node {
   action: RbacAction!
   columnPolicy: ColumnPolicy!
   rowScope: RowScopeType!
+  """
+  来源预设，null 表示手动创建的自定义权限点
+  """
+  preset: EndUserPermissionPreset
   displayName: String
   description: String
   createdAt: Time!
@@ -6486,6 +6576,15 @@ type EndUserPermissionInUse implements Error {
   suggestion: String
 }
 
+type PresetRequiresOwnerField implements Error {
+  """
+  选择的预设依赖 END_USER_REF 字段，但模型中不存在该字段
+  """
+  message: String!
+  preset: EndUserPermissionPreset!
+  suggestion: String
+}
+
 
 # ============================================================
 # Error Unions
@@ -6494,6 +6593,7 @@ type EndUserPermissionInUse implements Error {
 union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
 union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
 union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
+union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | ProjectNotFound
 
 union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
 union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
@@ -6534,6 +6634,13 @@ type UpdateEndUserPermissionPayload {
 type DeleteEndUserPermissionPayload {
   success: Boolean!
   error: DeleteEndUserPermissionError
+}
+type ApplyEndUserPresetPolicyPayload {
+  """
+  应用预设后，该模型当前所有的权限点（含原有自定义权限点）
+  """
+  permissions: [EndUserPermission!]!
+  error: ApplyEndUserPresetPolicyError
 }
 
 # EndUserPermissionBundle
@@ -6626,6 +6733,11 @@ input UpdateEndUserPermissionInput {
   columnPolicy: ColumnPolicyInput
   displayName: String
   description: String
+}
+
+input ApplyEndUserPresetPolicyInput {
+  modelId: ID!
+  preset: EndUserPermissionPreset!
 }
 
 input ListEndUserPermissionsInput {
@@ -6741,6 +6853,11 @@ extend type Mutation {
   createEndUserPermission(input: CreateEndUserPermissionInput!): CreateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   updateEndUserPermission(id: ID!, input: UpdateEndUserPermissionInput!): UpdateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   deleteEndUserPermission(id: ID!): DeleteEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
+  """
+  对指定模型应用预设策略。
+  会替换该模型下所有 preset != null 的权限点，preset = null 的自定义权限点保留不变。
+  """
+  applyEndUserPresetPolicy(input: ApplyEndUserPresetPolicyInput!): ApplyEndUserPresetPolicyPayload! @hasPermission(action: "rbac:manage")
 
   # EndUserPermissionBundle CRUD
   createEndUserPermissionBundle(input: CreateEndUserPermissionBundleInput!): CreateEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
@@ -7143,6 +7260,17 @@ func (ec *executionContext) field_Mutation_addFields_args(ctx context.Context, r
 		return nil, err
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_applyEndUserPresetPolicy_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNApplyEndUserPresetPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -8406,6 +8534,86 @@ func (ec *executionContext) fieldContext_AddFieldsPayload_error(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _ApplyEndUserPresetPolicyPayload_permissions(ctx context.Context, field graphql.CollectedField, obj *ApplyEndUserPresetPolicyPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ApplyEndUserPresetPolicyPayload_permissions,
+		func(ctx context.Context) (any, error) {
+			return obj.Permissions, nil
+		},
+		nil,
+		ec.marshalNEndUserPermission2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ApplyEndUserPresetPolicyPayload_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ApplyEndUserPresetPolicyPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserPermission_id(ctx, field)
+			case "modelId":
+				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "action":
+				return ec.fieldContext_EndUserPermission_action(ctx, field)
+			case "columnPolicy":
+				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
+			case "rowScope":
+				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
+			case "displayName":
+				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_EndUserPermission_description(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPermission_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUserPermission_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPermission", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ApplyEndUserPresetPolicyPayload_error(ctx context.Context, field graphql.CollectedField, obj *ApplyEndUserPresetPolicyPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ApplyEndUserPresetPolicyPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOApplyEndUserPresetPolicyError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ApplyEndUserPresetPolicyPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ApplyEndUserPresetPolicyPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ApplyEndUserPresetPolicyError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _AssignBundleToEndUserPayload_endUserId(ctx context.Context, field graphql.CollectedField, obj *AssignBundleToEndUserPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -9363,6 +9571,8 @@ func (ec *executionContext) fieldContext_CreateEndUserPermissionPayload_permissi
 				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
 			case "rowScope":
 				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
 			case "displayName":
 				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
 			case "description":
@@ -12099,6 +12309,8 @@ func (ec *executionContext) fieldContext_EndUserBundlePermissionEntry_permission
 				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
 			case "rowScope":
 				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
 			case "displayName":
 				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
 			case "description":
@@ -12603,6 +12815,35 @@ func (ec *executionContext) fieldContext_EndUserPermission_rowScope(_ context.Co
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type RowScopeType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermission_preset(ctx context.Context, field graphql.CollectedField, obj *EndUserPermission) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermission_preset,
+		func(ctx context.Context) (any, error) {
+			return obj.Preset, nil
+		},
+		nil,
+		ec.marshalOEndUserPermissionPreset2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermission_preset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EndUserPermissionPreset does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13361,6 +13602,8 @@ func (ec *executionContext) fieldContext_EndUserPermissionEdge_node(_ context.Co
 				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
 			case "rowScope":
 				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
 			case "displayName":
 				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
 			case "description":
@@ -21311,6 +21554,71 @@ func (ec *executionContext) fieldContext_Mutation_deleteEndUserPermission(ctx co
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_applyEndUserPresetPolicy(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_applyEndUserPresetPolicy,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ApplyEndUserPresetPolicy(ctx, fc.Args["input"].(ApplyEndUserPresetPolicyInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "rbac:manage")
+				if err != nil {
+					var zeroVal *ApplyEndUserPresetPolicyPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *ApplyEndUserPresetPolicyPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNApplyEndUserPresetPolicyPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_applyEndUserPresetPolicy(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "permissions":
+				return ec.fieldContext_ApplyEndUserPresetPolicyPayload_permissions(ctx, field)
+			case "error":
+				return ec.fieldContext_ApplyEndUserPresetPolicyPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ApplyEndUserPresetPolicyPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_applyEndUserPresetPolicy_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createEndUserPermissionBundle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -22526,6 +22834,93 @@ func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graph
 func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PresetRequiresOwnerField_message(ctx context.Context, field graphql.CollectedField, obj *PresetRequiresOwnerField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PresetRequiresOwnerField_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PresetRequiresOwnerField_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PresetRequiresOwnerField",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PresetRequiresOwnerField_preset(ctx context.Context, field graphql.CollectedField, obj *PresetRequiresOwnerField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PresetRequiresOwnerField_preset,
+		func(ctx context.Context) (any, error) {
+			return obj.Preset, nil
+		},
+		nil,
+		ec.marshalNEndUserPermissionPreset2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_PresetRequiresOwnerField_preset(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PresetRequiresOwnerField",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EndUserPermissionPreset does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PresetRequiresOwnerField_suggestion(ctx context.Context, field graphql.CollectedField, obj *PresetRequiresOwnerField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_PresetRequiresOwnerField_suggestion,
+		func(ctx context.Context) (any, error) {
+			return obj.Suggestion, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_PresetRequiresOwnerField_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PresetRequiresOwnerField",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -23834,6 +24229,8 @@ func (ec *executionContext) fieldContext_Query_endUserPermission(ctx context.Con
 				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
 			case "rowScope":
 				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
 			case "displayName":
 				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
 			case "description":
@@ -26462,6 +26859,8 @@ func (ec *executionContext) fieldContext_UpdateEndUserPermissionPayload_permissi
 				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
 			case "rowScope":
 				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
 			case "displayName":
 				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
 			case "description":
@@ -29037,6 +29436,40 @@ func (ec *executionContext) unmarshalInputAddFieldInput(ctx context.Context, obj
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputApplyEndUserPresetPolicyInput(ctx context.Context, obj any) (ApplyEndUserPresetPolicyInput, error) {
+	var it ApplyEndUserPresetPolicyInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"modelId", "preset"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "modelId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("modelId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ModelID = data
+		case "preset":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("preset"))
+			data, err := ec.unmarshalNEndUserPermissionPreset2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Preset = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputAssignBundleToEndUserInput(ctx context.Context, obj any) (AssignBundleToEndUserInput, error) {
 	var it AssignBundleToEndUserInput
 	asMap := map[string]any{}
@@ -31291,6 +31724,36 @@ func (ec *executionContext) _AddFieldsError(ctx context.Context, sel ast.Selecti
 	}
 }
 
+func (ec *executionContext) _ApplyEndUserPresetPolicyError(ctx context.Context, sel ast.SelectionSet, obj ApplyEndUserPresetPolicyError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case PresetRequiresOwnerField:
+		return ec._PresetRequiresOwnerField(ctx, sel, &obj)
+	case *PresetRequiresOwnerField:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._PresetRequiresOwnerField(ctx, sel, obj)
+	case ModelNotFound:
+		return ec._ModelNotFound(ctx, sel, &obj)
+	case *ModelNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ModelNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _AssignBundleToEndUserError(ctx context.Context, sel ast.SelectionSet, obj AssignBundleToEndUserError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -31958,6 +32421,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._ProjectNotFound(ctx, sel, obj)
+	case PresetRequiresOwnerField:
+		return ec._PresetRequiresOwnerField(ctx, sel, &obj)
+	case *PresetRequiresOwnerField:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._PresetRequiresOwnerField(ctx, sel, obj)
 	case ModelTableAlreadyExists:
 		return ec._ModelTableAlreadyExists(ctx, sel, &obj)
 	case *ModelTableAlreadyExists:
@@ -33367,6 +33837,47 @@ func (ec *executionContext) _AddFieldsPayload(ctx context.Context, sel ast.Selec
 			}
 		case "error":
 			out.Values[i] = ec._AddFieldsPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var applyEndUserPresetPolicyPayloadImplementors = []string{"ApplyEndUserPresetPolicyPayload"}
+
+func (ec *executionContext) _ApplyEndUserPresetPolicyPayload(ctx context.Context, sel ast.SelectionSet, obj *ApplyEndUserPresetPolicyPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, applyEndUserPresetPolicyPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ApplyEndUserPresetPolicyPayload")
+		case "permissions":
+			out.Values[i] = ec._ApplyEndUserPresetPolicyPayload_permissions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._ApplyEndUserPresetPolicyPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -35700,6 +36211,8 @@ func (ec *executionContext) _EndUserPermission(ctx context.Context, sel ast.Sele
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "preset":
+			out.Values[i] = ec._EndUserPermission_preset(ctx, field, obj)
 		case "displayName":
 			out.Values[i] = ec._EndUserPermission_displayName(ctx, field, obj)
 		case "description":
@@ -38658,7 +39171,7 @@ func (ec *executionContext) _ModelJsonSchema(ctx context.Context, sel ast.Select
 	return out
 }
 
-var modelNotFoundImplementors = []string{"ModelNotFound", "Error", "GetModelError", "UpdateModelError", "DeleteModelError", "MoveModelToGroupError", "CreateEndUserPermissionError", "GetEffectivePermissionsError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var modelNotFoundImplementors = []string{"ModelNotFound", "Error", "GetModelError", "UpdateModelError", "DeleteModelError", "MoveModelToGroupError", "CreateEndUserPermissionError", "ApplyEndUserPresetPolicyError", "GetEffectivePermissionsError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ModelNotFound(ctx context.Context, sel ast.SelectionSet, obj *ModelNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, modelNotFoundImplementors)
@@ -39085,6 +39598,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "applyEndUserPresetPolicy":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_applyEndUserPresetPolicy(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createEndUserPermissionBundle":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEndUserPermissionBundle(ctx, field)
@@ -39275,6 +39795,52 @@ func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var presetRequiresOwnerFieldImplementors = []string{"PresetRequiresOwnerField", "Error", "ApplyEndUserPresetPolicyError"}
+
+func (ec *executionContext) _PresetRequiresOwnerField(ctx context.Context, sel ast.SelectionSet, obj *PresetRequiresOwnerField) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, presetRequiresOwnerFieldImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PresetRequiresOwnerField")
+		case "message":
+			out.Values[i] = ec._PresetRequiresOwnerField_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "preset":
+			out.Values[i] = ec._PresetRequiresOwnerField_preset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "suggestion":
+			out.Values[i] = ec._PresetRequiresOwnerField_suggestion(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var projectAuthSchemaImplementors = []string{"ProjectAuthSchema"}
 
 func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.SelectionSet, obj *ProjectAuthSchema) graphql.Marshaler {
@@ -39314,7 +39880,7 @@ func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "RevokeEndUserProjectAccessError", "ListProjectEndUserAccessError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "RevokeEndUserProjectAccessError", "ListProjectEndUserAccessError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -41946,6 +42512,25 @@ func (ec *executionContext) marshalNAddFieldsPayload2ᚖmodelcraftᚋinternalᚋ
 	return ec._AddFieldsPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNApplyEndUserPresetPolicyInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyInput(ctx context.Context, v any) (ApplyEndUserPresetPolicyInput, error) {
+	res, err := ec.unmarshalInputApplyEndUserPresetPolicyInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNApplyEndUserPresetPolicyPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyPayload(ctx context.Context, sel ast.SelectionSet, v ApplyEndUserPresetPolicyPayload) graphql.Marshaler {
+	return ec._ApplyEndUserPresetPolicyPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNApplyEndUserPresetPolicyPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyPayload(ctx context.Context, sel ast.SelectionSet, v *ApplyEndUserPresetPolicyPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ApplyEndUserPresetPolicyPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNAssignBundleToEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAssignBundleToEndUserInput(ctx context.Context, v any) (AssignBundleToEndUserInput, error) {
 	res, err := ec.unmarshalInputAssignBundleToEndUserInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -42855,6 +43440,50 @@ func (ec *executionContext) marshalNEndUserBundlePermissionEntry2ᚖmodelcraft�
 	return ec._EndUserBundlePermissionEntry(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEndUserPermission2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserPermission) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUserPermission2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermission(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) marshalNEndUserPermission2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermission(ctx context.Context, sel ast.SelectionSet, v *EndUserPermission) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -43053,6 +43682,16 @@ func (ec *executionContext) marshalNEndUserPermissionEdge2ᚖmodelcraftᚋintern
 		return graphql.Null
 	}
 	return ec._EndUserPermissionEdge(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNEndUserPermissionPreset2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset(ctx context.Context, v any) (EndUserPermissionPreset, error) {
+	var res EndUserPermissionPreset
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNEndUserPermissionPreset2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset(ctx context.Context, sel ast.SelectionSet, v EndUserPermissionPreset) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNEndUserProjectAccess2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccessᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserProjectAccess) graphql.Marshaler {
@@ -45048,6 +45687,13 @@ func (ec *executionContext) marshalOAddFieldsError2modelcraftᚋinternalᚋinter
 	return ec._AddFieldsError(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOApplyEndUserPresetPolicyError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐApplyEndUserPresetPolicyError(ctx context.Context, sel ast.SelectionSet, v ApplyEndUserPresetPolicyError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ApplyEndUserPresetPolicyError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOAssignBundleToEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAssignBundleToEndUserError(ctx context.Context, sel ast.SelectionSet, v AssignBundleToEndUserError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -45283,6 +45929,22 @@ func (ec *executionContext) marshalOEndUserPermissionBundle2ᚖmodelcraftᚋinte
 		return graphql.Null
 	}
 	return ec._EndUserPermissionBundle(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOEndUserPermissionPreset2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset(ctx context.Context, v any) (*EndUserPermissionPreset, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(EndUserPermissionPreset)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOEndUserPermissionPreset2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset(ctx context.Context, sel ast.SelectionSet, v *EndUserPermissionPreset) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOEndUserProjectAccess2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccess(ctx context.Context, sel ast.SelectionSet, v *EndUserProjectAccess) graphql.Marshaler {

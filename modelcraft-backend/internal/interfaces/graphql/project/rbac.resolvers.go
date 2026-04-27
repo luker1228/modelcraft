@@ -6,6 +6,7 @@ package projectgraphql
 
 import (
 	"context"
+	"fmt"
 	apprbac "modelcraft/internal/app/rbac"
 	domainproject "modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
@@ -98,6 +99,11 @@ func (r *mutationResolver) DeleteEndUserPermission(ctx context.Context, id strin
 		}, nil
 	}
 	return &generated.DeleteEndUserPermissionPayload{Success: true}, nil
+}
+
+// ApplyEndUserPresetPolicy is the resolver for the applyEndUserPresetPolicy field.
+func (r *mutationResolver) ApplyEndUserPresetPolicy(ctx context.Context, input generated.ApplyEndUserPresetPolicyInput) (*generated.ApplyEndUserPresetPolicyPayload, error) {
+	panic(fmt.Errorf("not implemented: ApplyEndUserPresetPolicy - applyEndUserPresetPolicy"))
 }
 
 // CreateEndUserPermissionBundle is the resolver for the createEndUserPermissionBundle field.

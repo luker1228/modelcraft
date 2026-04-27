@@ -33,6 +33,8 @@ interface UseOrgEndUsersReturn {
   users: OrgEndUser[]
   isLoading: boolean
   error: string | null
+  search: string
+  setSearch: (s: string) => void
   reload: () => void
   createUser: (payload: CreateEndUserPayload) => Promise<void>
   toggleUserStatus: (userId: string, isForbidden: boolean) => Promise<void>
@@ -80,6 +82,14 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
+  const [search, setSearch] = useState('')
+  const [debouncedSearch, setDebouncedSearch] = useState('')
+
+  // Debounce search by 300ms
+  useEffect(() => {
+    const id = setTimeout(() => setDebouncedSearch(search), 300)
+    return () => clearTimeout(id)
+  }, [search])
 
   const reload = useCallback(() => setVersion((v) => v + 1), [])
 
@@ -90,10 +100,17 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
     setIsLoading(true)
     setError(null)
 
+    const variables = {
+      input: {
+        first: 100,
+        ...(debouncedSearch ? { search: debouncedSearch } : {}),
+      },
+    }
+
     client
       .query<ListEndUsersData>({
         query: LIST_END_USERS,
-        variables: { input: { first: 100 } },
+        variables,
         fetchPolicy: 'network-only',
       })
       .then(({ data }) => {
@@ -103,7 +120,12 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
           setError(gqlError.message)
           return
         }
-        setUsers(data?.listEndUsers?.connection?.nodes ?? [])
+        const nodes = data?.listEndUsers?.connection?.nodes ?? []
+        // Sort by createdAt descending (newest first)
+        const sorted = [...nodes].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        setUsers(sorted)
       })
       .catch((e: unknown) => {
         if (cancelled) return
@@ -116,7 +138,7 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
     return () => {
       cancelled = true
     }
-  }, [version])
+  }, [version, debouncedSearch])
 
   const createUser = useCallback(async (payload: CreateEndUserPayload) => {
     const client = getOrgScopedClient()
@@ -157,5 +179,5 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
     reload()
   }, [reload])
 
-  return { users, isLoading, error, reload, createUser, toggleUserStatus, deleteUser }
+  return { users, isLoading, error, search, setSearch, reload, createUser, toggleUserStatus, deleteUser }
 }

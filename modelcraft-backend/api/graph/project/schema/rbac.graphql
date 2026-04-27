@@ -45,6 +45,28 @@ enum RowScopeType {
 }
 
 """
+权限点预设策略类型。
+
+应用预设时会替换该模型下所有 preset != null 的权限点，
+preset = null（手动创建）的权限点不受影响。
+
+READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
+                      SELECT ALL + INSERT ALL + UPDATE ALL + DELETE ALL
+READ_ALL            — 只读全部（不依赖 END_USER_REF 字段）
+                      SELECT ALL
+READ_WRITE_OWNER    — 读写自己（依赖 END_USER_REF 字段）
+                      SELECT SELF + INSERT SELF + UPDATE SELF + DELETE SELF
+READ_ALL_WRITE_OWNER — 读所有写自己（依赖 END_USER_REF 字段）
+                      SELECT ALL + INSERT SELF + UPDATE SELF + DELETE SELF
+"""
+enum EndUserPermissionPreset {
+  READ_WRITE_ALL
+  READ_ALL
+  READ_WRITE_OWNER
+  READ_ALL_WRITE_OWNER
+}
+
+"""
 列访问模式
 """
 enum ColumnAccessMode {
@@ -96,6 +118,10 @@ type EndUserPermission implements Node {
   action: RbacAction!
   columnPolicy: ColumnPolicy!
   rowScope: RowScopeType!
+  """
+  来源预设，null 表示手动创建的自定义权限点
+  """
+  preset: EndUserPermissionPreset
   displayName: String
   description: String
   createdAt: Time!
@@ -286,6 +312,15 @@ type EndUserPermissionInUse implements Error {
   suggestion: String
 }
 
+type PresetRequiresOwnerField implements Error {
+  """
+  选择的预设依赖 END_USER_REF 字段，但模型中不存在该字段
+  """
+  message: String!
+  preset: EndUserPermissionPreset!
+  suggestion: String
+}
+
 
 # ============================================================
 # Error Unions
@@ -294,6 +329,7 @@ type EndUserPermissionInUse implements Error {
 union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
 union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
 union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
+union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | ProjectNotFound
 
 union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
 union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
@@ -334,6 +370,13 @@ type UpdateEndUserPermissionPayload {
 type DeleteEndUserPermissionPayload {
   success: Boolean!
   error: DeleteEndUserPermissionError
+}
+type ApplyEndUserPresetPolicyPayload {
+  """
+  应用预设后，该模型当前所有的权限点（含原有自定义权限点）
+  """
+  permissions: [EndUserPermission!]!
+  error: ApplyEndUserPresetPolicyError
 }
 
 # EndUserPermissionBundle
@@ -426,6 +469,11 @@ input UpdateEndUserPermissionInput {
   columnPolicy: ColumnPolicyInput
   displayName: String
   description: String
+}
+
+input ApplyEndUserPresetPolicyInput {
+  modelId: ID!
+  preset: EndUserPermissionPreset!
 }
 
 input ListEndUserPermissionsInput {
@@ -541,6 +589,11 @@ extend type Mutation {
   createEndUserPermission(input: CreateEndUserPermissionInput!): CreateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   updateEndUserPermission(id: ID!, input: UpdateEndUserPermissionInput!): UpdateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   deleteEndUserPermission(id: ID!): DeleteEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
+  """
+  对指定模型应用预设策略。
+  会替换该模型下所有 preset != null 的权限点，preset = null 的自定义权限点保留不变。
+  """
+  applyEndUserPresetPolicy(input: ApplyEndUserPresetPolicyInput!): ApplyEndUserPresetPolicyPayload! @hasPermission(action: "rbac:manage")
 
   # EndUserPermissionBundle CRUD
   createEndUserPermissionBundle(input: CreateEndUserPermissionBundleInput!): CreateEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")

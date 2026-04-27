@@ -193,7 +193,7 @@ export function AppLayout({
       header: '工作区',
       items: [
         { label: '项目', icon: FolderOpen, href: `/org/${orgName}/workspace` },
-        { label: '团队', icon: Users, href: `/org/${orgName}/team` },
+        { label: '开发者', icon: Users, href: `/org/${orgName}/developers` },
         { label: '终端用户', icon: KeyRound, href: `/org/${orgName}/end-users` },
       ],
     },

@@ -18,6 +18,10 @@ type AddFieldsError interface {
 	IsAddFieldsError()
 }
 
+type ApplyEndUserPresetPolicyError interface {
+	IsApplyEndUserPresetPolicyError()
+}
+
 type AssignBundleToEndUserError interface {
 	IsAssignBundleToEndUserError()
 }
@@ -274,6 +278,17 @@ type AddFieldsPayload struct {
 	Model   *Model                `json:"model,omitempty"`
 	Results []*AddFieldItemResult `json:"results"`
 	Error   AddFieldsError        `json:"error,omitempty"`
+}
+
+type ApplyEndUserPresetPolicyInput struct {
+	ModelID string                  `json:"modelId"`
+	Preset  EndUserPermissionPreset `json:"preset"`
+}
+
+type ApplyEndUserPresetPolicyPayload struct {
+	// 应用预设后，该模型当前所有的权限点（含原有自定义权限点）
+	Permissions []*EndUserPermission          `json:"permissions"`
+	Error       ApplyEndUserPresetPolicyError `json:"error,omitempty"`
 }
 
 type AssignBundleToEndUserInput struct {
@@ -774,10 +789,12 @@ type EndUserPermission struct {
 	Action       RbacAction    `json:"action"`
 	ColumnPolicy *ColumnPolicy `json:"columnPolicy"`
 	RowScope     RowScopeType  `json:"rowScope"`
-	DisplayName  *string       `json:"displayName,omitempty"`
-	Description  *string       `json:"description,omitempty"`
-	CreatedAt    time.Time     `json:"createdAt"`
-	UpdatedAt    time.Time     `json:"updatedAt"`
+	// 来源预设，null 表示手动创建的自定义权限点
+	Preset      *EndUserPermissionPreset `json:"preset,omitempty"`
+	DisplayName *string                  `json:"displayName,omitempty"`
+	Description *string                  `json:"description,omitempty"`
+	CreatedAt   time.Time                `json:"createdAt"`
+	UpdatedAt   time.Time                `json:"updatedAt"`
 }
 
 func (EndUserPermission) IsNode()            {}
@@ -1491,6 +1508,8 @@ func (ModelNotFound) IsMoveModelToGroupError() {}
 
 func (ModelNotFound) IsCreateEndUserPermissionError() {}
 
+func (ModelNotFound) IsApplyEndUserPresetPolicyError() {}
+
 func (ModelNotFound) IsGetEffectivePermissionsError() {}
 
 func (ModelNotFound) IsSetModelRLSPolicyError() {}
@@ -1555,6 +1574,18 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
+type PresetRequiresOwnerField struct {
+	// 选择的预设依赖 END_USER_REF 字段，但模型中不存在该字段
+	Message    string                  `json:"message"`
+	Preset     EndUserPermissionPreset `json:"preset"`
+	Suggestion *string                 `json:"suggestion,omitempty"`
+}
+
+func (PresetRequiresOwnerField) IsError()                {}
+func (this PresetRequiresOwnerField) GetMessage() string { return this.Message }
+
+func (PresetRequiresOwnerField) IsApplyEndUserPresetPolicyError() {}
+
 type ProjectAuthSchema struct {
 	// 认证变量列表（不含内置 uid）
 	Variables []*AuthVariable `json:"variables"`
@@ -1616,6 +1647,8 @@ func (ProjectNotFound) IsCreateEndUserPermissionError() {}
 func (ProjectNotFound) IsUpdateEndUserPermissionError() {}
 
 func (ProjectNotFound) IsDeleteEndUserPermissionError() {}
+
+func (ProjectNotFound) IsApplyEndUserPresetPolicyError() {}
 
 func (ProjectNotFound) IsCreateEndUserPermissionBundleError() {}
 
@@ -2284,6 +2317,85 @@ func (e *DbTableStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e DbTableStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+// 权限点预设策略类型。
+//
+// 应用预设时会替换该模型下所有 preset != null 的权限点，
+// preset = null（手动创建）的权限点不受影响。
+//
+// READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
+//
+//	SELECT ALL + INSERT ALL + UPDATE ALL + DELETE ALL
+//
+// READ_ALL            — 只读全部（不依赖 END_USER_REF 字段）
+//
+//	SELECT ALL
+//
+// READ_WRITE_OWNER    — 读写自己（依赖 END_USER_REF 字段）
+//
+//	SELECT SELF + INSERT SELF + UPDATE SELF + DELETE SELF
+//
+// READ_ALL_WRITE_OWNER — 读所有写自己（依赖 END_USER_REF 字段）
+//
+//	SELECT ALL + INSERT SELF + UPDATE SELF + DELETE SELF
+type EndUserPermissionPreset string
+
+const (
+	EndUserPermissionPresetReadWriteAll      EndUserPermissionPreset = "READ_WRITE_ALL"
+	EndUserPermissionPresetReadAll           EndUserPermissionPreset = "READ_ALL"
+	EndUserPermissionPresetReadWriteOwner    EndUserPermissionPreset = "READ_WRITE_OWNER"
+	EndUserPermissionPresetReadAllWriteOwner EndUserPermissionPreset = "READ_ALL_WRITE_OWNER"
+)
+
+var AllEndUserPermissionPreset = []EndUserPermissionPreset{
+	EndUserPermissionPresetReadWriteAll,
+	EndUserPermissionPresetReadAll,
+	EndUserPermissionPresetReadWriteOwner,
+	EndUserPermissionPresetReadAllWriteOwner,
+}
+
+func (e EndUserPermissionPreset) IsValid() bool {
+	switch e {
+	case EndUserPermissionPresetReadWriteAll, EndUserPermissionPresetReadAll, EndUserPermissionPresetReadWriteOwner, EndUserPermissionPresetReadAllWriteOwner:
+		return true
+	}
+	return false
+}
+
+func (e EndUserPermissionPreset) String() string {
+	return string(e)
+}
+
+func (e *EndUserPermissionPreset) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = EndUserPermissionPreset(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid EndUserPermissionPreset", str)
+	}
+	return nil
+}
+
+func (e EndUserPermissionPreset) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *EndUserPermissionPreset) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e EndUserPermissionPreset) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

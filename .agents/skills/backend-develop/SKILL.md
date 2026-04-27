@@ -1,16 +1,29 @@
 ---
 name: backend-develop
 description: >
-  ModelCraft Go 后端开发总指南。覆盖 DDD 分层（pkg/interfaces/app/domain/infrastructure）、
-  Schema-First（GraphQL + OpenAPI + sqlc）、错误处理、事务、日志、Repository 约束，以及多租户
-  隔离规则。凡是后端开发任务都应触发，尤其是：
-  (1) 新增/修改 Domain、App、Resolver、Repository，
-  (2) 修改 GraphQL/OpenAPI/SQL Contract，
-  (3) 涉及租户隔离（org 或 org + project）与参数传递链路设计，
-  (4) 不确定代码分层和依赖边界。
+  ModelCraft Go 后端业务开发总指南。仅在“后端业务代码实现/修改”时触发：
+  (1) 新增或修改 Domain、Application、Resolver、Repository 业务逻辑；
+  (2) 新增业务能力需要打通接口到持久化链路（接口层→应用层→领域层→仓储层）；
+  (3) 业务需求导致 Contract/SQL/实体字段变化，并需要同步后端实现；
+  (4) 涉及多租户业务隔离（org 或 org+project）与参数传递链路设计。
+  不要用于：纯调试排错、纯测试执行、纯部署运维、纯数据库迁移操作、前端任务、文档整理。
 ---
 
 # ModelCraft Go 后端开发指南
+
+## 触发边界（严格）
+
+仅当任务是“后端业务开发实现”时使用本 skill：
+- 需要编写或修改业务代码，而不是只读分析
+- 变更发生在后端业务层链路（Interfaces/App/Domain/Infrastructure）
+- 目标是交付业务功能或业务行为变更
+
+以下场景不要触发本 skill（应使用对应专项 skill）：
+- 后端报错定位、日志排查、线上问题修复（`backend-debug`）
+- 仅执行测试（`bdd-test` 或 `integration-test`）
+- 数据库连接、迁移、建表、`just db` 操作（`db-develop`）
+- 部署、端口、环境变量、Docker（`deploy-info`）
+- 前端开发、样式或交互任务（frontend 相关 skills）
 
 ## 分层架构速览
 

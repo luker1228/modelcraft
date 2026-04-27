@@ -5,14 +5,14 @@ import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { cn } from '@/shared/utils'
-import { Settings2, LogIn } from 'lucide-react'
+import { Users, Shield } from 'lucide-react'
 
 const tabs = [
-  { id: 'general', label: '通用', icon: Settings2 },
-  { id: 'login-settings', label: '登录配置', icon: LogIn },
+  { id: 'members', label: '开发者', icon: Users },
+  { id: 'roles', label: '角色', icon: Shield },
 ]
 
-export default function SettingsLayout({
+export default function DevelopersLayout({
   children,
 }: {
   children: React.ReactNode
@@ -31,30 +31,24 @@ export default function SettingsLayout({
     )
   }
 
-  const activeTab = tabs.find((tab) =>
-    pathname?.endsWith(`/settings/${tab.id}`)
-  )?.id || 'general'
+  const activeTab =
+    tabs.find((tab) => pathname?.endsWith(`/developers/${tab.id}`))?.id ?? 'members'
 
   return (
-    <AppLayout pageTitle="组织设置">
-      <PageLayout maxWidth="5xl">
-        <PageHeader
-          title="组织设置"
-          spacing="compact"
-        />
+    <AppLayout pageTitle="开发者">
+      <PageLayout maxWidth="7xl" background="card" padding="compact">
+        <PageHeader title="开发者" spacing="compact" />
 
         {/* Tab Navigation */}
         <div className="mb-6 border-b border-border">
-          <nav className="flex gap-6" aria-label="Settings tabs">
+          <nav className="flex gap-6" aria-label="Developers tabs">
             {tabs.map((tab) => {
               const Icon = tab.icon
               const isActive = activeTab === tab.id
               return (
                 <button
                   key={tab.id}
-                  onClick={() =>
-                    router.push(`/org/${orgName}/settings/${tab.id}`)
-                  }
+                  onClick={() => router.push(`/org/${orgName}/developers/${tab.id}`)}
                   className={cn(
                     'flex items-center gap-2 py-3 px-1 text-sm font-medium border-b-2 transition-colors',
                     isActive

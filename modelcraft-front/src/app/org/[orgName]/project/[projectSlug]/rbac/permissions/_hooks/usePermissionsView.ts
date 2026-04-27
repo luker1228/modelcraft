@@ -7,8 +7,9 @@ import {
   DELETE_END_USER_PERMISSION,
   CREATE_END_USER_PERMISSION,
 } from '@/api-client/rbac'
-import { GET_MODELS, GET_MODEL_GROUPS } from '@/api-client/model'
-import type { EndUserPermission, Model, ModelGroup } from '@/types'
+import { GET_MODELS } from '@/api-client/model'
+import { DATABASE_CATALOG } from '@/api-client/cluster'
+import type { EndUserPermission, Model } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -58,14 +59,12 @@ export function usePermissionsView({
   const client = useProjectScopedClient(projectSlug, orgName)
   const skip = !projectSlug || !orgName
 
-  // Phase 1: Fetch all model groups to derive available database names.
-  // GET_MODEL_GROUPS returns models with databaseName but without fields —
-  // this is intentionally lightweight for building the database selector.
+  // Phase 1: Fetch available databases from the cluster catalog.
   const {
-    data: groupsData,
+    data: catalogData,
     loading: loadingDatabases,
-    error: groupsError,
-  } = useQuery(GET_MODEL_GROUPS, { client, skip })
+    error: catalogError,
+  } = useQuery(DATABASE_CATALOG, { client, skip })
 
   // Phase 2: Fetch full model details (including fields) for the selected database.
   const {
@@ -97,15 +96,9 @@ export function usePermissionsView({
   // ── Derived: databaseNames from model groups ───────────────────────────────
 
   const databaseNames = useMemo<string[]>(() => {
-    const groups: ModelGroup[] = groupsData?.modelGroups ?? []
-    const nameSet = new Set<string>()
-    for (const group of groups) {
-      for (const model of group.models ?? []) {
-        if (model.databaseName) nameSet.add(model.databaseName)
-      }
-    }
-    return Array.from(nameSet).sort((a, b) => a.localeCompare(b))
-  }, [groupsData])
+    const databases: { name: string }[] = catalogData?.modelDatabaseCatalog?.data?.databases ?? []
+    return databases.map((db) => db.name).sort((a, b) => a.localeCompare(b))
+  }, [catalogData])
 
   // ── Derived: models for selected DB with permissions ──────────────────────
 
@@ -188,7 +181,7 @@ export function usePermissionsView({
     modelsForDb,
     loadingDatabases,
     loadingModels,
-    error: groupsError ?? modelsError ?? permissionsError,
+    error: catalogError ?? modelsError ?? permissionsError,
     deletePermission,
     createPermission,
   }

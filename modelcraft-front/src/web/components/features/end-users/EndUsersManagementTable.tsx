@@ -4,9 +4,10 @@
 // Org 级终端用户管理表格（EndUser v2）
 
 import { useState } from 'react'
-import { Plus, MoreHorizontal, RefreshCw, Users } from 'lucide-react'
+import { Plus, MoreHorizontal, RefreshCw, Users, Search } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
+import { Input } from '@web/components/ui/input'
 import {
   Table,
   TableBody,
@@ -38,7 +39,7 @@ interface EndUsersManagementTableProps {
 }
 
 export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProps) {
-  const { users, isLoading, error, reload, createUser, toggleUserStatus, deleteUser } =
+  const { users, isLoading, error, search, setSearch, reload, createUser, toggleUserStatus, deleteUser } =
     useOrgEndUsers(orgName)
   const [createOpen, setCreateOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -66,14 +67,25 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex items-center gap-2">
-        <Button size="sm" onClick={() => setCreateOpen(true)}>
-          <Plus className="mr-1.5 size-4" />
-          新增用户
-        </Button>
-        <Button size="sm" variant="outline" onClick={reload} disabled={isLoading}>
-          <RefreshCw className={`mr-1.5 size-4 ${isLoading ? 'animate-spin' : ''}`} />
-          刷新
-        </Button>
+        <div className="relative flex-1 max-w-xs">
+          <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
+          <Input
+            placeholder="搜索用户名…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="h-8 pl-8 text-sm"
+          />
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <Button size="sm" variant="outline" onClick={reload} disabled={isLoading}>
+            <RefreshCw className={`mr-1.5 size-4 ${isLoading ? 'animate-spin' : ''}`} />
+            刷新
+          </Button>
+          <Button size="sm" onClick={() => setCreateOpen(true)}>
+            <Plus className="mr-1.5 size-4" />
+            新增用户
+          </Button>
+        </div>
       </div>
 
       {actionError && (
@@ -121,15 +133,21 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                   <TableCell colSpan={5}>
                     <div className="flex flex-col items-center justify-center py-12 text-center">
                       <Users className="mb-3 size-8 text-muted-foreground/40" strokeWidth={1.5} />
-                      <p className="text-sm text-muted-foreground">暂无终端用户</p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="mt-3"
-                        onClick={() => setCreateOpen(true)}
-                      >
-                        新增第一个用户
-                      </Button>
+                      {search ? (
+                        <p className="text-sm text-muted-foreground">未找到匹配「{search}」的用户</p>
+                      ) : (
+                        <>
+                          <p className="text-sm text-muted-foreground">暂无终端用户</p>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-3"
+                            onClick={() => setCreateOpen(true)}
+                          >
+                            新增第一个用户
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -198,7 +216,9 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
       )}
 
       {!isLoading && !error && users.length > 0 && (
-        <p className="text-sm text-muted-foreground">共 {users.length} 名终端用户</p>
+        <p className="text-sm text-muted-foreground">
+          {search ? `找到 ${users.length} 名用户` : `共 ${users.length} 名终端用户`}
+        </p>
       )}
 
       <CreateEndUserDialog
