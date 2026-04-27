@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, removeToken, refreshAccessToken } from "@bff/auth/public";
+import { getToken, removeToken, refreshAccessToken } from "@api-client/auth/public";
 import { Button } from "@web/components/ui/button";
 import { Input } from "@web/components/ui/input";
 import { Label } from "@web/components/ui/label";
@@ -90,7 +90,7 @@ export default function CreateOrgPage() {
       }
 
       // Call backend API to initialize organization
-      const response = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/api/org/init`, {
+      const response = await fetch(`/api/org/init`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

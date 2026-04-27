@@ -44,7 +44,7 @@ import type {
   ProjectFormValues,
   ProjectConnectionTestResult,
 } from "@web/components/features/project/ProjectDialog"
-import { getToken } from "@bff/auth/public"
+import { getToken } from "@api-client/auth/public"
 
 // Membership info from API response
 interface MembershipInfo {

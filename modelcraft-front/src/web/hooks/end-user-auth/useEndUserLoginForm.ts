@@ -72,7 +72,7 @@ export function useEndUserLoginForm(
       setError(null)
 
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/end-user/auth/login`, {
+        const res = await fetch(`/end-user/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

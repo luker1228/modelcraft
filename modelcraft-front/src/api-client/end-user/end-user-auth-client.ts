@@ -72,7 +72,7 @@ export async function refreshEndUserAccessToken(
   _isRefreshing = true
   _refreshPromise = (async () => {
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/end-user/auth/refresh`, {
+      const res = await fetch(`/end-user/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -128,7 +128,7 @@ export async function fetchAndCacheEndUserInfo(): Promise<EndUserInfo | null> {
     const token = getEndUserToken()
     if (!token) return null
 
-    const res = await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/end-user/auth/me`, {
+    const res = await fetch(`/end-user/auth/me`, {
       credentials: 'include',
       headers: {
         Authorization: `Bearer ${token}`,

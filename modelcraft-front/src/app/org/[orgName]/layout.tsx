@@ -23,7 +23,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
       console.log("[OrgLayout] Verifying org access:", orgName, "user:", user?.id);
 
       try {
-        const { getToken } = await import('@bff/auth/public')
+        const { getToken } = await import('@api-client/auth/public')
         const token = getToken()
         if (!token) {
           // Should not happen — middleware guards this, but be safe

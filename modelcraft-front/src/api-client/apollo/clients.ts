@@ -10,7 +10,7 @@ import { useAuthStore } from '@shared/stores/auth-store'
 import { refreshAccessToken } from '@api-client/auth/public'
 
 // Gateway base URL — empty string means same-origin (when behind a reverse proxy)
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''
+const GATEWAY_URL = ''
 
 export function buildRuntimeEndpoint(
   orgName: string,

@@ -80,8 +80,7 @@ export async function refreshAccessToken(): Promise<string | null> {
   _isRefreshing = true
   _refreshPromise = (async () => {
     try {
-      const gatewayUrl = process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''
-      const response = await fetch(`${gatewayUrl}/auth/refresh`, {
+      const response = await fetch(`/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       })

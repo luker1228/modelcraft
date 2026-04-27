@@ -11,9 +11,7 @@ import {
   EndUserUpstreamError,
 } from './end-user-go-client'
 
-const GATEWAY_URL = process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''
-  process.env.GATEWAY_URL ?? 'http://localhost:8080'
-  process.env.INTERNAL_TOKEN ?? process.env.INTERNAL_SERVICE_TOKEN ?? ''
+const GATEWAY_URL = ''
 
 function shouldUseEndUserV2Mock(): boolean {
   return process.env.NEXT_PUBLIC_END_USER_V2_MOCKING === 'enabled'

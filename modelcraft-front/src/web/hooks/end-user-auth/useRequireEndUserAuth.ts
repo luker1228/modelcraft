@@ -93,7 +93,7 @@ export function useEndUser(): UseEndUserReturn {
 
   const logout = useCallback(async () => {
     // 调用 BFF logout（best-effort）
-    await fetch(`${process.env.NEXT_PUBLIC_GATEWAY_URL ?? ''}/end-user/auth/logout`, {
+    await fetch(`/end-user/auth/logout`, {
       method: 'POST',
       credentials: 'same-origin',
     }).catch(() => {

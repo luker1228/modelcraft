@@ -7,10 +7,7 @@ import type {
   GoAuthError,
 } from '@/types/auth'
 
-const GATEWAY_URL =
-  typeof window !== 'undefined'
-    ? (process.env.NEXT_PUBLIC_GATEWAY_URL ?? '')
-    : (process.env.GATEWAY_URL ?? 'http://localhost:8090')
+const GATEWAY_URL = ''
 
 // ============================================================================
 // 结果类型

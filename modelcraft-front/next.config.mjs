@@ -130,6 +130,26 @@ const nextConfig = {
         source: '/graphql/org/:orgName/:path*',
         destination: `${backendUrl}/graphql/org/:orgName/:path*`,
       },
+      // 终端用户认证 & 数据接口代理
+      {
+        source: '/end-user/:path*',
+        destination: `${backendUrl}/end-user/:path*`,
+      },
+      // 内部 API（终端用户数据）
+      {
+        source: '/internal/:path*',
+        destination: `${backendUrl}/internal/:path*`,
+      },
+      // 组织管理 API
+      {
+        source: '/api/org/:path*',
+        destination: `${backendUrl}/api/org/:path*`,
+      },
+      // 用户信息 API
+      {
+        source: '/api/user/:path*',
+        destination: `${backendUrl}/api/user/:path*`,
+      },
     ]
   },
 }
