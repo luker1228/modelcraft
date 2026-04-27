@@ -8,6 +8,10 @@
     "start": "next start -p 3000",
     "lint": "next lint",
     "test": "vitest run",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report",
     "sync-tailwind": "node scripts/sync-from-prototype.js",
     "codegen": "graphql-codegen --config codegen.ts"
   },
