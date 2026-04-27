@@ -227,13 +227,3 @@ func formatModelTitle(tableName string) string {
 
 	return regexp.MustCompile(`\s+`).ReplaceAllString(fmt.Sprintf("%s", parts), " ")
 }
-
-// findColumn 查找列
-func findColumn(columns []modeldesign.TableColumn, name string) *modeldesign.TableColumn {
-	for _, col := range columns {
-		if col.Name == name {
-			return &col
-		}
-	}
-	return nil
-}

@@ -10,6 +10,25 @@ import (
 	"time"
 )
 
+// ---- browser-facing response types ----
+
+// loginTokenResponse is what the gateway returns to the browser after login/register.
+// It omits refreshToken — that lives in the httpOnly cookie only.
+type loginTokenResponse struct {
+	RequestID   string `json:"requestId,omitempty"`
+	UserID      string `json:"userId"`
+	UserName    string `json:"userName,omitempty"`
+	OrgName     string `json:"orgName,omitempty"`
+	AccessToken string `json:"accessToken"`
+	ExpiresIn   int    `json:"expiresIn"`
+}
+
+// refreshTokenResponse is what the gateway returns to the browser after token refresh.
+type refreshTokenResponse struct {
+	AccessToken string `json:"accessToken"`
+	ExpiresIn   int    `json:"expiresIn"`
+}
+
 // Handler exposes auth endpoints: login, register, refresh, logout.
 // Token signing is fully handled by the backend auth service (ES256).
 // The gateway's only responsibilities here are:
@@ -45,14 +64,17 @@ type registerRequest struct {
 
 // ---- backend API response types ----
 
+// backendLoginResponse mirrors the backend's login/register response body.
+// refreshToken is present here so the gateway can extract it for the cookie;
+// it is never forwarded to the browser.
 type backendLoginResponse struct {
-	RequestID    string    `json:"requestId"`
-	UserID       string    `json:"userId"`
-	AccessToken  string    `json:"accessToken"`
-	RefreshToken string    `json:"refreshToken"`
-	ExpiresAt    time.Time `json:"expiresAt"`
-	UserName     string    `json:"userName,omitempty"`
-	OrgName      string    `json:"orgName,omitempty"`
+	RequestID    string `json:"requestId"`
+	UserID       string `json:"userId"`
+	UserName     string `json:"userName,omitempty"`
+	OrgName      string `json:"orgName,omitempty"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    int    `json:"expiresIn"`
 }
 
 type backendRegisterResponse struct {
@@ -61,27 +83,24 @@ type backendRegisterResponse struct {
 	OrgName   string `json:"orgName"`
 }
 
+// backendRefreshResponse mirrors the backend's refresh response body.
+// refreshToken is extracted for cookie rotation; not forwarded to browser.
 type backendRefreshResponse struct {
-	RequestID    string    `json:"requestId"`
-	UserID       string    `json:"userId"`
-	AccessToken  string    `json:"accessToken"`
-	RefreshToken string    `json:"refreshToken"`
-	ExpiresAt    time.Time `json:"expiresAt"`
+	RequestID    string `json:"requestId"`
+	AccessToken  string `json:"accessToken"`
+	RefreshToken string `json:"refreshToken"`
+	ExpiresIn    int    `json:"expiresIn"`
 }
 
 type backendLogoutRequest struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
-// tokenResponse is what the gateway returns to the browser.
-type tokenResponse struct {
-	AccessToken string `json:"accessToken"`
-}
-
 // ---- handlers ----
 
-// Login proxies to the backend, extracts the accessToken from backend response,
-// stores the refreshToken in an httpOnly cookie, and returns only the accessToken.
+// Login proxies to the backend, stores the refreshToken in an httpOnly cookie,
+// and returns the full login payload (userId, userName, orgName, accessToken, expiresIn)
+// to the browser — refreshToken is stripped.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -101,7 +120,14 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.authService.SetRefreshCookie(w, backendResp.RefreshToken)
-	writeJSON(w, http.StatusOK, tokenResponse{AccessToken: backendResp.AccessToken})
+	writeJSON(w, http.StatusOK, loginTokenResponse{
+		RequestID:   backendResp.RequestID,
+		UserID:      backendResp.UserID,
+		UserName:    backendResp.UserName,
+		OrgName:     backendResp.OrgName,
+		AccessToken: backendResp.AccessToken,
+		ExpiresIn:   backendResp.ExpiresIn,
+	})
 }
 
 // Register creates a new user via the backend, then auto-logs-in to obtain tokens.
@@ -139,7 +165,14 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.authService.SetRefreshCookie(w, loginResp.RefreshToken)
-	writeJSON(w, http.StatusCreated, tokenResponse{AccessToken: loginResp.AccessToken})
+	writeJSON(w, http.StatusCreated, loginTokenResponse{
+		RequestID:   loginResp.RequestID,
+		UserID:      loginResp.UserID,
+		UserName:    loginResp.UserName,
+		OrgName:     loginResp.OrgName,
+		AccessToken: loginResp.AccessToken,
+		ExpiresIn:   loginResp.ExpiresIn,
+	})
 }
 
 // Refresh reads the httpOnly refresh cookie, forwards it to the backend for rotation,
@@ -159,7 +192,10 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.authService.SetRefreshCookie(w, backendResp.RefreshToken)
-	writeJSON(w, http.StatusOK, tokenResponse{AccessToken: backendResp.AccessToken})
+	writeJSON(w, http.StatusOK, refreshTokenResponse{
+		AccessToken: backendResp.AccessToken,
+		ExpiresIn:   backendResp.ExpiresIn,
+	})
 }
 
 // Logout forwards the refresh token to the backend for revocation, then clears the cookie.

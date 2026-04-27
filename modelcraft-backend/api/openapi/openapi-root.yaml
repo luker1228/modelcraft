@@ -67,8 +67,6 @@ components:
       $ref: "auth.yaml#/schemas/LoginRequest"
     LoginResponse:
       $ref: "auth.yaml#/schemas/LoginResponse"
-    RefreshTokenRequest:
-      $ref: "auth.yaml#/schemas/RefreshTokenRequest"
     RefreshResponse:
       $ref: "auth.yaml#/schemas/RefreshResponse"
 
@@ -77,10 +75,4 @@ components:
       $ref: "user.yaml#/components/schemas/GetMembershipsResponse"
     MembershipInfo:
       $ref: "user.yaml#/components/schemas/MembershipInfo"
-
-    # -- Organization --
-    OrgInvalidInputError:
-      $ref: "org.yaml#/schemas/OrgInvalidInputError"
-    OrgAlreadyExistsError:
-      $ref: "org.yaml#/schemas/OrgAlreadyExistsError"
 

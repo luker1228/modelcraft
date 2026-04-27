@@ -19,7 +19,10 @@ func TestCreateSystemEndUserRefFK_CreatesUndeletableUnidirectionalFK(t *testing.
 	modelRepo := new(MockModelRepository)
 
 	svc := &LogicalFKAppService{fkRepo: fkRepo, modelRepo: modelRepo}
-	ownerField := &modeldesign.FieldDefinition{Name: "owner", Type: modeldesign.GetFieldTypeByFormat(modeldesign.FormatEndUserRef)}
+	ownerField := &modeldesign.FieldDefinition{
+		Name: "owner",
+		Type: modeldesign.GetFieldTypeByFormat(modeldesign.FormatEndUserRef),
+	}
 	m := &modeldesign.DataModel{
 		ModelMeta: modeldesign.ModelMeta{
 			ID: "m1",

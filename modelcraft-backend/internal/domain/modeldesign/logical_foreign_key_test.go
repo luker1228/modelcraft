@@ -44,7 +44,16 @@ func TestLogicalForeignKey_Validate_RefModelIDOrTableRequired(t *testing.T) {
 }
 
 func TestLogicalForeignKey_Validate_EmptyID(t *testing.T) {
-	lf := &LogicalForeignKey{PairID: "pair-001", Direction: DirectionNormal, ModelID: "model-order", ModelName: "Order", RefModelID: "model-user", RefModelName: "User", SourceFields: []string{"userId"}, TargetFields: []string{"id"}}
+	lf := &LogicalForeignKey{
+		PairID:       "pair-001",
+		Direction:    DirectionNormal,
+		ModelID:      "model-order",
+		ModelName:    "Order",
+		RefModelID:   "model-user",
+		RefModelName: "User",
+		SourceFields: []string{"userId"},
+		TargetFields: []string{"id"},
+	}
 	err := lf.Validate()
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "ID cannot be empty")

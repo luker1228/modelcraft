@@ -103,6 +103,11 @@ func (s *JWTSigner) IssueAccessToken(userID, userName string) (string, error) {
 	return token.SignedString(s.privateKey)
 }
 
+// TTLSeconds returns the access token TTL in seconds.
+func (s *JWTSigner) TTLSeconds() int {
+	return int(s.ttl.Seconds())
+}
+
 // PublicKeyPEM returns the PEM-encoded public key so the gateway can load it at startup.
 func (s *JWTSigner) PublicKeyPEM() (string, error) {
 	der, err := x509.MarshalPKIXPublicKey(&s.privateKey.PublicKey)

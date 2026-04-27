@@ -2,13 +2,14 @@ package enduser
 
 import (
 	"context"
+	"modelcraft/internal/domain/shared"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/bizutils"
 	"strings"
 
 	domainenduser "modelcraft/internal/domain/enduser"
-	"modelcraft/internal/domain/shared"
+
 	infrrepo "modelcraft/internal/infrastructure/repository"
-	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/bizutils"
 )
 
 // EndUserProjectAccessAppService handles end-user project access management use cases.

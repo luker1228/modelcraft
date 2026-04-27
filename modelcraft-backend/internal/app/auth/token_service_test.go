@@ -226,7 +226,11 @@ func createTestService(t *testing.T) (
 	profileRepo := newMockProfileRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
-	svc := NewTokenService(refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, nil, nil)
+	jwtSigner, err := domainauth.GenerateDevSigner()
+	require.NoError(t, err)
+	svc := NewTokenService(
+		refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, nil, jwtSigner,
+	)
 	return svc, refreshRepo, userRepo, profileRepo, auditRepo
 }
 
@@ -353,7 +357,7 @@ func TestTokenService_Login_Success(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, result.UserID)
 	assert.NotEmpty(t, result.RefreshToken)
-	assert.False(t, result.ExpiresAt.Before(time.Now()))
+	assert.False(t, result.ExpiresIn == 0)
 }
 
 func TestTokenService_Login_PhoneNotFound(t *testing.T) {
@@ -405,7 +409,7 @@ func TestTokenService_Refresh_Rotation(t *testing.T) {
 	require.NoError(t, err)
 	assert.NotEmpty(t, refreshResult.RefreshToken)
 	assert.NotEqual(t, loginResult.RefreshToken, refreshResult.RefreshToken, "should return new token")
-	assert.Equal(t, loginResult.UserID, refreshResult.UserID)
+	assert.NotEmpty(t, refreshResult.AccessToken)
 }
 
 func TestTokenService_Refresh_ReuseDetection(t *testing.T) {

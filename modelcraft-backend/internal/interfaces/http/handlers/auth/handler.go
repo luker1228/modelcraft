@@ -2,7 +2,6 @@ package auth
 
 import (
 	"encoding/json"
-	"io"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
@@ -62,6 +61,9 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleLogin handles POST /api/auth/login — supports phone or username login.
+// The refresh token is NOT returned in the response body; the gateway is
+// responsible for extracting it from this response and storing it in an
+// httpOnly cookie.
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
@@ -113,25 +115,31 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		orgName = &s
 	}
 
-	writeJSON(w, http.StatusOK, generated.LoginResponse{
-		RequestId:    requestID,
-		UserId:       result.UserID,
-		AccessToken:  result.AccessToken,
-		RefreshToken: result.RefreshToken,
-		ExpiresAt:    result.ExpiresAt,
-		UserName:     userName,
-		OrgName:      orgName,
+	// NOTE: RefreshToken is intentionally included here so the gateway can
+	// intercept the response, extract it, store it in an httpOnly cookie, and
+	// then strip it before forwarding to the browser.
+	writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":    requestID,
+		"userId":       result.UserID,
+		"userName":     userName,
+		"orgName":      orgName,
+		"accessToken":  result.AccessToken,
+		"refreshToken": result.RefreshToken, // gateway strips this, browser never sees it
+		"expiresIn":    result.ExpiresIn,
 	})
 }
 
 // HandleRefresh handles POST /api/auth/refresh — token rotation.
+// The refresh token is read from the request body (supplied by the gateway,
+// which extracts it from the httpOnly cookie before forwarding).
 func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
-	var req generated.RefreshTokenRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn(r.Context(), "Invalid refresh request body", logfacade.Err(err))
-		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
+	var req struct {
+		RefreshToken string `json:"refreshToken"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
+		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "refreshToken required")
 		return
 	}
 
@@ -143,33 +151,30 @@ func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, generated.RefreshResponse{
-		RequestId:    requestID,
-		UserId:       result.UserID,
-		AccessToken:  result.AccessToken,
-		RefreshToken: result.RefreshToken,
-		ExpiresAt:    result.ExpiresAt,
+	// NOTE: RefreshToken included so the gateway can rotate the cookie.
+	writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":    requestID,
+		"accessToken":  result.AccessToken,
+		"refreshToken": result.RefreshToken, // gateway rotates cookie, browser never sees it
+		"expiresIn":    result.ExpiresIn,
 	})
 }
 
 // HandleLogout handles POST /api/auth/logout — revokes refresh token.
+// The refresh token is read from the request body (supplied by the gateway,
+// which extracts it from the httpOnly cookie before forwarding).
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
 	var req struct {
 		RefreshToken string `json:"refreshToken"`
 	}
-	if err := json.Unmarshal(body, &req); err != nil || req.RefreshToken == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		return
-	}
+	// Best-effort decode — if missing we still clear the cookie side via gateway
+	_ = json.NewDecoder(r.Body).Decode(&req)
 
-	_ = h.tokenService.Logout(r.Context(), appAuth.LogoutCommand{
-		RefreshToken: req.RefreshToken,
-	})
+	if req.RefreshToken != "" {
+		_ = h.tokenService.Logout(r.Context(), appAuth.LogoutCommand{
+			RefreshToken: req.RefreshToken,
+		})
+	}
 	w.WriteHeader(http.StatusNoContent)
 }
 

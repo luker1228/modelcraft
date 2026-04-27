@@ -53,14 +53,13 @@ func TestQueryParser_SimpleConditions(t *testing.T) {
 			if tt.name == "multiple fields with AND" {
 				sql1 := `SELECT * FROM "test" WHERE (("name" = ?) AND ("age" = ?))`
 				sql2 := `SELECT * FROM "test" WHERE (("age" = ?) AND ("name" = ?))`
-				if assert.Contains(t, []string{sql1, sql2}, sql, "SQL should be logically equivalent") {
-					if sql == sql1 {
-						assert.Equal(t, "John", params[0])
-						assert.Equal(t, int64(30), params[1])
-					} else {
-						assert.Equal(t, int64(30), params[0])
-						assert.Equal(t, "John", params[1])
-					}
+				require.Contains(t, []string{sql1, sql2}, sql, "SQL should be logically equivalent")
+				if sql == sql1 {
+					assert.Equal(t, "John", params[0])
+					assert.Equal(t, int64(30), params[1])
+				} else {
+					assert.Equal(t, int64(30), params[0])
+					assert.Equal(t, "John", params[1])
 				}
 				return
 			}

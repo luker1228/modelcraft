@@ -2,10 +2,10 @@ package orggraphql
 
 import (
 	"context"
+	"modelcraft/internal/interfaces/graphql/org/generated"
 	"testing"
 
 	appEnduser "modelcraft/internal/app/enduser"
-	"modelcraft/internal/interfaces/graphql/org/generated"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

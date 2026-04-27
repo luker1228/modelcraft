@@ -1,7 +1,5 @@
 package auth
 
-import "time"
-
 // IdentifierType 登录标识符类型
 type IdentifierType string
 
@@ -47,14 +45,14 @@ type LoginCommand struct {
 	Phone string
 }
 
-// LoginResult 登录成功后返回给 BFF
+// LoginResult 登录成功后返回给 Gateway
 type LoginResult struct {
 	UserID       string
 	UserName     string // 用户显示名
 	OrgName      string // 用户首个组织名（如有）
-	AccessToken  string // ES256 签发的短期 JWT，Gateway 用公钥验证
-	RefreshToken string // 明文，BFF 存入 Cookie
-	ExpiresAt    time.Time
+	AccessToken  string // JWT access token
+	RefreshToken string // 明文，Gateway 存入 httpOnly Cookie
+	ExpiresIn    int    // access token TTL（秒）
 }
 
 // OAuthLoginCommand BFF 通过 OAuth 登录时传入的用户信息（来自 AuthProvider token）
@@ -65,20 +63,19 @@ type OAuthLoginCommand struct {
 	Name       string
 }
 
-// RefreshCommand BFF 刷新时传入
+// RefreshCommand Gateway 刷新时传入
 type RefreshCommand struct {
-	RefreshToken string // 明文
+	RefreshToken string // 明文（从 cookie 中取出）
 }
 
-// RefreshResult 刷新成功后返回给 BFF
+// RefreshResult 刷新成功后返回给 Gateway
 type RefreshResult struct {
-	UserID       string
-	AccessToken  string // 新签发的 ES256 JWT
-	RefreshToken string // 新明文 token
-	ExpiresAt    time.Time
+	AccessToken  string // 新签发的 JWT
+	RefreshToken string // 新明文 token，Gateway 写入 cookie
+	ExpiresIn    int    // access token TTL（秒）
 }
 
-// LogoutCommand BFF 登出时传入
+// LogoutCommand Gateway 登出时传入
 type LogoutCommand struct {
-	RefreshToken string // 明文
+	RefreshToken string // 明文（从 cookie 中取出）
 }

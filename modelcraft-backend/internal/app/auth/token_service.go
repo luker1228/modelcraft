@@ -321,7 +321,7 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		OrgName:      orgName,
 		AccessToken:  accessToken,
 		RefreshToken: plaintext,
-		ExpiresAt:    expiresAt,
+		ExpiresIn:    s.jwtSigner.TTLSeconds(),
 	}, nil
 }
 
@@ -376,7 +376,7 @@ func (s *TokenService) OAuthLogin(ctx context.Context, cmd OAuthLoginCommand) (*
 	return &LoginResult{
 		UserID:       u.ID,
 		RefreshToken: plaintext,
-		ExpiresAt:    expiresAt,
+		ExpiresIn:    s.jwtSigner.TTLSeconds(),
 	}, nil
 }
 
@@ -449,10 +449,9 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 	}
 
 	return &RefreshResult{
-		UserID:       token.UserID,
 		AccessToken:  accessToken,
 		RefreshToken: plaintext,
-		ExpiresAt:    expiresAt,
+		ExpiresIn:    s.jwtSigner.TTLSeconds(),
 	}, nil
 }
 
