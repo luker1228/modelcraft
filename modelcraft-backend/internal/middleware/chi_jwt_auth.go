@@ -13,7 +13,6 @@ import (
 type JWTAuthConfig struct {
 	ModelCraftSecret []byte
 	SkipValidation   bool
-	APIKeyVerifier   APIKeyVerifier
 	// InternalToken allows BFF server-side callers to authenticate via X-Internal-Token header,
 	// bypassing the requirement for a user JWT. When set, requests carrying a matching
 	// X-Internal-Token are granted access without a userID in context.
@@ -27,9 +26,8 @@ func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
 
-// ChiJWTAuthMiddleware validates JWT tokens or API keys from the Authorization header.
+// ChiJWTAuthMiddleware validates JWT tokens from the Authorization header.
 // Token path: "Bearer <jwt>" — HMAC-SHA256 signed ModelCraft JWT
-// API Key path: "Bearer mc_*" — hashed lookup (A6 will inject real verifier)
 // Internal Token path: "X-Internal-Token" header — BFF server-side callers bypass JWT requirement
 func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
@@ -54,22 +52,6 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 			token := extractBearerToken(r)
 			if token == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			// API Key path: mc_ prefix
-			if strings.HasPrefix(token, "mc_") {
-				if config.APIKeyVerifier == nil {
-					http.Error(w, "Unauthorized", http.StatusUnauthorized)
-					return
-				}
-				userID, err := config.APIKeyVerifier.VerifyAPIKey(r.Context(), token)
-				if err != nil || userID == "" {
-					http.Error(w, "Unauthorized", http.StatusUnauthorized)
-					return
-				}
-				ctx := ctxutils.SetUserID(r.Context(), userID)
-				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 

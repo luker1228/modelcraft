@@ -45,11 +45,6 @@ func (s *SafeQuerier) BindBelongsToFKIDToFields(ctx context.Context, arg _source
 	WrapSQLErrorInPlace(&err)
 	return
 }
-func (s *SafeQuerier) CountActiveAPIKeysByUserID(ctx context.Context, userID string) (i1 int64, err error) {
-	i1, err = s.delegate.CountActiveAPIKeysByUserID(ctx, userID)
-	WrapSQLErrorInPlace(&err)
-	return
-}
 func (s *SafeQuerier) CountFieldsByModelID(ctx context.Context, modelID string) (i1 int64, err error) {
 	i1, err = s.delegate.CountFieldsByModelID(ctx, modelID)
 	WrapSQLErrorInPlace(&err)
@@ -250,11 +245,6 @@ func (s *SafeQuerier) DeleteProjectAuthSchema(ctx context.Context, arg _sourceDb
 	WrapSQLErrorInPlace(&err)
 	return
 }
-func (s *SafeQuerier) DeleteRevokedAPIKeys(ctx context.Context) (err error) {
-	err = s.delegate.DeleteRevokedAPIKeys(ctx)
-	WrapSQLErrorInPlace(&err)
-	return
-}
 func (s *SafeQuerier) DeleteRole(ctx context.Context, id int64) (err error) {
 	err = s.delegate.DeleteRole(ctx, id)
 	WrapSQLErrorInPlace(&err)
@@ -347,16 +337,6 @@ func (s *SafeQuerier) FindLogicalForeignKeysByRefModelID(ctx context.Context, ar
 }
 func (s *SafeQuerier) FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) (ma1 []_sourceDbgen.Model, err error) {
 	ma1, err = s.delegate.FindModelsByDeploymentStatus(ctx, statuses)
-	WrapSQLErrorInPlace(&err)
-	return
-}
-func (s *SafeQuerier) GetAPIKeyByHash(ctx context.Context, keyHash string) (a1 _sourceDbgen.ApiKey, err error) {
-	a1, err = s.delegate.GetAPIKeyByHash(ctx, keyHash)
-	WrapSQLErrorInPlace(&err)
-	return
-}
-func (s *SafeQuerier) GetAPIKeyByID(ctx context.Context, id string) (a1 _sourceDbgen.ApiKey, err error) {
-	a1, err = s.delegate.GetAPIKeyByID(ctx, id)
 	WrapSQLErrorInPlace(&err)
 	return
 }
@@ -585,11 +565,6 @@ func (s *SafeQuerier) GrantBundleToUser(ctx context.Context, arg _sourceDbgen.Gr
 	WrapSQLErrorInPlace(&err)
 	return
 }
-func (s *SafeQuerier) InsertAPIKey(ctx context.Context, arg _sourceDbgen.InsertAPIKeyParams) (err error) {
-	err = s.delegate.InsertAPIKey(ctx, arg)
-	WrapSQLErrorInPlace(&err)
-	return
-}
 func (s *SafeQuerier) InsertRefreshToken(ctx context.Context, arg _sourceDbgen.InsertRefreshTokenParams) (err error) {
 	err = s.delegate.InsertRefreshToken(ctx, arg)
 	WrapSQLErrorInPlace(&err)
@@ -597,11 +572,6 @@ func (s *SafeQuerier) InsertRefreshToken(ctx context.Context, arg _sourceDbgen.I
 }
 func (s *SafeQuerier) InsertSecurityAuditLog(ctx context.Context, arg _sourceDbgen.InsertSecurityAuditLogParams) (err error) {
 	err = s.delegate.InsertSecurityAuditLog(ctx, arg)
-	WrapSQLErrorInPlace(&err)
-	return
-}
-func (s *SafeQuerier) ListAPIKeysByUserID(ctx context.Context, userID string) (aa1 []_sourceDbgen.ApiKey, err error) {
-	aa1, err = s.delegate.ListAPIKeysByUserID(ctx, userID)
 	WrapSQLErrorInPlace(&err)
 	return
 }
@@ -750,11 +720,6 @@ func (s *SafeQuerier) RemovePermissionFromBundle(ctx context.Context, arg _sourc
 	WrapSQLErrorInPlace(&err)
 	return
 }
-func (s *SafeQuerier) RevokeAPIKey(ctx context.Context, arg _sourceDbgen.RevokeAPIKeyParams) (err error) {
-	err = s.delegate.RevokeAPIKey(ctx, arg)
-	WrapSQLErrorInPlace(&err)
-	return
-}
 func (s *SafeQuerier) RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) (err error) {
 	err = s.delegate.RevokeAllRefreshTokensByUserID(ctx, userID)
 	WrapSQLErrorInPlace(&err)
@@ -777,16 +742,6 @@ func (s *SafeQuerier) RevokeRefreshToken(ctx context.Context, id string) (err er
 }
 func (s *SafeQuerier) RevokeRoleFromUser(ctx context.Context, arg _sourceDbgen.RevokeRoleFromUserParams) (r1 sql.Result, err error) {
 	r1, err = s.delegate.RevokeRoleFromUser(ctx, arg)
-	WrapSQLErrorInPlace(&err)
-	return
-}
-func (s *SafeQuerier) UpdateAPIKey(ctx context.Context, arg _sourceDbgen.UpdateAPIKeyParams) (err error) {
-	err = s.delegate.UpdateAPIKey(ctx, arg)
-	WrapSQLErrorInPlace(&err)
-	return
-}
-func (s *SafeQuerier) UpdateAPIKeyLastUsed(ctx context.Context, id string) (err error) {
-	err = s.delegate.UpdateAPIKeyLastUsed(ctx, id)
 	WrapSQLErrorInPlace(&err)
 	return
 }

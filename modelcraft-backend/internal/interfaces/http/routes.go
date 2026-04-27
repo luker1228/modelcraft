@@ -83,7 +83,6 @@ type DesignHandlers struct {
 	PermUserRoleService   *appPermission.UserRoleService
 
 	// Auth Services
-	APIKeyService *auth.APIKeyService
 
 	// Repositories
 	ModelRepository  domainModelDesign.ModelRepository
@@ -393,10 +392,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	// Create auth handler with token service
 	authHandler := authHandlers.NewHandler(tokenService, logger)
 
-	// Create API key service
-	apiKeyRepo := repository.NewSqlAPIKeyRepository(dbgen.New(loggingDB))
-	apiKeyService := auth.NewAPIKeyService(apiKeyRepo)
-
 	// Create end-user services and handlers
 	privateDBManager := repository.NewPrivateDBManager(clusterManager, &cfg.Database, logger)
 
@@ -445,7 +440,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		LogicalFKAppService:       logicalFKAppService,
 		RLSPolicyAppService:       rlsPolicyAppService,
 		AuthSchemaAppService:      authSchemaAppService,
-		APIKeyService:             apiKeyService,
 		EndUserAuthAppService:     endUserAuthAppService,
 		OrgEndUserMgmtAppService:  orgEndUserMgmtAppService,
 		EndUserMgmtAppService:     endUserMgmtAppService,

@@ -1,7 +1,6 @@
 package orggraphql
 
 import (
-	appAuth "modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
 	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/internal/app/organization"
@@ -30,9 +29,6 @@ type Resolver struct {
 	RoleService       *permission.RoleService
 	PermissionService *permission.PermissionService
 	UserRoleService   *permission.UserRoleService
-
-	// API Keys
-	APIKeyService *appAuth.APIKeyService
 
 	// EndUser management
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService

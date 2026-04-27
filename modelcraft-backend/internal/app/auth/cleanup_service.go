@@ -12,17 +12,14 @@ import (
 // CleanupService 负责定期清理过期的 token 和 key 记录
 type CleanupService struct {
 	refreshTokenRepo domainauth.RefreshTokenRepository
-	apiKeyRepo       domainauth.APIKeyRepository
 }
 
 // NewCleanupService 创建新的 CleanupService
 func NewCleanupService(
 	refreshTokenRepo domainauth.RefreshTokenRepository,
-	apiKeyRepo domainauth.APIKeyRepository,
 ) *CleanupService {
 	return &CleanupService{
 		refreshTokenRepo: refreshTokenRepo,
-		apiKeyRepo:       apiKeyRepo,
 	}
 }
 
@@ -46,8 +43,5 @@ func (s *CleanupService) runCleanup(ctx context.Context) {
 	logger := logfacade.GetLogger(ctx)
 	if err := s.refreshTokenRepo.DeleteExpired(ctx); err != nil {
 		logger.Errorf(ctx, "cleanup refresh tokens failed: %v", err)
-	}
-	if err := s.apiKeyRepo.DeleteRevoked(ctx); err != nil {
-		logger.Errorf(ctx, "cleanup api keys failed: %v", err)
 	}
 }

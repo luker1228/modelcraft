@@ -104,21 +104,6 @@ export const GET_ROLE_PERMISSIONS_LIST = gql`
   }
 `
 
-export const GET_API_KEYS = gql`
-  query GetApiKeys {
-    apiKeys {
-      id
-      name
-      keyPrefix
-      roleIDs
-      lastUsedAt
-      expiresAt
-      revokedAt
-      createdAt
-    }
-  }
-`
-
 // ── Mutations ──────────────────────────────────────────────────────────────────
 
 export const UPDATE_ORGANIZATION = gql`
@@ -226,75 +211,6 @@ export const REMOVE_PERMISSION_FROM_ROLE = gql`
         ... on InvalidInput {
           message
           suggestion
-        }
-      }
-    }
-  }
-`
-
-export const CREATE_API_KEY = gql`
-  mutation CreateApiKey($input: CreateApiKeyInput!) {
-    createApiKey(input: $input) {
-      result {
-        id
-        name
-        key
-        keyPrefix
-        roleIDs
-        createdAt
-      }
-      error {
-        __typename
-        ... on ApiKeyLimitExceeded {
-          message
-        }
-        ... on InvalidInput {
-          message
-          suggestion
-        }
-      }
-    }
-  }
-`
-
-export const UPDATE_API_KEY = gql`
-  mutation UpdateApiKey($id: ID!, $input: UpdateApiKeyInput!) {
-    updateApiKey(id: $id, input: $input) {
-      apiKey {
-        id
-        name
-        keyPrefix
-        roleIDs
-        lastUsedAt
-        expiresAt
-        revokedAt
-        createdAt
-      }
-      error {
-        __typename
-        ... on ApiKeyNotFound {
-          message
-        }
-        ... on InvalidInput {
-          message
-          suggestion
-        }
-      }
-    }
-  }
-`
-
-export const REVOKE_API_KEY = gql`
-  mutation RevokeApiKey($id: ID!) {
-    revokeApiKey(id: $id) {
-      apiKey {
-        id
-        revokedAt
-      }
-      error {
-        __typename
-        ... on ApiKeyNotFound {
-          message
         }
       }
     }

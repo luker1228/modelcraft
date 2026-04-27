@@ -15,7 +15,6 @@ type Querier interface {
 	AssignBundleToRole(ctx context.Context, arg AssignBundleToRoleParams) error
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongsToFKIDToFieldsParams) error
-	CountActiveAPIKeysByUserID(ctx context.Context, userID string) (int64, error)
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
 	CountMembershipsByUser(ctx context.Context, userID string) (int64, error)
 	CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error)
@@ -57,7 +56,6 @@ type Querier interface {
 	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
 	DeletePermissionsByRole(ctx context.Context, roleID int64) error
 	DeleteProjectAuthSchema(ctx context.Context, arg DeleteProjectAuthSchemaParams) error
-	DeleteRevokedAPIKeys(ctx context.Context) error
 	DeleteRole(ctx context.Context, id int64) error
 	DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
 	DeleteUserRolesByRole(ctx context.Context, roleID int64) error
@@ -77,8 +75,6 @@ type Querier interface {
 	FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]LogicalForeignKey, error)
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]LogicalForeignKey, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
-	GetAPIKeyByHash(ctx context.Context, keyHash string) (ApiKey, error)
-	GetAPIKeyByID(ctx context.Context, id string) (ApiKey, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
 	// ⚡ 鉴权链 Step 3: 隐式角色关联的权限包 ID 列表（对所有认证用户执行，无需 user_id）
 	GetBundleIDsByImplicitRoles(ctx context.Context, arg GetBundleIDsByImplicitRolesParams) ([]string, error)
@@ -137,10 +133,8 @@ type Querier interface {
 	GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
 	GrantBundleToUser(ctx context.Context, arg GrantBundleToUserParams) error
-	InsertAPIKey(ctx context.Context, arg InsertAPIKeyParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
-	ListAPIKeysByUserID(ctx context.Context, userID string) ([]ApiKey, error)
 	ListBundlesByRole(ctx context.Context, roleID string) ([]EndUserPermissionBundle, error)
 	ListBundlesByUser(ctx context.Context, arg ListBundlesByUserParams) ([]EndUserPermissionBundle, error)
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
@@ -170,14 +164,11 @@ type Querier interface {
 	ListRolesByUser(ctx context.Context, arg ListRolesByUserParams) ([]string, error)
 	ListUserRoles(ctx context.Context, arg ListUserRolesParams) ([]UserRole, error)
 	RemovePermissionFromBundle(ctx context.Context, arg RemovePermissionFromBundleParams) (sql.Result, error)
-	RevokeAPIKey(ctx context.Context, arg RevokeAPIKeyParams) error
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeBundleFromRole(ctx context.Context, arg RevokeBundleFromRoleParams) (sql.Result, error)
 	RevokeBundleFromUser(ctx context.Context, arg RevokeBundleFromUserParams) (sql.Result, error)
 	RevokeRefreshToken(ctx context.Context, id string) error
 	RevokeRoleFromUser(ctx context.Context, arg RevokeRoleFromUserParams) (sql.Result, error)
-	UpdateAPIKey(ctx context.Context, arg UpdateAPIKeyParams) error
-	UpdateAPIKeyLastUsed(ctx context.Context, id string) error
 	UpdateDatabaseClusterWithVersion(ctx context.Context, arg UpdateDatabaseClusterWithVersionParams) (sql.Result, error)
 	UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBundleParams) (sql.Result, error)
 	UpdateEndUserPermission(ctx context.Context, arg UpdateEndUserPermissionParams) (sql.Result, error)

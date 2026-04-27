@@ -5,10 +5,9 @@ import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { cn } from '@/shared/utils'
-import { KeyRound, Shield, LogIn } from 'lucide-react'
+import { Shield, LogIn } from 'lucide-react'
 
 const tabs = [
-  { id: 'api-keys', label: 'API Keys', icon: KeyRound },
   { id: 'roles', label: 'Roles', icon: Shield },
   { id: 'login-settings', label: '登录配置', icon: LogIn },
 ]
@@ -34,7 +33,7 @@ export default function SettingsLayout({
 
   const activeTab = tabs.find((tab) =>
     pathname?.endsWith(`/settings/${tab.id}`)
-  )?.id || 'api-keys'
+  )?.id || 'roles'
 
   return (
     <AppLayout pageTitle="组织设置">
