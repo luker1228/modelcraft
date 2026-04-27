@@ -3,13 +3,12 @@ package middleware
 import (
 	"bytes"
 	"io"
+	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
 	"time"
 
 	chimw "github.com/go-chi/chi/v5/middleware"
-
-	"modelcraft/pkg/logfacade"
 )
 
 // chiResponseWriter wraps Chi's response writer to capture response body
