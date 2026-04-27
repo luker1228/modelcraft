@@ -22,6 +22,9 @@ type Config struct {
 
 	// CORS
 	AllowedOrigins []string
+
+	// Observability
+	OTLPEndpoint string // e.g. "localhost:4317"; empty disables tracing
 }
 
 // Load reads configuration from environment variables with sensible defaults.
@@ -39,6 +42,8 @@ func Load() *Config {
 		AllowedOrigins: []string{
 			getEnv("FRONTEND_URL", "http://localhost:3000"),
 		},
+
+		OTLPEndpoint: getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
 	}
 }
 

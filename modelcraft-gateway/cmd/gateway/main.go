@@ -11,13 +11,16 @@ import (
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/riandyrn/otelchi"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 
 	"modelcraft-gateway/internal/auth"
 	"modelcraft-gateway/internal/config"
 	"modelcraft-gateway/internal/middleware"
 	"modelcraft-gateway/internal/proxy"
+	"modelcraft-gateway/internal/telemetry"
 )
 
 func main() {
@@ -25,6 +28,14 @@ func main() {
 	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
 
 	cfg := config.Load()
+
+	// Initialise OpenTelemetry TracerProvider.
+	ctx := context.Background()
+	shutdownTracer, err := telemetry.InitTracerProvider(ctx, "modelcraft-gateway", cfg.OTLPEndpoint)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialise tracer provider")
+	}
+	defer shutdownTracer()
 
 	// Initialise auth service (ES256 public-key verifier + cookie manager).
 	authSvc, err := auth.NewService(
@@ -34,6 +45,12 @@ func main() {
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialise auth service")
+	}
+
+	// HTTP client with OTel instrumentation — propagates traceparent to the backend.
+	tracedHTTPClient := &http.Client{
+		Timeout:   10 * time.Second,
+		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
 	// Initialise proxy handler.
@@ -48,8 +65,8 @@ func main() {
 		log.Fatal().Err(err).Msg("failed to create rest handler")
 	}
 
-	// Initialise auth handler.
-	authHandler := auth.NewHandler(authSvc, cfg.BackendURL)
+	// Initialise auth handler (uses the traced HTTP client).
+	authHandler := auth.NewHandler(authSvc, cfg.BackendURL, tracedHTTPClient)
 
 	// Build router.
 	r := chi.NewRouter()
@@ -57,11 +74,13 @@ func main() {
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   cfg.AllowedOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
-		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-ID"},
+		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-Request-Id", "X-Client-Request-Id"},
 		AllowCredentials: true,
 		MaxAge:           300,
 	}))
-	r.Use(chiMiddleware.RequestID)
+	// RequestID must run before OTel so that GetReqID works in all spans.
+	r.Use(middleware.RequestID)
+	r.Use(otelchi.Middleware("modelcraft-gateway", otelchi.WithChiRoutes(r)))
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.RequestLogger)
 
@@ -112,9 +131,9 @@ func main() {
 	<-quit
 	log.Info().Msg("shutting down...")
 
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	if err := srv.Shutdown(ctx); err != nil {
+	if err := srv.Shutdown(shutdownCtx); err != nil {
 		log.Error().Err(err).Msg("shutdown error")
 	}
 	log.Info().Msg("gateway stopped")

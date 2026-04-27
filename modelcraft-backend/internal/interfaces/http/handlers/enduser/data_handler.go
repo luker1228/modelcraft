@@ -44,7 +44,8 @@ func (h *DataHandler) DatabaseCatalog(w http.ResponseWriter, r *http.Request) {
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID",
+			"X-Org-Name and X-Project-Slug headers are required")
 		return
 	}
 
@@ -178,7 +179,8 @@ func (h *DataHandler) InitPrivateDB(w http.ResponseWriter, r *http.Request) {
 	orgName := r.Header.Get("X-Org-Name")
 	projectSlug := r.Header.Get("X-Project-Slug")
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID",
+			"X-Org-Name and X-Project-Slug headers are required")
 		return
 	}
 

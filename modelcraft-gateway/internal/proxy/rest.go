@@ -7,6 +7,8 @@ import (
 	"net/url"
 	"strings"
 
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
 	"modelcraft-gateway/internal/auth"
 )
 
@@ -46,6 +48,11 @@ func (h *RESTHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	// Strip Gateway JWT; backend identifies the caller via X-User-ID only.
 	r.Header.Del("Authorization")
 	r.Header.Set("X-User-ID", claims.UserID)
+
+	// Propagate or generate a request ID for end-to-end tracing.
+	if reqID := chiMiddleware.GetReqID(r.Context()); reqID != "" {
+		r.Header.Set("X-Request-Id", reqID)
+	}
 
 	h.proxy.ServeHTTP(w, r)
 }

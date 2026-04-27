@@ -7,176 +7,86 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"time"
+
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
-
-// ---- browser-facing response types ----
-
-// loginTokenResponse is what the gateway returns to the browser after login/register.
-// It omits refreshToken — that lives in the httpOnly cookie only.
-type loginTokenResponse struct {
-	RequestID   string `json:"requestId,omitempty"`
-	UserID      string `json:"userId"`
-	UserName    string `json:"userName,omitempty"`
-	OrgName     string `json:"orgName,omitempty"`
-	AccessToken string `json:"accessToken"`
-	ExpiresIn   int    `json:"expiresIn"`
-}
-
-// refreshTokenResponse is what the gateway returns to the browser after token refresh.
-type refreshTokenResponse struct {
-	AccessToken string `json:"accessToken"`
-	ExpiresIn   int    `json:"expiresIn"`
-}
 
 // Handler exposes auth endpoints: login, register, refresh, logout.
 // Token signing is fully handled by the backend auth service (ES256).
 // The gateway's only responsibilities here are:
 //   - Proxying requests to the backend
 //   - Managing the httpOnly refresh-token cookie (browsers cannot access it directly)
+//
+// All request validation is delegated to the backend.
 type Handler struct {
 	authService *Service
 	backendURL  string
 	httpClient  *http.Client
 }
 
-func NewHandler(authService *Service, backendURL string) *Handler {
+func NewHandler(authSvc *Service, backendURL string, httpClient *http.Client) *Handler {
 	return &Handler{
-		authService: authService,
+		authService: authSvc,
 		backendURL:  backendURL,
-		httpClient:  &http.Client{Timeout: 10 * time.Second},
+		httpClient:  httpClient,
 	}
-}
-
-// ---- gateway request / response types ----
-
-type loginRequest struct {
-	Identifier     string `json:"identifier"`
-	IdentifierType string `json:"identifierType,omitempty"`
-	Password       string `json:"password"`
-}
-
-type registerRequest struct {
-	Phone    string `json:"phone"`
-	UserName string `json:"userName"`
-	Password string `json:"password"`
-}
-
-// ---- backend API response types ----
-
-// backendLoginResponse mirrors the backend's login/register response body.
-// refreshToken is present here so the gateway can extract it for the cookie;
-// it is never forwarded to the browser.
-type backendLoginResponse struct {
-	RequestID    string `json:"requestId"`
-	UserID       string `json:"userId"`
-	UserName     string `json:"userName,omitempty"`
-	OrgName      string `json:"orgName,omitempty"`
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    int    `json:"expiresIn"`
-}
-
-type backendRegisterResponse struct {
-	RequestID string `json:"requestId"`
-	UserID    string `json:"userId"`
-	OrgName   string `json:"orgName"`
-}
-
-// backendRefreshResponse mirrors the backend's refresh response body.
-// refreshToken is extracted for cookie rotation; not forwarded to browser.
-type backendRefreshResponse struct {
-	RequestID    string `json:"requestId"`
-	AccessToken  string `json:"accessToken"`
-	RefreshToken string `json:"refreshToken"`
-	ExpiresIn    int    `json:"expiresIn"`
-}
-
-type backendLogoutRequest struct {
-	RefreshToken string `json:"refreshToken"`
 }
 
 // ---- handlers ----
 
-// Login proxies to the backend, stores the refreshToken in an httpOnly cookie,
-// and returns the full login payload (userId, userName, orgName, accessToken, expiresIn)
-// to the browser — refreshToken is stripped.
+// Login proxies the request body to the backend, extracts refreshToken from the
+// response into an httpOnly cookie, then forwards the remaining fields to the browser.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	var req loginRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid request body")
-		return
-	}
-
-	if req.Identifier == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "PARAM_INVALID", "identifier and password are required")
-		return
-	}
-
-	backendResp, err := h.callBackendLogin(r.Context(), req)
+	raw, err := h.postBackendRaw(r.Context(), "/api/auth/login", r.Body)
 	if err != nil {
-		writeError(w, http.StatusUnauthorized, "AUTH_FAILED", err.Error())
+		proxyBackendError(w, err)
 		return
 	}
 
-	h.authService.SetRefreshCookie(w, backendResp.RefreshToken)
-	writeJSON(w, http.StatusOK, loginTokenResponse{
-		RequestID:   backendResp.RequestID,
-		UserID:      backendResp.UserID,
-		UserName:    backendResp.UserName,
-		OrgName:     backendResp.OrgName,
-		AccessToken: backendResp.AccessToken,
-		ExpiresIn:   backendResp.ExpiresIn,
-	})
+	h.extractRefreshAndProxy(w, http.StatusOK, raw)
 }
 
-// Register creates a new user via the backend, then auto-logs-in to obtain tokens.
+// Register proxies the request body to the backend, then auto-logs-in to obtain tokens.
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
-	var req registerRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid request body")
-		return
-	}
-
-	if req.UserName == "" || req.Password == "" {
-		writeError(w, http.StatusBadRequest, "PARAM_INVALID", "userName and password are required")
-		return
-	}
-
-	backendResp, err := h.callBackendRegister(r.Context(), req)
+	// Read body once — we need it for both register and the follow-up login.
+	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		writeError(w, http.StatusBadRequest, "REGISTER_FAILED", err.Error())
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "failed to read request body")
 		return
 	}
 
-	// After register, perform a login to obtain tokens.
-	loginResp, err := h.callBackendLogin(r.Context(), loginRequest{
-		Identifier:     req.UserName,
-		IdentifierType: "USERNAME",
-		Password:       req.Password,
+	if _, err = h.postBackendRaw(r.Context(), "/api/auth/register", bytes.NewReader(body)); err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+
+	// Extract userName+password from the original body to perform auto-login.
+	var req struct {
+		UserName string `json:"userName"`
+		Password string `json:"password"`
+	}
+	if err = json.Unmarshal(body, &req); err != nil || req.UserName == "" {
+		// Registration succeeded but can't auto-login — let client retry.
+		writeJSON(w, http.StatusCreated, map[string]string{"message": "registered, please login"})
+		return
+	}
+
+	loginBody, _ := json.Marshal(map[string]string{
+		"identifier":     req.UserName,
+		"identifierType": "USERNAME",
+		"password":       req.Password,
 	})
+	loginRaw, err := h.postBackendRaw(r.Context(), "/api/auth/login", bytes.NewReader(loginBody))
 	if err != nil {
-		// Registration succeeded but auto-login failed — return userId so client can retry.
-		writeJSON(w, http.StatusCreated, map[string]string{
-			"userId":  backendResp.UserID,
-			"orgName": backendResp.OrgName,
-		})
+		writeJSON(w, http.StatusCreated, map[string]string{"message": "registered, please login"})
 		return
 	}
 
-	h.authService.SetRefreshCookie(w, loginResp.RefreshToken)
-	writeJSON(w, http.StatusCreated, loginTokenResponse{
-		RequestID:   loginResp.RequestID,
-		UserID:      loginResp.UserID,
-		UserName:    loginResp.UserName,
-		OrgName:     loginResp.OrgName,
-		AccessToken: loginResp.AccessToken,
-		ExpiresIn:   loginResp.ExpiresIn,
-	})
+	h.extractRefreshAndProxy(w, http.StatusCreated, loginRaw)
 }
 
-// Refresh reads the httpOnly refresh cookie, forwards it to the backend for rotation,
-// then returns the new accessToken and updates the cookie.
+// Refresh reads the httpOnly refresh cookie, injects it into the backend request,
+// extracts the new refreshToken into the cookie, and proxies the rest to the browser.
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := h.authService.GetRefreshCookie(r)
 	if err != nil {
@@ -184,98 +94,89 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	backendResp, err := h.callBackendRefresh(r.Context(), refreshToken)
+	reqBody, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
+	raw, err := h.postBackendRaw(r.Context(), "/api/auth/refresh", bytes.NewReader(reqBody))
 	if err != nil {
 		h.authService.ClearRefreshCookie(w)
 		writeError(w, http.StatusUnauthorized, "REFRESH_INVALID", "invalid or expired refresh token")
 		return
 	}
 
-	h.authService.SetRefreshCookie(w, backendResp.RefreshToken)
-	writeJSON(w, http.StatusOK, refreshTokenResponse{
-		AccessToken: backendResp.AccessToken,
-		ExpiresIn:   backendResp.ExpiresIn,
-	})
+	h.extractRefreshAndProxy(w, http.StatusOK, raw)
 }
 
 // Logout forwards the refresh token to the backend for revocation, then clears the cookie.
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := h.authService.GetRefreshCookie(r)
 	if refreshToken != "" {
-		_ = h.callBackendLogout(r.Context(), refreshToken)
+		reqBody, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
+		_, _ = h.postBackendRaw(r.Context(), "/api/auth/logout", bytes.NewReader(reqBody))
 	}
 
 	h.authService.ClearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ---- backend client helpers ----
+// ---- proxy helpers ----
 
-func (h *Handler) callBackendLogin(ctx context.Context, req loginRequest) (*backendLoginResponse, error) {
-	var resp backendLoginResponse
-	if err := h.postBackend(ctx, "/api/auth/login", req, &resp); err != nil {
-		return nil, err
+// extractRefreshAndProxy extracts "refreshToken" from the raw JSON body,
+// stores it in the httpOnly cookie, then writes the remaining fields to the browser.
+func (h *Handler) extractRefreshAndProxy(w http.ResponseWriter, status int, raw []byte) {
+	var body map[string]any
+	if err := json.Unmarshal(raw, &body); err != nil {
+		writeError(w, http.StatusBadGateway, "INVALID_UPSTREAM", "upstream returned invalid JSON")
+		return
 	}
 
-	return &resp, nil
-}
-
-func (h *Handler) callBackendRegister(ctx context.Context, req registerRequest) (*backendRegisterResponse, error) {
-	var resp backendRegisterResponse
-	if err := h.postBackend(ctx, "/api/auth/register", req, &resp); err != nil {
-		return nil, err
+	if rt, ok := body["refreshToken"].(string); ok && rt != "" {
+		h.authService.SetRefreshCookie(w, rt)
 	}
+	delete(body, "refreshToken")
 
-	return &resp, nil
+	writeJSON(w, status, body)
 }
 
-func (h *Handler) callBackendRefresh(ctx context.Context, token string) (*backendRefreshResponse, error) {
-	body := map[string]string{"refreshToken": token}
-
-	var resp backendRefreshResponse
-	if err := h.postBackend(ctx, "/api/auth/refresh", body, &resp); err != nil {
-		return nil, err
-	}
-
-	return &resp, nil
+// proxyBackendError forwards a backend error response to the browser.
+// It preserves the original HTTP status code when available.
+func proxyBackendError(w http.ResponseWriter, err error) {
+	writeError(w, http.StatusBadGateway, "UPSTREAM_ERROR", err.Error())
 }
 
-func (h *Handler) callBackendLogout(ctx context.Context, token string) error {
-	return h.postBackend(ctx, "/api/auth/logout", backendLogoutRequest{RefreshToken: token}, nil)
-}
+// ---- backend client ----
 
-func (h *Handler) postBackend(ctx context.Context, path string, body, out any) error {
-	b, err := json.Marshal(body)
+// postBackendRaw POSTs to the backend and returns the raw response body.
+// The body parameter is an io.Reader so callers can pass either a struct-marshaled
+// payload or a forwarded request body directly.
+func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reader) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.backendURL+path, body)
 	if err != nil {
-		return fmt.Errorf("marshal request: %w", err)
-	}
-
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.backendURL+path, bytes.NewReader(b))
-	if err != nil {
-		return fmt.Errorf("create request: %w", err)
+		return nil, fmt.Errorf("create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
 
+	// Propagate request ID for end-to-end tracing.
+	if reqID := chiMiddleware.GetReqID(ctx); reqID != "" {
+		req.Header.Set("X-Request-Id", reqID)
+	}
+
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		return fmt.Errorf("backend request: %w", err)
+		return nil, fmt.Errorf("backend request: %w", err)
 	}
 
 	defer resp.Body.Close()
 
+	raw, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, fmt.Errorf("read response: %w", readErr)
+	}
+
 	if resp.StatusCode >= 400 {
-		raw, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("backend error %d: %s", resp.StatusCode, string(raw))
+		return nil, fmt.Errorf("backend error %d: %s", resp.StatusCode, string(raw))
 	}
 
-	if out != nil {
-		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-			return fmt.Errorf("decode response: %w", err)
-		}
-	}
-
-	return nil
+	return raw, nil
 }
 
 // ---- response utilities ----

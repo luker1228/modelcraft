@@ -6,6 +6,8 @@ import (
 	"net/url"
 	"strings"
 
+	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
 	"modelcraft-gateway/internal/auth"
 )
 
@@ -45,6 +47,11 @@ func (h *Handler) director(req *http.Request) {
 	// Inject internal auth header; never forward user Bearer token upstream.
 	req.Header.Set("X-Internal-Token", h.internalToken)
 	req.Header.Del("Authorization")
+
+	// Propagate or generate a request ID for end-to-end tracing.
+	if reqID := chiMiddleware.GetReqID(req.Context()); reqID != "" {
+		req.Header.Set("X-Request-Id", reqID)
+	}
 
 	// Preserve the original host for virtual-hosting setups.
 	req.Host = h.backendURL.Host
