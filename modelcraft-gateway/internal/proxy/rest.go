@@ -8,8 +8,10 @@ import (
 	"strings"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"go.opentelemetry.io/otel/propagation"
 
 	"modelcraft-gateway/internal/auth"
+	"modelcraft-gateway/internal/middleware"
 )
 
 // RESTHandler proxies protected REST endpoints to the backend.
@@ -53,6 +55,15 @@ func (h *RESTHandler) Handle(w http.ResponseWriter, r *http.Request) {
 	if reqID := chiMiddleware.GetReqID(r.Context()); reqID != "" {
 		r.Header.Set("X-Request-Id", reqID)
 	}
+
+	// Propagate the original client request ID for cross-layer tracing.
+	if clientReqID := middleware.GetClientRequestID(r); clientReqID != "" {
+		r.Header.Set("X-Client-Request-Id", clientReqID)
+	}
+
+	// Inject W3C traceparent/tracestate from the active OTel span so the backend
+	// can parse trace_id and span_id from the Traceparent header.
+	propagation.TraceContext{}.Inject(r.Context(), propagation.HeaderCarrier(r.Header))
 
 	h.proxy.ServeHTTP(w, r)
 }

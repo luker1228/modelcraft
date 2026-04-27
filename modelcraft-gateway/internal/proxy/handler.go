@@ -1,40 +1,45 @@
 package proxy
 
 import (
+	"context"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"strings"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel/propagation"
 
 	"modelcraft-gateway/internal/auth"
+	"modelcraft-gateway/internal/middleware"
 )
 
-// Handler is a reverse proxy that forwards requests to the Go backend,
-// injecting the X-Internal-Token header and stripping the Authorization header
-// (auth is validated at the gateway level, not forwarded).
+type contextKey string
+
+const userIDContextKey contextKey = "user_id"
+
+// Handler is a reverse proxy that forwards requests to the Go backend.
+// After validating the Bearer token, it injects X-User-ID (from JWT claims)
+// and strips the Authorization header before forwarding upstream.
 type Handler struct {
-	backendURL    *url.URL
-	internalToken string
-	authService   *auth.Service
-	reverseProxy  *httputil.ReverseProxy
+	backendURL   *url.URL
+	authService  *auth.Service
+	reverseProxy *httputil.ReverseProxy
 }
 
-func NewHandler(backendURL, internalToken string, authService *auth.Service) (*Handler, error) {
+func NewHandler(backendURL, _ string, authService *auth.Service) (*Handler, error) {
 	parsed, err := url.Parse(backendURL)
 	if err != nil {
 		return nil, err
 	}
 
 	h := &Handler{
-		backendURL:    parsed,
-		internalToken: internalToken,
-		authService:   authService,
+		backendURL:  parsed,
+		authService: authService,
 	}
 	h.reverseProxy = &httputil.ReverseProxy{
-		Director:       h.director,
-		ModifyResponse: h.modifyResponse,
+		Director: h.director,
 	}
 	return h, nil
 }
@@ -44,57 +49,87 @@ func (h *Handler) director(req *http.Request) {
 	req.URL.Scheme = h.backendURL.Scheme
 	req.URL.Host = h.backendURL.Host
 
-	// Inject internal auth header; never forward user Bearer token upstream.
-	req.Header.Set("X-Internal-Token", h.internalToken)
+	// Strip Gateway JWT; backend identifies the caller via X-User-ID only.
 	req.Header.Del("Authorization")
 
-	// Propagate or generate a request ID for end-to-end tracing.
+	// Inject the authenticated user ID so the backend can identify the caller.
+	if userID, ok := req.Context().Value(userIDContextKey).(string); ok && userID != "" {
+		req.Header.Set("X-User-ID", userID)
+		log.Ctx(req.Context()).Debug().
+			Str("user_id", userID).
+			Str("upstream", req.URL.String()).
+			Msg("gateway: injected X-User-ID into upstream request")
+	}
+
+	// Propagate the internal request ID for end-to-end tracing.
 	if reqID := chiMiddleware.GetReqID(req.Context()); reqID != "" {
 		req.Header.Set("X-Request-Id", reqID)
 	}
+
+	// Propagate the original client request ID for cross-layer tracing.
+	if clientReqID := middleware.GetClientRequestID(req); clientReqID != "" {
+		req.Header.Set("X-Client-Request-Id", clientReqID)
+	}
+
+	// Inject W3C traceparent/tracestate from the active OTel span so the backend
+	// can parse trace_id and span_id from the Traceparent header.
+	propagation.TraceContext{}.Inject(req.Context(), propagation.HeaderCarrier(req.Header))
 
 	// Preserve the original host for virtual-hosting setups.
 	req.Host = h.backendURL.Host
 }
 
-func (h *Handler) modifyResponse(resp *http.Response) error {
-	// Remove any internal headers from the upstream response before forwarding to client.
-	resp.Header.Del("X-Internal-Token")
-	return nil
-}
-
 // GraphQLOrgHandler validates the gateway JWT, then proxies to /graphql/org/{orgName}/.
 func (h *Handler) GraphQLOrgHandler(w http.ResponseWriter, r *http.Request) {
-	if !h.verifyBearerToken(w, r) {
+	claims, ok := h.extractAndVerify(w, r)
+	if !ok {
 		return
 	}
-	h.reverseProxy.ServeHTTP(w, r)
+	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	log.Ctx(ctx).Info().
+		Str("user_id", claims.UserID).
+		Str("path", r.URL.Path).
+		Msg("gateway: GraphQL org request authenticated")
+	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
 // GraphQLProjectHandler validates the gateway JWT, then proxies to
 // /graphql/org/{orgName}/project/{projectSlug}/.
 func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) {
-	if !h.verifyBearerToken(w, r) {
+	claims, ok := h.extractAndVerify(w, r)
+	if !ok {
 		return
 	}
-	h.reverseProxy.ServeHTTP(w, r)
+	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	log.Ctx(ctx).Info().
+		Str("user_id", claims.UserID).
+		Str("path", r.URL.Path).
+		Msg("gateway: GraphQL project request authenticated")
+	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// verifyBearerToken extracts and validates the Authorization: Bearer <token> header.
-// Returns true if valid, false after writing an error response.
-func (h *Handler) verifyBearerToken(w http.ResponseWriter, r *http.Request) bool {
+// extractAndVerify extracts and validates the Bearer token, returning the claims on success.
+func (h *Handler) extractAndVerify(w http.ResponseWriter, r *http.Request) (*auth.Claims, bool) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {
+		log.Ctx(r.Context()).Warn().
+			Str("path", r.URL.Path).
+			Msg("gateway: missing Authorization header")
 		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "Authorization header required")
-		return false
+		return nil, false
 	}
 
 	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-	if _, err := h.authService.VerifyAccessToken(tokenStr); err != nil {
+	claims, err := h.authService.VerifyAccessToken(tokenStr)
+	if err != nil {
+		log.Ctx(r.Context()).Warn().
+			Err(err).
+			Str("path", r.URL.Path).
+			Msg("gateway: invalid or expired access token")
 		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "invalid or expired access token")
-		return false
+		return nil, false
 	}
-	return true
+	return claims, true
 }
 
 // writeError writes a JSON error response.

@@ -3,12 +3,13 @@ package middleware
 import (
 	"bytes"
 	"io"
-	"modelcraft/pkg/logfacade"
 	"net/http"
 	"strings"
 	"time"
 
 	chimw "github.com/go-chi/chi/v5/middleware"
+
+	"modelcraft/pkg/logfacade"
 )
 
 // chiResponseWriter wraps Chi's response writer to capture response body
@@ -23,26 +24,40 @@ func (w *chiResponseWriter) Write(b []byte) (int, error) {
 }
 
 // ChiLoggerMiddleware returns a Chi-compatible structured logging middleware.
-// It logs request start/end with duration, status code, and request ID.
-// A request-scoped logger with only the request_id field is stored in the context
-// so downstream handlers can retrieve it via logfacade.GetLogger(ctx).
+// It logs request start/end with duration, status code, and all tracing identifiers:
+// request_id, client_request_id, trace_id, span_id (parsed from W3C traceparent header).
+// A request-scoped logger carrying these fields is stored in context so downstream
+// handlers can retrieve it via logfacade.GetLogger(ctx).
 func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 
-			// Use Chi's built-in request ID (set by chimw.RequestID)
+			// request_id — forwarded by the Gateway (always present in production)
 			requestID := chimw.GetReqID(r.Context())
 			if requestID == "" {
-				requestID = r.Header.Get("X-Request-ID")
+				requestID = r.Header.Get("X-Request-Id")
 			}
 
 			// Set X-Request-ID response header
-			w.Header().Set("X-Request-ID", requestID)
+			w.Header().Set("X-Request-Id", requestID)
 
-			// Create a request-scoped logger with only request_id field and store in context.
-			// Downstream handlers retrieve it via logfacade.GetLogger(ctx).
-			requestLogger := logger.With(logfacade.String("request_id", requestID))
+			// Build scoped logger fields: always include request_id; add
+			// client_request_id, trace_id, span_id when present.
+			logFields := []logfacade.Field{logfacade.String("request_id", requestID)}
+
+			if clientReqID := r.Header.Get("X-Client-Request-Id"); clientReqID != "" {
+				logFields = append(logFields, logfacade.String("client_request_id", clientReqID))
+			}
+
+			if traceID, spanID, ok := parseTraceparent(r.Header.Get("Traceparent")); ok {
+				logFields = append(logFields,
+					logfacade.String("trace_id", traceID),
+					logfacade.String("span_id", spanID),
+				)
+			}
+
+			requestLogger := logger.With(logFields...)
 			ctx := logfacade.WithLogger(r.Context(), requestLogger)
 			r = r.WithContext(ctx)
 
@@ -52,12 +67,10 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 				body, err := io.ReadAll(r.Body)
 				if err == nil {
 					requestBody = string(body)
-					// Restore body for downstream handlers
 					r.Body = io.NopCloser(bytes.NewBuffer(body))
 				}
 			}
 
-			// Log request start with structured fields
 			requestLogger.Info(r.Context(), "request_start",
 				logfacade.String("method", r.Method),
 				logfacade.String("url", r.URL.String()),
@@ -67,7 +80,6 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 				logfacade.String("request_body", requestBody),
 			)
 
-			// Wrap response writer to capture status code and response body
 			ww := chimw.NewWrapResponseWriter(w, r.ProtoMajor)
 			responseBuffer := &bytes.Buffer{}
 			wrappedWriter := &chiResponseWriter{
@@ -78,13 +90,11 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 			defer func() {
 				duration := time.Since(start)
 
-				// Get response body
 				var responseBody string
 				if shouldCaptureChiResponseBody(ww.Header().Get("Content-Type")) {
 					responseBody = responseBuffer.String()
 				}
 
-				// Log request end with structured fields
 				requestLogger.Info(r.Context(), "request_end",
 					logfacade.String("method", r.Method),
 					logfacade.String("path", r.URL.Path),
@@ -100,12 +110,24 @@ func ChiLoggerMiddleware(logger logfacade.Logger) func(http.Handler) http.Handle
 	}
 }
 
-// shouldCaptureChiRequestBody checks if request body should be logged
+// parseTraceparent parses a W3C traceparent header of the form:
+// "00-{traceId(32hex)}-{spanId(16hex)}-{flags(2hex)}"
+// Returns traceID, spanID, and true on success.
+func parseTraceparent(header string) (traceID, spanID string, ok bool) {
+	parts := strings.Split(header, "-")
+	if len(parts) != 4 || parts[0] != "00" {
+		return "", "", false
+	}
+	if len(parts[1]) != 32 || len(parts[2]) != 16 {
+		return "", "", false
+	}
+	return parts[1], parts[2], true
+}
+
 func shouldCaptureChiRequestBody(contentType string) bool {
 	return strings.Contains(contentType, "application/json")
 }
 
-// shouldCaptureChiResponseBody checks if response body should be logged
 func shouldCaptureChiResponseBody(contentType string) bool {
 	return strings.Contains(contentType, "application/json")
 }
