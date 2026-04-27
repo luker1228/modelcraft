@@ -14,10 +14,6 @@ type AssignRoleError interface {
 	IsAssignRoleError()
 }
 
-type CreateAPIKeyError interface {
-	IsCreateAPIKeyError()
-}
-
 type CreateCustomRoleError interface {
 	IsCreateCustomRoleError()
 }
@@ -90,10 +86,6 @@ type PermissionManagementError interface {
 	GetSuggestion() *string
 }
 
-type RevokeAPIKeyError interface {
-	IsRevokeAPIKeyError()
-}
-
 type RevokeRoleError interface {
 	IsRevokeRoleError()
 }
@@ -108,10 +100,6 @@ type SetProjectAuthSchemaError interface {
 
 type TestConnectionError interface {
 	IsTestConnectionError()
-}
-
-type UpdateAPIKeyError interface {
-	IsUpdateAPIKeyError()
 }
 
 type UpdateClusterError interface {
@@ -138,37 +126,6 @@ type AddRolePermissionPayload struct {
 	Success bool                `json:"success"`
 	Error   RolePermissionError `json:"error,omitempty"`
 }
-
-type APIKey struct {
-	ID         string     `json:"id"`
-	Name       string     `json:"name"`
-	KeyPrefix  string     `json:"keyPrefix"`
-	RoleIDs    []string   `json:"roleIDs"`
-	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
-	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
-	RevokedAt  *time.Time `json:"revokedAt,omitempty"`
-	CreatedAt  time.Time  `json:"createdAt"`
-}
-
-type APIKeyLimitExceeded struct {
-	Message string `json:"message"`
-}
-
-func (APIKeyLimitExceeded) IsError()                {}
-func (this APIKeyLimitExceeded) GetMessage() string { return this.Message }
-
-func (APIKeyLimitExceeded) IsCreateAPIKeyError() {}
-
-type APIKeyNotFound struct {
-	Message string `json:"message"`
-}
-
-func (APIKeyNotFound) IsError()                {}
-func (this APIKeyNotFound) GetMessage() string { return this.Message }
-
-func (APIKeyNotFound) IsRevokeAPIKeyError() {}
-
-func (APIKeyNotFound) IsUpdateAPIKeyError() {}
 
 type AssignRolePayload struct {
 	UserRole *UserRoleAssignment `json:"userRole,omitempty"`
@@ -247,26 +204,6 @@ func (ClusterNotFound) IsUpdateClusterError() {}
 func (ClusterNotFound) IsDeleteClusterError() {}
 
 func (ClusterNotFound) IsTestConnectionError() {}
-
-type CreateAPIKeyInput struct {
-	Name      string     `json:"name"`
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
-	RoleIDs   []string   `json:"roleIDs,omitempty"`
-}
-
-type CreateAPIKeyPayload struct {
-	Result *CreateAPIKeyResult `json:"result,omitempty"`
-	Error  CreateAPIKeyError   `json:"error,omitempty"`
-}
-
-type CreateAPIKeyResult struct {
-	ID        string    `json:"id"`
-	Name      string    `json:"name"`
-	Key       string    `json:"key"`
-	KeyPrefix string    `json:"keyPrefix"`
-	RoleIDs   []string  `json:"roleIDs"`
-	CreatedAt time.Time `json:"createdAt"`
-}
 
 type CreateCustomRoleInput struct {
 	Name        string  `json:"name"`
@@ -470,10 +407,6 @@ type InvalidInput struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
 }
-
-func (InvalidInput) IsCreateAPIKeyError() {}
-
-func (InvalidInput) IsUpdateAPIKeyError() {}
 
 func (InvalidInput) IsError()                {}
 func (this InvalidInput) GetMessage() string { return this.Message }
@@ -731,11 +664,6 @@ type RemoveRolePermissionPayload struct {
 	Error   RolePermissionError `json:"error,omitempty"`
 }
 
-type RevokeAPIKeyPayload struct {
-	APIKey *APIKey           `json:"apiKey,omitempty"`
-	Error  RevokeAPIKeyError `json:"error,omitempty"`
-}
-
 type RevokeRolePayload struct {
 	Success bool            `json:"success"`
 	Error   RevokeRoleError `json:"error,omitempty"`
@@ -790,17 +718,6 @@ type TestConnectionPayload struct {
 type TestDatabaseConnectionInput struct {
 	ProjectSlug    *string                  `json:"projectSlug,omitempty"`
 	ConnectionInfo *DatabaseConnectionInput `json:"connectionInfo,omitempty"`
-}
-
-type UpdateAPIKeyInput struct {
-	Name      *string    `json:"name,omitempty"`
-	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
-	RoleIDs   []string   `json:"roleIDs,omitempty"`
-}
-
-type UpdateAPIKeyPayload struct {
-	APIKey *APIKey           `json:"apiKey,omitempty"`
-	Error  UpdateAPIKeyError `json:"error,omitempty"`
 }
 
 type UpdateClusterConnectionInput struct {

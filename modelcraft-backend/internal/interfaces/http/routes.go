@@ -469,7 +469,6 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		RoleService:            handlers.PermRoleService,
 		PermissionService:      handlers.PermPermissionService,
 		UserRoleService:        handlers.PermUserRoleService,
-		APIKeyService:          handlers.APIKeyService,
 		EndUserMgmtAppService:  handlers.OrgEndUserMgmtAppService,
 	}
 
