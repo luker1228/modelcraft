@@ -2,21 +2,31 @@
 
 // src/web/hooks/end-users/useOrgEndUsers.ts
 // Org 级终端用户管理 hook（EndUser v2）
+// 使用 Org-Scoped GraphQL（/api/bff/graphql/org/{orgName}/）
 
 import { useState, useEffect, useCallback } from 'react'
+import {
+  LIST_END_USERS,
+  CREATE_END_USER,
+  UPDATE_END_USER_STATUS,
+  DELETE_END_USER,
+} from '@api-client/end-user/graphql-docs'
+import { getOrgScopedClient } from '@api-client/apollo/clients'
+
+// ── Types ──────────────────────────────────────────────────────────────────
 
 export interface OrgEndUser {
   id: string
   username: string
-  displayName?: string
-  status: 'ACTIVE' | 'DISABLED'
+  isForbidden: boolean
+  createdBy?: string
   createdAt: string
+  updatedAt: string
 }
 
 export interface CreateEndUserPayload {
   username: string
   password: string
-  displayName?: string
 }
 
 interface UseOrgEndUsersReturn {
@@ -25,11 +35,47 @@ interface UseOrgEndUsersReturn {
   error: string | null
   reload: () => void
   createUser: (payload: CreateEndUserPayload) => Promise<void>
-  toggleUserStatus: (userId: string, status: 'ACTIVE' | 'DISABLED') => Promise<void>
+  toggleUserStatus: (userId: string, isForbidden: boolean) => Promise<void>
   deleteUser: (userId: string) => Promise<void>
 }
 
-export function useOrgEndUsers(orgName: string): UseOrgEndUsersReturn {
+// ── GraphQL response shapes ─────────────────────────────────────────────────
+
+interface ListEndUsersData {
+  listEndUsers: {
+    connection?: {
+      nodes: OrgEndUser[]
+      pageInfo: { hasNextPage: boolean; endCursor?: string }
+      totalCount: number
+    }
+    error?: { __typename: string; message?: string }
+  }
+}
+
+interface CreateEndUserData {
+  createEndUser: {
+    endUser?: OrgEndUser
+    error?: { __typename: string; message?: string; suggestion?: string }
+  }
+}
+
+interface UpdateEndUserStatusData {
+  updateEndUserStatus: {
+    endUser?: OrgEndUser
+    error?: { __typename: string; message?: string }
+  }
+}
+
+interface DeleteEndUserData {
+  deleteEndUser: {
+    success: boolean
+    error?: { __typename: string; message?: string }
+  }
+}
+
+// ── Hook ────────────────────────────────────────────────────────────────────
+
+export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
   const [users, setUsers] = useState<OrgEndUser[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -38,66 +84,78 @@ export function useOrgEndUsers(orgName: string): UseOrgEndUsersReturn {
   const reload = useCallback(() => setVersion((v) => v + 1), [])
 
   useEffect(() => {
-    if (!orgName) return
+    let cancelled = false
+    const client = getOrgScopedClient()
 
     setIsLoading(true)
     setError(null)
 
-    fetch(`/api/bff/org/${orgName}/end-user/users`, { cache: 'no-store' })
-      .then(async (res) => {
-        if (!res.ok) throw new Error(`加载失败: ${res.status}`)
-        const data = (await res.json()) as { users?: OrgEndUser[] }
-        setUsers(data.users ?? [])
+    client
+      .query<ListEndUsersData>({
+        query: LIST_END_USERS,
+        variables: { input: { first: 100 } },
+        fetchPolicy: 'network-only',
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : '加载终端用户失败'))
-      .finally(() => setIsLoading(false))
-  }, [orgName, version])
+      .then(({ data }) => {
+        if (cancelled) return
+        const gqlError = data?.listEndUsers?.error
+        if (gqlError?.message) {
+          setError(gqlError.message)
+          return
+        }
+        setUsers(data?.listEndUsers?.connection?.nodes ?? [])
+      })
+      .catch((e: unknown) => {
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : '加载终端用户失败')
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
 
-  const createUser = useCallback(
-    async (payload: CreateEndUserPayload) => {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: payload.username, password: payload.password }),
-      })
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: { message?: string } }
-        throw new Error(data.error?.message || '创建用户失败')
-      }
-      reload()
-    },
-    [orgName, reload]
-  )
+    return () => {
+      cancelled = true
+    }
+  }, [version])
 
-  const toggleUserStatus = useCallback(
-    async (userId: string, status: 'ACTIVE' | 'DISABLED') => {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      if (!res.ok) {
-        const data = (await res.json()) as { error?: { message?: string } }
-        throw new Error(data.error?.message || '更新用户状态失败')
-      }
-      reload()
-    },
-    [orgName, reload]
-  )
+  const createUser = useCallback(async (payload: CreateEndUserPayload) => {
+    const client = getOrgScopedClient()
+    const { data } = await client.mutate<CreateEndUserData>({
+      mutation: CREATE_END_USER,
+      variables: { input: { username: payload.username, password: payload.password } },
+    })
+    const err = data?.createEndUser?.error
+    if (err) {
+      throw new Error(err.message ?? '创建用户失败')
+    }
+    reload()
+  }, [reload])
 
-  const deleteUser = useCallback(
-    async (userId: string) => {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/users/${userId}`, {
-        method: 'DELETE',
-      })
-      if (!res.ok && res.status !== 204) {
-        const data = (await res.json()) as { error?: { message?: string } }
-        throw new Error(data.error?.message || '删除用户失败')
-      }
-      reload()
-    },
-    [orgName, reload]
-  )
+  const toggleUserStatus = useCallback(async (userId: string, isForbidden: boolean) => {
+    const client = getOrgScopedClient()
+    const { data } = await client.mutate<UpdateEndUserStatusData>({
+      mutation: UPDATE_END_USER_STATUS,
+      variables: { input: { userId, isForbidden } },
+    })
+    const err = data?.updateEndUserStatus?.error
+    if (err) {
+      throw new Error(err.message ?? '更新用户状态失败')
+    }
+    reload()
+  }, [reload])
+
+  const deleteUser = useCallback(async (userId: string) => {
+    const client = getOrgScopedClient()
+    const { data } = await client.mutate<DeleteEndUserData>({
+      mutation: DELETE_END_USER,
+      variables: { input: { userId } },
+    })
+    const err = data?.deleteEndUser?.error
+    if (err) {
+      throw new Error(err.message ?? '删除用户失败')
+    }
+    reload()
+  }, [reload])
 
   return { users, isLoading, error, reload, createUser, toggleUserStatus, deleteUser }
 }

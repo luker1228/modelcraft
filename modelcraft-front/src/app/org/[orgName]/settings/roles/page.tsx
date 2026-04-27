@@ -45,12 +45,12 @@ export default function RolesPage() {
         toast.error(result.createRole.error.message)
         return
       }
-      toast.success('Role created')
+      toast.success('角色已创建')
       setShowCreateDialog(false)
       refetch()
     },
     onError: (err) => {
-      toast.error(`Failed to create role: ${err.message}`)
+      toast.error(`创建角色失败：${err.message}`)
     },
   })
 
@@ -60,11 +60,11 @@ export default function RolesPage() {
         toast.error(result.deleteRole.error.message)
         return
       }
-      toast.success('Role deleted')
+      toast.success('角色已删除')
       refetch()
     },
     onError: (err) => {
-      toast.error(`Failed to delete role: ${err.message}`)
+      toast.error(`删除角色失败：${err.message}`)
     },
   })
 
@@ -79,7 +79,7 @@ export default function RolesPage() {
   if (error) {
     return (
       <div className="rounded-md border border-border bg-destructive/5 px-4 py-3">
-        <p className="text-sm text-destructive">Failed to load roles: {error.message}</p>
+        <p className="text-sm text-destructive">加载角色失败：{error.message}</p>
       </div>
     )
   }
@@ -104,7 +104,7 @@ export default function RolesPage() {
         <div className="mb-4 flex justify-end">
           <Button size="sm" onClick={() => setShowCreateDialog(true)}>
             <Plus className="mr-1.5 size-4" />
-            Create Role
+            新建角色
           </Button>
         </div>
       )}

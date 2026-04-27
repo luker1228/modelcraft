@@ -23,8 +23,7 @@ import type { CreateEndUserPayload } from '@web/hooks/end-users/useOrgEndUsers'
 
 const schema = z.object({
   username: z.string().min(1, '请输入用户名').max(64),
-  password: z.string().min(6, '密码至少 6 位').max(128),
-  displayName: z.string().max(64).optional(),
+  password: z.string().min(8, '密码至少 8 位').max(128),
 })
 
 type FormValues = z.infer<typeof schema>
@@ -50,11 +49,7 @@ export function CreateEndUserDialog({ open, onClose, onCreate }: CreateEndUserDi
     setIsLoading(true)
     setError(null)
     try {
-      await onCreate({
-        username: values.username,
-        password: values.password,
-        displayName: values.displayName || undefined,
-      })
+      await onCreate({ username: values.username, password: values.password })
       reset()
       onClose()
     } catch (e: unknown) {
@@ -83,23 +78,24 @@ export function CreateEndUserDialog({ open, onClose, onCreate }: CreateEndUserDi
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="eu-username">用户名 *</Label>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="eu-username">用户名</Label>
             <Input id="eu-username" disabled={isLoading} {...register('username')} />
             {errors.username && (
-              <p className="text-sm text-destructive">{errors.username.message}</p>
+              <p className="text-xs text-destructive">{errors.username.message}</p>
             )}
           </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="eu-password">密码 *</Label>
-            <Input id="eu-password" type="password" disabled={isLoading} {...register('password')} />
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="eu-password">密码</Label>
+            <Input
+              id="eu-password"
+              type="password"
+              disabled={isLoading}
+              {...register('password')}
+            />
             {errors.password && (
-              <p className="text-sm text-destructive">{errors.password.message}</p>
+              <p className="text-xs text-destructive">{errors.password.message}</p>
             )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="eu-display-name">显示名称</Label>
-            <Input id="eu-display-name" disabled={isLoading} placeholder="可选" {...register('displayName')} />
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={handleClose} disabled={isLoading}>

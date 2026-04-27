@@ -36,10 +36,10 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <Shield className="mb-3 size-8 text-muted-foreground/40" strokeWidth={1.5} />
-        <p className="text-sm text-muted-foreground">No roles defined yet.</p>
+        <p className="text-sm text-muted-foreground">暂无角色。</p>
         {onDelete !== undefined && (
           <p className="mt-1 text-xs text-muted-foreground/70">
-            Create a role to assign permissions to team members.
+            新建角色以为成员分配权限。
           </p>
         )}
       </div>
@@ -59,10 +59,10 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Permissions</TableHead>
-              <TableHead>Type</TableHead>
+              <TableHead>名称</TableHead>
+              <TableHead>描述</TableHead>
+              <TableHead>权限</TableHead>
+              <TableHead>类型</TableHead>
               {onDelete && <TableHead className="w-16" />}
             </TableRow>
           </TableHeader>
@@ -91,9 +91,9 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
                 </TableCell>
                 <TableCell>
                   {role.isSystem ? (
-                    <Badge variant="secondary" className="text-xs">System</Badge>
+                    <Badge variant="secondary" className="text-xs">系统</Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs text-muted-foreground">Custom</Badge>
+                    <Badge variant="outline" className="text-xs text-muted-foreground">自定义</Badge>
                   )}
                 </TableCell>
                 {onDelete && (
@@ -104,7 +104,7 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
                         size="sm"
                         className="size-7 p-0 text-muted-foreground/50 hover:text-destructive"
                         onClick={() => setDeleteTarget(role)}
-                        aria-label={`Delete role ${role.name}`}
+                        aria-label={`删除角色 ${role.name}`}
                       >
                         <Trash2 className="size-3.5" />
                       </Button>
@@ -144,19 +144,18 @@ function DeleteConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete role</AlertDialogTitle>
+          <AlertDialogTitle>删除角色</AlertDialogTitle>
           <AlertDialogDescription>
-            Delete &quot;{roleName}&quot;? Users with this role will lose their assigned
-            permissions. This cannot be undone.
+            确认删除角色「{roleName}」？该角色下的成员将失去对应权限，此操作不可撤销。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogCancel>取消</AlertDialogCancel>
           <AlertDialogAction
             onClick={onConfirm}
             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
           >
-            Delete
+            删除
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>

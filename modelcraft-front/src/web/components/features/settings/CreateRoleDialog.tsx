@@ -20,35 +20,35 @@ import { Label } from '@web/components/ui/label'
 import { ScrollArea } from '@web/components/ui/scroll-area'
 
 const AVAILABLE_PERMISSIONS = [
-  { group: 'Project', value: 'project:create', label: 'Create Projects' },
-  { group: 'Project', value: 'project:read', label: 'View Projects' },
-  { group: 'Project', value: 'project:update', label: 'Edit Projects' },
-  { group: 'Project', value: 'project:delete', label: 'Delete Projects' },
+  { group: '项目', value: 'project:create', label: '创建项目' },
+  { group: '项目', value: 'project:read', label: '查看项目' },
+  { group: '项目', value: 'project:update', label: '编辑项目' },
+  { group: '项目', value: 'project:delete', label: '删除项目' },
 
-  { group: 'Model', value: 'model:create', label: 'Create Models' },
-  { group: 'Model', value: 'model:read', label: 'View Models' },
-  { group: 'Model', value: 'model:update', label: 'Edit Models' },
-  { group: 'Model', value: 'model:delete', label: 'Delete Models' },
+  { group: '模型', value: 'model:create', label: '创建模型' },
+  { group: '模型', value: 'model:read', label: '查看模型' },
+  { group: '模型', value: 'model:update', label: '编辑模型' },
+  { group: '模型', value: 'model:delete', label: '删除模型' },
 
-  { group: 'Cluster', value: 'cluster:create', label: 'Create Clusters' },
-  { group: 'Cluster', value: 'cluster:read', label: 'View Clusters' },
-  { group: 'Cluster', value: 'cluster:update', label: 'Edit Clusters' },
-  { group: 'Cluster', value: 'cluster:delete', label: 'Delete Clusters' },
+  { group: '集群', value: 'cluster:create', label: '创建集群' },
+  { group: '集群', value: 'cluster:read', label: '查看集群' },
+  { group: '集群', value: 'cluster:update', label: '编辑集群' },
+  { group: '集群', value: 'cluster:delete', label: '删除集群' },
 
-  { group: 'Enum', value: 'enum:create', label: 'Create Enums' },
-  { group: 'Enum', value: 'enum:read', label: 'View Enums' },
-  { group: 'Enum', value: 'enum:update', label: 'Edit Enums' },
-  { group: 'Enum', value: 'enum:delete', label: 'Delete Enums' },
+  { group: '枚举', value: 'enum:create', label: '创建枚举' },
+  { group: '枚举', value: 'enum:read', label: '查看枚举' },
+  { group: '枚举', value: 'enum:update', label: '编辑枚举' },
+  { group: '枚举', value: 'enum:delete', label: '删除枚举' },
 
-  { group: 'User Management', value: 'user:invite', label: 'Invite Users' },
-  { group: 'User Management', value: 'user:remove', label: 'Remove Users' },
-  { group: 'User Management', value: 'user:list', label: 'View Users' },
+  { group: '用户管理', value: 'user:invite', label: '邀请成员' },
+  { group: '用户管理', value: 'user:remove', label: '移除成员' },
+  { group: '用户管理', value: 'user:list', label: '查看成员' },
 
-  { group: 'Organization', value: 'organization:update', label: 'Update Organization' },
+  { group: '组织', value: 'organization:update', label: '编辑组织信息' },
 ]
 
 const createRoleSchema = z.object({
-  name: z.string().min(1, 'Role name is required').max(100),
+  name: z.string().min(1, '角色名称不能为空').max(100),
   description: z.string().max(500).optional(),
 })
 
@@ -123,18 +123,18 @@ export function CreateRoleDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create role</DialogTitle>
+          <DialogTitle>新建角色</DialogTitle>
           <DialogDescription>
-            Define a custom role with specific permissions.
+            创建自定义角色并指定对应权限。
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor="name">Role name</Label>
+            <Label htmlFor="name">角色名称</Label>
             <Input
               id="name"
-              placeholder="e.g., Project Lead"
+              placeholder="例如：项目负责人"
               {...register('name')}
               disabled={loading}
             />
@@ -145,12 +145,12 @@ export function CreateRoleDialog({
 
           <div className="space-y-1.5">
             <Label htmlFor="description">
-              Description{' '}
-              <span className="text-muted-foreground font-normal">(optional)</span>
+              描述{' '}
+              <span className="font-normal text-muted-foreground">（可选）</span>
             </Label>
             <Textarea
               id="description"
-              placeholder="Describe the purpose of this role"
+              placeholder="说明该角色的用途"
               rows={2}
               {...register('description')}
               disabled={loading}
@@ -158,7 +158,7 @@ export function CreateRoleDialog({
           </div>
 
           <div className="space-y-1.5">
-            <Label>Permissions</Label>
+            <Label>权限</Label>
             <ScrollArea className="h-52 rounded-md border border-border p-3">
               <div className="space-y-4">
                 {Object.entries(groupedPermissions).map(([group, perms]) => (
@@ -189,7 +189,7 @@ export function CreateRoleDialog({
               </div>
             </ScrollArea>
             {permissionsError && (
-              <p className="text-xs text-destructive">Select at least one permission.</p>
+              <p className="text-xs text-destructive">请至少选择一项权限。</p>
             )}
           </div>
 
@@ -200,10 +200,10 @@ export function CreateRoleDialog({
               onClick={() => handleOpenChange(false)}
               disabled={loading}
             >
-              Cancel
+              取消
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating…' : 'Create role'}
+              {loading ? '创建中…' : '新建角色'}
             </Button>
           </DialogFooter>
         </form>

@@ -3,7 +3,7 @@
 // src/web/components/features/end-users/EndUsersManagementTable.tsx
 // Org 级终端用户管理表格（EndUser v2）
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Plus, MoreHorizontal, RefreshCw, Users } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
@@ -25,91 +25,6 @@ import {
 import { CreateEndUserDialog } from './CreateEndUserDialog'
 import { useOrgEndUsers, type OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
 
-// ============================================================================
-// UserProjectBadges — fetches and renders the project list for one user
-// ============================================================================
-
-interface AccessibleProject {
-  slug: string
-  title: string
-}
-
-interface AccessibleProjectsBffResponse {
-  projects?: AccessibleProject[]
-}
-
-interface UserProjectBadgesProps {
-  orgName: string
-  userId: string
-}
-
-const accessibleProjectsCache = new Map<string, AccessibleProject[]>()
-const accessibleProjectsInflight = new Map<string, Promise<AccessibleProject[]>>()
-
-async function fetchAccessibleProjects(orgName: string, userId: string): Promise<AccessibleProject[]> {
-  const key = `${orgName}:${userId}`
-  if (accessibleProjectsCache.has(key)) {
-    return accessibleProjectsCache.get(key) ?? []
-  }
-
-  const pending = accessibleProjectsInflight.get(key)
-  if (pending) {
-    return pending
-  }
-
-  const request = fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/accessible-projects`)
-    .then((r) => r.json() as Promise<AccessibleProjectsBffResponse>)
-    .then((d) => d.projects ?? [])
-    .catch(() => [])
-    .then((projects) => {
-      accessibleProjectsCache.set(key, projects)
-      accessibleProjectsInflight.delete(key)
-      return projects
-    })
-
-  accessibleProjectsInflight.set(key, request)
-  return request
-}
-
-function UserProjectBadges({ orgName, userId }: UserProjectBadgesProps) {
-  const [projects, setProjects] = useState<AccessibleProject[] | null>(null)
-
-  useEffect(() => {
-    let cancelled = false
-    fetchAccessibleProjects(orgName, userId).then((items) => {
-      if (!cancelled) {
-        setProjects(items)
-      }
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [orgName, userId])
-
-  if (projects === null) {
-    return <div className="h-4 w-20 animate-pulse rounded bg-muted" />
-  }
-
-  if (projects.length === 0) {
-    return <span className="text-xs text-muted-foreground">暂无</span>
-  }
-
-  return (
-    <div className="flex flex-wrap gap-1">
-      {projects.map((p) => (
-        <Badge key={p.slug} variant="outline" className="text-xs font-medium text-foreground">
-          {p.title}
-        </Badge>
-      ))}
-    </div>
-  )
-}
-
-// ============================================================================
-// Helpers
-// ============================================================================
-
 function formatDate(dateStr: string): string {
   try {
     return new Date(dateStr).toLocaleDateString('zh-CN')
@@ -130,9 +45,8 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
 
   const handleToggleStatus = async (user: OrgEndUser) => {
     setActionError(null)
-    const newStatus = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'
     try {
-      await toggleUserStatus(user.id, newStatus)
+      await toggleUserStatus(user.id, !user.isForbidden)
     } catch (e: unknown) {
       setActionError(e instanceof Error ? e.message : '操作失败')
     }
@@ -161,6 +75,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
           刷新
         </Button>
       </div>
+
       {actionError && (
         <p className="text-sm text-destructive">{actionError}</p>
       )}
@@ -168,7 +83,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
       {/* Error State */}
       {error && !isLoading && (
         <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Users className="mb-3 size-10 text-muted-foreground/50" />
+          <Users className="mb-3 size-8 text-muted-foreground/40" strokeWidth={1.5} />
           <p className="text-sm text-muted-foreground">{error}</p>
           <Button size="sm" variant="outline" className="mt-3" onClick={reload}>
             重试
@@ -178,15 +93,14 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
 
       {/* Table */}
       {!error && (
-        <div className="overflow-hidden rounded-lg border border-border bg-card">
+        <div className="rounded-md border border-border">
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-semibold">用户名</TableHead>
-                <TableHead className="font-semibold">显示名称</TableHead>
-                <TableHead className="w-56 font-semibold">关联项目</TableHead>
-                <TableHead className="font-semibold">状态</TableHead>
-                <TableHead className="font-semibold">创建时间</TableHead>
+                <TableHead>用户名</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>创建人</TableHead>
+                <TableHead>创建时间</TableHead>
                 <TableHead className="w-12" />
               </TableRow>
             </TableHeader>
@@ -194,9 +108,9 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
               {isLoading &&
                 Array.from({ length: 5 }).map((_, i) => (
                   <TableRow key={i}>
-                    {Array.from({ length: 6 }).map((__, j) => (
+                    {Array.from({ length: 5 }).map((__, j) => (
                       <TableCell key={j}>
-                        <div className="h-4 w-24 animate-pulse rounded bg-slate-200" />
+                        <div className="h-4 w-24 animate-pulse rounded bg-muted" />
                       </TableCell>
                     ))}
                   </TableRow>
@@ -204,9 +118,9 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
 
               {!isLoading && users.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6}>
+                  <TableCell colSpan={5}>
                     <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <Users className="mb-3 size-10 text-muted-foreground/50" />
+                      <Users className="mb-3 size-8 text-muted-foreground/40" strokeWidth={1.5} />
                       <p className="text-sm text-muted-foreground">暂无终端用户</p>
                       <Button
                         size="sm"
@@ -225,40 +139,46 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                 users.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className="flex size-8 flex-shrink-0 items-center justify-center rounded-full bg-muted text-sm font-semibold text-foreground">
+                      <div className="flex items-center gap-2.5">
+                        <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
                           {user.username.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-sm font-semibold">{user.username}</span>
+                        <span className="text-sm font-medium text-foreground">
+                          {user.username}
+                        </span>
                       </div>
                     </TableCell>
+                    <TableCell>
+                      {user.isForbidden ? (
+                        <Badge variant="secondary" className="text-xs text-muted-foreground">
+                          已禁用
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs text-emerald-700">
+                          正常
+                        </Badge>
+                      )}
+                    </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {user.displayName || '-'}
-                    </TableCell>
-                    <TableCell>
-                      <UserProjectBadges orgName={orgName} userId={user.id} />
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={user.status === 'ACTIVE' ? 'outline' : 'destructive'}
-                        className={user.status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700' : ''}
-                      >
-                        {user.status === 'ACTIVE' ? '正常' : '已禁用'}
-                      </Badge>
+                      {user.createdBy || <span className="text-muted-foreground/50">—</span>}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(user.createdAt)}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="size-8">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="size-7 text-muted-foreground/50 hover:text-foreground"
+                          >
                             <MoreHorizontal className="size-4" />
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                            {user.status === 'ACTIVE' ? '禁用账号' : '启用账号'}
+                            {user.isForbidden ? '启用账号' : '禁用账号'}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
