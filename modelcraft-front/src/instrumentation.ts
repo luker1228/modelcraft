@@ -8,10 +8,6 @@ export async function register() {
 
   const requiredEnvVars: Array<{ name: string; description: string }> = [
     {
-      name: 'JWT_SECRET',
-      description: 'Secret used by BFF to sign access tokens',
-    },
-    {
       name: 'BACKEND_URL',
       description: 'Internal URL of the Go backend (e.g. http://9.135.32.8:8090)',
     },

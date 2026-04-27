@@ -33,11 +33,22 @@ export const userNameSchema = z
 export const identifierSchema = z.string().min(1, '请输入手机号或用户名')
 
 /** 登录表单 */
-export const loginFormSchema = z.object({
-  identifier: identifierSchema,
-  identifierType: z.enum(['PHONE', 'USERNAME'] as const),
-  password: z.string().min(1, '请输入密码'),
-})
+export const loginFormSchema = z
+  .object({
+    identifier: identifierSchema,
+    identifierType: z.enum(['PHONE', 'USERNAME'] as const),
+    password: z.string().min(1, '请输入密码'),
+  })
+  .superRefine((data, ctx) => {
+    const errorMessage = validateIdentifier(data.identifier, data.identifierType)
+    if (errorMessage) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: errorMessage,
+        path: ['identifier'],
+      })
+    }
+  })
 
 /** 注册表单 */
 export const registerFormSchema = z

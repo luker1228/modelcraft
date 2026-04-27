@@ -13,6 +13,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   use: {
     baseURL,
+    headless: false,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
