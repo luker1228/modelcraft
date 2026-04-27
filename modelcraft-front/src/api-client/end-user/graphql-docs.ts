@@ -22,11 +22,9 @@ export const LIST_END_USERS = gql`
       }
       error {
         __typename
-        ... on ClusterNotFound {
+        ... on InvalidInput {
           message
-        }
-        ... on ProjectNotFound {
-          message
+          suggestion
         }
       }
     }
@@ -55,15 +53,9 @@ export const CREATE_END_USER = gql`
           message
           suggestion
         }
-        ... on ClusterNotFound {
-          message
-        }
         ... on InvalidInput {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -84,15 +76,9 @@ export const UPDATE_END_USER_STATUS = gql`
         ... on EndUserNotFound {
           message
         }
-        ... on ClusterNotFound {
-          message
-        }
         ... on InvalidInput {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -106,12 +92,6 @@ export const DELETE_END_USER = gql`
       error {
         __typename
         ... on EndUserNotFound {
-          message
-        }
-        ... on ClusterNotFound {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
