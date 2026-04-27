@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { useForm, Controller } from 'react-hook-form'
+import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import {
@@ -20,53 +20,55 @@ import { Label } from '@web/components/ui/label'
 import { ScrollArea } from '@web/components/ui/scroll-area'
 
 const AVAILABLE_PERMISSIONS = [
-  // Project Permissions
   { group: 'Project', value: 'project:create', label: 'Create Projects' },
   { group: 'Project', value: 'project:read', label: 'View Projects' },
   { group: 'Project', value: 'project:update', label: 'Edit Projects' },
   { group: 'Project', value: 'project:delete', label: 'Delete Projects' },
 
-  // Model Permissions
   { group: 'Model', value: 'model:create', label: 'Create Models' },
   { group: 'Model', value: 'model:read', label: 'View Models' },
   { group: 'Model', value: 'model:update', label: 'Edit Models' },
   { group: 'Model', value: 'model:delete', label: 'Delete Models' },
 
-  // Cluster Permissions
   { group: 'Cluster', value: 'cluster:create', label: 'Create Clusters' },
   { group: 'Cluster', value: 'cluster:read', label: 'View Clusters' },
   { group: 'Cluster', value: 'cluster:update', label: 'Edit Clusters' },
   { group: 'Cluster', value: 'cluster:delete', label: 'Delete Clusters' },
 
-  // Enum Permissions
   { group: 'Enum', value: 'enum:create', label: 'Create Enums' },
   { group: 'Enum', value: 'enum:read', label: 'View Enums' },
   { group: 'Enum', value: 'enum:update', label: 'Edit Enums' },
   { group: 'Enum', value: 'enum:delete', label: 'Delete Enums' },
 
-  // User/Team Permissions
   { group: 'User Management', value: 'user:invite', label: 'Invite Users' },
   { group: 'User Management', value: 'user:remove', label: 'Remove Users' },
   { group: 'User Management', value: 'user:list', label: 'View Users' },
 
-  // Organization Permissions
   { group: 'Organization', value: 'organization:update', label: 'Update Organization' },
 ]
 
 const createRoleSchema = z.object({
   name: z.string().min(1, 'Role name is required').max(100),
   description: z.string().max(500).optional(),
-  permissions: z.array(z.string()).min(1, 'At least one permission must be selected'),
 })
 
-type CreateRoleInput = z.infer<typeof createRoleSchema>
+type CreateRoleFormValues = z.infer<typeof createRoleSchema>
 
 interface CreateRoleDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSubmit: (input: CreateRoleInput) => void
+  onSubmit: (input: { name: string; description?: string; permissions: string[] }) => void
   loading?: boolean
 }
+
+const groupedPermissions = AVAILABLE_PERMISSIONS.reduce(
+  (acc, perm) => {
+    if (!acc[perm.group]) acc[perm.group] = []
+    acc[perm.group].push(perm)
+    return acc
+  },
+  {} as Record<string, typeof AVAILABLE_PERMISSIONS>
+)
 
 export function CreateRoleDialog({
   open,
@@ -74,76 +76,62 @@ export function CreateRoleDialog({
   onSubmit,
   loading = false,
 }: CreateRoleDialogProps) {
-  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(
-    new Set()
-  )
+  const [selectedPermissions, setSelectedPermissions] = useState<Set<string>>(new Set())
+  const [submitAttempted, setSubmitAttempted] = useState(false)
 
   const {
     register,
     handleSubmit,
     reset,
     formState: { errors },
-  } = useForm<CreateRoleInput>({
+  } = useForm<CreateRoleFormValues>({
     resolver: zodResolver(createRoleSchema),
-    defaultValues: {
-      name: '',
-      description: '',
-      permissions: [],
-    },
+    defaultValues: { name: '', description: '' },
   })
 
   const handleOpenChange = (newOpen: boolean) => {
     if (!newOpen) {
       reset()
       setSelectedPermissions(new Set())
+      setSubmitAttempted(false)
     }
     onOpenChange(newOpen)
   }
 
-  const onFormSubmit = (data: CreateRoleInput) => {
-    onSubmit({
-      ...data,
-      permissions: Array.from(selectedPermissions),
-    })
+  const onFormSubmit = (data: CreateRoleFormValues) => {
+    setSubmitAttempted(true)
+    if (selectedPermissions.size === 0) return
+    onSubmit({ ...data, permissions: Array.from(selectedPermissions) })
     reset()
     setSelectedPermissions(new Set())
+    setSubmitAttempted(false)
   }
 
   const togglePermission = (permission: string) => {
-    const newSet = new Set(selectedPermissions)
-    if (newSet.has(permission)) {
-      newSet.delete(permission)
+    const next = new Set(selectedPermissions)
+    if (next.has(permission)) {
+      next.delete(permission)
     } else {
-      newSet.add(permission)
+      next.add(permission)
     }
-    setSelectedPermissions(newSet)
+    setSelectedPermissions(next)
   }
 
-  const groupedPermissions = AVAILABLE_PERMISSIONS.reduce(
-    (acc, perm) => {
-      if (!acc[perm.group]) {
-        acc[perm.group] = []
-      }
-      acc[perm.group].push(perm)
-      return acc
-    },
-    {} as Record<string, typeof AVAILABLE_PERMISSIONS>
-  )
+  const permissionsError = submitAttempted && selectedPermissions.size === 0
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>Create Role</DialogTitle>
+          <DialogTitle>Create role</DialogTitle>
           <DialogDescription>
-            Create a new custom role with specific permissions.
+            Define a custom role with specific permissions.
           </DialogDescription>
         </DialogHeader>
 
         <form onSubmit={handleSubmit(onFormSubmit)} className="space-y-4">
-          {/* Role Name */}
-          <div className="space-y-2">
-            <Label htmlFor="name">Role Name</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="name">Role name</Label>
             <Input
               id="name"
               placeholder="e.g., Project Lead"
@@ -151,13 +139,15 @@ export function CreateRoleDialog({
               disabled={loading}
             />
             {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
+              <p className="text-xs text-destructive">{errors.name.message}</p>
             )}
           </div>
 
-          {/* Description */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+          <div className="space-y-1.5">
+            <Label htmlFor="description">
+              Description{' '}
+              <span className="text-muted-foreground font-normal">(optional)</span>
+            </Label>
             <Textarea
               id="description"
               placeholder="Describe the purpose of this role"
@@ -165,40 +155,29 @@ export function CreateRoleDialog({
               {...register('description')}
               disabled={loading}
             />
-            {errors.description && (
-              <p className="text-sm text-destructive">
-                {errors.description.message}
-              </p>
-            )}
           </div>
 
-          {/* Permissions */}
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <Label>Permissions</Label>
-            <ScrollArea className="h-48 rounded-md border p-3">
-              <div className="space-y-3">
+            <ScrollArea className="h-52 rounded-md border border-border p-3">
+              <div className="space-y-4">
                 {Object.entries(groupedPermissions).map(([group, perms]) => (
                   <div key={group}>
-                    <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">
+                    <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
                       {group}
                     </p>
-                    <div className="space-y-2 pl-2">
+                    <div className="space-y-1.5 pl-1">
                       {perms.map((perm) => (
-                        <div
-                          key={perm.value}
-                          className="flex items-center space-x-2"
-                        >
+                        <div key={perm.value} className="flex items-center gap-2">
                           <Checkbox
                             id={perm.value}
                             checked={selectedPermissions.has(perm.value)}
-                            onCheckedChange={() =>
-                              togglePermission(perm.value)
-                            }
+                            onCheckedChange={() => togglePermission(perm.value)}
                             disabled={loading}
                           />
                           <Label
                             htmlFor={perm.value}
-                            className="cursor-pointer font-normal"
+                            className="cursor-pointer text-sm font-normal"
                           >
                             {perm.label}
                           </Label>
@@ -209,10 +188,8 @@ export function CreateRoleDialog({
                 ))}
               </div>
             </ScrollArea>
-            {selectedPermissions.size === 0 && (
-              <p className="text-sm text-destructive">
-                At least one permission must be selected
-              </p>
+            {permissionsError && (
+              <p className="text-xs text-destructive">Select at least one permission.</p>
             )}
           </div>
 
@@ -226,7 +203,7 @@ export function CreateRoleDialog({
               Cancel
             </Button>
             <Button type="submit" disabled={loading}>
-              {loading ? 'Creating...' : 'Create Role'}
+              {loading ? 'Creating…' : 'Create role'}
             </Button>
           </DialogFooter>
         </form>

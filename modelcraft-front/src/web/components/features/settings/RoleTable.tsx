@@ -24,9 +24,6 @@ import {
 import type { Role } from '@/types'
 import { Shield, Trash2 } from 'lucide-react'
 
-// Re-export AlertDialog components from ui/dialog since we may not have alert-dialog
-// This component uses a simple confirm pattern
-
 interface RoleTableProps {
   roles: Role[]
   onDelete?: (roleId: string) => void
@@ -37,9 +34,14 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
 
   if (roles.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 text-center">
-        <Shield className="mb-3 size-10 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">No roles found.</p>
+      <div className="flex flex-col items-center justify-center py-16 text-center">
+        <Shield className="mb-3 size-8 text-muted-foreground/40" strokeWidth={1.5} />
+        <p className="text-sm text-muted-foreground">No roles defined yet.</p>
+        {onDelete !== undefined && (
+          <p className="mt-1 text-xs text-muted-foreground/70">
+            Create a role to assign permissions to team members.
+          </p>
+        )}
       </div>
     )
   }
@@ -53,7 +55,7 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
 
   return (
     <>
-      <div className="rounded-lg border">
+      <div className="rounded-md border border-border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -61,49 +63,50 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
               <TableHead>Description</TableHead>
               <TableHead>Permissions</TableHead>
               <TableHead>Type</TableHead>
-              {onDelete && <TableHead className="w-[80px]">Actions</TableHead>}
+              {onDelete && <TableHead className="w-16" />}
             </TableRow>
           </TableHeader>
           <TableBody>
             {roles.map((role) => (
               <TableRow key={role.id}>
-                <TableCell className="font-semibold">{role.name}</TableCell>
+                <TableCell className="font-medium text-foreground">
+                  {role.name}
+                </TableCell>
                 <TableCell className="max-w-[200px] truncate text-sm text-muted-foreground">
-                  {role.description || '-'}
+                  {role.description || <span className="text-muted-foreground/50">—</span>}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-wrap gap-1">
                     {role.permissions.slice(0, 4).map((perm) => (
-                      <Badge
-                        key={perm}
-                        variant="secondary"
-                        className="text-xs"
-                      >
+                      <Badge key={perm} variant="secondary" className="font-mono text-xs">
                         {perm}
                       </Badge>
                     ))}
                     {role.permissions.length > 4 && (
-                      <Badge variant="outline" className="text-xs">
+                      <Badge variant="outline" className="text-xs text-muted-foreground">
                         +{role.permissions.length - 4}
                       </Badge>
                     )}
                   </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={role.isSystem ? 'default' : 'outline'}>
-                    {role.isSystem ? 'System' : 'Custom'}
-                  </Badge>
+                  {role.isSystem ? (
+                    <Badge variant="secondary" className="text-xs">System</Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-muted-foreground">Custom</Badge>
+                  )}
                 </TableCell>
                 {onDelete && (
-                  <TableCell>
+                  <TableCell className="text-right">
                     {!role.isSystem && (
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="size-8 p-0 text-muted-foreground hover:text-destructive"
+                        className="size-7 p-0 text-muted-foreground/50 hover:text-destructive"
                         onClick={() => setDeleteTarget(role)}
+                        aria-label={`Delete role ${role.name}`}
                       >
-                        <Trash2 className="size-4" />
+                        <Trash2 className="size-3.5" />
                       </Button>
                     )}
                   </TableCell>
@@ -114,7 +117,6 @@ export function RoleTable({ roles, onDelete }: RoleTableProps) {
         </Table>
       </div>
 
-      {/* Delete Confirmation Dialog */}
       {deleteTarget && (
         <DeleteConfirmDialog
           roleName={deleteTarget.name}
@@ -142,11 +144,10 @@ function DeleteConfirmDialog({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogTitle>Delete Role</AlertDialogTitle>
+          <AlertDialogTitle>Delete role</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete the role &quot;{roleName}&quot;? This
-            action cannot be undone. Users with this role will lose their
-            assigned permissions.
+            Delete &quot;{roleName}&quot;? Users with this role will lose their assigned
+            permissions. This cannot be undone.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

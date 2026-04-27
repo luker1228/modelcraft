@@ -9,7 +9,7 @@ import { Shield, LogIn } from 'lucide-react'
 
 const tabs = [
   { id: 'roles', label: 'Roles', icon: Shield },
-  { id: 'login-settings', label: '登录配置', icon: LogIn },
+  { id: 'login-settings', label: 'Login', icon: LogIn },
 ]
 
 export default function SettingsLayout({

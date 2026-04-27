@@ -42,11 +42,10 @@ export default function RolesPage() {
   const [createRole, { loading: creating }] = useMutation<CreateRoleResult>(CREATE_ROLE, {
     onCompleted: (result) => {
       if (result.createRole.error) {
-        const err = result.createRole.error
-        toast.error(err.message)
+        toast.error(result.createRole.error.message)
         return
       }
-      toast.success('Role created successfully')
+      toast.success('Role created')
       setShowCreateDialog(false)
       refetch()
     },
@@ -58,11 +57,10 @@ export default function RolesPage() {
   const [deleteRole] = useMutation<DeleteRoleResult>(DELETE_ROLE, {
     onCompleted: (result) => {
       if (result.deleteRole.error) {
-        const err = result.deleteRole.error
-        toast.error(err.message)
+        toast.error(result.deleteRole.error.message)
         return
       }
-      toast.success('Role deleted successfully')
+      toast.success('Role deleted')
       refetch()
     },
     onError: (err) => {
@@ -73,17 +71,15 @@ export default function RolesPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="size-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        <div className="size-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
       </div>
     )
   }
 
   if (error) {
     return (
-      <div className="rounded-lg border border-destructive/50 bg-destructive/10 p-4">
-        <p className="text-sm text-destructive">
-          Failed to load roles: {error.message}
-        </p>
+      <div className="rounded-md border border-border bg-destructive/5 px-4 py-3">
+        <p className="text-sm text-destructive">Failed to load roles: {error.message}</p>
       </div>
     )
   }
@@ -104,20 +100,14 @@ export default function RolesPage() {
 
   return (
     <div>
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold">Roles</h2>
-          <p className="text-sm text-muted-foreground">
-            Manage roles and permissions for your organization.
-          </p>
-        </div>
-        {canManageRoles && (
-          <Button onClick={() => setShowCreateDialog(true)} size="sm">
-            <Plus className="mr-1 size-4" />
+      {canManageRoles && (
+        <div className="mb-4 flex justify-end">
+          <Button size="sm" onClick={() => setShowCreateDialog(true)}>
+            <Plus className="mr-1.5 size-4" />
             Create Role
           </Button>
-        )}
-      </div>
+        </div>
+      )}
 
       <RoleTable
         roles={roles}
