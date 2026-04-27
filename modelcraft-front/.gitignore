@@ -13,3 +13,4 @@ playwright-report/
 test-results/
 .playwright/
 .playwright-mcp/
+e2e/.auth/

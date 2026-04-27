@@ -10,7 +10,8 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  workers: 1,
+  timeout: 45000,
   use: {
     baseURL,
     headless: false,
@@ -28,6 +29,9 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
+        // 不在此处全局注入 storageState，由各 spec 的 fixture 自行控制：
+        // - auth spec 使用 auth.fixture.ts（无登录态）
+        // - workspace spec 使用 workspace.fixture.ts（注入 storageState）
       },
       dependencies: ['setup'],
     },
