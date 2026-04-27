@@ -166,49 +166,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemError'
-  /api/org/init:
-    post:
-      operationId: initOrganization
-      summary: Initialize organization for the current user (idempotent)
-      tags:
-        - Organization
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InitOrganizationRequest'
-      responses:
-        '200':
-          description: Organization initialized (created or already exists)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InitOrganizationResponse'
-        '400':
-          description: Invalid request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrgInvalidInputError'
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AuthenticationFailedError'
-        '409':
-          description: Organization name conflict (name taken by another org)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OrgAlreadyExistsError'
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SystemError'
 components:
   securitySchemes:
     BearerAuth:
@@ -421,6 +378,7 @@ components:
         - type: object
           required:
             - userId
+            - accessToken
             - refreshToken
             - expiresAt
           properties:
@@ -433,6 +391,9 @@ components:
             orgName:
               type: string
               description: Primary organization name (first org the user belongs to, if any)
+            accessToken:
+              type: string
+              description: Short-lived ES256 JWT access token (verify with public key)
             refreshToken:
               type: string
               description: Opaque refresh token (store securely on client)
@@ -454,12 +415,16 @@ components:
         - type: object
           required:
             - userId
+            - accessToken
             - refreshToken
             - expiresAt
           properties:
             userId:
               type: string
               description: ModelCraft internal user UUID
+            accessToken:
+              type: string
+              description: New short-lived ES256 JWT access token
             refreshToken:
               type: string
               description: New opaque refresh token (replaces the old one)
@@ -552,33 +517,6 @@ components:
                 - CONFLICT.ORGANIZATION
             message:
               type: string
-    InitOrganizationRequest:
-      type: object
-      properties:
-        organizationName:
-          type: string
-          description: Organization slug (6-24 chars, lowercase, no hyphens). If empty, auto-generated from displayName.
-        displayName:
-          type: string
-          description: Human-readable organization name (required)
-      required:
-        - displayName
-    InitOrganizationResponse:
-      allOf:
-        - $ref: '#/components/schemas/BaseResponse'
-        - type: object
-          properties:
-            success:
-              type: boolean
-            orgName:
-              type: string
-              description: Generated organization slug
-            displayName:
-              type: string
-              description: Human-readable organization name
-            alreadyExists:
-              type: boolean
-              description: True if the organization already existed (idempotent result)
     RegisterProfileSnapshot:
       type: object
       required:

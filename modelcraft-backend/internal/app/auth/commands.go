@@ -52,6 +52,7 @@ type LoginResult struct {
 	UserID       string
 	UserName     string // 用户显示名
 	OrgName      string // 用户首个组织名（如有）
+	AccessToken  string // ES256 签发的短期 JWT，Gateway 用公钥验证
 	RefreshToken string // 明文，BFF 存入 Cookie
 	ExpiresAt    time.Time
 }
@@ -72,6 +73,7 @@ type RefreshCommand struct {
 // RefreshResult 刷新成功后返回给 BFF
 type RefreshResult struct {
 	UserID       string
+	AccessToken  string // 新签发的 ES256 JWT
 	RefreshToken string // 新明文 token
 	ExpiresAt    time.Time
 }

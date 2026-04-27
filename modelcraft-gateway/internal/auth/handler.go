@@ -11,6 +11,10 @@ import (
 )
 
 // Handler exposes auth endpoints: login, register, refresh, logout.
+// Token signing is fully handled by the backend auth service (ES256).
+// The gateway's only responsibilities here are:
+//   - Proxying requests to the backend
+//   - Managing the httpOnly refresh-token cookie (browsers cannot access it directly)
 type Handler struct {
 	authService *Service
 	backendURL  string
@@ -27,46 +31,28 @@ func NewHandler(authService *Service, backendURL string) *Handler {
 
 // ---- gateway request / response types ----
 
-// loginRequest is the payload accepted by the gateway from the browser.
 type loginRequest struct {
-	Identifier     string `json:"identifier"`               // username or phone
-	IdentifierType string `json:"identifierType,omitempty"` // "USERNAME" or empty
+	Identifier     string `json:"identifier"`
+	IdentifierType string `json:"identifierType,omitempty"`
 	Password       string `json:"password"`
 }
 
-// registerRequest is the payload accepted by the gateway from the browser.
 type registerRequest struct {
 	Phone    string `json:"phone"`
 	UserName string `json:"userName"`
 	Password string `json:"password"`
 }
 
-// tokenResponse is what the gateway returns to the browser.
-type tokenResponse struct {
-	AccessToken string `json:"accessToken"`
-}
-
-// ---- backend API types (matching modelcraft-backend generated structs) ----
-
-type backendLoginRequest struct {
-	Identifier     string `json:"identifier"`
-	IdentifierType string `json:"identifierType,omitempty"`
-	Password       string `json:"password"`
-}
+// ---- backend API response types ----
 
 type backendLoginResponse struct {
 	RequestID    string    `json:"requestId"`
 	UserID       string    `json:"userId"`
+	AccessToken  string    `json:"accessToken"`
 	RefreshToken string    `json:"refreshToken"`
 	ExpiresAt    time.Time `json:"expiresAt"`
 	UserName     string    `json:"userName,omitempty"`
 	OrgName      string    `json:"orgName,omitempty"`
-}
-
-type backendRegisterRequest struct {
-	Phone    string `json:"phone"`
-	UserName string `json:"userName"`
-	Password string `json:"password"`
 }
 
 type backendRegisterResponse struct {
@@ -75,13 +61,10 @@ type backendRegisterResponse struct {
 	OrgName   string `json:"orgName"`
 }
 
-type backendRefreshRequest struct {
-	RefreshToken string `json:"refreshToken"`
-}
-
 type backendRefreshResponse struct {
 	RequestID    string    `json:"requestId"`
 	UserID       string    `json:"userId"`
+	AccessToken  string    `json:"accessToken"`
 	RefreshToken string    `json:"refreshToken"`
 	ExpiresAt    time.Time `json:"expiresAt"`
 }
@@ -90,15 +73,22 @@ type backendLogoutRequest struct {
 	RefreshToken string `json:"refreshToken"`
 }
 
+// tokenResponse is what the gateway returns to the browser.
+type tokenResponse struct {
+	AccessToken string `json:"accessToken"`
+}
+
 // ---- handlers ----
 
-// Login authenticates against the Go backend, issues a gateway JWT + sets refresh cookie.
+// Login proxies to the backend, extracts the accessToken from backend response,
+// stores the refreshToken in an httpOnly cookie, and returns only the accessToken.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 	var req loginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid request body")
 		return
 	}
+
 	if req.Identifier == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "PARAM_INVALID", "identifier and password are required")
 		return
@@ -110,26 +100,18 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Issue gateway short-lived access token.
-	accessToken, err := h.authService.IssueAccessToken(backendResp.UserID, backendResp.UserName, "")
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "TOKEN_ISSUE_FAILED", "failed to issue access token")
-		return
-	}
-
-	// Store backend's opaque refresh token in httpOnly cookie.
-	// Persistence is owned by the backend (DB); gateway only proxies the token via cookie.
 	h.authService.SetRefreshCookie(w, backendResp.RefreshToken)
-	writeJSON(w, http.StatusOK, tokenResponse{AccessToken: accessToken})
+	writeJSON(w, http.StatusOK, tokenResponse{AccessToken: backendResp.AccessToken})
 }
 
-// Register creates a new user via the Go backend, then issues tokens.
+// Register creates a new user via the backend, then auto-logs-in to obtain tokens.
 func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 	var req registerRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		writeError(w, http.StatusBadRequest, "INVALID_BODY", "invalid request body")
 		return
 	}
+
 	if req.UserName == "" || req.Password == "" {
 		writeError(w, http.StatusBadRequest, "PARAM_INVALID", "userName and password are required")
 		return
@@ -141,14 +123,14 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// After register, perform a login to obtain a refresh token.
+	// After register, perform a login to obtain tokens.
 	loginResp, err := h.callBackendLogin(r.Context(), loginRequest{
 		Identifier:     req.UserName,
 		IdentifierType: "USERNAME",
 		Password:       req.Password,
 	})
 	if err != nil {
-		// Registration succeeded but auto-login failed — return userId so client can retry login.
+		// Registration succeeded but auto-login failed — return userId so client can retry.
 		writeJSON(w, http.StatusCreated, map[string]string{
 			"userId":  backendResp.UserID,
 			"orgName": backendResp.OrgName,
@@ -156,18 +138,12 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := h.authService.IssueAccessToken(loginResp.UserID, loginResp.UserName, "")
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "TOKEN_ISSUE_FAILED", "failed to issue access token")
-		return
-	}
-
 	h.authService.SetRefreshCookie(w, loginResp.RefreshToken)
-	writeJSON(w, http.StatusCreated, tokenResponse{AccessToken: accessToken})
+	writeJSON(w, http.StatusCreated, tokenResponse{AccessToken: loginResp.AccessToken})
 }
 
 // Refresh reads the httpOnly refresh cookie, forwards it to the backend for rotation,
-// then issues a new gateway access token and updates the cookie.
+// then returns the new accessToken and updates the cookie.
 func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	refreshToken, err := h.authService.GetRefreshCookie(r)
 	if err != nil {
@@ -182,24 +158,17 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	accessToken, err := h.authService.IssueAccessToken(backendResp.UserID, "", "")
-	if err != nil {
-		writeError(w, http.StatusInternalServerError, "TOKEN_ISSUE_FAILED", "failed to issue access token")
-		return
-	}
-
-	// Update cookie with the rotated token from the backend.
 	h.authService.SetRefreshCookie(w, backendResp.RefreshToken)
-	writeJSON(w, http.StatusOK, tokenResponse{AccessToken: accessToken})
+	writeJSON(w, http.StatusOK, tokenResponse{AccessToken: backendResp.AccessToken})
 }
 
 // Logout forwards the refresh token to the backend for revocation, then clears the cookie.
 func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := h.authService.GetRefreshCookie(r)
 	if refreshToken != "" {
-		// Best-effort: tell the backend to revoke. Ignore errors — cookie is cleared regardless.
 		_ = h.callBackendLogout(r.Context(), refreshToken)
 	}
+
 	h.authService.ClearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -207,39 +176,38 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 // ---- backend client helpers ----
 
 func (h *Handler) callBackendLogin(ctx context.Context, req loginRequest) (*backendLoginResponse, error) {
-	body := backendLoginRequest(req)
 	var resp backendLoginResponse
-	if err := h.postBackend(ctx, "/api/auth/login", body, &resp); err != nil {
+	if err := h.postBackend(ctx, "/api/auth/login", req, &resp); err != nil {
 		return nil, err
 	}
+
 	return &resp, nil
 }
 
 func (h *Handler) callBackendRegister(ctx context.Context, req registerRequest) (*backendRegisterResponse, error) {
-	body := backendRegisterRequest(req)
 	var resp backendRegisterResponse
-	if err := h.postBackend(ctx, "/api/auth/register", body, &resp); err != nil {
+	if err := h.postBackend(ctx, "/api/auth/register", req, &resp); err != nil {
 		return nil, err
 	}
+
 	return &resp, nil
 }
 
 func (h *Handler) callBackendRefresh(ctx context.Context, token string) (*backendRefreshResponse, error) {
-	body := backendRefreshRequest{RefreshToken: token}
+	body := map[string]string{"refreshToken": token}
+
 	var resp backendRefreshResponse
 	if err := h.postBackend(ctx, "/api/auth/refresh", body, &resp); err != nil {
 		return nil, err
 	}
+
 	return &resp, nil
 }
 
 func (h *Handler) callBackendLogout(ctx context.Context, token string) error {
-	body := backendLogoutRequest{RefreshToken: token}
-	return h.postBackend(ctx, "/api/auth/logout", body, nil)
+	return h.postBackend(ctx, "/api/auth/logout", backendLogoutRequest{RefreshToken: token}, nil)
 }
 
-// postBackend is a generic helper for posting JSON to the Go backend and decoding the response.
-// Pass nil for out to ignore the response body (e.g. logout 204).
 func (h *Handler) postBackend(ctx context.Context, path string, body, out any) error {
 	b, err := json.Marshal(body)
 	if err != nil {
@@ -250,12 +218,14 @@ func (h *Handler) postBackend(ctx context.Context, path string, body, out any) e
 	if err != nil {
 		return fmt.Errorf("create request: %w", err)
 	}
+
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("backend request: %w", err)
 	}
+
 	defer resp.Body.Close()
 
 	if resp.StatusCode >= 400 {
@@ -268,6 +238,7 @@ func (h *Handler) postBackend(ctx context.Context, path string, body, out any) e
 			return fmt.Errorf("decode response: %w", err)
 		}
 	}
+
 	return nil
 }
 

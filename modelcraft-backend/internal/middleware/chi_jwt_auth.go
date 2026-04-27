@@ -43,6 +43,14 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 				return
 			}
 
+			// X-User-ID path: injected by the trusted Gateway after JWT validation.
+			// Safe only because the backend is not directly reachable from the internet.
+			if userID := r.Header.Get("X-User-ID"); userID != "" {
+				ctx := ctxutils.SetUserID(r.Context(), userID)
+				next.ServeHTTP(w, r.WithContext(ctx))
+				return
+			}
+
 			token := extractBearerToken(r)
 			if token == "" {
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)

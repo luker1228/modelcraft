@@ -10,11 +10,11 @@ type Config struct {
 	// Server
 	Port string
 
-	// JWT
-	JWTSecret          string
-	AccessTokenTTL     time.Duration
-	RefreshTokenTTL    time.Duration
-	RefreshCookieName  string
+	// JWT — EC public key (PEM) for verifying ES256 access tokens issued by the backend.
+	// JWT signing is owned by the backend auth service; the gateway only verifies.
+	JWTPublicKey      string
+	RefreshTokenTTL   time.Duration
+	RefreshCookieName string
 
 	// Upstream (Go Backend)
 	BackendURL    string
@@ -29,8 +29,7 @@ func Load() *Config {
 	return &Config{
 		Port: getEnv("GATEWAY_PORT", "8090"),
 
-		JWTSecret:         getEnv("JWT_SECRET", "dev-jwt-secret-change-me"),
-		AccessTokenTTL:    time.Hour,
+		JWTPublicKey:      getEnv("JWT_PUBLIC_KEY", ""),
 		RefreshTokenTTL:   7 * 24 * time.Hour,
 		RefreshCookieName: "mc_refresh_token",
 
@@ -47,6 +46,7 @@ func getEnv(key, fallback string) string {
 	if v := os.Getenv(key); v != "" {
 		return v
 	}
+
 	return fallback
 }
 
@@ -55,5 +55,6 @@ func mustEnv(key string) string {
 	if v == "" {
 		panic("required environment variable not set: " + key)
 	}
+
 	return v
 }

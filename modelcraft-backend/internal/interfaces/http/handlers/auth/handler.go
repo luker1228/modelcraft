@@ -101,21 +101,27 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build response with optional userName and orgName
-	resp := generated.LoginResponse{
-		RequestId:    requestID,
-		UserId:       result.UserID,
-		RefreshToken: result.RefreshToken,
-		ExpiresAt:    result.ExpiresAt,
-	}
+	var userName *string
 	if result.UserName != "" {
-		resp.UserName = &result.UserName
-	}
-	if result.OrgName != "" {
-		resp.OrgName = &result.OrgName
+		s := result.UserName
+		userName = &s
 	}
 
-	writeJSON(w, http.StatusOK, resp)
+	var orgName *string
+	if result.OrgName != "" {
+		s := result.OrgName
+		orgName = &s
+	}
+
+	writeJSON(w, http.StatusOK, generated.LoginResponse{
+		RequestId:    requestID,
+		UserId:       result.UserID,
+		AccessToken:  result.AccessToken,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt,
+		UserName:     userName,
+		OrgName:      orgName,
+	})
 }
 
 // HandleRefresh handles POST /api/auth/refresh — token rotation.
@@ -140,6 +146,7 @@ func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, generated.RefreshResponse{
 		RequestId:    requestID,
 		UserId:       result.UserID,
+		AccessToken:  result.AccessToken,
 		RefreshToken: result.RefreshToken,
 		ExpiresAt:    result.ExpiresAt,
 	})

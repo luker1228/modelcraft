@@ -1,6 +1,10 @@
 package auth
 
 import (
+	"crypto/ecdsa"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -8,70 +12,65 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
-// Claims is the JWT payload for access tokens issued by the gateway.
+// Claims is the JWT payload for access tokens issued by the backend auth service.
 type Claims struct {
-	UserID   string `json:"sub"`
-	Username string `json:"username"`
-	Email    string `json:"email"`
-	OrgName  string `json:"orgName,omitempty"`
+	UserID string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
-// Service handles JWT issuance, verification, and refresh-token management.
+// Service handles JWT verification and refresh-token cookie management.
+// Token signing is fully delegated to the backend auth service (ES256).
+// The gateway only holds the EC public key for verification.
 type Service struct {
-	secret            []byte
-	accessTokenTTL    time.Duration
+	publicKey         *ecdsa.PublicKey
 	refreshTokenTTL   time.Duration
 	refreshCookieName string
 }
 
-func NewService(secret string, accessTTL, refreshTTL time.Duration, cookieName string) *Service {
+// NewService parses a PEM-encoded EC public key and creates a Service.
+func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string) (*Service, error) {
+	block, _ := pem.Decode([]byte(publicKeyPEM))
+	if block == nil {
+		return nil, errors.New("auth: failed to decode public key PEM block")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("auth: parse public key: %w", err)
+	}
+
+	ecPub, ok := pub.(*ecdsa.PublicKey)
+	if !ok {
+		return nil, errors.New("auth: public key is not an EC key")
+	}
+
 	return &Service{
-		secret:            []byte(secret),
-		accessTokenTTL:    accessTTL,
+		publicKey:         ecPub,
 		refreshTokenTTL:   refreshTTL,
 		refreshCookieName: cookieName,
-	}
+	}, nil
 }
 
-// IssueAccessToken signs a short-lived JWT access token.
-func (s *Service) IssueAccessToken(userID, username, email string) (string, error) {
-	now := time.Now()
-	claims := &Claims{
-		UserID:   userID,
-		Username: username,
-		Email:    email,
-		RegisteredClaims: jwt.RegisteredClaims{
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(now.Add(s.accessTokenTTL)),
-		},
-	}
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	return token.SignedString(s.secret)
-}
-
-// VerifyAccessToken parses and validates an access token, returning its claims.
+// VerifyAccessToken parses and validates an ES256 access token from the backend.
 func (s *Service) VerifyAccessToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+		if _, ok := t.Method.(*jwt.SigningMethodECDSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return s.secret, nil
+		return s.publicKey, nil
 	})
 	if err != nil {
 		return nil, err
 	}
+
 	claims, ok := token.Claims.(*Claims)
 	if !ok || !token.Valid {
-		return nil, fmt.Errorf("invalid token claims")
+		return nil, errors.New("invalid token claims")
 	}
+
 	return claims, nil
 }
 
-// GenerateRefreshToken — removed.
-// Refresh token lifecycle (generation, rotation, revocation) is fully owned by
-// the Go backend (modelcraft-backend). The gateway only proxies the opaque token
-// via an httpOnly cookie; it never generates or stores refresh tokens itself.
 // SetRefreshCookie writes the refresh token as an httpOnly, Secure, SameSite=Strict cookie.
 func (s *Service) SetRefreshCookie(w http.ResponseWriter, token string) {
 	http.SetCookie(w, &http.Cookie{
@@ -103,5 +102,6 @@ func (s *Service) GetRefreshCookie(r *http.Request) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	return cookie.Value, nil
 }

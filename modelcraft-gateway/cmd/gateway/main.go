@@ -26,18 +26,26 @@ func main() {
 
 	cfg := config.Load()
 
-	// Initialise auth service.
-	authSvc := auth.NewService(
-		cfg.JWTSecret,
-		cfg.AccessTokenTTL,
+	// Initialise auth service (ES256 public-key verifier + cookie manager).
+	authSvc, err := auth.NewService(
+		cfg.JWTPublicKey,
 		cfg.RefreshTokenTTL,
 		cfg.RefreshCookieName,
 	)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to initialise auth service")
+	}
 
 	// Initialise proxy handler.
 	proxyHandler, err := proxy.NewHandler(cfg.BackendURL, cfg.InternalToken, authSvc)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to create proxy handler")
+	}
+
+	// Initialise REST proxy handler.
+	restHandler, err := proxy.NewRESTHandler(cfg.BackendURL, authSvc)
+	if err != nil {
+		log.Fatal().Err(err).Msg("failed to create rest handler")
 	}
 
 	// Initialise auth handler.
@@ -75,6 +83,11 @@ func main() {
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
 		_, _ = w.Write([]byte("ok"))
+	})
+
+	// Protected REST endpoints — JWT validated, userID injected as X-User-ID.
+	r.Route("/api/user", func(r chi.Router) {
+		r.Handle("/*", http.HandlerFunc(restHandler.Handle))
 	})
 
 	srv := &http.Server{

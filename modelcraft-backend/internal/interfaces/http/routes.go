@@ -360,6 +360,23 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 
 	passwordHasher := infraAuth.NewBcryptPasswordHasher()
+
+	// Initialise ES256 JWT signer. Use PEM from config; fall back to ephemeral dev key.
+	var jwtSigner *domainAuth.JWTSigner
+	if cfg.JWT.PrivateKey != "" {
+		var signerErr error
+		jwtSigner, signerErr = domainAuth.NewJWTSignerFromPEM(cfg.JWT.PrivateKey, cfg.JWT.Issuer, cfg.JWT.Expiration)
+		if signerErr != nil {
+			return nil, fmt.Errorf("init jwt signer: %w", signerErr)
+		}
+	} else {
+		var signerErr error
+		jwtSigner, signerErr = domainAuth.GenerateDevSigner()
+		if signerErr != nil {
+			return nil, fmt.Errorf("generate dev jwt signer: %w", signerErr)
+		}
+	}
+
 	tokenService := auth.NewTokenService(
 		refreshTokenRepo,
 		userRepo,
@@ -370,6 +387,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		createOrgService,
 		membershipRepo, // for fetching user's org on login
 		txManager,
+		jwtSigner,
 	)
 
 	// Create auth handler with token service

@@ -35,11 +35,6 @@ paths:
   /api/user/memberships:
     $ref: "user.yaml#/paths/~1api~1user~1memberships"
 
-  # ========================
-  # Organization Endpoints
-  # ========================
-  /api/org/init:
-    $ref: "org.yaml#/paths/~1api~1org~1init"
 
 components:
   securitySchemes:
@@ -88,8 +83,4 @@ components:
       $ref: "org.yaml#/schemas/OrgInvalidInputError"
     OrgAlreadyExistsError:
       $ref: "org.yaml#/schemas/OrgAlreadyExistsError"
-    InitOrganizationRequest:
-      $ref: "org.yaml#/schemas/InitOrganizationRequest"
-    InitOrganizationResponse:
-      $ref: "org.yaml#/schemas/InitOrganizationResponse"
 

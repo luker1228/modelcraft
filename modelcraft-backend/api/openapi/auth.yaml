@@ -320,6 +320,7 @@ schemas:
       - type: object
         required:
           - userId
+          - accessToken
           - refreshToken
           - expiresAt
         properties:
@@ -332,6 +333,9 @@ schemas:
           orgName:
             type: string
             description: Primary organization name (first org the user belongs to, if any)
+          accessToken:
+            type: string
+            description: Short-lived ES256 JWT access token (verify with public key)
           refreshToken:
             type: string
             description: Opaque refresh token (store securely on client)
@@ -346,12 +350,16 @@ schemas:
       - type: object
         required:
           - userId
+          - accessToken
           - refreshToken
           - expiresAt
         properties:
           userId:
             type: string
             description: ModelCraft internal user UUID
+          accessToken:
+            type: string
+            description: New short-lived ES256 JWT access token
           refreshToken:
             type: string
             description: New opaque refresh token (replaces the old one)

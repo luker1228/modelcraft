@@ -58,9 +58,10 @@ type RedisConfig struct {
 
 // JWTConfig JWT 配置
 type JWTConfig struct {
-	Secret     string        `mapstructure:"secret"`     // ModelCraft JWT signing secret
-	Expiration time.Duration `mapstructure:"expiration"` // Token expiration time
-	Issuer     string        `mapstructure:"issuer"`     // JWT issuer claim
+	Secret     string        `mapstructure:"secret"`      // Legacy HMAC secret (kept for migration)
+	PrivateKey string        `mapstructure:"private_key"` // ES256 PEM private key (preferred)
+	Expiration time.Duration `mapstructure:"expiration"`  // Access token expiration time
+	Issuer     string        `mapstructure:"issuer"`      // JWT issuer claim
 }
 
 // CryptoConfig 加密配置
@@ -169,6 +170,7 @@ func setupEnvBindings(v *viper.Viper) {
 	_ = v.BindEnv("redis.port", "REDIS_PORT")
 	_ = v.BindEnv("redis.password", "REDIS_PASSWORD")
 	_ = v.BindEnv("jwt.secret", "JWT_SECRET")
+	_ = v.BindEnv("jwt.private_key", "JWT_PRIVATE_KEY")
 	_ = v.BindEnv("jwt.expiration", "JWT_EXPIRATION")
 	_ = v.BindEnv("jwt.issuer", "JWT_ISSUER")
 	_ = v.BindEnv("crypto.aes_key", "CRYPTO_AES_KEY")

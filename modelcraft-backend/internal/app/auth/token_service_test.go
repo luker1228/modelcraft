@@ -226,7 +226,7 @@ func createTestService(t *testing.T) (
 	profileRepo := newMockProfileRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
-	svc := NewTokenService(refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, nil)
+	svc := NewTokenService(refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, nil, nil)
 	return svc, refreshRepo, userRepo, profileRepo, auditRepo
 }
 

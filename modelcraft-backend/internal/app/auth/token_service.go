@@ -31,6 +31,7 @@ type TokenService struct {
 	refreshTTL       time.Duration
 	createOrgService *organization.CreateOrganizationService
 	txManager        repository.TxManager
+	jwtSigner        *domainauth.JWTSigner
 }
 
 // NewTokenService 创建新的 TokenService。
@@ -44,6 +45,7 @@ func NewTokenService(
 	createOrgService *organization.CreateOrganizationService,
 	membershipRepo membership.MembershipRepository,
 	txManager repository.TxManager,
+	jwtSigner *domainauth.JWTSigner,
 ) *TokenService {
 	if refreshTTL == 0 {
 		refreshTTL = 7 * 24 * time.Hour
@@ -58,6 +60,7 @@ func NewTokenService(
 		refreshTTL:       refreshTTL,
 		createOrgService: createOrgService,
 		txManager:        txManager,
+		jwtSigner:        jwtSigner,
 	}
 }
 
@@ -306,10 +309,17 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 	}
 
 	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
+
+	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, u.Name)
+	if err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
+	}
+
 	return &LoginResult{
 		UserID:       u.ID,
 		UserName:     u.Name,
 		OrgName:      orgName,
+		AccessToken:  accessToken,
 		RefreshToken: plaintext,
 		ExpiresAt:    expiresAt,
 	}, nil
@@ -432,8 +442,15 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 	}
 
 	logger.Infof(ctx, "Token refreshed: user_id=%s", token.UserID)
+
+	accessToken, err := s.jwtSigner.IssueAccessToken(token.UserID, "")
+	if err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
+	}
+
 	return &RefreshResult{
 		UserID:       token.UserID,
+		AccessToken:  accessToken,
 		RefreshToken: plaintext,
 		ExpiresAt:    expiresAt,
 	}, nil

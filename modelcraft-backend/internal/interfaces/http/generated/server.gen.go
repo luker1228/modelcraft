@@ -40,28 +40,13 @@ func (e AuthInvalidInputErrorErrorCode) Valid() bool {
 
 // Defines values for AuthenticationErrorErrorCode.
 const (
-	AuthenticationErrorErrorCodeAUTHENTICATIONFAILED AuthenticationErrorErrorCode = "AUTHENTICATION_FAILED"
+	AUTHENTICATIONFAILED AuthenticationErrorErrorCode = "AUTHENTICATION_FAILED"
 )
 
 // Valid indicates whether the value is a known member of the AuthenticationErrorErrorCode enum.
 func (e AuthenticationErrorErrorCode) Valid() bool {
 	switch e {
-	case AuthenticationErrorErrorCodeAUTHENTICATIONFAILED:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for AuthenticationFailedErrorErrorCode.
-const (
-	AuthenticationFailedErrorErrorCodeAUTHENTICATIONFAILED AuthenticationFailedErrorErrorCode = "AUTHENTICATION_FAILED"
-)
-
-// Valid indicates whether the value is a known member of the AuthenticationFailedErrorErrorCode enum.
-func (e AuthenticationFailedErrorErrorCode) Valid() bool {
-	switch e {
-	case AuthenticationFailedErrorErrorCodeAUTHENTICATIONFAILED:
+	case AUTHENTICATIONFAILED:
 		return true
 	default:
 		return false
@@ -80,36 +65,6 @@ func (e LoginRequestIdentifierType) Valid() bool {
 	case PHONE:
 		return true
 	case USERNAME:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for OrgAlreadyExistsErrorErrorCode.
-const (
-	CONFLICTORGANIZATION OrgAlreadyExistsErrorErrorCode = "CONFLICT.ORGANIZATION"
-)
-
-// Valid indicates whether the value is a known member of the OrgAlreadyExistsErrorErrorCode enum.
-func (e OrgAlreadyExistsErrorErrorCode) Valid() bool {
-	switch e {
-	case CONFLICTORGANIZATION:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for OrgInvalidInputErrorErrorCode.
-const (
-	PARAMINVALIDORGANIZATION OrgInvalidInputErrorErrorCode = "PARAM_INVALID.ORGANIZATION"
-)
-
-// Valid indicates whether the value is a known member of the OrgInvalidInputErrorErrorCode enum.
-func (e OrgInvalidInputErrorErrorCode) Valid() bool {
-	switch e {
-	case PARAMINVALIDORGANIZATION:
 		return true
 	default:
 		return false
@@ -200,18 +155,6 @@ type AuthenticationError struct {
 // AuthenticationErrorErrorCode defines model for AuthenticationError.Error.Code.
 type AuthenticationErrorErrorCode string
 
-// AuthenticationFailedError defines model for AuthenticationFailedError.
-type AuthenticationFailedError struct {
-	Error struct {
-		Code    AuthenticationFailedErrorErrorCode `json:"code"`
-		Message string                             `json:"message"`
-	} `json:"error"`
-	RequestId string `json:"requestId"`
-}
-
-// AuthenticationFailedErrorErrorCode defines model for AuthenticationFailedError.Error.Code.
-type AuthenticationFailedErrorErrorCode string
-
 // BaseResponse defines model for BaseResponse.
 type BaseResponse struct {
 	// RequestId Unique request trace ID
@@ -225,31 +168,6 @@ type GetMembershipsResponse struct {
 
 	// RequestId Unique request identifier
 	RequestId string `json:"requestId"`
-}
-
-// InitOrganizationRequest defines model for InitOrganizationRequest.
-type InitOrganizationRequest struct {
-	// DisplayName Human-readable organization name (required)
-	DisplayName string `json:"displayName"`
-
-	// OrganizationName Organization slug (6-24 chars, lowercase, no hyphens). If empty, auto-generated from displayName.
-	OrganizationName *string `json:"organizationName,omitempty"`
-}
-
-// InitOrganizationResponse defines model for InitOrganizationResponse.
-type InitOrganizationResponse struct {
-	// AlreadyExists True if the organization already existed (idempotent result)
-	AlreadyExists *bool `json:"alreadyExists,omitempty"`
-
-	// DisplayName Human-readable organization name
-	DisplayName *string `json:"displayName,omitempty"`
-
-	// OrgName Generated organization slug
-	OrgName *string `json:"orgName,omitempty"`
-
-	// RequestId Unique request trace ID
-	RequestId string `json:"requestId"`
-	Success   *bool  `json:"success,omitempty"`
 }
 
 // LoginRequest defines model for LoginRequest.
@@ -272,6 +190,9 @@ type LoginRequestIdentifierType string
 
 // LoginResponse defines model for LoginResponse.
 type LoginResponse struct {
+	// AccessToken Short-lived ES256 JWT access token (verify with public key)
+	AccessToken string `json:"accessToken"`
+
 	// ExpiresAt Refresh token expiration time (7 days from now)
 	ExpiresAt time.Time `json:"expiresAt"`
 
@@ -309,30 +230,6 @@ type MembershipInfo struct {
 	Role string `json:"role"`
 }
 
-// OrgAlreadyExistsError defines model for OrgAlreadyExistsError.
-type OrgAlreadyExistsError struct {
-	Error struct {
-		Code    OrgAlreadyExistsErrorErrorCode `json:"code"`
-		Message string                         `json:"message"`
-	} `json:"error"`
-	RequestId string `json:"requestId"`
-}
-
-// OrgAlreadyExistsErrorErrorCode defines model for OrgAlreadyExistsError.Error.Code.
-type OrgAlreadyExistsErrorErrorCode string
-
-// OrgInvalidInputError defines model for OrgInvalidInputError.
-type OrgInvalidInputError struct {
-	Error struct {
-		Code    OrgInvalidInputErrorErrorCode `json:"code"`
-		Message string                        `json:"message"`
-	} `json:"error"`
-	RequestId string `json:"requestId"`
-}
-
-// OrgInvalidInputErrorErrorCode defines model for OrgInvalidInputError.Error.Code.
-type OrgInvalidInputErrorErrorCode string
-
 // PhoneAlreadyRegisteredError defines model for PhoneAlreadyRegisteredError.
 type PhoneAlreadyRegisteredError struct {
 	Error struct {
@@ -347,6 +244,9 @@ type PhoneAlreadyRegisteredErrorErrorCode string
 
 // RefreshResponse defines model for RefreshResponse.
 type RefreshResponse struct {
+	// AccessToken New short-lived ES256 JWT access token
+	AccessToken string `json:"accessToken"`
+
 	// ExpiresAt New refresh token expiration time
 	ExpiresAt time.Time `json:"expiresAt"`
 
@@ -451,9 +351,6 @@ type RefreshTokenJSONRequestBody = RefreshTokenRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
-// InitOrganizationJSONRequestBody defines body for InitOrganization for application/json ContentType.
-type InitOrganizationJSONRequestBody = InitOrganizationRequest
-
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Login with phone number and password
@@ -468,9 +365,6 @@ type ServerInterface interface {
 	// Register user and initialize profile atomically
 	// (POST /api/auth/register)
 	Register(w http.ResponseWriter, r *http.Request)
-	// Initialize organization for the current user (idempotent)
-	// (POST /api/org/init)
-	InitOrganization(w http.ResponseWriter, r *http.Request)
 	// Get current user's organization memberships
 	// (GET /api/user/memberships)
 	GetUserMemberships(w http.ResponseWriter, r *http.Request)
@@ -501,12 +395,6 @@ func (_ Unimplemented) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // Register user and initialize profile atomically
 // (POST /api/auth/register)
 func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Initialize organization for the current user (idempotent)
-// (POST /api/org/init)
-func (_ Unimplemented) InitOrganization(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -572,26 +460,6 @@ func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Register(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// InitOrganization operation middleware
-func (siw *ServerInterfaceWrapper) InitOrganization(w http.ResponseWriter, r *http.Request) {
-
-	ctx := r.Context()
-
-	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
-
-	r = r.WithContext(ctx)
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.InitOrganization(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -747,9 +615,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/auth/register", wrapper.Register)
 	})
 	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/org/init", wrapper.InitOrganization)
-	})
-	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/user/memberships", wrapper.GetUserMemberships)
 	})
 
@@ -759,51 +624,47 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xae1PbuBb/Kmd8d2bDrPMiQCn/pZS22aHAhXB37gKXEfaJrVaWXEmGpp189zuSnfiB",
-	"ktAFuu3M9o9OsPU456dzfudhffUCkaSCI9fK2/vqqSDGhNifw0zHI35LGA1HPM30gZRCmhepFClKTdEO",
-	"Q/fjQIRoX/Ms8fYuvJPh6fD99ejoP8PD0evO8Hz8zrvyPT1N0dvzlJaUR97M9xJUikR2ZuPdzPckfsqo",
-	"xNCsZ9cvx5driZsPGGivGI5Kj8L1q5VD/UIh14IGEeSaBkRTwR+Hh0Hg4Gg82h+OR8dH12+Go8OD1z87",
-	"JG8IZRj+A8zM914RhaeoUsEV3le6tl2IKpA0NQB6e945p58yhGIEaEkChNFrs9lnkqTMbCPx0/X2dg93",
-	"t3o93Hx5s9UPtzz/wXK75H2L+j0mNyhVTFO1XPKkHHRf9kOqNIgJCBkRTr9Ym4DqDN+jGhM78xeJE2/P",
-	"+1e3JKBuwT7dUpIRnwgjXiEvkZJM753XSgBpaOxzQlE2IWz3Nwdb2zsvdu2Pxn/m+ctef/MbYPVr4LhA",
-	"HnGqjyvYnOZz76McUpUyMj0iCd5X8F2WEN6WSEJyw7AONicJQmsu34bncJvqePcGVRFBsSyC1k57cwuC",
-	"mEjlAxN3KAOi0AcuIJ6mMXK10YHRBDBJ9dQHkmnRjpCjJBpDmEiRQEWlzlpQq/o/DMjSXgljxxNv72K1",
-	"idX8c+Y3D4Awg+/04DNV2mHoY5kh0AnouIF/MQ/QTMQQWjTEJBUauQaJKmO6ciY3QjAk3Cj0qANfcsru",
-	"xd4ujkU0j9m1jsqCAJWq0OJC6tm9g7ma+d6hiOhyw6544332MDMr/gptCAiHG4Q0FhyBZ8a7QEjIFEpr",
-	"6SGmyEPKIxDVmWMjVtXb+4PdXs/+13Mp2ZhpJZuQjGlvzzt5d3x04PlNA5imaJiunLkHdiS0iqkbRtDz",
-	"s4PTo+F7M3+RCBXrLV65QltKlLoT0sVuCiUsXld1TKbzx/3NgUtLi+L9FS9eYyoxMCZxBf1+O6QR1ZAQ",
-	"yhnhIezHlJPaCXTgXGH1nH5rQA+UK40k7Kw4g5RojdLs/7/+xaD98uryMvz6cvbLWmqo8fkCCBdJFJb4",
-	"xMyAn1MqUQ31fSRPcSJRxaDFR+RgB+bOpalh5RcQkqnK2ZCLO0MEEyETYqwsJBrbZtg3+fKJpAmRU1cI",
-	"mFBpYrGMLEcZh4EbZIJHCrTwDXcRPnXGB5lrMTZKOGJDSvLoWlW1pbSQCAqDTCKbGmcMGEWunRsYYVyB",
-	"+70Ike1LMtFAuTEOwnLBz89t/uNcyA2M9ZKCU5dQZMOsCqEa6vuV475y0l0jVfm2SF4LtA1xS8cpcXGB",
-	"8EFQjqHLHH8XNDc9pUmSAuWQUMaowkDwUEHrnNPPgKkI4o3qfv0Xvd2twfZmz/yrmCjleqeSZZojilAW",
-	"9uk6z5p2xRmWWs3z17ZJYNsmg22TF/2d9tbWzs729tZWbwlXL3UGR9aS5algSRkbdcY0wAbLgJWCLbGs",
-	"XxWYlwbRZgJQW1/ccctSqy0vR69UrJ4MFHJUztlFdccyGlYzlseVYPvHR28OR/vjzvHp2+HR6E9bif18",
-	"JdixjJ6rf/FzA3NignlhL6cYmUxVPrZsX9iMyWt+PkiK0P09s4UjvGuE0UbG8OD8YHXENvsIZ9SWmDIS",
-	"oMpZjIUgOD5nxH6ikHtaGb600FiNST1TEzeaGHKFMDOCAjOJ4wMK/8oObpvKXetEiglleMZJqmLhkJXc",
-	"Ek3kuWQOa/a9Gyqcz2nofMxp8JE7A2RRmEBZmM/H+oCdqGOP7nrYf7W5P1htBesydM8vD3chzyqIlh7j",
-	"8kLopHgDrYRymmQJ7NoGBQk0SrWxsjRKKD9EHunY29t9eKH0kNroSSqetZltnuIP2oPNeU9GaSI13FEd",
-	"A0OzTzfjIUoVCIndvEXjGzfnQFgaE54lKGlwf1Adtw8i5tehsGxMPs8hG2zWEBzUVLsg7S/D9p/X7avi",
-	"V6/98rp99XXTH/QfUN3l0FcKuwoWqw3oiYl7aZq5L9H6TopSCUN4D2qjpDkHrGt8LqOMFRw8l+cv8G6Z",
-	"cc7FcxPu2VRpTB6XH5z992x88P764PT02J0ehKgJZTkfhiE12hF2UllTywwdFvBDpxXnnGQ6FpJ+eWx+",
-	"dX40PB+/Oz4d/fkzfg05L3z4n6SzXHDme7ZhQvX0zLh/ruIrJBLlMDPM+tW7sX+9mWeBv/8x9vz8G63t",
-	"xNq3pb/HWqfezCxMi15EI+s5OBvD8GQEEyFBIyfcxDJOIkyQa2iZXeEy6/U2d6BaTW/MK91Kvpcyok12",
-	"2rnkl/xVpihHpSAUJjaaPRS0TqQwmio/n6d82GeZOXblwwHPErUBxHaN5C2GgJ8Dlil6i2x6yW8pgbeS",
-	"pPG/D4Fo6AoZdb8WdDXrhqhoxLuRGfCJdWAcUwXHKXKjm0oxgEDcolQgOJsW1b+eAuHhJc/VblfURh6m",
-	"gnKtOpc26aO60XWBOW6e75llczAHnV6nZxsSKXKS0uLRII/0sT3MLklp1zBAN08pjUGLPM0xZm3BNeaU",
-	"tyq9hYm9EuE0t3cjrx1P0pQVX1m7H5Tg5cf6dTGl1pCf1S3VcKp9kMdBK/Rmr/fUe8+j7GzmO3v+xUeG",
-	"ScYMoFtPKID7EoNDkGIQUDMKWnlOl5dfG7lQ/ScVqnmPwCFSfRhM7Mf1uWhcaJiIjIcgJNxJwaPFVwEr",
-	"7/YTgliN/w45z4wDS8DifUlr3t7Fle+pLEmInC4O2yaptS86JpWuJHyaRMreBDAkeGUWrPmRyPRKRzLv",
-	"n8eTXIXngxxqy/mxS2S6ZvmrkTOjWxJvxcdGHb+xBrJi8HLMTuvl9w+FXO+pRVhFRla8BbhNUvru/l9Q",
-	"kp/3hTD0jatLzBSGdQv4Uf291mVRYJKE6F4PSug8x1hrxXnKuMqMixHPZcL1VsWDzLf/DNsvt998TNFB",
-	"LM0XWrY2/A2KKg+CvGTc+BGDrb+IBKCFABULOQ/AL79JUMHxAV2AVa3wmb967pqiZnbl0DxXtbjCYCbX",
-	"b4yo7+zKRZ8BKKd6nmAIWTZzH+LjudZ5/8FEcrMWJYx+wYXBES0SGhDGpsu93KT4ZupyB29e+nkmR192",
-	"Ses7x6ulV5wcx1j79FniH0KrcHVzqHVDe3Lnd35tW+H7cg7rc8bW6oVUhyzV9sxf4Zg1eDg+ya47PNvZ",
-	"DQSfMBpoaNk/NTGR8sYUsELH9gZU9Pfn+AsGGJX+XmuF2iZDjBBkUpo62xJE5T5cNeLX3LrkBDOl27hx",
-	"GqHz5o3OJFdAgDmuoOYfuEhpGfN2KTUz8vVBTHygPGCZvU5mv+8bNvsgKIeQaMOReYSigndgsaGGRCgN",
-	"/V6vetG14/kN8nqL2sSL97XLsM9GHktu87oK8AIvi0cV6if2y/ud0DX+CG2YU4WQkFBls8ff/xj/LTnv",
-	"aB4R1XJHeIu6Zuy/qlUXoeemb6zCy1OFSoytNwIvrmYm6NqtlX3bLCYDwiDEW2QitU2tfKzne5lkRWdw",
-	"r9tlZlwslN7b7e32TIby/wAAAP//AunyFQAyAAA=",
+	"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",
+	"JXCgKAAA",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

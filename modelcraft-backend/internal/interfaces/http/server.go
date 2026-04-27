@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
-	orgHandlers "modelcraft/internal/interfaces/http/handlers/org"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 )
 
@@ -18,7 +17,6 @@ import (
 // Business domain APIs (Projects, Models, Clusters, Enums) are served exclusively via GraphQL.
 type Server struct {
 	authHandler *authHandlers.Handler
-	orgHandler  *orgHandlers.CreateHandler
 	userHandler *userHandlers.Handler
 }
 
@@ -28,12 +26,10 @@ var _ generated.ServerInterface = (*Server)(nil)
 // NewServer creates a new Server that implements the generated.ServerInterface.
 func NewServer(
 	authHandler *authHandlers.Handler,
-	orgHandler *orgHandlers.CreateHandler,
 	userHandler *userHandlers.Handler,
 ) *Server {
 	return &Server{
 		authHandler: authHandler,
-		orgHandler:  orgHandler,
 		userHandler: userHandler,
 	}
 }
@@ -104,14 +100,6 @@ func (s *Server) GetUserMemberships(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
-}
-
-// ========================
-// Organization Endpoints
-// ========================
-
-func (s *Server) InitOrganization(w http.ResponseWriter, r *http.Request) {
-	s.orgHandler.Handle(w, r)
 }
 
 // GetOpenAPISpec serves the embedded OpenAPI specification.
