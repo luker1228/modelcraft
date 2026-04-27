@@ -1,8 +1,9 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useApolloClient, useMutation } from '@apollo/client'
 import { useOrganization } from '@web/hooks/organization/use-organization'
 import { UPDATE_MY_PROFILE } from '@/api-client/profile'
 import { MY_USER_PROFILE } from '@/api-client/profile'
+import { useOrgScopedContext } from '@api-client/apollo/public'
 import type {
   ProfileDomainError,
   UpdateMyProfileFormValues,
@@ -149,15 +150,7 @@ export function useUpdateMyProfile(): UseUpdateMyProfileReturn {
   const { orgName } = useOrganization()
   const [domainError, setDomainError] = useState<ProfileDomainError | null>(null)
 
-  const orgScopedContext = useMemo(() => {
-    if (!orgName) {
-      return undefined
-    }
-
-    return {
-      uri: `/api/bff/graphql/org/${orgName}/`,
-    }
-  }, [orgName])
+  const orgScopedContext = useOrgScopedContext(orgName)
 
   const [updateMyProfileMutation, { loading, error: mutationError }] = useMutation<
     UpdateMyProfileMutationData,

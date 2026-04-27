@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useMutation, useQuery } from '@apollo/client'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
 import { queryModelEnumContext } from '@api-client/model-enum/public'
 import { ADD_FIELDS, GET_LOGICAL_FOREIGN_KEYS } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'
@@ -104,10 +104,7 @@ export function InsertFieldSheet({
 }: InsertFieldSheetProps) {
   const projectClient = useProjectScopedClient(projectSlug)
 
-  const projectScopedContext = useMemo(() => {
-    if (!orgName || !projectSlug) return undefined
-    return { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` }
-  }, [orgName, projectSlug])
+  const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
 
   const [fieldData, setFieldData] = useState(DEFAULT_FIELD_DATA)
   const [saving, setSaving] = useState(false)

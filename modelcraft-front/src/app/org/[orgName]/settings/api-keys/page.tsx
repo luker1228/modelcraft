@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery } from '@apollo/client'
 import { useParams } from 'next/navigation'
 import {
@@ -10,6 +10,7 @@ import {
   UPDATE_API_KEY,
   REVOKE_API_KEY,
 } from '@/api-client/user'
+import { useOrgScopedContext } from '@api-client/apollo/public'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -139,7 +140,7 @@ const EMPTY_FORM: ApiKeyFormState = {
 export default function ApiKeysPage() {
   const params = useParams()
   const orgName = params?.orgName as string
-  const orgScopedContext = useMemo(() => ({ uri: `/api/bff/graphql/org/${orgName}/` }), [orgName])
+  const orgScopedContext = useOrgScopedContext(orgName)
 
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [createForm, setCreateForm] = useState<ApiKeyFormState>(EMPTY_FORM)

@@ -1,16 +1,14 @@
 ---
 name: bdd-test
 description: >
-  运行 ModelCraft BDD 验收测试（Cucumber.js + TypeScript + Gherkin）。
-  当用户需要以下任务时必须使用此 skill：
-  (1) 运行 BDD 测试，如"跑 BDD 测试"、"运行验收测试"、"跑 cucumber 测试"，
-  (2) 运行特定领域测试，如"跑 model 的 BDD 测试"、"测试 auth 流程"、"测试 enum 功能"、"enum test"、"lfk 测试"，
-  (3) 只跑 smoke 测试，如"smoke test"、"冒烟测试"，
-  (4) 生成/查看测试报告，如"看测试报告"、"生成 HTML 报告"，
-  (5) 调试 BDD 测试失败，如"BDD 测试失败了"、"feature 测试跑不过"，
-  (6) 检查 BDD 测试环境配置，如".env.test 怎么配"、"BDD 测试依赖什么"。
+  运行 ModelCraft 后端 BDD 验收测试（Cucumber.js + TypeScript + Gherkin）。
+  触发此 skill 必须同时满足两个条件：
+  (1) 明确是后端上下文（如：后端、API、GraphQL、resolver、服务端、modelcraft-backend），
+  (2) 明确是 BDD 测试上下文（如：BDD、Cucumber、Gherkin、feature、验收测试、smoke）。
+  只有“后端 + BDD”同时出现时才触发。
+  例如："跑后端 BDD 测试"、"执行 backend cucumber"、"后端 auth feature 跑一下"。
+  不应触发示例："测试 auth 流程"（未明确后端/BDD）、"跑前端测试"、"跑 e2e"、"跑单元测试"。
   BDD 测试目录位于 tests-bdd/，使用 Cucumber.js v11，测试场景用中文 Gherkin 编写。
-  只要用户提到 BDD、Cucumber、feature 文件、Gherkin、验收测试，都应触发此 skill。
 ---
 
 # BDD 测试 Skill

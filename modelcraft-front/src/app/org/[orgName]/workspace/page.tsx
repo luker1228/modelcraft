@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useQuery, useMutation } from "@apollo/client"
 import { Button } from "@web/components/ui/button"
@@ -45,6 +45,7 @@ import type {
   ProjectConnectionTestResult,
 } from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@api-client/auth/public"
+import { useOrgScopedContext } from "@api-client/apollo/public"
 
 // Membership info from API response
 interface MembershipInfo {
@@ -136,12 +137,7 @@ export default function WorkspacePage() {
     })
   }, [authLoading, orgName, currentOrgName, setCurrentOrg, loadMembershipsStore])
 
-  const orgScopedContext = useMemo(() => {
-    if (!orgName) return undefined
-    return {
-      uri: `/api/bff/graphql/org/${orgName}/`,
-    }
-  }, [orgName])
+  const orgScopedContext = useOrgScopedContext(orgName)
 
   // GraphQL 查询
   const { data, loading, error: queryError, refetch } = useQuery<ProjectsQueryData>(GET_PROJECTS, {

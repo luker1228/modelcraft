@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { useQuery, useMutation, ApolloClient } from '@apollo/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { useProjectScopedClient, createModelRuntimeClient } from '@api-client/apollo/public'
+import { useProjectScopedClient, createModelRuntimeClient, useProjectScopedContext } from '@api-client/apollo/public'
 import { ModelRecordForm } from './model-record-form'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './model-record-form/ModelRecordTable'
@@ -137,10 +137,7 @@ export default function ModelRecordWorkspace({
   const projectClient = useProjectScopedClient(projectSlug)
 
   // 创建 project-scoped context
-  const projectScopedContext = useMemo(() => {
-    if (!orgName || !projectSlug) return undefined
-    return { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` }
-  }, [orgName, projectSlug])
+  const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)

@@ -7,3 +7,4 @@ export {
   getOrgScopedClient,
   useProjectScopedClient,
 } from './clients'
+export { useOrgScopedContext, useProjectScopedContext } from './context'

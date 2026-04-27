@@ -20,7 +20,7 @@ const httpLink = createHttpLink({
 
     // Use org-scoped endpoint if org is available
     if (currentOrg) {
-      return `/api/bff/graphql/org/${currentOrg}/`
+      return `/api/bff/graphql/org/${currentOrg}`
     }
 
     // Fallback when org is not yet loaded
@@ -38,7 +38,7 @@ const authLink = setContext(async (_: unknown, { headers }: { headers?: Record<s
 
   const nextHeaders: Record<string, string> = {
     ...headers,
-    'x-request-id': generateUUID(),
+    'x-client-request-id': generateUUID(),
   }
 
   if (token) {

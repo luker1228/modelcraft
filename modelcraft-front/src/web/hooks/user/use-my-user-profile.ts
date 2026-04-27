@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback } from 'react'
 import { useQuery } from '@apollo/client'
 import { useOrganization } from '@web/hooks/organization/use-organization'
 import { MY_USER_PROFILE } from '@/api-client/profile'
+import { useOrgScopedContext } from '@api-client/apollo/public'
 import type { ProfileDomainError, UserProfileStatus, UserProfileView } from '@/types/profile'
 
 interface ProfilePayloadError {
@@ -94,15 +95,7 @@ function mapPayloadError(error?: ProfilePayloadError | null): ProfileDomainError
 export function useMyUserProfile(): UseMyUserProfileReturn {
   const { orgName } = useOrganization()
 
-  const orgScopedContext = useMemo(() => {
-    if (!orgName) {
-      return undefined
-    }
-
-    return {
-      uri: `/api/bff/graphql/org/${orgName}/`,
-    }
-  }, [orgName])
+  const orgScopedContext = useOrgScopedContext(orgName)
 
   const { data, loading, error, refetch: apolloRefetch } = useQuery<MyUserProfileQueryData>(MY_USER_PROFILE, {
     skip: !orgName,

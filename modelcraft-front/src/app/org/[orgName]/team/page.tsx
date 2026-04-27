@@ -1,12 +1,12 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { useQuery } from '@apollo/client'
 import { Users } from 'lucide-react'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { Badge } from '@web/components/ui/badge'
+import { useOrgScopedContext } from '@api-client/apollo/public'
 import {
   Table,
   TableBody,
@@ -52,9 +52,7 @@ export default function TeamPage() {
   const orgName = params?.orgName as string
   const { isLoading: authLoading } = useRequireAuth()
 
-  const orgScopedContext = useMemo(() => ({
-    uri: `/api/bff/graphql/org/${orgName}/`,
-  }), [orgName])
+  const orgScopedContext = useOrgScopedContext(orgName)
 
   const { data, loading, error } = useQuery<MembersQueryData>(GET_ORGANIZATION_MEMBERS, {
     skip: !orgName || authLoading,

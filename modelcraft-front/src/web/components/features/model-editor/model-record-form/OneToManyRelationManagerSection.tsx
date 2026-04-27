@@ -1,9 +1,9 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import type { RJSFSchema } from '@rjsf/utils'
-import { createModelRuntimeClient, useProjectScopedClient } from '@api-client/apollo/public'
+import { createModelRuntimeClient, useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
 import { buildFindManyQuery, buildUpdateMutation } from '@api-client/cms/public'
 import { GET_LOGICAL_FOREIGN_KEYS } from '@/api-client/model'
 import { Badge } from '@web/components/ui/badge'
@@ -119,10 +119,7 @@ export function OneToManyRelationManagerSection({
   const fields = useMemo(() => extractOneToManyFields(jsonSchema), [jsonSchema])
   const projectClient = useProjectScopedClient(projectSlug)
 
-  const projectScopedContext = useMemo(() => {
-    if (!orgName || !projectSlug) return undefined
-    return { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` }
-  }, [orgName, projectSlug])
+  const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
 
   const { data: fkData } = useQuery<{ logicalForeignKeys: LogicalForeignKey[] }>(
     GET_LOGICAL_FOREIGN_KEYS,

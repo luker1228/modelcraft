@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { useParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -13,6 +13,7 @@ import { cn } from '@/shared/utils'
 import { IdentityFormSection } from '@web/components/ui/identity-form-section'
 import { DatabaseConfigFields } from '@web/components/features/database/DatabaseConfigFields'
 import { PageHeader } from '@web/components/features/layout'
+import { useOrgScopedContext } from '@api-client/apollo/public'
 import {
   Database,
   CheckCircle,
@@ -148,10 +149,7 @@ export default function SettingsPage() {
   const { control, reset, watch, formState } = form
   const formData = watch()
 
-  const orgScopedContext = useMemo(() => {
-    if (!orgName) return undefined
-    return { uri: `/api/bff/graphql/org/${orgName}/` }
-  }, [orgName])
+  const orgScopedContext = useOrgScopedContext(orgName)
 
   const { loading } = useQuery<ClusterQueryData>(GET_CLUSTER, {
     skip: !orgName || !projectSlug,

@@ -18,7 +18,7 @@ export function buildRuntimeEndpoint(
   databaseName: string,
   modelName: string
 ): string {
-  return `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
+  return `${GATEWAY_URL}/api/bff/graphql/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
 }
 
 function createAuthLink() {
@@ -30,7 +30,7 @@ function createAuthLink() {
 
     const nextHeaders: Record<string, string> = {
       ...(headers ?? {}),
-      'x-request-id': generateUUID(),
+      'x-client-request-id': generateUUID(),
     }
 
     if (token) {
@@ -43,7 +43,7 @@ function createAuthLink() {
 
 /**
  * Org-Scoped Apollo Client
- * Endpoint: {gateway}/graphql/org/{orgName}/
+ * Endpoint: /api/bff/graphql/org/{orgName}/
  * Gateway validates Bearer token and proxies to Go backend with X-Internal-Token.
  */
 function createOrgScopedClient() {
@@ -51,8 +51,8 @@ function createOrgScopedClient() {
     uri: () => {
       const currentOrg = typeof window !== 'undefined' ? useOrganizationStore.getState().currentOrg : null
       return currentOrg
-        ? `${GATEWAY_URL}/graphql/org/${currentOrg}/`
-        : `${GATEWAY_URL}/graphql/org/`
+        ? `${GATEWAY_URL}/api/bff/graphql/org/${currentOrg}/`
+        : `${GATEWAY_URL}/api/bff/graphql/org/`
     },
     credentials: 'include',
   })
@@ -75,14 +75,14 @@ function createOrgScopedClient() {
 
 /**
  * Project-Scoped Apollo Client factory
- * Endpoint: {gateway}/graphql/org/{orgName}/project/{projectSlug}/
+ * Endpoint: /api/bff/graphql/org/{orgName}/project/{projectSlug}/
  * Creates a fresh instance per project to avoid cache conflicts.
  */
 export function createProjectScopedClient(
   orgName: string,
   projectSlug: string
 ): ApolloClient<object> {
-  const uri = `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}/`
+  const uri = `${GATEWAY_URL}/api/bff/graphql/org/${orgName}/project/${projectSlug}/`
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   return new ApolloClient({

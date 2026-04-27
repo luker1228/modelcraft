@@ -98,26 +98,6 @@ const nextConfig = {
         source: '/api/auth/logout',
         destination: `${backendUrl}/api/auth/logout`,
       },
-      {
-        source: '/api/auth/check-org',
-        destination: `${backendUrl}/api/auth/check-org`,
-      },
-      // 组织初始化 API 代理到 Go 后端 (端口 8080)
-      {
-        source: '/api/orgs/initialize',
-        destination: `${backendUrl}/api/orgs/initialize`,
-      },
-      // 组织相关 API (包括 design GraphQL) 代理到 Go 后端
-      // 新格式: /org/:orgName/design/:path*
-      {
-        source: '/org/:orgName/design/:path*',
-        destination: `${backendUrl}/org/:orgName/design/:path*`,
-      },
-      // 向后兼容：保留旧的 /api/design 端点（如果后端还支持）
-      {
-        source: '/api/design/:path*',
-        destination: `${backendUrl}/api/design/:path*`,
-      },
       // 运行态 GraphQL API 代理到 Go 后端 (端口 8080)
       // 路径格式: /org/:orgName/project/:projectSlug/db/:database/model/:modelName
       {
@@ -130,6 +110,17 @@ const nextConfig = {
         source: '/graphql/org/:orgName/:path*',
         destination: `${backendUrl}/graphql/org/:orgName/:path*`,
       },
+      // BFF GraphQL 前缀代理（前端 Apollo 默认使用 /api/bff/graphql/*）
+      // 无尾斜杠组织级端点: /api/bff/graphql/org/{orgName}
+      {
+        source: '/api/bff/graphql/org/:orgName',
+        destination: `${backendUrl}/graphql/org/:orgName`,
+      },
+      // 含尾斜杠及更深层级（项目级/运行态）端点
+      {
+        source: '/api/bff/graphql/org/:orgName/:path*',
+        destination: `${backendUrl}/graphql/org/:orgName/:path*`,
+      },
       // 终端用户认证 & 数据接口代理
       {
         source: '/end-user/:path*',
@@ -139,11 +130,6 @@ const nextConfig = {
       {
         source: '/internal/:path*',
         destination: `${backendUrl}/internal/:path*`,
-      },
-      // 组织管理 API
-      {
-        source: '/api/org/:path*',
-        destination: `${backendUrl}/api/org/:path*`,
       },
       // 用户信息 API
       {
