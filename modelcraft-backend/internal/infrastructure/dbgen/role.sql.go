@@ -44,16 +44,18 @@ const createEndUserRole = `-- name: CreateEndUserRole :exec
 INSERT INTO end_user_roles (
   id,
   org_name,
+  project_slug,
   name,
   description,
   is_implicit
 )
-VALUES (?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserRoleParams struct {
 	ID          string
 	OrgName     string
+	ProjectSlug string
 	Name        string
 	Description sql.NullString
 	IsImplicit  bool
@@ -63,6 +65,7 @@ func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRolePa
 	_, err := q.db.ExecContext(ctx, createEndUserRole,
 		arg.ID,
 		arg.OrgName,
+		arg.ProjectSlug,
 		arg.Name,
 		arg.Description,
 		arg.IsImplicit,
@@ -88,7 +91,7 @@ func (q *Queries) DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRolePa
 }
 
 const getEndUserRoleByID = `-- name: GetEndUserRoleByID :one
-SELECT id, org_name, name, description, created_at, updated_at, is_implicit
+SELECT id, org_name, project_slug, name, description, created_at, updated_at, is_implicit
 FROM end_user_roles
 WHERE id = ?
   AND org_name = ?
@@ -105,6 +108,7 @@ func (q *Queries) GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByID
 	err := row.Scan(
 		&i.ID,
 		&i.OrgName,
+		&i.ProjectSlug,
 		&i.Name,
 		&i.Description,
 		&i.CreatedAt,
@@ -153,14 +157,11 @@ func (q *Queries) ListBundlesByRole(ctx context.Context, roleID string) ([]EndUs
 }
 
 const listEndUserRolesByProject = `-- name: ListEndUserRolesByProject :many
-SELECT DISTINCT r.id, r.org_name, r.name, r.description, r.created_at, r.updated_at, r.is_implicit
-FROM end_user_roles r
-  LEFT JOIN end_user_role_bundles rb
-    ON rb.role_id = r.id
-   AND rb.org_name = r.org_name
-WHERE r.org_name = ?
-  AND (rb.project_slug = ? OR r.is_implicit = TRUE)
-ORDER BY r.is_implicit DESC, r.name
+SELECT id, org_name, project_slug, name, description, created_at, updated_at, is_implicit
+FROM end_user_roles
+WHERE org_name = ?
+  AND (project_slug = ? OR is_implicit = TRUE)
+ORDER BY is_implicit DESC, name
 `
 
 type ListEndUserRolesByProjectParams struct {
@@ -180,6 +181,7 @@ func (q *Queries) ListEndUserRolesByProject(ctx context.Context, arg ListEndUser
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgName,
+			&i.ProjectSlug,
 			&i.Name,
 			&i.Description,
 			&i.CreatedAt,

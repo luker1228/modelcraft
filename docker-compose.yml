@@ -1,0 +1,173 @@
+# ModelCraft 全栈 docker-compose
+# 用法：
+#   正常启动:     docker compose up -d
+#   含管理工具:   docker compose --profile tools up -d
+#   指定镜像 tag: IMAGE_TAG=v1.2.3 docker compose up -d
+#
+# 必须在 .env 中配置（或通过环境变量注入）：
+#   DB_PASSWORD, JWT_SECRET, CRYPTO_AES_KEY, INTERNAL_TOKEN, JWT_PUBLIC_KEY
+
+version: '3.8'
+
+services:
+
+  # ---------------------------------------------------------------------------
+  # modelcraft-backend (Go API)
+  # ---------------------------------------------------------------------------
+  backend:
+    build:
+      context: ./modelcraft-backend
+      dockerfile: Dockerfile
+    image: modelcraft-backend:${IMAGE_TAG:-latest}
+    container_name: modelcraft-backend
+    ports:
+      - "${BACKEND_PORT:-8080}:8080"
+    environment:
+      - GIN_MODE=${GIN_MODE:-release}
+      - PORT=8080
+      # Database
+      - DB_HOST=modelcraft-mysql
+      - DB_PORT=3306
+      - DB_USERNAME=${DB_USERNAME:-modelcraft}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_DATABASE=${DB_DATABASE:-modelcraft}
+      - DB_MIGRATE_ON_STARTUP=${DB_MIGRATE_ON_STARTUP:-true}
+      # Redis
+      - REDIS_HOST=modelcraft-redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
+      # Security
+      - JWT_SECRET=${JWT_SECRET}
+      - CRYPTO_AES_KEY=${CRYPTO_AES_KEY}
+      # Logger
+      - LOGGER_LEVEL=${LOGGER_LEVEL:-info}
+      - LOGGER_OUTPUT_PATH=stdout
+      - TZ=Asia/Shanghai
+    volumes:
+      - ./modelcraft-backend/data:/app/data
+      - ./modelcraft-backend/configs:/app/configs
+      - backend_logs:/app/logs
+    depends_on:
+      modelcraft-mysql:
+        condition: service_healthy
+      modelcraft-redis:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ---------------------------------------------------------------------------
+  # modelcraft-gateway (Auth + Reverse Proxy)
+  # ---------------------------------------------------------------------------
+  gateway:
+    build:
+      context: ./modelcraft-gateway
+      dockerfile: Dockerfile
+    image: modelcraft-gateway:${IMAGE_TAG:-latest}
+    container_name: modelcraft-gateway
+    ports:
+      - "${GATEWAY_PORT:-8090}:8090"
+    environment:
+      - GATEWAY_PORT=8090
+      - BACKEND_URL=http://backend:8080
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - INTERNAL_TOKEN=${INTERNAL_TOKEN}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      - TZ=Asia/Shanghai
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # MySQL 8
+  # ---------------------------------------------------------------------------
+  modelcraft-mysql:
+    image: mysql:8.0
+    container_name: modelcraft-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-default_root_password}
+      MYSQL_DATABASE: ${DB_DATABASE:-modelcraft}
+      MYSQL_USER: ${DB_USERNAME:-modelcraft}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-default_password}
+    ports:
+      - "${MYSQL_PORT:-6033}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./modelcraft-backend/db/schema/mysql:/docker-entrypoint-initdb.d:ro
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${DB_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ---------------------------------------------------------------------------
+  # Redis 7
+  # ---------------------------------------------------------------------------
+  modelcraft-redis:
+    image: redis:7-alpine
+    container_name: modelcraft-redis
+    ports:
+      - "${REDIS_PORT_HOST:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-redis123}
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "$$REDIS_PASSWORD", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ---------------------------------------------------------------------------
+  # phpMyAdmin（可选，--profile tools 启动）
+  # ---------------------------------------------------------------------------
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: modelcraft-phpmyadmin
+    environment:
+      PMA_HOST: modelcraft-mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${DB_PASSWORD}
+    ports:
+      - "8081:80"
+    depends_on:
+      modelcraft-mysql:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    profiles:
+      - tools
+
+volumes:
+  mysql_data:
+  redis_data:
+  backend_logs:
+
+networks:
+  modelcraft-network:
+    driver: bridge

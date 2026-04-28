@@ -3,6 +3,17 @@
     "code-simplifier@claude-plugins-official": true
   },
   "hooks": {
+    "UserPromptSubmit": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CODEBUDDY_PROJECT_DIR/.agents/skills/self-improving-agent/scripts/activator.sh"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Glob|Grep",
@@ -15,6 +26,15 @@
       }
     ],
     "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CODEBUDDY_PROJECT_DIR/.agents/skills/self-improving-agent/scripts/error-detector.sh"
+          }
+        ]
+      },
       {
         "matcher": "Edit|Write",
         "hooks": [

@@ -485,6 +485,7 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 
 	return &rbac.EndUserRole{
 		OrgName:     row.OrgName,
+		ProjectSlug: row.ProjectSlug,
 		ID:          row.ID,
 		Name:        row.Name,
 		Description: description,
@@ -496,6 +497,7 @@ func (r *SqlEndUserDataPermissionRepository) CreateRole(ctx context.Context, rol
 	params := dbgen.CreateEndUserRoleParams{
 		ID:          role.ID,
 		OrgName:     role.OrgName,
+		ProjectSlug: role.ProjectSlug,
 		Name:        role.Name,
 		Description: sqlerr.PtrToNullStr(role.Description),
 		IsImplicit:  role.IsImplicit,

@@ -336,13 +336,15 @@ type EndUserProjectAccess struct {
 	GrantedAt time.Time
 }
 
-// 终端用户角色表（Org 级隔离）
+// 终端用户角色表（Project 级隔离）
 type EndUserRole struct {
 	// 角色 ID (UUID)
 	ID string
 	// 所属 Org
 	OrgName string
-	// Org 内唯一角色名
+	// 所属项目
+	ProjectSlug string
+	// Project 内唯一角色名
 	Name string
 	// 角色描述
 	Description sql.NullString

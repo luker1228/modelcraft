@@ -71,16 +71,17 @@ CREATE TABLE IF NOT EXISTS `end_user_accounts` (
 CREATE TABLE IF NOT EXISTS `end_user_roles` (
   `id` VARCHAR(36) NOT NULL COMMENT '角色 ID (UUID)',
   `org_name` VARCHAR(36) NOT NULL COMMENT '所属 Org',
-  `name` VARCHAR(64) NOT NULL COMMENT 'Org 内唯一角色名',
+  `project_slug` VARCHAR(64) NOT NULL COMMENT '所属项目',
+  `name` VARCHAR(64) NOT NULL COMMENT 'Project 内唯一角色名',
   `description` VARCHAR(255) NULL COMMENT '角色描述',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_end_user_roles_org_name` (`org_name`, `name`),
+  UNIQUE KEY `uk_end_user_roles_project_name` (`org_name`, `project_slug`, `name`),
   UNIQUE KEY `uk_end_user_roles_org_id` (`org_name`, `id`),
-  KEY `idx_end_user_roles_org` (`org_name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='终端用户角色表（Org 级隔离）';
+  KEY `idx_end_user_roles_project` (`org_name`, `project_slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='终端用户角色表（Project 级隔离）';
 
 CREATE TABLE IF NOT EXISTS `end_user_role_users` (
   `id` VARCHAR(36) NOT NULL COMMENT '关联 ID (UUID)',
