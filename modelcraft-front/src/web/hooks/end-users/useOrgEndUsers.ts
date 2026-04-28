@@ -18,6 +18,7 @@ import { getOrgScopedClient } from '@api-client/apollo/clients'
 export interface OrgEndUser {
   id: string
   username: string
+  displayName?: string
   isForbidden: boolean
   createdBy?: string
   createdAt: string

@@ -27,10 +27,10 @@ func (b *whereInputBuilder) buildWhereInputType(model *RuntimeModel) *graphql.In
 
 	b.buildFieldConditionFields(fields, model)
 
-	// 使用模型名称作为WhereInput名称的一部分
+	// 使用 gqlTypeName 确保类型名合法（见 graphql_type_name.go）
 	whereInputName := "WhereInput"
 	if model != nil && model.Name != "" {
-		whereInputName = model.Name + "WhereInput"
+		whereInputName = gqlTypeName(model.Name) + "WhereInput"
 	}
 
 	whereInput := graphql.NewInputObject(graphql.InputObjectConfig{
@@ -65,10 +65,10 @@ func (b *whereInputBuilder) buildUniqueWhereInputType(model *RuntimeModel) (*gra
 		}
 	}
 
-	// 使用模型名称作为UniqueWhereInput名称的一部分
+	// 使用 gqlTypeName 确保类型名合法（见 graphql_type_name.go）
 	whereInputName := "UniqueWhereInput"
 	if model != nil && model.Name != "" {
-		whereInputName = model.Name + "UniqueWhereInput"
+		whereInputName = gqlTypeName(model.Name) + "UniqueWhereInput"
 	}
 
 	whereInput := graphql.NewInputObject(graphql.InputObjectConfig{

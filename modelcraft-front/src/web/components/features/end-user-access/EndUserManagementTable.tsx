@@ -427,10 +427,10 @@ function UserDetailSheet({
             <ShieldCheck className="size-5 text-primary" />
             <SheetTitle className="font-semibold">{user.username}</SheetTitle>
             <Badge
-              variant={user.status === 'ACTIVE' ? 'outline' : 'destructive'}
-              className={user.status === 'ACTIVE' ? 'border-emerald-200 bg-emerald-50 text-emerald-700 text-xs' : 'text-xs'}
+              variant={!user.isForbidden ? 'outline' : 'destructive'}
+              className={!user.isForbidden ? 'border-emerald-200 bg-emerald-50 text-emerald-700 text-xs' : 'text-xs'}
             >
-              {user.status === 'ACTIVE' ? '正常' : '已禁用'}
+              {!user.isForbidden ? '正常' : '已禁用'}
             </Badge>
           </div>
           <SheetDescription>
@@ -583,7 +583,7 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
 
   const handleToggleStatus = async (user: OrgEndUser) => {
     setActionError(null)
-    const newStatus = user.status === 'ACTIVE' ? 'DISABLED' : 'ACTIVE'
+    const newStatus = user.isForbidden ? 'ACTIVE' : 'DISABLED'
     try {
       await mgmt.toggleUserStatus(user.id, newStatus)
       toast.success(newStatus === 'ACTIVE' ? `已启用 ${user.username}` : `已禁用 ${user.username}`)
@@ -719,7 +719,7 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
 
                     {/* 账号状态 */}
                     <TableCell className="px-3 py-2">
-                      {user.status === 'ACTIVE' ? (
+                      {!user.isForbidden ? (
                         <Badge variant="secondary" className="text-xs">正常</Badge>
                       ) : (
                         <Badge variant="destructive" className="text-xs">已禁用</Badge>
@@ -764,7 +764,7 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
                           <DropdownMenuContent align="end">
                             <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                              {user.status === 'ACTIVE' ? '禁用账号' : '启用账号'}
+                              {user.isForbidden ? '启用账号' : '禁用账号'}
                             </DropdownMenuItem>
                             <DropdownMenuItem
                               className="text-destructive"

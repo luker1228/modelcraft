@@ -337,7 +337,7 @@ export function AppLayout({
                 {item.href ? (
                   <button
                     type="button"
-                    onClick={() => router.push(item.href)}
+                    onClick={() => router.push(item.href!)}
                     className="max-w-[180px] truncate rounded px-1 py-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
                   >
                     {item.label}

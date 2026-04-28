@@ -347,7 +347,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 		}
 	}
 	countResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name:        m.model.Name + "CountAggregateResult",
+		Name:        gqlTypeName(m.model.Name) + "CountAggregateResult",
 		Fields:      countFields,
 		Description: "计数聚合结果",
 	})
@@ -380,7 +380,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 	if len(numericFields) > 0 {
 		aggregateFields[Field_Avg] = &graphql.Field{
 			Type: graphql.NewObject(graphql.ObjectConfig{
-				Name:        m.model.Name + "AvgAggregateResult",
+				Name:        gqlTypeName(m.model.Name) + "AvgAggregateResult",
 				Fields:      numericFields,
 				Description: "平均值聚合结果",
 			}),
@@ -388,7 +388,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 		}
 		aggregateFields[Field_Sum] = &graphql.Field{
 			Type: graphql.NewObject(graphql.ObjectConfig{
-				Name:        m.model.Name + "SumAggregateResult",
+				Name:        gqlTypeName(m.model.Name) + "SumAggregateResult",
 				Fields:      numericFields,
 				Description: "求和聚合结果",
 			}),
@@ -396,7 +396,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 		}
 		aggregateFields[Field_Min] = &graphql.Field{
 			Type: graphql.NewObject(graphql.ObjectConfig{
-				Name:        m.model.Name + "MinAggregateResult",
+				Name:        gqlTypeName(m.model.Name) + "MinAggregateResult",
 				Fields:      numericFields,
 				Description: "最小值聚合结果",
 			}),
@@ -404,7 +404,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 		}
 		aggregateFields[Field_Max] = &graphql.Field{
 			Type: graphql.NewObject(graphql.ObjectConfig{
-				Name:        m.model.Name + "MaxAggregateResult",
+				Name:        gqlTypeName(m.model.Name) + "MaxAggregateResult",
 				Fields:      numericFields,
 				Description: "最大值聚合结果",
 			}),
@@ -413,7 +413,7 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 	}
 
 	aggregateResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name:        m.model.Name + "AggregateResult",
+		Name:        gqlTypeName(m.model.Name) + "AggregateResult",
 		Fields:      aggregateFields,
 		Description: "聚合查询结果",
 	})
@@ -512,7 +512,7 @@ func (m *graphqlModelResolver) createCountResultType(ctx context.Context) *graph
 	}
 
 	countResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name:        m.model.Name + "CountResult",
+		Name:        gqlTypeName(m.model.Name) + "CountResult",
 		Fields:      countResultFields,
 		Description: "Count查询结果",
 	})
@@ -1076,7 +1076,7 @@ func (r *graphqlModelResolver) generateModelType(ctx context.Context, maxDepth i
 	graphqlfields[FieldDisplayName] = r.createDisplayNameField(model.DisplayField)
 
 	modelType := graphql.NewObject(graphql.ObjectConfig{
-		Name:        model.Name + "Query",
+		Name:        gqlTypeName(model.Name) + "Query",
 		Fields:      graphqlfields,
 		Description: model.Description,
 	})
@@ -1112,7 +1112,7 @@ func (r *graphqlModelResolver) generateModelTypeSkipRelation(
 	}
 	r.injectAutoEnumLabelFields(ctx, model, graphqlfields)
 	modelType := graphql.NewObject(graphql.ObjectConfig{
-		Name:        model.Name + "Mutation",
+		Name:        gqlTypeName(model.Name) + "Mutation",
 		Fields:      graphqlfields,
 		Description: model.Description,
 	})
@@ -1132,7 +1132,7 @@ func (r *graphqlModelResolver) createModelType(ctx context.Context) (*graphql.Ob
 // createFindUniqueResultType creates a wrapper result type for findUnique operation
 func (r *graphqlModelResolver) createFindUniqueResultType(modelType graphql.Type) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
-		Name: r.model.Name + "FindUniqueResult",
+		Name: gqlTypeName(r.model.Name) + "FindUniqueResult",
 		Fields: graphql.Fields{
 			FieldItem: &graphql.Field{
 				Type:        modelType,
@@ -1154,7 +1154,7 @@ func (r *graphqlModelResolver) createFindUniqueResultType(modelType graphql.Type
 // createFindFirstResultType creates a wrapper result type for findFirst operation
 func (r *graphqlModelResolver) createFindFirstResultType(modelType graphql.Type) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
-		Name: r.model.Name + "FindFirstResult",
+		Name: gqlTypeName(r.model.Name) + "FindFirstResult",
 		Fields: graphql.Fields{
 			FieldItem: &graphql.Field{
 				Type:        modelType,
@@ -1176,7 +1176,7 @@ func (r *graphqlModelResolver) createFindFirstResultType(modelType graphql.Type)
 // createFindManyResultType creates a wrapper result type for findMany operation
 func (r *graphqlModelResolver) createFindManyResultType(modelType graphql.Type) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
-		Name: r.model.Name + "FindManyResult",
+		Name: gqlTypeName(r.model.Name) + "FindManyResult",
 		Fields: graphql.Fields{
 			FieldItems: &graphql.Field{
 				Type:        graphql.NewList(graphql.NewNonNull(modelType)),
@@ -1298,7 +1298,7 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 
 	// 创建 CreateOneResult 包装类型
 	createResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name: m.model.Name + "Create" + ResultTypeSuffix,
+		Name: gqlTypeName(m.model.Name) + "Create" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldID: &graphql.Field{
 				Type: graphql.NewNonNull(graphql.ID),
@@ -1483,7 +1483,7 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 
 	// 创建 CreateManyResult 包装类型
 	createManyResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name: m.model.Name + "CreateMany" + ResultTypeSuffix,
+		Name: gqlTypeName(m.model.Name) + "CreateMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.Int),
@@ -1533,7 +1533,7 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 
 	// 创建 UpdateManyResult 包装类型
 	updateManyResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name: m.model.Name + "UpdateMany" + ResultTypeSuffix,
+		Name: gqlTypeName(m.model.Name) + "UpdateMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.Int),
@@ -1579,7 +1579,7 @@ func (m *graphqlModelResolver) createDeleteManyField(modelType graphql.Type) (*g
 
 	// 创建 DeleteManyResult 包装类型
 	deleteManyResultType := graphql.NewObject(graphql.ObjectConfig{
-		Name: m.model.Name + "DeleteMany" + ResultTypeSuffix,
+		Name: gqlTypeName(m.model.Name) + "DeleteMany" + ResultTypeSuffix,
 		Fields: graphql.Fields{
 			FieldCount: &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.Int),

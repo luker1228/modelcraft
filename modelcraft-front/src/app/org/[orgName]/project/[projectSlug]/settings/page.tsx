@@ -149,7 +149,7 @@ export default function SettingsPage() {
   const { control, reset, watch, formState } = form
   const formData = watch()
 
-  const orgScopedContext = useOrgScopedContext(orgName)
+  const orgScopedContext = useOrgScopedContext(orgName ?? undefined)
 
   const { loading } = useQuery<ClusterQueryData>(GET_CLUSTER, {
     skip: !orgName || !projectSlug,

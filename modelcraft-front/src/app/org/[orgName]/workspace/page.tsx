@@ -137,7 +137,7 @@ export default function WorkspacePage() {
     })
   }, [authLoading, orgName, currentOrgName, setCurrentOrg, loadMembershipsStore])
 
-  const orgScopedContext = useOrgScopedContext(orgName)
+  const orgScopedContext = useOrgScopedContext(orgName ?? undefined)
 
   // GraphQL 查询
   const { data, loading, error: queryError, refetch } = useQuery<ProjectsQueryData>(GET_PROJECTS, {

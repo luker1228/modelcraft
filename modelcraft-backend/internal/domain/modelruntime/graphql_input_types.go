@@ -159,7 +159,7 @@ func (g *inputTypeGenerator) generateOrderByInputType(model *RuntimeModel) *grap
 	}
 
 	orderByInput := graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:   fmt.Sprintf("%sOrderByInput", model.Name),
+		Name:   fmt.Sprintf("%sOrderByInput", gqlTypeName(model.Name)),
 		Fields: fields,
 	})
 
@@ -227,7 +227,7 @@ func (g *inputTypeGenerator) generateCreateInputType(model *RuntimeModel) *graph
 	}
 
 	createInput := graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:   fmt.Sprintf("%sCreateInput", model.Name),
+		Name:   fmt.Sprintf("%sCreateInput", gqlTypeName(model.Name)),
 		Fields: fields,
 	})
 
@@ -272,7 +272,7 @@ func (g *inputTypeGenerator) generateUpdateInputType(model *RuntimeModel) *graph
 	}
 
 	updateInput := graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:   fmt.Sprintf("%sUpdateInput", model.Name),
+		Name:   fmt.Sprintf("%sUpdateInput", gqlTypeName(model.Name)),
 		Fields: fields,
 	})
 
@@ -437,7 +437,7 @@ func (g *inputTypeGenerator) GenerateAggregateArgs(model *RuntimeModel) graphql.
 		}
 	}
 	countInputType := graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        fmt.Sprintf("%sCountAggregateInput", modelName),
+		Name:        fmt.Sprintf("%sCountAggregateInput", gqlTypeName(modelName)),
 		Fields:      countFields,
 		Description: "计数聚合输入",
 	})
@@ -477,28 +477,28 @@ func (g *inputTypeGenerator) GenerateAggregateArgs(model *RuntimeModel) graphql.
 	if len(numericFields) > 0 {
 		// 创建 _avg 输入类型
 		avgInputType := graphql.NewInputObject(graphql.InputObjectConfig{
-			Name:        fmt.Sprintf("%sAvgAggregateInput", modelName),
+			Name:        fmt.Sprintf("%sAvgAggregateInput", gqlTypeName(modelName)),
 			Fields:      numericFields,
 			Description: "平均值聚合输入（仅数值字段）",
 		})
 
 		// 创建 _sum 输入类型
 		sumInputType := graphql.NewInputObject(graphql.InputObjectConfig{
-			Name:        fmt.Sprintf("%sSumAggregateInput", modelName),
+			Name:        fmt.Sprintf("%sSumAggregateInput", gqlTypeName(modelName)),
 			Fields:      numericFields,
 			Description: "求和聚合输入（仅数值字段）",
 		})
 
 		// 创建 _min 输入类型
 		minInputType := graphql.NewInputObject(graphql.InputObjectConfig{
-			Name:        fmt.Sprintf("%sMinAggregateInput", modelName),
+			Name:        fmt.Sprintf("%sMinAggregateInput", gqlTypeName(modelName)),
 			Fields:      numericFields,
 			Description: "最小值聚合输入（仅数值字段）",
 		})
 
 		// 创建 _max 输入类型
 		maxInputType := graphql.NewInputObject(graphql.InputObjectConfig{
-			Name:        fmt.Sprintf("%sMaxAggregateInput", modelName),
+			Name:        fmt.Sprintf("%sMaxAggregateInput", gqlTypeName(modelName)),
 			Fields:      numericFields,
 			Description: "最大值聚合输入（仅数值字段）",
 		})
@@ -550,7 +550,7 @@ func (g *inputTypeGenerator) GenerateCountArgs(model *RuntimeModel) graphql.Fiel
 		}
 	}
 	selectInputType := graphql.NewInputObject(graphql.InputObjectConfig{
-		Name:        fmt.Sprintf("%sCountSelectInput", model.Name),
+		Name:        fmt.Sprintf("%sCountSelectInput", gqlTypeName(model.Name)),
 		Fields:      selectFields,
 		Description: "Count操作的字段选择输入",
 	})

@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
 import { useOrganization } from '@web/hooks/organization/use-organization'
 import { MY_USER_PROFILE } from '@/api-client/profile'
@@ -95,7 +95,7 @@ function mapPayloadError(error?: ProfilePayloadError | null): ProfileDomainError
 export function useMyUserProfile(): UseMyUserProfileReturn {
   const { orgName } = useOrganization()
 
-  const orgScopedContext = useOrgScopedContext(orgName)
+  const orgScopedContext = useOrgScopedContext(orgName ?? undefined)
 
   const { data, loading, error, refetch: apolloRefetch } = useQuery<MyUserProfileQueryData>(MY_USER_PROFILE, {
     skip: !orgName,

@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import type { RJSFSchema } from '@rjsf/utils'
 import { createModelRuntimeClient, useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'

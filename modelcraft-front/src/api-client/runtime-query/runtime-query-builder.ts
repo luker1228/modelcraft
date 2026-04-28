@@ -6,6 +6,25 @@ import * as gqlBuilder from 'gql-query-builder'
  * Uses gql-query-builder library to generate dynamic GraphQL queries
  */
 
+/**
+ * Convert a model name to a valid GraphQL type name prefix by prepending "T".
+ *
+ * Background: GraphQL type names must start with a letter or underscore.
+ * ModelCraft supports importing external database tables (createdVia: IMPORTED),
+ * whose names may start with digits (e.g. "123orders"). Self-created models are
+ * blocked from digit-leading names at creation time, but imported tables are not.
+ * Using a raw digit-leading name like "123ordersWhereInput" causes gql() to throw
+ * "Invalid number, expected digit but got: s".
+ *
+ * Fix: prepend "T" to every model name so all generated type names are always valid.
+ * This must match the backend's gqlTypeName() helper in graphql_type_name.go.
+ *   "User"      -> "TUser"      -> "TUserWhereInput"
+ *   "123orders" -> "T123orders" -> "T123ordersWhereInput"
+ */
+function gqlTypeName(modelName: string): string {
+  return 'T' + modelName
+}
+
 export interface FieldDefinition {
   name: string
   type: string
@@ -74,8 +93,8 @@ export function buildFindManyQuery(
   const { query } = gqlBuilder.query({
     operation: 'findMany',
     variables: {
-      where: { type: `${modelName}WhereInput`, required: false },
-      orderBy: { type: `[${modelName}OrderByInput!]`, required: false },
+      where: { type: `${gqlTypeName(modelName)}WhereInput`, required: false },
+      orderBy: { type: `[${gqlTypeName(modelName)}OrderByInput!]`, required: false },
       skip: { type: 'Int', required: false },
       take: { type: 'Int', required: false },
     },
@@ -88,7 +107,7 @@ export function buildFindManyQuery(
     ],
   })
 
-  return gql`${query}`
+  return gql(query)
 }
 
 /**
@@ -105,7 +124,7 @@ export function buildFindUniqueQuery(
   const { query } = gqlBuilder.query({
     operation: 'findUnique',
     variables: {
-      where: { type: `${modelName}UniqueWhereInput`, required: true },
+      where: { type: `${gqlTypeName(modelName)}UniqueWhereInput`, required: true },
     },
     fields: [
       'reqId',
@@ -116,7 +135,7 @@ export function buildFindUniqueQuery(
     ],
   })
 
-  return gql`${query}`
+  return gql(query)
 }
 
 /**
@@ -132,15 +151,15 @@ export function buildFindFirstQuery(
   const { query } = gqlBuilder.query({
     operation: 'findFirst',
     variables: {
-      where: { type: `${modelName}WhereInput`, required: false },
-      orderBy: { type: `[${modelName}OrderByInput!]`, required: false },
+      where: { type: `${gqlTypeName(modelName)}WhereInput`, required: false },
+      orderBy: { type: `[${gqlTypeName(modelName)}OrderByInput!]`, required: false },
       skip: { type: 'Int', required: false },
       take: { type: 'Int', required: false },
     },
     fields: fieldSelection,
   })
 
-  return gql`${query}`
+  return gql(query)
 }
 
 /**
@@ -151,11 +170,11 @@ export function buildCountQuery(modelName: string): DocumentNode {
   const { query } = gqlBuilder.query({
     operation: 'count',
     variables: {
-      where: { type: `${modelName}WhereInput`, required: false },
+      where: { type: `${gqlTypeName(modelName)}WhereInput`, required: false },
     },
   })
 
-  return gql`${query}`
+  return gql(query)
 }
 
 /**
@@ -256,12 +275,12 @@ export function buildCreateMutation(modelName: string): DocumentNode {
   const { query } = gqlBuilder.mutation({
     operation: 'create',
     variables: {
-      data: { type: `${modelName}CreateInput`, required: true },
+      data: { type: `${gqlTypeName(modelName)}CreateInput`, required: true },
     },
     fields: ['id'],
   })
 
-  return gql`${query}`
+  return gql(query)
 }
 
 /**
@@ -273,13 +292,13 @@ export function buildUpdateMutation(modelName: string): DocumentNode {
   const { query } = gqlBuilder.mutation({
     operation: 'update',
     variables: {
-      where: { type: `${modelName}UniqueWhereInput`, required: true },
-      data: { type: `${modelName}UpdateInput`, required: true },
+      where: { type: `${gqlTypeName(modelName)}UniqueWhereInput`, required: true },
+      data: { type: `${gqlTypeName(modelName)}UpdateInput`, required: true },
     },
     fields: ['success'],
   })
 
-  return gql`${query}`
+  return gql(query)
 }
 
 /**
@@ -291,10 +310,10 @@ export function buildDeleteMutation(modelName: string): DocumentNode {
   const { query } = gqlBuilder.mutation({
     operation: 'delete',
     variables: {
-      where: { type: `${modelName}UniqueWhereInput`, required: true },
+      where: { type: `${gqlTypeName(modelName)}UniqueWhereInput`, required: true },
     },
     fields: ['success'],
   })
 
-  return gql`${query}`
+  return gql(query)
 }

@@ -50,7 +50,7 @@ export default function DevelopersMembersPage() {
   const orgName = params?.orgName as string
   const { isLoading: authLoading } = useRequireAuth()
 
-  const orgScopedContext = useOrgScopedContext(orgName)
+  const orgScopedContext = useOrgScopedContext(orgName ?? undefined)
 
   const { data, loading, error } = useQuery<MembersQueryData>(GET_ORGANIZATION_MEMBERS, {
     skip: !orgName || authLoading,
