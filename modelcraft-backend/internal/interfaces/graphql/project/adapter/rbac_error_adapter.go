@@ -427,6 +427,26 @@ func (a *RbacErrorAdapter) ConvertToApplyPresetPolicyError(
 	}
 }
 
+// ConvertToRestoreBundleError maps to RestoreEndUserPermissionBundleError union.
+func (a *RbacErrorAdapter) ConvertToRestoreBundleError(
+	err *bizerrors.BusinessError,
+) generated.RestoreEndUserPermissionBundleError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserPermissionBundleNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	case bizerrors.EndUserPermissionBundleSnapshotNotFound.GetCode():
+		return &generated.EndUserPermissionBundleSnapshotNotFound{Message: err.Msg()}
+	case bizerrors.ProjectNotFound.GetCode():
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	default:
+		a.logUnknown("restoreBundle", err)
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	}
+}
+
 func detectPresetFromMessage(message string) generated.EndUserPermissionPreset {
 	if strings.Contains(message, string(generated.EndUserPermissionPresetReadAllWriteOwner)) {
 		return generated.EndUserPermissionPresetReadAllWriteOwner

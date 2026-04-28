@@ -45,6 +45,11 @@ func (s *SafeQuerier) BindBelongsToFKIDToFields(ctx context.Context, arg _source
 	WrapSQLErrorInPlace(&err)
 	return
 }
+func (s *SafeQuerier) ClearBundlePermissions(ctx context.Context, bundleID string) (err error) {
+	err = s.delegate.ClearBundlePermissions(ctx, bundleID)
+	WrapSQLErrorInPlace(&err)
+	return
+}
 func (s *SafeQuerier) CountFieldsByModelID(ctx context.Context, modelID string) (i1 int64, err error) {
 	i1, err = s.delegate.CountFieldsByModelID(ctx, modelID)
 	WrapSQLErrorInPlace(&err)
@@ -157,6 +162,11 @@ func (s *SafeQuerier) CreateUserRole(ctx context.Context, arg _sourceDbgen.Creat
 }
 func (s *SafeQuerier) DeleteDatabaseCluster(ctx context.Context, arg _sourceDbgen.DeleteDatabaseClusterParams) (err error) {
 	err = s.delegate.DeleteDatabaseCluster(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
+func (s *SafeQuerier) DeleteOldBundleSnapshots(ctx context.Context, arg _sourceDbgen.DeleteOldBundleSnapshotsParams) (err error) {
+	err = s.delegate.DeleteOldBundleSnapshots(ctx, arg)
 	WrapSQLErrorInPlace(&err)
 	return
 }
@@ -350,6 +360,11 @@ func (s *SafeQuerier) GetAllModels(ctx context.Context) (ma1 []_sourceDbgen.Mode
 	WrapSQLErrorInPlace(&err)
 	return
 }
+func (s *SafeQuerier) GetBundleCurrentVersion(ctx context.Context, bundleID string) (r1 interface{}, err error) {
+	r1, err = s.delegate.GetBundleCurrentVersion(ctx, bundleID)
+	WrapSQLErrorInPlace(&err)
+	return
+}
 func (s *SafeQuerier) GetBundleIDsByImplicitRoles(ctx context.Context, arg _sourceDbgen.GetBundleIDsByImplicitRolesParams) (sa1 []string, err error) {
 	sa1, err = s.delegate.GetBundleIDsByImplicitRoles(ctx, arg)
 	WrapSQLErrorInPlace(&err)
@@ -362,6 +377,11 @@ func (s *SafeQuerier) GetBundleIDsByUserDirect(ctx context.Context, arg _sourceD
 }
 func (s *SafeQuerier) GetBundleIDsByUserExplicitRoles(ctx context.Context, arg _sourceDbgen.GetBundleIDsByUserExplicitRolesParams) (sa1 []string, err error) {
 	sa1, err = s.delegate.GetBundleIDsByUserExplicitRoles(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
+func (s *SafeQuerier) GetBundleSnapshotByVersion(ctx context.Context, arg _sourceDbgen.GetBundleSnapshotByVersionParams) (e1 _sourceDbgen.EndUserPermissionBundleSnapshot, err error) {
+	e1, err = s.delegate.GetBundleSnapshotByVersion(ctx, arg)
 	WrapSQLErrorInPlace(&err)
 	return
 }
@@ -575,6 +595,11 @@ func (s *SafeQuerier) GrantBundleToUser(ctx context.Context, arg _sourceDbgen.Gr
 	WrapSQLErrorInPlace(&err)
 	return
 }
+func (s *SafeQuerier) InsertBundleSnapshot(ctx context.Context, arg _sourceDbgen.InsertBundleSnapshotParams) (err error) {
+	err = s.delegate.InsertBundleSnapshot(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
 func (s *SafeQuerier) InsertRefreshToken(ctx context.Context, arg _sourceDbgen.InsertRefreshTokenParams) (err error) {
 	err = s.delegate.InsertRefreshToken(ctx, arg)
 	WrapSQLErrorInPlace(&err)
@@ -597,6 +622,11 @@ func (s *SafeQuerier) ListBundlesByRole(ctx context.Context, roleID string) (ea1
 }
 func (s *SafeQuerier) ListBundlesByUser(ctx context.Context, arg _sourceDbgen.ListBundlesByUserParams) (ea1 []_sourceDbgen.EndUserPermissionBundle, err error) {
 	ea1, err = s.delegate.ListBundlesByUser(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
+func (s *SafeQuerier) ListBundleSnapshots(ctx context.Context, bundleID string) (ea1 []_sourceDbgen.EndUserPermissionBundleSnapshot, err error) {
+	ea1, err = s.delegate.ListBundleSnapshots(ctx, bundleID)
 	WrapSQLErrorInPlace(&err)
 	return
 }

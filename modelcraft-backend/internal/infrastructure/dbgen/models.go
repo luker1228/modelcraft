@@ -318,6 +318,24 @@ type EndUserPermissionBundle struct {
 	UpdatedAt   time.Time
 }
 
+// 权限包历史快照：记录每次权限列表变更，支持回滚
+type EndUserPermissionBundleSnapshot struct {
+	// 快照 UUID
+	ID string
+	// 所属权限包 ID，FK → end_user_permission_bundles.id
+	BundleID string
+	// 版本号，从 1 开始，每个权限包独立计数
+	Version int32
+	// 快照时刻的权限点 ID 数组，格式：[{"permissionId":"uuid","sortOrder":0}]
+	Permissions json.RawMessage
+	// 快照创建时间
+	CreatedAt time.Time
+	// 操作人标识（用户 ID 或 system）
+	CreatedBy sql.NullString
+	// 若为回滚操作，指向来源版本号；否则为 NULL
+	RestoredFrom sql.NullInt32
+}
+
 // EndUser ↔ Project 授权关联表（多对多）
 type EndUserProjectAccess struct {
 	// 记录 ID (UUID)

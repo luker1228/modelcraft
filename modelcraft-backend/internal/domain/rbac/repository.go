@@ -74,6 +74,26 @@ type EndUserPermissionRepository interface {
 	// ListPermissionsInBundle 列出权限包内所有权限点（按 sort_order 升序）
 	ListPermissionsInBundle(ctx context.Context, bundleID string) ([]*EndUserPermission, error)
 
+	// ─── 权限包快照 ─────────────────────────────────────────────
+
+	// SaveBundleSnapshot 写入权限包快照（含 restored_from 字段，回滚时非 nil）
+	SaveBundleSnapshot(ctx context.Context, snapshot *BundleSnapshot) error
+
+	// ListBundleSnapshots 列出权限包最近 5 个历史快照（按 version DESC）
+	ListBundleSnapshots(ctx context.Context, bundleID string) ([]BundleSnapshot, error)
+
+	// DeleteOldBundleSnapshots 删除超出保留上限的旧快照，只保留最近 5 个
+	DeleteOldBundleSnapshots(ctx context.Context, bundleID string) error
+
+	// GetBundleCurrentVersion 获取权限包当前最大版本号（无快照时返回 0）
+	GetBundleCurrentVersion(ctx context.Context, bundleID string) (int, error)
+
+	// GetBundleSnapshotByVersion 根据版本号获取快照（不存在时返回 NotFoundError）
+	GetBundleSnapshotByVersion(ctx context.Context, bundleID string, version int) (*BundleSnapshot, error)
+
+	// ClearBundlePermissions 清空权限包内所有权限点关联（用于回滚的第一步）
+	ClearBundlePermissions(ctx context.Context, bundleID string) error
+
 	// ─── 业务角色 ──────────────────────────────────────────────
 
 	// CreateRole 创建 RBAC 业务角色（org + project scoped，orgName 由实体携带）

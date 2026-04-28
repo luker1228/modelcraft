@@ -15,6 +15,7 @@ type Querier interface {
 	AssignBundleToRole(ctx context.Context, arg AssignBundleToRoleParams) error
 	AssignRoleToUser(ctx context.Context, arg AssignRoleToUserParams) error
 	BindBelongsToFKIDToFields(ctx context.Context, arg BindBelongsToFKIDToFieldsParams) error
+	ClearBundlePermissions(ctx context.Context, bundleID string) error
 	CountFieldsByModelID(ctx context.Context, modelID string) (int64, error)
 	CountMembershipsByUser(ctx context.Context, userID string) (int64, error)
 	CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error)
@@ -54,6 +55,7 @@ type Querier interface {
 	DeleteModel(ctx context.Context, id string) error
 	DeleteModelGroup(ctx context.Context, id string) error
 	DeleteModelRLSPolicy(ctx context.Context, modelID string) error
+	DeleteOldBundleSnapshots(ctx context.Context, arg DeleteOldBundleSnapshotsParams) error
 	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
 	DeletePermissionsByRole(ctx context.Context, roleID int64) error
 	DeleteProjectAuthSchema(ctx context.Context, arg DeleteProjectAuthSchemaParams) error
@@ -77,12 +79,14 @@ type Querier interface {
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]LogicalForeignKey, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
+	GetBundleCurrentVersion(ctx context.Context, bundleID string) (interface{}, error)
 	// ⚡ 鉴权链 Step 3: 隐式角色关联的权限包 ID 列表（对所有认证用户执行，无需 user_id）
 	GetBundleIDsByImplicitRoles(ctx context.Context, arg GetBundleIDsByImplicitRolesParams) ([]string, error)
 	// ⚡ 鉴权链 Step 1: 用户直接关联的权限包 ID 列表
 	GetBundleIDsByUserDirect(ctx context.Context, arg GetBundleIDsByUserDirectParams) ([]string, error)
 	// ⚡ 鉴权链 Step 2: 通过显式角色关联的权限包 ID 列表（单次 JOIN 查询，避免 N+1）
 	GetBundleIDsByUserExplicitRoles(ctx context.Context, arg GetBundleIDsByUserExplicitRolesParams) ([]string, error)
+	GetBundleSnapshotByVersion(ctx context.Context, arg GetBundleSnapshotByVersionParams) (EndUserPermissionBundleSnapshot, error)
 	GetDatabaseClusterByID(ctx context.Context, arg GetDatabaseClusterByIDParams) (DatabaseCluster, error)
 	GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDatabaseClusterByProjectKeyParams) (DatabaseCluster, error)
 	GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundleByIDParams) (EndUserPermissionBundle, error)
@@ -135,9 +139,11 @@ type Querier interface {
 	GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
 	GrantBundleToUser(ctx context.Context, arg GrantBundleToUserParams) error
+	InsertBundleSnapshot(ctx context.Context, arg InsertBundleSnapshotParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
 	IsPermissionReferencedByBundle(ctx context.Context, permissionID string) (bool, error)
+	ListBundleSnapshots(ctx context.Context, bundleID string) ([]EndUserPermissionBundleSnapshot, error)
 	ListBundlesByRole(ctx context.Context, roleID string) ([]EndUserPermissionBundle, error)
 	ListBundlesByUser(ctx context.Context, arg ListBundlesByUserParams) ([]EndUserPermissionBundle, error)
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)

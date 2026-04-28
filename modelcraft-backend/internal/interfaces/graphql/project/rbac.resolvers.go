@@ -287,6 +287,32 @@ func (r *mutationResolver) RemoveEndUserPermissionFromBundle(ctx context.Context
 	}, nil
 }
 
+// RestoreEndUserPermissionBundle is the resolver for the restoreEndUserPermissionBundle field.
+func (r *mutationResolver) RestoreEndUserPermissionBundle(ctx context.Context, input generated.RestoreEndUserPermissionBundleInput) (*generated.RestoreEndUserPermissionBundlePayload, error) {
+	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	result, appErr := r.RBACBundleSvc.RestoreBundle(ctx, apprbac.RestoreBundleCommand{
+		OrgName:       orgName,
+		BundleID:      input.BundleID,
+		TargetVersion: int(input.TargetVersion),
+	})
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		errAdapter := adapter.NewRbacErrorAdapter(ctx)
+		return &generated.RestoreEndUserPermissionBundlePayload{
+			NewVersion: 0,
+			Error:      errAdapter.ConvertToRestoreBundleError(toBizErr(appErr)),
+		}, nil
+	}
+	return &generated.RestoreEndUserPermissionBundlePayload{
+		Bundle:     adapter.ToEndUserPermissionBundleDTO(result.Bundle),
+		NewVersion: int32(result.NewVersion),
+	}, nil
+}
+
 // CreateEndUserRole is the resolver for the createEndUserRole field.
 func (r *mutationResolver) CreateEndUserRole(ctx context.Context, input generated.CreateEndUserRoleInput) (*generated.CreateEndUserRolePayload, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)

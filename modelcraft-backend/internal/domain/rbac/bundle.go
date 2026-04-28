@@ -12,6 +12,8 @@ type EndUserPermissionBundle struct {
 	Description *string
 	// Permissions 展开后按需填充（ListPermissionsInBundle）
 	Permissions []*EndUserPermission
+	// Snapshots 历史版本快照，按需填充，最多 5 个（按 version DESC）
+	Snapshots []BundleSnapshot
 }
 
 // Validate 校验权限包合法性

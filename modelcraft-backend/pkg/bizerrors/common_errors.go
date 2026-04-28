@@ -503,6 +503,13 @@ var (
 		ZhMessage: "权限包不存在: {0}",
 	}
 
+	// EndUserPermissionBundleSnapshotNotFound 权限包快照版本不存在
+	EndUserPermissionBundleSnapshotNotFound = ErrorDefinition{
+		Code:      ErrorTypeNotFound + ".RBAC.BUNDLE.SNAPSHOT",
+		EnMessage: "End user permission bundle snapshot not found: version {0} of bundle {1}",
+		ZhMessage: "权限包快照不存在: 权限包 {1} 的版本 {0} 不存在",
+	}
+
 	// EndUserPermissionBundleAlreadyExists 权限包名称重复
 	EndUserPermissionBundleAlreadyExists = ErrorDefinition{
 		Code:      ErrorTypeConflict + ".RBAC.BUNDLE",

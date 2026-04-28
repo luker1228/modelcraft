@@ -379,12 +379,14 @@ type ComplexityRoot struct {
 	}
 
 	EndUserPermissionBundle struct {
-		CreatedAt   func(childComplexity int) int
-		Description func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Name        func(childComplexity int) int
-		Permissions func(childComplexity int) int
-		UpdatedAt   func(childComplexity int) int
+		CreatedAt      func(childComplexity int) int
+		CurrentVersion func(childComplexity int) int
+		Description    func(childComplexity int) int
+		ID             func(childComplexity int) int
+		Name           func(childComplexity int) int
+		Permissions    func(childComplexity int) int
+		Snapshots      func(childComplexity int) int
+		UpdatedAt      func(childComplexity int) int
 	}
 
 	EndUserPermissionBundleAlreadyExists struct {
@@ -412,6 +414,18 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 	}
 
+	EndUserPermissionBundleSnapshot struct {
+		CreatedAt    func(childComplexity int) int
+		CreatedBy    func(childComplexity int) int
+		Permissions  func(childComplexity int) int
+		RestoredFrom func(childComplexity int) int
+		Version      func(childComplexity int) int
+	}
+
+	EndUserPermissionBundleSnapshotNotFound struct {
+		Message func(childComplexity int) int
+	}
+
 	EndUserPermissionConnection struct {
 		Edges      func(childComplexity int) int
 		PageInfo   func(childComplexity int) int
@@ -430,6 +444,12 @@ type ComplexityRoot struct {
 
 	EndUserPermissionNotFound struct {
 		Message func(childComplexity int) int
+	}
+
+	EndUserPermissionSnapshotEntry struct {
+		Permission   func(childComplexity int) int
+		PermissionID func(childComplexity int) int
+		SortOrder    func(childComplexity int) int
 	}
 
 	EndUserProjectAccess struct {
@@ -816,6 +836,7 @@ type ComplexityRoot struct {
 		RenameGroup                       func(childComplexity int, input RenameGroupInput) int
 		ReorderGroup                      func(childComplexity int, input ReorderGroupInput) int
 		RepairModel                       func(childComplexity int, input RepairModelInput) int
+		RestoreEndUserPermissionBundle    func(childComplexity int, input RestoreEndUserPermissionBundleInput) int
 		RevokeBundleFromEndUser           func(childComplexity int, input RevokeBundleFromEndUserInput) int
 		RevokeBundleFromEndUserRole       func(childComplexity int, input RevokeBundleFromEndUserRoleInput) int
 		RevokeEndUserProjectAccess        func(childComplexity int, input RevokeEndUserProjectAccessInput) int
@@ -929,6 +950,12 @@ type ComplexityRoot struct {
 		HealthStatusAfter  func(childComplexity int) int
 		HealthStatusBefore func(childComplexity int) int
 		Model              func(childComplexity int) int
+	}
+
+	RestoreEndUserPermissionBundlePayload struct {
+		Bundle     func(childComplexity int) int
+		Error      func(childComplexity int) int
+		NewVersion func(childComplexity int) int
 	}
 
 	RevokeBundleFromEndUserPayload struct {
@@ -1117,6 +1144,7 @@ type MutationResolver interface {
 	AddEndUserPermissionToBundle(ctx context.Context, input AddEndUserPermissionToBundleInput) (*AddEndUserPermissionToBundlePayload, error)
 	AddEndUserPresetToBundle(ctx context.Context, input AddEndUserPresetToBundleInput) (*AddEndUserPresetToBundlePayload, error)
 	RemoveEndUserPermissionFromBundle(ctx context.Context, input RemoveEndUserPermissionFromBundleInput) (*RemoveEndUserPermissionFromBundlePayload, error)
+	RestoreEndUserPermissionBundle(ctx context.Context, input RestoreEndUserPermissionBundleInput) (*RestoreEndUserPermissionBundlePayload, error)
 	CreateEndUserRole(ctx context.Context, input CreateEndUserRoleInput) (*CreateEndUserRolePayload, error)
 	UpdateEndUserRole(ctx context.Context, id string, input UpdateEndUserRoleInput) (*UpdateEndUserRolePayload, error)
 	DeleteEndUserRole(ctx context.Context, id string) (*DeleteEndUserRolePayload, error)
@@ -2171,6 +2199,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermissionBundle.CreatedAt(childComplexity), true
+	case "EndUserPermissionBundle.currentVersion":
+		if e.complexity.EndUserPermissionBundle.CurrentVersion == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundle.CurrentVersion(childComplexity), true
 	case "EndUserPermissionBundle.description":
 		if e.complexity.EndUserPermissionBundle.Description == nil {
 			break
@@ -2195,6 +2229,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermissionBundle.Permissions(childComplexity), true
+	case "EndUserPermissionBundle.snapshots":
+		if e.complexity.EndUserPermissionBundle.Snapshots == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundle.Snapshots(childComplexity), true
 	case "EndUserPermissionBundle.updatedAt":
 		if e.complexity.EndUserPermissionBundle.UpdatedAt == nil {
 			break
@@ -2267,6 +2307,44 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.EndUserPermissionBundleNotFound.Message(childComplexity), true
 
+	case "EndUserPermissionBundleSnapshot.createdAt":
+		if e.complexity.EndUserPermissionBundleSnapshot.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundleSnapshot.CreatedAt(childComplexity), true
+	case "EndUserPermissionBundleSnapshot.createdBy":
+		if e.complexity.EndUserPermissionBundleSnapshot.CreatedBy == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundleSnapshot.CreatedBy(childComplexity), true
+	case "EndUserPermissionBundleSnapshot.permissions":
+		if e.complexity.EndUserPermissionBundleSnapshot.Permissions == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundleSnapshot.Permissions(childComplexity), true
+	case "EndUserPermissionBundleSnapshot.restoredFrom":
+		if e.complexity.EndUserPermissionBundleSnapshot.RestoredFrom == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundleSnapshot.RestoredFrom(childComplexity), true
+	case "EndUserPermissionBundleSnapshot.version":
+		if e.complexity.EndUserPermissionBundleSnapshot.Version == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundleSnapshot.Version(childComplexity), true
+
+	case "EndUserPermissionBundleSnapshotNotFound.message":
+		if e.complexity.EndUserPermissionBundleSnapshotNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundleSnapshotNotFound.Message(childComplexity), true
+
 	case "EndUserPermissionConnection.edges":
 		if e.complexity.EndUserPermissionConnection.Edges == nil {
 			break
@@ -2318,6 +2396,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermissionNotFound.Message(childComplexity), true
+
+	case "EndUserPermissionSnapshotEntry.permission":
+		if e.complexity.EndUserPermissionSnapshotEntry.Permission == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionSnapshotEntry.Permission(childComplexity), true
+	case "EndUserPermissionSnapshotEntry.permissionId":
+		if e.complexity.EndUserPermissionSnapshotEntry.PermissionID == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionSnapshotEntry.PermissionID(childComplexity), true
+	case "EndUserPermissionSnapshotEntry.sortOrder":
+		if e.complexity.EndUserPermissionSnapshotEntry.SortOrder == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionSnapshotEntry.SortOrder(childComplexity), true
 
 	case "EndUserProjectAccess.endUser":
 		if e.complexity.EndUserProjectAccess.EndUser == nil {
@@ -3820,6 +3917,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RepairModel(childComplexity, args["input"].(RepairModelInput)), true
+	case "Mutation.restoreEndUserPermissionBundle":
+		if e.complexity.Mutation.RestoreEndUserPermissionBundle == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_restoreEndUserPermissionBundle_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RestoreEndUserPermissionBundle(childComplexity, args["input"].(RestoreEndUserPermissionBundleInput)), true
 	case "Mutation.revokeBundleFromEndUser":
 		if e.complexity.Mutation.RevokeBundleFromEndUser == nil {
 			break
@@ -4505,6 +4613,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RepairModelPayload.Model(childComplexity), true
 
+	case "RestoreEndUserPermissionBundlePayload.bundle":
+		if e.complexity.RestoreEndUserPermissionBundlePayload.Bundle == nil {
+			break
+		}
+
+		return e.complexity.RestoreEndUserPermissionBundlePayload.Bundle(childComplexity), true
+	case "RestoreEndUserPermissionBundlePayload.error":
+		if e.complexity.RestoreEndUserPermissionBundlePayload.Error == nil {
+			break
+		}
+
+		return e.complexity.RestoreEndUserPermissionBundlePayload.Error(childComplexity), true
+	case "RestoreEndUserPermissionBundlePayload.newVersion":
+		if e.complexity.RestoreEndUserPermissionBundlePayload.NewVersion == nil {
+			break
+		}
+
+		return e.complexity.RestoreEndUserPermissionBundlePayload.NewVersion(childComplexity), true
+
 	case "RevokeBundleFromEndUserPayload.error":
 		if e.complexity.RevokeBundleFromEndUserPayload.Error == nil {
 			break
@@ -4970,6 +5097,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputRenameGroupInput,
 		ec.unmarshalInputReorderGroupInput,
 		ec.unmarshalInputRepairModelInput,
+		ec.unmarshalInputRestoreEndUserPermissionBundleInput,
 		ec.unmarshalInputRevokeBundleFromEndUserInput,
 		ec.unmarshalInputRevokeBundleFromEndUserRoleInput,
 		ec.unmarshalInputRevokeEndUserProjectAccessInput,
@@ -6487,6 +6615,14 @@ type EndUserPermissionBundle implements Node {
   name: String!
   description: String
   permissions: [EndUserBundlePermissionEntry!]!
+  """
+  当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
+  """
+  currentVersion: Int!
+  """
+  最近历史快照列表（最多 5 个，按 version DESC 排列）
+  """
+  snapshots: [EndUserPermissionBundleSnapshot!]!
   createdAt: Time!
   updatedAt: Time!
 }
@@ -6494,6 +6630,28 @@ type EndUserPermissionBundle implements Node {
 type EndUserBundlePermissionEntry {
   sortOrder: Int!
   permission: EndUserPermission!
+}
+
+"""
+权限包历史快照
+"""
+type EndUserPermissionBundleSnapshot {
+  version:      Int!
+  createdAt:    Time!
+  createdBy:    String
+  """若为回滚操作，指向来源版本号"""
+  restoredFrom: Int
+  permissions:  [EndUserPermissionSnapshotEntry!]!
+}
+
+"""
+快照中的权限点条目。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
+"""
+type EndUserPermissionSnapshotEntry {
+  sortOrder:    Int!
+  """已删除时为 null"""
+  permission:   EndUserPermission
+  permissionId: ID!
 }
 
 type EndUserPermissionBundleEdge {
@@ -6597,6 +6755,10 @@ type EndUserPermissionBundleNotFound implements Error {
   message: String!
 }
 
+type EndUserPermissionBundleSnapshotNotFound implements Error {
+  message: String!
+}
+
 type EndUserPermissionBundleAlreadyExists implements Error {
   message: String!
   suggestion: String
@@ -6685,6 +6847,11 @@ union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndU
 union AddEndUserPresetToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
 union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
 
+union RestoreEndUserPermissionBundleError =
+    EndUserPermissionBundleNotFound
+  | EndUserPermissionBundleSnapshotNotFound
+  | ProjectNotFound
+
 union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
 union UpdateEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
 union DeleteEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | ProjectNotFound
@@ -6750,6 +6917,13 @@ type AddEndUserPresetToBundlePayload {
 type RemoveEndUserPermissionFromBundlePayload {
   bundle: EndUserPermissionBundle
   error: RemoveEndUserPermissionFromBundleError
+}
+
+type RestoreEndUserPermissionBundlePayload {
+  bundle: EndUserPermissionBundle
+  """回滚后生成的新版本号"""
+  newVersion: Int!
+  error: RestoreEndUserPermissionBundleError
 }
 
 # EndUserRole
@@ -6871,6 +7045,11 @@ input RemoveEndUserPermissionFromBundleInput {
   permissionId: ID!
 }
 
+input RestoreEndUserPermissionBundleInput {
+  bundleId:      ID!
+  targetVersion: Int!
+}
+
 input CreateEndUserRoleInput {
   name: String!
   description: String
@@ -6963,6 +7142,14 @@ extend type Mutation {
   addEndUserPermissionToBundle(input: AddEndUserPermissionToBundleInput!): AddEndUserPermissionToBundlePayload! @hasPermission(action: "rbac:manage")
   addEndUserPresetToBundle(input: AddEndUserPresetToBundleInput!): AddEndUserPresetToBundlePayload! @hasPermission(action: "rbac:manage")
   removeEndUserPermissionFromBundle(input: RemoveEndUserPermissionFromBundleInput!): RemoveEndUserPermissionFromBundlePayload! @hasPermission(action: "rbac:manage")
+
+  # Bundle Snapshot
+  """
+  将权限包回滚到指定历史版本快照。回滚操作本身会生成新版本号。
+  """
+  restoreEndUserPermissionBundle(
+    input: RestoreEndUserPermissionBundleInput!
+  ): RestoreEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
 
   # EndUserRole CRUD
   createEndUserRole(input: CreateEndUserRoleInput!): CreateEndUserRolePayload! @hasPermission(action: "rbac:manage")
@@ -7695,6 +7882,17 @@ func (ec *executionContext) field_Mutation_repairModel_args(ctx context.Context,
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_restoreEndUserPermissionBundle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRestoreEndUserPermissionBundleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundleInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_revokeBundleFromEndUserRole_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -8389,6 +8587,10 @@ func (ec *executionContext) fieldContext_AddEndUserPermissionToBundlePayload_bun
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -8461,6 +8663,10 @@ func (ec *executionContext) fieldContext_AddEndUserPresetToBundlePayload_bundle(
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -8862,6 +9068,10 @@ func (ec *executionContext) fieldContext_AssignBundleToEndUserPayload_bundle(_ c
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -9684,6 +9894,10 @@ func (ec *executionContext) fieldContext_CreateEndUserPermissionBundlePayload_bu
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -11924,6 +12138,10 @@ func (ec *executionContext) fieldContext_EffectivePermissionSources_directBundle
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -12401,6 +12619,10 @@ func (ec *executionContext) fieldContext_EndUserBundleAssignment_bundle(_ contex
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -13344,6 +13566,76 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundle_permissions(_ c
 	return fc, nil
 }
 
+func (ec *executionContext) _EndUserPermissionBundle_currentVersion(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundle) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundle_currentVersion,
+		func(ctx context.Context) (any, error) {
+			return obj.CurrentVersion, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundle_currentVersion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundle",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundle_snapshots(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundle) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundle_snapshots,
+		func(ctx context.Context) (any, error) {
+			return obj.Snapshots, nil
+		},
+		nil,
+		ec.marshalNEndUserPermissionBundleSnapshot2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionBundleSnapshotᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundle_snapshots(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundle",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "version":
+				return ec.fieldContext_EndUserPermissionBundleSnapshot_version(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPermissionBundleSnapshot_createdAt(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_EndUserPermissionBundleSnapshot_createdBy(ctx, field)
+			case "restoredFrom":
+				return ec.fieldContext_EndUserPermissionBundleSnapshot_restoredFrom(ctx, field)
+			case "permissions":
+				return ec.fieldContext_EndUserPermissionBundleSnapshot_permissions(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPermissionBundleSnapshot", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EndUserPermissionBundle_createdAt(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundle) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13595,6 +13887,10 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundleEdge_node(_ cont
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -13712,6 +14008,188 @@ func (ec *executionContext) _EndUserPermissionBundleNotFound_message(ctx context
 func (ec *executionContext) fieldContext_EndUserPermissionBundleNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "EndUserPermissionBundleNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshot_version(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundleSnapshot_version,
+		func(ctx context.Context) (any, error) {
+			return obj.Version, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshot_version(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundleSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshot_createdAt(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundleSnapshot_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshot_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundleSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshot_createdBy(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundleSnapshot_createdBy,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedBy, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshot_createdBy(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundleSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshot_restoredFrom(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundleSnapshot_restoredFrom,
+		func(ctx context.Context) (any, error) {
+			return obj.RestoredFrom, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint32,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshot_restoredFrom(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundleSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshot_permissions(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshot) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundleSnapshot_permissions,
+		func(ctx context.Context) (any, error) {
+			return obj.Permissions, nil
+		},
+		nil,
+		ec.marshalNEndUserPermissionSnapshotEntry2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionSnapshotEntryᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshot_permissions(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundleSnapshot",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "sortOrder":
+				return ec.fieldContext_EndUserPermissionSnapshotEntry_sortOrder(ctx, field)
+			case "permission":
+				return ec.fieldContext_EndUserPermissionSnapshotEntry_permission(ctx, field)
+			case "permissionId":
+				return ec.fieldContext_EndUserPermissionSnapshotEntry_permissionId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPermissionSnapshotEntry", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshotNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshotNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundleSnapshotNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshotNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundleSnapshotNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -13991,6 +14469,119 @@ func (ec *executionContext) fieldContext_EndUserPermissionNotFound_message(_ con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionSnapshotEntry_sortOrder(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionSnapshotEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionSnapshotEntry_sortOrder,
+		func(ctx context.Context) (any, error) {
+			return obj.SortOrder, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionSnapshotEntry_sortOrder(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionSnapshotEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionSnapshotEntry_permission(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionSnapshotEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionSnapshotEntry_permission,
+		func(ctx context.Context) (any, error) {
+			return obj.Permission, nil
+		},
+		nil,
+		ec.marshalOEndUserPermission2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermission,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionSnapshotEntry_permission(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionSnapshotEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserPermission_id(ctx, field)
+			case "modelId":
+				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
+			case "action":
+				return ec.fieldContext_EndUserPermission_action(ctx, field)
+			case "columnPolicy":
+				return ec.fieldContext_EndUserPermission_columnPolicy(ctx, field)
+			case "rowScope":
+				return ec.fieldContext_EndUserPermission_rowScope(ctx, field)
+			case "preset":
+				return ec.fieldContext_EndUserPermission_preset(ctx, field)
+			case "displayName":
+				return ec.fieldContext_EndUserPermission_displayName(ctx, field)
+			case "description":
+				return ec.fieldContext_EndUserPermission_description(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPermission_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUserPermission_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPermission", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermissionSnapshotEntry_permissionId(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionSnapshotEntry) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionSnapshotEntry_permissionId,
+		func(ctx context.Context) (any, error) {
+			return obj.PermissionID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionSnapshotEntry_permissionId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionSnapshotEntry",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
 		},
 	}
 	return fc, nil
@@ -14813,6 +15404,10 @@ func (ec *executionContext) fieldContext_EndUserRoleBundleEntry_bundle(_ context
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -14930,6 +15525,10 @@ func (ec *executionContext) fieldContext_EndUserRoleBundleSource_bundles(_ conte
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -22309,6 +22908,73 @@ func (ec *executionContext) fieldContext_Mutation_removeEndUserPermissionFromBun
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_restoreEndUserPermissionBundle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_restoreEndUserPermissionBundle,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RestoreEndUserPermissionBundle(ctx, fc.Args["input"].(RestoreEndUserPermissionBundleInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "rbac:manage")
+				if err != nil {
+					var zeroVal *RestoreEndUserPermissionBundlePayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *RestoreEndUserPermissionBundlePayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNRestoreEndUserPermissionBundlePayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundlePayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_restoreEndUserPermissionBundle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "bundle":
+				return ec.fieldContext_RestoreEndUserPermissionBundlePayload_bundle(ctx, field)
+			case "newVersion":
+				return ec.fieldContext_RestoreEndUserPermissionBundlePayload_newVersion(ctx, field)
+			case "error":
+				return ec.fieldContext_RestoreEndUserPermissionBundlePayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RestoreEndUserPermissionBundlePayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_restoreEndUserPermissionBundle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_createEndUserRole(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -24802,6 +25468,10 @@ func (ec *executionContext) fieldContext_Query_endUserPermissionBundle(ctx conte
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -25560,6 +26230,10 @@ func (ec *executionContext) fieldContext_RemoveEndUserPermissionFromBundlePayloa
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -26093,6 +26767,111 @@ func (ec *executionContext) fieldContext_RepairModelPayload_fieldsAdded(_ contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestoreEndUserPermissionBundlePayload_bundle(ctx context.Context, field graphql.CollectedField, obj *RestoreEndUserPermissionBundlePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestoreEndUserPermissionBundlePayload_bundle,
+		func(ctx context.Context) (any, error) {
+			return obj.Bundle, nil
+		},
+		nil,
+		ec.marshalOEndUserPermissionBundle2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionBundle,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestoreEndUserPermissionBundlePayload_bundle(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestoreEndUserPermissionBundlePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "name":
+				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
+			case "description":
+				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
+			case "permissions":
+				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUserPermissionBundle_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPermissionBundle", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestoreEndUserPermissionBundlePayload_newVersion(ctx context.Context, field graphql.CollectedField, obj *RestoreEndUserPermissionBundlePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestoreEndUserPermissionBundlePayload_newVersion,
+		func(ctx context.Context) (any, error) {
+			return obj.NewVersion, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestoreEndUserPermissionBundlePayload_newVersion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestoreEndUserPermissionBundlePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RestoreEndUserPermissionBundlePayload_error(ctx context.Context, field graphql.CollectedField, obj *RestoreEndUserPermissionBundlePayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RestoreEndUserPermissionBundlePayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalORestoreEndUserPermissionBundleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundleError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_RestoreEndUserPermissionBundlePayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RestoreEndUserPermissionBundlePayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type RestoreEndUserPermissionBundleError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -27218,6 +27997,10 @@ func (ec *executionContext) fieldContext_UpdateEndUserPermissionBundlePayload_bu
 				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
 			case "permissions":
 				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
 			case "updatedAt":
@@ -31426,6 +32209,40 @@ func (ec *executionContext) unmarshalInputRepairModelInput(ctx context.Context, 
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputRestoreEndUserPermissionBundleInput(ctx context.Context, obj any) (RestoreEndUserPermissionBundleInput, error) {
+	var it RestoreEndUserPermissionBundleInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"bundleId", "targetVersion"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "bundleId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("bundleId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.BundleID = data
+		case "targetVersion":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("targetVersion"))
+			data, err := ec.unmarshalNInt2int32(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.TargetVersion = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputRevokeBundleFromEndUserInput(ctx context.Context, obj any) (RevokeBundleFromEndUserInput, error) {
 	var it RevokeBundleFromEndUserInput
 	asMap := map[string]any{}
@@ -33129,6 +33946,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserPermissionInUse(ctx, sel, obj)
+	case EndUserPermissionBundleSnapshotNotFound:
+		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, &obj)
+	case *EndUserPermissionBundleSnapshotNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, obj)
 	case EndUserPermissionBundleNotFound:
 		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
 	case *EndUserPermissionBundleNotFound:
@@ -33663,6 +34487,36 @@ func (ec *executionContext) _ReorderGroupError(ctx context.Context, sel ast.Sele
 			return graphql.Null
 		}
 		return ec._GroupNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _RestoreEndUserPermissionBundleError(ctx context.Context, sel ast.SelectionSet, obj RestoreEndUserPermissionBundleError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case EndUserPermissionBundleSnapshotNotFound:
+		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, &obj)
+	case *EndUserPermissionBundleSnapshotNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, obj)
+	case EndUserPermissionBundleNotFound:
+		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
+	case *EndUserPermissionBundleNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -36867,6 +37721,16 @@ func (ec *executionContext) _EndUserPermissionBundle(ctx context.Context, sel as
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "currentVersion":
+			out.Values[i] = ec._EndUserPermissionBundle_currentVersion(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "snapshots":
+			out.Values[i] = ec._EndUserPermissionBundle_snapshots(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createdAt":
 			out.Values[i] = ec._EndUserPermissionBundle_createdAt(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -37075,7 +37939,7 @@ func (ec *executionContext) _EndUserPermissionBundleInUse(ctx context.Context, s
 	return out
 }
 
-var endUserPermissionBundleNotFoundImplementors = []string{"EndUserPermissionBundleNotFound", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "Error", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError"}
+var endUserPermissionBundleNotFoundImplementors = []string{"EndUserPermissionBundleNotFound", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "Error", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "RestoreEndUserPermissionBundleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError"}
 
 func (ec *executionContext) _EndUserPermissionBundleNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionBundleNotFoundImplementors)
@@ -37088,6 +37952,98 @@ func (ec *executionContext) _EndUserPermissionBundleNotFound(ctx context.Context
 			out.Values[i] = graphql.MarshalString("EndUserPermissionBundleNotFound")
 		case "message":
 			out.Values[i] = ec._EndUserPermissionBundleNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserPermissionBundleSnapshotImplementors = []string{"EndUserPermissionBundleSnapshot"}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshot(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleSnapshot) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionBundleSnapshotImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserPermissionBundleSnapshot")
+		case "version":
+			out.Values[i] = ec._EndUserPermissionBundleSnapshot_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._EndUserPermissionBundleSnapshot_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdBy":
+			out.Values[i] = ec._EndUserPermissionBundleSnapshot_createdBy(ctx, field, obj)
+		case "restoredFrom":
+			out.Values[i] = ec._EndUserPermissionBundleSnapshot_restoredFrom(ctx, field, obj)
+		case "permissions":
+			out.Values[i] = ec._EndUserPermissionBundleSnapshot_permissions(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserPermissionBundleSnapshotNotFoundImplementors = []string{"EndUserPermissionBundleSnapshotNotFound", "Error", "RestoreEndUserPermissionBundleError"}
+
+func (ec *executionContext) _EndUserPermissionBundleSnapshotNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleSnapshotNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionBundleSnapshotNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserPermissionBundleSnapshotNotFound")
+		case "message":
+			out.Values[i] = ec._EndUserPermissionBundleSnapshotNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -37261,6 +38217,52 @@ func (ec *executionContext) _EndUserPermissionNotFound(ctx context.Context, sel 
 			out.Values[i] = graphql.MarshalString("EndUserPermissionNotFound")
 		case "message":
 			out.Values[i] = ec._EndUserPermissionNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserPermissionSnapshotEntryImplementors = []string{"EndUserPermissionSnapshotEntry"}
+
+func (ec *executionContext) _EndUserPermissionSnapshotEntry(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionSnapshotEntry) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionSnapshotEntryImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserPermissionSnapshotEntry")
+		case "sortOrder":
+			out.Values[i] = ec._EndUserPermissionSnapshotEntry_sortOrder(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "permission":
+			out.Values[i] = ec._EndUserPermissionSnapshotEntry_permission(ctx, field, obj)
+		case "permissionId":
+			out.Values[i] = ec._EndUserPermissionSnapshotEntry_permissionId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -40241,6 +41243,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "restoreEndUserPermissionBundle":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_restoreEndUserPermissionBundle(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "createEndUserRole":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_createEndUserRole(ctx, field)
@@ -40522,7 +41531,7 @@ func (ec *executionContext) _ProjectAuthSchema(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "RevokeEndUserProjectAccessError", "ListProjectEndUserAccessError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GrantEndUserProjectAccessError", "UpdateEndUserProjectAccessError", "RevokeEndUserProjectAccessError", "ListProjectEndUserAccessError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -41497,6 +42506,49 @@ func (ec *executionContext) _RepairModelPayload(ctx context.Context, sel ast.Sel
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var restoreEndUserPermissionBundlePayloadImplementors = []string{"RestoreEndUserPermissionBundlePayload"}
+
+func (ec *executionContext) _RestoreEndUserPermissionBundlePayload(ctx context.Context, sel ast.SelectionSet, obj *RestoreEndUserPermissionBundlePayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, restoreEndUserPermissionBundlePayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RestoreEndUserPermissionBundlePayload")
+		case "bundle":
+			out.Values[i] = ec._RestoreEndUserPermissionBundlePayload_bundle(ctx, field, obj)
+		case "newVersion":
+			out.Values[i] = ec._RestoreEndUserPermissionBundlePayload_newVersion(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._RestoreEndUserPermissionBundlePayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -44277,6 +45329,60 @@ func (ec *executionContext) marshalNEndUserPermissionBundleEdge2ᚖmodelcraftᚋ
 	return ec._EndUserPermissionBundleEdge(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEndUserPermissionBundleSnapshot2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionBundleSnapshotᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserPermissionBundleSnapshot) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUserPermissionBundleSnapshot2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionBundleSnapshot(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEndUserPermissionBundleSnapshot2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionBundleSnapshot(ctx context.Context, sel ast.SelectionSet, v *EndUserPermissionBundleSnapshot) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUserPermissionBundleSnapshot(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNEndUserPermissionConnection2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionConnection(ctx context.Context, sel ast.SelectionSet, v EndUserPermissionConnection) graphql.Marshaler {
 	return ec._EndUserPermissionConnection(ctx, sel, &v)
 }
@@ -44353,6 +45459,60 @@ func (ec *executionContext) unmarshalNEndUserPermissionPreset2modelcraftᚋinter
 
 func (ec *executionContext) marshalNEndUserPermissionPreset2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionPreset(ctx context.Context, sel ast.SelectionSet, v EndUserPermissionPreset) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNEndUserPermissionSnapshotEntry2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionSnapshotEntryᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserPermissionSnapshotEntry) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUserPermissionSnapshotEntry2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionSnapshotEntry(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEndUserPermissionSnapshotEntry2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionSnapshotEntry(ctx context.Context, sel ast.SelectionSet, v *EndUserPermissionSnapshotEntry) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUserPermissionSnapshotEntry(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNEndUserProjectAccess2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserProjectAccessᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserProjectAccess) graphql.Marshaler {
@@ -45515,6 +46675,25 @@ func (ec *executionContext) marshalNRepairModelPayload2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._RepairModelPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRestoreEndUserPermissionBundleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundleInput(ctx context.Context, v any) (RestoreEndUserPermissionBundleInput, error) {
+	res, err := ec.unmarshalInputRestoreEndUserPermissionBundleInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRestoreEndUserPermissionBundlePayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundlePayload(ctx context.Context, sel ast.SelectionSet, v RestoreEndUserPermissionBundlePayload) graphql.Marshaler {
+	return ec._RestoreEndUserPermissionBundlePayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNRestoreEndUserPermissionBundlePayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundlePayload(ctx context.Context, sel ast.SelectionSet, v *RestoreEndUserPermissionBundlePayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RestoreEndUserPermissionBundlePayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNRevokeBundleFromEndUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeBundleFromEndUserInput(ctx context.Context, v any) (RevokeBundleFromEndUserInput, error) {
@@ -46981,6 +48160,13 @@ func (ec *executionContext) marshalOReorderGroupError2modelcraftᚋinternalᚋin
 		return graphql.Null
 	}
 	return ec._ReorderGroupError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalORestoreEndUserPermissionBundleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundleError(ctx context.Context, sel ast.SelectionSet, v RestoreEndUserPermissionBundleError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._RestoreEndUserPermissionBundleError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalORevokeBundleFromEndUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRevokeBundleFromEndUserError(ctx context.Context, sel ast.SelectionSet, v RevokeBundleFromEndUserError) graphql.Marshaler {

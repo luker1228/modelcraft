@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
+	"fmt"
 	"modelcraft/internal/domain/rbac"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -470,6 +472,153 @@ func (r *SqlEndUserDataPermissionRepository) ListPermissionsInBundle(
 		perms = append(perms, toDomainPermission(row))
 	}
 	return perms, nil
+}
+
+func (r *SqlEndUserDataPermissionRepository) ClearBundlePermissions(ctx context.Context, bundleID string) error {
+	return sqlerr.WrapSQLError(r.q.ClearBundlePermissions(ctx, bundleID))
+}
+
+// =========================
+// Bundle Snapshots
+// =========================
+
+func toDomainSnapshot(row dbgen.EndUserPermissionBundleSnapshot) rbac.BundleSnapshot {
+	var createdBy *string
+	if row.CreatedBy.Valid {
+		v := row.CreatedBy.String
+		createdBy = &v
+	}
+	var restoredFrom *int
+	if row.RestoredFrom.Valid {
+		v := int(row.RestoredFrom.Int32)
+		restoredFrom = &v
+	}
+
+	var perms []rbac.SnapshotPermissionEntry
+	if row.Permissions != nil {
+		type entry struct {
+			PermissionID string `json:"permissionId"`
+			SortOrder    int    `json:"sortOrder"`
+		}
+		var entries []entry
+		if err := json.Unmarshal(row.Permissions, &entries); err == nil {
+			perms = make([]rbac.SnapshotPermissionEntry, 0, len(entries))
+			for _, e := range entries {
+				perms = append(perms, rbac.SnapshotPermissionEntry{
+					PermissionID: e.PermissionID,
+					SortOrder:    e.SortOrder,
+				})
+			}
+		}
+	}
+
+	return rbac.BundleSnapshot{
+		ID:           row.ID,
+		BundleID:     row.BundleID,
+		Version:      int(row.Version),
+		Permissions:  perms,
+		CreatedAt:    row.CreatedAt,
+		CreatedBy:    createdBy,
+		RestoredFrom: restoredFrom,
+	}
+}
+
+func (r *SqlEndUserDataPermissionRepository) SaveBundleSnapshot(
+	ctx context.Context,
+	snapshot *rbac.BundleSnapshot,
+) error {
+	type entry struct {
+		PermissionID string `json:"permissionId"`
+		SortOrder    int    `json:"sortOrder"`
+	}
+	entries := make([]entry, 0, len(snapshot.Permissions))
+	for _, p := range snapshot.Permissions {
+		entries = append(entries, entry{PermissionID: p.PermissionID, SortOrder: p.SortOrder})
+	}
+	permJSON, err := json.Marshal(entries)
+	if err != nil {
+		return err
+	}
+
+	var restoredFrom sql.NullInt32
+	if snapshot.RestoredFrom != nil {
+		restoredFrom = sql.NullInt32{Int32: int32(*snapshot.RestoredFrom), Valid: true}
+	}
+
+	params := dbgen.InsertBundleSnapshotParams{
+		ID:           snapshot.ID,
+		BundleID:     snapshot.BundleID,
+		Version:      int32(snapshot.Version),
+		Permissions:  permJSON,
+		CreatedBy:    sqlerr.PtrToNullStr(snapshot.CreatedBy),
+		RestoredFrom: restoredFrom,
+	}
+	return sqlerr.WrapSQLError(r.q.InsertBundleSnapshot(ctx, params))
+}
+
+func (r *SqlEndUserDataPermissionRepository) ListBundleSnapshots(
+	ctx context.Context,
+	bundleID string,
+) ([]rbac.BundleSnapshot, error) {
+	rows, err := r.q.ListBundleSnapshots(ctx, bundleID)
+	if err != nil {
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	snapshots := make([]rbac.BundleSnapshot, 0, len(rows))
+	for _, row := range rows {
+		snapshots = append(snapshots, toDomainSnapshot(row))
+	}
+	return snapshots, nil
+}
+
+func (r *SqlEndUserDataPermissionRepository) DeleteOldBundleSnapshots(
+	ctx context.Context,
+	bundleID string,
+) error {
+	return sqlerr.WrapSQLError(r.q.DeleteOldBundleSnapshots(ctx, dbgen.DeleteOldBundleSnapshotsParams{
+		BundleID:   bundleID,
+		BundleID_2: bundleID,
+	}))
+}
+
+func (r *SqlEndUserDataPermissionRepository) GetBundleCurrentVersion(
+	ctx context.Context,
+	bundleID string,
+) (int, error) {
+	raw, err := r.q.GetBundleCurrentVersion(ctx, bundleID)
+	if err != nil {
+		return 0, sqlerr.WrapSQLError(err)
+	}
+	switch v := raw.(type) {
+	case int64:
+		return int(v), nil
+	case []byte:
+		// MySQL may return COALESCE result as []byte
+		var n int64
+		if _, scanErr := fmt.Sscan(string(v), &n); scanErr == nil {
+			return int(n), nil
+		}
+	}
+	return 0, nil
+}
+
+func (r *SqlEndUserDataPermissionRepository) GetBundleSnapshotByVersion(
+	ctx context.Context,
+	bundleID string,
+	version int,
+) (*rbac.BundleSnapshot, error) {
+	row, err := r.q.GetBundleSnapshotByVersion(ctx, dbgen.GetBundleSnapshotByVersionParams{
+		BundleID: bundleID,
+		Version:  int32(version),
+	})
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("bundle snapshot not found")
+		}
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	snap := toDomainSnapshot(row)
+	return &snap, nil
 }
 
 // =========================

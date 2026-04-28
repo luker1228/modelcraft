@@ -88,13 +88,58 @@ func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *genera
 			Permission: ToEndUserPermissionDTO(p),
 		})
 	}
+
+	// 计算 currentVersion（最新快照的版本号，无快照时为 0）
+	var currentVersion int32
+	if len(b.Snapshots) > 0 {
+		currentVersion = int32(b.Snapshots[0].Version)
+	}
+
+	// 转换快照列表
+	snapshots := make([]*generated.EndUserPermissionBundleSnapshot, 0, len(b.Snapshots))
+	for _, s := range b.Snapshots {
+		snapshots = append(snapshots, toBundleSnapshotDTO(&s))
+	}
+
 	return &generated.EndUserPermissionBundle{
-		ID:          b.ID,
-		Name:        b.Name,
-		Description: b.Description,
-		Permissions: entries,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		ID:             b.ID,
+		Name:           b.Name,
+		Description:    b.Description,
+		Permissions:    entries,
+		CurrentVersion: currentVersion,
+		Snapshots:      snapshots,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+	}
+}
+
+// toBundleSnapshotDTO converts a domain BundleSnapshot to its GraphQL DTO.
+// The snapshot's `permissions` field contains only ID references; the `permission` object
+// itself is not populated here since it requires a DB lookup for deleted permission handling.
+// In practice, the field resolver in gqlgen resolves `permission` from the struct directly.
+func toBundleSnapshotDTO(s *rbacdomain.BundleSnapshot) *generated.EndUserPermissionBundleSnapshot {
+	if s == nil {
+		return nil
+	}
+	permEntries := make([]*generated.EndUserPermissionSnapshotEntry, 0, len(s.Permissions))
+	for _, p := range s.Permissions {
+		permEntries = append(permEntries, &generated.EndUserPermissionSnapshotEntry{
+			SortOrder:    int32(p.SortOrder),
+			PermissionID: p.PermissionID,
+			Permission:   nil, // 延迟加载：已删除的权限点返回 null，现有权限点由前端通过 permissionId 查询
+		})
+	}
+	var restoredFrom *int32
+	if s.RestoredFrom != nil {
+		v := int32(*s.RestoredFrom)
+		restoredFrom = &v
+	}
+	return &generated.EndUserPermissionBundleSnapshot{
+		Version:      int32(s.Version),
+		CreatedAt:    s.CreatedAt,
+		CreatedBy:    s.CreatedBy,
+		RestoredFrom: restoredFrom,
+		Permissions:  permEntries,
 	}
 }
 

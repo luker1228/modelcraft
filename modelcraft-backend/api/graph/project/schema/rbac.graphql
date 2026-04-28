@@ -151,6 +151,14 @@ type EndUserPermissionBundle implements Node {
   name: String!
   description: String
   permissions: [EndUserBundlePermissionEntry!]!
+  """
+  当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
+  """
+  currentVersion: Int!
+  """
+  最近历史快照列表（最多 5 个，按 version DESC 排列）
+  """
+  snapshots: [EndUserPermissionBundleSnapshot!]!
   createdAt: Time!
   updatedAt: Time!
 }
@@ -158,6 +166,28 @@ type EndUserPermissionBundle implements Node {
 type EndUserBundlePermissionEntry {
   sortOrder: Int!
   permission: EndUserPermission!
+}
+
+"""
+权限包历史快照
+"""
+type EndUserPermissionBundleSnapshot {
+  version:      Int!
+  createdAt:    Time!
+  createdBy:    String
+  """若为回滚操作，指向来源版本号"""
+  restoredFrom: Int
+  permissions:  [EndUserPermissionSnapshotEntry!]!
+}
+
+"""
+快照中的权限点条目。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
+"""
+type EndUserPermissionSnapshotEntry {
+  sortOrder:    Int!
+  """已删除时为 null"""
+  permission:   EndUserPermission
+  permissionId: ID!
 }
 
 type EndUserPermissionBundleEdge {
@@ -261,6 +291,10 @@ type EndUserPermissionBundleNotFound implements Error {
   message: String!
 }
 
+type EndUserPermissionBundleSnapshotNotFound implements Error {
+  message: String!
+}
+
 type EndUserPermissionBundleAlreadyExists implements Error {
   message: String!
   suggestion: String
@@ -349,6 +383,11 @@ union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndU
 union AddEndUserPresetToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
 union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
 
+union RestoreEndUserPermissionBundleError =
+    EndUserPermissionBundleNotFound
+  | EndUserPermissionBundleSnapshotNotFound
+  | ProjectNotFound
+
 union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
 union UpdateEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
 union DeleteEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | ProjectNotFound
@@ -414,6 +453,13 @@ type AddEndUserPresetToBundlePayload {
 type RemoveEndUserPermissionFromBundlePayload {
   bundle: EndUserPermissionBundle
   error: RemoveEndUserPermissionFromBundleError
+}
+
+type RestoreEndUserPermissionBundlePayload {
+  bundle: EndUserPermissionBundle
+  """回滚后生成的新版本号"""
+  newVersion: Int!
+  error: RestoreEndUserPermissionBundleError
 }
 
 # EndUserRole
@@ -535,6 +581,11 @@ input RemoveEndUserPermissionFromBundleInput {
   permissionId: ID!
 }
 
+input RestoreEndUserPermissionBundleInput {
+  bundleId:      ID!
+  targetVersion: Int!
+}
+
 input CreateEndUserRoleInput {
   name: String!
   description: String
@@ -627,6 +678,14 @@ extend type Mutation {
   addEndUserPermissionToBundle(input: AddEndUserPermissionToBundleInput!): AddEndUserPermissionToBundlePayload! @hasPermission(action: "rbac:manage")
   addEndUserPresetToBundle(input: AddEndUserPresetToBundleInput!): AddEndUserPresetToBundlePayload! @hasPermission(action: "rbac:manage")
   removeEndUserPermissionFromBundle(input: RemoveEndUserPermissionFromBundleInput!): RemoveEndUserPermissionFromBundlePayload! @hasPermission(action: "rbac:manage")
+
+  # Bundle Snapshot
+  """
+  将权限包回滚到指定历史版本快照。回滚操作本身会生成新版本号。
+  """
+  restoreEndUserPermissionBundle(
+    input: RestoreEndUserPermissionBundleInput!
+  ): RestoreEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
 
   # EndUserRole CRUD
   createEndUserRole(input: CreateEndUserRoleInput!): CreateEndUserRolePayload! @hasPermission(action: "rbac:manage")

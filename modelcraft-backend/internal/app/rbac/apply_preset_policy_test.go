@@ -476,6 +476,32 @@ func (m *mockBundleRepo) CreatePermission(_ context.Context, p *rbacdomain.EndUs
 	return nil
 }
 
+func (m *mockBundleRepo) SaveBundleSnapshot(_ context.Context, _ *rbacdomain.BundleSnapshot) error {
+	return nil
+}
+
+func (m *mockBundleRepo) ListBundleSnapshots(_ context.Context, _ string) ([]rbacdomain.BundleSnapshot, error) {
+	return nil, nil
+}
+
+func (m *mockBundleRepo) DeleteOldBundleSnapshots(_ context.Context, _ string) error {
+	return nil
+}
+
+func (m *mockBundleRepo) GetBundleCurrentVersion(_ context.Context, _ string) (int, error) {
+	return 0, nil
+}
+
+func (m *mockBundleRepo) GetBundleSnapshotByVersion(
+	_ context.Context, _ string, _ int,
+) (*rbacdomain.BundleSnapshot, error) {
+	return nil, nil
+}
+
+func (m *mockBundleRepo) ClearBundlePermissions(_ context.Context, _ string) error {
+	return nil
+}
+
 func (m *mockBundleRepo) findPermissionByID(id string) *rbacdomain.EndUserPermission {
 	for _, list := range m.modelPerms {
 		for _, p := range list {

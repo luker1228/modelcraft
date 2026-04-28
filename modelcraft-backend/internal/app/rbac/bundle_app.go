@@ -33,6 +33,13 @@ type bundleRepository interface {
 		name string,
 	) (*rbacdomain.EndUserPermission, error)
 	CreatePermission(ctx context.Context, p *rbacdomain.EndUserPermission) error
+	// Snapshot operations
+	SaveBundleSnapshot(ctx context.Context, snapshot *rbacdomain.BundleSnapshot) error
+	ListBundleSnapshots(ctx context.Context, bundleID string) ([]rbacdomain.BundleSnapshot, error)
+	DeleteOldBundleSnapshots(ctx context.Context, bundleID string) error
+	GetBundleCurrentVersion(ctx context.Context, bundleID string) (int, error)
+	GetBundleSnapshotByVersion(ctx context.Context, bundleID string, version int) (*rbacdomain.BundleSnapshot, error)
+	ClearBundlePermissions(ctx context.Context, bundleID string) error
 }
 
 // EndUserBundleAppService 权限包应用服务
@@ -128,6 +135,12 @@ func (s *EndUserBundleAppService) GetBundleByID(
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	bundle.Permissions = perms
+	// 展开历史快照列表
+	snapshots, err := s.rbacRepo.ListBundleSnapshots(ctx, id)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	bundle.Snapshots = snapshots
 	return bundle, nil
 }
 
@@ -150,6 +163,9 @@ func (s *EndUserBundleAppService) AddPermissionToBundle(
 ) (*rbacdomain.EndUserPermissionBundle, error) {
 	if err := s.rbacRepo.AddPermissionToBundle(ctx, cmd.BundleID, cmd.PermissionID, cmd.SortOrder); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
+		return nil, err
 	}
 	// 返回更新后的权限包（含权限点列表）
 	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
@@ -290,7 +306,50 @@ func (s *EndUserBundleAppService) RemovePermissionFromBundle(
 	if err := s.rbacRepo.RemovePermissionFromBundle(ctx, cmd.BundleID, cmd.PermissionID); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
+	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
+		return nil, err
+	}
 	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+}
+
+// saveBundleSnapshot 写入快照并执行滚动删除（在权限点列表变更后调用）
+func (s *EndUserBundleAppService) saveBundleSnapshot(ctx context.Context, bundleID string) error {
+	// 1. 获取当前版本号
+	currentVersion, err := s.rbacRepo.GetBundleCurrentVersion(ctx, bundleID)
+	if err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	newVersion := currentVersion + 1
+
+	// 2. 获取当前权限点列表
+	perms, err := s.rbacRepo.ListPermissionsInBundle(ctx, bundleID)
+	if err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	entries := make([]rbacdomain.SnapshotPermissionEntry, 0, len(perms))
+	for i, p := range perms {
+		entries = append(entries, rbacdomain.SnapshotPermissionEntry{
+			PermissionID: p.ID,
+			SortOrder:    i,
+		})
+	}
+
+	// 3. 写入快照
+	snapshot := &rbacdomain.BundleSnapshot{
+		ID:          uuid.NewString(),
+		BundleID:    bundleID,
+		Version:     newVersion,
+		Permissions: entries,
+	}
+	if err := s.rbacRepo.SaveBundleSnapshot(ctx, snapshot); err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	// 4. 滚动删除超出上限的旧快照
+	if err := s.rbacRepo.DeleteOldBundleSnapshots(ctx, bundleID); err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	return nil
 }
 
 // GrantBundleToUser 直接将权限包授予用户（通道 1）
@@ -313,4 +372,72 @@ func (s *EndUserBundleAppService) RevokeBundleFromUser(
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	return nil
+}
+
+// RestoreBundle 将权限包回滚到历史快照版本
+// 操作步骤：查询目标快照 → 清空当前权限点 → 按快照重建 → 写新快照（restored_from） → 滚动删除
+func (s *EndUserBundleAppService) RestoreBundle(
+	ctx context.Context,
+	cmd RestoreBundleCommand,
+) (*RestoreBundleResult, error) {
+	// 1. 查询目标快照
+	snapshot, err := s.rbacRepo.GetBundleSnapshotByVersion(ctx, cmd.BundleID, cmd.TargetVersion)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(
+				ctx,
+				bizerrors.EndUserPermissionBundleSnapshotNotFound,
+				cmd.TargetVersion,
+				cmd.BundleID,
+			)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	// 2. 清空当前权限点关联
+	if err := s.rbacRepo.ClearBundlePermissions(ctx, cmd.BundleID); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	// 3. 按快照重建权限点关联
+	for _, entry := range snapshot.Permissions {
+		if addErr := s.rbacRepo.AddPermissionToBundle(
+			ctx,
+			cmd.BundleID,
+			entry.PermissionID,
+			entry.SortOrder,
+		); addErr != nil {
+			return nil, bizerrors.ConvertRepositoryError(ctx, addErr)
+		}
+	}
+
+	// 4. 获取新版本号并写入快照（restored_from 指向目标版本）
+	currentVersion, err := s.rbacRepo.GetBundleCurrentVersion(ctx, cmd.BundleID)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	newVersion := currentVersion + 1
+	targetVersion := cmd.TargetVersion
+	restoreSnapshot := &rbacdomain.BundleSnapshot{
+		ID:           uuid.NewString(),
+		BundleID:     cmd.BundleID,
+		Version:      newVersion,
+		Permissions:  snapshot.Permissions,
+		RestoredFrom: &targetVersion,
+	}
+	if err := s.rbacRepo.SaveBundleSnapshot(ctx, restoreSnapshot); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	// 5. 滚动删除超出上限的旧快照
+	if err := s.rbacRepo.DeleteOldBundleSnapshots(ctx, cmd.BundleID); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	// 6. 返回更新后的权限包
+	bundle, err := s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	if err != nil {
+		return nil, err
+	}
+	return &RestoreBundleResult{Bundle: bundle, NewVersion: newVersion}, nil
 }

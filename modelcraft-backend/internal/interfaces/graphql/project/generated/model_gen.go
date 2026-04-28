@@ -172,6 +172,10 @@ type ReorderGroupError interface {
 	IsReorderGroupError()
 }
 
+type RestoreEndUserPermissionBundleError interface {
+	IsRestoreEndUserPermissionBundleError()
+}
+
 type RevokeBundleFromEndUserError interface {
 	IsRevokeBundleFromEndUserError()
 }
@@ -824,8 +828,12 @@ type EndUserPermissionBundle struct {
 	Name        string                          `json:"name"`
 	Description *string                         `json:"description,omitempty"`
 	Permissions []*EndUserBundlePermissionEntry `json:"permissions"`
-	CreatedAt   time.Time                       `json:"createdAt"`
-	UpdatedAt   time.Time                       `json:"updatedAt"`
+	// 当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
+	CurrentVersion int32 `json:"currentVersion"`
+	// 最近历史快照列表（最多 5 个，按 version DESC 排列）
+	Snapshots []*EndUserPermissionBundleSnapshot `json:"snapshots"`
+	CreatedAt time.Time                          `json:"createdAt"`
+	UpdatedAt time.Time                          `json:"updatedAt"`
 }
 
 func (EndUserPermissionBundle) IsNode()            {}
@@ -885,6 +893,8 @@ func (EndUserPermissionBundleNotFound) IsAddEndUserPresetToBundleError() {}
 
 func (EndUserPermissionBundleNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
+func (EndUserPermissionBundleNotFound) IsRestoreEndUserPermissionBundleError() {}
+
 func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserRoleError() {}
 
 func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserRoleError() {}
@@ -892,6 +902,25 @@ func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserRoleError() {}
 func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserError() {}
 
 func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserError() {}
+
+// 权限包历史快照
+type EndUserPermissionBundleSnapshot struct {
+	Version   int32     `json:"version"`
+	CreatedAt time.Time `json:"createdAt"`
+	CreatedBy *string   `json:"createdBy,omitempty"`
+	// 若为回滚操作，指向来源版本号
+	RestoredFrom *int32                            `json:"restoredFrom,omitempty"`
+	Permissions  []*EndUserPermissionSnapshotEntry `json:"permissions"`
+}
+
+type EndUserPermissionBundleSnapshotNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserPermissionBundleSnapshotNotFound) IsError()                {}
+func (this EndUserPermissionBundleSnapshotNotFound) GetMessage() string { return this.Message }
+
+func (EndUserPermissionBundleSnapshotNotFound) IsRestoreEndUserPermissionBundleError() {}
 
 type EndUserPermissionConnection struct {
 	Edges      []*EndUserPermissionEdge `json:"edges"`
@@ -928,6 +957,14 @@ func (EndUserPermissionNotFound) IsDeleteEndUserPermissionError() {}
 func (EndUserPermissionNotFound) IsAddEndUserPermissionToBundleError() {}
 
 func (EndUserPermissionNotFound) IsRemoveEndUserPermissionFromBundleError() {}
+
+// 快照中的权限点条目。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
+type EndUserPermissionSnapshotEntry struct {
+	SortOrder int32 `json:"sortOrder"`
+	// 已删除时为 null
+	Permission   *EndUserPermission `json:"permission,omitempty"`
+	PermissionID string             `json:"permissionId"`
+}
 
 type EndUserProjectAccess struct {
 	ID                   string    `json:"id"`
@@ -1701,6 +1738,8 @@ func (ProjectNotFound) IsAddEndUserPresetToBundleError() {}
 
 func (ProjectNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
+func (ProjectNotFound) IsRestoreEndUserPermissionBundleError() {}
+
 func (ProjectNotFound) IsCreateEndUserRoleError() {}
 
 func (ProjectNotFound) IsUpdateEndUserRoleError() {}
@@ -1788,6 +1827,18 @@ type RepairModelPayload struct {
 	HealthStatusAfter  HealthStatus   `json:"healthStatusAfter"`
 	ExtraFieldsRemoved []string       `json:"extraFieldsRemoved"`
 	FieldsAdded        []string       `json:"fieldsAdded"`
+}
+
+type RestoreEndUserPermissionBundleInput struct {
+	BundleID      string `json:"bundleId"`
+	TargetVersion int32  `json:"targetVersion"`
+}
+
+type RestoreEndUserPermissionBundlePayload struct {
+	Bundle *EndUserPermissionBundle `json:"bundle,omitempty"`
+	// 回滚后生成的新版本号
+	NewVersion int32                               `json:"newVersion"`
+	Error      RestoreEndUserPermissionBundleError `json:"error,omitempty"`
 }
 
 type RevokeBundleFromEndUserInput struct {

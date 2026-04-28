@@ -149,6 +149,19 @@ type RevokeRoleFromUserCommand struct {
 	RoleID               string
 }
 
+// RestoreBundleCommand 回滚权限包到历史快照命令
+type RestoreBundleCommand struct {
+	OrgName       string
+	BundleID      string
+	TargetVersion int
+}
+
+// RestoreBundleResult 回滚权限包结果
+type RestoreBundleResult struct {
+	Bundle     *rbacdomain.EndUserPermissionBundle
+	NewVersion int
+}
+
 // GetEffectivePermissionsQuery 获取用户有效权限集查询
 type GetEffectivePermissionsQuery struct {
 	project.ProjectScope // 嵌入: OrgName + ProjectSlug
