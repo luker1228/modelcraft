@@ -153,6 +153,7 @@ export const GET_END_USER_ROLE = gql`
               modelId
               action
               rowScope
+              displayName
             }
           }
         }
@@ -478,6 +479,32 @@ export const DELETE_END_USER_ROLE = gql`
   mutation DeleteEndUserRole($id: ID!) {
     deleteEndUserRole(id: $id) {
       success
+      error {
+        __typename
+        ... on EndUserRoleNotFound {
+          message
+        }
+        ... on EndUserImplicitRoleCannotBeModified {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`
+
+export const UPDATE_END_USER_ROLE = gql`
+  mutation UpdateEndUserRole($id: ID!, $input: UpdateEndUserRoleInput!) {
+    updateEndUserRole(id: $id, input: $input) {
+      role {
+        id
+        name
+        description
+        isImplicit
+        updatedAt
+      }
       error {
         __typename
         ... on EndUserRoleNotFound {

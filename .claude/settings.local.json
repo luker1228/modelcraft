@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat /tmp/SUMMARY.md /tmp/architecture-diagram.md /tmp/bundle-details-report.md /tmp/code-snippets-reference.md)",
+      "Read(//tmp/**)",
+      "Read(//private/tmp/**)",
+      "Bash(mkdir -p modelcraft-front/docs/analysis/roles-bundles)",
+      "Bash(cp /tmp/QUICK_REFERENCE.md modelcraft-front/docs/analysis/roles-bundles/)",
+      "Bash(cp /tmp/SUMMARY.md modelcraft-front/docs/analysis/roles-bundles/)",
+      "Bash(cp /tmp/architecture-diagram.md modelcraft-front/docs/analysis/roles-bundles/)",
+      "Bash(cp /tmp/code-snippets-reference.md modelcraft-front/docs/analysis/roles-bundles/)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

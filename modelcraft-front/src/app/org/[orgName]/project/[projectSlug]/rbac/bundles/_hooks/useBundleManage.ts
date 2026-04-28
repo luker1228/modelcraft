@@ -6,10 +6,12 @@ import {
   GET_END_USER_BUNDLE,
   GET_END_USER_PERMISSIONS,
   GET_END_USER_BUNDLES,
+  GET_END_USER_ROLES,
   ADD_PERMISSION_TO_BUNDLE,
   REMOVE_PERMISSION_FROM_BUNDLE,
+  UPDATE_END_USER_BUNDLE,
 } from '@/api-client/rbac'
-import type { EndUserPermission, EndUserPermissionBundle } from '@/types'
+import type { EndUserPermission, EndUserPermissionBundle, EndUserRole } from '@/types'
 
 interface UseBundleManageProps {
   orgName: string
@@ -26,10 +28,13 @@ interface MutationResult {
 interface UseBundleManageReturn {
   bundle: EndUserPermissionBundle | null
   allPermissions: EndUserPermission[]
+  associatedRoles: EndUserRole[]
   loading: boolean
+  rolesLoading: boolean
   error: Error | undefined
   addPermission: (permissionId: string) => Promise<MutationResult>
   removePermission: (permissionId: string) => Promise<MutationResult>
+  updateBundle: (name: string, description?: string) => Promise<MutationResult>
 }
 
 export function useBundleManage({
@@ -59,12 +64,25 @@ export function useBundleManage({
     skip: !orgName || !projectSlug,
   })
 
+  const {
+    data: rolesData,
+    loading: rolesLoading,
+  } = useQuery(GET_END_USER_ROLES, {
+    client,
+    skip: !orgName || !projectSlug,
+  })
+
   const [addPermissionMutation] = useMutation(ADD_PERMISSION_TO_BUNDLE, {
     client,
     refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
   })
 
   const [removePermissionMutation] = useMutation(REMOVE_PERMISSION_FROM_BUNDLE, {
+    client,
+    refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
+  })
+
+  const [updateBundleMutation] = useMutation(UPDATE_END_USER_BUNDLE, {
     client,
     refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
   })
@@ -99,17 +117,45 @@ export function useBundleManage({
     [removePermissionMutation, bundleId],
   )
 
+  const updateBundle = useCallback(
+    async (name: string, description?: string): Promise<MutationResult> => {
+      if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
+      const result = await updateBundleMutation({
+        variables: { id: bundleId, input: { name, description } },
+      })
+      const payload = result.data?.updateEndUserPermissionBundle
+      if (payload?.error) {
+        return { success: false, errorMessage: payload.error.message ?? '更新权限包失败' }
+      }
+      return { success: true }
+    },
+    [updateBundleMutation, bundleId],
+  )
+
   const bundle: EndUserPermissionBundle | null = bundleData?.endUserPermissionBundle ?? null
   const allPermissions: EndUserPermission[] = permissionsData?.endUserPermissions?.edges?.map(
     (edge: any) => edge.node,
   ) ?? []
 
+  const allRoles: EndUserRole[] = rolesData?.endUserRoles?.edges?.map(
+    (edge: any) => edge.node,
+  ) ?? []
+
+  const associatedRoles = bundleId
+    ? allRoles.filter((role) =>
+        role.permissionBundles.some((pb: any) => pb.bundle?.id === bundleId),
+      )
+    : []
+
   return {
     bundle,
     allPermissions,
+    associatedRoles,
     loading: bundleLoading || permissionsLoading,
+    rolesLoading,
     error: bundleError ?? permissionsError,
     addPermission,
     removePermission,
+    updateBundle,
   }
 }
