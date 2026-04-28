@@ -99,6 +99,75 @@ const config: CodegenConfig = {
 
 ---
 
+## GraphQL 查询开发规范
+
+### 以 contract 为唯一参照物
+
+编写或修改 `graphql-docs.ts` 中的查询时，**必须以 `contract/graph/` 目录下的 Schema 为唯一真相源**，不得凭记忆或旧查询推测字段是否存在。
+
+```
+contract/graph/
+├── org/schema/      # Org 域类型定义
+└── project/schema/  # Project 域类型定义（Model、Field、Enum 等）
+```
+
+**开发流程：**
+
+1. 打开 `contract/graph/project/schema/` 或 `contract/graph/org/schema/` 确认目标类型的字段列表
+2. 只查询 Schema 中**明确存在**的字段
+3. 编写完成后运行 `npm run codegen` 验证，codegen 报 `Cannot query field` 即说明查询了不存在的字段
+
+```bash
+# 验证查询合法性
+npm run codegen
+```
+
+### 常见错误
+
+```
+Cannot query field "xxx" on type "YYY"
+```
+
+原因：查询了 Schema 中不存在的字段，或字段已被重命名/删除。
+
+**排查步骤：**
+1. 在 `contract/graph/` 中搜索该类型的定义
+2. 对照实际字段列表，删除或修正查询中的非法字段
+3. 重跑 `npm run codegen` 直到通过
+
+### 错误类型字段规范
+
+错误 union 中的各类型（`InvalidInput`、`ModelNotFound`、`FieldFormatImmutable` 等）**只能查询 Schema 中定义的字段**。当前 Project Schema 中常见错误类型的可用字段：
+
+| 错误类型 | 可用字段 |
+|---------|---------|
+| `InvalidInput` | `message`, `suggestion` |
+| `ModelNotFound` | `message` |
+| `ProjectNotFound` | `message` |
+| `ModelAlreadyExists` | `message`, `suggestion` |
+| `ModelTableAlreadyExists` | `message`, `suggestion` |
+| `CannotDeleteDeployedModel` | `message`, `suggestion` |
+| `FieldFormatImmutable` | `message` |
+| `FieldReferenceInUse` | `message`, `suggestion` |
+
+> 以上信息以 `contract/graph/project/schema/` 为准，如有更新以 contract 为准。
+
+### Contract 更新后的处理
+
+当后端修改了 Schema（字段增删、类型变更），需通过 `front-contract-pull` skill 同步 contract，再重跑 codegen：
+
+```bash
+# 1. 同步后端最新 contract
+# (使用 front-contract-pull skill)
+
+# 2. 重新生成 TypeScript 类型
+npm run codegen
+
+# 3. 修复因 schema 变更导致的查询不合法问题
+```
+
+---
+
 ## 门面模式（Public Facade）
 
 每个 api-client 子模块通过 `index.ts` 或 `public.ts` 作为**唯一对外出口**，Web Layer 只能从门面导入，禁止访问内部实现文件。

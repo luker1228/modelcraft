@@ -3180,7 +3180,7 @@ export type UpdateFieldMutationVariables = Exact<{
 
 
 export type UpdateFieldMutation = { __typename?: 'Mutation', updateField: { __typename?: 'UpdateFieldPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, isDeprecated: boolean, isArray: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
-      | { __typename: 'FieldFormatImmutable', message: string, code: string }
+      | { __typename: 'FieldFormatImmutable', message: string }
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
      | null } };
 
@@ -3191,7 +3191,7 @@ export type RemoveFieldMutationVariables = Exact<{
 
 
 export type RemoveFieldMutation = { __typename?: 'Mutation', removeField: { __typename?: 'RemoveFieldPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
-      | { __typename: 'FieldReferenceInUse', message: string, code: string, suggestion?: string | null }
+      | { __typename: 'FieldReferenceInUse', message: string, suggestion?: string | null }
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
      | null } };
 
