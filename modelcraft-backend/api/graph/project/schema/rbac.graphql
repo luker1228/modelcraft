@@ -47,7 +47,7 @@ enum RowScopeType {
 """
 权限点预设策略类型。
 
-应用预设时会替换该模型下所有 preset != null 的权限点，
+应用预设时执行模型级差异同步（reconcile），仅处理 preset != null 的权限点，
 preset = null（手动创建）的权限点不受影响。
 
 READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
@@ -321,6 +321,14 @@ type PresetRequiresOwnerField implements Error {
   suggestion: String
 }
 
+type PresetDeleteBlockedByBundle implements Error {
+  """
+  reconcile 删除某预设时，发现该权限点仍被权限包引用
+  """
+  message: String!
+  suggestion: String
+}
+
 
 # ============================================================
 # Error Unions
@@ -329,13 +337,14 @@ type PresetRequiresOwnerField implements Error {
 union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
 union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
 union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
-union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | ProjectNotFound
+union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | PresetDeleteBlockedByBundle | ProjectNotFound
 
 union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
 union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
 union DeleteEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleInUse | ProjectNotFound
 
 union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | InvalidInput | ProjectNotFound
+union AddEndUserPresetToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
 union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
 
 union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
@@ -395,6 +404,10 @@ type DeleteEndUserPermissionBundlePayload {
 type AddEndUserPermissionToBundlePayload {
   bundle: EndUserPermissionBundle
   error: AddEndUserPermissionToBundleError
+}
+type AddEndUserPresetToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: AddEndUserPresetToBundleError
 }
 type RemoveEndUserPermissionFromBundlePayload {
   bundle: EndUserPermissionBundle
@@ -473,7 +486,17 @@ input UpdateEndUserPermissionInput {
 
 input ApplyEndUserPresetPolicyInput {
   modelId: ID!
+  """
+  为空时执行模型级 reconcile（同步模型全部可适配预设）
+  """
+  preset: EndUserPermissionPreset
+}
+
+input AddEndUserPresetToBundleInput {
+  bundleId: ID!
+  modelId: ID!
   preset: EndUserPermissionPreset!
+  sortOrder: Int
 }
 
 input ListEndUserPermissionsInput {
@@ -590,8 +613,8 @@ extend type Mutation {
   updateEndUserPermission(id: ID!, input: UpdateEndUserPermissionInput!): UpdateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   deleteEndUserPermission(id: ID!): DeleteEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   """
-  对指定模型应用预设策略。
-  会替换该模型下所有 preset != null 的权限点，preset = null 的自定义权限点保留不变。
+  对指定模型应用预设策略（reconcile 语义）。
+  当 preset 为空时同步该模型全部可适配预设；preset 非空时仅同步该预设。
   """
   applyEndUserPresetPolicy(input: ApplyEndUserPresetPolicyInput!): ApplyEndUserPresetPolicyPayload! @hasPermission(action: "rbac:manage")
 
@@ -600,6 +623,7 @@ extend type Mutation {
   updateEndUserPermissionBundle(id: ID!, input: UpdateEndUserPermissionBundleInput!): UpdateEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
   deleteEndUserPermissionBundle(id: ID!): DeleteEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
   addEndUserPermissionToBundle(input: AddEndUserPermissionToBundleInput!): AddEndUserPermissionToBundlePayload! @hasPermission(action: "rbac:manage")
+  addEndUserPresetToBundle(input: AddEndUserPresetToBundleInput!): AddEndUserPresetToBundlePayload! @hasPermission(action: "rbac:manage")
   removeEndUserPermissionFromBundle(input: RemoveEndUserPermissionFromBundleInput!): RemoveEndUserPermissionFromBundlePayload! @hasPermission(action: "rbac:manage")
 
   # EndUserRole CRUD

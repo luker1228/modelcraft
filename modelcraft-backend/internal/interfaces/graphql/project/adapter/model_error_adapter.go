@@ -2,10 +2,11 @@ package adapter
 
 import (
 	"context"
-	appmodeldesign "modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
+
+	appmodeldesign "modelcraft/internal/app/modeldesign"
 )
 
 // ModelErrorAdapter handles conversion of domain errors to GraphQL errors for model operations
@@ -104,7 +105,7 @@ func (a *ModelErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError) g
 		return &generated.ProjectNotFound{
 			Message: err.Msg(),
 		}
-	case bizerrors.ParamInvalid.GetCode():
+	case bizerrors.ParamInvalid.GetCode(), bizerrors.ManagedModelReadOnly.GetCode():
 		gqlErr := &generated.InvalidInput{
 			Message: err.Msg(),
 		}
@@ -136,8 +137,8 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 		return &generated.ProjectNotFound{
 			Message: err.Msg(),
 		}
-	case bizerrors.OperationDenied.GetCode():
-		// Handle operation denied errors (e.g., protected system models)
+	case bizerrors.OperationDenied.GetCode(), bizerrors.ManagedModelReadOnly.GetCode():
+		// Handle operation denied errors (e.g., protected system models, managed readonly models)
 		return &generated.CannotDeleteDeployedModel{
 			Message: err.Msg(),
 		}

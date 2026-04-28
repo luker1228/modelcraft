@@ -63,6 +63,13 @@ func (s *ModelDesignAppService) getLogger(ctx context.Context) logfacade.Logger 
 	return logfacade.GetLogger(ctx)
 }
 
+func (s *ModelDesignAppService) denyIfManagedModelReadOnly(ctx context.Context, model *modeldesign.DataModel) error {
+	if model == nil || !model.IsManagedReadOnlyModel() {
+		return nil
+	}
+	return bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, model.ModelName)
+}
+
 // CreateModelSync 同步创建模型（平台DB+客户DB）
 func (s *ModelDesignAppService) CreateModelSync(
 	ctx context.Context,
@@ -177,6 +184,9 @@ func (s *ModelDesignAppService) UpdateModelMeta(ctx context.Context, id string, 
 	if model == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, id)
 	}
+	if err := s.denyIfManagedModelReadOnly(ctx, model); err != nil {
+		return err
+	}
 
 	// 更新模型元信息（title/description）
 	if err := model.Update(cmd.Title, cmd.Description); err != nil {
@@ -220,6 +230,9 @@ func (s *ModelDesignAppService) DeleteModelSync(ctx context.Context, id, project
 	if model.IsProtectedSystemModel() {
 		return bizerrors.NewError(bizerrors.OperationDenied,
 			fmt.Sprintf("cannot delete protected system model '%s'", model.ModelName))
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, model); err != nil {
+		return err
 	}
 	if dropTable {
 		err = s.deployRepo.DeployModelToDrop(ctx, model)
@@ -393,6 +406,9 @@ func (s *ModelDesignAppService) AddFieldSync(ctx context.Context, cmd AddFieldCo
 	if model.IsProtectedSystemModel() {
 		return bizerrors.NewError(bizerrors.OperationDenied,
 			fmt.Sprintf("cannot add fields to protected system model '%s'", model.ModelName))
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, model); err != nil {
+		return err
 	}
 
 	toAddFields := cmd.Fields
@@ -654,6 +670,21 @@ func (s *ModelDesignAppService) UpdateFieldSync(ctx context.Context, cmd UpdateF
 	modelID := cmd.ModelID
 	fieldName := cmd.FieldName
 
+	model, err := s.modelRepo.GetByID(ctx, modelID)
+	if err != nil {
+		return err
+	}
+	if model == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+	if model.IsProtectedSystemModel() {
+		return bizerrors.NewError(bizerrors.OperationDenied,
+			fmt.Sprintf("cannot update fields on protected system model '%s'", model.ModelName))
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, model); err != nil {
+		return err
+	}
+
 	// 1. 获取字段信息（现在包含 project_slug）
 	field, err := s.modelRepo.GetFieldByModelID(ctx, modelID, fieldName)
 	if err != nil {
@@ -690,6 +721,21 @@ func (s *ModelDesignAppService) UpdateFieldSync(ctx context.Context, cmd UpdateF
 
 // DeprecateField 将字段标记为废弃（幂等：已废弃时直接成功）
 func (s *ModelDesignAppService) DeprecateField(ctx context.Context, cmd DeprecateFieldCommand) error {
+	model, err := s.modelRepo.GetByID(ctx, cmd.ModelID)
+	if err != nil {
+		return err
+	}
+	if model == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
+	}
+	if model.IsProtectedSystemModel() {
+		return bizerrors.NewError(bizerrors.OperationDenied,
+			fmt.Sprintf("cannot deprecate fields on protected system model '%s'", model.ModelName))
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, model); err != nil {
+		return err
+	}
+
 	field, err := s.modelRepo.GetFieldByModelID(ctx, cmd.ModelID, cmd.FieldName)
 	if err != nil {
 		return err
@@ -708,6 +754,21 @@ func (s *ModelDesignAppService) DeprecateField(ctx context.Context, cmd Deprecat
 
 // UndeprecateField 解除字段的废弃状态（幂等：未废弃时直接成功）
 func (s *ModelDesignAppService) UndeprecateField(ctx context.Context, cmd UndeprecateFieldCommand) error {
+	model, err := s.modelRepo.GetByID(ctx, cmd.ModelID)
+	if err != nil {
+		return err
+	}
+	if model == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
+	}
+	if model.IsProtectedSystemModel() {
+		return bizerrors.NewError(bizerrors.OperationDenied,
+			fmt.Sprintf("cannot undeprecate fields on protected system model '%s'", model.ModelName))
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, model); err != nil {
+		return err
+	}
+
 	field, err := s.modelRepo.GetFieldByModelID(ctx, cmd.ModelID, cmd.FieldName)
 	if err != nil {
 		return err
@@ -746,6 +807,9 @@ func (s *ModelDesignAppService) RemoveFieldSync(
 	if dataModel.IsProtectedSystemModel() {
 		return bizerrors.NewError(bizerrors.OperationDenied,
 			fmt.Sprintf("cannot remove fields from protected system model '%s'", dataModel.ModelName))
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, dataModel); err != nil {
+		return err
 	}
 
 	field := dataModel.GetField(fieldName)
@@ -1138,6 +1202,9 @@ func (s *ModelDesignAppService) SyncModelSchemaFromJSON(
 	}
 	if existingModel == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+	if err := s.denyIfManagedModelReadOnly(ctx, existingModel); err != nil {
+		return nil, err
 	}
 
 	// 2. 解析schema - 使用现有模型的集群和数据库信息

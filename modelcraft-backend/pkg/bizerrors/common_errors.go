@@ -77,6 +77,12 @@ var (
 		EnMessage: "Table '{0}' already exists in database '{1}'",
 		ZhMessage: "表 '{0}' 在数据库 '{1}' 中已存在",
 	}
+
+	ManagedModelReadOnly = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".MODEL.READONLY",
+		EnMessage: "Model '{0}' is managed and read-only",
+		ZhMessage: "模型 '{0}' 为托管模型，只允许读取",
+	}
 )
 
 // 定义Project领域错误
@@ -579,6 +585,13 @@ var (
 		Code:      ErrorTypeParamInvalid + ".RBAC.PRESET_OWNER_FIELD",
 		EnMessage: "Preset '{0}' requires END_USER_REF(owner) field on model",
 		ZhMessage: "预设 '{0}' 要求模型存在 END_USER_REF（owner）字段",
+	}
+
+	// PresetDeleteBlockedByBundle 预设权限点仍被权限包引用，reconcile 删除被阻断
+	PresetDeleteBlockedByBundle = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.PRESET_DELETE_BLOCKED",
+		EnMessage: "Preset permission '{0}' is still referenced by bundles and cannot be removed during reconcile",
+		ZhMessage: "预设权限点 '{0}' 仍被权限包引用，reconcile 无法删除",
 	}
 )
 

@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, ApolloClient } from '@apollo/client'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { useProjectScopedClient, createModelRuntimeClient, useProjectScopedContext } from '@api-client/apollo/public'
 import { ModelRecordForm } from './model-record-form'
@@ -31,6 +30,7 @@ import {
 import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
+import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
   Dialog,
   DialogContent,
@@ -79,6 +79,7 @@ interface GetModelQueryData {
       title?: string | null
       description?: string | null
       databaseName?: string | null
+      createdVia?: 'NEW' | 'IMPORTED' | null
       jsonSchema?: string | null
       fields?: Array<{
         name: string
@@ -130,10 +131,6 @@ export default function ModelRecordWorkspace({
   workspaceMode = 'design',
   quickNav,
 }: ModelRecordWorkspaceProps) {
-  const router = useRouter()
-  const canInsertField = workspaceMode === 'design'
-  const canManageFieldLifecycle = workspaceMode === 'design'
-  const canCopyRuntimeEndpoint = workspaceMode === 'design'
   const projectClient = useProjectScopedClient(projectSlug)
 
   // 创建 project-scoped context
@@ -171,6 +168,16 @@ export default function ModelRecordWorkspace({
   const model = modelData?.model?.model
   const modelError = modelData?.model?.error
   const modelName = model?.name
+  const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
+  const canInsertField = workspaceMode === 'design' && !isManagedReadOnlyModel
+  const canManageFieldLifecycle = workspaceMode === 'design' && !isManagedReadOnlyModel
+  const canCreateRecord = !isManagedReadOnlyModel
+  const canEditRecord = !isManagedReadOnlyModel
+  const canDeleteRecord = !isManagedReadOnlyModel
+
+  const showManagedReadonlyToast = useCallback(() => {
+    toast.warning('托管模型仅支持查看，不支持写入或结构修改')
+  }, [])
   // 创建动态的 Runtime Client，使用模型特定的 GraphQL 端点
   const runtimeClient = useMemo(() => {
     if (!model?.databaseName || !model?.name) return null
@@ -424,6 +431,10 @@ export default function ModelRecordWorkspace({
 
   const handleDelete = async () => {
     if (!deleteItemId) return
+    if (isManagedReadOnlyModel) {
+      showManagedReadonlyToast()
+      return
+    }
 
     try {
       await deleteContent({
@@ -438,6 +449,10 @@ export default function ModelRecordWorkspace({
   }
 
   const handleEdit = async (id: string) => {
+    if (isManagedReadOnlyModel) {
+      showManagedReadonlyToast()
+      return
+    }
     if (!runtimeClient || !findUniqueQuery) return
 
     setEditItemId(id)
@@ -471,16 +486,28 @@ export default function ModelRecordWorkspace({
 
   // 打开添加数据弹窗
   const handleCreate = () => {
+    if (isManagedReadOnlyModel) {
+      showManagedReadonlyToast()
+      return
+    }
     setCreateDataOpen(true)
   }
 
   const confirmDelete = (id: string) => {
+    if (isManagedReadOnlyModel) {
+      showManagedReadonlyToast()
+      return
+    }
     setDeleteItemId(id)
     setDeleteDialogOpen(true)
   }
 
   const handleToggleFieldDeprecated = useCallback(
     async (fieldInfo: ModelRecordTableFieldInfo) => {
+      if (isManagedReadOnlyModel) {
+        showManagedReadonlyToast()
+        return
+      }
       if (!model?.id) {
         return
       }
@@ -502,10 +529,22 @@ export default function ModelRecordWorkspace({
         toast.error(fieldInfo.isDeprecated ? '取消废弃失败' : '废弃字段失败')
       }
     },
-    [model?.id, deprecateField, undeprecateField, projectScopedContext, refetchModel]
+    [
+      isManagedReadOnlyModel,
+      showManagedReadonlyToast,
+      model?.id,
+      deprecateField,
+      undeprecateField,
+      projectScopedContext,
+      refetchModel,
+    ]
   )
 
   const handleRequestRemoveField = useCallback((fieldInfo: ModelRecordTableFieldInfo) => {
+    if (isManagedReadOnlyModel) {
+      showManagedReadonlyToast()
+      return
+    }
     if (!fieldInfo.isDeprecated) {
       toast.error('请先废弃字段，再执行删除')
       return
@@ -513,9 +552,13 @@ export default function ModelRecordWorkspace({
 
     setRemoveFieldTarget(fieldInfo)
     setRemoveFieldDialogOpen(true)
-  }, [])
+  }, [isManagedReadOnlyModel, showManagedReadonlyToast])
 
   const handleConfirmRemoveField = useCallback(async () => {
+    if (isManagedReadOnlyModel) {
+      showManagedReadonlyToast()
+      return
+    }
     if (!model?.id || !removeFieldTarget) {
       return
     }
@@ -537,7 +580,16 @@ export default function ModelRecordWorkspace({
       console.error('Failed to remove field:', error)
       toast.error('删除字段失败')
     }
-  }, [model?.id, removeFieldTarget, removeField, projectScopedContext, refetchModel, refetch])
+  }, [
+    isManagedReadOnlyModel,
+    showManagedReadonlyToast,
+    model?.id,
+    removeFieldTarget,
+    removeField,
+    projectScopedContext,
+    refetchModel,
+    refetch,
+  ])
 
   const filteredContentList = useMemo(() => {
     const keyword = searchKeyword.trim().toLowerCase()
@@ -593,6 +645,16 @@ export default function ModelRecordWorkspace({
         </div>
       ))}
 
+      {isManagedReadOnlyModel && (
+        <div className="border-b border-border bg-card px-4 py-2">
+          <Alert variant="warning" className="py-2">
+            <AlertDescription className="text-xs">
+              当前为托管模型，数据与结构均为只读模式，新增/编辑/删除操作已禁用。
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
+
       {/* 顶部搜索栏 */}
       <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
         <div className="flex w-full max-w-xl items-center gap-2">
@@ -645,6 +707,7 @@ export default function ModelRecordWorkspace({
               orgName={orgName}
               existingFieldNames={Object.keys((jsonSchema?.properties as Record<string, unknown>) ?? {})}
               canInsertField={canInsertField}
+              canCreateRecord={canCreateRecord}
               onInsertFieldSuccess={() => {
                 void refetch()
                 void refetchModel()
@@ -691,6 +754,9 @@ export default function ModelRecordWorkspace({
         onToggleFieldDeprecated={handleToggleFieldDeprecated}
         onDeleteField={handleRequestRemoveField}
         canManageFieldLifecycle={canManageFieldLifecycle}
+        canCreateRecord={canCreateRecord}
+        canEditRecord={canEditRecord}
+        canDeleteRecord={canDeleteRecord}
       />
 
       <RecordRelationManagerDialog
@@ -725,6 +791,10 @@ export default function ModelRecordWorkspace({
             <ModelRecordForm
               jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
               onSubmit={async (data) => {
+                if (isManagedReadOnlyModel) {
+                  showManagedReadonlyToast()
+                  throw new Error('托管模型仅支持查看')
+                }
                 setCreateSaving(true)
                 try {
                   const sanitizedData = sanitizeMutationInputData(data, writableFieldNames)
@@ -774,6 +844,10 @@ export default function ModelRecordWorkspace({
               initialData={editFormData}
               recordId={editItemId ?? undefined}
               onSubmit={async (data) => {
+                if (isManagedReadOnlyModel) {
+                  showManagedReadonlyToast()
+                  throw new Error('托管模型仅支持查看')
+                }
                 setEditSaving(true)
                 try {
                   const sanitizedData = sanitizeMutationInputData(data, writableFieldNames)
@@ -808,7 +882,7 @@ export default function ModelRecordWorkspace({
             <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
               取消
             </Button>
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" onClick={handleDelete} disabled={isManagedReadOnlyModel}>
               删除
             </Button>
           </DialogFooter>
@@ -842,7 +916,7 @@ export default function ModelRecordWorkspace({
             >
               取消
             </Button>
-            <Button variant="destructive" onClick={handleConfirmRemoveField}>
+            <Button variant="destructive" onClick={handleConfirmRemoveField} disabled={isManagedReadOnlyModel}>
               删除字段
             </Button>
           </DialogFooter>

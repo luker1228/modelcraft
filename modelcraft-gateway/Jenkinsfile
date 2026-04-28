@@ -1,0 +1,148 @@
+def isCiTargetRef() {
+  return (env.CHANGE_ID?.trim()) || env.BRANCH_NAME == 'main' || (env.TAG_NAME?.trim())
+}
+
+pipeline {
+  agent any
+
+  options {
+    timestamps()
+    disableConcurrentBuilds()
+    buildDiscarder(logRotator(numToKeepStr: '30'))
+  }
+
+  environment {
+    SERVICE_DIR = 'modelcraft-gateway'
+
+    // Placeholder values: configure these in Jenkins folder/job env.
+    IMAGE_REGISTRY = 'registry.example.com'
+    IMAGE_REPO = 'modelcraft-gateway'
+    DOCKER_REGISTRY_CREDENTIALS_ID = ''
+    INTERNAL_TOKEN_CREDENTIALS_ID = ''
+  }
+
+  stages {
+    stage('Checkout') {
+      steps {
+        checkout scm
+      }
+    }
+
+    stage('Verify Dependencies') {
+      when {
+        allOf {
+          expression { isCiTargetRef() }
+          anyOf {
+            changeset pattern: 'modelcraft-gateway/**', comparator: 'GLOB'
+            tag pattern: '*', comparator: 'GLOB'
+          }
+        }
+      }
+      steps {
+        dir("${env.SERVICE_DIR}") {
+          sh '''
+            set -euo pipefail
+            go mod tidy
+            git diff --exit-code go.mod go.sum
+            go mod verify
+          '''
+        }
+      }
+    }
+
+    stage('Lint') {
+      when {
+        allOf {
+          expression { isCiTargetRef() }
+          anyOf {
+            changeset pattern: 'modelcraft-gateway/**', comparator: 'GLOB'
+            tag pattern: '*', comparator: 'GLOB'
+          }
+        }
+      }
+      steps {
+        dir("${env.SERVICE_DIR}") {
+          sh '''
+            set -euo pipefail
+            golangci-lint run ./... | tee lint-report.txt
+          '''
+        }
+      }
+    }
+
+    stage('Test') {
+      when {
+        allOf {
+          expression { isCiTargetRef() }
+          anyOf {
+            changeset pattern: 'modelcraft-gateway/**', comparator: 'GLOB'
+            tag pattern: '*', comparator: 'GLOB'
+          }
+        }
+      }
+      steps {
+        dir("${env.SERVICE_DIR}") {
+          withEnv([
+            'INTERNAL_TOKEN=ci-placeholder-token'
+          ]) {
+            sh '''
+              set -euo pipefail
+              go test ./... -v -coverprofile=coverage.out | tee test-report.txt
+            '''
+          }
+        }
+      }
+    }
+
+    stage('Build Binary') {
+      when {
+        allOf {
+          expression { isCiTargetRef() }
+          anyOf {
+            changeset pattern: 'modelcraft-gateway/**', comparator: 'GLOB'
+            tag pattern: '*', comparator: 'GLOB'
+          }
+        }
+      }
+      steps {
+        dir("${env.SERVICE_DIR}") {
+          sh '''
+            set -euo pipefail
+            mkdir -p bin
+            go build -ldflags="-w -s" -o bin/modelcraft-gateway ./cmd/gateway/...
+          '''
+        }
+      }
+    }
+
+    stage('Build Docker Image') {
+      when {
+        allOf {
+          expression { env.BRANCH_NAME == 'main' || (env.TAG_NAME?.trim()) }
+          anyOf {
+            changeset pattern: 'modelcraft-gateway/**', comparator: 'GLOB'
+            tag pattern: '*', comparator: 'GLOB'
+          }
+        }
+      }
+      steps {
+        script {
+          def imageTag = env.TAG_NAME?.trim() ? env.TAG_NAME : env.GIT_COMMIT.take(7)
+          env.BUILD_IMAGE = "${env.IMAGE_REGISTRY}/${env.IMAGE_REPO}:${imageTag}"
+        }
+        dir("${env.SERVICE_DIR}") {
+          sh '''
+            set -euo pipefail
+            docker build -t "${BUILD_IMAGE}" -f Dockerfile . | tee docker-build.log
+          '''
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      archiveArtifacts artifacts: 'modelcraft-gateway/bin/modelcraft-gateway,modelcraft-gateway/lint-report.txt,modelcraft-gateway/test-report.txt,modelcraft-gateway/coverage.out,modelcraft-gateway/docker-build.log', allowEmptyArchive: true
+    }
+  }
+}

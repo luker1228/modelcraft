@@ -18,6 +18,7 @@ export interface EditorModel {
   displayField?: string
   databaseName: string
   storageType?: string
+  createdVia?: 'NEW' | 'IMPORTED'
 }
 
 export interface EditorModelField {

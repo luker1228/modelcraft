@@ -133,6 +133,7 @@ func DbgenModelToRuntimeModel(row dbgen.Model) *modelruntime.RuntimeModel {
 		Title:        row.Title,
 		Description:  row.Description.String,
 		DatabaseName: row.DatabaseName,
+		CreatedVia:   modeldesign.ModelCreationSource(row.CreatedVia),
 		DisplayField: displayField,
 	}
 }

@@ -14,6 +14,7 @@ export const GET_MODELS = gql`
           description
           databaseName
           storageType
+          createdVia
           fields {
             name
             title
@@ -100,6 +101,7 @@ export const GET_MODEL = gql`
         displayField
         databaseName
         storageType
+        createdVia
         fields {
           name
           title
@@ -172,6 +174,7 @@ export const GET_MODEL = gql`
         }
         ... on InvalidInput {
           message
+          code
           suggestion
         }
         ... on ProjectNotFound {
@@ -191,6 +194,7 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
         title
         description
         databaseName
+        createdVia
         jsonSchema
         fields {
           name
@@ -204,6 +208,7 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
         }
         ... on InvalidInput {
           message
+          code
         }
       }
     }
@@ -274,6 +279,7 @@ export const GET_MODEL_BY_NAME = gql`
         }
         ... on InvalidInput {
           message
+          code
           suggestion
         }
         ... on ProjectNotFound {
@@ -386,6 +392,7 @@ export const CREATE_MODEL = gql`
         }
         ... on InvalidInput {
           message
+          code
           suggestion
         }
         ... on ProjectNotFound {
@@ -445,6 +452,7 @@ export const UPDATE_MODEL = gql`
         }
         ... on InvalidInput {
           message
+          code
           suggestion
         }
         ... on ProjectNotFound {
@@ -797,6 +805,7 @@ export const ADD_FIELDS = gql`
         __typename
         ... on InvalidInput {
           message
+          code
           suggestion
         }
       }
@@ -867,6 +876,7 @@ export const UPDATE_FIELD = gql`
         __typename
         ... on InvalidInput {
           message
+          code
           suggestion
         }
         ... on FieldFormatImmutable {
@@ -919,6 +929,7 @@ export const REMOVE_FIELD = gql`
         __typename
         ... on InvalidInput {
           message
+          code
           suggestion
         }
         ... on FieldReferenceInUse {

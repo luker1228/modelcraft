@@ -1,6 +1,7 @@
 package modeldesign
 
 import (
+	"context"
 	"testing"
 
 	domainmodel "modelcraft/internal/domain/modeldesign"
@@ -57,4 +58,34 @@ func TestBuildModelFromTable_DoesNotInjectSystemFieldsButKeepsPrimaryKeyFlags(t 
 	assert.True(t, idField.IsPrimary, "import should preserve primary key flag")
 	assert.True(t, idField.IsUnique, "import should preserve primary key uniqueness")
 	assert.True(t, idField.NonNull, "import should preserve primary key non-null")
+}
+
+func TestNewModelFromCommand_SetsCreatedViaNew(t *testing.T) {
+	model, err := newModelFromCommand(context.Background(), CreateModelCommand{
+		OrgName:      "org",
+		ProjectSlug:  "project",
+		Name:         "orders",
+		Title:        "Orders",
+		StorageType:  "mysql",
+		DatabaseName: "db_1",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, model)
+	assert.Equal(t, domainmodel.ModelCreationSourceNew, model.CreatedVia)
+}
+
+func TestBuildModelFromTable_SetsCreatedViaImported(t *testing.T) {
+	result, err := BuildModelFromTable(
+		"orders",
+		"",
+		[]domainmodel.TableColumn{{Name: "id", DataType: "VARCHAR", Length: 36, Nullable: false}},
+		[]string{"id"},
+		"org",
+		"project",
+		"db_1",
+	)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.NotNil(t, result.Model)
+	assert.Equal(t, domainmodel.ModelCreationSourceImported, result.Model.CreatedVia)
 }

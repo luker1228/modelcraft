@@ -732,6 +732,8 @@ func TestModelDesignAppService_UpdateFieldSync(t *testing.T) {
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
+		existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
+		mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
 		mockModelRepo.On("GetFieldByModelID", ctx, "model-1", "username").Return(existingField, nil)
 		mockModelRepo.On("UpdateField", ctx, mock.AnythingOfType("*modeldesign.FieldDefinition")).Return(nil)
 
@@ -752,6 +754,8 @@ func TestModelDesignAppService_UpdateFieldSync(t *testing.T) {
 		mockModelRepo := new(MockModelRepository)
 		service := newTestService(mockModelRepo, nil, nil)
 
+		existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
+		mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
 		mockModelRepo.On("GetFieldByModelID", ctx, "model-1", "nonexistent").Return(nil, nil)
 
 		cmd := UpdateFieldCommand{
@@ -1029,6 +1033,9 @@ func TestModelDesignAppService_UpdateFieldSync_FormatImmutable(t *testing.T) {
 		UpdatedAt:    now,
 	}
 
+	existingModel := newTestModel("model-1", "project-1", "test_model", "db_1")
+	existingModel.CreatedVia = modeldesign.ModelCreationSourceNew
+	mockModelRepo.On("GetByID", ctx, "model-1", mock.Anything).Return(existingModel, nil)
 	mockModelRepo.On("GetFieldByModelID", ctx, "model-1", "level").Return(existingField, nil)
 
 	format := modeldesign.FormatString
@@ -1213,4 +1220,106 @@ func TestModelDesignAppService_RemoveFieldSync_ProtectedSystemModelDenied(t *tes
 
 	mockModelRepo.AssertExpectations(t)
 	mockModelRepo.AssertNotCalled(t, "BulkDeleteFields", mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_UpdateModelMeta_ImportedModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	service := newTestService(mockModelRepo, nil, nil)
+
+	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
+	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
+
+	newTitle := "Updated"
+	err := service.UpdateModelMeta(ctx, "model-imported", UpdateModelMetaCommand{Title: &newTitle})
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.ManagedModelReadOnly.GetCode(), bizErr.Info().GetCode())
+	mockModelRepo.AssertNotCalled(t, "Update", mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_AddFieldSync_ImportedModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockDeployRepo := new(MockDeployRepo)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{ModelRepo: mockModelRepo, DeployRepo: mockDeployRepo})
+
+	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
+	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	loc := importedModel.GetModelLocator()
+	newField := newTestField("model-imported", "extra_col", loc)
+
+	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
+
+	err := svc.AddFieldSync(ctx, AddFieldCommand{
+		ModelID: "model-imported",
+		Fields:  []*modeldesign.FieldDefinition{newField},
+	})
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.ManagedModelReadOnly.GetCode(), bizErr.Info().GetCode())
+	mockModelRepo.AssertNotCalled(t, "AddFields", mock.Anything, mock.Anything, mock.Anything)
+	mockDeployRepo.AssertNotCalled(t, "DeployModelToAddFields", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_UpdateFieldSync_ImportedModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{ModelRepo: mockModelRepo})
+
+	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
+	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
+
+	newTitle := "new-title"
+	err := svc.UpdateFieldSync(ctx, UpdateFieldCommand{ModelID: "model-imported", FieldName: "name", Title: newTitle})
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.ManagedModelReadOnly.GetCode(), bizErr.Info().GetCode())
+	mockModelRepo.AssertNotCalled(t, "GetFieldByModelID", mock.Anything, mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_RemoveFieldSync_ImportedModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	svc := NewModelDesignAppService(ModelDesignAppServiceDeps{ModelRepo: mockModelRepo})
+
+	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
+	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
+
+	err := svc.RemoveFieldSync(ctx, RemoveFieldCommand{ModelID: "model-imported", FieldName: "name"})
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.ManagedModelReadOnly.GetCode(), bizErr.Info().GetCode())
+	mockModelRepo.AssertNotCalled(t, "UpdateFieldsStatus", mock.Anything, mock.Anything)
+}
+
+func TestModelDesignAppService_DeleteModelSync_ImportedModelDenied(t *testing.T) {
+	ctx := newTestContext()
+	mockModelRepo := new(MockModelRepository)
+	mockDeployRepo := new(MockDeployRepo)
+	service := newTestService(mockModelRepo, mockDeployRepo, nil)
+
+	importedModel := newTestModel("model-imported", "project-1", "customer_orders", "db_1")
+	importedModel.CreatedVia = modeldesign.ModelCreationSourceImported
+	mockModelRepo.On("GetByID", ctx, "model-imported", mock.Anything).Return(importedModel, nil)
+
+	err := service.DeleteModelSync(ctx, "model-imported", "project-1", true)
+
+	require.Error(t, err)
+	var bizErr *bizerrors.BusinessError
+	require.ErrorAs(t, err, &bizErr)
+	assert.Equal(t, bizerrors.ManagedModelReadOnly.GetCode(), bizErr.Info().GetCode())
+	mockDeployRepo.AssertNotCalled(t, "DeployModelToDrop", mock.Anything, mock.Anything)
+	mockModelRepo.AssertNotCalled(t, "Delete", mock.Anything, mock.Anything)
 }

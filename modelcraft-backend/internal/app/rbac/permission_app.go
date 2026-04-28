@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"modelcraft/internal/domain/modeldesign"
-	rbacdomain "modelcraft/internal/domain/rbac"
 	"modelcraft/internal/domain/shared"
+	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/logfacade"
+
+	rbacdomain "modelcraft/internal/domain/rbac"
 
 	"github.com/google/uuid"
 )
@@ -18,9 +20,12 @@ type permissionRepository interface {
 	GetPermissionByID(ctx context.Context, orgName, id string) (*rbacdomain.EndUserPermission, error)
 	ListPermissionsByProject(ctx context.Context, orgName, projectSlug string) ([]*rbacdomain.EndUserPermission, error)
 	ListPermissionsByModel(ctx context.Context, orgName, modelID string) ([]*rbacdomain.EndUserPermission, error)
+	ListPresetPermissionsByModel(ctx context.Context, orgName, modelID string) ([]*rbacdomain.EndUserPermission, error)
 	UpdatePermission(ctx context.Context, p *rbacdomain.EndUserPermission) error
 	DeletePermission(ctx context.Context, orgName, id string) error
 	DeletePresetPermissionsByModel(ctx context.Context, orgName, modelID string) error
+	UpdatePresetPermission(ctx context.Context, p *rbacdomain.EndUserPermission) error
+	IsPermissionReferencedByBundle(ctx context.Context, permissionID string) (bool, error)
 }
 
 type modelRepository interface {
@@ -29,19 +34,29 @@ type modelRepository interface {
 
 // EndUserPermissionAppService 权限点应用服务
 type EndUserPermissionAppService struct {
-	rbacRepo  permissionRepository
-	modelRepo modelRepository
+	rbacRepo    permissionRepository
+	modelRepo   modelRepository
+	txManager   repository.TxManager
+	repoFromTxQ func(q dbgen.Querier) permissionRepository
 }
 
 // NewEndUserPermissionAppService creates a new EndUserPermissionAppService.
 func NewEndUserPermissionAppService(
 	rbacRepo rbacdomain.EndUserPermissionRepository,
 	modelRepo modeldesign.ModelRepository,
+	txManagers ...repository.TxManager,
 ) *EndUserPermissionAppService {
-	return &EndUserPermissionAppService{
+	svc := &EndUserPermissionAppService{
 		rbacRepo:  rbacRepo,
 		modelRepo: modelRepo,
+		repoFromTxQ: func(q dbgen.Querier) permissionRepository {
+			return repository.NewSqlEndUserPermissionRepository(q)
+		},
 	}
+	if len(txManagers) > 0 {
+		svc.txManager = txManagers[0]
+	}
+	return svc
 }
 
 // CreatePermission 创建权限点（兼容旧输入 action/rowScope，内部转换为 rowPolicy）
@@ -116,67 +131,67 @@ func (s *EndUserPermissionAppService) DeletePermission(
 	return nil
 }
 
-// ApplyPresetPolicy 应用预设策略（先删旧 PRESET，再插入新 PRESET）
+// ApplyPresetPolicy 对模型执行 PRESET 权限点差异同步（reconcile）。
 func (s *EndUserPermissionAppService) ApplyPresetPolicy(
 	ctx context.Context,
 	cmd ApplyPresetPolicyCommand,
 ) ([]*rbacdomain.EndUserPermission, error) {
-	if !cmd.Preset.IsValid() {
-		return nil, bizerrors.NewValidationError(
-			"rbac.permission.invalid_preset: invalid preset: %s",
-			string(cmd.Preset),
-		)
+	desiredPresets, ownerField, err := s.resolveDesiredPresetsWithModel(ctx, cmd)
+	if err != nil {
+		return nil, err
 	}
 
-	model, err := s.modelRepo.GetByID(ctx, cmd.ModelID, modeldesign.NewModelQueryOptions().WithFields())
-	if err != nil {
-		if shared.IsNotFoundError(err) {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
+	reconcile := func(execRepo permissionRepository) error {
+		existingByPreset, listErr := s.listExistingPresetByModel(ctx, execRepo, cmd.OrgName, cmd.ModelID)
+		if listErr != nil {
+			return listErr
 		}
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+
+		desiredSet := make(map[rbacdomain.PermissionPreset]struct{}, len(desiredPresets))
+		for _, preset := range desiredPresets {
+			desiredSet[preset] = struct{}{}
+		}
+
+		if deleteCheckErr := s.ensureDeletePresetSafe(
+			ctx,
+			execRepo,
+			existingByPreset,
+			desiredSet,
+		); deleteCheckErr != nil {
+			return deleteCheckErr
+		}
+		if upsertErr := s.upsertDesiredPresets(
+			ctx,
+			execRepo,
+			cmd,
+			desiredPresets,
+			ownerField,
+			existingByPreset,
+		); upsertErr != nil {
+			return upsertErr
+		}
+		if deleteErr := s.deleteStalePresets(
+			ctx,
+			execRepo,
+			cmd.OrgName,
+			existingByPreset,
+			desiredSet,
+		); deleteErr != nil {
+			return deleteErr
+		}
+		return nil
 	}
 
-	ownerField := ""
-	if model != nil && model.GetOwnerField() != nil {
-		ownerField = model.GetOwnerField().Name
+	if s.txManager != nil && s.repoFromTxQ != nil {
+		err = s.txManager.WithTx(ctx, func(txCtx context.Context, q dbgen.Querier) error {
+			txRepo := s.repoFromTxQ(q)
+			return reconcile(txRepo)
+		})
+	} else {
+		err = reconcile(s.rbacRepo)
 	}
-
-	if isOwnerPreset(cmd.Preset) && ownerField == "" {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPresetRequiresOwnerField, string(cmd.Preset))
-	}
-
-	if err := s.rbacRepo.DeletePresetPermissionsByModel(ctx, cmd.OrgName, cmd.ModelID); err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	logfacade.GetLogger(ctx).Warnf(
-		ctx,
-		"ApplyPresetPolicy: deleted PRESET permissions; FK CASCADE may remove bundle mappings (org=%s model=%s)",
-		cmd.OrgName,
-		cmd.ModelID,
-	)
-
-	rowPolicy, err := expandPreset(cmd.Preset, ownerField)
 	if err != nil {
 		return nil, err
-	}
-
-	preset := cmd.Preset
-	perm := &rbacdomain.EndUserPermission{
-		ID:           uuid.NewString(),
-		OrgName:      cmd.OrgName,
-		ProjectSlug:  cmd.ProjectSlug,
-		ModelID:      cmd.ModelID,
-		Name:         fmt.Sprintf("preset:%s", cmd.Preset),
-		Type:         rbacdomain.PermissionTypePreset,
-		ColumnPolicy: nil,
-		RowPolicy:    rowPolicy,
-		Preset:       &preset,
-	}
-	if err := perm.Validate(); err != nil {
-		return nil, err
-	}
-	if err := s.rbacRepo.CreatePermission(ctx, perm); err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
 	perms, err := s.rbacRepo.ListPermissionsByModel(ctx, cmd.OrgName, cmd.ModelID)
@@ -184,6 +199,158 @@ func (s *EndUserPermissionAppService) ApplyPresetPolicy(
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	return perms, nil
+}
+
+// ListVirtualPresetsByModel 只读计算模型可用预设集合（不落库）。
+func (s *EndUserPermissionAppService) ListVirtualPresetsByModel(
+	ctx context.Context,
+	modelID string,
+) ([]rbacdomain.PermissionPreset, error) {
+	model, err := s.modelRepo.GetByID(ctx, modelID, modeldesign.NewModelQueryOptions().WithFields())
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	ownerField := ""
+	if model != nil && model.GetOwnerField() != nil {
+		ownerField = model.GetOwnerField().Name
+	}
+	return resolveDesiredPresets(nil, ownerField)
+}
+
+func (s *EndUserPermissionAppService) resolveDesiredPresetsWithModel(
+	ctx context.Context,
+	cmd ApplyPresetPolicyCommand,
+) ([]rbacdomain.PermissionPreset, string, error) {
+	model, err := s.modelRepo.GetByID(ctx, cmd.ModelID, modeldesign.NewModelQueryOptions().WithFields())
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, "", bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
+		}
+		return nil, "", bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	ownerField := ""
+	if model != nil && model.GetOwnerField() != nil {
+		ownerField = model.GetOwnerField().Name
+	}
+	desired, err := resolveDesiredPresets(cmd.Preset, ownerField)
+	if err != nil {
+		return nil, "", err
+	}
+	return desired, ownerField, nil
+}
+
+func (s *EndUserPermissionAppService) listExistingPresetByModel(
+	ctx context.Context,
+	repo permissionRepository,
+	orgName, modelID string,
+) (map[rbacdomain.PermissionPreset]*rbacdomain.EndUserPermission, error) {
+	items, err := repo.ListPresetPermissionsByModel(ctx, orgName, modelID)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	result := map[rbacdomain.PermissionPreset]*rbacdomain.EndUserPermission{}
+	for _, p := range items {
+		if p.Type != rbacdomain.PermissionTypePreset || p.Preset == nil {
+			continue
+		}
+		result[*p.Preset] = p
+	}
+	return result, nil
+}
+
+func (s *EndUserPermissionAppService) ensureDeletePresetSafe(
+	ctx context.Context,
+	repo permissionRepository,
+	existing map[rbacdomain.PermissionPreset]*rbacdomain.EndUserPermission,
+	desiredSet map[rbacdomain.PermissionPreset]struct{},
+) error {
+	for preset, existingPerm := range existing {
+		if _, ok := desiredSet[preset]; ok {
+			continue
+		}
+		referenced, err := repo.IsPermissionReferencedByBundle(ctx, existingPerm.ID)
+		if err != nil {
+			return bizerrors.ConvertRepositoryError(ctx, err)
+		}
+		if referenced {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.PresetDeleteBlockedByBundle, existingPerm.Name)
+		}
+	}
+	return nil
+}
+
+func (s *EndUserPermissionAppService) upsertDesiredPresets(
+	ctx context.Context,
+	repo permissionRepository,
+	cmd ApplyPresetPolicyCommand,
+	desired []rbacdomain.PermissionPreset,
+	ownerField string,
+	existing map[rbacdomain.PermissionPreset]*rbacdomain.EndUserPermission,
+) error {
+	for _, preset := range desired {
+		rowPolicy, err := expandPreset(preset, ownerField)
+		if err != nil {
+			return err
+		}
+		if oldPerm, ok := existing[preset]; ok {
+			if !presetPermissionNeedsUpdate(oldPerm, rowPolicy, preset) {
+				continue
+			}
+			oldPerm.Name = presetPermissionName(preset)
+			oldPerm.Type = rbacdomain.PermissionTypePreset
+			oldPerm.ColumnPolicy = nil
+			oldPerm.RowPolicy = rowPolicy
+			nextPreset := preset
+			oldPerm.Preset = &nextPreset
+			if err := oldPerm.Validate(); err != nil {
+				return err
+			}
+			if err := repo.UpdatePresetPermission(ctx, oldPerm); err != nil {
+				return bizerrors.ConvertRepositoryError(ctx, err)
+			}
+			continue
+		}
+		newPerm := &rbacdomain.EndUserPermission{
+			ID:           uuid.NewString(),
+			OrgName:      cmd.OrgName,
+			ProjectSlug:  cmd.ProjectSlug,
+			ModelID:      cmd.ModelID,
+			Name:         presetPermissionName(preset),
+			Type:         rbacdomain.PermissionTypePreset,
+			ColumnPolicy: nil,
+			RowPolicy:    rowPolicy,
+		}
+		nextPreset := preset
+		newPerm.Preset = &nextPreset
+		if err := newPerm.Validate(); err != nil {
+			return err
+		}
+		if err := repo.CreatePermission(ctx, newPerm); err != nil {
+			return bizerrors.ConvertRepositoryError(ctx, err)
+		}
+	}
+	return nil
+}
+
+func (s *EndUserPermissionAppService) deleteStalePresets(
+	ctx context.Context,
+	repo permissionRepository,
+	orgName string,
+	existing map[rbacdomain.PermissionPreset]*rbacdomain.EndUserPermission,
+	desiredSet map[rbacdomain.PermissionPreset]struct{},
+) error {
+	for preset, existingPerm := range existing {
+		if _, ok := desiredSet[preset]; ok {
+			continue
+		}
+		if err := repo.DeletePermission(ctx, orgName, existingPerm.ID); err != nil {
+			return bizerrors.ConvertRepositoryError(ctx, err)
+		}
+	}
+	return nil
 }
 
 // ListPermissionsByProject 列出项目下所有权限点
@@ -215,6 +382,70 @@ func (s *EndUserPermissionAppService) GetPermissionByID(
 
 func isOwnerPreset(preset rbacdomain.PermissionPreset) bool {
 	return preset == rbacdomain.PresetReadWriteOwner || preset == rbacdomain.PresetReadAllWriteOwner
+}
+
+func resolveDesiredPresets(
+	explicit *rbacdomain.PermissionPreset,
+	ownerField string,
+) ([]rbacdomain.PermissionPreset, error) {
+	if explicit != nil {
+		if !explicit.IsValid() {
+			return nil, bizerrors.NewValidationError(
+				"rbac.permission.invalid_preset: invalid preset: %s",
+				string(*explicit),
+			)
+		}
+		if isOwnerPreset(*explicit) && ownerField == "" {
+			return nil, bizerrors.NewError(bizerrors.EndUserPresetRequiresOwnerField, string(*explicit))
+		}
+		return []rbacdomain.PermissionPreset{*explicit}, nil
+	}
+
+	desired := []rbacdomain.PermissionPreset{
+		rbacdomain.PresetReadWriteAll,
+		rbacdomain.PresetReadAll,
+	}
+	if ownerField != "" {
+		desired = append(desired, rbacdomain.PresetReadWriteOwner, rbacdomain.PresetReadAllWriteOwner)
+	}
+	return desired, nil
+}
+
+func presetPermissionName(preset rbacdomain.PermissionPreset) string {
+	return fmt.Sprintf("preset:%s", preset)
+}
+
+func presetPermissionNeedsUpdate(
+	existing *rbacdomain.EndUserPermission,
+	desiredPolicy *rbacdomain.RowPolicy,
+	desiredPreset rbacdomain.PermissionPreset,
+) bool {
+	if existing == nil {
+		return true
+	}
+	if existing.Type != rbacdomain.PermissionTypePreset {
+		return true
+	}
+	if existing.Preset == nil || *existing.Preset != desiredPreset {
+		return true
+	}
+	if existing.Name != presetPermissionName(desiredPreset) {
+		return true
+	}
+	return normalizedRowPolicyJSON(existing.RowPolicy) != normalizedRowPolicyJSON(desiredPolicy)
+}
+
+func normalizedRowPolicyJSON(policy *rbacdomain.RowPolicy) string {
+	if policy == nil {
+		return ""
+	}
+	clone := *policy
+	clone.Normalize()
+	data, err := json.Marshal(&clone)
+	if err != nil {
+		return ""
+	}
+	return string(data)
 }
 
 func expandPreset(preset rbacdomain.PermissionPreset, ownerField string) (*rbacdomain.RowPolicy, error) {

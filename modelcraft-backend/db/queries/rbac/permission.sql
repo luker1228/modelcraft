@@ -33,6 +33,23 @@ WHERE model_id = ?
   AND org_name = ?
 ORDER BY created_at;
 
+-- name: ListPresetPermissionsByModel :many
+SELECT *
+FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+  AND type = 'PRESET'
+ORDER BY created_at;
+
+-- name: GetEndUserPermissionByModelTypeName :one
+SELECT *
+FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+  AND type = ?
+  AND name = ?
+LIMIT 1;
+
 -- name: UpdateEndUserPermission :execresult
 UPDATE end_user_permissions
 SET name = ?,
@@ -52,3 +69,18 @@ DELETE FROM end_user_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = ?;
+
+-- name: UpdateEndUserPresetPermission :execresult
+UPDATE end_user_permissions
+SET name = ?,
+    description = ?,
+    row_policy = ?,
+    preset = ?,
+    updated_at = NOW(3)
+WHERE id = ?
+  AND org_name = ?;
+
+-- name: IsPermissionReferencedByBundle :one
+SELECT COUNT(*) > 0 AS referenced
+FROM end_user_bundle_permissions
+WHERE permission_id = ?;

@@ -168,6 +168,34 @@ func (a *RbacErrorAdapter) ConvertToAddPermissionToBundleError(
 	}
 }
 
+// ConvertToAddPresetToBundleError maps to AddEndUserPresetToBundleError union.
+func (a *RbacErrorAdapter) ConvertToAddPresetToBundleError(
+	err *bizerrors.BusinessError,
+) generated.AddEndUserPresetToBundleError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.ModelNotFound{Message: err.Msg()}
+	case bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizerrors.EndUserRowScopeFieldMissing.GetCode():
+		suggestion := "请先在模型中创建 END_USER_REF 字段，然后重试绑定预设"
+		preset := detectPresetFromMessage(err.Msg())
+		return &generated.PresetRequiresOwnerField{
+			Message:    err.Msg(),
+			Preset:     preset,
+			Suggestion: &suggestion,
+		}
+	case bizerrors.ProjectNotFound.GetCode():
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	default:
+		a.logUnknown("addPresetToBundle", err)
+		return &generated.InvalidInput{Message: err.Msg()}
+	}
+}
+
 // ConvertToRemovePermissionFromBundleError maps to RemoveEndUserPermissionFromBundleError union.
 func (a *RbacErrorAdapter) ConvertToRemovePermissionFromBundleError(
 	err *bizerrors.BusinessError,
@@ -381,6 +409,12 @@ func (a *RbacErrorAdapter) ConvertToApplyPresetPolicyError(
 		return &generated.PresetRequiresOwnerField{
 			Message:    err.Msg(),
 			Preset:     preset,
+			Suggestion: &suggestion,
+		}
+	case bizerrors.PresetDeleteBlockedByBundle.GetCode():
+		suggestion := "请先解绑引用该预设的权限包，或迁移后再重试"
+		return &generated.PresetDeleteBlockedByBundle{
+			Message:    err.Msg(),
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():

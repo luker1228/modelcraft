@@ -107,10 +107,15 @@ func (r *mutationResolver) ApplyEndUserPresetPolicy(ctx context.Context, input g
 		return nil, err
 	}
 
+	var preset *rbacdomain.PermissionPreset
+	if input.Preset != nil {
+		v := rbacdomain.PermissionPreset(*input.Preset)
+		preset = &v
+	}
 	perms, appErr := r.RBACPermissionSvc.ApplyPresetPolicy(ctx, apprbac.ApplyPresetPolicyCommand{
 		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 		ModelID:      input.ModelID,
-		Preset:       rbacdomain.PermissionPreset(input.Preset),
+		Preset:       preset,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -222,6 +227,38 @@ func (r *mutationResolver) AddEndUserPermissionToBundle(ctx context.Context, inp
 		}, nil
 	}
 	return &generated.AddEndUserPermissionToBundlePayload{
+		Bundle: adapter.ToEndUserPermissionBundleDTO(bundle),
+	}, nil
+}
+
+// AddEndUserPresetToBundle is the resolver for the addEndUserPresetToBundle field.
+func (r *mutationResolver) AddEndUserPresetToBundle(ctx context.Context, input generated.AddEndUserPresetToBundleInput) (*generated.AddEndUserPresetToBundlePayload, error) {
+	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sortOrder := 0
+	if input.SortOrder != nil {
+		sortOrder = int(*input.SortOrder)
+	}
+
+	bundle, appErr := r.RBACBundleSvc.AddPresetToBundle(ctx, apprbac.AddPresetToBundleCommand{
+		OrgName:   orgName,
+		BundleID:  input.BundleID,
+		ModelID:   input.ModelID,
+		Preset:    rbacdomain.PermissionPreset(input.Preset),
+		SortOrder: sortOrder,
+	})
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		errAdapter := adapter.NewRbacErrorAdapter(ctx)
+		return &generated.AddEndUserPresetToBundlePayload{
+			Error: errAdapter.ConvertToAddPresetToBundleError(toBizErr(appErr)),
+		}, nil
+	}
+
+	return &generated.AddEndUserPresetToBundlePayload{
 		Bundle: adapter.ToEndUserPermissionBundleDTO(bundle),
 	}, nil
 }

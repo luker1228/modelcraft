@@ -65,6 +65,7 @@ export function ModelDetailPanel({
   const displayFieldOptions = (state.editModelData?.fields || []).filter((field) => field.format !== 'RELATION')
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
+  const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
 
   return (
     <Drawer open={state.editModelOpen} onOpenChange={crud.handleCloseEditModel} direction="right">
@@ -109,6 +110,17 @@ export function ModelDetailPanel({
             </div>
           ) : state.editModelData ? (
             <div className="divide-y divide-border [&>div]:py-6">
+              {isManagedReadOnlyModel && (
+                <div className="px-6 pb-0 pt-6">
+                  <Alert variant="warning" className="py-2">
+                    <AlertTriangle className="size-4" />
+                    <AlertDescription className="text-xs">
+                      当前模型为托管模型，仅支持查看，不支持结构和字段修改。
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              )}
+
               {/* Meta info section */}
               <div className="px-6">
                 <div className="mb-3 flex items-center justify-between">
@@ -120,6 +132,7 @@ export function ModelDetailPanel({
                       size="sm"
                       className="h-7 text-xs"
                       onClick={() => state.setMetaEditMode(true)}
+                      disabled={isManagedReadOnlyModel}
                     >
                       设置展示字段
                     </Button>
@@ -137,6 +150,7 @@ export function ModelDetailPanel({
                           variant="outline"
                           className="h-6 px-2 text-xs"
                           onClick={() => state.setMetaEditMode(true)}
+                          disabled={isManagedReadOnlyModel}
                         >
                           去设置
                         </Button>
@@ -160,7 +174,7 @@ export function ModelDetailPanel({
                       onChange={(e) => state.setMetaTitle(e.target.value)}
                       className="h-8 text-sm"
                       placeholder="输入显示标题"
-                      disabled={!state.metaEditMode}
+                      disabled={!state.metaEditMode || isManagedReadOnlyModel}
                     />
                   </div>
                   <div className="space-y-1">
@@ -178,12 +192,12 @@ export function ModelDetailPanel({
                       onChange={(e) => state.setMetaDescription(e.target.value)}
                       className="h-8 text-sm"
                       placeholder="输入模型描述"
-                      disabled={!state.metaEditMode}
+                      disabled={!state.metaEditMode || isManagedReadOnlyModel}
                     />
                   </div>
                   <div className="space-y-1">
                     <label className="text-xs text-muted-foreground">展示字段</label>
-                    {state.metaEditMode ? (
+                    {state.metaEditMode && !isManagedReadOnlyModel ? (
                       <Select
                         value={displayFieldSelectValue}
                         onValueChange={(value) => {
@@ -214,7 +228,7 @@ export function ModelDetailPanel({
                     )}
                   </div>
                 </div>
-                {state.metaEditMode && (
+                {state.metaEditMode && !isManagedReadOnlyModel && (
                   <div className="mt-4 flex items-center justify-end gap-2">
                     <Button
                       variant="ghost"
@@ -256,9 +270,10 @@ export function ModelDetailPanel({
                   </div>
                   <button
                     type="button"
-                    title="新增字段"
-                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    title={isManagedReadOnlyModel ? '托管模型仅支持查看' : '新增字段'}
+                    className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                     onClick={() => state.setInsertFieldOpen(true)}
+                    disabled={isManagedReadOnlyModel}
                   >
                     <Plus className="size-3.5" />
                   </button>
@@ -294,6 +309,7 @@ export function ModelDetailPanel({
                           {state.editModelData.fields.map((field) => {
                             const enumDisplayFieldName = getEnumDisplayFieldName(field)
                             const isSystemField = isSystemGeneratedLabelField(field, state.editModelData?.fields ?? [])
+                            const isFieldReadOnlyActionDisabled = isSystemField || isManagedReadOnlyModel
 
                             return (
                               <tr
@@ -371,29 +387,29 @@ export function ModelDetailPanel({
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end" className="w-36">
                                     <DropdownMenuItem
-                                      className={`text-xs ${isSystemField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'}`}
+                                      className={`text-xs ${isFieldReadOnlyActionDisabled ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'}`}
                                       onClick={() => fieldOps.handleOpenEditField(field)}
-                                      disabled={isSystemField}
+                                      disabled={isFieldReadOnlyActionDisabled}
                                     >
                                       <Edit className="mr-2 size-3.5" />
                                       编辑
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
-                                      className={`text-xs ${isSystemField ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'}`}
+                                      className={`text-xs ${isFieldReadOnlyActionDisabled ? 'cursor-not-allowed text-muted-foreground/50' : 'cursor-pointer'}`}
                                       onClick={() => fieldOps.handleToggleDeprecate(field)}
-                                      disabled={isSystemField}
+                                      disabled={isFieldReadOnlyActionDisabled}
                                     >
                                       <Archive className="mr-2 size-3.5" />
                                       {field.isDeprecated ? '取消废弃' : '废弃'}
                                     </DropdownMenuItem>
                                     <DropdownMenuItem
                                       className={`cursor-pointer text-xs ${
-                                        field.isDeprecated && !isSystemField
+                                        field.isDeprecated && !isFieldReadOnlyActionDisabled
                                           ? 'text-destructive focus:text-destructive'
                                           : 'cursor-not-allowed text-muted-foreground/50'
                                       }`}
                                       onClick={() => fieldOps.handleRemoveField(field)}
-                                      disabled={!field.isDeprecated || isSystemField}
+                                      disabled={!field.isDeprecated || isFieldReadOnlyActionDisabled}
                                     >
                                       <Trash2 className="mr-2 size-3.5" />
                                       删除

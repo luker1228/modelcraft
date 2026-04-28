@@ -16,12 +16,13 @@ type CreatePermissionCommand struct {
 	RowScope             rbacdomain.RowScope
 }
 
-// ApplyPresetPolicyCommand 应用预设策略命令
-// 当前仅用于 applyEndUserPresetPolicy mutation。
+// ApplyPresetPolicyCommand 应用预设策略命令。
+// Preset 为空时：执行模型级 reconcile（同步该模型全部可适配内置预设）。
+// Preset 非空时：兼容显式预设请求（用于特定调用路径的 owner 校验语义）。
 type ApplyPresetPolicyCommand struct {
 	project.ProjectScope
 	ModelID string
-	Preset  rbacdomain.PermissionPreset
+	Preset  *rbacdomain.PermissionPreset
 }
 
 // UpdatePermissionCommand 更新权限点命令（只允许更新 name/description/columnPolicy；action 和 rowScope 不可变）
@@ -66,6 +67,15 @@ type AddPermissionToBundleCommand struct {
 	BundleID     string
 	PermissionID string
 	SortOrder    int
+}
+
+// AddPresetToBundleCommand 向权限包添加模型预设权限命令（后端自动 ensure 预设权限点）
+type AddPresetToBundleCommand struct {
+	OrgName   string
+	BundleID  string
+	ModelID   string
+	Preset    rbacdomain.PermissionPreset
+	SortOrder int
 }
 
 // RemovePermissionFromBundleCommand 从权限包移除权限点命令

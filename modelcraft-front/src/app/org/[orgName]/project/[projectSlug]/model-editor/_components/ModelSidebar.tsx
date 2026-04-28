@@ -194,23 +194,29 @@ export function ModelSidebar({
 
             {!modelsLoading && filteredModels.map((model) => (
               <div
-                key={model.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => handleModelDetailClick(model.id)}
-                onKeyDown={(e) => e.key === 'Enter' && handleModelDetailClick(model.id)}
-                className={cn(
-                  'group flex items-center gap-2 h-7 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
-                  state.selectedModelId === model.id
-                    ? 'bg-primary/[0.08] text-primary border-l-primary'
-                    : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground border-l-transparent'
-                )}
-              >
+                  key={model.id}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => handleModelDetailClick(model.id)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleModelDetailClick(model.id)}
+                  className={cn(
+                    'group flex items-center gap-2 h-7 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
+                    state.selectedModelId === model.id
+                      ? 'bg-primary/[0.08] text-primary border-l-primary'
+                      : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground border-l-transparent'
+                  )}
+                >
                 <Table2 className={cn('size-[15px] shrink-0 transition-colors', state.selectedModelId === model.id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground')} />
 
                 <span className="min-w-0 flex-1 truncate text-xs">
                   {model.name}
                 </span>
+
+                {model.createdVia === 'IMPORTED' && (
+                  <span className="rounded border border-warning/30 bg-warning/10 px-1 py-0 text-[10px] text-warning">
+                    托管
+                  </span>
+                )}
 
                 {model.title && model.title !== model.name && (
                   <span className="max-w-[56px] shrink-0 truncate text-xs text-muted-foreground/60" title={model.title}>
@@ -230,11 +236,20 @@ export function ModelSidebar({
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40 border border-border shadow-lg">
                     <DropdownMenuItem
-                      className="cursor-pointer text-xs focus:bg-accent focus:text-foreground"
+                      className={cn(
+                        'text-xs focus:bg-accent',
+                        model.createdVia === 'IMPORTED'
+                          ? 'cursor-not-allowed text-muted-foreground/50 focus:text-muted-foreground/50'
+                          : 'cursor-pointer text-foreground focus:text-foreground'
+                      )}
                       onClick={(e) => {
                         e.stopPropagation()
+                        if (model.createdVia === 'IMPORTED') {
+                          return
+                        }
                         crud.handleEditModel(model.id)
                       }}
+                      disabled={model.createdVia === 'IMPORTED'}
                     >
                       <Edit className="mr-2 size-3.5" />
                       编辑模型
@@ -253,12 +268,21 @@ export function ModelSidebar({
                       复制名称
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      className="cursor-pointer text-xs text-destructive focus:bg-accent focus:text-destructive"
+                      className={cn(
+                        'text-xs focus:bg-accent',
+                        model.createdVia === 'IMPORTED'
+                          ? 'cursor-not-allowed text-muted-foreground/50 focus:text-muted-foreground/50'
+                          : 'cursor-pointer text-destructive focus:text-destructive'
+                      )}
                       onClick={(e) => {
                         e.stopPropagation()
+                        if (model.createdVia === 'IMPORTED') {
+                          return
+                        }
                         state.setModelToDelete(model)
                         state.setDeleteModelDialogOpen(true)
                       }}
+                      disabled={model.createdVia === 'IMPORTED'}
                     >
                       删除模型
                     </DropdownMenuItem>

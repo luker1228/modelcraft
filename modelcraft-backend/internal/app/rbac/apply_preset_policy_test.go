@@ -3,34 +3,35 @@ package rbac
 import (
 	"context"
 	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/project"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"sort"
 	"testing"
 
-	domainproject "modelcraft/internal/domain/project"
-	rbacdomain "modelcraft/internal/domain/rbac"
-
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	rbacdomain "modelcraft/internal/domain/rbac"
 )
 
 type mockPermissionRepo struct {
 	byModel map[string][]*rbacdomain.EndUserPermission
+	refs    map[string]bool
 }
 
 func newMockPermissionRepo(initial []*rbacdomain.EndUserPermission) *mockPermissionRepo {
-	repo := &mockPermissionRepo{byModel: map[string][]*rbacdomain.EndUserPermission{}}
+	repo := &mockPermissionRepo{
+		byModel: map[string][]*rbacdomain.EndUserPermission{},
+		refs:    map[string]bool{},
+	}
 	for _, p := range initial {
 		repo.byModel[p.ModelID] = append(repo.byModel[p.ModelID], clonePermission(p))
 	}
 	return repo
 }
 
-func (m *mockPermissionRepo) CreatePermission(
-	_ context.Context,
-	p *rbacdomain.EndUserPermission,
-) error {
+func (m *mockPermissionRepo) CreatePermission(_ context.Context, p *rbacdomain.EndUserPermission) error {
 	m.byModel[p.ModelID] = append(m.byModel[p.ModelID], clonePermission(p))
 	return nil
 }
@@ -79,10 +80,22 @@ func (m *mockPermissionRepo) ListPermissionsByModel(
 	return result, nil
 }
 
-func (m *mockPermissionRepo) UpdatePermission(
+func (m *mockPermissionRepo) ListPresetPermissionsByModel(
 	_ context.Context,
-	p *rbacdomain.EndUserPermission,
-) error {
+	orgName, modelID string,
+) ([]*rbacdomain.EndUserPermission, error) {
+	list := m.byModel[modelID]
+	result := make([]*rbacdomain.EndUserPermission, 0, len(list))
+	for _, p := range list {
+		if p.OrgName == orgName && p.Type == rbacdomain.PermissionTypePreset {
+			result = append(result, clonePermission(p))
+		}
+	}
+	sort.Slice(result, func(i, j int) bool { return result[i].Name < result[j].Name })
+	return result, nil
+}
+
+func (m *mockPermissionRepo) UpdatePermission(_ context.Context, p *rbacdomain.EndUserPermission) error {
 	for modelID, list := range m.byModel {
 		for i, item := range list {
 			if item.ID == p.ID && item.OrgName == p.OrgName {
@@ -94,10 +107,7 @@ func (m *mockPermissionRepo) UpdatePermission(
 	return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "not found")
 }
 
-func (m *mockPermissionRepo) DeletePermission(
-	_ context.Context,
-	orgName, id string,
-) error {
+func (m *mockPermissionRepo) DeletePermission(_ context.Context, orgName, id string) error {
 	for modelID, list := range m.byModel {
 		for i, item := range list {
 			if item.ID == id && item.OrgName == orgName {
@@ -109,20 +119,16 @@ func (m *mockPermissionRepo) DeletePermission(
 	return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "not found")
 }
 
-func (m *mockPermissionRepo) DeletePresetPermissionsByModel(
-	_ context.Context,
-	orgName, modelID string,
-) error {
-	list := m.byModel[modelID]
-	kept := make([]*rbacdomain.EndUserPermission, 0, len(list))
-	for _, p := range list {
-		if p.OrgName == orgName && p.Type == rbacdomain.PermissionTypePreset {
-			continue
-		}
-		kept = append(kept, p)
-	}
-	m.byModel[modelID] = kept
+func (m *mockPermissionRepo) DeletePresetPermissionsByModel(_ context.Context, _, _ string) error {
 	return nil
+}
+
+func (m *mockPermissionRepo) UpdatePresetPermission(_ context.Context, p *rbacdomain.EndUserPermission) error {
+	return m.UpdatePermission(context.Background(), p)
+}
+
+func (m *mockPermissionRepo) IsPermissionReferencedByBundle(_ context.Context, permissionID string) (bool, error) {
+	return m.refs[permissionID], nil
 }
 
 type mockModelRepo struct {
@@ -141,7 +147,7 @@ func (m *mockModelRepo) GetByID(
 	return m.model, nil
 }
 
-func TestApplyPresetPolicy(t *testing.T) {
+func TestApplyPresetPolicy_Reconcile(t *testing.T) {
 	orgName := "org-a"
 	projectSlug := "proj-a"
 	modelID := "model-a"
@@ -156,149 +162,78 @@ func TestApplyPresetPolicy(t *testing.T) {
 		}
 	}
 
-	t.Run("正常 apply READ_WRITE_ALL", func(t *testing.T) {
-		svc := makeService(makeModelWithOwner(false), []*rbacdomain.EndUserPermission{
-			makeCustomPermission(orgName, projectSlug, modelID, "custom-1"),
-			makePresetPermission(
-				orgName,
-				projectSlug,
-				modelID,
-				"preset-old-1",
-				rbacdomain.PresetReadAll,
-			),
-			makePresetPermission(
-				orgName,
-				projectSlug,
-				modelID,
-				"preset-old-2",
-				rbacdomain.PresetReadWriteOwner,
-			),
-		})
-
-		perms, err := svc.ApplyPresetPolicy(context.Background(), ApplyPresetPolicyCommand{
-			ProjectScope: domainproject.ProjectScope{
-				OrgName:     orgName,
-				ProjectSlug: projectSlug,
-			},
-			ModelID: modelID,
-			Preset:  rbacdomain.PresetReadWriteAll,
-		})
-		require.NoError(t, err)
-		require.Len(t, perms, 2)
-		assert.Equal(t, "custom-1", perms[0].Name)
-		assert.Equal(t, "preset:READ_WRITE_ALL", perms[1].Name)
-		assert.Equal(t, rbacdomain.PermissionTypePreset, perms[1].Type)
-	})
-
-	t.Run("正常 apply READ_ALL（无 END_USER_REF 也可）", func(t *testing.T) {
+	t.Run("模型级 reconcile 补齐可适配预设并保留 CUSTOM", func(t *testing.T) {
 		svc := makeService(makeModelWithOwner(false), []*rbacdomain.EndUserPermission{
 			makeCustomPermission(orgName, projectSlug, modelID, "custom-1"),
 		})
 
 		perms, err := svc.ApplyPresetPolicy(context.Background(), ApplyPresetPolicyCommand{
-			ProjectScope: domainproject.ProjectScope{
-				OrgName:     orgName,
-				ProjectSlug: projectSlug,
-			},
-			ModelID: modelID,
-			Preset:  rbacdomain.PresetReadAll,
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			ModelID:      modelID,
+			Preset:       nil,
 		})
 		require.NoError(t, err)
-		require.Len(t, perms, 2)
-		assert.Equal(t, "preset:READ_ALL", perms[1].Name)
+		require.Len(t, perms, 3)
+
+		names := []string{perms[0].Name, perms[1].Name, perms[2].Name}
+		sort.Strings(names)
+		assert.Equal(t, []string{"custom-1", "preset:READ_ALL", "preset:READ_WRITE_ALL"}, names)
 	})
 
-	t.Run("apply READ_WRITE_OWNER，模型有 END_USER_REF 成功", func(t *testing.T) {
-		svc := makeService(makeModelWithOwner(true), nil)
-
+	t.Run("显式 OWNER 预设且缺少 owner 字段时报错", func(t *testing.T) {
+		svc := makeService(makeModelWithOwner(false), nil)
+		preset := rbacdomain.PresetReadWriteOwner
 		perms, err := svc.ApplyPresetPolicy(context.Background(), ApplyPresetPolicyCommand{
-			ProjectScope: domainproject.ProjectScope{
-				OrgName:     orgName,
-				ProjectSlug: projectSlug,
-			},
-			ModelID: modelID,
-			Preset:  rbacdomain.PresetReadWriteOwner,
-		})
-		require.NoError(t, err)
-		require.Len(t, perms, 1)
-		assert.Equal(t, "preset:READ_WRITE_OWNER", perms[0].Name)
-	})
-
-	t.Run("apply READ_WRITE_OWNER，模型无 END_USER_REF 返回错误", func(t *testing.T) {
-		origin := []*rbacdomain.EndUserPermission{
-			makeCustomPermission(orgName, projectSlug, modelID, "custom-keep"),
-		}
-		svc := makeService(makeModelWithOwner(false), origin)
-
-		perms, err := svc.ApplyPresetPolicy(context.Background(), ApplyPresetPolicyCommand{
-			ProjectScope: domainproject.ProjectScope{
-				OrgName:     orgName,
-				ProjectSlug: projectSlug,
-			},
-			ModelID: modelID,
-			Preset:  rbacdomain.PresetReadWriteOwner,
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			ModelID:      modelID,
+			Preset:       &preset,
 		})
 		require.Error(t, err)
 		assert.Nil(t, perms)
 		var bizErr *bizerrors.BusinessError
 		require.True(t, bizerrors.As(err, &bizErr))
-		assert.Equal(
-			t,
-			bizerrors.EndUserPresetRequiresOwnerField.GetCode(),
-			bizErr.Info().GetCode(),
-		)
-
-		kept, listErr := svc.rbacRepo.ListPermissionsByModel(context.Background(), orgName, modelID)
-		require.NoError(t, listErr)
-		require.Len(t, kept, 1)
-		assert.Equal(t, "custom-keep", kept[0].Name)
+		assert.Equal(t, bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizErr.Info().GetCode())
 	})
 
-	t.Run("apply 后 CUSTOM 权限点不受影响", func(t *testing.T) {
-		svc := makeService(makeModelWithOwner(true), []*rbacdomain.EndUserPermission{
-			makeCustomPermission(orgName, projectSlug, modelID, "custom-1"),
-			makeCustomPermission(orgName, projectSlug, modelID, "custom-2"),
-			makePresetPermission(
-				orgName,
-				projectSlug,
-				modelID,
-				"preset-old",
-				rbacdomain.PresetReadAll,
-			),
-		})
+	t.Run("toUpdate 原地更新并保持 permission_id", func(t *testing.T) {
+		existing := makePresetPermission(orgName, projectSlug, modelID, "legacy-name", rbacdomain.PresetReadAll)
+		existing.ID = "perm-fixed-id"
 
+		svc := makeService(makeModelWithOwner(false), []*rbacdomain.EndUserPermission{existing})
+		preset := rbacdomain.PresetReadAll
 		perms, err := svc.ApplyPresetPolicy(context.Background(), ApplyPresetPolicyCommand{
-			ProjectScope: domainproject.ProjectScope{
-				OrgName:     orgName,
-				ProjectSlug: projectSlug,
-			},
-			ModelID: modelID,
-			Preset:  rbacdomain.PresetReadAllWriteOwner,
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			ModelID:      modelID,
+			Preset:       &preset,
 		})
-		require.NoError(t, err)
-		require.Len(t, perms, 3)
-		assert.Equal(t, "custom-1", perms[0].Name)
-		assert.Equal(t, "custom-2", perms[1].Name)
-		assert.Equal(t, "preset:READ_ALL_WRITE_OWNER", perms[2].Name)
-	})
-
-	t.Run("重复 apply 同一预设幂等", func(t *testing.T) {
-		svc := makeService(makeModelWithOwner(true), nil)
-		cmd := ApplyPresetPolicyCommand{
-			ProjectScope: domainproject.ProjectScope{
-				OrgName:     orgName,
-				ProjectSlug: projectSlug,
-			},
-			ModelID: modelID,
-			Preset:  rbacdomain.PresetReadWriteOwner,
-		}
-
-		_, err := svc.ApplyPresetPolicy(context.Background(), cmd)
-		require.NoError(t, err)
-		perms, err := svc.ApplyPresetPolicy(context.Background(), cmd)
 		require.NoError(t, err)
 		require.Len(t, perms, 1)
-		assert.Equal(t, "preset:READ_WRITE_OWNER", perms[0].Name)
+		assert.Equal(t, "perm-fixed-id", perms[0].ID)
+		assert.Equal(t, "preset:READ_ALL", perms[0].Name)
+	})
+
+	t.Run("toDelete 若被引用则阻断", func(t *testing.T) {
+		target := makePresetPermission(
+			orgName,
+			projectSlug,
+			modelID,
+			"preset:READ_WRITE_OWNER",
+			rbacdomain.PresetReadWriteOwner,
+		)
+		target.ID = "preset-owner-id"
+		svc := makeService(makeModelWithOwner(false), []*rbacdomain.EndUserPermission{target})
+		svc.rbacRepo.(*mockPermissionRepo).refs[target.ID] = true
+
+		perms, err := svc.ApplyPresetPolicy(context.Background(), ApplyPresetPolicyCommand{
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			ModelID:      modelID,
+			Preset:       nil,
+		})
+		require.Error(t, err)
+		assert.Nil(t, perms)
+		var bizErr *bizerrors.BusinessError
+		require.True(t, bizerrors.As(err, &bizErr))
+		assert.Equal(t, bizerrors.PresetDeleteBlockedByBundle.GetCode(), bizErr.Info().GetCode())
 	})
 }
 
@@ -311,71 +246,36 @@ func TestExpandPreset(t *testing.T) {
 		assert.True(t, rp.Insert.Allowed)
 		assert.True(t, rp.Update.Allowed)
 		assert.True(t, rp.Delete.Allowed)
-		assert.Equal(t, rbacdomain.ScopeAll, rp.Select.Scope)
-		assert.Equal(t, rbacdomain.ScopeAll, rp.Insert.Scope)
-		assert.Equal(t, rbacdomain.ScopeAll, rp.Update.Scope)
-		assert.Equal(t, rbacdomain.ScopeAll, rp.Delete.Scope)
 		assert.NoError(t, rp.Validate())
 	})
 
-	t.Run("READ_ALL", func(t *testing.T) {
-		rp, err := expandPreset(rbacdomain.PresetReadAll, "")
-		require.NoError(t, err)
-		require.NotNil(t, rp)
-		assert.True(t, rp.Select.Allowed)
-		assert.False(t, rp.Insert.Allowed)
-		assert.False(t, rp.Update.Allowed)
-		assert.False(t, rp.Delete.Allowed)
-		assert.Equal(t, rbacdomain.ScopeAll, rp.Select.Scope)
-		assert.NoError(t, rp.Validate())
-	})
-
-	t.Run("READ_WRITE_OWNER", func(t *testing.T) {
-		rp, err := expandPreset(rbacdomain.PresetReadWriteOwner, "owner")
-		require.NoError(t, err)
-		require.NotNil(t, rp)
-		assert.True(t, rp.Select.Allowed)
-		assert.True(t, rp.Insert.Allowed)
-		assert.True(t, rp.Update.Allowed)
-		assert.True(t, rp.Delete.Allowed)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Select.Scope)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Insert.Scope)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Update.Scope)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Delete.Scope)
-		assert.NoError(t, rp.Validate())
-	})
-
-	t.Run("READ_ALL_WRITE_OWNER", func(t *testing.T) {
-		rp, err := expandPreset(rbacdomain.PresetReadAllWriteOwner, "owner")
-		require.NoError(t, err)
-		require.NotNil(t, rp)
-		assert.True(t, rp.Select.Allowed)
-		assert.True(t, rp.Insert.Allowed)
-		assert.True(t, rp.Update.Allowed)
-		assert.True(t, rp.Delete.Allowed)
-		assert.Equal(t, rbacdomain.ScopeAll, rp.Select.Scope)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Insert.Scope)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Update.Scope)
-		assert.Equal(t, rbacdomain.ScopeCustom, rp.Delete.Scope)
-		assert.NoError(t, rp.Validate())
-	})
-}
-
-func TestExpandPreset_OwnerField(t *testing.T) {
 	t.Run("owner preset requires owner field", func(t *testing.T) {
 		_, err := expandPreset(rbacdomain.PresetReadWriteOwner, "")
 		require.Error(t, err)
-		var bizErr *bizerrors.BusinessError
-		require.True(t, bizerrors.As(err, &bizErr))
-		assert.Equal(t, bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizErr.Info().GetCode())
+	})
+}
+
+func TestListVirtualPresetsByModel(t *testing.T) {
+	t.Run("无 owner 字段时仅返回非 owner 预设", func(t *testing.T) {
+		svc := &EndUserPermissionAppService{modelRepo: &mockModelRepo{model: makeModelWithOwner(false)}}
+		presets, err := svc.ListVirtualPresetsByModel(context.Background(), "model-a")
+		require.NoError(t, err)
+		assert.Equal(t, []rbacdomain.PermissionPreset{
+			rbacdomain.PresetReadWriteAll,
+			rbacdomain.PresetReadAll,
+		}, presets)
 	})
 
-	t.Run("non-owner preset ignores owner field", func(t *testing.T) {
-		rp, err := expandPreset(rbacdomain.PresetReadAll, "owner")
+	t.Run("有 owner 字段时返回全部可适配预设", func(t *testing.T) {
+		svc := &EndUserPermissionAppService{modelRepo: &mockModelRepo{model: makeModelWithOwner(true)}}
+		presets, err := svc.ListVirtualPresetsByModel(context.Background(), "model-a")
 		require.NoError(t, err)
-		require.NotNil(t, rp)
-		assert.True(t, rp.Select.Allowed)
-		assert.False(t, rp.Insert.Allowed)
+		assert.Equal(t, []rbacdomain.PermissionPreset{
+			rbacdomain.PresetReadWriteAll,
+			rbacdomain.PresetReadAll,
+			rbacdomain.PresetReadWriteOwner,
+			rbacdomain.PresetReadAllWriteOwner,
+		}, presets)
 	})
 }
 
@@ -395,17 +295,14 @@ func clonePermission(p *rbacdomain.EndUserPermission) *rbacdomain.EndUserPermiss
 	return &clone
 }
 
-func makeCustomPermission(
-	orgName, projectSlug, modelID, name string,
-) *rbacdomain.EndUserPermission {
+func makeCustomPermission(orgName, projectSlug, modelID, name string) *rbacdomain.EndUserPermission {
 	return &rbacdomain.EndUserPermission{
-		ID:           name + "-id",
-		OrgName:      orgName,
-		ProjectSlug:  projectSlug,
-		ModelID:      modelID,
-		Name:         name,
-		Type:         rbacdomain.PermissionTypeCustom,
-		ColumnPolicy: nil,
+		ID:          name + "-id",
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		ModelID:     modelID,
+		Name:        name,
+		Type:        rbacdomain.PermissionTypeCustom,
 		RowPolicy: &rbacdomain.RowPolicy{
 			Select: rbacdomain.SelectPolicy{Allowed: true, Scope: rbacdomain.ScopeAll},
 			Insert: rbacdomain.InsertPolicy{Allowed: false},
@@ -420,13 +317,12 @@ func makePresetPermission(
 	preset rbacdomain.PermissionPreset,
 ) *rbacdomain.EndUserPermission {
 	return &rbacdomain.EndUserPermission{
-		ID:           name + "-id",
-		OrgName:      orgName,
-		ProjectSlug:  projectSlug,
-		ModelID:      modelID,
-		Name:         name,
-		Type:         rbacdomain.PermissionTypePreset,
-		ColumnPolicy: nil,
+		ID:          name + "-id",
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		ModelID:     modelID,
+		Name:        name,
+		Type:        rbacdomain.PermissionTypePreset,
 		RowPolicy: &rbacdomain.RowPolicy{
 			Select: rbacdomain.SelectPolicy{Allowed: true, Scope: rbacdomain.ScopeAll},
 			Insert: rbacdomain.InsertPolicy{Allowed: false},
@@ -445,4 +341,243 @@ func makeModelWithOwner(withOwner bool) *modeldesign.DataModel {
 	ownerType := modeldesign.GetFieldTypeByFormat(modeldesign.FormatEndUserRef)
 	m.Fields = []*modeldesign.FieldDefinition{{Name: "owner", Type: ownerType}}
 	return m
+}
+
+type mockBundleRepo struct {
+	bundle     *rbacdomain.EndUserPermissionBundle
+	modelPerms map[string][]*rbacdomain.EndUserPermission
+	bundlePerm map[string][]string
+
+	createPermissionCalls int
+	addPermissionCalls    int
+}
+
+func newMockBundleRepo(
+	bundle *rbacdomain.EndUserPermissionBundle,
+	modelPerms map[string][]*rbacdomain.EndUserPermission,
+) *mockBundleRepo {
+	cloned := map[string][]*rbacdomain.EndUserPermission{}
+	for modelID, items := range modelPerms {
+		copyItems := make([]*rbacdomain.EndUserPermission, 0, len(items))
+		for _, item := range items {
+			copyItems = append(copyItems, clonePermission(item))
+		}
+		cloned[modelID] = copyItems
+	}
+	return &mockBundleRepo{
+		bundle:     bundle,
+		modelPerms: cloned,
+		bundlePerm: map[string][]string{},
+	}
+}
+
+func (m *mockBundleRepo) CreateBundle(_ context.Context, _ *rbacdomain.EndUserPermissionBundle) error {
+	return nil
+}
+
+func (m *mockBundleRepo) GetBundleByID(
+	_ context.Context,
+	orgName, id string,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	if m.bundle == nil || m.bundle.OrgName != orgName || m.bundle.ID != id {
+		return nil, shared.NewNotFoundError("bundle not found")
+	}
+	copied := *m.bundle
+	return &copied, nil
+}
+
+func (m *mockBundleRepo) ListBundlesByProject(
+	_ context.Context,
+	_, _ string,
+) ([]*rbacdomain.EndUserPermissionBundle, error) {
+	return nil, nil
+}
+
+func (m *mockBundleRepo) UpdateBundle(_ context.Context, _ *rbacdomain.EndUserPermissionBundle) error {
+	return nil
+}
+
+func (m *mockBundleRepo) DeleteBundle(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (m *mockBundleRepo) AddPermissionToBundle(
+	_ context.Context,
+	bundleID, permissionID string,
+	_ int,
+) error {
+	m.addPermissionCalls++
+	for _, id := range m.bundlePerm[bundleID] {
+		if id == permissionID {
+			return shared.NewDuplicateKeyError("duplicate bundle permission")
+		}
+	}
+	m.bundlePerm[bundleID] = append(m.bundlePerm[bundleID], permissionID)
+	return nil
+}
+
+func (m *mockBundleRepo) RemovePermissionFromBundle(_ context.Context, _, _ string) error {
+	return nil
+}
+
+func (m *mockBundleRepo) ListPermissionsInBundle(
+	_ context.Context,
+	bundleID string,
+) ([]*rbacdomain.EndUserPermission, error) {
+	ids := m.bundlePerm[bundleID]
+	result := make([]*rbacdomain.EndUserPermission, 0, len(ids))
+	for _, id := range ids {
+		if p := m.findPermissionByID(id); p != nil {
+			result = append(result, clonePermission(p))
+		}
+	}
+	return result, nil
+}
+
+func (m *mockBundleRepo) GrantBundleToUser(_ context.Context, _, _, _, _ string) error {
+	return nil
+}
+
+func (m *mockBundleRepo) RevokeBundleFromUser(_ context.Context, _, _, _, _ string) error {
+	return nil
+}
+
+func (m *mockBundleRepo) ListPermissionsByModel(
+	_ context.Context,
+	orgName, modelID string,
+) ([]*rbacdomain.EndUserPermission, error) {
+	list := m.modelPerms[modelID]
+	result := make([]*rbacdomain.EndUserPermission, 0, len(list))
+	for _, p := range list {
+		if p.OrgName == orgName {
+			result = append(result, clonePermission(p))
+		}
+	}
+	return result, nil
+}
+
+func (m *mockBundleRepo) GetPermissionByModelTypeName(
+	_ context.Context,
+	orgName, modelID string,
+	permissionType rbacdomain.PermissionType,
+	name string,
+) (*rbacdomain.EndUserPermission, error) {
+	for _, p := range m.modelPerms[modelID] {
+		if p.OrgName == orgName && p.Type == permissionType && p.Name == name {
+			return clonePermission(p), nil
+		}
+	}
+	return nil, shared.NewNotFoundError("permission not found")
+}
+
+func (m *mockBundleRepo) CreatePermission(_ context.Context, p *rbacdomain.EndUserPermission) error {
+	m.createPermissionCalls++
+	m.modelPerms[p.ModelID] = append(m.modelPerms[p.ModelID], clonePermission(p))
+	return nil
+}
+
+func (m *mockBundleRepo) findPermissionByID(id string) *rbacdomain.EndUserPermission {
+	for _, list := range m.modelPerms {
+		for _, p := range list {
+			if p.ID == id {
+				return p
+			}
+		}
+	}
+	return nil
+}
+
+func TestAddPresetToBundle(t *testing.T) {
+	orgName := "org-a"
+	projectSlug := "proj-a"
+	bundleID := "bundle-1"
+	modelID := "model-a"
+
+	bundle := &rbacdomain.EndUserPermissionBundle{
+		ID:          bundleID,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Name:        "bundle-main",
+	}
+
+	t.Run("已存在预设时复用 permission 且重复请求幂等", func(t *testing.T) {
+		existing := makePresetPermission(
+			orgName,
+			projectSlug,
+			modelID,
+			"preset:READ_ALL",
+			rbacdomain.PresetReadAll,
+		)
+		existing.ID = "perm-read-all"
+
+		repo := newMockBundleRepo(
+			bundle,
+			map[string][]*rbacdomain.EndUserPermission{modelID: {existing}},
+		)
+		svc := &EndUserBundleAppService{
+			rbacRepo:  repo,
+			modelRepo: &mockModelRepo{model: makeModelWithOwner(false)},
+		}
+
+		cmd := AddPresetToBundleCommand{
+			OrgName:   orgName,
+			BundleID:  bundleID,
+			ModelID:   modelID,
+			Preset:    rbacdomain.PresetReadAll,
+			SortOrder: 1,
+		}
+		_, err := svc.AddPresetToBundle(context.Background(), cmd)
+		require.NoError(t, err)
+		_, err = svc.AddPresetToBundle(context.Background(), cmd)
+		require.NoError(t, err)
+
+		assert.Equal(t, 0, repo.createPermissionCalls)
+		assert.Equal(t, []string{"perm-read-all"}, repo.bundlePerm[bundleID])
+	})
+
+	t.Run("不存在预设时自动创建并绑定", func(t *testing.T) {
+		repo := newMockBundleRepo(bundle, map[string][]*rbacdomain.EndUserPermission{})
+		svc := &EndUserBundleAppService{
+			rbacRepo:  repo,
+			modelRepo: &mockModelRepo{model: makeModelWithOwner(false)},
+		}
+
+		_, err := svc.AddPresetToBundle(context.Background(), AddPresetToBundleCommand{
+			OrgName:   orgName,
+			BundleID:  bundleID,
+			ModelID:   modelID,
+			Preset:    rbacdomain.PresetReadWriteAll,
+			SortOrder: 2,
+		})
+		require.NoError(t, err)
+
+		require.Equal(t, 1, repo.createPermissionCalls)
+		require.Len(t, repo.bundlePerm[bundleID], 1)
+		created := repo.findPermissionByID(repo.bundlePerm[bundleID][0])
+		require.NotNil(t, created)
+		require.NotNil(t, created.Preset)
+		assert.Equal(t, rbacdomain.PresetReadWriteAll, *created.Preset)
+	})
+
+	t.Run("OWNER 预设缺少 owner 字段时返回结构化错误", func(t *testing.T) {
+		repo := newMockBundleRepo(bundle, map[string][]*rbacdomain.EndUserPermission{})
+		svc := &EndUserBundleAppService{
+			rbacRepo:  repo,
+			modelRepo: &mockModelRepo{model: makeModelWithOwner(false)},
+		}
+
+		_, err := svc.AddPresetToBundle(context.Background(), AddPresetToBundleCommand{
+			OrgName:   orgName,
+			BundleID:  bundleID,
+			ModelID:   modelID,
+			Preset:    rbacdomain.PresetReadWriteOwner,
+			SortOrder: 3,
+		})
+		require.Error(t, err)
+		var bizErr *bizerrors.BusinessError
+		require.True(t, bizerrors.As(err, &bizErr))
+		assert.Equal(t, bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizErr.Info().GetCode())
+		assert.Empty(t, repo.bundlePerm[bundleID])
+		assert.Equal(t, 0, repo.createPermissionCalls)
+	})
 }

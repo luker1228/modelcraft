@@ -20,6 +20,7 @@ interface ModelRecordInsertMenuProps {
   existingFieldNames: string[]
   onInsertFieldSuccess: () => void
   canInsertField?: boolean
+  canCreateRecord?: boolean
 }
 
 export function ModelRecordInsertMenu({
@@ -31,6 +32,7 @@ export function ModelRecordInsertMenu({
   existingFieldNames,
   onInsertFieldSuccess,
   canInsertField = true,
+  canCreateRecord = true,
 }: ModelRecordInsertMenuProps) {
   const [insertColumnOpen, setInsertColumnOpen] = useState(false)
 
@@ -50,7 +52,10 @@ export function ModelRecordInsertMenu({
         <DropdownMenuContent align="start" className="w-40 border border-slate-200 shadow-lg">
           <DropdownMenuItem
             onClick={onCreateRecord}
-            className="cursor-pointer text-xs focus:bg-selected focus:text-foreground"
+            className={`text-xs focus:bg-selected ${
+              canCreateRecord ? 'cursor-pointer focus:text-foreground' : 'cursor-not-allowed text-muted-foreground/50 focus:text-muted-foreground/50'
+            }`}
+            disabled={!canCreateRecord}
           >
             <Plus className="mr-2 size-3.5" />
             插入数据

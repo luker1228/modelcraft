@@ -14,6 +14,10 @@ type AddEndUserPermissionToBundleError interface {
 	IsAddEndUserPermissionToBundleError()
 }
 
+type AddEndUserPresetToBundleError interface {
+	IsAddEndUserPresetToBundleError()
+}
+
 type AddFieldsError interface {
 	IsAddFieldsError()
 }
@@ -253,6 +257,18 @@ type AddEndUserPermissionToBundlePayload struct {
 	Error  AddEndUserPermissionToBundleError `json:"error,omitempty"`
 }
 
+type AddEndUserPresetToBundleInput struct {
+	BundleID  string                  `json:"bundleId"`
+	ModelID   string                  `json:"modelId"`
+	Preset    EndUserPermissionPreset `json:"preset"`
+	SortOrder *int32                  `json:"sortOrder,omitempty"`
+}
+
+type AddEndUserPresetToBundlePayload struct {
+	Bundle *EndUserPermissionBundle      `json:"bundle,omitempty"`
+	Error  AddEndUserPresetToBundleError `json:"error,omitempty"`
+}
+
 type AddFieldInput struct {
 	Name             string                 `json:"name"`
 	Title            string                 `json:"title"`
@@ -281,8 +297,9 @@ type AddFieldsPayload struct {
 }
 
 type ApplyEndUserPresetPolicyInput struct {
-	ModelID string                  `json:"modelId"`
-	Preset  EndUserPermissionPreset `json:"preset"`
+	ModelID string `json:"modelId"`
+	// 为空时执行模型级 reconcile（同步模型全部可适配预设）
+	Preset *EndUserPermissionPreset `json:"preset,omitempty"`
 }
 
 type ApplyEndUserPresetPolicyPayload struct {
@@ -862,6 +879,8 @@ func (EndUserPermissionBundleNotFound) IsDeleteEndUserPermissionBundleError() {}
 
 func (EndUserPermissionBundleNotFound) IsAddEndUserPermissionToBundleError() {}
 
+func (EndUserPermissionBundleNotFound) IsAddEndUserPresetToBundleError() {}
+
 func (EndUserPermissionBundleNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
 func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserRoleError() {}
@@ -1322,6 +1341,8 @@ func (InvalidInput) IsUpdateEndUserPermissionBundleError() {}
 
 func (InvalidInput) IsAddEndUserPermissionToBundleError() {}
 
+func (InvalidInput) IsAddEndUserPresetToBundleError() {}
+
 func (InvalidInput) IsCreateEndUserRoleError() {}
 
 func (InvalidInput) IsUpdateEndUserRoleError() {}
@@ -1419,6 +1440,7 @@ type Model struct {
 	Description  string         `json:"description"`
 	DatabaseName string         `json:"databaseName"`
 	StorageType  string         `json:"storageType"`
+	CreatedVia   string         `json:"createdVia"`
 	DisplayField *string        `json:"displayField,omitempty"`
 	Fields       []*Field       `json:"fields"`
 	Group        *ModelGroup    `json:"group"`
@@ -1510,6 +1532,8 @@ func (ModelNotFound) IsCreateEndUserPermissionError() {}
 
 func (ModelNotFound) IsApplyEndUserPresetPolicyError() {}
 
+func (ModelNotFound) IsAddEndUserPresetToBundleError() {}
+
 func (ModelNotFound) IsGetEffectivePermissionsError() {}
 
 func (ModelNotFound) IsSetModelRLSPolicyError() {}
@@ -1574,6 +1598,17 @@ type PageInfo struct {
 	EndCursor       *string `json:"endCursor,omitempty"`
 }
 
+type PresetDeleteBlockedByBundle struct {
+	// reconcile 删除某预设时，发现该权限点仍被权限包引用
+	Message    string  `json:"message"`
+	Suggestion *string `json:"suggestion,omitempty"`
+}
+
+func (PresetDeleteBlockedByBundle) IsError()                {}
+func (this PresetDeleteBlockedByBundle) GetMessage() string { return this.Message }
+
+func (PresetDeleteBlockedByBundle) IsApplyEndUserPresetPolicyError() {}
+
 type PresetRequiresOwnerField struct {
 	// 选择的预设依赖 END_USER_REF 字段，但模型中不存在该字段
 	Message    string                  `json:"message"`
@@ -1585,6 +1620,8 @@ func (PresetRequiresOwnerField) IsError()                {}
 func (this PresetRequiresOwnerField) GetMessage() string { return this.Message }
 
 func (PresetRequiresOwnerField) IsApplyEndUserPresetPolicyError() {}
+
+func (PresetRequiresOwnerField) IsAddEndUserPresetToBundleError() {}
 
 type ProjectAuthSchema struct {
 	// 认证变量列表（不含内置 uid）
@@ -1657,6 +1694,8 @@ func (ProjectNotFound) IsUpdateEndUserPermissionBundleError() {}
 func (ProjectNotFound) IsDeleteEndUserPermissionBundleError() {}
 
 func (ProjectNotFound) IsAddEndUserPermissionToBundleError() {}
+
+func (ProjectNotFound) IsAddEndUserPresetToBundleError() {}
 
 func (ProjectNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
@@ -2324,7 +2363,7 @@ func (e DbTableStatus) MarshalJSON() ([]byte, error) {
 
 // 权限点预设策略类型。
 //
-// 应用预设时会替换该模型下所有 preset != null 的权限点，
+// 应用预设时执行模型级差异同步（reconcile），仅处理 preset != null 的权限点，
 // preset = null（手动创建）的权限点不受影响。
 //
 // READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）

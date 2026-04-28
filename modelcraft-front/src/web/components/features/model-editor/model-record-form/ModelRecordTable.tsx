@@ -54,6 +54,9 @@ interface ModelRecordTableProps {
   onToggleFieldDeprecated?: (fieldInfo: ModelRecordTableFieldInfo) => void
   onDeleteField?: (fieldInfo: ModelRecordTableFieldInfo) => void
   canManageFieldLifecycle?: boolean
+  canCreateRecord?: boolean
+  canEditRecord?: boolean
+  canDeleteRecord?: boolean
 }
 
 type PairRole = 'label' | 'code'
@@ -78,6 +81,9 @@ export function ModelRecordTable({
   onToggleFieldDeprecated,
   onDeleteField,
   canManageFieldLifecycle = true,
+  canCreateRecord = true,
+  canEditRecord = true,
+  canDeleteRecord = true,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
 
@@ -394,8 +400,9 @@ export function ModelRecordTable({
                       <p className="mb-3 text-sm text-muted-foreground">暂无数据</p>
                       <Button
                         size="sm"
-                        className="border-0 bg-primary text-white transition-colors duration-150 hover:bg-primary/90"
+                        className="border-0 bg-primary text-white transition-colors duration-150 hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
                         onClick={onCreate}
+                        disabled={!canCreateRecord}
                       >
                         <Plus className="mr-1.5 size-3.5" />
                         添加第一条数据
@@ -509,27 +516,30 @@ export function ModelRecordTable({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                             onClick={() => onManageRelations?.(rowId)}
-                            title="关联管理"
+                            title={canEditRecord ? '关联管理' : '托管模型仅支持查看'}
+                            disabled={!canEditRecord}
                           >
                             <Link2 className="size-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
                             onClick={() => onEdit(rowId)}
-                            title="编辑"
+                            title={canEditRecord ? '编辑' : '托管模型仅支持查看'}
+                            disabled={!canEditRecord}
                           >
                             <Edit className="size-3.5" />
                           </Button>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
                             onClick={() => onDelete(rowId)}
-                            title="删除"
+                            title={canDeleteRecord ? '删除' : '托管模型仅支持查看'}
+                            disabled={!canDeleteRecord}
                           >
                             <Trash2 className="size-3.5" />
                           </Button>

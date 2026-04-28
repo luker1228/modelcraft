@@ -18,6 +18,17 @@ type EndUserPermissionRepository interface {
 	// ListPermissionsByModel 列出指定 Model 下的所有权限点（org scoped）
 	ListPermissionsByModel(ctx context.Context, orgName, modelID string) ([]*EndUserPermission, error)
 
+	// ListPresetPermissionsByModel 列出指定 Model 下的 PRESET 权限点（org scoped）
+	ListPresetPermissionsByModel(ctx context.Context, orgName, modelID string) ([]*EndUserPermission, error)
+
+	// GetPermissionByModelTypeName 通过 (model_id,type,name) 定位权限点（org scoped）
+	GetPermissionByModelTypeName(
+		ctx context.Context,
+		orgName, modelID string,
+		permissionType PermissionType,
+		name string,
+	) (*EndUserPermission, error)
+
 	// UpdatePermission 更新权限点 name/description/columnPolicy
 	// rowScope 和 action 不允许更新（需删除重建，由 App 层保证）
 	UpdatePermission(ctx context.Context, p *EndUserPermission) error
@@ -28,6 +39,13 @@ type EndUserPermissionRepository interface {
 
 	// DeletePresetPermissionsByModel 删除指定 model 下的全部预设权限点（type=PRESET）
 	DeletePresetPermissionsByModel(ctx context.Context, orgName, modelID string) error
+
+	// UpdatePresetPermission 原地更新预设权限点（name/description/rowPolicy/preset）
+	// 用于 reconcile 流程中的 toUpdate，保持 permission_id 稳定
+	UpdatePresetPermission(ctx context.Context, p *EndUserPermission) error
+
+	// IsPermissionReferencedByBundle 检查权限点是否被任何权限包引用
+	IsPermissionReferencedByBundle(ctx context.Context, permissionID string) (bool, error)
 
 	// ─── 权限包 ────────────────────────────────────────────────
 

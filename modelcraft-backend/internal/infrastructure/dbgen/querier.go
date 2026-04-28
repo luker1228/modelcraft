@@ -87,6 +87,7 @@ type Querier interface {
 	GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDatabaseClusterByProjectKeyParams) (DatabaseCluster, error)
 	GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundleByIDParams) (EndUserPermissionBundle, error)
 	GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPermissionByIDParams) (EndUserPermission, error)
+	GetEndUserPermissionByModelTypeName(ctx context.Context, arg GetEndUserPermissionByModelTypeNameParams) (EndUserPermission, error)
 	GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByIDParams) (EndUserRole, error)
 	GetEnumByID(ctx context.Context, id string) (ModelEnum, error)
 	GetEnumByName(ctx context.Context, arg GetEnumByNameParams) (ModelEnum, error)
@@ -136,6 +137,7 @@ type Querier interface {
 	GrantBundleToUser(ctx context.Context, arg GrantBundleToUserParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
+	IsPermissionReferencedByBundle(ctx context.Context, permissionID string) (bool, error)
 	ListBundlesByRole(ctx context.Context, roleID string) ([]EndUserPermissionBundle, error)
 	ListBundlesByUser(ctx context.Context, arg ListBundlesByUserParams) ([]EndUserPermissionBundle, error)
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
@@ -156,6 +158,7 @@ type Querier interface {
 	ListPermissionsByRole(ctx context.Context, roleID int64) ([]RolePermission, error)
 	ListPermissionsByRoleAndOrg(ctx context.Context, arg ListPermissionsByRoleAndOrgParams) ([]RolePermission, error)
 	ListPermissionsInBundle(ctx context.Context, bundleID string) ([]EndUserPermission, error)
+	ListPresetPermissionsByModel(ctx context.Context, arg ListPresetPermissionsByModelParams) ([]EndUserPermission, error)
 	ListProjects(ctx context.Context) ([]Project, error)
 	ListProjectsByOrg(ctx context.Context, orgName string) ([]Project, error)
 	ListRoleUsers(ctx context.Context, arg ListRoleUsersParams) ([]UserRole, error)
@@ -173,6 +176,7 @@ type Querier interface {
 	UpdateDatabaseClusterWithVersion(ctx context.Context, arg UpdateDatabaseClusterWithVersionParams) (sql.Result, error)
 	UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBundleParams) (sql.Result, error)
 	UpdateEndUserPermission(ctx context.Context, arg UpdateEndUserPermissionParams) (sql.Result, error)
+	UpdateEndUserPresetPermission(ctx context.Context, arg UpdateEndUserPresetPermissionParams) (sql.Result, error)
 	// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
 	UpdateEndUserRole(ctx context.Context, arg UpdateEndUserRoleParams) (sql.Result, error)
 	UpdateEnum(ctx context.Context, arg UpdateEnumParams) error

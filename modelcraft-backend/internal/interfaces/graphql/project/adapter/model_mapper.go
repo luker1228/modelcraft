@@ -45,6 +45,7 @@ func (m *modelMapper) ConvertToGraphQLModelWithActualSchema(
 		Description:  modelEntity.Description,
 		DatabaseName: modelEntity.DatabaseName,
 		StorageType:  modelEntity.StorageType,
+		CreatedVia:   string(modelEntity.CreatedVia),
 		DisplayField: modelEntity.DisplayField,
 		Fields:       graphqlFields,
 		Group:        GroupMapper.GroupPlaceholder(modelEntity.GroupID),

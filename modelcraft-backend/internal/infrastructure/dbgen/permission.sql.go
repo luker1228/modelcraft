@@ -120,6 +120,61 @@ func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPe
 	return i, err
 }
 
+const getEndUserPermissionByModelTypeName = `-- name: GetEndUserPermissionByModelTypeName :one
+SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+  AND type = ?
+  AND name = ?
+LIMIT 1
+`
+
+type GetEndUserPermissionByModelTypeNameParams struct {
+	ModelID string
+	OrgName string
+	Type    EndUserPermissionsType
+	Name    string
+}
+
+func (q *Queries) GetEndUserPermissionByModelTypeName(ctx context.Context, arg GetEndUserPermissionByModelTypeNameParams) (EndUserPermission, error) {
+	row := q.db.QueryRowContext(ctx, getEndUserPermissionByModelTypeName,
+		arg.ModelID,
+		arg.OrgName,
+		arg.Type,
+		arg.Name,
+	)
+	var i EndUserPermission
+	err := row.Scan(
+		&i.ID,
+		&i.OrgName,
+		&i.ProjectSlug,
+		&i.ModelID,
+		&i.Name,
+		&i.Description,
+		&i.Type,
+		&i.ColumnPolicy,
+		&i.RowPolicy,
+		&i.Preset,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const isPermissionReferencedByBundle = `-- name: IsPermissionReferencedByBundle :one
+SELECT COUNT(*) > 0 AS referenced
+FROM end_user_bundle_permissions
+WHERE permission_id = ?
+`
+
+func (q *Queries) IsPermissionReferencedByBundle(ctx context.Context, permissionID string) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isPermissionReferencedByBundle, permissionID)
+	var referenced bool
+	err := row.Scan(&referenced)
+	return referenced, err
+}
+
 const listEndUserPermissionsByModel = `-- name: ListEndUserPermissionsByModel :many
 SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
 FROM end_user_permissions
@@ -218,6 +273,56 @@ func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListE
 	return items, nil
 }
 
+const listPresetPermissionsByModel = `-- name: ListPresetPermissionsByModel :many
+SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+  AND type = 'PRESET'
+ORDER BY created_at
+`
+
+type ListPresetPermissionsByModelParams struct {
+	ModelID string
+	OrgName string
+}
+
+func (q *Queries) ListPresetPermissionsByModel(ctx context.Context, arg ListPresetPermissionsByModelParams) ([]EndUserPermission, error) {
+	rows, err := q.db.QueryContext(ctx, listPresetPermissionsByModel, arg.ModelID, arg.OrgName)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EndUserPermission
+	for rows.Next() {
+		var i EndUserPermission
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgName,
+			&i.ProjectSlug,
+			&i.ModelID,
+			&i.Name,
+			&i.Description,
+			&i.Type,
+			&i.ColumnPolicy,
+			&i.RowPolicy,
+			&i.Preset,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateEndUserPermission = `-- name: UpdateEndUserPermission :execresult
 UPDATE end_user_permissions
 SET name = ?,
@@ -241,6 +346,37 @@ func (q *Queries) UpdateEndUserPermission(ctx context.Context, arg UpdateEndUser
 		arg.Name,
 		arg.Description,
 		arg.ColumnPolicy,
+		arg.ID,
+		arg.OrgName,
+	)
+}
+
+const updateEndUserPresetPermission = `-- name: UpdateEndUserPresetPermission :execresult
+UPDATE end_user_permissions
+SET name = ?,
+    description = ?,
+    row_policy = ?,
+    preset = ?,
+    updated_at = NOW(3)
+WHERE id = ?
+  AND org_name = ?
+`
+
+type UpdateEndUserPresetPermissionParams struct {
+	Name        string
+	Description sql.NullString
+	RowPolicy   *json.RawMessage
+	Preset      NullEndUserPermissionsPreset
+	ID          string
+	OrgName     string
+}
+
+func (q *Queries) UpdateEndUserPresetPermission(ctx context.Context, arg UpdateEndUserPresetPermissionParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, updateEndUserPresetPermission,
+		arg.Name,
+		arg.Description,
+		arg.RowPolicy,
+		arg.Preset,
 		arg.ID,
 		arg.OrgName,
 	)

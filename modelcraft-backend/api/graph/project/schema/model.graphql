@@ -64,6 +64,7 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
+  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入(托管)
   displayField: String  # 用于 runtime _label 解析的字段名
   fields: [Field!]!
   group: ModelGroup!

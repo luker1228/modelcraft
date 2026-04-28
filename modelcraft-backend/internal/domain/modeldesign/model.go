@@ -154,6 +154,15 @@ func (m *DataModel) IsProtectedSystemModel() bool {
 	return m.ModelName == "end_user_users" || m.ModelName == "end_user_accounts"
 }
 
+// IsManagedReadOnlyModel returns true when model is imported from external schema
+// and should be treated as managed read-only model.
+func (m *DataModel) IsManagedReadOnlyModel() bool {
+	if m == nil {
+		return false
+	}
+	return m.CreatedVia == ModelCreationSourceImported
+}
+
 // GetModelLocator 获取模型定位器
 // 返回包含模型名称、集群名称和数据库名称的定位器实例
 func (m *DataModel) GetModelLocator() *ModelLocator {

@@ -187,6 +187,46 @@ func (r *SqlEndUserPermissionRepository) ListPermissionsByModel(
 	return perms, nil
 }
 
+func (r *SqlEndUserPermissionRepository) ListPresetPermissionsByModel(
+	ctx context.Context,
+	orgName, modelID string,
+) ([]*rbac.EndUserPermission, error) {
+	rows, err := r.q.ListPresetPermissionsByModel(ctx, dbgen.ListPresetPermissionsByModelParams{
+		ModelID: modelID,
+		OrgName: orgName,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	perms := make([]*rbac.EndUserPermission, 0, len(rows))
+	for _, row := range rows {
+		perms = append(perms, toDomainPermission(row))
+	}
+	return perms, nil
+}
+
+func (r *SqlEndUserPermissionRepository) GetPermissionByModelTypeName(
+	ctx context.Context,
+	orgName, modelID string,
+	permissionType rbac.PermissionType,
+	name string,
+) (*rbac.EndUserPermission, error) {
+	row, err := r.q.GetEndUserPermissionByModelTypeName(ctx, dbgen.GetEndUserPermissionByModelTypeNameParams{
+		ModelID: modelID,
+		OrgName: orgName,
+		Type:    dbgen.EndUserPermissionsType(permissionType),
+		Name:    name,
+	})
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("end user permission not found")
+		}
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	return toDomainPermission(row), nil
+}
+
 func (r *SqlEndUserPermissionRepository) UpdatePermission(ctx context.Context, p *rbac.EndUserPermission) error {
 	params := dbgen.UpdateEndUserPermissionParams{
 		Name:         p.Name,
@@ -220,6 +260,41 @@ func (r *SqlEndUserPermissionRepository) DeletePermission(ctx context.Context, o
 		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "end user permission not found: "+id)
 	}
 	return nil
+}
+
+func (r *SqlEndUserPermissionRepository) UpdatePresetPermission(
+	ctx context.Context,
+	p *rbac.EndUserPermission,
+) error {
+	params := dbgen.UpdateEndUserPresetPermissionParams{
+		Name:        p.Name,
+		Description: sqlerr.PtrToNullStr(p.Description),
+		RowPolicy:   toDBRowPolicy(p.RowPolicy),
+		Preset:      toDBPreset(p.Preset),
+		ID:          p.ID,
+		OrgName:     p.OrgName,
+	}
+
+	result, err := r.q.UpdateEndUserPresetPermission(ctx, params)
+	if err != nil {
+		return sqlerr.WrapSQLError(err)
+	}
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "preset permission not found: "+p.ID)
+	}
+	return nil
+}
+
+func (r *SqlEndUserPermissionRepository) IsPermissionReferencedByBundle(
+	ctx context.Context,
+	permissionID string,
+) (bool, error) {
+	referenced, err := r.q.IsPermissionReferencedByBundle(ctx, permissionID)
+	if err != nil {
+		return false, sqlerr.WrapSQLError(err)
+	}
+	return referenced, nil
 }
 
 func (r *SqlEndUserPermissionRepository) DeletePresetPermissionsByModel(
