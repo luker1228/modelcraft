@@ -1,8 +1,10 @@
 -- name: CreateEndUserPermission :exec
-INSERT INTO end_user_permissions (
+INSERT INTO end_user_data_permissions (
   id,
   org_name,
   project_slug,
+  database_name,
+  model_name,
   model_id,
   name,
   description,
@@ -11,31 +13,31 @@ INSERT INTO end_user_permissions (
   row_policy,
   preset
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetEndUserPermissionByID :one
 SELECT *
-FROM end_user_permissions
+FROM end_user_data_permissions
 WHERE id = ?
   AND org_name = ?;
 
 -- name: ListEndUserPermissionsByProject :many
 SELECT *
-FROM end_user_permissions
+FROM end_user_data_permissions
 WHERE org_name = ?
   AND project_slug = ?
 ORDER BY created_at;
 
 -- name: ListEndUserPermissionsByModel :many
 SELECT *
-FROM end_user_permissions
+FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
 ORDER BY created_at;
 
 -- name: ListPresetPermissionsByModel :many
 SELECT *
-FROM end_user_permissions
+FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = 'PRESET'
@@ -43,7 +45,7 @@ ORDER BY created_at;
 
 -- name: GetEndUserPermissionByModelTypeName :one
 SELECT *
-FROM end_user_permissions
+FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = ?
@@ -51,7 +53,7 @@ WHERE model_id = ?
 LIMIT 1;
 
 -- name: UpdateEndUserPermission :execresult
-UPDATE end_user_permissions
+UPDATE end_user_data_permissions
 SET name = ?,
     description = ?,
     column_policy = ?,
@@ -60,18 +62,18 @@ WHERE id = ?
   AND org_name = ?;
 
 -- name: DeleteEndUserPermission :execresult
-DELETE FROM end_user_permissions
+DELETE FROM end_user_data_permissions
 WHERE id = ?
   AND org_name = ?;
 
 -- name: DeleteEndUserPermissionsByModelAndType :execresult
-DELETE FROM end_user_permissions
+DELETE FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = ?;
 
 -- name: UpdateEndUserPresetPermission :execresult
-UPDATE end_user_permissions
+UPDATE end_user_data_permissions
 SET name = ?,
     description = ?,
     row_policy = ?,

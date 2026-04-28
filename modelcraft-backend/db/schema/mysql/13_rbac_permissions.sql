@@ -13,13 +13,15 @@ ALTER TABLE `end_user_roles`
   ADD INDEX `idx_end_user_roles_implicit` (`is_implicit`);
 
 -- -------------------------------------------------------------
--- 1. end_user_permissions — 权限点
+-- 1. end_user_data_permissions — 权限点
 --    一行 = 一条对某模型的行列级访问策略
 -- -------------------------------------------------------------
-CREATE TABLE `end_user_permissions` (
+CREATE TABLE `end_user_data_permissions` (
   `id`            VARCHAR(36)  NOT NULL                    COMMENT '权限点 UUID',
   `org_name`      VARCHAR(64)  NOT NULL                    COMMENT '所属组织（冗余，不做 FK）',
   `project_slug`  VARCHAR(64)  NOT NULL                    COMMENT '所属项目（冗余，不做 FK）',
+  `database_name` VARCHAR(128) NULL                        COMMENT '数据源名称（可空，预留按数据源授权能力）',
+  `model_name`    VARCHAR(128) NULL                        COMMENT '模型名称（可空，预留按模型名授权能力）',
   `model_id`      VARCHAR(36)  NOT NULL                    COMMENT '关联模型 ID，FK → models.id',
   `name`          VARCHAR(128) NOT NULL                    COMMENT '权限点名称，人类可读',
   `description`   TEXT         NULL                        COMMENT '权限点描述',
@@ -120,7 +122,7 @@ CREATE TABLE `end_user_permission_bundles` (
 CREATE TABLE `end_user_bundle_permissions` (
   `id`             VARCHAR(36) NOT NULL                    COMMENT 'UUID',
   `bundle_id`      VARCHAR(36) NOT NULL                    COMMENT '权限包 ID，FK → end_user_permission_bundles.id',
-  `permission_id`  VARCHAR(36) NOT NULL                    COMMENT '权限点 ID，FK → end_user_permissions.id',
+  `permission_id`  VARCHAR(36) NOT NULL                    COMMENT '权限点 ID，FK → end_user_data_permissions.id',
   `sort_order`     INT         NOT NULL DEFAULT 0          COMMENT '显示排序权重（ASC）',
   `created_at`     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
@@ -133,7 +135,7 @@ CREATE TABLE `end_user_bundle_permissions` (
     FOREIGN KEY (`bundle_id`) REFERENCES `end_user_permission_bundles` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_bundle_permissions_permission`
-    FOREIGN KEY (`permission_id`) REFERENCES `end_user_permissions` (`id`)
+    FOREIGN KEY (`permission_id`) REFERENCES `end_user_data_permissions` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='权限包-权限点 有序中间表';

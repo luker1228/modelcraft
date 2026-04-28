@@ -130,8 +130,8 @@ func (q *Queries) GetBundleIDsByUserExplicitRoles(ctx context.Context, arg GetBu
 }
 
 const getPermissionsByBundleIDs = `-- name: GetPermissionsByBundleIDs :many
-SELECT p.id, p.org_name, p.project_slug, p.model_id, p.name, p.description, p.type, p.column_policy, p.row_policy, p.preset, p.created_at, p.updated_at
-FROM end_user_permissions p
+SELECT p.id, p.org_name, p.project_slug, p.database_name, p.model_name, p.model_id, p.name, p.description, p.type, p.column_policy, p.row_policy, p.preset, p.created_at, p.updated_at
+FROM end_user_data_permissions p
   JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
 WHERE bp.bundle_id IN (/*SLICE:bundleids*/?)
   AND p.org_name = ?
@@ -143,7 +143,7 @@ type GetPermissionsByBundleIDsParams struct {
 }
 
 // ⚡ 鉴权链 Step 4: 展开权限包 → 权限点（动态 IN，适用于 Step 1~3 合并后的 bundle_id 集合）
-func (q *Queries) GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissionsByBundleIDsParams) ([]EndUserPermission, error) {
+func (q *Queries) GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissionsByBundleIDsParams) ([]EndUserDataPermission, error) {
 	query := getPermissionsByBundleIDs
 	var queryParams []interface{}
 	if len(arg.Bundleids) > 0 {
@@ -160,13 +160,15 @@ func (q *Queries) GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissi
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EndUserPermission
+	var items []EndUserDataPermission
 	for rows.Next() {
-		var i EndUserPermission
+		var i EndUserDataPermission
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgName,
 			&i.ProjectSlug,
+			&i.DatabaseName,
+			&i.ModelName,
 			&i.ModelID,
 			&i.Name,
 			&i.Description,

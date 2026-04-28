@@ -12,10 +12,12 @@ import (
 )
 
 const createEndUserPermission = `-- name: CreateEndUserPermission :exec
-INSERT INTO end_user_permissions (
+INSERT INTO end_user_data_permissions (
   id,
   org_name,
   project_slug,
+  database_name,
+  model_name,
   model_id,
   name,
   description,
@@ -24,20 +26,22 @@ INSERT INTO end_user_permissions (
   row_policy,
   preset
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserPermissionParams struct {
 	ID           string
 	OrgName      string
 	ProjectSlug  string
+	DatabaseName sql.NullString
+	ModelName    sql.NullString
 	ModelID      string
 	Name         string
 	Description  sql.NullString
-	Type         EndUserPermissionsType
+	Type         EndUserDataPermissionsType
 	ColumnPolicy *json.RawMessage
 	RowPolicy    *json.RawMessage
-	Preset       NullEndUserPermissionsPreset
+	Preset       NullEndUserDataPermissionsPreset
 }
 
 func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUserPermissionParams) error {
@@ -45,6 +49,8 @@ func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUser
 		arg.ID,
 		arg.OrgName,
 		arg.ProjectSlug,
+		arg.DatabaseName,
+		arg.ModelName,
 		arg.ModelID,
 		arg.Name,
 		arg.Description,
@@ -57,7 +63,7 @@ func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUser
 }
 
 const deleteEndUserPermission = `-- name: DeleteEndUserPermission :execresult
-DELETE FROM end_user_permissions
+DELETE FROM end_user_data_permissions
 WHERE id = ?
   AND org_name = ?
 `
@@ -72,7 +78,7 @@ func (q *Queries) DeleteEndUserPermission(ctx context.Context, arg DeleteEndUser
 }
 
 const deleteEndUserPermissionsByModelAndType = `-- name: DeleteEndUserPermissionsByModelAndType :execresult
-DELETE FROM end_user_permissions
+DELETE FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = ?
@@ -81,7 +87,7 @@ WHERE model_id = ?
 type DeleteEndUserPermissionsByModelAndTypeParams struct {
 	ModelID string
 	OrgName string
-	Type    EndUserPermissionsType
+	Type    EndUserDataPermissionsType
 }
 
 func (q *Queries) DeleteEndUserPermissionsByModelAndType(ctx context.Context, arg DeleteEndUserPermissionsByModelAndTypeParams) (sql.Result, error) {
@@ -89,8 +95,8 @@ func (q *Queries) DeleteEndUserPermissionsByModelAndType(ctx context.Context, ar
 }
 
 const getEndUserPermissionByID = `-- name: GetEndUserPermissionByID :one
-SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
-FROM end_user_permissions
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_data_permissions
 WHERE id = ?
   AND org_name = ?
 `
@@ -100,13 +106,15 @@ type GetEndUserPermissionByIDParams struct {
 	OrgName string
 }
 
-func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPermissionByIDParams) (EndUserPermission, error) {
+func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPermissionByIDParams) (EndUserDataPermission, error) {
 	row := q.db.QueryRowContext(ctx, getEndUserPermissionByID, arg.ID, arg.OrgName)
-	var i EndUserPermission
+	var i EndUserDataPermission
 	err := row.Scan(
 		&i.ID,
 		&i.OrgName,
 		&i.ProjectSlug,
+		&i.DatabaseName,
+		&i.ModelName,
 		&i.ModelID,
 		&i.Name,
 		&i.Description,
@@ -121,8 +129,8 @@ func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPe
 }
 
 const getEndUserPermissionByModelTypeName = `-- name: GetEndUserPermissionByModelTypeName :one
-SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
-FROM end_user_permissions
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = ?
@@ -133,22 +141,24 @@ LIMIT 1
 type GetEndUserPermissionByModelTypeNameParams struct {
 	ModelID string
 	OrgName string
-	Type    EndUserPermissionsType
+	Type    EndUserDataPermissionsType
 	Name    string
 }
 
-func (q *Queries) GetEndUserPermissionByModelTypeName(ctx context.Context, arg GetEndUserPermissionByModelTypeNameParams) (EndUserPermission, error) {
+func (q *Queries) GetEndUserPermissionByModelTypeName(ctx context.Context, arg GetEndUserPermissionByModelTypeNameParams) (EndUserDataPermission, error) {
 	row := q.db.QueryRowContext(ctx, getEndUserPermissionByModelTypeName,
 		arg.ModelID,
 		arg.OrgName,
 		arg.Type,
 		arg.Name,
 	)
-	var i EndUserPermission
+	var i EndUserDataPermission
 	err := row.Scan(
 		&i.ID,
 		&i.OrgName,
 		&i.ProjectSlug,
+		&i.DatabaseName,
+		&i.ModelName,
 		&i.ModelID,
 		&i.Name,
 		&i.Description,
@@ -176,8 +186,8 @@ func (q *Queries) IsPermissionReferencedByBundle(ctx context.Context, permission
 }
 
 const listEndUserPermissionsByModel = `-- name: ListEndUserPermissionsByModel :many
-SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
-FROM end_user_permissions
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
 ORDER BY created_at
@@ -188,19 +198,21 @@ type ListEndUserPermissionsByModelParams struct {
 	OrgName string
 }
 
-func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEndUserPermissionsByModelParams) ([]EndUserPermission, error) {
+func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEndUserPermissionsByModelParams) ([]EndUserDataPermission, error) {
 	rows, err := q.db.QueryContext(ctx, listEndUserPermissionsByModel, arg.ModelID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EndUserPermission
+	var items []EndUserDataPermission
 	for rows.Next() {
-		var i EndUserPermission
+		var i EndUserDataPermission
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgName,
 			&i.ProjectSlug,
+			&i.DatabaseName,
+			&i.ModelName,
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
@@ -225,8 +237,8 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 }
 
 const listEndUserPermissionsByProject = `-- name: ListEndUserPermissionsByProject :many
-SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
-FROM end_user_permissions
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_data_permissions
 WHERE org_name = ?
   AND project_slug = ?
 ORDER BY created_at
@@ -237,19 +249,21 @@ type ListEndUserPermissionsByProjectParams struct {
 	ProjectSlug string
 }
 
-func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListEndUserPermissionsByProjectParams) ([]EndUserPermission, error) {
+func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListEndUserPermissionsByProjectParams) ([]EndUserDataPermission, error) {
 	rows, err := q.db.QueryContext(ctx, listEndUserPermissionsByProject, arg.OrgName, arg.ProjectSlug)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EndUserPermission
+	var items []EndUserDataPermission
 	for rows.Next() {
-		var i EndUserPermission
+		var i EndUserDataPermission
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgName,
 			&i.ProjectSlug,
+			&i.DatabaseName,
+			&i.ModelName,
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
@@ -274,8 +288,8 @@ func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListE
 }
 
 const listPresetPermissionsByModel = `-- name: ListPresetPermissionsByModel :many
-SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
-FROM end_user_permissions
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
   AND type = 'PRESET'
@@ -287,19 +301,21 @@ type ListPresetPermissionsByModelParams struct {
 	OrgName string
 }
 
-func (q *Queries) ListPresetPermissionsByModel(ctx context.Context, arg ListPresetPermissionsByModelParams) ([]EndUserPermission, error) {
+func (q *Queries) ListPresetPermissionsByModel(ctx context.Context, arg ListPresetPermissionsByModelParams) ([]EndUserDataPermission, error) {
 	rows, err := q.db.QueryContext(ctx, listPresetPermissionsByModel, arg.ModelID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EndUserPermission
+	var items []EndUserDataPermission
 	for rows.Next() {
-		var i EndUserPermission
+		var i EndUserDataPermission
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgName,
 			&i.ProjectSlug,
+			&i.DatabaseName,
+			&i.ModelName,
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
@@ -324,7 +340,7 @@ func (q *Queries) ListPresetPermissionsByModel(ctx context.Context, arg ListPres
 }
 
 const updateEndUserPermission = `-- name: UpdateEndUserPermission :execresult
-UPDATE end_user_permissions
+UPDATE end_user_data_permissions
 SET name = ?,
     description = ?,
     column_policy = ?,
@@ -352,7 +368,7 @@ func (q *Queries) UpdateEndUserPermission(ctx context.Context, arg UpdateEndUser
 }
 
 const updateEndUserPresetPermission = `-- name: UpdateEndUserPresetPermission :execresult
-UPDATE end_user_permissions
+UPDATE end_user_data_permissions
 SET name = ?,
     description = ?,
     row_policy = ?,
@@ -366,7 +382,7 @@ type UpdateEndUserPresetPermissionParams struct {
 	Name        string
 	Description sql.NullString
 	RowPolicy   *json.RawMessage
-	Preset      NullEndUserPermissionsPreset
+	Preset      NullEndUserDataPermissionsPreset
 	ID          string
 	OrgName     string
 }

@@ -298,7 +298,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 
 	// Create RBAC (Data-Level Row & Column Permission) services
-	rbacRepo := repository.NewSqlEndUserPermissionRepository(dbgen.New(loggingDB))
+	rbacRepo := repository.NewSqlEndUserDataPermissionRepository(dbgen.New(loggingDB))
 	rbacPermSvc := appRbac.NewEndUserPermissionAppService(rbacRepo, modelRepository, txManager)
 	rbacBundleSvc := appRbac.NewEndUserBundleAppService(rbacRepo, modelRepository)
 	rbacRoleSvc := appRbac.NewEndUserRoleAppService(rbacRepo)

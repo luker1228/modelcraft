@@ -12,26 +12,26 @@ import (
 	"github.com/google/uuid"
 )
 
-// SqlEndUserPermissionRepository is the sqlc-based implementation of
+// SqlEndUserDataPermissionRepository is the sqlc-based implementation of
 // rbac.EndUserPermissionRepository.
-type SqlEndUserPermissionRepository struct {
+type SqlEndUserDataPermissionRepository struct {
 	q dbgen.Querier
 }
 
-// NewSqlEndUserPermissionRepository creates a new SqlEndUserPermissionRepository
+// NewSqlEndUserDataPermissionRepository creates a new SqlEndUserDataPermissionRepository
 // backed by the given sqlc Querier.
-func NewSqlEndUserPermissionRepository(q dbgen.Querier) rbac.EndUserPermissionRepository {
-	return &SqlEndUserPermissionRepository{q: dbgenwrap.NewSafeQuerier(q)}
+func NewSqlEndUserDataPermissionRepository(q dbgen.Querier) rbac.EndUserPermissionRepository {
+	return &SqlEndUserDataPermissionRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
 // compile-time interface assertion.
-var _ rbac.EndUserPermissionRepository = (*SqlEndUserPermissionRepository)(nil)
+var _ rbac.EndUserPermissionRepository = (*SqlEndUserDataPermissionRepository)(nil)
 
 // =========================
 // Helpers
 // =========================
 
-func toDomainPermission(row dbgen.EndUserPermission) *rbac.EndUserPermission {
+func toDomainPermission(row dbgen.EndUserDataPermission) *rbac.EndUserPermission {
 	var description *string
 	if row.Description.Valid {
 		d := row.Description.String
@@ -57,8 +57,19 @@ func toDomainPermission(row dbgen.EndUserPermission) *rbac.EndUserPermission {
 
 	var preset *rbac.PermissionPreset
 	if row.Preset.Valid {
-		p := rbac.PermissionPreset(row.Preset.EndUserPermissionsPreset)
+		p := rbac.PermissionPreset(row.Preset.EndUserDataPermissionsPreset)
 		preset = &p
+	}
+
+	var databaseName *string
+	if row.DatabaseName.Valid {
+		d := row.DatabaseName.String
+		databaseName = &d
+	}
+	var modelName *string
+	if row.ModelName.Valid {
+		d := row.ModelName.String
+		modelName = &d
 	}
 
 	return &rbac.EndUserPermission{
@@ -66,6 +77,8 @@ func toDomainPermission(row dbgen.EndUserPermission) *rbac.EndUserPermission {
 		ProjectSlug:  row.ProjectSlug,
 		ID:           row.ID,
 		ModelID:      row.ModelID,
+		DatabaseName: databaseName,
+		ModelName:    modelName,
 		Name:         row.Name,
 		Description:  description,
 		Type:         rbac.PermissionType(row.Type),
@@ -100,13 +113,13 @@ func toDBRowPolicy(rp *rbac.RowPolicy) *json.RawMessage {
 	return &raw
 }
 
-func toDBPreset(preset *rbac.PermissionPreset) dbgen.NullEndUserPermissionsPreset {
+func toDBPreset(preset *rbac.PermissionPreset) dbgen.NullEndUserDataPermissionsPreset {
 	if preset == nil {
-		return dbgen.NullEndUserPermissionsPreset{Valid: false}
+		return dbgen.NullEndUserDataPermissionsPreset{Valid: false}
 	}
-	return dbgen.NullEndUserPermissionsPreset{
-		EndUserPermissionsPreset: dbgen.EndUserPermissionsPreset(*preset),
-		Valid:                    true,
+	return dbgen.NullEndUserDataPermissionsPreset{
+		EndUserDataPermissionsPreset: dbgen.EndUserDataPermissionsPreset(*preset),
+		Valid:                        true,
 	}
 }
 
@@ -114,15 +127,17 @@ func toDBPreset(preset *rbac.PermissionPreset) dbgen.NullEndUserPermissionsPrese
 // Permissions
 // =========================
 
-func (r *SqlEndUserPermissionRepository) CreatePermission(ctx context.Context, p *rbac.EndUserPermission) error {
+func (r *SqlEndUserDataPermissionRepository) CreatePermission(ctx context.Context, p *rbac.EndUserPermission) error {
 	params := dbgen.CreateEndUserPermissionParams{
 		ID:           p.ID,
 		OrgName:      p.OrgName,
 		ProjectSlug:  p.ProjectSlug,
+		DatabaseName: sqlerr.PtrToNullStr(p.DatabaseName),
+		ModelName:    sqlerr.PtrToNullStr(p.ModelName),
 		ModelID:      p.ModelID,
 		Name:         p.Name,
 		Description:  sqlerr.PtrToNullStr(p.Description),
-		Type:         dbgen.EndUserPermissionsType(p.Type),
+		Type:         dbgen.EndUserDataPermissionsType(p.Type),
 		ColumnPolicy: toDBColumnPolicy(p.ColumnPolicy),
 		RowPolicy:    toDBRowPolicy(p.RowPolicy),
 		Preset:       toDBPreset(p.Preset),
@@ -131,7 +146,7 @@ func (r *SqlEndUserPermissionRepository) CreatePermission(ctx context.Context, p
 	return r.q.CreateEndUserPermission(ctx, params)
 }
 
-func (r *SqlEndUserPermissionRepository) GetPermissionByID(
+func (r *SqlEndUserDataPermissionRepository) GetPermissionByID(
 	ctx context.Context,
 	orgName, id string,
 ) (*rbac.EndUserPermission, error) {
@@ -149,7 +164,7 @@ func (r *SqlEndUserPermissionRepository) GetPermissionByID(
 	return toDomainPermission(row), nil
 }
 
-func (r *SqlEndUserPermissionRepository) ListPermissionsByProject(
+func (r *SqlEndUserDataPermissionRepository) ListPermissionsByProject(
 	ctx context.Context,
 	orgName, projectSlug string,
 ) ([]*rbac.EndUserPermission, error) {
@@ -168,7 +183,7 @@ func (r *SqlEndUserPermissionRepository) ListPermissionsByProject(
 	return perms, nil
 }
 
-func (r *SqlEndUserPermissionRepository) ListPermissionsByModel(
+func (r *SqlEndUserDataPermissionRepository) ListPermissionsByModel(
 	ctx context.Context,
 	orgName, modelID string,
 ) ([]*rbac.EndUserPermission, error) {
@@ -187,7 +202,7 @@ func (r *SqlEndUserPermissionRepository) ListPermissionsByModel(
 	return perms, nil
 }
 
-func (r *SqlEndUserPermissionRepository) ListPresetPermissionsByModel(
+func (r *SqlEndUserDataPermissionRepository) ListPresetPermissionsByModel(
 	ctx context.Context,
 	orgName, modelID string,
 ) ([]*rbac.EndUserPermission, error) {
@@ -206,7 +221,7 @@ func (r *SqlEndUserPermissionRepository) ListPresetPermissionsByModel(
 	return perms, nil
 }
 
-func (r *SqlEndUserPermissionRepository) GetPermissionByModelTypeName(
+func (r *SqlEndUserDataPermissionRepository) GetPermissionByModelTypeName(
 	ctx context.Context,
 	orgName, modelID string,
 	permissionType rbac.PermissionType,
@@ -215,7 +230,7 @@ func (r *SqlEndUserPermissionRepository) GetPermissionByModelTypeName(
 	row, err := r.q.GetEndUserPermissionByModelTypeName(ctx, dbgen.GetEndUserPermissionByModelTypeNameParams{
 		ModelID: modelID,
 		OrgName: orgName,
-		Type:    dbgen.EndUserPermissionsType(permissionType),
+		Type:    dbgen.EndUserDataPermissionsType(permissionType),
 		Name:    name,
 	})
 	if err != nil {
@@ -227,7 +242,7 @@ func (r *SqlEndUserPermissionRepository) GetPermissionByModelTypeName(
 	return toDomainPermission(row), nil
 }
 
-func (r *SqlEndUserPermissionRepository) UpdatePermission(ctx context.Context, p *rbac.EndUserPermission) error {
+func (r *SqlEndUserDataPermissionRepository) UpdatePermission(ctx context.Context, p *rbac.EndUserPermission) error {
 	params := dbgen.UpdateEndUserPermissionParams{
 		Name:         p.Name,
 		Description:  sqlerr.PtrToNullStr(p.Description),
@@ -247,7 +262,7 @@ func (r *SqlEndUserPermissionRepository) UpdatePermission(ctx context.Context, p
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) DeletePermission(ctx context.Context, orgName, id string) error {
+func (r *SqlEndUserDataPermissionRepository) DeletePermission(ctx context.Context, orgName, id string) error {
 	result, err := r.q.DeleteEndUserPermission(ctx, dbgen.DeleteEndUserPermissionParams{
 		ID:      id,
 		OrgName: orgName,
@@ -262,7 +277,7 @@ func (r *SqlEndUserPermissionRepository) DeletePermission(ctx context.Context, o
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) UpdatePresetPermission(
+func (r *SqlEndUserDataPermissionRepository) UpdatePresetPermission(
 	ctx context.Context,
 	p *rbac.EndUserPermission,
 ) error {
@@ -286,7 +301,7 @@ func (r *SqlEndUserPermissionRepository) UpdatePresetPermission(
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) IsPermissionReferencedByBundle(
+func (r *SqlEndUserDataPermissionRepository) IsPermissionReferencedByBundle(
 	ctx context.Context,
 	permissionID string,
 ) (bool, error) {
@@ -297,14 +312,14 @@ func (r *SqlEndUserPermissionRepository) IsPermissionReferencedByBundle(
 	return referenced, nil
 }
 
-func (r *SqlEndUserPermissionRepository) DeletePresetPermissionsByModel(
+func (r *SqlEndUserDataPermissionRepository) DeletePresetPermissionsByModel(
 	ctx context.Context,
 	orgName, modelID string,
 ) error {
 	_, err := r.q.DeleteEndUserPermissionsByModelAndType(ctx, dbgen.DeleteEndUserPermissionsByModelAndTypeParams{
 		ModelID: modelID,
 		OrgName: orgName,
-		Type:    dbgen.EndUserPermissionsTypePRESET,
+		Type:    dbgen.EndUserDataPermissionsTypePRESET,
 	})
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
@@ -332,7 +347,7 @@ func toDomainBundle(row dbgen.EndUserPermissionBundle) *rbac.EndUserPermissionBu
 	}
 }
 
-func (r *SqlEndUserPermissionRepository) CreateBundle(ctx context.Context, b *rbac.EndUserPermissionBundle) error {
+func (r *SqlEndUserDataPermissionRepository) CreateBundle(ctx context.Context, b *rbac.EndUserPermissionBundle) error {
 	params := dbgen.CreateEndUserBundleParams{
 		ID:          b.ID,
 		OrgName:     b.OrgName,
@@ -344,7 +359,7 @@ func (r *SqlEndUserPermissionRepository) CreateBundle(ctx context.Context, b *rb
 	return sqlerr.WrapSQLError(r.q.CreateEndUserBundle(ctx, params))
 }
 
-func (r *SqlEndUserPermissionRepository) GetBundleByID(
+func (r *SqlEndUserDataPermissionRepository) GetBundleByID(
 	ctx context.Context,
 	orgName, id string,
 ) (*rbac.EndUserPermissionBundle, error) {
@@ -362,7 +377,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleByID(
 	return toDomainBundle(row), nil
 }
 
-func (r *SqlEndUserPermissionRepository) ListBundlesByProject(
+func (r *SqlEndUserDataPermissionRepository) ListBundlesByProject(
 	ctx context.Context,
 	orgName, projectSlug string,
 ) ([]*rbac.EndUserPermissionBundle, error) {
@@ -381,7 +396,7 @@ func (r *SqlEndUserPermissionRepository) ListBundlesByProject(
 	return bundles, nil
 }
 
-func (r *SqlEndUserPermissionRepository) UpdateBundle(ctx context.Context, b *rbac.EndUserPermissionBundle) error {
+func (r *SqlEndUserDataPermissionRepository) UpdateBundle(ctx context.Context, b *rbac.EndUserPermissionBundle) error {
 	params := dbgen.UpdateEndUserBundleParams{
 		Name:        b.Name,
 		Description: sqlerr.PtrToNullStr(b.Description),
@@ -400,7 +415,7 @@ func (r *SqlEndUserPermissionRepository) UpdateBundle(ctx context.Context, b *rb
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) DeleteBundle(ctx context.Context, orgName, id string) error {
+func (r *SqlEndUserDataPermissionRepository) DeleteBundle(ctx context.Context, orgName, id string) error {
 	result, err := r.q.DeleteEndUserBundle(ctx, dbgen.DeleteEndUserBundleParams{
 		ID:      id,
 		OrgName: orgName,
@@ -415,7 +430,7 @@ func (r *SqlEndUserPermissionRepository) DeleteBundle(ctx context.Context, orgNa
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) AddPermissionToBundle(
+func (r *SqlEndUserDataPermissionRepository) AddPermissionToBundle(
 	ctx context.Context,
 	bundleID, permissionID string,
 	sortOrder int,
@@ -430,7 +445,7 @@ func (r *SqlEndUserPermissionRepository) AddPermissionToBundle(
 	return sqlerr.WrapSQLError(r.q.AddPermissionToBundle(ctx, params))
 }
 
-func (r *SqlEndUserPermissionRepository) RemovePermissionFromBundle(
+func (r *SqlEndUserDataPermissionRepository) RemovePermissionFromBundle(
 	ctx context.Context,
 	bundleID, permissionID string,
 ) error {
@@ -441,7 +456,7 @@ func (r *SqlEndUserPermissionRepository) RemovePermissionFromBundle(
 	return sqlerr.WrapSQLError(err)
 }
 
-func (r *SqlEndUserPermissionRepository) ListPermissionsInBundle(
+func (r *SqlEndUserDataPermissionRepository) ListPermissionsInBundle(
 	ctx context.Context,
 	bundleID string,
 ) ([]*rbac.EndUserPermission, error) {
@@ -477,7 +492,7 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 	}
 }
 
-func (r *SqlEndUserPermissionRepository) CreateRole(ctx context.Context, role *rbac.EndUserRole) error {
+func (r *SqlEndUserDataPermissionRepository) CreateRole(ctx context.Context, role *rbac.EndUserRole) error {
 	params := dbgen.CreateEndUserRoleParams{
 		ID:          role.ID,
 		OrgName:     role.OrgName,
@@ -489,7 +504,7 @@ func (r *SqlEndUserPermissionRepository) CreateRole(ctx context.Context, role *r
 	return sqlerr.WrapSQLError(r.q.CreateEndUserRole(ctx, params))
 }
 
-func (r *SqlEndUserPermissionRepository) GetRoleByID(
+func (r *SqlEndUserDataPermissionRepository) GetRoleByID(
 	ctx context.Context,
 	orgName, id string,
 ) (*rbac.EndUserRole, error) {
@@ -507,7 +522,7 @@ func (r *SqlEndUserPermissionRepository) GetRoleByID(
 	return toDomainRole(row), nil
 }
 
-func (r *SqlEndUserPermissionRepository) ListRolesByProject(
+func (r *SqlEndUserDataPermissionRepository) ListRolesByProject(
 	ctx context.Context,
 	orgName, projectSlug string,
 ) ([]*rbac.EndUserRole, error) {
@@ -526,7 +541,7 @@ func (r *SqlEndUserPermissionRepository) ListRolesByProject(
 	return roles, nil
 }
 
-func (r *SqlEndUserPermissionRepository) UpdateRole(ctx context.Context, role *rbac.EndUserRole) error {
+func (r *SqlEndUserDataPermissionRepository) UpdateRole(ctx context.Context, role *rbac.EndUserRole) error {
 	params := dbgen.UpdateEndUserRoleParams{
 		Name:        role.Name,
 		Description: sqlerr.PtrToNullStr(role.Description),
@@ -545,7 +560,7 @@ func (r *SqlEndUserPermissionRepository) UpdateRole(ctx context.Context, role *r
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) DeleteRole(ctx context.Context, orgName, id string) error {
+func (r *SqlEndUserDataPermissionRepository) DeleteRole(ctx context.Context, orgName, id string) error {
 	result, err := r.q.DeleteEndUserRole(ctx, dbgen.DeleteEndUserRoleParams{
 		ID:      id,
 		OrgName: orgName,
@@ -560,7 +575,7 @@ func (r *SqlEndUserPermissionRepository) DeleteRole(ctx context.Context, orgName
 	return nil
 }
 
-func (r *SqlEndUserPermissionRepository) AssignBundleToRole(
+func (r *SqlEndUserDataPermissionRepository) AssignBundleToRole(
 	ctx context.Context,
 	orgName, projectSlug, roleID, bundleID string,
 ) error {
@@ -575,7 +590,7 @@ func (r *SqlEndUserPermissionRepository) AssignBundleToRole(
 	return sqlerr.WrapSQLError(r.q.AssignBundleToRole(ctx, params))
 }
 
-func (r *SqlEndUserPermissionRepository) RevokeBundleFromRole(
+func (r *SqlEndUserDataPermissionRepository) RevokeBundleFromRole(
 	ctx context.Context,
 	roleID, bundleID string,
 ) error {
@@ -586,7 +601,7 @@ func (r *SqlEndUserPermissionRepository) RevokeBundleFromRole(
 	return sqlerr.WrapSQLError(err)
 }
 
-func (r *SqlEndUserPermissionRepository) ListBundlesByRole(
+func (r *SqlEndUserDataPermissionRepository) ListBundlesByRole(
 	ctx context.Context,
 	roleID string,
 ) ([]*rbac.EndUserPermissionBundle, error) {
@@ -606,7 +621,7 @@ func (r *SqlEndUserPermissionRepository) ListBundlesByRole(
 // User Grants & Authz Chain
 // =========================
 
-func (r *SqlEndUserPermissionRepository) GrantBundleToUser(
+func (r *SqlEndUserDataPermissionRepository) GrantBundleToUser(
 	ctx context.Context,
 	userID, orgName, projectSlug, bundleID string,
 ) error {
@@ -621,7 +636,7 @@ func (r *SqlEndUserPermissionRepository) GrantBundleToUser(
 	return sqlerr.WrapSQLError(r.q.GrantBundleToUser(ctx, params))
 }
 
-func (r *SqlEndUserPermissionRepository) RevokeBundleFromUser(
+func (r *SqlEndUserDataPermissionRepository) RevokeBundleFromUser(
 	ctx context.Context,
 	userID, orgName, projectSlug, bundleID string,
 ) error {
@@ -634,7 +649,7 @@ func (r *SqlEndUserPermissionRepository) RevokeBundleFromUser(
 	return sqlerr.WrapSQLError(err)
 }
 
-func (r *SqlEndUserPermissionRepository) AssignRoleToUser(
+func (r *SqlEndUserDataPermissionRepository) AssignRoleToUser(
 	ctx context.Context,
 	userID, orgName, projectSlug, roleID string,
 ) error {
@@ -648,7 +663,7 @@ func (r *SqlEndUserPermissionRepository) AssignRoleToUser(
 	return sqlerr.WrapSQLError(r.q.AssignRoleToUser(ctx, params))
 }
 
-func (r *SqlEndUserPermissionRepository) RevokeRoleFromUser(
+func (r *SqlEndUserDataPermissionRepository) RevokeRoleFromUser(
 	ctx context.Context,
 	userID, orgName, projectSlug, roleID string,
 ) error {
@@ -660,7 +675,7 @@ func (r *SqlEndUserPermissionRepository) RevokeRoleFromUser(
 	return sqlerr.WrapSQLError(err)
 }
 
-func (r *SqlEndUserPermissionRepository) GetBundleIDsByUserDirect(
+func (r *SqlEndUserDataPermissionRepository) GetBundleIDsByUserDirect(
 	ctx context.Context,
 	userID, orgName, projectSlug string,
 ) ([]string, error) {
@@ -678,7 +693,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleIDsByUserDirect(
 	return ids, nil
 }
 
-func (r *SqlEndUserPermissionRepository) GetBundleIDsByUserExplicitRoles(
+func (r *SqlEndUserDataPermissionRepository) GetBundleIDsByUserExplicitRoles(
 	ctx context.Context,
 	userID, orgName, projectSlug string,
 ) ([]string, error) {
@@ -696,7 +711,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleIDsByUserExplicitRoles(
 	return ids, nil
 }
 
-func (r *SqlEndUserPermissionRepository) GetBundleIDsByImplicitRoles(
+func (r *SqlEndUserDataPermissionRepository) GetBundleIDsByImplicitRoles(
 	ctx context.Context,
 	orgName, projectSlug string,
 ) ([]string, error) {
@@ -713,7 +728,7 @@ func (r *SqlEndUserPermissionRepository) GetBundleIDsByImplicitRoles(
 	return ids, nil
 }
 
-func (r *SqlEndUserPermissionRepository) GetPermissionsByBundleIDs(
+func (r *SqlEndUserDataPermissionRepository) GetPermissionsByBundleIDs(
 	ctx context.Context,
 	orgName string,
 	bundleIDs []string,

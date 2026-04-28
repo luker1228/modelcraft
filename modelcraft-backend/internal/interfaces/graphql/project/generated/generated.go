@@ -367,10 +367,12 @@ type ComplexityRoot struct {
 		Action       func(childComplexity int) int
 		ColumnPolicy func(childComplexity int) int
 		CreatedAt    func(childComplexity int) int
+		DatabaseName func(childComplexity int) int
 		Description  func(childComplexity int) int
 		DisplayName  func(childComplexity int) int
 		ID           func(childComplexity int) int
 		ModelID      func(childComplexity int) int
+		ModelName    func(childComplexity int) int
 		Preset       func(childComplexity int) int
 		RowScope     func(childComplexity int) int
 		UpdatedAt    func(childComplexity int) int
@@ -2108,6 +2110,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermission.CreatedAt(childComplexity), true
+	case "EndUserPermission.databaseName":
+		if e.complexity.EndUserPermission.DatabaseName == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermission.DatabaseName(childComplexity), true
 	case "EndUserPermission.description":
 		if e.complexity.EndUserPermission.Description == nil {
 			break
@@ -2132,6 +2140,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermission.ModelID(childComplexity), true
+	case "EndUserPermission.modelName":
+		if e.complexity.EndUserPermission.ModelName == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermission.ModelName(childComplexity), true
 	case "EndUserPermission.preset":
 		if e.complexity.EndUserPermission.Preset == nil {
 			break
@@ -6437,6 +6451,8 @@ input ColumnRuleInput {
 type EndUserPermission implements Node {
   id: ID!
   modelId: ID!
+  databaseName: String
+  modelName: String
   action: RbacAction!
   columnPolicy: ColumnPolicy!
   rowScope: RowScopeType!
@@ -8729,6 +8745,10 @@ func (ec *executionContext) fieldContext_ApplyEndUserPresetPolicyPayload_permiss
 				return ec.fieldContext_EndUserPermission_id(ctx, field)
 			case "modelId":
 				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
 			case "action":
 				return ec.fieldContext_EndUserPermission_action(ctx, field)
 			case "columnPolicy":
@@ -9732,6 +9752,10 @@ func (ec *executionContext) fieldContext_CreateEndUserPermissionPayload_permissi
 				return ec.fieldContext_EndUserPermission_id(ctx, field)
 			case "modelId":
 				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
 			case "action":
 				return ec.fieldContext_EndUserPermission_action(ctx, field)
 			case "columnPolicy":
@@ -12474,6 +12498,10 @@ func (ec *executionContext) fieldContext_EndUserBundlePermissionEntry_permission
 				return ec.fieldContext_EndUserPermission_id(ctx, field)
 			case "modelId":
 				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
 			case "action":
 				return ec.fieldContext_EndUserPermission_action(ctx, field)
 			case "columnPolicy":
@@ -12893,6 +12921,64 @@ func (ec *executionContext) fieldContext_EndUserPermission_modelId(_ context.Con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermission_databaseName(ctx context.Context, field graphql.CollectedField, obj *EndUserPermission) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermission_databaseName,
+		func(ctx context.Context) (any, error) {
+			return obj.DatabaseName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermission_databaseName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPermission_modelName(ctx context.Context, field graphql.CollectedField, obj *EndUserPermission) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermission_modelName,
+		func(ctx context.Context) (any, error) {
+			return obj.ModelName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermission_modelName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermission",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13767,6 +13853,10 @@ func (ec *executionContext) fieldContext_EndUserPermissionEdge_node(_ context.Co
 				return ec.fieldContext_EndUserPermission_id(ctx, field)
 			case "modelId":
 				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
 			case "action":
 				return ec.fieldContext_EndUserPermission_action(ctx, field)
 			case "columnPolicy":
@@ -24556,6 +24646,10 @@ func (ec *executionContext) fieldContext_Query_endUserPermission(ctx context.Con
 				return ec.fieldContext_EndUserPermission_id(ctx, field)
 			case "modelId":
 				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
 			case "action":
 				return ec.fieldContext_EndUserPermission_action(ctx, field)
 			case "columnPolicy":
@@ -27192,6 +27286,10 @@ func (ec *executionContext) fieldContext_UpdateEndUserPermissionPayload_permissi
 				return ec.fieldContext_EndUserPermission_id(ctx, field)
 			case "modelId":
 				return ec.fieldContext_EndUserPermission_modelId(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserPermission_databaseName(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserPermission_modelName(ctx, field)
 			case "action":
 				return ec.fieldContext_EndUserPermission_action(ctx, field)
 			case "columnPolicy":
@@ -36683,6 +36781,10 @@ func (ec *executionContext) _EndUserPermission(ctx context.Context, sel ast.Sele
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "databaseName":
+			out.Values[i] = ec._EndUserPermission_databaseName(ctx, field, obj)
+		case "modelName":
+			out.Values[i] = ec._EndUserPermission_modelName(ctx, field, obj)
 		case "action":
 			out.Values[i] = ec._EndUserPermission_action(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

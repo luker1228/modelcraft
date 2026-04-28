@@ -50,7 +50,7 @@ WHERE bundle_id = ?
 
 -- name: ListPermissionsInBundle :many
 SELECT p.*
-FROM end_user_permissions p
+FROM end_user_data_permissions p
   JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
 WHERE bp.bundle_id = ?
 ORDER BY bp.sort_order, bp.created_at;

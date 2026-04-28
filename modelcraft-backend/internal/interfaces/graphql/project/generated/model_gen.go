@@ -803,6 +803,8 @@ func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 type EndUserPermission struct {
 	ID           string        `json:"id"`
 	ModelID      string        `json:"modelId"`
+	DatabaseName *string       `json:"databaseName,omitempty"`
+	ModelName    *string       `json:"modelName,omitempty"`
 	Action       RbacAction    `json:"action"`
 	ColumnPolicy *ColumnPolicy `json:"columnPolicy"`
 	RowScope     RowScopeType  `json:"rowScope"`

@@ -73,12 +73,14 @@ func (p PermissionPreset) IsValid() bool {
 // EndUserPermission 权限点（最小权限定义单元）
 // 以 rowPolicy 表达四类动作的允许性与数据范围。
 type EndUserPermission struct {
-	OrgName     string
-	ProjectSlug string
-	ID          string
-	ModelID     string
-	Name        string
-	Description *string
+	OrgName      string
+	ProjectSlug  string
+	ID           string
+	ModelID      string
+	DatabaseName *string
+	ModelName    *string
+	Name         string
+	Description  *string
 
 	Type PermissionType
 	// ColumnPolicy 为 nil 表示全列默认（DefaultMode=VISIBLE，无 Rules）

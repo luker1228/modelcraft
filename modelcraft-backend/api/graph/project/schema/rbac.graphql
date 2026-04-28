@@ -115,6 +115,8 @@ input ColumnRuleInput {
 type EndUserPermission implements Node {
   id: ID!
   modelId: ID!
+  databaseName: String
+  modelName: String
   action: RbacAction!
   columnPolicy: ColumnPolicy!
   rowScope: RowScopeType!

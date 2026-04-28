@@ -12,90 +12,90 @@ import (
 	"time"
 )
 
-type EndUserPermissionsPreset string
+type EndUserDataPermissionsPreset string
 
 const (
-	EndUserPermissionsPresetREADWRITEALL      EndUserPermissionsPreset = "READ_WRITE_ALL"
-	EndUserPermissionsPresetREADALL           EndUserPermissionsPreset = "READ_ALL"
-	EndUserPermissionsPresetREADWRITEOWNER    EndUserPermissionsPreset = "READ_WRITE_OWNER"
-	EndUserPermissionsPresetREADALLWRITEOWNER EndUserPermissionsPreset = "READ_ALL_WRITE_OWNER"
+	EndUserDataPermissionsPresetREADWRITEALL      EndUserDataPermissionsPreset = "READ_WRITE_ALL"
+	EndUserDataPermissionsPresetREADALL           EndUserDataPermissionsPreset = "READ_ALL"
+	EndUserDataPermissionsPresetREADWRITEOWNER    EndUserDataPermissionsPreset = "READ_WRITE_OWNER"
+	EndUserDataPermissionsPresetREADALLWRITEOWNER EndUserDataPermissionsPreset = "READ_ALL_WRITE_OWNER"
 )
 
-func (e *EndUserPermissionsPreset) Scan(src interface{}) error {
+func (e *EndUserDataPermissionsPreset) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EndUserPermissionsPreset(s)
+		*e = EndUserDataPermissionsPreset(s)
 	case string:
-		*e = EndUserPermissionsPreset(s)
+		*e = EndUserDataPermissionsPreset(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EndUserPermissionsPreset: %T", src)
+		return fmt.Errorf("unsupported scan type for EndUserDataPermissionsPreset: %T", src)
 	}
 	return nil
 }
 
-type NullEndUserPermissionsPreset struct {
-	EndUserPermissionsPreset EndUserPermissionsPreset
-	Valid                    bool // Valid is true if EndUserPermissionsPreset is not NULL
+type NullEndUserDataPermissionsPreset struct {
+	EndUserDataPermissionsPreset EndUserDataPermissionsPreset
+	Valid                        bool // Valid is true if EndUserDataPermissionsPreset is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullEndUserPermissionsPreset) Scan(value interface{}) error {
+func (ns *NullEndUserDataPermissionsPreset) Scan(value interface{}) error {
 	if value == nil {
-		ns.EndUserPermissionsPreset, ns.Valid = "", false
+		ns.EndUserDataPermissionsPreset, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.EndUserPermissionsPreset.Scan(value)
+	return ns.EndUserDataPermissionsPreset.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullEndUserPermissionsPreset) Value() (driver.Value, error) {
+func (ns NullEndUserDataPermissionsPreset) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.EndUserPermissionsPreset), nil
+	return string(ns.EndUserDataPermissionsPreset), nil
 }
 
-type EndUserPermissionsType string
+type EndUserDataPermissionsType string
 
 const (
-	EndUserPermissionsTypePRESET EndUserPermissionsType = "PRESET"
-	EndUserPermissionsTypeCUSTOM EndUserPermissionsType = "CUSTOM"
+	EndUserDataPermissionsTypePRESET EndUserDataPermissionsType = "PRESET"
+	EndUserDataPermissionsTypeCUSTOM EndUserDataPermissionsType = "CUSTOM"
 )
 
-func (e *EndUserPermissionsType) Scan(src interface{}) error {
+func (e *EndUserDataPermissionsType) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EndUserPermissionsType(s)
+		*e = EndUserDataPermissionsType(s)
 	case string:
-		*e = EndUserPermissionsType(s)
+		*e = EndUserDataPermissionsType(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EndUserPermissionsType: %T", src)
+		return fmt.Errorf("unsupported scan type for EndUserDataPermissionsType: %T", src)
 	}
 	return nil
 }
 
-type NullEndUserPermissionsType struct {
-	EndUserPermissionsType EndUserPermissionsType
-	Valid                  bool // Valid is true if EndUserPermissionsType is not NULL
+type NullEndUserDataPermissionsType struct {
+	EndUserDataPermissionsType EndUserDataPermissionsType
+	Valid                      bool // Valid is true if EndUserDataPermissionsType is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullEndUserPermissionsType) Scan(value interface{}) error {
+func (ns *NullEndUserDataPermissionsType) Scan(value interface{}) error {
 	if value == nil {
-		ns.EndUserPermissionsType, ns.Valid = "", false
+		ns.EndUserDataPermissionsType, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.EndUserPermissionsType.Scan(value)
+	return ns.EndUserDataPermissionsType.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullEndUserPermissionsType) Value() (driver.Value, error) {
+func (ns NullEndUserDataPermissionsType) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.EndUserPermissionsType), nil
+	return string(ns.EndUserDataPermissionsType), nil
 }
 
 type LogicalForeignKeysDirection string
@@ -265,7 +265,7 @@ type EndUserBundlePermission struct {
 	ID string
 	// 权限包 ID，FK → end_user_permission_bundles.id
 	BundleID string
-	// 权限点 ID，FK → end_user_permissions.id
+	// 权限点 ID，FK → end_user_data_permissions.id
 	PermissionID string
 	// 显示排序权重（ASC）
 	SortOrder int32
@@ -273,13 +273,17 @@ type EndUserBundlePermission struct {
 }
 
 // 权限点：每行描述对某模型的行列级访问策略
-type EndUserPermission struct {
+type EndUserDataPermission struct {
 	// 权限点 UUID
 	ID string
 	// 所属组织（冗余，不做 FK）
 	OrgName string
 	// 所属项目（冗余，不做 FK）
 	ProjectSlug string
+	// 数据源名称（可空，预留按数据源授权能力）
+	DatabaseName sql.NullString
+	// 模型名称（可空，预留按模型名授权能力）
+	ModelName sql.NullString
 	// 关联模型 ID，FK → models.id
 	ModelID string
 	// 权限点名称，人类可读
@@ -287,13 +291,13 @@ type EndUserPermission struct {
 	// 权限点描述
 	Description sql.NullString
 	// 权限点来源：PRESET=预设策略生成，CUSTOM=管理员手动创建
-	Type EndUserPermissionsType
+	Type EndUserDataPermissionsType
 	// 列策略 JSON，结构见注释
 	ColumnPolicy *json.RawMessage
 	// 行策略 JSON，谓词为 GraphQL Runtime where 条件（与 model_rls_policies 格式一致）
 	RowPolicy *json.RawMessage
 	// 来源预设，NULL 表示手动创建的自定义权限点；仅 type=PRESET 时有值
-	Preset    NullEndUserPermissionsPreset
+	Preset    NullEndUserDataPermissionsPreset
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

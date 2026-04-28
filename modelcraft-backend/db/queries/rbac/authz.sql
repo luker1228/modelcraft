@@ -31,7 +31,7 @@ WHERE r.org_name = ?
 -- name: GetPermissionsByBundleIDs :many
 -- ⚡ 鉴权链 Step 4: 展开权限包 → 权限点（动态 IN，适用于 Step 1~3 合并后的 bundle_id 集合）
 SELECT p.*
-FROM end_user_permissions p
+FROM end_user_data_permissions p
   JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
 WHERE bp.bundle_id IN (sqlc.slice(bundleIDs))
   AND p.org_name = ?;

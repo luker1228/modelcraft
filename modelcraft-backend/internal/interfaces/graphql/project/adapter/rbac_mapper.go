@@ -21,9 +21,11 @@ func ToEndUserPermissionDTO(p *rbacdomain.EndUserPermission) *generated.EndUserP
 		displayName = &n
 	}
 	action, rowScope := deriveLegacyActionAndScope(p)
-	return &generated.EndUserPermission{
+	dto := &generated.EndUserPermission{
 		ID:           p.ID,
 		ModelID:      p.ModelID,
+		DatabaseName: p.DatabaseName,
+		ModelName:    p.ModelName,
 		Action:       action,
 		ColumnPolicy: ToColumnPolicyDTO(p.ColumnPolicy),
 		RowScope:     rowScope,
@@ -33,6 +35,8 @@ func ToEndUserPermissionDTO(p *rbacdomain.EndUserPermission) *generated.EndUserP
 		CreatedAt:    time.Now(), // populated from DB if needed
 		UpdatedAt:    time.Now(),
 	}
+
+	return dto
 }
 
 func toPresetDTO(preset *rbacdomain.PermissionPreset) *generated.EndUserPermissionPreset {

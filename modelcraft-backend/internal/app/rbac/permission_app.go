@@ -50,7 +50,7 @@ func NewEndUserPermissionAppService(
 		rbacRepo:  rbacRepo,
 		modelRepo: modelRepo,
 		repoFromTxQ: func(q dbgen.Querier) permissionRepository {
-			return repository.NewSqlEndUserPermissionRepository(q)
+			return repository.NewSqlEndUserDataPermissionRepository(q)
 		},
 	}
 	if len(txManagers) > 0 {
@@ -68,12 +68,19 @@ func (s *EndUserPermissionAppService) CreatePermission(
 		return nil, err
 	}
 
+	databaseName, modelName, err := s.getPermissionModelNames(ctx, cmd.ModelID)
+	if err != nil {
+		return nil, err
+	}
+
 	rowPolicy := buildLegacyRowPolicy(cmd.Action, cmd.RowScope)
 	perm := &rbacdomain.EndUserPermission{
 		ID:           uuid.NewString(),
 		OrgName:      cmd.OrgName,
 		ProjectSlug:  cmd.ProjectSlug,
 		ModelID:      cmd.ModelID,
+		DatabaseName: databaseName,
+		ModelName:    modelName,
 		Name:         cmd.Name,
 		Description:  cmd.Description,
 		Type:         rbacdomain.PermissionTypeCustom,
@@ -136,7 +143,7 @@ func (s *EndUserPermissionAppService) ApplyPresetPolicy(
 	ctx context.Context,
 	cmd ApplyPresetPolicyCommand,
 ) ([]*rbacdomain.EndUserPermission, error) {
-	desiredPresets, ownerField, err := s.resolveDesiredPresetsWithModel(ctx, cmd)
+	desiredPresets, ownerField, databaseName, modelName, err := s.resolveDesiredPresetsWithModel(ctx, cmd)
 	if err != nil {
 		return nil, err
 	}
@@ -166,6 +173,8 @@ func (s *EndUserPermissionAppService) ApplyPresetPolicy(
 			cmd,
 			desiredPresets,
 			ownerField,
+			databaseName,
+			modelName,
 			existingByPreset,
 		); upsertErr != nil {
 			return upsertErr
@@ -220,26 +229,47 @@ func (s *EndUserPermissionAppService) ListVirtualPresetsByModel(
 	return resolveDesiredPresets(nil, ownerField)
 }
 
+func (s *EndUserPermissionAppService) getPermissionModelNames(
+	ctx context.Context,
+	modelID string,
+) (*string, *string, error) {
+	model, err := s.modelRepo.GetByID(ctx, modelID, modeldesign.NewModelQueryOptions().WithFields())
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+		}
+		return nil, nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if model == nil {
+		return nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+	}
+	return optionalStringPtr(model.DatabaseName), optionalStringPtr(model.ModelName), nil
+}
+
 func (s *EndUserPermissionAppService) resolveDesiredPresetsWithModel(
 	ctx context.Context,
 	cmd ApplyPresetPolicyCommand,
-) ([]rbacdomain.PermissionPreset, string, error) {
+) ([]rbacdomain.PermissionPreset, string, *string, *string, error) {
 	model, err := s.modelRepo.GetByID(ctx, cmd.ModelID, modeldesign.NewModelQueryOptions().WithFields())
 	if err != nil {
 		if shared.IsNotFoundError(err) {
-			return nil, "", bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
+			return nil, "", nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
 		}
-		return nil, "", bizerrors.ConvertRepositoryError(ctx, err)
+		return nil, "", nil, nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
+	if model == nil {
+		return nil, "", nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, cmd.ModelID)
+	}
+
 	ownerField := ""
-	if model != nil && model.GetOwnerField() != nil {
+	if model.GetOwnerField() != nil {
 		ownerField = model.GetOwnerField().Name
 	}
 	desired, err := resolveDesiredPresets(cmd.Preset, ownerField)
 	if err != nil {
-		return nil, "", err
+		return nil, "", nil, nil, err
 	}
-	return desired, ownerField, nil
+	return desired, ownerField, optionalStringPtr(model.DatabaseName), optionalStringPtr(model.ModelName), nil
 }
 
 func (s *EndUserPermissionAppService) listExistingPresetByModel(
@@ -288,6 +318,7 @@ func (s *EndUserPermissionAppService) upsertDesiredPresets(
 	cmd ApplyPresetPolicyCommand,
 	desired []rbacdomain.PermissionPreset,
 	ownerField string,
+	databaseName, modelName *string,
 	existing map[rbacdomain.PermissionPreset]*rbacdomain.EndUserPermission,
 ) error {
 	for _, preset := range desired {
@@ -318,6 +349,8 @@ func (s *EndUserPermissionAppService) upsertDesiredPresets(
 			OrgName:      cmd.OrgName,
 			ProjectSlug:  cmd.ProjectSlug,
 			ModelID:      cmd.ModelID,
+			DatabaseName: databaseName,
+			ModelName:    modelName,
 			Name:         presetPermissionName(preset),
 			Type:         rbacdomain.PermissionTypePreset,
 			ColumnPolicy: nil,
@@ -588,6 +621,14 @@ func legacyScopeExpr(rowScope rbacdomain.RowScope) (
 		return rbacdomain.ScopeAll, nil, nil
 	}
 	return scope, predicate, check
+}
+
+func optionalStringPtr(v string) *string {
+	if v == "" {
+		return nil
+	}
+	vCopy := v
+	return &vCopy
 }
 
 // validateRowScopePrerequisite 校验 rowScope 字段前提（兼容旧 CreatePermission 输入）。
