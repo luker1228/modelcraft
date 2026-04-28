@@ -30,6 +30,20 @@ export type ActualForeignKey = {
   referencedTable: Scalars['String']['output'];
 };
 
+export type AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | InvalidInput | ProjectNotFound;
+
+export type AddEndUserPermissionToBundleInput = {
+  bundleId: Scalars['ID']['input'];
+  permissionId: Scalars['ID']['input'];
+  sortOrder?: InputMaybe<Scalars['Int']['input']>;
+};
+
+export type AddEndUserPermissionToBundlePayload = {
+  __typename?: 'AddEndUserPermissionToBundlePayload';
+  bundle?: Maybe<EndUserPermissionBundle>;
+  error?: Maybe<AddEndUserPermissionToBundleError>;
+};
+
 export type AddFieldInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   format: FormatType;
@@ -67,25 +81,59 @@ export type AddRolePermissionPayload = {
   success: Scalars['Boolean']['output'];
 };
 
-export type ApiKey = {
-  __typename?: 'ApiKey';
-  createdAt: Scalars['Time']['output'];
-  expiresAt?: Maybe<Scalars['Time']['output']>;
-  id: Scalars['ID']['output'];
-  keyPrefix: Scalars['String']['output'];
-  lastUsedAt?: Maybe<Scalars['Time']['output']>;
-  name: Scalars['String']['output'];
-  revokedAt?: Maybe<Scalars['Time']['output']>;
+export type ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | ProjectNotFound;
+
+export type ApplyEndUserPresetPolicyInput = {
+  modelId: Scalars['ID']['input'];
+  preset: EndUserPermissionPreset;
 };
 
-export type ApiKeyLimitExceeded = Error & {
-  __typename?: 'ApiKeyLimitExceeded';
-  message: Scalars['String']['output'];
+export type ApplyEndUserPresetPolicyPayload = {
+  __typename?: 'ApplyEndUserPresetPolicyPayload';
+  error?: Maybe<ApplyEndUserPresetPolicyError>;
+  /** 应用预设后，该模型当前所有的权限点（含原有自定义权限点） */
+  permissions: Array<EndUserPermission>;
 };
 
-export type ApiKeyNotFound = Error & {
-  __typename?: 'ApiKeyNotFound';
-  message: Scalars['String']['output'];
+export type AssignBundleToEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | ProjectNotFound | UserBundleAlreadyAssigned;
+
+export type AssignBundleToEndUserInput = {
+  bundleId: Scalars['ID']['input'];
+  endUserId: Scalars['ID']['input'];
+};
+
+export type AssignBundleToEndUserPayload = {
+  __typename?: 'AssignBundleToEndUserPayload';
+  bundle?: Maybe<EndUserPermissionBundle>;
+  endUserId: Scalars['ID']['output'];
+  error?: Maybe<AssignBundleToEndUserError>;
+};
+
+export type AssignBundleToEndUserRoleError = EndUserPermissionBundleNotFound | EndUserRoleNotFound | ProjectNotFound;
+
+export type AssignBundleToEndUserRoleInput = {
+  bundleId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+};
+
+export type AssignBundleToEndUserRolePayload = {
+  __typename?: 'AssignBundleToEndUserRolePayload';
+  error?: Maybe<AssignBundleToEndUserRoleError>;
+  role?: Maybe<EndUserRole>;
+};
+
+export type AssignEndUserRoleError = EndUserCannotAssignImplicitRole | EndUserNotFoundInProject | EndUserRoleNotFound | ProjectNotFound | UserRoleAlreadyAssigned;
+
+export type AssignEndUserRoleInput = {
+  endUserId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+};
+
+export type AssignEndUserRolePayload = {
+  __typename?: 'AssignEndUserRolePayload';
+  endUserId: Scalars['ID']['output'];
+  error?: Maybe<AssignEndUserRoleError>;
+  role?: Maybe<EndUserRole>;
 };
 
 export type AssignRoleError = InvalidInput | PermissionRoleNotFound | PermissionUserNotFound;
@@ -95,6 +143,31 @@ export type AssignRolePayload = {
   error?: Maybe<AssignRoleError>;
   userRole?: Maybe<UserRoleAssignment>;
 };
+
+export type AuthVariable = {
+  __typename?: 'AuthVariable';
+  /** 变量名（如 "tenant_id"） */
+  name: Scalars['String']['output'];
+  /** JWT 来源路径（如 "jwt.tenant_id"） */
+  source: Scalars['String']['output'];
+  /** 变量类型 */
+  type: AuthVariableType;
+};
+
+export type AuthVariableInput = {
+  /** 变量名 */
+  name: Scalars['String']['input'];
+  /** JWT 来源路径 */
+  source: Scalars['String']['input'];
+  /** 变量类型 */
+  type: AuthVariableType;
+};
+
+export enum AuthVariableType {
+  Integer = 'INTEGER',
+  String = 'STRING',
+  Uuid = 'UUID'
+}
 
 export type CannotDeleteDefaultProject = Error & {
   __typename?: 'CannotDeleteDefaultProject';
@@ -146,26 +219,40 @@ export enum ClusterStatus {
   Disabled = 'DISABLED'
 }
 
-export type CreateApiKeyError = ApiKeyLimitExceeded | InvalidInput;
+/** 列访问模式 */
+export enum ColumnAccessMode {
+  /** 完全隐藏 */
+  Hidden = 'HIDDEN',
+  /** 脱敏显示 */
+  Masked = 'MASKED',
+  /** 可见但只读 */
+  Readonly = 'READONLY',
+  /** 可见且可编辑 */
+  Visible = 'VISIBLE'
+}
 
-export type CreateApiKeyInput = {
-  expiresAt?: InputMaybe<Scalars['Time']['input']>;
-  name: Scalars['String']['input'];
+export type ColumnPolicy = {
+  __typename?: 'ColumnPolicy';
+  defaultMode: ColumnAccessMode;
+  rules: Array<ColumnRule>;
 };
 
-export type CreateApiKeyPayload = {
-  __typename?: 'CreateApiKeyPayload';
-  error?: Maybe<CreateApiKeyError>;
-  result?: Maybe<CreateApiKeyResult>;
+export type ColumnPolicyInput = {
+  defaultMode: ColumnAccessMode;
+  rules: Array<ColumnRuleInput>;
 };
 
-export type CreateApiKeyResult = {
-  __typename?: 'CreateApiKeyResult';
-  createdAt: Scalars['Time']['output'];
-  id: Scalars['ID']['output'];
-  key: Scalars['String']['output'];
-  keyPrefix: Scalars['String']['output'];
-  name: Scalars['String']['output'];
+export type ColumnRule = {
+  __typename?: 'ColumnRule';
+  fieldName: Scalars['String']['output'];
+  maskPattern?: Maybe<Scalars['String']['output']>;
+  mode: ColumnAccessMode;
+};
+
+export type ColumnRuleInput = {
+  fieldName: Scalars['String']['input'];
+  maskPattern?: InputMaybe<Scalars['String']['input']>;
+  mode: ColumnAccessMode;
 };
 
 export type CreateCustomRoleError = InvalidInput | PermissionRoleAlreadyExists;
@@ -180,6 +267,62 @@ export type CreateCustomRolePayload = {
   __typename?: 'CreateCustomRolePayload';
   error?: Maybe<CreateCustomRoleError>;
   role?: Maybe<PermissionRole>;
+};
+
+export type CreateEndUserError = ClusterNotFound | EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput | ProjectNotFound;
+
+export type CreateEndUserInput = {
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+};
+
+export type CreateEndUserPayload = {
+  __typename?: 'CreateEndUserPayload';
+  endUser?: Maybe<EndUser>;
+  error?: Maybe<CreateEndUserError>;
+};
+
+export type CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound;
+
+export type CreateEndUserPermissionBundleInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type CreateEndUserPermissionBundlePayload = {
+  __typename?: 'CreateEndUserPermissionBundlePayload';
+  bundle?: Maybe<EndUserPermissionBundle>;
+  error?: Maybe<CreateEndUserPermissionBundleError>;
+};
+
+export type CreateEndUserPermissionError = InvalidInput | ModelNotFound | ProjectNotFound | RowScopeFieldMissing;
+
+export type CreateEndUserPermissionInput = {
+  action: RbacAction;
+  columnPolicy: ColumnPolicyInput;
+  description?: InputMaybe<Scalars['String']['input']>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+  modelId: Scalars['ID']['input'];
+  rowScope: RowScopeType;
+};
+
+export type CreateEndUserPermissionPayload = {
+  __typename?: 'CreateEndUserPermissionPayload';
+  error?: Maybe<CreateEndUserPermissionError>;
+  permission?: Maybe<EndUserPermission>;
+};
+
+export type CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound;
+
+export type CreateEndUserRoleInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+};
+
+export type CreateEndUserRolePayload = {
+  __typename?: 'CreateEndUserRolePayload';
+  error?: Maybe<CreateEndUserRoleError>;
+  role?: Maybe<EndUserRole>;
 };
 
 export type CreateEnumError = EnumAlreadyExists | InvalidInput | ProjectNotFound;
@@ -210,6 +353,7 @@ export type CreateGroupPayload = {
 };
 
 export type CreateLogicalForeignKeyInput = {
+  createMode?: InputMaybe<FkCreateMode>;
   modelId: Scalars['ID']['input'];
   refModelId: Scalars['ID']['input'];
   sourceFields: Array<Scalars['String']['input']>;
@@ -290,6 +434,12 @@ export type CurrentUser = {
   role?: Maybe<Role>;
 };
 
+export type DangerousPolicyNotConfirmed = Error & {
+  __typename?: 'DangerousPolicyNotConfirmed';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
 export type Database = {
   __typename?: 'Database';
   name: Scalars['String']['output'];
@@ -345,6 +495,11 @@ export type DatabaseEdge = {
   node: Database;
 };
 
+export type DatabaseLite = {
+  __typename?: 'DatabaseLite';
+  name: Scalars['String']['output'];
+};
+
 export type DbColumnInfo = {
   __typename?: 'DbColumnInfo';
   columnLength?: Maybe<Scalars['Int64']['output']>;
@@ -372,6 +527,42 @@ export type DeleteClusterPayload = {
   success: Scalars['Boolean']['output'];
 };
 
+export type DeleteEndUserError = ClusterNotFound | EndUserNotFound | ProjectNotFound;
+
+export type DeleteEndUserInput = {
+  userId: Scalars['ID']['input'];
+};
+
+export type DeleteEndUserPayload = {
+  __typename?: 'DeleteEndUserPayload';
+  error?: Maybe<DeleteEndUserError>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type DeleteEndUserPermissionBundleError = EndUserPermissionBundleInUse | EndUserPermissionBundleNotFound | ProjectNotFound;
+
+export type DeleteEndUserPermissionBundlePayload = {
+  __typename?: 'DeleteEndUserPermissionBundlePayload';
+  error?: Maybe<DeleteEndUserPermissionBundleError>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type DeleteEndUserPermissionError = EndUserPermissionInUse | EndUserPermissionNotFound | ProjectNotFound;
+
+export type DeleteEndUserPermissionPayload = {
+  __typename?: 'DeleteEndUserPermissionPayload';
+  error?: Maybe<DeleteEndUserPermissionError>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type DeleteEndUserRoleError = EndUserImplicitRoleCannotBeModified | EndUserRoleNotFound | ProjectNotFound;
+
+export type DeleteEndUserRolePayload = {
+  __typename?: 'DeleteEndUserRolePayload';
+  error?: Maybe<DeleteEndUserRoleError>;
+  success: Scalars['Boolean']['output'];
+};
+
 export type DeleteEnumError = CannotDeleteReferencedEnum | EnumNotFound | ProjectNotFound;
 
 export type DeleteEnumPayload = {
@@ -393,7 +584,7 @@ export type DeleteLogicalForeignKeyPayload = {
   result: DeleteLogicalForeignKeyResult;
 };
 
-export type DeleteLogicalForeignKeyResult = DeleteLogicalForeignKeySuccess | FkNotFoundError | FkPairHasRelateFieldsError;
+export type DeleteLogicalForeignKeyResult = DeleteLogicalForeignKeySuccess | FkNotDeletableError | FkNotFoundError | FkPairHasRelateFieldsError;
 
 export type DeleteLogicalForeignKeySuccess = {
   __typename?: 'DeleteLogicalForeignKeySuccess';
@@ -430,6 +621,279 @@ export type DeleteRolePayload = {
   __typename?: 'DeleteRolePayload';
   error?: Maybe<DeleteRoleError>;
   success: Scalars['Boolean']['output'];
+};
+
+export type EffectiveGrant = {
+  __typename?: 'EffectiveGrant';
+  action: RbacAction;
+  columnPolicy: ColumnPolicy;
+  rowScope: RowScopeType;
+};
+
+export type EffectivePermissionSources = {
+  __typename?: 'EffectivePermissionSources';
+  directBundles: Array<EndUserPermissionBundle>;
+  explicitRoleBundles: Array<EndUserRoleBundleSource>;
+  implicitRoleBundles: Array<EndUserRoleBundleSource>;
+};
+
+export type EffectivePermissions = {
+  __typename?: 'EffectivePermissions';
+  endUserId: Scalars['ID']['output'];
+  grants: Array<EffectiveGrant>;
+  modelId: Scalars['ID']['output'];
+  sources: EffectivePermissionSources;
+};
+
+export type EndUser = Node & {
+  __typename?: 'EndUser';
+  createdAt: Scalars['Time']['output'];
+  createdBy: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  isForbidden: Scalars['Boolean']['output'];
+  updatedAt: Scalars['Time']['output'];
+  username: Scalars['String']['output'];
+};
+
+export type EndUserAlreadyExists = Error & {
+  __typename?: 'EndUserAlreadyExists';
+  message: Scalars['String']['output'];
+};
+
+export type EndUserBundleAssignment = {
+  __typename?: 'EndUserBundleAssignment';
+  assignedAt: Scalars['Time']['output'];
+  bundle: EndUserPermissionBundle;
+  endUserId: Scalars['ID']['output'];
+};
+
+export type EndUserBundlePermissionEntry = {
+  __typename?: 'EndUserBundlePermissionEntry';
+  permission: EndUserPermission;
+  sortOrder: Scalars['Int']['output'];
+};
+
+export type EndUserCannotAssignImplicitRole = Error & {
+  __typename?: 'EndUserCannotAssignImplicitRole';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserConnection = {
+  __typename?: 'EndUserConnection';
+  nodes: Array<EndUser>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type EndUserImplicitRoleCannotBeModified = Error & {
+  __typename?: 'EndUserImplicitRoleCannotBeModified';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserNotFound = Error & {
+  __typename?: 'EndUserNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type EndUserNotFoundInProject = Error & {
+  __typename?: 'EndUserNotFoundInProject';
+  message: Scalars['String']['output'];
+};
+
+export type EndUserPasswordTooWeak = Error & {
+  __typename?: 'EndUserPasswordTooWeak';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserPermission = Node & {
+  __typename?: 'EndUserPermission';
+  action: RbacAction;
+  columnPolicy: ColumnPolicy;
+  createdAt: Scalars['Time']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  displayName?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  modelId: Scalars['ID']['output'];
+  /** 来源预设，null 表示手动创建的自定义权限点 */
+  preset?: Maybe<EndUserPermissionPreset>;
+  rowScope: RowScopeType;
+  updatedAt: Scalars['Time']['output'];
+};
+
+export type EndUserPermissionBundle = Node & {
+  __typename?: 'EndUserPermissionBundle';
+  createdAt: Scalars['Time']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  permissions: Array<EndUserBundlePermissionEntry>;
+  updatedAt: Scalars['Time']['output'];
+};
+
+export type EndUserPermissionBundleAlreadyExists = Error & {
+  __typename?: 'EndUserPermissionBundleAlreadyExists';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserPermissionBundleConnection = {
+  __typename?: 'EndUserPermissionBundleConnection';
+  edges: Array<EndUserPermissionBundleEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type EndUserPermissionBundleEdge = {
+  __typename?: 'EndUserPermissionBundleEdge';
+  cursor: Scalars['String']['output'];
+  node: EndUserPermissionBundle;
+};
+
+export type EndUserPermissionBundleInUse = Error & {
+  __typename?: 'EndUserPermissionBundleInUse';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserPermissionBundleNotFound = Error & {
+  __typename?: 'EndUserPermissionBundleNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type EndUserPermissionConnection = {
+  __typename?: 'EndUserPermissionConnection';
+  edges: Array<EndUserPermissionEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type EndUserPermissionEdge = {
+  __typename?: 'EndUserPermissionEdge';
+  cursor: Scalars['String']['output'];
+  node: EndUserPermission;
+};
+
+export type EndUserPermissionInUse = Error & {
+  __typename?: 'EndUserPermissionInUse';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserPermissionNotFound = Error & {
+  __typename?: 'EndUserPermissionNotFound';
+  message: Scalars['String']['output'];
+};
+
+/**
+ * 权限点预设策略类型。
+ *
+ * 应用预设时会替换该模型下所有 preset != null 的权限点，
+ * preset = null（手动创建）的权限点不受影响。
+ *
+ * READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
+ *                       SELECT ALL + INSERT ALL + UPDATE ALL + DELETE ALL
+ * READ_ALL            — 只读全部（不依赖 END_USER_REF 字段）
+ *                       SELECT ALL
+ * READ_WRITE_OWNER    — 读写自己（依赖 END_USER_REF 字段）
+ *                       SELECT SELF + INSERT SELF + UPDATE SELF + DELETE SELF
+ * READ_ALL_WRITE_OWNER — 读所有写自己（依赖 END_USER_REF 字段）
+ *                       SELECT ALL + INSERT SELF + UPDATE SELF + DELETE SELF
+ */
+export enum EndUserPermissionPreset {
+  ReadAll = 'READ_ALL',
+  ReadAllWriteOwner = 'READ_ALL_WRITE_OWNER',
+  ReadWriteAll = 'READ_WRITE_ALL',
+  ReadWriteOwner = 'READ_WRITE_OWNER'
+}
+
+export type EndUserProjectAccess = Node & {
+  __typename?: 'EndUserProjectAccess';
+  endUser: EndUser;
+  grantedAt: Scalars['Time']['output'];
+  grantedBy: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  permissionBundleId: Scalars['ID']['output'];
+  permissionBundleName: Scalars['String']['output'];
+};
+
+export type EndUserProjectAccessAlreadyExists = Error & {
+  __typename?: 'EndUserProjectAccessAlreadyExists';
+  message: Scalars['String']['output'];
+};
+
+export type EndUserProjectAccessConnection = {
+  __typename?: 'EndUserProjectAccessConnection';
+  nodes: Array<EndUserProjectAccess>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type EndUserProjectAccessNotFound = Error & {
+  __typename?: 'EndUserProjectAccessNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type EndUserRefAlreadyExists = Error & {
+  __typename?: 'EndUserRefAlreadyExists';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserRole = Node & {
+  __typename?: 'EndUserRole';
+  createdAt: Scalars['Time']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isImplicit: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  permissionBundles: Array<EndUserRoleBundleEntry>;
+  updatedAt: Scalars['Time']['output'];
+};
+
+export type EndUserRoleAlreadyExists = Error & {
+  __typename?: 'EndUserRoleAlreadyExists';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type EndUserRoleAssignment = {
+  __typename?: 'EndUserRoleAssignment';
+  assignedAt: Scalars['Time']['output'];
+  endUserId: Scalars['ID']['output'];
+  role: EndUserRole;
+};
+
+export type EndUserRoleBundleEntry = {
+  __typename?: 'EndUserRoleBundleEntry';
+  assignedAt: Scalars['Time']['output'];
+  bundle: EndUserPermissionBundle;
+};
+
+export type EndUserRoleBundleSource = {
+  __typename?: 'EndUserRoleBundleSource';
+  bundles: Array<EndUserPermissionBundle>;
+  role: EndUserRole;
+};
+
+export type EndUserRoleConnection = {
+  __typename?: 'EndUserRoleConnection';
+  edges: Array<EndUserRoleEdge>;
+  pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type EndUserRoleEdge = {
+  __typename?: 'EndUserRoleEdge';
+  cursor: Scalars['String']['output'];
+  node: EndUserRole;
+};
+
+export type EndUserRoleNotFound = Error & {
+  __typename?: 'EndUserRoleNotFound';
+  message: Scalars['String']['output'];
 };
 
 export type EnumAlreadyExists = Error & {
@@ -481,6 +945,11 @@ export type FkColumnsNotFoundError = {
   message: Scalars['String']['output'];
 };
 
+export enum FkCreateMode {
+  Bidirectional = 'BIDIRECTIONAL',
+  Unidirectional = 'UNIDIRECTIONAL'
+}
+
 export enum FkDirection {
   Normal = 'NORMAL',
   Reverse = 'REVERSE'
@@ -488,6 +957,11 @@ export enum FkDirection {
 
 export type FkFieldCountMismatchError = {
   __typename?: 'FKFieldCountMismatchError';
+  message: Scalars['String']['output'];
+};
+
+export type FkNotDeletableError = {
+  __typename?: 'FKNotDeletableError';
   message: Scalars['String']['output'];
 };
 
@@ -557,6 +1031,7 @@ export enum FormatType {
   Date = 'DATE',
   Datetime = 'DATETIME',
   Decimal = 'DECIMAL',
+  EndUserRef = 'END_USER_REF',
   Enum = 'ENUM',
   Integer = 'INTEGER',
   Number = 'NUMBER',
@@ -574,12 +1049,31 @@ export type GetClusterPayload = {
   error?: Maybe<GetClusterError>;
 };
 
+export type GetEffectivePermissionsError = EndUserNotFoundInProject | ModelNotFound | ProjectNotFound;
+
+export type GetEffectivePermissionsInput = {
+  endUserId: Scalars['ID']['input'];
+  modelId: Scalars['ID']['input'];
+};
+
+export type GetEffectivePermissionsPayload = {
+  __typename?: 'GetEffectivePermissionsPayload';
+  effectivePermissions?: Maybe<EffectivePermissions>;
+  error?: Maybe<GetEffectivePermissionsError>;
+};
+
 export type GetEnumError = EnumNotFound | ProjectNotFound;
 
 export type GetEnumPayload = {
   __typename?: 'GetEnumPayload';
   enum?: Maybe<EnumDefinition>;
   error?: Maybe<GetEnumError>;
+};
+
+export type GetModelDatabaseCatalogPayload = {
+  __typename?: 'GetModelDatabaseCatalogPayload';
+  data?: Maybe<ModelDatabaseCatalogPayload>;
+  error?: Maybe<ModelDatabaseCatalogError>;
 };
 
 export type GetModelError = InvalidInput | ModelNotFound | ProjectNotFound;
@@ -614,6 +1108,19 @@ export type GetProjectPayload = {
   project?: Maybe<Project>;
 };
 
+export type GrantEndUserProjectAccessError = EndUserNotFound | EndUserPermissionBundleNotFound | EndUserProjectAccessAlreadyExists | InvalidInput | ProjectNotFound;
+
+export type GrantEndUserProjectAccessInput = {
+  endUserId: Scalars['ID']['input'];
+  permissionBundleId: Scalars['ID']['input'];
+};
+
+export type GrantEndUserProjectAccessPayload = {
+  __typename?: 'GrantEndUserProjectAccessPayload';
+  access?: Maybe<EndUserProjectAccess>;
+  error?: Maybe<GrantEndUserProjectAccessError>;
+};
+
 export type GroupAlreadyExists = Error & {
   __typename?: 'GroupAlreadyExists';
   message: Scalars['String']['output'];
@@ -644,6 +1151,26 @@ export type ImportModelPayload = {
   skippedFields: Array<Scalars['String']['output']>;
 };
 
+export type InitPrivateDbError = Error & {
+  __typename?: 'InitPrivateDBError';
+  message: Scalars['String']['output'];
+};
+
+export type InitPrivateDbPayload = {
+  __typename?: 'InitPrivateDBPayload';
+  error?: Maybe<InitPrivateDbPayloadError>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type InitPrivateDbPayloadError = InitPrivateDbError | ProjectNotFound;
+
+export type InvalidAuthVariable = Error & {
+  __typename?: 'InvalidAuthVariable';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
+  variable?: Maybe<Scalars['String']['output']>;
+};
+
 export type InvalidGroupName = Error & {
   __typename?: 'InvalidGroupName';
   message: Scalars['String']['output'];
@@ -656,10 +1183,79 @@ export type InvalidInput = Error & {
   suggestion?: Maybe<Scalars['String']['output']>;
 };
 
+export type InvalidRlsExpression = Error & {
+  __typename?: 'InvalidRLSExpression';
+  message: Scalars['String']['output'];
+  path?: Maybe<Scalars['String']['output']>;
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
 export type ListDatabasesInput = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ListEndUserPermissionBundlesInput = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ListEndUserPermissionsInput = {
+  action?: InputMaybe<RbacAction>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  modelId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ListEndUserRolesInput = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  includeImplicit?: InputMaybe<Scalars['Boolean']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ListEndUsersError = InvalidInput;
+
+export type ListEndUsersInput = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ListEndUsersPayload = {
+  __typename?: 'ListEndUsersPayload';
+  connection?: Maybe<EndUserConnection>;
+  error?: Maybe<ListEndUsersError>;
+};
+
+export type ListProjectEndUserAccessError = InvalidInput | ProjectNotFound;
+
+export type ListProjectEndUserAccessInput = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ListProjectEndUserAccessPayload = {
+  __typename?: 'ListProjectEndUserAccessPayload';
+  connection?: Maybe<EndUserProjectAccessConnection>;
+  error?: Maybe<ListProjectEndUserAccessError>;
+};
+
+export type ListProjectEndUsersError = ClusterNotFound | ProjectNotFound;
+
+export type ListProjectEndUsersInput = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ListProjectEndUsersPayload = {
+  __typename?: 'ListProjectEndUsersPayload';
+  connection?: Maybe<EndUserConnection>;
+  error?: Maybe<ListProjectEndUsersError>;
 };
 
 export type ListProjectsInput = {
@@ -677,6 +1273,7 @@ export type LogicalForeignKey = {
   __typename?: 'LogicalForeignKey';
   direction: FkDirection;
   id: Scalars['ID']['output'];
+  isDeletable: Scalars['Boolean']['output'];
   modelId: Scalars['String']['output'];
   modelName: Scalars['String']['output'];
   pairId: Scalars['String']['output'];
@@ -705,6 +1302,8 @@ export type Model = Node & {
   jsonSchema?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   projectSlug: Scalars['String']['output'];
+  /** RLS 策略配置（无 owner 字段时返回 null） */
+  rlsPolicy?: Maybe<ModelRlsPolicy>;
   storageType: Scalars['String']['output'];
   title: Scalars['String']['output'];
   updatedAt: Scalars['String']['output'];
@@ -723,6 +1322,22 @@ export type ModelConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type ModelDatabaseCatalogError = InvalidInput | ProjectNotFound;
+
+export type ModelDatabaseCatalogInput = {
+  page?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ModelDatabaseCatalogPayload = {
+  __typename?: 'ModelDatabaseCatalogPayload';
+  databases: Array<DatabaseLite>;
+  page: Scalars['Int']['output'];
+  pageSize: Scalars['Int']['output'];
+  totalCount: Scalars['Int']['output'];
+};
+
 export type ModelEdge = {
   __typename?: 'ModelEdge';
   cursor: Scalars['String']['output'];
@@ -736,6 +1351,12 @@ export type ModelGroup = {
   isVirtual: Scalars['Boolean']['output'];
   models: Array<Model>;
   name: Scalars['String']['output'];
+};
+
+export type ModelHasNoOwnerField = Error & {
+  __typename?: 'ModelHasNoOwnerField';
+  message: Scalars['String']['output'];
+  suggestion?: Maybe<Scalars['String']['output']>;
 };
 
 export type ModelJsonSchema = {
@@ -755,6 +1376,28 @@ export type ModelQueryInput = {
   limit?: InputMaybe<Scalars['Int']['input']>;
   offset?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ModelRlsPolicy = {
+  __typename?: 'ModelRLSPolicy';
+  /** 创建时间 */
+  createdAt: Scalars['String']['output'];
+  /** DELETE USING 谓词（JSON 字符串） */
+  deletePredicate: Scalars['String']['output'];
+  /** INSERT WITH CHECK 谓词（JSON 字符串） */
+  insertCheck: Scalars['String']['output'];
+  /** 所属模型 ID */
+  modelId: Scalars['ID']['output'];
+  /** 当前策略匹配的 Preset，自定义组合时返回 null */
+  preset?: Maybe<RlsPreset>;
+  /** SELECT USING 谓词（JSON 字符串） */
+  selectPredicate: Scalars['String']['output'];
+  /** UPDATE WITH CHECK 谓词（JSON 字符串） */
+  updateCheck: Scalars['String']['output'];
+  /** UPDATE USING 谓词（JSON 字符串） */
+  updatePredicate: Scalars['String']['output'];
+  /** 更新时间 */
+  updatedAt: Scalars['String']['output'];
 };
 
 export type ModelTableAlreadyExists = Error & {
@@ -778,11 +1421,23 @@ export type MoveModelToGroupPayload = {
 
 export type Mutation = {
   __typename?: 'Mutation';
+  addEndUserPermissionToBundle: AddEndUserPermissionToBundlePayload;
   addFields: AddFieldsPayload;
   addPermissionToRole: AddRolePermissionPayload;
+  /**
+   * 对指定模型应用预设策略。
+   * 会替换该模型下所有 preset != null 的权限点，preset = null 的自定义权限点保留不变。
+   */
+  applyEndUserPresetPolicy: ApplyEndUserPresetPolicyPayload;
+  assignBundleToEndUser: AssignBundleToEndUserPayload;
+  assignBundleToEndUserRole: AssignBundleToEndUserRolePayload;
+  assignEndUserRole: AssignEndUserRolePayload;
   assignRoleToUser: AssignRolePayload;
-  createApiKey: CreateApiKeyPayload;
   createCustomRole: CreateCustomRolePayload;
+  createEndUser: CreateEndUserPayload;
+  createEndUserPermission: CreateEndUserPermissionPayload;
+  createEndUserPermissionBundle: CreateEndUserPermissionBundlePayload;
+  createEndUserRole: CreateEndUserRolePayload;
   createEnum: CreateEnumPayload;
   createGroup: CreateGroupPayload;
   createLogicalForeignKey: CreateLogicalForeignKeyPayload;
@@ -790,6 +1445,10 @@ export type Mutation = {
   createModelFromSchema: CreateModelFromSchemaPayload;
   createProject: CreateProjectPayload;
   createRole: CreateRolePayload;
+  deleteEndUser: DeleteEndUserPayload;
+  deleteEndUserPermission: DeleteEndUserPermissionPayload;
+  deleteEndUserPermissionBundle: DeleteEndUserPermissionBundlePayload;
+  deleteEndUserRole: DeleteEndUserRolePayload;
   deleteEnum: DeleteEnumPayload;
   deleteGroup: DeleteGroupPayload;
   deleteLogicalForeignKey: DeleteLogicalForeignKeyPayload;
@@ -804,16 +1463,28 @@ export type Mutation = {
    * 状态转换：ACTIVE → DEPRECATED
    */
   deprecateField?: Maybe<Model>;
+  grantEndUserProjectAccess: GrantEndUserProjectAccessPayload;
   importModel: ImportModelPayload;
   moveModelToGroup: MoveModelToGroupPayload;
   pong: Scalars['String']['output'];
+  removeEndUserPermissionFromBundle: RemoveEndUserPermissionFromBundlePayload;
   removeField: RemoveFieldPayload;
   removePermissionFromRole: RemoveRolePermissionPayload;
   renameGroup: RenameGroupPayload;
   reorderGroup: ReorderGroupPayload;
   repairModel: RepairModelPayload;
-  revokeApiKey: RevokeApiKeyPayload;
+  revokeBundleFromEndUser: RevokeBundleFromEndUserPayload;
+  revokeBundleFromEndUserRole: RevokeBundleFromEndUserRolePayload;
+  revokeEndUserProjectAccess: RevokeEndUserProjectAccessPayload;
+  revokeEndUserRole: RevokeEndUserRolePayload;
   revokeRoleFromUser: RevokeRolePayload;
+  /**
+   * 设置 Model RLS 策略
+   * 支持完整的五件套 JSON 表达式，不限于 Preset
+   */
+  setModelRLSPolicy: SetModelRlsPolicyPayload;
+  /** 设置当前项目 auth_schema */
+  setProjectAuthSchema: SetProjectAuthSchemaPayload;
   syncModelSchema: SyncModelSchemaPayload;
   testDatabaseConnection: TestConnectionPayload;
   /**
@@ -822,7 +1493,11 @@ export type Mutation = {
    * 状态转换：DEPRECATED → ACTIVE
    */
   undeprecateField?: Maybe<Model>;
-  updateApiKey: UpdateApiKeyPayload;
+  updateEndUserPermission: UpdateEndUserPermissionPayload;
+  updateEndUserPermissionBundle: UpdateEndUserPermissionBundlePayload;
+  updateEndUserProjectAccess: UpdateEndUserProjectAccessPayload;
+  updateEndUserRole: UpdateEndUserRolePayload;
+  updateEndUserStatus: UpdateEndUserStatusPayload;
   updateEnum: UpdateEnumPayload;
   updateField: UpdateFieldPayload;
   updateModelMeta: UpdateModelMetaPayload;
@@ -831,6 +1506,16 @@ export type Mutation = {
   updatePermissionRole: UpdatePermissionRolePayload;
   updateProject: UpdateProjectPayload;
   updateProjectCluster: UpdateClusterPayload;
+  /**
+   * 校验 RLS 表达式合法性
+   * 用于 Policy 配置页面的实时校验
+   */
+  validateRLSExpr: ValidateRlsExprPayload;
+};
+
+
+export type MutationAddEndUserPermissionToBundleArgs = {
+  input: AddEndUserPermissionToBundleInput;
 };
 
 
@@ -847,6 +1532,26 @@ export type MutationAddPermissionToRoleArgs = {
 };
 
 
+export type MutationApplyEndUserPresetPolicyArgs = {
+  input: ApplyEndUserPresetPolicyInput;
+};
+
+
+export type MutationAssignBundleToEndUserArgs = {
+  input: AssignBundleToEndUserInput;
+};
+
+
+export type MutationAssignBundleToEndUserRoleArgs = {
+  input: AssignBundleToEndUserRoleInput;
+};
+
+
+export type MutationAssignEndUserRoleArgs = {
+  input: AssignEndUserRoleInput;
+};
+
+
 export type MutationAssignRoleToUserArgs = {
   orgName: Scalars['String']['input'];
   roleId: Scalars['Int']['input'];
@@ -854,13 +1559,28 @@ export type MutationAssignRoleToUserArgs = {
 };
 
 
-export type MutationCreateApiKeyArgs = {
-  input: CreateApiKeyInput;
+export type MutationCreateCustomRoleArgs = {
+  input: CreateCustomRoleInput;
 };
 
 
-export type MutationCreateCustomRoleArgs = {
-  input: CreateCustomRoleInput;
+export type MutationCreateEndUserArgs = {
+  input: CreateEndUserInput;
+};
+
+
+export type MutationCreateEndUserPermissionArgs = {
+  input: CreateEndUserPermissionInput;
+};
+
+
+export type MutationCreateEndUserPermissionBundleArgs = {
+  input: CreateEndUserPermissionBundleInput;
+};
+
+
+export type MutationCreateEndUserRoleArgs = {
+  input: CreateEndUserRoleInput;
 };
 
 
@@ -896,6 +1616,26 @@ export type MutationCreateProjectArgs = {
 
 export type MutationCreateRoleArgs = {
   input: CreateRoleInput;
+};
+
+
+export type MutationDeleteEndUserArgs = {
+  input: DeleteEndUserInput;
+};
+
+
+export type MutationDeleteEndUserPermissionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteEndUserPermissionBundleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type MutationDeleteEndUserRoleArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -941,6 +1681,11 @@ export type MutationDeprecateFieldArgs = {
 };
 
 
+export type MutationGrantEndUserProjectAccessArgs = {
+  input: GrantEndUserProjectAccessInput;
+};
+
+
 export type MutationImportModelArgs = {
   input: ImportModelInput;
 };
@@ -948,6 +1693,11 @@ export type MutationImportModelArgs = {
 
 export type MutationMoveModelToGroupArgs = {
   input: MoveModelToGroupInput;
+};
+
+
+export type MutationRemoveEndUserPermissionFromBundleArgs = {
+  input: RemoveEndUserPermissionFromBundleInput;
 };
 
 
@@ -979,8 +1729,23 @@ export type MutationRepairModelArgs = {
 };
 
 
-export type MutationRevokeApiKeyArgs = {
-  id: Scalars['ID']['input'];
+export type MutationRevokeBundleFromEndUserArgs = {
+  input: RevokeBundleFromEndUserInput;
+};
+
+
+export type MutationRevokeBundleFromEndUserRoleArgs = {
+  input: RevokeBundleFromEndUserRoleInput;
+};
+
+
+export type MutationRevokeEndUserProjectAccessArgs = {
+  input: RevokeEndUserProjectAccessInput;
+};
+
+
+export type MutationRevokeEndUserRoleArgs = {
+  input: RevokeEndUserRoleInput;
 };
 
 
@@ -988,6 +1753,16 @@ export type MutationRevokeRoleFromUserArgs = {
   orgName: Scalars['String']['input'];
   roleId: Scalars['Int']['input'];
   userId: Scalars['String']['input'];
+};
+
+
+export type MutationSetModelRlsPolicyArgs = {
+  input: SetModelRlsPolicyInput;
+};
+
+
+export type MutationSetProjectAuthSchemaArgs = {
+  input: SetProjectAuthSchemaInput;
 };
 
 
@@ -1007,9 +1782,31 @@ export type MutationUndeprecateFieldArgs = {
 };
 
 
-export type MutationUpdateApiKeyArgs = {
+export type MutationUpdateEndUserPermissionArgs = {
   id: Scalars['ID']['input'];
-  input: UpdateApiKeyInput;
+  input: UpdateEndUserPermissionInput;
+};
+
+
+export type MutationUpdateEndUserPermissionBundleArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateEndUserPermissionBundleInput;
+};
+
+
+export type MutationUpdateEndUserProjectAccessArgs = {
+  input: UpdateEndUserProjectAccessInput;
+};
+
+
+export type MutationUpdateEndUserRoleArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateEndUserRoleInput;
+};
+
+
+export type MutationUpdateEndUserStatusArgs = {
+  input: UpdateEndUserStatusInput;
 };
 
 
@@ -1056,6 +1853,11 @@ export type MutationUpdateProjectArgs = {
 export type MutationUpdateProjectClusterArgs = {
   input: UpdateClusterConnectionInput;
   projectSlug: Scalars['String']['input'];
+};
+
+
+export type MutationValidateRlsExprArgs = {
+  input: ValidateRlsExprInput;
 };
 
 export type Node = {
@@ -1150,6 +1952,14 @@ export type PermissionUserNotFound = PermissionManagementError & {
   suggestion?: Maybe<Scalars['String']['output']>;
 };
 
+export type PresetRequiresOwnerField = Error & {
+  __typename?: 'PresetRequiresOwnerField';
+  /** 选择的预设依赖 END_USER_REF 字段，但模型中不存在该字段 */
+  message: Scalars['String']['output'];
+  preset: EndUserPermissionPreset;
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
 export type Profile = Node & {
   __typename?: 'Profile';
   avatarUrl?: Maybe<Scalars['String']['output']>;
@@ -1168,6 +1978,8 @@ export type ProfileNotFound = Error & {
 
 export type Project = Node & {
   __typename?: 'Project';
+  /** 认证变量配置（用于 RLS 表达式中的 _auth 引用） */
+  authSchema: ProjectAuthSchema;
   createdAt: Scalars['String']['output'];
   description: Scalars['String']['output'];
   id: Scalars['ID']['output'];
@@ -1182,6 +1994,12 @@ export type ProjectAlreadyExists = Error & {
   __typename?: 'ProjectAlreadyExists';
   message: Scalars['String']['output'];
   suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+export type ProjectAuthSchema = {
+  __typename?: 'ProjectAuthSchema';
+  /** 认证变量列表（不含内置 uid） */
+  variables: Array<AuthVariable>;
 };
 
 export type ProjectConnection = {
@@ -1209,21 +2027,35 @@ export enum ProjectStatus {
 
 export type Query = {
   __typename?: 'Query';
-  apiKeys: Array<ApiKey>;
   databaseCluster: GetClusterPayload;
+  effectivePermissions: GetEffectivePermissionsPayload;
+  endUserBundleAssignments: Array<EndUserBundleAssignment>;
+  endUserPermission?: Maybe<EndUserPermission>;
+  endUserPermissionBundle?: Maybe<EndUserPermissionBundle>;
+  endUserPermissionBundles: EndUserPermissionBundleConnection;
+  endUserPermissions: EndUserPermissionConnection;
+  endUserRole?: Maybe<EndUserRole>;
+  endUserRoleAssignments: Array<EndUserRoleAssignment>;
+  endUserRoles: EndUserRoleConnection;
   enum: GetEnumPayload;
   enumReferences: Array<Scalars['String']['output']>;
   enums: Array<EnumDefinition>;
   fields: Array<Field>;
   hello: Scalars['String']['output'];
   listDatabases: DatabaseConnection;
+  listEndUsers: ListEndUsersPayload;
+  listProjectEndUserAccess: ListProjectEndUserAccessPayload;
+  listProjectEndUsers: ListProjectEndUsersPayload;
   listTables: TableListConnection;
   logicalForeignKeys: Array<LogicalForeignKey>;
   me: CurrentUser;
   model: GetModelPayload;
   modelByName: GetModelPayload;
+  modelDatabaseCatalog: GetModelDatabaseCatalogPayload;
   modelGroups: Array<ModelGroup>;
   modelJsonSchema?: Maybe<ModelJsonSchema>;
+  /** 获取 Model RLS 策略配置 */
+  modelRLSPolicy?: Maybe<ModelRlsPolicy>;
   models: ModelConnection;
   myOrganizations: Array<Organization>;
   myUserProfile: GetMyUserProfilePayload;
@@ -1233,6 +2065,8 @@ export type Query = {
   permissionRoles: Array<PermissionRole>;
   ping: Scalars['String']['output'];
   project: GetProjectPayload;
+  /** 获取当前项目 auth_schema */
+  projectAuthSchema: ProjectAuthSchema;
   projects: Array<Project>;
   rolePermissionsList: Array<PermissionDef>;
   roles: Array<Role>;
@@ -1242,6 +2076,51 @@ export type Query = {
 
 export type QueryDatabaseClusterArgs = {
   projectSlug: Scalars['String']['input'];
+};
+
+
+export type QueryEffectivePermissionsArgs = {
+  input: GetEffectivePermissionsInput;
+};
+
+
+export type QueryEndUserBundleAssignmentsArgs = {
+  endUserId: Scalars['ID']['input'];
+};
+
+
+export type QueryEndUserPermissionArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryEndUserPermissionBundleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryEndUserPermissionBundlesArgs = {
+  input?: InputMaybe<ListEndUserPermissionBundlesInput>;
+};
+
+
+export type QueryEndUserPermissionsArgs = {
+  input?: InputMaybe<ListEndUserPermissionsInput>;
+};
+
+
+export type QueryEndUserRoleArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryEndUserRoleAssignmentsArgs = {
+  endUserId: Scalars['ID']['input'];
+};
+
+
+export type QueryEndUserRolesArgs = {
+  input?: InputMaybe<ListEndUserRolesInput>;
 };
 
 
@@ -1262,6 +2141,21 @@ export type QueryFieldsArgs = {
 
 export type QueryListDatabasesArgs = {
   input: ListDatabasesInput;
+};
+
+
+export type QueryListEndUsersArgs = {
+  input?: InputMaybe<ListEndUsersInput>;
+};
+
+
+export type QueryListProjectEndUserAccessArgs = {
+  input?: InputMaybe<ListProjectEndUserAccessInput>;
+};
+
+
+export type QueryListProjectEndUsersArgs = {
+  input?: InputMaybe<ListProjectEndUsersInput>;
 };
 
 
@@ -1287,8 +2181,18 @@ export type QueryModelByNameArgs = {
 };
 
 
+export type QueryModelDatabaseCatalogArgs = {
+  input?: InputMaybe<ModelDatabaseCatalogInput>;
+};
+
+
 export type QueryModelJsonSchemaArgs = {
   id: Scalars['ID']['input'];
+};
+
+
+export type QueryModelRlsPolicyArgs = {
+  modelId: Scalars['ID']['input'];
 };
 
 
@@ -1331,6 +2235,70 @@ export type QueryRolePermissionsListArgs = {
 export type QueryUserRoleAssignmentsArgs = {
   orgName: Scalars['String']['input'];
   userId: Scalars['String']['input'];
+};
+
+export type RlsCheckViolation = Error & {
+  __typename?: 'RLSCheckViolation';
+  message: Scalars['String']['output'];
+  operation?: Maybe<Scalars['String']['output']>;
+};
+
+export enum RlsExprType {
+  DeletePredicate = 'DELETE_PREDICATE',
+  InsertCheck = 'INSERT_CHECK',
+  SelectPredicate = 'SELECT_PREDICATE',
+  UpdateCheck = 'UPDATE_CHECK',
+  UpdatePredicate = 'UPDATE_PREDICATE'
+}
+
+export enum RlsPreset {
+  /**
+   * 无访问权限
+   * 五件套均为 false
+   */
+  NoAccess = 'NO_ACCESS',
+  /**
+   * 只读全部
+   * selectPredicate=true，其余为 false
+   */
+  ReadAll = 'READ_ALL',
+  /**
+   * 读取全部，写自己
+   * selectPredicate=true，其余为 OWNER_EQUALS_USER
+   */
+  ReadAllWriteOwner = 'READ_ALL_WRITE_OWNER',
+  /**
+   * 读写全部（⚠️ 高危策略）
+   * 五件套均为 true
+   */
+  ReadWriteAll = 'READ_WRITE_ALL',
+  /**
+   * 默认策略：读写自己
+   * 五件套均为 {"owner":{"_eq":{"_auth":"uid"}}}
+   */
+  ReadWriteOwner = 'READ_WRITE_OWNER'
+}
+
+/** 数据操作动作：终端用户对数据表可执行的操作类型 */
+export enum RbacAction {
+  Delete = 'DELETE',
+  Export = 'EXPORT',
+  Insert = 'INSERT',
+  Select = 'SELECT',
+  Update = 'UPDATE'
+}
+
+export type RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound;
+
+export type RemoveEndUserPermissionFromBundleInput = {
+  bundleId: Scalars['ID']['input'];
+  permissionId: Scalars['ID']['input'];
+};
+
+export type RemoveEndUserPermissionFromBundlePayload = {
+  __typename?: 'RemoveEndUserPermissionFromBundlePayload';
+  bundle?: Maybe<EndUserPermissionBundle>;
+  error?: Maybe<RemoveEndUserPermissionFromBundleError>;
 };
 
 export type RemoveFieldError = FieldReferenceInUse | InvalidInput;
@@ -1397,12 +2365,55 @@ export type RepairModelPayload = {
   model?: Maybe<Model>;
 };
 
-export type RevokeApiKeyError = ApiKeyNotFound;
+export type RevokeBundleFromEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | ProjectNotFound;
 
-export type RevokeApiKeyPayload = {
-  __typename?: 'RevokeApiKeyPayload';
-  apiKey?: Maybe<ApiKey>;
-  error?: Maybe<RevokeApiKeyError>;
+export type RevokeBundleFromEndUserInput = {
+  bundleId: Scalars['ID']['input'];
+  endUserId: Scalars['ID']['input'];
+};
+
+export type RevokeBundleFromEndUserPayload = {
+  __typename?: 'RevokeBundleFromEndUserPayload';
+  error?: Maybe<RevokeBundleFromEndUserError>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type RevokeBundleFromEndUserRoleError = EndUserPermissionBundleNotFound | EndUserRoleNotFound | ProjectNotFound;
+
+export type RevokeBundleFromEndUserRoleInput = {
+  bundleId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+};
+
+export type RevokeBundleFromEndUserRolePayload = {
+  __typename?: 'RevokeBundleFromEndUserRolePayload';
+  error?: Maybe<RevokeBundleFromEndUserRoleError>;
+  role?: Maybe<EndUserRole>;
+};
+
+export type RevokeEndUserProjectAccessError = EndUserProjectAccessNotFound | ProjectNotFound;
+
+export type RevokeEndUserProjectAccessInput = {
+  accessId: Scalars['ID']['input'];
+};
+
+export type RevokeEndUserProjectAccessPayload = {
+  __typename?: 'RevokeEndUserProjectAccessPayload';
+  error?: Maybe<RevokeEndUserProjectAccessError>;
+  success: Scalars['Boolean']['output'];
+};
+
+export type RevokeEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | ProjectNotFound;
+
+export type RevokeEndUserRoleInput = {
+  endUserId: Scalars['ID']['input'];
+  roleId: Scalars['ID']['input'];
+};
+
+export type RevokeEndUserRolePayload = {
+  __typename?: 'RevokeEndUserRolePayload';
+  error?: Maybe<RevokeEndUserRoleError>;
+  success: Scalars['Boolean']['output'];
 };
 
 export type RevokeRoleError = PermissionRoleNotFound | PermissionUserNotFound;
@@ -1436,6 +2447,29 @@ export type RoleNotFound = Error & {
 
 export type RolePermissionError = InvalidInput | PermissionRoleNotFound | PermissionSystemRoleCannotBeModified;
 
+export type RowScopeFieldMissing = Error & {
+  __typename?: 'RowScopeFieldMissing';
+  message: Scalars['String']['output'];
+  missingField: Scalars['String']['output'];
+  requiredByRowScope: RowScopeType;
+  suggestion?: Maybe<Scalars['String']['output']>;
+};
+
+/**
+ * 行策略范围：控制终端用户可见哪些数据行
+ *
+ * ALL                — 全部行，不过滤
+ * SELF               — 仅当前用户自己的行
+ * DEPT               — 仅当前用户所在部门的行
+ * DEPT_AND_CHILDREN  — 当前部门及所有下级部门的行
+ */
+export enum RowScopeType {
+  All = 'ALL',
+  Dept = 'DEPT',
+  DeptAndChildren = 'DEPT_AND_CHILDREN',
+  Self = 'SELF'
+}
+
 export type SchemaIssue = {
   __typename?: 'SchemaIssue';
   description: Scalars['String']['output'];
@@ -1462,6 +2496,44 @@ export enum SchemaType {
   Object = 'OBJECT',
   String = 'STRING'
 }
+
+export type SetModelRlsPolicyError = InvalidAuthVariable | InvalidRlsExpression | ModelHasNoOwnerField | ModelNotFound | ProjectNotFound;
+
+export type SetModelRlsPolicyInput = {
+  /** DELETE USING 谓词（JSON 字符串） */
+  deletePredicate: Scalars['String']['input'];
+  /** INSERT WITH CHECK 谓词（JSON 字符串） */
+  insertCheck: Scalars['String']['input'];
+  /** 模型 ID */
+  modelId: Scalars['ID']['input'];
+  /** SELECT USING 谓词（JSON 字符串） */
+  selectPredicate: Scalars['String']['input'];
+  /** UPDATE WITH CHECK 谓词（JSON 字符串） */
+  updateCheck: Scalars['String']['input'];
+  /** UPDATE USING 谓词（JSON 字符串） */
+  updatePredicate: Scalars['String']['input'];
+};
+
+export type SetModelRlsPolicyPayload = {
+  __typename?: 'SetModelRLSPolicyPayload';
+  error?: Maybe<SetModelRlsPolicyError>;
+  policy?: Maybe<ModelRlsPolicy>;
+};
+
+export type SetProjectAuthSchemaError = InvalidInput | ProjectNotFound;
+
+export type SetProjectAuthSchemaInput = {
+  /** 项目 slug */
+  projectSlug: Scalars['String']['input'];
+  /** 认证变量列表（uid 内置，无需声明） */
+  variables: Array<AuthVariableInput>;
+};
+
+export type SetProjectAuthSchemaPayload = {
+  __typename?: 'SetProjectAuthSchemaPayload';
+  authSchema?: Maybe<ProjectAuthSchema>;
+  error?: Maybe<SetProjectAuthSchemaError>;
+};
 
 export type SyncModelSchemaInput = {
   deleteExtraFields?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1503,19 +2575,6 @@ export type TestDatabaseConnectionInput = {
   projectSlug?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type UpdateApiKeyError = ApiKeyNotFound | InvalidInput;
-
-export type UpdateApiKeyInput = {
-  expiresAt?: InputMaybe<Scalars['Time']['input']>;
-  name?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type UpdateApiKeyPayload = {
-  __typename?: 'UpdateApiKeyPayload';
-  apiKey?: Maybe<ApiKey>;
-  error?: Maybe<UpdateApiKeyError>;
-};
-
 export type UpdateClusterConnectionInput = {
   connectionInfo?: InputMaybe<DatabaseConnectionInput>;
   description?: InputMaybe<Scalars['String']['input']>;
@@ -1529,6 +2588,72 @@ export type UpdateClusterPayload = {
   __typename?: 'UpdateClusterPayload';
   cluster?: Maybe<DatabaseCluster>;
   error?: Maybe<UpdateClusterError>;
+};
+
+export type UpdateEndUserError = ClusterNotFound | EndUserNotFound | InvalidInput | ProjectNotFound;
+
+export type UpdateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | EndUserPermissionBundleNotFound | InvalidInput | ProjectNotFound;
+
+export type UpdateEndUserPermissionBundleInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateEndUserPermissionBundlePayload = {
+  __typename?: 'UpdateEndUserPermissionBundlePayload';
+  bundle?: Maybe<EndUserPermissionBundle>;
+  error?: Maybe<UpdateEndUserPermissionBundleError>;
+};
+
+export type UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | ProjectNotFound | RowScopeFieldMissing;
+
+export type UpdateEndUserPermissionInput = {
+  columnPolicy?: InputMaybe<ColumnPolicyInput>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  displayName?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateEndUserPermissionPayload = {
+  __typename?: 'UpdateEndUserPermissionPayload';
+  error?: Maybe<UpdateEndUserPermissionError>;
+  permission?: Maybe<EndUserPermission>;
+};
+
+export type UpdateEndUserProjectAccessError = EndUserPermissionBundleNotFound | EndUserProjectAccessNotFound | InvalidInput | ProjectNotFound;
+
+export type UpdateEndUserProjectAccessInput = {
+  accessId: Scalars['ID']['input'];
+  permissionBundleId: Scalars['ID']['input'];
+};
+
+export type UpdateEndUserProjectAccessPayload = {
+  __typename?: 'UpdateEndUserProjectAccessPayload';
+  access?: Maybe<EndUserProjectAccess>;
+  error?: Maybe<UpdateEndUserProjectAccessError>;
+};
+
+export type UpdateEndUserRoleError = EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | EndUserRoleNotFound | InvalidInput | ProjectNotFound;
+
+export type UpdateEndUserRoleInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdateEndUserRolePayload = {
+  __typename?: 'UpdateEndUserRolePayload';
+  error?: Maybe<UpdateEndUserRoleError>;
+  role?: Maybe<EndUserRole>;
+};
+
+export type UpdateEndUserStatusInput = {
+  isForbidden: Scalars['Boolean']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+export type UpdateEndUserStatusPayload = {
+  __typename?: 'UpdateEndUserStatusPayload';
+  endUser?: Maybe<EndUser>;
+  error?: Maybe<UpdateEndUserError>;
 };
 
 export type UpdateEnumError = EnumNotFound | InvalidInput | ProjectNotFound;
@@ -1636,8 +2761,18 @@ export type User = Node & {
   userName: Scalars['String']['output'];
 };
 
+export type UserBundleAlreadyAssigned = Error & {
+  __typename?: 'UserBundleAlreadyAssigned';
+  message: Scalars['String']['output'];
+};
+
 export type UserNotFound = Error & {
   __typename?: 'UserNotFound';
+  message: Scalars['String']['output'];
+};
+
+export type UserRoleAlreadyAssigned = Error & {
+  __typename?: 'UserRoleAlreadyAssigned';
   message: Scalars['String']['output'];
 };
 
@@ -1656,6 +2791,23 @@ export enum UserStatus {
   Suspended = 'SUSPENDED'
 }
 
+export type ValidateRlsExprError = InvalidAuthVariable | InvalidRlsExpression | ModelNotFound | ProjectNotFound;
+
+export type ValidateRlsExprInput = {
+  /** 要校验的谓词类型 */
+  exprType: RlsExprType;
+  /** 表达式 JSON 字符串 */
+  expression: Scalars['String']['input'];
+  /** 所属模型 ID（用于字段名白名单校验） */
+  modelId: Scalars['ID']['input'];
+};
+
+export type ValidateRlsExprPayload = {
+  __typename?: 'ValidateRLSExprPayload';
+  error?: Maybe<ValidateRlsExprError>;
+  result: ValidationResult;
+};
+
 export type ValidationConfig = {
   __typename?: 'ValidationConfig';
   maxLength?: Maybe<Scalars['Int64']['output']>;
@@ -1673,6 +2825,51 @@ export type ValidationConfigInput = {
   pattern?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type ValidationError = {
+  __typename?: 'ValidationError';
+  /** 错误码 */
+  code: Scalars['String']['output'];
+  /** 错误描述 */
+  message: Scalars['String']['output'];
+  /** 错误位置（如 "selectPredicate._and[0].owner"） */
+  path: Scalars['String']['output'];
+};
+
+export type ValidationResult = {
+  __typename?: 'ValidationResult';
+  /** 校验错误信息列表（valid=false 时返回） */
+  errors?: Maybe<Array<ValidationError>>;
+  /** 是否校验通过 */
+  valid: Scalars['Boolean']['output'];
+};
+
+export type GetClusterQueryVariables = Exact<{
+  projectSlug: Scalars['String']['input'];
+}>;
+
+
+export type GetClusterQuery = { __typename?: 'Query', databaseCluster: { __typename?: 'GetClusterPayload', cluster?: { __typename?: 'DatabaseCluster', id: string, title: string, description: string, status: ClusterStatus, createdAt: string, updatedAt: string, connectionInfo: { __typename?: 'DatabaseConnectionInfo', host: string, port: any, username: string, password: string } } | null, error?:
+      | { __typename: 'ClusterNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type ListDatabasesQueryVariables = Exact<{
+  input: ListDatabasesInput;
+}>;
+
+
+export type ListDatabasesQuery = { __typename?: 'Query', listDatabases: { __typename?: 'DatabaseConnection', totalCount: number, edges: Array<{ __typename?: 'DatabaseEdge', node: { __typename?: 'Database', name: string } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, hasPreviousPage: boolean, startCursor?: string | null, endCursor?: string | null } } };
+
+export type ModelDatabaseCatalogQueryVariables = Exact<{
+  input?: InputMaybe<ModelDatabaseCatalogInput>;
+}>;
+
+
+export type ModelDatabaseCatalogQuery = { __typename?: 'Query', modelDatabaseCatalog: { __typename?: 'GetModelDatabaseCatalogPayload', data?: { __typename?: 'ModelDatabaseCatalogPayload', totalCount: number, page: number, pageSize: number, databases: Array<{ __typename?: 'DatabaseLite', name: string }> } | null, error?:
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
 export type TestClusterConnectionMutationVariables = Exact<{
   input: TestDatabaseConnectionInput;
 }>;
@@ -1683,6 +2880,71 @@ export type TestClusterConnectionMutation = { __typename?: 'Mutation', testDatab
       | { __typename: 'DatabaseConnectionFailed', message: string, suggestion?: string | null }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
+
+export type ListEndUsersQueryVariables = Exact<{
+  input?: InputMaybe<ListEndUsersInput>;
+}>;
+
+
+export type ListEndUsersQuery = { __typename?: 'Query', listEndUsers: { __typename?: 'ListEndUsersPayload', connection?: { __typename?: 'EndUserConnection', totalCount: number, nodes: Array<{ __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdBy: string, createdAt: any, updatedAt: any }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } | null, error?: { __typename: 'InvalidInput', message: string, suggestion?: string | null } | null } };
+
+export type CreateEndUserMutationVariables = Exact<{
+  input: CreateEndUserInput;
+}>;
+
+
+export type CreateEndUserMutation = { __typename?: 'Mutation', createEndUser: { __typename?: 'CreateEndUserPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdBy: string, createdAt: any, updatedAt: any } | null, error?:
+      | { __typename: 'ClusterNotFound' }
+      | { __typename: 'EndUserAlreadyExists', message: string }
+      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+      | { __typename: 'ProjectNotFound' }
+     | null } };
+
+export type UpdateEndUserStatusMutationVariables = Exact<{
+  input: UpdateEndUserStatusInput;
+}>;
+
+
+export type UpdateEndUserStatusMutation = { __typename?: 'Mutation', updateEndUserStatus: { __typename?: 'UpdateEndUserStatusPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, updatedAt: any } | null, error?:
+      | { __typename: 'ClusterNotFound' }
+      | { __typename: 'EndUserNotFound', message: string }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+      | { __typename: 'ProjectNotFound' }
+     | null } };
+
+export type DeleteEndUserMutationVariables = Exact<{
+  input: DeleteEndUserInput;
+}>;
+
+
+export type DeleteEndUserMutation = { __typename?: 'Mutation', deleteEndUser: { __typename?: 'DeleteEndUserPayload', success: boolean, error?:
+      | { __typename: 'ClusterNotFound' }
+      | { __typename: 'EndUserNotFound', message: string }
+      | { __typename: 'ProjectNotFound' }
+     | null } };
+
+export type GetEnumsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetEnumsQuery = { __typename?: 'Query', enums: Array<{ __typename?: 'EnumDefinition', id: string, projectSlug: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, createdAt: string, updatedAt: string, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> }> };
+
+export type GetEnumQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type GetEnumQuery = { __typename?: 'Query', enum: { __typename?: 'GetEnumPayload', enum?: { __typename?: 'EnumDefinition', id: string, projectSlug: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, createdAt: string, updatedAt: string, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, error?:
+      | { __typename: 'EnumNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type GetEnumReferencesQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+}>;
+
+
+export type GetEnumReferencesQuery = { __typename?: 'Query', enumReferences: Array<string> };
 
 export type CreateEnumMutationVariables = Exact<{
   input: CreateEnumInput;
@@ -1717,6 +2979,82 @@ export type DeleteEnumMutation = { __typename?: 'Mutation', deleteEnum: { __type
       | { __typename: 'EnumNotFound', message: string }
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
+
+export type GetModelEnumSourceFieldsQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+  withActualSchema?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type GetModelEnumSourceFieldsQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, enum?: { __typename?: 'EnumDefinition', name: string } | null }> } | null } };
+
+export type GetModelsQueryVariables = Exact<{
+  input?: InputMaybe<ModelQueryInput>;
+}>;
+
+
+export type GetModelsQuery = { __typename?: 'Query', models: { __typename?: 'ModelConnection', totalCount: number, edges: Array<{ __typename?: 'ModelEdge', cursor: string, node: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, hasPreviousPage: boolean, startCursor?: string | null, endCursor?: string | null } } };
+
+export type GetModelsForRelationQueryVariables = Exact<{
+  input?: InputMaybe<ModelQueryInput>;
+}>;
+
+
+export type GetModelsForRelationQuery = { __typename?: 'Query', models: { __typename?: 'ModelConnection', edges: Array<{ __typename?: 'ModelEdge', node: { __typename?: 'Model', id: string, name: string, title: string, databaseName: string } }> } };
+
+export type GetModelQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+  withActualSchema?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type GetModelQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, displayField?: string | null, databaseName: string, storageType: string, jsonSchema?: string | null, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, isDeprecated: boolean, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, dbColumn?: { __typename?: 'DbColumnInfo', columnType: string, unique: boolean, nonNull: boolean, defaultValue?: string | null, constraints: Array<ActualConstraintType>, foreignKey?: { __typename?: 'ActualForeignKey', referencedTable: string, referencedColumn: string, constraintName: string } | null, conflicts: Array<{ __typename?: 'FieldConflict', aspect: FieldConflictAspect, expected: string, actual: string }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+      | { __typename: 'ModelNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type GetModelRecordWorkspaceQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ModelNotFound', message: string }
+      | { __typename: 'ProjectNotFound' }
+     | null } };
+
+export type GetModelByNameQueryVariables = Exact<{
+  name: Scalars['String']['input'];
+  databaseName: Scalars['String']['input'];
+}>;
+
+
+export type GetModelByNameQuery = { __typename?: 'Query', modelByName: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+      | { __typename: 'ModelNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type GetModelGroupsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetModelGroupsQuery = { __typename?: 'Query', modelGroups: Array<{ __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string, models: Array<{ __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, createdAt: string, updatedAt: string }> }> };
+
+export type GetModelJsonSchemaQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetModelJsonSchemaQuery = { __typename?: 'Query', modelJsonSchema?: { __typename?: 'ModelJsonSchema', modelId: string, modelName: string, schema: string } | null };
+
+export type GetLogicalForeignKeysQueryVariables = Exact<{
+  modelId: Scalars['ID']['input'];
+}>;
+
+
+export type GetLogicalForeignKeysQuery = { __typename?: 'Query', logicalForeignKeys: Array<{ __typename?: 'LogicalForeignKey', id: string, pairId: string, direction: FkDirection, modelId: string, modelName: string, refModelId: string, refModelName: string, sourceFields: Array<string>, targetFields: Array<string> }> };
 
 export type CreateModelMutationVariables = Exact<{
   input: CreateModelInput;
@@ -1857,6 +3195,22 @@ export type RemoveFieldMutation = { __typename?: 'Mutation', removeField: { __ty
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
      | null } };
 
+export type DeprecateFieldMutationVariables = Exact<{
+  modelID: Scalars['ID']['input'];
+  fieldName: Scalars['String']['input'];
+}>;
+
+
+export type DeprecateFieldMutation = { __typename?: 'Mutation', deprecateField?: { __typename?: 'Model', id: string } | null };
+
+export type UndeprecateFieldMutationVariables = Exact<{
+  modelID: Scalars['ID']['input'];
+  fieldName: Scalars['String']['input'];
+}>;
+
+
+export type UndeprecateFieldMutation = { __typename?: 'Mutation', undeprecateField?: { __typename?: 'Model', id: string } | null };
+
 export type CreateLogicalForeignKeyMutationVariables = Exact<{
   input: CreateLogicalForeignKeyInput;
 }>;
@@ -1875,9 +3229,41 @@ export type DeleteLogicalForeignKeyMutationVariables = Exact<{
 
 export type DeleteLogicalForeignKeyMutation = { __typename?: 'Mutation', deleteLogicalForeignKey: { __typename?: 'DeleteLogicalForeignKeyPayload', result:
       | { __typename: 'DeleteLogicalForeignKeySuccess', pairId: string }
+      | { __typename: 'FKNotDeletableError' }
       | { __typename: 'FKNotFoundError', message: string }
       | { __typename: 'FKPairHasRelateFieldsError', message: string }
      } };
+
+export type NoopQueryQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type NoopQueryQuery = { __typename: 'Query' };
+
+export type NoopMutationMutationVariables = Exact<{ [key: string]: never; }>;
+
+
+export type NoopMutationMutation = { __typename: 'Mutation' };
+
+export type ListTablesQueryVariables = Exact<{
+  input: ListTablesInput;
+}>;
+
+
+export type ListTablesQuery = { __typename?: 'Query', listTables: { __typename?: 'TableListConnection', totalCount: number, items: Array<{ __typename?: 'TableInfo', name: string }> } };
+
+export type GetProjectsQueryVariables = Exact<{
+  input?: InputMaybe<ListProjectsInput>;
+}>;
+
+
+export type GetProjectsQuery = { __typename?: 'Query', projects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
+
+export type GetProjectQueryVariables = Exact<{
+  slug: Scalars['String']['input'];
+}>;
+
+
+export type GetProjectQuery = { __typename?: 'Query', project: { __typename?: 'GetProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?: { __typename: 'ProjectNotFound', message: string } | null } };
 
 export type CreateProjectMutationVariables = Exact<{
   input: CreateProjectInput;
@@ -1934,6 +3320,279 @@ export type TestDatabaseConnectionMutation = { __typename?: 'Mutation', testData
       | { __typename: 'ProjectNotFound', message: string }
      | null } };
 
+export type GetEndUserPermissionsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetEndUserPermissionsQuery = { __typename?: 'Query', endUserPermissions: { __typename?: 'EndUserPermissionConnection', totalCount: number, edges: Array<{ __typename?: 'EndUserPermissionEdge', node: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType, displayName?: string | null, description?: string | null, createdAt: any, updatedAt: any, columnPolicy: { __typename?: 'ColumnPolicy', defaultMode: ColumnAccessMode, rules: Array<{ __typename?: 'ColumnRule', fieldName: string, mode: ColumnAccessMode, maskPattern?: string | null }> } } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } };
+
+export type GetEndUserBundlesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetEndUserBundlesQuery = { __typename?: 'Query', endUserPermissionBundles: { __typename?: 'EndUserPermissionBundleConnection', totalCount: number, edges: Array<{ __typename?: 'EndUserPermissionBundleEdge', node: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null, createdAt: any, updatedAt: any, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType, columnPolicy: { __typename?: 'ColumnPolicy', defaultMode: ColumnAccessMode, rules: Array<{ __typename?: 'ColumnRule', fieldName: string, mode: ColumnAccessMode, maskPattern?: string | null }> } } }> } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } };
+
+export type GetEndUserBundleQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetEndUserBundleQuery = { __typename?: 'Query', endUserPermissionBundle?: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null, createdAt: any, updatedAt: any, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType, displayName?: string | null, description?: string | null, columnPolicy: { __typename?: 'ColumnPolicy', defaultMode: ColumnAccessMode, rules: Array<{ __typename?: 'ColumnRule', fieldName: string, mode: ColumnAccessMode, maskPattern?: string | null }> } } }> } | null };
+
+export type GetEndUserRolesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetEndUserRolesQuery = { __typename?: 'Query', endUserRoles: { __typename?: 'EndUserRoleConnection', totalCount: number, edges: Array<{ __typename?: 'EndUserRoleEdge', node: { __typename?: 'EndUserRole', id: string, name: string, description?: string | null, isImplicit: boolean, createdAt: any, updatedAt: any, permissionBundles: Array<{ __typename?: 'EndUserRoleBundleEntry', bundle: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null } }> } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } };
+
+export type GetEndUserRoleQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetEndUserRoleQuery = { __typename?: 'Query', endUserRole?: { __typename?: 'EndUserRole', id: string, name: string, description?: string | null, isImplicit: boolean, createdAt: any, updatedAt: any, permissionBundles: Array<{ __typename?: 'EndUserRoleBundleEntry', bundle: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType } }> } }> } | null };
+
+export type GetEndUserEffectivePermissionsQueryVariables = Exact<{
+  endUserId: Scalars['ID']['input'];
+  modelId: Scalars['ID']['input'];
+}>;
+
+
+export type GetEndUserEffectivePermissionsQuery = { __typename?: 'Query', effectivePermissions: { __typename?: 'GetEffectivePermissionsPayload', effectivePermissions?: { __typename?: 'EffectivePermissions', endUserId: string, modelId: string, grants: Array<{ __typename?: 'EffectiveGrant', action: RbacAction, rowScope: RowScopeType, columnPolicy: { __typename?: 'ColumnPolicy', defaultMode: ColumnAccessMode, rules: Array<{ __typename?: 'ColumnRule', fieldName: string, mode: ColumnAccessMode, maskPattern?: string | null }> } }> } | null, error?:
+      | { __typename: 'EndUserNotFoundInProject', message: string }
+      | { __typename: 'ModelNotFound', message: string }
+      | { __typename: 'ProjectNotFound' }
+     | null } };
+
+export type GetEndUserRoleAssignmentsQueryVariables = Exact<{
+  endUserId: Scalars['ID']['input'];
+}>;
+
+
+export type GetEndUserRoleAssignmentsQuery = { __typename?: 'Query', endUserRoleAssignments: Array<{ __typename?: 'EndUserRoleAssignment', endUserId: string, assignedAt: any, role: { __typename?: 'EndUserRole', id: string, name: string, description?: string | null, isImplicit: boolean } }> };
+
+export type GetEndUserBundleAssignmentsQueryVariables = Exact<{
+  endUserId: Scalars['ID']['input'];
+}>;
+
+
+export type GetEndUserBundleAssignmentsQuery = { __typename?: 'Query', endUserBundleAssignments: Array<{ __typename?: 'EndUserBundleAssignment', endUserId: string, assignedAt: any, bundle: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType } }> } }> };
+
+export type CreateEndUserPermissionMutationVariables = Exact<{
+  input: CreateEndUserPermissionInput;
+}>;
+
+
+export type CreateEndUserPermissionMutation = { __typename?: 'Mutation', createEndUserPermission: { __typename?: 'CreateEndUserPermissionPayload', permission?: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType, displayName?: string | null, description?: string | null, createdAt: any, updatedAt: any, columnPolicy: { __typename?: 'ColumnPolicy', defaultMode: ColumnAccessMode, rules: Array<{ __typename?: 'ColumnRule', fieldName: string, mode: ColumnAccessMode, maskPattern?: string | null }> } } | null, error?:
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ModelNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+      | { __typename: 'RowScopeFieldMissing', message: string, missingField: string, requiredByRowScope: RowScopeType }
+     | null } };
+
+export type DeleteEndUserPermissionMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteEndUserPermissionMutation = { __typename?: 'Mutation', deleteEndUserPermission: { __typename?: 'DeleteEndUserPermissionPayload', success: boolean, error?:
+      | { __typename: 'EndUserPermissionInUse', message: string }
+      | { __typename: 'EndUserPermissionNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type CreateEndUserBundleMutationVariables = Exact<{
+  input: CreateEndUserPermissionBundleInput;
+}>;
+
+
+export type CreateEndUserBundleMutation = { __typename?: 'Mutation', createEndUserPermissionBundle: { __typename?: 'CreateEndUserPermissionBundlePayload', bundle?: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null, createdAt: any, updatedAt: any, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType } }> } | null, error?:
+      | { __typename: 'EndUserPermissionBundleAlreadyExists', message: string }
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type UpdateEndUserBundleMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateEndUserPermissionBundleInput;
+}>;
+
+
+export type UpdateEndUserBundleMutation = { __typename?: 'Mutation', updateEndUserPermissionBundle: { __typename?: 'UpdateEndUserPermissionBundlePayload', bundle?: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null, updatedAt: any } | null, error?:
+      | { __typename: 'EndUserPermissionBundleAlreadyExists', message: string }
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type DeleteEndUserBundleMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteEndUserBundleMutation = { __typename?: 'Mutation', deleteEndUserPermissionBundle: { __typename?: 'DeleteEndUserPermissionBundlePayload', success: boolean, error?:
+      | { __typename: 'EndUserPermissionBundleInUse', message: string }
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type AddPermissionToBundleMutationVariables = Exact<{
+  input: AddEndUserPermissionToBundleInput;
+}>;
+
+
+export type AddPermissionToBundleMutation = { __typename?: 'Mutation', addEndUserPermissionToBundle: { __typename?: 'AddEndUserPermissionToBundlePayload', bundle?: { __typename?: 'EndUserPermissionBundle', id: string, name: string, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType } }> } | null, error?:
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'EndUserPermissionNotFound', message: string }
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type RemovePermissionFromBundleMutationVariables = Exact<{
+  input: RemoveEndUserPermissionFromBundleInput;
+}>;
+
+
+export type RemovePermissionFromBundleMutation = { __typename?: 'Mutation', removeEndUserPermissionFromBundle: { __typename?: 'RemoveEndUserPermissionFromBundlePayload', bundle?: { __typename?: 'EndUserPermissionBundle', id: string, name: string, permissions: Array<{ __typename?: 'EndUserBundlePermissionEntry', sortOrder: number, permission: { __typename?: 'EndUserPermission', id: string, modelId: string, action: RbacAction, rowScope: RowScopeType } }> } | null, error?:
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'EndUserPermissionNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type CreateEndUserRoleMutationVariables = Exact<{
+  input: CreateEndUserRoleInput;
+}>;
+
+
+export type CreateEndUserRoleMutation = { __typename?: 'Mutation', createEndUserRole: { __typename?: 'CreateEndUserRolePayload', role?: { __typename?: 'EndUserRole', id: string, name: string, description?: string | null, isImplicit: boolean, createdAt: any, updatedAt: any, permissionBundles: Array<{ __typename?: 'EndUserRoleBundleEntry', bundle: { __typename?: 'EndUserPermissionBundle', id: string, name: string } }> } | null, error?:
+      | { __typename: 'EndUserRoleAlreadyExists', message: string }
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type DeleteEndUserRoleMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteEndUserRoleMutation = { __typename?: 'Mutation', deleteEndUserRole: { __typename?: 'DeleteEndUserRolePayload', success: boolean, error?:
+      | { __typename: 'EndUserImplicitRoleCannotBeModified', message: string }
+      | { __typename: 'EndUserRoleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type AssignBundleToRoleMutationVariables = Exact<{
+  input: AssignBundleToEndUserRoleInput;
+}>;
+
+
+export type AssignBundleToRoleMutation = { __typename?: 'Mutation', assignBundleToEndUserRole: { __typename?: 'AssignBundleToEndUserRolePayload', role?: { __typename?: 'EndUserRole', id: string, name: string, permissionBundles: Array<{ __typename?: 'EndUserRoleBundleEntry', bundle: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null } }> } | null, error?:
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'EndUserRoleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type RevokeBundleFromRoleMutationVariables = Exact<{
+  input: RevokeBundleFromEndUserRoleInput;
+}>;
+
+
+export type RevokeBundleFromRoleMutation = { __typename?: 'Mutation', revokeBundleFromEndUserRole: { __typename?: 'RevokeBundleFromEndUserRolePayload', role?: { __typename?: 'EndUserRole', id: string, name: string, permissionBundles: Array<{ __typename?: 'EndUserRoleBundleEntry', bundle: { __typename?: 'EndUserPermissionBundle', id: string, name: string, description?: string | null } }> } | null, error?:
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'EndUserRoleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type AssignEndUserRoleMutationVariables = Exact<{
+  input: AssignEndUserRoleInput;
+}>;
+
+
+export type AssignEndUserRoleMutation = { __typename?: 'Mutation', assignEndUserRole: { __typename?: 'AssignEndUserRolePayload', endUserId: string, role?: { __typename?: 'EndUserRole', id: string, name: string } | null, error?:
+      | { __typename: 'EndUserCannotAssignImplicitRole', message: string }
+      | { __typename: 'EndUserNotFoundInProject', message: string }
+      | { __typename: 'EndUserRoleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+      | { __typename: 'UserRoleAlreadyAssigned', message: string }
+     | null } };
+
+export type RevokeEndUserRoleMutationVariables = Exact<{
+  input: RevokeEndUserRoleInput;
+}>;
+
+
+export type RevokeEndUserRoleMutation = { __typename?: 'Mutation', revokeEndUserRole: { __typename?: 'RevokeEndUserRolePayload', success: boolean, error?:
+      | { __typename: 'EndUserNotFoundInProject', message: string }
+      | { __typename: 'EndUserRoleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type AssignBundleToEndUserMutationVariables = Exact<{
+  input: AssignBundleToEndUserInput;
+}>;
+
+
+export type AssignBundleToEndUserMutation = { __typename?: 'Mutation', assignBundleToEndUser: { __typename?: 'AssignBundleToEndUserPayload', endUserId: string, bundle?: { __typename?: 'EndUserPermissionBundle', id: string, name: string } | null, error?:
+      | { __typename: 'EndUserNotFoundInProject', message: string }
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+      | { __typename: 'UserBundleAlreadyAssigned', message: string }
+     | null } };
+
+export type RevokeBundleFromEndUserMutationVariables = Exact<{
+  input: RevokeBundleFromEndUserInput;
+}>;
+
+
+export type RevokeBundleFromEndUserMutation = { __typename?: 'Mutation', revokeBundleFromEndUser: { __typename?: 'RevokeBundleFromEndUserPayload', success: boolean, error?:
+      | { __typename: 'EndUserNotFoundInProject', message: string }
+      | { __typename: 'EndUserPermissionBundleNotFound', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type ApplyEndUserPresetPolicyMutationVariables = Exact<{
+  input: ApplyEndUserPresetPolicyInput;
+}>;
+
+
+export type ApplyEndUserPresetPolicyMutation = { __typename?: 'Mutation', applyEndUserPresetPolicy: { __typename?: 'ApplyEndUserPresetPolicyPayload', permissions: Array<{ __typename?: 'EndUserPermission', id: string, modelId: string, preset?: EndUserPermissionPreset | null, displayName?: string | null, description?: string | null, createdAt: any, updatedAt: any, columnPolicy: { __typename?: 'ColumnPolicy', defaultMode: ColumnAccessMode, rules: Array<{ __typename?: 'ColumnRule', fieldName: string, mode: ColumnAccessMode, maskPattern?: string | null }> } }>, error?:
+      | { __typename: 'ModelNotFound', message: string }
+      | { __typename: 'PresetRequiresOwnerField', message: string }
+      | { __typename: 'ProjectNotFound', message: string }
+     | null } };
+
+export type GetMeQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetMeQuery = { __typename?: 'Query', me: { __typename?: 'CurrentUser', id: string, externalID: string, email: string, name: string, permissions: Array<string>, organization?: { __typename?: 'Organization', id: string, name: string, displayName?: string | null, ownerID: string, status: OrganizationStatus, createdAt: string, updatedAt: string } | null, role?: { __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean, createdAt: string, updatedAt: string } | null } };
+
+export type GetMyOrganizationsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetMyOrganizationsQuery = { __typename?: 'Query', myOrganizations: Array<{ __typename?: 'Organization', id: string, name: string, displayName?: string | null, ownerID: string, status: OrganizationStatus, createdAt: string, updatedAt: string }> };
+
+export type GetOrganizationMembersQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetOrganizationMembersQuery = { __typename?: 'Query', organizationMembers: Array<{ __typename?: 'OrganizationMember', id: string, userID: string, userName: string, orgID: string, status: MembershipStatus, joinedAt?: string | null, createdAt: string, role: { __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean } }> };
+
+export type GetRolesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetRolesQuery = { __typename?: 'Query', roles: Array<{ __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean, createdAt: string, updatedAt: string }> };
+
+export type GetPermissionRolesQueryVariables = Exact<{
+  orgName: Scalars['String']['input'];
+  includeSystem?: InputMaybe<Scalars['Boolean']['input']>;
+}>;
+
+
+export type GetPermissionRolesQuery = { __typename?: 'Query', permissionRoles: Array<{ __typename?: 'PermissionRole', id: number, name: string, description?: string | null, isSystem: boolean, orgName: string, createdAt: any, updatedAt: any }> };
+
+export type GetRolePermissionsListQueryVariables = Exact<{
+  roleId: Scalars['Int']['input'];
+}>;
+
+
+export type GetRolePermissionsListQuery = { __typename?: 'Query', rolePermissionsList: Array<{ __typename?: 'PermissionDef', obj: string, act: string }> };
+
 export type UpdateOrganizationMutationVariables = Exact<{
   input: UpdateOrganizationInput;
 }>;
@@ -1961,136 +3620,98 @@ export type DeleteRoleMutation = { __typename?: 'Mutation', deleteRole: { __type
       | { __typename: 'RoleNotFound', message: string }
      | null } };
 
-export type GetClusterQueryVariables = Exact<{
-  projectSlug: Scalars['String']['input'];
+export type AddPermissionToRoleMutationVariables = Exact<{
+  roleId: Scalars['Int']['input'];
+  obj: Scalars['String']['input'];
+  act: Scalars['String']['input'];
 }>;
 
 
-export type GetClusterQuery = { __typename?: 'Query', databaseCluster: { __typename?: 'GetClusterPayload', cluster?: { __typename?: 'DatabaseCluster', id: string, title: string, description: string, status: ClusterStatus, createdAt: string, updatedAt: string, connectionInfo: { __typename?: 'DatabaseConnectionInfo', host: string, port: any, username: string, password: string } } | null, error?:
-      | { __typename: 'ClusterNotFound', message: string }
-      | { __typename: 'ProjectNotFound', message: string }
-     | null } };
-
-export type ListDatabasesQueryVariables = Exact<{
-  input: ListDatabasesInput;
-}>;
-
-
-export type ListDatabasesQuery = { __typename?: 'Query', listDatabases: { __typename?: 'DatabaseConnection', totalCount: number, edges: Array<{ __typename?: 'DatabaseEdge', node: { __typename?: 'Database', name: string } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, hasPreviousPage: boolean, startCursor?: string | null, endCursor?: string | null } } };
-
-export type GetEnumsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetEnumsQuery = { __typename?: 'Query', enums: Array<{ __typename?: 'EnumDefinition', id: string, projectSlug: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, createdAt: string, updatedAt: string, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> }> };
-
-export type GetEnumQueryVariables = Exact<{
-  name: Scalars['String']['input'];
-}>;
-
-
-export type GetEnumQuery = { __typename?: 'Query', enum: { __typename?: 'GetEnumPayload', enum?: { __typename?: 'EnumDefinition', id: string, projectSlug: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, createdAt: string, updatedAt: string, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, error?:
-      | { __typename: 'EnumNotFound', message: string }
-      | { __typename: 'ProjectNotFound', message: string }
-     | null } };
-
-export type GetEnumReferencesQueryVariables = Exact<{
-  name: Scalars['String']['input'];
-}>;
-
-
-export type GetEnumReferencesQuery = { __typename?: 'Query', enumReferences: Array<string> };
-
-export type GetModelsQueryVariables = Exact<{
-  input?: InputMaybe<ModelQueryInput>;
-}>;
-
-
-export type GetModelsQuery = { __typename?: 'Query', models: { __typename?: 'ModelConnection', totalCount: number, edges: Array<{ __typename?: 'ModelEdge', cursor: string, node: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, hasPreviousPage: boolean, startCursor?: string | null, endCursor?: string | null } } };
-
-export type GetModelQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
-  withActualSchema?: InputMaybe<Scalars['Boolean']['input']>;
-}>;
-
-
-export type GetModelQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, displayField?: string | null, databaseName: string, storageType: string, jsonSchema?: string | null, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, isDeprecated: boolean, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, dbColumn?: { __typename?: 'DbColumnInfo', columnType: string, unique: boolean, nonNull: boolean, defaultValue?: string | null, constraints: Array<ActualConstraintType>, foreignKey?: { __typename?: 'ActualForeignKey', referencedTable: string, referencedColumn: string, constraintName: string } | null, conflicts: Array<{ __typename?: 'FieldConflict', aspect: FieldConflictAspect, expected: string, actual: string }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
+export type AddPermissionToRoleMutation = { __typename?: 'Mutation', addPermissionToRole: { __typename?: 'AddRolePermissionPayload', success: boolean, error?:
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-      | { __typename: 'ModelNotFound', message: string }
-      | { __typename: 'ProjectNotFound', message: string }
+      | { __typename: 'PermissionRoleNotFound', message: string, suggestion?: string | null }
+      | { __typename: 'PermissionSystemRoleCannotBeModified', message: string, suggestion?: string | null }
      | null } };
 
-export type GetModelByNameQueryVariables = Exact<{
-  name: Scalars['String']['input'];
-  databaseName: Scalars['String']['input'];
+export type RemovePermissionFromRoleMutationVariables = Exact<{
+  roleId: Scalars['Int']['input'];
+  obj: Scalars['String']['input'];
+  act: Scalars['String']['input'];
 }>;
 
 
-export type GetModelByNameQuery = { __typename?: 'Query', modelByName: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
+export type RemovePermissionFromRoleMutation = { __typename?: 'Mutation', removePermissionFromRole: { __typename?: 'RemoveRolePermissionPayload', success: boolean, error?:
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
-      | { __typename: 'ModelNotFound', message: string }
-      | { __typename: 'ProjectNotFound', message: string }
+      | { __typename: 'PermissionRoleNotFound', message: string, suggestion?: string | null }
+      | { __typename: 'PermissionSystemRoleCannotBeModified', message: string, suggestion?: string | null }
      | null } };
 
-export type GetModelGroupsQueryVariables = Exact<{ [key: string]: never; }>;
 
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetClusterQuery(
+ *   ({ query, variables }) => {
+ *     const { projectSlug } = variables;
+ *     return HttpResponse.json({
+ *       data: { databaseCluster }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetClusterQuery = (resolver: GraphQLResponseResolver<GetClusterQuery, GetClusterQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetClusterQuery, GetClusterQueryVariables>(
+    'GetCluster',
+    resolver,
+    options
+  )
 
-export type GetModelGroupsQuery = { __typename?: 'Query', modelGroups: Array<{ __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string, models: Array<{ __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, createdAt: string, updatedAt: string }> }> };
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockListDatabasesQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { listDatabases }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockListDatabasesQuery = (resolver: GraphQLResponseResolver<ListDatabasesQuery, ListDatabasesQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<ListDatabasesQuery, ListDatabasesQueryVariables>(
+    'ListDatabases',
+    resolver,
+    options
+  )
 
-export type GetModelJsonSchemaQueryVariables = Exact<{
-  id: Scalars['ID']['input'];
-}>;
-
-
-export type GetModelJsonSchemaQuery = { __typename?: 'Query', modelJsonSchema?: { __typename?: 'ModelJsonSchema', modelId: string, modelName: string, schema: string } | null };
-
-export type GetLogicalForeignKeysQueryVariables = Exact<{
-  modelId: Scalars['ID']['input'];
-}>;
-
-
-export type GetLogicalForeignKeysQuery = { __typename?: 'Query', logicalForeignKeys: Array<{ __typename?: 'LogicalForeignKey', id: string, pairId: string, direction: FkDirection, modelId: string, modelName: string, refModelId: string, refModelName: string, sourceFields: Array<string>, targetFields: Array<string> }> };
-
-export type ListTablesQueryVariables = Exact<{
-  input: ListTablesInput;
-}>;
-
-
-export type ListTablesQuery = { __typename?: 'Query', listTables: { __typename?: 'TableListConnection', totalCount: number, items: Array<{ __typename?: 'TableInfo', name: string }> } };
-
-export type GetProjectsQueryVariables = Exact<{
-  input?: InputMaybe<ListProjectsInput>;
-}>;
-
-
-export type GetProjectsQuery = { __typename?: 'Query', projects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
-
-export type GetProjectQueryVariables = Exact<{
-  slug: Scalars['String']['input'];
-}>;
-
-
-export type GetProjectQuery = { __typename?: 'Query', project: { __typename?: 'GetProjectPayload', project?: { __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string } | null, error?: { __typename: 'ProjectNotFound', message: string } | null } };
-
-export type GetMeQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetMeQuery = { __typename?: 'Query', me: { __typename?: 'CurrentUser', id: string, externalID: string, email: string, name: string, permissions: Array<string>, organization?: { __typename?: 'Organization', id: string, name: string, displayName?: string | null, ownerID: string, status: OrganizationStatus, createdAt: string, updatedAt: string } | null, role?: { __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean, createdAt: string, updatedAt: string } | null } };
-
-export type GetMyOrganizationsQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetMyOrganizationsQuery = { __typename?: 'Query', myOrganizations: Array<{ __typename?: 'Organization', id: string, name: string, displayName?: string | null, ownerID: string, status: OrganizationStatus, createdAt: string, updatedAt: string }> };
-
-export type GetOrganizationMembersQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetOrganizationMembersQuery = { __typename?: 'Query', organizationMembers: Array<{ __typename?: 'OrganizationMember', id: string, userID: string, userName: string, orgID: string, status: MembershipStatus, joinedAt?: string | null, createdAt: string, role: { __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean } }> };
-
-export type GetRolesQueryVariables = Exact<{ [key: string]: never; }>;
-
-
-export type GetRolesQuery = { __typename?: 'Query', roles: Array<{ __typename?: 'Role', id: string, name: string, description?: string | null, permissions: Array<string>, isSystem: boolean, createdAt: string, updatedAt: string }> };
-
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockModelDatabaseCatalogQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { modelDatabaseCatalog }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockModelDatabaseCatalogQuery = (resolver: GraphQLResponseResolver<ModelDatabaseCatalogQuery, ModelDatabaseCatalogQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<ModelDatabaseCatalogQuery, ModelDatabaseCatalogQueryVariables>(
+    'ModelDatabaseCatalog',
+    resolver,
+    options
+  )
 
 /**
  * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
@@ -2110,6 +3731,159 @@ export type GetRolesQuery = { __typename?: 'Query', roles: Array<{ __typename?: 
 export const mockTestClusterConnectionMutation = (resolver: GraphQLResponseResolver<TestClusterConnectionMutation, TestClusterConnectionMutationVariables>, options?: RequestHandlerOptions) =>
   graphql.mutation<TestClusterConnectionMutation, TestClusterConnectionMutationVariables>(
     'TestClusterConnection',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockListEndUsersQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { listEndUsers }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockListEndUsersQuery = (resolver: GraphQLResponseResolver<ListEndUsersQuery, ListEndUsersQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<ListEndUsersQuery, ListEndUsersQueryVariables>(
+    'ListEndUsers',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateEndUserMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { createEndUser }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockCreateEndUserMutation = (resolver: GraphQLResponseResolver<CreateEndUserMutation, CreateEndUserMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateEndUserMutation, CreateEndUserMutationVariables>(
+    'CreateEndUser',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockUpdateEndUserStatusMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { updateEndUserStatus }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockUpdateEndUserStatusMutation = (resolver: GraphQLResponseResolver<UpdateEndUserStatusMutation, UpdateEndUserStatusMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<UpdateEndUserStatusMutation, UpdateEndUserStatusMutationVariables>(
+    'UpdateEndUserStatus',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockDeleteEndUserMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { deleteEndUser }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockDeleteEndUserMutation = (resolver: GraphQLResponseResolver<DeleteEndUserMutation, DeleteEndUserMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<DeleteEndUserMutation, DeleteEndUserMutationVariables>(
+    'DeleteEndUser',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetEnumsQuery(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { enums }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetEnumsQuery = (resolver: GraphQLResponseResolver<GetEnumsQuery, GetEnumsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEnumsQuery, GetEnumsQueryVariables>(
+    'GetEnums',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetEnumQuery(
+ *   ({ query, variables }) => {
+ *     const { name } = variables;
+ *     return HttpResponse.json({
+ *       data: { enum }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetEnumQuery = (resolver: GraphQLResponseResolver<GetEnumQuery, GetEnumQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEnumQuery, GetEnumQueryVariables>(
+    'GetEnum',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetEnumReferencesQuery(
+ *   ({ query, variables }) => {
+ *     const { name } = variables;
+ *     return HttpResponse.json({
+ *       data: { enumReferences }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetEnumReferencesQuery = (resolver: GraphQLResponseResolver<GetEnumReferencesQuery, GetEnumReferencesQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEnumReferencesQuery, GetEnumReferencesQueryVariables>(
+    'GetEnumReferences',
     resolver,
     options
   )
@@ -2176,6 +3950,203 @@ export const mockUpdateEnumMutation = (resolver: GraphQLResponseResolver<UpdateE
 export const mockDeleteEnumMutation = (resolver: GraphQLResponseResolver<DeleteEnumMutation, DeleteEnumMutationVariables>, options?: RequestHandlerOptions) =>
   graphql.mutation<DeleteEnumMutation, DeleteEnumMutationVariables>(
     'DeleteEnum',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelEnumSourceFieldsQuery(
+ *   ({ query, variables }) => {
+ *     const { id, withActualSchema } = variables;
+ *     return HttpResponse.json({
+ *       data: { model }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelEnumSourceFieldsQuery = (resolver: GraphQLResponseResolver<GetModelEnumSourceFieldsQuery, GetModelEnumSourceFieldsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelEnumSourceFieldsQuery, GetModelEnumSourceFieldsQueryVariables>(
+    'GetModelEnumSourceFields',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelsQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { models }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelsQuery = (resolver: GraphQLResponseResolver<GetModelsQuery, GetModelsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelsQuery, GetModelsQueryVariables>(
+    'GetModels',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelsForRelationQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { models }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelsForRelationQuery = (resolver: GraphQLResponseResolver<GetModelsForRelationQuery, GetModelsForRelationQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelsForRelationQuery, GetModelsForRelationQueryVariables>(
+    'GetModelsForRelation',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelQuery(
+ *   ({ query, variables }) => {
+ *     const { id, withActualSchema } = variables;
+ *     return HttpResponse.json({
+ *       data: { model }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelQuery = (resolver: GraphQLResponseResolver<GetModelQuery, GetModelQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelQuery, GetModelQueryVariables>(
+    'GetModel',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelRecordWorkspaceQuery(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { model }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelRecordWorkspaceQuery = (resolver: GraphQLResponseResolver<GetModelRecordWorkspaceQuery, GetModelRecordWorkspaceQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelRecordWorkspaceQuery, GetModelRecordWorkspaceQueryVariables>(
+    'GetModelRecordWorkspace',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelByNameQuery(
+ *   ({ query, variables }) => {
+ *     const { name, databaseName } = variables;
+ *     return HttpResponse.json({
+ *       data: { modelByName }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelByNameQuery = (resolver: GraphQLResponseResolver<GetModelByNameQuery, GetModelByNameQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelByNameQuery, GetModelByNameQueryVariables>(
+    'GetModelByName',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelGroupsQuery(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { modelGroups }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelGroupsQuery = (resolver: GraphQLResponseResolver<GetModelGroupsQuery, GetModelGroupsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelGroupsQuery, GetModelGroupsQueryVariables>(
+    'GetModelGroups',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetModelJsonSchemaQuery(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { modelJsonSchema }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetModelJsonSchemaQuery = (resolver: GraphQLResponseResolver<GetModelJsonSchemaQuery, GetModelJsonSchemaQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetModelJsonSchemaQuery, GetModelJsonSchemaQueryVariables>(
+    'GetModelJsonSchema',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetLogicalForeignKeysQuery(
+ *   ({ query, variables }) => {
+ *     const { modelId } = variables;
+ *     return HttpResponse.json({
+ *       data: { logicalForeignKeys }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetLogicalForeignKeysQuery = (resolver: GraphQLResponseResolver<GetLogicalForeignKeysQuery, GetLogicalForeignKeysQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetLogicalForeignKeysQuery, GetLogicalForeignKeysQueryVariables>(
+    'GetLogicalForeignKeys',
     resolver,
     options
   )
@@ -2515,6 +4486,50 @@ export const mockRemoveFieldMutation = (resolver: GraphQLResponseResolver<Remove
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
+ * mockDeprecateFieldMutation(
+ *   ({ query, variables }) => {
+ *     const { modelID, fieldName } = variables;
+ *     return HttpResponse.json({
+ *       data: { deprecateField }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockDeprecateFieldMutation = (resolver: GraphQLResponseResolver<DeprecateFieldMutation, DeprecateFieldMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<DeprecateFieldMutation, DeprecateFieldMutationVariables>(
+    'DeprecateField',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockUndeprecateFieldMutation(
+ *   ({ query, variables }) => {
+ *     const { modelID, fieldName } = variables;
+ *     return HttpResponse.json({
+ *       data: { undeprecateField }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockUndeprecateFieldMutation = (resolver: GraphQLResponseResolver<UndeprecateFieldMutation, UndeprecateFieldMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<UndeprecateFieldMutation, UndeprecateFieldMutationVariables>(
+    'UndeprecateField',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
  * mockCreateLogicalForeignKeyMutation(
  *   ({ query, variables }) => {
  *     const { input } = variables;
@@ -2550,6 +4565,114 @@ export const mockCreateLogicalForeignKeyMutation = (resolver: GraphQLResponseRes
 export const mockDeleteLogicalForeignKeyMutation = (resolver: GraphQLResponseResolver<DeleteLogicalForeignKeyMutation, DeleteLogicalForeignKeyMutationVariables>, options?: RequestHandlerOptions) =>
   graphql.mutation<DeleteLogicalForeignKeyMutation, DeleteLogicalForeignKeyMutationVariables>(
     'DeleteLogicalForeignKey',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockNoopQueryQuery(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { __typename }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockNoopQueryQuery = (resolver: GraphQLResponseResolver<NoopQueryQuery, NoopQueryQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<NoopQueryQuery, NoopQueryQueryVariables>(
+    'NoopQuery',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockNoopMutationMutation(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { __typename }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockNoopMutationMutation = (resolver: GraphQLResponseResolver<NoopMutationMutation, NoopMutationMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<NoopMutationMutation, NoopMutationMutationVariables>(
+    'NoopMutation',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockListTablesQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { listTables }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockListTablesQuery = (resolver: GraphQLResponseResolver<ListTablesQuery, ListTablesQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<ListTablesQuery, ListTablesQueryVariables>(
+    'ListTables',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetProjectsQuery(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { projects }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetProjectsQuery = (resolver: GraphQLResponseResolver<GetProjectsQuery, GetProjectsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetProjectsQuery, GetProjectsQueryVariables>(
+    'GetProjects',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetProjectQuery(
+ *   ({ query, variables }) => {
+ *     const { slug } = variables;
+ *     return HttpResponse.json({
+ *       data: { project }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetProjectQuery = (resolver: GraphQLResponseResolver<GetProjectQuery, GetProjectQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetProjectQuery, GetProjectQueryVariables>(
+    'GetProject',
     resolver,
     options
   )
@@ -2669,19 +4792,18 @@ export const mockTestDatabaseConnectionMutation = (resolver: GraphQLResponseReso
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockUpdateOrganizationMutation(
+ * mockGetEndUserPermissionsQuery(
  *   ({ query, variables }) => {
- *     const { input } = variables;
  *     return HttpResponse.json({
- *       data: { updateOrganization }
+ *       data: { endUserPermissions }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockUpdateOrganizationMutation = (resolver: GraphQLResponseResolver<UpdateOrganizationMutation, UpdateOrganizationMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<UpdateOrganizationMutation, UpdateOrganizationMutationVariables>(
-    'UpdateOrganization',
+export const mockGetEndUserPermissionsQuery = (resolver: GraphQLResponseResolver<GetEndUserPermissionsQuery, GetEndUserPermissionsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserPermissionsQuery, GetEndUserPermissionsQueryVariables>(
+    'GetEndUserPermissions',
     resolver,
     options
   )
@@ -2691,19 +4813,18 @@ export const mockUpdateOrganizationMutation = (resolver: GraphQLResponseResolver
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockCreateRoleMutation(
+ * mockGetEndUserBundlesQuery(
  *   ({ query, variables }) => {
- *     const { input } = variables;
  *     return HttpResponse.json({
- *       data: { createRole }
+ *       data: { endUserPermissionBundles }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockCreateRoleMutation = (resolver: GraphQLResponseResolver<CreateRoleMutation, CreateRoleMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<CreateRoleMutation, CreateRoleMutationVariables>(
-    'CreateRole',
+export const mockGetEndUserBundlesQuery = (resolver: GraphQLResponseResolver<GetEndUserBundlesQuery, GetEndUserBundlesQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserBundlesQuery, GetEndUserBundlesQueryVariables>(
+    'GetEndUserBundles',
     resolver,
     options
   )
@@ -2713,19 +4834,19 @@ export const mockCreateRoleMutation = (resolver: GraphQLResponseResolver<CreateR
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockDeleteRoleMutation(
+ * mockGetEndUserBundleQuery(
  *   ({ query, variables }) => {
  *     const { id } = variables;
  *     return HttpResponse.json({
- *       data: { deleteRole }
+ *       data: { endUserPermissionBundle }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockDeleteRoleMutation = (resolver: GraphQLResponseResolver<DeleteRoleMutation, DeleteRoleMutationVariables>, options?: RequestHandlerOptions) =>
-  graphql.mutation<DeleteRoleMutation, DeleteRoleMutationVariables>(
-    'DeleteRole',
+export const mockGetEndUserBundleQuery = (resolver: GraphQLResponseResolver<GetEndUserBundleQuery, GetEndUserBundleQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserBundleQuery, GetEndUserBundleQueryVariables>(
+    'GetEndUserBundle',
     resolver,
     options
   )
@@ -2735,62 +4856,18 @@ export const mockDeleteRoleMutation = (resolver: GraphQLResponseResolver<DeleteR
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockGetClusterQuery(
- *   ({ query, variables }) => {
- *     const { projectSlug } = variables;
- *     return HttpResponse.json({
- *       data: { databaseCluster }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetClusterQuery = (resolver: GraphQLResponseResolver<GetClusterQuery, GetClusterQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetClusterQuery, GetClusterQueryVariables>(
-    'GetCluster',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockListDatabasesQuery(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { listDatabases }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockListDatabasesQuery = (resolver: GraphQLResponseResolver<ListDatabasesQuery, ListDatabasesQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<ListDatabasesQuery, ListDatabasesQueryVariables>(
-    'ListDatabases',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetEnumsQuery(
+ * mockGetEndUserRolesQuery(
  *   ({ query, variables }) => {
  *     return HttpResponse.json({
- *       data: { enums }
+ *       data: { endUserRoles }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockGetEnumsQuery = (resolver: GraphQLResponseResolver<GetEnumsQuery, GetEnumsQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetEnumsQuery, GetEnumsQueryVariables>(
-    'GetEnums',
+export const mockGetEndUserRolesQuery = (resolver: GraphQLResponseResolver<GetEndUserRolesQuery, GetEndUserRolesQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserRolesQuery, GetEndUserRolesQueryVariables>(
+    'GetEndUserRoles',
     resolver,
     options
   )
@@ -2800,150 +4877,19 @@ export const mockGetEnumsQuery = (resolver: GraphQLResponseResolver<GetEnumsQuer
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockGetEnumQuery(
- *   ({ query, variables }) => {
- *     const { name } = variables;
- *     return HttpResponse.json({
- *       data: { enum }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetEnumQuery = (resolver: GraphQLResponseResolver<GetEnumQuery, GetEnumQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetEnumQuery, GetEnumQueryVariables>(
-    'GetEnum',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetEnumReferencesQuery(
- *   ({ query, variables }) => {
- *     const { name } = variables;
- *     return HttpResponse.json({
- *       data: { enumReferences }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetEnumReferencesQuery = (resolver: GraphQLResponseResolver<GetEnumReferencesQuery, GetEnumReferencesQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetEnumReferencesQuery, GetEnumReferencesQueryVariables>(
-    'GetEnumReferences',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetModelsQuery(
- *   ({ query, variables }) => {
- *     const { input } = variables;
- *     return HttpResponse.json({
- *       data: { models }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetModelsQuery = (resolver: GraphQLResponseResolver<GetModelsQuery, GetModelsQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetModelsQuery, GetModelsQueryVariables>(
-    'GetModels',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetModelQuery(
- *   ({ query, variables }) => {
- *     const { id, withActualSchema } = variables;
- *     return HttpResponse.json({
- *       data: { model }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetModelQuery = (resolver: GraphQLResponseResolver<GetModelQuery, GetModelQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetModelQuery, GetModelQueryVariables>(
-    'GetModel',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetModelByNameQuery(
- *   ({ query, variables }) => {
- *     const { name, databaseName } = variables;
- *     return HttpResponse.json({
- *       data: { modelByName }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetModelByNameQuery = (resolver: GraphQLResponseResolver<GetModelByNameQuery, GetModelByNameQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetModelByNameQuery, GetModelByNameQueryVariables>(
-    'GetModelByName',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetModelGroupsQuery(
- *   ({ query, variables }) => {
- *     return HttpResponse.json({
- *       data: { modelGroups }
- *     })
- *   },
- *   requestOptions
- * )
- */
-export const mockGetModelGroupsQuery = (resolver: GraphQLResponseResolver<GetModelGroupsQuery, GetModelGroupsQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetModelGroupsQuery, GetModelGroupsQueryVariables>(
-    'GetModelGroups',
-    resolver,
-    options
-  )
-
-/**
- * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
- * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
- * @see https://mswjs.io/docs/basics/response-resolver
- * @example
- * mockGetModelJsonSchemaQuery(
+ * mockGetEndUserRoleQuery(
  *   ({ query, variables }) => {
  *     const { id } = variables;
  *     return HttpResponse.json({
- *       data: { modelJsonSchema }
+ *       data: { endUserRole }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockGetModelJsonSchemaQuery = (resolver: GraphQLResponseResolver<GetModelJsonSchemaQuery, GetModelJsonSchemaQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetModelJsonSchemaQuery, GetModelJsonSchemaQueryVariables>(
-    'GetModelJsonSchema',
+export const mockGetEndUserRoleQuery = (resolver: GraphQLResponseResolver<GetEndUserRoleQuery, GetEndUserRoleQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserRoleQuery, GetEndUserRoleQueryVariables>(
+    'GetEndUserRole',
     resolver,
     options
   )
@@ -2953,19 +4899,19 @@ export const mockGetModelJsonSchemaQuery = (resolver: GraphQLResponseResolver<Ge
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockGetLogicalForeignKeysQuery(
+ * mockGetEndUserEffectivePermissionsQuery(
  *   ({ query, variables }) => {
- *     const { modelId } = variables;
+ *     const { endUserId, modelId } = variables;
  *     return HttpResponse.json({
- *       data: { logicalForeignKeys }
+ *       data: { effectivePermissions }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockGetLogicalForeignKeysQuery = (resolver: GraphQLResponseResolver<GetLogicalForeignKeysQuery, GetLogicalForeignKeysQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetLogicalForeignKeysQuery, GetLogicalForeignKeysQueryVariables>(
-    'GetLogicalForeignKeys',
+export const mockGetEndUserEffectivePermissionsQuery = (resolver: GraphQLResponseResolver<GetEndUserEffectivePermissionsQuery, GetEndUserEffectivePermissionsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserEffectivePermissionsQuery, GetEndUserEffectivePermissionsQueryVariables>(
+    'GetEndUserEffectivePermissions',
     resolver,
     options
   )
@@ -2975,19 +4921,63 @@ export const mockGetLogicalForeignKeysQuery = (resolver: GraphQLResponseResolver
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockListTablesQuery(
+ * mockGetEndUserRoleAssignmentsQuery(
+ *   ({ query, variables }) => {
+ *     const { endUserId } = variables;
+ *     return HttpResponse.json({
+ *       data: { endUserRoleAssignments }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetEndUserRoleAssignmentsQuery = (resolver: GraphQLResponseResolver<GetEndUserRoleAssignmentsQuery, GetEndUserRoleAssignmentsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserRoleAssignmentsQuery, GetEndUserRoleAssignmentsQueryVariables>(
+    'GetEndUserRoleAssignments',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetEndUserBundleAssignmentsQuery(
+ *   ({ query, variables }) => {
+ *     const { endUserId } = variables;
+ *     return HttpResponse.json({
+ *       data: { endUserBundleAssignments }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetEndUserBundleAssignmentsQuery = (resolver: GraphQLResponseResolver<GetEndUserBundleAssignmentsQuery, GetEndUserBundleAssignmentsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetEndUserBundleAssignmentsQuery, GetEndUserBundleAssignmentsQueryVariables>(
+    'GetEndUserBundleAssignments',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateEndUserPermissionMutation(
  *   ({ query, variables }) => {
  *     const { input } = variables;
  *     return HttpResponse.json({
- *       data: { listTables }
+ *       data: { createEndUserPermission }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockListTablesQuery = (resolver: GraphQLResponseResolver<ListTablesQuery, ListTablesQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<ListTablesQuery, ListTablesQueryVariables>(
-    'ListTables',
+export const mockCreateEndUserPermissionMutation = (resolver: GraphQLResponseResolver<CreateEndUserPermissionMutation, CreateEndUserPermissionMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateEndUserPermissionMutation, CreateEndUserPermissionMutationVariables>(
+    'CreateEndUserPermission',
     resolver,
     options
   )
@@ -2997,19 +4987,41 @@ export const mockListTablesQuery = (resolver: GraphQLResponseResolver<ListTables
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockGetProjectsQuery(
+ * mockDeleteEndUserPermissionMutation(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { deleteEndUserPermission }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockDeleteEndUserPermissionMutation = (resolver: GraphQLResponseResolver<DeleteEndUserPermissionMutation, DeleteEndUserPermissionMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<DeleteEndUserPermissionMutation, DeleteEndUserPermissionMutationVariables>(
+    'DeleteEndUserPermission',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateEndUserBundleMutation(
  *   ({ query, variables }) => {
  *     const { input } = variables;
  *     return HttpResponse.json({
- *       data: { projects }
+ *       data: { createEndUserPermissionBundle }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockGetProjectsQuery = (resolver: GraphQLResponseResolver<GetProjectsQuery, GetProjectsQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetProjectsQuery, GetProjectsQueryVariables>(
-    'GetProjects',
+export const mockCreateEndUserBundleMutation = (resolver: GraphQLResponseResolver<CreateEndUserBundleMutation, CreateEndUserBundleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateEndUserBundleMutation, CreateEndUserBundleMutationVariables>(
+    'CreateEndUserBundle',
     resolver,
     options
   )
@@ -3019,19 +5031,283 @@ export const mockGetProjectsQuery = (resolver: GraphQLResponseResolver<GetProjec
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
- * mockGetProjectQuery(
+ * mockUpdateEndUserBundleMutation(
  *   ({ query, variables }) => {
- *     const { slug } = variables;
+ *     const { id, input } = variables;
  *     return HttpResponse.json({
- *       data: { project }
+ *       data: { updateEndUserPermissionBundle }
  *     })
  *   },
  *   requestOptions
  * )
  */
-export const mockGetProjectQuery = (resolver: GraphQLResponseResolver<GetProjectQuery, GetProjectQueryVariables>, options?: RequestHandlerOptions) =>
-  graphql.query<GetProjectQuery, GetProjectQueryVariables>(
-    'GetProject',
+export const mockUpdateEndUserBundleMutation = (resolver: GraphQLResponseResolver<UpdateEndUserBundleMutation, UpdateEndUserBundleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<UpdateEndUserBundleMutation, UpdateEndUserBundleMutationVariables>(
+    'UpdateEndUserBundle',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockDeleteEndUserBundleMutation(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { deleteEndUserPermissionBundle }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockDeleteEndUserBundleMutation = (resolver: GraphQLResponseResolver<DeleteEndUserBundleMutation, DeleteEndUserBundleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<DeleteEndUserBundleMutation, DeleteEndUserBundleMutationVariables>(
+    'DeleteEndUserBundle',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockAddPermissionToBundleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { addEndUserPermissionToBundle }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockAddPermissionToBundleMutation = (resolver: GraphQLResponseResolver<AddPermissionToBundleMutation, AddPermissionToBundleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<AddPermissionToBundleMutation, AddPermissionToBundleMutationVariables>(
+    'AddPermissionToBundle',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockRemovePermissionFromBundleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { removeEndUserPermissionFromBundle }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockRemovePermissionFromBundleMutation = (resolver: GraphQLResponseResolver<RemovePermissionFromBundleMutation, RemovePermissionFromBundleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<RemovePermissionFromBundleMutation, RemovePermissionFromBundleMutationVariables>(
+    'RemovePermissionFromBundle',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateEndUserRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { createEndUserRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockCreateEndUserRoleMutation = (resolver: GraphQLResponseResolver<CreateEndUserRoleMutation, CreateEndUserRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateEndUserRoleMutation, CreateEndUserRoleMutationVariables>(
+    'CreateEndUserRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockDeleteEndUserRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { deleteEndUserRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockDeleteEndUserRoleMutation = (resolver: GraphQLResponseResolver<DeleteEndUserRoleMutation, DeleteEndUserRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<DeleteEndUserRoleMutation, DeleteEndUserRoleMutationVariables>(
+    'DeleteEndUserRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockAssignBundleToRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { assignBundleToEndUserRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockAssignBundleToRoleMutation = (resolver: GraphQLResponseResolver<AssignBundleToRoleMutation, AssignBundleToRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<AssignBundleToRoleMutation, AssignBundleToRoleMutationVariables>(
+    'AssignBundleToRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockRevokeBundleFromRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { revokeBundleFromEndUserRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockRevokeBundleFromRoleMutation = (resolver: GraphQLResponseResolver<RevokeBundleFromRoleMutation, RevokeBundleFromRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<RevokeBundleFromRoleMutation, RevokeBundleFromRoleMutationVariables>(
+    'RevokeBundleFromRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockAssignEndUserRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { assignEndUserRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockAssignEndUserRoleMutation = (resolver: GraphQLResponseResolver<AssignEndUserRoleMutation, AssignEndUserRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<AssignEndUserRoleMutation, AssignEndUserRoleMutationVariables>(
+    'AssignEndUserRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockRevokeEndUserRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { revokeEndUserRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockRevokeEndUserRoleMutation = (resolver: GraphQLResponseResolver<RevokeEndUserRoleMutation, RevokeEndUserRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<RevokeEndUserRoleMutation, RevokeEndUserRoleMutationVariables>(
+    'RevokeEndUserRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockAssignBundleToEndUserMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { assignBundleToEndUser }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockAssignBundleToEndUserMutation = (resolver: GraphQLResponseResolver<AssignBundleToEndUserMutation, AssignBundleToEndUserMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<AssignBundleToEndUserMutation, AssignBundleToEndUserMutationVariables>(
+    'AssignBundleToEndUser',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockRevokeBundleFromEndUserMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { revokeBundleFromEndUser }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockRevokeBundleFromEndUserMutation = (resolver: GraphQLResponseResolver<RevokeBundleFromEndUserMutation, RevokeBundleFromEndUserMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<RevokeBundleFromEndUserMutation, RevokeBundleFromEndUserMutationVariables>(
+    'RevokeBundleFromEndUser',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockApplyEndUserPresetPolicyMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { applyEndUserPresetPolicy }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockApplyEndUserPresetPolicyMutation = (resolver: GraphQLResponseResolver<ApplyEndUserPresetPolicyMutation, ApplyEndUserPresetPolicyMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<ApplyEndUserPresetPolicyMutation, ApplyEndUserPresetPolicyMutationVariables>(
+    'ApplyEndUserPresetPolicy',
     resolver,
     options
   )
@@ -3116,6 +5392,160 @@ export const mockGetOrganizationMembersQuery = (resolver: GraphQLResponseResolve
 export const mockGetRolesQuery = (resolver: GraphQLResponseResolver<GetRolesQuery, GetRolesQueryVariables>, options?: RequestHandlerOptions) =>
   graphql.query<GetRolesQuery, GetRolesQueryVariables>(
     'GetRoles',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetPermissionRolesQuery(
+ *   ({ query, variables }) => {
+ *     const { orgName, includeSystem } = variables;
+ *     return HttpResponse.json({
+ *       data: { permissionRoles }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetPermissionRolesQuery = (resolver: GraphQLResponseResolver<GetPermissionRolesQuery, GetPermissionRolesQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetPermissionRolesQuery, GetPermissionRolesQueryVariables>(
+    'GetPermissionRoles',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockGetRolePermissionsListQuery(
+ *   ({ query, variables }) => {
+ *     const { roleId } = variables;
+ *     return HttpResponse.json({
+ *       data: { rolePermissionsList }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetRolePermissionsListQuery = (resolver: GraphQLResponseResolver<GetRolePermissionsListQuery, GetRolePermissionsListQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetRolePermissionsListQuery, GetRolePermissionsListQueryVariables>(
+    'GetRolePermissionsList',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockUpdateOrganizationMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { updateOrganization }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockUpdateOrganizationMutation = (resolver: GraphQLResponseResolver<UpdateOrganizationMutation, UpdateOrganizationMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<UpdateOrganizationMutation, UpdateOrganizationMutationVariables>(
+    'UpdateOrganization',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { createRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockCreateRoleMutation = (resolver: GraphQLResponseResolver<CreateRoleMutation, CreateRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateRoleMutation, CreateRoleMutationVariables>(
+    'CreateRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockDeleteRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { deleteRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockDeleteRoleMutation = (resolver: GraphQLResponseResolver<DeleteRoleMutation, DeleteRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<DeleteRoleMutation, DeleteRoleMutationVariables>(
+    'DeleteRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockAddPermissionToRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { roleId, obj, act } = variables;
+ *     return HttpResponse.json({
+ *       data: { addPermissionToRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockAddPermissionToRoleMutation = (resolver: GraphQLResponseResolver<AddPermissionToRoleMutation, AddPermissionToRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<AddPermissionToRoleMutation, AddPermissionToRoleMutationVariables>(
+    'AddPermissionToRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockRemovePermissionFromRoleMutation(
+ *   ({ query, variables }) => {
+ *     const { roleId, obj, act } = variables;
+ *     return HttpResponse.json({
+ *       data: { removePermissionFromRole }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockRemovePermissionFromRoleMutation = (resolver: GraphQLResponseResolver<RemovePermissionFromRoleMutation, RemovePermissionFromRoleMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<RemovePermissionFromRoleMutation, RemovePermissionFromRoleMutationVariables>(
+    'RemovePermissionFromRole',
     resolver,
     options
   )

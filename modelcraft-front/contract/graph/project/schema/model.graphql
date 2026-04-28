@@ -71,6 +71,11 @@ type Model implements Node {
   jsonSchema: String  # 模型的 JSON Schema（按需计算，仅当请求该字段时计算）
   createdAt: String!
   updatedAt: String!
+
+  """
+  RLS 策略配置（无 owner 字段时返回 null）
+  """
+  rlsPolicy: ModelRLSPolicy
 }
 
 # DbTableStatus - 实际表状态

@@ -98,20 +98,3 @@ export const DELETE_END_USER = gql`
     }
   }
 `
-
-export const INIT_PRIVATE_DB = gql`
-  mutation InitPrivateDB {
-    initPrivateDB {
-      success
-      error {
-        __typename
-        ... on InitPrivateDBError {
-          message
-        }
-        ... on ProjectNotFound {
-          message
-        }
-      }
-    }
-  }
-`

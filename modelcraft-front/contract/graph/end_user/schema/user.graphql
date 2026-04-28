@@ -1,0 +1,41 @@
+# Runtime user queries for EndUserRef component.
+# EndUserRef should call `users` directly for options loading.
+
+type RuntimeUser {
+  id: ID!
+  username: String!
+  isForbidden: Boolean!
+  createdBy: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input ListRuntimeUsersInput {
+  search: String
+  first: Int = 20
+  after: String
+}
+
+type RuntimeUserConnection {
+  items: [RuntimeUser!]!
+  totalCount: Int!
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
+union RuntimeUserQueryError = InvalidInput | Unauthorized | ProjectNotFound | EndUserNotFound
+
+type GetRuntimeUserPayload {
+  data: RuntimeUser
+  error: RuntimeUserQueryError
+}
+
+type ListRuntimeUsersPayload {
+  data: RuntimeUserConnection
+  error: RuntimeUserQueryError
+}
+
+extend type Query {
+  user(id: ID!): GetRuntimeUserPayload!
+  users(input: ListRuntimeUsersInput): ListRuntimeUsersPayload!
+}

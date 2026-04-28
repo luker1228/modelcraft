@@ -1,0 +1,58 @@
+# Catalog queries for end-user runtime pages.
+# Keep response shapes lightweight and stable.
+
+type DatabaseLite {
+  name: String!
+}
+
+type ModelLite {
+  id: ID!
+  name: String!
+  title: String!
+  databaseName: String!
+}
+
+input ModelDatabaseCatalogInput {
+  search: String
+  page: Int = 1
+  pageSize: Int = 20
+}
+
+input ModelCatalogInput {
+  databaseName: String!
+  search: String
+  page: Int = 1
+  pageSize: Int = 50
+}
+
+type ModelDatabaseCatalogPayload {
+  databases: [DatabaseLite!]!
+  totalCount: Int!
+  page: Int!
+  pageSize: Int!
+}
+
+type ModelCatalogPayload {
+  models: [ModelLite!]!
+  totalCount: Int!
+  page: Int!
+  pageSize: Int!
+}
+
+union ModelDatabaseCatalogError = InvalidInput | Unauthorized | ProjectNotFound
+union ModelCatalogError = InvalidInput | Unauthorized | ProjectNotFound
+
+type GetModelDatabaseCatalogPayload {
+  data: ModelDatabaseCatalogPayload
+  error: ModelDatabaseCatalogError
+}
+
+type GetModelCatalogPayload {
+  data: ModelCatalogPayload
+  error: ModelCatalogError
+}
+
+extend type Query {
+  modelDatabaseCatalog(input: ModelDatabaseCatalogInput): GetModelDatabaseCatalogPayload!
+  modelCatalog(input: ModelCatalogInput!): GetModelCatalogPayload!
+}

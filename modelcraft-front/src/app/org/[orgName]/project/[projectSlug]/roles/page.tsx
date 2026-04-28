@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useState, useCallback } from 'react'
-import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import { Users, Plus, Trash2, Search, KeyRound, X, PackagePlus, Loader2, ShieldOff, UserPlus } from 'lucide-react'
 import { toast } from 'sonner'
 import { useQuery, useMutation } from '@apollo/client'
@@ -34,12 +34,6 @@ import {
   SheetDescription,
 } from '@web/components/ui/sheet'
 import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-  TabsContent,
-} from '@web/components/ui/tabs'
-import {
   Table,
   TableBody,
   TableCell,
@@ -66,10 +60,6 @@ import {
   REVOKE_END_USER_ROLE_FROM_USER,
 } from '@/api-client/rbac'
 import type { EndUserRole } from '@/types'
-
-// ── Types ────────────────────────────────────────────────────────────
-
-type TabValue = 'roles' | 'bundles' | 'permissions'
 
 // ── LegacyBundlesSheet ───────────────────────────────────────────────
 
@@ -163,7 +153,7 @@ function LegacyBundlesSheet({ roleId, roleName, orgName, projectSlug, open, onOp
                       {bundle.description && (
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{bundle.description}</p>
                       )}
-                      <p className="mt-1 text-xs text-muted-foreground">{bundle.permissions.length} 个权限点</p>
+                      <p className="mt-1 text-xs text-muted-foreground">{bundle.permissions?.length ?? 0} 个权限点</p>
                     </div>
                     <Button
                       variant="ghost"
@@ -523,7 +513,9 @@ function RolesContent({ orgName, projectSlug }: RolesContentProps) {
           <TableHeader>
             <TableRow className="border-b-2 border-border bg-card hover:bg-card">
               <TableHead className="h-10 w-[200px] text-[11px] font-medium uppercase tracking-wider text-foreground">角色名称</TableHead>
+              <TableHead className="h-10 w-[260px] text-[11px] font-medium uppercase tracking-wider text-foreground">角色 ID</TableHead>
               <TableHead className="h-10 text-[11px] font-medium uppercase tracking-wider text-foreground">描述</TableHead>
+              <TableHead className="h-10 w-[160px] text-[11px] font-medium uppercase tracking-wider text-foreground">修改时间</TableHead>
               <TableHead className="h-10 w-[220px] text-right text-[11px] font-medium uppercase tracking-wider text-foreground">操作</TableHead>
             </TableRow>
           </TableHeader>
@@ -538,8 +530,14 @@ function RolesContent({ orgName, projectSlug }: RolesContentProps) {
                     )}
                   </div>
                 </TableCell>
+                <TableCell className="h-12 text-[13px]">
+                  <span className="font-mono text-[11px] text-muted-foreground">{role.id}</span>
+                </TableCell>
                 <TableCell className="h-12 text-[13px] text-muted-foreground">
                   {role.description || <span className="text-muted-foreground/40">—</span>}
+                </TableCell>
+                <TableCell className="h-12 text-[13px] text-muted-foreground">
+                  {new Date(role.updatedAt).toLocaleString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })}
                 </TableCell>
                 <TableCell className="h-12 text-right">
                   <div className="flex items-center justify-end gap-1 opacity-0 transition-opacity group-hover:opacity-100">
@@ -690,61 +688,25 @@ function RolesContent({ orgName, projectSlug }: RolesContentProps) {
 
 export default function RolesPage() {
   const params = useParams()
-  const router = useRouter()
   const searchParams = useSearchParams()
 
   const orgName = params?.orgName as string
   const projectSlug = params?.projectSlug as string
 
-  const rawTab = searchParams.get('tab') as TabValue | null
-  const VALID_TABS: TabValue[] = ['roles', 'bundles', 'permissions']
-  const activeTab: TabValue = rawTab && VALID_TABS.includes(rawTab) ? rawTab : 'roles'
+  const rawTab = searchParams.get('tab')
+  const activeTab = rawTab === 'bundles' ? 'bundles' : rawTab === 'permissions' ? 'permissions' : 'roles'
 
-  const handleTabChange = (value: string) => {
-    const url = new URL(window.location.href)
-    url.searchParams.set('tab', value)
-    router.replace(url.pathname + url.search)
-  }
+  const tabTitle = activeTab === 'bundles' ? '权限包' : activeTab === 'permissions' ? '权限点' : '角色'
 
   return (
     <PageLayout maxWidth="7xl">
-      <PageHeader title="权限管理" />
+      <PageHeader title={tabTitle} />
 
-      {/* Tab navigation — underline style */}
-      <Tabs value={activeTab} onValueChange={handleTabChange}>
-        <TabsList className="h-auto w-full justify-start gap-0 rounded-none border-b bg-transparent p-0">
-          <TabsTrigger
-            value="roles"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:bg-transparent hover:text-foreground aria-selected:border-primary aria-selected:bg-transparent aria-selected:text-primary aria-selected:shadow-none"
-          >
-            角色
-          </TabsTrigger>
-          <TabsTrigger
-            value="bundles"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:bg-transparent hover:text-foreground aria-selected:border-primary aria-selected:bg-transparent aria-selected:text-primary aria-selected:shadow-none"
-          >
-            权限包
-          </TabsTrigger>
-          <TabsTrigger
-            value="permissions"
-            className="rounded-none border-b-2 border-transparent bg-transparent px-4 pb-3 pt-0 text-sm font-medium text-muted-foreground shadow-none transition-none hover:bg-transparent hover:text-foreground aria-selected:border-primary aria-selected:bg-transparent aria-selected:text-primary aria-selected:shadow-none"
-          >
-            权限点
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="roles" className="mt-6">
-          <RolesContent orgName={orgName} projectSlug={projectSlug} />
-        </TabsContent>
-
-        <TabsContent value="bundles" className="mt-6">
-          <BundlesTab orgName={orgName} projectSlug={projectSlug} />
-        </TabsContent>
-
-        <TabsContent value="permissions" className="mt-6">
-          <PermissionsTab orgName={orgName} projectSlug={projectSlug} />
-        </TabsContent>
-      </Tabs>
+      <div className="mt-6">
+        {activeTab === 'roles' && <RolesContent orgName={orgName} projectSlug={projectSlug} />}
+        {activeTab === 'bundles' && <BundlesTab orgName={orgName} projectSlug={projectSlug} />}
+        {activeTab === 'permissions' && <PermissionsTab orgName={orgName} projectSlug={projectSlug} />}
+      </div>
     </PageLayout>
   )
 }

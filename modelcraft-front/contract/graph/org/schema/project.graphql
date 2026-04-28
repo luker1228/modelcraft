@@ -256,10 +256,107 @@ extend type Query {
 # Mutations
 # ============================================
 
+# ============================================
+# Project AuthSchema Types (RLS)
+# ============================================
+
+type ProjectAuthSchema {
+  """
+  认证变量列表（不含内置 uid）
+  """
+  variables: [AuthVariable!]!
+}
+
+# AuthVariable type definition (mirrors project domain)
+type AuthVariable {
+  """
+  变量名（如 "tenant_id"）
+  """
+  name: String!
+
+  """
+  JWT 来源路径（如 "jwt.tenant_id"）
+  """
+  source: String!
+
+  """
+  变量类型
+  """
+  type: AuthVariableType!
+}
+
+enum AuthVariableType {
+  UUID
+  STRING
+  INTEGER
+}
+
+# Extend Project type to include authSchema
+extend type Project {
+  """
+  认证变量配置（用于 RLS 表达式中的 _auth 引用）
+  """
+  authSchema: ProjectAuthSchema!
+}
+
+# ----------------------------------------
+# Project AuthSchema Error Types
+# ----------------------------------------
+
+union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+
+# ----------------------------------------
+# Project AuthSchema Payload Types
+# ----------------------------------------
+
+type SetProjectAuthSchemaPayload {
+  authSchema: ProjectAuthSchema
+  error: SetProjectAuthSchemaError
+}
+
+# ----------------------------------------
+# Project AuthSchema Input Types
+# ----------------------------------------
+
+input AuthVariableInput {
+  """
+  变量名
+  """
+  name: String!
+
+  """
+  JWT 来源路径
+  """
+  source: String!
+
+  """
+  变量类型
+  """
+  type: AuthVariableType!
+}
+
+input SetProjectAuthSchemaInput {
+  """
+  项目 slug
+  """
+  projectSlug: String!
+
+  """
+  认证变量列表（uid 内置，无需声明）
+  """
+  variables: [AuthVariableInput!]!
+}
+
 extend type Mutation {
   createProject(input: CreateProjectInput!): CreateProjectPayload! @hasPermission(action: "project:create")
   updateProject(input: UpdateProjectInput!): UpdateProjectPayload! @hasPermission(action: "project:update")
   deleteProject(slug: String!): DeleteProjectPayload! @hasPermission(action: "project:delete")
   updateProjectCluster(projectSlug: String!, input: UpdateClusterConnectionInput!): UpdateClusterPayload! @hasPermission(action: "project:update")
   testDatabaseConnection(input: TestDatabaseConnectionInput!): TestConnectionPayload! @hasPermission(action: "project:read")
+
+  """
+  设置 Project 认证变量配置
+  用于声明扩展 JWT 变量（如 tenant_id、role）
+  """
+  setProjectAuthSchema(input: SetProjectAuthSchemaInput!): SetProjectAuthSchemaPayload! @hasPermission(action: "project:update")
 }

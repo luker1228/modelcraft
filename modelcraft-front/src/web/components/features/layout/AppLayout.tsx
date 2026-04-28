@@ -21,6 +21,7 @@ import {
   Search,
   HelpCircle,
   ChevronRight,
+  ChevronDown,
   FolderOpen,
   Users,
   Settings,
@@ -51,10 +52,19 @@ interface MembershipInfo {
   role: string
 }
 
+interface NavSubItem {
+  label: string
+  href: string
+  /** URL search param to match for active state, e.g. "tab=bundles" */
+  tabParam?: string
+}
+
 interface NavItem {
   label: string
   icon: LucideIcon
   href: string
+  /** Optional sub-items rendered as expandable children when sidebar is expanded */
+  children?: NavSubItem[]
 }
 
 interface NavSection {
@@ -186,6 +196,35 @@ export function AppLayout({
     [pathname, orgName, projectSlug]
   )
 
+  const isSubItemActive = useCallback(
+    (sub: NavSubItem) => {
+      // Match pathname first
+      const pathMatch = pathname === sub.href.split('?')[0]
+      if (!pathMatch) return false
+      if (!sub.tabParam) return true
+      // Check search param
+      const paramKey = sub.tabParam.split('=')[0]
+      const paramVal = sub.tabParam.split('=')[1]
+      if (typeof window === 'undefined') return false
+      const currentVal = new URLSearchParams(window.location.search).get(paramKey ?? '')
+      // Default tab (roles) is active when no tab param or tab=roles
+      if (paramVal === 'roles') return !currentVal || currentVal === 'roles'
+      return currentVal === paramVal
+    },
+    [pathname]
+  )
+
+  // Track which nav items with children are expanded
+  const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
+
+  // Auto-expand the "访问控制" item when its route is active
+  useEffect(() => {
+    const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
+    if (isNavActive(rolesHref)) {
+      setExpandedItems((prev) => new Set([...prev, rolesHref]))
+    }
+  }, [pathname, orgName, projectSlug, isNavActive])
+
   // ── Navigation structure ──────────────────────────────────────────────────
 
   const workspaceNavSections: NavSection[] = [
@@ -216,7 +255,11 @@ export function AppLayout({
     {
       header: '权限管理',
       items: [
-        { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles` },
+        { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles`, children: [
+          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/roles`, tabParam: 'tab=roles' },
+          { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`, tabParam: 'tab=bundles' },
+          { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`, tabParam: 'tab=permissions' },
+        ]},
         { label: '终端用户管理', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
       ],
     },
@@ -363,33 +406,80 @@ export function AppLayout({
                 <nav className="flex flex-col gap-0.5">
                   {section.items.map((item) => {
                     const active = isNavActive(item.href)
+                    const hasChildren = !sidebarCollapsed && item.children && item.children.length > 0
+                    const expanded = expandedItems.has(item.href)
+
+                    const toggleExpand = () => {
+                      if (!hasChildren) return
+                      setExpandedItems((prev) => {
+                        const next = new Set(prev)
+                        if (next.has(item.href)) next.delete(item.href)
+                        else next.add(item.href)
+                        return next
+                      })
+                    }
+
                     return (
-                      <a
-                        key={item.href}
-                        href={item.href}
-                        className={cn(
-                          'flex items-center gap-2.5 rounded-md py-2 text-[13px] font-medium transition-colors duration-150',
-                          sidebarCollapsed ? 'justify-center px-2' : 'px-3',
-                          // Left border indicator — only when expanded
-                          !sidebarCollapsed && 'border-l-[3px]',
-                          active
-                            ? [
-                                'bg-primary/[0.08] text-primary',
-                                !sidebarCollapsed && 'border-l-primary',
-                              ]
-                            : [
-                                'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
-                                !sidebarCollapsed && 'border-l-transparent',
-                              ]
+                      <div key={item.href}>
+                        {/* Main nav item */}
+                        <a
+                          href={item.href}
+                          onClick={hasChildren ? (e) => { e.preventDefault(); toggleExpand() } : undefined}
+                          className={cn(
+                            'flex items-center gap-2.5 rounded-md py-2 text-[13px] font-medium transition-colors duration-150',
+                            sidebarCollapsed ? 'justify-center px-2' : 'px-3',
+                            !sidebarCollapsed && 'border-l-[3px]',
+                            active
+                              ? [
+                                  'bg-primary/[0.08] text-primary',
+                                  !sidebarCollapsed && 'border-l-primary',
+                                ]
+                              : [
+                                  'text-muted-foreground hover:bg-accent/50 hover:text-foreground',
+                                  !sidebarCollapsed && 'border-l-transparent',
+                                ]
+                          )}
+                          title={sidebarCollapsed ? item.label : undefined}
+                        >
+                          <item.icon
+                            className={cn('size-4 flex-shrink-0', active ? 'text-primary' : 'text-muted-foreground')}
+                            strokeWidth={1.5}
+                          />
+                          {!sidebarCollapsed && (
+                            <>
+                              <span className="flex-1">{item.label}</span>
+                              {hasChildren && (
+                                expanded
+                                  ? <ChevronDown className="size-3.5 text-muted-foreground/60" />
+                                  : <ChevronRight className="size-3.5 text-muted-foreground/60" />
+                              )}
+                            </>
+                          )}
+                        </a>
+
+                        {/* Sub-items */}
+                        {hasChildren && expanded && (
+                          <div className="ml-3 mt-0.5 flex flex-col gap-0.5 border-l border-border pl-3">
+                            {item.children!.map((sub) => {
+                              const subActive = isSubItemActive(sub)
+                              return (
+                                <a
+                                  key={sub.href}
+                                  href={sub.href}
+                                  className={cn(
+                                    'rounded-md px-2 py-1.5 text-[12px] font-medium transition-colors duration-150',
+                                    subActive
+                                      ? 'bg-primary/[0.06] text-primary'
+                                      : 'text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+                                  )}
+                                >
+                                  {sub.label}
+                                </a>
+                              )
+                            })}
+                          </div>
                         )}
-                        title={sidebarCollapsed ? item.label : undefined}
-                      >
-                        <item.icon
-                          className={cn('size-4 flex-shrink-0', active ? 'text-primary' : 'text-muted-foreground')}
-                          strokeWidth={1.5}
-                        />
-                        {!sidebarCollapsed && <span>{item.label}</span>}
-                      </a>
+                      </div>
                     )
                   })}
                 </nav>

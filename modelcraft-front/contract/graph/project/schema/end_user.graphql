@@ -30,7 +30,14 @@ type EndUserPasswordTooWeak implements Error {
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ClusterNotFound | InvalidInput | ProjectNotFound
 union UpdateEndUserError = EndUserNotFound | ClusterNotFound | InvalidInput | ProjectNotFound
 union DeleteEndUserError = EndUserNotFound | ClusterNotFound | ProjectNotFound
-union ListEndUsersError = ClusterNotFound | ProjectNotFound
+union ListProjectEndUsersError = ClusterNotFound | ProjectNotFound
+
+# InitPrivateDBError indicates private DB initialization failures.
+type InitPrivateDBError implements Error {
+  message: String!
+}
+
+union InitPrivateDBPayloadError = InitPrivateDBError | ProjectNotFound
 
 # ============================================
 # End User Types
@@ -70,9 +77,14 @@ type DeleteEndUserPayload {
   error: DeleteEndUserError
 }
 
-type ListEndUsersPayload {
+type ListProjectEndUsersPayload {
   connection: EndUserConnection   # nullable: null when error exists
-  error: ListEndUsersError
+  error: ListProjectEndUsersError
+}
+
+type InitPrivateDBPayload {
+  success: Boolean!
+  error: InitPrivateDBPayloadError
 }
 
 # ============================================
@@ -93,7 +105,7 @@ input DeleteEndUserInput {
   userId: ID!
 }
 
-input ListEndUsersInput {
+input ListProjectEndUsersInput {
   search: String     # username fuzzy search
   first: Int         # page size, default 20
   after: String      # cursor
@@ -104,11 +116,6 @@ input ListEndUsersInput {
 # ============================================
 
 extend type Query {
-  listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
+  listProjectEndUsers(input: ListProjectEndUsersInput): ListProjectEndUsersPayload! @hasPermission(action: "end-user:read")
 }
 
-extend type Mutation {
-  createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
-  updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
-  deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
-}

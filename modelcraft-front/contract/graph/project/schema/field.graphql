@@ -29,6 +29,9 @@ enum FormatType {
 
   # 枚举类型
   ENUM
+
+  # RLS: EndUserRef 类型 - 指向当前项目 EndUser 的 ID
+  END_USER_REF
 }
 
 # 通用输入错误（跨模块复用）

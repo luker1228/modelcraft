@@ -6,10 +6,12 @@ import {
   GET_END_USER_PERMISSIONS,
   DELETE_END_USER_PERMISSION,
   CREATE_END_USER_PERMISSION,
+  APPLY_END_USER_PRESET_POLICY,
 } from '@/api-client/rbac'
 import { GET_MODELS } from '@/api-client/model'
 import { DATABASE_CATALOG } from '@/api-client/cluster'
 import type { EndUserPermission, Model } from '@/types'
+import type { EndUserPermissionPreset } from '@/generated/graphql'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -24,7 +26,7 @@ export interface CreatePermissionInput {
   modelId: string
   action: import('@/types').EndUserPermissionAction
   rowScope: import('@/types').EndUserRowScope
-  displayName?: string
+  displayName: string
   description?: string
   columnPolicy: import('@/types').ColumnPolicy
 }
@@ -42,6 +44,7 @@ export interface UsePermissionsViewReturn {
   error: Error | undefined
   deletePermission: (id: string) => Promise<{ success: boolean; errorMessage?: string }>
   createPermission: (input: CreatePermissionInput) => Promise<{ success: boolean; errorMessage?: string }>
+  applyPresetPolicy: (modelId: string, preset: EndUserPermissionPreset) => Promise<{ success: boolean; errorMessage?: string }>
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -89,6 +92,11 @@ export function usePermissionsView({
   })
 
   const [createPermissionMutation] = useMutation(CREATE_END_USER_PERMISSION, {
+    client,
+    refetchQueries: [GET_END_USER_PERMISSIONS],
+  })
+
+  const [applyPresetPolicyMutation] = useMutation(APPLY_END_USER_PRESET_POLICY, {
     client,
     refetchQueries: [GET_END_USER_PERMISSIONS],
   })
@@ -176,6 +184,20 @@ export function usePermissionsView({
     [createPermissionMutation, projectSlug],
   )
 
+  const applyPresetPolicy = useCallback(
+    async (modelId: string, preset: EndUserPermissionPreset) => {
+      const result = await applyPresetPolicyMutation({
+        variables: { input: { modelId, preset } },
+      })
+      const payload = result.data?.applyEndUserPresetPolicy
+      if (payload?.error) {
+        return { success: false, errorMessage: payload.error.message ?? '应用预设策略失败' }
+      }
+      return { success: true }
+    },
+    [applyPresetPolicyMutation],
+  )
+
   return {
     databaseNames,
     modelsForDb,
@@ -184,5 +206,6 @@ export function usePermissionsView({
     error: catalogError ?? modelsError ?? permissionsError,
     deletePermission,
     createPermission,
+    applyPresetPolicy,
   }
 }

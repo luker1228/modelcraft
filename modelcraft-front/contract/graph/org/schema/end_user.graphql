@@ -1,0 +1,112 @@
+# EndUser account lifecycle in Org scope (enduser-v2)
+#
+# Dependencies (defined in other files, referenced here):
+#   - interface Error           → project.graphql
+#   - type InvalidInput         → base.graphql
+#   - scalar Time               → base.graphql
+#   - interface Node            → base.graphql
+#   - type PageInfo             → base.graphql
+
+# ============================================
+# EndUser Error Types
+# ============================================
+
+type EndUserNotFound implements Error {
+  message: String!
+}
+
+type EndUserAlreadyExists implements Error {
+  message: String!
+}
+
+type EndUserPasswordTooWeak implements Error {
+  message: String!
+  suggestion: String
+}
+
+union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
+union UpdateEndUserError = EndUserNotFound | InvalidInput
+union DeleteEndUserError = EndUserNotFound
+union ListEndUsersError = InvalidInput
+
+# ============================================
+# EndUser Types
+# ============================================
+
+type EndUser implements Node {
+  id: ID!
+  username: String!
+  isForbidden: Boolean!
+  createdBy: String
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type EndUserConnection {
+  nodes: [EndUser!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# ============================================
+# Payload Types
+# ============================================
+
+type CreateEndUserPayload {
+  endUser: EndUser
+  error: CreateEndUserError
+}
+
+type UpdateEndUserStatusPayload {
+  endUser: EndUser
+  error: UpdateEndUserError
+}
+
+type DeleteEndUserPayload {
+  success: Boolean!
+  error: DeleteEndUserError
+}
+
+type ListEndUsersPayload {
+  connection: EndUserConnection
+  error: ListEndUsersError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input CreateEndUserInput {
+  username: String! # 3–64 chars, ^[a-zA-Z0-9_-]+$
+  password: String! # at least 8 chars, must contain letter + digit
+}
+
+input UpdateEndUserStatusInput {
+  userId: ID!
+  isForbidden: Boolean!
+}
+
+input DeleteEndUserInput {
+  userId: ID!
+}
+
+input ListEndUsersInput {
+  search: String # username fuzzy search
+  first: Int # page size, default 20
+  after: String # cursor
+}
+
+# ============================================
+# Query & Mutation
+# ============================================
+
+extend type Query {
+  listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
+}
+
+extend type Mutation {
+  createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
+  updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
+  deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
+}
+

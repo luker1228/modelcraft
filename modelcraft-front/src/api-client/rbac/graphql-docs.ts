@@ -650,3 +650,39 @@ export const REVOKE_BUNDLE_FROM_END_USER = gql`
     }
   }
 `
+
+export const APPLY_END_USER_PRESET_POLICY = gql`
+  mutation ApplyEndUserPresetPolicy($input: ApplyEndUserPresetPolicyInput!) {
+    applyEndUserPresetPolicy(input: $input) {
+      permissions {
+        id
+        modelId
+        preset
+        displayName
+        description
+        columnPolicy {
+          defaultMode
+          rules {
+            fieldName
+            mode
+            maskPattern
+          }
+        }
+        createdAt
+        updatedAt
+      }
+      error {
+        __typename
+        ... on ModelNotFound {
+          message
+        }
+        ... on PresetRequiresOwnerField {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`

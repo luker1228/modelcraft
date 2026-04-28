@@ -10,10 +10,11 @@ import {
   Lock,
   Check,
   X,
+  Sparkles,
+  ChevronDown,
 } from 'lucide-react'
 
 import { Button } from '@web/components/ui/button'
-import { Badge } from '@web/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +26,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@web/components/ui/alert-dialog'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@web/components/ui/dropdown-menu'
 import { Skeleton } from '@web/components/ui/skeleton'
 import {
   Select,
@@ -49,6 +58,7 @@ import type {
   EndUserRowScope,
   ColumnPolicy,
 } from '@/types'
+import type { EndUserPermissionPreset } from '@/generated/graphql'
 import { cn } from '@/shared/utils'
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -75,6 +85,13 @@ const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
   DEPT_AND_CHILDREN: '本部门及下级',
 }
 
+const PRESET_OPTIONS: { value: EndUserPermissionPreset; label: string; description: string; requiresOwner: boolean }[] = [
+  { value: 'READ_WRITE_ALL', label: '读写全部', description: '可查看、新增、修改、删除全部数据', requiresOwner: false },
+  { value: 'READ_ALL', label: '只读全部', description: '可查看全部数据，不可修改', requiresOwner: false },
+  { value: 'READ_WRITE_OWNER', label: '读写本人', description: '只能查看和操作自己创建的数据', requiresOwner: true },
+  { value: 'READ_ALL_WRITE_OWNER', label: '读全部/写本人', description: '可查看全部，但只能操作自己的数据', requiresOwner: true },
+]
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatColumnPolicySummary(policy: ColumnPolicy | undefined | null): string {
@@ -94,7 +111,7 @@ function formatColumnPolicySummary(policy: ColumnPolicy | undefined | null): str
 
 interface InlineAddRowProps {
   modelId: string
-  onConfirm: (action: EndUserPermissionAction, rowScope: EndUserRowScope) => Promise<void>
+  onConfirm: (action: EndUserPermissionAction, rowScope: EndUserRowScope, displayName: string) => Promise<void>
   onCancel: () => void
   saving: boolean
 }
@@ -102,6 +119,9 @@ interface InlineAddRowProps {
 function InlineAddRow({ modelId: _modelId, onConfirm, onCancel, saving }: InlineAddRowProps) {
   const [action, setAction] = React.useState<EndUserPermissionAction>('SELECT')
   const [rowScope, setRowScope] = React.useState<EndUserRowScope>('ALL')
+  const [displayName, setDisplayName] = React.useState('')
+
+  const canConfirm = displayName.trim().length > 0
 
   return (
     <TableRow className="bg-primary/[0.03]">
@@ -150,9 +170,16 @@ function InlineAddRow({ modelId: _modelId, onConfirm, onCancel, saving }: Inline
         <span className="text-xs text-muted-foreground">全部可见</span>
       </TableCell>
 
-      {/* Name placeholder */}
+      {/* Name — required */}
       <TableCell className="py-2">
-        <span className="text-xs text-muted-foreground/40">—</span>
+        <input
+          type="text"
+          placeholder="名称（必填）"
+          value={displayName}
+          onChange={(e) => setDisplayName(e.target.value)}
+          disabled={saving}
+          className="h-7 w-full rounded border border-input bg-transparent px-2 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring disabled:opacity-50"
+        />
       </TableCell>
 
       {/* Confirm / cancel */}
@@ -171,8 +198,8 @@ function InlineAddRow({ modelId: _modelId, onConfirm, onCancel, saving }: Inline
             variant="ghost"
             size="icon"
             className="size-7 text-primary hover:bg-primary/10"
-            onClick={() => void onConfirm(action, rowScope)}
-            disabled={saving}
+            onClick={() => void onConfirm(action, rowScope, displayName.trim())}
+            disabled={saving || !canConfirm}
           >
             <Check className="size-3.5" />
           </Button>
@@ -213,8 +240,10 @@ function PermissionRow({ permission, onDelete, deletingId }: PermissionRowProps)
       </TableCell>
 
       <TableCell className="py-2.5">
-        {permission.displayName && (
-          <span className="text-xs text-muted-foreground">{permission.displayName}</span>
+        {permission.displayName ? (
+          <span className="text-xs text-foreground">{permission.displayName}</span>
+        ) : (
+          <span className="text-xs text-muted-foreground/40">—</span>
         )}
       </TableCell>
 
@@ -224,7 +253,7 @@ function PermissionRow({ permission, onDelete, deletingId }: PermissionRowProps)
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+              className="size-7 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
               disabled={isDeleting}
             >
               <Trash2 className="size-3.5" />
@@ -262,8 +291,10 @@ interface ModelCardProps {
   projectSlug: string
   deletingId: string | null
   onDelete: (permission: EndUserPermission) => Promise<void>
-  onCreate: (modelId: string, action: EndUserPermissionAction, rowScope: EndUserRowScope) => Promise<void>
+  onCreate: (modelId: string, action: EndUserPermissionAction, rowScope: EndUserRowScope, displayName: string) => Promise<void>
+  onApplyPreset: (modelId: string, preset: EndUserPermissionPreset) => Promise<void>
   savingModelId: string | null
+  applyingPresetModelId: string | null
 }
 
 function ModelCard({
@@ -272,14 +303,17 @@ function ModelCard({
   deletingId,
   onDelete,
   onCreate,
+  onApplyPreset,
   savingModelId,
+  applyingPresetModelId,
 }: ModelCardProps) {
   const [adding, setAdding] = React.useState(false)
   const { model, permissions, hasOwnerField } = item
   const saving = savingModelId === model.id
+  const applyingPreset = applyingPresetModelId === model.id
 
-  const handleConfirmAdd = async (action: EndUserPermissionAction, rowScope: EndUserRowScope) => {
-    await onCreate(model.id, action, rowScope)
+  const handleConfirmAdd = async (action: EndUserPermissionAction, rowScope: EndUserRowScope, displayName: string) => {
+    await onCreate(model.id, action, rowScope, displayName)
     setAdding(false)
   }
 
@@ -295,6 +329,41 @@ function ModelCard({
           <span className="font-mono text-[11px] text-muted-foreground">{model.name}</span>
         </div>
 
+        {/* Apply preset policy dropdown */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 shrink-0 px-2 text-xs text-muted-foreground hover:text-foreground"
+              disabled={applyingPreset || saving}
+            >
+              <Sparkles className="mr-1 size-3" />
+              预设策略
+              <ChevronDown className="ml-1 size-3 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+              应用后将替换该模型下现有预设权限点
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {PRESET_OPTIONS.map((opt) => (
+              <DropdownMenuItem
+                key={opt.value}
+                disabled={opt.requiresOwner && !hasOwnerField}
+                onClick={() => void onApplyPreset(model.id, opt.value)}
+                className="flex flex-col items-start gap-0.5 py-2"
+              >
+                <span className="text-xs font-medium">{opt.label}</span>
+                <span className="text-[11px] text-muted-foreground">{opt.description}</span>
+                {opt.requiresOwner && !hasOwnerField && (
+                  <span className="text-[11px] text-destructive/70">需要 END_USER_REF 字段</span>
+                )}
+              </DropdownMenuItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         <Button
           variant="ghost"
@@ -368,8 +437,10 @@ function ModelCard({
 
 export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
   const [selectedDb, setSelectedDb] = React.useState<string>('')
+  const [selectedModelId, setSelectedModelId] = React.useState<string>('')
   const [deletingId, setDeletingId] = React.useState<string | null>(null)
   const [savingModelId, setSavingModelId] = React.useState<string | null>(null)
+  const [applyingPresetModelId, setApplyingPresetModelId] = React.useState<string | null>(null)
 
   const {
     databaseNames,
@@ -379,6 +450,7 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
     error,
     deletePermission,
     createPermission,
+    applyPresetPolicy,
   } = usePermissionsView({ orgName, projectSlug, selectedDatabaseName: selectedDb })
 
   // Auto-select first database when list loads
@@ -387,6 +459,20 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
       setSelectedDb(databaseNames[0]!)
     }
   }, [databaseNames, selectedDb])
+
+  // Auto-select first model when db changes
+  React.useEffect(() => {
+    if (modelsForDb.length > 0) {
+      const ids = modelsForDb.map((m) => m.model.id)
+      if (!selectedModelId || !ids.includes(selectedModelId)) {
+        setSelectedModelId(ids[0]!)
+      }
+    } else {
+      setSelectedModelId('')
+    }
+  }, [modelsForDb, selectedModelId])
+
+  const selectedModelItem = modelsForDb.find((m) => m.model.id === selectedModelId) ?? null
 
   const handleDelete = React.useCallback(
     async (permission: EndUserPermission) => {
@@ -412,6 +498,7 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
       modelId: string,
       action: EndUserPermissionAction,
       rowScope: EndUserRowScope,
+      displayName: string,
     ) => {
       setSavingModelId(modelId)
       try {
@@ -419,6 +506,7 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
           modelId,
           action,
           rowScope,
+          displayName,
           columnPolicy: { defaultMode: 'VISIBLE', rules: [] },
         })
         if (result.success) {
@@ -433,6 +521,26 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
       }
     },
     [createPermission],
+  )
+
+  const handleApplyPreset = React.useCallback(
+    async (modelId: string, preset: EndUserPermissionPreset) => {
+      setApplyingPresetModelId(modelId)
+      try {
+        const result = await applyPresetPolicy(modelId, preset)
+        if (result.success) {
+          const presetLabel = PRESET_OPTIONS.find((o) => o.value === preset)?.label ?? preset
+          toast.success(`已应用预设策略：${presetLabel}`)
+        } else {
+          toast.error(result.errorMessage ?? '应用预设策略失败，请重试')
+        }
+      } catch {
+        toast.error('应用预设策略时发生错误')
+      } finally {
+        setApplyingPresetModelId(null)
+      }
+    },
+    [applyPresetPolicy],
   )
 
   if (loadingDatabases) {
@@ -472,60 +580,68 @@ export function PermissionsTab({ orgName, projectSlug }: PermissionsTabProps) {
 
   return (
     <div className="space-y-4">
-      {/* Database selector */}
+      {/* Selectors row */}
       <div className="flex items-center gap-2">
         <span className="text-xs font-medium text-muted-foreground">数据库</span>
-        <Select value={selectedDb} onValueChange={setSelectedDb}>
+        <Select value={selectedDb} onValueChange={(v) => { setSelectedDb(v); setSelectedModelId('') }}>
           <SelectTrigger className="h-8 w-44 text-sm">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
             {databaseNames.map((db) => (
-              <SelectItem key={db} value={db} className="text-sm font-mono">
+              <SelectItem key={db} value={db} className="font-mono text-sm">
                 {db}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
+
         {!loadingModels && modelsForDb.length > 0 && (
-          <span className="text-xs text-muted-foreground">
-            {modelsForDb.length} 个模型
-          </span>
+          <>
+            <span className="text-xs text-muted-foreground/40">/</span>
+            <span className="text-xs font-medium text-muted-foreground">模型</span>
+            <Select value={selectedModelId} onValueChange={setSelectedModelId}>
+              <SelectTrigger className="h-8 w-48 text-sm">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {modelsForDb.map(({ model }) => (
+                  <SelectItem key={model.id} value={model.id} className="text-sm">
+                    <span className="font-medium">{model.title || model.name}</span>
+                    <span className="ml-1.5 font-mono text-[11px] text-muted-foreground">{model.name}</span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </>
         )}
       </div>
 
-      {/* Model cards */}
+      {/* Single model card */}
       {loadingModels ? (
-        <div className="space-y-3">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="rounded-md border p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="ml-auto h-6 w-14" />
-              </div>
-            </div>
-          ))}
+        <div className="space-y-3 rounded-md border p-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-5 w-16" />
+            <Skeleton className="ml-auto h-6 w-14" />
+          </div>
         </div>
-      ) : modelsForDb.length > 0 ? (
-        <div className="space-y-3">
-          {modelsForDb.map((item) => (
-            <ModelCard
-              key={item.model.id}
-              item={item}
-              projectSlug={projectSlug}
-              deletingId={deletingId}
-              onDelete={handleDelete}
-              onCreate={handleCreate}
-              savingModelId={savingModelId}
-            />
-          ))}
-        </div>
-      ) : (
+      ) : selectedModelItem ? (
+        <ModelCard
+          item={selectedModelItem}
+          projectSlug={projectSlug}
+          deletingId={deletingId}
+          onDelete={handleDelete}
+          onCreate={handleCreate}
+          onApplyPreset={handleApplyPreset}
+          savingModelId={savingModelId}
+          applyingPresetModelId={applyingPresetModelId}
+        />
+      ) : modelsForDb.length === 0 ? (
         <div className="flex flex-col items-center justify-center rounded-md border border-dashed py-12">
           <p className="text-sm text-muted-foreground">该数据库下暂无模型</p>
         </div>
-      )}
+      ) : null}
     </div>
   )
 }
