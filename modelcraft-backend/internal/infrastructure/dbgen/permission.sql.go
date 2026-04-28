@@ -19,11 +19,12 @@ INSERT INTO end_user_permissions (
   model_id,
   name,
   description,
-  action,
+  type,
   column_policy,
-  row_scope
+  row_policy,
+  preset
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserPermissionParams struct {
@@ -33,9 +34,10 @@ type CreateEndUserPermissionParams struct {
 	ModelID      string
 	Name         string
 	Description  sql.NullString
-	Action       EndUserPermissionsAction
+	Type         EndUserPermissionsType
 	ColumnPolicy *json.RawMessage
-	RowScope     EndUserPermissionsRowScope
+	RowPolicy    *json.RawMessage
+	Preset       NullEndUserPermissionsPreset
 }
 
 func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUserPermissionParams) error {
@@ -46,9 +48,10 @@ func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUser
 		arg.ModelID,
 		arg.Name,
 		arg.Description,
-		arg.Action,
+		arg.Type,
 		arg.ColumnPolicy,
-		arg.RowScope,
+		arg.RowPolicy,
+		arg.Preset,
 	)
 	return err
 }
@@ -68,8 +71,25 @@ func (q *Queries) DeleteEndUserPermission(ctx context.Context, arg DeleteEndUser
 	return q.db.ExecContext(ctx, deleteEndUserPermission, arg.ID, arg.OrgName)
 }
 
+const deleteEndUserPermissionsByModelAndType = `-- name: DeleteEndUserPermissionsByModelAndType :execresult
+DELETE FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+  AND type = ?
+`
+
+type DeleteEndUserPermissionsByModelAndTypeParams struct {
+	ModelID string
+	OrgName string
+	Type    EndUserPermissionsType
+}
+
+func (q *Queries) DeleteEndUserPermissionsByModelAndType(ctx context.Context, arg DeleteEndUserPermissionsByModelAndTypeParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, deleteEndUserPermissionsByModelAndType, arg.ModelID, arg.OrgName, arg.Type)
+}
+
 const getEndUserPermissionByID = `-- name: GetEndUserPermissionByID :one
-SELECT id, org_name, project_slug, model_id, name, description, action, column_policy, row_scope, created_at, updated_at
+SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
 FROM end_user_permissions
 WHERE id = ?
   AND org_name = ?
@@ -90,9 +110,10 @@ func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPe
 		&i.ModelID,
 		&i.Name,
 		&i.Description,
-		&i.Action,
+		&i.Type,
 		&i.ColumnPolicy,
-		&i.RowScope,
+		&i.RowPolicy,
+		&i.Preset,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -100,11 +121,11 @@ func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPe
 }
 
 const listEndUserPermissionsByModel = `-- name: ListEndUserPermissionsByModel :many
-SELECT id, org_name, project_slug, model_id, name, description, action, column_policy, row_scope, created_at, updated_at
+SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
 FROM end_user_permissions
 WHERE model_id = ?
   AND org_name = ?
-ORDER BY action, row_scope
+ORDER BY created_at
 `
 
 type ListEndUserPermissionsByModelParams struct {
@@ -128,9 +149,10 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
-			&i.Action,
+			&i.Type,
 			&i.ColumnPolicy,
-			&i.RowScope,
+			&i.RowPolicy,
+			&i.Preset,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -148,7 +170,7 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 }
 
 const listEndUserPermissionsByProject = `-- name: ListEndUserPermissionsByProject :many
-SELECT id, org_name, project_slug, model_id, name, description, action, column_policy, row_scope, created_at, updated_at
+SELECT id, org_name, project_slug, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
 FROM end_user_permissions
 WHERE org_name = ?
   AND project_slug = ?
@@ -176,9 +198,10 @@ func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListE
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
-			&i.Action,
+			&i.Type,
 			&i.ColumnPolicy,
-			&i.RowScope,
+			&i.RowPolicy,
+			&i.Preset,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

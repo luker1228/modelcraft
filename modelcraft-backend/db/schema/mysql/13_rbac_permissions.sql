@@ -14,7 +14,7 @@ ALTER TABLE `end_user_roles`
 
 -- -------------------------------------------------------------
 -- 1. end_user_permissions — 权限点
---    一行 = 一个「模型 × 动作 × 行范围」的细粒度权限
+--    一行 = 一条对某模型的行列级访问策略
 -- -------------------------------------------------------------
 CREATE TABLE `end_user_permissions` (
   `id`            VARCHAR(36)  NOT NULL                    COMMENT '权限点 UUID',
@@ -23,44 +23,74 @@ CREATE TABLE `end_user_permissions` (
   `model_id`      VARCHAR(36)  NOT NULL                    COMMENT '关联模型 ID，FK → models.id',
   `name`          VARCHAR(128) NOT NULL                    COMMENT '权限点名称，人类可读',
   `description`   TEXT         NULL                        COMMENT '权限点描述',
-  `action`        ENUM(
-                    'select',
-                    'insert',
-                    'update',
-                    'delete',
-                    'export'
-                  )            NOT NULL                    COMMENT '操作动作',
+  `type`          ENUM(
+                    'PRESET',
+                    'CUSTOM'
+                  )            NOT NULL DEFAULT 'CUSTOM'   COMMENT '权限点来源：PRESET=预设策略生成，CUSTOM=管理员手动创建',
   `column_policy` JSON         NULL                        COMMENT '列策略 JSON，结构见注释',
   -- column_policy 结构示例：
   -- {
   --   "defaultMode": "VISIBLE",          // VISIBLE | HIDDEN | MASKED
   --   "rules": [
-  --     { "fieldName": "salary", "mode": "MASKED", "maskPattern": "***" },
-  --     { "fieldName": "id_card", "mode": "HIDDEN" }
+  --     { "fieldName": "salary",  "mode": "MASKED",  "maskPattern": "***", "writable": false },
+  --     { "fieldName": "id_card", "mode": "HIDDEN",  "writable": false },
+  --     { "fieldName": "status",  "mode": "VISIBLE", "writable": false }
   --   ]
   -- }
-  `row_scope`     ENUM(
-                    'ALL',
-                    'SELF',
-                    'DEPT',
-                    'DEPT_AND_CHILDREN'
-                  )            NOT NULL DEFAULT 'ALL'      COMMENT '行范围：ALL全量/SELF本人/DEPT本部门/DEPT_AND_CHILDREN含子部门',
+  -- writable: 该列是否允许被 UPDATE SET，默认 true；仅 mode=VISIBLE 时有意义
+  `row_policy`    JSON         NULL                        COMMENT '行策略 JSON，谓词为 GraphQL Runtime where 条件（与 model_rls_policies 格式一致）',
+  -- row_policy 结构（每个 action 两个字段）：
+  --   allowed : boolean     是否允许该操作；false 时其余字段忽略
+  --   scope   : "all"|"custom"  all=全通行(predicate/check忽略)，custom=条件生效
+  --   predicate/check : GraphQL Runtime where JSON（scope=custom 时有效）
+  --
+  -- 隐藏规则：select.allowed=false 时，insert/update/delete 全部强制 allowed=false
+  --
+  -- {
+  --   "select": {
+  --     "allowed": true,
+  --     "scope": "custom",
+  --     "predicate": { "status": { "_eq": "active" } }
+  --   },
+  --   "insert": {
+  --     "allowed": true,
+  --     "scope": "custom",
+  --     "check": { "owner_id": { "_eq": "$endUserId" } }
+  --   },
+  --   "update": {
+  --     "allowed": true,
+  --     "scope": "custom",
+  --     "predicate": { "owner_id": { "_eq": "$endUserId" } },
+  --     "check_scope": "custom",
+  --     "check": { "owner_id": { "_eq": "$endUserId" } }
+  --   },
+  --   "delete": {
+  --     "allowed": false
+  --   }
+  -- }
+  `preset`        ENUM(
+                    'READ_WRITE_ALL',
+                    'READ_ALL',
+                    'READ_WRITE_OWNER',
+                    'READ_ALL_WRITE_OWNER'
+                  )            NULL DEFAULT NULL           COMMENT '来源预设，NULL 表示手动创建的自定义权限点；仅 type=PRESET 时有值',
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
-  -- 业务唯一键：同一模型下，相同动作+行范围+名称不可重复
-  UNIQUE KEY `uq_permissions_model_action_scope_name`
-    (`model_id`, `action`, `row_scope`, `name`),
+  -- 业务唯一键：同一模型下，相同类型+名称不可重复
+  UNIQUE KEY `uq_permissions_model_type_name`
+    (`model_id`, `type`, `name`),
   -- 按组织/项目快速检索（不做 FK，Project 不删除只归档）
   INDEX `idx_permissions_org_project` (`org_name`, `project_slug`),
   INDEX `idx_permissions_model_id` (`model_id`),
+  INDEX `idx_permissions_model_preset` (`model_id`, `preset`),
   -- FK → models.id（模型可删除，级联清理权限点）
   CONSTRAINT `fk_permissions_model`
     FOREIGN KEY (`model_id`) REFERENCES `models` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='权限点：每行描述对某模型某动作的行列级权限配置';
+  COMMENT='权限点：每行描述对某模型的行列级访问策略';
 
 -- -------------------------------------------------------------
 -- 2. end_user_permission_bundles — 权限包

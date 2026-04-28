@@ -26,6 +26,9 @@ type EndUserPermissionRepository interface {
 	// 级联删除 end_user_bundle_permissions 中的关联行（FK CASCADE）
 	DeletePermission(ctx context.Context, orgName, id string) error
 
+	// DeletePresetPermissionsByModel 删除指定 model 下的全部预设权限点（type=PRESET）
+	DeletePresetPermissionsByModel(ctx context.Context, orgName, modelID string) error
+
 	// ─── 权限包 ────────────────────────────────────────────────
 
 	// CreateBundle 创建权限包（org + project scoped，orgName 由实体携带）

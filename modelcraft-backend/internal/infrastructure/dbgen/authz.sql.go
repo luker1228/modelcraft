@@ -130,7 +130,7 @@ func (q *Queries) GetBundleIDsByUserExplicitRoles(ctx context.Context, arg GetBu
 }
 
 const getPermissionsByBundleIDs = `-- name: GetPermissionsByBundleIDs :many
-SELECT p.id, p.org_name, p.project_slug, p.model_id, p.name, p.description, p.action, p.column_policy, p.row_scope, p.created_at, p.updated_at
+SELECT p.id, p.org_name, p.project_slug, p.model_id, p.name, p.description, p.type, p.column_policy, p.row_policy, p.preset, p.created_at, p.updated_at
 FROM end_user_permissions p
   JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
 WHERE bp.bundle_id IN (/*SLICE:bundleids*/?)
@@ -170,9 +170,10 @@ func (q *Queries) GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissi
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
-			&i.Action,
+			&i.Type,
 			&i.ColumnPolicy,
-			&i.RowScope,
+			&i.RowPolicy,
+			&i.Preset,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

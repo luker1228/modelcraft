@@ -20,17 +20,56 @@ func ToEndUserPermissionDTO(p *rbacdomain.EndUserPermission) *generated.EndUserP
 		n := p.Name
 		displayName = &n
 	}
+	action, rowScope := deriveLegacyActionAndScope(p)
 	return &generated.EndUserPermission{
 		ID:           p.ID,
 		ModelID:      p.ModelID,
-		Action:       generated.RbacAction(strings.ToUpper(string(p.Action))),
+		Action:       action,
 		ColumnPolicy: ToColumnPolicyDTO(p.ColumnPolicy),
-		RowScope:     generated.RowScopeType(p.RowScope),
+		RowScope:     rowScope,
+		Preset:       toPresetDTO(p.Preset),
 		DisplayName:  displayName,
 		Description:  p.Description,
 		CreatedAt:    time.Now(), // populated from DB if needed
 		UpdatedAt:    time.Now(),
 	}
+}
+
+func toPresetDTO(preset *rbacdomain.PermissionPreset) *generated.EndUserPermissionPreset {
+	if preset == nil {
+		return nil
+	}
+	value := generated.EndUserPermissionPreset(*preset)
+	return &value
+}
+
+func deriveLegacyActionAndScope(p *rbacdomain.EndUserPermission) (generated.RbacAction, generated.RowScopeType) {
+	if p == nil || p.RowPolicy == nil {
+		return generated.RbacActionSelect, generated.RowScopeTypeAll
+	}
+	policy := p.RowPolicy
+	policy.Normalize()
+
+	if policy.Select.Allowed {
+		return generated.RbacActionSelect, scopeToLegacyRowScope(policy.Select.Scope)
+	}
+	if policy.Insert.Allowed {
+		return generated.RbacActionInsert, scopeToLegacyRowScope(policy.Insert.Scope)
+	}
+	if policy.Update.Allowed {
+		return generated.RbacActionUpdate, scopeToLegacyRowScope(policy.Update.Scope)
+	}
+	if policy.Delete.Allowed {
+		return generated.RbacActionDelete, scopeToLegacyRowScope(policy.Delete.Scope)
+	}
+	return generated.RbacActionSelect, generated.RowScopeTypeAll
+}
+
+func scopeToLegacyRowScope(scope rbacdomain.PolicyScope) generated.RowScopeType {
+	if scope == rbacdomain.ScopeCustom {
+		return generated.RowScopeTypeSelf
+	}
+	return generated.RowScopeTypeAll
 }
 
 // ToEndUserPermissionBundleDTO converts domain bundle to GraphQL DTO.

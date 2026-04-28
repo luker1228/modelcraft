@@ -16,6 +16,14 @@ type CreatePermissionCommand struct {
 	RowScope             rbacdomain.RowScope
 }
 
+// ApplyPresetPolicyCommand 应用预设策略命令
+// 当前仅用于 applyEndUserPresetPolicy mutation。
+type ApplyPresetPolicyCommand struct {
+	project.ProjectScope
+	ModelID string
+	Preset  rbacdomain.PermissionPreset
+}
+
 // UpdatePermissionCommand 更新权限点命令（只允许更新 name/description/columnPolicy；action 和 rowScope 不可变）
 type UpdatePermissionCommand struct {
 	OrgName      string

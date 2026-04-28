@@ -29,6 +29,15 @@ type ColumnRule struct {
 	FieldName   string           `json:"field_name"`
 	Mode        ColumnAccessMode `json:"mode"`
 	MaskPattern string           `json:"mask_pattern,omitempty"`
+	Writable    *bool            `json:"writable,omitempty"`
+}
+
+// IsWritable 返回列是否可写，默认 true。
+func (r ColumnRule) IsWritable() bool {
+	if r.Writable == nil {
+		return true
+	}
+	return *r.Writable
 }
 
 // ColumnPolicy 列策略（对齐 API 合约结构）

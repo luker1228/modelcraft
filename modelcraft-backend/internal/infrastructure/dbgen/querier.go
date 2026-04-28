@@ -40,6 +40,7 @@ type Querier interface {
 	DeleteDatabaseCluster(ctx context.Context, arg DeleteDatabaseClusterParams) error
 	DeleteEndUserBundle(ctx context.Context, arg DeleteEndUserBundleParams) (sql.Result, error)
 	DeleteEndUserPermission(ctx context.Context, arg DeleteEndUserPermissionParams) (sql.Result, error)
+	DeleteEndUserPermissionsByModelAndType(ctx context.Context, arg DeleteEndUserPermissionsByModelAndTypeParams) (sql.Result, error)
 	// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
 	DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRoleParams) (sql.Result, error)
 	DeleteEnum(ctx context.Context, arg DeleteEnumParams) error

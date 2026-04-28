@@ -6,7 +6,6 @@ package projectgraphql
 
 import (
 	"context"
-	"fmt"
 	apprbac "modelcraft/internal/app/rbac"
 	domainproject "modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
@@ -103,7 +102,27 @@ func (r *mutationResolver) DeleteEndUserPermission(ctx context.Context, id strin
 
 // ApplyEndUserPresetPolicy is the resolver for the applyEndUserPresetPolicy field.
 func (r *mutationResolver) ApplyEndUserPresetPolicy(ctx context.Context, input generated.ApplyEndUserPresetPolicyInput) (*generated.ApplyEndUserPresetPolicyPayload, error) {
-	panic(fmt.Errorf("not implemented: ApplyEndUserPresetPolicy - applyEndUserPresetPolicy"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	perms, appErr := r.RBACPermissionSvc.ApplyPresetPolicy(ctx, apprbac.ApplyPresetPolicyCommand{
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		ModelID:      input.ModelID,
+		Preset:       rbacdomain.PermissionPreset(input.Preset),
+	})
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		errAdapter := adapter.NewRbacErrorAdapter(ctx)
+		return &generated.ApplyEndUserPresetPolicyPayload{
+			Error: errAdapter.ConvertToApplyPresetPolicyError(toBizErr(appErr)),
+		}, nil
+	}
+
+	return &generated.ApplyEndUserPresetPolicyPayload{
+		Permissions: adapter.ToEndUserPermissionsDTO(perms),
+	}, nil
 }
 
 // CreateEndUserPermissionBundle is the resolver for the createEndUserPermissionBundle field.

@@ -46,6 +46,21 @@ func toDomainPermission(row dbgen.EndUserPermission) *rbac.EndUserPermission {
 		}
 	}
 
+	var rowPolicy *rbac.RowPolicy
+	if row.RowPolicy != nil {
+		var rp rbac.RowPolicy
+		if err := json.Unmarshal(*row.RowPolicy, &rp); err == nil {
+			rp.Normalize()
+			rowPolicy = &rp
+		}
+	}
+
+	var preset *rbac.PermissionPreset
+	if row.Preset.Valid {
+		p := rbac.PermissionPreset(row.Preset.EndUserPermissionsPreset)
+		preset = &p
+	}
+
 	return &rbac.EndUserPermission{
 		OrgName:      row.OrgName,
 		ProjectSlug:  row.ProjectSlug,
@@ -53,9 +68,10 @@ func toDomainPermission(row dbgen.EndUserPermission) *rbac.EndUserPermission {
 		ModelID:      row.ModelID,
 		Name:         row.Name,
 		Description:  description,
-		Action:       rbac.Action(row.Action),
+		Type:         rbac.PermissionType(row.Type),
 		ColumnPolicy: columnPolicy,
-		RowScope:     rbac.RowScope(row.RowScope),
+		RowPolicy:    rowPolicy,
+		Preset:       preset,
 	}
 }
 
@@ -71,6 +87,29 @@ func toDBColumnPolicy(cp *rbac.ColumnPolicy) *json.RawMessage {
 	return &raw
 }
 
+func toDBRowPolicy(rp *rbac.RowPolicy) *json.RawMessage {
+	if rp == nil {
+		return nil
+	}
+	rp.Normalize()
+	b, err := json.Marshal(rp)
+	if err != nil {
+		return nil
+	}
+	var raw json.RawMessage = b
+	return &raw
+}
+
+func toDBPreset(preset *rbac.PermissionPreset) dbgen.NullEndUserPermissionsPreset {
+	if preset == nil {
+		return dbgen.NullEndUserPermissionsPreset{Valid: false}
+	}
+	return dbgen.NullEndUserPermissionsPreset{
+		EndUserPermissionsPreset: dbgen.EndUserPermissionsPreset(*preset),
+		Valid:                    true,
+	}
+}
+
 // =========================
 // Permissions
 // =========================
@@ -83,9 +122,10 @@ func (r *SqlEndUserPermissionRepository) CreatePermission(ctx context.Context, p
 		ModelID:      p.ModelID,
 		Name:         p.Name,
 		Description:  sqlerr.PtrToNullStr(p.Description),
-		Action:       dbgen.EndUserPermissionsAction(p.Action),
+		Type:         dbgen.EndUserPermissionsType(p.Type),
 		ColumnPolicy: toDBColumnPolicy(p.ColumnPolicy),
-		RowScope:     dbgen.EndUserPermissionsRowScope(p.RowScope),
+		RowPolicy:    toDBRowPolicy(p.RowPolicy),
+		Preset:       toDBPreset(p.Preset),
 	}
 
 	return r.q.CreateEndUserPermission(ctx, params)
@@ -178,6 +218,21 @@ func (r *SqlEndUserPermissionRepository) DeletePermission(ctx context.Context, o
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
 		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "end user permission not found: "+id)
+	}
+	return nil
+}
+
+func (r *SqlEndUserPermissionRepository) DeletePresetPermissionsByModel(
+	ctx context.Context,
+	orgName, modelID string,
+) error {
+	_, err := r.q.DeleteEndUserPermissionsByModelAndType(ctx, dbgen.DeleteEndUserPermissionsByModelAndTypeParams{
+		ModelID: modelID,
+		OrgName: orgName,
+		Type:    dbgen.EndUserPermissionsTypePRESET,
+	})
+	if err != nil {
+		return sqlerr.WrapSQLError(err)
 	}
 	return nil
 }

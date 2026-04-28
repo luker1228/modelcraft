@@ -12,93 +12,90 @@ import (
 	"time"
 )
 
-type EndUserPermissionsAction string
+type EndUserPermissionsPreset string
 
 const (
-	EndUserPermissionsActionSelect EndUserPermissionsAction = "select"
-	EndUserPermissionsActionInsert EndUserPermissionsAction = "insert"
-	EndUserPermissionsActionUpdate EndUserPermissionsAction = "update"
-	EndUserPermissionsActionDelete EndUserPermissionsAction = "delete"
-	EndUserPermissionsActionExport EndUserPermissionsAction = "export"
+	EndUserPermissionsPresetREADWRITEALL      EndUserPermissionsPreset = "READ_WRITE_ALL"
+	EndUserPermissionsPresetREADALL           EndUserPermissionsPreset = "READ_ALL"
+	EndUserPermissionsPresetREADWRITEOWNER    EndUserPermissionsPreset = "READ_WRITE_OWNER"
+	EndUserPermissionsPresetREADALLWRITEOWNER EndUserPermissionsPreset = "READ_ALL_WRITE_OWNER"
 )
 
-func (e *EndUserPermissionsAction) Scan(src interface{}) error {
+func (e *EndUserPermissionsPreset) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EndUserPermissionsAction(s)
+		*e = EndUserPermissionsPreset(s)
 	case string:
-		*e = EndUserPermissionsAction(s)
+		*e = EndUserPermissionsPreset(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EndUserPermissionsAction: %T", src)
+		return fmt.Errorf("unsupported scan type for EndUserPermissionsPreset: %T", src)
 	}
 	return nil
 }
 
-type NullEndUserPermissionsAction struct {
-	EndUserPermissionsAction EndUserPermissionsAction
-	Valid                    bool // Valid is true if EndUserPermissionsAction is not NULL
+type NullEndUserPermissionsPreset struct {
+	EndUserPermissionsPreset EndUserPermissionsPreset
+	Valid                    bool // Valid is true if EndUserPermissionsPreset is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullEndUserPermissionsAction) Scan(value interface{}) error {
+func (ns *NullEndUserPermissionsPreset) Scan(value interface{}) error {
 	if value == nil {
-		ns.EndUserPermissionsAction, ns.Valid = "", false
+		ns.EndUserPermissionsPreset, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.EndUserPermissionsAction.Scan(value)
+	return ns.EndUserPermissionsPreset.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullEndUserPermissionsAction) Value() (driver.Value, error) {
+func (ns NullEndUserPermissionsPreset) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.EndUserPermissionsAction), nil
+	return string(ns.EndUserPermissionsPreset), nil
 }
 
-type EndUserPermissionsRowScope string
+type EndUserPermissionsType string
 
 const (
-	EndUserPermissionsRowScopeALL             EndUserPermissionsRowScope = "ALL"
-	EndUserPermissionsRowScopeSELF            EndUserPermissionsRowScope = "SELF"
-	EndUserPermissionsRowScopeDEPT            EndUserPermissionsRowScope = "DEPT"
-	EndUserPermissionsRowScopeDEPTANDCHILDREN EndUserPermissionsRowScope = "DEPT_AND_CHILDREN"
+	EndUserPermissionsTypePRESET EndUserPermissionsType = "PRESET"
+	EndUserPermissionsTypeCUSTOM EndUserPermissionsType = "CUSTOM"
 )
 
-func (e *EndUserPermissionsRowScope) Scan(src interface{}) error {
+func (e *EndUserPermissionsType) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EndUserPermissionsRowScope(s)
+		*e = EndUserPermissionsType(s)
 	case string:
-		*e = EndUserPermissionsRowScope(s)
+		*e = EndUserPermissionsType(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EndUserPermissionsRowScope: %T", src)
+		return fmt.Errorf("unsupported scan type for EndUserPermissionsType: %T", src)
 	}
 	return nil
 }
 
-type NullEndUserPermissionsRowScope struct {
-	EndUserPermissionsRowScope EndUserPermissionsRowScope
-	Valid                      bool // Valid is true if EndUserPermissionsRowScope is not NULL
+type NullEndUserPermissionsType struct {
+	EndUserPermissionsType EndUserPermissionsType
+	Valid                  bool // Valid is true if EndUserPermissionsType is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullEndUserPermissionsRowScope) Scan(value interface{}) error {
+func (ns *NullEndUserPermissionsType) Scan(value interface{}) error {
 	if value == nil {
-		ns.EndUserPermissionsRowScope, ns.Valid = "", false
+		ns.EndUserPermissionsType, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.EndUserPermissionsRowScope.Scan(value)
+	return ns.EndUserPermissionsType.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullEndUserPermissionsRowScope) Value() (driver.Value, error) {
+func (ns NullEndUserPermissionsType) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.EndUserPermissionsRowScope), nil
+	return string(ns.EndUserPermissionsType), nil
 }
 
 type LogicalForeignKeysDirection string
@@ -275,7 +272,7 @@ type EndUserBundlePermission struct {
 	CreatedAt time.Time
 }
 
-// 权限点：每行描述对某模型某动作的行列级权限配置
+// 权限点：每行描述对某模型的行列级访问策略
 type EndUserPermission struct {
 	// 权限点 UUID
 	ID string
@@ -289,12 +286,14 @@ type EndUserPermission struct {
 	Name string
 	// 权限点描述
 	Description sql.NullString
-	// 操作动作
-	Action EndUserPermissionsAction
+	// 权限点来源：PRESET=预设策略生成，CUSTOM=管理员手动创建
+	Type EndUserPermissionsType
 	// 列策略 JSON，结构见注释
 	ColumnPolicy *json.RawMessage
-	// 行范围：ALL全量/SELF本人/DEPT本部门/DEPT_AND_CHILDREN含子部门
-	RowScope  EndUserPermissionsRowScope
+	// 行策略 JSON，谓词为 GraphQL Runtime where 条件（与 model_rls_policies 格式一致）
+	RowPolicy *json.RawMessage
+	// 来源预设，NULL 表示手动创建的自定义权限点；仅 type=PRESET 时有值
+	Preset    NullEndUserPermissionsPreset
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }

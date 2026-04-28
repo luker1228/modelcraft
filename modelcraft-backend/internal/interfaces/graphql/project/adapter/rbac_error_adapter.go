@@ -5,6 +5,7 @@ import (
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
+	"strings"
 )
 
 // RbacErrorAdapter converts BusinessError to RBAC GraphQL union errors.
@@ -363,4 +364,47 @@ func (a *RbacErrorAdapter) ConvertToRevokeRoleFromUserError(
 		a.logUnknown("revokeRoleFromUser", err)
 		return &generated.EndUserRoleNotFound{Message: err.Msg()}
 	}
+}
+
+// ConvertToApplyPresetPolicyError maps to ApplyEndUserPresetPolicyError union.
+func (a *RbacErrorAdapter) ConvertToApplyPresetPolicyError(
+	err *bizerrors.BusinessError,
+) generated.ApplyEndUserPresetPolicyError {
+	if err == nil {
+		return nil
+	}
+
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizerrors.EndUserRowScopeFieldMissing.GetCode():
+		suggestion := "请先在模型中创建 END_USER_REF 字段，然后重试应用预设"
+		preset := detectPresetFromMessage(err.Msg())
+		return &generated.PresetRequiresOwnerField{
+			Message:    err.Msg(),
+			Preset:     preset,
+			Suggestion: &suggestion,
+		}
+	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.ModelNotFound{Message: err.Msg()}
+	case bizerrors.ProjectNotFound.GetCode():
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	default:
+		a.logUnknown("applyPresetPolicy", err)
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	}
+}
+
+func detectPresetFromMessage(message string) generated.EndUserPermissionPreset {
+	if strings.Contains(message, string(generated.EndUserPermissionPresetReadAllWriteOwner)) {
+		return generated.EndUserPermissionPresetReadAllWriteOwner
+	}
+	if strings.Contains(message, string(generated.EndUserPermissionPresetReadWriteOwner)) {
+		return generated.EndUserPermissionPresetReadWriteOwner
+	}
+	if strings.Contains(message, string(generated.EndUserPermissionPresetReadAll)) {
+		return generated.EndUserPermissionPresetReadAll
+	}
+	if strings.Contains(message, string(generated.EndUserPermissionPresetReadWriteAll)) {
+		return generated.EndUserPermissionPresetReadWriteAll
+	}
+	return generated.EndUserPermissionPresetReadWriteOwner
 }

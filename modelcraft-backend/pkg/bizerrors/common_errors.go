@@ -573,6 +573,13 @@ var (
 		EnMessage: "Row scope '{0}' requires field '{1}' on the model, but it does not exist",
 		ZhMessage: "行策略 '{0}' 要求模型存在字段 '{1}'，但该字段不存在",
 	}
+
+	// EndUserPresetRequiresOwnerField *_OWNER 预设要求模型存在 END_USER_REF 字段
+	EndUserPresetRequiresOwnerField = ErrorDefinition{
+		Code:      ErrorTypeParamInvalid + ".RBAC.PRESET_OWNER_FIELD",
+		EnMessage: "Preset '{0}' requires END_USER_REF(owner) field on model",
+		ZhMessage: "预设 '{0}' 要求模型存在 END_USER_REF（owner）字段",
+	}
 )
 
 // AllErrorDefinitions 返回所有错误定义（用于测试）

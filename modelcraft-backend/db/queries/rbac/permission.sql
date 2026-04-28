@@ -6,11 +6,12 @@ INSERT INTO end_user_permissions (
   model_id,
   name,
   description,
-  action,
+  type,
   column_policy,
-  row_scope
+  row_policy,
+  preset
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetEndUserPermissionByID :one
 SELECT *
@@ -30,7 +31,7 @@ SELECT *
 FROM end_user_permissions
 WHERE model_id = ?
   AND org_name = ?
-ORDER BY action, row_scope;
+ORDER BY created_at;
 
 -- name: UpdateEndUserPermission :execresult
 UPDATE end_user_permissions
@@ -45,3 +46,9 @@ WHERE id = ?
 DELETE FROM end_user_permissions
 WHERE id = ?
   AND org_name = ?;
+
+-- name: DeleteEndUserPermissionsByModelAndType :execresult
+DELETE FROM end_user_permissions
+WHERE model_id = ?
+  AND org_name = ?
+  AND type = ?;
