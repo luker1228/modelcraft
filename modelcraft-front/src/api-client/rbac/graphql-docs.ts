@@ -11,6 +11,7 @@ export const GET_END_USER_PERMISSIONS = gql`
           modelId
           action
           rowScope
+          preset
           displayName
           description
           columnPolicy {
@@ -51,6 +52,7 @@ export const GET_END_USER_BUNDLES = gql`
               modelId
               action
               rowScope
+              preset
               columnPolicy {
                 defaultMode
                 rules {
@@ -98,6 +100,7 @@ export const GET_END_USER_BUNDLE = gql`
           modelId
           action
           rowScope
+          preset
           displayName
           description
           columnPolicy {
@@ -164,6 +167,7 @@ export const GET_END_USER_ROLE = gql`
               modelId
               action
               rowScope
+              preset
               displayName
             }
           }

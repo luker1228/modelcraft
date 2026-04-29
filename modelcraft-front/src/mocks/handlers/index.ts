@@ -22,6 +22,7 @@ import {
 import { endUserAuthHandlers } from './end-user/auth-handlers'
 import { modelHandlers } from './model/handlers'
 import { enumHandlers } from './enum/handlers'
+import { rbacHandlers } from './project/rbac-handlers'
 
 type ProfileScenarioType = 'success' | 'profileNotFound' | 'invalidInput'
 
@@ -106,6 +107,10 @@ function buildHandlers() {
 
   if (isMockPage('enum-list') || isMockPage('enum-detail')) {
     active.push(...enumHandlers)
+  }
+
+  if (isMockPage('rbac-bundles')) {
+    active.push(...rbacHandlers)
   }
 
   // TODO(profile-contract-ready): contract 同步并重新执行 npm run codegen 后，

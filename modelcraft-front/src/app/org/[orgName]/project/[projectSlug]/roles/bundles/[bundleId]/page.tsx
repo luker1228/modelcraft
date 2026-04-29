@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import { useQuery } from '@apollo/client'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import {
@@ -25,6 +26,13 @@ import { Skeleton } from '@web/components/ui/skeleton'
 import { Input } from '@web/components/ui/input'
 import { ScrollArea } from '@web/components/ui/scroll-area'
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@web/components/ui/select'
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -43,7 +51,10 @@ import {
 } from '@web/components/ui/dialog'
 import { PageLayout } from '@web/components/features/layout'
 
+import { useProjectScopedClient } from '@api-client/apollo/public'
+
 import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
+import { GET_MODELS_FOR_RELATION } from '@/api-client/model'
 import type { EndUserPermission } from '@/types'
 import { cn } from '@/shared/utils'
 
@@ -356,11 +367,20 @@ function InlineEditField({
 // ── AddStrategyDialog ────────────────────────────────────────────────────────
 // Layout: left = searchable model list, right = permission picker
 
+interface StrategyModelOption {
+  id: string
+  name: string
+  title?: string
+  databaseName?: string
+}
+
 interface AddStrategyDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   bundleName: string
   allPermissions: EndUserPermission[]
+  databaseNames: string[]
+  databasesLoading: boolean
   /** IDs of permissions already in this bundle */
   bundledPermissionIds: Set<string>
   /** Models already having a strategy in this bundle */
@@ -368,6 +388,14 @@ interface AddStrategyDialogProps {
   onAdd: (permissionId: string) => Promise<void>
   orgName: string
   projectSlug: string
+}
+
+interface ModelsForRelationQueryData {
+  models?: {
+    edges?: Array<{
+      node?: StrategyModelOption | null
+    } | null>
+  }
 }
 
 // Group permissions by modelId
@@ -386,6 +414,8 @@ function AddStrategyDialog({
   onOpenChange,
   bundleName,
   allPermissions,
+  databaseNames,
+  databasesLoading,
   bundledPermissionIds,
   bundledModelIds,
   onAdd,
@@ -393,10 +423,60 @@ function AddStrategyDialog({
   projectSlug,
 }: AddStrategyDialogProps) {
   const [modelSearch, setModelSearch] = React.useState('')
+  const [selectedDatabase, setSelectedDatabase] = React.useState('')
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)
   const [selectedPermId, setSelectedPermId] = React.useState<string | null>(null)
   const [adding, setAdding] = React.useState(false)
   const router = useRouter()
+  const projectClient = useProjectScopedClient(projectSlug, orgName)
+
+  React.useEffect(() => {
+    if (!open) {
+      setSelectedDatabase('')
+      return
+    }
+
+    if (selectedDatabase && databaseNames.includes(selectedDatabase)) return
+    setSelectedDatabase('')
+  }, [databaseNames, open, selectedDatabase])
+
+  React.useEffect(() => {
+    setSelectedModelId(null)
+    setSelectedPermId(null)
+  }, [selectedDatabase])
+
+  const {
+    data: modelsData,
+    loading: modelsLoading,
+  } = useQuery<ModelsForRelationQueryData>(GET_MODELS_FOR_RELATION, {
+    client: projectClient,
+    variables: {
+      input: {
+        databaseName: selectedDatabase,
+        limit: 200,
+      },
+    },
+    skip: !open || !selectedDatabase,
+  })
+
+  const modelOptions = React.useMemo<StrategyModelOption[]>(() => {
+    const edges = modelsData?.models?.edges ?? []
+
+    return edges
+      .map((edge) => edge?.node)
+      .filter((node): node is StrategyModelOption => Boolean(node?.id && node?.name))
+      .map((node) => ({
+        id: node.id,
+        name: node.name,
+        title: node.title,
+        databaseName: node.databaseName,
+      }))
+      .sort((a, b) => {
+        const labelA = a.title || a.name || a.id
+        const labelB = b.title || b.name || b.id
+        return labelA.localeCompare(labelB)
+      })
+  }, [modelsData])
 
   // Available permissions not yet in bundle
   const availablePerms = React.useMemo(
@@ -404,24 +484,32 @@ function AddStrategyDialog({
     [allPermissions, bundledPermissionIds],
   )
 
-  // Group all permissions by model
-  const allGrouped = React.useMemo(() => groupByModel(allPermissions), [allPermissions])
   // Group available permissions by model
   const availableGrouped = React.useMemo(() => groupByModel(availablePerms), [availablePerms])
 
+  const modelMap = React.useMemo(
+    () => new Map(modelOptions.map((model) => [model.id, model])),
+    [modelOptions],
+  )
+
   // Models filtered by search
   const modelList = React.useMemo(() => {
-    return Array.from(allGrouped.entries())
-      .map(([modelId, perms]) => ({
-        modelId,
-        displayName: perms[0]?.modelDisplayName ?? modelId,
+    return modelOptions
+      .map((model) => ({
+        modelId: model.id,
+        modelName: model.name || model.id,
+        displayName: model.title || model.name || model.id,
       }))
-      .filter(({ modelId, displayName }) => {
+      .filter(({ modelId, modelName, displayName }) => {
         if (!modelSearch) return true
         const q = modelSearch.toLowerCase()
-        return displayName.toLowerCase().includes(q) || modelId.toLowerCase().includes(q)
+        return (
+          displayName.toLowerCase().includes(q) ||
+          modelName.toLowerCase().includes(q) ||
+          modelId.toLowerCase().includes(q)
+        )
       })
-  }, [allGrouped, modelSearch])
+  }, [modelOptions, modelSearch])
 
   // Permissions available for selected model
   const permissionsForModel = React.useMemo(() => {
@@ -447,14 +535,20 @@ function AddStrategyDialog({
 
   const handleClose = () => {
     setModelSearch('')
+    setSelectedDatabase('')
     setSelectedModelId(null)
     setSelectedPermId(null)
     onOpenChange(false)
   }
 
-  const selectedModelLabel = selectedModelId
-    ? (allGrouped.get(selectedModelId)?.[0]?.modelDisplayName ?? selectedModelId)
-    : null
+  const selectedModelLabel = React.useMemo(() => {
+    if (!selectedModelId) return null
+    const selectedModel = modelMap.get(selectedModelId)
+    if (!selectedModel) return selectedModelId
+
+    const label = selectedModel.title || selectedModel.name || selectedModelId
+    return selectedModel.databaseName ? `${selectedModel.databaseName}.${label}` : label
+  }, [modelMap, selectedModelId])
 
   const createHref = selectedModelId
     ? `/org/${orgName}/project/${projectSlug}/roles?tab=permissions&createFor=${selectedModelId}`
@@ -476,7 +570,24 @@ function AddStrategyDialog({
         <div className="flex min-h-0 flex-1">
           {/* Col 1: Searchable model list */}
           <div className="flex w-52 shrink-0 flex-col border-r border-border">
-            <div className="border-b border-border px-3 py-2">
+            <div className="space-y-2 border-b border-border px-3 py-2">
+              <Select
+                value={selectedDatabase || undefined}
+                onValueChange={setSelectedDatabase}
+                disabled={databasesLoading || databaseNames.length === 0}
+              >
+                <SelectTrigger className="h-7 text-xs">
+                  <SelectValue placeholder={databasesLoading ? '加载数据库中...' : '第一步：选择数据库'} />
+                </SelectTrigger>
+                <SelectContent>
+                  {databaseNames.map((db) => (
+                    <SelectItem key={db} value={db}>
+                      {db}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
               <div className="relative">
                 <Search
                   className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
@@ -487,21 +598,36 @@ function AddStrategyDialog({
                   className="h-7 border-[#D8DDE5] bg-[#EBEEF2] pl-8 text-xs placeholder:text-muted-foreground focus-visible:ring-1"
                   value={modelSearch}
                   onChange={(e) => setModelSearch(e.target.value)}
+                  disabled={!selectedDatabase}
                 />
               </div>
             </div>
             <ScrollArea className="flex-1">
               <div className="py-1.5">
-                {availablePerms.length === 0 ? (
+                {databasesLoading ? (
+                  <div className="flex items-center justify-center px-3 py-6 text-xs text-muted-foreground/70">
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                    正在加载数据库…
+                  </div>
+                ) : databaseNames.length === 0 ? (
                   <p className="px-3 py-6 text-center text-xs text-muted-foreground/60">
-                    暂无可添加权限点
+                    暂无可用数据库
                   </p>
+                ) : !selectedDatabase ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground/70">
+                    请先选择数据库
+                  </p>
+                ) : modelsLoading ? (
+                  <div className="flex items-center justify-center px-3 py-6 text-xs text-muted-foreground/70">
+                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                    正在加载数据表…
+                  </div>
                 ) : modelList.length === 0 ? (
                   <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {modelSearch ? '无匹配数据表' : '暂无数据表'}
+                    {modelSearch ? '无匹配数据表' : '该数据库暂无数据表'}
                   </p>
                 ) : (
-                  modelList.map(({ modelId, displayName }) => {
+                  modelList.map(({ modelId, modelName, displayName }) => {
                     const isConfigured = bundledModelIds.has(modelId)
                     const isSelected = selectedModelId === modelId
                     return (
@@ -511,7 +637,7 @@ function AddStrategyDialog({
                         disabled={isConfigured}
                         onClick={() => handleModelSelect(modelId)}
                         className={cn(
-                          'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                          'group flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
                           isConfigured
                             ? 'cursor-not-allowed opacity-40'
                             : isSelected
@@ -519,7 +645,12 @@ function AddStrategyDialog({
                               : 'text-foreground hover:bg-foreground/[0.04]',
                         )}
                       >
-                        <span className="flex-1 truncate">{displayName}</span>
+                        <div className="flex-1 truncate">
+                          <p className="truncate group-hover:hidden">{displayName}</p>
+                          <p className="hidden truncate font-mono text-[11px] text-muted-foreground group-hover:block">
+                            {modelName}
+                          </p>
+                        </div>
                         {isConfigured ? (
                           <span className="shrink-0 rounded bg-muted px-1 py-px font-mono text-[10px] text-muted-foreground">
                             已配置
@@ -546,8 +677,12 @@ function AddStrategyDialog({
             {!selectedModelId ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 py-12 text-center">
                 <Shield className="size-8 text-muted-foreground/20" strokeWidth={1} />
-                <p className="text-sm text-muted-foreground">从左侧选择数据表</p>
-                <p className="text-xs text-muted-foreground/60">每个数据表只能配置一条权限策略</p>
+                <p className="text-sm text-muted-foreground">
+                  {selectedDatabase ? '从左侧选择数据表' : '请先选择数据库'}
+                </p>
+                <p className="text-xs text-muted-foreground/60">
+                  {selectedDatabase ? '每个数据表只能配置一条权限策略' : '选择数据库后才能查看数据表'}
+                </p>
               </div>
             ) : (
               <ScrollArea className="flex-1">
@@ -669,12 +804,22 @@ export default function BundleDetailPage() {
 
   const backHref = `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`
 
-  const { bundle, allPermissions, loading, error, removePermission, addPermission, updateBundle, restoreBundle } =
-    useBundleManage({
-      orgName,
-      projectSlug,
-      bundleId,
-    })
+  const {
+    bundle,
+    allPermissions,
+    databaseNames,
+    loading,
+    databasesLoading,
+    error,
+    removePermission,
+    addPermission,
+    updateBundle,
+    restoreBundle,
+  } = useBundleManage({
+    orgName,
+    projectSlug,
+    bundleId,
+  })
 
   const [removingId, setRemovingId] = React.useState<string | null>(null)
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
@@ -974,6 +1119,8 @@ export default function BundleDetailPage() {
         onOpenChange={setAddDialogOpen}
         bundleName={bundle?.name ?? ''}
         allPermissions={allPermissions}
+        databaseNames={databaseNames}
+        databasesLoading={databasesLoading}
         bundledPermissionIds={bundledPermissionIds}
         bundledModelIds={bundledModelIds}
         onAdd={handleAdd}

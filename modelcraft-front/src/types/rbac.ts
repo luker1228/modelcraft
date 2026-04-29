@@ -41,6 +41,8 @@ export interface EndUserPermission {
   displayName?: string
   modelDisplayName?: string
   description?: string
+  /** 若为预设策略实例化产生，则记录对应的预设类型；否则为 null/undefined */
+  preset?: string | null
   createdAt: string
   updatedAt: string
 }

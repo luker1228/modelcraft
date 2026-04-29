@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 import { useQuery, useMutation } from '@apollo/client'
-import { useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useProjectScopedClient } from '@api-client/apollo/public'
 import {
   GET_END_USER_BUNDLE,
@@ -12,6 +12,7 @@ import {
   UPDATE_END_USER_BUNDLE,
   RESTORE_END_USER_BUNDLE,
 } from '@/api-client/rbac'
+import { DATABASE_CATALOG } from '@/api-client/cluster'
 import type { EndUserPermission, EndUserPermissionBundle, EndUserRole } from '@/types'
 
 interface UseBundleManageProps {
@@ -29,9 +30,11 @@ interface MutationResult {
 interface UseBundleManageReturn {
   bundle: EndUserPermissionBundle | null
   allPermissions: EndUserPermission[]
+  databaseNames: string[]
   associatedRoles: EndUserRole[]
   loading: boolean
   rolesLoading: boolean
+  databasesLoading: boolean
   error: Error | undefined
   addPermission: (permissionId: string) => Promise<MutationResult>
   removePermission: (permissionId: string) => Promise<MutationResult>
@@ -73,6 +76,28 @@ export function useBundleManage({
     client,
     skip: !orgName || !projectSlug,
   })
+
+  const {
+    data: databaseCatalogData,
+    loading: databaseCatalogLoading,
+  } = useQuery(DATABASE_CATALOG, {
+    client,
+    variables: {
+      input: {
+        page: 1,
+        pageSize: 100,
+      },
+    },
+    skip: !orgName || !projectSlug,
+  })
+
+  const databaseNames = useMemo(
+    () =>
+      (databaseCatalogData?.modelDatabaseCatalog?.data?.databases ?? [])
+        .map((item: any) => item?.name)
+        .filter((name: string | undefined): name is string => Boolean(name)),
+    [databaseCatalogData],
+  )
 
   const [addPermissionMutation] = useMutation(ADD_PERMISSION_TO_BUNDLE, {
     client,
@@ -172,9 +197,11 @@ export function useBundleManage({
   return {
     bundle,
     allPermissions,
+    databaseNames,
     associatedRoles,
     loading: bundleLoading || permissionsLoading,
     rolesLoading,
+    databasesLoading: databaseCatalogLoading,
     error: bundleError ?? permissionsError,
     addPermission,
     removePermission,

@@ -4,9 +4,15 @@
  * 通过环境变量 NEXT_PUBLIC_MOCK_PAGES 控制哪些页面使用 MSW mock 数据。
  * 多个页面用逗号分隔，例如：
  *
- *   NEXT_PUBLIC_MOCK_PAGES=model-editor,enum-list
+ *   NEXT_PUBLIC_MOCK_PAGES=model-editor,enum-list,rbac-bundles
  *
  * 页面 key 与 buildHandlers() 中的 key 对应，也与各页面目录名保持一致。
+ *
+ * 可用页面 key：
+ *   - 'model-editor'  → 模型编辑器
+ *   - 'enum-list'      → 枚举列表
+ *   - 'enum-detail'    → 枚举详情
+ *   - 'rbac-bundles'   → RBAC 权限包管理
  */
 
 const MOCK_PAGES_ENV = process.env.NEXT_PUBLIC_MOCK_PAGES ?? ''
