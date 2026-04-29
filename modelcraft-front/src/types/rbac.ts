@@ -46,6 +46,25 @@ export interface EndUserPermission {
 }
 
 /**
+ * 权限包历史快照中的权限点条目
+ */
+export interface EndUserPermissionBundleSnapshotEntry {
+  sortOrder: number
+  permissionId: string
+}
+
+/**
+ * 权限包历史快照
+ */
+export interface EndUserPermissionBundleSnapshot {
+  version: number
+  createdAt: string
+  createdBy?: string | null
+  restoredFrom?: number | null
+  permissions: EndUserPermissionBundleSnapshotEntry[]
+}
+
+/**
  * 终端用户权限包：一组权限点的集合，可授予角色或直接授予用户
  */
 export interface EndUserPermissionBundle {
@@ -53,6 +72,10 @@ export interface EndUserPermissionBundle {
   name: string
   description?: string
   permissions: EndUserPermission[]
+  /** 当前版本号（每次权限列表变更后递增） */
+  currentVersion: number
+  /** 最近历史快照列表（最多 5 个，按 version DESC 排列） */
+  snapshots: EndUserPermissionBundleSnapshot[]
   createdAt: string
   updatedAt: string
 }

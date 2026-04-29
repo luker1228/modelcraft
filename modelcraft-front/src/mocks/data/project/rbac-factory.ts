@@ -60,6 +60,8 @@ export function createMockEndUserBundle(
       { length: faker.number.int({ min: 1, max: 3 }) },
       () => createMockEndUserPermission()
     ),
+    currentVersion: 0,
+    snapshots: [],
     createdAt: faker.date.recent({ days: 30 }).toISOString(),
     updatedAt: faker.date.recent({ days: 7 }).toISOString(),
     ...override,

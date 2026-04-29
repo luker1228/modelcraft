@@ -80,6 +80,17 @@ export const GET_END_USER_BUNDLE = gql`
       description
       createdAt
       updatedAt
+      currentVersion
+      snapshots {
+        version
+        createdAt
+        createdBy
+        restoredFrom
+        permissions {
+          sortOrder
+          permissionId
+        }
+      }
       permissions {
         sortOrder
         permission {
@@ -704,6 +715,59 @@ export const APPLY_END_USER_PRESET_POLICY = gql`
           message
         }
         ... on PresetRequiresOwnerField {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`
+
+export const RESTORE_END_USER_BUNDLE = gql`
+  mutation RestoreEndUserBundle($input: RestoreEndUserPermissionBundleInput!) {
+    restoreEndUserPermissionBundle(input: $input) {
+      bundle {
+        id
+        currentVersion
+        snapshots {
+          version
+          createdAt
+          createdBy
+          restoredFrom
+          permissions {
+            sortOrder
+            permissionId
+          }
+        }
+        permissions {
+          sortOrder
+          permission {
+            id
+            modelId
+            action
+            rowScope
+            displayName
+            description
+            columnPolicy {
+              defaultMode
+              rules {
+                fieldName
+                mode
+                maskPattern
+              }
+            }
+          }
+        }
+      }
+      newVersion
+      error {
+        __typename
+        ... on EndUserPermissionBundleNotFound {
+          message
+        }
+        ... on EndUserPermissionBundleSnapshotNotFound {
           message
         }
         ... on ProjectNotFound {

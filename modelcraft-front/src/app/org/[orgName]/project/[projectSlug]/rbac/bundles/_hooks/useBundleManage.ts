@@ -10,6 +10,7 @@ import {
   ADD_PERMISSION_TO_BUNDLE,
   REMOVE_PERMISSION_FROM_BUNDLE,
   UPDATE_END_USER_BUNDLE,
+  RESTORE_END_USER_BUNDLE,
 } from '@/api-client/rbac'
 import type { EndUserPermission, EndUserPermissionBundle, EndUserRole } from '@/types'
 
@@ -35,6 +36,7 @@ interface UseBundleManageReturn {
   addPermission: (permissionId: string) => Promise<MutationResult>
   removePermission: (permissionId: string) => Promise<MutationResult>
   updateBundle: (name: string, description?: string) => Promise<MutationResult>
+  restoreBundle: (targetVersion: number) => Promise<MutationResult>
 }
 
 export function useBundleManage({
@@ -87,6 +89,11 @@ export function useBundleManage({
     refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
   })
 
+  const [restoreBundleMutation] = useMutation(RESTORE_END_USER_BUNDLE, {
+    client,
+    refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
+  })
+
   const addPermission = useCallback(
     async (permissionId: string): Promise<MutationResult> => {
       if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
@@ -132,6 +139,21 @@ export function useBundleManage({
     [updateBundleMutation, bundleId],
   )
 
+  const restoreBundle = useCallback(
+    async (targetVersion: number): Promise<MutationResult> => {
+      if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
+      const result = await restoreBundleMutation({
+        variables: { input: { bundleId, targetVersion } },
+      })
+      const payload = result.data?.restoreEndUserPermissionBundle
+      if (payload?.error) {
+        return { success: false, errorMessage: payload.error.message ?? '还原版本失败' }
+      }
+      return { success: true }
+    },
+    [restoreBundleMutation, bundleId],
+  )
+
   const bundle: EndUserPermissionBundle | null = bundleData?.endUserPermissionBundle ?? null
   const allPermissions: EndUserPermission[] = permissionsData?.endUserPermissions?.edges?.map(
     (edge: any) => edge.node,
@@ -157,5 +179,6 @@ export function useBundleManage({
     addPermission,
     removePermission,
     updateBundle,
+    restoreBundle,
   }
 }
