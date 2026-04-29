@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"modelcraft/internal/domain/rbac"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -57,12 +59,6 @@ func toDomainPermission(row dbgen.EndUserDataPermission) *rbac.EndUserPermission
 		}
 	}
 
-	var preset *rbac.PermissionPreset
-	if row.Preset.Valid {
-		p := rbac.PermissionPreset(row.Preset.EndUserDataPermissionsPreset)
-		preset = &p
-	}
-
 	var databaseName *string
 	if row.DatabaseName.Valid {
 		d := row.DatabaseName.String
@@ -83,10 +79,10 @@ func toDomainPermission(row dbgen.EndUserDataPermission) *rbac.EndUserPermission
 		ModelName:    modelName,
 		Name:         row.Name,
 		Description:  description,
-		Type:         rbac.PermissionType(row.Type),
+		Type:         rbac.PermissionTypeCustom,
 		ColumnPolicy: columnPolicy,
 		RowPolicy:    rowPolicy,
-		Preset:       preset,
+		Preset:       nil,
 	}
 }
 
@@ -115,16 +111,6 @@ func toDBRowPolicy(rp *rbac.RowPolicy) *json.RawMessage {
 	return &raw
 }
 
-func toDBPreset(preset *rbac.PermissionPreset) dbgen.NullEndUserDataPermissionsPreset {
-	if preset == nil {
-		return dbgen.NullEndUserDataPermissionsPreset{Valid: false}
-	}
-	return dbgen.NullEndUserDataPermissionsPreset{
-		EndUserDataPermissionsPreset: dbgen.EndUserDataPermissionsPreset(*preset),
-		Valid:                        true,
-	}
-}
-
 // =========================
 // Permissions
 // =========================
@@ -139,10 +125,8 @@ func (r *SqlEndUserDataPermissionRepository) CreatePermission(ctx context.Contex
 		ModelID:      p.ModelID,
 		Name:         p.Name,
 		Description:  sqlerr.PtrToNullStr(p.Description),
-		Type:         dbgen.EndUserDataPermissionsType(p.Type),
 		ColumnPolicy: toDBColumnPolicy(p.ColumnPolicy),
 		RowPolicy:    toDBRowPolicy(p.RowPolicy),
-		Preset:       toDBPreset(p.Preset),
 	}
 
 	return r.q.CreateEndUserPermission(ctx, params)
@@ -208,7 +192,7 @@ func (r *SqlEndUserDataPermissionRepository) ListPresetPermissionsByModel(
 	ctx context.Context,
 	orgName, modelID string,
 ) ([]*rbac.EndUserPermission, error) {
-	rows, err := r.q.ListPresetPermissionsByModel(ctx, dbgen.ListPresetPermissionsByModelParams{
+	rows, err := r.q.ListEndUserPermissionsByModel(ctx, dbgen.ListEndUserPermissionsByModelParams{
 		ModelID: modelID,
 		OrgName: orgName,
 	})
@@ -218,7 +202,9 @@ func (r *SqlEndUserDataPermissionRepository) ListPresetPermissionsByModel(
 
 	perms := make([]*rbac.EndUserPermission, 0, len(rows))
 	for _, row := range rows {
-		perms = append(perms, toDomainPermission(row))
+		if strings.HasPrefix(row.Name, "preset:") {
+			perms = append(perms, toDomainPermission(row))
+		}
 	}
 	return perms, nil
 }
@@ -229,10 +215,9 @@ func (r *SqlEndUserDataPermissionRepository) GetPermissionByModelTypeName(
 	permissionType rbac.PermissionType,
 	name string,
 ) (*rbac.EndUserPermission, error) {
-	row, err := r.q.GetEndUserPermissionByModelTypeName(ctx, dbgen.GetEndUserPermissionByModelTypeNameParams{
+	row, err := r.q.GetEndUserPermissionByModelAndName(ctx, dbgen.GetEndUserPermissionByModelAndNameParams{
 		ModelID: modelID,
 		OrgName: orgName,
-		Type:    dbgen.EndUserDataPermissionsType(permissionType),
 		Name:    name,
 	})
 	if err != nil {
@@ -240,6 +225,9 @@ func (r *SqlEndUserDataPermissionRepository) GetPermissionByModelTypeName(
 			return nil, shared.NewNotFoundError("end user permission not found")
 		}
 		return nil, sqlerr.WrapSQLError(err)
+	}
+	if permissionType == rbac.PermissionTypePreset && !strings.HasPrefix(row.Name, "preset:") {
+		return nil, shared.NewNotFoundError("end user permission not found")
 	}
 	return toDomainPermission(row), nil
 }
@@ -283,31 +271,14 @@ func (r *SqlEndUserDataPermissionRepository) UpdatePresetPermission(
 	ctx context.Context,
 	p *rbac.EndUserPermission,
 ) error {
-	params := dbgen.UpdateEndUserPresetPermissionParams{
-		Name:        p.Name,
-		Description: sqlerr.PtrToNullStr(p.Description),
-		RowPolicy:   toDBRowPolicy(p.RowPolicy),
-		Preset:      toDBPreset(p.Preset),
-		ID:          p.ID,
-		OrgName:     p.OrgName,
-	}
-
-	result, err := r.q.UpdateEndUserPresetPermission(ctx, params)
-	if err != nil {
-		return sqlerr.WrapSQLError(err)
-	}
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "preset permission not found: "+p.ID)
-	}
-	return nil
+	return r.UpdatePermission(ctx, p)
 }
 
 func (r *SqlEndUserDataPermissionRepository) IsPermissionReferencedByBundle(
 	ctx context.Context,
 	permissionID string,
 ) (bool, error) {
-	referenced, err := r.q.IsPermissionReferencedByBundle(ctx, permissionID)
+	referenced, err := r.q.IsPermissionReferencedByBundleItem(ctx, sql.NullString{String: permissionID, Valid: permissionID != ""})
 	if err != nil {
 		return false, sqlerr.WrapSQLError(err)
 	}
@@ -318,14 +289,6 @@ func (r *SqlEndUserDataPermissionRepository) DeletePresetPermissionsByModel(
 	ctx context.Context,
 	orgName, modelID string,
 ) error {
-	_, err := r.q.DeleteEndUserPermissionsByModelAndType(ctx, dbgen.DeleteEndUserPermissionsByModelAndTypeParams{
-		ModelID: modelID,
-		OrgName: orgName,
-		Type:    dbgen.EndUserDataPermissionsTypePRESET,
-	})
-	if err != nil {
-		return sqlerr.WrapSQLError(err)
-	}
 	return nil
 }
 
@@ -437,45 +400,133 @@ func (r *SqlEndUserDataPermissionRepository) AddPermissionToBundle(
 	bundleID, permissionID string,
 	sortOrder int,
 ) error {
-	params := dbgen.AddPermissionToBundleParams{
-		ID:           uuid.NewString(),
-		BundleID:     bundleID,
-		PermissionID: permissionID,
-		SortOrder:    int32(sortOrder),
-	}
-
-	return sqlerr.WrapSQLError(r.q.AddPermissionToBundle(ctx, params))
+	_ = ctx
+	_ = bundleID
+	_ = permissionID
+	_ = sortOrder
+	return shared.NewRepositoryError(shared.ErrTypeUnknown, "add permission by permission_id is deprecated; use bundle item APIs")
 }
 
 func (r *SqlEndUserDataPermissionRepository) RemovePermissionFromBundle(
 	ctx context.Context,
 	bundleID, permissionID string,
 ) error {
-	_, err := r.q.RemovePermissionFromBundle(ctx, dbgen.RemovePermissionFromBundleParams{
-		BundleID:     bundleID,
-		PermissionID: permissionID,
-	})
-	return sqlerr.WrapSQLError(err)
+	_ = ctx
+	_ = bundleID
+	_ = permissionID
+	return shared.NewRepositoryError(shared.ErrTypeUnknown, "remove permission by permission_id is deprecated; use bundle item APIs")
 }
 
 func (r *SqlEndUserDataPermissionRepository) ListPermissionsInBundle(
 	ctx context.Context,
 	bundleID string,
 ) ([]*rbac.EndUserPermission, error) {
-	rows, err := r.q.ListPermissionsInBundle(ctx, bundleID)
-	if err != nil {
-		return nil, err
-	}
-
-	perms := make([]*rbac.EndUserPermission, 0, len(rows))
-	for _, row := range rows {
-		perms = append(perms, toDomainPermission(row))
-	}
-	return perms, nil
+	_ = ctx
+	_ = bundleID
+	return []*rbac.EndUserPermission{}, nil
 }
 
 func (r *SqlEndUserDataPermissionRepository) ClearBundlePermissions(ctx context.Context, bundleID string) error {
-	return sqlerr.WrapSQLError(r.q.ClearBundlePermissions(ctx, bundleID))
+	return sqlerr.WrapSQLError(r.q.ClearBundleDataPermissionItems(ctx, bundleID))
+}
+
+func toDomainBundleDataPermissionItem(row dbgen.EndUserBundleDataPermissionItem) *rbac.EndUserBundleDataPermissionItem {
+	var preset *rbac.PermissionPreset
+	if row.Preset.Valid {
+		v := rbac.PermissionPreset(row.Preset.EndUserBundleDataPermissionItemsPreset)
+		preset = &v
+	}
+
+	var customPermissionID *string
+	if row.CustomPermissionID.Valid {
+		v := row.CustomPermissionID.String
+		customPermissionID = &v
+	}
+
+	return &rbac.EndUserBundleDataPermissionItem{
+		ID:                 row.ID,
+		BundleID:           row.BundleID,
+		ModelID:            row.ModelID,
+		GrantType:          rbac.PermissionType(row.GrantType),
+		Preset:             preset,
+		CustomPermissionID: customPermissionID,
+		SortOrder:          int(row.SortOrder),
+		CreatedAt:          row.CreatedAt,
+		UpdatedAt:          row.UpdatedAt,
+	}
+}
+
+func (r *SqlEndUserDataPermissionRepository) UpsertBundleDataPermissionItem(
+	ctx context.Context,
+	item *rbac.EndUserBundleDataPermissionItem,
+) error {
+	id := item.ID
+	if id == "" {
+		id = uuid.NewString()
+	}
+
+	grantType := dbgen.EndUserBundleDataPermissionItemsGrantType(item.GrantType)
+	var preset dbgen.NullEndUserBundleDataPermissionItemsPreset
+	if item.Preset != nil {
+		preset = dbgen.NullEndUserBundleDataPermissionItemsPreset{
+			EndUserBundleDataPermissionItemsPreset: dbgen.EndUserBundleDataPermissionItemsPreset(*item.Preset),
+			Valid:                                  true,
+		}
+	}
+
+	params := dbgen.UpsertBundleDataPermissionItemParams{
+		ID:                 id,
+		BundleID:           item.BundleID,
+		ModelID:            item.ModelID,
+		GrantType:          grantType,
+		Preset:             preset,
+		CustomPermissionID: sqlerr.PtrToNullStr(item.CustomPermissionID),
+		SortOrder:          int32(item.SortOrder),
+	}
+	return sqlerr.WrapSQLError(r.q.UpsertBundleDataPermissionItem(ctx, params))
+}
+
+func (r *SqlEndUserDataPermissionRepository) RemoveBundleDataPermissionItem(
+	ctx context.Context,
+	bundleID, modelID string,
+) error {
+	_, err := r.q.RemoveBundleDataPermissionItem(ctx, dbgen.RemoveBundleDataPermissionItemParams{
+		BundleID: bundleID,
+		ModelID:  modelID,
+	})
+	return sqlerr.WrapSQLError(err)
+}
+
+func (r *SqlEndUserDataPermissionRepository) ListBundleDataPermissionItems(
+	ctx context.Context,
+	bundleID string,
+) ([]*rbac.EndUserBundleDataPermissionItem, error) {
+	rows, err := r.q.ListBundleDataPermissionItems(ctx, bundleID)
+	if err != nil {
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	items := make([]*rbac.EndUserBundleDataPermissionItem, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, toDomainBundleDataPermissionItem(row))
+	}
+	return items, nil
+}
+
+func (r *SqlEndUserDataPermissionRepository) GetBundleDataPermissionItemByBundleAndModel(
+	ctx context.Context,
+	bundleID, modelID string,
+) (*rbac.EndUserBundleDataPermissionItem, error) {
+	row, err := r.q.GetBundleDataPermissionItemByBundleAndModel(ctx, dbgen.GetBundleDataPermissionItemByBundleAndModelParams{
+		BundleID: bundleID,
+		ModelID:  modelID,
+	})
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("bundle data permission item not found")
+		}
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	return toDomainBundleDataPermissionItem(row), nil
 }
 
 // =========================
@@ -495,17 +546,39 @@ func toDomainSnapshot(row dbgen.EndUserPermissionBundleSnapshot) rbac.BundleSnap
 	}
 
 	var perms []rbac.SnapshotPermissionEntry
-	if row.Permissions != nil {
+	var items []rbac.SnapshotItemEntry
+	if row.Items != nil {
 		type entry struct {
-			PermissionID string `json:"permissionId"`
-			SortOrder    int    `json:"sortOrder"`
+			ModelID            string  `json:"modelId"`
+			GrantType          string  `json:"grantType"`
+			Preset             *string `json:"preset"`
+			CustomPermissionID *string `json:"customPermissionId"`
+			SortOrder          int     `json:"sortOrder"`
 		}
 		var entries []entry
-		if err := json.Unmarshal(row.Permissions, &entries); err == nil {
+		if err := json.Unmarshal(row.Items, &entries); err == nil {
 			perms = make([]rbac.SnapshotPermissionEntry, 0, len(entries))
+			items = make([]rbac.SnapshotItemEntry, 0, len(entries))
 			for _, e := range entries {
+				var preset *rbac.PermissionPreset
+				if e.Preset != nil && *e.Preset != "" {
+					v := rbac.PermissionPreset(*e.Preset)
+					preset = &v
+				}
+				items = append(items, rbac.SnapshotItemEntry{
+					ModelID:            e.ModelID,
+					GrantType:          rbac.PermissionType(e.GrantType),
+					Preset:             preset,
+					CustomPermissionID: e.CustomPermissionID,
+					SortOrder:          e.SortOrder,
+				})
+
+				permissionID := e.ModelID
+				if e.CustomPermissionID != nil && *e.CustomPermissionID != "" {
+					permissionID = *e.CustomPermissionID
+				}
 				perms = append(perms, rbac.SnapshotPermissionEntry{
-					PermissionID: e.PermissionID,
+					PermissionID: permissionID,
 					SortOrder:    e.SortOrder,
 				})
 			}
@@ -517,6 +590,7 @@ func toDomainSnapshot(row dbgen.EndUserPermissionBundleSnapshot) rbac.BundleSnap
 		BundleID:     row.BundleID,
 		Version:      int(row.Version),
 		Permissions:  perms,
+		Items:        items,
 		CreatedAt:    row.CreatedAt,
 		CreatedBy:    createdBy,
 		RestoredFrom: restoredFrom,
@@ -528,12 +602,41 @@ func (r *SqlEndUserDataPermissionRepository) SaveBundleSnapshot(
 	snapshot *rbac.BundleSnapshot,
 ) error {
 	type entry struct {
-		PermissionID string `json:"permissionId"`
-		SortOrder    int    `json:"sortOrder"`
+		ModelID            string  `json:"modelId"`
+		GrantType          string  `json:"grantType"`
+		Preset             *string `json:"preset,omitempty"`
+		CustomPermissionID *string `json:"customPermissionId,omitempty"`
+		SortOrder          int     `json:"sortOrder"`
 	}
-	entries := make([]entry, 0, len(snapshot.Permissions))
-	for _, p := range snapshot.Permissions {
-		entries = append(entries, entry{PermissionID: p.PermissionID, SortOrder: p.SortOrder})
+
+	entries := make([]entry, 0)
+	if len(snapshot.Items) > 0 {
+		entries = make([]entry, 0, len(snapshot.Items))
+		for _, item := range snapshot.Items {
+			var preset *string
+			if item.Preset != nil {
+				v := string(*item.Preset)
+				preset = &v
+			}
+			entries = append(entries, entry{
+				ModelID:            item.ModelID,
+				GrantType:          string(item.GrantType),
+				Preset:             preset,
+				CustomPermissionID: item.CustomPermissionID,
+				SortOrder:          item.SortOrder,
+			})
+		}
+	} else {
+		entries = make([]entry, 0, len(snapshot.Permissions))
+		for _, p := range snapshot.Permissions {
+			permissionID := p.PermissionID
+			entries = append(entries, entry{
+				ModelID:            permissionID,
+				GrantType:          string(rbac.PermissionTypeCustom),
+				CustomPermissionID: &permissionID,
+				SortOrder:          p.SortOrder,
+			})
+		}
 	}
 	permJSON, err := json.Marshal(entries)
 	if err != nil {
@@ -549,7 +652,7 @@ func (r *SqlEndUserDataPermissionRepository) SaveBundleSnapshot(
 		ID:           snapshot.ID,
 		BundleID:     snapshot.BundleID,
 		Version:      int32(snapshot.Version),
-		Permissions:  permJSON,
+		Items:        permJSON,
 		CreatedBy:    sqlerr.PtrToNullStr(snapshot.CreatedBy),
 		RestoredFrom: restoredFrom,
 	}
@@ -888,17 +991,48 @@ func (r *SqlEndUserDataPermissionRepository) GetPermissionsByBundleIDs(
 		return []*rbac.EndUserPermission{}, nil
 	}
 
-	rows, err := r.q.GetPermissionsByBundleIDs(ctx, dbgen.GetPermissionsByBundleIDsParams{
-		Bundleids: bundleIDs,
-		OrgName:   orgName,
+	items, err := r.q.GetDataPermissionItemsByBundleIDs(ctx, bundleIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	customIDSet := make(map[string]struct{})
+	customIDs := make([]string, 0)
+	for _, item := range items {
+		if !item.CustomPermissionID.Valid || item.CustomPermissionID.String == "" {
+			continue
+		}
+		if _, ok := customIDSet[item.CustomPermissionID.String]; ok {
+			continue
+		}
+		customIDSet[item.CustomPermissionID.String] = struct{}{}
+		customIDs = append(customIDs, item.CustomPermissionID.String)
+	}
+	if len(customIDs) == 0 {
+		return []*rbac.EndUserPermission{}, nil
+	}
+
+	rows, err := r.q.GetCustomPermissionsByIDs(ctx, dbgen.GetCustomPermissionsByIDsParams{
+		Permissionids: customIDs,
+		OrgName:       orgName,
 	})
 	if err != nil {
 		return nil, err
 	}
 
-	perms := make([]*rbac.EndUserPermission, 0, len(rows))
+	permByID := make(map[string]*rbac.EndUserPermission, len(rows))
 	for _, row := range rows {
-		perms = append(perms, toDomainPermission(row))
+		permByID[row.ID] = toDomainPermission(row)
+	}
+
+	perms := make([]*rbac.EndUserPermission, 0, len(items))
+	for _, item := range items {
+		if !item.CustomPermissionID.Valid {
+			continue
+		}
+		if p, ok := permByID[item.CustomPermissionID.String]; ok {
+			perms = append(perms, p)
+		}
 	}
 	return perms, nil
 }

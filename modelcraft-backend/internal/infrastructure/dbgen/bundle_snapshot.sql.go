@@ -11,16 +11,6 @@ import (
 	"encoding/json"
 )
 
-const clearBundlePermissions = `-- name: ClearBundlePermissions :exec
-DELETE FROM end_user_bundle_permissions
-WHERE bundle_id = ?
-`
-
-func (q *Queries) ClearBundlePermissions(ctx context.Context, bundleID string) error {
-	_, err := q.db.ExecContext(ctx, clearBundlePermissions, bundleID)
-	return err
-}
-
 const deleteOldBundleSnapshots = `-- name: DeleteOldBundleSnapshots :exec
 DELETE snap
 FROM end_user_permission_bundle_snapshots snap
@@ -59,7 +49,7 @@ func (q *Queries) GetBundleCurrentVersion(ctx context.Context, bundleID string) 
 }
 
 const getBundleSnapshotByVersion = `-- name: GetBundleSnapshotByVersion :one
-SELECT id, bundle_id, version, permissions, created_at, created_by, restored_from
+SELECT id, bundle_id, version, items, created_at, created_by, restored_from
 FROM end_user_permission_bundle_snapshots
 WHERE bundle_id = ?
   AND version = ?
@@ -77,7 +67,7 @@ func (q *Queries) GetBundleSnapshotByVersion(ctx context.Context, arg GetBundleS
 		&i.ID,
 		&i.BundleID,
 		&i.Version,
-		&i.Permissions,
+		&i.Items,
 		&i.CreatedAt,
 		&i.CreatedBy,
 		&i.RestoredFrom,
@@ -90,7 +80,7 @@ INSERT INTO end_user_permission_bundle_snapshots (
   id,
   bundle_id,
   version,
-  permissions,
+  items,
   created_by,
   restored_from
 )
@@ -101,7 +91,7 @@ type InsertBundleSnapshotParams struct {
 	ID           string
 	BundleID     string
 	Version      int32
-	Permissions  json.RawMessage
+	Items        json.RawMessage
 	CreatedBy    sql.NullString
 	RestoredFrom sql.NullInt32
 }
@@ -111,7 +101,7 @@ func (q *Queries) InsertBundleSnapshot(ctx context.Context, arg InsertBundleSnap
 		arg.ID,
 		arg.BundleID,
 		arg.Version,
-		arg.Permissions,
+		arg.Items,
 		arg.CreatedBy,
 		arg.RestoredFrom,
 	)
@@ -119,7 +109,7 @@ func (q *Queries) InsertBundleSnapshot(ctx context.Context, arg InsertBundleSnap
 }
 
 const listBundleSnapshots = `-- name: ListBundleSnapshots :many
-SELECT id, bundle_id, version, permissions, created_at, created_by, restored_from
+SELECT id, bundle_id, version, items, created_at, created_by, restored_from
 FROM end_user_permission_bundle_snapshots
 WHERE bundle_id = ?
 ORDER BY version DESC
@@ -139,7 +129,7 @@ func (q *Queries) ListBundleSnapshots(ctx context.Context, bundleID string) ([]E
 			&i.ID,
 			&i.BundleID,
 			&i.Version,
-			&i.Permissions,
+			&i.Items,
 			&i.CreatedAt,
 			&i.CreatedBy,
 			&i.RestoredFrom,

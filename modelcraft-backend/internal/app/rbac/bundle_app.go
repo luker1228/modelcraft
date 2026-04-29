@@ -2,11 +2,11 @@ package rbac
 
 import (
 	"context"
+	"fmt"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
-	"modelcraft/pkg/bizerrors"
-
 	rbacdomain "modelcraft/internal/domain/rbac"
+	"modelcraft/pkg/bizerrors"
 
 	"github.com/google/uuid"
 )
@@ -20,20 +20,16 @@ type bundleRepository interface {
 	) ([]*rbacdomain.EndUserPermissionBundle, error)
 	UpdateBundle(ctx context.Context, b *rbacdomain.EndUserPermissionBundle) error
 	DeleteBundle(ctx context.Context, orgName, id string) error
-	AddPermissionToBundle(ctx context.Context, bundleID, permissionID string, sortOrder int) error
-	RemovePermissionFromBundle(ctx context.Context, bundleID, permissionID string) error
-	ListPermissionsInBundle(ctx context.Context, bundleID string) ([]*rbacdomain.EndUserPermission, error)
+
+	GetPermissionByID(ctx context.Context, orgName, id string) (*rbacdomain.EndUserPermission, error)
+
+	UpsertBundleDataPermissionItem(ctx context.Context, item *rbacdomain.EndUserBundleDataPermissionItem) error
+	RemoveBundleDataPermissionItem(ctx context.Context, bundleID, modelID string) error
+	ListBundleDataPermissionItems(ctx context.Context, bundleID string) ([]*rbacdomain.EndUserBundleDataPermissionItem, error)
+
 	GrantBundleToUser(ctx context.Context, userID, orgName, projectSlug, bundleID string) error
 	RevokeBundleFromUser(ctx context.Context, userID, orgName, projectSlug, bundleID string) error
-	ListPermissionsByModel(ctx context.Context, orgName, modelID string) ([]*rbacdomain.EndUserPermission, error)
-	GetPermissionByModelTypeName(
-		ctx context.Context,
-		orgName, modelID string,
-		permissionType rbacdomain.PermissionType,
-		name string,
-	) (*rbacdomain.EndUserPermission, error)
-	CreatePermission(ctx context.Context, p *rbacdomain.EndUserPermission) error
-	// Snapshot operations
+
 	SaveBundleSnapshot(ctx context.Context, snapshot *rbacdomain.BundleSnapshot) error
 	ListBundleSnapshots(ctx context.Context, bundleID string) ([]rbacdomain.BundleSnapshot, error)
 	DeleteOldBundleSnapshots(ctx context.Context, bundleID string) error
@@ -117,7 +113,7 @@ func (s *EndUserBundleAppService) DeleteBundle(
 	return nil
 }
 
-// GetBundleByID 获取权限包（含权限点列表）
+// GetBundleByID 获取权限包（含 item 列表与快照）
 func (s *EndUserBundleAppService) GetBundleByID(
 	ctx context.Context,
 	orgName, id string,
@@ -129,13 +125,50 @@ func (s *EndUserBundleAppService) GetBundleByID(
 		}
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	// 展开权限点列表
-	perms, err := s.rbacRepo.ListPermissionsInBundle(ctx, id)
+
+	items, err := s.rbacRepo.ListBundleDataPermissionItems(ctx, id)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	bundle.Permissions = perms
-	// 展开历史快照列表
+	bundle.Items = items
+
+	// 兼容旧 DTO 字段 permissions
+	legacyPermissions := make([]*rbacdomain.EndUserPermission, 0, len(items))
+	for _, item := range items {
+		switch item.GrantType {
+		case rbacdomain.PermissionTypeCustom:
+			if item.CustomPermissionID == nil || *item.CustomPermissionID == "" {
+				continue
+			}
+			p, getErr := s.rbacRepo.GetPermissionByID(ctx, orgName, *item.CustomPermissionID)
+			if getErr == nil {
+				legacyPermissions = append(legacyPermissions, p)
+			}
+		case rbacdomain.PermissionTypePreset:
+			if item.Preset == nil {
+				continue
+			}
+			ownerField, _ := s.tryGetOwnerField(ctx, item.ModelID)
+			rowPolicy, expandErr := expandPreset(*item.Preset, ownerField)
+			if expandErr != nil {
+				continue
+			}
+			presetCopy := *item.Preset
+			legacyPermissions = append(legacyPermissions, &rbacdomain.EndUserPermission{
+				ID:           fmt.Sprintf("preset:%s:%s:%s", bundle.ID, item.ModelID, presetCopy),
+				OrgName:      bundle.OrgName,
+				ProjectSlug:  bundle.ProjectSlug,
+				ModelID:      item.ModelID,
+				Name:         presetPermissionName(presetCopy),
+				Type:         rbacdomain.PermissionTypePreset,
+				Preset:       &presetCopy,
+				ColumnPolicy: nil,
+				RowPolicy:    rowPolicy,
+			})
+		}
+	}
+	bundle.Permissions = legacyPermissions
+
 	snapshots, err := s.rbacRepo.ListBundleSnapshots(ctx, id)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -156,154 +189,36 @@ func (s *EndUserBundleAppService) ListBundlesByProject(
 	return bundles, nil
 }
 
-// AddPermissionToBundle 向权限包添加权限点
+// AddPermissionToBundle 绑定 custom item（replace 语义）
 func (s *EndUserBundleAppService) AddPermissionToBundle(
 	ctx context.Context,
 	cmd AddPermissionToBundleCommand,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
-	if err := s.rbacRepo.AddPermissionToBundle(ctx, cmd.BundleID, cmd.PermissionID, cmd.SortOrder); err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
-		return nil, err
-	}
-	// 返回更新后的权限包（含权限点列表）
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
-}
-
-// AddPresetToBundle 向权限包添加模型预设权限（自动 ensure 预设权限点，幂等）
-func (s *EndUserBundleAppService) AddPresetToBundle(
-	ctx context.Context,
-	cmd AddPresetToBundleCommand,
-) (*rbacdomain.EndUserPermissionBundle, error) {
-	bundle, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
-	if err != nil {
+	if _, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID); err != nil {
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, cmd.BundleID)
 		}
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	presetPerm, err := s.ensurePresetPermission(ctx, bundle, cmd.ModelID, cmd.Preset)
-	if err != nil {
-		return nil, err
-	}
-
-	if err := s.addPermissionToBundleIfAbsent(ctx, bundle.ID, presetPerm.ID, cmd.SortOrder); err != nil {
-		return nil, err
-	}
-
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
-}
-
-func (s *EndUserBundleAppService) ensurePresetPermission(
-	ctx context.Context,
-	bundle *rbacdomain.EndUserPermissionBundle,
-	modelID string,
-	preset rbacdomain.PermissionPreset,
-) (*rbacdomain.EndUserPermission, error) {
-	if !preset.IsValid() {
-		return nil, bizerrors.NewValidationError("rbac.permission.invalid_preset: invalid preset: %s", string(preset))
-	}
-
-	model, err := s.modelRepo.GetByID(ctx, modelID, modeldesign.NewModelQueryOptions().WithFields())
+	perm, err := s.rbacRepo.GetPermissionByID(ctx, cmd.OrgName, cmd.PermissionID)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionNotFound, cmd.PermissionID)
 		}
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	ownerField := ""
-	if model != nil && model.GetOwnerField() != nil {
-		ownerField = model.GetOwnerField().Name
+	customID := perm.ID
+	item := &rbacdomain.EndUserBundleDataPermissionItem{
+		ID:                 uuid.NewString(),
+		BundleID:           cmd.BundleID,
+		ModelID:            perm.ModelID,
+		GrantType:          rbacdomain.PermissionTypeCustom,
+		CustomPermissionID: &customID,
+		SortOrder:          cmd.SortOrder,
 	}
-
-	existing, err := s.rbacRepo.GetPermissionByModelTypeName(
-		ctx,
-		bundle.OrgName,
-		modelID,
-		rbacdomain.PermissionTypePreset,
-		presetPermissionName(preset),
-	)
-	if err == nil {
-		return existing, nil
-	}
-	if !shared.IsNotFoundError(err) {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	rowPolicy, err := expandPreset(preset, ownerField)
-	if err != nil {
-		return nil, err
-	}
-
-	toCreate := &rbacdomain.EndUserPermission{
-		ID:           uuid.NewString(),
-		OrgName:      bundle.OrgName,
-		ProjectSlug:  bundle.ProjectSlug,
-		ModelID:      modelID,
-		Name:         presetPermissionName(preset),
-		Type:         rbacdomain.PermissionTypePreset,
-		ColumnPolicy: nil,
-		RowPolicy:    rowPolicy,
-	}
-	presetCopy := preset
-	toCreate.Preset = &presetCopy
-	if err := toCreate.Validate(); err != nil {
-		return nil, err
-	}
-
-	if err := s.rbacRepo.CreatePermission(ctx, toCreate); err != nil {
-		if !shared.IsDuplicateKeyError(err) {
-			return nil, bizerrors.ConvertRepositoryError(ctx, err)
-		}
-		reloaded, getErr := s.rbacRepo.GetPermissionByModelTypeName(
-			ctx,
-			bundle.OrgName,
-			modelID,
-			rbacdomain.PermissionTypePreset,
-			presetPermissionName(preset),
-		)
-		if getErr != nil {
-			return nil, bizerrors.ConvertRepositoryError(ctx, getErr)
-		}
-		return reloaded, nil
-	}
-
-	return toCreate, nil
-}
-
-func (s *EndUserBundleAppService) addPermissionToBundleIfAbsent(
-	ctx context.Context,
-	bundleID, permissionID string,
-	sortOrder int,
-) error {
-	perms, err := s.rbacRepo.ListPermissionsInBundle(ctx, bundleID)
-	if err != nil {
-		return bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	for _, p := range perms {
-		if p.ID == permissionID {
-			return nil
-		}
-	}
-
-	if err := s.rbacRepo.AddPermissionToBundle(ctx, bundleID, permissionID, sortOrder); err != nil {
-		if shared.IsDuplicateKeyError(err) {
-			return nil
-		}
-		return bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	return nil
-}
-
-// RemovePermissionFromBundle 从权限包移除权限点
-func (s *EndUserBundleAppService) RemovePermissionFromBundle(
-	ctx context.Context,
-	cmd RemovePermissionFromBundleCommand,
-) (*rbacdomain.EndUserPermissionBundle, error) {
-	if err := s.rbacRepo.RemovePermissionFromBundle(ctx, cmd.BundleID, cmd.PermissionID); err != nil {
+	if err := s.rbacRepo.UpsertBundleDataPermissionItem(ctx, item); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
@@ -312,40 +227,114 @@ func (s *EndUserBundleAppService) RemovePermissionFromBundle(
 	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
 }
 
-// saveBundleSnapshot 写入快照并执行滚动删除（在权限点列表变更后调用）
+// AddPresetToBundle 绑定 preset item（replace 语义）
+func (s *EndUserBundleAppService) AddPresetToBundle(
+	ctx context.Context,
+	cmd AddPresetToBundleCommand,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	if _, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID); err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, cmd.BundleID)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	if !cmd.Preset.IsValid() {
+		return nil, bizerrors.NewValidationError("rbac.permission.invalid_preset: invalid preset: %s", string(cmd.Preset))
+	}
+
+	ownerField, err := s.requireModelAndGetOwnerField(ctx, cmd.ModelID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := expandPreset(cmd.Preset, ownerField); err != nil {
+		return nil, err
+	}
+
+	preset := cmd.Preset
+	item := &rbacdomain.EndUserBundleDataPermissionItem{
+		ID:        uuid.NewString(),
+		BundleID:  cmd.BundleID,
+		ModelID:   cmd.ModelID,
+		GrantType: rbacdomain.PermissionTypePreset,
+		Preset:    &preset,
+		SortOrder: cmd.SortOrder,
+	}
+	if err := s.rbacRepo.UpsertBundleDataPermissionItem(ctx, item); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
+		return nil, err
+	}
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+}
+
+// RemovePermissionFromBundle 从权限包移除 custom item（按 permission 对应 model 删除）
+func (s *EndUserBundleAppService) RemovePermissionFromBundle(
+	ctx context.Context,
+	cmd RemovePermissionFromBundleCommand,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	perm, err := s.rbacRepo.GetPermissionByID(ctx, cmd.OrgName, cmd.PermissionID)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionNotFound, cmd.PermissionID)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	if err := s.rbacRepo.RemoveBundleDataPermissionItem(ctx, cmd.BundleID, perm.ModelID); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
+		return nil, err
+	}
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+}
+
+// saveBundleSnapshot 写入 item 快照并执行滚动删除。
 func (s *EndUserBundleAppService) saveBundleSnapshot(ctx context.Context, bundleID string) error {
-	// 1. 获取当前版本号
 	currentVersion, err := s.rbacRepo.GetBundleCurrentVersion(ctx, bundleID)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	newVersion := currentVersion + 1
 
-	// 2. 获取当前权限点列表
-	perms, err := s.rbacRepo.ListPermissionsInBundle(ctx, bundleID)
+	items, err := s.rbacRepo.ListBundleDataPermissionItems(ctx, bundleID)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	entries := make([]rbacdomain.SnapshotPermissionEntry, 0, len(perms))
-	for i, p := range perms {
-		entries = append(entries, rbacdomain.SnapshotPermissionEntry{
-			PermissionID: p.ID,
-			SortOrder:    i,
+
+	snapshotItems := make([]rbacdomain.SnapshotItemEntry, 0, len(items))
+	legacyEntries := make([]rbacdomain.SnapshotPermissionEntry, 0, len(items))
+	for _, item := range items {
+		snapshotItems = append(snapshotItems, rbacdomain.SnapshotItemEntry{
+			ModelID:            item.ModelID,
+			GrantType:          item.GrantType,
+			Preset:             item.Preset,
+			CustomPermissionID: item.CustomPermissionID,
+			SortOrder:          item.SortOrder,
+		})
+
+		permissionID := item.ModelID
+		if item.CustomPermissionID != nil && *item.CustomPermissionID != "" {
+			permissionID = *item.CustomPermissionID
+		}
+		legacyEntries = append(legacyEntries, rbacdomain.SnapshotPermissionEntry{
+			PermissionID: permissionID,
+			SortOrder:    item.SortOrder,
 		})
 	}
 
-	// 3. 写入快照
 	snapshot := &rbacdomain.BundleSnapshot{
 		ID:          uuid.NewString(),
 		BundleID:    bundleID,
 		Version:     newVersion,
-		Permissions: entries,
+		Permissions: legacyEntries,
+		Items:       snapshotItems,
 	}
 	if err := s.rbacRepo.SaveBundleSnapshot(ctx, snapshot); err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
-
-	// 4. 滚动删除超出上限的旧快照
 	if err := s.rbacRepo.DeleteOldBundleSnapshots(ctx, bundleID); err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -374,13 +363,11 @@ func (s *EndUserBundleAppService) RevokeBundleFromUser(
 	return nil
 }
 
-// RestoreBundle 将权限包回滚到历史快照版本
-// 操作步骤：查询目标快照 → 清空当前权限点 → 按快照重建 → 写新快照（restored_from） → 滚动删除
+// RestoreBundle 将权限包回滚到历史快照版本。
 func (s *EndUserBundleAppService) RestoreBundle(
 	ctx context.Context,
 	cmd RestoreBundleCommand,
 ) (*RestoreBundleResult, error) {
-	// 1. 查询目标快照
 	snapshot, err := s.rbacRepo.GetBundleSnapshotByVersion(ctx, cmd.BundleID, cmd.TargetVersion)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
@@ -394,24 +381,27 @@ func (s *EndUserBundleAppService) RestoreBundle(
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// 2. 清空当前权限点关联
 	if err := s.rbacRepo.ClearBundlePermissions(ctx, cmd.BundleID); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// 3. 按快照重建权限点关联
-	for _, entry := range snapshot.Permissions {
-		if addErr := s.rbacRepo.AddPermissionToBundle(
-			ctx,
-			cmd.BundleID,
-			entry.PermissionID,
-			entry.SortOrder,
-		); addErr != nil {
-			return nil, bizerrors.ConvertRepositoryError(ctx, addErr)
+	if len(snapshot.Items) > 0 {
+		for _, entry := range snapshot.Items {
+			item := &rbacdomain.EndUserBundleDataPermissionItem{
+				ID:                 uuid.NewString(),
+				BundleID:           cmd.BundleID,
+				ModelID:            entry.ModelID,
+				GrantType:          entry.GrantType,
+				Preset:             entry.Preset,
+				CustomPermissionID: entry.CustomPermissionID,
+				SortOrder:          entry.SortOrder,
+			}
+			if upsertErr := s.rbacRepo.UpsertBundleDataPermissionItem(ctx, item); upsertErr != nil {
+				return nil, bizerrors.ConvertRepositoryError(ctx, upsertErr)
+			}
 		}
 	}
 
-	// 4. 获取新版本号并写入快照（restored_from 指向目标版本）
 	currentVersion, err := s.rbacRepo.GetBundleCurrentVersion(ctx, cmd.BundleID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -422,6 +412,7 @@ func (s *EndUserBundleAppService) RestoreBundle(
 		ID:           uuid.NewString(),
 		BundleID:     cmd.BundleID,
 		Version:      newVersion,
+		Items:        snapshot.Items,
 		Permissions:  snapshot.Permissions,
 		RestoredFrom: &targetVersion,
 	}
@@ -429,15 +420,39 @@ func (s *EndUserBundleAppService) RestoreBundle(
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// 5. 滚动删除超出上限的旧快照
 	if err := s.rbacRepo.DeleteOldBundleSnapshots(ctx, cmd.BundleID); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// 6. 返回更新后的权限包
 	bundle, err := s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
 	if err != nil {
 		return nil, err
 	}
 	return &RestoreBundleResult{Bundle: bundle, NewVersion: newVersion}, nil
+}
+
+func (s *EndUserBundleAppService) requireModelAndGetOwnerField(ctx context.Context, modelID string) (string, error) {
+	model, err := s.modelRepo.GetByID(ctx, modelID, modeldesign.NewModelQueryOptions().WithFields())
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return "", bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, modelID)
+		}
+		return "", bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	ownerField := ""
+	if model != nil && model.GetOwnerField() != nil {
+		ownerField = model.GetOwnerField().Name
+	}
+	return ownerField, nil
+}
+
+func (s *EndUserBundleAppService) tryGetOwnerField(ctx context.Context, modelID string) (string, error) {
+	model, err := s.modelRepo.GetByID(ctx, modelID, modeldesign.NewModelQueryOptions().WithFields())
+	if err != nil || model == nil {
+		return "", err
+	}
+	if model.GetOwnerField() == nil {
+		return "", nil
+	}
+	return model.GetOwnerField().Name, nil
 }

@@ -74,6 +74,18 @@ type EndUserPermissionRepository interface {
 	// ListPermissionsInBundle 列出权限包内所有权限点（按 sort_order 升序）
 	ListPermissionsInBundle(ctx context.Context, bundleID string) ([]*EndUserPermission, error)
 
+	// UpsertBundleDataPermissionItem 写入或替换 bundle-model 唯一 item。
+	UpsertBundleDataPermissionItem(ctx context.Context, item *EndUserBundleDataPermissionItem) error
+
+	// RemoveBundleDataPermissionItem 按 bundle+model 删除 item。
+	RemoveBundleDataPermissionItem(ctx context.Context, bundleID, modelID string) error
+
+	// ListBundleDataPermissionItems 列出 bundle 中的 item。
+	ListBundleDataPermissionItems(ctx context.Context, bundleID string) ([]*EndUserBundleDataPermissionItem, error)
+
+	// GetBundleDataPermissionItemByBundleAndModel 获取 bundle-model 的唯一 item。
+	GetBundleDataPermissionItemByBundleAndModel(ctx context.Context, bundleID, modelID string) (*EndUserBundleDataPermissionItem, error)
+
 	// ─── 权限包快照 ─────────────────────────────────────────────
 
 	// SaveBundleSnapshot 写入权限包快照（含 restored_from 字段，回滚时非 nil）

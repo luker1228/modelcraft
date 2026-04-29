@@ -21,12 +21,10 @@ INSERT INTO end_user_data_permissions (
   model_id,
   name,
   description,
-  type,
   column_policy,
-  row_policy,
-  preset
+  row_policy
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserPermissionParams struct {
@@ -38,10 +36,8 @@ type CreateEndUserPermissionParams struct {
 	ModelID      string
 	Name         string
 	Description  sql.NullString
-	Type         EndUserDataPermissionsType
 	ColumnPolicy *json.RawMessage
 	RowPolicy    *json.RawMessage
-	Preset       NullEndUserDataPermissionsPreset
 }
 
 func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUserPermissionParams) error {
@@ -54,10 +50,8 @@ func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUser
 		arg.ModelID,
 		arg.Name,
 		arg.Description,
-		arg.Type,
 		arg.ColumnPolicy,
 		arg.RowPolicy,
-		arg.Preset,
 	)
 	return err
 }
@@ -77,25 +71,8 @@ func (q *Queries) DeleteEndUserPermission(ctx context.Context, arg DeleteEndUser
 	return q.db.ExecContext(ctx, deleteEndUserPermission, arg.ID, arg.OrgName)
 }
 
-const deleteEndUserPermissionsByModelAndType = `-- name: DeleteEndUserPermissionsByModelAndType :execresult
-DELETE FROM end_user_data_permissions
-WHERE model_id = ?
-  AND org_name = ?
-  AND type = ?
-`
-
-type DeleteEndUserPermissionsByModelAndTypeParams struct {
-	ModelID string
-	OrgName string
-	Type    EndUserDataPermissionsType
-}
-
-func (q *Queries) DeleteEndUserPermissionsByModelAndType(ctx context.Context, arg DeleteEndUserPermissionsByModelAndTypeParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, deleteEndUserPermissionsByModelAndType, arg.ModelID, arg.OrgName, arg.Type)
-}
-
 const getEndUserPermissionByID = `-- name: GetEndUserPermissionByID :one
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
 FROM end_user_data_permissions
 WHERE id = ?
   AND org_name = ?
@@ -118,40 +95,31 @@ func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPe
 		&i.ModelID,
 		&i.Name,
 		&i.Description,
-		&i.Type,
 		&i.ColumnPolicy,
 		&i.RowPolicy,
-		&i.Preset,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const getEndUserPermissionByModelTypeName = `-- name: GetEndUserPermissionByModelTypeName :one
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+const getEndUserPermissionByModelAndName = `-- name: GetEndUserPermissionByModelAndName :one
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
 FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
-  AND type = ?
   AND name = ?
 LIMIT 1
 `
 
-type GetEndUserPermissionByModelTypeNameParams struct {
+type GetEndUserPermissionByModelAndNameParams struct {
 	ModelID string
 	OrgName string
-	Type    EndUserDataPermissionsType
 	Name    string
 }
 
-func (q *Queries) GetEndUserPermissionByModelTypeName(ctx context.Context, arg GetEndUserPermissionByModelTypeNameParams) (EndUserDataPermission, error) {
-	row := q.db.QueryRowContext(ctx, getEndUserPermissionByModelTypeName,
-		arg.ModelID,
-		arg.OrgName,
-		arg.Type,
-		arg.Name,
-	)
+func (q *Queries) GetEndUserPermissionByModelAndName(ctx context.Context, arg GetEndUserPermissionByModelAndNameParams) (EndUserDataPermission, error) {
+	row := q.db.QueryRowContext(ctx, getEndUserPermissionByModelAndName, arg.ModelID, arg.OrgName, arg.Name)
 	var i EndUserDataPermission
 	err := row.Scan(
 		&i.ID,
@@ -162,31 +130,29 @@ func (q *Queries) GetEndUserPermissionByModelTypeName(ctx context.Context, arg G
 		&i.ModelID,
 		&i.Name,
 		&i.Description,
-		&i.Type,
 		&i.ColumnPolicy,
 		&i.RowPolicy,
-		&i.Preset,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const isPermissionReferencedByBundle = `-- name: IsPermissionReferencedByBundle :one
+const isPermissionReferencedByBundleItem = `-- name: IsPermissionReferencedByBundleItem :one
 SELECT COUNT(*) > 0 AS referenced
-FROM end_user_bundle_permissions
-WHERE permission_id = ?
+FROM end_user_bundle_data_permission_items
+WHERE custom_permission_id = ?
 `
 
-func (q *Queries) IsPermissionReferencedByBundle(ctx context.Context, permissionID string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isPermissionReferencedByBundle, permissionID)
+func (q *Queries) IsPermissionReferencedByBundleItem(ctx context.Context, customPermissionID sql.NullString) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isPermissionReferencedByBundleItem, customPermissionID)
 	var referenced bool
 	err := row.Scan(&referenced)
 	return referenced, err
 }
 
 const listEndUserPermissionsByModel = `-- name: ListEndUserPermissionsByModel :many
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
 FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
@@ -216,10 +182,8 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
-			&i.Type,
 			&i.ColumnPolicy,
 			&i.RowPolicy,
-			&i.Preset,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -237,7 +201,7 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 }
 
 const listEndUserPermissionsByProject = `-- name: ListEndUserPermissionsByProject :many
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
 FROM end_user_data_permissions
 WHERE org_name = ?
   AND project_slug = ?
@@ -267,62 +231,8 @@ func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListE
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
-			&i.Type,
 			&i.ColumnPolicy,
 			&i.RowPolicy,
-			&i.Preset,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const listPresetPermissionsByModel = `-- name: ListPresetPermissionsByModel :many
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, type, column_policy, row_policy, preset, created_at, updated_at
-FROM end_user_data_permissions
-WHERE model_id = ?
-  AND org_name = ?
-  AND type = 'PRESET'
-ORDER BY created_at
-`
-
-type ListPresetPermissionsByModelParams struct {
-	ModelID string
-	OrgName string
-}
-
-func (q *Queries) ListPresetPermissionsByModel(ctx context.Context, arg ListPresetPermissionsByModelParams) ([]EndUserDataPermission, error) {
-	rows, err := q.db.QueryContext(ctx, listPresetPermissionsByModel, arg.ModelID, arg.OrgName)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []EndUserDataPermission
-	for rows.Next() {
-		var i EndUserDataPermission
-		if err := rows.Scan(
-			&i.ID,
-			&i.OrgName,
-			&i.ProjectSlug,
-			&i.DatabaseName,
-			&i.ModelName,
-			&i.ModelID,
-			&i.Name,
-			&i.Description,
-			&i.Type,
-			&i.ColumnPolicy,
-			&i.RowPolicy,
-			&i.Preset,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {
@@ -344,6 +254,7 @@ UPDATE end_user_data_permissions
 SET name = ?,
     description = ?,
     column_policy = ?,
+    row_policy = ?,
     updated_at = NOW(3)
 WHERE id = ?
   AND org_name = ?
@@ -353,6 +264,7 @@ type UpdateEndUserPermissionParams struct {
 	Name         string
 	Description  sql.NullString
 	ColumnPolicy *json.RawMessage
+	RowPolicy    *json.RawMessage
 	ID           string
 	OrgName      string
 }
@@ -362,37 +274,7 @@ func (q *Queries) UpdateEndUserPermission(ctx context.Context, arg UpdateEndUser
 		arg.Name,
 		arg.Description,
 		arg.ColumnPolicy,
-		arg.ID,
-		arg.OrgName,
-	)
-}
-
-const updateEndUserPresetPermission = `-- name: UpdateEndUserPresetPermission :execresult
-UPDATE end_user_data_permissions
-SET name = ?,
-    description = ?,
-    row_policy = ?,
-    preset = ?,
-    updated_at = NOW(3)
-WHERE id = ?
-  AND org_name = ?
-`
-
-type UpdateEndUserPresetPermissionParams struct {
-	Name        string
-	Description sql.NullString
-	RowPolicy   *json.RawMessage
-	Preset      NullEndUserDataPermissionsPreset
-	ID          string
-	OrgName     string
-}
-
-func (q *Queries) UpdateEndUserPresetPermission(ctx context.Context, arg UpdateEndUserPresetPermissionParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, updateEndUserPresetPermission,
-		arg.Name,
-		arg.Description,
 		arg.RowPolicy,
-		arg.Preset,
 		arg.ID,
 		arg.OrgName,
 	)

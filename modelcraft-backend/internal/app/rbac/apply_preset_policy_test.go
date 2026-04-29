@@ -344,9 +344,10 @@ func makeModelWithOwner(withOwner bool) *modeldesign.DataModel {
 }
 
 type mockBundleRepo struct {
-	bundle     *rbacdomain.EndUserPermissionBundle
-	modelPerms map[string][]*rbacdomain.EndUserPermission
-	bundlePerm map[string][]string
+	bundle      *rbacdomain.EndUserPermissionBundle
+	modelPerms  map[string][]*rbacdomain.EndUserPermission
+	bundlePerm  map[string][]string
+	bundleItems map[string][]*rbacdomain.EndUserBundleDataPermissionItem
 
 	createPermissionCalls int
 	addPermissionCalls    int
@@ -365,9 +366,10 @@ func newMockBundleRepo(
 		cloned[modelID] = copyItems
 	}
 	return &mockBundleRepo{
-		bundle:     bundle,
-		modelPerms: cloned,
-		bundlePerm: map[string][]string{},
+		bundle:      bundle,
+		modelPerms:  cloned,
+		bundlePerm:  map[string][]string{},
+		bundleItems: map[string][]*rbacdomain.EndUserBundleDataPermissionItem{},
 	}
 }
 
@@ -399,6 +401,70 @@ func (m *mockBundleRepo) UpdateBundle(_ context.Context, _ *rbacdomain.EndUserPe
 
 func (m *mockBundleRepo) DeleteBundle(_ context.Context, _, _ string) error {
 	return nil
+}
+
+func (m *mockBundleRepo) GetPermissionByID(
+	_ context.Context,
+	orgName, id string,
+) (*rbacdomain.EndUserPermission, error) {
+	p := m.findPermissionByID(id)
+	if p == nil || p.OrgName != orgName {
+		return nil, shared.NewNotFoundError("permission not found")
+	}
+	return clonePermission(p), nil
+}
+
+func (m *mockBundleRepo) UpsertBundleDataPermissionItem(
+	_ context.Context,
+	item *rbacdomain.EndUserBundleDataPermissionItem,
+) error {
+	if item == nil {
+		return nil
+	}
+	list := m.bundleItems[item.BundleID]
+	for i, existing := range list {
+		if existing.ModelID == item.ModelID {
+			copied := *item
+			list[i] = &copied
+			m.bundleItems[item.BundleID] = list
+			return nil
+		}
+	}
+	copied := *item
+	m.bundleItems[item.BundleID] = append(list, &copied)
+	return nil
+}
+
+func (m *mockBundleRepo) RemoveBundleDataPermissionItem(
+	_ context.Context,
+	bundleID, modelID string,
+) error {
+	list := m.bundleItems[bundleID]
+	if len(list) == 0 {
+		return nil
+	}
+	next := make([]*rbacdomain.EndUserBundleDataPermissionItem, 0, len(list))
+	for _, item := range list {
+		if item.ModelID == modelID {
+			continue
+		}
+		next = append(next, item)
+	}
+	m.bundleItems[bundleID] = next
+	return nil
+}
+
+func (m *mockBundleRepo) ListBundleDataPermissionItems(
+	_ context.Context,
+	bundleID string,
+) ([]*rbacdomain.EndUserBundleDataPermissionItem, error) {
+	list := m.bundleItems[bundleID]
+	result := make([]*rbacdomain.EndUserBundleDataPermissionItem, 0, len(list))
+	for _, item := range list {
+		copied := *item
+		result = append(result, &copied)
+	}
+	return result, nil
 }
 
 func (m *mockBundleRepo) AddPermissionToBundle(

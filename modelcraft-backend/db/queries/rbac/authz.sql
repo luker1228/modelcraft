@@ -28,10 +28,15 @@ WHERE r.org_name = ?
   AND rb.project_slug = ?
   AND r.is_implicit = TRUE;
 
--- name: GetPermissionsByBundleIDs :many
--- ⚡ 鉴权链 Step 4: 展开权限包 → 权限点（动态 IN，适用于 Step 1~3 合并后的 bundle_id 集合）
+-- name: GetDataPermissionItemsByBundleIDs :many
+-- ⚡ 鉴权链 Step 4: 展开权限包 → data permission items
+SELECT i.*
+FROM end_user_bundle_data_permission_items i
+WHERE i.bundle_id IN (sqlc.slice(bundleIDs));
+
+-- name: GetCustomPermissionsByIDs :many
+-- ⚡ 鉴权链 Step 5: 批量加载 custom permission 实体（CUSTOM item 引用）
 SELECT p.*
 FROM end_user_data_permissions p
-  JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
-WHERE bp.bundle_id IN (sqlc.slice(bundleIDs))
+WHERE p.id IN (sqlc.slice(permissionIDs))
   AND p.org_name = ?;

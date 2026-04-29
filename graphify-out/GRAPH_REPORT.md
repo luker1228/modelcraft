@@ -1,11 +1,11 @@
-# Graph Report - .  (2026-04-28)
+# Graph Report - /data/home/lukemxjia/modelcraft  (2026-04-29)
 
 ## Corpus Check
-- 809 files · ~1,535,634 words
+- 815 files · ~1,588,151 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 8901 nodes · 13351 edges · 791 communities detected
+- 9167 nodes · 13879 edges · 796 communities detected
 - Extraction: 100% EXTRACTED · 0% INFERRED · 0% AMBIGUOUS
 - Token cost: 0 input · 0 output
 
@@ -801,18 +801,23 @@
 - [[_COMMUNITY_Community 788|Community 788]]
 - [[_COMMUNITY_Community 789|Community 789]]
 - [[_COMMUNITY_Community 790|Community 790]]
+- [[_COMMUNITY_Community 791|Community 791]]
+- [[_COMMUNITY_Community 792|Community 792]]
+- [[_COMMUNITY_Community 793|Community 793]]
+- [[_COMMUNITY_Community 794|Community 794]]
+- [[_COMMUNITY_Community 795|Community 795]]
 
 ## God Nodes (most connected - your core abstractions)
-1. `executionContext` - 2497 edges
-2. `SafeQuerier` - 167 edges
-3. `Queries` - 163 edges
-4. `ProjectNotFound` - 54 edges
-5. `mutationResolver` - 50 edges
+1. `executionContext` - 2565 edges
+2. `SafeQuerier` - 176 edges
+3. `Queries` - 172 edges
+4. `ProjectNotFound` - 56 edges
+5. `mutationResolver` - 52 edges
 6. `graphqlModelResolver` - 49 edges
-7. `InvalidInput` - 39 edges
-8. `SqlEndUserPermissionRepository` - 32 edges
+7. `SqlEndUserDataPermissionRepository` - 42 edges
+8. `InvalidInput` - 40 edges
 9. `queryResolver` - 31 edges
-10. `ModelDesignAppService` - 29 edges
+10. `ModelDesignAppService` - 30 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `writeError()` --calls--> `writeJSON()`  [EXTRACTED]
@@ -828,335 +833,335 @@ Nodes (1): executionContext
 
 ### Community 1 - "Community 1"
 Cohesion: 0.0
-Nodes (355): ActualForeignKey, AddEndUserPermissionToBundleError, AddEndUserPermissionToBundleInput, AddEndUserPermissionToBundlePayload, AddFieldInput, AddFieldItemResult, AddFieldsError, AddFieldsPayload (+347 more)
+Nodes (363): ActualForeignKey, AddEndUserPermissionToBundleError, AddEndUserPermissionToBundleInput, AddEndUserPermissionToBundlePayload, AddEndUserPresetToBundleError, AddEndUserPresetToBundleInput, AddEndUserPresetToBundlePayload, AddFieldInput (+355 more)
 
 ### Community 2 - "Community 2"
 Cohesion: 0.01
-Nodes (1): SafeQuerier
+Nodes (8): ComplexityRoot, Config, DirectiveRoot, executableSchema, MutationResolver, NewExecutableSchema(), QueryResolver, ResolverRoot
 
 ### Community 3 - "Community 3"
 Cohesion: 0.01
-Nodes (2): DBTX, Queries
+Nodes (1): SafeQuerier
 
 ### Community 4 - "Community 4"
+Cohesion: 0.01
+Nodes (2): DBTX, Queries
+
+### Community 5 - "Community 5"
 Cohesion: 0.02
 Nodes (22): ActualConstraintType, AuthVariableType, ClusterStatus, ColumnAccessMode, DbTableStatus, EndUserPermissionPreset, FieldConflictAspect, FKCreateMode (+14 more)
 
-### Community 5 - "Community 5"
-Cohesion: 0.03
-Nodes (8): ComplexityRoot, Config, DirectiveRoot, executableSchema, MutationResolver, NewExecutableSchema(), QueryResolver, ResolverRoot
-
 ### Community 6 - "Community 6"
-Cohesion: 0.02
-Nodes (2): InvalidInput, ProjectNotFound
+Cohesion: 0.08
+Nodes (0): 
 
 ### Community 7 - "Community 7"
-Cohesion: 0.08
+Cohesion: 0.06
 Nodes (0): 
 
 ### Community 8 - "Community 8"
+Cohesion: 0.04
+Nodes (87): mockAddFieldsMutation(), mockAddPermissionToBundleMutation(), mockAddPermissionToRoleMutation(), mockApplyEndUserPresetPolicyMutation(), mockAssignBundleToEndUserMutation(), mockAssignBundleToRoleMutation(), mockAssignEndUserRoleMutation(), mockCreateEndUserBundleMutation() (+79 more)
+
+### Community 9 - "Community 9"
 Cohesion: 0.02
 Nodes (2): mutationResolver, queryResolver
 
-### Community 9 - "Community 9"
-Cohesion: 0.03
-Nodes (41): AuthenticationError, AuthenticationErrorErrorCode, AuthInvalidInputError, AuthInvalidInputErrorErrorCode, BaseResponse, ChiServerOptions, GetMembershipsResponse, InvalidParamFormatError (+33 more)
-
 ### Community 10 - "Community 10"
 Cohesion: 0.05
-Nodes (23): newTestContext(), newTestField(), newTestModel(), newTestService(), TestAddFieldSync_EnumAssociationCreateFail_ReturnsError(), TestAddFieldSync_MultipleFields_SequentialDisplayOrders(), TestAddFieldSync_PhysicField_SetsDisplayOrder(), TestAddPhysicFields_DeployFailAndRollbackFail_ReturnsCombinedError() (+15 more)
+Nodes (28): newTestContext(), newTestField(), newTestModel(), newTestService(), TestAddFieldSync_EnumAssociationCreateFail_ReturnsError(), TestAddFieldSync_MultipleFields_SequentialDisplayOrders(), TestAddFieldSync_PhysicField_SetsDisplayOrder(), TestAddPhysicFields_DeployFailAndRollbackFail_ReturnsCombinedError() (+20 more)
 
 ### Community 11 - "Community 11"
 Cohesion: 0.03
-Nodes (0): 
+Nodes (41): AuthenticationError, AuthenticationErrorErrorCode, AuthInvalidInputError, AuthInvalidInputErrorErrorCode, BaseResponse, ChiServerOptions, GetMembershipsResponse, InvalidParamFormatError (+33 more)
 
 ### Community 12 - "Community 12"
+Cohesion: 0.03
+Nodes (0): 
+
+### Community 13 - "Community 13"
 Cohesion: 0.07
 Nodes (7): handleErr(), handleRepoErr(), normalizeEnumArrayCodes(), normalizeEnumCode(), valueToString(), graphqlEnumConfig, graphqlModelResolver
 
-### Community 13 - "Community 13"
+### Community 14 - "Community 14"
 Cohesion: 0.06
 Nodes (25): createEndUserAuthServiceForTest(), newInMemoryEndUserProjectAccessRepo(), newInMemoryEndUserRepo(), newInMemoryEndUserSessionRepo(), requireBusinessErrorCode(), seedEndUser(), TestEndUserAuthAppService_LoginEndUser_DisabledAccount(), TestEndUserAuthAppService_LoginEndUser_NoProjectAccess() (+17 more)
 
-### Community 14 - "Community 14"
-Cohesion: 0.04
-Nodes (39): ApiKey, DatabaseCluster, EndUserAccount, EndUserBundlePermission, EndUserPermission, EndUserPermissionBundle, EndUserPermissionsPreset, EndUserPermissionsType (+31 more)
-
 ### Community 15 - "Community 15"
+Cohesion: 0.04
+Nodes (1): ProjectNotFound
+
+### Community 16 - "Community 16"
+Cohesion: 0.04
+Nodes (40): ApiKey, DatabaseCluster, EndUserAccount, EndUserBundleDataPermissionItem, EndUserBundleDataPermissionItemsGrantType, EndUserBundleDataPermissionItemsPreset, EndUserDataPermission, EndUserPermissionBundle (+32 more)
+
+### Community 17 - "Community 17"
+Cohesion: 0.05
+Nodes (7): SqlEndUserDataPermissionRepository, toDBColumnPolicy(), toDBRowPolicy(), toDomainBundle(), toDomainPermission(), toDomainRole(), toDomainSnapshot()
+
+### Community 18 - "Community 18"
 Cohesion: 0.06
 Nodes (19): And(), Between(), Contains(), EndsWith(), Eq(), Gt(), Gte(), In() (+11 more)
 
-### Community 16 - "Community 16"
-Cohesion: 0.08
-Nodes (47): mockAddFieldsMutation(), mockCreateEnumMutation(), mockCreateGroupMutation(), mockCreateLogicalForeignKeyMutation(), mockCreateModelFromSchemaMutation(), mockCreateModelMutation(), mockCreateProjectMutation(), mockCreateRoleMutation() (+39 more)
-
-### Community 17 - "Community 17"
+### Community 19 - "Community 19"
 Cohesion: 0.08
 Nodes (0): 
 
-### Community 18 - "Community 18"
+### Community 20 - "Community 20"
+Cohesion: 0.07
+Nodes (12): clonePermission(), makeCustomPermission(), makeModelWithOwner(), makePresetPermission(), newMockBundleRepo(), newMockPermissionRepo(), TestAddPresetToBundle(), TestApplyPresetPolicy_Reconcile() (+4 more)
+
+### Community 21 - "Community 21"
 Cohesion: 0.05
 Nodes (13): makeOwnerRole(), makeTestUser(), newTestService(), TestCreateOrganizationService_Execute_OrganizationAlreadyExists(), TestCreateOrganizationService_Execute_RoleNotFound(), TestCreateOrganizationService_Execute_Success(), TestCreateOrganizationService_Execute_UserAlreadyHasOrganization(), TestCreateOrganizationService_Execute_UserNotFound() (+5 more)
 
-### Community 19 - "Community 19"
+### Community 22 - "Community 22"
 Cohesion: 0.06
 Nodes (17): newGroup(), newService(), TestCreateGroup_DuplicateName(), TestCreateGroup_HappyPath(), TestCreateGroup_InvalidName(), TestDeleteGroup_NotFound(), TestDeleteGroup_WithModels(), TestListGroups_Empty() (+9 more)
 
-### Community 20 - "Community 20"
+### Community 23 - "Community 23"
 Cohesion: 0.1
 Nodes (32): attachRequestId(), callGoCreateOrgEndUser(), callGoDeleteOrgEndUser(), callGoEndUserDatabaseCatalog(), callGoEndUserInitPrivateDB(), callGoEndUserLogin(), callGoEndUserLoginOrg(), callGoEndUserLogout() (+24 more)
 
-### Community 21 - "Community 21"
+### Community 24 - "Community 24"
+Cohesion: 0.05
+Nodes (8): formatDateTime(), generateSlug(), generateUniqueSlug(), handleDelete(), handleOpenChange(), handleRefresh(), handleRevoke(), handleSubmit()
+
+### Community 25 - "Community 25"
 Cohesion: 0.17
 Nodes (0): 
 
-### Community 22 - "Community 22"
-Cohesion: 0.07
-Nodes (7): SqlEndUserPermissionRepository, toDBColumnPolicy(), toDBPreset(), toDBRowPolicy(), toDomainBundle(), toDomainPermission(), toDomainRole()
-
-### Community 23 - "Community 23"
+### Community 26 - "Community 26"
 Cohesion: 0.05
 Nodes (2): mutationResolver, queryResolver
 
-### Community 24 - "Community 24"
+### Community 27 - "Community 27"
+Cohesion: 0.05
+Nodes (1): InvalidInput
+
+### Community 28 - "Community 28"
 Cohesion: 0.08
 Nodes (11): GetFieldTypeByFormat(), isValidFieldName(), NewFieldFormat(), EnumDisplayAttributes, FieldDefinition, FieldType, FormatType, SchemaType (+3 more)
 
-### Community 25 - "Community 25"
+### Community 29 - "Community 29"
 Cohesion: 0.1
 Nodes (13): SqlModelDesignRepository, FieldDefinitionToCreateParams(), FieldDefinitionToDomain(), FieldDefinitionToUpdateParams(), marshalJSON(), ModelToCreateParams(), ModelToDomain(), ModelToUpdateParams() (+5 more)
 
-### Community 26 - "Community 26"
-Cohesion: 0.13
-Nodes (0): 
-
-### Community 27 - "Community 27"
+### Community 30 - "Community 30"
 Cohesion: 0.11
 Nodes (0): 
 
-### Community 28 - "Community 28"
+### Community 31 - "Community 31"
 Cohesion: 0.09
 Nodes (18): MockPermissionRepository, MockRoleRepository, MockUserRoleRepository, testContext(), TestRoleService_CreateCustomRole_DuplicateName(), TestRoleService_CreateCustomRole_EmptyName(), TestRoleService_CreateCustomRole_EmptyOrgName(), TestRoleService_CreateCustomRole_Success() (+10 more)
 
-### Community 29 - "Community 29"
+### Community 32 - "Community 32"
 Cohesion: 0.09
 Nodes (7): SqlMembershipRepository, SqlOrganizationRepository, SqlUserRepository, MembershipToDomain(), OrganizationToDomain(), StrToNullStr(), UserToDomain()
 
-### Community 30 - "Community 30"
-Cohesion: 0.11
-Nodes (4): relationCardinalityFromDirection(), ModelDesignAppService, ModelDesignAppServiceDeps, SyncModelSchemaResult
-
-### Community 31 - "Community 31"
-Cohesion: 0.14
-Nodes (29): float64Ptr(), generateAndGetFieldXMC(), getXMC(), intPtr(), makeMinimalModel(), stringPtr(), TestJSONSchemaGenerator_EndUserRef_HasStringType(), TestJSONSchemaGenerator_GenerateSchema_BasicTypes() (+21 more)
-
-### Community 32 - "Community 32"
-Cohesion: 0.06
-Nodes (29): AccessibleProject, AccessibleProjectItem, CreateEndUserCommand, CreateEndUserResult, DeleteEndUserCommand, EndUserDTO, EndUserItem, EndUserProjectAccessDTO (+21 more)
-
 ### Community 33 - "Community 33"
-Cohesion: 0.1
-Nodes (29): getWhere(), hasAnyAggregate(), hasSelectedField(), newAggregateInput(), newCountInput(), newCreateManyInput(), newCreateOneInput(), newDeleteManyInput() (+21 more)
+Cohesion: 0.12
+Nodes (4): relationCardinalityFromDirection(), ModelDesignAppService, ModelDesignAppServiceDeps, SyncModelSchemaResult
 
 ### Community 34 - "Community 34"
 Cohesion: 0.14
-Nodes (10): errorResponse, Handler, NewHandler(), proxyBackendError(), writeAuthError(), writeError(), writeJSON(), contextKey (+2 more)
+Nodes (29): float64Ptr(), generateAndGetFieldXMC(), getXMC(), intPtr(), makeMinimalModel(), stringPtr(), TestJSONSchemaGenerator_EndUserRef_HasStringType(), TestJSONSchemaGenerator_GenerateSchema_BasicTypes() (+21 more)
 
 ### Community 35 - "Community 35"
+Cohesion: 0.06
+Nodes (29): AccessibleProject, AccessibleProjectItem, CreateEndUserCommand, CreateEndUserResult, DeleteEndUserCommand, EndUserDTO, EndUserItem, EndUserProjectAccessDTO (+21 more)
+
+### Community 36 - "Community 36"
+Cohesion: 0.1
+Nodes (29): getWhere(), hasAnyAggregate(), hasSelectedField(), newAggregateInput(), newCountInput(), newCreateManyInput(), newCreateOneInput(), newDeleteManyInput() (+21 more)
+
+### Community 37 - "Community 37"
+Cohesion: 0.14
+Nodes (10): errorResponse, Handler, NewHandler(), proxyBackendError(), writeAuthError(), writeError(), writeJSON(), contextKey (+2 more)
+
+### Community 38 - "Community 38"
 Cohesion: 0.12
 Nodes (18): containsPrefix(), extractBaseStorageType(), isDateTimeFormat(), isNumericFormat(), isStringFormat(), parseDate(), parseDateTime(), parseTime() (+10 more)
 
-### Community 36 - "Community 36"
+### Community 39 - "Community 39"
 Cohesion: 0.07
 Nodes (27): AddFieldCommand, AddFieldItemResult, CreateEnumCommand, CreateGroupCommand, CreateLogicalForeignKeyCommand, CreateModelCommand, DatabaseCatalogQueryCommand, DeleteEnumCommand (+19 more)
 
-### Community 37 - "Community 37"
+### Community 40 - "Community 40"
 Cohesion: 0.08
 Nodes (5): contains(), intPtr(), TestFieldDefinition_ChainMethods(), TestFieldDefinition_Validate(), TestNewFieldDefinition()
 
-### Community 38 - "Community 38"
+### Community 41 - "Community 41"
+Cohesion: 0.13
+Nodes (12): buildLegacyRowPolicy(), expandPreset(), isOwnerPreset(), legacyScopeExpr(), normalizedRowPolicyJSON(), optionalStringPtr(), presetPermissionName(), presetPermissionNeedsUpdate() (+4 more)
+
+### Community 42 - "Community 42"
 Cohesion: 0.09
 Nodes (10): MockPermissionRepository, MockRoleRepository, MockUserRoleRepository, createTestPermissionLoader(), TestPermissionLoader_LoadUserPermissions_DatabaseError(), TestPermissionLoader_LoadUserPermissions_MultipleRoles(), TestPermissionLoader_LoadUserPermissions_NoRoles(), TestPermissionLoader_LoadUserPermissions_RoleNotFound() (+2 more)
 
-### Community 39 - "Community 39"
+### Community 43 - "Community 43"
 Cohesion: 0.1
 Nodes (6): SqlCasbinPermissionRepository, SqlCasbinRoleRepository, SqlCasbinUserRoleRepository, CasbinRolePermissionToDomain(), CasbinRoleToDomain(), CasbinUserRoleToDomain()
 
-### Community 40 - "Community 40"
+### Community 44 - "Community 44"
+Cohesion: 0.1
+Nodes (4): NewModelLocator(), DataModel, ModelLocator, ModelMeta
+
+### Community 45 - "Community 45"
 Cohesion: 0.17
 Nodes (9): convertAggregateBytes(), convertBytesSliceToString(), convertBytesToString(), convertFlatToNestedAggregate(), execute(), isAggregateField(), isUniqueConstraintError(), parseAggregateValue() (+1 more)
 
-### Community 41 - "Community 41"
-Cohesion: 0.11
-Nodes (4): NewModelLocator(), DataModel, ModelLocator, ModelMeta
-
-### Community 42 - "Community 42"
-Cohesion: 0.11
-Nodes (13): makeFKRow(), makeLocator(), TestAddRelationField_AcceptsMatchingFKID(), TestAddRelationField_RejectsFKIDMismatch(), TestAddRelationField_RequiresRelateFkId(), TestAddRelationField_WithRelateFkId(), TestLogicalForeignKeyRepository_DeleteByPairID(), TestLogicalForeignKeyRepository_FindByBelongsToField() (+5 more)
-
-### Community 43 - "Community 43"
-Cohesion: 0.14
-Nodes (9): isStringType(), parseMySQLType(), ClusterConnectionManager, ColumnDefinition, IndexDefinition, MySQLSchemaComparisonService, RepairRequest, SchemaComparisonService (+1 more)
-
-### Community 44 - "Community 44"
-Cohesion: 0.13
-Nodes (6): SqlEnumRepository, SqlFieldEnumAssociationRepository, EnumDefinitionToCreateParams(), EnumDefinitionToDomain(), FieldEnumAssociationToCreateParams(), FieldEnumAssociationToDomain()
-
-### Community 45 - "Community 45"
-Cohesion: 0.15
-Nodes (17): BenchmarkHasSelectedField(), BenchmarkNewCreateManyInput(), createMockResolveParams(), createMockResolveParamsNoSelection(), TestCreateManyInputDataConversion(), TestDeleteManyInputWithNilWhere(), TestHasSelectedField(), TestNewCreateManyInput() (+9 more)
-
 ### Community 46 - "Community 46"
-Cohesion: 0.16
+Cohesion: 0.15
 Nodes (2): RbacErrorAdapter, detectPresetFromMessage()
 
 ### Community 47 - "Community 47"
-Cohesion: 0.26
-Nodes (0): 
+Cohesion: 0.11
+Nodes (13): makeFKRow(), makeLocator(), TestAddRelationField_AcceptsMatchingFKID(), TestAddRelationField_RejectsFKIDMismatch(), TestAddRelationField_RequiresRelateFkId(), TestAddRelationField_WithRelateFkId(), TestLogicalForeignKeyRepository_DeleteByPairID(), TestLogicalForeignKeyRepository_FindByBelongsToField() (+5 more)
 
 ### Community 48 - "Community 48"
+Cohesion: 0.14
+Nodes (9): isStringType(), parseMySQLType(), ClusterConnectionManager, ColumnDefinition, IndexDefinition, MySQLSchemaComparisonService, RepairRequest, SchemaComparisonService (+1 more)
+
+### Community 49 - "Community 49"
+Cohesion: 0.13
+Nodes (6): SqlEnumRepository, SqlFieldEnumAssociationRepository, EnumDefinitionToCreateParams(), EnumDefinitionToDomain(), FieldEnumAssociationToCreateParams(), FieldEnumAssociationToDomain()
+
+### Community 50 - "Community 50"
+Cohesion: 0.15
+Nodes (17): BenchmarkHasSelectedField(), BenchmarkNewCreateManyInput(), createMockResolveParams(), createMockResolveParamsNoSelection(), TestCreateManyInputDataConversion(), TestDeleteManyInputWithNilWhere(), TestHasSelectedField(), TestNewCreateManyInput() (+9 more)
+
+### Community 51 - "Community 51"
+Cohesion: 0.09
+Nodes (22): AddPermissionToBundleCommand, AddPresetToBundleCommand, ApplyPresetPolicyCommand, AssignBundleToRoleCommand, AssignRoleToUserCommand, CreateBundleCommand, CreatePermissionCommand, CreateRoleCommand (+14 more)
+
+### Community 52 - "Community 52"
 Cohesion: 0.12
 Nodes (11): GoquWhereVisitor, operatorHandler, QueryVisitor, assertStringValue(), convertArrayValue(), ConvertToGoquExpression(), handleContains(), handleEndsWith() (+3 more)
 
-### Community 49 - "Community 49"
+### Community 53 - "Community 53"
 Cohesion: 0.09
 Nodes (1): mockClientDatabaseRepository
 
-### Community 50 - "Community 50"
+### Community 54 - "Community 54"
 Cohesion: 0.09
 Nodes (7): DesignHandlers, endUserAuthDBProvider, endUserAuthRepositoryFactory, endUserJWTClaims, endUserJWTIssuer, endUserTxManager, RuntimeHandlers
 
-### Community 51 - "Community 51"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 52 - "Community 52"
-Cohesion: 0.16
-Nodes (12): containsClusterNotConfigured(), generateRefreshToken(), hashToken(), toAppAccessibleProjects(), EndUserAuthAppService, EndUserTokenIssueInput, EndUserTokenIssuer, EndUserTokenIssueResult (+4 more)
-
-### Community 53 - "Community 53"
-Cohesion: 0.18
-Nodes (2): isNumericField(), inputTypeGenerator
-
-### Community 54 - "Community 54"
-Cohesion: 0.13
-Nodes (19): AuthConfig, Config, ConfigOptions, CryptoConfig, DatabaseConfig, DesignAuthConfig, getEnv(), JWTConfig (+11 more)
-
 ### Community 55 - "Community 55"
-Cohesion: 0.12
-Nodes (5): MockQuerierForFK, newTestLFRow(), TestLogicalForeignKeyToDomain(), TestSqlLogicalForeignKeyRepository_FindByModel(), TestSqlLogicalForeignKeyRepository_FindByPairID()
+Cohesion: 0.38
+Nodes (0): 
 
 ### Community 56 - "Community 56"
 Cohesion: 0.16
-Nodes (4): InitClusterManager(), newClusterConnectionManager(), ClusterConnectionManager, DatabaseInfo
+Nodes (12): containsClusterNotConfigured(), generateRefreshToken(), hashToken(), toAppAccessibleProjects(), EndUserAuthAppService, EndUserTokenIssueInput, EndUserTokenIssuer, EndUserTokenIssueResult (+4 more)
 
 ### Community 57 - "Community 57"
+Cohesion: 0.18
+Nodes (2): isNumericField(), inputTypeGenerator
+
+### Community 58 - "Community 58"
+Cohesion: 0.13
+Nodes (19): AuthConfig, Config, ConfigOptions, CryptoConfig, DatabaseConfig, DesignAuthConfig, getEnv(), JWTConfig (+11 more)
+
+### Community 59 - "Community 59"
+Cohesion: 0.12
+Nodes (5): MockQuerierForFK, newTestLFRow(), TestLogicalForeignKeyToDomain(), TestSqlLogicalForeignKeyRepository_FindByModel(), TestSqlLogicalForeignKeyRepository_FindByPairID()
+
+### Community 60 - "Community 60"
+Cohesion: 0.16
+Nodes (4): InitClusterManager(), newClusterConnectionManager(), ClusterConnectionManager, DatabaseInfo
+
+### Community 61 - "Community 61"
 Cohesion: 0.19
 Nodes (16): DeletePolicy, InsertPolicy, PolicyScope, RowPolicy, SelectPolicy, UpdatePolicy, isJSONEmpty(), normalizeDeletePolicy() (+8 more)
 
-### Community 58 - "Community 58"
+### Community 62 - "Community 62"
 Cohesion: 0.21
 Nodes (2): extractXMC(), JSONSchemaParser
 
-### Community 59 - "Community 59"
-Cohesion: 0.1
-Nodes (19): AddPermissionToBundleCommand, ApplyPresetPolicyCommand, AssignBundleToRoleCommand, AssignRoleToUserCommand, CreateBundleCommand, CreatePermissionCommand, CreateRoleCommand, DeleteBundleCommand (+11 more)
-
-### Community 60 - "Community 60"
-Cohesion: 0.11
-Nodes (4): generateSlug(), generateUniqueSlug(), handleRefresh(), handleSubmit()
-
-### Community 61 - "Community 61"
-Cohesion: 0.17
-Nodes (8): clonePermission(), makeCustomPermission(), makeModelWithOwner(), makePresetPermission(), newMockPermissionRepo(), TestApplyPresetPolicy(), mockModelRepo, mockPermissionRepo
-
-### Community 62 - "Community 62"
+### Community 63 - "Community 63"
 Cohesion: 0.2
 Nodes (10): newTestContextForIsArray(), newTestEnumDefinition(), newTestEnumField(), newTestServiceWithEnumRepo(), TestAddFieldSync_EnumField_InfersIsArrayFromMultiSelect(), TestAddFieldSync_EnumField_IsArrayTrueButEnumNotMultiSelect_ReturnsError(), TestAddFieldSync_EnumField_NoEnumName_ReturnsError(), TestAddFieldSync_EnumField_SingleSelectEnumKeepsIsArrayFalse() (+2 more)
 
-### Community 63 - "Community 63"
+### Community 64 - "Community 64"
 Cohesion: 0.12
 Nodes (5): BusinessError, ConvertRepositoryError(), NewError(), NewErrorFromContext(), WrapError()
 
-### Community 64 - "Community 64"
+### Community 65 - "Community 65"
 Cohesion: 0.25
 Nodes (4): ZapLogger, getEncoder(), getZapLevel(), newZapLogger()
 
-### Community 65 - "Community 65"
+### Community 66 - "Community 66"
 Cohesion: 0.13
 Nodes (5): AnalyzeSQLError(), classifyError(), errorPattern, WrapSQLError(), WrapSQLErrorInPlace()
 
-### Community 66 - "Community 66"
+### Community 67 - "Community 67"
 Cohesion: 0.21
 Nodes (2): cloneRelationMetadata(), JSONSchemaGenerator
 
-### Community 67 - "Community 67"
+### Community 68 - "Community 68"
 Cohesion: 0.23
 Nodes (7): accessibleProjectResponse, authCredentialRequest, AuthHandler, authTokenResponse, meResponse, refreshLogoutRequest, selectProjectRequest
 
-### Community 68 - "Community 68"
+### Community 69 - "Community 69"
+Cohesion: 0.19
+Nodes (2): bundleRepository, EndUserBundleAppService
+
+### Community 70 - "Community 70"
 Cohesion: 0.12
 Nodes (3): setupTestCipher(), TestCreateCluster_ShouldSucceedWhenProjectHasNoCluster(), MockClusterRepository
 
-### Community 69 - "Community 69"
+### Community 71 - "Community 71"
 Cohesion: 0.11
 Nodes (2): mockProfileRepository, mockUserRepository
 
-### Community 70 - "Community 70"
+### Community 72 - "Community 72"
+Cohesion: 0.22
+Nodes (10): buildCountQuery(), buildCreateMutation(), buildDeleteMutation(), buildFieldSelections(), buildFindFirstQuery(), buildFindManyQuery(), buildFindUniqueQuery(), buildModelQueryOperations() (+2 more)
+
+### Community 73 - "Community 73"
 Cohesion: 0.15
 Nodes (6): endUserProjectAccessDBTX, SqlEndUserProjectAccessRepository, nullableString(), ptrToString(), scanEndUserProjectAccess(), scanEndUserProjectAccessRows()
 
-### Community 71 - "Community 71"
+### Community 74 - "Community 74"
 Cohesion: 0.18
 Nodes (5): Role, IsSystemRoleName(), isValidPermission(), NewRole(), Role
 
-### Community 72 - "Community 72"
+### Community 75 - "Community 75"
 Cohesion: 0.12
 Nodes (16): AccessibleProjectJSON, CreateEndUserRequest, CreateEndUserResponse, DatabaseCatalogResponse, DatabaseLiteJSON, DeleteEndUserResponse, EndUserJSON, ErrorJSON (+8 more)
 
-### Community 73 - "Community 73"
-Cohesion: 0.35
+### Community 76 - "Community 76"
+Cohesion: 0.19
 Nodes (0): 
 
-### Community 74 - "Community 74"
+### Community 77 - "Community 77"
 Cohesion: 0.24
 Nodes (5): getRuntimeContext(), JSONExpr, ResolveResult, RLSFilter, RLSResolver
 
-### Community 75 - "Community 75"
+### Community 78 - "Community 78"
 Cohesion: 0.26
 Nodes (5): buildConnInfoFromCmd(), getOrgNameFromContext(), normalizeConnectionTimeout(), DatabaseClusterAppService, DatabaseInfo
 
-### Community 76 - "Community 76"
+### Community 79 - "Community 79"
 Cohesion: 0.12
 Nodes (4): contextKey, HttpRequestContext, FromContext(), GetRequestID()
 
-### Community 77 - "Community 77"
+### Community 80 - "Community 80"
 Cohesion: 0.32
 Nodes (3): EndUserRestClient, parseExpiresIn(), toRestError()
 
-### Community 78 - "Community 78"
-Cohesion: 0.18
-Nodes (6): buildCountQuery(), buildFieldSelections(), buildFindFirstQuery(), buildFindManyQuery(), buildFindUniqueQuery(), buildModelQueryOperations()
-
-### Community 79 - "Community 79"
+### Community 81 - "Community 81"
 Cohesion: 0.12
 Nodes (0): 
 
-### Community 80 - "Community 80"
+### Community 82 - "Community 82"
 Cohesion: 0.21
 Nodes (5): projectRowsToDomain(), ProjectToCreateParams(), ProjectToDomain(), ProjectToUpdateParams(), SqlProjectRepository
 
-### Community 81 - "Community 81"
+### Community 83 - "Community 83"
 Cohesion: 0.17
 Nodes (6): fieldMapper, applyEnumBindingByFormat(), convertFormatType2Domain(), convertValidationInput2DTO(), init(), fieldMapper
-
-### Community 82 - "Community 82"
-Cohesion: 0.28
-Nodes (0): 
-
-### Community 83 - "Community 83"
-Cohesion: 0.18
-Nodes (7): buildLegacyRowPolicy(), expandPreset(), isOwnerPreset(), legacyScopeExpr(), EndUserPermissionAppService, modelRepository, permissionRepository
 
 ### Community 84 - "Community 84"
 Cohesion: 0.17
@@ -1203,40 +1208,40 @@ Cohesion: 0.29
 Nodes (5): newGQLError(), NewHasPermissionDirective(), newPermissionDeniedError(), HasPermissionDirective, HasPermissionDirective
 
 ### Community 95 - "Community 95"
+Cohesion: 0.23
+Nodes (11): deriveLegacyActionAndScope(), scopeToLegacyRowScope(), toBundleSnapshotDTO(), ToColumnPolicyDTO(), ToEndUserBundlesDTO(), ToEndUserPermissionBundleDTO(), ToEndUserPermissionDTO(), ToEndUserPermissionsDTO() (+3 more)
+
+### Community 96 - "Community 96"
+Cohesion: 0.13
+Nodes (1): EndUserPermissionBundleNotFound
+
+### Community 97 - "Community 97"
 Cohesion: 0.21
 Nodes (3): ImportModelCommand, ImportModelResult, ReverseEngineerAppService
 
-### Community 96 - "Community 96"
+### Community 98 - "Community 98"
 Cohesion: 0.24
 Nodes (2): RepairModelUseCase, parseMySQLTypeToField()
 
-### Community 97 - "Community 97"
+### Community 99 - "Community 99"
 Cohesion: 0.23
 Nodes (11): CustomError, TestAs(), TestCause(), TestCompatibility(), TestErrorChain(), TestErrorf(), TestNew(), TestUnwrap() (+3 more)
 
-### Community 98 - "Community 98"
+### Community 100 - "Community 100"
 Cohesion: 0.18
 Nodes (8): AuthenticationError, AuthParamInvalidError, callGoLogin(), callGoRefresh(), callGoRegister(), parseGatewayError(), TokenReuseError, UserConflictError
 
-### Community 99 - "Community 99"
+### Community 101 - "Community 101"
 Cohesion: 0.47
 Nodes (13): callGoCreateOrgEndUser(), callGoDeleteOrgEndUser(), callGoEndUserLoginOrg(), callGoGetUserAccessibleProjects(), callGoGrantEndUserProjectAccess(), callGoListOrgEndUsers(), callGoListProjectEndUserAccesses(), callGoRevokeEndUserProjectAccess() (+5 more)
 
-### Community 100 - "Community 100"
-Cohesion: 0.14
-Nodes (2): handleRevoke(), handleTabChange()
-
-### Community 101 - "Community 101"
+### Community 102 - "Community 102"
 Cohesion: 0.14
 Nodes (13): CreateEnumDefinitionParams, CreateFieldEnumAssociationParams, DeleteEnumParams, DeleteFieldEnumAssociationParams, ExistsEnumByNameParams, GetEnumByNameParams, GetEnumReferencesByNameParams, GetEnumReferencesByNameRow (+5 more)
 
-### Community 102 - "Community 102"
+### Community 103 - "Community 103"
 Cohesion: 0.19
 Nodes (4): isValidProjectSlug(), NewProject(), Project, ProjectStatus
-
-### Community 103 - "Community 103"
-Cohesion: 0.24
-Nodes (10): deriveLegacyActionAndScope(), scopeToLegacyRowScope(), ToColumnPolicyDTO(), ToEndUserBundlesDTO(), ToEndUserPermissionBundleDTO(), ToEndUserPermissionDTO(), ToEndUserPermissionsDTO(), ToEndUserRoleDTO() (+2 more)
 
 ### Community 104 - "Community 104"
 Cohesion: 0.25
@@ -1283,744 +1288,744 @@ Cohesion: 0.18
 Nodes (3): float64PtrTest(), intPtrTest(), TestJSONSchemaParser_RoundTrip()
 
 ### Community 115 - "Community 115"
+Cohesion: 0.15
+Nodes (1): ModelNotFound
+
+### Community 116 - "Community 116"
+Cohesion: 0.38
+Nodes (0): 
+
+### Community 117 - "Community 117"
 Cohesion: 0.23
 Nodes (1): EndUserRoleAppService
 
-### Community 116 - "Community 116"
+### Community 118 - "Community 118"
 Cohesion: 0.24
 Nodes (4): validateOrgSlugFormat(), CreateOrganizationInput, CreateOrganizationOutput, CreateOrganizationService
 
-### Community 117 - "Community 117"
+### Community 119 - "Community 119"
 Cohesion: 0.21
 Nodes (4): FieldType, InvalidFieldTypeError, MustParseFieldType(), ParseFieldType()
 
-### Community 118 - "Community 118"
+### Community 120 - "Community 120"
 Cohesion: 0.27
 Nodes (1): MySQLDDLBuilder
 
-### Community 119 - "Community 119"
+### Community 121 - "Community 121"
 Cohesion: 0.22
 Nodes (6): JSONParser, StandardJSONParser, Marshal(), MarshalToString(), MarshalToStringIgnoreErr(), Unmarshal()
 
-### Community 120 - "Community 120"
+### Community 122 - "Community 122"
 Cohesion: 0.15
 Nodes (0): 
 
-### Community 121 - "Community 121"
+### Community 123 - "Community 123"
 Cohesion: 0.18
 Nodes (3): BaseGraphQLClient, GraphQLClient, OrgGraphQLClient
 
-### Community 122 - "Community 122"
-Cohesion: 0.17
-Nodes (0): 
-
-### Community 123 - "Community 123"
-Cohesion: 0.17
-Nodes (11): CreatePermissionParams, CreateRoleParams, CreateUserRoleParams, DeletePermissionParams, DeleteUserRoleParams, GetRoleByNameAndOrgParams, GetUserRoleParams, ListPermissionsByRoleAndOrgParams (+3 more)
-
 ### Community 124 - "Community 124"
-Cohesion: 0.2
-Nodes (5): IsDuplicateKeyError(), IsNotFoundError(), IsRepoError(), RepositoryError, RepositoryErrorType
+Cohesion: 0.17
+Nodes (1): cn()
 
 ### Community 125 - "Community 125"
 Cohesion: 0.17
 Nodes (0): 
 
 ### Community 126 - "Community 126"
-Cohesion: 0.26
-Nodes (2): AuthContext, PolicyExecutor
+Cohesion: 0.17
+Nodes (11): CreatePermissionParams, CreateRoleParams, CreateUserRoleParams, DeletePermissionParams, DeleteUserRoleParams, GetRoleByNameAndOrgParams, GetUserRoleParams, ListPermissionsByRoleAndOrgParams (+3 more)
 
 ### Community 127 - "Community 127"
 Cohesion: 0.2
-Nodes (2): EnumDefinition, EnumOption
+Nodes (5): IsDuplicateKeyError(), IsNotFoundError(), IsRepoError(), RepositoryError, RepositoryErrorType
 
 ### Community 128 - "Community 128"
+Cohesion: 0.17
+Nodes (0): 
+
+### Community 129 - "Community 129"
+Cohesion: 0.26
+Nodes (2): AuthContext, PolicyExecutor
+
+### Community 130 - "Community 130"
+Cohesion: 0.2
+Nodes (2): EnumDefinition, EnumOption
+
+### Community 131 - "Community 131"
 Cohesion: 0.21
 Nodes (4): GetNewModelSystemFields(), GetSystemFields(), isValidUserFieldName(), FieldService
 
-### Community 129 - "Community 129"
+### Community 132 - "Community 132"
 Cohesion: 0.3
 Nodes (7): modelMapper, convertActualForeignKey(), convertDbColumnInfo(), convertDbTableStatus(), convertFieldConflictAspect(), convertFormatTypeDomain2Model(), convertValidationDomain2Graphql()
 
-### Community 130 - "Community 130"
-Cohesion: 0.21
-Nodes (1): EndUserBundleAppService
-
-### Community 131 - "Community 131"
+### Community 133 - "Community 133"
 Cohesion: 0.18
 Nodes (2): FieldDefinition, ValidationRules
 
-### Community 132 - "Community 132"
+### Community 134 - "Community 134"
 Cohesion: 0.29
 Nodes (4): JSONSchemaBuilder, JSONSchemaGenerator, NewJSONSchemaBuilder(), NewJSONSchemaGenerator()
 
-### Community 133 - "Community 133"
+### Community 135 - "Community 135"
 Cohesion: 0.2
 Nodes (1): RestClient
 
-### Community 134 - "Community 134"
+### Community 136 - "Community 136"
 Cohesion: 0.2
 Nodes (2): handleEdit(), isRecord()
 
-### Community 135 - "Community 135"
+### Community 137 - "Community 137"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 136 - "Community 136"
+### Community 138 - "Community 138"
 Cohesion: 0.33
 Nodes (4): QueryParser, NewQueryParser(), ParseAndConvert(), ParseQuery()
 
-### Community 137 - "Community 137"
+### Community 139 - "Community 139"
 Cohesion: 0.24
 Nodes (5): ColumnDefinition, DDLParser, IndexDefinition, TableDefinition, TiDBDDLParser
 
-### Community 138 - "Community 138"
+### Community 140 - "Community 140"
 Cohesion: 0.27
 Nodes (4): boolToString(), actualColumnRow, actualForeignKeyRow, ActualSchemaServiceImpl
 
-### Community 139 - "Community 139"
+### Community 141 - "Community 141"
 Cohesion: 0.18
 Nodes (10): BindBelongsToFKIDToFieldsParams, CreateLogicalForeignKeyParams, DeleteLogicalForeignKeyByPairIDParams, FindFieldsByBelongsToFKIDParams, FindFieldsByBelongsToFKIDRow, FindFieldsByRelateFKIDParams, FindFieldsByRelateFKIDRow, FindLogicalForeignKeysByModelIDParams (+2 more)
 
-### Community 140 - "Community 140"
+### Community 142 - "Community 142"
 Cohesion: 0.18
 Nodes (10): CountModelDatabasesParams, CountModelsParams, CreateModelParams, GetModelByNameParams, ListModelDatabasesParams, ListModelsParams, UpdateModelDeploymentStatusParams, UpdateModelParams (+2 more)
 
-### Community 141 - "Community 141"
+### Community 143 - "Community 143"
 Cohesion: 0.29
 Nodes (2): TestModelGroupRepository_MockUsage(), MockModelGroupRepo
 
-### Community 142 - "Community 142"
+### Community 144 - "Community 144"
 Cohesion: 0.25
 Nodes (2): SqlRoleRepository, roleToDomain()
 
-### Community 143 - "Community 143"
+### Community 145 - "Community 145"
 Cohesion: 0.25
 Nodes (4): DBTX, sqlcLogger, SqlcLogLevel, cleanSQL()
 
-### Community 144 - "Community 144"
+### Community 146 - "Community 146"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 145 - "Community 145"
+### Community 147 - "Community 147"
 Cohesion: 0.22
 Nodes (4): isValidOrgName(), NewOrganization(), Organization, OrgStatus
 
-### Community 146 - "Community 146"
+### Community 148 - "Community 148"
 Cohesion: 0.2
 Nodes (2): TestNewRole(), TestRole_CanDelete()
 
-### Community 147 - "Community 147"
+### Community 149 - "Community 149"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 148 - "Community 148"
+### Community 150 - "Community 150"
 Cohesion: 0.29
 Nodes (2): TestModelGroupRepository_InterfaceCompliance(), MockModelGroupRepository
 
-### Community 149 - "Community 149"
+### Community 151 - "Community 151"
 Cohesion: 0.2
 Nodes (6): endUserContextKeyType, EndUserIdentity, JWTValidator, RuntimeAuthMiddleware, GetEndUserID(), GetEndUserIdentity()
 
-### Community 150 - "Community 150"
+### Community 152 - "Community 152"
 Cohesion: 0.47
 Nodes (1): ManagementHandler
 
-### Community 151 - "Community 151"
+### Community 153 - "Community 153"
 Cohesion: 0.18
 Nodes (1): queryResolver
 
-### Community 152 - "Community 152"
+### Community 154 - "Community 154"
 Cohesion: 0.27
 Nodes (8): attachModelRLSPolicy(), contains(), convertPolicyToGraphQL(), convertPresetToGraphQL(), convertRLSErrorToGraphQLType(), getOrgAndProjectFromContext(), toGraphQLAuthVarType(), toGraphQLProjectAuthSchema()
 
-### Community 153 - "Community 153"
+### Community 155 - "Community 155"
 Cohesion: 0.18
 Nodes (10): IdentifierType, LoginCommand, LoginResult, LogoutCommand, OAuthLoginCommand, RefreshCommand, RefreshResult, RegisterCommand (+2 more)
 
-### Community 154 - "Community 154"
+### Community 156 - "Community 156"
 Cohesion: 0.2
 Nodes (3): CreateCustomRoleInput, RoleService, UpdateRoleInput
 
-### Community 155 - "Community 155"
+### Community 157 - "Community 157"
 Cohesion: 0.24
 Nodes (2): PermissionVersionManager, UserRoleService
 
-### Community 156 - "Community 156"
+### Community 158 - "Community 158"
 Cohesion: 0.31
 Nodes (1): EnumAppService
 
-### Community 157 - "Community 157"
+### Community 159 - "Community 159"
 Cohesion: 0.22
 Nodes (2): computeNeighbors(), ModelGroupAppService
 
-### Community 158 - "Community 158"
+### Community 160 - "Community 160"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 159 - "Community 159"
+### Community 161 - "Community 161"
 Cohesion: 0.22
 Nodes (2): MySQLDDLBuilderTestSuite, stringPtr()
 
-### Community 160 - "Community 160"
+### Community 162 - "Community 162"
 Cohesion: 0.27
 Nodes (1): ErrorDefinition
 
-### Community 161 - "Community 161"
+### Community 163 - "Community 163"
 Cohesion: 0.42
 Nodes (10): average(), charToDigit(), computeMidpoint(), decrementOne(), digitToChar(), InitialOrder(), Midpoint(), Renumber() (+2 more)
 
-### Community 162 - "Community 162"
+### Community 164 - "Community 164"
 Cohesion: 0.18
 Nodes (0): 
 
-### Community 163 - "Community 163"
+### Community 165 - "Community 165"
 Cohesion: 0.42
 Nodes (8): fetchMembershipsFromAPI(), getCachedMemberships(), getMemberships(), hasCachedMemberships(), invalidateMembershipsCache(), isCacheValid(), loadFromLocalStorage(), preloadMemberships()
 
-### Community 164 - "Community 164"
+### Community 166 - "Community 166"
 Cohesion: 0.31
 Nodes (5): buildPermissionObj(), getCurrentPermission(), handleAddPermission(), handleDeletePermission(), refreshPageData()
 
-### Community 165 - "Community 165"
+### Community 167 - "Community 167"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 166 - "Community 166"
+### Community 168 - "Community 168"
 Cohesion: 0.29
 Nodes (3): columnInfo, MySQLIntrospector, SchemaIntrospector
 
-### Community 167 - "Community 167"
+### Community 169 - "Community 169"
 Cohesion: 0.2
 Nodes (1): DDLConverterTestSuite
 
-### Community 168 - "Community 168"
+### Community 170 - "Community 170"
 Cohesion: 0.2
 Nodes (9): CreateMembershipParams, CreateOrganizationParams, CreateUserParams, GetMembershipByUserAndOrgParams, ListMembershipsWithOrgDetailsParams, ListMembershipsWithOrgDetailsRow, ListMembershipsWithUserNameRow, UpdateMembershipParams (+1 more)
 
-### Community 169 - "Community 169"
+### Community 171 - "Community 171"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 170 - "Community 170"
+### Community 172 - "Community 172"
 Cohesion: 0.22
 Nodes (2): Server, writeJSON()
 
-### Community 171 - "Community 171"
-Cohesion: 0.2
-Nodes (1): ModelErrorAdapter
-
-### Community 172 - "Community 172"
+### Community 173 - "Community 173"
 Cohesion: 0.2
 Nodes (1): injectRequestIDMiddleware()
 
-### Community 173 - "Community 173"
+### Community 174 - "Community 174"
+Cohesion: 0.2
+Nodes (1): ModelErrorAdapter
+
+### Community 175 - "Community 175"
 Cohesion: 0.44
 Nodes (2): validateProjectAccessScope(), EndUserProjectAccessAppService
 
-### Community 174 - "Community 174"
+### Community 176 - "Community 176"
 Cohesion: 0.31
 Nodes (1): GraphQLTypeFactory
 
-### Community 175 - "Community 175"
+### Community 177 - "Community 177"
 Cohesion: 0.2
 Nodes (0): 
 
-### Community 176 - "Community 176"
+### Community 178 - "Community 178"
+Cohesion: 0.22
+Nodes (0): 
+
+### Community 179 - "Community 179"
 Cohesion: 0.36
 Nodes (5): createUnknownError(), isModelEnumDomainError(), normalizeDomainError(), normalizeUnknownError(), runModelEnumAction()
 
-### Community 177 - "Community 177"
+### Community 180 - "Community 180"
 Cohesion: 0.44
 Nodes (8): createMockAccessToken(), createMockEndUser(), createMockEndUserList(), createMockErrorPayload(), createMockLoginPayload(), createMockMePayload(), createMockRefreshPayload(), createMockRegisterPayload()
 
-### Community 178 - "Community 178"
+### Community 181 - "Community 181"
 Cohesion: 0.31
 Nodes (4): decodeJWT(), getUserInfoFromToken(), isTokenExpired(), isTokenNearExpiry()
 
-### Community 179 - "Community 179"
+### Community 182 - "Community 182"
 Cohesion: 0.39
 Nodes (7): buildRuntimeEndpoint(), createAuthLink(), createModelRuntimeClient(), createOrgScopedClient(), createProjectScopedClient(), getOrgScopedClient(), useDesignTimeClient()
 
-### Community 180 - "Community 180"
+### Community 183 - "Community 183"
 Cohesion: 0.25
 Nodes (2): GetEnforcer(), initializeEnforcer()
 
-### Community 181 - "Community 181"
+### Community 184 - "Community 184"
 Cohesion: 0.22
 Nodes (8): CreateDatabaseClusterParams, DeleteDatabaseClusterParams, ExistsDatabaseClusterByProjectKeyParams, GetDatabaseClusterByIDParams, GetDatabaseClusterByProjectKeyParams, ListDatabaseClustersParams, ListDatabaseClustersUpdatedAfterParams, UpdateDatabaseClusterWithVersionParams
 
-### Community 182 - "Community 182"
+### Community 185 - "Community 185"
+Cohesion: 0.22
+Nodes (8): CreateEndUserBundleParams, DeleteEndUserBundleParams, GetBundleDataPermissionItemByBundleAndModelParams, GetEndUserBundleByIDParams, ListEndUserBundlesByProjectParams, RemoveBundleDataPermissionItemParams, UpdateEndUserBundleParams, UpsertBundleDataPermissionItemParams
+
+### Community 186 - "Community 186"
 Cohesion: 0.28
 Nodes (5): expandRowPolicyToGrants(), scopeToRowScope(), actionGrant, EffectivePermission, EffectivePermissionSet
 
-### Community 183 - "Community 183"
+### Community 187 - "Community 187"
 Cohesion: 0.25
 Nodes (4): Action, EndUserPermission, PermissionPreset, PermissionType
 
-### Community 184 - "Community 184"
+### Community 188 - "Community 188"
 Cohesion: 0.22
 Nodes (0): 
 
-### Community 185 - "Community 185"
+### Community 189 - "Community 189"
 Cohesion: 0.33
 Nodes (5): generateDefaultNickname(), NewInitialProfile(), NewProfile(), Profile, UpdatePatch
 
-### Community 186 - "Community 186"
+### Community 190 - "Community 190"
 Cohesion: 0.25
 Nodes (1): Permission
 
-### Community 187 - "Community 187"
+### Community 191 - "Community 191"
 Cohesion: 0.28
 Nodes (4): Membership, MembershipStatus, NewInvitation(), NewMembership()
 
-### Community 188 - "Community 188"
+### Community 192 - "Community 192"
 Cohesion: 0.22
 Nodes (8): ActualConstraintType, ActualForeignKey, ActualSchemaResult, ActualSchemaService, DbColumnInfo, DbTableStatus, FieldConflict, FieldConflictAspect
 
-### Community 189 - "Community 189"
+### Community 193 - "Community 193"
 Cohesion: 0.47
 Nodes (1): DataHandler
 
-### Community 190 - "Community 190"
-Cohesion: 0.39
-Nodes (0): 
-
-### Community 191 - "Community 191"
+### Community 194 - "Community 194"
 Cohesion: 0.25
 Nodes (5): WithRuntimeContext(), ModelRuntimeHandler, runtimeContext, runtimeContextKey, RuntimeGraphQLRequest
 
-### Community 192 - "Community 192"
+### Community 195 - "Community 195"
 Cohesion: 0.33
 Nodes (2): PermissionCache, PermissionCacheInterface
 
-### Community 193 - "Community 193"
+### Community 196 - "Community 196"
 Cohesion: 0.5
 Nodes (8): stubSystemRole(), systemRoleSyncerTestSetup(), TestSystemRolePermissionsSyncer_Sync_CreateRoleError(), TestSystemRolePermissionsSyncer_Sync_CreatesRoleWhenMissing(), TestSystemRolePermissionsSyncer_Sync_DeleteError(), TestSystemRolePermissionsSyncer_Sync_DeleteThenInsert(), TestSystemRolePermissionsSyncer_Sync_Idempotent(), TestSystemRolePermissionsSyncer_Sync_InsertError()
 
-### Community 194 - "Community 194"
+### Community 197 - "Community 197"
 Cohesion: 0.22
 Nodes (6): ApplyRLSPresetInput, DataModelWrapper, SetModelRLSPolicyInput, SetProjectAuthSchemaInput, ValidateRLSExprInput, ValidationErrorResult
 
-### Community 195 - "Community 195"
+### Community 198 - "Community 198"
 Cohesion: 0.25
 Nodes (4): AuthSchemaProvider, ModelSchema, PolicyValidator, ValidationError
 
-### Community 196 - "Community 196"
+### Community 199 - "Community 199"
 Cohesion: 0.31
 Nodes (2): CompiledPolicy, PolicyCompiler
 
-### Community 197 - "Community 197"
+### Community 200 - "Community 200"
 Cohesion: 0.33
 Nodes (8): BuildModelFromTable(), formatModelTitle(), newModelFromCommand(), normalizeModelName(), validateModelDatabaseName(), validateModelDisplayName(), BuildModelFromTableResult, SkippedFieldInfo
 
-### Community 198 - "Community 198"
+### Community 201 - "Community 201"
 Cohesion: 0.42
 Nodes (7): TestCase, assertJSONEqual(), floatPtr(), intPtr(), stringPtr(), TestJSONSchemaBuilder_ValidationRules(), TestJSONSchemaGenerator_GenerateJSONSchema()
 
-### Community 199 - "Community 199"
+### Community 202 - "Community 202"
 Cohesion: 0.42
 Nodes (7): assertSDLEqual(), createTestModel(), normalizeSDL(), TestSchemaManager_GenerateBothSchemas(), TestSchemaManager_GenerateGraphQLSchema(), TestSchemaManager_GenerateJSONSchema(), TestSchemaManager_ValidateModel()
 
-### Community 200 - "Community 200"
+### Community 203 - "Community 203"
 Cohesion: 0.22
 Nodes (0): 
 
-### Community 201 - "Community 201"
+### Community 204 - "Community 204"
 Cohesion: 0.25
 Nodes (2): Claims, Service
-
-### Community 202 - "Community 202"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 203 - "Community 203"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 204 - "Community 204"
-Cohesion: 0.29
-Nodes (2): validateAgainstSchema(), validateField()
 
 ### Community 205 - "Community 205"
 Cohesion: 0.25
 Nodes (0): 
 
 ### Community 206 - "Community 206"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 207 - "Community 207"
+Cohesion: 0.29
+Nodes (2): validateAgainstSchema(), validateField()
+
+### Community 208 - "Community 208"
+Cohesion: 0.25
+Nodes (0): 
+
+### Community 209 - "Community 209"
 Cohesion: 0.32
 Nodes (4): decodeEndUserJWT(), fetchAndCacheEndUserInfo(), getEndUserInfoFromToken(), getEndUserToken()
 
-### Community 207 - "Community 207"
+### Community 210 - "Community 210"
 Cohesion: 0.64
 Nodes (7): createBackup(), log(), main(), showSummary(), syncTailwindBaseCSS(), syncTailwindConfig(), validateFiles()
 
-### Community 208 - "Community 208"
+### Community 211 - "Community 211"
 Cohesion: 0.32
 Nodes (7): ErrorResponse, SuccessResponse, TokenRequest, ErrorResponseWithStatus(), NewErrorResponse(), NewSuccessResponse(), SuccessResponseWithStatus()
 
-### Community 209 - "Community 209"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 210 - "Community 210"
-Cohesion: 0.25
-Nodes (0): 
-
-### Community 211 - "Community 211"
-Cohesion: 0.36
-Nodes (1): DDLConverter
-
 ### Community 212 - "Community 212"
 Cohesion: 0.25
-Nodes (7): AssignBundleToRoleParams, CreateEndUserRoleParams, DeleteEndUserRoleParams, GetEndUserRoleByIDParams, ListEndUserRolesByProjectParams, RevokeBundleFromRoleParams, UpdateEndUserRoleParams
+Nodes (0): 
 
 ### Community 213 - "Community 213"
 Cohesion: 0.25
-Nodes (7): CreateEndUserPermissionParams, DeleteEndUserPermissionParams, DeleteEndUserPermissionsByModelAndTypeParams, GetEndUserPermissionByIDParams, ListEndUserPermissionsByModelParams, ListEndUserPermissionsByProjectParams, UpdateEndUserPermissionParams
+Nodes (0): 
 
 ### Community 214 - "Community 214"
-Cohesion: 0.25
-Nodes (7): CreateFieldDefinitionParams, DeleteFieldsByNamesParams, ExistsFieldByNameParams, GetFieldByModelIDAndNameParams, UpdateFieldDisplayOrderParams, UpdateFieldParams, UpdateFieldsStatusParams
+Cohesion: 0.36
+Nodes (1): DDLConverter
 
 ### Community 215 - "Community 215"
 Cohesion: 0.25
-Nodes (7): AddPermissionToBundleParams, CreateEndUserBundleParams, DeleteEndUserBundleParams, GetEndUserBundleByIDParams, ListEndUserBundlesByProjectParams, RemovePermissionFromBundleParams, UpdateEndUserBundleParams
+Nodes (7): AssignBundleToRoleParams, CreateEndUserRoleParams, DeleteEndUserRoleParams, GetEndUserRoleByIDParams, ListEndUserRolesByProjectParams, RevokeBundleFromRoleParams, UpdateEndUserRoleParams
 
 ### Community 216 - "Community 216"
 Cohesion: 0.25
-Nodes (2): endUserSessionDBTX, SqlEndUserSessionRepository
+Nodes (7): CreateEndUserPermissionParams, DeleteEndUserPermissionParams, GetEndUserPermissionByIDParams, GetEndUserPermissionByModelAndNameParams, ListEndUserPermissionsByModelParams, ListEndUserPermissionsByProjectParams, UpdateEndUserPermissionParams
 
 ### Community 217 - "Community 217"
-Cohesion: 0.36
-Nodes (2): SqlProfileRepository, profileToDomain()
+Cohesion: 0.25
+Nodes (7): CreateFieldDefinitionParams, DeleteFieldsByNamesParams, ExistsFieldByNameParams, GetFieldByModelIDAndNameParams, UpdateFieldDisplayOrderParams, UpdateFieldParams, UpdateFieldsStatusParams
 
 ### Community 218 - "Community 218"
-Cohesion: 0.29
-Nodes (2): MembershipClaimInfo, ModelCraftClaims
+Cohesion: 0.25
+Nodes (2): endUserSessionDBTX, SqlEndUserSessionRepository
 
 ### Community 219 - "Community 219"
 Cohesion: 0.36
-Nodes (2): isQueryableField(), whereInputBuilder
+Nodes (2): SqlProfileRepository, profileToDomain()
 
 ### Community 220 - "Community 220"
-Cohesion: 0.25
-Nodes (0): 
+Cohesion: 0.29
+Nodes (2): MembershipClaimInfo, ModelCraftClaims
 
 ### Community 221 - "Community 221"
-Cohesion: 0.25
-Nodes (0): 
+Cohesion: 0.36
+Nodes (2): isQueryableField(), whereInputBuilder
 
 ### Community 222 - "Community 222"
 Cohesion: 0.25
-Nodes (2): ExprType, JsonExpr
+Nodes (0): 
 
 ### Community 223 - "Community 223"
 Cohesion: 0.25
-Nodes (4): DeleteFieldRequest, ModelQueryOptions, ModelRepository, UpdateFieldsStatusRequest
+Nodes (0): 
 
 ### Community 224 - "Community 224"
+Cohesion: 0.25
+Nodes (2): ExprType, JsonExpr
+
+### Community 225 - "Community 225"
+Cohesion: 0.25
+Nodes (4): DeleteFieldRequest, ModelQueryOptions, ModelRepository, UpdateFieldsStatusRequest
+
+### Community 226 - "Community 226"
 Cohesion: 0.43
 Nodes (0): 
 
-### Community 225 - "Community 225"
+### Community 227 - "Community 227"
 Cohesion: 0.36
 Nodes (2): ClusterMapper, NewClusterMapper()
 
-### Community 226 - "Community 226"
+### Community 228 - "Community 228"
 Cohesion: 0.29
 Nodes (2): ClusterErrorAdapter, NewClusterErrorAdapter()
 
-### Community 227 - "Community 227"
+### Community 229 - "Community 229"
 Cohesion: 0.25
 Nodes (1): GroupErrorAdapter
 
-### Community 228 - "Community 228"
+### Community 230 - "Community 230"
 Cohesion: 0.36
 Nodes (2): userManagementMapper, convertOrgStatusToGraphQL()
 
-### Community 229 - "Community 229"
+### Community 231 - "Community 231"
 Cohesion: 0.25
 Nodes (4): PermissionLoader, PermissionLoaderInterface, RolePermissionInfo, RolePermissions
 
-### Community 230 - "Community 230"
+### Community 232 - "Community 232"
 Cohesion: 0.25
 Nodes (2): CreateRoleInput, RoleAppService
 
-### Community 231 - "Community 231"
+### Community 233 - "Community 233"
 Cohesion: 0.25
 Nodes (2): OrganizationAppService, OrgMember
 
-### Community 232 - "Community 232"
+### Community 234 - "Community 234"
 Cohesion: 0.29
 Nodes (2): validateFieldsExistOnModel(), LogicalFKAppService
 
-### Community 233 - "Community 233"
+### Community 235 - "Community 235"
 Cohesion: 0.29
 Nodes (3): InitDefaultAESCipher(), NewAESCipher(), AESCipher
 
-### Community 234 - "Community 234"
+### Community 236 - "Community 236"
 Cohesion: 0.25
 Nodes (1): TestStruct
 
-### Community 235 - "Community 235"
+### Community 237 - "Community 237"
 Cohesion: 0.52
 Nodes (5): ensureEndUserExists(), ensureInternalToken(), ensurePermissionBundleID(), ensureProjectAccessGranted(), ensureProjectGraphQLClient()
 
-### Community 236 - "Community 236"
+### Community 238 - "Community 238"
 Cohesion: 0.33
 Nodes (2): formatTimestamp(), getOperationInfo()
 
-### Community 237 - "Community 237"
+### Community 239 - "Community 239"
 Cohesion: 0.33
 Nodes (2): getRuleForField(), handleFieldModeChange()
 
-### Community 238 - "Community 238"
-Cohesion: 0.29
-Nodes (0): 
-
-### Community 239 - "Community 239"
-Cohesion: 0.29
-Nodes (0): 
-
 ### Community 240 - "Community 240"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 241 - "Community 241"
+Cohesion: 0.29
+Nodes (0): 
+
+### Community 242 - "Community 242"
 Cohesion: 0.48
 Nodes (6): isReservedName(), isValidCustomBase(), isValidDefaultName(), isValidFinalName(), validateCustomBase(), validateOrgName()
 
-### Community 241 - "Community 241"
+### Community 243 - "Community 243"
 Cohesion: 0.48
 Nodes (5): getComponentProps(), getComponentType(), getValidator(), parseAndTransformSchema(), transformToFormilySchema()
 
-### Community 242 - "Community 242"
+### Community 244 - "Community 244"
 Cohesion: 0.38
 Nodes (3): handleInitPrivateDB(), loadDatabaseCatalog(), run()
 
-### Community 243 - "Community 243"
+### Community 245 - "Community 245"
 Cohesion: 0.62
 Nodes (6): getResponse(), handleRequest(), resolveMainClient(), respondWithMock(), sendToClient(), serializeRequest()
 
-### Community 244 - "Community 244"
+### Community 246 - "Community 246"
 Cohesion: 0.43
 Nodes (5): ChiJWTAuthMiddleware(), extractBearerToken(), tryInternalTokenAuth(), validateModelCraftJWT(), JWTAuthConfig
 
-### Community 245 - "Community 245"
+### Community 247 - "Community 247"
 Cohesion: 0.43
 Nodes (5): ChiLoggerMiddleware(), parseTraceparent(), shouldCaptureChiRequestBody(), shouldCaptureChiResponseBody(), chiResponseWriter
 
-### Community 246 - "Community 246"
+### Community 248 - "Community 248"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 247 - "Community 247"
+### Community 249 - "Community 249"
 Cohesion: 0.43
 Nodes (2): quoteIdentifier(), PrivateMigrator
 
-### Community 248 - "Community 248"
+### Community 250 - "Community 250"
 Cohesion: 0.29
 Nodes (6): ArchiveProjectParams, CreateProjectParams, ExistsProjectBySlugParams, GetProjectByClusterIDParams, GetProjectBySlugAndOrgParams, UpdateProjectParams
 
-### Community 249 - "Community 249"
+### Community 251 - "Community 251"
 Cohesion: 0.29
 Nodes (1): SqlModelRLSPolicyRepository
 
-### Community 250 - "Community 250"
+### Community 252 - "Community 252"
 Cohesion: 0.48
 Nodes (2): SqlModelRuntimeRepository, DbgenModelToRuntimeModel()
 
-### Community 251 - "Community 251"
+### Community 253 - "Community 253"
 Cohesion: 0.29
 Nodes (3): ColumnAccessMode, ColumnPolicy, ColumnRule
 
-### Community 252 - "Community 252"
+### Community 254 - "Community 254"
 Cohesion: 0.29
 Nodes (1): JWTSigner
 
-### Community 253 - "Community 253"
+### Community 255 - "Community 255"
 Cohesion: 0.29
 Nodes (1): EndUser
 
-### Community 254 - "Community 254"
+### Community 256 - "Community 256"
 Cohesion: 0.43
 Nodes (4): NewOAuthUser(), NewUser(), User, ValidateUserName()
 
-### Community 255 - "Community 255"
+### Community 257 - "Community 257"
 Cohesion: 0.33
 Nodes (4): newGraphqlRequestContext(), WithGraphqlRequestContext(), graphqlRequestContext, graphqlRequestContextKey
 
-### Community 256 - "Community 256"
+### Community 258 - "Community 258"
 Cohesion: 0.33
 Nodes (2): newBaseFieldForFKTest(), TestFieldDefinition_RelationFormat_WithRelateFkId()
 
-### Community 257 - "Community 257"
+### Community 259 - "Community 259"
 Cohesion: 0.29
 Nodes (3): LogicalFKCreateMode, LogicalFKDirection, LogicalForeignKey
 
-### Community 258 - "Community 258"
+### Community 260 - "Community 260"
 Cohesion: 0.38
 Nodes (2): MySQLTypeMapper, TypeMapper
 
-### Community 259 - "Community 259"
+### Community 261 - "Community 261"
 Cohesion: 0.33
 Nodes (1): ModelRLSPolicy
 
-### Community 260 - "Community 260"
+### Community 262 - "Community 262"
 Cohesion: 0.29
 Nodes (5): HealthStatus, RepairMode, RepairResult, SchemaIssue, SchemaIssueType
 
-### Community 261 - "Community 261"
+### Community 263 - "Community 263"
 Cohesion: 0.48
 Nodes (6): conditionalAuthMiddleware(), debugHandler(), healthHandler(), openAPISpecHandler(), SetupChiRouter(), ChiRouterConfig
 
-### Community 262 - "Community 262"
+### Community 264 - "Community 264"
 Cohesion: 0.38
 Nodes (1): FieldSelectionChecker
 
-### Community 263 - "Community 263"
+### Community 265 - "Community 265"
 Cohesion: 0.29
 Nodes (1): EnumErrorAdapter
 
-### Community 264 - "Community 264"
+### Community 266 - "Community 266"
 Cohesion: 0.38
 Nodes (3): boolPtr(), stringPtr(), TestFieldMapper_ConvertAddFieldInputToDTO_TableDriven()
 
-### Community 265 - "Community 265"
+### Community 267 - "Community 267"
 Cohesion: 0.29
 Nodes (1): EndUserErrorAdapter
 
-### Community 266 - "Community 266"
+### Community 268 - "Community 268"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 267 - "Community 267"
+### Community 269 - "Community 269"
 Cohesion: 0.29
 Nodes (1): ProjectErrorAdapter
 
-### Community 268 - "Community 268"
+### Community 270 - "Community 270"
 Cohesion: 0.38
 Nodes (2): projectMapper, ConvertProjectStatusToGraphQL()
 
-### Community 269 - "Community 269"
+### Community 271 - "Community 271"
 Cohesion: 0.43
 Nodes (1): PermissionVersionManager
 
-### Community 270 - "Community 270"
+### Community 272 - "Community 272"
 Cohesion: 0.29
 Nodes (0): 
 
-### Community 271 - "Community 271"
-Cohesion: 0.29
-Nodes (6): CreateClusterForProjectInput, CreateProjectCommand, DeleteProjectCommand, GetProjectCommand, ListProjectsCommand, UpdateProjectCommand
-
-### Community 272 - "Community 272"
-Cohesion: 0.33
-Nodes (1): ModelRLSPolicyAppService
-
 ### Community 273 - "Community 273"
-Cohesion: 0.38
-Nodes (1): SchemaManager
+Cohesion: 0.43
+Nodes (2): isMutationOperation(), GraphqlAppService
 
 ### Community 274 - "Community 274"
 Cohesion: 0.29
-Nodes (0): 
+Nodes (1): stubRuntimeModelRepo
 
 ### Community 275 - "Community 275"
-Cohesion: 0.4
-Nodes (3): restErrorResponse, RESTHandler, restWriteError()
+Cohesion: 0.29
+Nodes (6): CreateClusterForProjectInput, CreateProjectCommand, DeleteProjectCommand, GetProjectCommand, ListProjectsCommand, UpdateProjectCommand
 
 ### Community 276 - "Community 276"
 Cohesion: 0.33
-Nodes (0): 
+Nodes (1): ModelRLSPolicyAppService
 
 ### Community 277 - "Community 277"
-Cohesion: 0.47
-Nodes (3): TabsContent(), TabsTrigger(), useTabsContext()
+Cohesion: 0.38
+Nodes (1): SchemaManager
 
 ### Community 278 - "Community 278"
-Cohesion: 0.4
-Nodes (2): copyErrorInfo(), fallbackCopy()
+Cohesion: 0.29
+Nodes (0): 
 
 ### Community 279 - "Community 279"
-Cohesion: 0.47
-Nodes (3): formatRelationDisplay(), renderCellValue(), toReadableText()
+Cohesion: 0.4
+Nodes (3): restErrorResponse, RESTHandler, restWriteError()
 
 ### Community 280 - "Community 280"
 Cohesion: 0.33
 Nodes (0): 
 
 ### Community 281 - "Community 281"
-Cohesion: 0.4
-Nodes (2): mapQueryPayloadToProfileView(), normalizeUserStatus()
+Cohesion: 0.47
+Nodes (3): TabsContent(), TabsTrigger(), useTabsContext()
 
 ### Community 282 - "Community 282"
-Cohesion: 0.6
-Nodes (5): isModelEnumErrorCode(), mapModelEnumError(), normalizeCode(), normalizeMessage(), normalizeSuggestion()
+Cohesion: 0.4
+Nodes (2): copyErrorInfo(), fallbackCopy()
 
 ### Community 283 - "Community 283"
-Cohesion: 0.33
-Nodes (1): handleOpenChange()
+Cohesion: 0.47
+Nodes (3): formatRelationDisplay(), renderCellValue(), toReadableText()
 
 ### Community 284 - "Community 284"
 Cohesion: 0.33
-Nodes (1): jsonResponseWriter
+Nodes (0): 
 
 ### Community 285 - "Community 285"
+Cohesion: 0.4
+Nodes (2): mapQueryPayloadToProfileView(), normalizeUserStatus()
+
+### Community 286 - "Community 286"
+Cohesion: 0.6
+Nodes (5): isModelEnumErrorCode(), mapModelEnumError(), normalizeCode(), normalizeMessage(), normalizeSuggestion()
+
+### Community 287 - "Community 287"
+Cohesion: 0.33
+Nodes (1): jsonResponseWriter
+
+### Community 288 - "Community 288"
 Cohesion: 0.73
 Nodes (5): okHandler(), requestWithPermissions(), TestChiRequireAllPermissions(), TestChiRequireAnyPermission(), TestChiRequirePermission()
 
-### Community 286 - "Community 286"
+### Community 289 - "Community 289"
 Cohesion: 0.33
 Nodes (5): CreateModelGroupParams, GetModelGroupByNameParams, GetTailModelGroupDisplayOrderParams, ListModelGroupsByProjectParams, UpdateModelGroupParams
 
-### Community 287 - "Community 287"
+### Community 290 - "Community 290"
 Cohesion: 0.4
 Nodes (2): NewFieldEnumAssociationPOFromDomain(), FieldEnumAssociationPO
 
-### Community 288 - "Community 288"
+### Community 291 - "Community 291"
 Cohesion: 0.4
 Nodes (2): ptrInt(), TestFieldDefinitionToDomain()
 
-### Community 289 - "Community 289"
+### Community 292 - "Community 292"
 Cohesion: 0.4
 Nodes (2): NewModelGroupPOFromDomain(), ModelGroupPO
 
-### Community 290 - "Community 290"
+### Community 293 - "Community 293"
 Cohesion: 0.47
 Nodes (3): rawJSON(), TestRowPolicy_Normalization(), TestRowPolicy_Validate()
 
-### Community 291 - "Community 291"
+### Community 294 - "Community 294"
 Cohesion: 0.47
 Nodes (2): ProjectAuthConfig, ProviderType
 
-### Community 292 - "Community 292"
+### Community 295 - "Community 295"
 Cohesion: 0.33
 Nodes (4): EnvironmentContext, InterceptorContext, ResourceContext, UserContext
 
-### Community 293 - "Community 293"
+### Community 296 - "Community 296"
 Cohesion: 0.4
 Nodes (1): EndUserSession
 
-### Community 294 - "Community 294"
+### Community 297 - "Community 297"
 Cohesion: 0.33
 Nodes (1): PhoneNumber
 
-### Community 295 - "Community 295"
+### Community 298 - "Community 298"
 Cohesion: 0.33
 Nodes (1): GraphqlSchemaManager
 
-### Community 296 - "Community 296"
-Cohesion: 0.33
-Nodes (0): 
-
-### Community 297 - "Community 297"
-Cohesion: 0.33
-Nodes (0): 
-
-### Community 298 - "Community 298"
-Cohesion: 0.33
-Nodes (0): 
-
 ### Community 299 - "Community 299"
 Cohesion: 0.33
-Nodes (5): ChangeResult, DeploymentHistory, DeploymentStatus, ModelChange, ModelChangeType
+Nodes (0): 
 
 ### Community 300 - "Community 300"
 Cohesion: 0.33
@@ -2031,24 +2036,24 @@ Cohesion: 0.33
 Nodes (0): 
 
 ### Community 302 - "Community 302"
-Cohesion: 0.53
-Nodes (3): responseRecorder, injectRequestID(), requestIDInjectorMiddleware()
+Cohesion: 0.33
+Nodes (5): ChangeResult, DeploymentHistory, DeploymentStatus, ModelChange, ModelChangeType
 
 ### Community 303 - "Community 303"
 Cohesion: 0.33
-Nodes (5): EnumConfigDTO, EnumOptionDTO, FieldDefinitionDTO, RelationConfigDTO, ValidationConfigDTO
+Nodes (0): 
 
 ### Community 304 - "Community 304"
 Cohesion: 0.33
 Nodes (0): 
 
 ### Community 305 - "Community 305"
-Cohesion: 0.33
-Nodes (0): 
+Cohesion: 0.53
+Nodes (3): responseRecorder, injectRequestID(), requestIDInjectorMiddleware()
 
 ### Community 306 - "Community 306"
-Cohesion: 0.47
-Nodes (3): convertRolesToGraphQL(), convertRoleToGraphQL(), strPtr()
+Cohesion: 0.33
+Nodes (5): EnumConfigDTO, EnumOptionDTO, FieldDefinitionDTO, RelationConfigDTO, ValidationConfigDTO
 
 ### Community 307 - "Community 307"
 Cohesion: 0.33
@@ -2059,52 +2064,52 @@ Cohesion: 0.33
 Nodes (0): 
 
 ### Community 309 - "Community 309"
-Cohesion: 0.33
-Nodes (5): GetMyUserProfileCommand, ProfileView, UpdateMyProfileCommand, UserProfileView, UserView
+Cohesion: 0.47
+Nodes (3): convertRolesToGraphQL(), convertRoleToGraphQL(), strPtr()
 
 ### Community 310 - "Community 310"
 Cohesion: 0.33
-Nodes (1): MockPermissionVersionManager
+Nodes (0): 
 
 ### Community 311 - "Community 311"
 Cohesion: 0.33
-Nodes (1): PermissionService
+Nodes (0): 
 
 ### Community 312 - "Community 312"
 Cohesion: 0.33
-Nodes (1): ModelDefinition
+Nodes (5): GetMyUserProfileCommand, ProfileView, UpdateMyProfileCommand, UserProfileView, UserView
 
 ### Community 313 - "Community 313"
 Cohesion: 0.33
-Nodes (0): 
+Nodes (1): MockPermissionVersionManager
 
 ### Community 314 - "Community 314"
-Cohesion: 0.4
-Nodes (2): getDefault(), GetLogger()
+Cohesion: 0.33
+Nodes (1): PermissionService
 
 ### Community 315 - "Community 315"
-Cohesion: 0.4
-Nodes (4): CalculateTimeCost(), GetMetadata(), contextKey, RequestMetadata
+Cohesion: 0.33
+Nodes (1): ModelDefinition
 
 ### Community 316 - "Community 316"
-Cohesion: 0.5
-Nodes (3): clientRequestIDKey, isValidClientRequestID(), RequestID()
+Cohesion: 0.33
+Nodes (0): 
 
 ### Community 317 - "Community 317"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (2): getDefault(), GetLogger()
 
 ### Community 318 - "Community 318"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (4): CalculateTimeCost(), GetMetadata(), contextKey, RequestMetadata
 
 ### Community 319 - "Community 319"
-Cohesion: 0.4
-Nodes (0): 
+Cohesion: 0.5
+Nodes (3): clientRequestIDKey, isValidClientRequestID(), RequestID()
 
 ### Community 320 - "Community 320"
-Cohesion: 0.5
-Nodes (2): getClient(), makeClient()
+Cohesion: 0.4
+Nodes (0): 
 
 ### Community 321 - "Community 321"
 Cohesion: 0.4
@@ -2116,147 +2121,147 @@ Nodes (0):
 
 ### Community 323 - "Community 323"
 Cohesion: 0.5
-Nodes (2): mapQueryPayloadToProfileView(), normalizeUserStatus()
+Nodes (2): getClient(), makeClient()
 
 ### Community 324 - "Community 324"
-Cohesion: 0.5
-Nodes (2): createMockColumnPolicy(), createMockEndUserPermission()
-
-### Community 325 - "Community 325"
-Cohesion: 0.7
-Nodes (4): createMockMyUserProfilePayload(), createMockProfile(), createMockUpdateMyProfilePayload(), createMockUserWithProfile()
-
-### Community 326 - "Community 326"
 Cohesion: 0.4
 Nodes (0): 
+
+### Community 325 - "Community 325"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 326 - "Community 326"
+Cohesion: 0.5
+Nodes (2): mapQueryPayloadToProfileView(), normalizeUserStatus()
 
 ### Community 327 - "Community 327"
 Cohesion: 0.5
-Nodes (2): findEnumSourceFieldForSystemLabel(), isSystemGeneratedLabelField()
+Nodes (2): createMockColumnPolicy(), createMockEndUserPermission()
 
 ### Community 328 - "Community 328"
 Cohesion: 0.7
-Nodes (4): CheckPermission(), ChiRequireAllPermissions(), ChiRequireAnyPermission(), ChiRequirePermission()
+Nodes (4): createMockMyUserProfilePayload(), createMockProfile(), createMockUpdateMyProfilePayload(), createMockUserWithProfile()
 
 ### Community 329 - "Community 329"
 Cohesion: 0.4
-Nodes (1): BcryptPasswordHasher
+Nodes (0): 
 
 ### Community 330 - "Community 330"
-Cohesion: 0.4
-Nodes (4): GetBundleIDsByImplicitRolesParams, GetBundleIDsByUserDirectParams, GetBundleIDsByUserExplicitRolesParams, GetPermissionsByBundleIDsParams
+Cohesion: 0.5
+Nodes (2): findEnumSourceFieldForSystemLabel(), isSystemGeneratedLabelField()
 
 ### Community 331 - "Community 331"
-Cohesion: 0.4
-Nodes (4): DeleteProjectAuthSchemaParams, GetProjectAuthSchemaParams, UpsertModelRLSPolicyParams, UpsertProjectAuthSchemaParams
+Cohesion: 0.7
+Nodes (4): CheckPermission(), ChiRequireAllPermissions(), ChiRequireAnyPermission(), ChiRequirePermission()
 
 ### Community 332 - "Community 332"
 Cohesion: 0.4
-Nodes (2): SqlTxManager, TxManager
+Nodes (1): BcryptPasswordHasher
 
 ### Community 333 - "Community 333"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (4): GetBundleIDsByImplicitRolesParams, GetBundleIDsByUserDirectParams, GetBundleIDsByUserExplicitRolesParams, GetCustomPermissionsByIDsParams
 
 ### Community 334 - "Community 334"
 Cohesion: 0.4
-Nodes (2): RefreshClaims, UserClaims
+Nodes (4): DeleteProjectAuthSchemaParams, GetProjectAuthSchemaParams, UpsertModelRLSPolicyParams, UpsertProjectAuthSchemaParams
 
 ### Community 335 - "Community 335"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (2): SqlTxManager, TxManager
 
 ### Community 336 - "Community 336"
 Cohesion: 0.4
 Nodes (0): 
 
 ### Community 337 - "Community 337"
-Cohesion: 0.5
-Nodes (2): ProjectScope, NewProjectScope()
+Cohesion: 0.4
+Nodes (2): RefreshClaims, UserClaims
 
 ### Community 338 - "Community 338"
 Cohesion: 0.4
-Nodes (1): UserRole
+Nodes (0): 
 
 ### Community 339 - "Community 339"
 Cohesion: 0.4
-Nodes (1): ModelGroup
+Nodes (0): 
 
 ### Community 340 - "Community 340"
-Cohesion: 0.4
-Nodes (2): FieldQuery, ModelQuery
+Cohesion: 0.5
+Nodes (2): ProjectScope, NewProjectScope()
 
 ### Community 341 - "Community 341"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (1): UserRole
 
 ### Community 342 - "Community 342"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (1): ModelGroup
 
 ### Community 343 - "Community 343"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (2): FieldQuery, ModelQuery
 
 ### Community 344 - "Community 344"
-Cohesion: 0.6
-Nodes (1): groupMapper
+Cohesion: 0.4
+Nodes (0): 
 
 ### Community 345 - "Community 345"
 Cohesion: 0.4
-Nodes (1): FKErrorAdapter
+Nodes (0): 
 
 ### Community 346 - "Community 346"
+Cohesion: 0.4
+Nodes (0): 
+
+### Community 347 - "Community 347"
+Cohesion: 0.6
+Nodes (1): groupMapper
+
+### Community 348 - "Community 348"
+Cohesion: 0.4
+Nodes (1): FKErrorAdapter
+
+### Community 349 - "Community 349"
 Cohesion: 0.5
 Nodes (2): deduplicateStrings(), EndUserAuthzService
 
-### Community 347 - "Community 347"
+### Community 350 - "Community 350"
 Cohesion: 0.5
 Nodes (1): CleanupService
 
-### Community 348 - "Community 348"
-Cohesion: 0.5
-Nodes (1): GraphqlAppService
-
-### Community 349 - "Community 349"
+### Community 351 - "Community 351"
 Cohesion: 0.4
 Nodes (1): AppService
 
-### Community 350 - "Community 350"
+### Community 352 - "Community 352"
 Cohesion: 0.4
 Nodes (2): ActualSchemaQueryUseCase, clusterConnector
 
-### Community 351 - "Community 351"
+### Community 353 - "Community 353"
 Cohesion: 0.6
 Nodes (3): initializeCasbinEnforcer(), main(), printWelcomeBanner()
 
-### Community 352 - "Community 352"
-Cohesion: 0.4
-Nodes (0): 
-
-### Community 353 - "Community 353"
-Cohesion: 0.4
-Nodes (1): GraphQLTestCase
-
 ### Community 354 - "Community 354"
 Cohesion: 0.4
-Nodes (4): ErrorResponse, FieldError, SuccessResponse, ValidationErrorResponse
+Nodes (0): 
 
 ### Community 355 - "Community 355"
 Cohesion: 0.4
-Nodes (0): 
+Nodes (1): GraphQLTestCase
 
 ### Community 356 - "Community 356"
-Cohesion: 0.5
-Nodes (1): responseWriter
+Cohesion: 0.4
+Nodes (4): ErrorResponse, FieldError, SuccessResponse, ValidationErrorResponse
 
 ### Community 357 - "Community 357"
-Cohesion: 0.5
+Cohesion: 0.4
 Nodes (0): 
 
 ### Community 358 - "Community 358"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): responseWriter
 
 ### Community 359 - "Community 359"
 Cohesion: 0.5
@@ -2267,8 +2272,8 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 361 - "Community 361"
-Cohesion: 0.67
-Nodes (2): toDisplayText(), toReadableText()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 362 - "Community 362"
 Cohesion: 0.5
@@ -2276,15 +2281,15 @@ Nodes (0):
 
 ### Community 363 - "Community 363"
 Cohesion: 0.67
-Nodes (2): extractWidgetFields(), RelationPicker()
+Nodes (2): toDisplayText(), toReadableText()
 
 ### Community 364 - "Community 364"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 365 - "Community 365"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): extractWidgetFields(), RelationPicker()
 
 ### Community 366 - "Community 366"
 Cohesion: 0.5
@@ -2303,24 +2308,24 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 370 - "Community 370"
-Cohesion: 0.83
-Nodes (3): createMockField(), createMockGroup(), createMockModel()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 371 - "Community 371"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 372 - "Community 372"
-Cohesion: 0.67
-Nodes (2): formatDate(), formatDateSafe()
+Cohesion: 0.83
+Nodes (3): createMockField(), createMockGroup(), createMockModel()
 
 ### Community 373 - "Community 373"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 374 - "Community 374"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): formatDate(), formatDateSafe()
 
 ### Community 375 - "Community 375"
 Cohesion: 0.5
@@ -2331,72 +2336,72 @@ Cohesion: 0.5
 Nodes (0): 
 
 ### Community 377 - "Community 377"
-Cohesion: 0.67
-Nodes (2): AnalyzeError(), WrapDatabaseError()
-
-### Community 378 - "Community 378"
-Cohesion: 0.5
-Nodes (3): CreateInitialProfileParams, GetProfileByUserIDParams, UpdateProfileByUserIDParams
-
-### Community 379 - "Community 379"
-Cohesion: 0.5
-Nodes (3): AssignRoleToUserParams, ListRolesByUserParams, RevokeRoleFromUserParams
-
-### Community 380 - "Community 380"
-Cohesion: 0.5
-Nodes (3): GrantBundleToUserParams, ListBundlesByUserParams, RevokeBundleFromUserParams
-
-### Community 381 - "Community 381"
 Cohesion: 0.5
 Nodes (0): 
 
+### Community 378 - "Community 378"
+Cohesion: 0.67
+Nodes (2): AnalyzeError(), WrapDatabaseError()
+
+### Community 379 - "Community 379"
+Cohesion: 0.5
+Nodes (3): DeleteOldBundleSnapshotsParams, GetBundleSnapshotByVersionParams, InsertBundleSnapshotParams
+
+### Community 380 - "Community 380"
+Cohesion: 0.5
+Nodes (3): CreateInitialProfileParams, GetProfileByUserIDParams, UpdateProfileByUserIDParams
+
+### Community 381 - "Community 381"
+Cohesion: 0.5
+Nodes (3): AssignRoleToUserParams, ListRolesByUserParams, RevokeRoleFromUserParams
+
 ### Community 382 - "Community 382"
 Cohesion: 0.5
-Nodes (1): SqlSecurityAuditLogRepository
+Nodes (3): GrantBundleToUserParams, ListBundlesByUserParams, RevokeBundleFromUserParams
 
 ### Community 383 - "Community 383"
 Cohesion: 0.5
 Nodes (0): 
 
 ### Community 384 - "Community 384"
-Cohesion: 0.83
-Nodes (3): setupClusterTestCipher(), TestDatabaseClusterToCreateParams(), TestDatabaseClusterToDomain()
+Cohesion: 0.5
+Nodes (1): SqlSecurityAuditLogRepository
 
 ### Community 385 - "Community 385"
 Cohesion: 0.5
-Nodes (1): EndUserRole
+Nodes (0): 
 
 ### Community 386 - "Community 386"
-Cohesion: 0.5
-Nodes (1): RowScope
+Cohesion: 0.83
+Nodes (3): setupClusterTestCipher(), TestDatabaseClusterToCreateParams(), TestDatabaseClusterToDomain()
 
 ### Community 387 - "Community 387"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): EndUserRole
 
 ### Community 388 - "Community 388"
 Cohesion: 0.5
-Nodes (3): SecurityAuditEvent, SecurityAuditLog, SecurityAuditLogRepository
+Nodes (1): RowScope
 
 ### Community 389 - "Community 389"
-Cohesion: 0.67
-Nodes (2): InterceptorRule, NewInterceptorRule()
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 390 - "Community 390"
 Cohesion: 0.5
-Nodes (1): EndUserProjectAccess
+Nodes (3): SecurityAuditEvent, SecurityAuditLog, SecurityAuditLogRepository
 
 ### Community 391 - "Community 391"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): InterceptorRule, NewInterceptorRule()
 
 ### Community 392 - "Community 392"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): EndUserProjectAccess
 
 ### Community 393 - "Community 393"
 Cohesion: 0.5
-Nodes (1): RuntimeModel
+Nodes (0): 
 
 ### Community 394 - "Community 394"
 Cohesion: 0.5
@@ -2404,7 +2409,7 @@ Nodes (0):
 
 ### Community 395 - "Community 395"
 Cohesion: 0.5
-Nodes (3): PermissionRepository, RoleRepository, UserRoleRepository
+Nodes (1): RuntimeModel
 
 ### Community 396 - "Community 396"
 Cohesion: 0.5
@@ -2412,55 +2417,55 @@ Nodes (0):
 
 ### Community 397 - "Community 397"
 Cohesion: 0.5
-Nodes (3): MembershipRepository, MembershipWithDetails, MembershipWithUserName
+Nodes (3): PermissionRepository, RoleRepository, UserRoleRepository
 
 ### Community 398 - "Community 398"
-Cohesion: 0.67
-Nodes (1): AuthSchema
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 399 - "Community 399"
 Cohesion: 0.5
-Nodes (1): EndUserIdentity
+Nodes (3): MembershipRepository, MembershipWithDetails, MembershipWithUserName
 
 ### Community 400 - "Community 400"
-Cohesion: 0.5
-Nodes (1): RLSFilter
+Cohesion: 0.67
+Nodes (1): AuthSchema
 
 ### Community 401 - "Community 401"
 Cohesion: 0.5
-Nodes (1): RLSPreset
+Nodes (1): EndUserIdentity
 
 ### Community 402 - "Community 402"
 Cohesion: 0.5
-Nodes (3): ModelRLSPolicy, PolicyProvider, RLSResolver
+Nodes (1): RLSFilter
 
 ### Community 403 - "Community 403"
-Cohesion: 0.67
-Nodes (2): ptr(), TestMySQLTypeMapper_MapToMySQL()
+Cohesion: 0.5
+Nodes (1): RLSPreset
 
 ### Community 404 - "Community 404"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (3): ModelRLSPolicy, PolicyProvider, RLSResolver
 
 ### Community 405 - "Community 405"
-Cohesion: 0.5
-Nodes (0): 
+Cohesion: 0.67
+Nodes (2): ptr(), TestMySQLTypeMapper_MapToMySQL()
 
 ### Community 406 - "Community 406"
-Cohesion: 0.67
-Nodes (2): NewFieldEnumAssociation(), FieldEnumAssociation
+Cohesion: 0.5
+Nodes (0): 
 
 ### Community 407 - "Community 407"
 Cohesion: 0.5
-Nodes (1): ConnectionInfo
+Nodes (0): 
 
 ### Community 408 - "Community 408"
-Cohesion: 0.5
-Nodes (1): Resolver
+Cohesion: 0.67
+Nodes (2): NewFieldEnumAssociation(), FieldEnumAssociation
 
 ### Community 409 - "Community 409"
 Cohesion: 0.5
-Nodes (1): enumMapper
+Nodes (1): ConnectionInfo
 
 ### Community 410 - "Community 410"
 Cohesion: 0.5
@@ -2468,31 +2473,31 @@ Nodes (1): Resolver
 
 ### Community 411 - "Community 411"
 Cohesion: 0.5
-Nodes (0): 
+Nodes (1): enumMapper
 
 ### Community 412 - "Community 412"
-Cohesion: 0.67
-Nodes (2): toGraphQLAuthVarType(), toGraphQLProjectAuthSchema()
+Cohesion: 0.5
+Nodes (1): Resolver
 
 ### Community 413 - "Community 413"
 Cohesion: 0.5
-Nodes (3): CreateClusterCommand, TestConnectionCommand, UpdateProjectClusterCommand
+Nodes (0): 
 
 ### Community 414 - "Community 414"
-Cohesion: 0.5
-Nodes (1): SystemRolePermissionsSyncer
+Cohesion: 0.67
+Nodes (2): toGraphQLAuthVarType(), toGraphQLProjectAuthSchema()
 
 ### Community 415 - "Community 415"
 Cohesion: 0.5
-Nodes (1): AddFieldFKService
+Nodes (3): CreateClusterCommand, TestConnectionCommand, UpdateProjectClusterCommand
 
 ### Community 416 - "Community 416"
 Cohesion: 0.5
-Nodes (3): GraphQLSchemaResult, JSONSchemaResult, SchemaGenerator
+Nodes (1): SystemRolePermissionsSyncer
 
 ### Community 417 - "Community 417"
 Cohesion: 0.5
-Nodes (3): FieldEntity, MySQLDataType, TableEntity
+Nodes (1): AddFieldFKService
 
 ### Community 418 - "Community 418"
 Cohesion: 0.5
@@ -2500,39 +2505,39 @@ Nodes (0):
 
 ### Community 419 - "Community 419"
 Cohesion: 0.5
-Nodes (1): PlaygroundConfig
+Nodes (3): GraphQLSchemaResult, JSONSchemaResult, SchemaGenerator
 
 ### Community 420 - "Community 420"
+Cohesion: 0.5
+Nodes (3): FieldEntity, MySQLDataType, TableEntity
+
+### Community 421 - "Community 421"
+Cohesion: 0.5
+Nodes (0): 
+
+### Community 422 - "Community 422"
+Cohesion: 0.5
+Nodes (1): PlaygroundConfig
+
+### Community 423 - "Community 423"
 Cohesion: 0.83
 Nodes (3): generateRandomAlphanumeric(), GenerateSlug(), GenerateSlugWithLength()
 
-### Community 421 - "Community 421"
+### Community 424 - "Community 424"
 Cohesion: 0.67
 Nodes (1): ModelCraftWorld
 
-### Community 422 - "Community 422"
+### Community 425 - "Community 425"
 Cohesion: 1.0
 Nodes (2): base64url(), signJWT()
 
-### Community 423 - "Community 423"
+### Community 426 - "Community 426"
 Cohesion: 0.67
 Nodes (1): getCurrentModelId()
 
-### Community 424 - "Community 424"
+### Community 427 - "Community 427"
 Cohesion: 1.0
 Nodes (2): extractEndUserParams(), middleware()
-
-### Community 425 - "Community 425"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 426 - "Community 426"
-Cohesion: 0.67
-Nodes (0): 
-
-### Community 427 - "Community 427"
-Cohesion: 0.67
-Nodes (0): 
 
 ### Community 428 - "Community 428"
 Cohesion: 0.67
@@ -2555,8 +2560,8 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 433 - "Community 433"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): hasChildren(), toggleExpand()
 
 ### Community 434 - "Community 434"
 Cohesion: 0.67
@@ -2627,8 +2632,8 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 451 - "Community 451"
-Cohesion: 1.0
-Nodes (2): ChiRecoveryMiddleware(), resolveRequestID()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 452 - "Community 452"
 Cohesion: 0.67
@@ -2640,47 +2645,47 @@ Nodes (0):
 
 ### Community 454 - "Community 454"
 Cohesion: 0.67
-Nodes (2): GetUserByNameRow, GetUserByPhoneRow
+Nodes (0): 
 
 ### Community 455 - "Community 455"
 Cohesion: 0.67
 Nodes (0): 
 
 ### Community 456 - "Community 456"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): ChiRecoveryMiddleware(), resolveRequestID()
 
 ### Community 457 - "Community 457"
 Cohesion: 0.67
-Nodes (1): ConnectionFactory
+Nodes (0): 
 
 ### Community 458 - "Community 458"
 Cohesion: 0.67
-Nodes (1): EndUserPermissionBundle
+Nodes (0): 
 
 ### Community 459 - "Community 459"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (2): GetUserByNameRow, GetUserByPhoneRow
 
 ### Community 460 - "Community 460"
 Cohesion: 0.67
-Nodes (1): Issuer
+Nodes (0): 
 
 ### Community 461 - "Community 461"
 Cohesion: 0.67
-Nodes (2): EndUserRepository, ListEndUsersQuery
+Nodes (0): 
 
 ### Community 462 - "Community 462"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (1): ConnectionFactory
 
 ### Community 463 - "Community 463"
-Cohesion: 1.0
-Nodes (2): newRelationBatchLoader(), toString()
+Cohesion: 0.67
+Nodes (2): BundleSnapshot, SnapshotPermissionEntry
 
 ### Community 464 - "Community 464"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (1): EndUserPermissionBundle
 
 ### Community 465 - "Community 465"
 Cohesion: 0.67
@@ -2688,19 +2693,19 @@ Nodes (0):
 
 ### Community 466 - "Community 466"
 Cohesion: 0.67
-Nodes (2): AuthVariable, AuthVarType
+Nodes (1): Issuer
 
 ### Community 467 - "Community 467"
-Cohesion: 1.0
-Nodes (2): WriteJSON(), WriteJSONError()
+Cohesion: 0.67
+Nodes (2): EndUserRepository, ListEndUsersQuery
 
 ### Community 468 - "Community 468"
-Cohesion: 1.0
-Nodes (2): nullableString(), toGraphqlRuntimeUser()
+Cohesion: 0.67
+Nodes (0): 
 
 ### Community 469 - "Community 469"
-Cohesion: 0.67
-Nodes (1): Resolver
+Cohesion: 1.0
+Nodes (2): newRelationBatchLoader(), toString()
 
 ### Community 470 - "Community 470"
 Cohesion: 0.67
@@ -2712,19 +2717,19 @@ Nodes (0):
 
 ### Community 472 - "Community 472"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (2): AuthVariable, AuthVarType
 
 ### Community 473 - "Community 473"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): WriteJSON(), WriteJSONError()
 
 ### Community 474 - "Community 474"
-Cohesion: 0.67
-Nodes (0): 
+Cohesion: 1.0
+Nodes (2): nullableString(), toGraphqlRuntimeUser()
 
 ### Community 475 - "Community 475"
 Cohesion: 0.67
-Nodes (0): 
+Nodes (1): Resolver
 
 ### Community 476 - "Community 476"
 Cohesion: 0.67
@@ -2739,27 +2744,27 @@ Cohesion: 0.67
 Nodes (0): 
 
 ### Community 479 - "Community 479"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 480 - "Community 480"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 481 - "Community 481"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 482 - "Community 482"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 483 - "Community 483"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 484 - "Community 484"
-Cohesion: 1.0
+Cohesion: 0.67
 Nodes (0): 
 
 ### Community 485 - "Community 485"
@@ -3172,11 +3177,11 @@ Nodes (0):
 
 ### Community 587 - "Community 587"
 Cohesion: 1.0
-Nodes (1): Querier
+Nodes (0): 
 
 ### Community 588 - "Community 588"
 Cohesion: 1.0
-Nodes (1): InsertSecurityAuditLogParams
+Nodes (0): 
 
 ### Community 589 - "Community 589"
 Cohesion: 1.0
@@ -3196,111 +3201,111 @@ Nodes (0):
 
 ### Community 593 - "Community 593"
 Cohesion: 1.0
-Nodes (1): EndUserPermissionRepository
+Nodes (1): Querier
 
 ### Community 594 - "Community 594"
 Cohesion: 1.0
-Nodes (1): AuthProvider
+Nodes (1): InsertSecurityAuditLogParams
 
 ### Community 595 - "Community 595"
 Cohesion: 1.0
-Nodes (1): RoleRepository
+Nodes (0): 
 
 ### Community 596 - "Community 596"
 Cohesion: 1.0
-Nodes (1): EndUserSessionRepository
+Nodes (0): 
 
 ### Community 597 - "Community 597"
 Cohesion: 1.0
-Nodes (1): EndUserAuthService
+Nodes (0): 
 
 ### Community 598 - "Community 598"
 Cohesion: 1.0
-Nodes (1): UserRepository
+Nodes (0): 
 
 ### Community 599 - "Community 599"
 Cohesion: 1.0
-Nodes (1): DatabaseClusterRepository
+Nodes (1): EndUserPermissionRepository
 
 ### Community 600 - "Community 600"
 Cohesion: 1.0
-Nodes (1): ModelRepository
+Nodes (1): AuthProvider
 
 ### Community 601 - "Community 601"
 Cohesion: 1.0
-Nodes (1): ClientDatabaseRepository
+Nodes (1): RoleRepository
 
 ### Community 602 - "Community 602"
 Cohesion: 1.0
-Nodes (1): Repository
+Nodes (1): EndUserSessionRepository
 
 ### Community 603 - "Community 603"
 Cohesion: 1.0
-Nodes (1): OrganizationRepository
+Nodes (1): EndUserAuthService
 
 ### Community 604 - "Community 604"
 Cohesion: 1.0
-Nodes (1): ProjectRepository
+Nodes (1): UserRepository
 
 ### Community 605 - "Community 605"
 Cohesion: 1.0
-Nodes (1): LogicalForeignKeyRepository
+Nodes (1): DatabaseClusterRepository
 
 ### Community 606 - "Community 606"
 Cohesion: 1.0
-Nodes (1): ModelCreationSource
+Nodes (1): ModelRepository
 
 ### Community 607 - "Community 607"
 Cohesion: 1.0
-Nodes (1): EnumRepository
+Nodes (0): 
 
 ### Community 608 - "Community 608"
 Cohesion: 1.0
-Nodes (1): FieldDefinitionRepository
+Nodes (1): ClientDatabaseRepository
 
 ### Community 609 - "Community 609"
 Cohesion: 1.0
-Nodes (1): ModelRLSPolicyRepository
+Nodes (1): Repository
 
 ### Community 610 - "Community 610"
 Cohesion: 1.0
-Nodes (1): FieldEnumAssociationRepository
+Nodes (1): OrganizationRepository
 
 ### Community 611 - "Community 611"
 Cohesion: 1.0
-Nodes (1): DeployRepo
+Nodes (1): ProjectRepository
 
 ### Community 612 - "Community 612"
 Cohesion: 1.0
-Nodes (1): ModelGroupRepository
+Nodes (1): LogicalForeignKeyRepository
 
 ### Community 613 - "Community 613"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): ModelCreationSource
 
 ### Community 614 - "Community 614"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): EnumRepository
 
 ### Community 615 - "Community 615"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): FieldDefinitionRepository
 
 ### Community 616 - "Community 616"
 Cohesion: 1.0
-Nodes (1): ExecuteGraphQLCommand
+Nodes (1): ModelRLSPolicyRepository
 
 ### Community 617 - "Community 617"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): FieldEnumAssociationRepository
 
 ### Community 618 - "Community 618"
 Cohesion: 1.0
-Nodes (1): ListTablesResult
+Nodes (1): DeployRepo
 
 ### Community 619 - "Community 619"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): ModelGroupRepository
 
 ### Community 620 - "Community 620"
 Cohesion: 1.0
@@ -3312,15 +3317,15 @@ Nodes (0):
 
 ### Community 622 - "Community 622"
 Cohesion: 1.0
-Nodes (1): contextKey
+Nodes (0): 
 
 ### Community 623 - "Community 623"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): ExecuteGraphQLCommand
 
 ### Community 624 - "Community 624"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): ListTablesResult
 
 ### Community 625 - "Community 625"
 Cohesion: 1.0
@@ -3336,7 +3341,7 @@ Nodes (0):
 
 ### Community 628 - "Community 628"
 Cohesion: 1.0
-Nodes (0): 
+Nodes (1): contextKey
 
 ### Community 629 - "Community 629"
 Cohesion: 1.0
@@ -3986,474 +3991,482 @@ Nodes (0):
 Cohesion: 1.0
 Nodes (0): 
 
+### Community 791 - "Community 791"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 792 - "Community 792"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 793 - "Community 793"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 794 - "Community 794"
+Cohesion: 1.0
+Nodes (0): 
+
+### Community 795 - "Community 795"
+Cohesion: 1.0
+Nodes (0): 
+
 ## Knowledge Gaps
-- **766 isolated node(s):** `Claims`, `errorResponse`, `clientRequestIDKey`, `contextKey`, `restErrorResponse` (+761 more)
+- **785 isolated node(s):** `Claims`, `errorResponse`, `clientRequestIDKey`, `contextKey`, `restErrorResponse` (+780 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **Thin community `Community 479`** (2 nodes): `tracer.go`, `InitTracerProvider()`
+- **Thin community `Community 485`** (2 nodes): `tracer.go`, `InitTracerProvider()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 480`** (2 nodes): `buildOptions()`, `enum.steps.ts`
+- **Thin community `Community 486`** (2 nodes): `buildOptions()`, `enum.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 481`** (2 nodes): `randomPhone()`, `org.steps.ts`
+- **Thin community `Community 487`** (2 nodes): `randomPhone()`, `org.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 482`** (2 nodes): `initRbacState()`, `permission.steps.ts`
+- **Thin community `Community 488`** (2 nodes): `initRbacState()`, `permission.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 483`** (2 nodes): `initRbacState()`, `role.steps.ts`
+- **Thin community `Community 489`** (2 nodes): `initRbacState()`, `role.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 484`** (2 nodes): `initRbacState()`, `bundle.steps.ts`
+- **Thin community `Community 490`** (2 nodes): `initRbacState()`, `bundle.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 485`** (2 nodes): `callRuntime()`, `jwt-steps.ts`
+- **Thin community `Community 491`** (2 nodes): `callRuntime()`, `jwt-steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 486`** (2 nodes): `getCurrentModelId()`, `policy-steps.ts`
+- **Thin community `Community 492`** (2 nodes): `getCurrentModelId()`, `policy-steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 487`** (2 nodes): `createRuntimeClient()`, `runtime-steps.ts`
+- **Thin community `Community 493`** (2 nodes): `createRuntimeClient()`, `runtime-steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 488`** (2 nodes): `register()`, `instrumentation.ts`
+- **Thin community `Community 494`** (2 nodes): `register()`, `instrumentation.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 489`** (2 nodes): `query-wrapper.tsx`, `QueryWrapper()`
+- **Thin community `Community 495`** (2 nodes): `query-wrapper.tsx`, `QueryWrapper()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 490`** (2 nodes): `handleKeyDown()`, `editor-sidebar.tsx`
+- **Thin community `Community 496`** (2 nodes): `handleKeyDown()`, `editor-sidebar.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 491`** (2 nodes): `LoadingSpinner()`, `loading-spinner.tsx`
+- **Thin community `Community 497`** (2 nodes): `LoadingSpinner()`, `loading-spinner.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 492`** (2 nodes): `Badge()`, `badge.tsx`
+- **Thin community `Community 498`** (2 nodes): `Badge()`, `badge.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 493`** (2 nodes): `skeleton.tsx`, `Skeleton()`
+- **Thin community `Community 499`** (2 nodes): `skeleton.tsx`, `Skeleton()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 494`** (2 nodes): `FieldRow()`, `identity-form-section.tsx`
+- **Thin community `Community 500`** (2 nodes): `FieldRow()`, `identity-form-section.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 495`** (2 nodes): `RowScopeSelector.tsx`, `RowScopeSelector()`
+- **Thin community `Community 501`** (2 nodes): `RowScopeSelector.tsx`, `RowScopeSelector()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 496`** (2 nodes): `handleOpenChange()`, `BundlesTab.tsx`
+- **Thin community `Community 502`** (2 nodes): `handleImport()`, `ImportModelDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 497`** (2 nodes): `handleImport()`, `ImportModelDialog.tsx`
+- **Thin community `Community 503`** (2 nodes): `InsertFieldSheet()`, `InsertFieldSheet.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 498`** (2 nodes): `InsertFieldSheet()`, `InsertFieldSheet.tsx`
+- **Thin community `Community 504`** (2 nodes): `ModelRecordForm()`, `index.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 499`** (2 nodes): `ModelRecordForm()`, `index.tsx`
+- **Thin community `Community 505`** (2 nodes): `buildUiSchema()`, `build-ui-schema.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 500`** (2 nodes): `buildUiSchema()`, `build-ui-schema.ts`
+- **Thin community `Community 506`** (2 nodes): `filterJsonSchemaForForm()`, `filter-json-schema-for-form.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 501`** (2 nodes): `filterJsonSchemaForForm()`, `filter-json-schema-for-form.ts`
+- **Thin community `Community 507`** (2 nodes): `EnumSchemaSelect()`, `EnumSchemaSelect.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 502`** (2 nodes): `EnumSchemaSelect()`, `EnumSchemaSelect.tsx`
+- **Thin community `Community 508`** (2 nodes): `handleClose()`, `GrantEndUserAccessDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 503`** (2 nodes): `handleClose()`, `GrantEndUserAccessDialog.tsx`
+- **Thin community `Community 509`** (2 nodes): `AuthProvider()`, `auth-provider.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 504`** (2 nodes): `AuthProvider()`, `auth-provider.tsx`
+- **Thin community `Community 510`** (2 nodes): `EndUserAuthGuard()`, `EndUserAuthGuard.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 505`** (2 nodes): `EndUserAuthGuard()`, `EndUserAuthGuard.tsx`
+- **Thin community `Community 511`** (2 nodes): `ErrorProvider()`, `ErrorProvider.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 506`** (2 nodes): `ErrorProvider()`, `ErrorProvider.tsx`
+- **Thin community `Community 512`** (2 nodes): `user-menu.tsx`, `handleLogout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 507`** (2 nodes): `user-menu.tsx`, `handleLogout()`
+- **Thin community `Community 513`** (2 nodes): `organization-switcher.tsx`, `OrganizationSwitcher()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 508`** (2 nodes): `organization-switcher.tsx`, `OrganizationSwitcher()`
+- **Thin community `Community 514`** (2 nodes): `ProjectCard.tsx`, `StatusBadge()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 509`** (2 nodes): `ProjectCard.tsx`, `StatusBadge()`
+- **Thin community `Community 515`** (2 nodes): `DeleteProjectDialog()`, `DeleteProjectDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 510`** (2 nodes): `DeleteProjectDialog()`, `DeleteProjectDialog.tsx`
+- **Thin community `Community 516`** (2 nodes): `UserMenu.tsx`, `getInitials()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 511`** (2 nodes): `UserMenu.tsx`, `getInitials()`
+- **Thin community `Community 517`** (2 nodes): `buildAppLayoutBreadcrumbs()`, `app-layout-breadcrumbs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 512`** (2 nodes): `buildAppLayoutBreadcrumbs()`, `app-layout-breadcrumbs.ts`
+- **Thin community `Community 518`** (2 nodes): `PageLayout.tsx`, `PageLayout()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 513`** (2 nodes): `PageLayout.tsx`, `PageLayout()`
+- **Thin community `Community 519`** (2 nodes): `handleClose()`, `CreateEndUserDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 514`** (2 nodes): `handleClose()`, `CreateEndUserDialog.tsx`
+- **Thin community `Community 520`** (2 nodes): `handleSubmit()`, `FormRenderer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 515`** (2 nodes): `handleSubmit()`, `FormRenderer.tsx`
+- **Thin community `Community 521`** (2 nodes): `useEndUserProjectSelector.ts`, `useEndUserProjectSelector()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 516`** (2 nodes): `useEndUserProjectSelector.ts`, `useEndUserProjectSelector()`
+- **Thin community `Community 522`** (2 nodes): `useEndUserManagement.ts`, `useEndUserManagement()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 517`** (2 nodes): `useEndUserManagement.ts`, `useEndUserManagement()`
+- **Thin community `Community 523`** (2 nodes): `useProjectEndUserAccess.ts`, `useProjectEndUserAccess()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 518`** (2 nodes): `useProjectEndUserAccess.ts`, `useProjectEndUserAccess()`
+- **Thin community `Community 524`** (2 nodes): `use-databases.ts`, `useDatabases()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 519`** (2 nodes): `use-databases.ts`, `useDatabases()`
+- **Thin community `Community 525`** (2 nodes): `use-local-storage.ts`, `useLocalStorage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 520`** (2 nodes): `use-local-storage.ts`, `useLocalStorage()`
+- **Thin community `Community 526`** (2 nodes): `use-mobile.tsx`, `useIsMobile()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 521`** (2 nodes): `use-mobile.tsx`, `useIsMobile()`
+- **Thin community `Community 527`** (2 nodes): `useEndUserLoginForm.ts`, `useEndUserLoginForm()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 522`** (2 nodes): `useEndUserLoginForm.ts`, `useEndUserLoginForm()`
+- **Thin community `Community 528`** (2 nodes): `useEndUserRegisterForm.ts`, `useEndUserRegisterForm()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 523`** (2 nodes): `useEndUserRegisterForm.ts`, `useEndUserRegisterForm()`
+- **Thin community `Community 529`** (2 nodes): `use-projects-with-error-handling.ts`, `useProjectsWithErrorHandling()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 524`** (2 nodes): `use-projects-with-error-handling.ts`, `useProjectsWithErrorHandling()`
+- **Thin community `Community 530`** (2 nodes): `use-projects.ts`, `useProjects()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 525`** (2 nodes): `use-projects.ts`, `useProjects()`
+- **Thin community `Community 531`** (2 nodes): `use-project-context.ts`, `useProjectContext()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 526`** (2 nodes): `use-project-context.ts`, `useProjectContext()`
+- **Thin community `Community 532`** (2 nodes): `useOrgEndUsers.ts`, `useOrgEndUsers()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 527`** (2 nodes): `useOrgEndUsers.ts`, `useOrgEndUsers()`
+- **Thin community `Community 533`** (2 nodes): `MSWProvider.tsx`, `MSWProvider()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 528`** (2 nodes): `MSWProvider.tsx`, `MSWProvider()`
+- **Thin community `Community 534`** (2 nodes): `typography.ts`, `cn()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 529`** (2 nodes): `typography.ts`, `cn()`
+- **Thin community `Community 535`** (2 nodes): `validateIdentifier()`, `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 530`** (2 nodes): `validateIdentifier()`, `auth.ts`
+- **Thin community `Community 536`** (2 nodes): `reserved-usernames.ts`, `isReservedUserName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 531`** (2 nodes): `reserved-usernames.ts`, `isReservedUserName()`
+- **Thin community `Community 537`** (2 nodes): `uuid.ts`, `generateUUID()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 532`** (2 nodes): `uuid.ts`, `generateUUID()`
+- **Thin community `Community 538`** (2 nodes): `runtime-query-builder.test.ts`, `assertValidDocument()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 533`** (2 nodes): `runtime-query-builder.test.ts`, `assertValidDocument()`
+- **Thin community `Community 539`** (2 nodes): `mapEndUserErrorCode()`, `end-user-auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 534`** (2 nodes): `mapEndUserErrorCode()`, `end-user-auth.ts`
+- **Thin community `Community 540`** (2 nodes): `xmc.ts`, `getXMC()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 535`** (2 nodes): `xmc.ts`, `getXMC()`
+- **Thin community `Community 541`** (2 nodes): `page.tsx`, `Home()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 536`** (2 nodes): `page.tsx`, `Home()`
+- **Thin community `Community 542`** (2 nodes): `RootLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 537`** (2 nodes): `RootLayout()`, `layout.tsx`
+- **Thin community `Community 543`** (2 nodes): `page.tsx`, `SelectProjectPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 538`** (2 nodes): `page.tsx`, `SelectProjectPage()`
+- **Thin community `Community 544`** (2 nodes): `page.tsx`, `EndUserOrgLoginPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 539`** (2 nodes): `page.tsx`, `EndUserOrgLoginPage()`
+- **Thin community `Community 545`** (2 nodes): `EndUserOrgLoginLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 540`** (2 nodes): `EndUserOrgLoginLayout()`, `layout.tsx`
+- **Thin community `Community 546`** (2 nodes): `page.tsx`, `NoProjectAccessPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 541`** (2 nodes): `page.tsx`, `NoProjectAccessPage()`
+- **Thin community `Community 547`** (2 nodes): `EndUserProjectLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 542`** (2 nodes): `EndUserProjectLayout()`, `layout.tsx`
+- **Thin community `Community 548`** (2 nodes): `EndUserDataLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 543`** (2 nodes): `EndUserDataLayout()`, `layout.tsx`
+- **Thin community `Community 549`** (2 nodes): `page.tsx`, `handleTabChange()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 544`** (2 nodes): `route.ts`, `handler()`
+- **Thin community `Community 550`** (2 nodes): `route.ts`, `handler()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 545`** (2 nodes): `page.tsx`, `OrgPage()`
+- **Thin community `Community 551`** (2 nodes): `page.tsx`, `OrgPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 546`** (2 nodes): `OrgLayout()`, `layout.tsx`
+- **Thin community `Community 552`** (2 nodes): `OrgLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 547`** (2 nodes): `page.tsx`, `SettingsPage()`
+- **Thin community `Community 553`** (2 nodes): `page.tsx`, `SettingsPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 548`** (2 nodes): `page.tsx`, `GeneralSettingsPage()`
+- **Thin community `Community 554`** (2 nodes): `page.tsx`, `GeneralSettingsPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 549`** (2 nodes): `page.tsx`, `SettingsRolesRedirect()`
+- **Thin community `Community 555`** (2 nodes): `page.tsx`, `SettingsRolesRedirect()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 550`** (2 nodes): `page.tsx`, `OrgLoginSettingsPage()`
+- **Thin community `Community 556`** (2 nodes): `page.tsx`, `OrgLoginSettingsPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 551`** (2 nodes): `page.tsx`, `WelcomeRedirect()`
+- **Thin community `Community 557`** (2 nodes): `page.tsx`, `WelcomeRedirect()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 552`** (2 nodes): `page.tsx`, `DevelopersPage()`
+- **Thin community `Community 558`** (2 nodes): `page.tsx`, `DevelopersPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 553`** (2 nodes): `page.tsx`, `DevelopersRolesPage()`
+- **Thin community `Community 559`** (2 nodes): `page.tsx`, `DevelopersRolesPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 554`** (2 nodes): `use-profile-page-data.ts`, `useProfilePageData()`
+- **Thin community `Community 560`** (2 nodes): `use-profile-page-data.ts`, `useProfilePageData()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 555`** (2 nodes): `use-profile-page-state.ts`, `useProfilePageState()`
+- **Thin community `Community 561`** (2 nodes): `use-profile-page-state.ts`, `useProfilePageState()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 556`** (2 nodes): `use-profile-edit-form.ts`, `useProfileEditForm()`
+- **Thin community `Community 562`** (2 nodes): `use-profile-edit-form.ts`, `useProfileEditForm()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 557`** (2 nodes): `page.tsx`, `ProjectHomePage()`
+- **Thin community `Community 563`** (2 nodes): `page.tsx`, `ProjectHomePage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 558`** (2 nodes): `page.tsx`, `RBACPage()`
+- **Thin community `Community 564`** (2 nodes): `page.tsx`, `RBACPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 559`** (2 nodes): `handleTabChange()`, `layout.tsx`
+- **Thin community `Community 565`** (2 nodes): `handleTabChange()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 560`** (2 nodes): `useRoleEdit.ts`, `useRoleEdit()`
+- **Thin community `Community 566`** (2 nodes): `useRoleEdit.ts`, `useRoleEdit()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 561`** (2 nodes): `useRoleList.ts`, `useRoleList()`
+- **Thin community `Community 567`** (2 nodes): `useRoleList.ts`, `useRoleList()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 562`** (2 nodes): `useUserAuth.ts`, `useUserAuth()`
+- **Thin community `Community 568`** (2 nodes): `useUserAuth.ts`, `useUserAuth()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 563`** (2 nodes): `useBundleEdit.ts`, `useBundleEdit()`
+- **Thin community `Community 569`** (2 nodes): `useBundleList.ts`, `useBundleList()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 564`** (2 nodes): `useBundleList.ts`, `useBundleList()`
+- **Thin community `Community 570`** (2 nodes): `useBundleManage.ts`, `useBundleManage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 565`** (2 nodes): `page.tsx`, `formatColumnPolicySummary()`
+- **Thin community `Community 571`** (2 nodes): `page.tsx`, `formatColumnPolicySummary()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 566`** (2 nodes): `usePermissionsView.ts`, `usePermissionsView()`
+- **Thin community `Community 572`** (2 nodes): `usePermissionsView.ts`, `usePermissionsView()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 567`** (2 nodes): `usePermissionList.ts`, `usePermissionList()`
+- **Thin community `Community 573`** (2 nodes): `usePermissionList.ts`, `usePermissionList()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 568`** (2 nodes): `page.tsx`, `ModelEditorPage()`
+- **Thin community `Community 574`** (2 nodes): `page.tsx`, `ModelEditorPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 569`** (2 nodes): `ModelEditorLayout()`, `layout.tsx`
+- **Thin community `Community 575`** (2 nodes): `ModelEditorLayout()`, `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 570`** (2 nodes): `ModelEditorView.tsx`, `handleCloseTab()`
+- **Thin community `Community 576`** (2 nodes): `ModelEditorView.tsx`, `handleCloseTab()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 571`** (2 nodes): `ModelDetailPanel.tsx`, `async()`
+- **Thin community `Community 577`** (2 nodes): `ModelDetailPanel.tsx`, `async()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 572`** (2 nodes): `Boolean()`, `CreateEnumFieldPage.tsx`
+- **Thin community `Community 578`** (2 nodes): `Boolean()`, `CreateEnumFieldPage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 573`** (2 nodes): `use-create-enum-field-page.ts`, `useCreateEnumFieldPage()`
+- **Thin community `Community 579`** (2 nodes): `use-create-enum-field-page.ts`, `useCreateEnumFieldPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 574`** (2 nodes): `use-foreign-keys.ts`, `useForeignKeys()`
+- **Thin community `Community 580`** (2 nodes): `use-foreign-keys.ts`, `useForeignKeys()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 575`** (2 nodes): `use-field-operations.ts`, `useFieldOperations()`
+- **Thin community `Community 581`** (2 nodes): `use-field-operations.ts`, `useFieldOperations()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 576`** (2 nodes): `use-edit-field-page.ts`, `useEditFieldPage()`
+- **Thin community `Community 582`** (2 nodes): `use-edit-field-page.ts`, `useEditFieldPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 577`** (2 nodes): `use-model-editor-state.ts`, `useModelEditorState()`
+- **Thin community `Community 583`** (2 nodes): `use-model-editor-state.ts`, `useModelEditorState()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 578`** (2 nodes): `page.tsx`, `ProjectEndUserAccessPage()`
+- **Thin community `Community 584`** (2 nodes): `page.tsx`, `ProjectEndUserAccessPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 579`** (2 nodes): `page.tsx`, `handleSave()`
+- **Thin community `Community 585`** (2 nodes): `page.tsx`, `handleSave()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 580`** (2 nodes): `page.tsx`, `OrgEndUsersPage()`
+- **Thin community `Community 586`** (2 nodes): `page.tsx`, `OrgEndUsersPage()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 581`** (2 nodes): `globalSetup()`, `global-setup.ts`
+- **Thin community `Community 587`** (2 nodes): `globalSetup()`, `global-setup.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 582`** (2 nodes): `project-crud.spec.ts`, `openCreateDialog()`
+- **Thin community `Community 588`** (2 nodes): `project-crud.spec.ts`, `openCreateDialog()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 583`** (2 nodes): `makeAccount()`, `accounts.ts`
+- **Thin community `Community 589`** (2 nodes): `makeAccount()`, `accounts.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 584`** (2 nodes): `ChiCORS()`, `chi_cors.go`
+- **Thin community `Community 590`** (2 nodes): `ChiCORS()`, `chi_cors.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 585`** (2 nodes): `permission_test.go`, `TestCheckPermission()`
+- **Thin community `Community 591`** (2 nodes): `permission_test.go`, `TestCheckPermission()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 586`** (2 nodes): `ChiHttpContextMiddleware()`, `chi_http_context.go`
+- **Thin community `Community 592`** (2 nodes): `ChiHttpContextMiddleware()`, `chi_http_context.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 587`** (2 nodes): `Querier`, `querier.go`
+- **Thin community `Community 593`** (2 nodes): `querier.go`, `Querier`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 588`** (2 nodes): `InsertSecurityAuditLogParams`, `security_audit_logs.sql.go`
+- **Thin community `Community 594`** (2 nodes): `InsertSecurityAuditLogParams`, `security_audit_logs.sql.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 589`** (2 nodes): `sql_connection.go`, `NewSQLConnection()`
+- **Thin community `Community 595`** (2 nodes): `sql_connection.go`, `NewSQLConnection()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 590`** (2 nodes): `modelruntime_convert_test.go`, `TestDbgenModelToRuntimeModel()`
+- **Thin community `Community 596`** (2 nodes): `modelruntime_convert_test.go`, `TestDbgenModelToRuntimeModel()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 591`** (2 nodes): `NewError()`, `error_helper.go`
+- **Thin community `Community 597`** (2 nodes): `NewError()`, `error_helper.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 592`** (2 nodes): `WrapSQLErrorInPlace()`, `error_wrap.go`
+- **Thin community `Community 598`** (2 nodes): `WrapSQLErrorInPlace()`, `error_wrap.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 593`** (2 nodes): `repository.go`, `EndUserPermissionRepository`
+- **Thin community `Community 599`** (2 nodes): `repository.go`, `EndUserPermissionRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 594`** (2 nodes): `AuthProvider`, `provider.go`
+- **Thin community `Community 600`** (2 nodes): `AuthProvider`, `provider.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 595`** (2 nodes): `repository.go`, `RoleRepository`
+- **Thin community `Community 601`** (2 nodes): `repository.go`, `RoleRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 596`** (2 nodes): `EndUserSessionRepository`, `end_user_session_repository.go`
+- **Thin community `Community 602`** (2 nodes): `EndUserSessionRepository`, `end_user_session_repository.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 597`** (2 nodes): `EndUserAuthService`, `end_user_auth_service.go`
+- **Thin community `Community 603`** (2 nodes): `EndUserAuthService`, `end_user_auth_service.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 598`** (2 nodes): `repository.go`, `UserRepository`
+- **Thin community `Community 604`** (2 nodes): `repository.go`, `UserRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 599`** (2 nodes): `DatabaseClusterRepository`, `database_cluster_repository.go`
+- **Thin community `Community 605`** (2 nodes): `DatabaseClusterRepository`, `database_cluster_repository.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 600`** (2 nodes): `model_repository.go`, `ModelRepository`
+- **Thin community `Community 606`** (2 nodes): `model_repository.go`, `ModelRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 601`** (2 nodes): `graphql_repository.go`, `ClientDatabaseRepository`
+- **Thin community `Community 607`** (2 nodes): `graphql_type_name.go`, `gqlTypeName()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 602`** (2 nodes): `repository.go`, `Repository`
+- **Thin community `Community 608`** (2 nodes): `graphql_repository.go`, `ClientDatabaseRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 603`** (2 nodes): `repository.go`, `OrganizationRepository`
+- **Thin community `Community 609`** (2 nodes): `repository.go`, `Repository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 604`** (2 nodes): `repository.go`, `ProjectRepository`
+- **Thin community `Community 610`** (2 nodes): `repository.go`, `OrganizationRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 605`** (2 nodes): `logical_foreign_key_repository.go`, `LogicalForeignKeyRepository`
+- **Thin community `Community 611`** (2 nodes): `repository.go`, `ProjectRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 606`** (2 nodes): `model_creation_source.go`, `ModelCreationSource`
+- **Thin community `Community 612`** (2 nodes): `logical_foreign_key_repository.go`, `LogicalForeignKeyRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 607`** (2 nodes): `enum_repository.go`, `EnumRepository`
+- **Thin community `Community 613`** (2 nodes): `model_creation_source.go`, `ModelCreationSource`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 608`** (2 nodes): `field_definition_repository.go`, `FieldDefinitionRepository`
+- **Thin community `Community 614`** (2 nodes): `enum_repository.go`, `EnumRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 609`** (2 nodes): `model_rls_repository.go`, `ModelRLSPolicyRepository`
+- **Thin community `Community 615`** (2 nodes): `field_definition_repository.go`, `FieldDefinitionRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 610`** (2 nodes): `field_enum_association_repository.go`, `FieldEnumAssociationRepository`
+- **Thin community `Community 616`** (2 nodes): `model_rls_repository.go`, `ModelRLSPolicyRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 611`** (2 nodes): `deployment_repo.go`, `DeployRepo`
+- **Thin community `Community 617`** (2 nodes): `field_enum_association_repository.go`, `FieldEnumAssociationRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 612`** (2 nodes): `model_group_repository.go`, `ModelGroupRepository`
+- **Thin community `Community 618`** (2 nodes): `deployment_repo.go`, `DeployRepo`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 613`** (2 nodes): `TestRequestIDInjectorMiddleware()`, `middleware_request_id_test.go`
+- **Thin community `Community 619`** (2 nodes): `model_group_repository.go`, `ModelGroupRepository`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 614`** (2 nodes): `convertFKDirection()`, `fk_converters.go`
+- **Thin community `Community 620`** (2 nodes): `TestRequestIDInjectorMiddleware()`, `middleware_request_id_test.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 615`** (2 nodes): `convertToAddFieldsError()`, `field_helpers.go`
+- **Thin community `Community 621`** (2 nodes): `convertFKDirection()`, `fk_converters.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 616`** (2 nodes): `commands.go`, `ExecuteGraphQLCommand`
+- **Thin community `Community 622`** (2 nodes): `convertToAddFieldsError()`, `field_helpers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 617`** (2 nodes): `TestBuildModelFromTable_DoesNotInjectSystemFieldsButKeepsPrimaryKeyFlags()`, `model_builder_test.go`
+- **Thin community `Community 623`** (2 nodes): `commands.go`, `ExecuteGraphQLCommand`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 618`** (2 nodes): `list_tables_app.go`, `ListTablesResult`
+- **Thin community `Community 624`** (2 nodes): `list_tables_app.go`, `ListTablesResult`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 619`** (2 nodes): `TestEncodePasswd()`, `aes_cipher_test.go`
+- **Thin community `Community 625`** (2 nodes): `TestEncodePasswd()`, `aes_cipher_test.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 620`** (2 nodes): `WithGraphqlErrorHandler()`, `graphql_handler.go`
+- **Thin community `Community 626`** (2 nodes): `WithGraphqlErrorHandler()`, `graphql_handler.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 621`** (2 nodes): `NewGraphqlErr()`, `graphql_error.go`
+- **Thin community `Community 627`** (2 nodes): `NewGraphqlErr()`, `graphql_error.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 622`** (2 nodes): `contextKey`, `constant.go`
+- **Thin community `Community 628`** (2 nodes): `contextKey`, `constant.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 623`** (2 nodes): `type_utils.go`, `IsArrayType()`
+- **Thin community `Community 629`** (2 nodes): `type_utils.go`, `IsArrayType()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 624`** (2 nodes): `GenerateUUIDV7()`, `idutils.go`
+- **Thin community `Community 630`** (2 nodes): `GenerateUUIDV7()`, `idutils.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 625`** (2 nodes): `utils.go`, `GoWithCtx()`
+- **Thin community `Community 631`** (2 nodes): `utils.go`, `GoWithCtx()`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 626`** (1 nodes): `cucumber.js`
+- **Thin community `Community 632`** (1 nodes): `cucumber.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 627`** (1 nodes): `hooks.ts`
+- **Thin community `Community 633`** (1 nodes): `hooks.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 628`** (1 nodes): `lfk.steps.ts`
+- **Thin community `Community 634`** (1 nodes): `lfk.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 629`** (1 nodes): `model.steps.ts`
+- **Thin community `Community 635`** (1 nodes): `model.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 630`** (1 nodes): `common.steps.ts`
+- **Thin community `Community 636`** (1 nodes): `common.steps.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 631`** (1 nodes): `next-env.d.ts`
+- **Thin community `Community 637`** (1 nodes): `next-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 632`** (1 nodes): `codegen.ts`
+- **Thin community `Community 638`** (1 nodes): `codegen.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 633`** (1 nodes): `playwright.config.ts`
+- **Thin community `Community 639`** (1 nodes): `playwright.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 634`** (1 nodes): `tailwind.config.ts`
+- **Thin community `Community 640`** (1 nodes): `tailwind.config.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 635`** (1 nodes): `vite-env.d.ts`
+- **Thin community `Community 641`** (1 nodes): `vite-env.d.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 636`** (1 nodes): `collapsible.tsx`
+- **Thin community `Community 642`** (1 nodes): `collapsible.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 637`** (1 nodes): `separator.tsx`
+- **Thin community `Community 643`** (1 nodes): `separator.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 638`** (1 nodes): `alert.tsx`
+- **Thin community `Community 644`** (1 nodes): `alert.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 639`** (1 nodes): `form.tsx`
+- **Thin community `Community 645`** (1 nodes): `form.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 640`** (1 nodes): `label.tsx`
+- **Thin community `Community 646`** (1 nodes): `label.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 641`** (1 nodes): `toggle.tsx`
+- **Thin community `Community 647`** (1 nodes): `toggle.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 642`** (1 nodes): `view-toggle.tsx`
+- **Thin community `Community 648`** (1 nodes): `view-toggle.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 643`** (1 nodes): `switch.tsx`
+- **Thin community `Community 649`** (1 nodes): `switch.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 644`** (1 nodes): `checkbox.tsx`
+- **Thin community `Community 650`** (1 nodes): `checkbox.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 645`** (1 nodes): `input.tsx`
+- **Thin community `Community 651`** (1 nodes): `input.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 646`** (1 nodes): `breadcrumb.tsx`
+- **Thin community `Community 652`** (1 nodes): `breadcrumb.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 647`** (1 nodes): `toggle-group.tsx`
+- **Thin community `Community 653`** (1 nodes): `toggle-group.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 648`** (1 nodes): `select.tsx`
+- **Thin community `Community 654`** (1 nodes): `select.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 649`** (1 nodes): `card.tsx`
+- **Thin community `Community 655`** (1 nodes): `card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 650`** (1 nodes): `sheet.tsx`
+- **Thin community `Community 656`** (1 nodes): `sheet.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 651`** (1 nodes): `dropdown-menu.tsx`
+- **Thin community `Community 657`** (1 nodes): `dropdown-menu.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 652`** (1 nodes): `table.tsx`
+- **Thin community `Community 658`** (1 nodes): `table.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 653`** (1 nodes): `alert-dialog.tsx`
+- **Thin community `Community 659`** (1 nodes): `alert-dialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 654`** (1 nodes): `tooltip.tsx`
+- **Thin community `Community 660`** (1 nodes): `tooltip.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 655`** (1 nodes): `dialog.tsx`
+- **Thin community `Community 661`** (1 nodes): `dialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 656`** (1 nodes): `avatar.tsx`
+- **Thin community `Community 662`** (1 nodes): `avatar.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 657`** (1 nodes): `connection-config-card.tsx`
+- **Thin community `Community 663`** (1 nodes): `connection-config-card.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 658`** (1 nodes): `button.tsx`
+- **Thin community `Community 664`** (1 nodes): `button.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 659`** (1 nodes): `popover.tsx`
+- **Thin community `Community 665`** (1 nodes): `popover.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 660`** (1 nodes): `search-input.tsx`
+- **Thin community `Community 666`** (1 nodes): `search-input.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 661`** (1 nodes): `scroll-area.tsx`
+- **Thin community `Community 667`** (1 nodes): `scroll-area.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 662`** (1 nodes): `drawer.tsx`
+- **Thin community `Community 668`** (1 nodes): `drawer.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 663`** (1 nodes): `command.tsx`
+- **Thin community `Community 669`** (1 nodes): `command.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 664`** (1 nodes): `textarea.tsx`
+- **Thin community `Community 670`** (1 nodes): `textarea.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 665`** (1 nodes): `LoadingScreen.tsx`
+- **Thin community `Community 671`** (1 nodes): `LoadingScreen.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 666`** (1 nodes): `index.ts`
+- **Thin community `Community 672`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 667`** (1 nodes): `index.ts`
+- **Thin community `Community 673`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 668`** (1 nodes): `DataWorkspacePanel.tsx`
+- **Thin community `Community 674`** (1 nodes): `DataWorkspacePanel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 669`** (1 nodes): `ModelRecordInsertMenu.tsx`
+- **Thin community `Community 675`** (1 nodes): `ModelRecordInsertMenu.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 670`** (1 nodes): `ModelRecordTable.tsx`
+- **Thin community `Community 676`** (1 nodes): `ModelRecordTable.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 671`** (1 nodes): `index.ts`
+- **Thin community `Community 677`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 672`** (1 nodes): `FieldTemplate.tsx`
+- **Thin community `Community 678`** (1 nodes): `FieldTemplate.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 673`** (1 nodes): `ObjectFieldTemplate.tsx`
+- **Thin community `Community 679`** (1 nodes): `ObjectFieldTemplate.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 674`** (1 nodes): `model-field-mapping.test.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 675`** (1 nodes): `index.ts`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 676`** (1 nodes): `auth-layout.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 677`** (1 nodes): `RoleTable.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 678`** (1 nodes): `EndUserProjectSelector.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 679`** (1 nodes): `EndUserLoginCard.tsx`
-  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 680`** (1 nodes): `EndUserOrgLoginCard.tsx`
+- **Thin community `Community 680`** (1 nodes): `model-field-mapping.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 681`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 682`** (1 nodes): `index.ts`
+- **Thin community `Community 682`** (1 nodes): `auth-layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 683`** (1 nodes): `app-layout-breadcrumbs.test.ts`
+- **Thin community `Community 683`** (1 nodes): `RoleTable.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 684`** (1 nodes): `PageHeader.tsx`
+- **Thin community `Community 684`** (1 nodes): `EndUserProjectSelector.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 685`** (1 nodes): `AppLayout.tsx`
+- **Thin community `Community 685`** (1 nodes): `EndUserLoginCard.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 686`** (1 nodes): `CopilotProvider.tsx`
+- **Thin community `Community 686`** (1 nodes): `EndUserOrgLoginCard.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 687`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 688`** (1 nodes): `project.ts`
+- **Thin community `Community 688`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 689`** (1 nodes): `index.ts`
+- **Thin community `Community 689`** (1 nodes): `app-layout-breadcrumbs.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 690`** (1 nodes): `enum.ts`
+- **Thin community `Community 690`** (1 nodes): `PageHeader.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 691`** (1 nodes): `model.ts`
+- **Thin community `Community 691`** (1 nodes): `CopilotProvider.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 692`** (1 nodes): `cluster.ts`
+- **Thin community `Community 692`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 693`** (1 nodes): `app.ts`
+- **Thin community `Community 693`** (1 nodes): `project.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 694`** (1 nodes): `error.ts`
+- **Thin community `Community 694`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 695`** (1 nodes): `node.ts`
+- **Thin community `Community 695`** (1 nodes): `enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 696`** (1 nodes): `browser.ts`
+- **Thin community `Community 696`** (1 nodes): `model.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 697`** (1 nodes): `theme-colors.ts`
+- **Thin community `Community 697`** (1 nodes): `cluster.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 698`** (1 nodes): `end-user-auth-store.ts`
+- **Thin community `Community 698`** (1 nodes): `app.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 699`** (1 nodes): `auth-store.ts`
+- **Thin community `Community 699`** (1 nodes): `error.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 700`** (1 nodes): `noop.ts`
+- **Thin community `Community 700`** (1 nodes): `node.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 701`** (1 nodes): `graphql-docs.ts`
+- **Thin community `Community 701`** (1 nodes): `browser.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 702`** (1 nodes): `index.ts`
+- **Thin community `Community 702`** (1 nodes): `theme-colors.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 703`** (1 nodes): `public.ts`
+- **Thin community `Community 703`** (1 nodes): `end-user-auth-store.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 704`** (1 nodes): `public.ts`
+- **Thin community `Community 704`** (1 nodes): `auth-store.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 705`** (1 nodes): `graphql-docs.ts`
+- **Thin community `Community 705`** (1 nodes): `noop.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 706`** (1 nodes): `index.ts`
+- **Thin community `Community 706`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 707`** (1 nodes): `public.ts`
+- **Thin community `Community 707`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 708`** (1 nodes): `graphql-docs.ts`
+- **Thin community `Community 708`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 709`** (1 nodes): `index.ts`
+- **Thin community `Community 709`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 710`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 711`** (1 nodes): `types.ts`
+- **Thin community `Community 711`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 712`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
@@ -4461,170 +4474,180 @@ Nodes (0):
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 714`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 715`** (1 nodes): `index.ts`
+- **Thin community `Community 715`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 716`** (1 nodes): `graphql-docs.ts`
+- **Thin community `Community 716`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 717`** (1 nodes): `index.ts`
+- **Thin community `Community 717`** (1 nodes): `public.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 718`** (1 nodes): `graphql-docs.ts`
+- **Thin community `Community 718`** (1 nodes): `runtime-query-builder.gql-parse-regression.test.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 719`** (1 nodes): `index.ts`
+- **Thin community `Community 719`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 720`** (1 nodes): `graphql-docs.ts`
+- **Thin community `Community 720`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 721`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 722`** (1 nodes): `project.ts`
+- **Thin community `Community 722`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 723`** (1 nodes): `foreign-key.ts`
+- **Thin community `Community 723`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 724`** (1 nodes): `auth.ts`
+- **Thin community `Community 724`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 725`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 726`** (1 nodes): `schema-issue.ts`
+- **Thin community `Community 726`** (1 nodes): `graphql-docs.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 727`** (1 nodes): `enum.ts`
+- **Thin community `Community 727`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 728`** (1 nodes): `profile.ts`
+- **Thin community `Community 728`** (1 nodes): `project.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 729`** (1 nodes): `model-enum.ts`
+- **Thin community `Community 729`** (1 nodes): `foreign-key.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 730`** (1 nodes): `model.ts`
+- **Thin community `Community 730`** (1 nodes): `auth.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 731`** (1 nodes): `cluster.ts`
+- **Thin community `Community 731`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 732`** (1 nodes): `rbac.ts`
+- **Thin community `Community 732`** (1 nodes): `schema-issue.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 733`** (1 nodes): `user.ts`
+- **Thin community `Community 733`** (1 nodes): `enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 734`** (1 nodes): `graphql.ts`
+- **Thin community `Community 734`** (1 nodes): `profile.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 735`** (1 nodes): `page.tsx`
+- **Thin community `Community 735`** (1 nodes): `model-enum.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 736`** (1 nodes): `layout.tsx`
+- **Thin community `Community 736`** (1 nodes): `model.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 737`** (1 nodes): `layout.tsx`
+- **Thin community `Community 737`** (1 nodes): `cluster.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 738`** (1 nodes): `index.ts`
+- **Thin community `Community 738`** (1 nodes): `rbac.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 739`** (1 nodes): `ProfileEditForm.tsx`
+- **Thin community `Community 739`** (1 nodes): `user.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 740`** (1 nodes): `index.ts`
+- **Thin community `Community 740`** (1 nodes): `graphql.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 741`** (1 nodes): `types.ts`
+- **Thin community `Community 741`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 742`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 743`** (1 nodes): `page.tsx`
+- **Thin community `Community 743`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 744`** (1 nodes): `FieldEditSheet.tsx`
+- **Thin community `Community 744`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 745`** (1 nodes): `DeleteModelDialog.tsx`
+- **Thin community `Community 745`** (1 nodes): `ProfileEditForm.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 746`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 747`** (1 nodes): `ForeignKeyPanel.tsx`
+- **Thin community `Community 747`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 748`** (1 nodes): `CreateModelDialog.tsx`
+- **Thin community `Community 748`** (1 nodes): `layout.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 749`** (1 nodes): `EditFieldImmutablePage.tsx`
+- **Thin community `Community 749`** (1 nodes): `FieldEditSheet.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 750`** (1 nodes): `index.ts`
+- **Thin community `Community 750`** (1 nodes): `DeleteModelDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 - **Thin community `Community 751`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 752`** (1 nodes): `types.ts`
+- **Thin community `Community 752`** (1 nodes): `ForeignKeyPanel.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 753`** (1 nodes): `page.tsx`
+- **Thin community `Community 753`** (1 nodes): `CreateModelDialog.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 754`** (1 nodes): `tailwind.config.js`
+- **Thin community `Community 754`** (1 nodes): `EditFieldImmutablePage.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 755`** (1 nodes): `auth.fixture.ts`
+- **Thin community `Community 755`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 756`** (1 nodes): `workspace.fixture.ts`
+- **Thin community `Community 756`** (1 nodes): `index.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 757`** (1 nodes): `routes.ts`
+- **Thin community `Community 757`** (1 nodes): `types.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 758`** (1 nodes): `auth.setup.ts`
+- **Thin community `Community 758`** (1 nodes): `page.tsx`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 759`** (1 nodes): `register.spec.ts`
+- **Thin community `Community 759`** (1 nodes): `tailwind.config.js`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 760`** (1 nodes): `login.spec.ts`
+- **Thin community `Community 760`** (1 nodes): `auth.fixture.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 761`** (1 nodes): `project-list.spec.ts`
+- **Thin community `Community 761`** (1 nodes): `workspace.fixture.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 762`** (1 nodes): `model-editor.spec.ts`
+- **Thin community `Community 762`** (1 nodes): `routes.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 763`** (1 nodes): `org-selector.spec.ts`
+- **Thin community `Community 763`** (1 nodes): `auth.setup.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 764`** (1 nodes): `org-create.spec.ts`
+- **Thin community `Community 764`** (1 nodes): `register.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 765`** (1 nodes): `errors.go`
+- **Thin community `Community 765`** (1 nodes): `login.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 766`** (1 nodes): `graphql_constants.go`
+- **Thin community `Community 766`** (1 nodes): `project-list.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 767`** (1 nodes): `graphql_scalars.go`
+- **Thin community `Community 767`** (1 nodes): `model-editor.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 768`** (1 nodes): `user.resolvers.go`
+- **Thin community `Community 768`** (1 nodes): `org-selector.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 769`** (1 nodes): `catalog_error_mapper.go`
+- **Thin community `Community 769`** (1 nodes): `org-create.spec.ts`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 770`** (1 nodes): `user_error_mapper.go`
+- **Thin community `Community 770`** (1 nodes): `errors.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 771`** (1 nodes): `catalog.resolvers.go`
+- **Thin community `Community 771`** (1 nodes): `graphql_constants.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 772`** (1 nodes): `cluster.resolvers.go`
+- **Thin community `Community 772`** (1 nodes): `graphql_scalars.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 773`** (1 nodes): `end_user.resolvers.go`
+- **Thin community `Community 773`** (1 nodes): `user.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 774`** (1 nodes): `rls.resolvers.go`
+- **Thin community `Community 774`** (1 nodes): `catalog_error_mapper.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 775`** (1 nodes): `end_user_access.resolvers.go`
+- **Thin community `Community 775`** (1 nodes): `user_error_mapper.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 776`** (1 nodes): `field.resolvers.go`
+- **Thin community `Community 776`** (1 nodes): `catalog.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 777`** (1 nodes): `enum.resolvers.go`
+- **Thin community `Community 777`** (1 nodes): `cluster.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 778`** (1 nodes): `model.resolvers.go`
+- **Thin community `Community 778`** (1 nodes): `end_user.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 779`** (1 nodes): `rbac.resolvers.go`
+- **Thin community `Community 779`** (1 nodes): `rls.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 780`** (1 nodes): `logical_foreign_key.resolvers.go`
+- **Thin community `Community 780`** (1 nodes): `end_user_access.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 781`** (1 nodes): `user_management.resolvers.go`
+- **Thin community `Community 781`** (1 nodes): `field.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 782`** (1 nodes): `end_user.resolvers.go`
+- **Thin community `Community 782`** (1 nodes): `enum.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 783`** (1 nodes): `permission.resolvers.go`
+- **Thin community `Community 783`** (1 nodes): `model.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 784`** (1 nodes): `profile.resolvers.go`
+- **Thin community `Community 784`** (1 nodes): `rbac.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 785`** (1 nodes): `project.resolvers.go`
+- **Thin community `Community 785`** (1 nodes): `logical_foreign_key.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 786`** (1 nodes): `errors.go`
+- **Thin community `Community 786`** (1 nodes): `user_management.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 787`** (1 nodes): `field_builder.go`
+- **Thin community `Community 787`** (1 nodes): `end_user.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 788`** (1 nodes): `tools.go`
+- **Thin community `Community 788`** (1 nodes): `permission.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 789`** (1 nodes): `graphql_constants.go`
+- **Thin community `Community 789`** (1 nodes): `profile.resolvers.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
-- **Thin community `Community 790`** (1 nodes): `errors.go`
+- **Thin community `Community 790`** (1 nodes): `project.resolvers.go`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 791`** (1 nodes): `errors.go`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 792`** (1 nodes): `field_builder.go`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 793`** (1 nodes): `tools.go`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 794`** (1 nodes): `graphql_constants.go`
+  Too small to be a meaningful cluster - may be noise or needs more connections extracted.
+- **Thin community `Community 795`** (1 nodes): `errors.go`
   Too small to be a meaningful cluster - may be noise or needs more connections extracted.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `executionContext` connect `Community 0` to `Community 224`, `Community 5`, `Community 7`, `Community 73`, `Community 47`, `Community 17`, `Community 82`, `Community 51`, `Community 21`, `Community 26`, `Community 27`, `Community 190`?**
-  _High betweenness centrality (0.079) - this node is a cross-community bridge._
-- **Why does `ProjectNotFound` connect `Community 6` to `Community 1`?**
+- **Why does `executionContext` connect `Community 0` to `Community 2`, `Community 226`, `Community 6`, `Community 7`, `Community 76`, `Community 19`, `Community 116`, `Community 55`, `Community 25`, `Community 30`?**
+  _High betweenness centrality (0.078) - this node is a cross-community bridge._
+- **Why does `ProjectNotFound` connect `Community 15` to `Community 1`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
-- **Why does `InvalidInput` connect `Community 6` to `Community 1`?**
+- **Why does `InvalidInput` connect `Community 27` to `Community 1`?**
   _High betweenness centrality (0.001) - this node is a cross-community bridge._
 - **What connects `Claims`, `errorResponse`, `clientRequestIDKey` to the rest of the system?**
-  _766 weakly-connected nodes found - possible documentation gaps or missing edges._
+  _785 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `Community 0` be split into smaller, more focused modules?**
   _Cohesion score 0.0 - nodes in this community are weakly interconnected._
 - **Should `Community 1` be split into smaller, more focused modules?**

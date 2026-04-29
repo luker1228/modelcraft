@@ -12,90 +12,90 @@ import (
 	"time"
 )
 
-type EndUserDataPermissionsPreset string
+type EndUserBundleDataPermissionItemsGrantType string
 
 const (
-	EndUserDataPermissionsPresetREADWRITEALL      EndUserDataPermissionsPreset = "READ_WRITE_ALL"
-	EndUserDataPermissionsPresetREADALL           EndUserDataPermissionsPreset = "READ_ALL"
-	EndUserDataPermissionsPresetREADWRITEOWNER    EndUserDataPermissionsPreset = "READ_WRITE_OWNER"
-	EndUserDataPermissionsPresetREADALLWRITEOWNER EndUserDataPermissionsPreset = "READ_ALL_WRITE_OWNER"
+	EndUserBundleDataPermissionItemsGrantTypePRESET EndUserBundleDataPermissionItemsGrantType = "PRESET"
+	EndUserBundleDataPermissionItemsGrantTypeCUSTOM EndUserBundleDataPermissionItemsGrantType = "CUSTOM"
 )
 
-func (e *EndUserDataPermissionsPreset) Scan(src interface{}) error {
+func (e *EndUserBundleDataPermissionItemsGrantType) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EndUserDataPermissionsPreset(s)
+		*e = EndUserBundleDataPermissionItemsGrantType(s)
 	case string:
-		*e = EndUserDataPermissionsPreset(s)
+		*e = EndUserBundleDataPermissionItemsGrantType(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EndUserDataPermissionsPreset: %T", src)
+		return fmt.Errorf("unsupported scan type for EndUserBundleDataPermissionItemsGrantType: %T", src)
 	}
 	return nil
 }
 
-type NullEndUserDataPermissionsPreset struct {
-	EndUserDataPermissionsPreset EndUserDataPermissionsPreset
-	Valid                        bool // Valid is true if EndUserDataPermissionsPreset is not NULL
+type NullEndUserBundleDataPermissionItemsGrantType struct {
+	EndUserBundleDataPermissionItemsGrantType EndUserBundleDataPermissionItemsGrantType
+	Valid                                     bool // Valid is true if EndUserBundleDataPermissionItemsGrantType is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullEndUserDataPermissionsPreset) Scan(value interface{}) error {
+func (ns *NullEndUserBundleDataPermissionItemsGrantType) Scan(value interface{}) error {
 	if value == nil {
-		ns.EndUserDataPermissionsPreset, ns.Valid = "", false
+		ns.EndUserBundleDataPermissionItemsGrantType, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.EndUserDataPermissionsPreset.Scan(value)
+	return ns.EndUserBundleDataPermissionItemsGrantType.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullEndUserDataPermissionsPreset) Value() (driver.Value, error) {
+func (ns NullEndUserBundleDataPermissionItemsGrantType) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.EndUserDataPermissionsPreset), nil
+	return string(ns.EndUserBundleDataPermissionItemsGrantType), nil
 }
 
-type EndUserDataPermissionsType string
+type EndUserBundleDataPermissionItemsPreset string
 
 const (
-	EndUserDataPermissionsTypePRESET EndUserDataPermissionsType = "PRESET"
-	EndUserDataPermissionsTypeCUSTOM EndUserDataPermissionsType = "CUSTOM"
+	EndUserBundleDataPermissionItemsPresetREADWRITEALL      EndUserBundleDataPermissionItemsPreset = "READ_WRITE_ALL"
+	EndUserBundleDataPermissionItemsPresetREADALL           EndUserBundleDataPermissionItemsPreset = "READ_ALL"
+	EndUserBundleDataPermissionItemsPresetREADWRITEOWNER    EndUserBundleDataPermissionItemsPreset = "READ_WRITE_OWNER"
+	EndUserBundleDataPermissionItemsPresetREADALLWRITEOWNER EndUserBundleDataPermissionItemsPreset = "READ_ALL_WRITE_OWNER"
 )
 
-func (e *EndUserDataPermissionsType) Scan(src interface{}) error {
+func (e *EndUserBundleDataPermissionItemsPreset) Scan(src interface{}) error {
 	switch s := src.(type) {
 	case []byte:
-		*e = EndUserDataPermissionsType(s)
+		*e = EndUserBundleDataPermissionItemsPreset(s)
 	case string:
-		*e = EndUserDataPermissionsType(s)
+		*e = EndUserBundleDataPermissionItemsPreset(s)
 	default:
-		return fmt.Errorf("unsupported scan type for EndUserDataPermissionsType: %T", src)
+		return fmt.Errorf("unsupported scan type for EndUserBundleDataPermissionItemsPreset: %T", src)
 	}
 	return nil
 }
 
-type NullEndUserDataPermissionsType struct {
-	EndUserDataPermissionsType EndUserDataPermissionsType
-	Valid                      bool // Valid is true if EndUserDataPermissionsType is not NULL
+type NullEndUserBundleDataPermissionItemsPreset struct {
+	EndUserBundleDataPermissionItemsPreset EndUserBundleDataPermissionItemsPreset
+	Valid                                  bool // Valid is true if EndUserBundleDataPermissionItemsPreset is not NULL
 }
 
 // Scan implements the Scanner interface.
-func (ns *NullEndUserDataPermissionsType) Scan(value interface{}) error {
+func (ns *NullEndUserBundleDataPermissionItemsPreset) Scan(value interface{}) error {
 	if value == nil {
-		ns.EndUserDataPermissionsType, ns.Valid = "", false
+		ns.EndUserBundleDataPermissionItemsPreset, ns.Valid = "", false
 		return nil
 	}
 	ns.Valid = true
-	return ns.EndUserDataPermissionsType.Scan(value)
+	return ns.EndUserBundleDataPermissionItemsPreset.Scan(value)
 }
 
 // Value implements the driver Valuer interface.
-func (ns NullEndUserDataPermissionsType) Value() (driver.Value, error) {
+func (ns NullEndUserBundleDataPermissionItemsPreset) Value() (driver.Value, error) {
 	if !ns.Valid {
 		return nil, nil
 	}
-	return string(ns.EndUserDataPermissionsType), nil
+	return string(ns.EndUserBundleDataPermissionItemsPreset), nil
 }
 
 type LogicalForeignKeysDirection string
@@ -259,22 +259,29 @@ type EndUserAccount struct {
 	CreatedAt time.Time
 }
 
-// 权限包-权限点 有序中间表
-type EndUserBundlePermission struct {
-	// UUID
+// Bundle 数据权限 Item：bundle 在某模型上的唯一数据权限配置
+type EndUserBundleDataPermissionItem struct {
+	// Item UUID
 	ID string
-	// 权限包 ID，FK → end_user_permission_bundles.id
+	// 所属权限包 ID，FK → end_user_permission_bundles.id
 	BundleID string
-	// 权限点 ID，FK → end_user_data_permissions.id
-	PermissionID string
+	// 目标模型 ID，FK → models.id
+	ModelID string
+	// 授权来源类型
+	GrantType EndUserBundleDataPermissionItemsGrantType
+	// PRESET 模板枚举值（仅 grant_type=PRESET 时有值）
+	Preset NullEndUserBundleDataPermissionItemsPreset
+	// 自定义权限实体 ID（仅 grant_type=CUSTOM 时有值），FK → end_user_data_permissions.id
+	CustomPermissionID sql.NullString
 	// 显示排序权重（ASC）
 	SortOrder int32
 	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
-// 权限点：每行描述对某模型的行列级访问策略
+// 自定义数据权限实体：管理员手工定义的模型级行列策略（仅 CUSTOM）
 type EndUserDataPermission struct {
-	// 权限点 UUID
+	// 权限实体 UUID
 	ID string
 	// 所属组织（冗余，不做 FK）
 	OrgName string
@@ -286,23 +293,19 @@ type EndUserDataPermission struct {
 	ModelName sql.NullString
 	// 关联模型 ID，FK → models.id
 	ModelID string
-	// 权限点名称，人类可读
+	// 权限名称，人类可读
 	Name string
-	// 权限点描述
+	// 权限描述
 	Description sql.NullString
-	// 权限点来源：PRESET=预设策略生成，CUSTOM=管理员手动创建
-	Type EndUserDataPermissionsType
-	// 列策略 JSON，结构见注释
+	// 列策略 JSON
 	ColumnPolicy *json.RawMessage
-	// 行策略 JSON，谓词为 GraphQL Runtime where 条件（与 model_rls_policies 格式一致）
+	// 行策略 JSON，谓词为 GraphQL Runtime where 条件
 	RowPolicy *json.RawMessage
-	// 来源预设，NULL 表示手动创建的自定义权限点；仅 type=PRESET 时有值
-	Preset    NullEndUserDataPermissionsPreset
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
-// 权限包：权限点的命名集合，用于角色授权或用户直接授权
+// 权限包：数据权限 item 的命名集合，用于角色授权或用户直接授权
 type EndUserPermissionBundle struct {
 	// 权限包 UUID
 	ID string
@@ -318,7 +321,7 @@ type EndUserPermissionBundle struct {
 	UpdatedAt   time.Time
 }
 
-// 权限包历史快照：记录每次权限列表变更，支持回滚
+// 权限包历史快照：记录每次 data permission item 列表变更，支持回滚
 type EndUserPermissionBundleSnapshot struct {
 	// 快照 UUID
 	ID string
@@ -326,8 +329,8 @@ type EndUserPermissionBundleSnapshot struct {
 	BundleID string
 	// 版本号，从 1 开始，每个权限包独立计数
 	Version int32
-	// 快照时刻的权限点 ID 数组，格式：[{"permissionId":"uuid","sortOrder":0}]
-	Permissions json.RawMessage
+	// 快照时刻的 data permission item 列表，格式：[{"modelId":"uuid","grantType":"PRESET|CUSTOM","preset":"READ_ALL|...","customPermissionId":"uuid|null","sortOrder":0}]
+	Items json.RawMessage
 	// 快照创建时间
 	CreatedAt time.Time
 	// 操作人标识（用户 ID 或 system）

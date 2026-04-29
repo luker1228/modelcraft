@@ -1,6 +1,10 @@
 package rbac
 
-import "modelcraft/pkg/bizerrors"
+import (
+	"time"
+
+	"modelcraft/pkg/bizerrors"
+)
 
 // Action 操作动作枚举（用于鉴权结果模型）
 type Action string
@@ -87,6 +91,20 @@ type EndUserPermission struct {
 	ColumnPolicy *ColumnPolicy
 	RowPolicy    *RowPolicy
 	Preset       *PermissionPreset
+}
+
+// EndUserBundleDataPermissionItem 权限包中的模型级数据权限配置项。
+// 一个 bundle 在一个 model 下最多只有一个 item（replace 语义）。
+type EndUserBundleDataPermissionItem struct {
+	ID                 string
+	BundleID           string
+	ModelID            string
+	GrantType          PermissionType
+	Preset             *PermissionPreset
+	CustomPermissionID *string
+	SortOrder          int
+	CreatedAt          time.Time
+	UpdatedAt          time.Time
 }
 
 // Validate 校验权限点合法性（纯域内校验，不查 DB）

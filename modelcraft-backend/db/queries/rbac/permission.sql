@@ -8,12 +8,10 @@ INSERT INTO end_user_data_permissions (
   model_id,
   name,
   description,
-  type,
   column_policy,
-  row_policy,
-  preset
+  row_policy
 )
-VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetEndUserPermissionByID :one
 SELECT *
@@ -35,20 +33,11 @@ WHERE model_id = ?
   AND org_name = ?
 ORDER BY created_at;
 
--- name: ListPresetPermissionsByModel :many
+-- name: GetEndUserPermissionByModelAndName :one
 SELECT *
 FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
-  AND type = 'PRESET'
-ORDER BY created_at;
-
--- name: GetEndUserPermissionByModelTypeName :one
-SELECT *
-FROM end_user_data_permissions
-WHERE model_id = ?
-  AND org_name = ?
-  AND type = ?
   AND name = ?
 LIMIT 1;
 
@@ -57,6 +46,7 @@ UPDATE end_user_data_permissions
 SET name = ?,
     description = ?,
     column_policy = ?,
+    row_policy = ?,
     updated_at = NOW(3)
 WHERE id = ?
   AND org_name = ?;
@@ -66,23 +56,7 @@ DELETE FROM end_user_data_permissions
 WHERE id = ?
   AND org_name = ?;
 
--- name: DeleteEndUserPermissionsByModelAndType :execresult
-DELETE FROM end_user_data_permissions
-WHERE model_id = ?
-  AND org_name = ?
-  AND type = ?;
-
--- name: UpdateEndUserPresetPermission :execresult
-UPDATE end_user_data_permissions
-SET name = ?,
-    description = ?,
-    row_policy = ?,
-    preset = ?,
-    updated_at = NOW(3)
-WHERE id = ?
-  AND org_name = ?;
-
--- name: IsPermissionReferencedByBundle :one
+-- name: IsPermissionReferencedByBundleItem :one
 SELECT COUNT(*) > 0 AS referenced
-FROM end_user_bundle_permissions
-WHERE permission_id = ?;
+FROM end_user_bundle_data_permission_items
+WHERE custom_permission_id = ?;

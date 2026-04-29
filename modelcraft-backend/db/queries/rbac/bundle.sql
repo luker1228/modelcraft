@@ -34,23 +34,44 @@ DELETE FROM end_user_permission_bundles
 WHERE id = ?
   AND org_name = ?;
 
--- name: AddPermissionToBundle :exec
-INSERT INTO end_user_bundle_permissions (
+-- ─── Bundle Data Permission Items ───────────────────────────────
+
+-- name: UpsertBundleDataPermissionItem :exec
+-- Replace 语义：同一 bundle+model 最多一个 item
+INSERT INTO end_user_bundle_data_permission_items (
   id,
   bundle_id,
-  permission_id,
+  model_id,
+  grant_type,
+  preset,
+  custom_permission_id,
   sort_order
 )
-VALUES (?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  grant_type = VALUES(grant_type),
+  preset = VALUES(preset),
+  custom_permission_id = VALUES(custom_permission_id),
+  sort_order = VALUES(sort_order),
+  updated_at = NOW(3);
 
--- name: RemovePermissionFromBundle :execresult
-DELETE FROM end_user_bundle_permissions
+-- name: RemoveBundleDataPermissionItem :execresult
+DELETE FROM end_user_bundle_data_permission_items
 WHERE bundle_id = ?
-  AND permission_id = ?;
+  AND model_id = ?;
 
--- name: ListPermissionsInBundle :many
-SELECT p.*
-FROM end_user_data_permissions p
-  JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
-WHERE bp.bundle_id = ?
-ORDER BY bp.sort_order, bp.created_at;
+-- name: ListBundleDataPermissionItems :many
+SELECT *
+FROM end_user_bundle_data_permission_items
+WHERE bundle_id = ?
+ORDER BY sort_order, created_at;
+
+-- name: ClearBundleDataPermissionItems :exec
+DELETE FROM end_user_bundle_data_permission_items
+WHERE bundle_id = ?;
+
+-- name: GetBundleDataPermissionItemByBundleAndModel :one
+SELECT *
+FROM end_user_bundle_data_permission_items
+WHERE bundle_id = ?
+  AND model_id = ?;

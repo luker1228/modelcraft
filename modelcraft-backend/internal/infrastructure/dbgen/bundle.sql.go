@@ -10,30 +10,13 @@ import (
 	"database/sql"
 )
 
-const addPermissionToBundle = `-- name: AddPermissionToBundle :exec
-INSERT INTO end_user_bundle_permissions (
-  id,
-  bundle_id,
-  permission_id,
-  sort_order
-)
-VALUES (?, ?, ?, ?)
+const clearBundleDataPermissionItems = `-- name: ClearBundleDataPermissionItems :exec
+DELETE FROM end_user_bundle_data_permission_items
+WHERE bundle_id = ?
 `
 
-type AddPermissionToBundleParams struct {
-	ID           string
-	BundleID     string
-	PermissionID string
-	SortOrder    int32
-}
-
-func (q *Queries) AddPermissionToBundle(ctx context.Context, arg AddPermissionToBundleParams) error {
-	_, err := q.db.ExecContext(ctx, addPermissionToBundle,
-		arg.ID,
-		arg.BundleID,
-		arg.PermissionID,
-		arg.SortOrder,
-	)
+func (q *Queries) ClearBundleDataPermissionItems(ctx context.Context, bundleID string) error {
+	_, err := q.db.ExecContext(ctx, clearBundleDataPermissionItems, bundleID)
 	return err
 }
 
@@ -82,6 +65,35 @@ func (q *Queries) DeleteEndUserBundle(ctx context.Context, arg DeleteEndUserBund
 	return q.db.ExecContext(ctx, deleteEndUserBundle, arg.ID, arg.OrgName)
 }
 
+const getBundleDataPermissionItemByBundleAndModel = `-- name: GetBundleDataPermissionItemByBundleAndModel :one
+SELECT id, bundle_id, model_id, grant_type, preset, custom_permission_id, sort_order, created_at, updated_at
+FROM end_user_bundle_data_permission_items
+WHERE bundle_id = ?
+  AND model_id = ?
+`
+
+type GetBundleDataPermissionItemByBundleAndModelParams struct {
+	BundleID string
+	ModelID  string
+}
+
+func (q *Queries) GetBundleDataPermissionItemByBundleAndModel(ctx context.Context, arg GetBundleDataPermissionItemByBundleAndModelParams) (EndUserBundleDataPermissionItem, error) {
+	row := q.db.QueryRowContext(ctx, getBundleDataPermissionItemByBundleAndModel, arg.BundleID, arg.ModelID)
+	var i EndUserBundleDataPermissionItem
+	err := row.Scan(
+		&i.ID,
+		&i.BundleID,
+		&i.ModelID,
+		&i.GrantType,
+		&i.Preset,
+		&i.CustomPermissionID,
+		&i.SortOrder,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const getEndUserBundleByID = `-- name: GetEndUserBundleByID :one
 SELECT id, org_name, project_slug, name, description, created_at, updated_at
 FROM end_user_permission_bundles
@@ -107,6 +119,46 @@ func (q *Queries) GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundle
 		&i.UpdatedAt,
 	)
 	return i, err
+}
+
+const listBundleDataPermissionItems = `-- name: ListBundleDataPermissionItems :many
+SELECT id, bundle_id, model_id, grant_type, preset, custom_permission_id, sort_order, created_at, updated_at
+FROM end_user_bundle_data_permission_items
+WHERE bundle_id = ?
+ORDER BY sort_order, created_at
+`
+
+func (q *Queries) ListBundleDataPermissionItems(ctx context.Context, bundleID string) ([]EndUserBundleDataPermissionItem, error) {
+	rows, err := q.db.QueryContext(ctx, listBundleDataPermissionItems, bundleID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EndUserBundleDataPermissionItem
+	for rows.Next() {
+		var i EndUserBundleDataPermissionItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.BundleID,
+			&i.ModelID,
+			&i.GrantType,
+			&i.Preset,
+			&i.CustomPermissionID,
+			&i.SortOrder,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const listEndUserBundlesByProject = `-- name: ListEndUserBundlesByProject :many
@@ -153,65 +205,19 @@ func (q *Queries) ListEndUserBundlesByProject(ctx context.Context, arg ListEndUs
 	return items, nil
 }
 
-const listPermissionsInBundle = `-- name: ListPermissionsInBundle :many
-SELECT p.id, p.org_name, p.project_slug, p.database_name, p.model_name, p.model_id, p.name, p.description, p.type, p.column_policy, p.row_policy, p.preset, p.created_at, p.updated_at
-FROM end_user_data_permissions p
-  JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
-WHERE bp.bundle_id = ?
-ORDER BY bp.sort_order, bp.created_at
-`
-
-func (q *Queries) ListPermissionsInBundle(ctx context.Context, bundleID string) ([]EndUserDataPermission, error) {
-	rows, err := q.db.QueryContext(ctx, listPermissionsInBundle, bundleID)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	var items []EndUserDataPermission
-	for rows.Next() {
-		var i EndUserDataPermission
-		if err := rows.Scan(
-			&i.ID,
-			&i.OrgName,
-			&i.ProjectSlug,
-			&i.DatabaseName,
-			&i.ModelName,
-			&i.ModelID,
-			&i.Name,
-			&i.Description,
-			&i.Type,
-			&i.ColumnPolicy,
-			&i.RowPolicy,
-			&i.Preset,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-		); err != nil {
-			return nil, err
-		}
-		items = append(items, i)
-	}
-	if err := rows.Close(); err != nil {
-		return nil, err
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-const removePermissionFromBundle = `-- name: RemovePermissionFromBundle :execresult
-DELETE FROM end_user_bundle_permissions
+const removeBundleDataPermissionItem = `-- name: RemoveBundleDataPermissionItem :execresult
+DELETE FROM end_user_bundle_data_permission_items
 WHERE bundle_id = ?
-  AND permission_id = ?
+  AND model_id = ?
 `
 
-type RemovePermissionFromBundleParams struct {
-	BundleID     string
-	PermissionID string
+type RemoveBundleDataPermissionItemParams struct {
+	BundleID string
+	ModelID  string
 }
 
-func (q *Queries) RemovePermissionFromBundle(ctx context.Context, arg RemovePermissionFromBundleParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, removePermissionFromBundle, arg.BundleID, arg.PermissionID)
+func (q *Queries) RemoveBundleDataPermissionItem(ctx context.Context, arg RemoveBundleDataPermissionItemParams) (sql.Result, error) {
+	return q.db.ExecContext(ctx, removeBundleDataPermissionItem, arg.BundleID, arg.ModelID)
 }
 
 const updateEndUserBundle = `-- name: UpdateEndUserBundle :execresult
@@ -237,4 +243,49 @@ func (q *Queries) UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBund
 		arg.ID,
 		arg.OrgName,
 	)
+}
+
+const upsertBundleDataPermissionItem = `-- name: UpsertBundleDataPermissionItem :exec
+
+INSERT INTO end_user_bundle_data_permission_items (
+  id,
+  bundle_id,
+  model_id,
+  grant_type,
+  preset,
+  custom_permission_id,
+  sort_order
+)
+VALUES (?, ?, ?, ?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+  grant_type = VALUES(grant_type),
+  preset = VALUES(preset),
+  custom_permission_id = VALUES(custom_permission_id),
+  sort_order = VALUES(sort_order),
+  updated_at = NOW(3)
+`
+
+type UpsertBundleDataPermissionItemParams struct {
+	ID                 string
+	BundleID           string
+	ModelID            string
+	GrantType          EndUserBundleDataPermissionItemsGrantType
+	Preset             NullEndUserBundleDataPermissionItemsPreset
+	CustomPermissionID sql.NullString
+	SortOrder          int32
+}
+
+// ─── Bundle Data Permission Items ───────────────────────────────
+// Replace 语义：同一 bundle+model 最多一个 item
+func (q *Queries) UpsertBundleDataPermissionItem(ctx context.Context, arg UpsertBundleDataPermissionItemParams) error {
+	_, err := q.db.ExecContext(ctx, upsertBundleDataPermissionItem,
+		arg.ID,
+		arg.BundleID,
+		arg.ModelID,
+		arg.GrantType,
+		arg.Preset,
+		arg.CustomPermissionID,
+		arg.SortOrder,
+	)
+	return err
 }

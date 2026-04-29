@@ -1,6 +1,6 @@
 -- =============================================================
 -- 13_rbac_permissions.sql
--- RBAC 行列级权限系统
+-- RBAC 行列级权限系统（item-centric 模型）
 -- 依赖: 12_end_user_auth.sql（end_user_roles / end_user_users）
 -- =============================================================
 
@@ -13,86 +13,55 @@ ALTER TABLE `end_user_roles`
   ADD INDEX `idx_end_user_roles_implicit` (`is_implicit`);
 
 -- -------------------------------------------------------------
--- 1. end_user_data_permissions — 权限点
---    一行 = 一条对某模型的行列级访问策略
+-- 1. end_user_data_permissions — 自定义数据权限实体（仅 CUSTOM）
+--    一行 = 管理员手工定义的对某模型的行列级访问策略
 -- -------------------------------------------------------------
 CREATE TABLE `end_user_data_permissions` (
-  `id`            VARCHAR(36)  NOT NULL                    COMMENT '权限点 UUID',
+  `id`            VARCHAR(36)  NOT NULL                    COMMENT '权限实体 UUID',
   `org_name`      VARCHAR(64)  NOT NULL                    COMMENT '所属组织（冗余，不做 FK）',
   `project_slug`  VARCHAR(64)  NOT NULL                    COMMENT '所属项目（冗余，不做 FK）',
   `database_name` VARCHAR(128) NULL                        COMMENT '数据源名称（可空，预留按数据源授权能力）',
   `model_name`    VARCHAR(128) NULL                        COMMENT '模型名称（可空，预留按模型名授权能力）',
   `model_id`      VARCHAR(36)  NOT NULL                    COMMENT '关联模型 ID，FK → models.id',
-  `name`          VARCHAR(128) NOT NULL                    COMMENT '权限点名称，人类可读',
-  `description`   TEXT         NULL                        COMMENT '权限点描述',
-  `type`          ENUM(
-                    'PRESET',
-                    'CUSTOM'
-                  )            NOT NULL DEFAULT 'CUSTOM'   COMMENT '权限点来源：PRESET=预设策略生成，CUSTOM=管理员手动创建',
-  `column_policy` JSON         NULL                        COMMENT '列策略 JSON，结构见注释',
+  `name`          VARCHAR(128) NOT NULL                    COMMENT '权限名称，人类可读',
+  `description`   TEXT         NULL                        COMMENT '权限描述',
+  `column_policy` JSON         NULL                        COMMENT '列策略 JSON',
   -- column_policy 结构示例：
   -- {
-  --   "defaultMode": "VISIBLE",          // VISIBLE | HIDDEN | MASKED
+  --   "defaultMode": "VISIBLE",
   --   "rules": [
-  --     { "fieldName": "salary",  "mode": "MASKED",  "maskPattern": "***", "writable": false },
-  --     { "fieldName": "id_card", "mode": "HIDDEN",  "writable": false },
-  --     { "fieldName": "status",  "mode": "VISIBLE", "writable": false }
+  --     { "fieldName": "salary",  "mode": "MASKED",  "maskPattern": "***" },
+  --     { "fieldName": "id_card", "mode": "HIDDEN" },
+  --     { "fieldName": "status",  "mode": "VISIBLE" }
   --   ]
   -- }
-  -- writable: 该列是否允许被 UPDATE SET，默认 true；仅 mode=VISIBLE 时有意义
-  `row_policy`    JSON         NULL                        COMMENT '行策略 JSON，谓词为 GraphQL Runtime where 条件（与 model_rls_policies 格式一致）',
+  `row_policy`    JSON         NULL                        COMMENT '行策略 JSON，谓词为 GraphQL Runtime where 条件',
   -- row_policy 结构（每个 action 两个字段）：
-  --   allowed : boolean     是否允许该操作；false 时其余字段忽略
-  --   scope   : "all"|"custom"  all=全通行(predicate/check忽略)，custom=条件生效
+  --   allowed : boolean
+  --   scope   : "all"|"custom"
   --   predicate/check : GraphQL Runtime where JSON（scope=custom 时有效）
-  --
-  -- 隐藏规则：select.allowed=false 时，insert/update/delete 全部强制 allowed=false
-  --
   -- {
-  --   "select": {
-  --     "allowed": true,
-  --     "scope": "custom",
-  --     "predicate": { "status": { "_eq": "active" } }
-  --   },
-  --   "insert": {
-  --     "allowed": true,
-  --     "scope": "custom",
-  --     "check": { "owner_id": { "_eq": "$endUserId" } }
-  --   },
-  --   "update": {
-  --     "allowed": true,
-  --     "scope": "custom",
-  --     "predicate": { "owner_id": { "_eq": "$endUserId" } },
-  --     "check_scope": "custom",
-  --     "check": { "owner_id": { "_eq": "$endUserId" } }
-  --   },
-  --   "delete": {
-  --     "allowed": false
-  --   }
+  --   "select": { "allowed": true, "scope": "custom", "predicate": {...} },
+  --   "insert": { "allowed": true, "scope": "custom", "check": {...} },
+  --   "update": { "allowed": true, "scope": "custom", "predicate": {...}, "check_scope": "custom", "check": {...} },
+  --   "delete": { "allowed": false }
   -- }
-  `preset`        ENUM(
-                    'READ_WRITE_ALL',
-                    'READ_ALL',
-                    'READ_WRITE_OWNER',
-                    'READ_ALL_WRITE_OWNER'
-                  )            NULL DEFAULT NULL           COMMENT '来源预设，NULL 表示手动创建的自定义权限点；仅 type=PRESET 时有值',
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
-  -- 业务唯一键：同一模型下，相同类型+名称不可重复
-  UNIQUE KEY `uq_permissions_model_type_name`
-    (`model_id`, `type`, `name`),
-  -- 按组织/项目快速检索（不做 FK，Project 不删除只归档）
+  -- 业务唯一键：同一模型下名称不可重复
+  UNIQUE KEY `uq_permissions_model_name`
+    (`model_id`, `name`),
+  -- 按组织/项目快速检索
   INDEX `idx_permissions_org_project` (`org_name`, `project_slug`),
   INDEX `idx_permissions_model_id` (`model_id`),
-  INDEX `idx_permissions_model_preset` (`model_id`, `preset`),
-  -- FK → models.id（模型可删除，级联清理权限点）
+  -- FK → models.id（模型可删除，级联清理权限实体）
   CONSTRAINT `fk_permissions_model`
     FOREIGN KEY (`model_id`) REFERENCES `models` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='权限点：每行描述对某模型的行列级访问策略';
+  COMMENT='自定义数据权限实体：管理员手工定义的模型级行列策略（仅 CUSTOM）';
 
 -- -------------------------------------------------------------
 -- 2. end_user_permission_bundles — 权限包
@@ -111,34 +80,59 @@ CREATE TABLE `end_user_permission_bundles` (
   -- 同一项目下权限包名称唯一
   UNIQUE KEY `uq_bundles_org_project_name`
     (`org_name`, `project_slug`, `name`),
-  -- 快速检索（不做 FK → projects）
+  -- 快速检索
   INDEX `idx_bundles_org_project` (`org_name`, `project_slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='权限包：权限点的命名集合，用于角色授权或用户直接授权';
+  COMMENT='权限包：数据权限 item 的命名集合，用于角色授权或用户直接授权';
 
 -- -------------------------------------------------------------
--- 3. end_user_bundle_permissions — 权限包-权限点 有序中间表
+-- 3. end_user_bundle_data_permission_items — Bundle 数据权限 Item（核心绑定表）
+--    每行 = bundle 在某模型上的唯一数据权限配置
+--    grant_type=PRESET 时: preset 必填, custom_permission_id 为空
+--    grant_type=CUSTOM 时: custom_permission_id 必填, preset 为空
 -- -------------------------------------------------------------
-CREATE TABLE `end_user_bundle_permissions` (
-  `id`             VARCHAR(36) NOT NULL                    COMMENT 'UUID',
-  `bundle_id`      VARCHAR(36) NOT NULL                    COMMENT '权限包 ID，FK → end_user_permission_bundles.id',
-  `permission_id`  VARCHAR(36) NOT NULL                    COMMENT '权限点 ID，FK → end_user_data_permissions.id',
-  `sort_order`     INT         NOT NULL DEFAULT 0          COMMENT '显示排序权重（ASC）',
-  `created_at`     DATETIME    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+CREATE TABLE `end_user_bundle_data_permission_items` (
+  `id`                     VARCHAR(36)  NOT NULL                    COMMENT 'Item UUID',
+  `bundle_id`              VARCHAR(36)  NOT NULL                    COMMENT '所属权限包 ID，FK → end_user_permission_bundles.id',
+  `model_id`               VARCHAR(36)  NOT NULL                    COMMENT '目标模型 ID，FK → models.id',
+  `grant_type`             ENUM('PRESET','CUSTOM') NOT NULL         COMMENT '授权来源类型',
+  `preset`                 ENUM(
+                             'READ_WRITE_ALL',
+                             'READ_ALL',
+                             'READ_WRITE_OWNER',
+                             'READ_ALL_WRITE_OWNER'
+                           )            NULL DEFAULT NULL           COMMENT 'PRESET 模板枚举值（仅 grant_type=PRESET 时有值）',
+  `custom_permission_id`   VARCHAR(36)  NULL DEFAULT NULL           COMMENT '自定义权限实体 ID（仅 grant_type=CUSTOM 时有值），FK → end_user_data_permissions.id',
+  `sort_order`             INT          NOT NULL DEFAULT 0          COMMENT '显示排序权重（ASC）',
+  `created_at`             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at`             DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
-  -- 同一权限包内权限点不重复
-  UNIQUE KEY `uq_bundle_permissions_bundle_perm`
-    (`bundle_id`, `permission_id`),
-  INDEX `idx_bundle_permissions_permission_id` (`permission_id`),
-  CONSTRAINT `fk_bundle_permissions_bundle`
+  -- 核心约束：同一 bundle 下同一 model 最多一个 item
+  UNIQUE KEY `uq_bundle_items_bundle_model`
+    (`bundle_id`, `model_id`),
+  INDEX `idx_bundle_items_custom_permission` (`custom_permission_id`),
+  INDEX `idx_bundle_items_model_id` (`model_id`),
+  -- FK → bundles（级联删除）
+  CONSTRAINT `fk_bundle_items_bundle`
     FOREIGN KEY (`bundle_id`) REFERENCES `end_user_permission_bundles` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
-  CONSTRAINT `fk_bundle_permissions_permission`
-    FOREIGN KEY (`permission_id`) REFERENCES `end_user_data_permissions` (`id`)
-    ON DELETE CASCADE ON UPDATE CASCADE
+  -- FK → models（级联删除）
+  CONSTRAINT `fk_bundle_items_model`
+    FOREIGN KEY (`model_id`) REFERENCES `models` (`id`)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  -- FK → custom permission（RESTRICT 防止悬挂引用）
+  CONSTRAINT `fk_bundle_items_custom_permission`
+    FOREIGN KEY (`custom_permission_id`) REFERENCES `end_user_data_permissions` (`id`)
+    ON DELETE RESTRICT ON UPDATE CASCADE,
+  -- CHECK: PRESET item 必须有 preset，不能有 custom_permission_id
+  CONSTRAINT `chk_bundle_items_preset`
+    CHECK (grant_type != 'PRESET' OR (preset IS NOT NULL AND custom_permission_id IS NULL)),
+  -- CHECK: CUSTOM item 必须有 custom_permission_id，不能有 preset
+  CONSTRAINT `chk_bundle_items_custom`
+    CHECK (grant_type != 'CUSTOM' OR (custom_permission_id IS NOT NULL AND preset IS NULL))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
-  COMMENT='权限包-权限点 有序中间表';
+  COMMENT='Bundle 数据权限 Item：bundle 在某模型上的唯一数据权限配置';
 
 -- -------------------------------------------------------------
 -- 4. end_user_role_bundles — 角色-权限包 关联
@@ -168,7 +162,6 @@ CREATE TABLE `end_user_role_bundles` (
 
 -- -------------------------------------------------------------
 -- 5. end_user_user_bundles — 用户直接授权-权限包 关联
---    用户可绕过角色直接获得权限包（最高优先级通道）
 -- -------------------------------------------------------------
 CREATE TABLE `end_user_user_bundles` (
   `id`            VARCHAR(36)  NOT NULL                    COMMENT 'UUID',

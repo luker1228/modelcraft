@@ -10,8 +10,10 @@ type EndUserPermissionBundle struct {
 	ID          string
 	Name        string
 	Description *string
-	// Permissions 展开后按需填充（ListPermissionsInBundle）
+	// Permissions 旧字段（兼容）：按需填充。
 	Permissions []*EndUserPermission
+	// Items 新字段：bundle 的正式数据权限绑定项。
+	Items []*EndUserBundleDataPermissionItem
 	// Snapshots 历史版本快照，按需填充，最多 5 个（按 version DESC）
 	Snapshots []BundleSnapshot
 }

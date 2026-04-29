@@ -129,30 +129,29 @@ func (q *Queries) GetBundleIDsByUserExplicitRoles(ctx context.Context, arg GetBu
 	return items, nil
 }
 
-const getPermissionsByBundleIDs = `-- name: GetPermissionsByBundleIDs :many
-SELECT p.id, p.org_name, p.project_slug, p.database_name, p.model_name, p.model_id, p.name, p.description, p.type, p.column_policy, p.row_policy, p.preset, p.created_at, p.updated_at
+const getCustomPermissionsByIDs = `-- name: GetCustomPermissionsByIDs :many
+SELECT p.id, p.org_name, p.project_slug, p.database_name, p.model_name, p.model_id, p.name, p.description, p.column_policy, p.row_policy, p.created_at, p.updated_at
 FROM end_user_data_permissions p
-  JOIN end_user_bundle_permissions bp ON p.id = bp.permission_id
-WHERE bp.bundle_id IN (/*SLICE:bundleids*/?)
+WHERE p.id IN (/*SLICE:permissionids*/?)
   AND p.org_name = ?
 `
 
-type GetPermissionsByBundleIDsParams struct {
-	Bundleids []string
-	OrgName   string
+type GetCustomPermissionsByIDsParams struct {
+	Permissionids []string
+	OrgName       string
 }
 
-// ⚡ 鉴权链 Step 4: 展开权限包 → 权限点（动态 IN，适用于 Step 1~3 合并后的 bundle_id 集合）
-func (q *Queries) GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissionsByBundleIDsParams) ([]EndUserDataPermission, error) {
-	query := getPermissionsByBundleIDs
+// ⚡ 鉴权链 Step 5: 批量加载 custom permission 实体（CUSTOM item 引用）
+func (q *Queries) GetCustomPermissionsByIDs(ctx context.Context, arg GetCustomPermissionsByIDsParams) ([]EndUserDataPermission, error) {
+	query := getCustomPermissionsByIDs
 	var queryParams []interface{}
-	if len(arg.Bundleids) > 0 {
-		for _, v := range arg.Bundleids {
+	if len(arg.Permissionids) > 0 {
+		for _, v := range arg.Permissionids {
 			queryParams = append(queryParams, v)
 		}
-		query = strings.Replace(query, "/*SLICE:bundleids*/?", strings.Repeat(",?", len(arg.Bundleids))[1:], 1)
+		query = strings.Replace(query, "/*SLICE:permissionids*/?", strings.Repeat(",?", len(arg.Permissionids))[1:], 1)
 	} else {
-		query = strings.Replace(query, "/*SLICE:bundleids*/?", "NULL", 1)
+		query = strings.Replace(query, "/*SLICE:permissionids*/?", "NULL", 1)
 	}
 	queryParams = append(queryParams, arg.OrgName)
 	rows, err := q.db.QueryContext(ctx, query, queryParams...)
@@ -172,10 +171,58 @@ func (q *Queries) GetPermissionsByBundleIDs(ctx context.Context, arg GetPermissi
 			&i.ModelID,
 			&i.Name,
 			&i.Description,
-			&i.Type,
 			&i.ColumnPolicy,
 			&i.RowPolicy,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const getDataPermissionItemsByBundleIDs = `-- name: GetDataPermissionItemsByBundleIDs :many
+SELECT i.id, i.bundle_id, i.model_id, i.grant_type, i.preset, i.custom_permission_id, i.sort_order, i.created_at, i.updated_at
+FROM end_user_bundle_data_permission_items i
+WHERE i.bundle_id IN (/*SLICE:bundleids*/?)
+`
+
+// ⚡ 鉴权链 Step 4: 展开权限包 → data permission items
+func (q *Queries) GetDataPermissionItemsByBundleIDs(ctx context.Context, bundleids []string) ([]EndUserBundleDataPermissionItem, error) {
+	query := getDataPermissionItemsByBundleIDs
+	var queryParams []interface{}
+	if len(bundleids) > 0 {
+		for _, v := range bundleids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:bundleids*/?", strings.Repeat(",?", len(bundleids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:bundleids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []EndUserBundleDataPermissionItem
+	for rows.Next() {
+		var i EndUserBundleDataPermissionItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.BundleID,
+			&i.ModelID,
+			&i.GrantType,
 			&i.Preset,
+			&i.CustomPermissionID,
+			&i.SortOrder,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 		); err != nil {

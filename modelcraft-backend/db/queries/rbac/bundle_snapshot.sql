@@ -3,7 +3,7 @@ INSERT INTO end_user_permission_bundle_snapshots (
   id,
   bundle_id,
   version,
-  permissions,
+  items,
   created_by,
   restored_from
 )
@@ -39,7 +39,3 @@ SELECT *
 FROM end_user_permission_bundle_snapshots
 WHERE bundle_id = ?
   AND version = ?;
-
--- name: ClearBundlePermissions :exec
-DELETE FROM end_user_bundle_permissions
-WHERE bundle_id = ?;
