@@ -11,8 +11,9 @@ package modelruntime
 //
 // 修复策略：统一在模型名前加 "T" 前缀，使任意模型名都能生成合法类型名。
 // 例如：
-//   "User"      -> "TUser"      -> "TUserWhereInput"
-//   "123orders" -> "T123orders" -> "T123ordersWhereInput"
+//
+//	"User"      -> "TUser"      -> "TUserWhereInput"
+//	"123orders" -> "T123orders" -> "T123ordersWhereInput"
 //
 // 注意：前端 runtime-query-builder 中所有类型名也必须经过同样的转换，
 // 以保证前后端生成的类型名一致。

@@ -6,7 +6,7 @@ package projectgraphql
 
 import (
 	"context"
-	"fmt"
+
 	apprbac "modelcraft/internal/app/rbac"
 	domainproject "modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
@@ -290,17 +290,88 @@ func (r *mutationResolver) RemoveEndUserPermissionFromBundle(ctx context.Context
 
 // BindPresetItemToBundle is the resolver for the bindPresetItemToBundle field.
 func (r *mutationResolver) BindPresetItemToBundle(ctx context.Context, input generated.BindPresetItemToBundleInput) (*generated.BindPresetItemToBundlePayload, error) {
-	panic(fmt.Errorf("not implemented: BindPresetItemToBundle - bindPresetItemToBundle"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sortOrder := 0
+	if input.SortOrder != nil {
+		sortOrder = int(*input.SortOrder)
+	}
+
+	bundle, appErr := r.RBACBundleSvc.BindPresetItem(ctx, apprbac.BindPresetItemToBundleCommand{
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		BundleID:     input.BundleID,
+		ModelID:      input.ModelID,
+		Preset:       rbacdomain.PermissionPreset(input.Preset),
+		SortOrder:    sortOrder,
+	})
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		errAdapter := adapter.NewRbacErrorAdapter(ctx)
+		return &generated.BindPresetItemToBundlePayload{
+			Error: errAdapter.ConvertToBindPresetItemToBundleError(toBizErr(appErr)),
+		}, nil
+	}
+	return &generated.BindPresetItemToBundlePayload{
+		Bundle: adapter.ToEndUserPermissionBundleDTO(bundle),
+	}, nil
 }
 
 // BindCustomItemToBundle is the resolver for the bindCustomItemToBundle field.
 func (r *mutationResolver) BindCustomItemToBundle(ctx context.Context, input generated.BindCustomItemToBundleInput) (*generated.BindCustomItemToBundlePayload, error) {
-	panic(fmt.Errorf("not implemented: BindCustomItemToBundle - bindCustomItemToBundle"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	sortOrder := 0
+	if input.SortOrder != nil {
+		sortOrder = int(*input.SortOrder)
+	}
+
+	bundle, appErr := r.RBACBundleSvc.BindCustomItem(ctx, apprbac.BindCustomItemToBundleCommand{
+		ProjectScope:       domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		BundleID:           input.BundleID,
+		ModelID:            input.ModelID,
+		CustomPermissionID: input.CustomPermissionID,
+		SortOrder:          sortOrder,
+	})
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		errAdapter := adapter.NewRbacErrorAdapter(ctx)
+		return &generated.BindCustomItemToBundlePayload{
+			Error: errAdapter.ConvertToBindCustomItemToBundleError(toBizErr(appErr)),
+		}, nil
+	}
+	return &generated.BindCustomItemToBundlePayload{
+		Bundle: adapter.ToEndUserPermissionBundleDTO(bundle),
+	}, nil
 }
 
 // RemoveDataPermissionItemFromBundle is the resolver for the removeDataPermissionItemFromBundle field.
 func (r *mutationResolver) RemoveDataPermissionItemFromBundle(ctx context.Context, input generated.RemoveDataPermissionItemFromBundleInput) (*generated.RemoveDataPermissionItemFromBundlePayload, error) {
-	panic(fmt.Errorf("not implemented: RemoveDataPermissionItemFromBundle - removeDataPermissionItemFromBundle"))
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bundle, appErr := r.RBACBundleSvc.RemoveDataPermissionItemFromBundle(ctx, apprbac.RemoveDataPermissionItemFromBundleCommand{
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		BundleID:     input.BundleID,
+		ModelID:      input.ModelID,
+	})
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		errAdapter := adapter.NewRbacErrorAdapter(ctx)
+		return &generated.RemoveDataPermissionItemFromBundlePayload{
+			Error: errAdapter.ConvertToRemoveDataPermissionItemError(toBizErr(appErr)),
+		}, nil
+	}
+	return &generated.RemoveDataPermissionItemFromBundlePayload{
+		Bundle: adapter.ToEndUserPermissionBundleDTO(bundle),
+	}, nil
 }
 
 // RestoreEndUserPermissionBundle is the resolver for the restoreEndUserPermissionBundle field.
@@ -711,5 +782,14 @@ func (r *queryResolver) EffectivePermissions(ctx context.Context, input generate
 
 // VirtualPresetsByModel is the resolver for the virtualPresetsByModel field.
 func (r *queryResolver) VirtualPresetsByModel(ctx context.Context, modelID string) ([]generated.EndUserPermissionPreset, error) {
-	panic(fmt.Errorf("not implemented: VirtualPresetsByModel - virtualPresetsByModel"))
+	presets, appErr := r.RBACPermissionSvc.ListVirtualPresetsByModel(ctx, modelID)
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		return nil, appErr
+	}
+	result := make([]generated.EndUserPermissionPreset, 0, len(presets))
+	for _, p := range presets {
+		result = append(result, generated.EndUserPermissionPreset(p))
+	}
+	return result, nil
 }

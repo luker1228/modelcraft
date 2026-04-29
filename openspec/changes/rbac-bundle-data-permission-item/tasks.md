@@ -6,22 +6,22 @@
 
 ## 2. Backend Domain And Application Changes
 
-- [ ] 2.1 Refactor RBAC domain models/repositories to separate preset template definition, custom permission entity, and bundle data permission item
-- [ ] 2.2 Remove preset-as-permission persistence flow and implement bundle item bind/replace flows for preset and custom paths
-- [ ] 2.3 Update authz aggregation to resolve effective policies from bundle items, expanding preset items at runtime and loading custom permission entities by reference
+- [x] 2.1 Refactor RBAC domain models/repositories to separate preset template definition, custom permission entity, and bundle data permission item
+- [x] 2.2 Remove preset-as-permission persistence flow and implement bundle item bind/replace flows for preset and custom paths
+- [x] 2.3 Update authz aggregation to resolve effective policies from bundle items, expanding preset items at runtime and loading custom permission entities by reference
 - [x] 2.4 Add deletion/update guards so referenced custom permissions cannot be removed in a way that leaves dangling bundle items
 
 ## 3. GraphQL Contract Redesign
 
-- [ ] 3.1 Redesign `modelcraft-backend/api/graph/project/schema/rbac.graphql` around item-centric types and mutations, using `item` naming rather than `grant`
-- [ ] 3.2 Replace old preset apply/add flows with explicit bind preset item / bind custom item mutations and item-based bundle detail fields
-- [ ] 3.3 Regenerate GraphQL code and update resolvers/adapters/error mapping to the new contract
+- [x] 3.1 Redesign `modelcraft-backend/api/graph/project/schema/rbac.graphql` around item-centric types and mutations, using `item` naming rather than `grant`
+- [x] 3.2 Replace old preset apply/add flows with explicit bind preset item / bind custom item mutations and item-based bundle detail fields
+- [x] 3.3 Regenerate GraphQL code and update resolvers/adapters/error mapping to the new contract
 
 ## 4. Frontend Bundle Management Updates
 
-- [ ] 4.1 Update bundle detail queries, generated types, and state mapping to consume data permission items and item-based snapshots
-- [ ] 4.2 Redesign the add-permission dialog into two explicit paths: bind preset item and bind custom item
-- [ ] 4.3 Surface replace semantics in the UI when a bundle/model already has a configured item and verify the list always renders one item per model
+- [x] 4.1 Update bundle detail queries, generated types, and state mapping to consume data permission items and item-based snapshots
+- [x] 4.2 Redesign the add-permission dialog into two explicit paths: bind preset item and bind custom item
+- [x] 4.3 Surface replace semantics in the UI when a bundle/model already has a configured item and verify the list always renders one item per model
 
 ## 5. Verification
 

@@ -3,7 +3,7 @@
 import * as React from 'react'
 import { useQuery } from '@apollo/client'
 import Link from 'next/link'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import {
   ArrowLeft,
   Shield,
@@ -13,25 +13,16 @@ import {
   Pencil,
   Check,
   X,
-  Search,
-  ChevronRight,
-  ExternalLink,
   Clock,
   RotateCcw,
+  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
 import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { Input } from '@web/components/ui/input'
 import { ScrollArea } from '@web/components/ui/scroll-area'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web/components/ui/select'
+import { Badge } from '@web/components/ui/badge'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -49,14 +40,29 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@web/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@web/components/ui/tabs'
 import { PageLayout } from '@web/components/features/layout'
 
 import { useProjectScopedClient } from '@api-client/apollo/public'
-
-import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
+import { GET_VIRTUAL_PRESETS_BY_MODEL } from '@/api-client/rbac'
 import { GET_MODELS_FOR_RELATION } from '@/api-client/model'
-import type { EndUserPermission } from '@/types'
+import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
+import type {
+  EndUserBundleDataPermissionItem,
+  EndUserPermission,
+  EndUserPermissionBundleSnapshot,
+  EndUserPermissionPreset,
+} from '@/types'
 import { cn } from '@/shared/utils'
+
+// ── 预设标签映射 ────────────────────────────────────────────────────────────
+
+const PRESET_LABEL: Record<string, string> = {
+  READ_WRITE_ALL: '读写全部',
+  READ_ALL: '只读全部',
+  READ_WRITE_OWNER: '读写本人',
+  READ_ALL_WRITE_OWNER: '读所有写本人',
+}
 
 const ACTION_LABEL: Record<string, string> = {
   SELECT: '查询',
@@ -66,40 +72,38 @@ const ACTION_LABEL: Record<string, string> = {
   EXPORT: '导出',
 }
 
-const ROW_SCOPE_LABEL: Record<string, string> = {
-  ALL: '全部行',
-  SELF: '本人',
-  DEPT: '本部门',
-  DEPT_AND_CHILDREN: '部门及子部门',
-}
-
-// ── Snapshot types ────────────────────────────────────────────────────────────
-
-interface BundleSnapshotPermissionEntry {
-  sortOrder: number
-  permissionId: string
-}
-
-interface BundleSnapshot {
-  version: number
-  createdAt: string
-  createdBy?: string | null
-  restoredFrom?: number | null
-  permissions: BundleSnapshotPermissionEntry[]
-}
-
 function formatTs(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleString('zh-CN', {
-    month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
+}
+
+// ── ItemGrantTypeBadge ───────────────────────────────────────────────────────
+
+function ItemGrantTypeBadge({ item }: { item: EndUserBundleDataPermissionItem }) {
+  if (item.grantType === 'PRESET') {
+    return (
+      <span className="rounded bg-[rgba(79,70,229,0.08)] px-1.5 py-px font-mono text-[11px] font-medium text-primary">
+        {PRESET_LABEL[item.preset ?? ''] ?? item.preset ?? 'PRESET'}
+      </span>
+    )
+  }
+  const perm = item.customPermission
+  return (
+    <span className="rounded border border-border bg-background px-1.5 py-px text-[11px] text-muted-foreground">
+      {perm?.displayName ?? `自定义: ${item.customPermissionId?.slice(0, 8) ?? '—'}`}
+    </span>
+  )
 }
 
 // ── VersionHistoryPanel ───────────────────────────────────────────────────────
 
 interface VersionHistoryPanelProps {
-  snapshots: BundleSnapshot[]
+  snapshots: EndUserPermissionBundleSnapshot[]
   currentVersion: number
   onRestore: (version: number) => Promise<void>
 }
@@ -107,7 +111,7 @@ interface VersionHistoryPanelProps {
 function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHistoryPanelProps) {
   const [restoring, setRestoring] = React.useState<number | null>(null)
 
-  const handleRestore = async (v: BundleSnapshot) => {
+  const handleRestore = async (v: EndUserPermissionBundleSnapshot) => {
     setRestoring(v.version)
     try {
       await onRestore(v.version)
@@ -121,7 +125,7 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
 
   if (snapshots.length === 0) {
     return (
-      <div className="mb-6 rounded-md border border-border">
+      <div className="rounded-md border border-border">
         <div className="flex items-center border-b border-border bg-muted/30 px-4 py-2.5">
           <Clock className="mr-1.5 size-3.5 text-muted-foreground" strokeWidth={1.5} />
           <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -138,7 +142,7 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
   }
 
   return (
-    <div className="mb-6 rounded-md border border-border">
+    <div className="rounded-md border border-border">
       <div className="flex items-center border-b border-border bg-muted/30 px-4 py-2.5">
         <Clock className="mr-1.5 size-3.5 text-muted-foreground" strokeWidth={1.5} />
         <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
@@ -152,6 +156,7 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
       <div className="divide-y divide-border">
         {snapshots.map((v) => {
           const isCurrent = v.version === currentVersion
+          const itemCount = v.items?.length ?? v.permissions?.length ?? 0
           return (
             <div
               key={v.version}
@@ -160,7 +165,6 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
                 isCurrent ? 'bg-[rgba(79,70,229,0.03)]' : 'hover:bg-foreground/[0.015]',
               )}
             >
-              {/* Version badge */}
               <div className="flex w-10 shrink-0 flex-col items-center gap-1 pt-0.5">
                 <span
                   className={cn(
@@ -179,10 +183,9 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
                 )}
               </div>
 
-              {/* Content */}
               <div className="min-w-0 flex-1">
                 <p className="text-sm text-foreground">
-                  共 {v.permissions.length} 个权限点
+                  共 {itemCount} 条数据权限配置
                   {v.restoredFrom != null && (
                     <span className="ml-2 text-xs text-muted-foreground">
                       （由 v{v.restoredFrom} 还原）
@@ -200,7 +203,6 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
                 </div>
               </div>
 
-              {/* Restore action — non-current only */}
               {!isCurrent && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
@@ -222,7 +224,8 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
                     <AlertDialogHeader>
                       <AlertDialogTitle>还原到 v{v.version}</AlertDialogTitle>
                       <AlertDialogDescription>
-                        当前版本（v{currentVersion}）将保留为历史版本，并创建一个与 v{v.version} 内容相同的新版本作为当前版本。此操作不可撤销。
+                        当前版本（v{currentVersion}）将保留为历史版本，并创建一个与 v{v.version}{' '}
+                        内容相同的新版本作为当前版本。此操作不可撤销。
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -242,7 +245,7 @@ function VersionHistoryPanel({ snapshots, currentVersion, onRestore }: VersionHi
   )
 }
 
-// ── Inline editable field ────────────────────────────────────────────────────
+// ── InlineEditField ──────────────────────────────────────────────────────────
 
 interface InlineEditFieldProps {
   value: string
@@ -364,300 +367,194 @@ function InlineEditField({
   )
 }
 
-// ── AddStrategyDialog ────────────────────────────────────────────────────────
-// Layout: left = searchable model list, right = permission picker
+// ── AddItemDialog ────────────────────────────────────────────────────────────
+// 两路径：preset 绑定 / custom 绑定
 
-interface StrategyModelOption {
+interface ModelOption {
   id: string
   name: string
   title?: string
-  databaseName?: string
 }
 
-interface AddStrategyDialogProps {
+interface AddItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   bundleName: string
-  allPermissions: EndUserPermission[]
-  databaseNames: string[]
-  databasesLoading: boolean
-  /** IDs of permissions already in this bundle */
-  bundledPermissionIds: Set<string>
-  /** Models already having a strategy in this bundle */
-  bundledModelIds: Set<string>
-  onAdd: (permissionId: string) => Promise<void>
+  /** 已配置了 item 的 modelId 集合（用于展示替换提示） */
+  configuredModelIds: Set<string>
   orgName: string
   projectSlug: string
+  onBindPreset: (modelId: string, preset: EndUserPermissionPreset) => Promise<MutationResultMin>
+  onBindCustom: (modelId: string, customPermissionId: string) => Promise<MutationResultMin>
+  allPermissions: EndUserPermission[]
 }
 
-interface ModelsForRelationQueryData {
-  models?: {
-    edges?: Array<{
-      node?: StrategyModelOption | null
-    } | null>
-  }
+interface MutationResultMin {
+  success: boolean
+  errorMessage?: string
 }
 
-// Group permissions by modelId
-function groupByModel(permissions: EndUserPermission[]): Map<string, EndUserPermission[]> {
-  const map = new Map<string, EndUserPermission[]>()
-  for (const p of permissions) {
-    const list = map.get(p.modelId) ?? []
-    list.push(p)
-    map.set(p.modelId, list)
-  }
-  return map
+interface ModelsQueryData {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  models?: { edges?: Array<{ node?: ModelOption | null } | null> }
 }
 
-function AddStrategyDialog({
+function AddItemDialog({
   open,
   onOpenChange,
   bundleName,
-  allPermissions,
-  databaseNames,
-  databasesLoading,
-  bundledPermissionIds,
-  bundledModelIds,
-  onAdd,
+  configuredModelIds,
   orgName,
   projectSlug,
-}: AddStrategyDialogProps) {
-  const [modelSearch, setModelSearch] = React.useState('')
-  const [selectedDatabase, setSelectedDatabase] = React.useState('')
-  const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)
-  const [selectedPermId, setSelectedPermId] = React.useState<string | null>(null)
-  const [adding, setAdding] = React.useState(false)
-  const router = useRouter()
+  onBindPreset,
+  onBindCustom,
+  allPermissions,
+}: AddItemDialogProps) {
   const projectClient = useProjectScopedClient(projectSlug, orgName)
+  const [bindMode, setBindMode] = React.useState<'preset' | 'custom'>('preset')
+  const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)
+  const [selectedPreset, setSelectedPreset] = React.useState<EndUserPermissionPreset | null>(null)
+  const [selectedCustomPermId, setSelectedCustomPermId] = React.useState<string | null>(null)
+  const [submitting, setSubmitting] = React.useState(false)
 
-  React.useEffect(() => {
-    if (!open) {
-      setSelectedDatabase('')
-      return
-    }
-
-    if (selectedDatabase && databaseNames.includes(selectedDatabase)) return
-    setSelectedDatabase('')
-  }, [databaseNames, open, selectedDatabase])
-
-  React.useEffect(() => {
-    setSelectedModelId(null)
-    setSelectedPermId(null)
-  }, [selectedDatabase])
-
-  const {
-    data: modelsData,
-    loading: modelsLoading,
-  } = useQuery<ModelsForRelationQueryData>(GET_MODELS_FOR_RELATION, {
-    client: projectClient,
-    variables: {
-      input: {
-        databaseName: selectedDatabase,
-        limit: 200,
-      },
+  // 查询虚拟预设列表（按 model 动态计算）
+  const { data: presetsData, loading: presetsLoading } = useQuery<{ virtualPresetsByModel: EndUserPermissionPreset[] }>(
+    GET_VIRTUAL_PRESETS_BY_MODEL,
+    {
+      client: projectClient,
+      variables: { modelId: selectedModelId ?? '' },
+      skip: !selectedModelId || bindMode !== 'preset',
     },
-    skip: !open || !selectedDatabase,
-  })
+  )
 
-  const modelOptions = React.useMemo<StrategyModelOption[]>(() => {
+  // 查询模型列表（所有模型，不按 database 过滤）
+  const { data: modelsData, loading: modelsLoading } = useQuery<ModelsQueryData>(
+    GET_MODELS_FOR_RELATION,
+    {
+      client: projectClient,
+      variables: { input: { limit: 200 } },
+      skip: !open,
+    },
+  )
+
+  const modelOptions = React.useMemo<ModelOption[]>(() => {
     const edges = modelsData?.models?.edges ?? []
-
     return edges
-      .map((edge) => edge?.node)
-      .filter((node): node is StrategyModelOption => Boolean(node?.id && node?.name))
-      .map((node) => ({
-        id: node.id,
-        name: node.name,
-        title: node.title,
-        databaseName: node.databaseName,
-      }))
-      .sort((a, b) => {
-        const labelA = a.title || a.name || a.id
-        const labelB = b.title || b.name || b.id
-        return labelA.localeCompare(labelB)
-      })
+      .map((e) => e?.node)
+      .filter((n): n is ModelOption => Boolean(n?.id && n?.name))
+      .sort((a, b) => (a.title ?? a.name).localeCompare(b.title ?? b.name))
   }, [modelsData])
 
-  // Available permissions not yet in bundle
-  const availablePerms = React.useMemo(
-    () => allPermissions.filter((p) => !bundledPermissionIds.has(p.id)),
-    [allPermissions, bundledPermissionIds],
-  )
+  const availablePresets: EndUserPermissionPreset[] = presetsData?.virtualPresetsByModel ?? []
 
-  // Group available permissions by model
-  const availableGrouped = React.useMemo(() => groupByModel(availablePerms), [availablePerms])
-
-  const modelMap = React.useMemo(
-    () => new Map(modelOptions.map((model) => [model.id, model])),
-    [modelOptions],
-  )
-
-  // Models filtered by search
-  const modelList = React.useMemo(() => {
-    return modelOptions
-      .map((model) => ({
-        modelId: model.id,
-        modelName: model.name || model.id,
-        displayName: model.title || model.name || model.id,
-      }))
-      .filter(({ modelId, modelName, displayName }) => {
-        if (!modelSearch) return true
-        const q = modelSearch.toLowerCase()
-        return (
-          displayName.toLowerCase().includes(q) ||
-          modelName.toLowerCase().includes(q) ||
-          modelId.toLowerCase().includes(q)
-        )
-      })
-  }, [modelOptions, modelSearch])
-
-  // Permissions available for selected model
-  const permissionsForModel = React.useMemo(() => {
+  // custom permissions for selected model（not yet in bundle）
+  const customPermsForModel = React.useMemo(() => {
     if (!selectedModelId) return []
-    return availableGrouped.get(selectedModelId) ?? []
-  }, [availableGrouped, selectedModelId])
+    return allPermissions.filter((p) => p.modelId === selectedModelId)
+  }, [allPermissions, selectedModelId])
 
-  const selectedModelConfigured = selectedModelId ? bundledModelIds.has(selectedModelId) : false
+  const isReplacing = selectedModelId ? configuredModelIds.has(selectedModelId) : false
 
-  const handleModelSelect = (modelId: string) => {
-    if (bundledModelIds.has(modelId)) return
-    setSelectedModelId(modelId)
-    setSelectedPermId(null)
-  }
-
-  const handleConfirm = async () => {
-    if (!selectedPermId) return
-    setAdding(true)
-    await onAdd(selectedPermId)
-    setAdding(false)
-    onOpenChange(false)
-  }
+  const canSubmit =
+    selectedModelId &&
+    (bindMode === 'preset' ? Boolean(selectedPreset) : Boolean(selectedCustomPermId))
 
   const handleClose = () => {
-    setModelSearch('')
-    setSelectedDatabase('')
     setSelectedModelId(null)
-    setSelectedPermId(null)
+    setSelectedPreset(null)
+    setSelectedCustomPermId(null)
+    setBindMode('preset')
     onOpenChange(false)
   }
 
-  const selectedModelLabel = React.useMemo(() => {
-    if (!selectedModelId) return null
-    const selectedModel = modelMap.get(selectedModelId)
-    if (!selectedModel) return selectedModelId
-
-    const label = selectedModel.title || selectedModel.name || selectedModelId
-    return selectedModel.databaseName ? `${selectedModel.databaseName}.${label}` : label
-  }, [modelMap, selectedModelId])
-
-  const createHref = selectedModelId
-    ? `/org/${orgName}/project/${projectSlug}/roles?tab=permissions&createFor=${selectedModelId}`
-    : `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`
+  const handleSubmit = async () => {
+    if (!canSubmit || !selectedModelId) return
+    setSubmitting(true)
+    let result: MutationResultMin
+    if (bindMode === 'preset' && selectedPreset) {
+      result = await onBindPreset(selectedModelId, selectedPreset)
+    } else if (bindMode === 'custom' && selectedCustomPermId) {
+      result = await onBindCustom(selectedModelId, selectedCustomPermId)
+    } else {
+      setSubmitting(false)
+      return
+    }
+    setSubmitting(false)
+    if (result.success) {
+      handleClose()
+    } else {
+      toast.error(result.errorMessage ?? '操作失败，请重试')
+    }
+  }
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent
-        className="flex max-h-[80vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[860px]"
+        className="flex max-h-[80vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-[760px]"
         aria-describedby={undefined}
       >
         <DialogHeader className="shrink-0 border-b border-border px-5 py-4">
           <DialogTitle className="text-sm font-semibold text-foreground">
-            为「{bundleName}」添加资源策略
+            为「{bundleName}」添加数据权限配置
           </DialogTitle>
         </DialogHeader>
 
-        {/* Two-column body: model list | permission picker */}
-        <div className="flex min-h-0 flex-1">
-          {/* Col 1: Searchable model list */}
-          <div className="flex w-52 shrink-0 flex-col border-r border-border">
-            <div className="space-y-2 border-b border-border px-3 py-2">
-              <Select
-                value={selectedDatabase || undefined}
-                onValueChange={setSelectedDatabase}
-                disabled={databasesLoading || databaseNames.length === 0}
-              >
-                <SelectTrigger className="h-7 text-xs">
-                  <SelectValue placeholder={databasesLoading ? '加载数据库中...' : '第一步：选择数据库'} />
-                </SelectTrigger>
-                <SelectContent>
-                  {databaseNames.map((db) => (
-                    <SelectItem key={db} value={db}>
-                      {db}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* 绑定路径选择 */}
+        <div className="shrink-0 border-b border-border px-5 py-3">
+          <Tabs value={bindMode} onValueChange={(v) => { setBindMode(v as 'preset' | 'custom'); setSelectedPreset(null); setSelectedCustomPermId(null) }}>
+            <TabsList className="h-8">
+              <TabsTrigger value="preset" className="text-xs">预设模板</TabsTrigger>
+              <TabsTrigger value="custom" className="text-xs">自定义策略</TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
 
-              <div className="relative">
-                <Search
-                  className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
-                  strokeWidth={1.5}
-                />
-                <Input
-                  placeholder="搜索数据表…"
-                  className="h-7 border-[#D8DDE5] bg-[#EBEEF2] pl-8 text-xs placeholder:text-muted-foreground focus-visible:ring-1"
-                  value={modelSearch}
-                  onChange={(e) => setModelSearch(e.target.value)}
-                  disabled={!selectedDatabase}
-                />
-              </div>
+        <div className="flex min-h-0 flex-1">
+          {/* 左栏：模型列表 */}
+          <div className="flex w-52 shrink-0 flex-col border-r border-border">
+            <div className="border-b border-border px-3 py-2">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                选择数据表
+              </span>
             </div>
             <ScrollArea className="flex-1">
               <div className="py-1.5">
-                {databasesLoading ? (
+                {modelsLoading ? (
                   <div className="flex items-center justify-center px-3 py-6 text-xs text-muted-foreground/70">
                     <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-                    正在加载数据库…
+                    加载中…
                   </div>
-                ) : databaseNames.length === 0 ? (
-                  <p className="px-3 py-6 text-center text-xs text-muted-foreground/60">
-                    暂无可用数据库
-                  </p>
-                ) : !selectedDatabase ? (
-                  <p className="px-3 py-6 text-center text-xs text-muted-foreground/70">
-                    请先选择数据库
-                  </p>
-                ) : modelsLoading ? (
-                  <div className="flex items-center justify-center px-3 py-6 text-xs text-muted-foreground/70">
-                    <Loader2 className="mr-1.5 size-3.5 animate-spin" />
-                    正在加载数据表…
-                  </div>
-                ) : modelList.length === 0 ? (
-                  <p className="px-3 py-4 text-center text-xs text-muted-foreground">
-                    {modelSearch ? '无匹配数据表' : '该数据库暂无数据表'}
-                  </p>
+                ) : modelOptions.length === 0 ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground/60">暂无数据表</p>
                 ) : (
-                  modelList.map(({ modelId, modelName, displayName }) => {
-                    const isConfigured = bundledModelIds.has(modelId)
-                    const isSelected = selectedModelId === modelId
+                  modelOptions.map((model) => {
+                    const isConfigured = configuredModelIds.has(model.id)
+                    const isSelected = selectedModelId === model.id
                     return (
                       <button
-                        key={modelId}
+                        key={model.id}
                         type="button"
-                        disabled={isConfigured}
-                        onClick={() => handleModelSelect(modelId)}
+                        onClick={() => {
+                          setSelectedModelId(model.id)
+                          setSelectedPreset(null)
+                          setSelectedCustomPermId(null)
+                        }}
                         className={cn(
-                          'group flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
-                          isConfigured
-                            ? 'cursor-not-allowed opacity-40'
-                            : isSelected
-                              ? 'bg-[rgba(79,70,229,0.08)] font-medium text-primary'
-                              : 'text-foreground hover:bg-foreground/[0.04]',
+                          'flex w-full items-center gap-2 px-3 py-2 text-left text-sm transition-colors',
+                          isSelected
+                            ? 'bg-[rgba(79,70,229,0.08)] font-medium text-primary'
+                            : 'text-foreground hover:bg-foreground/[0.04]',
                         )}
                       >
                         <div className="flex-1 truncate">
-                          <p className="truncate group-hover:hidden">{displayName}</p>
-                          <p className="hidden truncate font-mono text-[11px] text-muted-foreground group-hover:block">
-                            {modelName}
-                          </p>
+                          <p className="truncate">{model.title ?? model.name}</p>
+                          <p className="truncate font-mono text-[11px] text-muted-foreground">{model.name}</p>
                         </div>
-                        {isConfigured ? (
-                          <span className="shrink-0 rounded bg-muted px-1 py-px font-mono text-[10px] text-muted-foreground">
+                        {isConfigured && (
+                          <span className="shrink-0 rounded bg-amber-50 px-1 py-px font-mono text-[10px] text-amber-600">
                             已配置
                           </span>
-                        ) : isSelected ? (
-                          <ChevronRight className="size-3.5 shrink-0 text-primary/50" strokeWidth={1.5} />
-                        ) : null}
+                        )}
                       </button>
                     )
                   })
@@ -666,110 +563,101 @@ function AddStrategyDialog({
             </ScrollArea>
           </div>
 
-          {/* Col 2: Permission picker */}
+          {/* 右栏：选项 */}
           <div className="flex flex-1 flex-col">
             <div className="border-b border-border px-4 py-2">
               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                {selectedModelLabel ? `${selectedModelLabel} · 权限点` : '权限点'}
+                {bindMode === 'preset' ? '选择预设模板' : '选择自定义策略'}
               </span>
             </div>
 
             {!selectedModelId ? (
               <div className="flex flex-1 flex-col items-center justify-center gap-2 px-8 py-12 text-center">
                 <Shield className="size-8 text-muted-foreground/20" strokeWidth={1} />
-                <p className="text-sm text-muted-foreground">
-                  {selectedDatabase ? '从左侧选择数据表' : '请先选择数据库'}
-                </p>
-                <p className="text-xs text-muted-foreground/60">
-                  {selectedDatabase ? '每个数据表只能配置一条权限策略' : '选择数据库后才能查看数据表'}
-                </p>
+                <p className="text-sm text-muted-foreground">从左侧选择数据表</p>
               </div>
             ) : (
               <ScrollArea className="flex-1">
-                <div className="p-3">
-                  {permissionsForModel.length === 0 ? (
-                    <div className="flex flex-col items-center gap-3 px-4 py-10 text-center">
-                      <Shield className="size-7 text-muted-foreground/20" strokeWidth={1} />
-                      <div className="space-y-1">
-                        <p className="text-sm font-medium text-foreground">暂无可用权限点</p>
-                        <p className="text-xs text-muted-foreground">
-                          {selectedModelConfigured
-                            ? '该数据表已配置权限策略'
-                            : '该数据表还没有自定义权限点，可以创建一个'}
-                        </p>
-                      </div>
-                      {!selectedModelConfigured && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-1 h-7 gap-1.5 text-xs"
-                          onClick={() => {
-                            handleClose()
-                            router.push(createHref)
-                          }}
-                        >
-                          <Plus className="size-3.5" strokeWidth={1.5} />
-                          创建自定义权限点
-                          <ExternalLink className="size-3" strokeWidth={1.5} />
-                        </Button>
-                      )}
+                <div className="p-3 space-y-2">
+                  {/* 替换提示 */}
+                  {isReplacing && (
+                    <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
+                      <span>该数据表已有配置项，提交后将<strong>替换</strong>现有配置</span>
                     </div>
-                  ) : (
-                    <div className="space-y-1">
-                      {permissionsForModel.map((perm) => {
-                        const isSelected = selectedPermId === perm.id
-                        return (
-                          <label
-                            key={perm.id}
-                            className={cn(
-                              'flex cursor-pointer items-start gap-3 rounded-md border px-3 py-2.5 transition-colors',
-                              isSelected
-                                ? 'border-primary/30 bg-[rgba(79,70,229,0.06)]'
-                                : 'border-transparent hover:border-border hover:bg-foreground/[0.02]',
-                            )}
-                          >
-                            <input
-                              type="radio"
-                              name="perm-select"
-                              value={perm.id}
-                              checked={isSelected}
-                              onChange={() => setSelectedPermId(perm.id)}
-                              className="mt-0.5 size-3.5 accent-primary"
-                            />
-                            <div className="min-w-0 flex-1 space-y-1.5">
-                              <span className="text-sm font-medium text-foreground">
-                                {perm.displayName || (perm.modelDisplayName ?? perm.modelId)}
-                              </span>
-                              <div className="flex items-center gap-1.5">
-                                <span className="rounded bg-[rgba(79,70,229,0.08)] px-1.5 py-px font-mono text-[11px] font-medium text-primary">
-                                  {ACTION_LABEL[perm.action] ?? perm.action}
-                                </span>
-                                <span className="rounded border border-border bg-background px-1.5 py-px text-[11px] text-muted-foreground">
-                                  {ROW_SCOPE_LABEL[perm.rowScope] ?? perm.rowScope}
-                                </span>
-                              </div>
-                              {perm.description && (
-                                <p className="text-xs text-muted-foreground">{perm.description}</p>
-                              )}
-                            </div>
-                          </label>
-                        )
-                      })}
+                  )}
 
-                      <div className="mt-2 border-t border-border pt-3">
-                        <button
-                          type="button"
-                          className="flex w-full items-center gap-2 rounded p-2 text-xs text-muted-foreground transition-colors hover:bg-foreground/[0.03] hover:text-foreground"
-                          onClick={() => {
-                            handleClose()
-                            router.push(createHref)
-                          }}
-                        >
-                          <Plus className="size-3.5" strokeWidth={1.5} />
-                          没有满意的？创建自定义权限点
-                        </button>
+                  {bindMode === 'preset' ? (
+                    presetsLoading ? (
+                      <div className="flex items-center justify-center py-8 text-xs text-muted-foreground/70">
+                        <Loader2 className="mr-1.5 size-3.5 animate-spin" />
+                        加载预设…
                       </div>
-                    </div>
+                    ) : availablePresets.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-muted-foreground">该模型暂无可用预设</p>
+                    ) : (
+                      availablePresets.map((preset) => (
+                        <label
+                          key={preset}
+                          className={cn(
+                            'flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors',
+                            selectedPreset === preset
+                              ? 'border-primary/30 bg-[rgba(79,70,229,0.06)]'
+                              : 'border-transparent hover:border-border hover:bg-foreground/[0.02]',
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="preset-select"
+                            value={preset}
+                            checked={selectedPreset === preset}
+                            onChange={() => setSelectedPreset(preset)}
+                            className="size-3.5 accent-primary"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-medium text-foreground">
+                              {PRESET_LABEL[preset] ?? preset}
+                            </span>
+                            <p className="text-xs text-muted-foreground">{preset}</p>
+                          </div>
+                        </label>
+                      ))
+                    )
+                  ) : (
+                    customPermsForModel.length === 0 ? (
+                      <p className="py-6 text-center text-xs text-muted-foreground">该模型暂无自定义策略</p>
+                    ) : (
+                      customPermsForModel.map((perm) => (
+                        <label
+                          key={perm.id}
+                          className={cn(
+                            'flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5 transition-colors',
+                            selectedCustomPermId === perm.id
+                              ? 'border-primary/30 bg-[rgba(79,70,229,0.06)]'
+                              : 'border-transparent hover:border-border hover:bg-foreground/[0.02]',
+                          )}
+                        >
+                          <input
+                            type="radio"
+                            name="custom-select"
+                            value={perm.id}
+                            checked={selectedCustomPermId === perm.id}
+                            onChange={() => setSelectedCustomPermId(perm.id)}
+                            className="size-3.5 accent-primary"
+                          />
+                          <div className="min-w-0 flex-1">
+                            <span className="text-sm font-medium text-foreground">
+                              {perm.displayName ?? '—'}
+                            </span>
+                            <div className="mt-1 flex items-center gap-1.5">
+                              <Badge variant="outline" className="text-[11px]">
+                                {ACTION_LABEL[perm.action] ?? perm.action}
+                              </Badge>
+                            </div>
+                          </div>
+                        </label>
+                      ))
+                    )
                   )}
                 </div>
               </ScrollArea>
@@ -779,16 +667,16 @@ function AddStrategyDialog({
 
         {/* Footer */}
         <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-5 py-3">
-          <Button variant="outline" size="sm" onClick={handleClose} disabled={adding}>
+          <Button variant="outline" size="sm" onClick={handleClose} disabled={submitting}>
             取消
           </Button>
           <Button
             size="sm"
-            onClick={() => void handleConfirm()}
-            disabled={!selectedPermId || adding}
+            onClick={() => void handleSubmit()}
+            disabled={!canSubmit || submitting}
           >
-            {adding && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
-            确认添加
+            {submitting && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
+            {isReplacing ? '替换配置' : '确认添加'}
           </Button>
         </div>
       </DialogContent>
@@ -807,97 +695,82 @@ export default function BundleDetailPage() {
   const {
     bundle,
     allPermissions,
-    databaseNames,
     loading,
-    databasesLoading,
     error,
-    removePermission,
-    addPermission,
+    removeItemByModelId,
+    bindPresetItem,
+    bindCustomItem,
     updateBundle,
     restoreBundle,
-  } = useBundleManage({
-    orgName,
-    projectSlug,
-    bundleId,
-  })
+  } = useBundleManage({ orgName, projectSlug, bundleId })
 
-  const [removingId, setRemovingId] = React.useState<string | null>(null)
+  const [removingModelId, setRemovingModelId] = React.useState<string | null>(null)
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState<'strategies' | 'versions'>('strategies')
 
-  const permissions = React.useMemo(
-    () => bundle?.permissions ?? [],
-    [bundle?.permissions],
+  // dataPermissionItems（优先）
+  const items: EndUserBundleDataPermissionItem[] = React.useMemo(
+    () => bundle?.dataPermissionItems ?? [],
+    [bundle?.dataPermissionItems],
   )
 
-  const bundledPermissionIds = React.useMemo(
-    () => new Set(permissions.map((p) => p.id)),
-    [permissions],
+  const configuredModelIds = React.useMemo(
+    () => new Set(items.map((i) => i.modelId)),
+    [items],
   )
 
-  const bundledModelIds = React.useMemo(
-    () => new Set(permissions.map((p) => p.modelId)),
-    [permissions],
-  )
-
-  // Group current bundle permissions by modelId for display
-  const permissionsByModel = React.useMemo(() => {
-    const map = new Map<string, EndUserPermission[]>()
-    for (const p of permissions) {
-      const list = map.get(p.modelId) ?? []
-      list.push(p)
-      map.set(p.modelId, list)
-    }
-    return map
-  }, [permissions])
-
-  const handleAdd = async (permissionId: string) => {
-    const result = await addPermission(permissionId)
-    if (result.success) {
-      toast.success('已添加资源策略')
-    } else {
-      toast.error(result.errorMessage ?? '添加失败，请重试')
-    }
-  }
-
-  const handleRemove = async (perm: EndUserPermission) => {
-    setRemovingId(perm.id)
+  const handleRemoveItem = async (item: EndUserBundleDataPermissionItem) => {
+    setRemovingModelId(item.modelId)
     try {
-      const result = await removePermission(perm.id)
+      const result = await removeItemByModelId(item.modelId)
       if (result.success) {
-        toast.success(`已移除「${perm.displayName ?? perm.modelDisplayName ?? perm.modelId}」策略`)
+        toast.success('已移除数据权限配置')
       } else {
         toast.error(result.errorMessage ?? '移除失败，请重试')
       }
     } catch {
-      toast.error('移除资源策略时发生错误')
+      toast.error('移除时发生错误')
     } finally {
-      setRemovingId(null)
+      setRemovingModelId(null)
     }
+  }
+
+  const handleBindPreset = async (
+    modelId: string,
+    preset: EndUserPermissionPreset,
+  ) => {
+    const result = await bindPresetItem(modelId, preset)
+    if (result.success) {
+      toast.success(configuredModelIds.has(modelId) ? '已替换数据权限配置' : '已添加数据权限配置')
+    }
+    return result
+  }
+
+  const handleBindCustom = async (modelId: string, customPermissionId: string) => {
+    const result = await bindCustomItem(modelId, customPermissionId)
+    if (result.success) {
+      toast.success(configuredModelIds.has(modelId) ? '已替换数据权限配置' : '已添加数据权限配置')
+    }
+    return result
   }
 
   const handleSaveName = async (name: string) => {
     if (!name) return
     const result = await updateBundle(name, bundle?.description)
-    if (result.success) {
-      toast.success('已更新名称')
-    } else {
-      toast.error(result.errorMessage ?? '更新失败')
-    }
+    if (result.success) toast.success('已更新名称')
+    else toast.error(result.errorMessage ?? '更新失败')
   }
 
   const handleSaveDescription = async (description: string) => {
     if (!bundle?.name) return
     const result = await updateBundle(bundle.name, description || undefined)
-    if (result.success) {
-      toast.success('已更新描述')
-    } else {
-      toast.error(result.errorMessage ?? '更新失败')
-    }
+    if (result.success) toast.success('已更新描述')
+    else toast.error(result.errorMessage ?? '更新失败')
   }
 
   return (
     <PageLayout maxWidth="7xl">
-      {/* Back nav */}
+      {/* 返回导航 */}
       <div className="mb-6">
         <Link
           href={backHref}
@@ -908,7 +781,7 @@ export default function BundleDetailPage() {
         </Link>
       </div>
 
-      {/* Header */}
+      {/* 标题 */}
       <div className="mb-8">
         {loading ? (
           <>
@@ -935,197 +808,170 @@ export default function BundleDetailPage() {
         )}
       </div>
 
-      {/* Error */}
       {error && (
         <div className="mb-6 rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
           加载失败：{error.message}
         </div>
       )}
 
-      {/* Tabs */}
-      {(() => {
-        const tabs = [
-          { key: 'strategies', label: '资源策略' },
-          { key: 'versions',   label: '版本历史' },
-        ] as const
-        type TabKey = typeof tabs[number]['key']
-        // eslint-disable-next-line react-hooks/rules-of-hooks
-        const [activeTab, setActiveTab] = React.useState<TabKey>('strategies')
+      {/* Tab 导航 */}
+      <div className="mb-5 flex items-end gap-0 border-b border-border">
+        {(
+          [
+            { key: 'strategies', label: '数据权限配置' },
+            { key: 'versions', label: '版本历史' },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.key}
+            type="button"
+            onClick={() => setActiveTab(t.key)}
+            className={cn(
+              'relative -mb-px px-4 pb-2.5 pt-1 text-sm transition-colors',
+              activeTab === t.key
+                ? 'border-b-2 border-primary font-medium text-foreground'
+                : 'text-muted-foreground hover:text-foreground',
+            )}
+          >
+            {t.label}
+            {t.key === 'strategies' && !loading && (
+              <span className="ml-1.5 rounded bg-muted px-1.5 py-px text-[11px] text-muted-foreground">
+                {items.length}
+              </span>
+            )}
+            {t.key === 'versions' && !loading && (
+              <span className="ml-1.5 rounded bg-muted px-1.5 py-px text-[11px] text-muted-foreground">
+                {bundle?.snapshots?.length ?? 0} / 5
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
-        return (
-          <>
-            {/* Tab nav */}
-            <div className="mb-5 flex items-end gap-0 border-b border-border">
-              {tabs.map((t) => (
-                <button
-                  key={t.key}
-                  type="button"
-                  onClick={() => setActiveTab(t.key)}
-                  className={cn(
-                    'relative -mb-px px-4 pb-2.5 pt-1 text-sm transition-colors',
-                    activeTab === t.key
-                      ? 'border-b-2 border-primary font-medium text-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
-                  )}
-                >
-                  {t.label}
-                  {t.key === 'strategies' && !loading && (
-                    <span className="ml-1.5 rounded bg-muted px-1.5 py-px text-[11px] text-muted-foreground">
-                      {permissionsByModel.size}
-                    </span>
-                  )}
-                  {t.key === 'versions' && !loading && (
-                    <span className="ml-1.5 rounded bg-muted px-1.5 py-px text-[11px] text-muted-foreground">
-                      {bundle?.snapshots?.length ?? 0} / 5
-                    </span>
-                  )}
-                </button>
+      {/* Tab: 数据权限配置 */}
+      {activeTab === 'strategies' && (
+        <div className="rounded-md border border-border">
+          <div className="flex items-center border-b border-border bg-muted/30 px-4 py-2.5">
+            <div className="ml-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 gap-1.5 text-xs"
+                onClick={() => setAddDialogOpen(true)}
+                disabled={loading}
+              >
+                <Plus className="size-3.5" strokeWidth={1.5} />
+                添加数据权限
+              </Button>
+            </div>
+          </div>
+
+          {loading ? (
+            <div className="space-y-px">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="px-4 py-3">
+                  <Skeleton className="mb-2 h-4 w-24" />
+                  <Skeleton className="h-5 w-20" />
+                </div>
               ))}
             </div>
-
-            {/* Tab: resource strategies */}
-            {activeTab === 'strategies' && (
-              <div className="rounded-md border border-border">
-                <div className="flex items-center border-b border-border bg-muted/30 px-4 py-2.5">
-                  <div className="ml-auto">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-7 gap-1.5 text-xs"
-                      onClick={() => setAddDialogOpen(true)}
-                      disabled={loading}
-                    >
-                      <Plus className="size-3.5" strokeWidth={1.5} />
-                      添加资源策略
-                    </Button>
+          ) : items.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <Shield className="mb-3 size-9 text-muted-foreground/20" strokeWidth={1} />
+              <p className="text-sm font-semibold text-foreground">尚未配置任何数据权限</p>
+              <p className="mt-1 max-w-xs text-xs text-muted-foreground">
+                为每个需要访问控制的数据表绑定预设模板或自定义策略
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-5 gap-1.5"
+                onClick={() => setAddDialogOpen(true)}
+              >
+                <Plus className="size-4" strokeWidth={1.5} />
+                添加数据权限
+              </Button>
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {items.map((item) => (
+                <div
+                  key={item.id}
+                  className="group flex items-center gap-4 px-4 py-2.5 hover:bg-foreground/[0.015]"
+                >
+                  {/* 模型 ID */}
+                  <div className="w-40 shrink-0">
+                    <span className="font-mono text-xs text-foreground">{item.modelId.slice(0, 8)}…</span>
                   </div>
-                </div>
-
-                {loading ? (
-                  <div className="space-y-px">
-                    {Array.from({ length: 3 }).map((_, i) => (
-                      <div key={i} className="px-4 py-3">
-                        <Skeleton className="mb-2 h-4 w-24" />
-                        <div className="flex items-center gap-2">
-                          <Skeleton className="h-5 w-12" />
-                          <Skeleton className="h-5 w-16" />
-                        </div>
-                      </div>
-                    ))}
+                  {/* 类型标签 */}
+                  <div className="flex min-w-0 flex-1 items-center gap-2">
+                    <ItemGrantTypeBadge item={item} />
                   </div>
-                ) : permissionsByModel.size === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 text-center">
-                    <Shield className="mb-3 size-9 text-muted-foreground/20" strokeWidth={1} />
-                    <p className="text-sm font-semibold text-foreground">尚未配置任何资源策略</p>
-                    <p className="mt-1 max-w-xs text-xs text-muted-foreground">
-                      为每个需要访问控制的资源添加一条权限策略
-                    </p>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-5 gap-1.5"
-                      onClick={() => setAddDialogOpen(true)}
-                    >
-                      <Plus className="size-4" strokeWidth={1.5} />
-                      添加资源策略
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="divide-y divide-border">
-                    {Array.from(permissionsByModel.entries()).map(([modelId, perms]) => {
-                      const modelLabel = perms[0]?.modelDisplayName ?? modelId
-                      return perms.map((perm) => (
-                        <div
-                          key={perm.id}
-                          className="group flex items-center gap-4 px-4 py-2.5 hover:bg-foreground/[0.015]"
+                  {/* 删除按钮 */}
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        aria-label="移除配置"
+                        className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
+                        disabled={removingModelId === item.modelId}
+                      >
+                        {removingModelId === item.modelId ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>移除数据权限配置</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          确定要从该权限包中移除此数据权限配置吗？此操作不可撤销。
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>取消</AlertDialogCancel>
+                        <AlertDialogAction
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => void handleRemoveItem(item)}
                         >
-                          <div className="w-48 shrink-0">
-                            <span className="font-mono text-xs text-foreground">
-                              {modelLabel}
-                            </span>
-                          </div>
-                          <div className="flex min-w-0 flex-1 flex-col">
-                            <span className="truncate text-sm text-foreground">
-                              {perm.displayName || '—'}
-                            </span>
-                            {perm.description && (
-                              <span className="truncate text-xs text-muted-foreground">
-                                {perm.description}
-                              </span>
-                            )}
-                          </div>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label={`移除 ${modelLabel} 策略`}
-                                className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
-                                disabled={removingId === perm.id}
-                              >
-                                {removingId === perm.id ? (
-                                  <Loader2 className="size-3.5 animate-spin" />
-                                ) : (
-                                  <Trash2 className="size-3.5" />
-                                )}
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>移除资源策略</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  确定要从该权限包中移除「{modelLabel}」的{ACTION_LABEL[perm.action] ?? perm.action}策略吗？此操作不会删除权限点本身。
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>取消</AlertDialogCancel>
-                                <AlertDialogAction
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                  onClick={() => void handleRemove(perm)}
-                                >
-                                  确认移除
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
-                        </div>
-                      ))
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
+                          确认移除
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
-            {/* Tab: version history */}
-            {activeTab === 'versions' && (
-              <VersionHistoryPanel
-                snapshots={(bundle?.snapshots ?? []) as BundleSnapshot[]}
-                currentVersion={bundle?.currentVersion ?? 0}
-                onRestore={async (version) => {
-                  const result = await restoreBundle(version)
-                  if (!result.success) {
-                    throw new Error(result.errorMessage ?? '还原失败')
-                  }
-                }}
-              />
-            )}
-          </>
-        )
-      })()}
+      {/* Tab: 版本历史 */}
+      {activeTab === 'versions' && (
+        <VersionHistoryPanel
+          snapshots={(bundle?.snapshots ?? []) as EndUserPermissionBundleSnapshot[]}
+          currentVersion={bundle?.currentVersion ?? 0}
+          onRestore={async (version) => {
+            const result = await restoreBundle(version)
+            if (!result.success) throw new Error(result.errorMessage ?? '还原失败')
+          }}
+        />
+      )}
 
-      {/* Add strategy dialog */}
-      <AddStrategyDialog
+      {/* 添加弹窗 */}
+      <AddItemDialog
         open={addDialogOpen}
         onOpenChange={setAddDialogOpen}
         bundleName={bundle?.name ?? ''}
-        allPermissions={allPermissions}
-        databaseNames={databaseNames}
-        databasesLoading={databasesLoading}
-        bundledPermissionIds={bundledPermissionIds}
-        bundledModelIds={bundledModelIds}
-        onAdd={handleAdd}
+        configuredModelIds={configuredModelIds}
         orgName={orgName}
         projectSlug={projectSlug}
+        onBindPreset={handleBindPreset}
+        onBindCustom={handleBindCustom}
+        allPermissions={allPermissions}
       />
     </PageLayout>
   )

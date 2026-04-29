@@ -447,6 +447,76 @@ func (a *RbacErrorAdapter) ConvertToRestoreBundleError(
 	}
 }
 
+// ConvertToBindPresetItemToBundleError maps to BindPresetItemToBundleError union.
+func (a *RbacErrorAdapter) ConvertToBindPresetItemToBundleError(
+	err *bizerrors.BusinessError,
+) generated.BindPresetItemToBundleError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.ModelNotFound{Message: err.Msg()}
+	case bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizerrors.EndUserRowScopeFieldMissing.GetCode():
+		suggestion := "请先在模型中创建 END_USER_REF 字段，然后重试绑定预设"
+		preset := detectPresetFromMessage(err.Msg())
+		return &generated.PresetRequiresOwnerField{
+			Message:    err.Msg(),
+			Preset:     preset,
+			Suggestion: &suggestion,
+		}
+	case bizerrors.ProjectNotFound.GetCode():
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	default:
+		a.logUnknown("bindPresetItemToBundle", err)
+		return &generated.InvalidInput{Message: err.Msg()}
+	}
+}
+
+// ConvertToBindCustomItemToBundleError maps to BindCustomItemToBundleError union.
+func (a *RbacErrorAdapter) ConvertToBindCustomItemToBundleError(
+	err *bizerrors.BusinessError,
+) generated.BindCustomItemToBundleError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	case bizerrors.EndUserPermissionNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+	case bizerrors.ModelNotFound.GetCode():
+		return &generated.ModelNotFound{Message: err.Msg()}
+	case bizerrors.ProjectNotFound.GetCode():
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	default:
+		a.logUnknown("bindCustomItemToBundle", err)
+		return &generated.InvalidInput{Message: err.Msg()}
+	}
+}
+
+// ConvertToRemoveDataPermissionItemError maps to RemoveDataPermissionItemFromBundleError union.
+func (a *RbacErrorAdapter) ConvertToRemoveDataPermissionItemError(
+	err *bizerrors.BusinessError,
+) generated.RemoveDataPermissionItemFromBundleError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserPermissionBundleNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	case bizerrors.ModelNotFound.GetCode():
+		return &generated.ModelNotFound{Message: err.Msg()}
+	case bizerrors.ProjectNotFound.GetCode():
+		return &generated.ProjectNotFound{Message: err.Msg()}
+	default:
+		a.logUnknown("removeDataPermissionItem", err)
+		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+	}
+}
+
 func detectPresetFromMessage(message string) generated.EndUserPermissionPreset {
 	if strings.Contains(message, string(generated.EndUserPermissionPresetReadAllWriteOwner)) {
 		return generated.EndUserPermissionPresetReadAllWriteOwner

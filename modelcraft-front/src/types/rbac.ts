@@ -25,6 +25,16 @@ export interface ColumnPolicy {
 export type EndUserPermissionAction = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE' | 'EXPORT'
 export type EndUserRowScope = 'ALL' | 'SELF' | 'DEPT' | 'DEPT_AND_CHILDREN'
 
+/** 预设策略枚举 */
+export type EndUserPermissionPreset =
+  | 'READ_WRITE_ALL'
+  | 'READ_ALL'
+  | 'READ_WRITE_OWNER'
+  | 'READ_ALL_WRITE_OWNER'
+
+/** Bundle item 来源类型 */
+export type DataPermissionGrantType = 'PRESET' | 'CUSTOM'
+
 // ============================================================================
 // 核心实体类型
 // ============================================================================
@@ -48,7 +58,39 @@ export interface EndUserPermission {
 }
 
 /**
- * 权限包历史快照中的权限点条目
+ * Bundle 内的数据权限配置项（item-centric）。
+ * 同一 bundle 下同一 modelId 最多一个 item。
+ */
+export interface EndUserBundleDataPermissionItem {
+  id: string
+  bundleId: string
+  modelId: string
+  /** 来源类型：PRESET 或 CUSTOM */
+  grantType: DataPermissionGrantType
+  /** grantType=PRESET 时非空 */
+  preset?: EndUserPermissionPreset | null
+  /** grantType=CUSTOM 时非空 */
+  customPermissionId?: string | null
+  /** grantType=CUSTOM 时，引用的自定义权限点摘要 */
+  customPermission?: EndUserPermission | null
+  sortOrder: number
+  createdAt: string
+  updatedAt: string
+}
+
+/**
+ * 快照中的 data permission item 条目（item-centric）
+ */
+export interface EndUserPermissionSnapshotItemEntry {
+  modelId: string
+  grantType: DataPermissionGrantType
+  preset?: EndUserPermissionPreset | null
+  customPermissionId?: string | null
+  sortOrder: number
+}
+
+/**
+ * 权限包历史快照中的权限点条目（兼容旧格式）
  */
 export interface EndUserPermissionBundleSnapshotEntry {
   sortOrder: number
@@ -63,17 +105,23 @@ export interface EndUserPermissionBundleSnapshot {
   createdAt: string
   createdBy?: string | null
   restoredFrom?: number | null
+  /** Item-centric 快照条目（新格式） */
+  items: EndUserPermissionSnapshotItemEntry[]
+  /** 兼容旧格式 */
   permissions: EndUserPermissionBundleSnapshotEntry[]
 }
 
 /**
- * 终端用户权限包：一组权限点的集合，可授予角色或直接授予用户
+ * 终端用户权限包：一组 data permission item 的集合，可授予角色或直接授予用户
  */
 export interface EndUserPermissionBundle {
   id: string
   name: string
   description?: string
-  permissions: EndUserPermission[]
+  /** Item-centric 数据权限列表（新字段，每个模型最多一个 item） */
+  dataPermissionItems: EndUserBundleDataPermissionItem[]
+  /** 兼容旧字段（将逐步废弃） */
+  permissions: Array<{ sortOrder: number; permission: EndUserPermission }>
   /** 当前版本号（每次权限列表变更后递增） */
   currentVersion: number
   /** 最近历史快照列表（最多 5 个，按 version DESC 排列） */
@@ -91,7 +139,7 @@ export interface EndUserRole {
   description?: string
   /** 是否为系统内置隐式角色（如 SYSTEM_AUTHENTICATED_USER） */
   isImplicit: boolean
-  permissionBundles: EndUserPermissionBundle[]
+  permissionBundles: Array<{ bundle: EndUserPermissionBundle }>
   createdAt: string
   updatedAt: string
 }

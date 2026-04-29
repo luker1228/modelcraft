@@ -8,12 +8,19 @@ import {
   GET_END_USER_BUNDLES,
   GET_END_USER_ROLES,
   ADD_PERMISSION_TO_BUNDLE,
-  REMOVE_PERMISSION_FROM_BUNDLE,
+  REMOVE_DATA_PERMISSION_ITEM_FROM_BUNDLE,
+  BIND_PRESET_ITEM_TO_BUNDLE,
+  BIND_CUSTOM_ITEM_TO_BUNDLE,
   UPDATE_END_USER_BUNDLE,
   RESTORE_END_USER_BUNDLE,
 } from '@/api-client/rbac'
 import { DATABASE_CATALOG } from '@/api-client/cluster'
-import type { EndUserPermission, EndUserPermissionBundle, EndUserRole } from '@/types'
+import type {
+  EndUserPermission,
+  EndUserPermissionBundle,
+  EndUserRole,
+  EndUserPermissionPreset,
+} from '@/types'
 
 interface UseBundleManageProps {
   orgName: string
@@ -36,8 +43,14 @@ interface UseBundleManageReturn {
   rolesLoading: boolean
   databasesLoading: boolean
   error: Error | undefined
+  /** 旧接口：绑定 custom permission（兼容旧页面） */
   addPermission: (permissionId: string) => Promise<MutationResult>
-  removePermission: (permissionId: string) => Promise<MutationResult>
+  /** 新接口：按 modelId 删除 item */
+  removeItemByModelId: (modelId: string) => Promise<MutationResult>
+  /** 新接口：绑定 preset item */
+  bindPresetItem: (modelId: string, preset: EndUserPermissionPreset, sortOrder?: number) => Promise<MutationResult>
+  /** 新接口：绑定 custom item */
+  bindCustomItem: (modelId: string, customPermissionId: string, sortOrder?: number) => Promise<MutationResult>
   updateBundle: (name: string, description?: string) => Promise<MutationResult>
   restoreBundle: (targetVersion: number) => Promise<MutationResult>
 }
@@ -99,26 +112,39 @@ export function useBundleManage({
     [databaseCatalogData],
   )
 
+  const refetchQueries = [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES]
+
   const [addPermissionMutation] = useMutation(ADD_PERMISSION_TO_BUNDLE, {
     client,
-    refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
+    refetchQueries,
   })
 
-  const [removePermissionMutation] = useMutation(REMOVE_PERMISSION_FROM_BUNDLE, {
+  const [removeItemMutation] = useMutation(REMOVE_DATA_PERMISSION_ITEM_FROM_BUNDLE, {
     client,
-    refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
+    refetchQueries,
+  })
+
+  const [bindPresetMutation] = useMutation(BIND_PRESET_ITEM_TO_BUNDLE, {
+    client,
+    refetchQueries,
+  })
+
+  const [bindCustomMutation] = useMutation(BIND_CUSTOM_ITEM_TO_BUNDLE, {
+    client,
+    refetchQueries,
   })
 
   const [updateBundleMutation] = useMutation(UPDATE_END_USER_BUNDLE, {
     client,
-    refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
+    refetchQueries,
   })
 
   const [restoreBundleMutation] = useMutation(RESTORE_END_USER_BUNDLE, {
     client,
-    refetchQueries: [GET_END_USER_BUNDLE, GET_END_USER_BUNDLES],
+    refetchQueries,
   })
 
+  // 旧接口：绑定 custom permission（兼容旧 AddStrategyDialog）
   const addPermission = useCallback(
     async (permissionId: string): Promise<MutationResult> => {
       if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
@@ -134,19 +160,60 @@ export function useBundleManage({
     [addPermissionMutation, bundleId],
   )
 
-  const removePermission = useCallback(
-    async (permissionId: string): Promise<MutationResult> => {
+  // 新接口：按 modelId 移除 item
+  const removeItemByModelId = useCallback(
+    async (modelId: string): Promise<MutationResult> => {
       if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
-      const result = await removePermissionMutation({
-        variables: { input: { bundleId, permissionId } },
+      const result = await removeItemMutation({
+        variables: { input: { bundleId, modelId } },
       })
-      const payload = result.data?.removeEndUserPermissionFromBundle
+      const payload = result.data?.removeDataPermissionItemFromBundle
       if (payload?.error) {
-        return { success: false, errorMessage: payload.error.message ?? '移除权限点失败' }
+        return { success: false, errorMessage: payload.error.message ?? '移除权限配置失败' }
       }
       return { success: true }
     },
-    [removePermissionMutation, bundleId],
+    [removeItemMutation, bundleId],
+  )
+
+  // 新接口：绑定 preset item
+  const bindPresetItem = useCallback(
+    async (
+      modelId: string,
+      preset: EndUserPermissionPreset,
+      sortOrder = 0,
+    ): Promise<MutationResult> => {
+      if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
+      const result = await bindPresetMutation({
+        variables: { input: { bundleId, modelId, preset, sortOrder } },
+      })
+      const payload = result.data?.bindPresetItemToBundle
+      if (payload?.error) {
+        return { success: false, errorMessage: payload.error.message ?? '绑定预设失败' }
+      }
+      return { success: true }
+    },
+    [bindPresetMutation, bundleId],
+  )
+
+  // 新接口：绑定 custom item
+  const bindCustomItem = useCallback(
+    async (
+      modelId: string,
+      customPermissionId: string,
+      sortOrder = 0,
+    ): Promise<MutationResult> => {
+      if (!bundleId) return { success: false, errorMessage: '未选择权限包' }
+      const result = await bindCustomMutation({
+        variables: { input: { bundleId, modelId, customPermissionId, sortOrder } },
+      })
+      const payload = result.data?.bindCustomItemToBundle
+      if (payload?.error) {
+        return { success: false, errorMessage: payload.error.message ?? '绑定自定义权限失败' }
+      }
+      return { success: true }
+    },
+    [bindCustomMutation, bundleId],
   )
 
   const updateBundle = useCallback(
@@ -204,7 +271,9 @@ export function useBundleManage({
     databasesLoading: databaseCatalogLoading,
     error: bundleError ?? permissionsError,
     addPermission,
-    removePermission,
+    removeItemByModelId,
+    bindPresetItem,
+    bindCustomItem,
     updateBundle,
     restoreBundle,
   }

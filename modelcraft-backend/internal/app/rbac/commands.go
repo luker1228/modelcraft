@@ -162,6 +162,33 @@ type RestoreBundleResult struct {
 	NewVersion int
 }
 
+// BindPresetItemToBundleCommand 绑定预设模板 item 到 bundle（replace 语义）
+// 同一 bundle 下同一 model 最多一个 item；重复绑定会替换旧 item。
+type BindPresetItemToBundleCommand struct {
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	ModelID              string
+	Preset               rbacdomain.PermissionPreset
+	SortOrder            int
+}
+
+// BindCustomItemToBundleCommand 绑定自定义权限 item 到 bundle（replace 语义）
+// 同一 bundle 下同一 model 最多一个 item；重复绑定会替换旧 item。
+type BindCustomItemToBundleCommand struct {
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	ModelID              string
+	CustomPermissionID   string
+	SortOrder            int
+}
+
+// RemoveDataPermissionItemFromBundleCommand 从 bundle 中移除指定模型的 item
+type RemoveDataPermissionItemFromBundleCommand struct {
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	ModelID              string
+}
+
 // GetEffectivePermissionsQuery 获取用户有效权限集查询
 type GetEffectivePermissionsQuery struct {
 	project.ProjectScope // 嵌入: OrgName + ProjectSlug

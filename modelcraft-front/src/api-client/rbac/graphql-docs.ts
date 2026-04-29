@@ -88,10 +88,44 @@ export const GET_END_USER_BUNDLE = gql`
         createdAt
         createdBy
         restoredFrom
+        items {
+          modelId
+          grantType
+          preset
+          customPermissionId
+          sortOrder
+        }
         permissions {
           sortOrder
           permissionId
         }
+      }
+      dataPermissionItems {
+        id
+        bundleId
+        modelId
+        grantType
+        preset
+        customPermissionId
+        customPermission {
+          id
+          modelId
+          action
+          rowScope
+          displayName
+          description
+          columnPolicy {
+            defaultMode
+            rules {
+              fieldName
+              mode
+              maskPattern
+            }
+          }
+        }
+        sortOrder
+        createdAt
+        updatedAt
       }
       permissions {
         sortOrder
@@ -740,10 +774,36 @@ export const RESTORE_END_USER_BUNDLE = gql`
           createdAt
           createdBy
           restoredFrom
+          items {
+            modelId
+            grantType
+            preset
+            customPermissionId
+            sortOrder
+          }
           permissions {
             sortOrder
             permissionId
           }
+        }
+        dataPermissionItems {
+          id
+          bundleId
+          modelId
+          grantType
+          preset
+          customPermissionId
+          customPermission {
+            id
+            modelId
+            action
+            rowScope
+            displayName
+            description
+          }
+          sortOrder
+          createdAt
+          updatedAt
         }
         permissions {
           sortOrder
@@ -779,5 +839,130 @@ export const RESTORE_END_USER_BUNDLE = gql`
         }
       }
     }
+  }
+`
+
+export const BIND_PRESET_ITEM_TO_BUNDLE = gql`
+  mutation BindPresetItemToBundle($input: BindPresetItemToBundleInput!) {
+    bindPresetItemToBundle(input: $input) {
+      bundle {
+        id
+        dataPermissionItems {
+          id
+          bundleId
+          modelId
+          grantType
+          preset
+          sortOrder
+          createdAt
+          updatedAt
+        }
+        currentVersion
+      }
+      error {
+        __typename
+        ... on EndUserPermissionBundleNotFound {
+          message
+        }
+        ... on ModelNotFound {
+          message
+        }
+        ... on PresetRequiresOwnerField {
+          message
+          preset
+        }
+        ... on InvalidInput {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`
+
+export const BIND_CUSTOM_ITEM_TO_BUNDLE = gql`
+  mutation BindCustomItemToBundle($input: BindCustomItemToBundleInput!) {
+    bindCustomItemToBundle(input: $input) {
+      bundle {
+        id
+        dataPermissionItems {
+          id
+          bundleId
+          modelId
+          grantType
+          customPermissionId
+          customPermission {
+            id
+            modelId
+            action
+            rowScope
+            displayName
+            description
+          }
+          sortOrder
+          createdAt
+          updatedAt
+        }
+        currentVersion
+      }
+      error {
+        __typename
+        ... on EndUserPermissionBundleNotFound {
+          message
+        }
+        ... on EndUserPermissionNotFound {
+          message
+        }
+        ... on ModelNotFound {
+          message
+        }
+        ... on InvalidInput {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`
+
+export const REMOVE_DATA_PERMISSION_ITEM_FROM_BUNDLE = gql`
+  mutation RemoveDataPermissionItemFromBundle($input: RemoveDataPermissionItemFromBundleInput!) {
+    removeDataPermissionItemFromBundle(input: $input) {
+      bundle {
+        id
+        dataPermissionItems {
+          id
+          bundleId
+          modelId
+          grantType
+          preset
+          customPermissionId
+          sortOrder
+        }
+        currentVersion
+      }
+      error {
+        __typename
+        ... on EndUserPermissionBundleNotFound {
+          message
+        }
+        ... on ModelNotFound {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+      }
+    }
+  }
+`
+
+export const GET_VIRTUAL_PRESETS_BY_MODEL = gql`
+  query GetVirtualPresetsByModel($modelId: ID!) {
+    virtualPresetsByModel(modelId: $modelId)
   }
 `

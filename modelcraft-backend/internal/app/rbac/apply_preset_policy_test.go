@@ -568,6 +568,12 @@ func (m *mockBundleRepo) ClearBundlePermissions(_ context.Context, _ string) err
 	return nil
 }
 
+func (m *mockBundleRepo) GetBundleDataPermissionItemByBundleAndModel(
+	_ context.Context, _, _ string,
+) (*rbacdomain.EndUserBundleDataPermissionItem, error) {
+	return nil, nil
+}
+
 func (m *mockBundleRepo) findPermissionByID(id string) *rbacdomain.EndUserPermission {
 	for _, list := range m.modelPerms {
 		for _, p := range list {

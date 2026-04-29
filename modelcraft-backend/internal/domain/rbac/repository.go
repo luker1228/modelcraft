@@ -84,7 +84,10 @@ type EndUserPermissionRepository interface {
 	ListBundleDataPermissionItems(ctx context.Context, bundleID string) ([]*EndUserBundleDataPermissionItem, error)
 
 	// GetBundleDataPermissionItemByBundleAndModel 获取 bundle-model 的唯一 item。
-	GetBundleDataPermissionItemByBundleAndModel(ctx context.Context, bundleID, modelID string) (*EndUserBundleDataPermissionItem, error)
+	GetBundleDataPermissionItemByBundleAndModel(
+		ctx context.Context,
+		bundleID, modelID string,
+	) (*EndUserBundleDataPermissionItem, error)
 
 	// ─── 权限包快照 ─────────────────────────────────────────────
 

@@ -5,13 +5,12 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"strings"
-
 	"modelcraft/internal/domain/rbac"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -278,7 +277,8 @@ func (r *SqlEndUserDataPermissionRepository) IsPermissionReferencedByBundle(
 	ctx context.Context,
 	permissionID string,
 ) (bool, error) {
-	referenced, err := r.q.IsPermissionReferencedByBundleItem(ctx, sql.NullString{String: permissionID, Valid: permissionID != ""})
+	nullID := sql.NullString{String: permissionID, Valid: permissionID != ""}
+	referenced, err := r.q.IsPermissionReferencedByBundleItem(ctx, nullID)
 	if err != nil {
 		return false, sqlerr.WrapSQLError(err)
 	}
@@ -404,7 +404,8 @@ func (r *SqlEndUserDataPermissionRepository) AddPermissionToBundle(
 	_ = bundleID
 	_ = permissionID
 	_ = sortOrder
-	return shared.NewRepositoryError(shared.ErrTypeUnknown, "add permission by permission_id is deprecated; use bundle item APIs")
+	// add by permission_id is deprecated; use bundle item APIs
+	return shared.NewRepositoryError(shared.ErrTypeUnknown, "use UpsertBundleDataPermissionItem instead")
 }
 
 func (r *SqlEndUserDataPermissionRepository) RemovePermissionFromBundle(
@@ -414,7 +415,8 @@ func (r *SqlEndUserDataPermissionRepository) RemovePermissionFromBundle(
 	_ = ctx
 	_ = bundleID
 	_ = permissionID
-	return shared.NewRepositoryError(shared.ErrTypeUnknown, "remove permission by permission_id is deprecated; use bundle item APIs")
+	// remove by permission_id is deprecated; use RemoveBundleDataPermissionItem
+	return shared.NewRepositoryError(shared.ErrTypeUnknown, "use RemoveBundleDataPermissionItem instead")
 }
 
 func (r *SqlEndUserDataPermissionRepository) ListPermissionsInBundle(
@@ -516,10 +518,11 @@ func (r *SqlEndUserDataPermissionRepository) GetBundleDataPermissionItemByBundle
 	ctx context.Context,
 	bundleID, modelID string,
 ) (*rbac.EndUserBundleDataPermissionItem, error) {
-	row, err := r.q.GetBundleDataPermissionItemByBundleAndModel(ctx, dbgen.GetBundleDataPermissionItemByBundleAndModelParams{
+	params := dbgen.GetBundleDataPermissionItemByBundleAndModelParams{
 		BundleID: bundleID,
 		ModelID:  modelID,
-	})
+	}
+	row, err := r.q.GetBundleDataPermissionItemByBundleAndModel(ctx, params)
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return nil, shared.NewNotFoundError("bundle data permission item not found")
@@ -532,6 +535,48 @@ func (r *SqlEndUserDataPermissionRepository) GetBundleDataPermissionItemByBundle
 // =========================
 // Bundle Snapshots
 // =========================
+
+// snapshotRawEntry is the JSON structure stored in the snapshot `items` column.
+type snapshotRawEntry struct {
+	ModelID            string  `json:"modelId"`
+	GrantType          string  `json:"grantType"`
+	Preset             *string `json:"preset"`
+	CustomPermissionID *string `json:"customPermissionId"`
+	SortOrder          int     `json:"sortOrder"`
+}
+
+// parseSnapshotItems parses the raw JSON column into domain slice pairs.
+func parseSnapshotItems(raw []byte) ([]rbac.SnapshotItemEntry, []rbac.SnapshotPermissionEntry) {
+	var entries []snapshotRawEntry
+	if err := json.Unmarshal(raw, &entries); err != nil {
+		return nil, nil
+	}
+	items := make([]rbac.SnapshotItemEntry, 0, len(entries))
+	perms := make([]rbac.SnapshotPermissionEntry, 0, len(entries))
+	for _, e := range entries {
+		var preset *rbac.PermissionPreset
+		if e.Preset != nil && *e.Preset != "" {
+			v := rbac.PermissionPreset(*e.Preset)
+			preset = &v
+		}
+		items = append(items, rbac.SnapshotItemEntry{
+			ModelID:            e.ModelID,
+			GrantType:          rbac.PermissionType(e.GrantType),
+			Preset:             preset,
+			CustomPermissionID: e.CustomPermissionID,
+			SortOrder:          e.SortOrder,
+		})
+		permissionID := e.ModelID
+		if e.CustomPermissionID != nil && *e.CustomPermissionID != "" {
+			permissionID = *e.CustomPermissionID
+		}
+		perms = append(perms, rbac.SnapshotPermissionEntry{
+			PermissionID: permissionID,
+			SortOrder:    e.SortOrder,
+		})
+	}
+	return items, perms
+}
 
 func toDomainSnapshot(row dbgen.EndUserPermissionBundleSnapshot) rbac.BundleSnapshot {
 	var createdBy *string
@@ -548,41 +593,7 @@ func toDomainSnapshot(row dbgen.EndUserPermissionBundleSnapshot) rbac.BundleSnap
 	var perms []rbac.SnapshotPermissionEntry
 	var items []rbac.SnapshotItemEntry
 	if row.Items != nil {
-		type entry struct {
-			ModelID            string  `json:"modelId"`
-			GrantType          string  `json:"grantType"`
-			Preset             *string `json:"preset"`
-			CustomPermissionID *string `json:"customPermissionId"`
-			SortOrder          int     `json:"sortOrder"`
-		}
-		var entries []entry
-		if err := json.Unmarshal(row.Items, &entries); err == nil {
-			perms = make([]rbac.SnapshotPermissionEntry, 0, len(entries))
-			items = make([]rbac.SnapshotItemEntry, 0, len(entries))
-			for _, e := range entries {
-				var preset *rbac.PermissionPreset
-				if e.Preset != nil && *e.Preset != "" {
-					v := rbac.PermissionPreset(*e.Preset)
-					preset = &v
-				}
-				items = append(items, rbac.SnapshotItemEntry{
-					ModelID:            e.ModelID,
-					GrantType:          rbac.PermissionType(e.GrantType),
-					Preset:             preset,
-					CustomPermissionID: e.CustomPermissionID,
-					SortOrder:          e.SortOrder,
-				})
-
-				permissionID := e.ModelID
-				if e.CustomPermissionID != nil && *e.CustomPermissionID != "" {
-					permissionID = *e.CustomPermissionID
-				}
-				perms = append(perms, rbac.SnapshotPermissionEntry{
-					PermissionID: permissionID,
-					SortOrder:    e.SortOrder,
-				})
-			}
-		}
+		items, perms = parseSnapshotItems(row.Items)
 	}
 
 	return rbac.BundleSnapshot{
@@ -609,7 +620,7 @@ func (r *SqlEndUserDataPermissionRepository) SaveBundleSnapshot(
 		SortOrder          int     `json:"sortOrder"`
 	}
 
-	entries := make([]entry, 0)
+	var entries []entry
 	if len(snapshot.Items) > 0 {
 		entries = make([]entry, 0, len(snapshot.Items))
 		for _, item := range snapshot.Items {

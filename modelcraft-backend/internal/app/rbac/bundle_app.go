@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 	"modelcraft/internal/domain/modeldesign"
-	"modelcraft/internal/domain/shared"
 	rbacdomain "modelcraft/internal/domain/rbac"
+	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 
 	"github.com/google/uuid"
@@ -25,7 +25,14 @@ type bundleRepository interface {
 
 	UpsertBundleDataPermissionItem(ctx context.Context, item *rbacdomain.EndUserBundleDataPermissionItem) error
 	RemoveBundleDataPermissionItem(ctx context.Context, bundleID, modelID string) error
-	ListBundleDataPermissionItems(ctx context.Context, bundleID string) ([]*rbacdomain.EndUserBundleDataPermissionItem, error)
+	ListBundleDataPermissionItems(
+		ctx context.Context,
+		bundleID string,
+	) ([]*rbacdomain.EndUserBundleDataPermissionItem, error)
+	GetBundleDataPermissionItemByBundleAndModel(
+		ctx context.Context,
+		bundleID, modelID string,
+	) (*rbacdomain.EndUserBundleDataPermissionItem, error)
 
 	GrantBundleToUser(ctx context.Context, userID, orgName, projectSlug, bundleID string) error
 	RevokeBundleFromUser(ctx context.Context, userID, orgName, projectSlug, bundleID string) error
@@ -240,7 +247,8 @@ func (s *EndUserBundleAppService) AddPresetToBundle(
 	}
 
 	if !cmd.Preset.IsValid() {
-		return nil, bizerrors.NewValidationError("rbac.permission.invalid_preset: invalid preset: %s", string(cmd.Preset))
+		return nil, bizerrors.NewValidationError(
+			"rbac.permission.invalid_preset: invalid preset: %s", string(cmd.Preset))
 	}
 
 	ownerField, err := s.requireModelAndGetOwnerField(ctx, cmd.ModelID)
@@ -289,6 +297,95 @@ func (s *EndUserBundleAppService) RemovePermissionFromBundle(
 		return nil, err
 	}
 	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+}
+
+// BindPresetItem 绑定预设模板 item 到 bundle（replace 语义，显式 item-centric 入口）
+func (s *EndUserBundleAppService) BindPresetItem(
+	ctx context.Context,
+	cmd BindPresetItemToBundleCommand,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	if err := s.verifyBundleScope(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID); err != nil {
+		return nil, err
+	}
+	return s.AddPresetToBundle(ctx, AddPresetToBundleCommand{
+		OrgName:   cmd.OrgName,
+		BundleID:  cmd.BundleID,
+		ModelID:   cmd.ModelID,
+		Preset:    cmd.Preset,
+		SortOrder: cmd.SortOrder,
+	})
+}
+
+// BindCustomItem 绑定自定义权限 item 到 bundle（replace 语义，显式 item-centric 入口）。
+// 与旧 AddPermissionToBundle 的区别：直接使用 cmd.ModelID，不再依赖 permission 实体查询。
+func (s *EndUserBundleAppService) BindCustomItem(
+	ctx context.Context,
+	cmd BindCustomItemToBundleCommand,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	if err := s.verifyBundleScope(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID); err != nil {
+		return nil, err
+	}
+
+	perm, err := s.rbacRepo.GetPermissionByID(ctx, cmd.OrgName, cmd.CustomPermissionID)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionNotFound, cmd.CustomPermissionID)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	customID := perm.ID
+	item := &rbacdomain.EndUserBundleDataPermissionItem{
+		ID:                 uuid.NewString(),
+		BundleID:           cmd.BundleID,
+		ModelID:            cmd.ModelID,
+		GrantType:          rbacdomain.PermissionTypeCustom,
+		CustomPermissionID: &customID,
+		SortOrder:          cmd.SortOrder,
+	}
+	if err := s.rbacRepo.UpsertBundleDataPermissionItem(ctx, item); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
+		return nil, err
+	}
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+}
+
+// RemoveDataPermissionItemFromBundle 从权限包移除指定模型的 data permission item（按 modelID）
+func (s *EndUserBundleAppService) RemoveDataPermissionItemFromBundle(
+	ctx context.Context,
+	cmd RemoveDataPermissionItemFromBundleCommand,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	if err := s.verifyBundleScope(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID); err != nil {
+		return nil, err
+	}
+
+	if err := s.rbacRepo.RemoveBundleDataPermissionItem(ctx, cmd.BundleID, cmd.ModelID); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
+		return nil, err
+	}
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+}
+
+// verifyBundleScope 校验 bundle 归属（org + project），防止跨 project 操作。
+func (s *EndUserBundleAppService) verifyBundleScope(
+	ctx context.Context,
+	orgName, projectSlug, bundleID string,
+) error {
+	b, err := s.rbacRepo.GetBundleByID(ctx, orgName, bundleID)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, bundleID)
+		}
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if b.ProjectSlug != projectSlug {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, bundleID)
+	}
+	return nil
 }
 
 // saveBundleSnapshot 写入 item 快照并执行滚动删除。
