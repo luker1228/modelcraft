@@ -27,12 +27,14 @@ SET name = ?,
     description = ?,
     updated_at = NOW(3)
 WHERE id = ?
-  AND org_name = ?;
+  AND org_name = ?
+  AND project_slug = ?;
 
 -- name: DeleteEndUserBundle :execresult
 DELETE FROM end_user_permission_bundles
 WHERE id = ?
-  AND org_name = ?;
+  AND org_name = ?
+  AND project_slug = ?;
 
 -- ─── Bundle Data Permission Items ───────────────────────────────
 

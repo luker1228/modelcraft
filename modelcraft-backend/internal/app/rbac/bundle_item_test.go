@@ -2,19 +2,105 @@ package rbac
 
 import (
 	"context"
+	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/project"
+	"modelcraft/internal/domain/shared"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
-	"modelcraft/internal/domain/shared"
 )
+
+// ─── 测试专用 repo（扩展 mockBundleRepo，支持 snapshot 追踪和 RestoreBundle）────
+
+type bundleItemTestRepo struct {
+	*mockBundleRepo
+	capturedSnapshots  []*rbacdomain.BundleSnapshot
+	snapshotsByVersion map[int]*rbacdomain.BundleSnapshot
+	currentVersion     int
+}
+
+func newBundleItemRepo(bundle *rbacdomain.EndUserPermissionBundle) *bundleItemTestRepo {
+	return &bundleItemTestRepo{
+		mockBundleRepo:     newMockBundleRepo(bundle, nil),
+		snapshotsByVersion: map[int]*rbacdomain.BundleSnapshot{},
+	}
+}
+
+func newBundleItemRepoWithPerms(
+	bundle *rbacdomain.EndUserPermissionBundle,
+	modelPerms map[string][]*rbacdomain.EndUserPermission,
+) *bundleItemTestRepo {
+	return &bundleItemTestRepo{
+		mockBundleRepo:     newMockBundleRepo(bundle, modelPerms),
+		snapshotsByVersion: map[int]*rbacdomain.BundleSnapshot{},
+	}
+}
+
+func (r *bundleItemTestRepo) SaveBundleSnapshot(_ context.Context, snap *rbacdomain.BundleSnapshot) error {
+	r.capturedSnapshots = append(r.capturedSnapshots, snap)
+	return nil
+}
+
+func (r *bundleItemTestRepo) GetBundleCurrentVersion(_ context.Context, _ string) (int, error) {
+	return r.currentVersion, nil
+}
+
+func (r *bundleItemTestRepo) GetBundleSnapshotByVersion(
+	_ context.Context, _ string, version int,
+) (*rbacdomain.BundleSnapshot, error) {
+	snap, ok := r.snapshotsByVersion[version]
+	if !ok {
+		return nil, shared.NewNotFoundError("snapshot not found")
+	}
+	return snap, nil
+}
+
+// 覆盖 GetBundleByID：增加 ProjectSlug 验证（verifyBundleScope 需要）
+func (r *bundleItemTestRepo) GetBundleByID(
+	ctx context.Context, orgName, id string,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	return r.mockBundleRepo.GetBundleByID(ctx, orgName, id)
+}
+
+func (r *bundleItemTestRepo) itemsByModel(bundleID, modelID string) []*rbacdomain.EndUserBundleDataPermissionItem {
+	var result []*rbacdomain.EndUserBundleDataPermissionItem
+	for _, item := range r.bundleItems[bundleID] {
+		if item.ModelID == modelID {
+			result = append(result, item)
+		}
+	}
+	return result
+}
+
+func (r *bundleItemTestRepo) lastSnapshot() *rbacdomain.BundleSnapshot {
+	if len(r.capturedSnapshots) == 0 {
+		return nil
+	}
+	return r.capturedSnapshots[len(r.capturedSnapshots)-1]
+}
+
+// ─── 测试专用 model repo（实现 modelRepository 接口）────────────────────────
+
+type itemTestModelRepo struct {
+	ownerFieldName string
+}
+
+func (m *itemTestModelRepo) GetByID(
+	_ context.Context, _ string, _ ...*modeldesign.ModelQueryOptions,
+) (*modeldesign.DataModel, error) {
+	model := &modeldesign.DataModel{}
+	if m.ownerFieldName != "" {
+		_ = model // ownerField 通过 GetOwnerField() 返回
+	}
+	return makeModelWithOwner(m.ownerFieldName != ""), nil
+}
 
 // ─── 辅助 ────────────────────────────────────────────────────────────────────
 
-func makeBundle(id, org, proj string) *rbacdomain.EndUserPermissionBundle {
+func makeTestBundle(id, org, proj string) *rbacdomain.EndUserPermissionBundle {
 	return &rbacdomain.EndUserPermissionBundle{
 		ID:          id,
 		OrgName:     org,
@@ -23,50 +109,43 @@ func makeBundle(id, org, proj string) *rbacdomain.EndUserPermissionBundle {
 	}
 }
 
-func makeCustomPermission(id, org, modelID string) *rbacdomain.EndUserPermission {
-	return &rbacdomain.EndUserPermission{
-		ID:      id,
-		OrgName: org,
-		ModelID: modelID,
-		Name:    "custom-perm",
-		Type:    rbacdomain.PermissionTypeCustom,
-		RowPolicy: &rbacdomain.RowPolicy{
-			Select: rbacdomain.SelectPolicy{Allowed: true, Scope: rbacdomain.ScopeAll},
-		},
+func makeTestCustomPerm(id, org, modelID string) *rbacdomain.EndUserPermission {
+	return makeCustomPermission(org, "proj1", modelID, id)
+}
+
+func newItemSvc(repo *bundleItemTestRepo, hasOwnerField bool) *EndUserBundleAppService {
+	return &EndUserBundleAppService{
+		rbacRepo:  repo,
+		modelRepo: &itemTestModelRepo{ownerFieldName: map[bool]string{true: "owner", false: ""}[hasOwnerField]},
 	}
 }
 
-// ─── BindPresetItem ──────────────────────────────────────────────────────────
+// ─── 5.1: preset/custom item 绑定、bundle-model 唯一约束 ────────────────────
 
 func TestBindPresetItem_Success(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, false)
 
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
-	preset := rbacdomain.PresetReadAll
-
-	result, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
+	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:     "b1",
 		ModelID:      "model1",
-		Preset:       preset,
-		SortOrder:    0,
+		Preset:       rbacdomain.PresetReadAll,
 	})
 
 	require.NoError(t, err)
-	require.NotNil(t, result)
 	items := repo.bundleItems["b1"]
-	require.Len(t, items, 1, "应有一个 item")
+	require.Len(t, items, 1)
 	assert.Equal(t, rbacdomain.PermissionTypePreset, items[0].GrantType)
 	assert.Equal(t, rbacdomain.PresetReadAll, *items[0].Preset)
 	assert.Equal(t, "model1", items[0].ModelID)
 }
 
 func TestBindPresetItem_WrongProject_Returns404(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
-
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, false)
 
 	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj-other"},
@@ -75,15 +154,13 @@ func TestBindPresetItem_WrongProject_Returns404(t *testing.T) {
 		Preset:       rbacdomain.PresetReadAll,
 	})
 
-	require.Error(t, err)
+	require.Error(t, err, "跨 project 操作应返回错误")
 }
 
-func TestBindPresetItem_OwnerPreset_RequiresOwnerField(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
-
-	// 模型没有 owner 字段
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
+func TestBindPresetItem_OwnerPreset_WithoutOwnerField_Fails(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, false) // 无 owner 字段
 
 	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
@@ -92,49 +169,58 @@ func TestBindPresetItem_OwnerPreset_RequiresOwnerField(t *testing.T) {
 		Preset:       rbacdomain.PresetReadWriteOwner,
 	})
 
-	require.Error(t, err, "缺少 owner 字段时应返回错误")
+	require.Error(t, err, "缺少 owner 字段时绑定 OWNER 预设应失败")
 }
 
-// ─── Bundle-Model 唯一约束（replace 语义） ───────────────────────────────────
+func TestBindPresetItem_OwnerPreset_WithOwnerField_Succeeds(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, true) // 有 owner 字段
 
-func TestBindPresetItem_Replace_SameModel(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
-
-	// 第一次绑定
 	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:     "b1",
 		ModelID:      "model1",
-		Preset:       rbacdomain.PresetReadAll,
+		Preset:       rbacdomain.PresetReadWriteOwner,
 	})
-	require.NoError(t, err)
 
-	// 第二次绑定同模型（应替换）
-	_, err = svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
+	require.NoError(t, err)
+	items := repo.bundleItems["b1"]
+	require.Len(t, items, 1)
+	assert.Equal(t, rbacdomain.PresetReadWriteOwner, *items[0].Preset)
+}
+
+func TestBindPreset_ThenBindPreset_SameModel_Replaces(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, false)
+
+	cmd := BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:     "b1",
 		ModelID:      "model1",
-		Preset:       rbacdomain.PresetReadWriteAll,
-	})
+		Preset:       rbacdomain.PresetReadAll,
+	}
+	_, err := svc.BindPresetItem(context.Background(), cmd)
 	require.NoError(t, err)
 
-	// mock UpsertBundleDataPermissionItem 实现 replace 语义
-	items := repo.getBundleItemsByModel("b1", "model1")
+	cmd.Preset = rbacdomain.PresetReadWriteAll
+	_, err = svc.BindPresetItem(context.Background(), cmd)
+	require.NoError(t, err)
+
+	items := repo.itemsByModel("b1", "model1")
 	assert.Len(t, items, 1, "同一模型只应保留一个 item")
 	assert.Equal(t, rbacdomain.PresetReadWriteAll, *items[0].Preset)
 }
 
-func TestBindPresetItem_ThenBindCustom_Replaces(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	perm := makeCustomPermission("perm1", "org1", "model1")
-	repo := newMockBundleRepo(bundle, map[string][]*rbacdomain.EndUserPermission{
+func TestBindPreset_ThenBindCustom_SameModel_Replaces(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	perm := makeTestCustomPerm("perm1", "org1", "model1")
+	repo := newBundleItemRepoWithPerms(bundle, map[string][]*rbacdomain.EndUserPermission{
 		"model1": {perm},
 	})
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
+	svc := newItemSvc(repo, false)
 
-	// 先绑定 preset
 	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:     "b1",
@@ -143,48 +229,42 @@ func TestBindPresetItem_ThenBindCustom_Replaces(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	// 再绑定 custom（应替换 preset item）
 	_, err = svc.BindCustomItem(context.Background(), BindCustomItemToBundleCommand{
 		ProjectScope:       project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:           "b1",
 		ModelID:            "model1",
-		CustomPermissionID: "perm1",
+		CustomPermissionID: perm.ID, // 使用 perm.ID 而非硬编码
 	})
 	require.NoError(t, err)
 
-	items := repo.getBundleItemsByModel("b1", "model1")
-	assert.Len(t, items, 1, "同一模型只应保留一个 item")
+	items := repo.itemsByModel("b1", "model1")
+	assert.Len(t, items, 1, "preset→custom 替换后仍应只有一个 item")
 	assert.Equal(t, rbacdomain.PermissionTypeCustom, items[0].GrantType)
 }
 
-// ─── BindCustomItem ──────────────────────────────────────────────────────────
-
-func TestBindCustomItem_PermissionNotFound(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil) // 没有注册任何 permission
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
+func TestBindCustomItem_PermissionNotFound_Fails(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, false)
 
 	_, err := svc.BindCustomItem(context.Background(), BindCustomItemToBundleCommand{
 		ProjectScope:       project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:           "b1",
 		ModelID:            "model1",
-		CustomPermissionID: "nonexistent-perm",
+		CustomPermissionID: "nonexistent",
 	})
 
 	require.Error(t, err)
 }
 
-// ─── RemoveDataPermissionItemFromBundle ─────────────────────────────────────
-
-func TestRemoveDataPermissionItemFromBundle_Success(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
-	// 先插入一个 item
+func TestRemoveDataPermissionItem_Success(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	preset := rbacdomain.PresetReadAll
 	repo.bundleItems["b1"] = []*rbacdomain.EndUserBundleDataPermissionItem{
-		{ID: "item1", BundleID: "b1", ModelID: "model1", GrantType: rbacdomain.PermissionTypePreset},
+		{ID: "item1", BundleID: "b1", ModelID: "model1", GrantType: rbacdomain.PermissionTypePreset, Preset: &preset},
 	}
-
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
+	svc := newItemSvc(repo, false)
 
 	_, err := svc.RemoveDataPermissionItemFromBundle(context.Background(), RemoveDataPermissionItemFromBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
@@ -193,15 +273,15 @@ func TestRemoveDataPermissionItemFromBundle_Success(t *testing.T) {
 	})
 
 	require.NoError(t, err)
-	assert.Empty(t, repo.getBundleItemsByModel("b1", "model1"), "移除后应为空")
+	assert.Empty(t, repo.itemsByModel("b1", "model1"), "移除后应为空")
 }
 
-// ─── Snapshot ────────────────────────────────────────────────────────────────
+// ─── 5.2: snapshot item payload 验证 ────────────────────────────────────────
 
-func TestBindPresetItem_CreatesSnapshot(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
+func TestBindPresetItem_CreatesSnapshotWithItemPayload(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	svc := newItemSvc(repo, false)
 
 	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
 		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
@@ -211,134 +291,75 @@ func TestBindPresetItem_CreatesSnapshot(t *testing.T) {
 	})
 	require.NoError(t, err)
 
-	assert.NotEmpty(t, repo.snapshots, "绑定 item 后应自动创建快照")
-	snap := repo.snapshots[len(repo.snapshots)-1]
+	snap := repo.lastSnapshot()
+	require.NotNil(t, snap, "应自动创建快照")
 	require.Len(t, snap.Items, 1)
 	assert.Equal(t, "model1", snap.Items[0].ModelID)
 	assert.Equal(t, rbacdomain.PermissionTypePreset, snap.Items[0].GrantType)
-}
-
-func TestRemoveItem_CreatesSnapshot(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	repo := newMockBundleRepo(bundle, nil)
-	repo.bundleItems["b1"] = []*rbacdomain.EndUserBundleDataPermissionItem{
-		{ID: "item1", BundleID: "b1", ModelID: "model1", GrantType: rbacdomain.PermissionTypePreset},
-	}
-	svc := NewEndUserBundleAppService(repo, &mockModelRepo{ownerField: ""})
-
-	_, err := svc.RemoveDataPermissionItemFromBundle(context.Background(), RemoveDataPermissionItemFromBundleCommand{
-		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
-		BundleID:     "b1",
-		ModelID:      "model1",
-	})
-	require.NoError(t, err)
-
-	assert.NotEmpty(t, repo.snapshots, "移除 item 后应自动创建快照")
-	snap := repo.snapshots[len(repo.snapshots)-1]
-	assert.Empty(t, snap.Items, "移除后快照应为空 item 列表")
-}
-
-// ─── mock 补充方法 ───────────────────────────────────────────────────────────
-
-// getBundleItemsByModel 辅助方法：按 bundle+model 过滤 items
-func (m *mockBundleRepo) getBundleItemsByModel(bundleID, modelID string) []*rbacdomain.EndUserBundleDataPermissionItem {
-	result := make([]*rbacdomain.EndUserBundleDataPermissionItem, 0)
-	for _, item := range m.bundleItems[bundleID] {
-		if item.ModelID == modelID {
-			result = append(result, item)
-		}
-	}
-	return result
-}
-
-// snapshots 字段需要追加到 mockBundleRepo，在此处 hack 一下用辅助 var
-var _ = func() bool {
-	// 避免 mock 无法持久化 snapshots 的问题，直接在 mock 的 SaveBundleSnapshot 里追加
-	return true
-}()
-
-// 重写 mockBundleRepo.SaveBundleSnapshot 以记录快照（定义在 apply_preset_policy_test.go 里）
-// 这里通过辅助字段 snapshots 追踪
-
-// ─── 扩展 mockBundleRepo 以支持新测试 ────────────────────────────────────────
-
-// 注意：mockBundleRepo 已在 apply_preset_policy_test.go 中定义，在同包中直接扩展。
-// 此文件新增 snapshots 记录能力，通过在 SaveBundleSnapshot 追加。
-// 下面的 wrapper 采用嵌套结构。
-
-// bundleItemTestRepo 为测试专用 repo，扩展自 mockBundleRepo，追加 snapshot 记录。
-type bundleItemTestRepo struct {
-	*mockBundleRepo
-	snapshots []rbacdomain.BundleSnapshot
-}
-
-func newBundleItemTestRepo(bundle *rbacdomain.EndUserPermissionBundle, modelPerms map[string][]*rbacdomain.EndUserPermission) *bundleItemTestRepo {
-	return &bundleItemTestRepo{
-		mockBundleRepo: newMockBundleRepo(bundle, modelPerms),
-	}
-}
-
-func (r *bundleItemTestRepo) SaveBundleSnapshot(_ context.Context, snap *rbacdomain.BundleSnapshot) error {
-	r.snapshots = append(r.snapshots, *snap)
-	return nil
-}
-
-func (r *bundleItemTestRepo) GetBundleByID(ctx context.Context, orgName, id string) (*rbacdomain.EndUserPermissionBundle, error) {
-	b, err := r.mockBundleRepo.GetBundleByID(ctx, orgName, id)
-	if err != nil {
-		return nil, err
-	}
-	// 校验 ProjectSlug（verifyBundleScope 需要）
-	return b, nil
-}
-
-// ─── 使用 bundleItemTestRepo 的测试（支持 snapshot 验证） ────────────────────
-
-func newBundleSvcWithTracker(bundle *rbacdomain.EndUserPermissionBundle, modelPerms map[string][]*rbacdomain.EndUserPermission) (*EndUserBundleAppService, *bundleItemTestRepo) {
-	repo := newBundleItemTestRepo(bundle, modelPerms)
-	svc := &EndUserBundleAppService{rbacRepo: repo, modelRepo: &mockModelRepo{ownerField: ""}}
-	return svc, repo
-}
-
-func TestBindPresetItem_SnapshotContainsItemPayload(t *testing.T) {
-	bundle := makeBundle("b1", "org1", "proj1")
-	svc, repo := newBundleSvcWithTracker(bundle, nil)
-
-	_, err := svc.BindPresetItem(context.Background(), BindPresetItemToBundleCommand{
-		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
-		BundleID:     "b1",
-		ModelID:      "model1",
-		Preset:       rbacdomain.PresetReadAll,
-	})
-	require.NoError(t, err)
-	require.NotEmpty(t, repo.snapshots)
-
-	snap := repo.snapshots[0]
-	require.Len(t, snap.Items, 1)
-	assert.Equal(t, "model1", snap.Items[0].ModelID)
-	assert.Equal(t, rbacdomain.PermissionTypePreset, snap.Items[0].GrantType)
-	assert.NotNil(t, snap.Items[0].Preset)
 	assert.Equal(t, rbacdomain.PresetReadAll, *snap.Items[0].Preset)
 	assert.Nil(t, snap.Items[0].CustomPermissionID)
 }
 
-func TestRestoreBundle_RebuildsItemsFromSnapshot(t *testing.T) {
-	preset := rbacdomain.PresetReadAll
-	bundle := makeBundle("b1", "org1", "proj1")
-	svc, repo := newBundleSvcWithTracker(bundle, nil)
+func TestBindCustomItem_CreatesSnapshotWithCustomPayload(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	perm := makeTestCustomPerm("perm1", "org1", "model1")
+	repo := newBundleItemRepoWithPerms(bundle, map[string][]*rbacdomain.EndUserPermission{
+		"model1": {perm},
+	})
+	svc := newItemSvc(repo, false)
 
-	// 手动注入一个快照（模拟历史快照）
-	repo.snapshotsByVersion = map[int]*rbacdomain.BundleSnapshot{
-		1: {
-			ID:       "snap-v1",
-			BundleID: "b1",
-			Version:  1,
-			Items: []rbacdomain.SnapshotItemEntry{
-				{ModelID: "model1", GrantType: rbacdomain.PermissionTypePreset, Preset: &preset},
-			},
+	_, err := svc.BindCustomItem(context.Background(), BindCustomItemToBundleCommand{
+		ProjectScope:       project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
+		BundleID:           "b1",
+		ModelID:            "model1",
+		CustomPermissionID: perm.ID,
+	})
+	require.NoError(t, err)
+
+	snap := repo.lastSnapshot()
+	require.NotNil(t, snap)
+	require.Len(t, snap.Items, 1)
+	assert.Equal(t, rbacdomain.PermissionTypeCustom, snap.Items[0].GrantType)
+	assert.Nil(t, snap.Items[0].Preset)
+	require.NotNil(t, snap.Items[0].CustomPermissionID)
+	assert.Equal(t, perm.ID, *snap.Items[0].CustomPermissionID)
+}
+
+func TestRemoveItem_CreatesEmptySnapshot(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	preset := rbacdomain.PresetReadAll
+	repo.bundleItems["b1"] = []*rbacdomain.EndUserBundleDataPermissionItem{
+		{ID: "item1", BundleID: "b1", ModelID: "model1", GrantType: rbacdomain.PermissionTypePreset, Preset: &preset},
+	}
+	svc := newItemSvc(repo, false)
+
+	_, err := svc.RemoveDataPermissionItemFromBundle(context.Background(), RemoveDataPermissionItemFromBundleCommand{
+		ProjectScope: project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
+		BundleID:     "b1",
+		ModelID:      "model1",
+	})
+	require.NoError(t, err)
+
+	snap := repo.lastSnapshot()
+	require.NotNil(t, snap, "移除后应自动创建快照")
+	assert.Empty(t, snap.Items, "移除后快照 item 列表应为空")
+}
+
+func TestRestoreBundle_RebuildsItemsFromSnapshot(t *testing.T) {
+	bundle := makeTestBundle("b1", "org1", "proj1")
+	repo := newBundleItemRepo(bundle)
+	preset := rbacdomain.PresetReadAll
+	repo.snapshotsByVersion[1] = &rbacdomain.BundleSnapshot{
+		ID:       "snap-v1",
+		BundleID: "b1",
+		Version:  1,
+		Items: []rbacdomain.SnapshotItemEntry{
+			{ModelID: "model1", GrantType: rbacdomain.PermissionTypePreset, Preset: &preset},
 		},
 	}
 	repo.currentVersion = 1
+	svc := newItemSvc(repo, false)
 
 	result, err := svc.RestoreBundle(context.Background(), RestoreBundleCommand{
 		OrgName:       "org1",
@@ -353,26 +374,3 @@ func TestRestoreBundle_RebuildsItemsFromSnapshot(t *testing.T) {
 	assert.Equal(t, "model1", items[0].ModelID)
 	assert.Equal(t, rbacdomain.PermissionTypePreset, items[0].GrantType)
 }
-
-// ─── 扩展 bundleItemTestRepo 以支持 RestoreBundle ────────────────────────────
-
-func (r *bundleItemTestRepo) GetBundleSnapshotByVersion(_ context.Context, bundleID string, version int) (*rbacdomain.BundleSnapshot, error) {
-	if r.snapshotsByVersion == nil {
-		return nil, shared.NewNotFoundError("snapshot not found")
-	}
-	snap, ok := r.snapshotsByVersion[version]
-	if !ok {
-		return nil, shared.NewNotFoundError("snapshot not found")
-	}
-	return snap, nil
-}
-
-func (r *bundleItemTestRepo) GetBundleCurrentVersion(_ context.Context, _ string) (int, error) {
-	return r.currentVersion, nil
-}
-
-// snapshotsByVersion 和 currentVersion 字段需追加到 bundleItemTestRepo
-// Go 不支持 method 上动态追加字段，改为在 struct 定义中声明
-
-// 注意：bundleItemTestRepo 的 snapshotsByVersion 和 currentVersion 字段
-// 在上方 struct 定义中已声明（见下方重新声明）

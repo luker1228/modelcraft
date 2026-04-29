@@ -54,15 +54,17 @@ const deleteEndUserBundle = `-- name: DeleteEndUserBundle :execresult
 DELETE FROM end_user_permission_bundles
 WHERE id = ?
   AND org_name = ?
+  AND project_slug = ?
 `
 
 type DeleteEndUserBundleParams struct {
-	ID      string
-	OrgName string
+	ID          string
+	OrgName     string
+	ProjectSlug string
 }
 
 func (q *Queries) DeleteEndUserBundle(ctx context.Context, arg DeleteEndUserBundleParams) (sql.Result, error) {
-	return q.db.ExecContext(ctx, deleteEndUserBundle, arg.ID, arg.OrgName)
+	return q.db.ExecContext(ctx, deleteEndUserBundle, arg.ID, arg.OrgName, arg.ProjectSlug)
 }
 
 const getBundleDataPermissionItemByBundleAndModel = `-- name: GetBundleDataPermissionItemByBundleAndModel :one
@@ -99,15 +101,17 @@ SELECT id, org_name, project_slug, name, description, created_at, updated_at
 FROM end_user_permission_bundles
 WHERE id = ?
   AND org_name = ?
+  AND project_slug = ?
 `
 
 type GetEndUserBundleByIDParams struct {
-	ID      string
-	OrgName string
+	ID          string
+	OrgName     string
+	ProjectSlug string
 }
 
 func (q *Queries) GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundleByIDParams) (EndUserPermissionBundle, error) {
-	row := q.db.QueryRowContext(ctx, getEndUserBundleByID, arg.ID, arg.OrgName)
+	row := q.db.QueryRowContext(ctx, getEndUserBundleByID, arg.ID, arg.OrgName, arg.ProjectSlug)
 	var i EndUserPermissionBundle
 	err := row.Scan(
 		&i.ID,
@@ -227,6 +231,7 @@ SET name = ?,
     updated_at = NOW(3)
 WHERE id = ?
   AND org_name = ?
+  AND project_slug = ?
 `
 
 type UpdateEndUserBundleParams struct {
@@ -234,6 +239,7 @@ type UpdateEndUserBundleParams struct {
 	Description sql.NullString
 	ID          string
 	OrgName     string
+	ProjectSlug string
 }
 
 func (q *Queries) UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBundleParams) (sql.Result, error) {
@@ -242,6 +248,7 @@ func (q *Queries) UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBund
 		arg.Description,
 		arg.ID,
 		arg.OrgName,
+		arg.ProjectSlug,
 	)
 }
 

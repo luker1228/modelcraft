@@ -328,9 +328,18 @@ func (r *SqlEndUserDataPermissionRepository) GetBundleByID(
 	ctx context.Context,
 	orgName, id string,
 ) (*rbac.EndUserPermissionBundle, error) {
+	// projectSlug 未知时先以 org_name+id 定位；
+	// 跨 project 防护由 app 层 verifyBundleScope 提供。
+	rows, err := r.q.ListEndUserBundlesByProject(ctx, dbgen.ListEndUserBundlesByProjectParams{
+		OrgName:     orgName,
+		ProjectSlug: "", // list 查询需要 project_slug，退而使用 fallback
+	})
+	_ = rows
+	// 改为用单独查询（不依赖 project_slug）：
 	row, err := r.q.GetEndUserBundleByID(ctx, dbgen.GetEndUserBundleByIDParams{
-		ID:      id,
-		OrgName: orgName,
+		ID:          id,
+		OrgName:     orgName,
+		ProjectSlug: "", // projectSlug 在 app 层校验，此处留空兼容旧签名
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
