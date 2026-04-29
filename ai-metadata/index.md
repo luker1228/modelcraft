@@ -88,7 +88,8 @@ ai-metadata/
     │   ├── 01-permission-model.md        # 权限点、权限包、授权对象
     │   ├── 02-implicit-roles.md          # 内置隐式角色
     │   ├── 03-auth-flow.md               # 鉴权流程与判定规则
-    │   └── 04-department-scope.md        # 部门与数据范围
+    │   ├── 04-department-scope.md        # 部门与数据范围
+    │   └── 05-bundle-versioning.md       # 权限包版本快照（只读快照、最多5版本、回滚）
     ├── enduser-v2/                       # ⭐ EndUser 身份系统 v2（Org 级账号）
     │   ├── 10-redesign-overview.md       # 总览：问题、目标、核心设计决策
     │   ├── 11-domain-model-changes.md    # 领域模型变更（实体/关系图）
@@ -253,6 +254,7 @@ ai-metadata/
 | [prd/rbac/02-implicit-roles.md](./prd/rbac/02-implicit-roles.md) | 内置隐式角色：落库定义、关系隐式、运行时自动注入 |
 | [prd/rbac/03-auth-flow.md](./prd/rbac/03-auth-flow.md) | 鉴权流程：三通道权限来源合并 → 展开 → 判定 |
 | [prd/rbac/04-department-scope.md](./prd/rbac/04-department-scope.md) | 部门职责定位：数据范围计算上下文，非授权载体 |
+| [prd/rbac/05-bundle-versioning.md](./prd/rbac/05-bundle-versioning.md) | 权限包版本快照：只读快照、最多 5 个版本、回滚机制、DB Schema、GraphQL API、前端 UI、BDD 场景 |
 
 ### EndUser 身份系统 v2（Org 级账号）
 
