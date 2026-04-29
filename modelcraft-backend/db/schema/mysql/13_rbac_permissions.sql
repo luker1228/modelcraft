@@ -121,10 +121,9 @@ CREATE TABLE `end_user_bundle_data_permission_items` (
   CONSTRAINT `fk_bundle_items_model`
     FOREIGN KEY (`model_id`) REFERENCES `models` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
-  -- FK → custom permission（RESTRICT 防止悬挂引用）
+  -- FK → custom permission（RESTRICT 防止悬挂引用；默认行为，不写显式 action 以兼容 MySQL 8.0 CHECK 约束限制）
   CONSTRAINT `fk_bundle_items_custom_permission`
-    FOREIGN KEY (`custom_permission_id`) REFERENCES `end_user_data_permissions` (`id`)
-    ON DELETE RESTRICT ON UPDATE CASCADE,
+    FOREIGN KEY (`custom_permission_id`) REFERENCES `end_user_data_permissions` (`id`),
   -- CHECK: PRESET item 必须有 preset，不能有 custom_permission_id
   CONSTRAINT `chk_bundle_items_preset`
     CHECK (grant_type != 'PRESET' OR (preset IS NOT NULL AND custom_permission_id IS NULL)),
