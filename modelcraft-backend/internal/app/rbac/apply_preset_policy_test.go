@@ -624,7 +624,13 @@ func TestAddPresetToBundle(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.Equal(t, 0, repo.createPermissionCalls)
-		assert.Equal(t, []string{"perm-read-all"}, repo.bundlePerm[bundleID])
+		require.Len(t, repo.bundleItems[bundleID], 1)
+		item := repo.bundleItems[bundleID][0]
+		assert.Equal(t, modelID, item.ModelID)
+		assert.Equal(t, rbacdomain.PermissionTypePreset, item.GrantType)
+		require.NotNil(t, item.Preset)
+		assert.Equal(t, rbacdomain.PresetReadAll, *item.Preset)
+		assert.Nil(t, item.CustomPermissionID)
 	})
 
 	t.Run("不存在预设时自动创建并绑定", func(t *testing.T) {
@@ -643,12 +649,14 @@ func TestAddPresetToBundle(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		require.Equal(t, 1, repo.createPermissionCalls)
-		require.Len(t, repo.bundlePerm[bundleID], 1)
-		created := repo.findPermissionByID(repo.bundlePerm[bundleID][0])
-		require.NotNil(t, created)
-		require.NotNil(t, created.Preset)
-		assert.Equal(t, rbacdomain.PresetReadWriteAll, *created.Preset)
+		require.Equal(t, 0, repo.createPermissionCalls)
+		require.Len(t, repo.bundleItems[bundleID], 1)
+		item := repo.bundleItems[bundleID][0]
+		assert.Equal(t, modelID, item.ModelID)
+		assert.Equal(t, rbacdomain.PermissionTypePreset, item.GrantType)
+		require.NotNil(t, item.Preset)
+		assert.Equal(t, rbacdomain.PresetReadWriteAll, *item.Preset)
+		assert.Nil(t, item.CustomPermissionID)
 	})
 
 	t.Run("OWNER 预设缺少 owner 字段时返回结构化错误", func(t *testing.T) {
@@ -669,7 +677,56 @@ func TestAddPresetToBundle(t *testing.T) {
 		var bizErr *bizerrors.BusinessError
 		require.True(t, bizerrors.As(err, &bizErr))
 		assert.Equal(t, bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizErr.Info().GetCode())
-		assert.Empty(t, repo.bundlePerm[bundleID])
+		assert.Empty(t, repo.bundleItems[bundleID])
 		assert.Equal(t, 0, repo.createPermissionCalls)
+	})
+}
+
+func TestDeletePermission_ReferencedByBundle(t *testing.T) {
+	orgName := "org-a"
+	modelID := "model-a"
+
+	t.Run("被 bundle 引用时返回 EndUserPermissionInUse 错误", func(t *testing.T) {
+		perm := makeCustomPermission(orgName, "proj-a", modelID, "custom-1")
+		repo := newMockPermissionRepo([]*rbacdomain.EndUserPermission{perm})
+		repo.refs[perm.ID] = true
+
+		svc := &EndUserPermissionAppService{
+			rbacRepo:  repo,
+			modelRepo: &mockModelRepo{model: makeModelWithOwner(false)},
+		}
+
+		err := svc.DeletePermission(context.Background(), DeletePermissionCommand{
+			OrgName: orgName,
+			ID:      perm.ID,
+		})
+		require.Error(t, err)
+		var bizErr *bizerrors.BusinessError
+		require.True(t, bizerrors.As(err, &bizErr))
+		assert.Equal(t, bizerrors.EndUserPermissionInUse.GetCode(), bizErr.Info().GetCode())
+
+		// 确认 permission 未被删除
+		remaining, _ := repo.ListPermissionsByModel(context.Background(), orgName, modelID)
+		assert.Len(t, remaining, 1)
+	})
+
+	t.Run("未被引用时正常删除", func(t *testing.T) {
+		perm := makeCustomPermission(orgName, "proj-a", modelID, "custom-2")
+		repo := newMockPermissionRepo([]*rbacdomain.EndUserPermission{perm})
+		// refs 默认 false
+
+		svc := &EndUserPermissionAppService{
+			rbacRepo:  repo,
+			modelRepo: &mockModelRepo{model: makeModelWithOwner(false)},
+		}
+
+		err := svc.DeletePermission(context.Background(), DeletePermissionCommand{
+			OrgName: orgName,
+			ID:      perm.ID,
+		})
+		require.NoError(t, err)
+
+		remaining, _ := repo.ListPermissionsByModel(context.Background(), orgName, modelID)
+		assert.Empty(t, remaining)
 	})
 }

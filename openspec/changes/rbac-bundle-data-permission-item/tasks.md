@@ -9,7 +9,7 @@
 - [ ] 2.1 Refactor RBAC domain models/repositories to separate preset template definition, custom permission entity, and bundle data permission item
 - [ ] 2.2 Remove preset-as-permission persistence flow and implement bundle item bind/replace flows for preset and custom paths
 - [ ] 2.3 Update authz aggregation to resolve effective policies from bundle items, expanding preset items at runtime and loading custom permission entities by reference
-- [ ] 2.4 Add deletion/update guards so referenced custom permissions cannot be removed in a way that leaves dangling bundle items
+- [x] 2.4 Add deletion/update guards so referenced custom permissions cannot be removed in a way that leaves dangling bundle items
 
 ## 3. GraphQL Contract Redesign
 

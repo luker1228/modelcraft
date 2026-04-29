@@ -124,11 +124,19 @@ func (s *EndUserPermissionAppService) UpdatePermission(
 	return existing, nil
 }
 
-// DeletePermission 删除权限点
+// DeletePermission 删除权限点（删除前校验是否被权限包引用）
 func (s *EndUserPermissionAppService) DeletePermission(
 	ctx context.Context,
 	cmd DeletePermissionCommand,
 ) error {
+	referenced, err := s.rbacRepo.IsPermissionReferencedByBundle(ctx, cmd.ID)
+	if err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if referenced {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionInUse, cmd.ID)
+	}
+
 	if err := s.rbacRepo.DeletePermission(ctx, cmd.OrgName, cmd.ID); err != nil {
 		if shared.IsNotFoundError(err) {
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionNotFound, cmd.ID)

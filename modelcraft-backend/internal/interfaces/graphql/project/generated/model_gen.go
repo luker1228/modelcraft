@@ -38,6 +38,14 @@ type AssignEndUserRoleError interface {
 	IsAssignEndUserRoleError()
 }
 
+type BindCustomItemToBundleError interface {
+	IsBindCustomItemToBundleError()
+}
+
+type BindPresetItemToBundleError interface {
+	IsBindPresetItemToBundleError()
+}
+
 type CreateEndUserError interface {
 	IsCreateEndUserError()
 }
@@ -154,6 +162,10 @@ type MoveModelToGroupError interface {
 type Node interface {
 	IsNode()
 	GetID() string
+}
+
+type RemoveDataPermissionItemFromBundleError interface {
+	IsRemoveDataPermissionItemFromBundleError()
 }
 
 type RemoveEndUserPermissionFromBundleError interface {
@@ -360,6 +372,30 @@ type AuthVariableInput struct {
 	Source string `json:"source"`
 	// 变量类型
 	Type AuthVariableType `json:"type"`
+}
+
+type BindCustomItemToBundleInput struct {
+	BundleID           string `json:"bundleId"`
+	ModelID            string `json:"modelId"`
+	CustomPermissionID string `json:"customPermissionId"`
+	SortOrder          *int32 `json:"sortOrder,omitempty"`
+}
+
+type BindCustomItemToBundlePayload struct {
+	Bundle *EndUserPermissionBundle    `json:"bundle,omitempty"`
+	Error  BindCustomItemToBundleError `json:"error,omitempty"`
+}
+
+type BindPresetItemToBundleInput struct {
+	BundleID  string                  `json:"bundleId"`
+	ModelID   string                  `json:"modelId"`
+	Preset    EndUserPermissionPreset `json:"preset"`
+	SortOrder *int32                  `json:"sortOrder,omitempty"`
+}
+
+type BindPresetItemToBundlePayload struct {
+	Bundle *EndUserPermissionBundle    `json:"bundle,omitempty"`
+	Error  BindPresetItemToBundleError `json:"error,omitempty"`
 }
 
 type CannotDeleteDeployedModel struct {
@@ -731,6 +767,25 @@ type EndUserBundleAssignment struct {
 	AssignedAt time.Time                `json:"assignedAt"`
 }
 
+// Bundle 内的数据权限配置项（item-centric）。
+// 同一 bundle 下同一 modelId 最多一个 item。
+type EndUserBundleDataPermissionItem struct {
+	ID       string `json:"id"`
+	BundleID string `json:"bundleId"`
+	ModelID  string `json:"modelId"`
+	// 来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）
+	GrantType DataPermissionGrantType `json:"grantType"`
+	// 当 grantType=PRESET 时非空
+	Preset *EndUserPermissionPreset `json:"preset,omitempty"`
+	// 当 grantType=CUSTOM 时非空
+	CustomPermissionID *string `json:"customPermissionId,omitempty"`
+	// 当 grantType=CUSTOM 时，引用的自定义权限点摘要
+	CustomPermission *EndUserPermission `json:"customPermission,omitempty"`
+	SortOrder        int32              `json:"sortOrder"`
+	CreatedAt        time.Time          `json:"createdAt"`
+	UpdatedAt        time.Time          `json:"updatedAt"`
+}
+
 type EndUserBundlePermissionEntry struct {
 	SortOrder  int32              `json:"sortOrder"`
 	Permission *EndUserPermission `json:"permission"`
@@ -824,9 +879,12 @@ func (EndUserPermission) IsNode()            {}
 func (this EndUserPermission) GetID() string { return this.ID }
 
 type EndUserPermissionBundle struct {
-	ID          string                          `json:"id"`
-	Name        string                          `json:"name"`
-	Description *string                         `json:"description,omitempty"`
+	ID          string  `json:"id"`
+	Name        string  `json:"name"`
+	Description *string `json:"description,omitempty"`
+	// Item-centric 数据权限列表：每个模型最多一个 item。
+	DataPermissionItems []*EndUserBundleDataPermissionItem `json:"dataPermissionItems"`
+	// 兼容旧字段（将逐步废弃），从 item 导出的 permission 视图。
 	Permissions []*EndUserBundlePermissionEntry `json:"permissions"`
 	// 当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
 	CurrentVersion int32 `json:"currentVersion"`
@@ -893,6 +951,12 @@ func (EndUserPermissionBundleNotFound) IsAddEndUserPresetToBundleError() {}
 
 func (EndUserPermissionBundleNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
+func (EndUserPermissionBundleNotFound) IsBindPresetItemToBundleError() {}
+
+func (EndUserPermissionBundleNotFound) IsBindCustomItemToBundleError() {}
+
+func (EndUserPermissionBundleNotFound) IsRemoveDataPermissionItemFromBundleError() {}
+
 func (EndUserPermissionBundleNotFound) IsRestoreEndUserPermissionBundleError() {}
 
 func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserRoleError() {}
@@ -909,8 +973,11 @@ type EndUserPermissionBundleSnapshot struct {
 	CreatedAt time.Time `json:"createdAt"`
 	CreatedBy *string   `json:"createdBy,omitempty"`
 	// 若为回滚操作，指向来源版本号
-	RestoredFrom *int32                            `json:"restoredFrom,omitempty"`
-	Permissions  []*EndUserPermissionSnapshotEntry `json:"permissions"`
+	RestoredFrom *int32 `json:"restoredFrom,omitempty"`
+	// Item-centric 快照条目列表
+	Items []*EndUserPermissionSnapshotItemEntry `json:"items"`
+	// 兼容旧字段
+	Permissions []*EndUserPermissionSnapshotEntry `json:"permissions"`
 }
 
 type EndUserPermissionBundleSnapshotNotFound struct {
@@ -958,12 +1025,23 @@ func (EndUserPermissionNotFound) IsAddEndUserPermissionToBundleError() {}
 
 func (EndUserPermissionNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
-// 快照中的权限点条目。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
+func (EndUserPermissionNotFound) IsBindCustomItemToBundleError() {}
+
+// 快照中的权限点条目（兼容旧格式）。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
 type EndUserPermissionSnapshotEntry struct {
 	SortOrder int32 `json:"sortOrder"`
 	// 已删除时为 null
 	Permission   *EndUserPermission `json:"permission,omitempty"`
 	PermissionID string             `json:"permissionId"`
+}
+
+// 快照中的数据权限 item 条目（item-centric）。
+type EndUserPermissionSnapshotItemEntry struct {
+	ModelID            string                   `json:"modelId"`
+	GrantType          DataPermissionGrantType  `json:"grantType"`
+	Preset             *EndUserPermissionPreset `json:"preset,omitempty"`
+	CustomPermissionID *string                  `json:"customPermissionId,omitempty"`
+	SortOrder          int32                    `json:"sortOrder"`
 }
 
 type EndUserProjectAccess struct {
@@ -1382,6 +1460,10 @@ func (InvalidInput) IsAddEndUserPermissionToBundleError() {}
 
 func (InvalidInput) IsAddEndUserPresetToBundleError() {}
 
+func (InvalidInput) IsBindPresetItemToBundleError() {}
+
+func (InvalidInput) IsBindCustomItemToBundleError() {}
+
 func (InvalidInput) IsCreateEndUserRoleError() {}
 
 func (InvalidInput) IsUpdateEndUserRoleError() {}
@@ -1573,6 +1655,12 @@ func (ModelNotFound) IsApplyEndUserPresetPolicyError() {}
 
 func (ModelNotFound) IsAddEndUserPresetToBundleError() {}
 
+func (ModelNotFound) IsBindPresetItemToBundleError() {}
+
+func (ModelNotFound) IsBindCustomItemToBundleError() {}
+
+func (ModelNotFound) IsRemoveDataPermissionItemFromBundleError() {}
+
 func (ModelNotFound) IsGetEffectivePermissionsError() {}
 
 func (ModelNotFound) IsSetModelRLSPolicyError() {}
@@ -1662,6 +1750,8 @@ func (PresetRequiresOwnerField) IsApplyEndUserPresetPolicyError() {}
 
 func (PresetRequiresOwnerField) IsAddEndUserPresetToBundleError() {}
 
+func (PresetRequiresOwnerField) IsBindPresetItemToBundleError() {}
+
 type ProjectAuthSchema struct {
 	// 认证变量列表（不含内置 uid）
 	Variables []*AuthVariable `json:"variables"`
@@ -1738,6 +1828,12 @@ func (ProjectNotFound) IsAddEndUserPresetToBundleError() {}
 
 func (ProjectNotFound) IsRemoveEndUserPermissionFromBundleError() {}
 
+func (ProjectNotFound) IsBindPresetItemToBundleError() {}
+
+func (ProjectNotFound) IsBindCustomItemToBundleError() {}
+
+func (ProjectNotFound) IsRemoveDataPermissionItemFromBundleError() {}
+
 func (ProjectNotFound) IsRestoreEndUserPermissionBundleError() {}
 
 func (ProjectNotFound) IsCreateEndUserRoleError() {}
@@ -1776,6 +1872,16 @@ type RLSCheckViolation struct {
 
 func (RLSCheckViolation) IsError()                {}
 func (this RLSCheckViolation) GetMessage() string { return this.Message }
+
+type RemoveDataPermissionItemFromBundleInput struct {
+	BundleID string `json:"bundleId"`
+	ModelID  string `json:"modelId"`
+}
+
+type RemoveDataPermissionItemFromBundlePayload struct {
+	Bundle *EndUserPermissionBundle                `json:"bundle,omitempty"`
+	Error  RemoveDataPermissionItemFromBundleError `json:"error,omitempty"`
+}
 
 type RemoveEndUserPermissionFromBundleInput struct {
 	BundleID     string `json:"bundleId"`
@@ -2352,6 +2458,62 @@ func (e *ColumnAccessMode) UnmarshalJSON(b []byte) error {
 }
 
 func (e ColumnAccessMode) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+// 数据权限 item 来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）
+type DataPermissionGrantType string
+
+const (
+	DataPermissionGrantTypePreset DataPermissionGrantType = "PRESET"
+	DataPermissionGrantTypeCustom DataPermissionGrantType = "CUSTOM"
+)
+
+var AllDataPermissionGrantType = []DataPermissionGrantType{
+	DataPermissionGrantTypePreset,
+	DataPermissionGrantTypeCustom,
+}
+
+func (e DataPermissionGrantType) IsValid() bool {
+	switch e {
+	case DataPermissionGrantTypePreset, DataPermissionGrantTypeCustom:
+		return true
+	}
+	return false
+}
+
+func (e DataPermissionGrantType) String() string {
+	return string(e)
+}
+
+func (e *DataPermissionGrantType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DataPermissionGrantType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DataPermissionGrantType", str)
+	}
+	return nil
+}
+
+func (e DataPermissionGrantType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *DataPermissionGrantType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e DataPermissionGrantType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

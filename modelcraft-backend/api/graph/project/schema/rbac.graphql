@@ -67,6 +67,14 @@ enum EndUserPermissionPreset {
 }
 
 """
+数据权限 item 来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）
+"""
+enum DataPermissionGrantType {
+  PRESET
+  CUSTOM
+}
+
+"""
 列访问模式
 """
 enum ColumnAccessMode {
@@ -150,6 +158,13 @@ type EndUserPermissionBundle implements Node {
   id: ID!
   name: String!
   description: String
+  """
+  Item-centric 数据权限列表：每个模型最多一个 item。
+  """
+  dataPermissionItems: [EndUserBundleDataPermissionItem!]!
+  """
+  兼容旧字段（将逐步废弃），从 item 导出的 permission 视图。
+  """
   permissions: [EndUserBundlePermissionEntry!]!
   """
   当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
@@ -159,6 +174,27 @@ type EndUserPermissionBundle implements Node {
   最近历史快照列表（最多 5 个，按 version DESC 排列）
   """
   snapshots: [EndUserPermissionBundleSnapshot!]!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+"""
+Bundle 内的数据权限配置项（item-centric）。
+同一 bundle 下同一 modelId 最多一个 item。
+"""
+type EndUserBundleDataPermissionItem {
+  id: ID!
+  bundleId: ID!
+  modelId: ID!
+  """来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）"""
+  grantType: DataPermissionGrantType!
+  """当 grantType=PRESET 时非空"""
+  preset: EndUserPermissionPreset
+  """当 grantType=CUSTOM 时非空"""
+  customPermissionId: ID
+  """当 grantType=CUSTOM 时，引用的自定义权限点摘要"""
+  customPermission: EndUserPermission
+  sortOrder: Int!
   createdAt: Time!
   updatedAt: Time!
 }
@@ -177,11 +213,25 @@ type EndUserPermissionBundleSnapshot {
   createdBy:    String
   """若为回滚操作，指向来源版本号"""
   restoredFrom: Int
+  """Item-centric 快照条目列表"""
+  items: [EndUserPermissionSnapshotItemEntry!]!
+  """兼容旧字段"""
   permissions:  [EndUserPermissionSnapshotEntry!]!
 }
 
 """
-快照中的权限点条目。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
+快照中的数据权限 item 条目（item-centric）。
+"""
+type EndUserPermissionSnapshotItemEntry {
+  modelId: ID!
+  grantType: DataPermissionGrantType!
+  preset: EndUserPermissionPreset
+  customPermissionId: ID
+  sortOrder: Int!
+}
+
+"""
+快照中的权限点条目（兼容旧格式）。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
 """
 type EndUserPermissionSnapshotEntry {
   sortOrder:    Int!
@@ -383,6 +433,10 @@ union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndU
 union AddEndUserPresetToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
 union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
 
+union BindPresetItemToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
+union BindCustomItemToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ModelNotFound | InvalidInput | ProjectNotFound
+union RemoveDataPermissionItemFromBundleError = EndUserPermissionBundleNotFound | ModelNotFound | ProjectNotFound
+
 union RestoreEndUserPermissionBundleError =
     EndUserPermissionBundleNotFound
   | EndUserPermissionBundleSnapshotNotFound
@@ -453,6 +507,21 @@ type AddEndUserPresetToBundlePayload {
 type RemoveEndUserPermissionFromBundlePayload {
   bundle: EndUserPermissionBundle
   error: RemoveEndUserPermissionFromBundleError
+}
+
+type BindPresetItemToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: BindPresetItemToBundleError
+}
+
+type BindCustomItemToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: BindCustomItemToBundleError
+}
+
+type RemoveDataPermissionItemFromBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: RemoveDataPermissionItemFromBundleError
 }
 
 type RestoreEndUserPermissionBundlePayload {
@@ -581,6 +650,25 @@ input RemoveEndUserPermissionFromBundleInput {
   permissionId: ID!
 }
 
+input BindPresetItemToBundleInput {
+  bundleId: ID!
+  modelId: ID!
+  preset: EndUserPermissionPreset!
+  sortOrder: Int
+}
+
+input BindCustomItemToBundleInput {
+  bundleId: ID!
+  modelId: ID!
+  customPermissionId: ID!
+  sortOrder: Int
+}
+
+input RemoveDataPermissionItemFromBundleInput {
+  bundleId: ID!
+  modelId: ID!
+}
+
 input RestoreEndUserPermissionBundleInput {
   bundleId:      ID!
   targetVersion: Int!
@@ -653,6 +741,10 @@ extend type Query {
   endUserBundleAssignments(endUserId: ID!): [EndUserBundleAssignment!]! @hasPermission(action: "rbac:read")
   endUserRoleAssignments(endUserId: ID!): [EndUserRoleAssignment!]! @hasPermission(action: "rbac:read")
   effectivePermissions(input: GetEffectivePermissionsInput!): GetEffectivePermissionsPayload! @hasPermission(action: "rbac:read")
+  """
+  列出指定模型可用的预设模板列表（不落库，按模型是否有 owner 字段动态计算）
+  """
+  virtualPresetsByModel(modelId: ID!): [EndUserPermissionPreset!]! @hasPermission(action: "rbac:read")
 }
 
 
@@ -678,6 +770,20 @@ extend type Mutation {
   addEndUserPermissionToBundle(input: AddEndUserPermissionToBundleInput!): AddEndUserPermissionToBundlePayload! @hasPermission(action: "rbac:manage")
   addEndUserPresetToBundle(input: AddEndUserPresetToBundleInput!): AddEndUserPresetToBundlePayload! @hasPermission(action: "rbac:manage")
   removeEndUserPermissionFromBundle(input: RemoveEndUserPermissionFromBundleInput!): RemoveEndUserPermissionFromBundlePayload! @hasPermission(action: "rbac:manage")
+
+  # Data Permission Item (item-centric)
+  """
+  绑定预设模板 item 到 bundle（replace 语义：同模型只保留一个 item）
+  """
+  bindPresetItemToBundle(input: BindPresetItemToBundleInput!): BindPresetItemToBundlePayload! @hasPermission(action: "rbac:manage")
+  """
+  绑定自定义权限 item 到 bundle（replace 语义：同模型只保留一个 item）
+  """
+  bindCustomItemToBundle(input: BindCustomItemToBundleInput!): BindCustomItemToBundlePayload! @hasPermission(action: "rbac:manage")
+  """
+  从 bundle 中移除指定模型的 data permission item
+  """
+  removeDataPermissionItemFromBundle(input: RemoveDataPermissionItemFromBundleInput!): RemoveDataPermissionItemFromBundlePayload! @hasPermission(action: "rbac:manage")
 
   # Bundle Snapshot
   """

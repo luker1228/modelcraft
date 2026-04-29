@@ -6,6 +6,7 @@ package projectgraphql
 
 import (
 	"context"
+	"fmt"
 	apprbac "modelcraft/internal/app/rbac"
 	domainproject "modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
@@ -285,6 +286,21 @@ func (r *mutationResolver) RemoveEndUserPermissionFromBundle(ctx context.Context
 	return &generated.RemoveEndUserPermissionFromBundlePayload{
 		Bundle: adapter.ToEndUserPermissionBundleDTO(bundle),
 	}, nil
+}
+
+// BindPresetItemToBundle is the resolver for the bindPresetItemToBundle field.
+func (r *mutationResolver) BindPresetItemToBundle(ctx context.Context, input generated.BindPresetItemToBundleInput) (*generated.BindPresetItemToBundlePayload, error) {
+	panic(fmt.Errorf("not implemented: BindPresetItemToBundle - bindPresetItemToBundle"))
+}
+
+// BindCustomItemToBundle is the resolver for the bindCustomItemToBundle field.
+func (r *mutationResolver) BindCustomItemToBundle(ctx context.Context, input generated.BindCustomItemToBundleInput) (*generated.BindCustomItemToBundlePayload, error) {
+	panic(fmt.Errorf("not implemented: BindCustomItemToBundle - bindCustomItemToBundle"))
+}
+
+// RemoveDataPermissionItemFromBundle is the resolver for the removeDataPermissionItemFromBundle field.
+func (r *mutationResolver) RemoveDataPermissionItemFromBundle(ctx context.Context, input generated.RemoveDataPermissionItemFromBundleInput) (*generated.RemoveDataPermissionItemFromBundlePayload, error) {
+	panic(fmt.Errorf("not implemented: RemoveDataPermissionItemFromBundle - removeDataPermissionItemFromBundle"))
 }
 
 // RestoreEndUserPermissionBundle is the resolver for the restoreEndUserPermissionBundle field.
@@ -691,4 +707,9 @@ func (r *queryResolver) EffectivePermissions(ctx context.Context, input generate
 			},
 		},
 	}, nil
+}
+
+// VirtualPresetsByModel is the resolver for the virtualPresetsByModel field.
+func (r *queryResolver) VirtualPresetsByModel(ctx context.Context, modelID string) ([]generated.EndUserPermissionPreset, error) {
+	panic(fmt.Errorf("not implemented: VirtualPresetsByModel - virtualPresetsByModel"))
 }

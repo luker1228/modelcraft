@@ -89,6 +89,16 @@ func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *genera
 		})
 	}
 
+	// Item-centric data permission items
+	itemDTOs := make(
+		[]*generated.EndUserBundleDataPermissionItem,
+		0,
+		len(b.Items),
+	)
+	for _, item := range b.Items {
+		itemDTOs = append(itemDTOs, ToDataPermissionItemDTO(item))
+	}
+
 	// 计算 currentVersion（最新快照的版本号，无快照时为 0）
 	var currentVersion int32
 	if len(b.Snapshots) > 0 {
@@ -102,15 +112,42 @@ func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *genera
 	}
 
 	return &generated.EndUserPermissionBundle{
-		ID:             b.ID,
-		Name:           b.Name,
-		Description:    b.Description,
-		Permissions:    entries,
-		CurrentVersion: currentVersion,
-		Snapshots:      snapshots,
-		CreatedAt:      time.Now(),
-		UpdatedAt:      time.Now(),
+		ID:                  b.ID,
+		Name:                b.Name,
+		Description:         b.Description,
+		DataPermissionItems: itemDTOs,
+		Permissions:         entries,
+		CurrentVersion:      currentVersion,
+		Snapshots:           snapshots,
+		CreatedAt:           time.Now(),
+		UpdatedAt:           time.Now(),
 	}
+}
+
+// ToDataPermissionItemDTO converts domain item to GraphQL DTO.
+func ToDataPermissionItemDTO(
+	item *rbacdomain.EndUserBundleDataPermissionItem,
+) *generated.EndUserBundleDataPermissionItem {
+	if item == nil {
+		return nil
+	}
+	dto := &generated.EndUserBundleDataPermissionItem{
+		ID:        item.ID,
+		BundleID:  item.BundleID,
+		ModelID:   item.ModelID,
+		GrantType: generated.DataPermissionGrantType(item.GrantType),
+		SortOrder: int32(item.SortOrder),
+		CreatedAt: item.CreatedAt,
+		UpdatedAt: item.UpdatedAt,
+	}
+	if item.Preset != nil {
+		v := generated.EndUserPermissionPreset(*item.Preset)
+		dto.Preset = &v
+	}
+	if item.CustomPermissionID != nil {
+		dto.CustomPermissionID = item.CustomPermissionID
+	}
+	return dto
 }
 
 // toBundleSnapshotDTO converts a domain BundleSnapshot to its GraphQL DTO.
@@ -126,9 +163,30 @@ func toBundleSnapshotDTO(s *rbacdomain.BundleSnapshot) *generated.EndUserPermiss
 		permEntries = append(permEntries, &generated.EndUserPermissionSnapshotEntry{
 			SortOrder:    int32(p.SortOrder),
 			PermissionID: p.PermissionID,
-			Permission:   nil, // 延迟加载：已删除的权限点返回 null，现有权限点由前端通过 permissionId 查询
+			Permission:   nil,
 		})
 	}
+
+	// Item-centric snapshot entries
+	itemEntries := make(
+		[]*generated.EndUserPermissionSnapshotItemEntry,
+		0,
+		len(s.Items),
+	)
+	for _, item := range s.Items {
+		entry := &generated.EndUserPermissionSnapshotItemEntry{
+			ModelID:   item.ModelID,
+			GrantType: generated.DataPermissionGrantType(item.GrantType),
+			SortOrder: int32(item.SortOrder),
+		}
+		if item.Preset != nil {
+			v := generated.EndUserPermissionPreset(*item.Preset)
+			entry.Preset = &v
+		}
+		entry.CustomPermissionID = item.CustomPermissionID
+		itemEntries = append(itemEntries, entry)
+	}
+
 	var restoredFrom *int32
 	if s.RestoredFrom != nil {
 		v := int32(*s.RestoredFrom)
@@ -139,6 +197,7 @@ func toBundleSnapshotDTO(s *rbacdomain.BundleSnapshot) *generated.EndUserPermiss
 		CreatedAt:    s.CreatedAt,
 		CreatedBy:    s.CreatedBy,
 		RestoredFrom: restoredFrom,
+		Items:        itemEntries,
 		Permissions:  permEntries,
 	}
 }
