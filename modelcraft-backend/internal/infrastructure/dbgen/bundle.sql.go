@@ -129,6 +129,36 @@ func (q *Queries) GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundle
 	return i, err
 }
 
+const getEndUserBundleBySlug = `-- name: GetEndUserBundleBySlug :one
+SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at
+FROM end_user_permission_bundles
+WHERE slug = ?
+  AND org_name = ?
+  AND project_slug = ?
+`
+
+type GetEndUserBundleBySlugParams struct {
+	Slug        string
+	OrgName     string
+	ProjectSlug string
+}
+
+func (q *Queries) GetEndUserBundleBySlug(ctx context.Context, arg GetEndUserBundleBySlugParams) (EndUserPermissionBundle, error) {
+	row := q.db.QueryRowContext(ctx, getEndUserBundleBySlug, arg.Slug, arg.OrgName, arg.ProjectSlug)
+	var i EndUserPermissionBundle
+	err := row.Scan(
+		&i.ID,
+		&i.Slug,
+		&i.OrgName,
+		&i.ProjectSlug,
+		&i.Name,
+		&i.Description,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listBundleDataPermissionItems = `-- name: ListBundleDataPermissionItems :many
 SELECT id, bundle_id, model_id, grant_type, preset, custom_permission_id, sort_order, created_at, updated_at
 FROM end_user_bundle_data_permission_items

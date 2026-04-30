@@ -14,6 +14,7 @@ import (
 type bundleRepository interface {
 	CreateBundle(ctx context.Context, b *rbacdomain.EndUserPermissionBundle) error
 	GetBundleByID(ctx context.Context, orgName, projectSlug, id string) (*rbacdomain.EndUserPermissionBundle, error)
+	GetBundleBySlug(ctx context.Context, orgName, projectSlug, slug string) (*rbacdomain.EndUserPermissionBundle, error)
 	ListBundlesByProject(
 		ctx context.Context,
 		orgName, projectSlug string,
@@ -183,6 +184,70 @@ func (s *EndUserBundleAppService) GetBundleByID(
 	bundle.Permissions = legacyPermissions
 
 	snapshots, err := s.rbacRepo.ListBundleSnapshots(ctx, id)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	bundle.Snapshots = snapshots
+	return bundle, nil
+}
+
+// GetBundleBySlug 根据 slug 获取权限包（含 item 列表与快照）
+func (s *EndUserBundleAppService) GetBundleBySlug(
+	ctx context.Context,
+	orgName, projectSlug, slug string,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	bundle, err := s.rbacRepo.GetBundleBySlug(ctx, orgName, projectSlug, slug)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, slug)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	items, err := s.rbacRepo.ListBundleDataPermissionItems(ctx, bundle.ID)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	bundle.Items = items
+
+	// 兼容旧 DTO 字段 permissions
+	legacyPermissions := make([]*rbacdomain.EndUserPermission, 0, len(items))
+	for _, item := range items {
+		switch item.GrantType {
+		case rbacdomain.PermissionTypeCustom:
+			if item.CustomPermissionID == nil || *item.CustomPermissionID == "" {
+				continue
+			}
+			p, getErr := s.rbacRepo.GetPermissionByID(ctx, orgName, *item.CustomPermissionID)
+			if getErr == nil {
+				legacyPermissions = append(legacyPermissions, p)
+			}
+		case rbacdomain.PermissionTypePreset:
+			if item.Preset == nil {
+				continue
+			}
+			ownerField, _ := s.tryGetOwnerField(ctx, item.ModelID)
+			rowPolicy, expandErr := expandPreset(*item.Preset, ownerField)
+			if expandErr != nil {
+				continue
+			}
+			presetCopy := *item.Preset
+			legacyPermissions = append(legacyPermissions, &rbacdomain.EndUserPermission{
+				ID:           fmt.Sprintf("preset:%s:%s:%s", bundle.ID, item.ModelID, presetCopy),
+				OrgName:      bundle.OrgName,
+				ProjectSlug:  bundle.ProjectSlug,
+				ModelID:      item.ModelID,
+				Name:         presetPermissionName(presetCopy),
+				Type:         rbacdomain.PermissionTypePreset,
+				Preset:       &presetCopy,
+				ColumnPolicy: nil,
+				RowPolicy:    rowPolicy,
+			})
+		}
+	}
+	bundle.Permissions = legacyPermissions
+
+	snapshots, err := s.rbacRepo.ListBundleSnapshots(ctx, bundle.ID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}

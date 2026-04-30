@@ -395,6 +395,13 @@ func (m *mockBundleRepo) ListBundlesByProject(
 	return nil, nil
 }
 
+func (m *mockBundleRepo) GetBundleBySlug(
+	_ context.Context,
+	_, _, _ string,
+) (*rbacdomain.EndUserPermissionBundle, error) {
+	return nil, nil
+}
+
 func (m *mockBundleRepo) UpdateBundle(_ context.Context, _ *rbacdomain.EndUserPermissionBundle) error {
 	return nil
 }

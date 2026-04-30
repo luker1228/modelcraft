@@ -93,6 +93,7 @@ type Querier interface {
 	GetDatabaseClusterByID(ctx context.Context, arg GetDatabaseClusterByIDParams) (DatabaseCluster, error)
 	GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDatabaseClusterByProjectKeyParams) (DatabaseCluster, error)
 	GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundleByIDParams) (EndUserPermissionBundle, error)
+	GetEndUserBundleBySlug(ctx context.Context, arg GetEndUserBundleBySlugParams) (EndUserPermissionBundle, error)
 	GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPermissionByIDParams) (EndUserDataPermission, error)
 	GetEndUserPermissionByModelAndName(ctx context.Context, arg GetEndUserPermissionByModelAndNameParams) (EndUserDataPermission, error)
 	GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByIDParams) (EndUserRole, error)

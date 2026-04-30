@@ -345,6 +345,25 @@ func (r *SqlEndUserDataPermissionRepository) GetBundleByID(
 	return toDomainBundle(row), nil
 }
 
+func (r *SqlEndUserDataPermissionRepository) GetBundleBySlug(
+	ctx context.Context,
+	orgName, projectSlug, slug string,
+) (*rbac.EndUserPermissionBundle, error) {
+	row, err := r.q.GetEndUserBundleBySlug(ctx, dbgen.GetEndUserBundleBySlugParams{
+		Slug:        slug,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+	})
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("end user bundle not found: " + slug)
+		}
+		return nil, err
+	}
+
+	return toDomainBundle(row), nil
+}
+
 func (r *SqlEndUserDataPermissionRepository) ListBundlesByProject(
 	ctx context.Context,
 	orgName, projectSlug string,

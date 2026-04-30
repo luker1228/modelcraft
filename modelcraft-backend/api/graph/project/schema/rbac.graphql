@@ -743,6 +743,7 @@ extend type Query {
   endUserPermission(id: ID!): EndUserPermission @hasPermission(action: "rbac:read")
   endUserPermissions(input: ListEndUserPermissionsInput): EndUserPermissionConnection! @hasPermission(action: "rbac:read")
   endUserPermissionBundle(id: ID!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
+  endUserPermissionBundleBySlug(slug: String!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
   endUserPermissionBundles(input: ListEndUserPermissionBundlesInput): EndUserPermissionBundleConnection! @hasPermission(action: "rbac:read")
   endUserRole(id: ID!): EndUserRole @hasPermission(action: "rbac:read")
   endUserRoles(input: ListEndUserRolesInput): EndUserRoleConnection! @hasPermission(action: "rbac:read")

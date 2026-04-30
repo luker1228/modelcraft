@@ -664,6 +664,20 @@ func (r *queryResolver) EndUserPermissionBundle(ctx context.Context, id string) 
 	return adapter.ToEndUserPermissionBundleDTO(bundle), nil
 }
 
+// EndUserPermissionBundleBySlug is the resolver for the endUserPermissionBundleBySlug field.
+func (r *queryResolver) EndUserPermissionBundleBySlug(ctx context.Context, slug string) (*generated.EndUserPermissionBundle, error) {
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	bundle, appErr := r.RBACBundleSvc.GetBundleBySlug(ctx, orgName, projectSlug, slug)
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		return nil, appErr
+	}
+	return adapter.ToEndUserPermissionBundleDTO(bundle), nil
+}
+
 // EndUserPermissionBundles is the resolver for the endUserPermissionBundles field.
 func (r *queryResolver) EndUserPermissionBundles(ctx context.Context, input *generated.ListEndUserPermissionBundlesInput) (*generated.EndUserPermissionBundleConnection, error) {
 	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)

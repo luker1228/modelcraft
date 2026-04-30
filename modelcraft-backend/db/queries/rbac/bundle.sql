@@ -16,6 +16,13 @@ WHERE id = ?
   AND org_name = ?
   AND project_slug = ?;
 
+-- name: GetEndUserBundleBySlug :one
+SELECT *
+FROM end_user_permission_bundles
+WHERE slug = ?
+  AND org_name = ?
+  AND project_slug = ?;
+
 -- name: ListEndUserBundlesByProject :many
 SELECT *
 FROM end_user_permission_bundles

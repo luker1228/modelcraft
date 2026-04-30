@@ -55,6 +55,9 @@ type EndUserPermissionRepository interface {
 	// GetBundleByID 根据 ID 获取权限包（org + project scoped）
 	GetBundleByID(ctx context.Context, orgName, projectSlug, id string) (*EndUserPermissionBundle, error)
 
+	// GetBundleBySlug 根据 slug 获取权限包（org + project scoped）
+	GetBundleBySlug(ctx context.Context, orgName, projectSlug, slug string) (*EndUserPermissionBundle, error)
+
 	// ListBundlesByProject 列出项目下所有权限包（org + project scoped）
 	ListBundlesByProject(ctx context.Context, orgName, projectSlug string) ([]*EndUserPermissionBundle, error)
 

@@ -921,37 +921,38 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		DatabaseCluster          func(childComplexity int) int
-		EffectivePermissions     func(childComplexity int, input GetEffectivePermissionsInput) int
-		EndUserBundleAssignments func(childComplexity int, endUserID string) int
-		EndUserPermission        func(childComplexity int, id string) int
-		EndUserPermissionBundle  func(childComplexity int, id string) int
-		EndUserPermissionBundles func(childComplexity int, input *ListEndUserPermissionBundlesInput) int
-		EndUserPermissions       func(childComplexity int, input *ListEndUserPermissionsInput) int
-		EndUserRole              func(childComplexity int, id string) int
-		EndUserRoleAssignments   func(childComplexity int, endUserID string) int
-		EndUserRoles             func(childComplexity int, input *ListEndUserRolesInput) int
-		Enum                     func(childComplexity int, name string) int
-		EnumReferences           func(childComplexity int, name string) int
-		Enums                    func(childComplexity int) int
-		Fields                   func(childComplexity int, modelID string) int
-		Hello                    func(childComplexity int) int
-		ListDatabases            func(childComplexity int, input ListDatabasesInput) int
-		ListProjectEndUserAccess func(childComplexity int, input *ListProjectEndUserAccessInput) int
-		ListProjectEndUsers      func(childComplexity int, input *ListProjectEndUsersInput) int
-		ListTables               func(childComplexity int, input ListTablesInput) int
-		LogicalForeignKeys       func(childComplexity int, modelID string) int
-		Model                    func(childComplexity int, id string, withActualSchema *bool) int
-		ModelByName              func(childComplexity int, name string, databaseName string) int
-		ModelDatabaseCatalog     func(childComplexity int, input *ModelDatabaseCatalogInput) int
-		ModelGroups              func(childComplexity int) int
-		ModelJSONSchema          func(childComplexity int, id string) int
-		ModelRLSPolicy           func(childComplexity int, modelID string) int
-		Models                   func(childComplexity int, input *ModelQueryInput) int
-		Node                     func(childComplexity int, id string) int
-		Ping                     func(childComplexity int) int
-		ProjectAuthSchema        func(childComplexity int) int
-		VirtualPresetsByModel    func(childComplexity int, modelID string) int
+		DatabaseCluster               func(childComplexity int) int
+		EffectivePermissions          func(childComplexity int, input GetEffectivePermissionsInput) int
+		EndUserBundleAssignments      func(childComplexity int, endUserID string) int
+		EndUserPermission             func(childComplexity int, id string) int
+		EndUserPermissionBundle       func(childComplexity int, id string) int
+		EndUserPermissionBundleBySlug func(childComplexity int, slug string) int
+		EndUserPermissionBundles      func(childComplexity int, input *ListEndUserPermissionBundlesInput) int
+		EndUserPermissions            func(childComplexity int, input *ListEndUserPermissionsInput) int
+		EndUserRole                   func(childComplexity int, id string) int
+		EndUserRoleAssignments        func(childComplexity int, endUserID string) int
+		EndUserRoles                  func(childComplexity int, input *ListEndUserRolesInput) int
+		Enum                          func(childComplexity int, name string) int
+		EnumReferences                func(childComplexity int, name string) int
+		Enums                         func(childComplexity int) int
+		Fields                        func(childComplexity int, modelID string) int
+		Hello                         func(childComplexity int) int
+		ListDatabases                 func(childComplexity int, input ListDatabasesInput) int
+		ListProjectEndUserAccess      func(childComplexity int, input *ListProjectEndUserAccessInput) int
+		ListProjectEndUsers           func(childComplexity int, input *ListProjectEndUsersInput) int
+		ListTables                    func(childComplexity int, input ListTablesInput) int
+		LogicalForeignKeys            func(childComplexity int, modelID string) int
+		Model                         func(childComplexity int, id string, withActualSchema *bool) int
+		ModelByName                   func(childComplexity int, name string, databaseName string) int
+		ModelDatabaseCatalog          func(childComplexity int, input *ModelDatabaseCatalogInput) int
+		ModelGroups                   func(childComplexity int) int
+		ModelJSONSchema               func(childComplexity int, id string) int
+		ModelRLSPolicy                func(childComplexity int, modelID string) int
+		Models                        func(childComplexity int, input *ModelQueryInput) int
+		Node                          func(childComplexity int, id string) int
+		Ping                          func(childComplexity int) int
+		ProjectAuthSchema             func(childComplexity int) int
+		VirtualPresetsByModel         func(childComplexity int, modelID string) int
 	}
 
 	RLSCheckViolation struct {
@@ -1227,6 +1228,7 @@ type QueryResolver interface {
 	EndUserPermission(ctx context.Context, id string) (*EndUserPermission, error)
 	EndUserPermissions(ctx context.Context, input *ListEndUserPermissionsInput) (*EndUserPermissionConnection, error)
 	EndUserPermissionBundle(ctx context.Context, id string) (*EndUserPermissionBundle, error)
+	EndUserPermissionBundleBySlug(ctx context.Context, slug string) (*EndUserPermissionBundle, error)
 	EndUserPermissionBundles(ctx context.Context, input *ListEndUserPermissionBundlesInput) (*EndUserPermissionBundleConnection, error)
 	EndUserRole(ctx context.Context, id string) (*EndUserRole, error)
 	EndUserRoles(ctx context.Context, input *ListEndUserRolesInput) (*EndUserRoleConnection, error)
@@ -4464,6 +4466,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.EndUserPermissionBundle(childComplexity, args["id"].(string)), true
+	case "Query.endUserPermissionBundleBySlug":
+		if e.complexity.Query.EndUserPermissionBundleBySlug == nil {
+			break
+		}
+
+		args, err := ec.field_Query_endUserPermissionBundleBySlug_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.EndUserPermissionBundleBySlug(childComplexity, args["slug"].(string)), true
 	case "Query.endUserPermissionBundles":
 		if e.complexity.Query.EndUserPermissionBundles == nil {
 			break
@@ -7450,6 +7463,7 @@ extend type Query {
   endUserPermission(id: ID!): EndUserPermission @hasPermission(action: "rbac:read")
   endUserPermissions(input: ListEndUserPermissionsInput): EndUserPermissionConnection! @hasPermission(action: "rbac:read")
   endUserPermissionBundle(id: ID!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
+  endUserPermissionBundleBySlug(slug: String!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
   endUserPermissionBundles(input: ListEndUserPermissionBundlesInput): EndUserPermissionBundleConnection! @hasPermission(action: "rbac:read")
   endUserRole(id: ID!): EndUserRole @hasPermission(action: "rbac:read")
   endUserRoles(input: ListEndUserRolesInput): EndUserRoleConnection! @hasPermission(action: "rbac:read")
@@ -8551,6 +8565,17 @@ func (ec *executionContext) field_Query_endUserBundleAssignments_args(ctx contex
 		return nil, err
 	}
 	args["endUserId"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_endUserPermissionBundleBySlug_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "slug", ec.unmarshalNString2string)
+	if err != nil {
+		return nil, err
+	}
+	args["slug"] = arg0
 	return args, nil
 }
 
@@ -26874,6 +26899,87 @@ func (ec *executionContext) fieldContext_Query_endUserPermissionBundle(ctx conte
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_endUserPermissionBundleBySlug(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_endUserPermissionBundleBySlug,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().EndUserPermissionBundleBySlug(ctx, fc.Args["slug"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "rbac:read")
+				if err != nil {
+					var zeroVal *EndUserPermissionBundle
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *EndUserPermissionBundle
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalOEndUserPermissionBundle2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermissionBundle,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_endUserPermissionBundleBySlug(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
+			case "name":
+				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
+			case "description":
+				return ec.fieldContext_EndUserPermissionBundle_description(ctx, field)
+			case "dataPermissionItems":
+				return ec.fieldContext_EndUserPermissionBundle_dataPermissionItems(ctx, field)
+			case "permissions":
+				return ec.fieldContext_EndUserPermissionBundle_permissions(ctx, field)
+			case "currentVersion":
+				return ec.fieldContext_EndUserPermissionBundle_currentVersion(ctx, field)
+			case "snapshots":
+				return ec.fieldContext_EndUserPermissionBundle_snapshots(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPermissionBundle_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUserPermissionBundle_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPermissionBundle", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_endUserPermissionBundleBySlug_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_endUserPermissionBundles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -44078,6 +44184,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_endUserPermissionBundle(ctx, field)
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "endUserPermissionBundleBySlug":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_endUserPermissionBundleBySlug(ctx, field)
 				return res
 			}
 
