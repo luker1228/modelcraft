@@ -201,6 +201,12 @@ type EndUserBundleDataPermissionItem {
   sortOrder: Int!
   createdAt: Time!
   updatedAt: Time!
+  """模型技术名（snake_case）"""
+  modelName: String
+  """所属数据库名"""
+  databaseName: String
+  """模型显示标题（人类可读）"""
+  modelTitle: String
 }
 
 type EndUserBundlePermissionEntry {
