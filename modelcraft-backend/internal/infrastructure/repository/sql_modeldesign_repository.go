@@ -544,6 +544,30 @@ func (r *SqlModelDesignRepository) FindByDeploymentStatus(
 	return models, nil
 }
 
+// GetMetaByIDs returns models matching the given IDs within the specified org and project.
+func (r *SqlModelDesignRepository) GetMetaByIDs(
+	ctx context.Context, orgName, projectSlug string, ids []string,
+) ([]*modeldesign.DataModel, error) {
+	if len(ids) == 0 {
+		return nil, nil
+	}
+
+	rows, err := r.q.GetModelMetaByIDs(ctx, dbgen.GetModelMetaByIDsParams{
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Ids:         ids,
+	})
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "GetMetaByIDs: org=%s project=%s", orgName, projectSlug)
+	}
+
+	result := make([]*modeldesign.DataModel, len(rows))
+	for i, row := range rows {
+		result[i] = ModelToDomain(row)
+	}
+	return result, nil
+}
+
 // AddFields bulk-inserts field definitions for a model.
 func (r *SqlModelDesignRepository) AddFields(
 	ctx context.Context, orgName string, fields []*modeldesign.FieldDefinition,

@@ -356,6 +356,24 @@ func (s *ModelDesignAppService) QueryDatabaseCatalogWithCommand(
 	return s.modelRepo.ListDatabaseCatalog(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.Search, page, pageSize)
 }
 
+// GetModelMetaByIDs returns a map of model ID → DataModel for the given IDs within an org+project.
+// It is suitable for batch lookups (e.g., enriching permission items with model metadata).
+func (s *ModelDesignAppService) GetModelMetaByIDs(
+	ctx context.Context,
+	orgName, projectSlug string,
+	ids []string,
+) (map[string]*modeldesign.DataModel, error) {
+	models, err := s.modelRepo.GetMetaByIDs(ctx, orgName, projectSlug, ids)
+	if err != nil {
+		return nil, err
+	}
+	result := make(map[string]*modeldesign.DataModel, len(models))
+	for _, m := range models {
+		result[m.ID] = m
+	}
+	return result, nil
+}
+
 // AddFieldsWithResults 按字段独立处理添加请求，并返回逐字段结果。
 func (s *ModelDesignAppService) AddFieldsWithResults(
 	ctx context.Context,

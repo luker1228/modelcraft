@@ -786,6 +786,12 @@ type EndUserBundleDataPermissionItem struct {
 	SortOrder        int32              `json:"sortOrder"`
 	CreatedAt        time.Time          `json:"createdAt"`
 	UpdatedAt        time.Time          `json:"updatedAt"`
+	// 模型技术名（snake_case）
+	ModelName *string `json:"modelName,omitempty"`
+	// 所属数据库名
+	DatabaseName *string `json:"databaseName,omitempty"`
+	// 模型显示标题（人类可读）
+	ModelTitle *string `json:"modelTitle,omitempty"`
 }
 
 type EndUserBundlePermissionEntry struct {

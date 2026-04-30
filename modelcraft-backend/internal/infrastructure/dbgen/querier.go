@@ -113,6 +113,7 @@ type Querier interface {
 	GetModelByName(ctx context.Context, arg GetModelByNameParams) (Model, error)
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
+	GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error)
 	// ============================================
 	// RLS (Row Level Security) Queries
 	// ============================================

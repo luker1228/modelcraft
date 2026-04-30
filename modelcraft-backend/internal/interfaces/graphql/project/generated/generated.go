@@ -344,9 +344,12 @@ type ComplexityRoot struct {
 		CreatedAt          func(childComplexity int) int
 		CustomPermission   func(childComplexity int) int
 		CustomPermissionID func(childComplexity int) int
+		DatabaseName       func(childComplexity int) int
 		GrantType          func(childComplexity int) int
 		ID                 func(childComplexity int) int
 		ModelID            func(childComplexity int) int
+		ModelName          func(childComplexity int) int
+		ModelTitle         func(childComplexity int) int
 		Preset             func(childComplexity int) int
 		SortOrder          func(childComplexity int) int
 		UpdatedAt          func(childComplexity int) int
@@ -2134,6 +2137,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserBundleDataPermissionItem.CustomPermissionID(childComplexity), true
+	case "EndUserBundleDataPermissionItem.databaseName":
+		if e.complexity.EndUserBundleDataPermissionItem.DatabaseName == nil {
+			break
+		}
+
+		return e.complexity.EndUserBundleDataPermissionItem.DatabaseName(childComplexity), true
 	case "EndUserBundleDataPermissionItem.grantType":
 		if e.complexity.EndUserBundleDataPermissionItem.GrantType == nil {
 			break
@@ -2152,6 +2161,18 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserBundleDataPermissionItem.ModelID(childComplexity), true
+	case "EndUserBundleDataPermissionItem.modelName":
+		if e.complexity.EndUserBundleDataPermissionItem.ModelName == nil {
+			break
+		}
+
+		return e.complexity.EndUserBundleDataPermissionItem.ModelName(childComplexity), true
+	case "EndUserBundleDataPermissionItem.modelTitle":
+		if e.complexity.EndUserBundleDataPermissionItem.ModelTitle == nil {
+			break
+		}
+
+		return e.complexity.EndUserBundleDataPermissionItem.ModelTitle(childComplexity), true
 	case "EndUserBundleDataPermissionItem.preset":
 		if e.complexity.EndUserBundleDataPermissionItem.Preset == nil {
 			break
@@ -6921,6 +6942,12 @@ type EndUserBundleDataPermissionItem {
   sortOrder: Int!
   createdAt: Time!
   updatedAt: Time!
+  """模型技术名（snake_case）"""
+  modelName: String
+  """所属数据库名"""
+  databaseName: String
+  """模型显示标题（人类可读）"""
+  modelTitle: String
 }
 
 type EndUserBundlePermissionEntry {
@@ -13589,6 +13616,93 @@ func (ec *executionContext) fieldContext_EndUserBundleDataPermissionItem_updated
 	return fc, nil
 }
 
+func (ec *executionContext) _EndUserBundleDataPermissionItem_modelName(ctx context.Context, field graphql.CollectedField, obj *EndUserBundleDataPermissionItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserBundleDataPermissionItem_modelName,
+		func(ctx context.Context) (any, error) {
+			return obj.ModelName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserBundleDataPermissionItem_modelName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserBundleDataPermissionItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserBundleDataPermissionItem_databaseName(ctx context.Context, field graphql.CollectedField, obj *EndUserBundleDataPermissionItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserBundleDataPermissionItem_databaseName,
+		func(ctx context.Context) (any, error) {
+			return obj.DatabaseName, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserBundleDataPermissionItem_databaseName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserBundleDataPermissionItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserBundleDataPermissionItem_modelTitle(ctx context.Context, field graphql.CollectedField, obj *EndUserBundleDataPermissionItem) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserBundleDataPermissionItem_modelTitle,
+		func(ctx context.Context) (any, error) {
+			return obj.ModelTitle, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserBundleDataPermissionItem_modelTitle(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserBundleDataPermissionItem",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EndUserBundlePermissionEntry_sortOrder(ctx context.Context, field graphql.CollectedField, obj *EndUserBundlePermissionEntry) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14530,6 +14644,12 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundle_dataPermissionI
 				return ec.fieldContext_EndUserBundleDataPermissionItem_createdAt(ctx, field)
 			case "updatedAt":
 				return ec.fieldContext_EndUserBundleDataPermissionItem_updatedAt(ctx, field)
+			case "modelName":
+				return ec.fieldContext_EndUserBundleDataPermissionItem_modelName(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserBundleDataPermissionItem_databaseName(ctx, field)
+			case "modelTitle":
+				return ec.fieldContext_EndUserBundleDataPermissionItem_modelTitle(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type EndUserBundleDataPermissionItem", field.Name)
 		},
@@ -39340,6 +39460,12 @@ func (ec *executionContext) _EndUserBundleDataPermissionItem(ctx context.Context
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "modelName":
+			out.Values[i] = ec._EndUserBundleDataPermissionItem_modelName(ctx, field, obj)
+		case "databaseName":
+			out.Values[i] = ec._EndUserBundleDataPermissionItem_databaseName(ctx, field, obj)
+		case "modelTitle":
+			out.Values[i] = ec._EndUserBundleDataPermissionItem_modelTitle(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

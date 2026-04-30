@@ -69,6 +69,12 @@ WHERE id = ?;
 -- name: DeleteModel :exec
 DELETE FROM models WHERE id = ?;
 
+-- name: GetModelMetaByIDs :many
+SELECT * FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND id IN (sqlc.slice('ids'));
+
 -- name: FindModelsByDeploymentStatus :many
 SELECT * FROM models
 WHERE deployment_status IN (sqlc.slice('statuses'));

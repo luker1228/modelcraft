@@ -87,6 +87,18 @@ func (m *MockModelRepository) FindByDeploymentStatus(
 	return args.Get(0).([]modeldesign.DataModel), args.Error(1)
 }
 
+func (m *MockModelRepository) GetMetaByIDs(
+	ctx context.Context,
+	orgName, projectSlug string,
+	ids []string,
+) ([]*modeldesign.DataModel, error) {
+	args := m.Called(ctx, orgName, projectSlug, ids)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*modeldesign.DataModel), args.Error(1)
+}
+
 func (m *MockModelRepository) Query(
 	ctx context.Context,
 	queryObj modeldesign.ModelQuery,

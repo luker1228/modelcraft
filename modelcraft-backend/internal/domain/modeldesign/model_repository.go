@@ -57,6 +57,7 @@ type ModelRepository interface {
 		opts ...*ModelQueryOptions,
 	) (*DataModel, error)
 	FindByDeploymentStatus(ctx context.Context, statuses ...DeploymentStatus) ([]DataModel, error)
+	GetMetaByIDs(ctx context.Context, orgName, projectSlug string, ids []string) ([]*DataModel, error)
 	Query(ctx context.Context, queryObj ModelQuery) ([]DataModel, int, error)
 	ListDatabaseCatalog(
 		ctx context.Context,

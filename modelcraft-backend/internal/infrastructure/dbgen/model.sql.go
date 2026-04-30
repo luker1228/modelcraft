@@ -314,6 +314,73 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 	return i, err
 }
 
+const getModelMetaByIDs = `-- name: GetModelMetaByIDs :many
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND id IN (/*SLICE:ids*/?)
+`
+
+type GetModelMetaByIDsParams struct {
+	OrgName     string
+	ProjectSlug string
+	Ids         []string
+}
+
+func (q *Queries) GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error) {
+	query := getModelMetaByIDs
+	var queryParams []interface{}
+	queryParams = append(queryParams, arg.OrgName)
+	queryParams = append(queryParams, arg.ProjectSlug)
+	if len(arg.Ids) > 0 {
+		for _, v := range arg.Ids {
+			queryParams = append(queryParams, v)
+		}
+		query = strings.Replace(query, "/*SLICE:ids*/?", strings.Repeat(",?", len(arg.Ids))[1:], 1)
+	} else {
+		query = strings.Replace(query, "/*SLICE:ids*/?", "NULL", 1)
+	}
+	rows, err := q.db.QueryContext(ctx, query, queryParams...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Model
+	for rows.Next() {
+		var i Model
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgName,
+			&i.ProjectSlug,
+			&i.Name,
+			&i.Title,
+			&i.Description,
+			&i.StorageType,
+			&i.DatabaseName,
+			&i.DisplayField,
+			&i.Version,
+			&i.Status,
+			&i.GroupID,
+			&i.DeploymentStatus,
+			&i.LastSyncAt,
+			&i.SyncError,
+			&i.CreatedAt,
+			&i.UpdatedAt,
+			&i.CreatedVia,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const listModelDatabases = `-- name: ListModelDatabases :many
 SELECT DISTINCT database_name
 FROM models

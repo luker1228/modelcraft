@@ -110,6 +110,12 @@ func (m *mockModelRepo) FindByDeploymentStatus(
 	return nil, nil
 }
 
+func (m *mockModelRepo) GetMetaByIDs(
+	ctx context.Context, orgName, projectSlug string, ids []string,
+) ([]*modeldesign.DataModel, error) {
+	return nil, nil
+}
+
 func (m *mockModelRepo) Query(ctx context.Context, q modeldesign.ModelQuery) ([]modeldesign.DataModel, int, error) {
 	return nil, 0, nil
 }
