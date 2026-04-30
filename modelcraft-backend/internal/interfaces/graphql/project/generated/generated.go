@@ -409,6 +409,7 @@ type ComplexityRoot struct {
 		ID                  func(childComplexity int) int
 		Name                func(childComplexity int) int
 		Permissions         func(childComplexity int) int
+		Slug                func(childComplexity int) int
 		Snapshots           func(childComplexity int) int
 		UpdatedAt           func(childComplexity int) int
 	}
@@ -2368,6 +2369,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermissionBundle.Permissions(childComplexity), true
+	case "EndUserPermissionBundle.slug":
+		if e.complexity.EndUserPermissionBundle.Slug == nil {
+			break
+		}
+
+		return e.complexity.EndUserPermissionBundle.Slug(childComplexity), true
 	case "EndUserPermissionBundle.snapshots":
 		if e.complexity.EndUserPermissionBundle.Snapshots == nil {
 			break
@@ -6480,7 +6487,7 @@ type ModelEdge {
 
 # Model input types
 input ModelQueryInput {
-  databaseName: String
+  databaseName: String!
   offset: Int
   limit: Int
   search: String
@@ -6856,6 +6863,10 @@ type EndUserPermissionConnection {
 
 type EndUserPermissionBundle implements Node {
   id: ID!
+  """
+  URL 友好的对外标识符，同项目内唯一，创建时由用户指定或从名称自动派生，之后不可修改。
+  """
+  slug: String!
   name: String!
   description: String
   """
@@ -7326,6 +7337,10 @@ input ListEndUserPermissionsInput {
 input CreateEndUserPermissionBundleInput {
   name: String!
   description: String
+  """
+  可选。不传时从 name 自动生成。同项目内唯一，创建后不可修改。
+  """
+  slug: String
 }
 
 input UpdateEndUserPermissionBundleInput {
@@ -8967,6 +8982,8 @@ func (ec *executionContext) fieldContext_AddEndUserPermissionToBundlePayload_bun
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -9045,6 +9062,8 @@ func (ec *executionContext) fieldContext_AddEndUserPresetToBundlePayload_bundle(
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -9452,6 +9471,8 @@ func (ec *executionContext) fieldContext_AssignBundleToEndUserPayload_bundle(_ c
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -9794,6 +9815,8 @@ func (ec *executionContext) fieldContext_BindCustomItemToBundlePayload_bundle(_ 
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -9872,6 +9895,8 @@ func (ec *executionContext) fieldContext_BindPresetItemToBundlePayload_bundle(_ 
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -10436,6 +10461,8 @@ func (ec *executionContext) fieldContext_CreateEndUserPermissionBundlePayload_bu
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -12682,6 +12709,8 @@ func (ec *executionContext) fieldContext_EffectivePermissionSources_directBundle
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -13165,6 +13194,8 @@ func (ec *executionContext) fieldContext_EndUserBundleAssignment_bundle(_ contex
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -14343,6 +14374,35 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundle_id(_ context.Co
 	return fc, nil
 }
 
+func (ec *executionContext) _EndUserPermissionBundle_slug(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundle) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPermissionBundle_slug,
+		func(ctx context.Context) (any, error) {
+			return obj.Slug, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPermissionBundle_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPermissionBundle",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EndUserPermissionBundle_name(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundle) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14804,6 +14864,8 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundleEdge_node(_ cont
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -16509,6 +16571,8 @@ func (ec *executionContext) fieldContext_EndUserRoleBundleEntry_bundle(_ context
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -16632,6 +16696,8 @@ func (ec *executionContext) fieldContext_EndUserRoleBundleSource_bundles(_ conte
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -26772,6 +26838,8 @@ func (ec *executionContext) fieldContext_Query_endUserPermissionBundle(ctx conte
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -27595,6 +27663,8 @@ func (ec *executionContext) fieldContext_RemoveDataPermissionItemFromBundlePaylo
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -27673,6 +27743,8 @@ func (ec *executionContext) fieldContext_RemoveEndUserPermissionFromBundlePayloa
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -28249,6 +28321,8 @@ func (ec *executionContext) fieldContext_RestoreEndUserPermissionBundlePayload_b
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -29444,6 +29518,8 @@ func (ec *executionContext) fieldContext_UpdateEndUserPermissionBundlePayload_bu
 			switch field.Name {
 			case "id":
 				return ec.fieldContext_EndUserPermissionBundle_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_EndUserPermissionBundle_slug(ctx, field)
 			case "name":
 				return ec.fieldContext_EndUserPermissionBundle_name(ctx, field)
 			case "description":
@@ -32593,7 +32669,7 @@ func (ec *executionContext) unmarshalInputCreateEndUserPermissionBundleInput(ctx
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "description"}
+	fieldsInOrder := [...]string{"name", "description", "slug"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -32614,6 +32690,13 @@ func (ec *executionContext) unmarshalInputCreateEndUserPermissionBundleInput(ctx
 				return it, err
 			}
 			it.Description = data
+		case "slug":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("slug"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Slug = data
 		}
 	}
 
@@ -33547,7 +33630,7 @@ func (ec *executionContext) unmarshalInputModelQueryInput(ctx context.Context, o
 		switch k {
 		case "databaseName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("databaseName"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			data, err := ec.unmarshalNString2string(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -39560,6 +39643,11 @@ func (ec *executionContext) _EndUserPermissionBundle(ctx context.Context, sel as
 			out.Values[i] = graphql.MarshalString("EndUserPermissionBundle")
 		case "id":
 			out.Values[i] = ec._EndUserPermissionBundle_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "slug":
+			out.Values[i] = ec._EndUserPermissionBundle_slug(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

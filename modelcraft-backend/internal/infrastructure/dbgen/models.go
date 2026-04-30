@@ -309,6 +309,8 @@ type EndUserDataPermission struct {
 type EndUserPermissionBundle struct {
 	// 权限包 UUID
 	ID string
+	// 用户可自定义的 URL 友好标识符，同项目内唯一，创建时设定后不可修改
+	Slug string
 	// 所属组织
 	OrgName string
 	// 所属项目

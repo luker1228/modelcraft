@@ -41,7 +41,7 @@ func (q *Queries) GrantBundleToUser(ctx context.Context, arg GrantBundleToUserPa
 }
 
 const listBundlesByUser = `-- name: ListBundlesByUser :many
-SELECT b.id, b.org_name, b.project_slug, b.name, b.description, b.created_at, b.updated_at
+SELECT b.id, b.slug, b.org_name, b.project_slug, b.name, b.description, b.created_at, b.updated_at
 FROM end_user_permission_bundles b
   JOIN end_user_user_bundles ub ON b.id = ub.bundle_id
 WHERE ub.user_id = ?
@@ -66,6 +66,7 @@ func (q *Queries) ListBundlesByUser(ctx context.Context, arg ListBundlesByUserPa
 		var i EndUserPermissionBundle
 		if err := rows.Scan(
 			&i.ID,
+			&i.Slug,
 			&i.OrgName,
 			&i.ProjectSlug,
 			&i.Name,

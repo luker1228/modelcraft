@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useProjectScopedClient, getOrgScopedClient } from '@api-client/apollo/public'
 import { TEST_CLUSTER_CONNECTION } from '@/api-client/cluster'
 import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@/api-client/model'
-import { GET_MODEL, GET_MODELS, GET_MODELS_FOR_RELATION } from '@/api-client/model'
+import { GET_MODEL, GET_MODELS, GET_MODELS_BY_DATABASE } from '@/api-client/model'
 import { useDatabases } from '@web/hooks/database/use-databases'
 import { toast } from 'sonner'
 import type { ModelEditorState } from './use-model-editor-state'
@@ -152,7 +152,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
       setRelationModelsLoading((prev) => ({ ...prev, [databaseName]: true }))
       try {
         const result = await projectClient.query<ModelsQueryData>({
-          query: GET_MODELS_FOR_RELATION,
+          query: GET_MODELS_BY_DATABASE,
           variables: {
             input: {
               databaseName,

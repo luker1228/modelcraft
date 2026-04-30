@@ -307,6 +307,7 @@ func toDomainBundle(row dbgen.EndUserPermissionBundle) *rbac.EndUserPermissionBu
 		OrgName:     row.OrgName,
 		ProjectSlug: row.ProjectSlug,
 		ID:          row.ID,
+		Slug:        row.Slug,
 		Name:        row.Name,
 		Description: description,
 	}
@@ -315,6 +316,7 @@ func toDomainBundle(row dbgen.EndUserPermissionBundle) *rbac.EndUserPermissionBu
 func (r *SqlEndUserDataPermissionRepository) CreateBundle(ctx context.Context, b *rbac.EndUserPermissionBundle) error {
 	params := dbgen.CreateEndUserBundleParams{
 		ID:          b.ID,
+		Slug:        b.Slug,
 		OrgName:     b.OrgName,
 		ProjectSlug: b.ProjectSlug,
 		Name:        b.Name,

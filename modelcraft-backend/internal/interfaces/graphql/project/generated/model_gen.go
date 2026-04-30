@@ -498,6 +498,8 @@ type CreateEndUserPayload struct {
 type CreateEndUserPermissionBundleInput struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
+	// 可选。不传时从 name 自动生成。同项目内唯一，创建后不可修改。
+	Slug *string `json:"slug,omitempty"`
 }
 
 type CreateEndUserPermissionBundlePayload struct {
@@ -879,7 +881,9 @@ func (EndUserPermission) IsNode()            {}
 func (this EndUserPermission) GetID() string { return this.ID }
 
 type EndUserPermissionBundle struct {
-	ID          string  `json:"id"`
+	ID string `json:"id"`
+	// URL 友好的对外标识符，同项目内唯一，创建时由用户指定或从名称自动派生，之后不可修改。
+	Slug        string  `json:"slug"`
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
 	// Item-centric 数据权限列表：每个模型最多一个 item。
@@ -1668,7 +1672,7 @@ func (ModelNotFound) IsSetModelRLSPolicyError() {}
 func (ModelNotFound) IsValidateRLSExprError() {}
 
 type ModelQueryInput struct {
-	DatabaseName *string `json:"databaseName,omitempty"`
+	DatabaseName string  `json:"databaseName"`
 	Offset       *int32  `json:"offset,omitempty"`
 	Limit        *int32  `json:"limit,omitempty"`
 	Search       *string `json:"search,omitempty"`

@@ -41,6 +41,7 @@ export const GET_END_USER_BUNDLES = gql`
       edges {
         node {
           id
+          slug
           name
           description
           createdAt
@@ -78,6 +79,7 @@ export const GET_END_USER_BUNDLE = gql`
   query GetEndUserBundle($id: ID!) {
     endUserPermissionBundle(id: $id) {
       id
+      slug
       name
       description
       createdAt
@@ -346,6 +348,7 @@ export const CREATE_END_USER_BUNDLE = gql`
     createEndUserPermissionBundle(input: $input) {
       bundle {
         id
+        slug
         name
         description
         permissions {
@@ -381,6 +384,7 @@ export const UPDATE_END_USER_BUNDLE = gql`
     updateEndUserPermissionBundle(id: $id, input: $input) {
       bundle {
         id
+        slug
         name
         description
         updatedAt
@@ -429,6 +433,7 @@ export const ADD_PERMISSION_TO_BUNDLE = gql`
     addEndUserPermissionToBundle(input: $input) {
       bundle {
         id
+        slug
         name
         permissions {
           sortOrder
@@ -464,6 +469,7 @@ export const REMOVE_PERMISSION_FROM_BUNDLE = gql`
     removeEndUserPermissionFromBundle(input: $input) {
       bundle {
         id
+        slug
         name
         permissions {
           sortOrder
@@ -768,6 +774,7 @@ export const RESTORE_END_USER_BUNDLE = gql`
     restoreEndUserPermissionBundle(input: $input) {
       bundle {
         id
+        slug
         currentVersion
         snapshots {
           version
@@ -847,6 +854,7 @@ export const BIND_PRESET_ITEM_TO_BUNDLE = gql`
     bindPresetItemToBundle(input: $input) {
       bundle {
         id
+        slug
         dataPermissionItems {
           id
           bundleId
@@ -887,6 +895,7 @@ export const BIND_CUSTOM_ITEM_TO_BUNDLE = gql`
     bindCustomItemToBundle(input: $input) {
       bundle {
         id
+        slug
         dataPermissionItems {
           id
           bundleId
@@ -934,6 +943,7 @@ export const REMOVE_DATA_PERMISSION_ITEM_FROM_BUNDLE = gql`
     removeDataPermissionItemFromBundle(input: $input) {
       bundle {
         id
+        slug
         dataPermissionItems {
           id
           bundleId

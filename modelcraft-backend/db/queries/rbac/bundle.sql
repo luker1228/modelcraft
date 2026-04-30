@@ -1,12 +1,13 @@
 -- name: CreateEndUserBundle :exec
 INSERT INTO end_user_permission_bundles (
   id,
+  slug,
   org_name,
   project_slug,
   name,
   description
 )
-VALUES (?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?);
 
 -- name: GetEndUserBundleByID :one
 SELECT *

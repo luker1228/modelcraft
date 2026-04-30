@@ -23,16 +23,18 @@ func (q *Queries) ClearBundleDataPermissionItems(ctx context.Context, bundleID s
 const createEndUserBundle = `-- name: CreateEndUserBundle :exec
 INSERT INTO end_user_permission_bundles (
   id,
+  slug,
   org_name,
   project_slug,
   name,
   description
 )
-VALUES (?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserBundleParams struct {
 	ID          string
+	Slug        string
 	OrgName     string
 	ProjectSlug string
 	Name        string
@@ -42,6 +44,7 @@ type CreateEndUserBundleParams struct {
 func (q *Queries) CreateEndUserBundle(ctx context.Context, arg CreateEndUserBundleParams) error {
 	_, err := q.db.ExecContext(ctx, createEndUserBundle,
 		arg.ID,
+		arg.Slug,
 		arg.OrgName,
 		arg.ProjectSlug,
 		arg.Name,
@@ -97,7 +100,7 @@ func (q *Queries) GetBundleDataPermissionItemByBundleAndModel(ctx context.Contex
 }
 
 const getEndUserBundleByID = `-- name: GetEndUserBundleByID :one
-SELECT id, org_name, project_slug, name, description, created_at, updated_at
+SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at
 FROM end_user_permission_bundles
 WHERE id = ?
   AND org_name = ?
@@ -115,6 +118,7 @@ func (q *Queries) GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundle
 	var i EndUserPermissionBundle
 	err := row.Scan(
 		&i.ID,
+		&i.Slug,
 		&i.OrgName,
 		&i.ProjectSlug,
 		&i.Name,
@@ -166,7 +170,7 @@ func (q *Queries) ListBundleDataPermissionItems(ctx context.Context, bundleID st
 }
 
 const listEndUserBundlesByProject = `-- name: ListEndUserBundlesByProject :many
-SELECT id, org_name, project_slug, name, description, created_at, updated_at
+SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at
 FROM end_user_permission_bundles
 WHERE org_name = ?
   AND project_slug = ?
@@ -189,6 +193,7 @@ func (q *Queries) ListEndUserBundlesByProject(ctx context.Context, arg ListEndUs
 		var i EndUserPermissionBundle
 		if err := rows.Scan(
 			&i.ID,
+			&i.Slug,
 			&i.OrgName,
 			&i.ProjectSlug,
 			&i.Name,

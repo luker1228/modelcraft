@@ -17,7 +17,7 @@ import {
 } from '@web/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@web/components/ui/select'
 import { DATABASE_CATALOG } from '@/api-client/cluster'
-import { GET_MODELS_FOR_RELATION } from '@/api-client/model'
+import { GET_MODELS_BY_DATABASE } from '@/api-client/model'
 import {
   GET_PERMISSION_ROLES,
   GET_ROLE_PERMISSIONS_LIST,
@@ -173,7 +173,7 @@ export default function RolePermissionsPage() {
   }, [databaseOptions, selectedDatabase])
 
   const { data: modelsData, loading: modelsLoading } = useQuery<ModelsForRelationData>(
-    GET_MODELS_FOR_RELATION,
+    GET_MODELS_BY_DATABASE,
     {
       client: projectClient,
       variables: {

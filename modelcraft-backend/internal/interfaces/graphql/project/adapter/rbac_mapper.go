@@ -113,6 +113,7 @@ func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *genera
 
 	return &generated.EndUserPermissionBundle{
 		ID:                  b.ID,
+		Slug:                b.Slug,
 		Name:                b.Name,
 		Description:         b.Description,
 		DataPermissionItems: itemDTOs,

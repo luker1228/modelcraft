@@ -116,6 +116,8 @@ export interface EndUserPermissionBundleSnapshot {
  */
 export interface EndUserPermissionBundle {
   id: string
+  /** URL 友好的对外标识符，同项目内唯一，创建时由用户指定或从名称自动派生，之后不可修改 */
+  slug: string
   name: string
   description?: string
   /** Item-centric 数据权限列表（新字段，每个模型最多一个 item） */

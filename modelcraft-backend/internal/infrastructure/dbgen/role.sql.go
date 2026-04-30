@@ -119,7 +119,7 @@ func (q *Queries) GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByID
 }
 
 const listBundlesByRole = `-- name: ListBundlesByRole :many
-SELECT b.id, b.org_name, b.project_slug, b.name, b.description, b.created_at, b.updated_at
+SELECT b.id, b.slug, b.org_name, b.project_slug, b.name, b.description, b.created_at, b.updated_at
 FROM end_user_permission_bundles b
   JOIN end_user_role_bundles rb ON b.id = rb.bundle_id
 WHERE rb.role_id = ?
@@ -136,6 +136,7 @@ func (q *Queries) ListBundlesByRole(ctx context.Context, roleID string) ([]EndUs
 		var i EndUserPermissionBundle
 		if err := rows.Scan(
 			&i.ID,
+			&i.Slug,
 			&i.OrgName,
 			&i.ProjectSlug,
 			&i.Name,

@@ -6,7 +6,6 @@ package projectgraphql
 
 import (
 	"context"
-
 	apprbac "modelcraft/internal/app/rbac"
 	domainproject "modelcraft/internal/domain/project"
 	rbacdomain "modelcraft/internal/domain/rbac"
@@ -142,6 +141,7 @@ func (r *mutationResolver) CreateEndUserPermissionBundle(ctx context.Context, in
 		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 		Name:         input.Name,
 		Description:  input.Description,
+		Slug:         input.Slug,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))

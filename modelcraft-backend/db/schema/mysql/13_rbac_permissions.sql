@@ -68,7 +68,8 @@ CREATE TABLE `end_user_data_permissions` (
 --    权限点的命名集合，可跨模型聚合
 -- -------------------------------------------------------------
 CREATE TABLE `end_user_permission_bundles` (
-  `id`            VARCHAR(36)  NOT NULL                    COMMENT '权限包 UUID',
+  `id`            VARCHAR(36)   NOT NULL                   COMMENT '权限包 UUID',
+  `slug`          VARCHAR(64)   NOT NULL                   COMMENT '用户可自定义的 URL 友好标识符，同项目内唯一，创建时设定后不可修改',
   `org_name`      VARCHAR(64)  NOT NULL                    COMMENT '所属组织',
   `project_slug`  VARCHAR(64)  NOT NULL                    COMMENT '所属项目',
   `name`          VARCHAR(128) NOT NULL                    COMMENT '权限包名称',
@@ -77,6 +78,9 @@ CREATE TABLE `end_user_permission_bundles` (
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
+  -- 同一项目下 slug 唯一（对外标识符）
+  UNIQUE KEY `uq_bundles_org_project_slug`
+    (`org_name`, `project_slug`, `slug`),
   -- 同一项目下权限包名称唯一
   UNIQUE KEY `uq_bundles_org_project_name`
     (`org_name`, `project_slug`, `name`),

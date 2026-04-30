@@ -67,8 +67,14 @@ func (s *EndUserBundleAppService) CreateBundle(
 	ctx context.Context,
 	cmd CreateBundleCommand,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
+	id := uuid.NewString()
+	slug := rbacdomain.GenerateBundleSlug(cmd.Name)
+	if cmd.Slug != nil && *cmd.Slug != "" {
+		slug = *cmd.Slug
+	}
 	bundle := &rbacdomain.EndUserPermissionBundle{
-		ID:          uuid.NewString(),
+		ID:          id,
+		Slug:        slug,
 		OrgName:     cmd.OrgName,
 		ProjectSlug: cmd.ProjectSlug,
 		Name:        cmd.Name,

@@ -42,7 +42,7 @@ const countModels = `-- name: CountModels :one
 SELECT COUNT(*) FROM models
 WHERE org_name = ?
   AND project_slug = ?
-  AND (? IS NULL OR database_name = ?)
+  AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR status = ?)
@@ -52,15 +52,14 @@ WHERE org_name = ?
 type CountModelsParams struct {
 	OrgName      string
 	ProjectSlug  string
-	Column3      interface{}
 	DatabaseName string
-	Column5      interface{}
+	Column4      interface{}
 	CONCAT       interface{}
-	Column7      interface{}
+	Column6      interface{}
 	CONCAT_2     interface{}
-	Column9      interface{}
+	Column8      interface{}
 	Status       sql.NullString
-	Column11     interface{}
+	Column10     interface{}
 	StorageType  string
 }
 
@@ -68,15 +67,14 @@ func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64
 	row := q.db.QueryRowContext(ctx, countModels,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.Column3,
 		arg.DatabaseName,
-		arg.Column5,
+		arg.Column4,
 		arg.CONCAT,
-		arg.Column7,
+		arg.Column6,
 		arg.CONCAT_2,
-		arg.Column9,
+		arg.Column8,
 		arg.Status,
-		arg.Column11,
+		arg.Column10,
 		arg.StorageType,
 	)
 	var count int64
@@ -369,7 +367,7 @@ const listModels = `-- name: ListModels :many
 SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
 WHERE org_name = ?
   AND project_slug = ?
-  AND (? IS NULL OR database_name = ?)
+  AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR status = ?)
@@ -381,15 +379,14 @@ LIMIT ? OFFSET ?
 type ListModelsParams struct {
 	OrgName      string
 	ProjectSlug  string
-	Column3      interface{}
 	DatabaseName string
-	Column5      interface{}
+	Column4      interface{}
 	CONCAT       interface{}
-	Column7      interface{}
+	Column6      interface{}
 	CONCAT_2     interface{}
-	Column9      interface{}
+	Column8      interface{}
 	Status       sql.NullString
-	Column11     interface{}
+	Column10     interface{}
 	StorageType  string
 	Limit        int32
 	Offset       int32
@@ -399,15 +396,14 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 	rows, err := q.db.QueryContext(ctx, listModels,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.Column3,
 		arg.DatabaseName,
-		arg.Column5,
+		arg.Column4,
 		arg.CONCAT,
-		arg.Column7,
+		arg.Column6,
 		arg.CONCAT_2,
-		arg.Column9,
+		arg.Column8,
 		arg.Status,
-		arg.Column11,
+		arg.Column10,
 		arg.StorageType,
 		arg.Limit,
 		arg.Offset,

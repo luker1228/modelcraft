@@ -45,6 +45,8 @@ type CreateBundleCommand struct {
 	project.ProjectScope // 嵌入: OrgName + ProjectSlug
 	Name                 string
 	Description          *string
+	// Slug 可选，不传时从 Name 自动派生。同项目内唯一，创建后不可修改。
+	Slug *string
 }
 
 // UpdateBundleCommand 更新权限包命令

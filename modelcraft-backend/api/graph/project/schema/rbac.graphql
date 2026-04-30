@@ -156,6 +156,10 @@ type EndUserPermissionConnection {
 
 type EndUserPermissionBundle implements Node {
   id: ID!
+  """
+  URL 友好的对外标识符，同项目内唯一，创建时由用户指定或从名称自动派生，之后不可修改。
+  """
+  slug: String!
   name: String!
   description: String
   """
@@ -626,6 +630,10 @@ input ListEndUserPermissionsInput {
 input CreateEndUserPermissionBundleInput {
   name: String!
   description: String
+  """
+  可选。不传时从 name 自动生成。同项目内唯一，创建后不可修改。
+  """
+  slug: String
 }
 
 input UpdateEndUserPermissionBundleInput {
