@@ -1668,7 +1668,7 @@ func (ModelNotFound) IsSetModelRLSPolicyError() {}
 func (ModelNotFound) IsValidateRLSExprError() {}
 
 type ModelQueryInput struct {
-	DatabaseName string  `json:"databaseName"`
+	DatabaseName *string `json:"databaseName,omitempty"`
 	Offset       *int32  `json:"offset,omitempty"`
 	Limit        *int32  `json:"limit,omitempty"`
 	Search       *string `json:"search,omitempty"`

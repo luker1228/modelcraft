@@ -46,6 +46,7 @@ import { PageLayout } from '@web/components/features/layout'
 import { useProjectScopedClient } from '@api-client/apollo/public'
 import { GET_VIRTUAL_PRESETS_BY_MODEL } from '@/api-client/rbac'
 import { GET_MODELS_FOR_RELATION } from '@/api-client/model'
+import { DATABASE_CATALOG } from '@/api-client/cluster'
 import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
 import type {
   EndUserBundleDataPermissionItem,
@@ -394,6 +395,13 @@ interface MutationResultMin {
   errorMessage?: string
 }
 
+interface DatabaseCatalogData {
+  modelDatabaseCatalog?: {
+    data?: { databases: Array<{ name: string }> } | null
+    error?: unknown
+  } | null
+}
+
 interface ModelsQueryData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   models?: { edges?: Array<{ node?: ModelOption | null } | null> }
@@ -412,28 +420,32 @@ function AddItemDialog({
 }: AddItemDialogProps) {
   const projectClient = useProjectScopedClient(projectSlug, orgName)
   const [bindMode, setBindMode] = React.useState<'preset' | 'custom'>('preset')
+  const [selectedDatabase, setSelectedDatabase] = React.useState<string | null>(null)
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)
   const [selectedPreset, setSelectedPreset] = React.useState<EndUserPermissionPreset | null>(null)
   const [selectedCustomPermId, setSelectedCustomPermId] = React.useState<string | null>(null)
   const [submitting, setSubmitting] = React.useState(false)
 
-  // 查询虚拟预设列表（按 model 动态计算）
-  const { data: presetsData, loading: presetsLoading } = useQuery<{ virtualPresetsByModel: EndUserPermissionPreset[] }>(
-    GET_VIRTUAL_PRESETS_BY_MODEL,
+  // Step 1：查数据库列表
+  const { data: catalogData, loading: catalogLoading } = useQuery<DatabaseCatalogData>(
+    DATABASE_CATALOG,
     {
       client: projectClient,
-      variables: { modelId: selectedModelId ?? '' },
-      skip: !selectedModelId || bindMode !== 'preset',
+      skip: !open,
     },
   )
 
-  // 查询模型列表（所有模型，不按 database 过滤）
+  const databaseOptions = React.useMemo(() => {
+    return catalogData?.modelDatabaseCatalog?.data?.databases ?? []
+  }, [catalogData])
+
+  // Step 2：选择数据库后查模型列表
   const { data: modelsData, loading: modelsLoading } = useQuery<ModelsQueryData>(
     GET_MODELS_FOR_RELATION,
     {
       client: projectClient,
-      variables: { input: { limit: 200 } },
-      skip: !open,
+      variables: { input: { databaseName: selectedDatabase, limit: 200 } },
+      skip: !open || !selectedDatabase,
     },
   )
 
@@ -444,6 +456,16 @@ function AddItemDialog({
       .filter((n): n is ModelOption => Boolean(n?.id && n?.name))
       .sort((a, b) => (a.title ?? a.name).localeCompare(b.title ?? b.name))
   }, [modelsData])
+
+  // Step 3：选择模型后查虚拟预设列表
+  const { data: presetsData, loading: presetsLoading } = useQuery<{ virtualPresetsByModel: EndUserPermissionPreset[] }>(
+    GET_VIRTUAL_PRESETS_BY_MODEL,
+    {
+      client: projectClient,
+      variables: { modelId: selectedModelId ?? '' },
+      skip: !selectedModelId || bindMode !== 'preset',
+    },
+  )
 
   const availablePresets: EndUserPermissionPreset[] = presetsData?.virtualPresetsByModel ?? []
 
@@ -460,6 +482,7 @@ function AddItemDialog({
     (bindMode === 'preset' ? Boolean(selectedPreset) : Boolean(selectedCustomPermId))
 
   const handleClose = () => {
+    setSelectedDatabase(null)
     setSelectedModelId(null)
     setSelectedPreset(null)
     setSelectedCustomPermId(null)
@@ -510,8 +533,37 @@ function AddItemDialog({
         </div>
 
         <div className="flex min-h-0 flex-1">
-          {/* 左栏：模型列表 */}
+          {/* 左栏：数据库选择 + 模型列表 */}
           <div className="flex w-52 shrink-0 flex-col border-r border-border">
+            {/* 数据库选择器 */}
+            <div className="border-b border-border px-3 py-2 space-y-1.5">
+              <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                数据库
+              </span>
+              {catalogLoading ? (
+                <div className="flex items-center gap-1.5 text-xs text-muted-foreground/70">
+                  <Loader2 className="size-3 animate-spin" />
+                  加载中…
+                </div>
+              ) : (
+                <select
+                  value={selectedDatabase ?? ''}
+                  onChange={(e) => {
+                    setSelectedDatabase(e.target.value || null)
+                    setSelectedModelId(null)
+                    setSelectedPreset(null)
+                    setSelectedCustomPermId(null)
+                  }}
+                  className="w-full rounded border border-border bg-background px-2 py-1 text-xs text-foreground outline-none focus:border-primary focus:ring-1 focus:ring-primary/20"
+                >
+                  <option value="">请选择数据库</option>
+                  {databaseOptions.map((db) => (
+                    <option key={db.name} value={db.name}>{db.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+
             <div className="border-b border-border px-3 py-2">
               <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                 选择数据表
@@ -519,7 +571,9 @@ function AddItemDialog({
             </div>
             <ScrollArea className="flex-1">
               <div className="py-1.5">
-                {modelsLoading ? (
+                {!selectedDatabase ? (
+                  <p className="px-3 py-6 text-center text-xs text-muted-foreground/60">请先选择数据库</p>
+                ) : modelsLoading ? (
                   <div className="flex items-center justify-center px-3 py-6 text-xs text-muted-foreground/70">
                     <Loader2 className="mr-1.5 size-3.5 animate-spin" />
                     加载中…

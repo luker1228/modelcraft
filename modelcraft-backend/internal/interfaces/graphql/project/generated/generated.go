@@ -6480,7 +6480,7 @@ type ModelEdge {
 
 # Model input types
 input ModelQueryInput {
-  databaseName: String!
+  databaseName: String
   offset: Int
   limit: Int
   search: String
@@ -33547,7 +33547,7 @@ func (ec *executionContext) unmarshalInputModelQueryInput(ctx context.Context, o
 		switch k {
 		case "databaseName":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("databaseName"))
-			data, err := ec.unmarshalNString2string(ctx, v)
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
 			if err != nil {
 				return it, err
 			}

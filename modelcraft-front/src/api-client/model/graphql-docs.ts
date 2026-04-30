@@ -73,8 +73,8 @@ export const GET_MODELS = gql`
   }
 `
 
-export const GET_MODELS_FOR_RELATION = gql`
-  query GetModelsForRelation($input: ModelQueryInput) {
+export const GET_MODELS_BY_DATABASE = gql`
+  query GetModelsByDatabase($input: ModelQueryInput) {
     models(input: $input) {
       edges {
         node {
