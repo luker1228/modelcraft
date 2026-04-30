@@ -12,6 +12,8 @@ import (
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/logfacade"
+
+	modeldesign "modelcraft/internal/domain/modeldesign"
 )
 
 // CreateEndUserPermission is the resolver for the createEndUserPermission field.
@@ -661,7 +663,8 @@ func (r *queryResolver) EndUserPermissionBundle(ctx context.Context, id string) 
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
 		return nil, appErr
 	}
-	return adapter.ToEndUserPermissionBundleDTO(bundle), nil
+	modelMap := fetchModelMapForBundle(ctx, r, orgName, projectSlug, bundle)
+	return adapter.ToEndUserPermissionBundleDTOWithModels(bundle, modelMap), nil
 }
 
 // EndUserPermissionBundleBySlug is the resolver for the endUserPermissionBundleBySlug field.
@@ -675,7 +678,8 @@ func (r *queryResolver) EndUserPermissionBundleBySlug(ctx context.Context, slug 
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
 		return nil, appErr
 	}
-	return adapter.ToEndUserPermissionBundleDTO(bundle), nil
+	modelMap := fetchModelMapForBundle(ctx, r, orgName, projectSlug, bundle)
+	return adapter.ToEndUserPermissionBundleDTOWithModels(bundle, modelMap), nil
 }
 
 // EndUserPermissionBundles is the resolver for the endUserPermissionBundles field.
@@ -689,10 +693,24 @@ func (r *queryResolver) EndUserPermissionBundles(ctx context.Context, input *gen
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
 		return nil, appErr
 	}
+
+	// Collect all unique model IDs across all bundles for a single batch lookup.
+	idSet := make(map[string]struct{})
+	for _, b := range bundles {
+		for _, item := range b.Items {
+			idSet[item.ModelID] = struct{}{}
+		}
+	}
+	ids := make([]string, 0, len(idSet))
+	for id := range idSet {
+		ids = append(ids, id)
+	}
+	modelMap, _ := r.ModelDesignService.GetModelMetaByIDs(ctx, orgName, projectSlug, ids)
+
 	edges := make([]*generated.EndUserPermissionBundleEdge, 0, len(bundles))
 	for _, b := range bundles {
 		edges = append(edges, &generated.EndUserPermissionBundleEdge{
-			Node:   adapter.ToEndUserPermissionBundleDTO(b),
+			Node:   adapter.ToEndUserPermissionBundleDTOWithModels(b, modelMap),
 			Cursor: b.ID,
 		})
 	}
@@ -701,6 +719,25 @@ func (r *queryResolver) EndUserPermissionBundles(ctx context.Context, input *gen
 		PageInfo:   &generated.PageInfo{},
 		TotalCount: int32(len(bundles)),
 	}, nil
+}
+
+// fetchModelMapForBundle collects model IDs from a single bundle's items and
+// performs one batch lookup, returning a map keyed by model ID.
+func fetchModelMapForBundle(
+	ctx context.Context,
+	r *queryResolver,
+	orgName, projectSlug string,
+	bundle *rbacdomain.EndUserPermissionBundle,
+) map[string]*modeldesign.DataModel {
+	if bundle == nil || len(bundle.Items) == 0 {
+		return nil
+	}
+	ids := make([]string, 0, len(bundle.Items))
+	for _, item := range bundle.Items {
+		ids = append(ids, item.ModelID)
+	}
+	modelMap, _ := r.ModelDesignService.GetModelMetaByIDs(ctx, orgName, projectSlug, ids)
+	return modelMap
 }
 
 // EndUserRole is the resolver for the endUserRole field.

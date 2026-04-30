@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	modeldesign "modelcraft/internal/domain/modeldesign"
 	rbacdomain "modelcraft/internal/domain/rbac"
 )
 
@@ -78,6 +79,15 @@ func scopeToLegacyRowScope(scope rbacdomain.PolicyScope) generated.RowScopeType 
 
 // ToEndUserPermissionBundleDTO converts domain bundle to GraphQL DTO.
 func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *generated.EndUserPermissionBundle {
+	return ToEndUserPermissionBundleDTOWithModels(b, nil)
+}
+
+// ToEndUserPermissionBundleDTOWithModels converts domain bundle to GraphQL DTO,
+// enriching each data permission item with model metadata from modelMap (keyed by model ID).
+func ToEndUserPermissionBundleDTOWithModels(
+	b *rbacdomain.EndUserPermissionBundle,
+	modelMap map[string]*modeldesign.DataModel,
+) *generated.EndUserPermissionBundle {
 	if b == nil {
 		return nil
 	}
@@ -96,7 +106,11 @@ func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *genera
 		len(b.Items),
 	)
 	for _, item := range b.Items {
-		itemDTOs = append(itemDTOs, ToDataPermissionItemDTO(item))
+		var model *modeldesign.DataModel
+		if modelMap != nil {
+			model = modelMap[item.ModelID]
+		}
+		itemDTOs = append(itemDTOs, ToDataPermissionItemDTO(item, model))
 	}
 
 	// 计算 currentVersion（最新快照的版本号，无快照时为 0）
@@ -128,6 +142,7 @@ func ToEndUserPermissionBundleDTO(b *rbacdomain.EndUserPermissionBundle) *genera
 // ToDataPermissionItemDTO converts domain item to GraphQL DTO.
 func ToDataPermissionItemDTO(
 	item *rbacdomain.EndUserBundleDataPermissionItem,
+	model *modeldesign.DataModel,
 ) *generated.EndUserBundleDataPermissionItem {
 	if item == nil {
 		return nil
@@ -147,6 +162,11 @@ func ToDataPermissionItemDTO(
 	}
 	if item.CustomPermissionID != nil {
 		dto.CustomPermissionID = item.CustomPermissionID
+	}
+	if model != nil {
+		dto.ModelName = &model.ModelName
+		dto.DatabaseName = &model.DatabaseName
+		dto.ModelTitle = &model.Title
 	}
 	return dto
 }
