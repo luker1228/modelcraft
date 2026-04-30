@@ -79,6 +79,12 @@ WHERE org_name = ?
 SELECT * FROM models
 WHERE deployment_status IN (sqlc.slice('statuses'));
 
+-- name: GetModelMetaByIDs :many
+SELECT * FROM models
+WHERE org_name = ?
+  AND project_slug = ?
+  AND id IN (sqlc.slice('ids'));
+
 -- name: UpdateModelsGroupID :exec
 UPDATE models
 SET group_id = ?, updated_at = NOW(3)

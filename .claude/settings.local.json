@@ -9,7 +9,16 @@
       "Bash(cp /tmp/SUMMARY.md modelcraft-front/docs/analysis/roles-bundles/)",
       "Bash(cp /tmp/architecture-diagram.md modelcraft-front/docs/analysis/roles-bundles/)",
       "Bash(cp /tmp/code-snippets-reference.md modelcraft-front/docs/analysis/roles-bundles/)",
-      "Bash(npx tsc *)"
+      "Bash(npx tsc *)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_wait_for",
+      "mcp__playwright__browser_console_messages",
+      "mcp__playwright__browser_run_code",
+      "mcp__playwright__browser_click",
+      "Bash(awk '{print \"   \"$9\" \\(\"$5\"\\)\"}')",
+      "Bash(command -v just)"
     ]
   }
 }

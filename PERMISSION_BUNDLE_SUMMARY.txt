@@ -1,0 +1,302 @@
+╔══════════════════════════════════════════════════════════════════════════════╗
+║           ModelCraft 权限包(Permission Bundle)数据权限配置速查表             ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📍 关键概念：EndUserBundleDataPermissionItem（数据权限配置项）              │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+截图中看到的列表项（如："d97f7a43... │ 读写全部"）的字段对应关系：
+
+  视觉显示           GraphQL字段      数据库列              说明
+  ──────────────────────────────────────────────────────────────────────────
+  d97f7a43...        id              id                   Item UUID
+  读写全部           preset          preset               预设权限名称(ENUM)
+  [不可见]           grantType       grant_type           来源类型(PRESET/CUSTOM)
+  [不可见]           modelId         model_id             关联的模型ID
+  [不可见]           sortOrder       sort_order           显示排序顺序
+  [不可见]           createdAt       created_at           创建时间
+  [不可见]           updatedAt       updated_at           更新时间
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🎯 两种权限授权模式的完整对比                                                │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+┏━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━┓
+┃ 预设值        ┃ 中文名        ┃ 权限范围         ┃ 是否需要END_USER_REF ┃
+┣━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━╋━━━━━━━━━━━━━━━━━━━━━━━┫
+┃ READ_WRITE_ALL┃ 读写全部      ┃ SELECT/INSERT   ┃ ❌ 不需要             ┃
+┃               ┃               ┃ /UPDATE/DELETE  ┃                       ┃
+┃               ┃               ┃ 所有行          ┃                       ┃
+├───────────────┼───────────────┼─────────────────┼───────────────────────┤
+┃ READ_ALL      ┃ 只读全部      ┃ SELECT          ┃ ❌ 不需要             ┃
+┃               ┃               ┃ 所有行          ┃                       ┃
+├───────────────┼───────────────┼─────────────────┼───────────────────────┤
+┃ READ_WRITE_   ┃ 读写自己      ┃ SELECT/INSERT   ┃ ✅ 必须               ┃
+┃ OWNER         ┃               ┃ /UPDATE/DELETE  ┃ (需要owner字段)       ┃
+┃               ┃               ┃ 自己的行        ┃                       ┃
+├───────────────┼───────────────┼─────────────────┼───────────────────────┤
+┃ READ_ALL_     ┃ 读所有写自己  ┃ SELECT 所有行   ┃ ✅ 必须               ┃
+┃ WRITE_OWNER   ┃               ┃ 但INSERT/UPDATE ┃ (需要owner字段)       ┃
+┃               ┃               ┃ /DELETE仅自己行 ┃                       ┃
+┗━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━┻━━━━━━━━━━━━━━━━━━━━━━━┛
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🗄️  数据库表关系图                                                           │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+end_user_permission_bundles (权限包表)
+    │
+    ├─► id (VARCHAR36) PRIMARY KEY
+    ├─► slug (VARCHAR64) UNIQUE 🔑
+    ├─► name (VARCHAR128) UNIQUE 🔑
+    ├─► description
+    ├─► created_at, updated_at
+    │
+    └─── 1..∞ 关系 ──────────────┐
+                                  │
+                   ┌──────────────▼────────────────┐
+                   │ end_user_bundle_data_        │
+                   │ permission_items (Item表)     │⭐ 核心表
+                   ├────────────────────────────────┤
+                   │ id (VARCHAR36) PRIMARY KEY     │
+                   │ bundle_id FK                   │
+                   │ model_id FK                    │
+                   │                                │
+                   │ grant_type (PRESET|CUSTOM) ◄──┤─── 两种模式
+                   │ ├─ PRESET时：                  │
+                   │ │  ├─ preset (NOT NULL)       │
+                   │ │  │  ├─ READ_WRITE_ALL       │
+                   │ │  │  ├─ READ_ALL             │
+                   │ │  │  ├─ READ_WRITE_OWNER     │
+                   │ │  │  └─ READ_ALL_WRITE_OWNER │
+                   │ │  └─ custom_permission_id    │
+                   │ │     (NULL)                   │
+                   │ └─ CUSTOM时：                 │
+                   │    ├─ preset (NULL)           │
+                   │    └─ custom_permission_id ───┼──┐
+                   │       FK                      │  │
+                   │ sort_order                    │  │
+                   │ created_at, updated_at        │  │
+                   └────────────────────────────────┘  │
+                                                       │
+                       ┌─────────────────────────────┘
+                       │
+                       ▼
+        end_user_data_permissions (自定义权限表)
+        ├─ id (VARCHAR36) PRIMARY KEY
+        ├─ model_id FK
+        ├─ name
+        ├─ description
+        ├─ column_policy (JSON)
+        │  {
+        │    "defaultMode": "VISIBLE|READONLY|MASKED|HIDDEN",
+        │    "rules": [
+        │      {"fieldName": "salary", "mode": "MASKED", "maskPattern": "***"},
+        │      {"fieldName": "id_card", "mode": "HIDDEN"}
+        │    ]
+        │  }
+        ├─ row_policy (JSON)
+        │  {
+        │    "select": {"allowed": true, "scope": "custom", "predicate": {...}},
+        │    "insert": {...},
+        │    "update": {...},
+        │    "delete": {"allowed": false}
+        │  }
+        └─ created_at, updated_at
+
+end_user_permission_bundle_snapshots (快照表)
+    ├─ id, bundle_id FK, version
+    ├─ items (JSON)
+    │  [
+    │    {
+    │      "modelId": "uuid",
+    │      "grantType": "PRESET|CUSTOM",
+    │      "preset": "READ_WRITE_ALL|..." (或null),
+    │      "customPermissionId": "uuid|null",
+    │      "sortOrder": 0
+    │    }
+    │  ]
+    ├─ created_at, created_by
+    └─ restored_from (version | null)
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📋 关键SQLC查询操作                                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+位置: modelcraft-backend/db/queries/rbac/bundle.sql
+
+操作名称                            操作类型    说明
+──────────────────────────────────────────────────────────────────────────────
+UpsertBundleDataPermissionItem       :exec      Replace语义：同bundle+model只保留1个
+RemoveBundleDataPermissionItem       :execresult 删除Item（按bundle_id+model_id）
+ListBundleDataPermissionItems        :many      列出Bundle所有Item（按sort_order排序）
+GetBundleDataPermissionItemByBundle  :one       单个Item查询（按bundle_id+model_id）
+AndModel
+ClearBundleDataPermissionItems       :exec      清空Bundle所有Item
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 📁 关键文件速查表                                                            │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+类别              文件路径                                    关键行号
+──────────────────────────────────────────────────────────────────────────────
+GraphQL Schema    /api/graph/project/schema/rbac.graphql
+  EndUserBundle                                              第157-183行
+  ├─ EndUserBundleDataPermissionItem                       第189-204行 ⭐
+  ├─ EndUserPermissionPreset enum                          第62-67行
+  └─ DataPermissionGrantType enum                          第72-75行
+
+数据库Schema     /db/schema/mysql/13_rbac_permissions.sql
+  ├─ Bundle表                                              第70-90行
+  ├─ Item表                                                第98-138行 ⭐
+  └─ 自定义权限表                                          第19-64行
+
+数据库Schema     /db/schema/mysql/14_rbac_bundle_snapshots.sql
+  └─ Snapshot表                                            第12-32行
+
+SQLC查询         /db/queries/rbac/bundle.sql
+  └─ Item操作                                              第48-89行 ⭐
+
+Go代码模型       /internal/infrastructure/dbgen/models.go
+  ├─ EndUserBundleDataPermissionItem struct
+  ├─ EndUserDataPermission struct
+  └─ EndUserPermissionBundle struct
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 🧮 JSON策略字段详解                                                         │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+▶ column_policy (列级策略)
+  {
+    "defaultMode": "VISIBLE|READONLY|MASKED|HIDDEN",
+    "rules": [
+      {
+        "fieldName": "字段名",
+        "mode": "VISIBLE|READONLY|MASKED|HIDDEN",
+        "maskPattern": "***|${mask}|..." (仅MASKED时有效)
+      }
+    ]
+  }
+
+▶ row_policy (行级策略)
+  {
+    "select": {
+      "allowed": true|false,
+      "scope": "all|custom",
+      "predicate": {...GraphQL Runtime WHERE条件...}
+    },
+    "insert": {
+      "allowed": true|false,
+      "scope": "all|custom",
+      "check": {...GraphQL Runtime WHERE条件...}
+    },
+    "update": {
+      "allowed": true|false,
+      "scope": "all|custom",
+      "predicate": {...读权限条件...},
+      "check_scope": "all|custom",
+      "check": {...写权限条件...}
+    },
+    "delete": {
+      "allowed": true|false,
+      "scope": "all|custom",
+      "predicate": {...GraphQL Runtime WHERE条件...}
+    }
+  }
+
+┌──────────────────────────────────────────────────────────────────────────────┐
+│ 💻 常见GraphQL操作示例                                                       │
+└──────────────────────────────────────────────────────────────────────────────┘
+
+1️⃣  创建Bundle（仅包含基本信息）
+   mutation {
+     createEndUserPermissionBundle(input: {
+       name: "销售只读权限包"
+       description: "销售人员对客户数据只读"
+       slug: "sales-readonly"  # 可选，不传从name自动生成
+     }) {
+       bundle { id, name, slug, currentVersion }
+     }
+   }
+
+2️⃣  为Bundle添加PRESET权限
+   mutation {
+     bindPresetItemToBundle(input: {
+       bundleId: "bundle-uuid"
+       modelId: "model-uuid"
+       preset: READ_WRITE_ALL
+       sortOrder: 0
+     }) {
+       bundle {
+         dataPermissionItems {
+           id
+           modelId
+           preset
+           grantType
+           sortOrder
+         }
+       }
+     }
+   }
+
+3️⃣  为Bundle添加CUSTOM权限
+   mutation {
+     bindCustomItemToBundle(input: {
+       bundleId: "bundle-uuid"
+       modelId: "model-uuid"
+       customPermissionId: "perm-uuid"
+       sortOrder: 1
+     }) {
+       bundle {
+         dataPermissionItems {
+           id
+           customPermission {
+             displayName
+             columnPolicy { defaultMode, rules { fieldName, mode } }
+             rowScope
+           }
+         }
+       }
+     }
+   }
+
+4️⃣  查询Bundle完整权限配置
+   query {
+     endUserPermissionBundle(id: "bundle-uuid") {
+       id
+       name
+       dataPermissionItems {
+         id
+         modelId
+         grantType
+         preset
+         customPermissionId
+         customPermission {
+           displayName
+           action
+           rowScope
+           columnPolicy { ... }
+         }
+         sortOrder
+       }
+       snapshots(first: 5) {
+         version
+         items { modelId, grantType, preset }
+         createdAt
+         createdBy
+       }
+     }
+   }
+
+5️⃣  回滚到历史版本
+   mutation {
+     restoreEndUserPermissionBundle(input: {
+       bundleId: "bundle-uuid"
+       targetVersion: 2
+     }) {
+       bundle { currentVersion }
+       newVersion  # 回滚本身生成新版本
+     }
+   }
+
