@@ -60,9 +60,9 @@ func (r *bundleItemTestRepo) GetBundleSnapshotByVersion(
 
 // 覆盖 GetBundleByID：增加 ProjectSlug 验证（verifyBundleScope 需要）
 func (r *bundleItemTestRepo) GetBundleByID(
-	ctx context.Context, orgName, id string,
+	ctx context.Context, orgName, projectSlug, id string,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
-	return r.mockBundleRepo.GetBundleByID(ctx, orgName, id)
+	return r.mockBundleRepo.GetBundleByID(ctx, orgName, projectSlug, id)
 }
 
 func (r *bundleItemTestRepo) itemsByModel(bundleID, modelID string) []*rbacdomain.EndUserBundleDataPermissionItem {
@@ -362,7 +362,7 @@ func TestRestoreBundle_RebuildsItemsFromSnapshot(t *testing.T) {
 	svc := newItemSvc(repo, false)
 
 	result, err := svc.RestoreBundle(context.Background(), RestoreBundleCommand{
-		OrgName:       "org1",
+		ProjectScope:  project.ProjectScope{OrgName: "org1", ProjectSlug: "proj1"},
 		BundleID:      "b1",
 		TargetVersion: 1,
 	})

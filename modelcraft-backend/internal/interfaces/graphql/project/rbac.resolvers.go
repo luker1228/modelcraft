@@ -157,16 +157,16 @@ func (r *mutationResolver) CreateEndUserPermissionBundle(ctx context.Context, in
 
 // UpdateEndUserPermissionBundle is the resolver for the updateEndUserPermissionBundle field.
 func (r *mutationResolver) UpdateEndUserPermissionBundle(ctx context.Context, id string, input generated.UpdateEndUserPermissionBundleInput) (*generated.UpdateEndUserPermissionBundlePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	bundle, appErr := r.RBACBundleSvc.UpdateBundle(ctx, apprbac.UpdateBundleCommand{
-		OrgName:     orgName,
-		ID:          id,
-		Name:        derefString(input.Name),
-		Description: input.Description,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		ID:           id,
+		Name:         derefString(input.Name),
+		Description:  input.Description,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -182,14 +182,14 @@ func (r *mutationResolver) UpdateEndUserPermissionBundle(ctx context.Context, id
 
 // DeleteEndUserPermissionBundle is the resolver for the deleteEndUserPermissionBundle field.
 func (r *mutationResolver) DeleteEndUserPermissionBundle(ctx context.Context, id string) (*generated.DeleteEndUserPermissionBundlePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	appErr := r.RBACBundleSvc.DeleteBundle(ctx, apprbac.DeleteBundleCommand{
-		OrgName: orgName,
-		ID:      id,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		ID:           id,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -204,7 +204,7 @@ func (r *mutationResolver) DeleteEndUserPermissionBundle(ctx context.Context, id
 
 // AddEndUserPermissionToBundle is the resolver for the addEndUserPermissionToBundle field.
 func (r *mutationResolver) AddEndUserPermissionToBundle(ctx context.Context, input generated.AddEndUserPermissionToBundleInput) (*generated.AddEndUserPermissionToBundlePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -215,7 +215,7 @@ func (r *mutationResolver) AddEndUserPermissionToBundle(ctx context.Context, inp
 	}
 
 	bundle, appErr := r.RBACBundleSvc.AddPermissionToBundle(ctx, apprbac.AddPermissionToBundleCommand{
-		OrgName:      orgName,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 		BundleID:     input.BundleID,
 		PermissionID: input.PermissionID,
 		SortOrder:    sortOrder,
@@ -234,7 +234,7 @@ func (r *mutationResolver) AddEndUserPermissionToBundle(ctx context.Context, inp
 
 // AddEndUserPresetToBundle is the resolver for the addEndUserPresetToBundle field.
 func (r *mutationResolver) AddEndUserPresetToBundle(ctx context.Context, input generated.AddEndUserPresetToBundleInput) (*generated.AddEndUserPresetToBundlePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -245,11 +245,11 @@ func (r *mutationResolver) AddEndUserPresetToBundle(ctx context.Context, input g
 	}
 
 	bundle, appErr := r.RBACBundleSvc.AddPresetToBundle(ctx, apprbac.AddPresetToBundleCommand{
-		OrgName:   orgName,
-		BundleID:  input.BundleID,
-		ModelID:   input.ModelID,
-		Preset:    rbacdomain.PermissionPreset(input.Preset),
-		SortOrder: sortOrder,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+		BundleID:     input.BundleID,
+		ModelID:      input.ModelID,
+		Preset:       rbacdomain.PermissionPreset(input.Preset),
+		SortOrder:    sortOrder,
 	})
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
@@ -266,13 +266,13 @@ func (r *mutationResolver) AddEndUserPresetToBundle(ctx context.Context, input g
 
 // RemoveEndUserPermissionFromBundle is the resolver for the removeEndUserPermissionFromBundle field.
 func (r *mutationResolver) RemoveEndUserPermissionFromBundle(ctx context.Context, input generated.RemoveEndUserPermissionFromBundleInput) (*generated.RemoveEndUserPermissionFromBundlePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	bundle, appErr := r.RBACBundleSvc.RemovePermissionFromBundle(ctx, apprbac.RemovePermissionFromBundleCommand{
-		OrgName:      orgName,
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 		BundleID:     input.BundleID,
 		PermissionID: input.PermissionID,
 	})
@@ -376,13 +376,13 @@ func (r *mutationResolver) RemoveDataPermissionItemFromBundle(ctx context.Contex
 
 // RestoreEndUserPermissionBundle is the resolver for the restoreEndUserPermissionBundle field.
 func (r *mutationResolver) RestoreEndUserPermissionBundle(ctx context.Context, input generated.RestoreEndUserPermissionBundleInput) (*generated.RestoreEndUserPermissionBundlePayload, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	result, appErr := r.RBACBundleSvc.RestoreBundle(ctx, apprbac.RestoreBundleCommand{
-		OrgName:       orgName,
+		ProjectScope:  domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
 		BundleID:      input.BundleID,
 		TargetVersion: int(input.TargetVersion),
 	})
@@ -652,11 +652,11 @@ func (r *queryResolver) EndUserPermissions(ctx context.Context, input *generated
 
 // EndUserPermissionBundle is the resolver for the endUserPermissionBundle field.
 func (r *queryResolver) EndUserPermissionBundle(ctx context.Context, id string) (*generated.EndUserPermissionBundle, error) {
-	orgName, _, err := getOrgAndProjectFromContext(ctx)
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}
-	bundle, appErr := r.RBACBundleSvc.GetBundleByID(ctx, orgName, id)
+	bundle, appErr := r.RBACBundleSvc.GetBundleByID(ctx, orgName, projectSlug, id)
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
 		return nil, appErr

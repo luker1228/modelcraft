@@ -13,7 +13,7 @@ import (
 
 type bundleRepository interface {
 	CreateBundle(ctx context.Context, b *rbacdomain.EndUserPermissionBundle) error
-	GetBundleByID(ctx context.Context, orgName, id string) (*rbacdomain.EndUserPermissionBundle, error)
+	GetBundleByID(ctx context.Context, orgName, projectSlug, id string) (*rbacdomain.EndUserPermissionBundle, error)
 	ListBundlesByProject(
 		ctx context.Context,
 		orgName, projectSlug string,
@@ -88,7 +88,7 @@ func (s *EndUserBundleAppService) UpdateBundle(
 	ctx context.Context,
 	cmd UpdateBundleCommand,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
-	existing, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.ID)
+	existing, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.ID)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, cmd.ID)
@@ -123,9 +123,9 @@ func (s *EndUserBundleAppService) DeleteBundle(
 // GetBundleByID 获取权限包（含 item 列表与快照）
 func (s *EndUserBundleAppService) GetBundleByID(
 	ctx context.Context,
-	orgName, id string,
+	orgName, projectSlug, id string,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
-	bundle, err := s.rbacRepo.GetBundleByID(ctx, orgName, id)
+	bundle, err := s.rbacRepo.GetBundleByID(ctx, orgName, projectSlug, id)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, id)
@@ -201,7 +201,7 @@ func (s *EndUserBundleAppService) AddPermissionToBundle(
 	ctx context.Context,
 	cmd AddPermissionToBundleCommand,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
-	if _, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID); err != nil {
+	if _, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID); err != nil {
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, cmd.BundleID)
 		}
@@ -231,7 +231,7 @@ func (s *EndUserBundleAppService) AddPermissionToBundle(
 	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
 		return nil, err
 	}
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID)
 }
 
 // AddPresetToBundle 绑定 preset item（replace 语义）
@@ -239,7 +239,7 @@ func (s *EndUserBundleAppService) AddPresetToBundle(
 	ctx context.Context,
 	cmd AddPresetToBundleCommand,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
-	if _, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID); err != nil {
+	if _, err := s.rbacRepo.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID); err != nil {
 		if shared.IsNotFoundError(err) {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, cmd.BundleID)
 		}
@@ -274,7 +274,7 @@ func (s *EndUserBundleAppService) AddPresetToBundle(
 	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
 		return nil, err
 	}
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID)
 }
 
 // RemovePermissionFromBundle 从权限包移除 custom item（按 permission 对应 model 删除）
@@ -296,7 +296,7 @@ func (s *EndUserBundleAppService) RemovePermissionFromBundle(
 	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
 		return nil, err
 	}
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID)
 }
 
 // BindPresetItem 绑定预设模板 item 到 bundle（replace 语义，显式 item-centric 入口）
@@ -307,13 +307,7 @@ func (s *EndUserBundleAppService) BindPresetItem(
 	if err := s.verifyBundleScope(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID); err != nil {
 		return nil, err
 	}
-	return s.AddPresetToBundle(ctx, AddPresetToBundleCommand{
-		OrgName:   cmd.OrgName,
-		BundleID:  cmd.BundleID,
-		ModelID:   cmd.ModelID,
-		Preset:    cmd.Preset,
-		SortOrder: cmd.SortOrder,
-	})
+	return s.AddPresetToBundle(ctx, AddPresetToBundleCommand(cmd))
 }
 
 // BindCustomItem 绑定自定义权限 item 到 bundle（replace 语义，显式 item-centric 入口）。
@@ -349,7 +343,7 @@ func (s *EndUserBundleAppService) BindCustomItem(
 	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
 		return nil, err
 	}
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID)
 }
 
 // RemoveDataPermissionItemFromBundle 从权限包移除指定模型的 data permission item（按 modelID）
@@ -367,7 +361,7 @@ func (s *EndUserBundleAppService) RemoveDataPermissionItemFromBundle(
 	if err := s.saveBundleSnapshot(ctx, cmd.BundleID); err != nil {
 		return nil, err
 	}
-	return s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	return s.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID)
 }
 
 // verifyBundleScope 校验 bundle 归属（org + project），防止跨 project 操作。
@@ -375,7 +369,7 @@ func (s *EndUserBundleAppService) verifyBundleScope(
 	ctx context.Context,
 	orgName, projectSlug, bundleID string,
 ) error {
-	b, err := s.rbacRepo.GetBundleByID(ctx, orgName, bundleID)
+	b, err := s.rbacRepo.GetBundleByID(ctx, orgName, projectSlug, bundleID)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserPermissionBundleNotFound, bundleID)
@@ -521,7 +515,7 @@ func (s *EndUserBundleAppService) RestoreBundle(
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	bundle, err := s.GetBundleByID(ctx, cmd.OrgName, cmd.BundleID)
+	bundle, err := s.GetBundleByID(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.BundleID)
 	if err != nil {
 		return nil, err
 	}

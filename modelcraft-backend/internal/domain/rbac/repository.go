@@ -52,8 +52,8 @@ type EndUserPermissionRepository interface {
 	// CreateBundle 创建权限包（org + project scoped，orgName 由实体携带）
 	CreateBundle(ctx context.Context, b *EndUserPermissionBundle) error
 
-	// GetBundleByID 根据 ID 获取权限包（org scoped）
-	GetBundleByID(ctx context.Context, orgName, id string) (*EndUserPermissionBundle, error)
+	// GetBundleByID 根据 ID 获取权限包（org + project scoped）
+	GetBundleByID(ctx context.Context, orgName, projectSlug, id string) (*EndUserPermissionBundle, error)
 
 	// ListBundlesByProject 列出项目下所有权限包（org + project scoped）
 	ListBundlesByProject(ctx context.Context, orgName, projectSlug string) ([]*EndUserPermissionBundle, error)

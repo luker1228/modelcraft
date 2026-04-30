@@ -379,7 +379,7 @@ func (m *mockBundleRepo) CreateBundle(_ context.Context, _ *rbacdomain.EndUserPe
 
 func (m *mockBundleRepo) GetBundleByID(
 	_ context.Context,
-	orgName, id string,
+	orgName, _, id string,
 ) (*rbacdomain.EndUserPermissionBundle, error) {
 	if m.bundle == nil || m.bundle.OrgName != orgName || m.bundle.ID != id {
 		return nil, shared.NewNotFoundError("bundle not found")
@@ -618,11 +618,11 @@ func TestAddPresetToBundle(t *testing.T) {
 		}
 
 		cmd := AddPresetToBundleCommand{
-			OrgName:   orgName,
-			BundleID:  bundleID,
-			ModelID:   modelID,
-			Preset:    rbacdomain.PresetReadAll,
-			SortOrder: 1,
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			BundleID:     bundleID,
+			ModelID:      modelID,
+			Preset:       rbacdomain.PresetReadAll,
+			SortOrder:    1,
 		}
 		_, err := svc.AddPresetToBundle(context.Background(), cmd)
 		require.NoError(t, err)
@@ -647,11 +647,11 @@ func TestAddPresetToBundle(t *testing.T) {
 		}
 
 		_, err := svc.AddPresetToBundle(context.Background(), AddPresetToBundleCommand{
-			OrgName:   orgName,
-			BundleID:  bundleID,
-			ModelID:   modelID,
-			Preset:    rbacdomain.PresetReadWriteAll,
-			SortOrder: 2,
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			BundleID:     bundleID,
+			ModelID:      modelID,
+			Preset:       rbacdomain.PresetReadWriteAll,
+			SortOrder:    2,
 		})
 		require.NoError(t, err)
 
@@ -673,11 +673,11 @@ func TestAddPresetToBundle(t *testing.T) {
 		}
 
 		_, err := svc.AddPresetToBundle(context.Background(), AddPresetToBundleCommand{
-			OrgName:   orgName,
-			BundleID:  bundleID,
-			ModelID:   modelID,
-			Preset:    rbacdomain.PresetReadWriteOwner,
-			SortOrder: 3,
+			ProjectScope: project.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+			BundleID:     bundleID,
+			ModelID:      modelID,
+			Preset:       rbacdomain.PresetReadWriteOwner,
+			SortOrder:    3,
 		})
 		require.Error(t, err)
 		var bizErr *bizerrors.BusinessError

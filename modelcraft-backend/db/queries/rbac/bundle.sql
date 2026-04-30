@@ -12,7 +12,8 @@ VALUES (?, ?, ?, ?, ?);
 SELECT *
 FROM end_user_permission_bundles
 WHERE id = ?
-  AND org_name = ?;
+  AND org_name = ?
+  AND project_slug = ?;
 
 -- name: ListEndUserBundlesByProject :many
 SELECT *

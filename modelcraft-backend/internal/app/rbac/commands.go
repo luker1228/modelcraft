@@ -49,40 +49,40 @@ type CreateBundleCommand struct {
 
 // UpdateBundleCommand 更新权限包命令
 type UpdateBundleCommand struct {
-	OrgName     string
-	ID          string
-	Name        string
-	Description *string
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	ID                   string
+	Name                 string
+	Description          *string
 }
 
 // DeleteBundleCommand 删除权限包命令
 type DeleteBundleCommand struct {
-	OrgName string
-	ID      string
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	ID                   string
 }
 
 // AddPermissionToBundleCommand 向权限包添加权限点命令
 type AddPermissionToBundleCommand struct {
-	OrgName      string
-	BundleID     string
-	PermissionID string
-	SortOrder    int
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	PermissionID         string
+	SortOrder            int
 }
 
 // AddPresetToBundleCommand 向权限包添加模型预设权限命令（后端自动 ensure 预设权限点）
 type AddPresetToBundleCommand struct {
-	OrgName   string
-	BundleID  string
-	ModelID   string
-	Preset    rbacdomain.PermissionPreset
-	SortOrder int
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	ModelID              string
+	Preset               rbacdomain.PermissionPreset
+	SortOrder            int
 }
 
 // RemovePermissionFromBundleCommand 从权限包移除权限点命令
 type RemovePermissionFromBundleCommand struct {
-	OrgName      string
-	BundleID     string
-	PermissionID string
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	PermissionID         string
 }
 
 // CreateRoleCommand 创建 RBAC 角色命令
@@ -151,9 +151,9 @@ type RevokeRoleFromUserCommand struct {
 
 // RestoreBundleCommand 回滚权限包到历史快照命令
 type RestoreBundleCommand struct {
-	OrgName       string
-	BundleID      string
-	TargetVersion int
+	project.ProjectScope // 嵌入: OrgName + ProjectSlug
+	BundleID             string
+	TargetVersion        int
 }
 
 // RestoreBundleResult 回滚权限包结果

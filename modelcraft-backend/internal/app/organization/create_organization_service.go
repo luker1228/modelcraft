@@ -224,19 +224,43 @@ func (s *CreateOrganizationService) checkOrgNameAvailable(ctx context.Context, o
 	return nil
 }
 
-// getOwnerRole retrieves the owner system role
+// getOwnerRole ensures all four system roles exist and returns the owner role.
+//
+// The startup SystemRolePermissionsSyncer creates the roles once, but if the DB is
+// reset or migrated while the server is running they can disappear. This method
+// re-creates any missing system role so that registration always succeeds.
 func (s *CreateOrganizationService) getOwnerRole(ctx context.Context) (*domainPermission.Role, error) {
 	logger := logfacade.GetLogger(ctx)
-	ownerRole, err := s.roleRepo.GetRoleByNameAndOrg(ctx, "owner", "__SYSTEM__")
-	if err != nil {
-		logger.Error(ctx, "Failed to get owner system role", logfacade.Err(err))
-		return nil, bizerrors.Wrap(err, "Failed to get owner role")
+
+	var ownerRole *domainPermission.Role
+
+	for _, roleName := range domainPermission.SystemRoles {
+		role, err := s.roleRepo.GetRoleByNameAndOrg(ctx, roleName, domainPermission.SystemOrgName)
+		if err != nil {
+			if !shared.IsNotFoundError(err) {
+				logger.Error(ctx, "Failed to get system role", logfacade.Err(err))
+				return nil, bizerrors.Wrapf(err, "failed to get system role: %s", roleName)
+			}
+			// Role absent (e.g. DB was reset after startup). Recreate it.
+			logger.Warnf(ctx, "System role %q not found in DB — recreating "+
+				"(DB may have been reset after startup)", roleName)
+			role = &domainPermission.Role{
+				Name:     roleName,
+				IsSystem: true,
+				OrgName:  domainPermission.SystemOrgName,
+			}
+			if createErr := s.roleRepo.CreateRole(ctx, role); createErr != nil {
+				logger.Error(ctx, "Failed to recreate system role", logfacade.Err(createErr))
+				return nil, bizerrors.Wrapf(createErr, "failed to recreate system role: %s", roleName)
+			}
+			logger.Infof(ctx, "System role %q recreated: roleID=%d", roleName, role.ID)
+		}
+		if roleName == domainPermission.RoleOwner {
+			ownerRole = role
+		}
 	}
-	if ownerRole == nil {
-		logger.Error(ctx, "Owner system role not found in database")
-		return nil, bizerrors.NewError(bizerrors.SystemError, "Owner system role not found")
-	}
-	logger.Infof(ctx, "Owner role found: roleID=%d", ownerRole.ID)
+
+	logger.Infof(ctx, "Owner role ready: roleID=%d", ownerRole.ID)
 	return ownerRole, nil
 }
 
