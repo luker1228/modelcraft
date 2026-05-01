@@ -680,6 +680,23 @@ func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 }
 
+// SetupPublicEndUserAuthRoutesOnChi 注册 EndUser 公开认证路由（无需 X-Internal-Token）。
+// orgName 通过请求 body 传入，端点对浏览器直接可达，与开发者 /api/auth/* 路由对称。
+func SetupPublicEndUserAuthRoutesOnChi(router chi.Router, handlers *DesignHandlers) {
+	if handlers.EndUserAuthHandler == nil {
+		return
+	}
+
+	router.Route("/api/end-user/auth", func(r chi.Router) {
+		r.Use(requestIDInjectorMiddleware)
+		r.Post("/login", handlers.EndUserAuthHandler.PublicLogin)
+		r.Post("/register", handlers.EndUserAuthHandler.PublicRegister)
+		r.Post("/logout", handlers.EndUserAuthHandler.PublicLogout)
+		r.Post("/refresh", handlers.EndUserAuthHandler.PublicRefresh)
+		r.Post("/select-project", handlers.EndUserAuthHandler.PublicSelectProject)
+	})
+}
+
 // SetupEndUserRoutesOnChi registers End-User internal HTTP routes.
 // All routes keep the same internal-route middleware strategy currently used in this package.
 func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {

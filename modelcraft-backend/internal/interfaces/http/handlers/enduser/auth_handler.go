@@ -28,7 +28,20 @@ type authCredentialRequest struct {
 	Password string `json:"password"`
 }
 
+// publicAuthCredentialRequest is used by public endpoints where orgName comes from the request body.
+type publicAuthCredentialRequest struct {
+	OrgName  string `json:"orgName"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
 type refreshLogoutRequest struct {
+	RefreshToken string `json:"refreshToken"`
+}
+
+// publicRefreshLogoutRequest is used by public endpoints where orgName comes from the request body.
+type publicRefreshLogoutRequest struct {
+	OrgName      string `json:"orgName"`
 	RefreshToken string `json:"refreshToken"`
 }
 
@@ -286,6 +299,197 @@ func (h *AuthHandler) Me(w http.ResponseWriter, r *http.Request) {
 			CreatedAt:   &createdAt,
 			UpdatedAt:   &updatedAt,
 		},
+	})
+}
+
+// ============================================================
+// Public EndUser Auth Endpoints (no X-Internal-Token, orgName in body)
+// ============================================================
+
+// PublicLogin 处理 POST /api/end-user/auth/login。
+// orgName 从请求 body 读取，无需 X-Internal-Token。
+func (h *AuthHandler) PublicLogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req publicAuthCredentialRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "Invalid request body")
+		return
+	}
+	if req.OrgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
+		return
+	}
+
+	result, err := h.authService.LoginEndUser(ctx, appEnduser.LoginCommand{
+		OrgName:  req.OrgName,
+		Username: req.Username,
+		Password: req.Password,
+	})
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "End-user public login failed")
+		return
+	}
+
+	projects := make([]accessibleProjectResponse, 0, len(result.Projects))
+	for _, item := range result.Projects {
+		projects = append(projects, accessibleProjectResponse{Slug: item.Slug, Title: item.Title})
+	}
+
+	h.writeJSON(w, http.StatusOK, authTokenResponse{
+		RequestID:    requestID,
+		UserID:       result.UserID,
+		AccessToken:  result.AccessToken,
+		Projects:     projects,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z"),
+	})
+}
+
+// PublicRegister 处理 POST /api/end-user/auth/register。
+// orgName 和 projectSlug 从请求 body 读取，无需 X-Internal-Token。
+func (h *AuthHandler) PublicRegister(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req struct {
+		OrgName     string `json:"orgName"`
+		ProjectSlug string `json:"projectSlug"`
+		Username    string `json:"username"`
+		Password    string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "Invalid request body")
+		return
+	}
+	if req.OrgName == "" || req.ProjectSlug == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName and projectSlug are required")
+		return
+	}
+
+	result, err := h.authService.RegisterEndUser(ctx, appEnduser.RegisterCommand{
+		OrgName:     req.OrgName,
+		ProjectSlug: req.ProjectSlug,
+		Username:    req.Username,
+		Password:    req.Password,
+	})
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "End-user public register failed")
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, authTokenResponse{
+		RequestID:    requestID,
+		UserID:       result.UserID,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z"),
+	})
+}
+
+// PublicLogout 处理 POST /api/end-user/auth/logout。
+// orgName 从请求 body 读取，无需 X-Internal-Token。
+func (h *AuthHandler) PublicLogout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req publicRefreshLogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "Invalid request body")
+		return
+	}
+	if req.OrgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
+		return
+	}
+
+	err := h.authService.LogoutEndUser(ctx, appEnduser.LogoutCommand{
+		OrgName:      req.OrgName,
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "End-user public logout failed")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// PublicRefresh 处理 POST /api/end-user/auth/refresh。
+// orgName 从请求 body 读取，无需 X-Internal-Token。
+func (h *AuthHandler) PublicRefresh(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req publicRefreshLogoutRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "Invalid request body")
+		return
+	}
+	if req.OrgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
+		return
+	}
+
+	result, err := h.authService.RefreshEndUserToken(ctx, appEnduser.RefreshCommand{
+		OrgName:      req.OrgName,
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "End-user public refresh failed")
+		return
+	}
+
+	projects := make([]accessibleProjectResponse, 0, len(result.Projects))
+	for _, item := range result.Projects {
+		projects = append(projects, accessibleProjectResponse{Slug: item.Slug, Title: item.Title})
+	}
+
+	h.writeJSON(w, http.StatusOK, authTokenResponse{
+		RequestID:    requestID,
+		UserID:       result.UserID,
+		AccessToken:  result.AccessToken,
+		Projects:     projects,
+		RefreshToken: result.RefreshToken,
+		ExpiresAt:    result.ExpiresAt.UTC().Format("2006-01-02T15:04:05Z"),
+	})
+}
+
+// PublicSelectProject 处理 POST /api/end-user/auth/select-project。
+// orgName 从请求 body 读取，无需 X-Internal-Token。
+func (h *AuthHandler) PublicSelectProject(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req struct {
+		OrgName      string `json:"orgName"`
+		RefreshToken string `json:"refreshToken"`
+		ProjectSlug  string `json:"projectSlug"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "Invalid request body")
+		return
+	}
+	if req.OrgName == "" || req.RefreshToken == "" || req.ProjectSlug == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID",
+			"orgName, refreshToken and projectSlug are required")
+		return
+	}
+
+	result, err := h.authService.SelectProjectContext(ctx, appEnduser.SelectProjectCommand{
+		OrgName:      req.OrgName,
+		ProjectSlug:  req.ProjectSlug,
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		h.handleBusinessError(w, r, requestID, err, "End-user public select-project failed")
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, authTokenResponse{
+		RequestID:       requestID,
+		UserID:          result.UserID,
+		SelectedProject: result.ProjectSlug,
 	})
 }
 

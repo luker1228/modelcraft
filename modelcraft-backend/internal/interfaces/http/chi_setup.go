@@ -113,6 +113,13 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	}
 
 	// ============================================================
+	// Public End-User Auth Routes (no X-Internal-Token, orgName in body)
+	// ============================================================
+	if cfg.DesignHandlers != nil {
+		SetupPublicEndUserAuthRoutesOnChi(r, cfg.DesignHandlers)
+	}
+
+	// ============================================================
 	// GraphQL Routes - End-User API
 	// ============================================================
 	if cfg.DesignHandlers != nil {
@@ -206,7 +213,7 @@ func healthHandler(cfg *ChiRouterConfig) http.HandlerFunc {
 func debugHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		fmt.Fprintf(w, `{"message":"Test endpoint (GET /test) - debug mode only"}`)
+		_, _ = fmt.Fprintf(w, `{"message":"Test endpoint (GET /test) - debug mode only"}`)
 	}
 }
 
@@ -216,7 +223,7 @@ func openAPISpecHandler() http.HandlerFunc {
 		spec, err := generated.GetSwagger()
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprintf(w, `{"error":"Failed to load OpenAPI spec"}`)
+			_, _ = fmt.Fprintf(w, `{"error":"Failed to load OpenAPI spec"}`)
 			return
 		}
 		// Clear servers so clients use relative URLs
