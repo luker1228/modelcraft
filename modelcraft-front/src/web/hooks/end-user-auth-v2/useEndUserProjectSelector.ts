@@ -15,9 +15,7 @@ import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface SelectProjectBffResponse {
   error?: { code?: string; message?: string }
-  accessToken?: string
-  expiresIn?: number
-  projectSlug?: string
+  selectedProject?: string
 }
 
 export interface UseEndUserProjectSelectorReturn {
@@ -76,10 +74,21 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
     setError(null)
 
     try {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/select-project`, {
+      const refreshToken = sessionStorage.getItem(`eu_refresh_token_${orgName}`)
+      if (!refreshToken) {
+        setError('会话已过期，请重新登录')
+        setTimeout(() => router.push(`/end-user/${orgName}/login`), 1500)
+        return
+      }
+
+      const res = await fetch(`/api/end-user/auth/select-project`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectSlug: selectedSlug }),
+        body: JSON.stringify({
+          orgName,
+          refreshToken,
+          projectSlug: selectedSlug,
+        }),
       })
 
       const data = (await res.json()) as SelectProjectBffResponse
@@ -96,9 +105,30 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
 
       // Clean up sessionStorage
       sessionStorage.removeItem(`eu_accessible_projects_${orgName}`)
+      sessionStorage.removeItem(`eu_refresh_token_${orgName}`)
 
-      setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
-      router.push(`/end-user/${orgName}/${data.projectSlug ?? ''}/data`)
+      // Select-project 只返回 selectedProject；真正 access token 通过 refresh 获取
+      const refreshRes = await fetch('/api/end-user/auth/refresh', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgName, refreshToken }),
+      })
+
+      if (!refreshRes.ok) {
+        setError('会话已过期，请重新登录')
+        setTimeout(() => router.push(`/end-user/${orgName}/login`), 1500)
+        return
+      }
+
+      const refreshData = (await refreshRes.json()) as {
+        accessToken?: string
+        expiresAt?: string
+      }
+      const expiresIn = refreshData.expiresAt
+        ? Math.max(1, Math.floor((new Date(refreshData.expiresAt).getTime() - Date.now()) / 1000))
+        : 3600
+      setEndUserToken(refreshData.accessToken ?? '', expiresIn)
+      router.push(`/end-user/${orgName}/${data.selectedProject ?? selectedSlug}/data`)
     } catch {
       setError('网络错误，请检查连接后重试')
     } finally {

@@ -92,6 +92,15 @@ func main() {
 		r.Post("/logout", authHandler.Logout)
 	})
 
+	// Public end-user auth endpoints — no JWT required.
+	r.Route("/api/end-user/auth", func(r chi.Router) {
+		r.Post("/login", authHandler.EndUserLogin)
+		r.Post("/register", authHandler.EndUserRegister)
+		r.Post("/refresh", authHandler.EndUserRefresh)
+		r.Post("/logout", authHandler.EndUserLogout)
+		r.Post("/select-project", authHandler.EndUserSelectProject)
+	})
+
 	// GraphQL proxy endpoints — JWT required (validated inside handler).
 	r.Post("/graphql/org/{orgName}", proxyHandler.GraphQLOrgHandler)
 	r.Post("/graphql/org/{orgName}/", proxyHandler.GraphQLOrgHandler)

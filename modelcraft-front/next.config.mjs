@@ -121,10 +121,10 @@ const nextConfig = {
         source: '/api/bff/graphql/org/:orgName/:path*',
         destination: `${backendUrl}/graphql/org/:orgName/:path*`,
       },
-      // 终端用户认证 & 数据接口代理
+      // 终端用户公开认证接口（JWT）
       {
-        source: '/end-user/:path*',
-        destination: `${backendUrl}/end-user/:path*`,
+        source: '/api/end-user/:path*',
+        destination: `${backendUrl}/api/end-user/:path*`,
       },
       // 内部 API（终端用户数据）
       {

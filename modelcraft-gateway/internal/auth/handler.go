@@ -117,6 +117,97 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+// EndUserLogin proxies to backend /api/end-user/auth/login and manages end-user refresh cookie.
+func (h *Handler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
+	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/login", r.Body)
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+
+	h.extractRefreshAndProxy(w, http.StatusOK, raw)
+}
+
+// EndUserRegister proxies to backend /api/end-user/auth/register and manages end-user refresh cookie.
+func (h *Handler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
+	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/register", r.Body)
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+
+	h.extractRefreshAndProxy(w, http.StatusOK, raw)
+}
+
+// EndUserRefresh reads end-user refresh cookie and proxies to backend /api/end-user/auth/refresh.
+func (h *Handler) EndUserRefresh(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := h.authService.GetRefreshCookie(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "REFRESH_MISSING", "refresh token not found")
+		return
+	}
+
+	var req map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "failed to parse request body")
+		return
+	}
+	req["refreshToken"] = refreshToken
+
+	body, _ := json.Marshal(req)
+	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/refresh", bytes.NewReader(body))
+	if err != nil {
+		h.authService.ClearRefreshCookie(w)
+		writeError(w, http.StatusUnauthorized, "REFRESH_INVALID", "invalid or expired refresh token")
+		return
+	}
+
+	h.extractRefreshAndProxy(w, http.StatusOK, raw)
+}
+
+// EndUserLogout reads end-user refresh cookie, proxies to backend /api/end-user/auth/logout, then clears cookie.
+func (h *Handler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
+	refreshToken, _ := h.authService.GetRefreshCookie(r)
+	if refreshToken != "" {
+		var req map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			req = map[string]any{}
+		}
+		req["refreshToken"] = refreshToken
+
+		body, _ := json.Marshal(req)
+		_, _ = h.postBackendRaw(r.Context(), "/api/end-user/auth/logout", bytes.NewReader(body))
+	}
+
+	h.authService.ClearRefreshCookie(w)
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// EndUserSelectProject reads end-user refresh cookie and proxies to backend /api/end-user/auth/select-project.
+func (h *Handler) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
+	refreshToken, err := h.authService.GetRefreshCookie(r)
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "REFRESH_MISSING", "refresh token not found")
+		return
+	}
+
+	var req map[string]any
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "INVALID_BODY", "failed to parse request body")
+		return
+	}
+	req["refreshToken"] = refreshToken
+
+	body, _ := json.Marshal(req)
+	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/select-project", bytes.NewReader(body))
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, json.RawMessage(raw))
+}
+
 // ---- proxy helpers ----
 
 // extractRefreshAndProxy extracts "refreshToken" from the raw JSON body,

@@ -12,9 +12,9 @@ import { NextRequest, NextResponse } from 'next/server'
  *    silent refresh (/api/bff/auth/refresh) after the page loads.
  *
  * End-User Auth:
- *  - End-user routes moved to /u/{orgName}/{projectSlug}/*
- *  - /u/{orgName}/login is public
- *  - /u/{orgName}/{projectSlug}/data/* requires end_user_refresh_token
+ *  - End-user routes use /end-user/{orgName}/{projectSlug}/*
+ *  - /end-user/{orgName}/login is public
+ *  - /end-user/{orgName}/{projectSlug}/data/* requires end_user_refresh_token
  *
  * Legacy End-User Routes:
  *  - /org/{org}/project/{project}/user/* and /data/* are retired immediately.
@@ -36,12 +36,12 @@ const COOKIE_NAME = 'mc_refresh_token'
 // ============================================
 const END_USER_COOKIE = 'end_user_refresh_token'
 
-const END_USER_LOGIN_RE = /^\/u\/[^/]+\/login$/
-const END_USER_DATA_RE = /^\/u\/[^/]+\/[^/]+\/data(\/.*)?$/
+const END_USER_LOGIN_RE = /^\/end-user\/[^/]+\/login$/
+const END_USER_DATA_RE = /^\/end-user\/[^/]+\/[^/]+\/data(\/.*)?$/
 const LEGACY_END_USER_RE = /^\/org\/[^/]+\/project\/[^/]+\/(user(\/.*)?|data(\/.*)?)$/
 
 function extractEndUserParams(pathname: string): { orgName: string; projectSlug: string } | null {
-  const match = pathname.match(/^\/u\/([^/]+)\/([^/]+)/)
+  const match = pathname.match(/^\/end-user\/([^/]+)\/([^/]+)/)
   if (!match) return null
   return { orgName: match[1], projectSlug: match[2] }
 }
@@ -88,8 +88,8 @@ export function middleware(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // 非 data/login 的 /u 路径不归 developer 鉴权，交给 Next.js 正常路由（通常 404）
-  if (pathname.startsWith('/u/')) {
+  // 非 data/login 的 /end-user 路径不归 developer 鉴权，交给 Next.js 正常路由（通常 404）
+  if (pathname.startsWith('/end-user/')) {
     return NextResponse.next()
   }
 

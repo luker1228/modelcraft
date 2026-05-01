@@ -19,13 +19,10 @@ import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface EndUserOrgLoginBffResponse {
   error?: { code?: string; message?: string }
-  singleProject?: boolean
   accessToken?: string
-  expiresIn?: number
-  projectSlug?: string
+  expiresAt?: string
   projects?: EndUserAccessibleProject[]
-  noProjectAccess?: boolean
-  message?: string
+  refreshToken?: string
 }
 
 // ============================================================================
@@ -96,10 +93,14 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
       setError(null)
 
       try {
-        const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/login`, {
+        const res = await fetch(`/api/end-user/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(values),
+          body: JSON.stringify({
+            orgName,
+            username: values.username,
+            password: values.password,
+          }),
         })
 
         const data = (await res.json()) as EndUserOrgLoginBffResponse
@@ -109,24 +110,29 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
           return
         }
 
-        if (data.singleProject) {
-          // 只有 1 个可访问项目 → 直接写入 token，进入数据页
-          setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
-          router.push(`/end-user/${orgName}/${data.projectSlug ?? ''}/data`)
-        } else {
-          if (data.noProjectAccess) {
-            router.push(`/end-user/${orgName}/no-project-access`)
-            return
-          }
+        const projects: EndUserAccessibleProject[] = data.projects ?? []
 
-          // 多个可访问项目 → 存入 sessionStorage，跳转选择页
-          const projects: EndUserAccessibleProject[] = data.projects ?? []
-          sessionStorage.setItem(
-            `eu_accessible_projects_${orgName}`,
-            JSON.stringify(projects)
-          )
-          router.push(`/end-user/${orgName}/select-project`)
+        if (projects.length === 0) {
+          router.push(`/end-user/${orgName}/no-project-access`)
+          return
         }
+
+        if (data.refreshToken) {
+          sessionStorage.setItem(`eu_refresh_token_${orgName}`, data.refreshToken)
+        }
+
+        if (projects.length === 1) {
+          const projectSlug = projects[0].slug
+          const expiresIn = data.expiresAt
+            ? Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000))
+            : 3600
+          setEndUserToken(data.accessToken ?? '', expiresIn)
+          router.push(`/end-user/${orgName}/${projectSlug}/data`)
+          return
+        }
+
+        sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
+        router.push(`/end-user/${orgName}/select-project`)
       } catch {
         setError('网络错误，请检查连接后重试')
       } finally {
