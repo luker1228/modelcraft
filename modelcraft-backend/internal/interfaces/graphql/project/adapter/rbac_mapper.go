@@ -2,6 +2,7 @@ package adapter
 
 import (
 	"modelcraft/internal/interfaces/graphql/project/generated"
+	"sort"
 	"strings"
 	"time"
 
@@ -112,6 +113,21 @@ func ToEndUserPermissionBundleDTOWithModels(
 		}
 		itemDTOs = append(itemDTOs, ToDataPermissionItemDTO(item, model))
 	}
+	// 固定排序：databaseName ASC，相同 databaseName 下 updatedAt DESC
+	sort.Slice(itemDTOs, func(i, j int) bool {
+		di := ""
+		if itemDTOs[i].DatabaseName != nil {
+			di = *itemDTOs[i].DatabaseName
+		}
+		dj := ""
+		if itemDTOs[j].DatabaseName != nil {
+			dj = *itemDTOs[j].DatabaseName
+		}
+		if di != dj {
+			return di < dj
+		}
+		return itemDTOs[i].UpdatedAt.After(itemDTOs[j].UpdatedAt)
+	})
 
 	// 计算 currentVersion（最新快照的版本号，无快照时为 0）
 	var currentVersion int32
