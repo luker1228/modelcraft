@@ -73,6 +73,12 @@ export interface EndUserBundleDataPermissionItem {
   customPermissionId?: string | null
   /** grantType=CUSTOM 时，引用的自定义权限点摘要 */
   customPermission?: EndUserPermission | null
+  /** 模型的技术名（对应数据库表名） */
+  modelName?: string | null
+  /** 模型所属数据库名 */
+  databaseName?: string | null
+  /** 模型的显示标题 */
+  modelTitle?: string | null
   sortOrder: number
   createdAt: string
   updatedAt: string

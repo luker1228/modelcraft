@@ -18,7 +18,11 @@
       "mcp__playwright__browser_run_code",
       "mcp__playwright__browser_click",
       "Bash(awk '{print \"   \"$9\" \\(\"$5\"\\)\"}')",
-      "Bash(command -v just)"
+      "Bash(command -v just)",
+      "Bash(git -C ~/modelcraft-project/modelcraft-go log --all --oneline --grep=\"bundle\\\\|permission\" -i)",
+      "Bash(git -C ~/modelcraft-project/modelcraft-go branch -a)",
+      "Bash(git -C ~/modelcraft-project/modelcraft-go log --all --oneline)",
+      "Bash(git -C ~/modelcraft-project/modelcraft-go log --oneline --all)"
     ]
   }
 }

@@ -100,16 +100,16 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
 
         if (data.singleProject) {
           setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
-          router.push(`/u/${orgName}/${data.projectSlug ?? ''}/data`)
+          router.push(`/end-user/${orgName}/${data.projectSlug ?? ''}/data`)
         } else {
           if (data.noProjectAccess) {
-            router.push(`/u/${orgName}/no-project-access`)
+            router.push(`/end-user/${orgName}/no-project-access`)
             return
           }
 
           const projects: EndUserAccessibleProject[] = data.projects ?? []
           sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
-          router.push(`/u/${orgName}/select-project`)
+          router.push(`/end-user/${orgName}/select-project`)
         }
       } catch {
         setError('网络错误，请检查连接后重试')

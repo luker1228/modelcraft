@@ -87,7 +87,7 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
       if (!res.ok) {
         if (res.status === 401) {
           setError('会话已过期，请重新登录')
-          setTimeout(() => router.push(`/u/${orgName}/login`), 1500)
+          setTimeout(() => router.push(`/end-user/${orgName}/login`), 1500)
           return
         }
         setError(data.error?.message ?? '选择项目失败，请重试')
@@ -98,7 +98,7 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
       sessionStorage.removeItem(`eu_accessible_projects_${orgName}`)
 
       setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
-      router.push(`/u/${orgName}/${data.projectSlug ?? ''}/data`)
+      router.push(`/end-user/${orgName}/${data.projectSlug ?? ''}/data`)
     } catch {
       setError('网络错误，请检查连接后重试')
     } finally {

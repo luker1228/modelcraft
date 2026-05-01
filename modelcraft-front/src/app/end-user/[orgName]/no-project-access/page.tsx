@@ -44,10 +44,10 @@ export default async function NoProjectAccessPage({ params }: NoProjectAccessPag
 
           <div className="flex flex-col gap-2">
             <Button asChild>
-              <Link href={`/u/${orgName}/login`}>我已申请，重新登录</Link>
+              <Link href={`/end-user/${orgName}/login`}>我已申请，重新登录</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`/u/${orgName}/login`}>返回登录页</Link>
+              <Link href={`/end-user/${orgName}/login`}>返回登录页</Link>
             </Button>
           </div>
         </CardContent>

@@ -20,7 +20,7 @@ export default function OrgLoginSettingsPage() {
   const [saving, setSaving] = useState(false)
 
   const endUserLoginPath = useMemo(() => {
-    return `/u/${orgName}/login`
+    return `/end-user/${orgName}/login`
   }, [orgName])
 
   const handleSave = () => {

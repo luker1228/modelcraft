@@ -15,7 +15,6 @@ import {
   X,
   Clock,
   RotateCcw,
-  AlertTriangle,
 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -23,6 +22,13 @@ import { Button } from '@web/components/ui/button'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { ScrollArea } from '@web/components/ui/scroll-area'
 import { Badge } from '@web/components/ui/badge'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@web/components/ui/select'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -90,10 +96,12 @@ const COLUMN_MODE_LABEL: Record<string, string> = {
 function formatTs(iso: string): string {
   const d = new Date(iso)
   return d.toLocaleString('zh-CN', {
+    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
     minute: '2-digit',
+    hour12: false,
   })
 }
 
@@ -402,8 +410,6 @@ interface AddItemDialogProps {
   projectSlug: string
   onBindPreset: (modelId: string, preset: EndUserPermissionPreset) => Promise<MutationResultMin>
   onBindCustom: (modelId: string, customPermissionId: string) => Promise<MutationResultMin>
-  /** 选中模型时将 modelId → option 写入父层 map，供列表行展示 */
-  onModelCached: (model: ModelOption) => void
   allPermissions: EndUserPermission[]
 }
 
@@ -433,7 +439,6 @@ function AddItemDialog({
   projectSlug,
   onBindPreset,
   onBindCustom,
-  onModelCached,
   allPermissions,
 }: AddItemDialogProps) {
   const projectClient = useProjectScopedClient(projectSlug, orgName)
@@ -492,8 +497,6 @@ function AddItemDialog({
     if (!selectedModelId) return []
     return allPermissions.filter((p) => p.modelId === selectedModelId)
   }, [allPermissions, selectedModelId])
-
-  const isReplacing = selectedModelId ? configuredModelIds.has(selectedModelId) : false
 
   const canSubmit =
     selectedModelId &&
@@ -609,17 +612,20 @@ function AddItemDialog({
                       <button
                         key={model.id}
                         type="button"
+                        disabled={isConfigured}
                         onClick={() => {
+                          if (isConfigured) return
                           setSelectedModelId(model.id)
                           setSelectedPreset(null)
                           setSelectedCustomPermId(null)
-                          onModelCached({ ...model, databaseName: selectedDatabase ?? undefined })
                         }}
                         className={cn(
                           'flex w-full items-start gap-2 px-3 py-2 text-left transition-colors',
-                          isSelected
-                            ? 'bg-[rgba(79,70,229,0.08)] text-primary'
-                            : 'text-foreground hover:bg-foreground/[0.04]',
+                          isConfigured
+                            ? 'cursor-not-allowed opacity-40'
+                            : isSelected
+                              ? 'bg-[rgba(79,70,229,0.08)] text-primary'
+                              : 'text-foreground hover:bg-foreground/[0.04]',
                         )}
                       >
                         <div className="min-w-0 flex-1">
@@ -631,7 +637,7 @@ function AddItemDialog({
                           </p>
                         </div>
                         {isConfigured && (
-                          <span className="mt-0.5 shrink-0 rounded bg-amber-50 px-1 py-px font-mono text-[10px] text-amber-600">
+                          <span className="mt-0.5 shrink-0 rounded bg-muted px-1 py-px font-mono text-[10px] text-muted-foreground">
                             已配置
                           </span>
                         )}
@@ -670,13 +676,6 @@ function AddItemDialog({
             ) : (
               <ScrollArea className="flex-1">
                 <div className="space-y-2 p-4">
-                  {isReplacing && (
-                    <div className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
-                      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
-                      <span>该数据表已有配置项，提交后将<strong>替换</strong>现有配置</span>
-                    </div>
-                  )}
-
                   {bindMode === 'preset' ? (
                     presetsLoading ? (
                       <div className="space-y-2 pt-2">
@@ -763,7 +762,7 @@ function AddItemDialog({
                 disabled={!canSubmit || submitting}
               >
                 {submitting && <Loader2 className="mr-1.5 size-3.5 animate-spin" />}
-                {isReplacing ? '替换配置' : '确认添加'}
+                确认添加
               </Button>
             </div>
           </div>
@@ -796,12 +795,7 @@ export default function BundleDetailPage() {
   const [removingModelId, setRemovingModelId] = React.useState<string | null>(null)
   const [addDialogOpen, setAddDialogOpen] = React.useState(false)
   const [activeTab, setActiveTab] = React.useState<'strategies' | 'versions'>('strategies')
-  // 累积 modelId → 元数据 map，由 AddItemDialog 在用户选模型时写入
-  const [modelMap, setModelMap] = React.useState<Record<string, ModelOption>>({})
-
-  const handleModelCached = React.useCallback((model: ModelOption) => {
-    setModelMap((prev) => ({ ...prev, [model.id]: model }))
-  }, [])
+  const [filterDatabase, setFilterDatabase] = React.useState<string>('__all__')
 
   // dataPermissionItems（优先）
   const items: EndUserBundleDataPermissionItem[] = React.useMemo(
@@ -812,6 +806,19 @@ export default function BundleDetailPage() {
   const configuredModelIds = React.useMemo(
     () => new Set(items.map((i) => i.modelId)),
     [items],
+  )
+
+  const databaseOptions = React.useMemo(
+    () => [...new Set(items.map((i) => i.databaseName).filter((d): d is string => Boolean(d)))],
+    [items],
+  )
+
+  const filteredItems = React.useMemo(
+    () =>
+      filterDatabase === '__all__'
+        ? items
+        : items.filter((i) => i.databaseName === filterDatabase),
+    [items, filterDatabase],
   )
 
   const handleRemoveItem = async (item: EndUserBundleDataPermissionItem) => {
@@ -836,7 +843,7 @@ export default function BundleDetailPage() {
   ) => {
     const result = await bindPresetItem(modelId, preset)
     if (result.success) {
-      toast.success(configuredModelIds.has(modelId) ? '已替换数据权限配置' : '已添加数据权限配置')
+      toast.success('已添加数据权限配置')
     }
     return result
   }
@@ -844,7 +851,7 @@ export default function BundleDetailPage() {
   const handleBindCustom = async (modelId: string, customPermissionId: string) => {
     const result = await bindCustomItem(modelId, customPermissionId)
     if (result.success) {
-      toast.success(configuredModelIds.has(modelId) ? '已替换数据权限配置' : '已添加数据权限配置')
+      toast.success('已添加数据权限配置')
     }
     return result
   }
@@ -947,7 +954,22 @@ export default function BundleDetailPage() {
       {activeTab === 'strategies' && (
         <div className="rounded-md border border-border">
           <div className="flex items-center border-b border-border bg-muted/30 px-4 py-2.5">
-            <div className="ml-auto">
+            <div className="flex items-center gap-2 ml-auto">
+              {databaseOptions.length > 0 && (
+                <Select value={filterDatabase} onValueChange={setFilterDatabase}>
+                  <SelectTrigger className="h-7 w-44 text-xs">
+                    <SelectValue placeholder="全部数据库" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="__all__">全部数据库</SelectItem>
+                    {databaseOptions.map((db) => (
+                      <SelectItem key={db} value={db}>
+                        {db}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -988,61 +1010,92 @@ export default function BundleDetailPage() {
               </Button>
             </div>
           ) : (
-            <div className="divide-y divide-border">
-              {items.map((item) => {
-                const modelMeta = modelMap[item.modelId]
-                const modelLabel = modelMeta?.title ?? modelMeta?.name ?? null
-                const modelTech = modelMeta?.name ?? item.modelId.slice(0, 8) + '…'
-                const dbName = modelMeta?.databaseName
+            <div>
+              {/* 列标题 */}
+              <div className="flex items-center gap-4 border-b border-border px-4 py-2">
+                <span className="w-36 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  数据库
+                </span>
+                <span className="w-40 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  模型标识
+                </span>
+                <span className="min-w-0 flex-1 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  模型名称
+                </span>
+                <span className="w-36 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  创建时间
+                </span>
+                <span className="w-44 shrink-0 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  策略
+                </span>
+                <span className="size-7 shrink-0" />
+              </div>
 
+              <div className="divide-y divide-border">
+              {filteredItems.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-10 text-center">
+                  <p className="text-sm text-muted-foreground">该数据库下暂无配置项</p>
+                </div>
+              ) : filteredItems.map((item) => {
                 return (
                   <div
                     key={item.id}
-                    className="group flex items-start gap-4 px-4 py-3 hover:bg-foreground/[0.015]"
+                    className="group flex items-center gap-4 px-4 py-3 hover:bg-foreground/[0.015]"
                   >
-                    {/* 数据表信息 */}
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium text-foreground">
-                          {modelLabel ?? modelTech}
-                        </span>
-                        {modelLabel && (
-                          <span className="font-mono text-[11px] text-muted-foreground">
-                            {modelTech}
-                          </span>
-                        )}
-                        {dbName && (
-                          <span className="rounded bg-muted px-1.5 py-px text-[10px] text-muted-foreground">
-                            {dbName}
-                          </span>
-                        )}
-                      </div>
-                      <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
-                        <ItemGrantTypeBadge item={item} />
-                        {item.grantType === 'CUSTOM' && item.customPermission && (
-                          <>
-                            {item.customPermission.action && (
-                              <span className="rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground">
-                                {ACTION_LABEL[item.customPermission.action] ?? item.customPermission.action}
-                              </span>
-                            )}
-                            {item.customPermission.rowScope && (
-                              <span className="rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground">
-                                {ROW_SCOPE_LABEL[item.customPermission.rowScope] ?? item.customPermission.rowScope}
-                              </span>
-                            )}
-                            {item.customPermission.columnPolicy && (
-                              <span className="rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground">
-                                列: {COLUMN_MODE_LABEL[item.customPermission.columnPolicy.defaultMode] ?? item.customPermission.columnPolicy.defaultMode}
-                                {item.customPermission.columnPolicy.rules.length > 0 && ` +${item.customPermission.columnPolicy.rules.length} 规则`}
-                              </span>
-                            )}
-                          </>
-                        )}
-                      </div>
+                    {/* Col 1: 数据库 */}
+                    <div className="w-36 shrink-0 min-w-0">
+                      <p className="truncate font-mono text-xs text-foreground">
+                        {item.databaseName ?? <span className="text-muted-foreground/40">—</span>}
+                      </p>
                     </div>
 
-                    {/* 删除按钮 */}
+                    {/* Col 2: 模型标识 */}
+                    <div className="w-40 shrink-0 min-w-0">
+                      <p className="truncate font-mono text-xs text-foreground">
+                        {item.modelName ?? <span className="text-muted-foreground/40">—</span>}
+                      </p>
+                    </div>
+
+                    {/* Col 3: 模型名称 */}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm text-foreground">
+                        {item.modelTitle ?? <span className="text-muted-foreground/40">—</span>}
+                      </p>
+                    </div>
+
+                    {/* Col 4: 创建时间 */}
+                    <div className="w-36 shrink-0 min-w-0">
+                      <p className="truncate text-xs text-muted-foreground">
+                        {formatTs(item.createdAt)}
+                      </p>
+                    </div>
+
+                    {/* Col 5: 策略 */}
+                    <div className="flex w-44 shrink-0 flex-wrap items-center gap-1.5">
+                      <ItemGrantTypeBadge item={item} />
+                      {item.grantType === 'CUSTOM' && item.customPermission && (
+                        <>
+                          {item.customPermission.action && (
+                            <span className="rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground">
+                              {ACTION_LABEL[item.customPermission.action] ?? item.customPermission.action}
+                            </span>
+                          )}
+                          {item.customPermission.rowScope && (
+                            <span className="rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground">
+                              {ROW_SCOPE_LABEL[item.customPermission.rowScope] ?? item.customPermission.rowScope}
+                            </span>
+                          )}
+                          {item.customPermission.columnPolicy && (
+                            <span className="rounded border border-border px-1.5 py-px text-[11px] text-muted-foreground">
+                              列: {COLUMN_MODE_LABEL[item.customPermission.columnPolicy.defaultMode] ?? item.customPermission.columnPolicy.defaultMode}
+                              {item.customPermission.columnPolicy.rules.length > 0 && ` +${item.customPermission.columnPolicy.rules.length} 规则`}
+                            </span>
+                          )}
+                        </>
+                      )}
+                    </div>
+
+                    {/* Col 5: 删除按钮 */}
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button
@@ -1080,6 +1133,7 @@ export default function BundleDetailPage() {
                 </div>
               )
               })}
+              </div>
             </div>
           )}
         </div>
@@ -1107,7 +1161,6 @@ export default function BundleDetailPage() {
         projectSlug={projectSlug}
         onBindPreset={handleBindPreset}
         onBindCustom={handleBindCustom}
-        onModelCached={handleModelCached}
         allPermissions={allPermissions}
       />
     </PageLayout>

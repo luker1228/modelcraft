@@ -78,7 +78,7 @@ export function middleware(request: NextRequest) {
     if (!hasEndUserToken) {
       const params = extractEndUserParams(pathname)
       if (params) {
-        const loginUrl = new URL(`/u/${params.orgName}/login`, request.url)
+        const loginUrl = new URL(`/end-user/${params.orgName}/login`, request.url)
         loginUrl.searchParams.set('redirect', pathname)
         console.log(`[middleware] No end-user token, redirecting to: ${loginUrl.toString()}`)
         return NextResponse.redirect(loginUrl)

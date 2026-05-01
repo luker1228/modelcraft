@@ -35,7 +35,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
 import {
@@ -58,7 +57,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { CreateEndUserDialog } from '../end-users/CreateEndUserDialog'
 import {
   useEndUserManagement,
   type UserRoleAssignment,
@@ -556,7 +554,6 @@ interface EndUserManagementTableProps {
 
 export function EndUserManagementTable({ orgName, projectSlug }: EndUserManagementTableProps) {
   const mgmt = useEndUserManagement(orgName, projectSlug)
-  const [createOpen, setCreateOpen] = useState(false)
   const [sheetOpen, setSheetOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
 
@@ -580,28 +577,6 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
     setSheetOpen(false)
     mgmt.setSelectedUserId(null)
   }, [mgmt])
-
-  const handleToggleStatus = async (user: OrgEndUser) => {
-    setActionError(null)
-    const newStatus = user.isForbidden ? 'ACTIVE' : 'DISABLED'
-    try {
-      await mgmt.toggleUserStatus(user.id, newStatus)
-      toast.success(newStatus === 'ACTIVE' ? `已启用 ${user.username}` : `已禁用 ${user.username}`)
-    } catch (e: unknown) {
-      setActionError(e instanceof Error ? e.message : '操作失败')
-    }
-  }
-
-  const handleDelete = async (user: OrgEndUser) => {
-    if (!confirm(`确认删除用户 ${user.username}？此操作不可恢复。`)) return
-    setActionError(null)
-    try {
-      await mgmt.deleteUser(user.id)
-      toast.success(`已删除用户 ${user.username}`)
-    } catch (e: unknown) {
-      setActionError(e instanceof Error ? e.message : '删除失败')
-    }
-  }
 
   const handleAssignRole = async (userId: string, roleId: string) => {
     const r = await mgmt.assignRole(userId, roleId)
@@ -641,7 +616,11 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
           <Button size="sm" variant="outline" onClick={() => { mgmt.reloadUsers(); mgmt.reloadAccess() }} disabled={isLoading}>
             <RefreshCw className={`mr-1.5 size-4 ${isLoading ? 'animate-spin' : ''}`} />刷新
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)} className="bg-primary text-primary-foreground hover:bg-primary/90">
+          <Button
+            size="sm"
+            onClick={() => window.location.assign(`/org/${orgName}/end-users`)}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
+          >
             <Plus className="size-4" />新增用户
           </Button>
         </div>
@@ -683,9 +662,14 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
                     <div className="flex flex-col items-center justify-center py-14 text-center">
                       <Users className="mb-3 size-9 text-muted-foreground/30" strokeWidth={1.5} />
                       <p className="text-sm font-semibold text-foreground">暂无终端用户</p>
-                      <p className="mt-1 text-xs text-muted-foreground">新增用户后可在此管理其项目访问权限</p>
-                      <Button size="sm" variant="outline" className="mt-4" onClick={() => setCreateOpen(true)}>
-                        <Plus className="mr-1.5 size-3.5" />新增第一个用户
+                      <p className="mt-1 text-xs text-muted-foreground">请先在组织级终端用户管理中创建用户，再回到此页面授权</p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="mt-4"
+                        onClick={() => window.location.assign(`/org/${orgName}/end-users`)}
+                      >
+                        <Plus className="mr-1.5 size-3.5" />前往组织用户管理
                       </Button>
                     </div>
                   </TableCell>
@@ -762,15 +746,8 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                              {user.isForbidden ? '启用账号' : '禁用账号'}
-                            </DropdownMenuItem>
-                            <DropdownMenuItem
-                              className="text-destructive"
-                              onClick={() => handleDelete(user)}
-                            >
-                              删除用户
+                            <DropdownMenuItem asChild>
+                              <a href={`/org/${orgName}/end-users`}>前往组织用户管理</a>
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -783,13 +760,6 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
           </Table>
         </div>
       )}
-
-      {/* Create dialog */}
-      <CreateEndUserDialog
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
-        onCreate={mgmt.createUser}
-      />
 
       {/* User detail sheet */}
       <UserDetailSheet

@@ -112,10 +112,10 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
         if (data.singleProject) {
           // 只有 1 个可访问项目 → 直接写入 token，进入数据页
           setEndUserToken(data.accessToken ?? '', data.expiresIn ?? 3600)
-          router.push(`/u/${orgName}/${data.projectSlug ?? ''}/data`)
+          router.push(`/end-user/${orgName}/${data.projectSlug ?? ''}/data`)
         } else {
           if (data.noProjectAccess) {
-            router.push(`/u/${orgName}/no-project-access`)
+            router.push(`/end-user/${orgName}/no-project-access`)
             return
           }
 
@@ -125,7 +125,7 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
             `eu_accessible_projects_${orgName}`,
             JSON.stringify(projects)
           )
-          router.push(`/u/${orgName}/select-project`)
+          router.push(`/end-user/${orgName}/select-project`)
         }
       } catch {
         setError('网络错误，请检查连接后重试')

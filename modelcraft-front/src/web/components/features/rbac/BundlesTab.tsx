@@ -8,8 +8,6 @@ import {
   Plus,
   Trash2,
   PackageOpen,
-  Eye,
-  Link2,
   Loader2,
   ShieldCheck,
   ArrowRight,
@@ -837,28 +835,6 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1.5">
-                      {/* 查看 */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => openSheet(b.id, 'view')}
-                      >
-                        <Eye className="mr-1 size-3" />
-                        查看
-                      </Button>
-
-                      {/* 关联策略 */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs"
-                        onClick={() => openSheet(b.id, 'manage')}
-                      >
-                        <Link2 className="mr-1 size-3" />
-                        关联策略
-                      </Button>
-
                       {/* 删除 */}
                       <AlertDialog>
                         <AlertDialogTrigger asChild>

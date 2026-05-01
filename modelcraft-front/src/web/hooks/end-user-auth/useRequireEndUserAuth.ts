@@ -55,7 +55,7 @@ export function useRequireEndUserAuth(): UseRequireEndUserAuthReturn {
     })
     if (!newToken) {
       // refresh 失败（cookie 过期/revoked），重定向到登录页
-      const loginUrl = `/u/${orgName}/login`
+      const loginUrl = `/end-user/${orgName}/login`
       const currentPath = typeof window !== 'undefined' ? window.location.pathname : ''
       router.replace(`${loginUrl}?redirect=${encodeURIComponent(currentPath)}`)
       return
@@ -104,7 +104,7 @@ export function useEndUser(): UseEndUserReturn {
     removeEndUserSession()
 
     // 重定向到登录页
-    router.replace(`/u/${orgName}/login`)
+    router.replace(`/end-user/${orgName}/login`)
   }, [orgName, router])
 
   return { user: userInfo, logout }

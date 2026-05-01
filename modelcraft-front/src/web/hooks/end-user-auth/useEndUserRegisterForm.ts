@@ -97,7 +97,7 @@ export function useEndUserRegisterForm(
         }
 
         void fetchAndCacheEndUserInfo()
-        router.replace(`/u/${orgName}/${projectSlug}/data`)
+        router.replace(`/end-user/${orgName}/${projectSlug}/data`)
       } catch {
         setError('注册服务暂时不可用，请稍后重试')
       } finally {

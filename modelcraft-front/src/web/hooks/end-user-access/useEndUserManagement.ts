@@ -3,13 +3,14 @@
 
 // src/web/hooks/end-user-access/useEndUserManagement.ts
 // 用户管理页统一 hook：Org 用户列表 + Project 访问权限 + RBAC 角色/Bundle 分配
-// 用户列表来源：REST BFF (Org 级)
-// 访问控制来源：REST BFF (Project 级)
+// 用户列表来源：GraphQL (Org scoped)
+// 访问控制来源：GraphQL (Project scoped)
 // 角色/Bundle 分配：GraphQL (Project scoped)
 
 import { useState, useEffect, useCallback } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient, useProjectScopedClient } from '@api-client/apollo/public'
+import { LIST_END_USERS } from '@api-client/end-user/graphql-docs'
 import {
   GET_END_USER_ROLES,
   GET_END_USER_BUNDLES,
@@ -20,6 +21,10 @@ import {
   REVOKE_END_USER_ROLE_FROM_USER,
   ASSIGN_BUNDLE_TO_END_USER,
   REVOKE_BUNDLE_FROM_END_USER,
+  LIST_PROJECT_END_USER_ACCESS,
+  GRANT_PROJECT_END_USER_ACCESS,
+  UPDATE_PROJECT_END_USER_ACCESS,
+  REVOKE_PROJECT_END_USER_ACCESS,
 } from '@/api-client/rbac'
 import type { EndUserRole, EndUserPermissionBundle, EffectivePermissions } from '@/types'
 import type { OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
@@ -45,14 +50,11 @@ interface MutationResult {
 }
 
 export interface UseEndUserManagementReturn {
-  // User list (Org level)
+  // User list (Org level, GraphQL)
   users: OrgEndUser[]
   usersLoading: boolean
   usersError: string | null
   reloadUsers: () => void
-  createUser: (payload: { username: string; password: string; displayName?: string }) => Promise<void>
-  toggleUserStatus: (userId: string, status: 'ACTIVE' | 'DISABLED') => Promise<void>
-  deleteUser: (userId: string) => Promise<void>
 
   // Project access (Project level)
   accesses: EndUserProjectAccessEntry[]
@@ -88,15 +90,57 @@ export interface UseEndUserManagementReturn {
   revokeBundle: (endUserId: string, bundleId: string) => Promise<MutationResult>
 }
 
-// ── BFF response types ────────────────────────────────────────────────────────
+// ── GraphQL response types ───────────────────────────────────────────────────
 
-interface AccessListResponse {
-  accesses: EndUserProjectAccessEntry[]
-  error?: { message?: string }
+interface OrgEndUsersData {
+  listEndUsers?: {
+    connection?: {
+      nodes?: OrgEndUser[]
+    }
+    error?: { message?: string }
+  }
 }
 
-interface BffErrorResponse {
-  error?: { message?: string }
+interface ProjectEndUserAccessNode {
+  id: string
+  endUser: {
+    id: string
+    username: string
+  }
+  permissionBundleId: string
+  permissionBundleName: string
+  grantedAt: string
+}
+
+interface ProjectEndUserAccessData {
+  listProjectEndUserAccess?: {
+    connection?: {
+      nodes?: ProjectEndUserAccessNode[]
+    }
+    error?: { message?: string }
+  }
+}
+
+interface GrantProjectEndUserAccessData {
+  grantEndUserProjectAccess?: {
+    error?: { message?: string }
+  }
+}
+
+interface UpdateProjectEndUserAccessData {
+  updateEndUserProjectAccess?: {
+    error?: { message?: string }
+  }
+}
+
+interface RevokeProjectEndUserAccessData {
+  revokeEndUserProjectAccess?: {
+    error?: { message?: string }
+  }
+}
+
+function getErrorMessage(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message : fallback
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
@@ -107,7 +151,7 @@ export function useEndUserManagement(
 ): UseEndUserManagementReturn {
   const projectClient = useProjectScopedClient(projectSlug, orgName)
 
-  // ── Org User List (REST BFF) ───────────────────────────────────────────────
+  // ── Org End Users (GraphQL) ────────────────────────────────────────────────
 
   const [users, setUsers] = useState<OrgEndUser[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
@@ -120,52 +164,26 @@ export function useEndUserManagement(
     if (!orgName) return
     setUsersLoading(true)
     setUsersError(null)
-    fetch(`/api/bff/org/${orgName}/end-user/users`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '加载失败')
-        return res.json() as Promise<{ users: OrgEndUser[] }>
+    getOrgScopedClient()
+      .query<OrgEndUsersData>({
+        query: LIST_END_USERS,
+        variables: { input: { first: 100 } },
+        fetchPolicy: 'network-only',
       })
-      .then((d) => setUsers(d.users))
-      .catch((e: unknown) => setUsersError(e instanceof Error ? e.message : '加载用户失败'))
+      .then(({ data }) => {
+        const gqlError = data?.listEndUsers?.error
+        if (gqlError?.message) throw new Error(gqlError.message)
+        const nodes = data?.listEndUsers?.connection?.nodes ?? []
+        const sorted = [...nodes].sort(
+          (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        )
+        setUsers(sorted)
+      })
+      .catch((e: unknown) => setUsersError(getErrorMessage(e, '加载用户失败')))
       .finally(() => setUsersLoading(false))
   }, [orgName, usersVersion])
 
-  const createUser = useCallback(
-    async (payload: { username: string; password: string; displayName?: string }) => {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/users`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '创建失败')
-      reloadUsers()
-    },
-    [orgName, reloadUsers]
-  )
-
-  const toggleUserStatus = useCallback(
-    async (userId: string, status: 'ACTIVE' | 'DISABLED') => {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/users/${userId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
-      })
-      if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '更新状态失败')
-      reloadUsers()
-    },
-    [orgName, reloadUsers]
-  )
-
-  const deleteUser = useCallback(
-    async (userId: string) => {
-      const res = await fetch(`/api/bff/org/${orgName}/end-user/users/${userId}`, { method: 'DELETE' })
-      if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '删除失败')
-      reloadUsers()
-    },
-    [orgName, reloadUsers]
-  )
-
-  // ── Project Access (REST BFF) ──────────────────────────────────────────────
+  // ── Project Access (GraphQL) ───────────────────────────────────────────────
 
   const [accesses, setAccesses] = useState<EndUserProjectAccessEntry[]>([])
   const [accessLoading, setAccessLoading] = useState(false)
@@ -178,55 +196,78 @@ export function useEndUserManagement(
     if (!orgName || !projectSlug) return
     setAccessLoading(true)
     setAccessError(null)
-    fetch(`/api/bff/org/${orgName}/project/${projectSlug}/end-user-access`)
-      .then(async (res) => {
-        if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '加载失败')
-        return res.json() as Promise<AccessListResponse>
+    projectClient
+      .query<ProjectEndUserAccessData>({
+        query: LIST_PROJECT_END_USER_ACCESS,
+        variables: { input: { first: 100 } },
+        fetchPolicy: 'network-only',
       })
-      .then((d) => setAccesses(d.accesses))
-      .catch((e: unknown) => setAccessError(e instanceof Error ? e.message : '加载访问列表失败'))
+      .then(({ data }) => {
+        const gqlError = data?.listProjectEndUserAccess?.error
+        if (gqlError?.message) throw new Error(gqlError.message)
+        const mapped: EndUserProjectAccessEntry[] =
+          data?.listProjectEndUserAccess?.connection?.nodes?.map((node) => ({
+            accessId: node.id,
+            userId: node.endUser.id,
+            username: node.endUser.username,
+            permissionBundle: node.permissionBundleName,
+            grantedAt: node.grantedAt,
+          })) ?? []
+        setAccesses(mapped)
+      })
+      .catch((e: unknown) => setAccessError(getErrorMessage(e, '加载访问列表失败')))
       .finally(() => setAccessLoading(false))
-  }, [orgName, projectSlug, accessVersion])
+  }, [orgName, projectSlug, accessVersion, projectClient])
 
   const grantAccess = useCallback(
     async (userId: string, permissionBundleId: string) => {
-      const res = await fetch(`/api/bff/org/${orgName}/project/${projectSlug}/end-user-access`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, permissionBundle: permissionBundleId }),
+      const { data } = await projectClient.mutate<GrantProjectEndUserAccessData>({
+        mutation: GRANT_PROJECT_END_USER_ACCESS,
+        variables: {
+          input: {
+            endUserId: userId,
+            permissionBundleId,
+          },
+        },
       })
-      if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '授权失败')
+      const gqlError = data?.grantEndUserProjectAccess?.error
+      if (gqlError?.message) throw new Error(gqlError.message)
       reloadAccess()
     },
-    [orgName, projectSlug, reloadAccess]
+    [projectClient, reloadAccess]
   )
 
   const revokeAccess = useCallback(
     async (accessId: string) => {
-      const res = await fetch(
-        `/api/bff/org/${orgName}/project/${projectSlug}/end-user-access/${accessId}`,
-        { method: 'DELETE' }
-      )
-      if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '撤销失败')
+      const { data } = await projectClient.mutate<RevokeProjectEndUserAccessData>({
+        mutation: REVOKE_PROJECT_END_USER_ACCESS,
+        variables: {
+          input: { accessId },
+        },
+      })
+      const gqlError = data?.revokeEndUserProjectAccess?.error
+      if (gqlError?.message) throw new Error(gqlError.message)
       reloadAccess()
     },
-    [orgName, projectSlug, reloadAccess]
+    [projectClient, reloadAccess]
   )
 
   const updateAccessBundle = useCallback(
     async (accessId: string, permissionBundleId: string) => {
-      const res = await fetch(
-        `/api/bff/org/${orgName}/project/${projectSlug}/end-user-access/${accessId}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ permissionBundle: permissionBundleId }),
-        }
-      )
-      if (!res.ok) throw new Error(((await res.json()) as BffErrorResponse)?.error?.message ?? '更新权限失败')
+      const { data } = await projectClient.mutate<UpdateProjectEndUserAccessData>({
+        mutation: UPDATE_PROJECT_END_USER_ACCESS,
+        variables: {
+          input: {
+            accessId,
+            permissionBundleId,
+          },
+        },
+      })
+      const gqlError = data?.updateEndUserProjectAccess?.error
+      if (gqlError?.message) throw new Error(gqlError.message)
       reloadAccess()
     },
-    [orgName, projectSlug, reloadAccess]
+    [projectClient, reloadAccess]
   )
 
   // ── All Roles & Bundles (GraphQL, project-scoped) ─────────────────────────
@@ -349,9 +390,6 @@ export function useEndUserManagement(
     usersLoading,
     usersError,
     reloadUsers,
-    createUser,
-    toggleUserStatus,
-    deleteUser,
 
     accesses,
     accessLoading,
