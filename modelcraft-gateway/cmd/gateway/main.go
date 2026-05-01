@@ -42,6 +42,7 @@ func main() {
 		cfg.JWTPublicKey,
 		cfg.RefreshTokenTTL,
 		cfg.RefreshCookieName,
+		cfg.EndUserRefreshCookieName,
 	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("failed to initialise auth service")

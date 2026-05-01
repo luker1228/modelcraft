@@ -14,7 +14,7 @@ import { NextRequest, NextResponse } from 'next/server'
  * End-User Auth:
  *  - End-user routes use /end-user/{orgName}/{projectSlug}/*
  *  - /end-user/{orgName}/login is public
- *  - /end-user/{orgName}/{projectSlug}/data/* requires end_user_refresh_token
+ *  - /end-user/{orgName}/{projectSlug}/data/* requires mc_enduser_refresh_token
  *
  * Legacy End-User Routes:
  *  - /org/{org}/project/{project}/user/* and /data/* are retired immediately.
@@ -34,7 +34,7 @@ const COOKIE_NAME = 'mc_refresh_token'
 // ============================================
 // 终端用户认证配置（新增）
 // ============================================
-const END_USER_COOKIE = 'end_user_refresh_token'
+const END_USER_COOKIE = 'mc_enduser_refresh_token'
 
 const END_USER_LOGIN_RE = /^\/end-user\/[^/]+\/login$/
 const END_USER_DATA_RE = /^\/end-user\/[^/]+\/[^/]+\/data(\/.*)?$/
