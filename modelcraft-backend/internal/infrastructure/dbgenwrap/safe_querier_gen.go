@@ -765,6 +765,16 @@ func (s *SafeQuerier) ListRolesByUser(ctx context.Context, arg _sourceDbgen.List
 	WrapSQLErrorInPlace(&err)
 	return
 }
+func (s *SafeQuerier) ListProjectEndUserRoleUsers(ctx context.Context, arg _sourceDbgen.ListProjectEndUserRoleUsersParams) (ra1 []_sourceDbgen.ListProjectEndUserRoleUsersRow, err error) {
+	ra1, err = s.delegate.ListProjectEndUserRoleUsers(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
+func (s *SafeQuerier) ListProjectEndUserRoleUsersCount(ctx context.Context, arg _sourceDbgen.ListProjectEndUserRoleUsersCountParams) (i1 int64, err error) {
+	i1, err = s.delegate.ListProjectEndUserRoleUsersCount(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
 func (s *SafeQuerier) ListUserRoles(ctx context.Context, arg _sourceDbgen.ListUserRolesParams) (ua1 []_sourceDbgen.UserRole, err error) {
 	ua1, err = s.delegate.ListUserRoles(ctx, arg)
 	WrapSQLErrorInPlace(&err)

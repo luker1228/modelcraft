@@ -299,5 +299,75 @@ func boolToTinyInt(v bool) int {
 	return 0
 }
 
+// ListAccessibleProjectsByRoleAssignment 通过 end_user_role_users JOIN end_user_roles
+// 查询用户在该 Org 下可访问的 Project 列表（替代旧的 end_user_project_access 路径）。
+func (r *SqlEndUserRepository) ListAccessibleProjectsByRoleAssignment(
+	ctx context.Context,
+	orgName, endUserID string,
+) ([]enduser.AccessibleProject, error) {
+	const query = `
+		SELECT DISTINCT ur.role_id, r.project_slug, COALESCE(p.title, r.project_slug) AS project_title
+		FROM end_user_role_users ur
+		JOIN end_user_roles r
+		  ON r.id = ur.role_id
+		 AND r.org_name = ur.org_name
+		LEFT JOIN projects p
+		  ON p.org_name = r.org_name
+		 AND p.slug = r.project_slug
+		WHERE ur.org_name = ?
+		  AND ur.user_id = ?
+		ORDER BY r.project_slug ASC
+	`
+
+	rows, err := r.db.QueryContext(ctx, query, orgName, endUserID)
+	if err != nil {
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	defer rows.Close()
+
+	seen := make(map[string]struct{})
+	projects := make([]enduser.AccessibleProject, 0)
+	for rows.Next() {
+		var roleID, projectSlug, projectTitle string
+		if scanErr := rows.Scan(&roleID, &projectSlug, &projectTitle); scanErr != nil {
+			return nil, sqlerr.WrapSQLError(scanErr)
+		}
+		if _, ok := seen[projectSlug]; !ok {
+			seen[projectSlug] = struct{}{}
+			projects = append(projects, enduser.AccessibleProject{
+				ProjectSlug:  projectSlug,
+				ProjectTitle: projectTitle,
+			})
+		}
+	}
+	if err = rows.Err(); err != nil {
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	return projects, nil
+}
+
+// HasProjectAccessByRole 检查用户在指定 org+project 下是否有任意 Role 分配。
+func (r *SqlEndUserRepository) HasProjectAccessByRole(
+	ctx context.Context,
+	orgName, endUserID, projectSlug string,
+) (bool, error) {
+	const query = `
+		SELECT COUNT(1)
+		FROM end_user_role_users ur
+		JOIN end_user_roles r
+		  ON r.id = ur.role_id
+		 AND r.org_name = ur.org_name
+		WHERE ur.org_name = ?
+		  AND ur.user_id = ?
+		  AND r.project_slug = ?
+	`
+
+	var count int64
+	if err := r.db.QueryRowContext(ctx, query, orgName, endUserID, projectSlug).Scan(&count); err != nil {
+		return false, sqlerr.WrapSQLError(err)
+	}
+	return count > 0, nil
+}
+
 // Compile-time interface satisfaction check.
 var _ enduser.EndUserRepository = (*SqlEndUserRepository)(nil)

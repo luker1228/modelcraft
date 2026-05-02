@@ -215,12 +215,8 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
 		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
 		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
-		txAccessRepo := infrrepo.NewSqlEndUserProjectAccessRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
 
 		if err := txSessionRepo.RevokeAllByUserID(ctx, cmd.UserID); err != nil {
-			return bizerrors.ConvertRepositoryError(ctx, err)
-		}
-		if err := txAccessRepo.RemoveByEndUserID(ctx, cmd.OrgName, cmd.UserID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
 		if err := txUserRepo.Delete(ctx, cmd.OrgName, cmd.UserID); err != nil {
@@ -262,8 +258,8 @@ func (s *EndUserManagementAppService) ListAccessibleProjects(
 		return nil, s.convertDBError(ctx, err)
 	}
 
-	repo := infrrepo.NewSqlEndUserProjectAccessRepository(db, orgName, "")
-	projects, err := repo.ListAccessibleProjectsByUserID(ctx, orgName, userID)
+	repo := infrrepo.NewSqlEndUserRepository(db, orgName, "")
+	projects, err := repo.ListAccessibleProjectsByRoleAssignment(ctx, orgName, userID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}

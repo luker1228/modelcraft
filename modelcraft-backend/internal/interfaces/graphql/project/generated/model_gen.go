@@ -135,16 +135,12 @@ type GetModelError interface {
 	IsGetModelError()
 }
 
-type GrantEndUserProjectAccessError interface {
-	IsGrantEndUserProjectAccessError()
-}
-
 type InitPrivateDBPayloadError interface {
 	IsInitPrivateDBPayloadError()
 }
 
-type ListProjectEndUserAccessError interface {
-	IsListProjectEndUserAccessError()
+type ListProjectEndUserRoleUsersError interface {
+	IsListProjectEndUserRoleUsersError()
 }
 
 type ListProjectEndUsersError interface {
@@ -196,10 +192,6 @@ type RevokeBundleFromEndUserRoleError interface {
 	IsRevokeBundleFromEndUserRoleError()
 }
 
-type RevokeEndUserProjectAccessError interface {
-	IsRevokeEndUserProjectAccessError()
-}
-
 type RevokeEndUserRoleError interface {
 	IsRevokeEndUserRoleError()
 }
@@ -230,10 +222,6 @@ type UpdateEndUserPermissionBundleError interface {
 
 type UpdateEndUserPermissionError interface {
 	IsUpdateEndUserPermissionError()
-}
-
-type UpdateEndUserProjectAccessError interface {
-	IsUpdateEndUserProjectAccessError()
 }
 
 type UpdateEndUserRoleError interface {
@@ -838,8 +826,6 @@ func (EndUserNotFound) IsUpdateEndUserError() {}
 
 func (EndUserNotFound) IsDeleteEndUserError() {}
 
-func (EndUserNotFound) IsGrantEndUserProjectAccessError() {}
-
 type EndUserNotFoundInProject struct {
 	Message string `json:"message"`
 }
@@ -943,10 +929,6 @@ func (EndUserPermissionBundleInUse) IsDeleteEndUserPermissionBundleError() {}
 type EndUserPermissionBundleNotFound struct {
 	Message string `json:"message"`
 }
-
-func (EndUserPermissionBundleNotFound) IsGrantEndUserProjectAccessError() {}
-
-func (EndUserPermissionBundleNotFound) IsUpdateEndUserProjectAccessError() {}
 
 func (EndUserPermissionBundleNotFound) IsError()                {}
 func (this EndUserPermissionBundleNotFound) GetMessage() string { return this.Message }
@@ -1053,44 +1035,6 @@ type EndUserPermissionSnapshotItemEntry struct {
 	CustomPermissionID *string                  `json:"customPermissionId,omitempty"`
 	SortOrder          int32                    `json:"sortOrder"`
 }
-
-type EndUserProjectAccess struct {
-	ID                   string    `json:"id"`
-	EndUser              *EndUser  `json:"endUser"`
-	PermissionBundleID   string    `json:"permissionBundleId"`
-	PermissionBundleName string    `json:"permissionBundleName"`
-	GrantedBy            string    `json:"grantedBy"`
-	GrantedAt            time.Time `json:"grantedAt"`
-}
-
-func (EndUserProjectAccess) IsNode()            {}
-func (this EndUserProjectAccess) GetID() string { return this.ID }
-
-type EndUserProjectAccessAlreadyExists struct {
-	Message string `json:"message"`
-}
-
-func (EndUserProjectAccessAlreadyExists) IsError()                {}
-func (this EndUserProjectAccessAlreadyExists) GetMessage() string { return this.Message }
-
-func (EndUserProjectAccessAlreadyExists) IsGrantEndUserProjectAccessError() {}
-
-type EndUserProjectAccessConnection struct {
-	Nodes      []*EndUserProjectAccess `json:"nodes"`
-	PageInfo   *PageInfo               `json:"pageInfo"`
-	TotalCount int32                   `json:"totalCount"`
-}
-
-type EndUserProjectAccessNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserProjectAccessNotFound) IsError()                {}
-func (this EndUserProjectAccessNotFound) GetMessage() string { return this.Message }
-
-func (EndUserProjectAccessNotFound) IsUpdateEndUserProjectAccessError() {}
-
-func (EndUserProjectAccessNotFound) IsRevokeEndUserProjectAccessError() {}
 
 type EndUserRefAlreadyExists struct {
 	Message    string  `json:"message"`
@@ -1332,16 +1276,6 @@ type GetModelPayload struct {
 	Error GetModelError `json:"error,omitempty"`
 }
 
-type GrantEndUserProjectAccessInput struct {
-	EndUserID          string `json:"endUserId"`
-	PermissionBundleID string `json:"permissionBundleId"`
-}
-
-type GrantEndUserProjectAccessPayload struct {
-	Access *EndUserProjectAccess          `json:"access,omitempty"`
-	Error  GrantEndUserProjectAccessError `json:"error,omitempty"`
-}
-
 type GroupAlreadyExists struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -1433,12 +1367,6 @@ func (InvalidInput) IsCreateEndUserError() {}
 
 func (InvalidInput) IsUpdateEndUserError() {}
 
-func (InvalidInput) IsGrantEndUserProjectAccessError() {}
-
-func (InvalidInput) IsUpdateEndUserProjectAccessError() {}
-
-func (InvalidInput) IsListProjectEndUserAccessError() {}
-
 func (InvalidInput) IsCreateEnumError() {}
 
 func (InvalidInput) IsUpdateEnumError() {}
@@ -1477,6 +1405,8 @@ func (InvalidInput) IsBindCustomItemToBundleError() {}
 func (InvalidInput) IsCreateEndUserRoleError() {}
 
 func (InvalidInput) IsUpdateEndUserRoleError() {}
+
+func (InvalidInput) IsListProjectEndUserRoleUsersError() {}
 
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
 
@@ -1519,15 +1449,16 @@ type ListEndUserRolesInput struct {
 	After           *string `json:"after,omitempty"`
 }
 
-type ListProjectEndUserAccessInput struct {
+type ListProjectEndUserRoleUsersInput struct {
 	Search *string `json:"search,omitempty"`
+	RoleID *string `json:"roleId,omitempty"`
 	First  *int32  `json:"first,omitempty"`
 	After  *string `json:"after,omitempty"`
 }
 
-type ListProjectEndUserAccessPayload struct {
-	Connection *EndUserProjectAccessConnection `json:"connection,omitempty"`
-	Error      ListProjectEndUserAccessError   `json:"error,omitempty"`
+type ListProjectEndUserRoleUsersPayload struct {
+	Connection *ProjectEndUserRoleUserConnection `json:"connection,omitempty"`
+	Error      ListProjectEndUserRoleUsersError  `json:"error,omitempty"`
 }
 
 type ListProjectEndUsersInput struct {
@@ -1767,6 +1698,18 @@ type ProjectAuthSchema struct {
 	Variables []*AuthVariable `json:"variables"`
 }
 
+type ProjectEndUserRoleUser struct {
+	EndUser    *EndUser     `json:"endUser"`
+	Role       *EndUserRole `json:"role"`
+	AssignedAt time.Time    `json:"assignedAt"`
+}
+
+type ProjectEndUserRoleUserConnection struct {
+	Nodes      []*ProjectEndUserRoleUser `json:"nodes"`
+	PageInfo   *PageInfo                 `json:"pageInfo"`
+	TotalCount int32                     `json:"totalCount"`
+}
+
 type ProjectNotFound struct {
 	Message string `json:"message"`
 }
@@ -1793,14 +1736,6 @@ func (ProjectNotFound) IsDeleteEndUserError() {}
 func (ProjectNotFound) IsListProjectEndUsersError() {}
 
 func (ProjectNotFound) IsInitPrivateDBPayloadError() {}
-
-func (ProjectNotFound) IsGrantEndUserProjectAccessError() {}
-
-func (ProjectNotFound) IsUpdateEndUserProjectAccessError() {}
-
-func (ProjectNotFound) IsRevokeEndUserProjectAccessError() {}
-
-func (ProjectNotFound) IsListProjectEndUserAccessError() {}
 
 func (ProjectNotFound) IsGetEnumError() {}
 
@@ -1865,6 +1800,8 @@ func (ProjectNotFound) IsAssignEndUserRoleError() {}
 func (ProjectNotFound) IsRevokeEndUserRoleError() {}
 
 func (ProjectNotFound) IsGetEffectivePermissionsError() {}
+
+func (ProjectNotFound) IsListProjectEndUserRoleUsersError() {}
 
 func (ProjectNotFound) IsSetProjectAuthSchemaError() {}
 
@@ -1975,15 +1912,6 @@ type RevokeBundleFromEndUserRoleInput struct {
 type RevokeBundleFromEndUserRolePayload struct {
 	Role  *EndUserRole                     `json:"role,omitempty"`
 	Error RevokeBundleFromEndUserRoleError `json:"error,omitempty"`
-}
-
-type RevokeEndUserProjectAccessInput struct {
-	AccessID string `json:"accessId"`
-}
-
-type RevokeEndUserProjectAccessPayload struct {
-	Success bool                            `json:"success"`
-	Error   RevokeEndUserProjectAccessError `json:"error,omitempty"`
 }
 
 type RevokeEndUserRoleInput struct {
@@ -2112,16 +2040,6 @@ type UpdateEndUserPermissionInput struct {
 type UpdateEndUserPermissionPayload struct {
 	Permission *EndUserPermission           `json:"permission,omitempty"`
 	Error      UpdateEndUserPermissionError `json:"error,omitempty"`
-}
-
-type UpdateEndUserProjectAccessInput struct {
-	AccessID           string `json:"accessId"`
-	PermissionBundleID string `json:"permissionBundleId"`
-}
-
-type UpdateEndUserProjectAccessPayload struct {
-	Access *EndUserProjectAccess           `json:"access,omitempty"`
-	Error  UpdateEndUserProjectAccessError `json:"error,omitempty"`
 }
 
 type UpdateEndUserRoleInput struct {

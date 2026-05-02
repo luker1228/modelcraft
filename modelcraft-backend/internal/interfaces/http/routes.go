@@ -94,7 +94,6 @@ type DesignHandlers struct {
 	EndUserAuthAppService    *appEnduser.EndUserAuthAppService
 	OrgEndUserMgmtAppService *appEnduser.EndUserManagementAppService
 	EndUserMgmtAppService    *appEnduser.EndUserManagementAppService
-	EndUserAccessAppService  *appEnduser.EndUserProjectAccessAppService
 	EndUserAuthHandler       *enduserHandlers.AuthHandler
 	EndUserMgmtHandler       *enduserHandlers.ManagementHandler
 	EndUserDataHandler       *enduserHandlers.DataHandler
@@ -121,13 +120,6 @@ func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(
 	orgName, projectSlug string,
 ) domainEndUser.EndUserSessionRepository {
 	return repository.NewSqlEndUserSessionRepository(db, orgName, projectSlug)
-}
-
-func (f *endUserAuthRepositoryFactory) NewEndUserProjectAccessRepository(
-	db appEnduser.SQLDBTX,
-	orgName, projectSlug string,
-) domainEndUser.EndUserProjectAccessRepository {
-	return repository.NewSqlEndUserProjectAccessRepository(db, orgName, projectSlug)
 }
 
 type endUserAuthDBProvider struct {
@@ -411,9 +403,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
 		endUserTxMgr,
 	)
-	endUserAccessAppService := appEnduser.NewEndUserProjectAccessAppService(
-		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
-	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
 	endUserMgmtHandler := enduserHandlers.NewManagementHandler(orgEndUserMgmtAppService, logger)
 	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, reverseEngineerApp, logger)
@@ -443,7 +432,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		EndUserAuthAppService:     endUserAuthAppService,
 		OrgEndUserMgmtAppService:  orgEndUserMgmtAppService,
 		EndUserMgmtAppService:     endUserMgmtAppService,
-		EndUserAccessAppService:   endUserAccessAppService,
 		EndUserAuthHandler:        endUserAuthHandler,
 		EndUserMgmtHandler:        endUserMgmtHandler,
 		EndUserDataHandler:        endUserDataHandler,
@@ -520,7 +508,6 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
 		PrivateDBManager:         handlers.PrivateDBManager,
 		EndUserMgmtAppService:    handlers.EndUserMgmtAppService,
-		EndUserAccessAppService:  handlers.EndUserAccessAppService,
 		RBACPermissionSvc:        handlers.RBACPermissionSvc,
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,

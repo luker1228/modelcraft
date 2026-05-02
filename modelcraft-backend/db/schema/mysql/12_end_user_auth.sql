@@ -2,7 +2,7 @@
 -- End User Auth v2 (Org Scoped in mc_meta)
 -- 说明：
 -- - EndUser 账号作用域由 (org_name, project_slug) 上移到 org_name
--- - EndUser 与 Project 的关联由 end_user_project_access 承载（多对多）
+-- - EndUser 与 Project 的访问关系通过 end_user_role_users 反查（Role Assignment 为唯一授权通道）
 -- - 表名统一使用 end_user_ 前缀，避免与平台 users/accounts 命名冲突
 -- =============================================================================
 
@@ -25,28 +25,6 @@ CREATE TABLE IF NOT EXISTS `end_user_users` (
   CONSTRAINT `fk_end_user_users_created_by`
     FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='终端用户账号表（Org 级隔离）';
-
-CREATE TABLE IF NOT EXISTS `end_user_project_access` (
-  `id` VARCHAR(36) NOT NULL COMMENT '记录 ID (UUID)',
-  `end_user_id` VARCHAR(36) NOT NULL COMMENT '终端用户 ID',
-  `org_name` VARCHAR(36) NOT NULL COMMENT '所属 Org',
-  `project_slug` VARCHAR(64) NOT NULL COMMENT '项目标识',
-  `permission_bundle_id` VARCHAR(36) NULL COMMENT '分配的权限包 ID（NULL = 仅访问）',
-  `granted_by` VARCHAR(36) NULL COMMENT '授权者（平台用户 ID）',
-  `granted_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '授权时间',
-
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_eu_project_access_user_project` (`end_user_id`, `org_name`, `project_slug`),
-  KEY `idx_eu_project_access_project` (`org_name`, `project_slug`),
-  KEY `idx_eu_project_access_user` (`end_user_id`, `org_name`),
-
-  CONSTRAINT `fk_eu_project_access_user`
-    FOREIGN KEY (`org_name`, `end_user_id`)
-    REFERENCES `end_user_users`(`org_name`, `id`) ON DELETE CASCADE,
-
-  CONSTRAINT `fk_eu_project_access_granted_by`
-    FOREIGN KEY (`granted_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='EndUser ↔ Project 授权关联表（多对多）';
 
 CREATE TABLE IF NOT EXISTS `end_user_accounts` (
   `id` VARCHAR(36) NOT NULL COMMENT '会话 ID (UUID)',

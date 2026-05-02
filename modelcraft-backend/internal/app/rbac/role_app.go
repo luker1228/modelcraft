@@ -138,6 +138,7 @@ func (s *EndUserRoleAppService) RevokeBundleFromRole(
 }
 
 // AssignRoleToUser 将显式角色分配给用户（通道 2；隐式角色不可手动分配）
+// 存在性校验：若 EndUser 不属于当前 Org（外键约束失败），返回 EndUserNotFoundInProject。
 func (s *EndUserRoleAppService) AssignRoleToUser(
 	ctx context.Context,
 	cmd AssignRoleToUserCommand,
@@ -151,6 +152,10 @@ func (s *EndUserRoleAppService) AssignRoleToUser(
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserCannotAssignImplicitRole)
 	}
 	if err := s.rbacRepo.AssignRoleToUser(ctx, cmd.UserID, cmd.OrgName, cmd.ProjectSlug, cmd.RoleID); err != nil {
+		// 外键约束失败 = EndUser 不属于该 Org（end_user_users.org_name 不匹配）
+		if shared.IsRepoError(err, shared.ErrTypeConstraint) {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFoundInProject, cmd.UserID)
+		}
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	return nil
@@ -162,9 +167,32 @@ func (s *EndUserRoleAppService) RevokeRoleFromUser(
 	cmd RevokeRoleFromUserCommand,
 ) error {
 	if err := s.rbacRepo.RevokeRoleFromUser(ctx, cmd.UserID, cmd.OrgName, cmd.ProjectSlug, cmd.RoleID); err != nil {
+		// 外键约束失败 = EndUser 不属于该 Org
+		if shared.IsRepoError(err, shared.ErrTypeConstraint) {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFoundInProject, cmd.UserID)
+		}
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	return nil
+}
+
+// ListProjectEndUserRoleUsers 列出 Project 下所有有角色分配的用户
+func (s *EndUserRoleAppService) ListProjectEndUserRoleUsers(
+	ctx context.Context,
+	cmd ListProjectEndUserRoleUsersQuery,
+) ([]*rbacdomain.ProjectEndUserRoleUser, int64, error) {
+	items, total, err := s.rbacRepo.ListProjectEndUserRoleUsers(ctx, rbacdomain.ListProjectEndUserRoleUsersQuery{
+		OrgName:     cmd.OrgName,
+		ProjectSlug: cmd.ProjectSlug,
+		Search:      cmd.Search,
+		RoleID:      cmd.RoleID,
+		First:       cmd.First,
+		After:       cmd.After,
+	})
+	if err != nil {
+		return nil, 0, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	return items, total, nil
 }
 
 // getRoleOrNotFound 内部辅助：获取角色，不存在时返回 NotFound 业务错误

@@ -12,8 +12,6 @@ import (
 	"modelcraft/internal/interfaces/graphql/project/adapter"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/logfacade"
-
-	modeldesign "modelcraft/internal/domain/modeldesign"
 )
 
 // CreateEndUserPermission is the resolver for the createEndUserPermission field.
@@ -721,25 +719,6 @@ func (r *queryResolver) EndUserPermissionBundles(ctx context.Context, input *gen
 	}, nil
 }
 
-// fetchModelMapForBundle collects model IDs from a single bundle's items and
-// performs one batch lookup, returning a map keyed by model ID.
-func fetchModelMapForBundle(
-	ctx context.Context,
-	r *queryResolver,
-	orgName, projectSlug string,
-	bundle *rbacdomain.EndUserPermissionBundle,
-) map[string]*modeldesign.DataModel {
-	if bundle == nil || len(bundle.Items) == 0 {
-		return nil
-	}
-	ids := make([]string, 0, len(bundle.Items))
-	for _, item := range bundle.Items {
-		ids = append(ids, item.ModelID)
-	}
-	modelMap, _ := r.ModelDesignService.GetModelMetaByIDs(ctx, orgName, projectSlug, ids)
-	return modelMap
-}
-
 // EndUserRole is the resolver for the endUserRole field.
 func (r *queryResolver) EndUserRole(ctx context.Context, id string) (*generated.EndUserRole, error) {
 	orgName, _, err := getOrgAndProjectFromContext(ctx)
@@ -843,4 +822,81 @@ func (r *queryResolver) VirtualPresetsByModel(ctx context.Context, modelID strin
 		result = append(result, generated.EndUserPermissionPreset(p))
 	}
 	return result, nil
+}
+
+// ListProjectEndUserRoleUsers is the resolver for the listProjectEndUserRoleUsers field.
+func (r *queryResolver) ListProjectEndUserRoleUsers(ctx context.Context, input *generated.ListProjectEndUserRoleUsersInput) (*generated.ListProjectEndUserRoleUsersPayload, error) {
+	orgName, projectSlug, err := getOrgAndProjectFromContext(ctx)
+	if err != nil {
+		return &generated.ListProjectEndUserRoleUsersPayload{
+			Error: &generated.InvalidInput{Message: err.Error()},
+		}, nil
+	}
+
+	cmd := apprbac.ListProjectEndUserRoleUsersQuery{
+		ProjectScope: domainproject.ProjectScope{OrgName: orgName, ProjectSlug: projectSlug},
+	}
+	if input != nil {
+		if input.Search != nil {
+			cmd.Search = *input.Search
+		}
+		if input.RoleID != nil {
+			cmd.RoleID = *input.RoleID
+		}
+		if input.First != nil {
+			if *input.First <= 0 {
+				return &generated.ListProjectEndUserRoleUsersPayload{
+					Error: &generated.InvalidInput{Message: "first must be greater than 0"},
+				}, nil
+			}
+			cmd.First = int(*input.First)
+		}
+		if input.After != nil {
+			cmd.After = *input.After
+		}
+	}
+
+	items, total, appErr := r.RBACRoleSvc.ListProjectEndUserRoleUsers(ctx, cmd)
+	if appErr != nil {
+		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
+		return &generated.ListProjectEndUserRoleUsersPayload{
+			Error: &generated.ProjectNotFound{Message: appErr.Error()},
+		}, nil
+	}
+
+	nodes := make([]*generated.ProjectEndUserRoleUser, 0, len(items))
+	for _, item := range items {
+		endUserNode := &generated.EndUser{
+			ID:          item.EndUser.ID,
+			Username:    item.EndUser.Username,
+			IsForbidden: item.EndUser.IsForbidden,
+			CreatedBy:   item.EndUser.CreatedBy,
+			CreatedAt:   item.EndUser.CreatedAt,
+			UpdatedAt:   item.EndUser.UpdatedAt,
+		}
+		nodes = append(nodes, &generated.ProjectEndUserRoleUser{
+			EndUser:    endUserNode,
+			Role:       adapter.ToEndUserRoleDTO(item.Role),
+			AssignedAt: item.AssignedAt,
+		})
+	}
+
+	hasMore := false
+	var endCursor *string
+	if len(nodes) > 0 {
+		last := items[len(items)-1].ID
+		endCursor = &last
+		hasMore = int64(len(nodes)) < total
+	}
+
+	return &generated.ListProjectEndUserRoleUsersPayload{
+		Connection: &generated.ProjectEndUserRoleUserConnection{
+			Nodes: nodes,
+			PageInfo: &generated.PageInfo{
+				HasNextPage: hasMore,
+				EndCursor:   endCursor,
+			},
+			TotalCount: int32(total),
+		},
+	}, nil
 }

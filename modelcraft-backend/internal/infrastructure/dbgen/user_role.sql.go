@@ -8,6 +8,7 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const assignRoleToUser = `-- name: AssignRoleToUser :exec
@@ -87,4 +88,155 @@ type RevokeRoleFromUserParams struct {
 
 func (q *Queries) RevokeRoleFromUser(ctx context.Context, arg RevokeRoleFromUserParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, revokeRoleFromUser, arg.UserID, arg.RoleID, arg.OrgName)
+}
+
+const listProjectEndUserRoleUsersCount = `-- name: ListProjectEndUserRoleUsersCount :one
+SELECT COUNT(1)
+FROM end_user_role_users ur
+JOIN end_user_roles r
+  ON r.id = ur.role_id
+  AND r.org_name = ur.org_name
+JOIN end_user_users u
+  ON u.id = ur.user_id
+  AND u.org_name = ur.org_name
+WHERE r.org_name = ?
+  AND r.project_slug = ?
+  AND (? = '' OR u.username LIKE CONCAT('%', ?, '%'))
+  AND (? = '' OR ur.role_id = ?)
+`
+
+type ListProjectEndUserRoleUsersCountParams struct {
+	OrgName     string
+	ProjectSlug string
+	Search      string
+	RoleID      string
+}
+
+func (q *Queries) ListProjectEndUserRoleUsersCount(ctx context.Context, arg ListProjectEndUserRoleUsersCountParams) (int64, error) {
+	row := q.db.QueryRowContext(ctx, listProjectEndUserRoleUsersCount,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.Search,
+		arg.Search,
+		arg.RoleID,
+		arg.RoleID,
+	)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const listProjectEndUserRoleUsersQuery = `-- name: ListProjectEndUserRoleUsers :many
+SELECT
+  ur.id,
+  ur.org_name,
+  ur.created_at,
+  u.id        AS user_id,
+  u.username,
+  u.is_forbidden,
+  u.created_by,
+  u.created_at AS user_created_at,
+  u.updated_at AS user_updated_at,
+  r.id        AS role_id,
+  r.org_name  AS role_org_name,
+  r.project_slug,
+  r.name      AS role_name,
+  r.description AS role_description,
+  r.is_implicit,
+  r.created_at AS role_created_at,
+  r.updated_at AS role_updated_at
+FROM end_user_role_users ur
+JOIN end_user_roles r
+  ON r.id = ur.role_id
+  AND r.org_name = ur.org_name
+JOIN end_user_users u
+  ON u.id = ur.user_id
+  AND u.org_name = ur.org_name
+WHERE r.org_name = ?
+  AND r.project_slug = ?
+  AND (? = '' OR u.username LIKE CONCAT('%', ?, '%'))
+  AND (? = '' OR ur.role_id = ?)
+  AND (? = '' OR ur.id > ?)
+ORDER BY ur.id ASC
+LIMIT ?
+`
+
+type ListProjectEndUserRoleUsersParams struct {
+	OrgName     string
+	ProjectSlug string
+	Search      string
+	RoleID      string
+	After       string
+	Limit       int32
+}
+
+type ListProjectEndUserRoleUsersRow struct {
+	ID              string
+	OrgName         string
+	CreatedAt       time.Time
+	UserID          string
+	Username        string
+	IsForbidden     int32
+	UserCreatedBy   sql.NullString
+	UserCreatedAt   time.Time
+	UserUpdatedAt   time.Time
+	RoleID          string
+	RoleOrgName     string
+	ProjectSlug     string
+	RoleName        string
+	RoleDescription sql.NullString
+	IsImplicit      int32
+	RoleCreatedAt   time.Time
+	RoleUpdatedAt   time.Time
+}
+
+func (q *Queries) ListProjectEndUserRoleUsers(ctx context.Context, arg ListProjectEndUserRoleUsersParams) ([]ListProjectEndUserRoleUsersRow, error) {
+	rows, err := q.db.QueryContext(ctx, listProjectEndUserRoleUsersQuery,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.Search,
+		arg.Search,
+		arg.RoleID,
+		arg.RoleID,
+		arg.After,
+		arg.After,
+		arg.Limit,
+	)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ListProjectEndUserRoleUsersRow
+	for rows.Next() {
+		var i ListProjectEndUserRoleUsersRow
+		if err := rows.Scan(
+			&i.ID,
+			&i.OrgName,
+			&i.CreatedAt,
+			&i.UserID,
+			&i.Username,
+			&i.IsForbidden,
+			&i.UserCreatedBy,
+			&i.UserCreatedAt,
+			&i.UserUpdatedAt,
+			&i.RoleID,
+			&i.RoleOrgName,
+			&i.ProjectSlug,
+			&i.RoleName,
+			&i.RoleDescription,
+			&i.IsImplicit,
+			&i.RoleCreatedAt,
+			&i.RoleUpdatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }

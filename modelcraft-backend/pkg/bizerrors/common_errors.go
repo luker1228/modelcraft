@@ -559,11 +559,14 @@ var (
 		ZhMessage: "用户已绑定该角色",
 	}
 
-	// EndUserNotFoundInProject 终端用户在项目中不存在（RBAC 上下文）
+	// EndUserNotFoundInProject 终端用户不属于当前 Org（RBAC 上下文）
+	// 语义说明：废弃 EndUserProjectAccess 后，此错误改为表示「用户不属于该 Org」。
+	// 在 Project Scope 下执行 assignEndUserRole / revokeEndUserRole 等操作时，
+	// 若 EndUser 不属于当前 Org，则返回此错误。
 	EndUserNotFoundInProject = ErrorDefinition{
 		Code:      ErrorTypeNotFound + ".RBAC.END_USER",
-		EnMessage: "End user not found in project: {0}",
-		ZhMessage: "终端用户在项目中不存在: {0}",
+		EnMessage: "End user not found in current org: {0}",
+		ZhMessage: "终端用户不属于当前 Org: {0}",
 	}
 
 	// EndUserPermissionBundleInUse 权限包已被角色或用户绑定，无法删除

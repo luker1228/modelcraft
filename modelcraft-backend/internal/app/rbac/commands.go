@@ -151,6 +151,15 @@ type RevokeRoleFromUserCommand struct {
 	RoleID               string
 }
 
+// ListProjectEndUserRoleUsersQuery 查询 Project 下有角色分配的用户列表命令
+type ListProjectEndUserRoleUsersQuery struct {
+	project.ProjectScope        // 嵌入: OrgName + ProjectSlug
+	Search               string // username 模糊搜索
+	RoleID               string // 按 Role 过滤（可选）
+	First                int
+	After                string
+}
+
 // RestoreBundleCommand 回滚权限包到历史快照命令
 type RestoreBundleCommand struct {
 	project.ProjectScope // 嵌入: OrgName + ProjectSlug

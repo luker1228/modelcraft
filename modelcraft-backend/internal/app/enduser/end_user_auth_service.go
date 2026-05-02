@@ -63,8 +63,6 @@ type RepositoryFactory interface {
 	NewEndUserRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserRepository
 	// NewEndUserSessionRepository creates an EndUserSessionRepository from a DB/TX connection.
 	NewEndUserSessionRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserSessionRepository
-	// NewEndUserProjectAccessRepository creates an EndUserProjectAccessRepository from a DB/TX connection.
-	NewEndUserProjectAccessRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserProjectAccessRepository
 }
 
 // TxManager manages database transactions for private databases.
@@ -198,8 +196,7 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	projectAccessRepo := s.repoFactory.NewEndUserProjectAccessRepository(db, cmd.OrgName, "")
-	accessibleProjects, err := projectAccessRepo.ListAccessibleProjectsByUserID(ctx, cmd.OrgName, user.ID)
+	accessibleProjects, err := userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, user.ID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -283,8 +280,8 @@ func (s *EndUserAuthAppService) SelectProjectContext(
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	projectAccessRepo := s.repoFactory.NewEndUserProjectAccessRepository(db, cmd.OrgName, cmd.ProjectSlug)
-	hasAccess, err := projectAccessRepo.HasProjectAccess(ctx, cmd.OrgName, session.UserID, cmd.ProjectSlug)
+	projectAccessRepo := s.repoFactory.NewEndUserRepository(db, cmd.OrgName, "")
+	hasAccess, err := projectAccessRepo.HasProjectAccessByRole(ctx, cmd.OrgName, session.UserID, cmd.ProjectSlug)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -353,8 +350,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	projectAccessRepo := s.repoFactory.NewEndUserProjectAccessRepository(db, cmd.OrgName, "")
-	accessibleProjects, err := projectAccessRepo.ListAccessibleProjectsByUserID(ctx, cmd.OrgName, session.UserID)
+	accessibleProjects, err := userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, session.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}

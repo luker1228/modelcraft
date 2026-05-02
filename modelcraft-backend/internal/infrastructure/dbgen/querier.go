@@ -175,6 +175,8 @@ type Querier interface {
 	ListRolesByOrgIncludeSystem(ctx context.Context, orgName string) ([]Role, error)
 	ListRolesByUser(ctx context.Context, arg ListRolesByUserParams) ([]string, error)
 	ListUserRoles(ctx context.Context, arg ListUserRolesParams) ([]UserRole, error)
+	ListProjectEndUserRoleUsers(ctx context.Context, arg ListProjectEndUserRoleUsersParams) ([]ListProjectEndUserRoleUsersRow, error)
+	ListProjectEndUserRoleUsersCount(ctx context.Context, arg ListProjectEndUserRoleUsersCountParams) (int64, error)
 	RemoveBundleDataPermissionItem(ctx context.Context, arg RemoveBundleDataPermissionItemParams) (sql.Result, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeBundleFromRole(ctx context.Context, arg RevokeBundleFromRoleParams) (sql.Result, error)

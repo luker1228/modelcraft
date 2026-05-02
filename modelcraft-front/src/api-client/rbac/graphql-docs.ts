@@ -248,94 +248,32 @@ export const GET_END_USER_EFFECTIVE_PERMISSIONS = gql`
   }
 `
 
-export const LIST_PROJECT_END_USER_ACCESS = gql`
-  query ListProjectEndUserAccess($input: ListProjectEndUserAccessInput) {
-    listProjectEndUserAccess(input: $input) {
+export const LIST_PROJECT_END_USER_ROLE_USERS = gql`
+  query ListProjectEndUserRoleUsers($input: ListProjectEndUserRoleUsersInput) {
+    listProjectEndUserRoleUsers(input: $input) {
       connection {
         nodes {
-          id
           endUser {
             id
             username
+            isForbidden
           }
-          permissionBundleId
-          permissionBundleName
-          grantedAt
+          role {
+            id
+            name
+            description
+          }
+          assignedAt
         }
+        pageInfo {
+          hasNextPage
+          endCursor
+        }
+        totalCount
       }
       error {
         __typename
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
-          message
-        }
-      }
-    }
-  }
-`
-
-export const GRANT_PROJECT_END_USER_ACCESS = gql`
-  mutation GrantProjectEndUserAccess($input: GrantEndUserProjectAccessInput!) {
-    grantEndUserProjectAccess(input: $input) {
-      access {
-        id
-      }
-      error {
-        __typename
-        ... on EndUserNotFound {
-          message
-        }
-        ... on EndUserProjectAccessAlreadyExists {
-          message
-        }
-        ... on EndUserPermissionBundleNotFound {
-          message
-        }
-        ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
-          message
-        }
-      }
-    }
-  }
-`
-
-export const UPDATE_PROJECT_END_USER_ACCESS = gql`
-  mutation UpdateProjectEndUserAccess($input: UpdateEndUserProjectAccessInput!) {
-    updateEndUserProjectAccess(input: $input) {
-      access {
-        id
-      }
-      error {
-        __typename
-        ... on EndUserProjectAccessNotFound {
-          message
-        }
-        ... on EndUserPermissionBundleNotFound {
-          message
-        }
-        ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
-          message
-        }
-      }
-    }
-  }
-`
-
-export const REVOKE_PROJECT_END_USER_ACCESS = gql`
-  mutation RevokeProjectEndUserAccess($input: RevokeEndUserProjectAccessInput!) {
-    revokeEndUserProjectAccess(input: $input) {
-      success
-      error {
-        __typename
-        ... on EndUserProjectAccessNotFound {
           message
         }
         ... on ProjectNotFound {

@@ -40,8 +40,7 @@ type Resolver struct {
 	PrivateDBManager *repository.PrivateDBManager
 
 	// End-User
-	EndUserMgmtAppService   *appEnduser.EndUserManagementAppService
-	EndUserAccessAppService *appEnduser.EndUserProjectAccessAppService
+	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
 
 	// RBAC (Data-Level Row & Column Permission)
 	RBACPermissionSvc *apprbac.EndUserPermissionAppService

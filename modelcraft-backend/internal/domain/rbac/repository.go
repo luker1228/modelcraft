@@ -153,6 +153,12 @@ type EndUserPermissionRepository interface {
 	// RevokeRoleFromUser 撤销用户的角色关联
 	RevokeRoleFromUser(ctx context.Context, userID, orgName, projectSlug, roleID string) error
 
+	// ListProjectEndUserRoleUsers 列出 Project 下所有有角色分配的用户（支持搜索和分页）
+	ListProjectEndUserRoleUsers(
+		ctx context.Context,
+		query ListProjectEndUserRoleUsersQuery,
+	) ([]*ProjectEndUserRoleUser, int64, error)
+
 	// ─── 鉴权核心查询（3 条链式，对应 Step 1~3） ─────────────────
 
 	// GetBundleIDsByUserDirect 获取用户直接关联的权限包 ID 列表（鉴权 Step 1）

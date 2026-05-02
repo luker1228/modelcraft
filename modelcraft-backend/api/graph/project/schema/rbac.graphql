@@ -745,6 +745,35 @@ input GetEffectivePermissionsInput {
 # Query Extensions
 # ============================================================
 
+# ── 新增：Project 视角的用户角色分配列表 ──────────────────────────
+
+type ProjectEndUserRoleUser {
+  endUser: EndUser!
+  role: EndUserRole!
+  assignedAt: Time!
+}
+
+type ProjectEndUserRoleUserConnection {
+  nodes: [ProjectEndUserRoleUser!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ListProjectEndUserRoleUsersPayload {
+  connection: ProjectEndUserRoleUserConnection
+  error: ListProjectEndUserRoleUsersError
+}
+
+union ListProjectEndUserRoleUsersError = InvalidInput | ProjectNotFound
+
+input ListProjectEndUserRoleUsersInput {
+  search: String    # EndUser username 模糊搜索
+  roleId: ID        # 可选，按 Role 过滤
+  first: Int
+  after: String
+}
+
+
 extend type Query {
   endUserPermission(id: ID!): EndUserPermission @hasPermission(action: "rbac:read")
   endUserPermissions(input: ListEndUserPermissionsInput): EndUserPermissionConnection! @hasPermission(action: "rbac:read")
@@ -760,6 +789,12 @@ extend type Query {
   列出指定模型可用的预设模板列表（不落库，按模型是否有 owner 字段动态计算）
   """
   virtualPresetsByModel(modelId: ID!): [EndUserPermissionPreset!]! @hasPermission(action: "rbac:read")
+  """
+  新增：列出当前 Project 下所有有角色分配的用户
+  """
+  listProjectEndUserRoleUsers(
+    input: ListProjectEndUserRoleUsersInput
+  ): ListProjectEndUserRoleUsersPayload! @hasPermission(action: "rbac:read")
 }
 
 

@@ -1,0 +1,1 @@
+{"nodes": [{"id": "src_api_client_noop_ts", "label": "noop.ts", "file_type": "code", "source_file": "src/api-client/noop.ts", "source_location": "L1"}], "edges": [{"source": "src_api_client_noop_ts", "target": "client", "relation": "imports_from", "confidence": "EXTRACTED", "source_file": "src/api-client/noop.ts", "source_location": "L1", "weight": 1.0}]}

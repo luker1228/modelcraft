@@ -135,59 +135,6 @@ type DeleteEndUserCommand struct {
 	UserID      string
 }
 
-// --- End-User Project Access Commands (by developers) ---
-
-// GrantEndUserProjectAccessCommand grants one permission bundle to an end-user in project scope.
-type GrantEndUserProjectAccessCommand struct {
-	OrgName            string
-	ProjectSlug        string
-	EndUserID          string
-	PermissionBundleID string
-	GrantedBy          string
-}
-
-// UpdateEndUserProjectAccessCommand updates the permission bundle of an existing access grant.
-type UpdateEndUserProjectAccessCommand struct {
-	OrgName            string
-	ProjectSlug        string
-	AccessID           string
-	PermissionBundleID string
-}
-
-// RevokeEndUserProjectAccessCommand revokes one access grant by access ID.
-type RevokeEndUserProjectAccessCommand struct {
-	OrgName     string
-	ProjectSlug string
-	AccessID    string
-}
-
-// ListEndUserProjectAccessCommand lists project access grants with pagination.
-type ListEndUserProjectAccessCommand struct {
-	OrgName     string
-	ProjectSlug string
-	Search      string
-	First       int
-	After       string
-}
-
-// ListEndUserProjectAccessResult represents list result of project access grants.
-type ListEndUserProjectAccessResult struct {
-	Items       []*EndUserProjectAccessDTO
-	TotalCount  int64
-	HasNextPage bool
-	EndCursor   string
-}
-
-// EndUserProjectAccessDTO represents one project access grant item.
-type EndUserProjectAccessDTO struct {
-	ID                   string
-	EndUser              *EndUserDTO
-	PermissionBundleID   string
-	PermissionBundleName string
-	GrantedBy            string
-	GrantedAt            time.Time
-}
-
 // --- Result Types for User Management (required by end_user_app_service.go) ---
 
 // CreateEndUserResult represents the result of creating an end-user.

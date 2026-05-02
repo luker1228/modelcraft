@@ -12,6 +12,8 @@ import (
 	"modelcraft/internal/infrastructure/sqlerr"
 	"strings"
 
+	enduserdomain "modelcraft/internal/domain/enduser"
+
 	"github.com/google/uuid"
 )
 
@@ -778,6 +780,40 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 	}
 }
 
+// toEndUserDomain 从 ListProjectEndUserRoleUsersRow 构建 enduser.EndUser
+func toEndUserDomain(row dbgen.ListProjectEndUserRoleUsersRow) *enduserdomain.EndUser {
+	createdBy := ""
+	if row.UserCreatedBy.Valid {
+		createdBy = row.UserCreatedBy.String
+	}
+	return &enduserdomain.EndUser{
+		ID:          row.UserID,
+		OrgName:     row.OrgName,
+		Username:    row.Username,
+		IsForbidden: row.IsForbidden == 1,
+		CreatedBy:   createdBy,
+		CreatedAt:   row.UserCreatedAt,
+		UpdatedAt:   row.UserUpdatedAt,
+	}
+}
+
+// toRoleDomain 从 ListProjectEndUserRoleUsersRow 构建 rbac.EndUserRole
+func toRoleDomain(row dbgen.ListProjectEndUserRoleUsersRow) *rbac.EndUserRole {
+	var description *string
+	if row.RoleDescription.Valid {
+		d := row.RoleDescription.String
+		description = &d
+	}
+	return &rbac.EndUserRole{
+		OrgName:     row.RoleOrgName,
+		ProjectSlug: row.ProjectSlug,
+		ID:          row.RoleID,
+		Name:        row.RoleName,
+		Description: description,
+		IsImplicit:  row.IsImplicit == 1,
+	}
+}
+
 func (r *SqlEndUserDataPermissionRepository) CreateRole(ctx context.Context, role *rbac.EndUserRole) error {
 	params := dbgen.CreateEndUserRoleParams{
 		ID:          role.ID,
@@ -1068,4 +1104,53 @@ func (r *SqlEndUserDataPermissionRepository) GetPermissionsByBundleIDs(
 		}
 	}
 	return perms, nil
+}
+
+// ListProjectEndUserRoleUsers 列出 Project 下所有有角色分配的用户（支持搜索和分页）
+func (r *SqlEndUserDataPermissionRepository) ListProjectEndUserRoleUsers(
+	ctx context.Context,
+	query rbac.ListProjectEndUserRoleUsersQuery,
+) ([]*rbac.ProjectEndUserRoleUser, int64, error) {
+	first := query.First
+	if first <= 0 {
+		first = 20
+	}
+	if first > 100 {
+		first = 100
+	}
+
+	total, err := r.q.ListProjectEndUserRoleUsersCount(ctx, dbgen.ListProjectEndUserRoleUsersCountParams{
+		OrgName:     query.OrgName,
+		ProjectSlug: query.ProjectSlug,
+		Search:      query.Search,
+		RoleID:      query.RoleID,
+	})
+	if err != nil {
+		return nil, 0, sqlerr.WrapSQLError(err)
+	}
+
+	rows, err := r.q.ListProjectEndUserRoleUsers(ctx, dbgen.ListProjectEndUserRoleUsersParams{
+		OrgName:     query.OrgName,
+		ProjectSlug: query.ProjectSlug,
+		Search:      query.Search,
+		RoleID:      query.RoleID,
+		After:       query.After,
+		Limit:       int32(first),
+	})
+	if err != nil {
+		return nil, 0, sqlerr.WrapSQLError(err)
+	}
+
+	items := make([]*rbac.ProjectEndUserRoleUser, 0, len(rows))
+	for _, row := range rows {
+		endUser := toEndUserDomain(row)
+		role := toRoleDomain(row)
+		items = append(items, &rbac.ProjectEndUserRoleUser{
+			ID:         row.ID,
+			EndUser:    endUser,
+			Role:       role,
+			AssignedAt: row.CreatedAt,
+		})
+	}
+	return items, total, nil
 }

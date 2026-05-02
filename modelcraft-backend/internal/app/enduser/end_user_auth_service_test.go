@@ -49,9 +49,8 @@ func (i *fakeTokenIssuer) IssueEndUserToken(
 }
 
 type fakeRepoFactory struct {
-	userRepo          *inMemoryEndUserRepo
-	sessionRepo       *inMemoryEndUserSessionRepo
-	projectAccessRepo *inMemoryEndUserProjectAccessRepo
+	userRepo    *inMemoryEndUserRepo
+	sessionRepo *inMemoryEndUserSessionRepo
 }
 
 func (f *fakeRepoFactory) NewEndUserRepository(
@@ -66,13 +65,6 @@ func (f *fakeRepoFactory) NewEndUserSessionRepository(
 	_, _ string,
 ) domainenduser.EndUserSessionRepository {
 	return f.sessionRepo
-}
-
-func (f *fakeRepoFactory) NewEndUserProjectAccessRepository(
-	_ SQLDBTX,
-	_, _ string,
-) domainenduser.EndUserProjectAccessRepository {
-	return f.projectAccessRepo
 }
 
 type fakeTxManager struct{}
@@ -117,20 +109,22 @@ func (noopSQLDBTX) QueryRowContext(
 }
 
 type inMemoryEndUserRepo struct {
-	usersByID       map[string]*domainenduser.EndUser
-	usersByOrgName  map[string]map[string]*domainenduser.EndUser
-	forceSaveErr    error
-	forceLookupErr  error
-	forceDeleteErr  error
-	forceUpdateErr  error
-	forceListErr    error
-	forceGetByIDErr error
+	usersByID          map[string]*domainenduser.EndUser
+	usersByOrgName     map[string]map[string]*domainenduser.EndUser
+	forceSaveErr       error
+	forceLookupErr     error
+	forceDeleteErr     error
+	forceUpdateErr     error
+	forceListErr       error
+	forceGetByIDErr    error
+	accessibleProjects map[string][]domainenduser.AccessibleProject
 }
 
 func newInMemoryEndUserRepo() *inMemoryEndUserRepo {
 	return &inMemoryEndUserRepo{
-		usersByID:      make(map[string]*domainenduser.EndUser),
-		usersByOrgName: make(map[string]map[string]*domainenduser.EndUser),
+		usersByID:          make(map[string]*domainenduser.EndUser),
+		usersByOrgName:     make(map[string]map[string]*domainenduser.EndUser),
+		accessibleProjects: make(map[string][]domainenduser.AccessibleProject),
 	}
 }
 
@@ -227,6 +221,25 @@ func (r *inMemoryEndUserRepo) ListWithTotal(
 	return []*domainenduser.EndUser{}, 0, nil
 }
 
+func (r *inMemoryEndUserRepo) ListAccessibleProjectsByRoleAssignment(
+	_ context.Context,
+	_, endUserID string,
+) ([]domainenduser.AccessibleProject, error) {
+	return r.accessibleProjects[endUserID], nil
+}
+
+func (r *inMemoryEndUserRepo) HasProjectAccessByRole(
+	_ context.Context,
+	_, endUserID, projectSlug string,
+) (bool, error) {
+	for _, p := range r.accessibleProjects[endUserID] {
+		if p.ProjectSlug == projectSlug {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
 type inMemoryEndUserSessionRepo struct {
 	sessionsByID   map[string]*domainenduser.EndUserSession
 	sessionsByHash map[string]*domainenduser.EndUserSession
@@ -296,93 +309,25 @@ func (r *inMemoryEndUserSessionRepo) RevokeAllByUserID(
 	return nil
 }
 
-type inMemoryEndUserProjectAccessRepo struct {
-	projectsByUserID map[string][]domainenduser.AccessibleProject
-}
-
-func newInMemoryEndUserProjectAccessRepo() *inMemoryEndUserProjectAccessRepo {
-	return &inMemoryEndUserProjectAccessRepo{projectsByUserID: make(map[string][]domainenduser.AccessibleProject)}
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) Grant(_ context.Context, _ *domainenduser.EndUserProjectAccess) error {
-	return nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) GetByID(
-	_ context.Context,
-	_, _, _ string,
-) (*domainenduser.EndUserProjectAccess, error) {
-	return nil, nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) UpdatePermissionBundle(
-	_ context.Context,
-	_, _, _, _ string,
-) error {
-	return nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) Revoke(_ context.Context, _, _, _ string) error {
-	return nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) RemoveByEndUserID(_ context.Context, _, _ string) error {
-	return nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) PermissionBundleExists(_ context.Context, _, _, _ string) (bool, error) {
-	return true, nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) ListWithTotal(
-	_ context.Context,
-	_ domainenduser.ListEndUserProjectAccessQuery,
-) ([]*domainenduser.EndUserProjectAccess, int64, error) {
-	return nil, 0, nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) ListAccessibleProjectsByUserID(
-	_ context.Context,
-	_ string,
-	endUserID string,
-) ([]domainenduser.AccessibleProject, error) {
-	return r.projectsByUserID[endUserID], nil
-}
-
-func (r *inMemoryEndUserProjectAccessRepo) HasProjectAccess(
-	_ context.Context,
-	_ string,
-	endUserID, projectSlug string,
-) (bool, error) {
-	for _, p := range r.projectsByUserID[endUserID] {
-		if p.ProjectSlug == projectSlug {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
 func createEndUserAuthServiceForTest(t *testing.T) (
 	*EndUserAuthAppService,
 	*inMemoryEndUserRepo,
 	*inMemoryEndUserSessionRepo,
-	*inMemoryEndUserProjectAccessRepo,
 ) {
 	t.Helper()
 
 	userRepo := newInMemoryEndUserRepo()
 	sessionRepo := newInMemoryEndUserSessionRepo()
-	projectAccessRepo := newInMemoryEndUserProjectAccessRepo()
 
 	svc := NewEndUserAuthAppService(
 		&fakeDBProvider{},
-		&fakeRepoFactory{userRepo: userRepo, sessionRepo: sessionRepo, projectAccessRepo: projectAccessRepo},
+		&fakeRepoFactory{userRepo: userRepo, sessionRepo: sessionRepo},
 		&fakeTxManager{},
 		&fakeTokenIssuer{},
 		logfacade.GetLogger(context.Background()),
 	)
 
-	return svc, userRepo, sessionRepo, projectAccessRepo
+	return svc, userRepo, sessionRepo
 }
 
 func seedEndUser(
@@ -415,9 +360,9 @@ func requireBusinessErrorCode(t *testing.T, err error, code string) {
 }
 
 func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
-	svc, userRepo, sessionRepo, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, sessionRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
 		{ProjectSlug: "project-b", ProjectTitle: "Project B"},
 	}
@@ -444,7 +389,7 @@ func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_LoginEndUser_NoProjectAccess(t *testing.T) {
-	svc, userRepo, _, _ := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
 
 	result, err := svc.LoginEndUser(context.Background(), LoginCommand{
@@ -461,9 +406,9 @@ func TestEndUserAuthAppService_LoginEndUser_NoProjectAccess(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_LoginEndUser_DisabledAccount(t *testing.T) {
-	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", true)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -477,9 +422,9 @@ func TestEndUserAuthAppService_LoginEndUser_DisabledAccount(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
-	svc, userRepo, sessionRepo, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, sessionRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -509,7 +454,7 @@ func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_RefreshEndUserToken_InvalidToken(t *testing.T) {
-	svc, _, _, _ := createEndUserAuthServiceForTest(t)
+	svc, _, _ := createEndUserAuthServiceForTest(t)
 
 	_, err := svc.RefreshEndUserToken(context.Background(), RefreshCommand{
 		OrgName:      "org-a",
@@ -520,9 +465,9 @@ func TestEndUserAuthAppService_RefreshEndUserToken_InvalidToken(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_RefreshEndUserToken_DisabledAccount(t *testing.T) {
-	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -548,9 +493,9 @@ func TestEndUserAuthAppService_RefreshEndUserToken_DisabledAccount(t *testing.T)
 }
 
 func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T) {
-	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -561,7 +506,7 @@ func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T)
 	})
 	require.NoError(t, err)
 
-	projectAccessRepo.projectsByUserID["user-1"] = nil
+	userRepo.accessibleProjects["user-1"] = nil
 
 	refreshResult, err := svc.RefreshEndUserToken(context.Background(), RefreshCommand{
 		OrgName:      "org-a",
@@ -576,9 +521,9 @@ func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T)
 }
 
 func TestEndUserAuthAppService_SelectProjectContext_Success(t *testing.T) {
-	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -601,9 +546,9 @@ func TestEndUserAuthAppService_SelectProjectContext_Success(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_SelectProjectContext_Denied(t *testing.T) {
-	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -624,9 +569,9 @@ func TestEndUserAuthAppService_SelectProjectContext_Denied(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_SelectProjectContext_DisabledAccount(t *testing.T) {
-	svc, userRepo, _, projectAccessRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	projectAccessRepo.projectsByUserID["user-1"] = []domainenduser.AccessibleProject{
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
 	}
 
@@ -649,9 +594,8 @@ func TestEndUserAuthAppService_SelectProjectContext_DisabledAccount(t *testing.T
 }
 
 var (
-	_ driver.Result                                = noopResult{}
-	_ SQLDBTX                                      = noopSQLDBTX{}
-	_ domainenduser.EndUserRepository              = (*inMemoryEndUserRepo)(nil)
-	_ domainenduser.EndUserSessionRepository       = (*inMemoryEndUserSessionRepo)(nil)
-	_ domainenduser.EndUserProjectAccessRepository = (*inMemoryEndUserProjectAccessRepo)(nil)
+	_ driver.Result                          = noopResult{}
+	_ SQLDBTX                                = noopSQLDBTX{}
+	_ domainenduser.EndUserRepository        = (*inMemoryEndUserRepo)(nil)
+	_ domainenduser.EndUserSessionRepository = (*inMemoryEndUserSessionRepo)(nil)
 )
