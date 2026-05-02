@@ -3,6 +3,7 @@
 // 提供 getEndUserToken、refreshEndUserAccessToken、fetchAndCacheEndUserInfo 等客户端工具
 
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { decodeJWTPayload } from '@shared/utils/jwt'
 import type { EndUserInfo, EndUserJWTPayload, EndUserAuthResponse, EndUserMeResponse } from '@/types/end-user-auth'
 
 export type { EndUserInfo }
@@ -16,23 +17,8 @@ export interface EndUserRefreshParams {
 // JWT 解析工具
 // ============================================================================
 
-/**
- * Decode JWT token (without verification - use for client-side display only)
- */
 function decodeEndUserJWT(token: string): EndUserJWTPayload | null {
-  try {
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    )
-    return JSON.parse(jsonPayload) as EndUserJWTPayload
-  } catch {
-    return null
-  }
+  return decodeJWTPayload<EndUserJWTPayload>(token)
 }
 
 // ============================================================================

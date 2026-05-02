@@ -2,12 +2,13 @@
 // JWT utility functions for client-side authentication — token decode, expiry check, refresh.
 
 import { useAuthStore } from '@shared/stores/auth-store'
+import { decodeJWTPayload, isJWTExpired, isJWTNearExpiry } from '@shared/utils/jwt'
 import type { AuthUser } from '@/types/auth'
 
 export type { AuthUser }
 
 /** JWT payload structure for gateway-issued access tokens */
-interface JWTPayload {
+interface DevJWTPayload {
   exp?: number
   sub?: string      // userID (gateway JWT uses sub)
   user_id?: string  // legacy field
@@ -17,32 +18,16 @@ interface JWTPayload {
   username?: string // gateway field
 }
 
-export function decodeJWT(token: string): JWTPayload | null {
-  try {
-    const base64Url = token.split('.')[1]
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/')
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join(''),
-    )
-    return JSON.parse(jsonPayload) as JWTPayload
-  } catch {
-    return null
-  }
+export function decodeJWT(token: string): DevJWTPayload | null {
+  return decodeJWTPayload<DevJWTPayload>(token)
 }
 
 export function isTokenExpired(token: string): boolean {
-  const decoded = decodeJWT(token)
-  if (!decoded || !decoded.exp) return true
-  return decoded.exp < Math.floor(Date.now() / 1000)
+  return isJWTExpired(token)
 }
 
 export function isTokenNearExpiry(token: string, thresholdSeconds = 300): boolean {
-  const decoded = decodeJWT(token)
-  if (!decoded || !decoded.exp) return true
-  return decoded.exp - Math.floor(Date.now() / 1000) < thresholdSeconds
+  return isJWTNearExpiry(token, thresholdSeconds)
 }
 
 export function getUserInfoFromToken(token: string): AuthUser | null {

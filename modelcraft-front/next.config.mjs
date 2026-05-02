@@ -121,6 +121,12 @@ const nextConfig = {
         source: '/api/bff/graphql/org/:orgName/:path*',
         destination: `${backendUrl}/graphql/org/:orgName/:path*`,
       },
+      // End-User GraphQL（终端用户运行态 GraphQL）
+      // Endpoint: /api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}
+      {
+        source: '/api/bff/graphql/end-user/org/:orgName/project/:projectSlug',
+        destination: `${backendUrl}/graphql/end-user/org/:orgName/project/:projectSlug`,
+      },
       // 终端用户公开认证接口（JWT）
       {
         source: '/api/end-user/:path*',
