@@ -7,7 +7,7 @@ import type { EndUserInfo, EndUserJWTPayload, EndUserAuthResponse, EndUserMeResp
 
 export type { EndUserInfo }
 
-interface EndUserRefreshParams {
+export interface EndUserRefreshParams {
   orgName: string
   projectSlug: string
 }
@@ -72,7 +72,8 @@ export async function refreshEndUserAccessToken(
   _isRefreshing = true
   _refreshPromise = (async () => {
     try {
-      const res = await fetch(`/end-user/auth/refresh`, {
+      const orgName = params?.orgName ?? ''
+      const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -121,14 +122,15 @@ export async function refreshEndUserAccessToken(
 /**
  * 获取终端用户信息并填充 store.userInfo。
  * 在 silent refresh 成功后调用，确保 username 可用于右上角展示。
+ * @param orgName - 组织名称（用于构造正确的 BFF 路径）
  * @returns EndUserInfo 或 null（获取失败）
  */
-export async function fetchAndCacheEndUserInfo(): Promise<EndUserInfo | null> {
+export async function fetchAndCacheEndUserInfo(orgName: string): Promise<EndUserInfo | null> {
   try {
     const token = getEndUserToken()
     if (!token) return null
 
-    const res = await fetch(`/end-user/auth/me`, {
+    const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/me`, {
       credentials: 'include',
       headers: {
         Authorization: `Bearer ${token}`,

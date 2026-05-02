@@ -81,7 +81,7 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
         return
       }
 
-      const res = await fetch(`/api/end-user/auth/select-project`, {
+      const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/select-project`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -109,7 +109,7 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
       sessionStorage.setItem(`eu_selected_project_${orgName}`, data.selectedProject ?? selectedSlug)
 
       // Select-project 只返回 selectedProject；真正 access token 通过 refresh 获取
-      const refreshRes = await fetch('/api/end-user/auth/refresh', {
+      const refreshRes = await fetch(`/api/bff/org/${orgName}/end-user/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ orgName, refreshToken }),

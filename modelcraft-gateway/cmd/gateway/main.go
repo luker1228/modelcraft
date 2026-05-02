@@ -67,7 +67,7 @@ func main() {
 	}
 
 	// Initialise auth handler (uses the traced HTTP client).
-	authHandler := auth.NewHandler(authSvc, cfg.BackendURL, tracedHTTPClient)
+	authHandler := auth.NewHandler(authSvc, cfg.BackendURL, tracedHTTPClient, cfg.InternalToken)
 
 	// Build router.
 	r := chi.NewRouter()
@@ -100,6 +100,7 @@ func main() {
 		r.Post("/refresh", authHandler.EndUserRefresh)
 		r.Post("/logout", authHandler.EndUserLogout)
 		r.Post("/select-project", authHandler.EndUserSelectProject)
+		r.Get("/me", authHandler.EndUserMe)
 	})
 
 	// GraphQL proxy endpoints — JWT required (validated inside handler).

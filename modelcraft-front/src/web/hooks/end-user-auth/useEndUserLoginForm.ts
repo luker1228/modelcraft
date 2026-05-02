@@ -72,7 +72,7 @@ export function useEndUserLoginForm(
       setError(null)
 
       try {
-        const res = await fetch(`/end-user/auth/login`, {
+        const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -114,7 +114,7 @@ export function useEndUserLoginForm(
 
         // 异步填充 userInfo（不阻塞跳转）：登录后立即从 /me 接口获取 username，
         // 供数据管理页右上角展示；失败不影响主流程。
-        void fetchAndCacheEndUserInfo()
+        void fetchAndCacheEndUserInfo(orgName)
 
         // 跳转：优先使用 ?redirect= 参数，否则跳转数据管理落地页
         const redirect = searchParams.get('redirect')

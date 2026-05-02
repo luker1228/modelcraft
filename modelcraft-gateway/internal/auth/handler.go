@@ -3,10 +3,12 @@ package auth
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
@@ -19,16 +21,18 @@ import (
 //
 // All request validation is delegated to the backend.
 type Handler struct {
-	authService *Service
-	backendURL  string
-	httpClient  *http.Client
+	authService   *Service
+	backendURL    string
+	httpClient    *http.Client
+	internalToken string
 }
 
-func NewHandler(authSvc *Service, backendURL string, httpClient *http.Client) *Handler {
+func NewHandler(authSvc *Service, backendURL string, httpClient *http.Client, internalToken string) *Handler {
 	return &Handler{
-		authService: authSvc,
-		backendURL:  backendURL,
-		httpClient:  httpClient,
+		authService:   authSvc,
+		backendURL:    backendURL,
+		httpClient:    httpClient,
+		internalToken: internalToken,
 	}
 }
 
@@ -162,7 +166,7 @@ func (h *Handler) EndUserRefresh(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.extractRefreshAndProxy(w, http.StatusOK, raw)
+	h.extractEndUserRefreshAndProxy(w, http.StatusOK, raw)
 }
 
 // EndUserLogout reads end-user refresh cookie, proxies to backend /api/end-user/auth/logout, then clears cookie.
@@ -208,6 +212,39 @@ func (h *Handler) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, json.RawMessage(raw))
 }
 
+// EndUserMe decodes the end-user Bearer token (without signature verification — the backend
+// performs the real check), injects the required internal headers, and proxies
+// GET /internal/v1/end-user/auth/me to the backend.
+func (h *Handler) EndUserMe(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "Authorization header required")
+		return
+	}
+
+	// Unverified decode: extract sub + project_slug to satisfy backend header requirements.
+	// Signature verification is the backend's responsibility.
+	claims, err := decodeEndUserJWTUnverified(strings.TrimPrefix(authHeader, "Bearer "))
+	if err != nil {
+		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "failed to decode end-user token")
+		return
+	}
+
+	raw, err := h.getBackendRaw(r.Context(), "/internal/v1/end-user/auth/me", func(req *http.Request) {
+		req.Header.Set("Authorization", authHeader)
+		req.Header.Set("X-Internal-Token", h.internalToken)
+		req.Header.Set("X-Org-Name", r.Header.Get("X-Org-Name"))
+		req.Header.Set("X-Project-Slug", claims.ProjectSlug)
+		req.Header.Set("X-End-User-Id", claims.Sub)
+	})
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, json.RawMessage(raw))
+}
+
 // ---- proxy helpers ----
 
 // extractRefreshAndProxy extracts "refreshToken" from the raw JSON body,
@@ -241,7 +278,6 @@ func (h *Handler) extractRefreshAndProxyWithCookieSetter(
 }
 
 // proxyBackendError forwards a backend error response to the browser.
-// It preserves the original HTTP status code when available.
 func proxyBackendError(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusBadGateway, "UPSTREAM_ERROR", err.Error())
 }
@@ -249,8 +285,6 @@ func proxyBackendError(w http.ResponseWriter, err error) {
 // ---- backend client ----
 
 // postBackendRaw POSTs to the backend and returns the raw response body.
-// The body parameter is an io.Reader so callers can pass either a struct-marshaled
-// payload or a forwarded request body directly.
 func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reader) ([]byte, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.backendURL+path, body)
 	if err != nil {
@@ -259,7 +293,6 @@ func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reade
 
 	req.Header.Set("Content-Type", "application/json")
 
-	// Propagate request ID for end-to-end tracing.
 	if reqID := chiMiddleware.GetReqID(ctx); reqID != "" {
 		req.Header.Set("X-Request-Id", reqID)
 	}
@@ -268,7 +301,6 @@ func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reade
 	if err != nil {
 		return nil, fmt.Errorf("backend request: %w", err)
 	}
-
 	defer resp.Body.Close()
 
 	raw, readErr := io.ReadAll(resp.Body)
@@ -281,6 +313,73 @@ func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reade
 	}
 
 	return raw, nil
+}
+
+// getBackendRaw performs a GET to the backend and returns the raw response body.
+// The setHeaders callback allows callers to inject additional request headers.
+func (h *Handler) getBackendRaw(ctx context.Context, path string, setHeaders func(*http.Request)) ([]byte, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, h.backendURL+path, nil)
+	if err != nil {
+		return nil, fmt.Errorf("create request: %w", err)
+	}
+
+	if setHeaders != nil {
+		setHeaders(req)
+	}
+
+	if reqID := chiMiddleware.GetReqID(ctx); reqID != "" {
+		req.Header.Set("X-Request-Id", reqID)
+	}
+
+	resp, err := h.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("backend request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	raw, readErr := io.ReadAll(resp.Body)
+	if readErr != nil {
+		return nil, fmt.Errorf("read response: %w", readErr)
+	}
+
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("backend error %d: %s", resp.StatusCode, string(raw))
+	}
+
+	return raw, nil
+}
+
+// ---- JWT helpers ----
+
+// endUserJWTClaims holds the fields needed from an end-user JWT payload.
+type endUserJWTClaims struct {
+	Sub         string `json:"sub"`
+	ProjectSlug string `json:"project_slug"`
+}
+
+// decodeEndUserJWTUnverified decodes the JWT payload without signature verification.
+// The backend is responsible for the real signature check.
+func decodeEndUserJWTUnverified(token string) (*endUserJWTClaims, error) {
+	parts := strings.Split(token, ".")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("invalid JWT format")
+	}
+
+	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
+	if err != nil {
+		return nil, fmt.Errorf("decode payload: %w", err)
+	}
+
+	var claims endUserJWTClaims
+	if err = json.Unmarshal(payload, &claims); err != nil {
+		return nil, fmt.Errorf("unmarshal claims: %w", err)
+	}
+
+	if claims.Sub == "" || claims.ProjectSlug == "" {
+		return nil, fmt.Errorf("missing required claims: sub=%q project_slug=%q", claims.Sub, claims.ProjectSlug)
+	}
+
+	return &claims, nil
 }
 
 // ---- response utilities ----

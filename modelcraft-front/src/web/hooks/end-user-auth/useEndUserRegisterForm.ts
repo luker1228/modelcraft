@@ -59,7 +59,7 @@ export function useEndUserRegisterForm(
       setError(null)
 
       try {
-        const res = await fetch(`/end-user/auth/register`, {
+        const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -96,7 +96,7 @@ export function useEndUserRegisterForm(
           })
         }
 
-        void fetchAndCacheEndUserInfo()
+        void fetchAndCacheEndUserInfo(orgName)
         router.replace(`/end-user/${orgName}/${projectSlug}/data`)
       } catch {
         setError('注册服务暂时不可用，请稍后重试')

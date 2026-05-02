@@ -65,38 +65,38 @@ function resolveMeScenario(request: Request): EndUserMeScenario {
 // ============================================================================
 
 export const endUserAuthHandlers = [
-  // POST /api/bff/end-user/auth/login
-  http.post('/api/bff/end-user/auth/login', async ({ request }) => {
+  // POST /api/bff/org/:orgName/end-user/auth/login
+  http.post('/api/bff/org/:orgName/end-user/auth/login', async ({ request }) => {
     const scenario = resolveLoginScenario(request)
     const { status, body } = createMockLoginPayload(scenario)
 
     return HttpResponse.json(body, { status })
   }),
 
-  // POST /api/bff/end-user/auth/register
-  http.post('/api/bff/end-user/auth/register', async ({ request }) => {
+  // POST /api/bff/org/:orgName/end-user/auth/register
+  http.post('/api/bff/org/:orgName/end-user/auth/register', async ({ request }) => {
     const scenario = resolveRegisterScenario(request)
     const { status, body } = createMockRegisterPayload(scenario)
 
     return HttpResponse.json(body, { status })
   }),
 
-  // POST /api/bff/end-user/auth/logout
-  http.post('/api/bff/end-user/auth/logout', async () => {
+  // POST /api/bff/org/:orgName/end-user/auth/logout
+  http.post('/api/bff/org/:orgName/end-user/auth/logout', async () => {
     // Logout always succeeds (best-effort)
     return new HttpResponse(null, { status: 204 })
   }),
 
-  // POST /api/bff/end-user/auth/refresh
-  http.post('/api/bff/end-user/auth/refresh', async ({ request }) => {
+  // POST /api/bff/org/:orgName/end-user/auth/refresh
+  http.post('/api/bff/org/:orgName/end-user/auth/refresh', async ({ request }) => {
     const scenario = resolveRefreshScenario(request)
     const { status, body } = createMockRefreshPayload(scenario)
 
     return HttpResponse.json(body, { status })
   }),
 
-  // GET /api/bff/end-user/auth/me
-  http.get('/api/bff/end-user/auth/me', async ({ request }) => {
+  // GET /api/bff/org/:orgName/end-user/auth/me
+  http.get('/api/bff/org/:orgName/end-user/auth/me', async ({ request }) => {
     const scenario = resolveMeScenario(request)
     const { status, body } = createMockMePayload(scenario)
 

@@ -24,7 +24,7 @@ export async function proxyEndUserAuth(
   path: string,
   method: string = 'POST'
 ): Promise<NextResponse> {
-  const upstreamUrl = `${BACKEND_URL}/internal/v1/end-user/auth/${path}`
+  const upstreamUrl = `${BACKEND_URL}/api/end-user/auth/${path}`
 
   const headers = new Headers()
   headers.set('Content-Type', 'application/json')

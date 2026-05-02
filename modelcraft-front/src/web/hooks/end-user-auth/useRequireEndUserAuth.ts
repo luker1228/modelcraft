@@ -42,7 +42,7 @@ export function useRequireEndUserAuth(): UseRequireEndUserAuthReturn {
     if (accessToken && !isTokenExpired()) {
       // userInfo 可能因页面刷新丢失，异步补充（不阻塞渲染）
       if (!store.userInfo) {
-        void fetchAndCacheEndUserInfo()
+        void fetchAndCacheEndUserInfo(orgName)
       }
       setIsLoading(false)
       return
@@ -66,7 +66,7 @@ export function useRequireEndUserAuth(): UseRequireEndUserAuthReturn {
     }
 
     // refresh 成功：填充 userInfo 供右上角展示
-    void fetchAndCacheEndUserInfo()
+    void fetchAndCacheEndUserInfo(orgName)
     setIsLoading(false)
   }, [orgName, projectSlug, router])
 
@@ -97,7 +97,7 @@ export function useEndUser(): UseEndUserReturn {
 
   const logout = useCallback(async () => {
     // 调用 BFF logout（best-effort）
-    await fetch(`/end-user/auth/logout`, {
+    await fetch(`/api/bff/org/${orgName}/end-user/auth/logout`, {
       method: 'POST',
       credentials: 'same-origin',
     }).catch(() => {
