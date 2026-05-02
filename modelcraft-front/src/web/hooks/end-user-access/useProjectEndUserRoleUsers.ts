@@ -99,7 +99,7 @@ interface RevokeEndUserRoleData {
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useProjectEndUserRoleUsers(orgName: string, projectSlug: string) {
-  const projectClient = useProjectScopedClient(orgName, projectSlug)
+  const projectClient = useProjectScopedClient(projectSlug, orgName)
   const orgClient = getOrgScopedClient(orgName)
 
   // 列出该 Project 下的所有角色分配
