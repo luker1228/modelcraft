@@ -12,6 +12,11 @@ import { refreshAccessToken } from '@api-client/auth/public'
 // Gateway base URL — empty string means same-origin (when behind a reverse proxy)
 const GATEWAY_URL = ''
 
+function isEndUserPath(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.location.pathname.startsWith('/end-user/')
+}
+
 export function buildRuntimeEndpoint(
   orgName: string,
   projectSlug: string,
