@@ -1,15 +1,15 @@
-type AccessibleProject {
+type Project {
   slug: String!
   title: String!
 }
 
-type ListAccessibleProjectsPayload {
-  data: [AccessibleProject!]
-  error: ListAccessibleProjectsError
+type ListProjectsPayload {
+  data: [Project!]
+  error: ListProjectsError
 }
 
-union ListAccessibleProjectsError = Unauthorized | EndUserNotFound
+union ListProjectsError = Unauthorized | EndUserNotFound
 
 extend type Query {
-  accessibleProjects: ListAccessibleProjectsPayload!
+  projects: ListProjectsPayload!
 }

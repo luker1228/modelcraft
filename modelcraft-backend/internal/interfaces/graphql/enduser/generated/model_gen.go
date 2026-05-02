@@ -7,6 +7,10 @@ type Error interface {
 	GetMessage() string
 }
 
+type ListProjectsError interface {
+	IsListProjectsError()
+}
+
 type ModelCatalogError interface {
 	IsModelCatalogError()
 }
@@ -29,6 +33,8 @@ type EndUserNotFound struct {
 
 func (EndUserNotFound) IsError()                {}
 func (this EndUserNotFound) GetMessage() string { return this.Message }
+
+func (EndUserNotFound) IsListProjectsError() {}
 
 func (EndUserNotFound) IsRuntimeUserQueryError() {}
 
@@ -59,6 +65,11 @@ func (InvalidInput) IsModelDatabaseCatalogError() {}
 func (InvalidInput) IsModelCatalogError() {}
 
 func (InvalidInput) IsRuntimeUserQueryError() {}
+
+type ListProjectsPayload struct {
+	Data  []*Project        `json:"data,omitempty"`
+	Error ListProjectsError `json:"error,omitempty"`
+}
 
 type ListRuntimeUsersInput struct {
 	Search *string `json:"search,omitempty"`
@@ -105,6 +116,11 @@ type ModelLite struct {
 	DatabaseName string `json:"databaseName"`
 }
 
+type Project struct {
+	Slug  string `json:"slug"`
+	Title string `json:"title"`
+}
+
 type ProjectNotFound struct {
 	Message string `json:"message"`
 }
@@ -147,5 +163,7 @@ func (this Unauthorized) GetMessage() string { return this.Message }
 func (Unauthorized) IsModelDatabaseCatalogError() {}
 
 func (Unauthorized) IsModelCatalogError() {}
+
+func (Unauthorized) IsListProjectsError() {}
 
 func (Unauthorized) IsRuntimeUserQueryError() {}

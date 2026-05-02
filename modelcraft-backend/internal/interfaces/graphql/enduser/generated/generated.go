@@ -71,6 +71,11 @@ type ComplexityRoot struct {
 		Message func(childComplexity int) int
 	}
 
+	ListProjectsPayload struct {
+		Data  func(childComplexity int) int
+		Error func(childComplexity int) int
+	}
+
 	ListRuntimeUsersPayload struct {
 		Data  func(childComplexity int) int
 		Error func(childComplexity int) int
@@ -97,6 +102,11 @@ type ComplexityRoot struct {
 		Title        func(childComplexity int) int
 	}
 
+	Project struct {
+		Slug  func(childComplexity int) int
+		Title func(childComplexity int) int
+	}
+
 	ProjectNotFound struct {
 		Message func(childComplexity int) int
 	}
@@ -105,6 +115,7 @@ type ComplexityRoot struct {
 		Empty                func(childComplexity int) int
 		ModelCatalog         func(childComplexity int, input ModelCatalogInput) int
 		ModelDatabaseCatalog func(childComplexity int, input *ModelDatabaseCatalogInput) int
+		Projects             func(childComplexity int) int
 		User                 func(childComplexity int, id string) int
 		Users                func(childComplexity int, input *ListRuntimeUsersInput) int
 	}
@@ -134,6 +145,7 @@ type QueryResolver interface {
 	Empty(ctx context.Context) (*string, error)
 	ModelDatabaseCatalog(ctx context.Context, input *ModelDatabaseCatalogInput) (*GetModelDatabaseCatalogPayload, error)
 	ModelCatalog(ctx context.Context, input ModelCatalogInput) (*GetModelCatalogPayload, error)
+	Projects(ctx context.Context) (*ListProjectsPayload, error)
 	User(ctx context.Context, id string) (*GetRuntimeUserPayload, error)
 	Users(ctx context.Context, input *ListRuntimeUsersInput) (*ListRuntimeUsersPayload, error)
 }
@@ -216,6 +228,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.InvalidInput.Message(childComplexity), true
+
+	case "ListProjectsPayload.data":
+		if e.complexity.ListProjectsPayload.Data == nil {
+			break
+		}
+
+		return e.complexity.ListProjectsPayload.Data(childComplexity), true
+	case "ListProjectsPayload.error":
+		if e.complexity.ListProjectsPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.ListProjectsPayload.Error(childComplexity), true
 
 	case "ListRuntimeUsersPayload.data":
 		if e.complexity.ListRuntimeUsersPayload.Data == nil {
@@ -305,6 +330,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ModelLite.Title(childComplexity), true
 
+	case "Project.slug":
+		if e.complexity.Project.Slug == nil {
+			break
+		}
+
+		return e.complexity.Project.Slug(childComplexity), true
+	case "Project.title":
+		if e.complexity.Project.Title == nil {
+			break
+		}
+
+		return e.complexity.Project.Title(childComplexity), true
+
 	case "ProjectNotFound.message":
 		if e.complexity.ProjectNotFound.Message == nil {
 			break
@@ -340,6 +378,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ModelDatabaseCatalog(childComplexity, args["input"].(*ModelDatabaseCatalogInput)), true
+	case "Query.projects":
+		if e.complexity.Query.Projects == nil {
+			break
+		}
+
+		return e.complexity.Query.Projects(childComplexity), true
 	case "Query.user":
 		if e.complexity.Query.User == nil {
 			break
@@ -609,6 +653,22 @@ type GetModelCatalogPayload {
 extend type Query {
   modelDatabaseCatalog(input: ModelDatabaseCatalogInput): GetModelDatabaseCatalogPayload!
   modelCatalog(input: ModelCatalogInput!): GetModelCatalogPayload!
+}
+`, BuiltIn: false},
+	{Name: "../../../../../api/graph/end_user/schema/project.graphql", Input: `type Project {
+  slug: String!
+  title: String!
+}
+
+type ListProjectsPayload {
+  data: [Project!]
+  error: ListProjectsError
+}
+
+union ListProjectsError = Unauthorized | EndUserNotFound
+
+extend type Query {
+  projects: ListProjectsPayload!
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/end_user/schema/user.graphql", Input: `# Runtime user queries for EndUserRef component.
@@ -1062,6 +1122,70 @@ func (ec *executionContext) fieldContext_InvalidInput_message(_ context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _ListProjectsPayload_data(ctx context.Context, field graphql.CollectedField, obj *ListProjectsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListProjectsPayload_data,
+		func(ctx context.Context) (any, error) {
+			return obj.Data, nil
+		},
+		nil,
+		ec.marshalOProject2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐProjectᚄ,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListProjectsPayload_data(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListProjectsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "slug":
+				return ec.fieldContext_Project_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_Project_title(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Project", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ListProjectsPayload_error(ctx context.Context, field graphql.CollectedField, obj *ListProjectsPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ListProjectsPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOListProjectsError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListProjectsError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ListProjectsPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ListProjectsPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ListProjectsError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ListRuntimeUsersPayload_data(ctx context.Context, field graphql.CollectedField, obj *ListRuntimeUsersPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1492,6 +1616,64 @@ func (ec *executionContext) fieldContext_ModelLite_databaseName(_ context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _Project_slug(ctx context.Context, field graphql.CollectedField, obj *Project) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Project_slug,
+		func(ctx context.Context) (any, error) {
+			return obj.Slug, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Project_slug(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Project",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Project_title(ctx context.Context, field graphql.CollectedField, obj *Project) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Project_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Project_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Project",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ProjectNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ProjectNotFound) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -1640,6 +1822,41 @@ func (ec *executionContext) fieldContext_Query_modelCatalog(ctx context.Context,
 	if fc.Args, err = ec.field_Query_modelCatalog_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_projects(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_projects,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Projects(ctx)
+		},
+		nil,
+		ec.marshalNListProjectsPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListProjectsPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_projects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "data":
+				return ec.fieldContext_ListProjectsPayload_data(ctx, field)
+			case "error":
+				return ec.fieldContext_ListProjectsPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ListProjectsPayload", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -3814,6 +4031,29 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	}
 }
 
+func (ec *executionContext) _ListProjectsError(ctx context.Context, sel ast.SelectionSet, obj ListProjectsError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case Unauthorized:
+		return ec._Unauthorized(ctx, sel, &obj)
+	case *Unauthorized:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Unauthorized(ctx, sel, obj)
+	case EndUserNotFound:
+		return ec._EndUserNotFound(ctx, sel, &obj)
+	case *EndUserNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _ModelCatalogError(ctx context.Context, sel ast.SelectionSet, obj ModelCatalogError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -3954,7 +4194,7 @@ func (ec *executionContext) _DatabaseLite(ctx context.Context, sel ast.Selection
 	return out
 }
 
-var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "RuntimeUserQueryError"}
+var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "ListProjectsError", "RuntimeUserQueryError"}
 
 func (ec *executionContext) _EndUserNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserNotFoundImplementors)
@@ -4123,6 +4363,44 @@ func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.Selection
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var listProjectsPayloadImplementors = []string{"ListProjectsPayload"}
+
+func (ec *executionContext) _ListProjectsPayload(ctx context.Context, sel ast.SelectionSet, obj *ListProjectsPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, listProjectsPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ListProjectsPayload")
+		case "data":
+			out.Values[i] = ec._ListProjectsPayload_data(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._ListProjectsPayload_error(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -4346,6 +4624,50 @@ func (ec *executionContext) _ModelLite(ctx context.Context, sel ast.SelectionSet
 	return out
 }
 
+var projectImplementors = []string{"Project"}
+
+func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, obj *Project) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, projectImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Project")
+		case "slug":
+			out.Values[i] = ec._Project_slug(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._Project_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "RuntimeUserQueryError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
@@ -4455,6 +4777,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_modelCatalog(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "projects":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_projects(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -4654,7 +4998,7 @@ func (ec *executionContext) _RuntimeUserConnection(ctx context.Context, sel ast.
 	return out
 }
 
-var unauthorizedImplementors = []string{"Unauthorized", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "RuntimeUserQueryError"}
+var unauthorizedImplementors = []string{"Unauthorized", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "ListProjectsError", "RuntimeUserQueryError"}
 
 func (ec *executionContext) _Unauthorized(ctx context.Context, sel ast.SelectionSet, obj *Unauthorized) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, unauthorizedImplementors)
@@ -5172,6 +5516,20 @@ func (ec *executionContext) marshalNInt2int32(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) marshalNListProjectsPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListProjectsPayload(ctx context.Context, sel ast.SelectionSet, v ListProjectsPayload) graphql.Marshaler {
+	return ec._ListProjectsPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNListProjectsPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListProjectsPayload(ctx context.Context, sel ast.SelectionSet, v *ListProjectsPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ListProjectsPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNListRuntimeUsersPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListRuntimeUsersPayload(ctx context.Context, sel ast.SelectionSet, v ListRuntimeUsersPayload) graphql.Marshaler {
 	return ec._ListRuntimeUsersPayload(ctx, sel, &v)
 }
@@ -5243,6 +5601,16 @@ func (ec *executionContext) marshalNModelLite2ᚖmodelcraftᚋinternalᚋinterfa
 		return graphql.Null
 	}
 	return ec._ModelLite(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNProject2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐProject(ctx context.Context, sel ast.SelectionSet, v *Project) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Project(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNRuntimeUser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐRuntimeUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*RuntimeUser) graphql.Marshaler {
@@ -5616,6 +5984,13 @@ func (ec *executionContext) marshalOInt2ᚖint32(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalOListProjectsError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListProjectsError(ctx context.Context, sel ast.SelectionSet, v ListProjectsError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ListProjectsError(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOListRuntimeUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐListRuntimeUsersInput(ctx context.Context, v any) (*ListRuntimeUsersInput, error) {
 	if v == nil {
 		return nil, nil
@@ -5658,6 +6033,53 @@ func (ec *executionContext) marshalOModelDatabaseCatalogPayload2ᚖmodelcraftᚋ
 		return graphql.Null
 	}
 	return ec._ModelDatabaseCatalogPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOProject2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐProjectᚄ(ctx context.Context, sel ast.SelectionSet, v []*Project) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNProject2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐProject(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) marshalORuntimeUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐRuntimeUser(ctx context.Context, sel ast.SelectionSet, v *RuntimeUser) graphql.Marshaler {
