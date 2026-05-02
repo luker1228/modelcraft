@@ -23,13 +23,14 @@ type Claims struct {
 // The gateway only holds the EC public key for verification.
 type Service struct {
 	publicKey                *ecdsa.PublicKey
+	endUserJWTSecret         []byte
 	refreshTokenTTL          time.Duration
 	refreshCookieName        string
 	endUserRefreshCookieName string
 }
 
 // NewService parses a PEM-encoded EC public key and creates a Service.
-func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string, endUserCookieName string) (*Service, error) {
+func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string, endUserCookieName string, endUserSecret string) (*Service, error) {
 	block, _ := pem.Decode([]byte(publicKeyPEM))
 	if block == nil {
 		return nil, errors.New("auth: failed to decode public key PEM block")
@@ -47,6 +48,7 @@ func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string
 
 	return &Service{
 		publicKey:                ecPub,
+		endUserJWTSecret:         []byte(endUserSecret),
 		refreshTokenTTL:          refreshTTL,
 		refreshCookieName:        cookieName,
 		endUserRefreshCookieName: endUserCookieName,
@@ -133,7 +135,47 @@ func (s *Service) GetRefreshCookie(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
-// GetEndUserRefreshCookie reads the end-user refresh token from request cookie.
+// EndUserClaims is the JWT payload for end-user access tokens (HMAC-SHA256).
+type EndUserClaims struct {
+	UserID  string `json:"user_id"`
+	OrgName string `json:"org_name"`
+	jwt.RegisteredClaims
+}
+
+// VerifyEndUserAccessToken parses and validates an HMAC-SHA256 end-user access token.
+// If secret is empty, the token is decoded without signature verification (dev/test only).
+func (s *Service) VerifyEndUserAccessToken(tokenString string) (*EndUserClaims, error) {
+	var claims EndUserClaims
+
+	if len(s.endUserJWTSecret) == 0 {
+		// Dev mode: no secret configured — decode without verifying signature.
+		p := jwt.NewParser()
+		token, _, err := p.ParseUnverified(tokenString, &claims)
+		if err != nil {
+			return nil, fmt.Errorf("end-user token parse (unverified): %w", err)
+		}
+		c, ok := token.Claims.(*EndUserClaims)
+		if !ok {
+			return nil, errors.New("end-user token: invalid claims type")
+		}
+		return c, nil
+	}
+
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (any, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return s.endUserJWTSecret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	c, ok := token.Claims.(*EndUserClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("end-user token: invalid claims")
+	}
+	return c, nil
+}
 func (s *Service) GetEndUserRefreshCookie(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(s.endUserRefreshCookieName)
 	if err != nil {

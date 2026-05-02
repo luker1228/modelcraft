@@ -12,9 +12,10 @@ import (
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
 	"github.com/riandyrn/otelchi"
-	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"gopkg.in/natefinch/lumberjack.v2"
 
 	"modelcraft-gateway/internal/auth"
 	"modelcraft-gateway/internal/config"
@@ -24,52 +25,49 @@ import (
 )
 
 func main() {
-	// Human-readable logging in development.
-	log.Logger = log.Output(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339})
-
 	cfg := config.Load()
 
-	// Initialise OpenTelemetry TracerProvider.
+	logger := buildLogger(cfg.LogOutputPath)
+	defer func() { _ = logger.Sync() }()
+
+	// Register as global so zap.L() works everywhere (e.g. middleware.RequestID).
+	zap.ReplaceGlobals(logger)
+
 	ctx := context.Background()
 	shutdownTracer, err := telemetry.InitTracerProvider(ctx, "modelcraft-gateway", cfg.OTLPEndpoint)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to initialise tracer provider")
+		logger.Fatal("failed to initialise tracer provider", zap.Error(err))
 	}
 	defer shutdownTracer()
 
-	// Initialise auth service (ES256 public-key verifier + cookie manager).
 	authSvc, err := auth.NewService(
 		cfg.JWTPublicKey,
 		cfg.RefreshTokenTTL,
 		cfg.RefreshCookieName,
 		cfg.EndUserRefreshCookieName,
+		cfg.EndUserJWTSecret,
 	)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to initialise auth service")
+		logger.Fatal("failed to initialise auth service", zap.Error(err))
 	}
 
-	// HTTP client with OTel instrumentation — propagates traceparent to the backend.
 	tracedHTTPClient := &http.Client{
 		Timeout:   10 * time.Second,
 		Transport: otelhttp.NewTransport(http.DefaultTransport),
 	}
 
-	// Initialise proxy handler.
 	proxyHandler, err := proxy.NewHandler(cfg.BackendURL, cfg.InternalToken, authSvc)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create proxy handler")
+		logger.Fatal("failed to create proxy handler", zap.Error(err))
 	}
 
-	// Initialise REST proxy handler.
 	restHandler, err := proxy.NewRESTHandler(cfg.BackendURL, authSvc)
 	if err != nil {
-		log.Fatal().Err(err).Msg("failed to create rest handler")
+		logger.Fatal("failed to create rest handler", zap.Error(err))
 	}
 
-	// Initialise auth handler (uses the traced HTTP client).
 	authHandler := auth.NewHandler(authSvc, cfg.BackendURL, tracedHTTPClient, cfg.InternalToken)
 
-	// Build router.
 	r := chi.NewRouter()
 
 	r.Use(cors.Handler(cors.Options{
@@ -83,7 +81,7 @@ func main() {
 	r.Use(middleware.RequestID)
 	r.Use(otelchi.Middleware("modelcraft-gateway", otelchi.WithChiRoutes(r)))
 	r.Use(chiMiddleware.Recoverer)
-	r.Use(middleware.RequestLogger)
+	r.Use(middleware.RequestLogger(logger))
 
 	// Auth endpoints — no JWT required.
 	r.Route("/auth", func(r chi.Router) {
@@ -109,6 +107,10 @@ func main() {
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}", proxyHandler.GraphQLProjectHandler)
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}/", proxyHandler.GraphQLProjectHandler)
 
+	// End-User GraphQL — end-user HMAC JWT required.
+	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}", proxyHandler.EndUserGraphQLHandler)
+	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}/", proxyHandler.EndUserGraphQLHandler)
+
 	// Health check.
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -128,24 +130,62 @@ func main() {
 		IdleTimeout:  60 * time.Second,
 	}
 
-	// Graceful shutdown.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		log.Info().Str("addr", srv.Addr).Msg("modelcraft-gateway starting")
+		logger.Info("modelcraft-gateway starting", zap.String("addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatal().Err(err).Msg("server error")
+			logger.Fatal("server error", zap.Error(err))
 		}
 	}()
 
 	<-quit
-	log.Info().Msg("shutting down...")
+	logger.Info("shutting down...")
 
 	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	if err := srv.Shutdown(shutdownCtx); err != nil {
-		log.Error().Err(err).Msg("shutdown error")
+		logger.Error("shutdown error", zap.Error(err))
 	}
-	log.Info().Msg("gateway stopped")
+	logger.Info("gateway stopped")
+}
+
+// buildLogger constructs a zap.Logger.
+//
+//   - logOutputPath == ""  → human-readable colored output to stderr (dev mode)
+//   - logOutputPath != ""  → JSON lines written to the file via lumberjack (rotation enabled)
+func buildLogger(logOutputPath string) *zap.Logger {
+	encoderCfg := zap.NewProductionEncoderConfig()
+	encoderCfg.TimeKey = "timestamp"
+	encoderCfg.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderCfg.EncodeLevel = zapcore.CapitalLevelEncoder
+
+	var core zapcore.Core
+	if logOutputPath == "" {
+		// Dev: colored console output to stderr.
+		consoleCfg := zap.NewDevelopmentEncoderConfig()
+		consoleCfg.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		core = zapcore.NewCore(
+			zapcore.NewConsoleEncoder(consoleCfg),
+			zapcore.AddSync(os.Stderr),
+			zapcore.DebugLevel,
+		)
+	} else {
+		// Prod: JSON lines to a rotating file.
+		rotator := &lumberjack.Logger{
+			Filename:   logOutputPath,
+			MaxSize:    100, // MB
+			MaxBackups: 5,
+			MaxAge:     30, // days
+			Compress:   true,
+		}
+		core = zapcore.NewCore(
+			zapcore.NewJSONEncoder(encoderCfg),
+			zapcore.AddSync(rotator),
+			zapcore.InfoLevel,
+		)
+	}
+
+	return zap.New(core, zap.AddCaller())
 }

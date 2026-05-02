@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	"github.com/rs/zerolog/log"
 	"go.opentelemetry.io/otel/propagation"
+	"go.uber.org/zap"
 
 	"modelcraft-gateway/internal/auth"
 	"modelcraft-gateway/internal/middleware"
@@ -23,20 +23,22 @@ const userIDContextKey contextKey = "user_id"
 // After validating the Bearer token, it injects X-User-ID (from JWT claims)
 // and strips the Authorization header before forwarding upstream.
 type Handler struct {
-	backendURL   *url.URL
-	authService  *auth.Service
-	reverseProxy *httputil.ReverseProxy
+	backendURL    *url.URL
+	authService   *auth.Service
+	internalToken string
+	reverseProxy  *httputil.ReverseProxy
 }
 
-func NewHandler(backendURL, _ string, authService *auth.Service) (*Handler, error) {
+func NewHandler(backendURL, internalToken string, authService *auth.Service) (*Handler, error) {
 	parsed, err := url.Parse(backendURL)
 	if err != nil {
 		return nil, err
 	}
 
 	h := &Handler{
-		backendURL:  parsed,
-		authService: authService,
+		backendURL:    parsed,
+		authService:   authService,
+		internalToken: internalToken,
 	}
 	h.reverseProxy = &httputil.ReverseProxy{
 		Director: h.director,
@@ -55,10 +57,10 @@ func (h *Handler) director(req *http.Request) {
 	// Inject the authenticated user ID so the backend can identify the caller.
 	if userID, ok := req.Context().Value(userIDContextKey).(string); ok && userID != "" {
 		req.Header.Set("X-User-ID", userID)
-		log.Ctx(req.Context()).Debug().
-			Str("user_id", userID).
-			Str("upstream", req.URL.String()).
-			Msg("gateway: injected X-User-ID into upstream request")
+		middleware.LoggerFromCtx(req.Context()).Debug("gateway: injected X-User-ID into upstream request",
+			zap.String("user_id", userID),
+			zap.String("upstream", req.URL.String()),
+		)
 	}
 
 	// Propagate the internal request ID for end-to-end tracing.
@@ -86,10 +88,10 @@ func (h *Handler) GraphQLOrgHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	log.Ctx(ctx).Info().
-		Str("user_id", claims.UserID).
-		Str("path", r.URL.Path).
-		Msg("gateway: GraphQL org request authenticated")
+	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL org request authenticated",
+		zap.String("user_id", claims.UserID),
+		zap.String("path", r.URL.Path),
+	)
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
@@ -101,20 +103,52 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	log.Ctx(ctx).Info().
-		Str("user_id", claims.UserID).
-		Str("path", r.URL.Path).
-		Msg("gateway: GraphQL project request authenticated")
+	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL project request authenticated",
+		zap.String("user_id", claims.UserID),
+		zap.String("path", r.URL.Path),
+	)
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// extractAndVerify extracts and validates the Bearer token, returning the claims on success.
+// EndUserGraphQLHandler validates the end-user Bearer JWT, then proxies to
+// /graphql/end-user/org/{orgName}/project/{projectSlug}.
+// It injects X-User-ID and X-Internal-Token so the backend can identify the caller.
+func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if !strings.HasPrefix(authHeader, "Bearer ") {
+		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "Authorization header required")
+		return
+	}
+
+	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
+	claims, err := h.authService.VerifyEndUserAccessToken(tokenStr)
+	if err != nil {
+		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid end-user access token",
+			zap.Error(err),
+			zap.String("path", r.URL.Path),
+		)
+		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "invalid or expired end-user token")
+		return
+	}
+
+	ctx := context.WithValue(r.Context(), userIDContextKey, claims.Subject)
+	middleware.LoggerFromCtx(ctx).Info("gateway: end-user GraphQL request authenticated",
+		zap.String("user_id", claims.Subject),
+		zap.String("path", r.URL.Path),
+	)
+
+	// Inject internal token so backend internalTokenMW passes.
+	r = r.WithContext(ctx)
+	r.Header.Set("X-Internal-Token", h.internalToken)
+	h.reverseProxy.ServeHTTP(w, r)
+}
+
 func (h *Handler) extractAndVerify(w http.ResponseWriter, r *http.Request) (*auth.Claims, bool) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {
-		log.Ctx(r.Context()).Warn().
-			Str("path", r.URL.Path).
-			Msg("gateway: missing Authorization header")
+		middleware.LoggerFromCtx(r.Context()).Warn("gateway: missing Authorization header",
+			zap.String("path", r.URL.Path),
+		)
 		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "Authorization header required")
 		return nil, false
 	}
@@ -122,10 +156,10 @@ func (h *Handler) extractAndVerify(w http.ResponseWriter, r *http.Request) (*aut
 	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 	claims, err := h.authService.VerifyAccessToken(tokenStr)
 	if err != nil {
-		log.Ctx(r.Context()).Warn().
-			Err(err).
-			Str("path", r.URL.Path).
-			Msg("gateway: invalid or expired access token")
+		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid or expired access token",
+			zap.Error(err),
+			zap.String("path", r.URL.Path),
+		)
 		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "invalid or expired access token")
 		return nil, false
 	}

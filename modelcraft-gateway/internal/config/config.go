@@ -17,6 +17,10 @@ type Config struct {
 	RefreshCookieName        string
 	EndUserRefreshCookieName string
 
+	// EndUserJWTSecret is the HMAC-SHA256 secret used to sign/verify end-user access tokens.
+	// Must match JWT_SECRET on the backend. Empty string disables signature verification (dev only).
+	EndUserJWTSecret string
+
 	// Upstream (Go Backend)
 	BackendURL    string
 	InternalToken string
@@ -26,6 +30,11 @@ type Config struct {
 
 	// Observability
 	OTLPEndpoint string // e.g. "localhost:4317"; empty disables tracing
+
+	// Logging
+	// LogOutputPath is the file path to write logs to.
+	// Empty string means write to stderr (human-readable console format).
+	LogOutputPath string
 }
 
 // Load reads configuration from environment variables with sensible defaults.
@@ -38,6 +47,8 @@ func Load() *Config {
 		RefreshCookieName:        "mc_refresh_token",
 		EndUserRefreshCookieName: "mc_enduser_refresh_token",
 
+		EndUserJWTSecret: getEnv("JWT_SECRET", ""),
+
 		BackendURL:    getEnv("BACKEND_URL", "http://localhost:8080"),
 		InternalToken: mustEnv("INTERNAL_TOKEN"),
 
@@ -46,6 +57,8 @@ func Load() *Config {
 		},
 
 		OTLPEndpoint: getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", ""),
+
+		LogOutputPath: getEnv("LOG_OUTPUT_PATH", ""),
 	}
 }
 

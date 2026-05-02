@@ -20,7 +20,9 @@ import (
 // If endpoint is empty, a no-op provider is installed instead.
 func InitTracerProvider(ctx context.Context, serviceName, endpoint string) (shutdown func(), err error) {
 	if endpoint == "" {
-		otel.SetTracerProvider(otel.GetTracerProvider()) // keep noop
+		// No OTLP endpoint configured — leave the default noop provider in place.
+		// Do NOT call otel.SetTracerProvider(otel.GetTracerProvider()): setting the
+		// provider to its own value triggers a warning from the OTel auto-SDK delegate.
 		otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
 			propagation.TraceContext{},
 			propagation.Baggage{},

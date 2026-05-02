@@ -7,7 +7,7 @@ import (
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 	"github.com/google/uuid"
-	"github.com/rs/zerolog/log"
+	"go.uber.org/zap"
 )
 
 const (
@@ -32,13 +32,11 @@ func RequestID(next http.Handler) http.Handler {
 		clientReqID := r.Header.Get(headerClientRequestID)
 		if clientReqID != "" {
 			if isValidClientRequestID(clientReqID) {
-				log.Ctx(r.Context()).Info().
-					Str("client_request_id", clientReqID).
-					Msg("client request id received")
+				zap.L().Info("client request id received",
+					zap.String("client_request_id", clientReqID))
 			} else {
-				log.Ctx(r.Context()).Warn().
-					Str("raw_value", clientReqID).
-					Msg("X-Client-Request-Id rejected: invalid format")
+				zap.L().Warn("X-Client-Request-Id rejected: invalid format",
+					zap.String("raw_value", clientReqID))
 				clientReqID = "" // discard
 			}
 		}
