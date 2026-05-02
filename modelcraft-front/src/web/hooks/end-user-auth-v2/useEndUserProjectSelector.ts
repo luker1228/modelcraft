@@ -106,6 +106,7 @@ export function useEndUserProjectSelector(orgName: string): UseEndUserProjectSel
       // Clean up sessionStorage
       sessionStorage.removeItem(`eu_accessible_projects_${orgName}`)
       sessionStorage.removeItem(`eu_refresh_token_${orgName}`)
+      sessionStorage.setItem(`eu_selected_project_${orgName}`, data.selectedProject ?? selectedSlug)
 
       // Select-project 只返回 selectedProject；真正 access token 通过 refresh 获取
       const refreshRes = await fetch('/api/end-user/auth/refresh', {

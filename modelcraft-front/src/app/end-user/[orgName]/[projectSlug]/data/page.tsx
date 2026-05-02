@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Database, Loader2, Search, Table2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Input } from '@web/components/ui/input'
@@ -47,6 +47,7 @@ const MAX_MODEL_TABS = 8
 
 export default function EndUserDataPage() {
   const params = useParams<{ orgName: string; projectSlug: string }>()
+  const router = useRouter()
   const orgName = params.orgName
   const projectSlug = params.projectSlug
   const { user, logout } = useEndUser()
@@ -61,6 +62,18 @@ export default function EndUserDataPage() {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [privateDbInitDialogOpen, setPrivateDbInitDialogOpen] = useState(false)
   const [initPrivateDbLoading, setInitPrivateDbLoading] = useState(false)
+
+  useEffect(() => {
+    if (!orgName || !projectSlug) return
+
+    const selectedProject = sessionStorage.getItem(`eu_selected_project_${orgName}`)
+    if (selectedProject && selectedProject !== projectSlug) {
+      router.replace(`/end-user/${orgName}/${selectedProject}/data`)
+      return
+    }
+
+    sessionStorage.setItem(`eu_selected_project_${orgName}`, projectSlug)
+  }, [orgName, projectSlug, router])
 
   const loadDatabaseCatalog = async (): Promise<void> => {
     const accessToken = getEndUserToken()

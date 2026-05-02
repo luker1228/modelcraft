@@ -61,6 +61,10 @@ export function useRequireEndUserAuth(): UseRequireEndUserAuthReturn {
       return
     }
 
+    if (typeof window !== 'undefined') {
+      sessionStorage.setItem(`eu_selected_project_${orgName}`, projectSlug)
+    }
+
     // refresh 成功：填充 userInfo 供右上角展示
     void fetchAndCacheEndUserInfo()
     setIsLoading(false)

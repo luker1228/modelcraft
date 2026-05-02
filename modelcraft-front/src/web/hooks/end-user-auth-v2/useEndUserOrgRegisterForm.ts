@@ -109,6 +109,7 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
 
         if (projects.length === 1) {
           const projectSlug = projects[0].slug
+          sessionStorage.setItem(`eu_selected_project_${orgName}`, projectSlug)
           const expiresIn = data.expiresAt
             ? Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000))
             : 3600
