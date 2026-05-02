@@ -17,7 +17,6 @@ import {
 } from '@web/components/ui/dialog'
 import { Button } from '@web/components/ui/button'
 import { Label } from '@web/components/ui/label'
-import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
   Select,
@@ -54,6 +53,8 @@ interface GrantEndUserAccessDialogProps {
   onGrant: (payload: GrantAccessPayload) => Promise<void>
   /** Already-authorized user IDs to exclude from the list */
   existingUserIds: string[]
+  /** Optional pre-selected user id from URL */
+  preselectedUserId?: string
 }
 
 export function GrantEndUserAccessDialog({
@@ -62,11 +63,21 @@ export function GrantEndUserAccessDialog({
   onClose,
   onGrant,
   existingUserIds,
+  preselectedUserId,
 }: GrantEndUserAccessDialogProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [users, setUsers] = useState<OrgEndUser[]>([])
   const [usersLoading, setUsersLoading] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState('')
+
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    reset,
+    formState: { errors },
+  } = useForm<FormValues>({ resolver: zodResolver(schema) })
 
   // Load org users when dialog opens
   useEffect(() => {
@@ -79,15 +90,13 @@ export function GrantEndUserAccessDialog({
       .finally(() => setUsersLoading(false))
   }, [open, orgName])
 
-  const availableUsers = users.filter((u) => !existingUserIds.includes(u.id))
+  useEffect(() => {
+    if (!open || !preselectedUserId) return
+    setSelectedUserId(preselectedUserId)
+    setValue('userId', preselectedUserId)
+  }, [open, preselectedUserId, setValue])
 
-  const {
-    register,
-    handleSubmit,
-    setValue,
-    reset,
-    formState: { errors },
-  } = useForm<FormValues>({ resolver: zodResolver(schema) })
+  const availableUsers = users.filter((u) => !existingUserIds.includes(u.id))
 
   const onSubmit = handleSubmit(async (values) => {
     setIsLoading(true)
@@ -108,6 +117,7 @@ export function GrantEndUserAccessDialog({
 
   const handleClose = () => {
     if (isLoading) return
+    setSelectedUserId('')
     reset()
     setError(null)
     onClose()
@@ -134,8 +144,12 @@ export function GrantEndUserAccessDialog({
               </div>
             ) : (
               <Select
-                onValueChange={(v) => setValue('userId', v)}
+                onValueChange={(v) => {
+                  setSelectedUserId(v)
+                  setValue('userId', v)
+                }}
                 disabled={isLoading || availableUsers.length === 0}
+                value={selectedUserId || undefined}
               >
                 <SelectTrigger>
                   <SelectValue

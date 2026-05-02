@@ -4,6 +4,7 @@
 // Project 级终端用户访问控制表格（EndUser v2）
 
 import { useState } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { Plus, MoreHorizontal, RefreshCw, ShieldOff } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
@@ -48,6 +49,7 @@ interface EndUserAccessTableProps {
 }
 
 export function EndUserAccessTable({ orgName, projectSlug }: EndUserAccessTableProps) {
+  const searchParams = useSearchParams()
   const { accesses, isLoading, error, reload, grantAccess, revokeAccess, updatePermissionBundle } =
     useProjectEndUserAccess(orgName, projectSlug)
 
@@ -56,6 +58,7 @@ export function EndUserAccessTable({ orgName, projectSlug }: EndUserAccessTableP
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null)
 
   const existingUserIds = accesses.map((a) => a.userId)
+  const preselectedUserId = searchParams.get('grantUserId') ?? undefined
 
   const handleRevoke = async (entry: EndUserProjectAccessEntry) => {
     if (!confirm(`确认撤销 ${entry.username} 的项目访问权限？`)) return
@@ -239,6 +242,7 @@ export function EndUserAccessTable({ orgName, projectSlug }: EndUserAccessTableP
           setGrantOpen(false)
         }}
         existingUserIds={existingUserIds}
+        preselectedUserId={preselectedUserId}
       />
     </div>
   )

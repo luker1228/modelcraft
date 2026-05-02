@@ -9,6 +9,21 @@ import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Input } from '@web/components/ui/input'
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@web/components/ui/dialog'
+import { Label } from '@web/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@web/components/ui/select'
+import {
   Table,
   TableBody,
   TableCell,
@@ -25,6 +40,17 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { CreateEndUserDialog } from './CreateEndUserDialog'
 import { useOrgEndUsers, type OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
+import { getOrgScopedClient } from '@api-client/apollo/public'
+import { GET_PROJECTS } from '@api-client/project'
+
+interface ProjectItem {
+  slug: string
+  title: string
+}
+
+interface GetProjectsData {
+  projects: ProjectItem[]
+}
 
 function formatDate(dateStr: string): string {
   try {
@@ -43,6 +69,10 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
     useOrgEndUsers(orgName)
   const [createOpen, setCreateOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [assignOpen, setAssignOpen] = useState(false)
+  const [selectedUser, setSelectedUser] = useState<OrgEndUser | null>(null)
+  const [projects, setProjects] = useState<ProjectItem[]>([])
+  const [selectedProjectSlug, setSelectedProjectSlug] = useState('')
 
   const handleToggleStatus = async (user: OrgEndUser) => {
     setActionError(null)
@@ -63,11 +93,38 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
     }
   }
 
+  const handleOpenAssignDialog = async (user: OrgEndUser) => {
+    setSelectedUser(user)
+    setAssignOpen(true)
+    setSelectedProjectSlug('')
+
+    if (projects.length > 0) return
+
+    try {
+      const client = getOrgScopedClient()
+      const { data } = await client.query<GetProjectsData>({
+        query: GET_PROJECTS,
+        variables: { input: { first: 100 } },
+        fetchPolicy: 'network-only',
+      })
+      setProjects(data?.projects ?? [])
+    } catch {
+      setActionError('加载项目列表失败')
+    }
+  }
+
+  const handleGoAssignProject = () => {
+    if (!selectedUser || !selectedProjectSlug) return
+    window.location.assign(
+      `/org/${orgName}/project/${selectedProjectSlug}/end-user-access?grantUserId=${selectedUser.id}`
+    )
+  }
+
   return (
     <div className="flex flex-col gap-4">
       {/* Toolbar */}
       <div className="flex items-center gap-2">
-        <div className="relative flex-1 max-w-xs">
+        <div className="relative max-w-xs flex-1">
           <Search className="absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground/60" />
           <Input
             placeholder="搜索用户名…"
@@ -198,6 +255,9 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                           <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
                             {user.isForbidden ? '启用账号' : '禁用账号'}
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => void handleOpenAssignDialog(user)}>
+                            分配到项目
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
@@ -226,6 +286,42 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
         onClose={() => setCreateOpen(false)}
         onCreate={createUser}
       />
+
+      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>分配用户到项目</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <p className="text-sm text-muted-foreground">
+              用户: <span className="font-medium text-foreground">{selectedUser?.username ?? '-'}</span>
+            </p>
+            <div className="space-y-2">
+              <Label>目标项目</Label>
+              <Select value={selectedProjectSlug} onValueChange={setSelectedProjectSlug}>
+                <SelectTrigger>
+                  <SelectValue placeholder="选择项目" />
+                </SelectTrigger>
+                <SelectContent>
+                  {projects.map((project) => (
+                    <SelectItem key={project.slug} value={project.slug}>
+                      {project.title} ({project.slug})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setAssignOpen(false)}>
+              取消
+            </Button>
+            <Button onClick={handleGoAssignProject} disabled={!selectedProjectSlug}>
+              前往分配
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
