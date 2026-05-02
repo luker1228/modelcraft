@@ -58,8 +58,8 @@ let _isRefreshing = false
 let _refreshPromise: Promise<string | null> | null = null
 
 /**
- * 使用 Cookie 中的 end_user_refresh_token 做 silent refresh。
- * 并发调用共享同一个请求。
+ * 使用 mc_enduser_refresh_token HttpOnly cookie 做 silent refresh。
+ * 并发调用共享同一个请求。BFF refresh route 负责从 cookie 读取 refreshToken 并轮换。
  * @returns 新的 access token 或 null（刷新失败）
  */
 export async function refreshEndUserAccessToken(
@@ -73,13 +73,12 @@ export async function refreshEndUserAccessToken(
   _refreshPromise = (async () => {
     try {
       const orgName = params?.orgName ?? ''
+
+      // cookie 由浏览器自动携带（HttpOnly），BFF 负责从 cookie 注入到后端请求 body
       const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orgName: params?.orgName,
-          projectSlug: params?.projectSlug,
-        }),
+        body: JSON.stringify({ orgName }),
         credentials: 'include',
       })
 
@@ -89,9 +88,15 @@ export async function refreshEndUserAccessToken(
       }
 
       const data = (await res.json()) as EndUserAuthResponse
-      if (data.accessToken && data.expiresIn) {
+
+      if (data.accessToken) {
+        // 优先用 expiresAt（Go 后端返回 ISO 8601），退回到 expiresIn，再退回到默认 1h
+        const expiresIn = data.expiresAt
+          ? Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000))
+          : (data.expiresIn ?? 3600)
+
         const store = useEndUserAuthStore.getState()
-        store.setAccessToken(data.accessToken, data.expiresIn)
+        store.setAccessToken(data.accessToken, expiresIn)
 
         // 从 JWT 解析 org/project 上下文并缓存到 userInfo（username 待 /me 填充）
         const decoded = decodeEndUserJWT(data.accessToken)

@@ -1,9 +1,9 @@
 'use client'
-/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { Database, Loader2, Search, Table2 } from 'lucide-react'
+import { gql } from '@apollo/client'
+import { ChevronDown, Database, Loader2, Search, Table2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
@@ -24,10 +24,35 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@web/components/ui/dropdown-menu'
 import { getEndUserToken } from '@api-client/end-user/public'
+import { createEndUserScopedClient } from '@api-client/apollo/clients'
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
 import ModelRecordWorkspace from '@web/components/features/model-editor/ModelRecordWorkspace'
 import { DataWorkspacePanel } from '@web/components/features/model-editor/DataWorkspacePanel'
+
+const LIST_ACCESSIBLE_PROJECTS = gql`
+  query ListAccessibleProjects {
+    projects {
+      data {
+        slug
+        title
+      }
+    }
+  }
+`
+
+type AccessibleProject = {
+  slug: string
+  title: string
+}
 
 type DataModel = {
   id: string
@@ -36,14 +61,87 @@ type DataModel = {
   databaseName: string
 }
 
-type BffErrorPayload = {
-  error?: {
-    code?: string
-    message?: string
+type CatalogError = {
+  __typename: string
+  message?: string
+}
+
+type DatabaseCatalogQueryResult = {
+  modelDatabaseCatalog: {
+    data?: {
+      databases: Array<{ name: string }>
+      totalCount: number
+      page: number
+      pageSize: number
+    } | null
+    error?: CatalogError | null
+  }
+}
+
+type ModelCatalogQueryResult = {
+  modelCatalog: {
+    data?: {
+      models: DataModel[]
+    } | null
+    error?: CatalogError | null
   }
 }
 
 const MAX_MODEL_TABS = 8
+
+const DATABASE_CATALOG_QUERY = gql`
+  query ModelDatabaseCatalog($input: ModelDatabaseCatalogInput) {
+    modelDatabaseCatalog(input: $input) {
+      data {
+        databases {
+          name
+        }
+        totalCount
+        page
+        pageSize
+      }
+      error {
+        __typename
+        ... on InvalidInput {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+        ... on Unauthorized {
+          message
+        }
+      }
+    }
+  }
+`
+
+const MODEL_CATALOG_QUERY = gql`
+  query ModelCatalog($input: ModelCatalogInput!) {
+    modelCatalog(input: $input) {
+      data {
+        models {
+          id
+          name
+          title
+          databaseName
+        }
+      }
+      error {
+        __typename
+        ... on InvalidInput {
+          message
+        }
+        ... on ProjectNotFound {
+          message
+        }
+        ... on Unauthorized {
+          message
+        }
+      }
+    }
+  }
+`
 
 export default function EndUserDataPage() {
   const params = useParams<{ orgName: string; projectSlug: string }>()
@@ -63,6 +161,27 @@ export default function EndUserDataPage() {
   const [privateDbInitDialogOpen, setPrivateDbInitDialogOpen] = useState(false)
   const [initPrivateDbLoading, setInitPrivateDbLoading] = useState(false)
 
+  // Project switcher
+  const [accessibleProjects, setAccessibleProjects] = useState<AccessibleProject[]>([])
+
+  const fetchAccessibleProjects = useCallback(async () => {
+    const token = getEndUserToken()
+    if (!token || !orgName || !projectSlug) return
+    try {
+      const client = createEndUserScopedClient(orgName, projectSlug, token)
+      const result = await client.query<{
+        projects: { data?: AccessibleProject[] }
+      }>({ query: LIST_ACCESSIBLE_PROJECTS, fetchPolicy: 'network-only' })
+      setAccessibleProjects(result.data?.projects?.data ?? [])
+    } catch {
+      // 静默失败：切换器直接隐藏
+    }
+  }, [orgName, projectSlug])
+
+  useEffect(() => {
+    void fetchAccessibleProjects()
+  }, [fetchAccessibleProjects])
+
   useEffect(() => {
     if (!orgName || !projectSlug) return
 
@@ -81,32 +200,29 @@ export default function EndUserDataPage() {
 
     setDatabasesLoading(true)
     try {
-      const res = await fetch('/api/bff/end-user/data/database-catalog?page=1&pageSize=100', {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+      const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
+      const { data } = await client.query<DatabaseCatalogQueryResult>({
+        query: DATABASE_CATALOG_QUERY,
+        variables: { input: { page: 1, pageSize: 100 } },
+        fetchPolicy: 'network-only',
       })
 
-      const data = (await res.json()) as {
-        databases?: Array<{ name?: string }>
-      } & BffErrorPayload
-
-      if (!res.ok) {
-        if (data.error?.code === 'PRIVATE_DB_NOT_INITIALIZED') {
+      const payload = data?.modelDatabaseCatalog
+      if (payload?.error) {
+        const { __typename: errType, message: errMsg } = payload.error
+        if (errType === 'PRIVATE_DB_NOT_INITIALIZED') {
           setDatabases([])
           setSelectedDatabase('')
           setModels([])
           setPrivateDbInitDialogOpen(true)
           return
         }
-        throw new Error(data.error?.message || '加载数据库目录失败')
+        throw new Error(errMsg ?? '加载数据库目录失败')
       }
 
       setDatabases(
-        (data.databases ?? [])
-          .map((item) => item?.name ?? '')
+        (payload?.data?.databases ?? [])
+          .map((item) => item.name)
           .filter((name): name is string => name.length > 0)
       )
     } catch (err) {
@@ -119,17 +235,8 @@ export default function EndUserDataPage() {
   }
 
   useEffect(() => {
-    let cancelled = false
-
-    const run = async () => {
-      await loadDatabaseCatalog()
-      if (cancelled) return
-    }
-
-    void run()
-    return () => {
-      cancelled = true
-    }
+    void loadDatabaseCatalog()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orgName, projectSlug, user?.id])
 
   useEffect(() => {
@@ -152,36 +259,28 @@ export default function EndUserDataPage() {
 
       setModelsLoading(true)
       try {
-        const searchParams = new URLSearchParams({
-          databaseName: selectedDatabase,
-          page: '1',
-          pageSize: '200',
-        })
-        const res = await fetch(`/api/bff/end-user/data/model-catalog?${searchParams.toString()}`, {
-          method: 'GET',
-          credentials: 'same-origin',
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
+        const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
+        const { data } = await client.query<ModelCatalogQueryResult>({
+          query: MODEL_CATALOG_QUERY,
+          variables: { input: { databaseName: selectedDatabase, page: 1, pageSize: 200 } },
+          fetchPolicy: 'network-only',
         })
 
-        const data = (await res.json()) as {
-          models?: Array<DataModel>
-        } & BffErrorPayload
-
-        if (!res.ok) {
-          if (data.error?.code === 'PRIVATE_DB_NOT_INITIALIZED') {
+        const payload = data?.modelCatalog
+        if (payload?.error) {
+          const { __typename: errType, message: errMsg } = payload.error
+          if (errType === 'PRIVATE_DB_NOT_INITIALIZED') {
             setModels([])
             setPrivateDbInitDialogOpen(true)
             return
           }
-          throw new Error(data.error?.message || '加载模型目录失败')
+          throw new Error(errMsg ?? '加载模型目录失败')
         }
         if (cancelled) return
 
         setModels(
-          (data.models ?? []).filter(
-            (model): model is DataModel => Boolean(model?.id && model?.name && model?.databaseName)
+          (payload?.data?.models ?? []).filter(
+            (model) => Boolean(model?.id && model?.name && model?.databaseName)
           )
         )
       } catch (err) {
@@ -211,11 +310,11 @@ export default function EndUserDataPage() {
 
   const handleInitPrivateDB = async () => {
     const accessToken = getEndUserToken()
-    if (!accessToken) return
+    if (!accessToken || !orgName || !projectSlug) return
 
     setInitPrivateDbLoading(true)
     try {
-      const res = await fetch('/api/bff/end-user/data/init-private-db', {
+      const res = await fetch(`/internal/end-user/data/init-private-db`, {
         method: 'POST',
         credentials: 'same-origin',
         headers: {
@@ -223,12 +322,11 @@ export default function EndUserDataPage() {
         },
       })
 
-      const data = (await res.json()) as {
-        success?: boolean
-      } & BffErrorPayload
+      type InitResp = { success?: boolean; error?: { code?: string; message?: string } }
+      const respData = (await res.json()) as InitResp
 
-      if (!res.ok || !data.success) {
-        throw new Error(data.error?.message || '初始化私有库失败')
+      if (!res.ok || !respData.success) {
+        throw new Error(respData.error?.message ?? '初始化私有库失败')
       }
 
       setPrivateDbInitDialogOpen(false)
@@ -270,9 +368,43 @@ export default function EndUserDataPage() {
         <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between">
           <div>
             <h1 className="text-xl font-semibold text-foreground">数据管理</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              {orgName} / {projectSlug}
-            </p>
+            {accessibleProjects.length > 1 ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <button className="mt-1 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                    <span>{orgName} / {projectSlug}</span>
+                    <ChevronDown className="size-3.5" />
+                  </button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="start" className="min-w-[200px]">
+                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                    切换项目
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  {accessibleProjects.map((p) => (
+                    <DropdownMenuItem
+                      key={p.slug}
+                      onSelect={() => {
+                        if (p.slug !== projectSlug) {
+                          sessionStorage.setItem(`eu_selected_project_${orgName}`, p.slug)
+                          router.push(`/end-user/${orgName}/${p.slug}/data`)
+                        }
+                      }}
+                      className={p.slug === projectSlug ? 'bg-muted font-medium' : ''}
+                    >
+                      <span className="flex-1">{p.title || p.slug}</span>
+                      {p.slug === projectSlug && (
+                        <span className="ml-2 text-xs text-muted-foreground">当前</span>
+                      )}
+                    </DropdownMenuItem>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <p className="mt-1 text-sm text-muted-foreground">
+                {orgName} / {projectSlug}
+              </p>
+            )}
           </div>
           <div className="flex items-center gap-3">
             <span className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">

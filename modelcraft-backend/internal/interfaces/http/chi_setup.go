@@ -155,12 +155,22 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Handler) http.Handler {
 	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
 
-	// Paths that are public and should NOT require authentication
+	// Paths that are public and should NOT require authentication.
+	// All /api/end-user/auth/* routes bypass the design-time JWT middleware because
+	// they carry end-user HMAC JWTs (endUserClaims) which are validated inside each
+	// handler. Applying the design-time ChiJWTAuthMiddleware here would always fail.
 	publicPaths := map[string]bool{
 		"/api/auth/register": true,
 		"/api/auth/login":    true,
 		"/api/auth/logout":   true,
 		"/api/auth/refresh":  true,
+		// End-user auth: all routes use their own in-handler JWT validation
+		"/api/end-user/auth/login":          true,
+		"/api/end-user/auth/register":       true,
+		"/api/end-user/auth/refresh":        true,
+		"/api/end-user/auth/logout":         true,
+		"/api/end-user/auth/me":             true,
+		"/api/end-user/auth/select-project": true,
 	}
 
 	return func(next http.Handler) http.Handler {

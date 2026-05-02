@@ -101,6 +101,37 @@ export function createProjectScopedClient(
   })
 }
 
+/**
+ * End-User Scoped Apollo Client factory
+ * Endpoint: /api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}
+ * Uses the End-User Bearer token (not the design-time admin token).
+ */
+export function createEndUserScopedClient(
+  orgName: string,
+  projectSlug: string,
+  endUserToken: string
+): ApolloClient<object> {
+  const uri = `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}`
+  const httpLink = createHttpLink({ uri, credentials: 'include' })
+
+  const authLink = setContext((_, { headers }: { headers?: Record<string, string> }) => ({
+    headers: {
+      ...(headers ?? {}),
+      authorization: `Bearer ${endUserToken}`,
+    },
+  }))
+
+  return new ApolloClient({
+    link: authLink.concat(httpLink),
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      watchQuery: { errorPolicy: 'all' },
+      query: { errorPolicy: 'all' },
+      mutate: { errorPolicy: 'all' },
+    },
+  })
+}
+
 export function createModelRuntimeClient(
   orgName: string,
   projectSlug: string,

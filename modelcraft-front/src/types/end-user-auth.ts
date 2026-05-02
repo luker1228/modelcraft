@@ -21,10 +21,15 @@ export interface EndUserRegisterRequest {
   password: string
 }
 
-/** BFF 登录/注册统一响应格式 */
+/** BFF 登录/注册/refresh 统一响应格式（透传自 Go 后端） */
 export interface EndUserAuthResponse {
-  accessToken: string // BFF 自签 end-user JWT（1h）
-  expiresIn: number // 3600
+  accessToken?: string
+  refreshToken?: string
+  expiresAt?: string // ISO 8601（Go 后端返回）
+  expiresIn?: number // 兼容旧 BFF 签发字段
+  projects?: EndUserAccessibleProject[]
+  userId?: string
+  requestId?: string
 }
 
 /** BFF /me 接口响应 */

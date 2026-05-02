@@ -5,113 +5,101 @@ import { NextRequest, NextResponse } from 'next/server'
  *
  * Strategy:
  *  - Public routes (/login, /register, /api/*) are allowed through unconditionally.
- *  - All other routes require the `refresh_token` httpOnly cookie to be present.
+ *  - All other routes require the `mc_refresh_token` httpOnly cookie to be present.
  *    If missing, redirect to /login with the original URL as `returnUrl`.
  *  - We do NOT validate the token here (that would require calling the backend on every
  *    request). We only check presence. The actual token exchange happens client-side via
  *    silent refresh (/api/bff/auth/refresh) after the page loads.
  *
  * End-User Auth:
- *  - End-user routes use /end-user/{orgName}/{projectSlug}/*
- *  - /end-user/{orgName}/login is public
- *  - /end-user/{orgName}/{projectSlug}/data/* requires mc_enduser_refresh_token
- *
- * Legacy End-User Routes:
- *  - /org/{org}/project/{project}/user/* and /data/* are retired immediately.
- *  - Middleware lets them pass through so Next.js returns 404 directly.
+ *  - All /end-user/* routes are handled separately before developer auth.
+ *  - Public end-user paths (login, register, select-project, no-project-access, /api/*, /auth/*)
+ *    are allowed through unconditionally.
+ *  - Protected end-user paths (/end-user/[orgName]/[projectSlug]/*) require the
+ *    mc_enduser_refresh_token HttpOnly cookie. If missing, redirect to /end-user/[orgName]/login.
  */
 
 // ============================================
-// 开发者认证配置（现有，完整保留，不变）
+// 开发者认证配置
 // ============================================
-const PUBLIC_PATHS = [
-  '/login',
-  '/register',
+const DEV_PUBLIC_PATHS = ['/login', '/register']
+const DEV_REFRESH_COOKIE = 'mc_refresh_token'
+
+// ============================================
+// 终端用户认证配置
+// ============================================
+export const END_USER_REFRESH_COOKIE = 'mc_enduser_refresh_token'
+
+/**
+ * 终端用户公开路径（无需 cookie 即可访问）。
+ * 格式：精确匹配 pathname.startsWith(prefix) 或 regex。
+ */
+const END_USER_PUBLIC_PREFIXES = [
+  '/end-user/auth/',              // /end-user/auth/me, /end-user/auth/refresh, /end-user/auth/logout
 ]
 
-const COOKIE_NAME = 'mc_refresh_token'
+/**
+ * 终端用户公开路径（精确后缀匹配，带 orgName 动态段）。
+ * /end-user/{orgName}/login
+ * /end-user/{orgName}/select-project
+ * /end-user/{orgName}/no-project-access
+ */
+const END_USER_PUBLIC_SUFFIXES_RE = /^\/end-user\/[^/]+\/(login|select-project|no-project-access)(\/.*)?$/
 
-// ============================================
-// 终端用户认证配置（新增）
-// ============================================
-const END_USER_COOKIE = 'mc_enduser_refresh_token'
-
-const END_USER_LOGIN_RE = /^\/end-user\/[^/]+\/login$/
-const END_USER_DATA_RE = /^\/end-user\/[^/]+\/[^/]+\/data(\/.*)?$/
-const LEGACY_END_USER_RE = /^\/org\/[^/]+\/project\/[^/]+\/(user(\/.*)?|data(\/.*)?)$/
-
-function extractEndUserParams(pathname: string): { orgName: string; projectSlug: string } | null {
-  const match = pathname.match(/^\/end-user\/([^/]+)\/([^/]+)/)
-  if (!match) return null
-  return { orgName: match[1], projectSlug: match[2] }
-}
+/**
+ * 终端用户受保护路径：/end-user/{orgName}/{projectSlug}/*
+ * 需要 mc_enduser_refresh_token cookie。
+ */
+const END_USER_PROTECTED_RE = /^\/end-user\/([^/]+)\/([^/]+)(\/.*)?$/
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow all /api/* routes (BFF endpoints, rewrites, etc.)
-  if (pathname.startsWith('/api/')) {
+  // Allow /api/* and /auth/* unconditionally (BFF endpoints, rewrites, etc.)
+  if (pathname.startsWith('/api/') || pathname.startsWith('/auth/')) {
     return NextResponse.next()
   }
 
-  // Allow /auth/* routes (proxied to backend, must not be gated)
-  if (pathname.startsWith('/auth/')) {
-    return NextResponse.next()
-  }
+  // ===== END USER AUTH =====
 
-  // ===== END USER AUTH START =====
-  // 终端用户路径分支（必须在开发者鉴权前处理）
-
-  // Legacy 路径立即切断：不做兼容跳转，让 Next.js 直接 404
-  if (LEGACY_END_USER_RE.test(pathname)) {
-    return NextResponse.next()
-  }
-
-  if (END_USER_LOGIN_RE.test(pathname)) {
-    return NextResponse.next()
-  }
-
-  if (END_USER_DATA_RE.test(pathname)) {
-    const hasEndUserToken = request.cookies.has(END_USER_COOKIE)
-    console.log(`[middleware] end-user route ${pathname} — cookie present: ${hasEndUserToken}`)
-
-    if (!hasEndUserToken) {
-      const params = extractEndUserParams(pathname)
-      if (params) {
-        const loginUrl = new URL(`/end-user/${params.orgName}/login`, request.url)
-        loginUrl.searchParams.set('redirect', pathname)
-        console.log(`[middleware] No end-user token, redirecting to: ${loginUrl.toString()}`)
-        return NextResponse.redirect(loginUrl)
-      }
+  if (pathname.startsWith('/end-user/')) {
+    // 公开前缀（/end-user/auth/*）
+    if (END_USER_PUBLIC_PREFIXES.some((p) => pathname.startsWith(p))) {
+      return NextResponse.next()
     }
 
+    // 公开后缀（login / select-project / no-project-access）
+    if (END_USER_PUBLIC_SUFFIXES_RE.test(pathname)) {
+      return NextResponse.next()
+    }
+
+    // 受保护路径：/end-user/{orgName}/{projectSlug}/*
+    const match = END_USER_PROTECTED_RE.exec(pathname)
+    if (match) {
+      const hasToken = request.cookies.has(END_USER_REFRESH_COOKIE)
+      if (!hasToken) {
+        const orgName = match[1]
+        const loginUrl = new URL(`/end-user/${orgName}/login`, request.url)
+        loginUrl.searchParams.set('redirect', pathname)
+        return NextResponse.redirect(loginUrl)
+      }
+      return NextResponse.next()
+    }
+
+    // 其余 /end-user/* 路径（如 /end-user 根路径）直接放行，让 Next.js 返回 404
     return NextResponse.next()
   }
 
-  // 非 data/login 的 /end-user 路径不归 developer 鉴权，交给 Next.js 正常路由（通常 404）
-  if (pathname.startsWith('/end-user/')) {
+  // ===== DEVELOPER AUTH =====
+
+  if (DEV_PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
     return NextResponse.next()
   }
 
-  // ===== END USER AUTH END =====
-
-  // ============================================
-  // 开发者路由守卫（现有逻辑，完整保留，不做任何修改）
-  // ============================================
-
-  // Allow public pages
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
-    return NextResponse.next()
-  }
-
-  // Check for refresh token cookie
-  const hasRefreshToken = request.cookies.has(COOKIE_NAME)
-  console.log(`[middleware] ${pathname} — cookie present: ${hasRefreshToken}`)
-
+  const hasRefreshToken = request.cookies.has(DEV_REFRESH_COOKIE)
   if (!hasRefreshToken) {
     const loginUrl = new URL('/login', request.url)
     loginUrl.searchParams.set('returnUrl', pathname)
-    console.log(`[middleware] No refresh token, redirecting to: ${loginUrl.toString()}`)
     return NextResponse.redirect(loginUrl)
   }
 
@@ -119,7 +107,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
-  // Run on all routes except static assets and Next.js internals
   matcher: [
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
