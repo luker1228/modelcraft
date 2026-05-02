@@ -416,7 +416,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 // GetEndUserMe retrieves the current end-user's profile.
 func (s *EndUserAuthAppService) GetEndUserMe(ctx context.Context, cmd GetMeCommand) (*enduser.EndUser, error) {
 	// 1. Get DB connection
-	db, err := s.dbProvider.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
+	db, err := s.dbProvider.GetOrInit(ctx, cmd.OrgName, "")
 	if err != nil {
 		return nil, s.convertDBProviderError(ctx, err)
 	}

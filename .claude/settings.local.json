@@ -22,7 +22,8 @@
       "Bash(git -C ~/modelcraft-project/modelcraft-go log --all --oneline --grep=\"bundle\\\\|permission\" -i)",
       "Bash(git -C ~/modelcraft-project/modelcraft-go branch -a)",
       "Bash(git -C ~/modelcraft-project/modelcraft-go log --all --oneline)",
-      "Bash(git -C ~/modelcraft-project/modelcraft-go log --oneline --all)"
+      "Bash(git -C ~/modelcraft-project/modelcraft-go log --oneline --all)",
+      "Bash(gofumpt *)"
     ]
   }
 }

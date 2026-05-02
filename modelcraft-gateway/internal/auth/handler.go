@@ -3,12 +3,10 @@ package auth
 import (
 	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
 )
@@ -212,9 +210,8 @@ func (h *Handler) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, json.RawMessage(raw))
 }
 
-// EndUserMe decodes the end-user Bearer token (without signature verification — the backend
-// performs the real check), injects the required internal headers, and proxies
-// GET /internal/v1/end-user/auth/me to the backend.
+// EndUserMe proxies GET /api/end-user/auth/me to the backend.
+// The backend resolves identity entirely from the Bearer JWT — no extra headers needed.
 func (h *Handler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
@@ -222,20 +219,8 @@ func (h *Handler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Unverified decode: extract sub + project_slug to satisfy backend header requirements.
-	// Signature verification is the backend's responsibility.
-	claims, err := decodeEndUserJWTUnverified(strings.TrimPrefix(authHeader, "Bearer "))
-	if err != nil {
-		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "failed to decode end-user token")
-		return
-	}
-
-	raw, err := h.getBackendRaw(r.Context(), "/internal/v1/end-user/auth/me", func(req *http.Request) {
+	raw, err := h.getBackendRaw(r.Context(), "/api/end-user/auth/me", func(req *http.Request) {
 		req.Header.Set("Authorization", authHeader)
-		req.Header.Set("X-Internal-Token", h.internalToken)
-		req.Header.Set("X-Org-Name", r.Header.Get("X-Org-Name"))
-		req.Header.Set("X-Project-Slug", claims.ProjectSlug)
-		req.Header.Set("X-End-User-Id", claims.Sub)
 	})
 	if err != nil {
 		proxyBackendError(w, err)
@@ -347,39 +332,6 @@ func (h *Handler) getBackendRaw(ctx context.Context, path string, setHeaders fun
 	}
 
 	return raw, nil
-}
-
-// ---- JWT helpers ----
-
-// endUserJWTClaims holds the fields needed from an end-user JWT payload.
-type endUserJWTClaims struct {
-	Sub         string `json:"sub"`
-	ProjectSlug string `json:"project_slug"`
-}
-
-// decodeEndUserJWTUnverified decodes the JWT payload without signature verification.
-// The backend is responsible for the real signature check.
-func decodeEndUserJWTUnverified(token string) (*endUserJWTClaims, error) {
-	parts := strings.Split(token, ".")
-	if len(parts) != 3 {
-		return nil, fmt.Errorf("invalid JWT format")
-	}
-
-	payload, err := base64.RawURLEncoding.DecodeString(parts[1])
-	if err != nil {
-		return nil, fmt.Errorf("decode payload: %w", err)
-	}
-
-	var claims endUserJWTClaims
-	if err = json.Unmarshal(payload, &claims); err != nil {
-		return nil, fmt.Errorf("unmarshal claims: %w", err)
-	}
-
-	if claims.Sub == "" || claims.ProjectSlug == "" {
-		return nil, fmt.Errorf("missing required claims: sub=%q project_slug=%q", claims.Sub, claims.ProjectSlug)
-	}
-
-	return &claims, nil
 }
 
 // ---- response utilities ----

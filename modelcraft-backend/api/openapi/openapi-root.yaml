@@ -30,6 +30,22 @@ paths:
     $ref: "auth.yaml#/paths/~1api~1auth~1refresh"
 
   # ========================
+  # End-User Auth Endpoints
+  # ========================
+  /api/end-user/auth/login:
+    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1login"
+  /api/end-user/auth/register:
+    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1register"
+  /api/end-user/auth/logout:
+    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1logout"
+  /api/end-user/auth/refresh:
+    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1refresh"
+  /api/end-user/auth/select-project:
+    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1select-project"
+  /api/end-user/auth/me:
+    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1me"
+
+  # ========================
   # User Endpoints
   # ========================
   /api/user/memberships:
@@ -69,6 +85,32 @@ components:
       $ref: "auth.yaml#/schemas/LoginResponse"
     RefreshResponse:
       $ref: "auth.yaml#/schemas/RefreshResponse"
+
+    # -- End-User Auth --
+    EndUserLoginRequest:
+      $ref: "end-user-auth.yaml#/schemas/EndUserLoginRequest"
+    EndUserRegisterRequest:
+      $ref: "end-user-auth.yaml#/schemas/EndUserRegisterRequest"
+    EndUserLogoutRequest:
+      $ref: "end-user-auth.yaml#/schemas/EndUserLogoutRequest"
+    EndUserRefreshRequest:
+      $ref: "end-user-auth.yaml#/schemas/EndUserRefreshRequest"
+    EndUserSelectProjectRequest:
+      $ref: "end-user-auth.yaml#/schemas/EndUserSelectProjectRequest"
+    EndUserTokenResponse:
+      $ref: "end-user-auth.yaml#/schemas/EndUserTokenResponse"
+    EndUserLoginResponse:
+      $ref: "end-user-auth.yaml#/schemas/EndUserLoginResponse"
+    EndUserSelectProjectResponse:
+      $ref: "end-user-auth.yaml#/schemas/EndUserSelectProjectResponse"
+    EndUserMeResponse:
+      $ref: "end-user-auth.yaml#/schemas/EndUserMeResponse"
+    EndUserProfile:
+      $ref: "end-user-auth.yaml#/schemas/EndUserProfile"
+    EndUserAccessibleProject:
+      $ref: "end-user-auth.yaml#/schemas/EndUserAccessibleProject"
+    EndUserAuthError:
+      $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
 
     # -- User --
     GetMembershipsResponse:

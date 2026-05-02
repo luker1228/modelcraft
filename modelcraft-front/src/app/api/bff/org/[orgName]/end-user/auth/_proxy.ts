@@ -1,26 +1,27 @@
 /**
  * BFF End-User Auth Proxy Helper
  *
- * 将前端 /api/bff/org/[orgName]/end-user/auth/* 请求转发到后端
- * /internal/v1/end-user/auth/*，注入 X-Org-Name 和 X-Internal-Token 头。
+ * 将前端 /api/bff/org/[orgName]/end-user/auth/* 请求透传到 gateway
+ * /api/end-user/auth/*。
+ *
+ * 不注入 X-Org-Name / X-Internal-Token：
+ *   - gateway 直接转发到后端，不校验 internal token
+ *   - 后端从请求 body（登录/注册/刷新）或 Bearer JWT（/me）中获取 orgName
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
-const INTERNAL_TOKEN = process.env.INTERNAL_TOKEN ?? ''
 
 /**
- * 将请求转发到后端 end-user auth 端点。
+ * 将请求转发到 gateway end-user auth 端点。
  *
- * @param req - 原始 Next.js 请求
- * @param orgName - 从路由参数提取的组织名
- * @param path - 后端路径（如 "login"、"register"、"refresh"）
+ * @param req    - 原始 Next.js 请求
+ * @param path   - 后端路径段（如 "login"、"me"）
  * @param method - HTTP 方法（POST / GET）
  */
 export async function proxyEndUserAuth(
   req: NextRequest,
-  orgName: string,
   path: string,
   method: string = 'POST'
 ): Promise<NextResponse> {
@@ -28,10 +29,8 @@ export async function proxyEndUserAuth(
 
   const headers = new Headers()
   headers.set('Content-Type', 'application/json')
-  headers.set('X-Org-Name', orgName)
-  headers.set('X-Internal-Token', INTERNAL_TOKEN)
 
-  // 转发 Authorization 头（/me 端点需要）
+  // 透传 Authorization 头（/me 端点需要 Bearer token）
   const authHeader = req.headers.get('Authorization')
   if (authHeader) headers.set('Authorization', authHeader)
 

@@ -76,10 +76,10 @@ type SelectProjectResult struct {
 }
 
 // GetMeCommand represents a request to get the current end-user's profile.
+// orgName and userID are resolved from the Bearer JWT by the handler layer.
 type GetMeCommand struct {
-	OrgName     string
-	ProjectSlug string
-	UserID      string // parsed from JWT by BFF, passed via X-End-User-Id header
+	OrgName string
+	UserID  string
 }
 
 // --- User Management Commands (by developers) ---

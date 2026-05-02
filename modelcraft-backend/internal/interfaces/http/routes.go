@@ -403,7 +403,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
 		endUserTxMgr,
 	)
-	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, logger)
+	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, []byte(cfg.JWT.Secret), logger)
 	endUserMgmtHandler := enduserHandlers.NewManagementHandler(orgEndUserMgmtAppService, logger)
 	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, reverseEngineerApp, logger)
 
@@ -667,40 +667,10 @@ func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 }
 
-// SetupPublicEndUserAuthRoutesOnChi 注册 EndUser 公开认证路由（无需 X-Internal-Token）。
-// orgName 通过请求 body 传入，端点对浏览器直接可达，与开发者 /api/auth/* 路由对称。
-func SetupPublicEndUserAuthRoutesOnChi(router chi.Router, handlers *DesignHandlers) {
-	if handlers.EndUserAuthHandler == nil {
-		return
-	}
-
-	router.Route("/api/end-user/auth", func(r chi.Router) {
-		r.Use(requestIDInjectorMiddleware)
-		r.Post("/login", handlers.EndUserAuthHandler.PublicLogin)
-		r.Post("/register", handlers.EndUserAuthHandler.PublicRegister)
-		r.Post("/logout", handlers.EndUserAuthHandler.PublicLogout)
-		r.Post("/refresh", handlers.EndUserAuthHandler.PublicRefresh)
-		r.Post("/select-project", handlers.EndUserAuthHandler.PublicSelectProject)
-	})
-}
-
-// SetupEndUserRoutesOnChi registers End-User internal HTTP routes.
-// All routes keep the same internal-route middleware strategy currently used in this package.
+// SetupEndUserRoutesOnChi registers End-User internal HTTP routes (management + data).
+// end-user auth routes are now served via the OpenAPI-generated handler in chi_setup.go.
 func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
 	internalTokenMW := middleware.ChiInternalTokenMiddleware(cfg.Auth.InternalToken)
-
-	if handlers.EndUserAuthHandler != nil {
-		router.Route("/internal/v1/end-user/auth", func(r chi.Router) {
-			r.Use(requestIDInjectorMiddleware)
-			r.Use(internalTokenMW)
-			r.Post("/register", handlers.EndUserAuthHandler.Register)
-			r.Post("/login", handlers.EndUserAuthHandler.Login)
-			r.Post("/select-project", handlers.EndUserAuthHandler.SelectProject)
-			r.Post("/logout", handlers.EndUserAuthHandler.Logout)
-			r.Post("/refresh", handlers.EndUserAuthHandler.Refresh)
-			r.Get("/me", handlers.EndUserAuthHandler.Me)
-		})
-	}
 
 	if handlers.EndUserMgmtHandler != nil {
 		router.Route("/internal/end-users", func(r chi.Router) {

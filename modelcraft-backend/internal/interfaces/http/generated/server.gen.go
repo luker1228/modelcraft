@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"path"
 	"strings"
+	"time"
 
 	"github.com/getkin/kin-openapi/openapi3"
 	"github.com/go-chi/chi/v5"
@@ -158,6 +159,107 @@ type AuthenticationErrorErrorCode string
 type BaseResponse struct {
 	// RequestId Unique request trace ID
 	RequestId string `json:"requestId"`
+}
+
+// EndUserAccessibleProject defines model for EndUserAccessibleProject.
+type EndUserAccessibleProject struct {
+	Slug  string `json:"slug"`
+	Title string `json:"title"`
+}
+
+// EndUserAuthError defines model for EndUserAuthError.
+type EndUserAuthError struct {
+	Error struct {
+		// Code Error code, e.g. AUTHENTICATION_FAILED, OPERATION_DENIED.END_USER
+		Code    string `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
+	RequestId string `json:"requestId"`
+}
+
+// EndUserLoginRequest defines model for EndUserLoginRequest.
+type EndUserLoginRequest struct {
+	// OrgName Organization slug
+	OrgName  string `json:"orgName"`
+	Password string `json:"password"`
+
+	// ProjectSlug Optional project slug for single-project login flow
+	ProjectSlug *string `json:"projectSlug,omitempty"`
+	Username    string  `json:"username"`
+}
+
+// EndUserLoginResponse defines model for EndUserLoginResponse.
+type EndUserLoginResponse = EndUserTokenResponse
+
+// EndUserLogoutRequest defines model for EndUserLogoutRequest.
+type EndUserLogoutRequest struct {
+	OrgName *string `json:"orgName,omitempty"`
+}
+
+// EndUserMeResponse defines model for EndUserMeResponse.
+type EndUserMeResponse struct {
+	EndUser EndUserProfile `json:"endUser"`
+
+	// RequestId Unique request trace ID
+	RequestId string `json:"requestId"`
+}
+
+// EndUserProfile defines model for EndUserProfile.
+type EndUserProfile struct {
+	CreatedAt   *time.Time `json:"createdAt,omitempty"`
+	Id          string     `json:"id"`
+	IsForbidden bool       `json:"isForbidden"`
+	UpdatedAt   *time.Time `json:"updatedAt,omitempty"`
+	Username    string     `json:"username"`
+}
+
+// EndUserRefreshRequest defines model for EndUserRefreshRequest.
+type EndUserRefreshRequest struct {
+	// OrgName Required to locate the correct tenant DB for session lookup
+	OrgName *string `json:"orgName,omitempty"`
+}
+
+// EndUserRegisterRequest defines model for EndUserRegisterRequest.
+type EndUserRegisterRequest struct {
+	OrgName     string `json:"orgName"`
+	Password    string `json:"password"`
+	ProjectSlug string `json:"projectSlug"`
+	Username    string `json:"username"`
+}
+
+// EndUserSelectProjectRequest defines model for EndUserSelectProjectRequest.
+type EndUserSelectProjectRequest struct {
+	OrgName     string `json:"orgName"`
+	ProjectSlug string `json:"projectSlug"`
+
+	// RefreshToken Refresh token (gateway reads from httpOnly cookie; direct callers may pass inline)
+	RefreshToken *string `json:"refreshToken,omitempty"`
+}
+
+// EndUserSelectProjectResponse defines model for EndUserSelectProjectResponse.
+type EndUserSelectProjectResponse struct {
+	// RequestId Unique request trace ID
+	RequestId string `json:"requestId"`
+
+	// SelectedProject The selected project slug
+	SelectedProject string `json:"selectedProject"`
+}
+
+// EndUserTokenResponse defines model for EndUserTokenResponse.
+type EndUserTokenResponse struct {
+	// AccessToken Short-lived JWT access token
+	AccessToken string     `json:"accessToken"`
+	ExpiresAt   *time.Time `json:"expiresAt,omitempty"`
+
+	// ExpiresIn Access token TTL in seconds
+	ExpiresIn int `json:"expiresIn"`
+
+	// Projects Accessible projects (returned on login when projectSlug not specified)
+	Projects *[]EndUserAccessibleProject `json:"projects,omitempty"`
+
+	// RequestId Unique request trace ID
+	RequestId string `json:"requestId"`
+	UserId    string `json:"userId"`
 }
 
 // GetMembershipsResponse defines model for GetMembershipsResponse.
@@ -329,6 +431,21 @@ type LoginJSONRequestBody = LoginRequest
 // RegisterJSONRequestBody defines body for Register for application/json ContentType.
 type RegisterJSONRequestBody = RegisterRequest
 
+// EndUserLoginJSONRequestBody defines body for EndUserLogin for application/json ContentType.
+type EndUserLoginJSONRequestBody = EndUserLoginRequest
+
+// EndUserLogoutJSONRequestBody defines body for EndUserLogout for application/json ContentType.
+type EndUserLogoutJSONRequestBody = EndUserLogoutRequest
+
+// EndUserRefreshTokenJSONRequestBody defines body for EndUserRefreshToken for application/json ContentType.
+type EndUserRefreshTokenJSONRequestBody = EndUserRefreshRequest
+
+// EndUserRegisterJSONRequestBody defines body for EndUserRegister for application/json ContentType.
+type EndUserRegisterJSONRequestBody = EndUserRegisterRequest
+
+// EndUserSelectProjectJSONRequestBody defines body for EndUserSelectProject for application/json ContentType.
+type EndUserSelectProjectJSONRequestBody = EndUserSelectProjectRequest
+
 // ServerInterface represents all server handlers.
 type ServerInterface interface {
 	// Login with phone number and password
@@ -343,6 +460,24 @@ type ServerInterface interface {
 	// Register user and initialize profile atomically
 	// (POST /api/auth/register)
 	Register(w http.ResponseWriter, r *http.Request)
+	// End-user login with username and password
+	// (POST /api/end-user/auth/login)
+	EndUserLogin(w http.ResponseWriter, r *http.Request)
+	// End-user logout (revoke refresh token via httpOnly cookie)
+	// (POST /api/end-user/auth/logout)
+	EndUserLogout(w http.ResponseWriter, r *http.Request)
+	// Get current end-user profile (resolved from Bearer JWT)
+	// (GET /api/end-user/auth/me)
+	EndUserMe(w http.ResponseWriter, r *http.Request)
+	// Refresh end-user access token using httpOnly refresh cookie
+	// (POST /api/end-user/auth/refresh)
+	EndUserRefreshToken(w http.ResponseWriter, r *http.Request)
+	// End-user self-registration
+	// (POST /api/end-user/auth/register)
+	EndUserRegister(w http.ResponseWriter, r *http.Request)
+	// Select a project context for the end-user session
+	// (POST /api/end-user/auth/select-project)
+	EndUserSelectProject(w http.ResponseWriter, r *http.Request)
 	// Get current user's organization memberships
 	// (GET /api/user/memberships)
 	GetUserMemberships(w http.ResponseWriter, r *http.Request)
@@ -373,6 +508,42 @@ func (_ Unimplemented) RefreshToken(w http.ResponseWriter, r *http.Request) {
 // Register user and initialize profile atomically
 // (POST /api/auth/register)
 func (_ Unimplemented) Register(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// End-user login with username and password
+// (POST /api/end-user/auth/login)
+func (_ Unimplemented) EndUserLogin(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// End-user logout (revoke refresh token via httpOnly cookie)
+// (POST /api/end-user/auth/logout)
+func (_ Unimplemented) EndUserLogout(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Get current end-user profile (resolved from Bearer JWT)
+// (GET /api/end-user/auth/me)
+func (_ Unimplemented) EndUserMe(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Refresh end-user access token using httpOnly refresh cookie
+// (POST /api/end-user/auth/refresh)
+func (_ Unimplemented) EndUserRefreshToken(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// End-user self-registration
+// (POST /api/end-user/auth/register)
+func (_ Unimplemented) EndUserRegister(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusNotImplemented)
+}
+
+// Select a project context for the end-user session
+// (POST /api/end-user/auth/select-project)
+func (_ Unimplemented) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -438,6 +609,96 @@ func (siw *ServerInterfaceWrapper) Register(w http.ResponseWriter, r *http.Reque
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.Register(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndUserLogin operation middleware
+func (siw *ServerInterfaceWrapper) EndUserLogin(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndUserLogin(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndUserLogout operation middleware
+func (siw *ServerInterfaceWrapper) EndUserLogout(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndUserLogout(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndUserMe operation middleware
+func (siw *ServerInterfaceWrapper) EndUserMe(w http.ResponseWriter, r *http.Request) {
+
+	ctx := r.Context()
+
+	ctx = context.WithValue(ctx, BearerAuthScopes, []string{})
+
+	r = r.WithContext(ctx)
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndUserMe(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndUserRefreshToken operation middleware
+func (siw *ServerInterfaceWrapper) EndUserRefreshToken(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndUserRefreshToken(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndUserRegister operation middleware
+func (siw *ServerInterfaceWrapper) EndUserRegister(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndUserRegister(w, r)
+	}))
+
+	for _, middleware := range siw.HandlerMiddlewares {
+		handler = middleware(handler)
+	}
+
+	handler.ServeHTTP(w, r)
+}
+
+// EndUserSelectProject operation middleware
+func (siw *ServerInterfaceWrapper) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
+
+	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		siw.Handler.EndUserSelectProject(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -593,6 +854,24 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 		r.Post(options.BaseURL+"/api/auth/register", wrapper.Register)
 	})
 	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/end-user/auth/login", wrapper.EndUserLogin)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/end-user/auth/logout", wrapper.EndUserLogout)
+	})
+	r.Group(func(r chi.Router) {
+		r.Get(options.BaseURL+"/api/end-user/auth/me", wrapper.EndUserMe)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/end-user/auth/refresh", wrapper.EndUserRefreshToken)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/end-user/auth/register", wrapper.EndUserRegister)
+	})
+	r.Group(func(r chi.Router) {
+		r.Post(options.BaseURL+"/api/end-user/auth/select-project", wrapper.EndUserSelectProject)
+	})
+	r.Group(func(r chi.Router) {
 		r.Get(options.BaseURL+"/api/user/memberships", wrapper.GetUserMemberships)
 	})
 
@@ -602,45 +881,59 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"//8GrpimeSUAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file
