@@ -4,25 +4,12 @@
 // Org 级终端用户管理表格（EndUser v2）
 
 import { useState } from 'react'
-import { Plus, MoreHorizontal, RefreshCw, Users, Search } from 'lucide-react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Plus, MoreHorizontal, RefreshCw, Users, Search, ExternalLink } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Input } from '@web/components/ui/input'
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@web/components/ui/dialog'
-import { Label } from '@web/components/ui/label'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web/components/ui/select'
 import {
   Table,
   TableBody,
@@ -40,17 +27,6 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { CreateEndUserDialog } from './CreateEndUserDialog'
 import { useOrgEndUsers, type OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
-import { getOrgScopedClient } from '@api-client/apollo/public'
-import { GET_PROJECTS } from '@api-client/project'
-
-interface ProjectItem {
-  slug: string
-  title: string
-}
-
-interface GetProjectsData {
-  projects: ProjectItem[]
-}
 
 function formatDate(dateStr: string): string {
   try {
@@ -65,23 +41,11 @@ interface EndUsersManagementTableProps {
 }
 
 export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProps) {
-  const { users, isLoading, error, search, setSearch, reload, createUser, toggleUserStatus, deleteUser } =
+  const router = useRouter()
+  const { users, isLoading, error, search, setSearch, reload, createUser, deleteUser } =
     useOrgEndUsers(orgName)
   const [createOpen, setCreateOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
-  const [assignOpen, setAssignOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<OrgEndUser | null>(null)
-  const [projects, setProjects] = useState<ProjectItem[]>([])
-  const [selectedProjectSlug, setSelectedProjectSlug] = useState('')
-
-  const handleToggleStatus = async (user: OrgEndUser) => {
-    setActionError(null)
-    try {
-      await toggleUserStatus(user.id, !user.isForbidden)
-    } catch (e: unknown) {
-      setActionError(e instanceof Error ? e.message : '操作失败')
-    }
-  }
 
   const handleDelete = async (userId: string) => {
     if (!confirm('确认删除此用户？此操作不可恢复。')) return
@@ -91,33 +55,6 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
     } catch (e: unknown) {
       setActionError(e instanceof Error ? e.message : '删除失败')
     }
-  }
-
-  const handleOpenAssignDialog = async (user: OrgEndUser) => {
-    setSelectedUser(user)
-    setAssignOpen(true)
-    setSelectedProjectSlug('')
-
-    if (projects.length > 0) return
-
-    try {
-      const client = getOrgScopedClient()
-      const { data } = await client.query<GetProjectsData>({
-        query: GET_PROJECTS,
-        variables: { input: { first: 100 } },
-        fetchPolicy: 'network-only',
-      })
-      setProjects(data?.projects ?? [])
-    } catch {
-      setActionError('加载项目列表失败')
-    }
-  }
-
-  const handleGoAssignProject = () => {
-    if (!selectedUser || !selectedProjectSlug) return
-    window.location.assign(
-      `/org/${orgName}/project/${selectedProjectSlug}/end-user-access?grantUserId=${selectedUser.id}`
-    )
   }
 
   return (
@@ -218,9 +155,13 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                         <div className="flex size-7 flex-shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-foreground">
                           {user.username.charAt(0).toUpperCase()}
                         </div>
-                        <span className="text-sm font-medium text-foreground">
+                        <button
+                          type="button"
+                          className="text-sm font-medium text-foreground hover:underline"
+                          onClick={() => router.push(`/org/${orgName}/end-users/${user.id}`)}
+                        >
                           {user.username}
-                        </span>
+                        </button>
                       </div>
                     </TableCell>
                     <TableCell>
@@ -252,11 +193,11 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleToggleStatus(user)}>
-                            {user.isForbidden ? '启用账号' : '禁用账号'}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => void handleOpenAssignDialog(user)}>
-                            分配到项目
+                          <DropdownMenuItem
+                            onClick={() => router.push(`/org/${orgName}/end-users/${user.id}`)}
+                          >
+                            <ExternalLink className="mr-1.5 size-3.5" />
+                            查看详情
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
@@ -286,42 +227,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
         onClose={() => setCreateOpen(false)}
         onCreate={createUser}
       />
-
-      <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>分配用户到项目</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              用户: <span className="font-medium text-foreground">{selectedUser?.username ?? '-'}</span>
-            </p>
-            <div className="space-y-2">
-              <Label>目标项目</Label>
-              <Select value={selectedProjectSlug} onValueChange={setSelectedProjectSlug}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择项目" />
-                </SelectTrigger>
-                <SelectContent>
-                  {projects.map((project) => (
-                    <SelectItem key={project.slug} value={project.slug}>
-                      {project.title} ({project.slug})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setAssignOpen(false)}>
-              取消
-            </Button>
-            <Button onClick={handleGoAssignProject} disabled={!selectedProjectSlug}>
-              前往分配
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   )
 }
+

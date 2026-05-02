@@ -74,13 +74,16 @@ CREATE TABLE IF NOT EXISTS `end_user_roles` (
   `project_slug` VARCHAR(64) NOT NULL COMMENT '所属项目',
   `name` VARCHAR(64) NOT NULL COMMENT 'Project 内唯一角色名',
   `description` VARCHAR(255) NULL COMMENT '角色描述',
+  `is_implicit` TINYINT(1) NOT NULL DEFAULT 0
+    COMMENT '内置隐式角色标志：0=显式角色（用户手动分配），1=隐式角色（系统自动注入）',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_end_user_roles_project_name` (`org_name`, `project_slug`, `name`),
   UNIQUE KEY `uk_end_user_roles_org_id` (`org_name`, `id`),
-  KEY `idx_end_user_roles_project` (`org_name`, `project_slug`)
+  KEY `idx_end_user_roles_project` (`org_name`, `project_slug`),
+  KEY `idx_end_user_roles_implicit` (`is_implicit`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='终端用户角色表（Project 级隔离）';
 
 CREATE TABLE IF NOT EXISTS `end_user_role_users` (

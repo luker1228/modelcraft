@@ -1,16 +1,8 @@
 -- =============================================================
 -- 13_rbac_permissions.sql
 -- RBAC 行列级权限系统（item-centric 模型）
--- 依赖: 12_end_user_auth.sql（end_user_roles / end_user_users）
+-- 依赖: 12_end_user_auth.sql（end_user_roles / end_user_users / end_user_role_users）
 -- =============================================================
-
--- -------------------------------------------------------------
--- 0. ALTER 现有表：end_user_roles 追加 is_implicit 列
--- -------------------------------------------------------------
-ALTER TABLE `end_user_roles`
-  ADD COLUMN `is_implicit` TINYINT(1) NOT NULL DEFAULT 0
-    COMMENT '内置隐式角色标志：0=显式角色（用户手动分配），1=隐式角色（系统自动注入）',
-  ADD INDEX `idx_end_user_roles_implicit` (`is_implicit`);
 
 -- -------------------------------------------------------------
 -- 1. end_user_data_permissions — 自定义数据权限实体（仅 CUSTOM）

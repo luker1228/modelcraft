@@ -1,37 +1,36 @@
-## ADDED Requirements
+## Requirements
 
-### Requirement: 权限包详情页展示真实权限点列表
+### Requirement: 权限包详情页展示真实的数据权限 item 列表
+权限包详情页 SHALL 直接渲染 bundle 返回的 data permission item 数组，不得把 preset 和 custom 都伪装成统一 permission 实体后再展示。
 
-权限包详情页的已配置权限点区域 SHALL 直接渲染 `bundle.permissions` 数组，不得使用任何硬编码 fallback 数据。当 `bundle.permissions` 为空时，SHALL 显示空状态提示（「暂无权限点，点击添加」）。
+#### Scenario: 展示 preset item
+- **WHEN** bundle 中某条数据权限来源于 preset
+- **THEN** 页面展示该模型、preset 名称和策略摘要
+- **THEN** 页面不展示不存在的 custom permission 标识
 
-#### Scenario: 权限包有权限点时正常展示
-- **WHEN** `bundle.permissions` 包含至少一个权限点
-- **THEN** 页面按 model 分组展示所有权限点，每条显示操作类型、行范围、列策略摘要
+#### Scenario: 展示 custom item
+- **WHEN** bundle 中某条数据权限来源于 custom permission
+- **THEN** 页面展示该模型、自定义权限名称和策略摘要
+- **THEN** 页面不展示 preset 名称
 
-#### Scenario: 权限包无权限点时显示空状态
-- **WHEN** `bundle.permissions` 为空数组
-- **THEN** 权限点区域显示空状态 UI（图标 + 文案 + 「添加权限点」按钮），不显示任何 mock 数据
+### Requirement: 添加数据权限 Dialog shall distinguish preset and custom binding paths
+添加数据权限的 Dialog SHALL 明确区分两条真实写路径：绑定 preset item、绑定 custom item。
 
----
+#### Scenario: 选择 preset 绑定路径
+- **WHEN** 用户在 Dialog 中选择"预设模板"模式
+- **THEN** 界面要求先选择模型，再展示该模型可选 preset 模板
+- **THEN** 提交时调用 preset item 绑定接口
 
-### Requirement: 添加策略 Dialog 使用真实权限点数据
+#### Scenario: 选择 custom 绑定路径
+- **WHEN** 用户在 Dialog 中选择"自定义策略"模式
+- **THEN** 界面要求先选择模型，再展示该模型下可复用的 custom permission 列表
+- **THEN** 提交时调用 custom item 绑定接口
 
-「添加策略」Dialog 的可选权限点列表 SHALL 使用 `GET_END_USER_PERMISSIONS` query 返回的真实数据（通过 `useBundleManage` 的 `allPermissions` 字段），不得使用硬编码 fallback 权限点。
+### Requirement: 同模型重复配置时前端应体现替换语义
+前端 SHALL 在用户为同一 bundle/model 再次提交数据权限配置时提示这是替换现有 item，而不是叠加新增。
 
-#### Scenario: API 返回权限点时展示可选列表
-- **WHEN** `allPermissions` 包含至少一个权限点，且权限点未被当前权限包包含
-- **THEN** Dialog 右侧区域展示可添加的权限点列表
-
-#### Scenario: API 返回空列表时显示空状态
-- **WHEN** `allPermissions` 为空，或所有权限点均已在当前权限包中
-- **THEN** Dialog 显示「暂无可添加权限点」的空状态，不展示任何 mock 数据
-
----
-
-### Requirement: 添加策略 Dialog 移除数据库维度筛选
-
-「添加策略」Dialog SHALL 不显示数据库选择下拉控件，因为当前权限点模型不包含 clusterId 字段。Dialog 布局退化为「左侧 model 列表 + 右侧权限选择」两列。
-
-#### Scenario: Dialog 打开时不显示数据库下拉
-- **WHEN** 用户点击「添加权限点」打开 Dialog
-- **THEN** Dialog 顶部不出现数据库选择控件，直接展示 model 列表和权限选择器
+#### Scenario: 模型已有 item 时展示替换提示
+- **WHEN** 当前 bundle 已存在 model M 的数据权限 item
+- **WHEN** 用户尝试重新为 model M 配置 preset 或 custom
+- **THEN** 界面提示"将替换该模型当前配置"
+- **THEN** 成功后列表中 model M 仍只显示一条 item
