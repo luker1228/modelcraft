@@ -1,0 +1,15 @@
+type AccessibleProject {
+  slug: String!
+  title: String!
+}
+
+type ListAccessibleProjectsPayload {
+  data: [AccessibleProject!]
+  error: ListAccessibleProjectsError
+}
+
+union ListAccessibleProjectsError = Unauthorized | EndUserNotFound
+
+extend type Query {
+  accessibleProjects: ListAccessibleProjectsPayload!
+}
