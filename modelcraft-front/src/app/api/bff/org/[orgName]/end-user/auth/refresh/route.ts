@@ -16,6 +16,10 @@ export async function POST(req: NextRequest, { params }: RouteParams): Promise<N
   // 从 HttpOnly cookie 读取 refreshToken
   const cookieToken = req.cookies.get(END_USER_REFRESH_COOKIE)?.value
 
+  // DEBUG: log all cookies
+  const allCookies = req.cookies.getAll()
+  console.log(`[refresh-bff] orgName=${orgName} cookieToken=${cookieToken ? cookieToken.substring(0, 20) + '...' : 'MISSING'} allCookies=${JSON.stringify(allCookies.map(c => c.name))}`)
+
   // 解析原始 body（可能含 projectSlug 等额外字段）
   let bodyObj: Record<string, unknown> = {}
   try {

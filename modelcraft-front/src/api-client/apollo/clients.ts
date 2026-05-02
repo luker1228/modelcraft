@@ -24,7 +24,7 @@ export function buildRuntimeEndpoint(
 function createAuthLink() {
   return setContext(async (_, { headers }: { headers?: Record<string, string> }) => {
     let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
-    if (!token && typeof window !== 'undefined') {
+    if (!token && typeof window !== 'undefined' && !isEndUserPath()) {
       token = await refreshAccessToken()
     }
 

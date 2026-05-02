@@ -23,7 +23,11 @@
       "Bash(git -C ~/modelcraft-project/modelcraft-go branch -a)",
       "Bash(git -C ~/modelcraft-project/modelcraft-go log --all --oneline)",
       "Bash(git -C ~/modelcraft-project/modelcraft-go log --oneline --all)",
-      "Bash(gofumpt *)"
+      "Bash(gofumpt *)",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_network_requests",
+      "mcp__playwright__browser_network_request",
+      "mcp__playwright__browser_evaluate"
     ]
   }
 }

@@ -93,9 +93,10 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
       setError(null)
 
       try {
-        const res = await fetch(`/api/end-user/auth/login`, {
+        const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({
             orgName,
             username: values.username,
