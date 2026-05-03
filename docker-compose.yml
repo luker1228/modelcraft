@@ -78,9 +78,13 @@ services:
       - BACKEND_URL=http://backend:8080
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - JWT_SECRET=${JWT_SECRET}
       - INTERNAL_TOKEN=${INTERNAL_TOKEN}
+      - LOG_OUTPUT_PATH=/app/log/server.log
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - TZ=Asia/Shanghai
+    volumes:
+      - ./modelcraft-gateway/log:/app/log
     depends_on:
       backend:
         condition: service_healthy

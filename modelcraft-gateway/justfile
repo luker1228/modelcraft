@@ -16,7 +16,7 @@ default:
 
 # 本地运行（需要 .env 文件）
 run:
-    go run {{SERVER_PATH}}/...
+    LOG_OUTPUT_PATH="${LOG_OUTPUT_PATH:-log/server.log}" go run {{SERVER_PATH}}/...
 
 # 编译二进制
 build:

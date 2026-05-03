@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"net/http"
+	"path/filepath"
 	"os"
 	"os/signal"
 	"syscall"
@@ -172,6 +173,12 @@ func buildLogger(logOutputPath string) *zap.Logger {
 			zapcore.DebugLevel,
 		)
 	} else {
+		// Ensure the parent directory exists so file logging does not fail when
+		// the log directory has not been created yet.
+		if dir := filepath.Dir(logOutputPath); dir != "." && dir != "" {
+			_ = os.MkdirAll(dir, 0o755)
+		}
+
 		// Prod: JSON lines to a rotating file.
 		rotator := &lumberjack.Logger{
 			Filename:   logOutputPath,
