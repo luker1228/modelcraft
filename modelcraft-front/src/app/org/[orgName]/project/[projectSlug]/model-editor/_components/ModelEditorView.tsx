@@ -25,7 +25,7 @@ import {
   type DataWorkspaceTab,
 } from '@web/components/features/model-editor/DataWorkspacePanel'
 
-const ModelRecordWorkspace = lazy(() => import('@web/components/features/model-editor/ModelRecordWorkspace'))
+const ModelRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/ModelRecordWorkspace'))
 const MAX_MODEL_TABS = 8
 
 export function ModelEditorView() {

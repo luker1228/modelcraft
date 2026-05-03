@@ -9,7 +9,7 @@ import {
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
 import { ChevronDown, Columns, Plus } from 'lucide-react'
-import { InsertFieldSheet } from './InsertFieldSheet'
+import { InsertFieldSheet } from '../InsertFieldSheet'
 
 interface ModelRecordInsertMenuProps {
   onCreateRecord: () => void

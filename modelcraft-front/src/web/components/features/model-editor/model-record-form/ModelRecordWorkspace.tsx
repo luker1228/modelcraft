@@ -3,13 +3,13 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useMutation, ApolloClient } from '@apollo/client'
 import { toast } from 'sonner'
-import { useProjectScopedClient, createModelRuntimeClient, useProjectScopedContext } from '@api-client/apollo/public'
-import { ModelRecordForm } from './model-record-form'
+import { useProjectScopedClient, createModelRuntimeClient, createEndUserScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
+import { ModelRecordForm } from './index'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
-import { ModelRecordTable } from './model-record-form/ModelRecordTable'
-import { RecordRelationManagerDialog } from './model-record-form/RecordRelationManagerDialog'
-import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './model-record-form/ModelRecordTable'
-import { getFieldProtocols } from './model-record-form/runtime/field-protocol'
+import { ModelRecordTable } from './ModelRecordTable'
+import { RecordRelationManagerDialog } from './RecordRelationManagerDialog'
+import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
+import { getFieldProtocols } from './runtime/field-protocol'
 import {
   buildFindManyQuery,
   buildFindUniqueQuery,
@@ -29,6 +29,7 @@ import {
 } from '@/api-client/model'
 import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
@@ -132,9 +133,16 @@ export default function ModelRecordWorkspace({
   quickNav,
 }: ModelRecordWorkspaceProps) {
   const projectClient = useProjectScopedClient(projectSlug)
+  const endUserToken = useEndUserAuthStore((s) => s.accessToken)
 
   // 创建 project-scoped context
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
+  const modelQueryClient = useMemo(() => {
+    if (workspaceMode === 'end_user' && endUserToken) {
+      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
+    }
+    return projectClient
+  }, [workspaceMode, endUserToken, orgName, projectSlug, projectClient])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
@@ -159,7 +167,7 @@ export default function ModelRecordWorkspace({
 
   // Fetch model details with fields and JSON schema
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_RECORD_WORKSPACE, {
-    client: projectClient,
+    client: modelQueryClient,
     variables: { id: modelId },
     context: projectScopedContext,
   })
@@ -181,8 +189,11 @@ export default function ModelRecordWorkspace({
   // 创建动态的 Runtime Client，使用模型特定的 GraphQL 端点
   const runtimeClient = useMemo(() => {
     if (!model?.databaseName || !model?.name) return null
+    if (workspaceMode === 'end_user' && endUserToken) {
+      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
+    }
     return createModelRuntimeClient(orgName, projectSlug, model.databaseName, model.name)
-  }, [orgName, projectSlug, model?.databaseName, model?.name]) as ApolloClient<object> | null
+  }, [workspaceMode, endUserToken, orgName, projectSlug, model?.databaseName, model?.name]) as ApolloClient<object> | null
 
   // Parse schema to get runtime fields
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {

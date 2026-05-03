@@ -35,7 +35,7 @@ import {
 import { getEndUserToken } from '@api-client/end-user/public'
 import { createEndUserScopedClient } from '@api-client/apollo/clients'
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
-import ModelRecordWorkspace from '@web/components/features/model-editor/ModelRecordWorkspace'
+import ModelRecordWorkspace from '@web/components/features/model-editor/model-record-form/ModelRecordWorkspace'
 import { DataWorkspacePanel } from '@web/components/features/model-editor/DataWorkspacePanel'
 
 const LIST_ACCESSIBLE_PROJECTS = gql`
