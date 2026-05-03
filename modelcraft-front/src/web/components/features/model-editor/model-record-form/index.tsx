@@ -24,6 +24,7 @@ interface ModelRecordFormProps {
   databaseName: string
   modelId: string
   recordId?: string
+  workspaceMode?: 'develop' | 'end_user'
 }
 
 const customWidgets = {
@@ -53,6 +54,7 @@ export function ModelRecordForm({
   databaseName,
   modelId,
   recordId,
+  workspaceMode = 'develop',
 }: ModelRecordFormProps) {
   const formRef = useRef<RJSFFormRef>(null)
 
@@ -128,6 +130,7 @@ export function ModelRecordForm({
           orgName={orgName}
           projectSlug={projectSlug}
           modelId={modelId}
+          workspaceMode={workspaceMode}
         />
       </div>
       <div className="flex justify-end gap-2 border-t p-4">

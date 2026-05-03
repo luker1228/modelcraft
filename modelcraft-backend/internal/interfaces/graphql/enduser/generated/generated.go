@@ -48,6 +48,30 @@ type ComplexityRoot struct {
 		Name func(childComplexity int) int
 	}
 
+	EndUserField struct {
+		IsDeprecated func(childComplexity int) int
+		Name         func(childComplexity int) int
+	}
+
+	EndUserGetModelPayload struct {
+		Error func(childComplexity int) int
+		Model func(childComplexity int) int
+	}
+
+	EndUserModel struct {
+		DatabaseName func(childComplexity int) int
+		Description  func(childComplexity int) int
+		Fields       func(childComplexity int) int
+		ID           func(childComplexity int) int
+		JSONSchema   func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Title        func(childComplexity int) int
+	}
+
+	EndUserModelNotFound struct {
+		Message func(childComplexity int) int
+	}
+
 	EndUserNotFound struct {
 		Message func(childComplexity int) int
 	}
@@ -113,6 +137,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Empty                func(childComplexity int) int
+		Model                func(childComplexity int, id string) int
 		ModelCatalog         func(childComplexity int, input ModelCatalogInput) int
 		ModelDatabaseCatalog func(childComplexity int, input *ModelDatabaseCatalogInput) int
 		Projects             func(childComplexity int) int
@@ -145,6 +170,7 @@ type QueryResolver interface {
 	Empty(ctx context.Context) (*string, error)
 	ModelDatabaseCatalog(ctx context.Context, input *ModelDatabaseCatalogInput) (*GetModelDatabaseCatalogPayload, error)
 	ModelCatalog(ctx context.Context, input ModelCatalogInput) (*GetModelCatalogPayload, error)
+	Model(ctx context.Context, id string) (*EndUserGetModelPayload, error)
 	Projects(ctx context.Context) (*ListProjectsPayload, error)
 	User(ctx context.Context, id string) (*GetRuntimeUserPayload, error)
 	Users(ctx context.Context, input *ListRuntimeUsersInput) (*ListRuntimeUsersPayload, error)
@@ -175,6 +201,82 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.DatabaseLite.Name(childComplexity), true
+
+	case "EndUserField.isDeprecated":
+		if e.complexity.EndUserField.IsDeprecated == nil {
+			break
+		}
+
+		return e.complexity.EndUserField.IsDeprecated(childComplexity), true
+	case "EndUserField.name":
+		if e.complexity.EndUserField.Name == nil {
+			break
+		}
+
+		return e.complexity.EndUserField.Name(childComplexity), true
+
+	case "EndUserGetModelPayload.error":
+		if e.complexity.EndUserGetModelPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.EndUserGetModelPayload.Error(childComplexity), true
+	case "EndUserGetModelPayload.model":
+		if e.complexity.EndUserGetModelPayload.Model == nil {
+			break
+		}
+
+		return e.complexity.EndUserGetModelPayload.Model(childComplexity), true
+
+	case "EndUserModel.databaseName":
+		if e.complexity.EndUserModel.DatabaseName == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.DatabaseName(childComplexity), true
+	case "EndUserModel.description":
+		if e.complexity.EndUserModel.Description == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.Description(childComplexity), true
+	case "EndUserModel.fields":
+		if e.complexity.EndUserModel.Fields == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.Fields(childComplexity), true
+	case "EndUserModel.id":
+		if e.complexity.EndUserModel.ID == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.ID(childComplexity), true
+	case "EndUserModel.jsonSchema":
+		if e.complexity.EndUserModel.JSONSchema == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.JSONSchema(childComplexity), true
+	case "EndUserModel.name":
+		if e.complexity.EndUserModel.Name == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.Name(childComplexity), true
+	case "EndUserModel.title":
+		if e.complexity.EndUserModel.Title == nil {
+			break
+		}
+
+		return e.complexity.EndUserModel.Title(childComplexity), true
+
+	case "EndUserModelNotFound.message":
+		if e.complexity.EndUserModelNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.EndUserModelNotFound.Message(childComplexity), true
 
 	case "EndUserNotFound.message":
 		if e.complexity.EndUserNotFound.Message == nil {
@@ -356,6 +458,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Empty(childComplexity), true
+	case "Query.model":
+		if e.complexity.Query.Model == nil {
+			break
+		}
+
+		args, err := ec.field_Query_model_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Model(childComplexity, args["id"].(string)), true
 	case "Query.modelCatalog":
 		if e.complexity.Query.ModelCatalog == nil {
 			break
@@ -655,6 +768,39 @@ extend type Query {
   modelCatalog(input: ModelCatalogInput!): GetModelCatalogPayload!
 }
 `, BuiltIn: false},
+	{Name: "../../../../../api/graph/end_user/schema/model.graphql", Input: `# End-user model detail query (subset of project-domain model query).
+# Used by shared model workspace in end-user pages.
+
+type EndUserField {
+  name: String!
+  isDeprecated: Boolean!
+}
+
+type EndUserModel {
+  id: ID!
+  name: String!
+  title: String!
+  description: String!
+  databaseName: String!
+  jsonSchema: String
+  fields: [EndUserField!]!
+}
+
+type EndUserModelNotFound implements Error {
+  message: String!
+}
+
+union EndUserGetModelError = EndUserModelNotFound | InvalidInput | ProjectNotFound
+
+type EndUserGetModelPayload {
+  model: EndUserModel
+  error: EndUserGetModelError
+}
+
+extend type Query {
+  model(id: ID!): EndUserGetModelPayload!
+}
+`, BuiltIn: false},
 	{Name: "../../../../../api/graph/end_user/schema/project.graphql", Input: `type Project {
   slug: String!
   title: String!
@@ -753,6 +899,17 @@ func (ec *executionContext) field_Query_modelDatabaseCatalog_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_model_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -846,6 +1003,376 @@ func (ec *executionContext) _DatabaseLite_name(ctx context.Context, field graphq
 func (ec *executionContext) fieldContext_DatabaseLite_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "DatabaseLite",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserField_name(ctx context.Context, field graphql.CollectedField, obj *EndUserField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserField_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserField_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserField",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserField_isDeprecated(ctx context.Context, field graphql.CollectedField, obj *EndUserField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserField_isDeprecated,
+		func(ctx context.Context) (any, error) {
+			return obj.IsDeprecated, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserField_isDeprecated(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserField",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserGetModelPayload_model(ctx context.Context, field graphql.CollectedField, obj *EndUserGetModelPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserGetModelPayload_model,
+		func(ctx context.Context) (any, error) {
+			return obj.Model, nil
+		},
+		nil,
+		ec.marshalOEndUserModel2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserModel,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserGetModelPayload_model(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserGetModelPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserModel_id(ctx, field)
+			case "name":
+				return ec.fieldContext_EndUserModel_name(ctx, field)
+			case "title":
+				return ec.fieldContext_EndUserModel_title(ctx, field)
+			case "description":
+				return ec.fieldContext_EndUserModel_description(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_EndUserModel_databaseName(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_EndUserModel_jsonSchema(ctx, field)
+			case "fields":
+				return ec.fieldContext_EndUserModel_fields(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserModel", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserGetModelPayload_error(ctx context.Context, field graphql.CollectedField, obj *EndUserGetModelPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserGetModelPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOEndUserGetModelError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserGetModelError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserGetModelPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserGetModelPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type EndUserGetModelError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_id(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_name(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_title(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_description(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_databaseName(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_databaseName,
+		func(ctx context.Context) (any, error) {
+			return obj.DatabaseName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_databaseName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_jsonSchema(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_jsonSchema,
+		func(ctx context.Context) (any, error) {
+			return obj.JSONSchema, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_jsonSchema(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModel_fields(ctx context.Context, field graphql.CollectedField, obj *EndUserModel) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModel_fields,
+		func(ctx context.Context) (any, error) {
+			return obj.Fields, nil
+		},
+		nil,
+		ec.marshalNEndUserField2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserFieldᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModel_fields(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModel",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_EndUserField_name(ctx, field)
+			case "isDeprecated":
+				return ec.fieldContext_EndUserField_isDeprecated(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserField", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserModelNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserModelNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserModelNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserModelNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserModelNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -1820,6 +2347,53 @@ func (ec *executionContext) fieldContext_Query_modelCatalog(ctx context.Context,
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Query_modelCatalog_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_model(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_model,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().Model(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNEndUserGetModelPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserGetModelPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_model(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "model":
+				return ec.fieldContext_EndUserGetModelPayload_model(ctx, field)
+			case "error":
+				return ec.fieldContext_EndUserGetModelPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserGetModelPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_model_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -3994,6 +4568,36 @@ func (ec *executionContext) unmarshalInputModelDatabaseCatalogInput(ctx context.
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _EndUserGetModelError(ctx context.Context, sel ast.SelectionSet, obj EndUserGetModelError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ProjectNotFound:
+		return ec._ProjectNotFound(ctx, sel, &obj)
+	case *ProjectNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ProjectNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserModelNotFound:
+		return ec._EndUserModelNotFound(ctx, sel, &obj)
+	case *EndUserModelNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserModelNotFound(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, obj Error) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -4026,6 +4630,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserNotFound(ctx, sel, obj)
+	case EndUserModelNotFound:
+		return ec._EndUserModelNotFound(ctx, sel, &obj)
+	case *EndUserModelNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserModelNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -4168,6 +4779,193 @@ func (ec *executionContext) _DatabaseLite(ctx context.Context, sel ast.Selection
 			out.Values[i] = graphql.MarshalString("DatabaseLite")
 		case "name":
 			out.Values[i] = ec._DatabaseLite_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserFieldImplementors = []string{"EndUserField"}
+
+func (ec *executionContext) _EndUserField(ctx context.Context, sel ast.SelectionSet, obj *EndUserField) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserFieldImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserField")
+		case "name":
+			out.Values[i] = ec._EndUserField_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isDeprecated":
+			out.Values[i] = ec._EndUserField_isDeprecated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserGetModelPayloadImplementors = []string{"EndUserGetModelPayload"}
+
+func (ec *executionContext) _EndUserGetModelPayload(ctx context.Context, sel ast.SelectionSet, obj *EndUserGetModelPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserGetModelPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserGetModelPayload")
+		case "model":
+			out.Values[i] = ec._EndUserGetModelPayload_model(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._EndUserGetModelPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserModelImplementors = []string{"EndUserModel"}
+
+func (ec *executionContext) _EndUserModel(ctx context.Context, sel ast.SelectionSet, obj *EndUserModel) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserModelImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserModel")
+		case "id":
+			out.Values[i] = ec._EndUserModel_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._EndUserModel_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._EndUserModel_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._EndUserModel_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "databaseName":
+			out.Values[i] = ec._EndUserModel_databaseName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "jsonSchema":
+			out.Values[i] = ec._EndUserModel_jsonSchema(ctx, field, obj)
+		case "fields":
+			out.Values[i] = ec._EndUserModel_fields(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var endUserModelNotFoundImplementors = []string{"EndUserModelNotFound", "Error", "EndUserGetModelError"}
+
+func (ec *executionContext) _EndUserModelNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserModelNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserModelNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserModelNotFound")
+		case "message":
+			out.Values[i] = ec._EndUserModelNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -4347,7 +5145,7 @@ func (ec *executionContext) _GetRuntimeUserPayload(ctx context.Context, sel ast.
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "RuntimeUserQueryError"}
+var invalidInputImplementors = []string{"InvalidInput", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "EndUserGetModelError", "RuntimeUserQueryError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -4668,7 +5466,7 @@ func (ec *executionContext) _Project(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "RuntimeUserQueryError"}
+var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "ModelDatabaseCatalogError", "ModelCatalogError", "EndUserGetModelError", "RuntimeUserQueryError"}
 
 func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
@@ -4777,6 +5575,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_modelCatalog(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "model":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_model(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -5442,6 +6262,74 @@ func (ec *executionContext) marshalNDatabaseLite2ᚖmodelcraftᚋinternalᚋinte
 	return ec._DatabaseLite(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEndUserField2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserFieldᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserField) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUserField2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserField(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEndUserField2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserField(ctx context.Context, sel ast.SelectionSet, v *EndUserField) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUserField(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEndUserGetModelPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserGetModelPayload(ctx context.Context, sel ast.SelectionSet, v EndUserGetModelPayload) graphql.Marshaler {
+	return ec._EndUserGetModelPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEndUserGetModelPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserGetModelPayload(ctx context.Context, sel ast.SelectionSet, v *EndUserGetModelPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUserGetModelPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNGetModelCatalogPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐGetModelCatalogPayload(ctx context.Context, sel ast.SelectionSet, v GetModelCatalogPayload) graphql.Marshaler {
 	return ec._GetModelCatalogPayload(ctx, sel, &v)
 }
@@ -5964,6 +6852,20 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	_ = ctx
 	res := graphql.MarshalBoolean(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOEndUserGetModelError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserGetModelError(ctx context.Context, sel ast.SelectionSet, v EndUserGetModelError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUserGetModelError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEndUserModel2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐEndUserModel(ctx context.Context, sel ast.SelectionSet, v *EndUserModel) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUserModel(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {

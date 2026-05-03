@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useQuery } from '@apollo/client'
 import type { RJSFSchema } from '@rjsf/utils'
-import { createModelRuntimeClient, useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
+import { createModelRuntimeClient, createEndUserScopedClient, useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
 import { buildFindManyQuery, buildUpdateMutation } from '@api-client/cms/public'
 import { GET_LOGICAL_FOREIGN_KEYS } from '@/api-client/model'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { Badge } from '@web/components/ui/badge'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -28,6 +29,7 @@ interface OneToManyRelationManagerSectionProps {
   orgName: string
   projectSlug: string
   modelId: string
+  workspaceMode?: 'develop' | 'end_user'
 }
 
 interface RelationRecord {
@@ -115,19 +117,32 @@ export function OneToManyRelationManagerSection({
   orgName,
   projectSlug,
   modelId,
+  workspaceMode = 'develop',
 }: OneToManyRelationManagerSectionProps) {
   const fields = useMemo(() => extractOneToManyFields(jsonSchema), [jsonSchema])
   const projectClient = useProjectScopedClient(projectSlug)
+  const endUserToken = useEndUserAuthStore((s) => s.accessToken)
 
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
+  const endUserProjectContext = useMemo(
+    () => ({ uri: `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}` }),
+    [orgName, projectSlug]
+  )
+  const queryContext = workspaceMode === 'end_user' ? endUserProjectContext : projectScopedContext
+  const queryClient = useMemo(() => {
+    if (workspaceMode === 'end_user' && endUserToken) {
+      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
+    }
+    return projectClient
+  }, [workspaceMode, endUserToken, orgName, projectSlug, projectClient])
 
   const { data: fkData } = useQuery<{ logicalForeignKeys: LogicalForeignKey[] }>(
     GET_LOGICAL_FOREIGN_KEYS,
     {
       skip: !recordId || fields.length === 0,
       variables: { modelId },
-      context: projectScopedContext,
-      client: projectClient,
+      context: queryContext,
+      client: queryClient,
       fetchPolicy: 'network-only',
     }
   )
@@ -157,13 +172,16 @@ export function OneToManyRelationManagerSection({
 
   const runtimeClient = useMemo(() => {
     if (!managingField) return null
+    if (workspaceMode === 'end_user' && endUserToken) {
+      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
+    }
     return createModelRuntimeClient(
       orgName,
       projectSlug,
       managingField.databaseName,
       managingField.modelName,
     )
-  }, [managingField, orgName, projectSlug])
+  }, [workspaceMode, endUserToken, managingField, orgName, projectSlug])
 
   const refreshRelatedRecords = useCallback(async () => {
     if (!runtimeClient || !managingField || !recordId) {

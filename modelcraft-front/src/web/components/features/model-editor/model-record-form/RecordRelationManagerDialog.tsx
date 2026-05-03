@@ -3,9 +3,10 @@
 import { useCallback, useEffect, useState, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
 import type { RJSFSchema } from '@rjsf/utils'
-import { createModelRuntimeClient, useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
+import { createModelRuntimeClient, createEndUserScopedClient, useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
 import { buildCountQuery, buildFindManyQuery, buildUpdateMutation } from '@api-client/cms/public'
 import { GET_LOGICAL_FOREIGN_KEYS } from '@/api-client/model'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import {
   Dialog,
   DialogContent,
@@ -47,6 +48,7 @@ interface RecordRelationManagerDialogProps {
   projectSlug: string
   modelId: string
   recordId: string | null
+  workspaceMode?: 'develop' | 'end_user'
 }
 
 interface RelationRecord {
@@ -141,8 +143,10 @@ export function RecordRelationManagerDialog({
   projectSlug,
   modelId,
   recordId,
+  workspaceMode = 'develop',
 }: RecordRelationManagerDialogProps) {
   const projectClient = useProjectScopedClient(projectSlug)
+  const endUserToken = useEndUserAuthStore((s) => s.accessToken)
   const relationFields = useMemo(() => extractOneToManyFields(jsonSchema), [jsonSchema])
 
   const [selectedFieldName, setSelectedFieldName] = useState('')
@@ -185,14 +189,25 @@ export function RecordRelationManagerDialog({
   )
 
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
+  const endUserProjectContext = useMemo(
+    () => ({ uri: `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}` }),
+    [orgName, projectSlug]
+  )
+  const queryContext = workspaceMode === 'end_user' ? endUserProjectContext : projectScopedContext
+  const queryClient = useMemo(() => {
+    if (workspaceMode === 'end_user' && endUserToken) {
+      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
+    }
+    return projectClient
+  }, [workspaceMode, endUserToken, orgName, projectSlug, projectClient])
 
   const { data: fkData } = useQuery<{ logicalForeignKeys: LogicalForeignKey[] }>(
     GET_LOGICAL_FOREIGN_KEYS,
     {
       skip: !open || !recordId || !selectedField,
       variables: { modelId },
-      context: projectScopedContext,
-      client: projectClient,
+      context: queryContext,
+      client: queryClient,
       fetchPolicy: 'network-only',
     }
   )
@@ -257,13 +272,16 @@ export function RecordRelationManagerDialog({
 
   const runtimeClient = useMemo(() => {
     if (!selectedField || !targetDatabaseName || !targetModelName) return null
+    if (workspaceMode === 'end_user' && endUserToken) {
+      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
+    }
     return createModelRuntimeClient(
       orgName,
       projectSlug,
       targetDatabaseName,
       targetModelName,
     )
-  }, [selectedField, orgName, projectSlug, targetDatabaseName, targetModelName])
+  }, [workspaceMode, endUserToken, selectedField, orgName, projectSlug, targetDatabaseName, targetModelName])
 
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 

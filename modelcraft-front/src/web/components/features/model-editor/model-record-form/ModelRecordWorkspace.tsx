@@ -28,6 +28,7 @@ import {
   UNDEPRECATE_FIELD,
 } from '@/api-client/model'
 import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
+import { GET_MODEL_RECORD_WORKSPACE_END_USER } from '@/api-client/model/graphql-docs.end-user'
 import { Button } from '@web/components/ui/button'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { Input } from '@web/components/ui/input'
@@ -68,7 +69,7 @@ interface ModelRecordWorkspaceProps {
   projectSlug: string
   orgName: string
   refreshToken?: number
-  workspaceMode?: 'design' | 'end_user'
+  workspaceMode?: 'develop' | 'end_user'
   quickNav?: React.ReactNode
 }
 
@@ -124,12 +125,16 @@ function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
   return configured ?? ''
 }
 
+function getEndUserProjectContext(orgName: string, projectSlug: string) {
+  return { uri: `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}` }
+}
+
 export default function ModelRecordWorkspace({
   modelId,
   projectSlug,
   orgName,
   refreshToken = 0,
-  workspaceMode = 'design',
+  workspaceMode = 'develop',
   quickNav,
 }: ModelRecordWorkspaceProps) {
   const projectClient = useProjectScopedClient(projectSlug)
@@ -137,6 +142,14 @@ export default function ModelRecordWorkspace({
 
   // 创建 project-scoped context
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
+  const endUserProjectContext = useMemo(
+    () => getEndUserProjectContext(orgName, projectSlug),
+    [orgName, projectSlug]
+  )
+  const modelQueryContext = workspaceMode === 'end_user' ? endUserProjectContext : projectScopedContext
+  const modelWorkspaceQuery = workspaceMode === 'end_user'
+    ? GET_MODEL_RECORD_WORKSPACE_END_USER
+    : GET_MODEL_RECORD_WORKSPACE
   const modelQueryClient = useMemo(() => {
     if (workspaceMode === 'end_user' && endUserToken) {
       return createEndUserScopedClient(orgName, projectSlug, endUserToken)
@@ -166,10 +179,10 @@ export default function ModelRecordWorkspace({
   const [searchKeyword, setSearchKeyword] = useState('')
 
   // Fetch model details with fields and JSON schema
-  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(GET_MODEL_RECORD_WORKSPACE, {
+  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(modelWorkspaceQuery, {
     client: modelQueryClient,
     variables: { id: modelId },
-    context: projectScopedContext,
+    context: modelQueryContext,
   })
 
   // 注意：model query 返回 GetModelPayload，model 在 payload.model 中
@@ -177,8 +190,8 @@ export default function ModelRecordWorkspace({
   const modelError = modelData?.model?.error
   const modelName = model?.name
   const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
-  const canInsertField = workspaceMode === 'design' && !isManagedReadOnlyModel
-  const canManageFieldLifecycle = workspaceMode === 'design' && !isManagedReadOnlyModel
+  const canInsertField = workspaceMode === 'develop' && !isManagedReadOnlyModel
+  const canManageFieldLifecycle = workspaceMode === 'develop' && !isManagedReadOnlyModel
   const canCreateRecord = !isManagedReadOnlyModel
   const canEditRecord = !isManagedReadOnlyModel
   const canDeleteRecord = !isManagedReadOnlyModel
@@ -783,6 +796,7 @@ export default function ModelRecordWorkspace({
         projectSlug={projectSlug}
         modelId={modelId}
         recordId={relationRecordId}
+        workspaceMode={workspaceMode}
       />
 
       {/* 添加数据侧边栏 */}
@@ -824,6 +838,7 @@ export default function ModelRecordWorkspace({
               clusterName=""
               databaseName={model.databaseName ?? ''}
               modelId={modelId}
+              workspaceMode={workspaceMode}
             />
           )}
         </SheetContent>
@@ -877,6 +892,7 @@ export default function ModelRecordWorkspace({
               clusterName=""
               databaseName={model.databaseName ?? ''}
               modelId={modelId}
+              workspaceMode={workspaceMode}
             />
           )}
         </SheetContent>

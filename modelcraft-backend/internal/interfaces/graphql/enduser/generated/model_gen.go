@@ -2,6 +2,10 @@
 
 package generated
 
+type EndUserGetModelError interface {
+	IsEndUserGetModelError()
+}
+
 type Error interface {
 	IsError()
 	GetMessage() string
@@ -26,6 +30,35 @@ type RuntimeUserQueryError interface {
 type DatabaseLite struct {
 	Name string `json:"name"`
 }
+
+type EndUserField struct {
+	Name         string `json:"name"`
+	IsDeprecated bool   `json:"isDeprecated"`
+}
+
+type EndUserGetModelPayload struct {
+	Model *EndUserModel        `json:"model,omitempty"`
+	Error EndUserGetModelError `json:"error,omitempty"`
+}
+
+type EndUserModel struct {
+	ID           string          `json:"id"`
+	Name         string          `json:"name"`
+	Title        string          `json:"title"`
+	Description  string          `json:"description"`
+	DatabaseName string          `json:"databaseName"`
+	JSONSchema   *string         `json:"jsonSchema,omitempty"`
+	Fields       []*EndUserField `json:"fields"`
+}
+
+type EndUserModelNotFound struct {
+	Message string `json:"message"`
+}
+
+func (EndUserModelNotFound) IsError()                {}
+func (this EndUserModelNotFound) GetMessage() string { return this.Message }
+
+func (EndUserModelNotFound) IsEndUserGetModelError() {}
 
 type EndUserNotFound struct {
 	Message string `json:"message"`
@@ -63,6 +96,8 @@ func (this InvalidInput) GetMessage() string { return this.Message }
 func (InvalidInput) IsModelDatabaseCatalogError() {}
 
 func (InvalidInput) IsModelCatalogError() {}
+
+func (InvalidInput) IsEndUserGetModelError() {}
 
 func (InvalidInput) IsRuntimeUserQueryError() {}
 
@@ -131,6 +166,8 @@ func (this ProjectNotFound) GetMessage() string { return this.Message }
 func (ProjectNotFound) IsModelDatabaseCatalogError() {}
 
 func (ProjectNotFound) IsModelCatalogError() {}
+
+func (ProjectNotFound) IsEndUserGetModelError() {}
 
 func (ProjectNotFound) IsRuntimeUserQueryError() {}
 
