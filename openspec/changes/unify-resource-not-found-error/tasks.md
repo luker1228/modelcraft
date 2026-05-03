@@ -26,4 +26,4 @@
 
 - 前端 `npm run codegen` 已通过（先执行 `front-contract-pull` 同步 backend `api/` 到 front `contract/` 后恢复正常）。
 - 前端 `npm run lint` 失败：当前分支存在大量与本次变更无关的既有 lint error（RBAC 页面类型安全问题）。
-- BDD 运行失败：测试环境前置登录在 `BeforeAll` 阶段失败（`AUTHENTICATION_FAILED: phone number not found`），导致无法完成本次场景回归。
+- BDD 运行仍未全绿：`ResourceNotFound` 类型不匹配已消失，但仍有存量阻塞（`profile` 场景 webhook JSON 解析异常、`rbac` 场景 401 Unauthorized 与多个未实现 step）。

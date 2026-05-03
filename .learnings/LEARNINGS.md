@@ -189,3 +189,26 @@ BDD 全局登录应具备“无账号自动注册+重试登录”自愈能力，
 - Tags: bdd, auth-bootstrap, self-healing, beforeall
 
 ---
+
+## [LRN-20260503-A2S] insight
+
+**Logged**: 2026-05-03T11:20:00Z
+**Priority**: medium
+**Status**: pending
+**Area**: tests
+
+### Summary
+出现 `Unknown type "ResourceNotFound"` 时，先做运行时 schema 探针和单场景复现，避免误判为代码未改。
+
+### Details
+本次先通过带签名 JWT 的 introspection 查询确认 `/graphql/org/{orgName}/` 运行时已包含 `ResourceNotFound`，再单独跑 `manage-profile.feature:12` 场景，验证 `updateMyProfile` 可通过。说明该报错并非当前代码库 schema 缺失，而是回归批量运行中的环境/上下文干扰。
+
+### Suggested Action
+把“schema 探针 + 单场景最小复现”作为 GraphQL 类型不匹配的第一诊断步骤，再决定是否改 schema/代码。
+
+### Metadata
+- Source: investigation
+- Related Files: tests-bdd/step-definitions/profile.steps.ts; tests-bdd/support/graphql-client.ts
+- Tags: graphql, bdd, troubleshooting, schema-validation
+
+---
