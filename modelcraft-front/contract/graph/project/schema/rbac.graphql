@@ -47,7 +47,7 @@ enum RowScopeType {
 """
 权限点预设策略类型。
 
-应用预设时会替换该模型下所有 preset != null 的权限点，
+应用预设时执行模型级差异同步（reconcile），仅处理 preset != null 的权限点，
 preset = null（手动创建）的权限点不受影响。
 
 READ_WRITE_ALL      — 读写全部（不依赖 END_USER_REF 字段）
@@ -64,6 +64,14 @@ enum EndUserPermissionPreset {
   READ_ALL
   READ_WRITE_OWNER
   READ_ALL_WRITE_OWNER
+}
+
+"""
+数据权限 item 来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）
+"""
+enum DataPermissionGrantType {
+  PRESET
+  CUSTOM
 }
 
 """
@@ -115,6 +123,8 @@ input ColumnRuleInput {
 type EndUserPermission implements Node {
   id: ID!
   modelId: ID!
+  databaseName: String
+  modelName: String
   action: RbacAction!
   columnPolicy: ColumnPolicy!
   rowScope: RowScopeType!
@@ -146,16 +156,98 @@ type EndUserPermissionConnection {
 
 type EndUserPermissionBundle implements Node {
   id: ID!
+  """
+  URL 友好的对外标识符，同项目内唯一，创建时由用户指定或从名称自动派生，之后不可修改。
+  """
+  slug: String!
   name: String!
   description: String
+  """
+  Item-centric 数据权限列表：每个模型最多一个 item。
+  """
+  dataPermissionItems: [EndUserBundleDataPermissionItem!]!
+  """
+  兼容旧字段（将逐步废弃），从 item 导出的 permission 视图。
+  """
   permissions: [EndUserBundlePermissionEntry!]!
+  """
+  当前版本号（每次权限列表变更后递增）。初始创建时为 0，首次修改后变为 1。
+  """
+  currentVersion: Int!
+  """
+  最近历史快照列表（最多 5 个，按 version DESC 排列）
+  """
+  snapshots: [EndUserPermissionBundleSnapshot!]!
   createdAt: Time!
   updatedAt: Time!
+}
+
+"""
+Bundle 内的数据权限配置项（item-centric）。
+同一 bundle 下同一 modelId 最多一个 item。
+"""
+type EndUserBundleDataPermissionItem {
+  id: ID!
+  bundleId: ID!
+  modelId: ID!
+  """来源类型：PRESET（预设模板）或 CUSTOM（管理员自定义）"""
+  grantType: DataPermissionGrantType!
+  """当 grantType=PRESET 时非空"""
+  preset: EndUserPermissionPreset
+  """当 grantType=CUSTOM 时非空"""
+  customPermissionId: ID
+  """当 grantType=CUSTOM 时，引用的自定义权限点摘要"""
+  customPermission: EndUserPermission
+  sortOrder: Int!
+  createdAt: Time!
+  updatedAt: Time!
+  """模型技术名（snake_case）"""
+  modelName: String
+  """所属数据库名"""
+  databaseName: String
+  """模型显示标题（人类可读）"""
+  modelTitle: String
 }
 
 type EndUserBundlePermissionEntry {
   sortOrder: Int!
   permission: EndUserPermission!
+}
+
+"""
+权限包历史快照
+"""
+type EndUserPermissionBundleSnapshot {
+  version:      Int!
+  createdAt:    Time!
+  createdBy:    String
+  """若为回滚操作，指向来源版本号"""
+  restoredFrom: Int
+  """Item-centric 快照条目列表"""
+  items: [EndUserPermissionSnapshotItemEntry!]!
+  """兼容旧字段"""
+  permissions:  [EndUserPermissionSnapshotEntry!]!
+}
+
+"""
+快照中的数据权限 item 条目（item-centric）。
+"""
+type EndUserPermissionSnapshotItemEntry {
+  modelId: ID!
+  grantType: DataPermissionGrantType!
+  preset: EndUserPermissionPreset
+  customPermissionId: ID
+  sortOrder: Int!
+}
+
+"""
+快照中的权限点条目（兼容旧格式）。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
+"""
+type EndUserPermissionSnapshotEntry {
+  sortOrder:    Int!
+  """已删除时为 null"""
+  permission:   EndUserPermission
+  permissionId: ID!
 }
 
 type EndUserPermissionBundleEdge {
@@ -251,21 +343,9 @@ type EndUserRoleBundleSource {
 # Error Types
 # ============================================================
 
-type EndUserPermissionNotFound implements Error {
-  message: String!
-}
-
-type EndUserPermissionBundleNotFound implements Error {
-  message: String!
-}
-
 type EndUserPermissionBundleAlreadyExists implements Error {
   message: String!
   suggestion: String
-}
-
-type EndUserRoleNotFound implements Error {
-  message: String!
 }
 
 type EndUserRoleAlreadyExists implements Error {
@@ -298,10 +378,6 @@ type UserRoleAlreadyAssigned implements Error {
   message: String!
 }
 
-type EndUserNotFoundInProject implements Error {
-  message: String!
-}
-
 type EndUserPermissionBundleInUse implements Error {
   message: String!
   suggestion: String
@@ -321,37 +397,52 @@ type PresetRequiresOwnerField implements Error {
   suggestion: String
 }
 
+type PresetDeleteBlockedByBundle implements Error {
+  """
+  reconcile 删除某预设时，发现该权限点仍被权限包引用
+  """
+  message: String!
+  suggestion: String
+}
+
 
 # ============================================================
 # Error Unions
 # ============================================================
 
-union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
-union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
-union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
-union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | ProjectNotFound
+union CreateEndUserPermissionError = ResourceNotFound | InvalidInput | RowScopeFieldMissing
+union UpdateEndUserPermissionError = ResourceNotFound | InvalidInput | RowScopeFieldMissing
+union DeleteEndUserPermissionError = ResourceNotFound | EndUserPermissionInUse
+union ApplyEndUserPresetPolicyError = ResourceNotFound | PresetRequiresOwnerField | PresetDeleteBlockedByBundle
 
-union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
-union DeleteEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleInUse | ProjectNotFound
+union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEndUserPermissionBundleError = ResourceNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput
+union DeleteEndUserPermissionBundleError = ResourceNotFound | EndUserPermissionBundleInUse
 
-union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | InvalidInput | ProjectNotFound
-union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
+union AddEndUserPermissionToBundleError = ResourceNotFound | InvalidInput
+union AddEndUserPresetToBundleError = ResourceNotFound | PresetRequiresOwnerField | InvalidInput
+union RemoveEndUserPermissionFromBundleError = ResourceNotFound
 
-union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
-union DeleteEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | ProjectNotFound
+union BindPresetItemToBundleError = ResourceNotFound | PresetRequiresOwnerField | InvalidInput
+union BindCustomItemToBundleError = ResourceNotFound | InvalidInput
+union RemoveDataPermissionItemFromBundleError = ResourceNotFound
 
-union AssignBundleToEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
-union RevokeBundleFromEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
+union RestoreEndUserPermissionBundleError = ResourceNotFound
 
-union AssignBundleToEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | UserBundleAlreadyAssigned | ProjectNotFound
-union RevokeBundleFromEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | ProjectNotFound
+union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEndUserRoleError = ResourceNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput
+union DeleteEndUserRoleError = ResourceNotFound | EndUserImplicitRoleCannotBeModified
 
-union AssignEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned | ProjectNotFound
-union RevokeEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | ProjectNotFound
+union AssignBundleToEndUserRoleError = ResourceNotFound
+union RevokeBundleFromEndUserRoleError = ResourceNotFound
 
-union GetEffectivePermissionsError = EndUserNotFoundInProject | ModelNotFound | ProjectNotFound
+union AssignBundleToEndUserError = ResourceNotFound | UserBundleAlreadyAssigned
+union RevokeBundleFromEndUserError = ResourceNotFound
+
+union AssignEndUserRoleError = ResourceNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned
+union RevokeEndUserRoleError = ResourceNotFound
+
+union GetEffectivePermissionsError = ResourceNotFound
 
 
 # ============================================================
@@ -396,9 +487,35 @@ type AddEndUserPermissionToBundlePayload {
   bundle: EndUserPermissionBundle
   error: AddEndUserPermissionToBundleError
 }
+type AddEndUserPresetToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: AddEndUserPresetToBundleError
+}
 type RemoveEndUserPermissionFromBundlePayload {
   bundle: EndUserPermissionBundle
   error: RemoveEndUserPermissionFromBundleError
+}
+
+type BindPresetItemToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: BindPresetItemToBundleError
+}
+
+type BindCustomItemToBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: BindCustomItemToBundleError
+}
+
+type RemoveDataPermissionItemFromBundlePayload {
+  bundle: EndUserPermissionBundle
+  error: RemoveDataPermissionItemFromBundleError
+}
+
+type RestoreEndUserPermissionBundlePayload {
+  bundle: EndUserPermissionBundle
+  """回滚后生成的新版本号"""
+  newVersion: Int!
+  error: RestoreEndUserPermissionBundleError
 }
 
 # EndUserRole
@@ -473,7 +590,17 @@ input UpdateEndUserPermissionInput {
 
 input ApplyEndUserPresetPolicyInput {
   modelId: ID!
+  """
+  为空时执行模型级 reconcile（同步模型全部可适配预设）
+  """
+  preset: EndUserPermissionPreset
+}
+
+input AddEndUserPresetToBundleInput {
+  bundleId: ID!
+  modelId: ID!
   preset: EndUserPermissionPreset!
+  sortOrder: Int
 }
 
 input ListEndUserPermissionsInput {
@@ -486,6 +613,10 @@ input ListEndUserPermissionsInput {
 input CreateEndUserPermissionBundleInput {
   name: String!
   description: String
+  """
+  可选。不传时从 name 自动生成。同项目内唯一，创建后不可修改。
+  """
+  slug: String
 }
 
 input UpdateEndUserPermissionBundleInput {
@@ -508,6 +639,30 @@ input AddEndUserPermissionToBundleInput {
 input RemoveEndUserPermissionFromBundleInput {
   bundleId: ID!
   permissionId: ID!
+}
+
+input BindPresetItemToBundleInput {
+  bundleId: ID!
+  modelId: ID!
+  preset: EndUserPermissionPreset!
+  sortOrder: Int
+}
+
+input BindCustomItemToBundleInput {
+  bundleId: ID!
+  modelId: ID!
+  customPermissionId: ID!
+  sortOrder: Int
+}
+
+input RemoveDataPermissionItemFromBundleInput {
+  bundleId: ID!
+  modelId: ID!
+}
+
+input RestoreEndUserPermissionBundleInput {
+  bundleId:      ID!
+  targetVersion: Int!
 }
 
 input CreateEndUserRoleInput {
@@ -567,16 +722,56 @@ input GetEffectivePermissionsInput {
 # Query Extensions
 # ============================================================
 
+# ── 新增：Project 视角的用户角色分配列表 ──────────────────────────
+
+type ProjectEndUserRoleUser {
+  endUser: EndUser!
+  role: EndUserRole!
+  assignedAt: Time!
+}
+
+type ProjectEndUserRoleUserConnection {
+  nodes: [ProjectEndUserRoleUser!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type ListProjectEndUserRoleUsersPayload {
+  connection: ProjectEndUserRoleUserConnection
+  error: ListProjectEndUserRoleUsersError
+}
+
+union ListProjectEndUserRoleUsersError = InvalidInput | ResourceNotFound
+
+input ListProjectEndUserRoleUsersInput {
+  search: String    # EndUser username 模糊搜索
+  roleId: ID        # 可选，按 Role 过滤
+  first: Int
+  after: String
+}
+
+
 extend type Query {
   endUserPermission(id: ID!): EndUserPermission @hasPermission(action: "rbac:read")
   endUserPermissions(input: ListEndUserPermissionsInput): EndUserPermissionConnection! @hasPermission(action: "rbac:read")
   endUserPermissionBundle(id: ID!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
+  endUserPermissionBundleBySlug(slug: String!): EndUserPermissionBundle @hasPermission(action: "rbac:read")
   endUserPermissionBundles(input: ListEndUserPermissionBundlesInput): EndUserPermissionBundleConnection! @hasPermission(action: "rbac:read")
   endUserRole(id: ID!): EndUserRole @hasPermission(action: "rbac:read")
   endUserRoles(input: ListEndUserRolesInput): EndUserRoleConnection! @hasPermission(action: "rbac:read")
   endUserBundleAssignments(endUserId: ID!): [EndUserBundleAssignment!]! @hasPermission(action: "rbac:read")
   endUserRoleAssignments(endUserId: ID!): [EndUserRoleAssignment!]! @hasPermission(action: "rbac:read")
   effectivePermissions(input: GetEffectivePermissionsInput!): GetEffectivePermissionsPayload! @hasPermission(action: "rbac:read")
+  """
+  列出指定模型可用的预设模板列表（不落库，按模型是否有 owner 字段动态计算）
+  """
+  virtualPresetsByModel(modelId: ID!): [EndUserPermissionPreset!]! @hasPermission(action: "rbac:read")
+  """
+  新增：列出当前 Project 下所有有角色分配的用户
+  """
+  listProjectEndUserRoleUsers(
+    input: ListProjectEndUserRoleUsersInput
+  ): ListProjectEndUserRoleUsersPayload! @hasPermission(action: "rbac:read")
 }
 
 
@@ -590,8 +785,8 @@ extend type Mutation {
   updateEndUserPermission(id: ID!, input: UpdateEndUserPermissionInput!): UpdateEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   deleteEndUserPermission(id: ID!): DeleteEndUserPermissionPayload! @hasPermission(action: "rbac:manage")
   """
-  对指定模型应用预设策略。
-  会替换该模型下所有 preset != null 的权限点，preset = null 的自定义权限点保留不变。
+  对指定模型应用预设策略（reconcile 语义）。
+  当 preset 为空时同步该模型全部可适配预设；preset 非空时仅同步该预设。
   """
   applyEndUserPresetPolicy(input: ApplyEndUserPresetPolicyInput!): ApplyEndUserPresetPolicyPayload! @hasPermission(action: "rbac:manage")
 
@@ -600,7 +795,30 @@ extend type Mutation {
   updateEndUserPermissionBundle(id: ID!, input: UpdateEndUserPermissionBundleInput!): UpdateEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
   deleteEndUserPermissionBundle(id: ID!): DeleteEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
   addEndUserPermissionToBundle(input: AddEndUserPermissionToBundleInput!): AddEndUserPermissionToBundlePayload! @hasPermission(action: "rbac:manage")
+  addEndUserPresetToBundle(input: AddEndUserPresetToBundleInput!): AddEndUserPresetToBundlePayload! @hasPermission(action: "rbac:manage")
   removeEndUserPermissionFromBundle(input: RemoveEndUserPermissionFromBundleInput!): RemoveEndUserPermissionFromBundlePayload! @hasPermission(action: "rbac:manage")
+
+  # Data Permission Item (item-centric)
+  """
+  绑定预设模板 item 到 bundle（replace 语义：同模型只保留一个 item）
+  """
+  bindPresetItemToBundle(input: BindPresetItemToBundleInput!): BindPresetItemToBundlePayload! @hasPermission(action: "rbac:manage")
+  """
+  绑定自定义权限 item 到 bundle（replace 语义：同模型只保留一个 item）
+  """
+  bindCustomItemToBundle(input: BindCustomItemToBundleInput!): BindCustomItemToBundlePayload! @hasPermission(action: "rbac:manage")
+  """
+  从 bundle 中移除指定模型的 data permission item
+  """
+  removeDataPermissionItemFromBundle(input: RemoveDataPermissionItemFromBundleInput!): RemoveDataPermissionItemFromBundlePayload! @hasPermission(action: "rbac:manage")
+
+  # Bundle Snapshot
+  """
+  将权限包回滚到指定历史版本快照。回滚操作本身会生成新版本号。
+  """
+  restoreEndUserPermissionBundle(
+    input: RestoreEndUserPermissionBundleInput!
+  ): RestoreEndUserPermissionBundlePayload! @hasPermission(action: "rbac:manage")
 
   # EndUserRole CRUD
   createEndUserRole(input: CreateEndUserRoleInput!): CreateEndUserRolePayload! @hasPermission(action: "rbac:manage")

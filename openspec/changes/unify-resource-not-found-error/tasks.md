@@ -13,7 +13,7 @@
 ## 3. 前端与 BDD 迁移
 
 - [x] 3.1 批量更新前端 `graphql-docs.ts`：将 `... on XxxNotFound` 改为 `... on ResourceNotFound { message resourceType }`
-- [ ] 3.2 运行前端 codegen 并修复类型报错，统一运行时分支判断到 `ResourceNotFound + resourceType`
+- [x] 3.2 运行前端 codegen 并修复类型报错，统一运行时分支判断到 `ResourceNotFound + resourceType`
 - [x] 3.3 更新 BDD feature 与 step-definitions 的错误断言，移除对具体 `XxxNotFound` 的依赖
 
 ## 4. 回归验证与收口
@@ -24,6 +24,6 @@
 
 ## 验证阻塞说明（2026-05-03）
 
-- 前端 `npm run codegen` 失败：`contract/graph/*` 仍未包含 `ResourceNotFound` 与多条 RBAC 新能力定义，导致文档校验报错。
+- 前端 `npm run codegen` 已通过（先执行 `front-contract-pull` 同步 backend `api/` 到 front `contract/` 后恢复正常）。
 - 前端 `npm run lint` 失败：当前分支存在大量与本次变更无关的既有 lint error（RBAC 页面类型安全问题）。
-- BDD 运行失败：测试环境存在鉴权与 schema 不匹配（含 `Unknown type "ResourceNotFound"`、`401 Unauthorized`、既有 undefined steps）。
+- BDD 运行失败：测试环境前置登录在 `BeforeAll` 阶段失败（`AUTHENTICATION_FAILED: phone number not found`），导致无法完成本次场景回归。
