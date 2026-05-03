@@ -56,4 +56,4 @@ Feature: 权限包版本快照
   Scenario: 回滚到不存在的版本返回错误
     Given 已创建名为 "ErrBundle" 的权限包
     When 我将权限包回滚到版本 99
-    Then 回滚失败，错误类型为 EndUserPermissionBundleSnapshotNotFound
+    Then 应该返回错误类型 "ResourceNotFound"

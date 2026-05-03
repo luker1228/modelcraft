@@ -428,29 +428,6 @@ type ClusterConnectionInput struct {
 	ConnectionInfo *DatabaseConnectionInput `json:"connectionInfo"`
 }
 
-type ClusterNotFound struct {
-	Message string `json:"message"`
-}
-
-func (ClusterNotFound) IsError()                {}
-func (this ClusterNotFound) GetMessage() string { return this.Message }
-
-func (ClusterNotFound) IsGetClusterError() {}
-
-func (ClusterNotFound) IsUpdateClusterError() {}
-
-func (ClusterNotFound) IsDeleteClusterError() {}
-
-func (ClusterNotFound) IsTestConnectionError() {}
-
-func (ClusterNotFound) IsCreateEndUserError() {}
-
-func (ClusterNotFound) IsUpdateEndUserError() {}
-
-func (ClusterNotFound) IsDeleteEndUserError() {}
-
-func (ClusterNotFound) IsListProjectEndUsersError() {}
-
 type ColumnPolicy struct {
 	DefaultMode ColumnAccessMode `json:"defaultMode"`
 	Rules       []*ColumnRule    `json:"rules"`
@@ -815,34 +792,6 @@ func (EndUserImplicitRoleCannotBeModified) IsUpdateEndUserRoleError() {}
 
 func (EndUserImplicitRoleCannotBeModified) IsDeleteEndUserRoleError() {}
 
-type EndUserNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserNotFound) IsError()                {}
-func (this EndUserNotFound) GetMessage() string { return this.Message }
-
-func (EndUserNotFound) IsUpdateEndUserError() {}
-
-func (EndUserNotFound) IsDeleteEndUserError() {}
-
-type EndUserNotFoundInProject struct {
-	Message string `json:"message"`
-}
-
-func (EndUserNotFoundInProject) IsError()                {}
-func (this EndUserNotFoundInProject) GetMessage() string { return this.Message }
-
-func (EndUserNotFoundInProject) IsAssignBundleToEndUserError() {}
-
-func (EndUserNotFoundInProject) IsRevokeBundleFromEndUserError() {}
-
-func (EndUserNotFoundInProject) IsAssignEndUserRoleError() {}
-
-func (EndUserNotFoundInProject) IsRevokeEndUserRoleError() {}
-
-func (EndUserNotFoundInProject) IsGetEffectivePermissionsError() {}
-
 type EndUserPasswordTooWeak struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -926,39 +875,6 @@ func (this EndUserPermissionBundleInUse) GetMessage() string { return this.Messa
 
 func (EndUserPermissionBundleInUse) IsDeleteEndUserPermissionBundleError() {}
 
-type EndUserPermissionBundleNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserPermissionBundleNotFound) IsError()                {}
-func (this EndUserPermissionBundleNotFound) GetMessage() string { return this.Message }
-
-func (EndUserPermissionBundleNotFound) IsUpdateEndUserPermissionBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsDeleteEndUserPermissionBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsAddEndUserPermissionToBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsAddEndUserPresetToBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsRemoveEndUserPermissionFromBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsBindPresetItemToBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsBindCustomItemToBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsRemoveDataPermissionItemFromBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsRestoreEndUserPermissionBundleError() {}
-
-func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserRoleError() {}
-
-func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserRoleError() {}
-
-func (EndUserPermissionBundleNotFound) IsAssignBundleToEndUserError() {}
-
-func (EndUserPermissionBundleNotFound) IsRevokeBundleFromEndUserError() {}
-
 // 权限包历史快照
 type EndUserPermissionBundleSnapshot struct {
 	Version   int32     `json:"version"`
@@ -971,15 +887,6 @@ type EndUserPermissionBundleSnapshot struct {
 	// 兼容旧字段
 	Permissions []*EndUserPermissionSnapshotEntry `json:"permissions"`
 }
-
-type EndUserPermissionBundleSnapshotNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserPermissionBundleSnapshotNotFound) IsError()                {}
-func (this EndUserPermissionBundleSnapshotNotFound) GetMessage() string { return this.Message }
-
-func (EndUserPermissionBundleSnapshotNotFound) IsRestoreEndUserPermissionBundleError() {}
 
 type EndUserPermissionConnection struct {
 	Edges      []*EndUserPermissionEdge `json:"edges"`
@@ -1001,23 +908,6 @@ func (EndUserPermissionInUse) IsError()                {}
 func (this EndUserPermissionInUse) GetMessage() string { return this.Message }
 
 func (EndUserPermissionInUse) IsDeleteEndUserPermissionError() {}
-
-type EndUserPermissionNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserPermissionNotFound) IsError()                {}
-func (this EndUserPermissionNotFound) GetMessage() string { return this.Message }
-
-func (EndUserPermissionNotFound) IsUpdateEndUserPermissionError() {}
-
-func (EndUserPermissionNotFound) IsDeleteEndUserPermissionError() {}
-
-func (EndUserPermissionNotFound) IsAddEndUserPermissionToBundleError() {}
-
-func (EndUserPermissionNotFound) IsRemoveEndUserPermissionFromBundleError() {}
-
-func (EndUserPermissionNotFound) IsBindCustomItemToBundleError() {}
 
 // 快照中的权限点条目（兼容旧格式）。已删除的权限点 permission 字段为 null，permissionId 仍保留原始 ID。
 type EndUserPermissionSnapshotEntry struct {
@@ -1096,25 +986,6 @@ type EndUserRoleEdge struct {
 	Cursor string       `json:"cursor"`
 }
 
-type EndUserRoleNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserRoleNotFound) IsError()                {}
-func (this EndUserRoleNotFound) GetMessage() string { return this.Message }
-
-func (EndUserRoleNotFound) IsUpdateEndUserRoleError() {}
-
-func (EndUserRoleNotFound) IsDeleteEndUserRoleError() {}
-
-func (EndUserRoleNotFound) IsAssignBundleToEndUserRoleError() {}
-
-func (EndUserRoleNotFound) IsRevokeBundleFromEndUserRoleError() {}
-
-func (EndUserRoleNotFound) IsAssignEndUserRoleError() {}
-
-func (EndUserRoleNotFound) IsRevokeEndUserRoleError() {}
-
 type EnumAlreadyExists struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -1137,19 +1008,6 @@ type EnumDefinition struct {
 	CreatedAt     string        `json:"createdAt"`
 	UpdatedAt     string        `json:"updatedAt"`
 }
-
-type EnumNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EnumNotFound) IsError()                {}
-func (this EnumNotFound) GetMessage() string { return this.Message }
-
-func (EnumNotFound) IsGetEnumError() {}
-
-func (EnumNotFound) IsUpdateEnumError() {}
-
-func (EnumNotFound) IsDeleteEnumError() {}
 
 type EnumOption struct {
 	Code        string  `json:"code"`
@@ -1287,21 +1145,6 @@ func (this GroupAlreadyExists) GetMessage() string { return this.Message }
 func (GroupAlreadyExists) IsCreateGroupError() {}
 
 func (GroupAlreadyExists) IsRenameGroupError() {}
-
-type GroupNotFound struct {
-	Message string `json:"message"`
-}
-
-func (GroupNotFound) IsError()                {}
-func (this GroupNotFound) GetMessage() string { return this.Message }
-
-func (GroupNotFound) IsRenameGroupError() {}
-
-func (GroupNotFound) IsDeleteGroupError() {}
-
-func (GroupNotFound) IsReorderGroupError() {}
-
-func (GroupNotFound) IsMoveModelToGroupError() {}
 
 type ImportModelInput struct {
 	DatabaseName string `json:"databaseName"`
@@ -1575,39 +1418,6 @@ type ModelJSONSchema struct {
 	Schema    string `json:"schema"`
 }
 
-type ModelNotFound struct {
-	Message string `json:"message"`
-}
-
-func (ModelNotFound) IsError()                {}
-func (this ModelNotFound) GetMessage() string { return this.Message }
-
-func (ModelNotFound) IsGetModelError() {}
-
-func (ModelNotFound) IsUpdateModelError() {}
-
-func (ModelNotFound) IsDeleteModelError() {}
-
-func (ModelNotFound) IsMoveModelToGroupError() {}
-
-func (ModelNotFound) IsCreateEndUserPermissionError() {}
-
-func (ModelNotFound) IsApplyEndUserPresetPolicyError() {}
-
-func (ModelNotFound) IsAddEndUserPresetToBundleError() {}
-
-func (ModelNotFound) IsBindPresetItemToBundleError() {}
-
-func (ModelNotFound) IsBindCustomItemToBundleError() {}
-
-func (ModelNotFound) IsRemoveDataPermissionItemFromBundleError() {}
-
-func (ModelNotFound) IsGetEffectivePermissionsError() {}
-
-func (ModelNotFound) IsSetModelRLSPolicyError() {}
-
-func (ModelNotFound) IsValidateRLSExprError() {}
-
 type ModelQueryInput struct {
 	DatabaseName string  `json:"databaseName"`
 	Offset       *int32  `json:"offset,omitempty"`
@@ -1710,105 +1520,6 @@ type ProjectEndUserRoleUserConnection struct {
 	TotalCount int32                     `json:"totalCount"`
 }
 
-type ProjectNotFound struct {
-	Message string `json:"message"`
-}
-
-func (ProjectNotFound) IsError()                {}
-func (this ProjectNotFound) GetMessage() string { return this.Message }
-
-func (ProjectNotFound) IsGetClusterError() {}
-
-func (ProjectNotFound) IsUpdateClusterError() {}
-
-func (ProjectNotFound) IsDeleteClusterError() {}
-
-func (ProjectNotFound) IsTestConnectionError() {}
-
-func (ProjectNotFound) IsModelDatabaseCatalogError() {}
-
-func (ProjectNotFound) IsCreateEndUserError() {}
-
-func (ProjectNotFound) IsUpdateEndUserError() {}
-
-func (ProjectNotFound) IsDeleteEndUserError() {}
-
-func (ProjectNotFound) IsListProjectEndUsersError() {}
-
-func (ProjectNotFound) IsInitPrivateDBPayloadError() {}
-
-func (ProjectNotFound) IsGetEnumError() {}
-
-func (ProjectNotFound) IsCreateEnumError() {}
-
-func (ProjectNotFound) IsUpdateEnumError() {}
-
-func (ProjectNotFound) IsDeleteEnumError() {}
-
-func (ProjectNotFound) IsGetModelError() {}
-
-func (ProjectNotFound) IsCreateModelError() {}
-
-func (ProjectNotFound) IsUpdateModelError() {}
-
-func (ProjectNotFound) IsDeleteModelError() {}
-
-func (ProjectNotFound) IsCreateEndUserPermissionError() {}
-
-func (ProjectNotFound) IsUpdateEndUserPermissionError() {}
-
-func (ProjectNotFound) IsDeleteEndUserPermissionError() {}
-
-func (ProjectNotFound) IsApplyEndUserPresetPolicyError() {}
-
-func (ProjectNotFound) IsCreateEndUserPermissionBundleError() {}
-
-func (ProjectNotFound) IsUpdateEndUserPermissionBundleError() {}
-
-func (ProjectNotFound) IsDeleteEndUserPermissionBundleError() {}
-
-func (ProjectNotFound) IsAddEndUserPermissionToBundleError() {}
-
-func (ProjectNotFound) IsAddEndUserPresetToBundleError() {}
-
-func (ProjectNotFound) IsRemoveEndUserPermissionFromBundleError() {}
-
-func (ProjectNotFound) IsBindPresetItemToBundleError() {}
-
-func (ProjectNotFound) IsBindCustomItemToBundleError() {}
-
-func (ProjectNotFound) IsRemoveDataPermissionItemFromBundleError() {}
-
-func (ProjectNotFound) IsRestoreEndUserPermissionBundleError() {}
-
-func (ProjectNotFound) IsCreateEndUserRoleError() {}
-
-func (ProjectNotFound) IsUpdateEndUserRoleError() {}
-
-func (ProjectNotFound) IsDeleteEndUserRoleError() {}
-
-func (ProjectNotFound) IsAssignBundleToEndUserRoleError() {}
-
-func (ProjectNotFound) IsRevokeBundleFromEndUserRoleError() {}
-
-func (ProjectNotFound) IsAssignBundleToEndUserError() {}
-
-func (ProjectNotFound) IsRevokeBundleFromEndUserError() {}
-
-func (ProjectNotFound) IsAssignEndUserRoleError() {}
-
-func (ProjectNotFound) IsRevokeEndUserRoleError() {}
-
-func (ProjectNotFound) IsGetEffectivePermissionsError() {}
-
-func (ProjectNotFound) IsListProjectEndUserRoleUsersError() {}
-
-func (ProjectNotFound) IsSetProjectAuthSchemaError() {}
-
-func (ProjectNotFound) IsSetModelRLSPolicyError() {}
-
-func (ProjectNotFound) IsValidateRLSExprError() {}
-
 type Query struct {
 }
 
@@ -1881,6 +1592,114 @@ type RepairModelPayload struct {
 	ExtraFieldsRemoved []string       `json:"extraFieldsRemoved"`
 	FieldsAdded        []string       `json:"fieldsAdded"`
 }
+
+type ResourceNotFound struct {
+	Message      string       `json:"message"`
+	ResourceType ResourceType `json:"resourceType"`
+}
+
+func (ResourceNotFound) IsError()                {}
+func (this ResourceNotFound) GetMessage() string { return this.Message }
+
+func (ResourceNotFound) IsGetClusterError() {}
+
+func (ResourceNotFound) IsUpdateClusterError() {}
+
+func (ResourceNotFound) IsDeleteClusterError() {}
+
+func (ResourceNotFound) IsTestConnectionError() {}
+
+func (ResourceNotFound) IsModelDatabaseCatalogError() {}
+
+func (ResourceNotFound) IsCreateEndUserError() {}
+
+func (ResourceNotFound) IsUpdateEndUserError() {}
+
+func (ResourceNotFound) IsDeleteEndUserError() {}
+
+func (ResourceNotFound) IsListProjectEndUsersError() {}
+
+func (ResourceNotFound) IsInitPrivateDBPayloadError() {}
+
+func (ResourceNotFound) IsGetEnumError() {}
+
+func (ResourceNotFound) IsCreateEnumError() {}
+
+func (ResourceNotFound) IsUpdateEnumError() {}
+
+func (ResourceNotFound) IsDeleteEnumError() {}
+
+func (ResourceNotFound) IsGetModelError() {}
+
+func (ResourceNotFound) IsCreateModelError() {}
+
+func (ResourceNotFound) IsUpdateModelError() {}
+
+func (ResourceNotFound) IsDeleteModelError() {}
+
+func (ResourceNotFound) IsRenameGroupError() {}
+
+func (ResourceNotFound) IsDeleteGroupError() {}
+
+func (ResourceNotFound) IsReorderGroupError() {}
+
+func (ResourceNotFound) IsMoveModelToGroupError() {}
+
+func (ResourceNotFound) IsCreateEndUserPermissionError() {}
+
+func (ResourceNotFound) IsUpdateEndUserPermissionError() {}
+
+func (ResourceNotFound) IsDeleteEndUserPermissionError() {}
+
+func (ResourceNotFound) IsApplyEndUserPresetPolicyError() {}
+
+func (ResourceNotFound) IsCreateEndUserPermissionBundleError() {}
+
+func (ResourceNotFound) IsUpdateEndUserPermissionBundleError() {}
+
+func (ResourceNotFound) IsDeleteEndUserPermissionBundleError() {}
+
+func (ResourceNotFound) IsAddEndUserPermissionToBundleError() {}
+
+func (ResourceNotFound) IsAddEndUserPresetToBundleError() {}
+
+func (ResourceNotFound) IsRemoveEndUserPermissionFromBundleError() {}
+
+func (ResourceNotFound) IsBindPresetItemToBundleError() {}
+
+func (ResourceNotFound) IsBindCustomItemToBundleError() {}
+
+func (ResourceNotFound) IsRemoveDataPermissionItemFromBundleError() {}
+
+func (ResourceNotFound) IsRestoreEndUserPermissionBundleError() {}
+
+func (ResourceNotFound) IsCreateEndUserRoleError() {}
+
+func (ResourceNotFound) IsUpdateEndUserRoleError() {}
+
+func (ResourceNotFound) IsDeleteEndUserRoleError() {}
+
+func (ResourceNotFound) IsAssignBundleToEndUserRoleError() {}
+
+func (ResourceNotFound) IsRevokeBundleFromEndUserRoleError() {}
+
+func (ResourceNotFound) IsAssignBundleToEndUserError() {}
+
+func (ResourceNotFound) IsRevokeBundleFromEndUserError() {}
+
+func (ResourceNotFound) IsAssignEndUserRoleError() {}
+
+func (ResourceNotFound) IsRevokeEndUserRoleError() {}
+
+func (ResourceNotFound) IsGetEffectivePermissionsError() {}
+
+func (ResourceNotFound) IsListProjectEndUserRoleUsersError() {}
+
+func (ResourceNotFound) IsSetProjectAuthSchemaError() {}
+
+func (ResourceNotFound) IsSetModelRLSPolicyError() {}
+
+func (ResourceNotFound) IsValidateRLSExprError() {}
 
 type RestoreEndUserPermissionBundleInput struct {
 	BundleID      string `json:"bundleId"`
@@ -3183,6 +3002,91 @@ func (e *RepairMode) UnmarshalJSON(b []byte) error {
 }
 
 func (e RepairMode) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ResourceType string
+
+const (
+	ResourceTypeProject                         ResourceType = "PROJECT"
+	ResourceTypeCluster                         ResourceType = "CLUSTER"
+	ResourceTypeModel                           ResourceType = "MODEL"
+	ResourceTypeEnum                            ResourceType = "ENUM"
+	ResourceTypeGroup                           ResourceType = "GROUP"
+	ResourceTypeUser                            ResourceType = "USER"
+	ResourceTypeProfile                         ResourceType = "PROFILE"
+	ResourceTypeOrganization                    ResourceType = "ORGANIZATION"
+	ResourceTypeRole                            ResourceType = "ROLE"
+	ResourceTypeEndUser                         ResourceType = "END_USER"
+	ResourceTypeEndUserPermission               ResourceType = "END_USER_PERMISSION"
+	ResourceTypeEndUserPermissionBundle         ResourceType = "END_USER_PERMISSION_BUNDLE"
+	ResourceTypeEndUserPermissionBundleSnapshot ResourceType = "END_USER_PERMISSION_BUNDLE_SNAPSHOT"
+	ResourceTypeEndUserRole                     ResourceType = "END_USER_ROLE"
+	ResourceTypeEndUserInProject                ResourceType = "END_USER_IN_PROJECT"
+	ResourceTypePermissionRole                  ResourceType = "PERMISSION_ROLE"
+	ResourceTypePermissionUser                  ResourceType = "PERMISSION_USER"
+)
+
+var AllResourceType = []ResourceType{
+	ResourceTypeProject,
+	ResourceTypeCluster,
+	ResourceTypeModel,
+	ResourceTypeEnum,
+	ResourceTypeGroup,
+	ResourceTypeUser,
+	ResourceTypeProfile,
+	ResourceTypeOrganization,
+	ResourceTypeRole,
+	ResourceTypeEndUser,
+	ResourceTypeEndUserPermission,
+	ResourceTypeEndUserPermissionBundle,
+	ResourceTypeEndUserPermissionBundleSnapshot,
+	ResourceTypeEndUserRole,
+	ResourceTypeEndUserInProject,
+	ResourceTypePermissionRole,
+	ResourceTypePermissionUser,
+}
+
+func (e ResourceType) IsValid() bool {
+	switch e {
+	case ResourceTypeProject, ResourceTypeCluster, ResourceTypeModel, ResourceTypeEnum, ResourceTypeGroup, ResourceTypeUser, ResourceTypeProfile, ResourceTypeOrganization, ResourceTypeRole, ResourceTypeEndUser, ResourceTypeEndUserPermission, ResourceTypeEndUserPermissionBundle, ResourceTypeEndUserPermissionBundleSnapshot, ResourceTypeEndUserRole, ResourceTypeEndUserInProject, ResourceTypePermissionRole, ResourceTypePermissionUser:
+		return true
+	}
+	return false
+}
+
+func (e ResourceType) String() string {
+	return string(e)
+}
+
+func (e *ResourceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ResourceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ResourceType", str)
+	}
+	return nil
+}
+
+func (e ResourceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ResourceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ResourceType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

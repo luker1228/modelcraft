@@ -105,8 +105,9 @@ const DATABASE_CATALOG_QUERY = gql`
         ... on InvalidInput {
           message
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on Unauthorized {
           message
@@ -132,8 +133,9 @@ const MODEL_CATALOG_QUERY = gql`
         ... on InvalidInput {
           message
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on Unauthorized {
           message

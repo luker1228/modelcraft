@@ -30,7 +30,7 @@ const DELETE_ROLE = `
       success
       error {
         __typename
-        ... on EndUserRoleNotFound { message }
+        ... on ResourceNotFound { message resourceType }
         ... on EndUserImplicitRoleCannotBeModified { message }
       }
     }
@@ -46,8 +46,7 @@ const ASSIGN_BUNDLE_TO_ROLE = `
       }
       error {
         __typename
-        ... on EndUserRoleNotFound { message }
-        ... on EndUserPermissionBundleNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }
@@ -62,8 +61,7 @@ const REVOKE_BUNDLE_FROM_ROLE = `
       }
       error {
         __typename
-        ... on EndUserRoleNotFound { message }
-        ... on EndUserPermissionBundleNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }

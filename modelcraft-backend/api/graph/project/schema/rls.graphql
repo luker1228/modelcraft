@@ -188,15 +188,15 @@ type RLSCheckViolation implements Error {
   operation: String
 }
 
-union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
 
 type DangerousPolicyNotConfirmed implements Error {
   message: String!
   suggestion: String
 }
 
-union SetModelRLSPolicyError = ModelNotFound | ModelHasNoOwnerField | InvalidRLSExpression | InvalidAuthVariable | ProjectNotFound
-union ValidateRLSExprError = ModelNotFound | InvalidRLSExpression | InvalidAuthVariable | ProjectNotFound
+union SetModelRLSPolicyError = ResourceNotFound | ModelHasNoOwnerField | InvalidRLSExpression | InvalidAuthVariable
+union ValidateRLSExprError = ResourceNotFound | InvalidRLSExpression | InvalidAuthVariable
 
 # ----------------------------------------
 # Payload Types

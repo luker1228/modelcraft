@@ -29,7 +29,7 @@ const DELETE_BUNDLE = `
       success
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound { message }
+        ... on ResourceNotFound { message resourceType }
         ... on EndUserPermissionBundleInUse { message }
       }
     }
@@ -48,8 +48,7 @@ const ADD_PERMISSION_TO_BUNDLE = `
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound { message }
-        ... on EndUserPermissionNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }
@@ -64,8 +63,7 @@ const REMOVE_PERMISSION_FROM_BUNDLE = `
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound { message }
-        ... on EndUserPermissionNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }

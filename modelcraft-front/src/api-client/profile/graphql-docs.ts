@@ -25,11 +25,9 @@ function getMyUserProfileQueryDocument() {
         }
         error {
           __typename
-          ... on UserNotFound {
+          ... on ResourceNotFound {
             message
-          }
-          ... on ProfileNotFound {
-            message
+            resourceType
           }
         }
       }
@@ -52,8 +50,9 @@ function getUpdateMyProfileMutationDocument() {
         }
         error {
           __typename
-          ... on ProfileNotFound {
+          ... on ResourceNotFound {
             message
+            resourceType
           }
           ... on InvalidInput {
             message

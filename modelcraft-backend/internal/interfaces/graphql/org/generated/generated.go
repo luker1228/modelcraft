@@ -81,10 +81,6 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	ClusterNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	CreateCustomRolePayload struct {
 		Error func(childComplexity int) int
 		Role  func(childComplexity int) int
@@ -185,10 +181,6 @@ type ComplexityRoot struct {
 		TotalCount func(childComplexity int) int
 	}
 
-	EndUserNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	EndUserPasswordTooWeak struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -269,10 +261,6 @@ type ComplexityRoot struct {
 		UserName  func(childComplexity int) int
 	}
 
-	OrganizationNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	PageInfo struct {
 		EndCursor       func(childComplexity int) int
 		HasNextPage     func(childComplexity int) int
@@ -300,17 +288,7 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	PermissionRoleNotFound struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
 	PermissionSystemRoleCannotBeModified struct {
-		Message    func(childComplexity int) int
-		Suggestion func(childComplexity int) int
-	}
-
-	PermissionUserNotFound struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
 	}
@@ -323,10 +301,6 @@ type ComplexityRoot struct {
 		Nickname  func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
 		UserID    func(childComplexity int) int
-	}
-
-	ProfileNotFound struct {
-		Message func(childComplexity int) int
 	}
 
 	Project struct {
@@ -361,10 +335,6 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
-	ProjectNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	Query struct {
 		DatabaseCluster     func(childComplexity int, projectSlug string) int
 		Hello               func(childComplexity int) int
@@ -389,6 +359,11 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
+	ResourceNotFound struct {
+		Message      func(childComplexity int) int
+		ResourceType func(childComplexity int) int
+	}
+
 	RevokeRolePayload struct {
 		Error   func(childComplexity int) int
 		Success func(childComplexity int) int
@@ -405,10 +380,6 @@ type ComplexityRoot struct {
 	}
 
 	RoleAlreadyExists struct {
-		Message func(childComplexity int) int
-	}
-
-	RoleNotFound struct {
 		Message func(childComplexity int) int
 	}
 
@@ -461,10 +432,6 @@ type ComplexityRoot struct {
 		Status    func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
 		UserName  func(childComplexity int) int
-	}
-
-	UserNotFound struct {
-		Message func(childComplexity int) int
 	}
 
 	UserRoleAssignment struct {
@@ -621,13 +588,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ClusterAlreadyExistsForProject.Suggestion(childComplexity), true
-
-	case "ClusterNotFound.message":
-		if e.complexity.ClusterNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.ClusterNotFound.Message(childComplexity), true
 
 	case "CreateCustomRolePayload.error":
 		if e.complexity.CreateCustomRolePayload.Error == nil {
@@ -956,13 +916,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserConnection.TotalCount(childComplexity), true
-
-	case "EndUserNotFound.message":
-		if e.complexity.EndUserNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserNotFound.Message(childComplexity), true
 
 	case "EndUserPasswordTooWeak.message":
 		if e.complexity.EndUserPasswordTooWeak.Message == nil {
@@ -1374,13 +1327,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.OrganizationMember.UserName(childComplexity), true
 
-	case "OrganizationNotFound.message":
-		if e.complexity.OrganizationNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.OrganizationNotFound.Message(childComplexity), true
-
 	case "PageInfo.endCursor":
 		if e.complexity.PageInfo.EndCursor == nil {
 			break
@@ -1475,19 +1421,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.PermissionRoleAlreadyExists.Suggestion(childComplexity), true
 
-	case "PermissionRoleNotFound.message":
-		if e.complexity.PermissionRoleNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.PermissionRoleNotFound.Message(childComplexity), true
-	case "PermissionRoleNotFound.suggestion":
-		if e.complexity.PermissionRoleNotFound.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.PermissionRoleNotFound.Suggestion(childComplexity), true
-
 	case "PermissionSystemRoleCannotBeModified.message":
 		if e.complexity.PermissionSystemRoleCannotBeModified.Message == nil {
 			break
@@ -1500,19 +1433,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.PermissionSystemRoleCannotBeModified.Suggestion(childComplexity), true
-
-	case "PermissionUserNotFound.message":
-		if e.complexity.PermissionUserNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.PermissionUserNotFound.Message(childComplexity), true
-	case "PermissionUserNotFound.suggestion":
-		if e.complexity.PermissionUserNotFound.Suggestion == nil {
-			break
-		}
-
-		return e.complexity.PermissionUserNotFound.Suggestion(childComplexity), true
 
 	case "Profile.avatarUrl":
 		if e.complexity.Profile.AvatarURL == nil {
@@ -1556,13 +1476,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Profile.UserID(childComplexity), true
-
-	case "ProfileNotFound.message":
-		if e.complexity.ProfileNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.ProfileNotFound.Message(childComplexity), true
 
 	case "Project.authSchema":
 		if e.complexity.Project.AuthSchema == nil {
@@ -1670,13 +1583,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ProjectEdge.Node(childComplexity), true
-
-	case "ProjectNotFound.message":
-		if e.complexity.ProjectNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.ProjectNotFound.Message(childComplexity), true
 
 	case "Query.databaseCluster":
 		if e.complexity.Query.DatabaseCluster == nil {
@@ -1833,6 +1739,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RemoveRolePermissionPayload.Success(childComplexity), true
 
+	case "ResourceNotFound.message":
+		if e.complexity.ResourceNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.ResourceNotFound.Message(childComplexity), true
+	case "ResourceNotFound.resourceType":
+		if e.complexity.ResourceNotFound.ResourceType == nil {
+			break
+		}
+
+		return e.complexity.ResourceNotFound.ResourceType(childComplexity), true
+
 	case "RevokeRolePayload.error":
 		if e.complexity.RevokeRolePayload.Error == nil {
 			break
@@ -1895,13 +1814,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RoleAlreadyExists.Message(childComplexity), true
-
-	case "RoleNotFound.message":
-		if e.complexity.RoleNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.RoleNotFound.Message(childComplexity), true
 
 	case "SetProjectAuthSchemaPayload.authSchema":
 		if e.complexity.SetProjectAuthSchemaPayload.AuthSchema == nil {
@@ -2055,13 +1967,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.User.UserName(childComplexity), true
-
-	case "UserNotFound.message":
-		if e.complexity.UserNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.UserNotFound.Message(childComplexity), true
 
 	case "UserRoleAssignment.createdAt":
 		if e.complexity.UserRoleAssignment.CreatedAt == nil {
@@ -2235,6 +2140,32 @@ type InvalidInput implements Error {
   suggestion: String
 }
 
+# Unified not-found error type replacing all *NotFound variants
+enum ResourceType {
+  PROJECT
+  CLUSTER
+  MODEL
+  ENUM
+  GROUP
+  USER
+  PROFILE
+  ORGANIZATION
+  ROLE
+  END_USER
+  END_USER_PERMISSION
+  END_USER_PERMISSION_BUNDLE
+  END_USER_PERMISSION_BUNDLE_SNAPSHOT
+  END_USER_ROLE
+  END_USER_IN_PROJECT
+  PERMISSION_ROLE
+  PERMISSION_USER
+}
+
+type ResourceNotFound implements Error {
+  message: String!
+  resourceType: ResourceType!
+}
+
 # Pagination types
 type PageInfo {
   hasNextPage: Boolean!
@@ -2267,10 +2198,6 @@ type Mutation {
 # EndUser Error Types
 # ============================================
 
-type EndUserNotFound implements Error {
-  message: String!
-}
-
 type EndUserAlreadyExists implements Error {
   message: String!
 }
@@ -2281,8 +2208,8 @@ type EndUserPasswordTooWeak implements Error {
 }
 
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
-union UpdateEndUserError = EndUserNotFound | InvalidInput
-union DeleteEndUserError = EndUserNotFound
+union UpdateEndUserError = ResourceNotFound | InvalidInput
+union DeleteEndUserError = ResourceNotFound
 union ListEndUsersError = InvalidInput
 
 # ============================================
@@ -2485,11 +2412,6 @@ interface PermissionManagementError {
   suggestion: String
 }
 
-type PermissionRoleNotFound implements PermissionManagementError {
-  message: String!
-  suggestion: String
-}
-
 type PermissionRoleAlreadyExists implements PermissionManagementError {
   message: String!
   suggestion: String
@@ -2500,18 +2422,13 @@ type PermissionSystemRoleCannotBeModified implements PermissionManagementError {
   suggestion: String
 }
 
-type PermissionUserNotFound implements PermissionManagementError {
-  message: String!
-  suggestion: String
-}
-
 # Error Unions
 union CreateCustomRoleError = PermissionRoleAlreadyExists | InvalidInput
-union UpdatePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | InvalidInput
-union DeletePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified
-union RolePermissionError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | InvalidInput
-union AssignRoleError = PermissionRoleNotFound | PermissionUserNotFound | InvalidInput
-union RevokeRoleError = PermissionRoleNotFound | PermissionUserNotFound
+union UpdatePermissionRoleError = ResourceNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | InvalidInput
+union DeletePermissionRoleError = ResourceNotFound | PermissionSystemRoleCannotBeModified
+union RolePermissionError = ResourceNotFound | PermissionSystemRoleCannotBeModified | InvalidInput
+union AssignRoleError = ResourceNotFound | InvalidInput
+union RevokeRoleError = ResourceNotFound
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/profile.graphql", Input: `# Profile query/mutation types and payloads
 
@@ -2519,16 +2436,8 @@ union RevokeRoleError = PermissionRoleNotFound | PermissionUserNotFound
 # Profile Error Types
 # ============================================
 
-type UserNotFound implements Error {
-  message: String!
-}
-
-type ProfileNotFound implements Error {
-  message: String!
-}
-
-union GetMyUserProfileError = UserNotFound | ProfileNotFound
-union UpdateMyProfileError = ProfileNotFound | InvalidInput
+union GetMyUserProfileError = ResourceNotFound
+union UpdateMyProfileError = ResourceNotFound | InvalidInput
 
 # ============================================
 # Profile Domain Types
@@ -2617,19 +2526,15 @@ type ProjectAlreadyExists implements Error {
   suggestion: String
 }
 
-type ProjectNotFound implements Error {
-  message: String!
-}
-
 type CannotDeleteDefaultProject implements Error {
   message: String!
 }
 
 # Error unions for each mutation and query
-union GetProjectError = ProjectNotFound
+union GetProjectError = ResourceNotFound
 union CreateProjectError = ProjectAlreadyExists | InvalidInput | DatabaseConnectionFailed
-union UpdateProjectError = ProjectNotFound | InvalidInput
-union DeleteProjectError = ProjectNotFound | CannotDeleteDefaultProject
+union UpdateProjectError = ResourceNotFound | InvalidInput
+union DeleteProjectError = ResourceNotFound | CannotDeleteDefaultProject
 
 # ============================================
 # Cluster Error Types
@@ -2646,20 +2551,16 @@ type ClusterAlreadyExistsForProject implements Error {
   suggestion: String
 }
 
-type ClusterNotFound implements Error {
-  message: String!
-}
-
 type DatabaseConnectionFailed implements Error {
   message: String!
   suggestion: String
 }
 
 # Error unions for cluster operations
-union GetClusterError = ClusterNotFound | ProjectNotFound
-union UpdateClusterError = ClusterNotFound | InvalidInput | DatabaseConnectionFailed | ProjectNotFound
-union DeleteClusterError = ClusterNotFound | ProjectNotFound
-union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
+union GetClusterError = ResourceNotFound
+union UpdateClusterError = ResourceNotFound | InvalidInput | DatabaseConnectionFailed
+union DeleteClusterError = ResourceNotFound
+union TestConnectionError = ResourceNotFound | DatabaseConnectionFailed
 
 # ============================================
 # Cluster Payload Types
@@ -2901,7 +2802,7 @@ extend type Project {
 # Project AuthSchema Error Types
 # ----------------------------------------
 
-union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
 
 # ----------------------------------------
 # Project AuthSchema Payload Types
@@ -3041,14 +2942,6 @@ type CurrentUser {
 # Error Types
 # ============================================
 
-type OrganizationNotFound implements Error {
-  message: String!
-}
-
-type RoleNotFound implements Error {
-  message: String!
-}
-
 type RoleAlreadyExists implements Error {
   message: String!
 }
@@ -3058,9 +2951,9 @@ type CannotDeleteSystemRole implements Error {
 }
 
 # Error unions
-union GetOrganizationError = OrganizationNotFound
+union GetOrganizationError = ResourceNotFound
 union CreateRoleError = RoleAlreadyExists | InvalidInput
-union DeleteRoleError = RoleNotFound | CannotDeleteSystemRole
+union DeleteRoleError = ResourceNotFound | CannotDeleteSystemRole
 
 # ============================================
 # Payload Types
@@ -3972,35 +3865,6 @@ func (ec *executionContext) _ClusterAlreadyExistsForProject_suggestion(ctx conte
 func (ec *executionContext) fieldContext_ClusterAlreadyExistsForProject_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ClusterAlreadyExistsForProject",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ClusterNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ClusterNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ClusterNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ClusterNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ClusterNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -5646,35 +5510,6 @@ func (ec *executionContext) fieldContext_EndUserConnection_totalCount(_ context.
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -7952,35 +7787,6 @@ func (ec *executionContext) fieldContext_OrganizationMember_createdAt(_ context.
 	return fc, nil
 }
 
-func (ec *executionContext) _OrganizationNotFound_message(ctx context.Context, field graphql.CollectedField, obj *OrganizationNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_OrganizationNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_OrganizationNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "OrganizationNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *PageInfo) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8416,64 +8222,6 @@ func (ec *executionContext) fieldContext_PermissionRoleAlreadyExists_suggestion(
 	return fc, nil
 }
 
-func (ec *executionContext) _PermissionRoleNotFound_message(ctx context.Context, field graphql.CollectedField, obj *PermissionRoleNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PermissionRoleNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_PermissionRoleNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PermissionRoleNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PermissionRoleNotFound_suggestion(ctx context.Context, field graphql.CollectedField, obj *PermissionRoleNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PermissionRoleNotFound_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_PermissionRoleNotFound_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PermissionRoleNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _PermissionSystemRoleCannotBeModified_message(ctx context.Context, field graphql.CollectedField, obj *PermissionSystemRoleCannotBeModified) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8522,64 +8270,6 @@ func (ec *executionContext) _PermissionSystemRoleCannotBeModified_suggestion(ctx
 func (ec *executionContext) fieldContext_PermissionSystemRoleCannotBeModified_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "PermissionSystemRoleCannotBeModified",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PermissionUserNotFound_message(ctx context.Context, field graphql.CollectedField, obj *PermissionUserNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PermissionUserNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_PermissionUserNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PermissionUserNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _PermissionUserNotFound_suggestion(ctx context.Context, field graphql.CollectedField, obj *PermissionUserNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_PermissionUserNotFound_suggestion,
-		func(ctx context.Context) (any, error) {
-			return obj.Suggestion, nil
-		},
-		nil,
-		ec.marshalOString2ᚖstring,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_PermissionUserNotFound_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "PermissionUserNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -8783,35 +8473,6 @@ func (ec *executionContext) _Profile_updatedAt(ctx context.Context, field graphq
 func (ec *executionContext) fieldContext_Profile_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Profile",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProfileNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ProfileNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ProfileNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ProfileNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProfileNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -9353,35 +9014,6 @@ func (ec *executionContext) _ProjectEdge_cursor(ctx context.Context, field graph
 func (ec *executionContext) fieldContext_ProjectEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ProjectEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ProjectNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ProjectNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ProjectNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ProjectNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProjectNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -10488,6 +10120,64 @@ func (ec *executionContext) fieldContext_RemoveRolePermissionPayload_error(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _ResourceNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ResourceNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ResourceNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ResourceNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResourceNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ResourceNotFound_resourceType(ctx context.Context, field graphql.CollectedField, obj *ResourceNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ResourceNotFound_resourceType,
+		func(ctx context.Context) (any, error) {
+			return obj.ResourceType, nil
+		},
+		nil,
+		ec.marshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResourceType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ResourceNotFound_resourceType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResourceNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ResourceType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _RevokeRolePayload_success(ctx context.Context, field graphql.CollectedField, obj *RevokeRolePayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -10768,35 +10458,6 @@ func (ec *executionContext) _RoleAlreadyExists_message(ctx context.Context, fiel
 func (ec *executionContext) fieldContext_RoleAlreadyExists_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RoleAlreadyExists",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _RoleNotFound_message(ctx context.Context, field graphql.CollectedField, obj *RoleNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_RoleNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_RoleNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "RoleNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -11624,35 +11285,6 @@ func (ec *executionContext) fieldContext_User_profile(_ context.Context, field g
 				return ec.fieldContext_Profile_updatedAt(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type Profile", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _UserNotFound_message(ctx context.Context, field graphql.CollectedField, obj *UserNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_UserNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_UserNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "UserNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -13953,20 +13585,13 @@ func (ec *executionContext) _AssignRoleError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case PermissionUserNotFound:
-		return ec._PermissionUserNotFound(ctx, sel, &obj)
-	case *PermissionUserNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._PermissionUserNotFound(ctx, sel, obj)
-	case PermissionRoleNotFound:
-		return ec._PermissionRoleNotFound(ctx, sel, &obj)
-	case *PermissionRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionRoleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14089,20 +13714,13 @@ func (ec *executionContext) _DeleteClusterError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14112,13 +13730,13 @@ func (ec *executionContext) _DeleteEndUserError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case EndUserNotFound:
-		return ec._EndUserNotFound(ctx, sel, &obj)
-	case *EndUserNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._EndUserNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14128,6 +13746,13 @@ func (ec *executionContext) _DeletePermissionRoleError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case PermissionSystemRoleCannotBeModified:
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, &obj)
 	case *PermissionSystemRoleCannotBeModified:
@@ -14135,13 +13760,6 @@ func (ec *executionContext) _DeletePermissionRoleError(ctx context.Context, sel 
 			return graphql.Null
 		}
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, obj)
-	case PermissionRoleNotFound:
-		return ec._PermissionRoleNotFound(ctx, sel, &obj)
-	case *PermissionRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionRoleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14151,13 +13769,13 @@ func (ec *executionContext) _DeleteProjectError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case CannotDeleteDefaultProject:
 		return ec._CannotDeleteDefaultProject(ctx, sel, &obj)
 	case *CannotDeleteDefaultProject:
@@ -14174,13 +13792,13 @@ func (ec *executionContext) _DeleteRoleError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case RoleNotFound:
-		return ec._RoleNotFound(ctx, sel, &obj)
-	case *RoleNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._RoleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case CannotDeleteSystemRole:
 		return ec._CannotDeleteSystemRole(ctx, sel, &obj)
 	case *CannotDeleteSystemRole:
@@ -14197,20 +13815,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case UserNotFound:
-		return ec._UserNotFound(ctx, sel, &obj)
-	case *UserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._UserNotFound(ctx, sel, obj)
-	case RoleNotFound:
-		return ec._RoleNotFound(ctx, sel, &obj)
-	case *RoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._RoleNotFound(ctx, sel, obj)
 	case RoleAlreadyExists:
 		return ec._RoleAlreadyExists(ctx, sel, &obj)
 	case *RoleAlreadyExists:
@@ -14218,13 +13822,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._RoleAlreadyExists(ctx, sel, obj)
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case ProjectAlreadyExists:
 		return ec._ProjectAlreadyExists(ctx, sel, &obj)
 	case *ProjectAlreadyExists:
@@ -14232,20 +13836,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._ProjectAlreadyExists(ctx, sel, obj)
-	case ProfileNotFound:
-		return ec._ProfileNotFound(ctx, sel, &obj)
-	case *ProfileNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ProfileNotFound(ctx, sel, obj)
-	case OrganizationNotFound:
-		return ec._OrganizationNotFound(ctx, sel, &obj)
-	case *OrganizationNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._OrganizationNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14260,13 +13850,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
-	case EndUserNotFound:
-		return ec._EndUserNotFound(ctx, sel, &obj)
-	case *EndUserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFound(ctx, sel, obj)
 	case EndUserAlreadyExists:
 		return ec._EndUserAlreadyExists(ctx, sel, &obj)
 	case *EndUserAlreadyExists:
@@ -14281,13 +13864,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._DatabaseConnectionFailed(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	case ClusterAlreadyExistsForProject:
 		return ec._ClusterAlreadyExistsForProject(ctx, sel, &obj)
 	case *ClusterAlreadyExistsForProject:
@@ -14325,20 +13901,13 @@ func (ec *executionContext) _GetClusterError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14348,20 +13917,13 @@ func (ec *executionContext) _GetMyUserProfileError(ctx context.Context, sel ast.
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case UserNotFound:
-		return ec._UserNotFound(ctx, sel, &obj)
-	case *UserNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._UserNotFound(ctx, sel, obj)
-	case ProfileNotFound:
-		return ec._ProfileNotFound(ctx, sel, &obj)
-	case *ProfileNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ProfileNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14371,13 +13933,13 @@ func (ec *executionContext) _GetOrganizationError(ctx context.Context, sel ast.S
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case OrganizationNotFound:
-		return ec._OrganizationNotFound(ctx, sel, &obj)
-	case *OrganizationNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._OrganizationNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14387,13 +13949,13 @@ func (ec *executionContext) _GetProjectError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14463,13 +14025,6 @@ func (ec *executionContext) _PermissionManagementError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case PermissionUserNotFound:
-		return ec._PermissionUserNotFound(ctx, sel, &obj)
-	case *PermissionUserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionUserNotFound(ctx, sel, obj)
 	case PermissionSystemRoleCannotBeModified:
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, &obj)
 	case *PermissionSystemRoleCannotBeModified:
@@ -14477,13 +14032,6 @@ func (ec *executionContext) _PermissionManagementError(ctx context.Context, sel 
 			return graphql.Null
 		}
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, obj)
-	case PermissionRoleNotFound:
-		return ec._PermissionRoleNotFound(ctx, sel, &obj)
-	case *PermissionRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionRoleNotFound(ctx, sel, obj)
 	case PermissionRoleAlreadyExists:
 		return ec._PermissionRoleAlreadyExists(ctx, sel, &obj)
 	case *PermissionRoleAlreadyExists:
@@ -14500,20 +14048,13 @@ func (ec *executionContext) _RevokeRoleError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case PermissionUserNotFound:
-		return ec._PermissionUserNotFound(ctx, sel, &obj)
-	case *PermissionUserNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._PermissionUserNotFound(ctx, sel, obj)
-	case PermissionRoleNotFound:
-		return ec._PermissionRoleNotFound(ctx, sel, &obj)
-	case *PermissionRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionRoleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14523,6 +14064,13 @@ func (ec *executionContext) _RolePermissionError(ctx context.Context, sel ast.Se
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case PermissionSystemRoleCannotBeModified:
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, &obj)
 	case *PermissionSystemRoleCannotBeModified:
@@ -14530,13 +14078,6 @@ func (ec *executionContext) _RolePermissionError(ctx context.Context, sel ast.Se
 			return graphql.Null
 		}
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, obj)
-	case PermissionRoleNotFound:
-		return ec._PermissionRoleNotFound(ctx, sel, &obj)
-	case *PermissionRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionRoleNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14553,13 +14094,13 @@ func (ec *executionContext) _SetProjectAuthSchemaError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14576,13 +14117,13 @@ func (ec *executionContext) _TestConnectionError(ctx context.Context, sel ast.Se
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -14590,13 +14131,6 @@ func (ec *executionContext) _TestConnectionError(ctx context.Context, sel ast.Se
 			return graphql.Null
 		}
 		return ec._DatabaseConnectionFailed(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14606,13 +14140,13 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14627,13 +14161,6 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._DatabaseConnectionFailed(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14643,6 +14170,13 @@ func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14650,13 +14184,6 @@ func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserNotFound:
-		return ec._EndUserNotFound(ctx, sel, &obj)
-	case *EndUserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14666,13 +14193,13 @@ func (ec *executionContext) _UpdateMyProfileError(ctx context.Context, sel ast.S
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProfileNotFound:
-		return ec._ProfileNotFound(ctx, sel, &obj)
-	case *ProfileNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProfileNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -14689,6 +14216,13 @@ func (ec *executionContext) _UpdatePermissionRoleError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case PermissionSystemRoleCannotBeModified:
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, &obj)
 	case *PermissionSystemRoleCannotBeModified:
@@ -14696,13 +14230,6 @@ func (ec *executionContext) _UpdatePermissionRoleError(ctx context.Context, sel 
 			return graphql.Null
 		}
 		return ec._PermissionSystemRoleCannotBeModified(ctx, sel, obj)
-	case PermissionRoleNotFound:
-		return ec._PermissionRoleNotFound(ctx, sel, &obj)
-	case *PermissionRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._PermissionRoleNotFound(ctx, sel, obj)
 	case PermissionRoleAlreadyExists:
 		return ec._PermissionRoleAlreadyExists(ctx, sel, &obj)
 	case *PermissionRoleAlreadyExists:
@@ -14726,13 +14253,13 @@ func (ec *executionContext) _UpdateProjectError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -15014,45 +14541,6 @@ func (ec *executionContext) _ClusterAlreadyExistsForProject(ctx context.Context,
 			}
 		case "suggestion":
 			out.Values[i] = ec._ClusterAlreadyExistsForProject_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var clusterNotFoundImplementors = []string{"ClusterNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError"}
-
-func (ec *executionContext) _ClusterNotFound(ctx context.Context, sel ast.SelectionSet, obj *ClusterNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, clusterNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ClusterNotFound")
-		case "message":
-			out.Values[i] = ec._ClusterNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -15826,45 +15314,6 @@ func (ec *executionContext) _EndUserConnection(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError"}
-
-func (ec *executionContext) _EndUserNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserNotFound")
-		case "message":
-			out.Values[i] = ec._EndUserNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError"}
 
 func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast.SelectionSet, obj *EndUserPasswordTooWeak) graphql.Marshaler {
@@ -16463,45 +15912,6 @@ func (ec *executionContext) _OrganizationMember(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var organizationNotFoundImplementors = []string{"OrganizationNotFound", "Error", "GetOrganizationError"}
-
-func (ec *executionContext) _OrganizationNotFound(ctx context.Context, sel ast.SelectionSet, obj *OrganizationNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, organizationNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("OrganizationNotFound")
-		case "message":
-			out.Values[i] = ec._OrganizationNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var pageInfoImplementors = []string{"PageInfo"}
 
 func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *PageInfo) graphql.Marshaler {
@@ -16701,47 +16111,6 @@ func (ec *executionContext) _PermissionRoleAlreadyExists(ctx context.Context, se
 	return out
 }
 
-var permissionRoleNotFoundImplementors = []string{"PermissionRoleNotFound", "PermissionManagementError", "UpdatePermissionRoleError", "DeletePermissionRoleError", "RolePermissionError", "AssignRoleError", "RevokeRoleError"}
-
-func (ec *executionContext) _PermissionRoleNotFound(ctx context.Context, sel ast.SelectionSet, obj *PermissionRoleNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, permissionRoleNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("PermissionRoleNotFound")
-		case "message":
-			out.Values[i] = ec._PermissionRoleNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._PermissionRoleNotFound_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var permissionSystemRoleCannotBeModifiedImplementors = []string{"PermissionSystemRoleCannotBeModified", "PermissionManagementError", "UpdatePermissionRoleError", "DeletePermissionRoleError", "RolePermissionError"}
 
 func (ec *executionContext) _PermissionSystemRoleCannotBeModified(ctx context.Context, sel ast.SelectionSet, obj *PermissionSystemRoleCannotBeModified) graphql.Marshaler {
@@ -16760,47 +16129,6 @@ func (ec *executionContext) _PermissionSystemRoleCannotBeModified(ctx context.Co
 			}
 		case "suggestion":
 			out.Values[i] = ec._PermissionSystemRoleCannotBeModified_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var permissionUserNotFoundImplementors = []string{"PermissionUserNotFound", "PermissionManagementError", "AssignRoleError", "RevokeRoleError"}
-
-func (ec *executionContext) _PermissionUserNotFound(ctx context.Context, sel ast.SelectionSet, obj *PermissionUserNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, permissionUserNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("PermissionUserNotFound")
-		case "message":
-			out.Values[i] = ec._PermissionUserNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "suggestion":
-			out.Values[i] = ec._PermissionUserNotFound_suggestion(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -16861,45 +16189,6 @@ func (ec *executionContext) _Profile(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "updatedAt":
 			out.Values[i] = ec._Profile_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var profileNotFoundImplementors = []string{"ProfileNotFound", "Error", "GetMyUserProfileError", "UpdateMyProfileError"}
-
-func (ec *executionContext) _ProfileNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProfileNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, profileNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ProfileNotFound")
-		case "message":
-			out.Values[i] = ec._ProfileNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -17152,45 +16441,6 @@ func (ec *executionContext) _ProjectEdge(ctx context.Context, sel ast.SelectionS
 			}
 		case "cursor":
 			out.Values[i] = ec._ProjectEdge_cursor(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetProjectError", "UpdateProjectError", "DeleteProjectError", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "SetProjectAuthSchemaError"}
-
-func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ProjectNotFound")
-		case "message":
-			out.Values[i] = ec._ProjectNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -17654,6 +16904,50 @@ func (ec *executionContext) _RemoveRolePermissionPayload(ctx context.Context, se
 	return out
 }
 
+var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError", "UpdatePermissionRoleError", "DeletePermissionRoleError", "RolePermissionError", "AssignRoleError", "RevokeRoleError", "GetMyUserProfileError", "UpdateMyProfileError", "GetProjectError", "UpdateProjectError", "DeleteProjectError", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "SetProjectAuthSchemaError", "GetOrganizationError", "DeleteRoleError"}
+
+func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.SelectionSet, obj *ResourceNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, resourceNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ResourceNotFound")
+		case "message":
+			out.Values[i] = ec._ResourceNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resourceType":
+			out.Values[i] = ec._ResourceNotFound_resourceType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var revokeRolePayloadImplementors = []string{"RevokeRolePayload"}
 
 func (ec *executionContext) _RevokeRolePayload(ctx context.Context, sel ast.SelectionSet, obj *RevokeRolePayload) graphql.Marshaler {
@@ -17774,45 +17068,6 @@ func (ec *executionContext) _RoleAlreadyExists(ctx context.Context, sel ast.Sele
 			out.Values[i] = graphql.MarshalString("RoleAlreadyExists")
 		case "message":
 			out.Values[i] = ec._RoleAlreadyExists_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var roleNotFoundImplementors = []string{"RoleNotFound", "Error", "DeleteRoleError"}
-
-func (ec *executionContext) _RoleNotFound(ctx context.Context, sel ast.SelectionSet, obj *RoleNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, roleNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("RoleNotFound")
-		case "message":
-			out.Values[i] = ec._RoleNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -18191,45 +17446,6 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			}
 		case "profile":
 			out.Values[i] = ec._User_profile(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var userNotFoundImplementors = []string{"UserNotFound", "Error", "GetMyUserProfileError"}
-
-func (ec *executionContext) _UserNotFound(ctx context.Context, sel ast.SelectionSet, obj *UserNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, userNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("UserNotFound")
-		case "message":
-			out.Values[i] = ec._UserNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -19513,6 +18729,16 @@ func (ec *executionContext) marshalNRemoveRolePermissionPayload2ᚖmodelcraftᚋ
 		return graphql.Null
 	}
 	return ec._RemoveRolePermissionPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResourceType(ctx context.Context, v any) (ResourceType, error) {
+	var res ResourceType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResourceType(ctx context.Context, sel ast.SelectionSet, v ResourceType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNRevokeRolePayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐRevokeRolePayload(ctx context.Context, sel ast.SelectionSet, v RevokeRolePayload) graphql.Marshaler {

@@ -183,7 +183,7 @@ func (r *mutationResolver) DeleteModel(ctx context.Context, id string, dropTable
 	if err != nil {
 		return &generated.DeleteModelPayload{
 			Success: false,
-			Error:   &generated.ModelNotFound{Message: "projectSlug not found in context"},
+			Error:   &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeModel},
 		}, nil
 	}
 
@@ -501,7 +501,7 @@ func (r *mutationResolver) ReorderGroup(ctx context.Context, input generated.Reo
 	if err != nil {
 		return &generated.ReorderGroupPayload{
 			Success: false,
-			Error:   &generated.GroupNotFound{Message: "projectSlug not found in context"},
+			Error:   &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeGroup},
 		}, nil
 	}
 
@@ -785,8 +785,9 @@ func (r *queryResolver) ModelByName(ctx context.Context, name string, databaseNa
 	if len(models) == 0 {
 		return &generated.GetModelPayload{
 			Model: nil,
-			Error: &generated.ModelNotFound{
-				Message: fmt.Sprintf("Model not found: %s in project %s", name, projectSlug),
+			Error: &generated.ResourceNotFound{
+				Message:      fmt.Sprintf("Model not found: %s in project %s", name, projectSlug),
+				ResourceType: generated.ResourceTypeModel,
 			},
 		}, nil
 	}

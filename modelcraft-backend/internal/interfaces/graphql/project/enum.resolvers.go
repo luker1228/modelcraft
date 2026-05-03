@@ -169,7 +169,7 @@ func (r *mutationResolver) DeleteEnum(ctx context.Context, name string) (*genera
 	if err != nil {
 		return &generated.DeleteEnumPayload{
 			Success: false,
-			Error:   &generated.EnumNotFound{Message: "projectSlug not found in context"},
+			Error:   &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeEnum},
 		}, nil
 	}
 
@@ -214,7 +214,7 @@ func (r *queryResolver) Enum(ctx context.Context, name string) (*generated.GetEn
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.GetEnumPayload{
-			Error: &generated.EnumNotFound{Message: "projectSlug not found in context"},
+			Error: &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeEnum},
 		}, nil
 	}
 

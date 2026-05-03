@@ -19,19 +19,15 @@ type ProjectAlreadyExists implements Error {
   suggestion: String
 }
 
-type ProjectNotFound implements Error {
-  message: String!
-}
-
 type CannotDeleteDefaultProject implements Error {
   message: String!
 }
 
 # Error unions for each mutation and query
-union GetProjectError = ProjectNotFound
+union GetProjectError = ResourceNotFound
 union CreateProjectError = ProjectAlreadyExists | InvalidInput | DatabaseConnectionFailed
-union UpdateProjectError = ProjectNotFound | InvalidInput
-union DeleteProjectError = ProjectNotFound | CannotDeleteDefaultProject
+union UpdateProjectError = ResourceNotFound | InvalidInput
+union DeleteProjectError = ResourceNotFound | CannotDeleteDefaultProject
 
 # ============================================
 # Cluster Error Types
@@ -48,20 +44,16 @@ type ClusterAlreadyExistsForProject implements Error {
   suggestion: String
 }
 
-type ClusterNotFound implements Error {
-  message: String!
-}
-
 type DatabaseConnectionFailed implements Error {
   message: String!
   suggestion: String
 }
 
 # Error unions for cluster operations
-union GetClusterError = ClusterNotFound | ProjectNotFound
-union UpdateClusterError = ClusterNotFound | InvalidInput | DatabaseConnectionFailed | ProjectNotFound
-union DeleteClusterError = ClusterNotFound | ProjectNotFound
-union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
+union GetClusterError = ResourceNotFound
+union UpdateClusterError = ResourceNotFound | InvalidInput | DatabaseConnectionFailed
+union DeleteClusterError = ResourceNotFound
+union TestConnectionError = ResourceNotFound | DatabaseConnectionFailed
 
 # ============================================
 # Cluster Payload Types
@@ -303,7 +295,7 @@ extend type Project {
 # Project AuthSchema Error Types
 # ----------------------------------------
 
-union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
 
 # ----------------------------------------
 # Project AuthSchema Payload Types

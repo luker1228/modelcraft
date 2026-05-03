@@ -43,8 +43,9 @@ export const GET_PROJECT = gql`
       }
       error {
         __typename
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -100,8 +101,9 @@ export const UPDATE_PROJECT = gql`
       }
       error {
         __typename
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
@@ -118,8 +120,9 @@ export const DELETE_PROJECT = gql`
       success
       error {
         __typename
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on CannotDeleteDefaultProject {
           message
@@ -149,8 +152,9 @@ export const UPDATE_PROJECT_CLUSTER = gql`
       }
       error {
         __typename
-        ... on ClusterNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
@@ -159,9 +163,6 @@ export const UPDATE_PROJECT_CLUSTER = gql`
         ... on DatabaseConnectionFailed {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -175,15 +176,13 @@ export const TEST_DATABASE_CONNECTION = gql`
       connectionTime
       error {
         __typename
-        ... on ClusterNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on DatabaseConnectionFailed {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }

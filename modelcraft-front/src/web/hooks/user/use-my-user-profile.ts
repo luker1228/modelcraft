@@ -8,6 +8,7 @@ import type { ProfileDomainError, UserProfileStatus, UserProfileView } from '@/t
 interface ProfilePayloadError {
   __typename: string
   message: string
+  resourceType?: string
 }
 
 interface QueryUserProfile {
@@ -79,7 +80,7 @@ function mapPayloadError(error?: ProfilePayloadError | null): ProfileDomainError
     return null
   }
 
-  if (error.__typename === 'ProfileNotFound') {
+  if (error.__typename === 'ResourceNotFound') {
     return {
       type: 'ProfileNotFound',
       message: error.message,

@@ -860,7 +860,7 @@ func (r *queryResolver) ListProjectEndUserRoleUsers(ctx context.Context, input *
 	if appErr != nil {
 		logfacade.GetLogger(ctx).Error(ctx, "rbac operation failed", logfacade.Err(appErr), logfacade.Stack(appErr))
 		return &generated.ListProjectEndUserRoleUsersPayload{
-			Error: &generated.ProjectNotFound{Message: appErr.Error()},
+			Error: &generated.ResourceNotFound{Message: appErr.Error(), ResourceType: generated.ResourceTypeProject},
 		}, nil
 	}
 

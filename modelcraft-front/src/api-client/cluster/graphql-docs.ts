@@ -21,11 +21,9 @@ export const GET_CLUSTER = gql`
       }
       error {
         __typename
-        ... on ClusterNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -68,8 +66,9 @@ export const DATABASE_CATALOG = gql`
           message
           suggestion
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -85,15 +84,13 @@ export const TEST_CLUSTER_CONNECTION = gql`
       connectionTime
       error {
         __typename
-        ... on ClusterNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on DatabaseConnectionFailed {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }

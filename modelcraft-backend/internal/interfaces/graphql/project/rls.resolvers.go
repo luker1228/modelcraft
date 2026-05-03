@@ -110,7 +110,7 @@ func (r *mutationResolver) SetProjectAuthSchema(ctx context.Context, input gener
 			case bizerrors.ProjectNotFound.GetCode():
 				return &generated.SetProjectAuthSchemaPayload{
 					AuthSchema: nil,
-					Error:      &generated.ProjectNotFound{Message: bizErr.Error()},
+					Error:      &generated.ResourceNotFound{Message: bizErr.Error(), ResourceType: generated.ResourceTypeProject},
 				}, nil
 			case bizerrors.ParamInvalid.GetCode():
 				return &generated.SetProjectAuthSchemaPayload{

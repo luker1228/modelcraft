@@ -35,9 +35,9 @@ func (a *EndUserErrorAdapter) ConvertToCreateError(err *bizerrors.BusinessError)
 		}
 		return &generated.InvalidInput{Message: err.Msg()}
 	case bizerrors.EndUserClusterNotConfigured.GetCode(), bizerrors.ClusterNotFound.GetCode():
-		return &generated.ClusterNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logger.Errorf(a.ctx, "unknown create end-user error code: %s", err.Info().GetCode())
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -52,13 +52,13 @@ func (a *EndUserErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError)
 
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 	case bizerrors.EndUserParamInvalid.GetCode():
 		return &generated.InvalidInput{Message: err.Msg()}
 	case bizerrors.EndUserClusterNotConfigured.GetCode(), bizerrors.ClusterNotFound.GetCode():
-		return &generated.ClusterNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logger.Errorf(a.ctx, "unknown update end-user error code: %s", err.Info().GetCode())
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -73,14 +73,14 @@ func (a *EndUserErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError)
 
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 	case bizerrors.EndUserClusterNotConfigured.GetCode(), bizerrors.ClusterNotFound.GetCode():
-		return &generated.ClusterNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logger.Errorf(a.ctx, "unknown delete end-user error code: %s", err.Info().GetCode())
-		return &generated.EndUserNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 	}
 }
 
@@ -92,11 +92,11 @@ func (a *EndUserErrorAdapter) ConvertToListError(err *bizerrors.BusinessError) g
 
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserClusterNotConfigured.GetCode(), bizerrors.ClusterNotFound.GetCode():
-		return &generated.ClusterNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logger.Errorf(a.ctx, "unknown list end-users error code: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
 	}
 }

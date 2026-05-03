@@ -190,21 +190,6 @@ type ClusterConnectionInput struct {
 	ConnectionInfo *DatabaseConnectionInput `json:"connectionInfo"`
 }
 
-type ClusterNotFound struct {
-	Message string `json:"message"`
-}
-
-func (ClusterNotFound) IsError()                {}
-func (this ClusterNotFound) GetMessage() string { return this.Message }
-
-func (ClusterNotFound) IsGetClusterError() {}
-
-func (ClusterNotFound) IsUpdateClusterError() {}
-
-func (ClusterNotFound) IsDeleteClusterError() {}
-
-func (ClusterNotFound) IsTestConnectionError() {}
-
 type CreateCustomRoleInput struct {
 	Name        string  `json:"name"`
 	Description *string `json:"description,omitempty"`
@@ -362,17 +347,6 @@ type EndUserConnection struct {
 	TotalCount int32      `json:"totalCount"`
 }
 
-type EndUserNotFound struct {
-	Message string `json:"message"`
-}
-
-func (EndUserNotFound) IsError()                {}
-func (this EndUserNotFound) GetMessage() string { return this.Message }
-
-func (EndUserNotFound) IsUpdateEndUserError() {}
-
-func (EndUserNotFound) IsDeleteEndUserError() {}
-
 type EndUserPasswordTooWeak struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -476,15 +450,6 @@ type OrganizationMember struct {
 	CreatedAt string           `json:"createdAt"`
 }
 
-type OrganizationNotFound struct {
-	Message string `json:"message"`
-}
-
-func (OrganizationNotFound) IsError()                {}
-func (this OrganizationNotFound) GetMessage() string { return this.Message }
-
-func (OrganizationNotFound) IsGetOrganizationError() {}
-
 type PageInfo struct {
 	HasNextPage     bool    `json:"hasNextPage"`
 	HasPreviousPage bool    `json:"hasPreviousPage"`
@@ -520,25 +485,6 @@ func (PermissionRoleAlreadyExists) IsCreateCustomRoleError() {}
 
 func (PermissionRoleAlreadyExists) IsUpdatePermissionRoleError() {}
 
-type PermissionRoleNotFound struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (PermissionRoleNotFound) IsPermissionManagementError() {}
-func (this PermissionRoleNotFound) GetMessage() string      { return this.Message }
-func (this PermissionRoleNotFound) GetSuggestion() *string  { return this.Suggestion }
-
-func (PermissionRoleNotFound) IsUpdatePermissionRoleError() {}
-
-func (PermissionRoleNotFound) IsDeletePermissionRoleError() {}
-
-func (PermissionRoleNotFound) IsRolePermissionError() {}
-
-func (PermissionRoleNotFound) IsAssignRoleError() {}
-
-func (PermissionRoleNotFound) IsRevokeRoleError() {}
-
 type PermissionSystemRoleCannotBeModified struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -554,19 +500,6 @@ func (PermissionSystemRoleCannotBeModified) IsDeletePermissionRoleError() {}
 
 func (PermissionSystemRoleCannotBeModified) IsRolePermissionError() {}
 
-type PermissionUserNotFound struct {
-	Message    string  `json:"message"`
-	Suggestion *string `json:"suggestion,omitempty"`
-}
-
-func (PermissionUserNotFound) IsPermissionManagementError() {}
-func (this PermissionUserNotFound) GetMessage() string      { return this.Message }
-func (this PermissionUserNotFound) GetSuggestion() *string  { return this.Suggestion }
-
-func (PermissionUserNotFound) IsAssignRoleError() {}
-
-func (PermissionUserNotFound) IsRevokeRoleError() {}
-
 type Profile struct {
 	ID        string  `json:"id"`
 	UserID    string  `json:"userId"`
@@ -579,17 +512,6 @@ type Profile struct {
 
 func (Profile) IsNode()            {}
 func (this Profile) GetID() string { return this.ID }
-
-type ProfileNotFound struct {
-	Message string `json:"message"`
-}
-
-func (ProfileNotFound) IsError()                {}
-func (this ProfileNotFound) GetMessage() string { return this.Message }
-
-func (ProfileNotFound) IsGetMyUserProfileError() {}
-
-func (ProfileNotFound) IsUpdateMyProfileError() {}
 
 type Project struct {
 	ID          string        `json:"id"`
@@ -633,29 +555,6 @@ type ProjectEdge struct {
 	Cursor string   `json:"cursor"`
 }
 
-type ProjectNotFound struct {
-	Message string `json:"message"`
-}
-
-func (ProjectNotFound) IsError()                {}
-func (this ProjectNotFound) GetMessage() string { return this.Message }
-
-func (ProjectNotFound) IsGetProjectError() {}
-
-func (ProjectNotFound) IsUpdateProjectError() {}
-
-func (ProjectNotFound) IsDeleteProjectError() {}
-
-func (ProjectNotFound) IsGetClusterError() {}
-
-func (ProjectNotFound) IsUpdateClusterError() {}
-
-func (ProjectNotFound) IsDeleteClusterError() {}
-
-func (ProjectNotFound) IsTestConnectionError() {}
-
-func (ProjectNotFound) IsSetProjectAuthSchemaError() {}
-
 type Query struct {
 }
 
@@ -663,6 +562,52 @@ type RemoveRolePermissionPayload struct {
 	Success bool                `json:"success"`
 	Error   RolePermissionError `json:"error,omitempty"`
 }
+
+type ResourceNotFound struct {
+	Message      string       `json:"message"`
+	ResourceType ResourceType `json:"resourceType"`
+}
+
+func (ResourceNotFound) IsError()                {}
+func (this ResourceNotFound) GetMessage() string { return this.Message }
+
+func (ResourceNotFound) IsUpdateEndUserError() {}
+
+func (ResourceNotFound) IsDeleteEndUserError() {}
+
+func (ResourceNotFound) IsUpdatePermissionRoleError() {}
+
+func (ResourceNotFound) IsDeletePermissionRoleError() {}
+
+func (ResourceNotFound) IsRolePermissionError() {}
+
+func (ResourceNotFound) IsAssignRoleError() {}
+
+func (ResourceNotFound) IsRevokeRoleError() {}
+
+func (ResourceNotFound) IsGetMyUserProfileError() {}
+
+func (ResourceNotFound) IsUpdateMyProfileError() {}
+
+func (ResourceNotFound) IsGetProjectError() {}
+
+func (ResourceNotFound) IsUpdateProjectError() {}
+
+func (ResourceNotFound) IsDeleteProjectError() {}
+
+func (ResourceNotFound) IsGetClusterError() {}
+
+func (ResourceNotFound) IsUpdateClusterError() {}
+
+func (ResourceNotFound) IsDeleteClusterError() {}
+
+func (ResourceNotFound) IsTestConnectionError() {}
+
+func (ResourceNotFound) IsSetProjectAuthSchemaError() {}
+
+func (ResourceNotFound) IsGetOrganizationError() {}
+
+func (ResourceNotFound) IsDeleteRoleError() {}
 
 type RevokeRolePayload struct {
 	Success bool            `json:"success"`
@@ -687,15 +632,6 @@ func (RoleAlreadyExists) IsError()                {}
 func (this RoleAlreadyExists) GetMessage() string { return this.Message }
 
 func (RoleAlreadyExists) IsCreateRoleError() {}
-
-type RoleNotFound struct {
-	Message string `json:"message"`
-}
-
-func (RoleNotFound) IsError()                {}
-func (this RoleNotFound) GetMessage() string { return this.Message }
-
-func (RoleNotFound) IsDeleteRoleError() {}
 
 type SetProjectAuthSchemaInput struct {
 	// 项目 slug
@@ -795,15 +731,6 @@ type User struct {
 
 func (User) IsNode()            {}
 func (this User) GetID() string { return this.ID }
-
-type UserNotFound struct {
-	Message string `json:"message"`
-}
-
-func (UserNotFound) IsError()                {}
-func (this UserNotFound) GetMessage() string { return this.Message }
-
-func (UserNotFound) IsGetMyUserProfileError() {}
 
 type UserRoleAssignment struct {
 	ID        int32     `json:"id"`
@@ -1089,6 +1016,91 @@ func (e *ProjectStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e ProjectStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ResourceType string
+
+const (
+	ResourceTypeProject                         ResourceType = "PROJECT"
+	ResourceTypeCluster                         ResourceType = "CLUSTER"
+	ResourceTypeModel                           ResourceType = "MODEL"
+	ResourceTypeEnum                            ResourceType = "ENUM"
+	ResourceTypeGroup                           ResourceType = "GROUP"
+	ResourceTypeUser                            ResourceType = "USER"
+	ResourceTypeProfile                         ResourceType = "PROFILE"
+	ResourceTypeOrganization                    ResourceType = "ORGANIZATION"
+	ResourceTypeRole                            ResourceType = "ROLE"
+	ResourceTypeEndUser                         ResourceType = "END_USER"
+	ResourceTypeEndUserPermission               ResourceType = "END_USER_PERMISSION"
+	ResourceTypeEndUserPermissionBundle         ResourceType = "END_USER_PERMISSION_BUNDLE"
+	ResourceTypeEndUserPermissionBundleSnapshot ResourceType = "END_USER_PERMISSION_BUNDLE_SNAPSHOT"
+	ResourceTypeEndUserRole                     ResourceType = "END_USER_ROLE"
+	ResourceTypeEndUserInProject                ResourceType = "END_USER_IN_PROJECT"
+	ResourceTypePermissionRole                  ResourceType = "PERMISSION_ROLE"
+	ResourceTypePermissionUser                  ResourceType = "PERMISSION_USER"
+)
+
+var AllResourceType = []ResourceType{
+	ResourceTypeProject,
+	ResourceTypeCluster,
+	ResourceTypeModel,
+	ResourceTypeEnum,
+	ResourceTypeGroup,
+	ResourceTypeUser,
+	ResourceTypeProfile,
+	ResourceTypeOrganization,
+	ResourceTypeRole,
+	ResourceTypeEndUser,
+	ResourceTypeEndUserPermission,
+	ResourceTypeEndUserPermissionBundle,
+	ResourceTypeEndUserPermissionBundleSnapshot,
+	ResourceTypeEndUserRole,
+	ResourceTypeEndUserInProject,
+	ResourceTypePermissionRole,
+	ResourceTypePermissionUser,
+}
+
+func (e ResourceType) IsValid() bool {
+	switch e {
+	case ResourceTypeProject, ResourceTypeCluster, ResourceTypeModel, ResourceTypeEnum, ResourceTypeGroup, ResourceTypeUser, ResourceTypeProfile, ResourceTypeOrganization, ResourceTypeRole, ResourceTypeEndUser, ResourceTypeEndUserPermission, ResourceTypeEndUserPermissionBundle, ResourceTypeEndUserPermissionBundleSnapshot, ResourceTypeEndUserRole, ResourceTypeEndUserInProject, ResourceTypePermissionRole, ResourceTypePermissionUser:
+		return true
+	}
+	return false
+}
+
+func (e ResourceType) String() string {
+	return string(e)
+}
+
+func (e *ResourceType) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ResourceType(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ResourceType", str)
+	}
+	return nil
+}
+
+func (e ResourceType) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ResourceType) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ResourceType) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

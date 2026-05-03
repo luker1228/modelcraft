@@ -15,6 +15,7 @@ interface MutationPayloadError {
   __typename: string
   message: string
   suggestion?: string | null
+  resourceType?: string
 }
 
 interface UpdateMyProfileMutationData {
@@ -39,6 +40,7 @@ interface UpdateMyProfileMutationVariables {
 interface QueryProfilePayloadError {
   __typename: string
   message: string
+  resourceType?: string
 }
 
 interface QueryUserProfile {
@@ -106,7 +108,7 @@ function mapQueryPayloadToProfileView(payload?: MyUserProfilePayload | null): Us
 }
 
 function mapMutationError(error: MutationPayloadError): ProfileDomainError {
-  if (error.__typename === 'ProfileNotFound') {
+  if (error.__typename === 'ResourceNotFound') {
     return {
       type: 'ProfileNotFound',
       message: error.message,
@@ -132,7 +134,7 @@ function mapRefetchPayloadError(error?: QueryProfilePayloadError | null): Profil
     return null
   }
 
-  if (error.__typename === 'ProfileNotFound') {
+  if (error.__typename === 'ResourceNotFound') {
     return {
       type: 'ProfileNotFound',
       message: error.message,

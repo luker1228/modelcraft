@@ -343,25 +343,9 @@ type EndUserRoleBundleSource {
 # Error Types
 # ============================================================
 
-type EndUserPermissionNotFound implements Error {
-  message: String!
-}
-
-type EndUserPermissionBundleNotFound implements Error {
-  message: String!
-}
-
-type EndUserPermissionBundleSnapshotNotFound implements Error {
-  message: String!
-}
-
 type EndUserPermissionBundleAlreadyExists implements Error {
   message: String!
   suggestion: String
-}
-
-type EndUserRoleNotFound implements Error {
-  message: String!
 }
 
 type EndUserRoleAlreadyExists implements Error {
@@ -391,10 +375,6 @@ type UserBundleAlreadyAssigned implements Error {
 }
 
 type UserRoleAlreadyAssigned implements Error {
-  message: String!
-}
-
-type EndUserNotFoundInProject implements Error {
   message: String!
 }
 
@@ -430,42 +410,39 @@ type PresetDeleteBlockedByBundle implements Error {
 # Error Unions
 # ============================================================
 
-union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
-union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
-union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
-union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | PresetDeleteBlockedByBundle | ProjectNotFound
+union CreateEndUserPermissionError = ResourceNotFound | InvalidInput | RowScopeFieldMissing
+union UpdateEndUserPermissionError = ResourceNotFound | InvalidInput | RowScopeFieldMissing
+union DeleteEndUserPermissionError = ResourceNotFound | EndUserPermissionInUse
+union ApplyEndUserPresetPolicyError = ResourceNotFound | PresetRequiresOwnerField | PresetDeleteBlockedByBundle
 
-union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
-union DeleteEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleInUse | ProjectNotFound
+union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEndUserPermissionBundleError = ResourceNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput
+union DeleteEndUserPermissionBundleError = ResourceNotFound | EndUserPermissionBundleInUse
 
-union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | InvalidInput | ProjectNotFound
-union AddEndUserPresetToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
-union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
+union AddEndUserPermissionToBundleError = ResourceNotFound | InvalidInput
+union AddEndUserPresetToBundleError = ResourceNotFound | PresetRequiresOwnerField | InvalidInput
+union RemoveEndUserPermissionFromBundleError = ResourceNotFound
 
-union BindPresetItemToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
-union BindCustomItemToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ModelNotFound | InvalidInput | ProjectNotFound
-union RemoveDataPermissionItemFromBundleError = EndUserPermissionBundleNotFound | ModelNotFound | ProjectNotFound
+union BindPresetItemToBundleError = ResourceNotFound | PresetRequiresOwnerField | InvalidInput
+union BindCustomItemToBundleError = ResourceNotFound | InvalidInput
+union RemoveDataPermissionItemFromBundleError = ResourceNotFound
 
-union RestoreEndUserPermissionBundleError =
-    EndUserPermissionBundleNotFound
-  | EndUserPermissionBundleSnapshotNotFound
-  | ProjectNotFound
+union RestoreEndUserPermissionBundleError = ResourceNotFound
 
-union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
-union DeleteEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | ProjectNotFound
+union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEndUserRoleError = ResourceNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput
+union DeleteEndUserRoleError = ResourceNotFound | EndUserImplicitRoleCannotBeModified
 
-union AssignBundleToEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
-union RevokeBundleFromEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
+union AssignBundleToEndUserRoleError = ResourceNotFound
+union RevokeBundleFromEndUserRoleError = ResourceNotFound
 
-union AssignBundleToEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | UserBundleAlreadyAssigned | ProjectNotFound
-union RevokeBundleFromEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | ProjectNotFound
+union AssignBundleToEndUserError = ResourceNotFound | UserBundleAlreadyAssigned
+union RevokeBundleFromEndUserError = ResourceNotFound
 
-union AssignEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned | ProjectNotFound
-union RevokeEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | ProjectNotFound
+union AssignEndUserRoleError = ResourceNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned
+union RevokeEndUserRoleError = ResourceNotFound
 
-union GetEffectivePermissionsError = EndUserNotFoundInProject | ModelNotFound | ProjectNotFound
+union GetEffectivePermissionsError = ResourceNotFound
 
 
 # ============================================================
@@ -764,7 +741,7 @@ type ListProjectEndUserRoleUsersPayload {
   error: ListProjectEndUserRoleUsersError
 }
 
-union ListProjectEndUserRoleUsersError = InvalidInput | ProjectNotFound
+union ListProjectEndUserRoleUsersError = InvalidInput | ResourceNotFound
 
 input ListProjectEndUserRoleUsersInput {
   search: String    # EndUser username 模糊搜索

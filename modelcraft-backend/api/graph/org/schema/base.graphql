@@ -16,6 +16,32 @@ type InvalidInput implements Error {
   suggestion: String
 }
 
+# Unified not-found error type replacing all *NotFound variants
+enum ResourceType {
+  PROJECT
+  CLUSTER
+  MODEL
+  ENUM
+  GROUP
+  USER
+  PROFILE
+  ORGANIZATION
+  ROLE
+  END_USER
+  END_USER_PERMISSION
+  END_USER_PERMISSION_BUNDLE
+  END_USER_PERMISSION_BUNDLE_SNAPSHOT
+  END_USER_ROLE
+  END_USER_IN_PROJECT
+  PERMISSION_ROLE
+  PERMISSION_USER
+}
+
+type ResourceNotFound implements Error {
+  message: String!
+  resourceType: ResourceType!
+}
+
 # Pagination types
 type PageInfo {
   hasNextPage: Boolean!

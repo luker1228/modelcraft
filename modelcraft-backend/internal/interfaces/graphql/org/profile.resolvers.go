@@ -47,7 +47,7 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input generated.
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProfileNotFound.GetCode():
 				return &generated.UpdateMyProfilePayload{
-					Error: &generated.ProfileNotFound{Message: bizErr.Msg()},
+					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeProfile},
 				}, nil
 			case bizerrors.InvalidProfileInput.GetCode():
 				suggestion := "Please provide at least one field: nickname, avatarUrl, or bio"
@@ -103,11 +103,11 @@ func (r *queryResolver) MyUserProfile(ctx context.Context) (*generated.GetMyUser
 			switch bizErr.Info().GetCode() {
 			case bizerrors.UserNotFound.GetCode():
 				return &generated.GetMyUserProfilePayload{
-					Error: &generated.UserNotFound{Message: bizErr.Msg()},
+					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeUser},
 				}, nil
 			case bizerrors.ProfileNotFound.GetCode():
 				return &generated.GetMyUserProfilePayload{
-					Error: &generated.ProfileNotFound{Message: bizErr.Msg()},
+					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeProfile},
 				}, nil
 			}
 		}

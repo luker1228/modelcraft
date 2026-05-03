@@ -10,10 +10,6 @@ type ModelAlreadyExists implements Error {
   suggestion: String
 }
 
-type ModelNotFound implements Error {
-  message: String!
-}
-
 type CannotDeleteDeployedModel implements Error {
   message: String!
   suggestion: String
@@ -25,10 +21,10 @@ type ModelTableAlreadyExists implements Error {
 }
 
 # Error unions for each mutation and query
-union GetModelError = ModelNotFound | InvalidInput | ProjectNotFound
-union CreateModelError = ModelAlreadyExists | InvalidInput | ProjectNotFound | ModelTableAlreadyExists
-union UpdateModelError = ModelNotFound | InvalidInput | ProjectNotFound
-union DeleteModelError = ModelNotFound | CannotDeleteDeployedModel | ProjectNotFound
+union GetModelError = ResourceNotFound | InvalidInput
+union CreateModelError = ModelAlreadyExists | InvalidInput | ResourceNotFound | ModelTableAlreadyExists
+union UpdateModelError = ResourceNotFound | InvalidInput
+union DeleteModelError = ResourceNotFound | CannotDeleteDeployedModel
 
 # ============================================
 # Model Payload Types
@@ -227,10 +223,6 @@ type ModelGroup {
 }
 
 # ModelGroup error types
-type GroupNotFound implements Error {
-  message: String!
-}
-
 type GroupAlreadyExists implements Error {
   message: String!
   suggestion: String
@@ -243,10 +235,10 @@ type InvalidGroupName implements Error {
 
 # ModelGroup error unions
 union CreateGroupError = GroupAlreadyExists | InvalidGroupName
-union RenameGroupError = GroupAlreadyExists | InvalidGroupName | GroupNotFound
-union DeleteGroupError = GroupNotFound
-union ReorderGroupError = GroupNotFound
-union MoveModelToGroupError = GroupNotFound | ModelNotFound
+union RenameGroupError = GroupAlreadyExists | InvalidGroupName | ResourceNotFound
+union DeleteGroupError = ResourceNotFound
+union ReorderGroupError = ResourceNotFound
+union MoveModelToGroupError = ResourceNotFound
 
 # ModelGroup payload types
 type CreateGroupPayload {

@@ -47,7 +47,7 @@ const UPDATE_API_KEY = `
       }
       error {
         __typename
-        ... on ApiKeyNotFound { message }
+        ... on ResourceNotFound { message resourceType }
         ... on InvalidInput { message }
       }
     }
@@ -60,7 +60,7 @@ const REVOKE_API_KEY = `
       apiKey { id }
       error {
         __typename
-        ... on ApiKeyNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }

@@ -133,10 +133,6 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	ClusterNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	ColumnPolicy struct {
 		DefaultMode func(childComplexity int) int
 		Rules       func(childComplexity int) int
@@ -376,14 +372,6 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	EndUserNotFound struct {
-		Message func(childComplexity int) int
-	}
-
-	EndUserNotFoundInProject struct {
-		Message func(childComplexity int) int
-	}
-
 	EndUserPasswordTooWeak struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -438,10 +426,6 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	EndUserPermissionBundleNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	EndUserPermissionBundleSnapshot struct {
 		CreatedAt    func(childComplexity int) int
 		CreatedBy    func(childComplexity int) int
@@ -449,10 +433,6 @@ type ComplexityRoot struct {
 		Permissions  func(childComplexity int) int
 		RestoredFrom func(childComplexity int) int
 		Version      func(childComplexity int) int
-	}
-
-	EndUserPermissionBundleSnapshotNotFound struct {
-		Message func(childComplexity int) int
 	}
 
 	EndUserPermissionConnection struct {
@@ -469,10 +449,6 @@ type ComplexityRoot struct {
 	EndUserPermissionInUse struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
-	}
-
-	EndUserPermissionNotFound struct {
-		Message func(childComplexity int) int
 	}
 
 	EndUserPermissionSnapshotEntry struct {
@@ -536,10 +512,6 @@ type ComplexityRoot struct {
 		Node   func(childComplexity int) int
 	}
 
-	EndUserRoleNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	EnumAlreadyExists struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -556,10 +528,6 @@ type ComplexityRoot struct {
 		OrgName       func(childComplexity int) int
 		ProjectSlug   func(childComplexity int) int
 		UpdatedAt     func(childComplexity int) int
-	}
-
-	EnumNotFound struct {
-		Message func(childComplexity int) int
 	}
 
 	EnumOption struct {
@@ -658,10 +626,6 @@ type ComplexityRoot struct {
 	GroupAlreadyExists struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
-	}
-
-	GroupNotFound struct {
-		Message func(childComplexity int) int
 	}
 
 	ImportModelPayload struct {
@@ -786,10 +750,6 @@ type ComplexityRoot struct {
 		Schema    func(childComplexity int) int
 	}
 
-	ModelNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	ModelRLSPolicy struct {
 		CreatedAt       func(childComplexity int) int
 		DeletePredicate func(childComplexity int) int
@@ -900,10 +860,6 @@ type ComplexityRoot struct {
 		TotalCount func(childComplexity int) int
 	}
 
-	ProjectNotFound struct {
-		Message func(childComplexity int) int
-	}
-
 	Query struct {
 		DatabaseCluster               func(childComplexity int) int
 		EffectivePermissions          func(childComplexity int, input GetEffectivePermissionsInput) int
@@ -978,6 +934,11 @@ type ComplexityRoot struct {
 		HealthStatusAfter  func(childComplexity int) int
 		HealthStatusBefore func(childComplexity int) int
 		Model              func(childComplexity int) int
+	}
+
+	ResourceNotFound struct {
+		Message      func(childComplexity int) int
+		ResourceType func(childComplexity int) int
 	}
 
 	RestoreEndUserPermissionBundlePayload struct {
@@ -1473,13 +1434,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ClusterAlreadyExistsForProject.Suggestion(childComplexity), true
-
-	case "ClusterNotFound.message":
-		if e.complexity.ClusterNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.ClusterNotFound.Message(childComplexity), true
 
 	case "ColumnPolicy.defaultMode":
 		if e.complexity.ColumnPolicy.DefaultMode == nil {
@@ -2218,20 +2172,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.EndUserImplicitRoleCannotBeModified.Suggestion(childComplexity), true
 
-	case "EndUserNotFound.message":
-		if e.complexity.EndUserNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserNotFound.Message(childComplexity), true
-
-	case "EndUserNotFoundInProject.message":
-		if e.complexity.EndUserNotFoundInProject.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserNotFoundInProject.Message(childComplexity), true
-
 	case "EndUserPasswordTooWeak.message":
 		if e.complexity.EndUserPasswordTooWeak.Message == nil {
 			break
@@ -2437,13 +2377,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.EndUserPermissionBundleInUse.Suggestion(childComplexity), true
 
-	case "EndUserPermissionBundleNotFound.message":
-		if e.complexity.EndUserPermissionBundleNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserPermissionBundleNotFound.Message(childComplexity), true
-
 	case "EndUserPermissionBundleSnapshot.createdAt":
 		if e.complexity.EndUserPermissionBundleSnapshot.CreatedAt == nil {
 			break
@@ -2480,13 +2413,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermissionBundleSnapshot.Version(childComplexity), true
-
-	case "EndUserPermissionBundleSnapshotNotFound.message":
-		if e.complexity.EndUserPermissionBundleSnapshotNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserPermissionBundleSnapshotNotFound.Message(childComplexity), true
 
 	case "EndUserPermissionConnection.edges":
 		if e.complexity.EndUserPermissionConnection.Edges == nil {
@@ -2532,13 +2458,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPermissionInUse.Suggestion(childComplexity), true
-
-	case "EndUserPermissionNotFound.message":
-		if e.complexity.EndUserPermissionNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserPermissionNotFound.Message(childComplexity), true
 
 	case "EndUserPermissionSnapshotEntry.permission":
 		if e.complexity.EndUserPermissionSnapshotEntry.Permission == nil {
@@ -2736,13 +2655,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.EndUserRoleEdge.Node(childComplexity), true
 
-	case "EndUserRoleNotFound.message":
-		if e.complexity.EndUserRoleNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EndUserRoleNotFound.Message(childComplexity), true
-
 	case "EnumAlreadyExists.message":
 		if e.complexity.EnumAlreadyExists.Message == nil {
 			break
@@ -2816,13 +2728,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EnumDefinition.UpdatedAt(childComplexity), true
-
-	case "EnumNotFound.message":
-		if e.complexity.EnumNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.EnumNotFound.Message(childComplexity), true
 
 	case "EnumOption.code":
 		if e.complexity.EnumOption.Code == nil {
@@ -3139,13 +3044,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.GroupAlreadyExists.Suggestion(childComplexity), true
-
-	case "GroupNotFound.message":
-		if e.complexity.GroupNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.GroupNotFound.Message(childComplexity), true
 
 	case "ImportModelPayload.fieldsCount":
 		if e.complexity.ImportModelPayload.FieldsCount == nil {
@@ -3572,13 +3470,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelJsonSchema.Schema(childComplexity), true
-
-	case "ModelNotFound.message":
-		if e.complexity.ModelNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.ModelNotFound.Message(childComplexity), true
 
 	case "ModelRLSPolicy.createdAt":
 		if e.complexity.ModelRLSPolicy.CreatedAt == nil {
@@ -4320,13 +4211,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ProjectEndUserRoleUserConnection.TotalCount(childComplexity), true
 
-	case "ProjectNotFound.message":
-		if e.complexity.ProjectNotFound.Message == nil {
-			break
-		}
-
-		return e.complexity.ProjectNotFound.Message(childComplexity), true
-
 	case "Query.databaseCluster":
 		if e.complexity.Query.DatabaseCluster == nil {
 			break
@@ -4776,6 +4660,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RepairModelPayload.Model(childComplexity), true
+
+	case "ResourceNotFound.message":
+		if e.complexity.ResourceNotFound.Message == nil {
+			break
+		}
+
+		return e.complexity.ResourceNotFound.Message(childComplexity), true
+	case "ResourceNotFound.resourceType":
+		if e.complexity.ResourceNotFound.ResourceType == nil {
+			break
+		}
+
+		return e.complexity.ResourceNotFound.ResourceType(childComplexity), true
 
 	case "RestoreEndUserPermissionBundlePayload.bundle":
 		if e.complexity.RestoreEndUserPermissionBundlePayload.Bundle == nil {
@@ -5365,6 +5262,32 @@ interface Node {
   id: ID!
 }
 
+# Unified not-found error type replacing all *NotFound variants
+enum ResourceType {
+  PROJECT
+  CLUSTER
+  MODEL
+  ENUM
+  GROUP
+  USER
+  PROFILE
+  ORGANIZATION
+  ROLE
+  END_USER
+  END_USER_PERMISSION
+  END_USER_PERMISSION_BUNDLE
+  END_USER_PERMISSION_BUNDLE_SNAPSHOT
+  END_USER_ROLE
+  END_USER_IN_PROJECT
+  PERMISSION_ROLE
+  PERMISSION_USER
+}
+
+type ResourceNotFound implements Error {
+  message: String!
+  resourceType: ResourceType!
+}
+
 # Pagination types
 type PageInfo {
   hasNextPage: Boolean!
@@ -5410,24 +5333,16 @@ type ClusterAlreadyExistsForProject implements Error {
   suggestion: String
 }
 
-type ClusterNotFound implements Error {
-  message: String!
-}
-
 type DatabaseConnectionFailed implements Error {
   message: String!
   suggestion: String
 }
 
-type ProjectNotFound implements Error {
-  message: String!
-}
-
 # Error unions for cluster operations
-union GetClusterError = ClusterNotFound | ProjectNotFound
-union UpdateClusterError = ClusterNotFound | InvalidInput | DatabaseConnectionFailed | ProjectNotFound
-union DeleteClusterError = ClusterNotFound | ProjectNotFound
-union TestConnectionError = ClusterNotFound | DatabaseConnectionFailed | ProjectNotFound
+union GetClusterError = ResourceNotFound
+union UpdateClusterError = ResourceNotFound | InvalidInput | DatabaseConnectionFailed
+union DeleteClusterError = ResourceNotFound
+union TestConnectionError = ResourceNotFound | DatabaseConnectionFailed
 
 # ============================================
 # Cluster Payload Types
@@ -5482,7 +5397,7 @@ type ModelDatabaseCatalogPayload {
   pageSize: Int!
 }
 
-union ModelDatabaseCatalogError = InvalidInput | ProjectNotFound
+union ModelDatabaseCatalogError = InvalidInput | ResourceNotFound
 
 type GetModelDatabaseCatalogPayload {
   data: ModelDatabaseCatalogPayload
@@ -5623,8 +5538,7 @@ extend type Mutation {
 # Dependencies (defined in other files, referenced here):
 #   - interface Error           → cluster.graphql
 #   - type InvalidInput         → field.graphql
-#   - type ProjectNotFound      → cluster.graphql
-#   - type ClusterNotFound      → cluster.graphql
+#   - type ResourceNotFound     → base.graphql
 #   - scalar Time               → base.graphql
 #   - interface Node            → base.graphql
 #   - type PageInfo             → base.graphql
@@ -5632,10 +5546,6 @@ extend type Mutation {
 # ============================================
 # End User Error Types (new types only)
 # ============================================
-
-type EndUserNotFound implements Error {
-  message: String!
-}
 
 type EndUserAlreadyExists implements Error {
   message: String!
@@ -5646,18 +5556,18 @@ type EndUserPasswordTooWeak implements Error {
   suggestion: String
 }
 
-# ClusterNotFound is reused for "Project has no configured Cluster"
-union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ClusterNotFound | InvalidInput | ProjectNotFound
-union UpdateEndUserError = EndUserNotFound | ClusterNotFound | InvalidInput | ProjectNotFound
-union DeleteEndUserError = EndUserNotFound | ClusterNotFound | ProjectNotFound
-union ListProjectEndUsersError = ClusterNotFound | ProjectNotFound
+# ClusterNotFound is now ResourceNotFound with resourceType=CLUSTER
+union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ResourceNotFound | InvalidInput
+union UpdateEndUserError = ResourceNotFound | InvalidInput
+union DeleteEndUserError = ResourceNotFound
+union ListProjectEndUsersError = ResourceNotFound
 
 # InitPrivateDBError indicates private DB initialization failures.
 type InitPrivateDBError implements Error {
   message: String!
 }
 
-union InitPrivateDBPayloadError = InitPrivateDBError | ProjectNotFound
+union InitPrivateDBPayloadError = InitPrivateDBError | ResourceNotFound
 
 # ============================================
 # End User Types
@@ -5752,20 +5662,16 @@ type EnumAlreadyExists implements Error {
   suggestion: String
 }
 
-type EnumNotFound implements Error {
-  message: String!
-}
-
 type CannotDeleteReferencedEnum implements Error {
   message: String!
   suggestion: String
 }
 
 # Error unions for each mutation and query
-union GetEnumError = EnumNotFound | ProjectNotFound
-union CreateEnumError = EnumAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEnumError = EnumNotFound | InvalidInput | ProjectNotFound
-union DeleteEnumError = EnumNotFound | CannotDeleteReferencedEnum | ProjectNotFound
+union GetEnumError = ResourceNotFound
+union CreateEnumError = EnumAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEnumError = ResourceNotFound | InvalidInput
+union DeleteEnumError = ResourceNotFound | CannotDeleteReferencedEnum
 
 # ============================================
 # Enum Payload Types
@@ -6180,10 +6086,6 @@ type ModelAlreadyExists implements Error {
   suggestion: String
 }
 
-type ModelNotFound implements Error {
-  message: String!
-}
-
 type CannotDeleteDeployedModel implements Error {
   message: String!
   suggestion: String
@@ -6195,10 +6097,10 @@ type ModelTableAlreadyExists implements Error {
 }
 
 # Error unions for each mutation and query
-union GetModelError = ModelNotFound | InvalidInput | ProjectNotFound
-union CreateModelError = ModelAlreadyExists | InvalidInput | ProjectNotFound | ModelTableAlreadyExists
-union UpdateModelError = ModelNotFound | InvalidInput | ProjectNotFound
-union DeleteModelError = ModelNotFound | CannotDeleteDeployedModel | ProjectNotFound
+union GetModelError = ResourceNotFound | InvalidInput
+union CreateModelError = ModelAlreadyExists | InvalidInput | ResourceNotFound | ModelTableAlreadyExists
+union UpdateModelError = ResourceNotFound | InvalidInput
+union DeleteModelError = ResourceNotFound | CannotDeleteDeployedModel
 
 # ============================================
 # Model Payload Types
@@ -6397,10 +6299,6 @@ type ModelGroup {
 }
 
 # ModelGroup error types
-type GroupNotFound implements Error {
-  message: String!
-}
-
 type GroupAlreadyExists implements Error {
   message: String!
   suggestion: String
@@ -6413,10 +6311,10 @@ type InvalidGroupName implements Error {
 
 # ModelGroup error unions
 union CreateGroupError = GroupAlreadyExists | InvalidGroupName
-union RenameGroupError = GroupAlreadyExists | InvalidGroupName | GroupNotFound
-union DeleteGroupError = GroupNotFound
-union ReorderGroupError = GroupNotFound
-union MoveModelToGroupError = GroupNotFound | ModelNotFound
+union RenameGroupError = GroupAlreadyExists | InvalidGroupName | ResourceNotFound
+union DeleteGroupError = ResourceNotFound
+union ReorderGroupError = ResourceNotFound
+union MoveModelToGroupError = ResourceNotFound
 
 # ModelGroup payload types
 type CreateGroupPayload {
@@ -6834,25 +6732,9 @@ type EndUserRoleBundleSource {
 # Error Types
 # ============================================================
 
-type EndUserPermissionNotFound implements Error {
-  message: String!
-}
-
-type EndUserPermissionBundleNotFound implements Error {
-  message: String!
-}
-
-type EndUserPermissionBundleSnapshotNotFound implements Error {
-  message: String!
-}
-
 type EndUserPermissionBundleAlreadyExists implements Error {
   message: String!
   suggestion: String
-}
-
-type EndUserRoleNotFound implements Error {
-  message: String!
 }
 
 type EndUserRoleAlreadyExists implements Error {
@@ -6882,10 +6764,6 @@ type UserBundleAlreadyAssigned implements Error {
 }
 
 type UserRoleAlreadyAssigned implements Error {
-  message: String!
-}
-
-type EndUserNotFoundInProject implements Error {
   message: String!
 }
 
@@ -6921,42 +6799,39 @@ type PresetDeleteBlockedByBundle implements Error {
 # Error Unions
 # ============================================================
 
-union CreateEndUserPermissionError = ModelNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
-union UpdateEndUserPermissionError = EndUserPermissionNotFound | InvalidInput | RowScopeFieldMissing | ProjectNotFound
-union DeleteEndUserPermissionError = EndUserPermissionNotFound | EndUserPermissionInUse | ProjectNotFound
-union ApplyEndUserPresetPolicyError = ModelNotFound | PresetRequiresOwnerField | PresetDeleteBlockedByBundle | ProjectNotFound
+union CreateEndUserPermissionError = ResourceNotFound | InvalidInput | RowScopeFieldMissing
+union UpdateEndUserPermissionError = ResourceNotFound | InvalidInput | RowScopeFieldMissing
+union DeleteEndUserPermissionError = ResourceNotFound | EndUserPermissionInUse
+union ApplyEndUserPresetPolicyError = ResourceNotFound | PresetRequiresOwnerField | PresetDeleteBlockedByBundle
 
-union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput | ProjectNotFound
-union DeleteEndUserPermissionBundleError = EndUserPermissionBundleNotFound | EndUserPermissionBundleInUse | ProjectNotFound
+union CreateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEndUserPermissionBundleError = ResourceNotFound | EndUserPermissionBundleAlreadyExists | InvalidInput
+union DeleteEndUserPermissionBundleError = ResourceNotFound | EndUserPermissionBundleInUse
 
-union AddEndUserPermissionToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | InvalidInput | ProjectNotFound
-union AddEndUserPresetToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
-union RemoveEndUserPermissionFromBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ProjectNotFound
+union AddEndUserPermissionToBundleError = ResourceNotFound | InvalidInput
+union AddEndUserPresetToBundleError = ResourceNotFound | PresetRequiresOwnerField | InvalidInput
+union RemoveEndUserPermissionFromBundleError = ResourceNotFound
 
-union BindPresetItemToBundleError = EndUserPermissionBundleNotFound | ModelNotFound | PresetRequiresOwnerField | InvalidInput | ProjectNotFound
-union BindCustomItemToBundleError = EndUserPermissionBundleNotFound | EndUserPermissionNotFound | ModelNotFound | InvalidInput | ProjectNotFound
-union RemoveDataPermissionItemFromBundleError = EndUserPermissionBundleNotFound | ModelNotFound | ProjectNotFound
+union BindPresetItemToBundleError = ResourceNotFound | PresetRequiresOwnerField | InvalidInput
+union BindCustomItemToBundleError = ResourceNotFound | InvalidInput
+union RemoveDataPermissionItemFromBundleError = ResourceNotFound
 
-union RestoreEndUserPermissionBundleError =
-    EndUserPermissionBundleNotFound
-  | EndUserPermissionBundleSnapshotNotFound
-  | ProjectNotFound
+union RestoreEndUserPermissionBundleError = ResourceNotFound
 
-union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput | ProjectNotFound
-union DeleteEndUserRoleError = EndUserRoleNotFound | EndUserImplicitRoleCannotBeModified | ProjectNotFound
+union CreateEndUserRoleError = EndUserRoleAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEndUserRoleError = ResourceNotFound | EndUserImplicitRoleCannotBeModified | EndUserRoleAlreadyExists | InvalidInput
+union DeleteEndUserRoleError = ResourceNotFound | EndUserImplicitRoleCannotBeModified
 
-union AssignBundleToEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
-union RevokeBundleFromEndUserRoleError = EndUserRoleNotFound | EndUserPermissionBundleNotFound | ProjectNotFound
+union AssignBundleToEndUserRoleError = ResourceNotFound
+union RevokeBundleFromEndUserRoleError = ResourceNotFound
 
-union AssignBundleToEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | UserBundleAlreadyAssigned | ProjectNotFound
-union RevokeBundleFromEndUserError = EndUserNotFoundInProject | EndUserPermissionBundleNotFound | ProjectNotFound
+union AssignBundleToEndUserError = ResourceNotFound | UserBundleAlreadyAssigned
+union RevokeBundleFromEndUserError = ResourceNotFound
 
-union AssignEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned | ProjectNotFound
-union RevokeEndUserRoleError = EndUserNotFoundInProject | EndUserRoleNotFound | ProjectNotFound
+union AssignEndUserRoleError = ResourceNotFound | EndUserCannotAssignImplicitRole | UserRoleAlreadyAssigned
+union RevokeEndUserRoleError = ResourceNotFound
 
-union GetEffectivePermissionsError = EndUserNotFoundInProject | ModelNotFound | ProjectNotFound
+union GetEffectivePermissionsError = ResourceNotFound
 
 
 # ============================================================
@@ -7255,7 +7130,7 @@ type ListProjectEndUserRoleUsersPayload {
   error: ListProjectEndUserRoleUsersError
 }
 
-union ListProjectEndUserRoleUsersError = InvalidInput | ProjectNotFound
+union ListProjectEndUserRoleUsersError = InvalidInput | ResourceNotFound
 
 input ListProjectEndUserRoleUsersInput {
   search: String    # EndUser username 模糊搜索
@@ -7540,15 +7415,15 @@ type RLSCheckViolation implements Error {
   operation: String
 }
 
-union SetProjectAuthSchemaError = ProjectNotFound | InvalidInput
+union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
 
 type DangerousPolicyNotConfirmed implements Error {
   message: String!
   suggestion: String
 }
 
-union SetModelRLSPolicyError = ModelNotFound | ModelHasNoOwnerField | InvalidRLSExpression | InvalidAuthVariable | ProjectNotFound
-union ValidateRLSExprError = ModelNotFound | InvalidRLSExpression | InvalidAuthVariable | ProjectNotFound
+union SetModelRLSPolicyError = ResourceNotFound | ModelHasNoOwnerField | InvalidRLSExpression | InvalidAuthVariable
+union ValidateRLSExprError = ResourceNotFound | InvalidRLSExpression | InvalidAuthVariable
 
 # ----------------------------------------
 # Payload Types
@@ -9975,35 +9850,6 @@ func (ec *executionContext) _ClusterAlreadyExistsForProject_suggestion(ctx conte
 func (ec *executionContext) fieldContext_ClusterAlreadyExistsForProject_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ClusterAlreadyExistsForProject",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ClusterNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ClusterNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ClusterNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ClusterNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ClusterNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -13766,64 +13612,6 @@ func (ec *executionContext) fieldContext_EndUserImplicitRoleCannotBeModified_sug
 	return fc, nil
 }
 
-func (ec *executionContext) _EndUserNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserNotFoundInProject_message(ctx context.Context, field graphql.CollectedField, obj *EndUserNotFoundInProject) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserNotFoundInProject_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserNotFoundInProject_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserNotFoundInProject",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _EndUserPasswordTooWeak_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPasswordTooWeak) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14873,35 +14661,6 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundleInUse_suggestion
 	return fc, nil
 }
 
-func (ec *executionContext) _EndUserPermissionBundleNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserPermissionBundleNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserPermissionBundleNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserPermissionBundleNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _EndUserPermissionBundleSnapshot_version(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshot) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -15091,35 +14850,6 @@ func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshot_permiss
 				return ec.fieldContext_EndUserPermissionSnapshotEntry_permissionId(ctx, field)
 			}
 			return nil, fmt.Errorf("no field named %q was found under type EndUserPermissionSnapshotEntry", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserPermissionBundleSnapshotNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionBundleSnapshotNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserPermissionBundleSnapshotNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserPermissionBundleSnapshotNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserPermissionBundleSnapshotNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -15360,35 +15090,6 @@ func (ec *executionContext) _EndUserPermissionInUse_suggestion(ctx context.Conte
 func (ec *executionContext) fieldContext_EndUserPermissionInUse_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "EndUserPermissionInUse",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserPermissionNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserPermissionNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserPermissionNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserPermissionNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserPermissionNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -16438,35 +16139,6 @@ func (ec *executionContext) fieldContext_EndUserRoleEdge_cursor(_ context.Contex
 	return fc, nil
 }
 
-func (ec *executionContext) _EndUserRoleNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EndUserRoleNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserRoleNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserRoleNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserRoleNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _EnumAlreadyExists_message(ctx context.Context, field graphql.CollectedField, obj *EnumAlreadyExists) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -16815,35 +16487,6 @@ func (ec *executionContext) _EnumDefinition_updatedAt(ctx context.Context, field
 func (ec *executionContext) fieldContext_EnumDefinition_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "EnumDefinition",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EnumNotFound_message(ctx context.Context, field graphql.CollectedField, obj *EnumNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EnumNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EnumNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EnumNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -18448,35 +18091,6 @@ func (ec *executionContext) _GroupAlreadyExists_suggestion(ctx context.Context, 
 func (ec *executionContext) fieldContext_GroupAlreadyExists_suggestion(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "GroupAlreadyExists",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _GroupNotFound_message(ctx context.Context, field graphql.CollectedField, obj *GroupNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_GroupNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_GroupNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "GroupNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -20629,35 +20243,6 @@ func (ec *executionContext) _ModelJsonSchema_schema(ctx context.Context, field g
 func (ec *executionContext) fieldContext_ModelJsonSchema_schema(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "ModelJsonSchema",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ModelNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ModelNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ModelNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ModelNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ModelNotFound",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -24928,35 +24513,6 @@ func (ec *executionContext) fieldContext_ProjectEndUserRoleUserConnection_totalC
 	return fc, nil
 }
 
-func (ec *executionContext) _ProjectNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ProjectNotFound) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ProjectNotFound_message,
-		func(ctx context.Context) (any, error) {
-			return obj.Message, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ProjectNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ProjectNotFound",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_hello(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -27866,6 +27422,64 @@ func (ec *executionContext) fieldContext_RepairModelPayload_fieldsAdded(_ contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ResourceNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ResourceNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ResourceNotFound_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ResourceNotFound_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResourceNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ResourceNotFound_resourceType(ctx context.Context, field graphql.CollectedField, obj *ResourceNotFound) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ResourceNotFound_resourceType,
+		func(ctx context.Context) (any, error) {
+			return obj.ResourceType, nil
+		},
+		nil,
+		ec.marshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐResourceType,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ResourceNotFound_resourceType(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResourceNotFound",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ResourceType does not have child fields")
 		},
 	}
 	return fc, nil
@@ -34007,13 +33621,13 @@ func (ec *executionContext) _AddEndUserPermissionToBundleError(ctx context.Conte
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34021,20 +33635,6 @@ func (ec *executionContext) _AddEndUserPermissionToBundleError(ctx context.Conte
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPermissionNotFound:
-		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
-	case *EndUserPermissionNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34044,13 +33644,13 @@ func (ec *executionContext) _AddEndUserPresetToBundleError(ctx context.Context, 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case PresetRequiresOwnerField:
 		return ec._PresetRequiresOwnerField(ctx, sel, &obj)
 	case *PresetRequiresOwnerField:
@@ -34058,13 +33658,6 @@ func (ec *executionContext) _AddEndUserPresetToBundleError(ctx context.Context, 
 			return graphql.Null
 		}
 		return ec._PresetRequiresOwnerField(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34072,13 +33665,6 @@ func (ec *executionContext) _AddEndUserPresetToBundleError(ctx context.Context, 
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34104,13 +33690,13 @@ func (ec *executionContext) _ApplyEndUserPresetPolicyError(ctx context.Context, 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case PresetRequiresOwnerField:
 		return ec._PresetRequiresOwnerField(ctx, sel, &obj)
 	case *PresetRequiresOwnerField:
@@ -34125,13 +33711,6 @@ func (ec *executionContext) _ApplyEndUserPresetPolicyError(ctx context.Context, 
 			return graphql.Null
 		}
 		return ec._PresetDeleteBlockedByBundle(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34148,27 +33727,13 @@ func (ec *executionContext) _AssignBundleToEndUserError(ctx context.Context, sel
 			return graphql.Null
 		}
 		return ec._UserBundleAlreadyAssigned(ctx, sel, obj)
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
-	case EndUserNotFoundInProject:
-		return ec._EndUserNotFoundInProject(ctx, sel, &obj)
-	case *EndUserNotFoundInProject:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFoundInProject(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34178,27 +33743,13 @@ func (ec *executionContext) _AssignBundleToEndUserRoleError(ctx context.Context,
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34215,27 +33766,13 @@ func (ec *executionContext) _AssignEndUserRoleError(ctx context.Context, sel ast
 			return graphql.Null
 		}
 		return ec._UserRoleAlreadyAssigned(ctx, sel, obj)
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
-	case EndUserNotFoundInProject:
-		return ec._EndUserNotFoundInProject(ctx, sel, &obj)
-	case *EndUserNotFoundInProject:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFoundInProject(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case EndUserCannotAssignImplicitRole:
 		return ec._EndUserCannotAssignImplicitRole(ctx, sel, &obj)
 	case *EndUserCannotAssignImplicitRole:
@@ -34252,20 +33789,13 @@ func (ec *executionContext) _BindCustomItemToBundleError(ctx context.Context, se
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34273,20 +33803,6 @@ func (ec *executionContext) _BindCustomItemToBundleError(ctx context.Context, se
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPermissionNotFound:
-		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
-	case *EndUserPermissionNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34296,13 +33812,13 @@ func (ec *executionContext) _BindPresetItemToBundleError(ctx context.Context, se
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case PresetRequiresOwnerField:
 		return ec._PresetRequiresOwnerField(ctx, sel, &obj)
 	case *PresetRequiresOwnerField:
@@ -34310,13 +33826,6 @@ func (ec *executionContext) _BindPresetItemToBundleError(ctx context.Context, se
 			return graphql.Null
 		}
 		return ec._PresetRequiresOwnerField(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34324,13 +33833,6 @@ func (ec *executionContext) _BindPresetItemToBundleError(ctx context.Context, se
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34340,13 +33842,13 @@ func (ec *executionContext) _CreateEndUserError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34368,13 +33870,6 @@ func (ec *executionContext) _CreateEndUserError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._EndUserAlreadyExists(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34384,13 +33879,13 @@ func (ec *executionContext) _CreateEndUserPermissionBundleError(ctx context.Cont
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34421,20 +33916,13 @@ func (ec *executionContext) _CreateEndUserPermissionError(ctx context.Context, s
 			return graphql.Null
 		}
 		return ec._RowScopeFieldMissing(ctx, sel, obj)
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34451,13 +33939,13 @@ func (ec *executionContext) _CreateEndUserRoleError(ctx context.Context, sel ast
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34481,13 +33969,13 @@ func (ec *executionContext) _CreateEnumError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -34564,13 +34052,13 @@ func (ec *executionContext) _CreateModelError(ctx context.Context, sel ast.Selec
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case ModelTableAlreadyExists:
 		return ec._ModelTableAlreadyExists(ctx, sel, &obj)
 	case *ModelTableAlreadyExists:
@@ -34601,20 +34089,13 @@ func (ec *executionContext) _DeleteClusterError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34624,27 +34105,13 @@ func (ec *executionContext) _DeleteEndUserError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserNotFound:
-		return ec._EndUserNotFound(ctx, sel, &obj)
-	case *EndUserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34654,20 +34121,13 @@ func (ec *executionContext) _DeleteEndUserPermissionBundleError(ctx context.Cont
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case EndUserPermissionBundleInUse:
 		return ec._EndUserPermissionBundleInUse(ctx, sel, &obj)
 	case *EndUserPermissionBundleInUse:
@@ -34684,20 +34144,13 @@ func (ec *executionContext) _DeleteEndUserPermissionError(ctx context.Context, s
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserPermissionNotFound:
-		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
-	case *EndUserPermissionNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case EndUserPermissionInUse:
 		return ec._EndUserPermissionInUse(ctx, sel, &obj)
 	case *EndUserPermissionInUse:
@@ -34714,20 +34167,13 @@ func (ec *executionContext) _DeleteEndUserRoleError(ctx context.Context, sel ast
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case EndUserImplicitRoleCannotBeModified:
 		return ec._EndUserImplicitRoleCannotBeModified(ctx, sel, &obj)
 	case *EndUserImplicitRoleCannotBeModified:
@@ -34744,20 +34190,13 @@ func (ec *executionContext) _DeleteEnumError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EnumNotFound:
-		return ec._EnumNotFound(ctx, sel, &obj)
-	case *EnumNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EnumNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case CannotDeleteReferencedEnum:
 		return ec._CannotDeleteReferencedEnum(ctx, sel, &obj)
 	case *CannotDeleteReferencedEnum:
@@ -34774,13 +34213,13 @@ func (ec *executionContext) _DeleteGroupError(ctx context.Context, sel ast.Selec
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case GroupNotFound:
-		return ec._GroupNotFound(ctx, sel, &obj)
-	case *GroupNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._GroupNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -34827,20 +34266,13 @@ func (ec *executionContext) _DeleteModelError(ctx context.Context, sel ast.Selec
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case CannotDeleteDeployedModel:
 		return ec._CannotDeleteDeployedModel(ctx, sel, &obj)
 	case *CannotDeleteDeployedModel:
@@ -34878,6 +34310,13 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._RowScopeFieldMissing(ctx, sel, obj)
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case RLSCheckViolation:
 		return ec._RLSCheckViolation(ctx, sel, &obj)
 	case *RLSCheckViolation:
@@ -34885,13 +34324,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._RLSCheckViolation(ctx, sel, obj)
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ProjectNotFound(ctx, sel, obj)
 	case PresetRequiresOwnerField:
 		return ec._PresetRequiresOwnerField(ctx, sel, &obj)
 	case *PresetRequiresOwnerField:
@@ -34913,13 +34345,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._ModelTableAlreadyExists(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
 	case ModelHasNoOwnerField:
 		return ec._ModelHasNoOwnerField(ctx, sel, &obj)
 	case *ModelHasNoOwnerField:
@@ -34969,13 +34394,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._InitPrivateDBError(ctx, sel, obj)
-	case GroupNotFound:
-		return ec._GroupNotFound(ctx, sel, &obj)
-	case *GroupNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._GroupNotFound(ctx, sel, obj)
 	case GroupAlreadyExists:
 		return ec._GroupAlreadyExists(ctx, sel, &obj)
 	case *GroupAlreadyExists:
@@ -34997,13 +34415,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._FieldFormatImmutable(ctx, sel, obj)
-	case EnumNotFound:
-		return ec._EnumNotFound(ctx, sel, &obj)
-	case *EnumNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EnumNotFound(ctx, sel, obj)
 	case EnumAlreadyExists:
 		return ec._EnumAlreadyExists(ctx, sel, &obj)
 	case *EnumAlreadyExists:
@@ -35011,13 +34422,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EnumAlreadyExists(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
 	case EndUserRoleAlreadyExists:
 		return ec._EndUserRoleAlreadyExists(ctx, sel, &obj)
 	case *EndUserRoleAlreadyExists:
@@ -35032,13 +34436,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserRefAlreadyExists(ctx, sel, obj)
-	case EndUserPermissionNotFound:
-		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
-	case *EndUserPermissionNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionNotFound(ctx, sel, obj)
 	case EndUserPermissionInUse:
 		return ec._EndUserPermissionInUse(ctx, sel, &obj)
 	case *EndUserPermissionInUse:
@@ -35046,20 +34443,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserPermissionInUse(ctx, sel, obj)
-	case EndUserPermissionBundleSnapshotNotFound:
-		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleSnapshotNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	case EndUserPermissionBundleInUse:
 		return ec._EndUserPermissionBundleInUse(ctx, sel, &obj)
 	case *EndUserPermissionBundleInUse:
@@ -35081,20 +34464,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
-	case EndUserNotFoundInProject:
-		return ec._EndUserNotFoundInProject(ctx, sel, &obj)
-	case *EndUserNotFoundInProject:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFoundInProject(ctx, sel, obj)
-	case EndUserNotFound:
-		return ec._EndUserNotFound(ctx, sel, &obj)
-	case *EndUserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFound(ctx, sel, obj)
 	case EndUserImplicitRoleCannotBeModified:
 		return ec._EndUserImplicitRoleCannotBeModified(ctx, sel, &obj)
 	case *EndUserImplicitRoleCannotBeModified:
@@ -35130,13 +34499,6 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._DangerousPolicyNotConfirmed(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	case ClusterAlreadyExistsForProject:
 		return ec._ClusterAlreadyExistsForProject(ctx, sel, &obj)
 	case *ClusterAlreadyExistsForProject:
@@ -35174,20 +34536,13 @@ func (ec *executionContext) _GetClusterError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35197,27 +34552,13 @@ func (ec *executionContext) _GetEffectivePermissionsError(ctx context.Context, s
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
-	case EndUserNotFoundInProject:
-		return ec._EndUserNotFoundInProject(ctx, sel, &obj)
-	case *EndUserNotFoundInProject:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFoundInProject(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35227,20 +34568,13 @@ func (ec *executionContext) _GetEnumError(ctx context.Context, sel ast.Selection
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EnumNotFound:
-		return ec._EnumNotFound(ctx, sel, &obj)
-	case *EnumNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EnumNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35250,20 +34584,13 @@ func (ec *executionContext) _GetModelError(ctx context.Context, sel ast.Selectio
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35280,13 +34607,13 @@ func (ec *executionContext) _InitPrivateDBPayloadError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InitPrivateDBError:
 		return ec._InitPrivateDBError(ctx, sel, &obj)
 	case *InitPrivateDBError:
@@ -35303,13 +34630,13 @@ func (ec *executionContext) _ListProjectEndUserRoleUsersError(ctx context.Contex
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35326,20 +34653,13 @@ func (ec *executionContext) _ListProjectEndUsersError(ctx context.Context, sel a
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35349,13 +34669,13 @@ func (ec *executionContext) _ModelDatabaseCatalogError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35372,20 +34692,13 @@ func (ec *executionContext) _MoveModelToGroupError(ctx context.Context, sel ast.
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ModelNotFound(ctx, sel, obj)
-	case GroupNotFound:
-		return ec._GroupNotFound(ctx, sel, &obj)
-	case *GroupNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._GroupNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35446,27 +34759,13 @@ func (ec *executionContext) _RemoveDataPermissionItemFromBundleError(ctx context
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35476,27 +34775,13 @@ func (ec *executionContext) _RemoveEndUserPermissionFromBundleError(ctx context.
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserPermissionNotFound:
-		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
-	case *EndUserPermissionNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35529,6 +34814,13 @@ func (ec *executionContext) _RenameGroupError(ctx context.Context, sel ast.Selec
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidGroupName:
 		return ec._InvalidGroupName(ctx, sel, &obj)
 	case *InvalidGroupName:
@@ -35536,13 +34828,6 @@ func (ec *executionContext) _RenameGroupError(ctx context.Context, sel ast.Selec
 			return graphql.Null
 		}
 		return ec._InvalidGroupName(ctx, sel, obj)
-	case GroupNotFound:
-		return ec._GroupNotFound(ctx, sel, &obj)
-	case *GroupNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._GroupNotFound(ctx, sel, obj)
 	case GroupAlreadyExists:
 		return ec._GroupAlreadyExists(ctx, sel, &obj)
 	case *GroupAlreadyExists:
@@ -35559,13 +34844,13 @@ func (ec *executionContext) _ReorderGroupError(ctx context.Context, sel ast.Sele
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case GroupNotFound:
-		return ec._GroupNotFound(ctx, sel, &obj)
-	case *GroupNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._GroupNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35575,27 +34860,13 @@ func (ec *executionContext) _RestoreEndUserPermissionBundleError(ctx context.Con
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleSnapshotNotFound:
-		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleSnapshotNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleSnapshotNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35605,27 +34876,13 @@ func (ec *executionContext) _RevokeBundleFromEndUserError(ctx context.Context, s
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
-	case EndUserNotFoundInProject:
-		return ec._EndUserNotFoundInProject(ctx, sel, &obj)
-	case *EndUserNotFoundInProject:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFoundInProject(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35635,27 +34892,13 @@ func (ec *executionContext) _RevokeBundleFromEndUserRoleError(ctx context.Contex
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35665,27 +34908,13 @@ func (ec *executionContext) _RevokeEndUserRoleError(ctx context.Context, sel ast
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
-	case EndUserNotFoundInProject:
-		return ec._EndUserNotFoundInProject(ctx, sel, &obj)
-	case *EndUserNotFoundInProject:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFoundInProject(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35695,20 +34924,13 @@ func (ec *executionContext) _SetModelRLSPolicyError(ctx context.Context, sel ast
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case ModelHasNoOwnerField:
 		return ec._ModelHasNoOwnerField(ctx, sel, &obj)
 	case *ModelHasNoOwnerField:
@@ -35739,13 +34961,13 @@ func (ec *executionContext) _SetProjectAuthSchemaError(ctx context.Context, sel 
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35762,13 +34984,13 @@ func (ec *executionContext) _TestConnectionError(ctx context.Context, sel ast.Se
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case DatabaseConnectionFailed:
 		return ec._DatabaseConnectionFailed(ctx, sel, &obj)
 	case *DatabaseConnectionFailed:
@@ -35776,13 +34998,6 @@ func (ec *executionContext) _TestConnectionError(ctx context.Context, sel ast.Se
 			return graphql.Null
 		}
 		return ec._DatabaseConnectionFailed(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35792,13 +35007,13 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35813,13 +35028,6 @@ func (ec *executionContext) _UpdateClusterError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._DatabaseConnectionFailed(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35829,13 +35037,13 @@ func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.Sel
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35843,20 +35051,6 @@ func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserNotFound:
-		return ec._EndUserNotFound(ctx, sel, &obj)
-	case *EndUserNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserNotFound(ctx, sel, obj)
-	case ClusterNotFound:
-		return ec._ClusterNotFound(ctx, sel, &obj)
-	case *ClusterNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ClusterNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35866,13 +35060,13 @@ func (ec *executionContext) _UpdateEndUserPermissionBundleError(ctx context.Cont
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35880,13 +35074,6 @@ func (ec *executionContext) _UpdateEndUserPermissionBundleError(ctx context.Cont
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPermissionBundleNotFound:
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, &obj)
-	case *EndUserPermissionBundleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionBundleNotFound(ctx, sel, obj)
 	case EndUserPermissionBundleAlreadyExists:
 		return ec._EndUserPermissionBundleAlreadyExists(ctx, sel, &obj)
 	case *EndUserPermissionBundleAlreadyExists:
@@ -35910,13 +35097,13 @@ func (ec *executionContext) _UpdateEndUserPermissionError(ctx context.Context, s
 			return graphql.Null
 		}
 		return ec._RowScopeFieldMissing(ctx, sel, obj)
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35924,13 +35111,6 @@ func (ec *executionContext) _UpdateEndUserPermissionError(ctx context.Context, s
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserPermissionNotFound:
-		return ec._EndUserPermissionNotFound(ctx, sel, &obj)
-	case *EndUserPermissionNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserPermissionNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -35940,13 +35120,13 @@ func (ec *executionContext) _UpdateEndUserRoleError(ctx context.Context, sel ast
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35954,13 +35134,6 @@ func (ec *executionContext) _UpdateEndUserRoleError(ctx context.Context, sel ast
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EndUserRoleNotFound:
-		return ec._EndUserRoleNotFound(ctx, sel, &obj)
-	case *EndUserRoleNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EndUserRoleNotFound(ctx, sel, obj)
 	case EndUserRoleAlreadyExists:
 		return ec._EndUserRoleAlreadyExists(ctx, sel, &obj)
 	case *EndUserRoleAlreadyExists:
@@ -35984,13 +35157,13 @@ func (ec *executionContext) _UpdateEnumError(ctx context.Context, sel ast.Select
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -35998,13 +35171,6 @@ func (ec *executionContext) _UpdateEnumError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	case EnumNotFound:
-		return ec._EnumNotFound(ctx, sel, &obj)
-	case *EnumNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._EnumNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -36037,20 +35203,13 @@ func (ec *executionContext) _UpdateModelError(ctx context.Context, sel ast.Selec
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidInput:
 		return ec._InvalidInput(ctx, sel, &obj)
 	case *InvalidInput:
@@ -36067,20 +35226,13 @@ func (ec *executionContext) _ValidateRLSExprError(ctx context.Context, sel ast.S
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
-	case ProjectNotFound:
-		return ec._ProjectNotFound(ctx, sel, &obj)
-	case *ProjectNotFound:
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
 		if obj == nil {
 			return graphql.Null
 		}
-		return ec._ProjectNotFound(ctx, sel, obj)
-	case ModelNotFound:
-		return ec._ModelNotFound(ctx, sel, &obj)
-	case *ModelNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ModelNotFound(ctx, sel, obj)
+		return ec._ResourceNotFound(ctx, sel, obj)
 	case InvalidRLSExpression:
 		return ec._InvalidRLSExpression(ctx, sel, &obj)
 	case *InvalidRLSExpression:
@@ -36749,45 +35901,6 @@ func (ec *executionContext) _ClusterAlreadyExistsForProject(ctx context.Context,
 			}
 		case "suggestion":
 			out.Values[i] = ec._ClusterAlreadyExistsForProject_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var clusterNotFoundImplementors = []string{"ClusterNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError"}
-
-func (ec *executionContext) _ClusterNotFound(ctx context.Context, sel ast.SelectionSet, obj *ClusterNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, clusterNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ClusterNotFound")
-		case "message":
-			out.Values[i] = ec._ClusterNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -38671,84 +37784,6 @@ func (ec *executionContext) _EndUserImplicitRoleCannotBeModified(ctx context.Con
 	return out
 }
 
-var endUserNotFoundImplementors = []string{"EndUserNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError"}
-
-func (ec *executionContext) _EndUserNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserNotFound")
-		case "message":
-			out.Values[i] = ec._EndUserNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var endUserNotFoundInProjectImplementors = []string{"EndUserNotFoundInProject", "Error", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError"}
-
-func (ec *executionContext) _EndUserNotFoundInProject(ctx context.Context, sel ast.SelectionSet, obj *EndUserNotFoundInProject) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserNotFoundInProjectImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserNotFoundInProject")
-		case "message":
-			out.Values[i] = ec._EndUserNotFoundInProject_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError"}
 
 func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast.SelectionSet, obj *EndUserPasswordTooWeak) graphql.Marshaler {
@@ -39125,45 +38160,6 @@ func (ec *executionContext) _EndUserPermissionBundleInUse(ctx context.Context, s
 	return out
 }
 
-var endUserPermissionBundleNotFoundImplementors = []string{"EndUserPermissionBundleNotFound", "Error", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError"}
-
-func (ec *executionContext) _EndUserPermissionBundleNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionBundleNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserPermissionBundleNotFound")
-		case "message":
-			out.Values[i] = ec._EndUserPermissionBundleNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var endUserPermissionBundleSnapshotImplementors = []string{"EndUserPermissionBundleSnapshot"}
 
 func (ec *executionContext) _EndUserPermissionBundleSnapshot(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleSnapshot) graphql.Marshaler {
@@ -39196,45 +38192,6 @@ func (ec *executionContext) _EndUserPermissionBundleSnapshot(ctx context.Context
 			}
 		case "permissions":
 			out.Values[i] = ec._EndUserPermissionBundleSnapshot_permissions(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var endUserPermissionBundleSnapshotNotFoundImplementors = []string{"EndUserPermissionBundleSnapshotNotFound", "Error", "RestoreEndUserPermissionBundleError"}
-
-func (ec *executionContext) _EndUserPermissionBundleSnapshotNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionBundleSnapshotNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionBundleSnapshotNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserPermissionBundleSnapshotNotFound")
-		case "message":
-			out.Values[i] = ec._EndUserPermissionBundleSnapshotNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -39372,45 +38329,6 @@ func (ec *executionContext) _EndUserPermissionInUse(ctx context.Context, sel ast
 			}
 		case "suggestion":
 			out.Values[i] = ec._EndUserPermissionInUse_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var endUserPermissionNotFoundImplementors = []string{"EndUserPermissionNotFound", "Error", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "AddEndUserPermissionToBundleError", "RemoveEndUserPermissionFromBundleError", "BindCustomItemToBundleError"}
-
-func (ec *executionContext) _EndUserPermissionNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserPermissionNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPermissionNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserPermissionNotFound")
-		case "message":
-			out.Values[i] = ec._EndUserPermissionNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -39911,45 +38829,6 @@ func (ec *executionContext) _EndUserRoleEdge(ctx context.Context, sel ast.Select
 	return out
 }
 
-var endUserRoleNotFoundImplementors = []string{"EndUserRoleNotFound", "Error", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignEndUserRoleError", "RevokeEndUserRoleError"}
-
-func (ec *executionContext) _EndUserRoleNotFound(ctx context.Context, sel ast.SelectionSet, obj *EndUserRoleNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserRoleNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserRoleNotFound")
-		case "message":
-			out.Values[i] = ec._EndUserRoleNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var enumAlreadyExistsImplementors = []string{"EnumAlreadyExists", "Error", "CreateEnumError"}
 
 func (ec *executionContext) _EnumAlreadyExists(ctx context.Context, sel ast.SelectionSet, obj *EnumAlreadyExists) graphql.Marshaler {
@@ -40046,45 +38925,6 @@ func (ec *executionContext) _EnumDefinition(ctx context.Context, sel ast.Selecti
 			}
 		case "updatedAt":
 			out.Values[i] = ec._EnumDefinition_updatedAt(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var enumNotFoundImplementors = []string{"EnumNotFound", "Error", "GetEnumError", "UpdateEnumError", "DeleteEnumError"}
-
-func (ec *executionContext) _EnumNotFound(ctx context.Context, sel ast.SelectionSet, obj *EnumNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, enumNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EnumNotFound")
-		case "message":
-			out.Values[i] = ec._EnumNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -40819,45 +39659,6 @@ func (ec *executionContext) _GroupAlreadyExists(ctx context.Context, sel ast.Sel
 			}
 		case "suggestion":
 			out.Values[i] = ec._GroupAlreadyExists_suggestion(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var groupNotFoundImplementors = []string{"GroupNotFound", "Error", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError"}
-
-func (ec *executionContext) _GroupNotFound(ctx context.Context, sel ast.SelectionSet, obj *GroupNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, groupNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("GroupNotFound")
-		case "message":
-			out.Values[i] = ec._GroupNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -41782,45 +40583,6 @@ func (ec *executionContext) _ModelJsonSchema(ctx context.Context, sel ast.Select
 	return out
 }
 
-var modelNotFoundImplementors = []string{"ModelNotFound", "Error", "GetModelError", "UpdateModelError", "DeleteModelError", "MoveModelToGroupError", "CreateEndUserPermissionError", "ApplyEndUserPresetPolicyError", "AddEndUserPresetToBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "GetEffectivePermissionsError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
-
-func (ec *executionContext) _ModelNotFound(ctx context.Context, sel ast.SelectionSet, obj *ModelNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, modelNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ModelNotFound")
-		case "message":
-			out.Values[i] = ec._ModelNotFound_message(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var modelRLSPolicyImplementors = []string{"ModelRLSPolicy"}
 
 func (ec *executionContext) _ModelRLSPolicy(ctx context.Context, sel ast.SelectionSet, obj *ModelRLSPolicy) graphql.Marshaler {
@@ -42618,45 +41380,6 @@ func (ec *executionContext) _ProjectEndUserRoleUserConnection(ctx context.Contex
 			}
 		case "totalCount":
 			out.Values[i] = ec._ProjectEndUserRoleUserConnection_totalCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var projectNotFoundImplementors = []string{"ProjectNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
-
-func (ec *executionContext) _ProjectNotFound(ctx context.Context, sel ast.SelectionSet, obj *ProjectNotFound) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, projectNotFoundImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ProjectNotFound")
-		case "message":
-			out.Values[i] = ec._ProjectNotFound_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -43695,6 +42418,50 @@ func (ec *executionContext) _RepairModelPayload(ctx context.Context, sel ast.Sel
 			}
 		case "fieldsAdded":
 			out.Values[i] = ec._RepairModelPayload_fieldsAdded(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+
+func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.SelectionSet, obj *ResourceNotFound) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, resourceNotFoundImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ResourceNotFound")
+		case "message":
+			out.Values[i] = ec._ResourceNotFound_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resourceType":
+			out.Values[i] = ec._ResourceNotFound_resourceType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -48003,6 +46770,16 @@ func (ec *executionContext) marshalNRepairModelPayload2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._RepairModelPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐResourceType(ctx context.Context, v any) (ResourceType, error) {
+	var res ResourceType
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐResourceType(ctx context.Context, sel ast.SelectionSet, v ResourceType) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNRestoreEndUserPermissionBundleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRestoreEndUserPermissionBundleInput(ctx context.Context, v any) (RestoreEndUserPermissionBundleInput, error) {

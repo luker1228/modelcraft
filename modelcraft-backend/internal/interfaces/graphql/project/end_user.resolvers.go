@@ -22,16 +22,16 @@ func (r *queryResolver) ListProjectEndUsers(ctx context.Context, input *generate
 		service = getEndUserManagementAppService()
 	}
 	if service == nil {
-		return &generated.ListProjectEndUsersPayload{Error: &generated.ClusterNotFound{Message: "end-user service not initialized"}}, nil
+		return &generated.ListProjectEndUsersPayload{Error: &generated.ResourceNotFound{Message: "end-user service not initialized", ResourceType: generated.ResourceTypeCluster}}, nil
 	}
 
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
-		return &generated.ListProjectEndUsersPayload{Error: &generated.ClusterNotFound{Message: "orgName not found in context"}}, nil
+		return &generated.ListProjectEndUsersPayload{Error: &generated.ResourceNotFound{Message: "orgName not found in context", ResourceType: generated.ResourceTypeCluster}}, nil
 	}
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
-		return &generated.ListProjectEndUsersPayload{Error: &generated.ClusterNotFound{Message: "projectSlug not found in context"}}, nil
+		return &generated.ListProjectEndUsersPayload{Error: &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeCluster}}, nil
 	}
 
 	cmd := appEnduser.ListEndUsersCommand{OrgName: orgName, ProjectSlug: projectSlug}

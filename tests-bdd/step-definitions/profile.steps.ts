@@ -17,7 +17,7 @@ const UPDATE_MY_PROFILE = `
       }
       error {
         __typename
-        ... on ProfileNotFound { message }
+        ... on ResourceNotFound { message resourceType }
         ... on InvalidInput { message suggestion }
       }
     }
@@ -42,8 +42,7 @@ const MY_USER_PROFILE = `
       }
       error {
         __typename
-        ... on UserNotFound { message }
-        ... on ProfileNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }

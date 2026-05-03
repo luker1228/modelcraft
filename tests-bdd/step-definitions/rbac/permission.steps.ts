@@ -23,9 +23,8 @@ const CREATE_PERMISSION = `
       error {
         __typename
         ... on InvalidInput { message }
-        ... on ModelNotFound { message }
+        ... on ResourceNotFound { message resourceType }
         ... on RowScopeFieldMissing { message missingField }
-        ... on ProjectNotFound { message }
       }
     }
   }
@@ -37,7 +36,7 @@ const DELETE_PERMISSION = `
       success
       error {
         __typename
-        ... on EndUserPermissionNotFound { message }
+        ... on ResourceNotFound { message resourceType }
         ... on EndUserPermissionInUse { message }
       }
     }

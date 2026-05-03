@@ -11,10 +11,6 @@
 # EndUser Error Types
 # ============================================
 
-type EndUserNotFound implements Error {
-  message: String!
-}
-
 type EndUserAlreadyExists implements Error {
   message: String!
 }
@@ -25,8 +21,8 @@ type EndUserPasswordTooWeak implements Error {
 }
 
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
-union UpdateEndUserError = EndUserNotFound | InvalidInput
-union DeleteEndUserError = EndUserNotFound
+union UpdateEndUserError = ResourceNotFound | InvalidInput
+union DeleteEndUserError = ResourceNotFound
 union ListEndUsersError = InvalidInput
 
 # ============================================

@@ -10,6 +10,10 @@ import (
 // Connection error suggestion message
 const connectionSuggestion = "Please verify host, port, username, and password are correct"
 
+func orgResourceNotFound(message string, resourceType generated.ResourceType) *generated.ResourceNotFound {
+	return &generated.ResourceNotFound{Message: message, ResourceType: resourceType}
+}
+
 // ClusterErrorAdapter handles conversion of domain errors to GraphQL errors for cluster operations
 type ClusterErrorAdapter struct {
 	ctx    context.Context
@@ -32,18 +36,12 @@ func (a *ClusterErrorAdapter) ConvertToGetClusterError(err *bizerrors.BusinessEr
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for GetCluster: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	}
 }
 
@@ -55,17 +53,11 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidInput{
-			Message: err.Msg(),
-		}
+		gqlErr := &generated.InvalidInput{Message: err.Msg()}
 		if err.Detail() != "" {
 			detail := err.Detail()
 			gqlErr.Suggestion = &detail
@@ -73,15 +65,10 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 		return gqlErr
 	case bizerrors.DatabaseConnectionFailed.GetCode():
 		suggestion := connectionSuggestion
-		return &generated.DatabaseConnectionFailed{
-			Message:    err.Msg(),
-			Suggestion: &suggestion,
-		}
+		return &generated.DatabaseConnectionFailed{Message: err.Msg(), Suggestion: &suggestion}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for UpdateCluster: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	}
 }
 
@@ -93,18 +80,12 @@ func (a *ClusterErrorAdapter) ConvertToDeleteClusterError(err *bizerrors.Busines
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for DeleteCluster: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	}
 }
 
@@ -116,23 +97,14 @@ func (a *ClusterErrorAdapter) ConvertToTestConnectionError(err *bizerrors.Busine
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeCluster)
 	case bizerrors.DatabaseConnectionFailed.GetCode():
 		suggestion := connectionSuggestion
-		return &generated.DatabaseConnectionFailed{
-			Message:    err.Msg(),
-			Suggestion: &suggestion,
-		}
+		return &generated.DatabaseConnectionFailed{Message: err.Msg(), Suggestion: &suggestion}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for TestConnection: %s", err.Info().GetCode())
-		return &generated.DatabaseConnectionFailed{
-			Message: err.Msg(),
-		}
+		return &generated.DatabaseConnectionFailed{Message: err.Msg()}
 	}
 }

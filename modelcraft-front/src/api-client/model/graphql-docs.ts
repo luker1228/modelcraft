@@ -167,15 +167,13 @@ export const GET_MODEL = gql`
       }
       error {
         __typename
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -199,8 +197,9 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
       }
       error {
         __typename
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
@@ -269,15 +268,13 @@ export const GET_MODEL_BY_NAME = gql`
       }
       error {
         __typename
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -388,8 +385,9 @@ export const CREATE_MODEL = gql`
           message
           suggestion
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on ModelTableAlreadyExists {
           message
@@ -440,15 +438,13 @@ export const UPDATE_MODEL = gql`
       }
       error {
         __typename
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -461,15 +457,13 @@ export const DELETE_MODEL = gql`
       success
       error {
         __typename
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on CannotDeleteDeployedModel {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -681,8 +675,9 @@ export const RENAME_GROUP = gql`
           message
           suggestion
         }
-        ... on GroupNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -695,8 +690,9 @@ export const DELETE_GROUP = gql`
       success
       error {
         __typename
-        ... on GroupNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -709,8 +705,9 @@ export const REORDER_GROUP = gql`
       success
       error {
         __typename
-        ... on GroupNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -723,11 +720,9 @@ export const MOVE_MODEL_TO_GROUP = gql`
       success
       error {
         __typename
-        ... on GroupNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ModelNotFound {
-          message
+          resourceType
         }
       }
     }

@@ -5,6 +5,13 @@ import (
 	"modelcraft/pkg/bizerrors"
 )
 
+func newOrgResourceNotFound(message string, resourceType generated.ResourceType) *generated.ResourceNotFound {
+	return &generated.ResourceNotFound{
+		Message:      message,
+		ResourceType: resourceType,
+	}
+}
+
 // convertToCreateCustomRoleError converts bizerrors to GraphQL CreateCustomRoleError
 func convertToCreateCustomRoleError(bizErr *bizerrors.BusinessError) generated.CreateCustomRoleError {
 	switch {
@@ -26,10 +33,7 @@ func convertToCreateCustomRoleError(bizErr *bizerrors.BusinessError) generated.C
 func convertToUpdateRoleError(bizErr *bizerrors.BusinessError) generated.UpdatePermissionRoleError {
 	switch {
 	case bizErr.Info().IsNotFoundError():
-		return &generated.PermissionRoleNotFound{
-			Message:    bizErr.Msg(),
-			Suggestion: strPtr("Verify the role ID exists"),
-		}
+		return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionRole)
 	case bizErr.Info().IsOperationDeniedError():
 		return &generated.PermissionSystemRoleCannotBeModified{
 			Message:    bizErr.Msg(),
@@ -53,10 +57,7 @@ func convertToUpdateRoleError(bizErr *bizerrors.BusinessError) generated.UpdateP
 func convertToDeleteRoleError(bizErr *bizerrors.BusinessError) generated.DeletePermissionRoleError {
 	switch {
 	case bizErr.Info().IsNotFoundError():
-		return &generated.PermissionRoleNotFound{
-			Message:    bizErr.Msg(),
-			Suggestion: strPtr("Verify the role ID exists"),
-		}
+		return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionRole)
 	case bizErr.Info().IsOperationDeniedError():
 		return &generated.PermissionSystemRoleCannotBeModified{
 			Message:    bizErr.Msg(),
@@ -70,10 +71,7 @@ func convertToDeleteRoleError(bizErr *bizerrors.BusinessError) generated.DeleteP
 func convertToRolePermissionError(bizErr *bizerrors.BusinessError) generated.RolePermissionError {
 	switch {
 	case bizErr.Info().IsNotFoundError():
-		return &generated.PermissionRoleNotFound{
-			Message:    bizErr.Msg(),
-			Suggestion: strPtr("Verify the role ID exists"),
-		}
+		return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionRole)
 	case bizErr.Info().IsOperationDeniedError():
 		return &generated.PermissionSystemRoleCannotBeModified{
 			Message:    bizErr.Msg(),
@@ -92,16 +90,10 @@ func convertToRolePermissionError(bizErr *bizerrors.BusinessError) generated.Rol
 func convertToAssignRoleError(bizErr *bizerrors.BusinessError) generated.AssignRoleError {
 	switch {
 	case bizErr.Info().IsNotFoundError():
-		if bizErr.Info().GetCode() == "NOT_FOUND.USER" {
-			return &generated.PermissionUserNotFound{
-				Message:    bizErr.Msg(),
-				Suggestion: strPtr("Verify the user ID exists"),
-			}
+		if bizErr.Info().GetCode() == bizerrors.UserNotFound.GetCode() {
+			return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionUser)
 		}
-		return &generated.PermissionRoleNotFound{
-			Message:    bizErr.Msg(),
-			Suggestion: strPtr("Verify the role ID exists"),
-		}
+		return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionRole)
 	case bizErr.Info().IsParamInvalidError():
 		return &generated.InvalidInput{
 			Message:    bizErr.Msg(),
@@ -114,16 +106,10 @@ func convertToAssignRoleError(bizErr *bizerrors.BusinessError) generated.AssignR
 // convertToRevokeRoleError converts bizerrors to GraphQL RevokeRoleError
 func convertToRevokeRoleError(bizErr *bizerrors.BusinessError) generated.RevokeRoleError {
 	if bizErr.Info().IsNotFoundError() {
-		if bizErr.Info().GetCode() == "NOT_FOUND.USER" {
-			return &generated.PermissionUserNotFound{
-				Message:    bizErr.Msg(),
-				Suggestion: strPtr("Verify the user ID exists"),
-			}
+		if bizErr.Info().GetCode() == bizerrors.UserNotFound.GetCode() {
+			return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionUser)
 		}
-		return &generated.PermissionRoleNotFound{
-			Message:    bizErr.Msg(),
-			Suggestion: strPtr("Verify the role ID exists"),
-		}
+		return newOrgResourceNotFound(bizErr.Msg(), generated.ResourceTypePermissionRole)
 	}
 	return nil
 }

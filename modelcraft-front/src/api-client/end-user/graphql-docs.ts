@@ -73,8 +73,9 @@ export const UPDATE_END_USER_STATUS = gql`
       }
       error {
         __typename
-        ... on EndUserNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
@@ -91,8 +92,9 @@ export const DELETE_END_USER = gql`
       success
       error {
         __typename
-        ... on EndUserNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }

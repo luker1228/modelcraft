@@ -92,8 +92,9 @@ const CREATE_PERMISSION_BUNDLE = `
         ... on InvalidInput {
           message
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -108,19 +109,14 @@ const GRANT_END_USER_ACCESS = `
       }
       error {
         __typename
-        ... on EndUserNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on EndUserProjectAccessAlreadyExists {
           message
         }
-        ... on EndUserPermissionBundleNotFound {
-          message
-        }
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }

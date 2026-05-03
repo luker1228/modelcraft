@@ -50,7 +50,7 @@ const CREATE_MODEL = `
         __typename
         ... on ModelAlreadyExists { message }
         ... on InvalidInput { message }
-        ... on ProjectNotFound { message }
+        ... on ResourceNotFound { message resourceType }
       }
     }
   }

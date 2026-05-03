@@ -116,11 +116,6 @@ interface PermissionManagementError {
   suggestion: String
 }
 
-type PermissionRoleNotFound implements PermissionManagementError {
-  message: String!
-  suggestion: String
-}
-
 type PermissionRoleAlreadyExists implements PermissionManagementError {
   message: String!
   suggestion: String
@@ -131,15 +126,10 @@ type PermissionSystemRoleCannotBeModified implements PermissionManagementError {
   suggestion: String
 }
 
-type PermissionUserNotFound implements PermissionManagementError {
-  message: String!
-  suggestion: String
-}
-
 # Error Unions
 union CreateCustomRoleError = PermissionRoleAlreadyExists | InvalidInput
-union UpdatePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | InvalidInput
-union DeletePermissionRoleError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified
-union RolePermissionError = PermissionRoleNotFound | PermissionSystemRoleCannotBeModified | InvalidInput
-union AssignRoleError = PermissionRoleNotFound | PermissionUserNotFound | InvalidInput
-union RevokeRoleError = PermissionRoleNotFound | PermissionUserNotFound
+union UpdatePermissionRoleError = ResourceNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | InvalidInput
+union DeletePermissionRoleError = ResourceNotFound | PermissionSystemRoleCannotBeModified
+union RolePermissionError = ResourceNotFound | PermissionSystemRoleCannotBeModified | InvalidInput
+union AssignRoleError = ResourceNotFound | InvalidInput
+union RevokeRoleError = ResourceNotFound

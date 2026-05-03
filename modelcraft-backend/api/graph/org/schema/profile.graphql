@@ -4,16 +4,8 @@
 # Profile Error Types
 # ============================================
 
-type UserNotFound implements Error {
-  message: String!
-}
-
-type ProfileNotFound implements Error {
-  message: String!
-}
-
-union GetMyUserProfileError = UserNotFound | ProfileNotFound
-union UpdateMyProfileError = ProfileNotFound | InvalidInput
+union GetMyUserProfileError = ResourceNotFound
+union UpdateMyProfileError = ResourceNotFound | InvalidInput
 
 # ============================================
 # Profile Domain Types

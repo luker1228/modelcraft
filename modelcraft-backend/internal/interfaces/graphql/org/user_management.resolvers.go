@@ -30,7 +30,7 @@ func (r *mutationResolver) UpdateOrganization(ctx context.Context, input generat
 		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
 			if bizErr.IsNotFoundError() {
 				return &generated.UpdateOrganizationPayload{
-					Error: &generated.OrganizationNotFound{Message: bizErr.Msg()},
+					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeOrganization},
 				}, nil
 			}
 		}
@@ -83,7 +83,7 @@ func (r *mutationResolver) DeleteRole(ctx context.Context, id string) (*generate
 			if bizErr.IsNotFoundError() {
 				return &generated.DeleteRolePayload{
 					Success: false,
-					Error:   &generated.RoleNotFound{Message: bizErr.Msg()},
+					Error:   &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeRole},
 				}, nil
 			}
 			if bizErr.IsOperationDeniedError() {

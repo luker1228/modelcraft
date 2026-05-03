@@ -43,7 +43,7 @@ func (a *GroupErrorAdapter) ConvertToRenameGroupError(err *bizerrors.BusinessErr
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.GroupNotFound.GetCode():
-		return &generated.GroupNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeGroup}
 	case bizerrors.GroupAlreadyExists.GetCode():
 		suggestion := "Please choose a different group name within this project"
 		return &generated.GroupAlreadyExists{
@@ -60,7 +60,7 @@ func (a *GroupErrorAdapter) ConvertToDeleteGroupError(err *bizerrors.BusinessErr
 	if err == nil {
 		return nil
 	}
-	return &generated.GroupNotFound{Message: err.Msg()}
+	return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeGroup}
 }
 
 // ConvertToReorderGroupError converts a business error to a ReorderGroupError union type.
@@ -68,7 +68,7 @@ func (a *GroupErrorAdapter) ConvertToReorderGroupError(err *bizerrors.BusinessEr
 	if err == nil {
 		return nil
 	}
-	return &generated.GroupNotFound{Message: err.Msg()}
+	return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeGroup}
 }
 
 // ConvertToMoveModelToGroupError converts a business error to a MoveModelToGroupError union type.
@@ -80,8 +80,8 @@ func (a *GroupErrorAdapter) ConvertToMoveModelToGroupError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.ModelNotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	default:
-		return &generated.GroupNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeGroup}
 	}
 }

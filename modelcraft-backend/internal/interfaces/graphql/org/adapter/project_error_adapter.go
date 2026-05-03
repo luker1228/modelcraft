@@ -30,15 +30,9 @@ func (a *ProjectErrorAdapter) ConvertToCreateProjectErrors(err *bizerrors.Busine
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectAlreadyExists.GetCode():
 		suggestion := "Please use a different project ID"
-		return &generated.ProjectAlreadyExists{
-			Message:    err.Msg(),
-			Suggestion: &suggestion,
-		}
+		return &generated.ProjectAlreadyExists{Message: err.Msg(), Suggestion: &suggestion}
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidInput{
-			Message: err.Msg(),
-		}
-		// Add suggestion if available from error detail
+		gqlErr := &generated.InvalidInput{Message: err.Msg()}
 		if err.Detail() != "" {
 			detail := err.Detail()
 			gqlErr.Suggestion = &detail
@@ -46,17 +40,10 @@ func (a *ProjectErrorAdapter) ConvertToCreateProjectErrors(err *bizerrors.Busine
 		return gqlErr
 	case bizerrors.DatabaseConnectionFailed.GetCode():
 		suggestion := "Please verify host, port, username, and password are correct"
-		return &generated.DatabaseConnectionFailed{
-			Message:    err.Msg(),
-			Suggestion: &suggestion,
-		}
+		return &generated.DatabaseConnectionFailed{Message: err.Msg(), Suggestion: &suggestion}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for CreateProject: %s", err.Info().GetCode())
-		// Return as InvalidInput for unknown errors
-		msg := err.Msg()
-		return &generated.InvalidInput{
-			Message: msg,
-		}
+		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
 
@@ -68,13 +55,9 @@ func (a *ProjectErrorAdapter) ConvertToUpdateProjectErrors(err *bizerrors.Busine
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	case bizerrors.ParamInvalid.GetCode():
-		gqlErr := &generated.InvalidInput{
-			Message: err.Msg(),
-		}
+		gqlErr := &generated.InvalidInput{Message: err.Msg()}
 		if err.Detail() != "" {
 			detail := err.Detail()
 			gqlErr.Suggestion = &detail
@@ -82,9 +65,7 @@ func (a *ProjectErrorAdapter) ConvertToUpdateProjectErrors(err *bizerrors.Busine
 		return gqlErr
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for UpdateProject: %s", err.Info().GetCode())
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	}
 }
 
@@ -96,18 +77,12 @@ func (a *ProjectErrorAdapter) ConvertToDeleteProjectErrors(err *bizerrors.Busine
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	case bizerrors.CannotDeleteDefaultProject.GetCode(), bizerrors.OperationDenied.GetCode():
-		return &generated.CannotDeleteDefaultProject{
-			Message: err.Msg(),
-		}
+		return &generated.CannotDeleteDefaultProject{Message: err.Msg()}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for DeleteProject: %s", err.Info().GetCode())
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	}
 }
 
@@ -119,13 +94,9 @@ func (a *ProjectErrorAdapter) ConvertToGetProjectErrors(err *bizerrors.BusinessE
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for GetProject: %s", err.Info().GetCode())
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
-		}
+		return orgResourceNotFound(err.Msg(), generated.ResourceTypeProject)
 	}
 }

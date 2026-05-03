@@ -237,11 +237,9 @@ export const GET_END_USER_EFFECTIVE_PERMISSIONS = gql`
       }
       error {
         __typename
-        ... on EndUserNotFoundInProject {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ModelNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -276,8 +274,9 @@ export const LIST_PROJECT_END_USER_ROLE_USERS = gql`
         ... on InvalidInput {
           message
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -346,11 +345,9 @@ export const CREATE_END_USER_PERMISSION = gql`
         ... on InvalidInput {
           message
         }
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
         ... on RowScopeFieldMissing {
           message
@@ -368,13 +365,11 @@ export const DELETE_END_USER_PERMISSION = gql`
       success
       error {
         __typename
-        ... on EndUserPermissionNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on EndUserPermissionInUse {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -410,8 +405,9 @@ export const CREATE_END_USER_BUNDLE = gql`
         ... on EndUserPermissionBundleAlreadyExists {
           message
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -430,16 +426,14 @@ export const UPDATE_END_USER_BUNDLE = gql`
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on EndUserPermissionBundleAlreadyExists {
           message
         }
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -453,13 +447,11 @@ export const DELETE_END_USER_BUNDLE = gql`
       success
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on EndUserPermissionBundleInUse {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -486,16 +478,11 @@ export const ADD_PERMISSION_TO_BUNDLE = gql`
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionNotFound {
-          message
+          resourceType
         }
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -522,14 +509,9 @@ export const REMOVE_PERMISSION_FROM_BUNDLE = gql`
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -561,8 +543,9 @@ export const CREATE_END_USER_ROLE = gql`
         ... on EndUserRoleAlreadyExists {
           message
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -575,13 +558,11 @@ export const DELETE_END_USER_ROLE = gql`
       success
       error {
         __typename
-        ... on EndUserRoleNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on EndUserImplicitRoleCannotBeModified {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -601,13 +582,11 @@ export const UPDATE_END_USER_ROLE = gql`
       }
       error {
         __typename
-        ... on EndUserRoleNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on EndUserImplicitRoleCannotBeModified {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -631,14 +610,9 @@ export const ASSIGN_BUNDLE_TO_ROLE = gql`
       }
       error {
         __typename
-        ... on EndUserRoleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionBundleNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -661,14 +635,9 @@ export const REVOKE_BUNDLE_FROM_ROLE = gql`
       }
       error {
         __typename
-        ... on EndUserRoleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionBundleNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -685,19 +654,14 @@ export const ASSIGN_END_USER_ROLE_TO_USER = gql`
       }
       error {
         __typename
-        ... on EndUserNotFoundInProject {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserRoleNotFound {
-          message
+          resourceType
         }
         ... on EndUserCannotAssignImplicitRole {
           message
         }
         ... on UserRoleAlreadyAssigned {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -711,14 +675,9 @@ export const REVOKE_END_USER_ROLE_FROM_USER = gql`
       success
       error {
         __typename
-        ... on EndUserNotFoundInProject {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserRoleNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -735,16 +694,11 @@ export const ASSIGN_BUNDLE_TO_END_USER = gql`
       }
       error {
         __typename
-        ... on EndUserNotFoundInProject {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionBundleNotFound {
-          message
+          resourceType
         }
         ... on UserBundleAlreadyAssigned {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -758,14 +712,9 @@ export const REVOKE_BUNDLE_FROM_END_USER = gql`
       success
       error {
         __typename
-        ... on EndUserNotFoundInProject {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionBundleNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -794,13 +743,11 @@ export const APPLY_END_USER_PRESET_POLICY = gql`
       }
       error {
         __typename
-        ... on ModelNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on PresetRequiresOwnerField {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -874,14 +821,9 @@ export const RESTORE_END_USER_BUNDLE = gql`
       newVersion
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionBundleSnapshotNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -908,20 +850,15 @@ export const BIND_PRESET_ITEM_TO_BUNDLE = gql`
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ModelNotFound {
-          message
+          resourceType
         }
         ... on PresetRequiresOwnerField {
           message
           preset
         }
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -957,19 +894,11 @@ export const BIND_CUSTOM_ITEM_TO_BUNDLE = gql`
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on EndUserPermissionNotFound {
-          message
-        }
-        ... on ModelNotFound {
-          message
+          resourceType
         }
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }
@@ -996,14 +925,9 @@ export const REMOVE_DATA_PERMISSION_ITEM_FROM_BUNDLE = gql`
       }
       error {
         __typename
-        ... on EndUserPermissionBundleNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ModelNotFound {
-          message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }

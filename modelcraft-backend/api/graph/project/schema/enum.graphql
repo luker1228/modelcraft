@@ -10,20 +10,16 @@ type EnumAlreadyExists implements Error {
   suggestion: String
 }
 
-type EnumNotFound implements Error {
-  message: String!
-}
-
 type CannotDeleteReferencedEnum implements Error {
   message: String!
   suggestion: String
 }
 
 # Error unions for each mutation and query
-union GetEnumError = EnumNotFound | ProjectNotFound
-union CreateEnumError = EnumAlreadyExists | InvalidInput | ProjectNotFound
-union UpdateEnumError = EnumNotFound | InvalidInput | ProjectNotFound
-union DeleteEnumError = EnumNotFound | CannotDeleteReferencedEnum | ProjectNotFound
+union GetEnumError = ResourceNotFound
+union CreateEnumError = EnumAlreadyExists | InvalidInput | ResourceNotFound
+union UpdateEnumError = ResourceNotFound | InvalidInput
+union DeleteEnumError = ResourceNotFound | CannotDeleteReferencedEnum
 
 # ============================================
 # Enum Payload Types

@@ -24,11 +24,11 @@ Feature: Profile 分表能力
     And myUserProfile.user.profile.avatarUrl 应为 "mock://avatar/default-1.png"
     And myUserProfile.user.profile.bio 应为 "old bio"
 
-  Scenario: myUserProfile 在 profile 缺失时返回 ProfileNotFound
+  Scenario: myUserProfile 在 profile 缺失时返回 ResourceNotFound
     Given 存在一个仅有 user 无 profile 的用户
     And 我使用该用户的访问令牌并初始化组织
     When 我查询 myUserProfile
-    Then myUserProfile 应返回错误类型 "ProfileNotFound"
+    Then myUserProfile 应返回错误类型 "ResourceNotFound"
 
   Scenario: me 查询兼容性（行为不变）
     Given 已注册唯一手机号 "13810138002" 唯一用户名 "profile_user_c" 密码 "password123"

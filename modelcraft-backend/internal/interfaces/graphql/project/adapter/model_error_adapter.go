@@ -31,18 +31,21 @@ func (a *ModelErrorAdapter) ConvertToGetError(err *bizerrors.BusinessError) gene
 
 	switch err.Info().GetCode() {
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ModelNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeModel,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for GetModel: %s", err.Info().GetCode())
-		// Return as ModelNotFound for unknown errors
-		return &generated.ModelNotFound{
-			Message: err.Msg(),
+		// Return as ResourceNotFound for unknown errors
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeModel,
 		}
 	}
 }
@@ -67,8 +70,9 @@ func (a *ModelErrorAdapter) ConvertToCreateError(err *bizerrors.BusinessError) g
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.ParamInvalid.GetCode():
 		gqlErr := &generated.InvalidInput{
@@ -98,12 +102,14 @@ func (a *ModelErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError) g
 
 	switch err.Info().GetCode() {
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ModelNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeModel,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.ParamInvalid.GetCode(), bizerrors.ManagedModelReadOnly.GetCode():
 		gqlErr := &generated.InvalidInput{
@@ -116,8 +122,9 @@ func (a *ModelErrorAdapter) ConvertToUpdateError(err *bizerrors.BusinessError) g
 		return gqlErr
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for UpdateModel: %s", err.Info().GetCode())
-		return &generated.ModelNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeModel,
 		}
 	}
 }
@@ -130,12 +137,14 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 
 	switch err.Info().GetCode() {
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ModelNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeModel,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.OperationDenied.GetCode(), bizerrors.ManagedModelReadOnly.GetCode():
 		// Handle operation denied errors (e.g., protected system models, managed readonly models)
@@ -144,8 +153,9 @@ func (a *ModelErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError) g
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for DeleteModel: %s", err.Info().GetCode())
-		return &generated.ModelNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeModel,
 		}
 	}
 }

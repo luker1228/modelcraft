@@ -44,11 +44,9 @@ export const GET_ENUM = gql`
       }
       error {
         __typename
-        ... on EnumNotFound {
+        ... on ResourceNotFound {
           message
-        }
-        ... on ProjectNotFound {
-          message
+          resourceType
         }
       }
     }
@@ -92,8 +90,9 @@ export const CREATE_ENUM = gql`
           message
           suggestion
         }
-        ... on ProjectNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -121,15 +120,13 @@ export const UPDATE_ENUM = gql`
       }
       error {
         __typename
-        ... on EnumNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on InvalidInput {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }
@@ -142,15 +139,13 @@ export const DELETE_ENUM = gql`
       success
       error {
         __typename
-        ... on EnumNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on CannotDeleteReferencedEnum {
           message
           suggestion
-        }
-        ... on ProjectNotFound {
-          message
         }
       }
     }

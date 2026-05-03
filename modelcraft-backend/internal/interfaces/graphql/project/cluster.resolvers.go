@@ -28,7 +28,7 @@ func (r *mutationResolver) UpdateProjectCluster(ctx context.Context, input gener
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.UpdateClusterPayload{
-			Error: &generated.ClusterNotFound{Message: "projectSlug not found in context"},
+			Error: &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeCluster},
 		}, nil
 	}
 
@@ -68,7 +68,7 @@ func (r *mutationResolver) TestDatabaseConnection(ctx context.Context, input gen
 	if err != nil {
 		return &generated.TestConnectionPayload{
 			Success: false,
-			Error:   &generated.ClusterNotFound{Message: "projectSlug not found in context"},
+			Error:   &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeCluster},
 		}, nil
 	}
 
@@ -182,7 +182,7 @@ func (r *queryResolver) ModelDatabaseCatalog(ctx context.Context, input *generat
 			switch bizErr.Info().GetCode() {
 			case bizerrors.ProjectNotFound.GetCode():
 				return &generated.GetModelDatabaseCatalogPayload{
-					Error: &generated.ProjectNotFound{Message: bizErr.Msg()},
+					Error: &generated.ResourceNotFound{Message: bizErr.Msg(), ResourceType: generated.ResourceTypeProject},
 				}, nil
 			case bizerrors.ParamInvalid.GetCode():
 				gqlErr := &generated.InvalidInput{Message: bizErr.Msg()}
@@ -228,7 +228,7 @@ func (r *queryResolver) DatabaseCluster(ctx context.Context) (*generated.GetClus
 	projectSlug, err := ctxutils.GetProjectSlugFromContext(ctx)
 	if err != nil {
 		return &generated.GetClusterPayload{
-			Error: &generated.ClusterNotFound{Message: "projectSlug not found in context"},
+			Error: &generated.ResourceNotFound{Message: "projectSlug not found in context", ResourceType: generated.ResourceTypeCluster},
 		}, nil
 	}
 

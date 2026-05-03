@@ -32,17 +32,20 @@ func (a *ClusterErrorAdapter) ConvertToGetClusterError(err *bizerrors.BusinessEr
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for GetCluster: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	}
 }
@@ -55,12 +58,14 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	case bizerrors.ParamInvalid.GetCode():
 		gqlErr := &generated.InvalidInput{
@@ -79,8 +84,9 @@ func (a *ClusterErrorAdapter) ConvertToUpdateClusterError(err *bizerrors.Busines
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for UpdateCluster: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	}
 }
@@ -93,17 +99,20 @@ func (a *ClusterErrorAdapter) ConvertToDeleteClusterError(err *bizerrors.Busines
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for DeleteCluster: %s", err.Info().GetCode())
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	}
 }
@@ -116,12 +125,14 @@ func (a *ClusterErrorAdapter) ConvertToTestConnectionError(err *bizerrors.Busine
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.ClusterNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ClusterNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeCluster,
 		}
 	case bizerrors.DatabaseConnectionFailed.GetCode():
 		suggestion := connectionSuggestion

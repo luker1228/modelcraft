@@ -32,7 +32,7 @@ func (a *RbacErrorAdapter) ConvertToCreatePermissionError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.ModelNotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.EndUserRowScopeFieldMissing.GetCode():
 		requiredField := "owner"
 		return &generated.RowScopeFieldMissing{
@@ -41,7 +41,7 @@ func (a *RbacErrorAdapter) ConvertToCreatePermissionError(
 			RequiredByRowScope: generated.RowScopeTypeAll,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("createPermission", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -57,7 +57,7 @@ func (a *RbacErrorAdapter) ConvertToUpdatePermissionError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserPermission}
 	case bizerrors.EndUserRowScopeFieldMissing.GetCode():
 		return &generated.RowScopeFieldMissing{
 			Message:            err.Msg(),
@@ -65,7 +65,7 @@ func (a *RbacErrorAdapter) ConvertToUpdatePermissionError(
 			RequiredByRowScope: generated.RowScopeTypeAll,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("updatePermission", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -81,14 +81,14 @@ func (a *RbacErrorAdapter) ConvertToDeletePermissionError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserPermission}
 	case bizerrors.EndUserPermissionInUse.GetCode():
 		return &generated.EndUserPermissionInUse{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("deletePermission", err)
-		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserPermission}
 	}
 }
 
@@ -103,7 +103,7 @@ func (a *RbacErrorAdapter) ConvertToCreateBundleError(
 	case bizerrors.EndUserPermissionBundleAlreadyExists.GetCode(), bizerrors.Conflict.GetCode():
 		return &generated.EndUserPermissionBundleAlreadyExists{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("createBundle", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -119,9 +119,12 @@ func (a *RbacErrorAdapter) ConvertToUpdateBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("updateBundle", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -137,14 +140,20 @@ func (a *RbacErrorAdapter) ConvertToDeleteBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.EndUserPermissionBundleInUse.GetCode():
 		return &generated.EndUserPermissionBundleInUse{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("deleteBundle", err)
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	}
 }
 
@@ -157,11 +166,14 @@ func (a *RbacErrorAdapter) ConvertToAddPermissionToBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.EndUserPermissionNotFound.GetCode():
-		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserPermission}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("addPermToBundle", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -177,9 +189,12 @@ func (a *RbacErrorAdapter) ConvertToAddPresetToBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizerrors.EndUserRowScopeFieldMissing.GetCode():
 		suggestion := "请先在模型中创建 END_USER_REF 字段，然后重试绑定预设"
 		preset := detectPresetFromMessage(err.Msg())
@@ -189,7 +204,7 @@ func (a *RbacErrorAdapter) ConvertToAddPresetToBundleError(
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("addPresetToBundle", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -205,14 +220,20 @@ func (a *RbacErrorAdapter) ConvertToRemovePermissionFromBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.EndUserPermissionNotFound.GetCode():
-		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserPermission}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("removePermFromBundle", err)
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	}
 }
 
@@ -227,7 +248,7 @@ func (a *RbacErrorAdapter) ConvertToCreateRoleError(
 	case bizerrors.EndUserRoleAlreadyExists.GetCode(), bizerrors.Conflict.GetCode():
 		return &generated.EndUserRoleAlreadyExists{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("createRole", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -243,11 +264,11 @@ func (a *RbacErrorAdapter) ConvertToUpdateRoleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserRoleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	case bizerrors.EndUserImplicitRoleCannotBeModified.GetCode():
 		return &generated.EndUserImplicitRoleCannotBeModified{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("updateRole", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -263,14 +284,14 @@ func (a *RbacErrorAdapter) ConvertToDeleteRoleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserRoleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	case bizerrors.EndUserImplicitRoleCannotBeModified.GetCode():
 		return &generated.EndUserImplicitRoleCannotBeModified{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("deleteRole", err)
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	}
 }
 
@@ -283,14 +304,17 @@ func (a *RbacErrorAdapter) ConvertToAssignBundleToRoleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserRoleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("assignBundleToRole", err)
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	}
 }
 
@@ -303,12 +327,15 @@ func (a *RbacErrorAdapter) ConvertToRevokeBundleFromRoleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserRoleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	default:
 		a.logUnknown("revokeBundleFromRole", err)
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	}
 }
 
@@ -321,16 +348,19 @@ func (a *RbacErrorAdapter) ConvertToAssignBundleToUserError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFoundInProject.GetCode(), bizerrors.EndUserNotFound.GetCode():
-		return &generated.EndUserNotFoundInProject{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserInProject}
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.UserBundleAlreadyAssigned.GetCode():
 		return &generated.UserBundleAlreadyAssigned{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("assignBundleToUser", err)
-		return &generated.EndUserNotFoundInProject{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserInProject}
 	}
 }
 
@@ -343,12 +373,15 @@ func (a *RbacErrorAdapter) ConvertToRevokeBundleFromUserError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFoundInProject.GetCode():
-		return &generated.EndUserNotFoundInProject{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserInProject}
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	default:
 		a.logUnknown("revokeBundleFromUser", err)
-		return &generated.EndUserNotFoundInProject{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserInProject}
 	}
 }
 
@@ -361,18 +394,18 @@ func (a *RbacErrorAdapter) ConvertToAssignRoleToUserError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFoundInProject.GetCode():
-		return &generated.EndUserNotFoundInProject{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserInProject}
 	case bizerrors.EndUserRoleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	case bizerrors.EndUserCannotAssignImplicitRole.GetCode():
 		return &generated.EndUserCannotAssignImplicitRole{Message: err.Msg()}
 	case bizerrors.UserRoleAlreadyAssigned.GetCode():
 		return &generated.UserRoleAlreadyAssigned{Message: err.Msg()}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("assignRoleToUser", err)
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	}
 }
 
@@ -385,12 +418,12 @@ func (a *RbacErrorAdapter) ConvertToRevokeRoleFromUserError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFoundInProject.GetCode():
-		return &generated.EndUserNotFoundInProject{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserInProject}
 	case bizerrors.EndUserRoleNotFound.GetCode():
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	default:
 		a.logUnknown("revokeRoleFromUser", err)
-		return &generated.EndUserRoleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserRole}
 	}
 }
 
@@ -418,12 +451,12 @@ func (a *RbacErrorAdapter) ConvertToApplyPresetPolicyError(
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("applyPresetPolicy", err)
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	}
 }
 
@@ -436,14 +469,23 @@ func (a *RbacErrorAdapter) ConvertToRestoreBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.EndUserPermissionBundleSnapshotNotFound.GetCode():
-		return &generated.EndUserPermissionBundleSnapshotNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundleSnapshot,
+		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("restoreBundle", err)
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	}
 }
 
@@ -456,9 +498,12 @@ func (a *RbacErrorAdapter) ConvertToBindPresetItemToBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.ModelNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.EndUserPresetRequiresOwnerField.GetCode(), bizerrors.EndUserRowScopeFieldMissing.GetCode():
 		suggestion := "请先在模型中创建 END_USER_REF 字段，然后重试绑定预设"
 		preset := detectPresetFromMessage(err.Msg())
@@ -468,7 +513,7 @@ func (a *RbacErrorAdapter) ConvertToBindPresetItemToBundleError(
 			Suggestion: &suggestion,
 		}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("bindPresetItemToBundle", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -484,13 +529,16 @@ func (a *RbacErrorAdapter) ConvertToBindCustomItemToBundleError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.EndUserPermissionNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUserPermission}
 	case bizerrors.ModelNotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("bindCustomItemToBundle", err)
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -506,14 +554,20 @@ func (a *RbacErrorAdapter) ConvertToRemoveDataPermissionItemError(
 	}
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserPermissionBundleNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	case bizerrors.ModelNotFound.GetCode():
-		return &generated.ModelNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
 	default:
 		a.logUnknown("removeDataPermissionItem", err)
-		return &generated.EndUserPermissionBundleNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEndUserPermissionBundle,
+		}
 	}
 }
 

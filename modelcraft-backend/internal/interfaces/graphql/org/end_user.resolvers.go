@@ -143,7 +143,7 @@ func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.De
 	if strings.TrimSpace(input.UserID) == "" {
 		return &generated.DeleteEndUserPayload{
 			Success: false,
-			Error:   &generated.EndUserNotFound{Message: "userId is required"},
+			Error:   &generated.ResourceNotFound{Message: "userId is required", ResourceType: generated.ResourceTypeEndUser},
 		}, nil
 	}
 
@@ -151,7 +151,7 @@ func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.De
 	if service == nil {
 		return &generated.DeleteEndUserPayload{
 			Success: false,
-			Error:   &generated.EndUserNotFound{Message: "end-user service not initialized"},
+			Error:   &generated.ResourceNotFound{Message: "end-user service not initialized", ResourceType: generated.ResourceTypeEndUser},
 		}, nil
 	}
 
@@ -159,7 +159,7 @@ func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.De
 	if err != nil {
 		return &generated.DeleteEndUserPayload{
 			Success: false,
-			Error:   &generated.EndUserNotFound{Message: "orgName not found in context"},
+			Error:   &generated.ResourceNotFound{Message: "orgName not found in context", ResourceType: generated.ResourceTypeEndUser},
 		}, nil
 	}
 

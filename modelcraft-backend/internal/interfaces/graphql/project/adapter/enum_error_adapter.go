@@ -29,17 +29,20 @@ func (a *EnumErrorAdapter) ConvertToGetEnumError(err *bizerrors.BusinessError) g
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.EnumNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EnumNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEnum,
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for GetEnum: %s", err.Info().GetCode())
-		return &generated.EnumNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEnum,
 		}
 	}
 }
@@ -52,8 +55,9 @@ func (a *EnumErrorAdapter) ConvertToCreateEnumError(err *bizerrors.BusinessError
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.EnumAlreadyExists.GetCode():
 		suggestion := "Please use a different enum name within this project"
@@ -91,12 +95,14 @@ func (a *EnumErrorAdapter) ConvertToUpdateEnumError(err *bizerrors.BusinessError
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.EnumNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EnumNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEnum,
 		}
 	case bizerrors.ParamInvalid.GetCode():
 		gqlErr := &generated.InvalidInput{
@@ -112,8 +118,9 @@ func (a *EnumErrorAdapter) ConvertToUpdateEnumError(err *bizerrors.BusinessError
 		return gqlErr
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for UpdateEnum: %s", err.Info().GetCode())
-		return &generated.EnumNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEnum,
 		}
 	}
 }
@@ -126,12 +133,14 @@ func (a *EnumErrorAdapter) ConvertToDeleteEnumError(err *bizerrors.BusinessError
 
 	switch err.Info().GetCode() {
 	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ProjectNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeProject,
 		}
 	case bizerrors.EnumNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EnumNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEnum,
 		}
 	case bizerrors.CannotDeleteReferencedEnum.GetCode():
 		suggestion := "Please remove the enum from these fields before deleting"
@@ -141,8 +150,9 @@ func (a *EnumErrorAdapter) ConvertToDeleteEnumError(err *bizerrors.BusinessError
 		}
 	default:
 		a.logger.Errorf(a.ctx, "Unknown error code for DeleteEnum: %s", err.Info().GetCode())
-		return &generated.EnumNotFound{
-			Message: err.Msg(),
+		return &generated.ResourceNotFound{
+			Message:      err.Msg(),
+			ResourceType: generated.ResourceTypeEnum,
 		}
 	}
 }

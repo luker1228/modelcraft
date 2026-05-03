@@ -75,14 +75,6 @@ type CurrentUser {
 # Error Types
 # ============================================
 
-type OrganizationNotFound implements Error {
-  message: String!
-}
-
-type RoleNotFound implements Error {
-  message: String!
-}
-
 type RoleAlreadyExists implements Error {
   message: String!
 }
@@ -92,9 +84,9 @@ type CannotDeleteSystemRole implements Error {
 }
 
 # Error unions
-union GetOrganizationError = OrganizationNotFound
+union GetOrganizationError = ResourceNotFound
 union CreateRoleError = RoleAlreadyExists | InvalidInput
-union DeleteRoleError = RoleNotFound | CannotDeleteSystemRole
+union DeleteRoleError = ResourceNotFound | CannotDeleteSystemRole
 
 # ============================================
 # Payload Types

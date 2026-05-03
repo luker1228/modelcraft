@@ -32,7 +32,7 @@ func convertOrgUpdateEndUserError(err *bizerrors.BusinessError) generated.Update
 
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFound.GetCode(), bizerrors.NotFound.GetCode():
-		return &generated.EndUserNotFound{Message: err.Msg()}
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
 		return &generated.InvalidInput{Message: err.Msg()}
 	default:
@@ -44,7 +44,7 @@ func convertOrgDeleteEndUserError(err *bizerrors.BusinessError) generated.Delete
 	if err == nil {
 		return nil
 	}
-	return &generated.EndUserNotFound{Message: err.Msg()}
+	return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 }
 
 func convertOrgListEndUsersError(err *bizerrors.BusinessError) generated.ListEndUsersError {

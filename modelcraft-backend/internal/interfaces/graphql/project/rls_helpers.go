@@ -102,7 +102,7 @@ func convertRLSErrorToGraphQLType(ctx context.Context, err error) generated.SetM
 
 	switch code {
 	case bizerrors.ModelNotFound.GetCode():
-		return &generated.ModelNotFound{Message: bizErr.Error()}
+		return &generated.ResourceNotFound{Message: bizErr.Error(), ResourceType: generated.ResourceTypeModel}
 	case bizerrors.ParamInvalid.GetCode():
 		if bizErr.Error() == "Model has no owner field (EndUserRef), cannot set RLS policy" {
 			suggestion := "Please add an EndUserRef field named 'owner' to the model first"

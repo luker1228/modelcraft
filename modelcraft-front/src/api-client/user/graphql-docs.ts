@@ -120,8 +120,9 @@ export const UPDATE_ORGANIZATION = gql`
       }
       error {
         __typename
-        ... on OrganizationNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
       }
     }
@@ -160,8 +161,9 @@ export const DELETE_ROLE = gql`
       success
       error {
         __typename
-        ... on RoleNotFound {
+        ... on ResourceNotFound {
           message
+          resourceType
         }
         ... on CannotDeleteSystemRole {
           message
@@ -177,9 +179,9 @@ export const ADD_PERMISSION_TO_ROLE = gql`
       success
       error {
         __typename
-        ... on PermissionRoleNotFound {
+        ... on ResourceNotFound {
           message
-          suggestion
+          resourceType
         }
         ... on PermissionSystemRoleCannotBeModified {
           message
@@ -200,9 +202,9 @@ export const REMOVE_PERMISSION_FROM_ROLE = gql`
       success
       error {
         __typename
-        ... on PermissionRoleNotFound {
+        ... on ResourceNotFound {
           message
-          suggestion
+          resourceType
         }
         ... on PermissionSystemRoleCannotBeModified {
           message
