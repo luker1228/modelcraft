@@ -13,7 +13,29 @@ BeforeAll(async function () {
   if (process.env.TEST_ACCESS_TOKEN) return
 
   const client = new RestClient()
-  const loginResult = await client.login(BDD_LOGIN_PHONE, BDD_LOGIN_PASSWORD, 'PHONE')
+
+  const login = async () => client.login(BDD_LOGIN_PHONE, BDD_LOGIN_PASSWORD, 'PHONE')
+  let loginResult = await login()
+
+  // 无预置测试账号时，先自动注册再重试登录
+  if (!loginResult.data) {
+    const registerResult = await client.register(BDD_LOGIN_PHONE, BDD_LOGIN_PASSWORD)
+
+    if (!registerResult.data) {
+      const code = registerResult.error?.error.code ?? ''
+      const message = registerResult.error?.error.message ?? ''
+      const isAlreadyExists = /already[_\s-]?exists|已存在/i.test(`${code} ${message}`)
+
+      if (!isAlreadyExists) {
+        throw new Error(
+          `BDD auto-setup: register failed — ${JSON.stringify(registerResult.error)}`
+        )
+      }
+    }
+
+    loginResult = await login()
+  }
+
   if (!loginResult.data) {
     throw new Error(`BDD auto-setup: login failed — ${JSON.stringify(loginResult.error)}`)
   }
