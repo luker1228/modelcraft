@@ -34,6 +34,10 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { getEndUserToken } from '@api-client/end-user/public'
 import { createEndUserScopedClient } from '@api-client/apollo/clients'
+import {
+  MODEL_CATALOG_END_USER,
+  MODEL_DATABASE_CATALOG_END_USER,
+} from '@/api-client/model/graphql-docs.end-user.catalog'
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
 import ModelRecordWorkspace from '@web/components/features/model-editor/model-record-form/ModelRecordWorkspace'
 import { DataWorkspacePanel } from '@web/components/features/model-editor/DataWorkspacePanel'
@@ -88,62 +92,6 @@ type ModelCatalogQueryResult = {
 }
 
 const MAX_MODEL_TABS = 8
-
-const DATABASE_CATALOG_QUERY = gql`
-  query ModelDatabaseCatalog($input: ModelDatabaseCatalogInput) {
-    modelDatabaseCatalog(input: $input) {
-      data {
-        databases {
-          name
-        }
-        totalCount
-        page
-        pageSize
-      }
-      error {
-        __typename
-        ... on InvalidInput {
-          message
-        }
-        ... on ResourceNotFound {
-          message
-          resourceType
-        }
-        ... on Unauthorized {
-          message
-        }
-      }
-    }
-  }
-`
-
-const MODEL_CATALOG_QUERY = gql`
-  query ModelCatalog($input: ModelCatalogInput!) {
-    modelCatalog(input: $input) {
-      data {
-        models {
-          id
-          name
-          title
-          databaseName
-        }
-      }
-      error {
-        __typename
-        ... on InvalidInput {
-          message
-        }
-        ... on ResourceNotFound {
-          message
-          resourceType
-        }
-        ... on Unauthorized {
-          message
-        }
-      }
-    }
-  }
-`
 
 export default function EndUserDataPage() {
   const params = useParams<{ orgName: string; projectSlug: string }>()
@@ -204,7 +152,7 @@ export default function EndUserDataPage() {
     try {
       const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
       const { data } = await client.query<DatabaseCatalogQueryResult>({
-        query: DATABASE_CATALOG_QUERY,
+        query: MODEL_DATABASE_CATALOG_END_USER,
         variables: { input: { page: 1, pageSize: 100 } },
         fetchPolicy: 'network-only',
       })
@@ -263,7 +211,7 @@ export default function EndUserDataPage() {
       try {
         const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
         const { data } = await client.query<ModelCatalogQueryResult>({
-          query: MODEL_CATALOG_QUERY,
+          query: MODEL_CATALOG_END_USER,
           variables: { input: { databaseName: selectedDatabase, page: 1, pageSize: 200 } },
           fetchPolicy: 'network-only',
         })
