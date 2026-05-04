@@ -43,6 +43,8 @@ ModelCraft 当前有两套并行体系：
 1. 前端（浏览器侧 + 前端服务侧）**必须先访问 Gateway，再转发到 Backend**。
 2. 禁止前端任何业务请求直连 Backend（包括 GraphQL/REST）。
 3. Backend 对外联调视角只接受来自 Gateway 的受控流量。
+4. **Gateway 是唯一的 Developer JWT 验签者**。Backend design-time 端点不接受 direct bearer token，只信任 Gateway 注入的 `X-User-ID`。
+5. **CLI** 必须走 `cli -> gateway -> backend` 路径，不得直连 Backend design-time 端点。
 
 ---
 

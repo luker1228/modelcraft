@@ -134,7 +134,10 @@ GraphQL/REST 代理都会执行以下策略：
 
 1. **前端（强制）**：所有浏览器侧与前端服务侧业务请求必须先到 Gateway，再由 Gateway 转发到 Backend；禁止任何直连 Backend 的 GraphQL/REST 调用。
 2. **后端**：通过 `X-User-ID` / `X-Internal-Token` 识别调用方，网关负责外层 token 校验。
-3. **可观测性**：后端日志应保留 `X-Request-Id` 与 `traceparent`，保证跨服务串联排障。
+   - **Developer 认证（design-time）**：Gateway 是唯一的 developer JWT 验签者。Gateway 验证 Bearer token 后删除 Authorization 头，并注入 `X-User-ID`；Backend 只信任该 header，不再直接校验 developer bearer token。
+   - **EndUser 认证（runtime）**：Gateway 验证 HMAC JWT，注入 `X-User-ID` + `X-Internal-Token`。
+3. **CLI**：CLI 必须走 `cli -> gateway -> backend` 路径，不得直接访问 Backend design-time 端点。
+4. **可观测性**：后端日志应保留 `X-Request-Id` 与 `traceparent`，保证跨服务串联排障。
 
 ---
 

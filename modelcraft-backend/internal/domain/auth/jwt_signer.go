@@ -66,7 +66,7 @@ func NewJWTSignerFromPEM(
 		ttl = defaultAccessTokenTTL
 	}
 	if issuer == "" {
-		issuer = string(IssuerLegacy)
+		issuer = string(IssuerDeveloper)
 	}
 
 	return &JWTSigner{privateKey: key, issuer: issuer, ttl: ttl}, nil
@@ -81,7 +81,7 @@ func GenerateDevSigner() (*JWTSigner, error) {
 	}
 	return &JWTSigner{
 		privateKey: key,
-		issuer:     "modelcraft",
+		issuer:     string(IssuerDeveloper),
 		ttl:        defaultAccessTokenTTL,
 	}, nil
 }

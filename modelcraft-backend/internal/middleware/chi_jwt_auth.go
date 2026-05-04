@@ -1,16 +1,14 @@
 package middleware
 
 import (
-	"modelcraft/internal/domain/auth"
 	"modelcraft/pkg/ctxutils"
 	"net/http"
-	"strings"
-
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // JWTAuthConfig holds configuration for the JWT authentication middleware.
 type JWTAuthConfig struct {
+	// ModelCraftSecret is retained for compatibility but no longer used for bearer token validation.
+	// Backend design-time endpoints authenticate exclusively via gateway-injected headers.
 	ModelCraftSecret []byte
 	SkipValidation   bool
 	// InternalToken allows BFF server-side callers to authenticate via X-Internal-Token header,
@@ -26,9 +24,18 @@ func writeJSONError(w http.ResponseWriter, status int, errMsg, code string) {
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
 
-// ChiJWTAuthMiddleware validates JWT tokens from the Authorization header.
-// Token path: "Bearer <jwt>" — HMAC-SHA256 signed ModelCraft JWT
-// Internal Token path: "X-Internal-Token" header — BFF server-side callers bypass JWT requirement
+// ChiJWTAuthMiddleware authenticates design-time requests using the gateway-trusted identity contract.
+//
+// Authentication paths (in priority order):
+//  1. SkipValidation: bypass all checks (dev/test only).
+//  2. X-Internal-Token: BFF server-side callers authenticate without a user identity.
+//  3. X-User-ID: injected by the trusted gateway after validating the developer bearer token.
+//     The backend trusts this header unconditionally; it is safe only because the backend
+//     is not directly reachable from the public internet.
+//
+// Direct developer bearer token validation has been removed. All developer auth is
+// now handled exclusively by the gateway, which strips the Authorization header and
+// injects X-User-ID before forwarding to the backend.
 func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -41,29 +48,17 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 				return
 			}
 
-			// X-User-ID path: injected by the trusted Gateway after JWT validation.
-			// Safe only because the backend is not directly reachable from the internet.
+			// Gateway-trusted identity: the gateway validates the developer bearer token,
+			// strips the Authorization header, and injects X-User-ID into the forwarded request.
 			if userID := r.Header.Get("X-User-ID"); userID != "" {
 				ctx := ctxutils.SetUserID(r.Context(), userID)
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}
 
-			token := extractBearerToken(r)
-			if token == "" {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			// JWT path: HMAC-SHA256 ModelCraft JWT
-			claims, err := validateModelCraftJWT(config.ModelCraftSecret, token)
-			if err != nil {
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			ctx := ctxutils.SetUserID(r.Context(), claims.UserID)
-			next.ServeHTTP(w, r.WithContext(ctx))
+			// No trusted identity found — reject. Direct bearer token submission is no longer
+			// an accepted authentication path for design-time endpoints.
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		})
 	}
 }
@@ -84,34 +79,4 @@ func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.
 	}
 	next.ServeHTTP(w, r)
 	return true
-}
-
-// extractBearerToken extracts the Bearer token from the Authorization header.
-func extractBearerToken(r *http.Request) string {
-	auth := r.Header.Get("Authorization")
-	if strings.HasPrefix(auth, "Bearer ") {
-		return strings.TrimPrefix(auth, "Bearer ")
-	}
-	return ""
-}
-
-// validateModelCraftJWT validates an HMAC-SHA256 signed ModelCraft JWT.
-func validateModelCraftJWT(secret []byte, tokenString string) (*auth.UserClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &auth.UserClaims{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, jwt.ErrSignatureInvalid
-		}
-		return secret, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	if !token.Valid {
-		return nil, jwt.ErrSignatureInvalid
-	}
-	claims, ok := token.Claims.(*auth.UserClaims)
-	if !ok {
-		return nil, jwt.ErrInvalidKey
-	}
-	return claims, nil
 }

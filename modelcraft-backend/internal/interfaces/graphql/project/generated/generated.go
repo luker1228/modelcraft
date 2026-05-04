@@ -5281,6 +5281,7 @@ enum ResourceType {
   END_USER_IN_PROJECT
   PERMISSION_ROLE
   PERMISSION_USER
+  UNKNOWN
 }
 
 type ResourceNotFound implements Error {

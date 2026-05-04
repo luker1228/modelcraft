@@ -49,7 +49,9 @@ function createAuthLink() {
 /**
  * Org-Scoped Apollo Client
  * Endpoint: /api/bff/graphql/org/{orgName}/
- * Gateway validates Bearer token and proxies to Go backend with X-Internal-Token.
+ * Gateway validates the developer Bearer token, strips the Authorization header,
+ * and injects X-User-ID before forwarding to the backend. The backend trusts X-User-ID
+ * as the authenticated developer identity; it does not perform its own token validation.
  */
 function createOrgScopedClient() {
   const httpLink = createHttpLink({
@@ -82,6 +84,7 @@ function createOrgScopedClient() {
  * Project-Scoped Apollo Client factory
  * Endpoint: /api/bff/graphql/org/{orgName}/project/{projectSlug}/
  * Creates a fresh instance per project to avoid cache conflicts.
+ * Gateway validates the developer Bearer token, strips Authorization, and injects X-User-ID.
  */
 export function createProjectScopedClient(
   orgName: string,

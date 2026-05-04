@@ -1041,6 +1041,7 @@ const (
 	ResourceTypeEndUserInProject                ResourceType = "END_USER_IN_PROJECT"
 	ResourceTypePermissionRole                  ResourceType = "PERMISSION_ROLE"
 	ResourceTypePermissionUser                  ResourceType = "PERMISSION_USER"
+	ResourceTypeUnknown                         ResourceType = "UNKNOWN"
 )
 
 var AllResourceType = []ResourceType{
@@ -1061,11 +1062,12 @@ var AllResourceType = []ResourceType{
 	ResourceTypeEndUserInProject,
 	ResourceTypePermissionRole,
 	ResourceTypePermissionUser,
+	ResourceTypeUnknown,
 }
 
 func (e ResourceType) IsValid() bool {
 	switch e {
-	case ResourceTypeProject, ResourceTypeCluster, ResourceTypeModel, ResourceTypeEnum, ResourceTypeGroup, ResourceTypeUser, ResourceTypeProfile, ResourceTypeOrganization, ResourceTypeRole, ResourceTypeEndUser, ResourceTypeEndUserPermission, ResourceTypeEndUserPermissionBundle, ResourceTypeEndUserPermissionBundleSnapshot, ResourceTypeEndUserRole, ResourceTypeEndUserInProject, ResourceTypePermissionRole, ResourceTypePermissionUser:
+	case ResourceTypeProject, ResourceTypeCluster, ResourceTypeModel, ResourceTypeEnum, ResourceTypeGroup, ResourceTypeUser, ResourceTypeProfile, ResourceTypeOrganization, ResourceTypeRole, ResourceTypeEndUser, ResourceTypeEndUserPermission, ResourceTypeEndUserPermissionBundle, ResourceTypeEndUserPermissionBundleSnapshot, ResourceTypeEndUserRole, ResourceTypeEndUserInProject, ResourceTypePermissionRole, ResourceTypePermissionUser, ResourceTypeUnknown:
 		return true
 	}
 	return false

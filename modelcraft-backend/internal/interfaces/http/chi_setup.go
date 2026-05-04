@@ -46,11 +46,11 @@ type ChiRouterConfig struct {
 //	  ├── Global: RequestID, RealIP, CORS, Logger, Recoverer
 //	  ├── /health, /test                          → net/http (no auth)
 //	  ├── /api/openapi.json                       → net/http (no auth)
-//	  ├── /org/*                                  → Gin mount (Gin handles JWT)
-//	  ├── /graphql/*                              → Gin mount (no auth currently)
+//	  ├── /graphql/org/*                          → gateway-trusted auth (X-User-ID)
+//	  ├── /graphql/end-user/*                     → internal-token auth
 //	  └── /api/* (generated OpenAPI handler)      → Chi with conditional auth
 //	        ├── /api/auth/register, /login, /logout     → public (no auth)
-//	        └── everything else                       → JWT + Tenant middleware
+//	        └── everything else                       → gateway-trusted auth (X-User-ID)
 func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	r := chi.NewRouter()
 

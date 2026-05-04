@@ -6,12 +6,11 @@ package endusergraphql
 
 import (
 	"context"
-	"time"
-
 	appEnduser "modelcraft/internal/app/enduser"
 	"modelcraft/internal/interfaces/graphql/enduser/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"time"
 )
 
 // Me 返回当前认证 end-user 的 meta/user 资料。
@@ -80,13 +79,7 @@ func (r *queryResolver) FindOne(ctx context.Context, where generated.TuserUnique
 // FindMany 按受限条件查询用户列表。
 // 白名单字段：id、username、createdAt；排序字段：createdAt；take<=50；skip<=1000。
 // orgName 由中间件注入，不通过 GraphQL 输入暴露。
-func (r *queryResolver) FindMany( //nolint:cyclop
-	ctx context.Context,
-	where *generated.TuserWhereInput,
-	orderBy []*generated.TuserOrderByInput,
-	skip *int32,
-	take *int32,
-) (*generated.TuserFindManyResult, error) {
+func (r *queryResolver) FindMany(ctx context.Context, where *generated.TuserWhereInput, orderBy []*generated.TuserOrderByInput, skip *int32, take *int32) (*generated.TuserFindManyResult, error) {
 	requestID := ctxutils.GetRequestID(ctx)
 	start := time.Now()
 
@@ -148,60 +141,4 @@ func (r *queryResolver) FindMany( //nolint:cyclop
 		TimeCost: int32(time.Since(start).Milliseconds()),
 		ReqID:    requestID,
 	}, nil
-}
-
-// toTuser 将 MetaUserDTO 转为 GraphQL Tuser 类型（不含租户字段）。
-func toTuser(dto *appEnduser.MetaUserDTO) *generated.Tuser {
-	if dto == nil {
-		return nil
-	}
-	return &generated.Tuser{
-		ID:        dto.ID,
-		Username:  dto.Username,
-		CreatedAt: dto.CreatedAt.Format(time.RFC3339Nano),
-	}
-}
-
-// buildMetaUserFilter 将 GraphQL where input 映射到应用层 filter 命令。
-func buildMetaUserFilter(where *generated.TuserWhereInput) *appEnduser.MetaUserFindManyFilter {
-	f := &appEnduser.MetaUserFindManyFilter{}
-	if where.ID != nil {
-		if where.ID.Eq != nil {
-			eq := string(*where.ID.Eq)
-			f.IDEq = &eq
-		}
-		for _, v := range where.ID.In {
-			f.IDIn = append(f.IDIn, string(v))
-		}
-	}
-	if where.Username != nil {
-		f.UsernameEq = where.Username.Eq
-		f.UsernameContains = where.Username.Contains
-		f.UsernameStartsWith = where.Username.StartsWith
-		f.UsernameIn = where.Username.In
-	}
-	if where.CreatedAt != nil {
-		f.CreatedAtEq = where.CreatedAt.Eq
-		f.CreatedAtGte = where.CreatedAt.Gte
-		f.CreatedAtLte = where.CreatedAt.Lte
-	}
-	return f
-}
-
-// metaUserInvalidInputResult 构造包含错误信息的 FindOneResult（不返回 GraphQL error，保持 schema 兼容）。
-func metaUserInvalidInputResult(requestID string, start time.Time, _ string) *generated.TuserFindOneResult {
-	return &generated.TuserFindOneResult{
-		Item:     nil,
-		TimeCost: int32(time.Since(start).Milliseconds()),
-		ReqID:    requestID,
-	}
-}
-
-// mapMetaUserError 将业务错误映射为 FindOneResult（保持 schema 兼容，item 为 nil）。
-func mapMetaUserError(requestID string, start time.Time, _ error) *generated.TuserFindOneResult {
-	return &generated.TuserFindOneResult{
-		Item:     nil,
-		TimeCost: int32(time.Since(start).Milliseconds()),
-		ReqID:    requestID,
-	}
 }

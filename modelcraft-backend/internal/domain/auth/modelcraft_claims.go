@@ -47,7 +47,7 @@ type ModelCraftClaims struct {
 	Memberships        []MembershipClaimInfo `json:"memberships,omitempty"`
 	HasMoreMemberships bool                  `json:"hasMoreMemberships,omitempty"` // True if user has >10 memberships
 
-	// Issuer (always "modelcraft")
+	// Issuer (mc-developer)
 	Issuer string `json:"iss"`
 }
 
@@ -57,8 +57,8 @@ func (c *ModelCraftClaims) Validate() error {
 		return fmt.Errorf("%w: user_id is required", ErrInvalidToken)
 	}
 
-	if c.Issuer != "modelcraft" {
-		return fmt.Errorf("%w: expected issuer 'modelcraft', got '%s'", ErrInvalidToken, c.Issuer)
+	if c.Issuer != string(IssuerDeveloper) {
+		return fmt.Errorf("%w: expected issuer '%s', got '%s'", ErrInvalidToken, IssuerDeveloper, c.Issuer)
 	}
 
 	if c.ExpiresAt == nil || c.ExpiresAt.Before(time.Now()) {
