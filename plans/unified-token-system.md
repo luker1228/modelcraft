@@ -168,14 +168,16 @@ Response: { "accessToken": "<Project Token>", "expiresAt": "..." }
   → POST /api/end-user/{orgSlug}/auth/login
   → 拿到 Org Token
   → 前端请求 projects 列表（复用 org GraphQL: query { projects }）
-  → 展示可访问 project 列表（无权限的不显示）
-  → 用户点击某个 project
-  → POST /api/auth/exchange { projectSlug }
-  → 拿到 Project Token
+  → 展示有 membership 的 project 列表（RBAC 过滤，无权限的不显示）
+  → 用户点击某个 project（前端记录 projectSlug 用于路由跳转）
+  → POST /api/auth/exchange（Body 为空，仅凭 Org Token 换 Project Token）
+  → 拿到 Project Token（不含 projectSlug，可访问所有 project 接口）
   → 跳转 /workspace/{orgSlug}/{projectSlug}
   → Workspace 页只显示：模型数据 CRUD tab（runtime GraphQL）
   → 不显示：org 管理菜单、模型结构编辑、枚举管理等设计时功能
 ```
+
+**注意**：`projectSlug` 仅存在于前端路由 URL 中，用于 runtime GraphQL 请求路径拼接。Project Token 本身不携带 projectSlug，哪个 project 的数据可读写由 RBAC membership 在服务端控制。
 
 ---
 
@@ -221,12 +223,11 @@ const (
     TokenScopeServiceKey = "service_key" // 预留，本期不实现
 )
 
-// Claims 示例
+// Claims 示例（Project Token，不携带 projectSlug）
 claims := &PlatformClaims{
-    UserID:      userID,
-    OrgName:     orgName,
-    Scope:       TokenScopeProject,
-    ProjectSlug: projectSlug,
+    UserID:  userID,
+    OrgName: orgName,
+    Scope:   TokenScopeProject,
     RegisteredClaims: jwt.RegisteredClaims{
         Issuer:    IssuerPlatform,
         ExpiresAt: jwt.NewNumericDate(time.Now().Add(1 * time.Hour)),
@@ -287,9 +288,9 @@ func RequireProjectScope(next http.Handler) http.Handler {
 - [ ] 端用户通过 `/api/end-user/{orgSlug}/auth/login` 登录，拿到 scope=org 的 JWT，issuer=mc-platform
 - [ ] 平台管理员通过 `/api/auth/login` 登录，拿到同格式的 scope=org JWT
 - [ ] 两种用户的 token 经过同一个中间件验证逻辑，无分叉
-- [ ] `POST /api/auth/exchange { projectSlug }` 返回 scope=project 的 JWT，TTL 与 org token 相同（1h）
-- [ ] scope=org 的 token 无法访问 `/graphql/org/{orgName}/project/{slug}/` 端点（返回 403）
-- [ ] scope=project 的 token 无法访问 `/graphql/org/{orgName}/` 端点（返回 403）
+- [ ] `POST /api/auth/exchange` 返回 scope=project 的 JWT（不含 projectSlug），TTL 与 org token 相同（1h）
+- [ ] scope=org 的 token 无法访问 `/graphql/org/{orgName}/project/*` 端点（返回 403）
+- [ ] scope=project 的 token 可访问任意 `/graphql/org/{orgName}/project/{slug}/` 端点，具体权限由 RBAC 控制
 - [ ] `api/graph/end_user/` 目录及对应 handler/resolver 已删除，`just build` 通过
 - [ ] 前端 `/end-user/{orgSlug}/login` 页面可正常登录并展示 project 列表
 - [ ] 点击 project 后完成 exchange，跳转进入 `/workspace/{orgSlug}/{projectSlug}`
