@@ -4,7 +4,7 @@ description: >
   ModelCraft 部署与环境配置速查。当需要了解服务端口、Docker 配置、环境变量、
   健康检查端点、数据库连接等部署相关信息时使用此 skill。
   触发场景包括：
-  (1) 用户询问某个服务的端口号（"后端在哪个端口"、"Casdoor 端口是多少"），
+  (1) 用户询问某个服务的端口号（"后端在哪个端口"、"MySQL 端口是多少"），
   (2) 用户需要了解 .env 配置项的含义或默认值，
   (3) 用户需要查看 Docker Compose 服务列表或启动命令，
   (4) 用户需要了解本地开发 vs Docker 部署的环境差异，
@@ -24,7 +24,6 @@ globs:
 |------|------|----------|
 | **ModelCraft API (Go)** | `8080` | `GET /health` |
 | **Frontend (Next.js)** | `3000` | - |
-| **Casdoor** | `8000` | `GET /api/get-account` |
 | **MySQL (Docker 部署)** | `6033` → 容器 `3306` | `mysqladmin ping` |
 | **MySQL (本地开发)** | `3307` → 容器 `3306` | `mysqladmin ping` |
 | **Redis** | `6379` | `redis-cli ping` |
@@ -38,11 +37,10 @@ globs:
 
 ```bash
 docker compose -f docker-compose.local.yml up -d
-# 包含：MySQL(3307), Redis(6379), Casdoor(8000), phpMyAdmin(8081, 需 --profile tools)
+# 包含：MySQL(3307), Redis(6379), phpMyAdmin(8081, 需 --profile tools)
 ```
 
-- MySQL 单实例，同时承载应用数据库和 Casdoor 数据库
-- Casdoor 连接 `modelcraft-mysql-local:3306`
+- MySQL 单实例，承载应用数据库
 - App 通过 `127.0.0.1:3307` 连接 MySQL
 
 ### 完整部署 (`docker-compose.yml`)
@@ -54,7 +52,7 @@ docker compose up -d                          # 基础服务
 docker compose --profile tools up -d          # 含 phpMyAdmin
 ```
 
-- MySQL 独立实例 (`modelcraft-mysql`, 端口 6033) + Casdoor 专用 MySQL (`casdoor-db`, 无宿主机映射)
+- MySQL 独立实例 (`modelcraft-mysql`, 端口 6033)
 - App 通过 `modelcraft-mysql:3306` (容器网络) 连接 MySQL
 - MySQL 初始化 schema：挂载 `./db/schema/mysql` 到 `/docker-entrypoint-initdb.d`
 
