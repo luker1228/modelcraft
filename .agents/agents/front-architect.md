@@ -243,7 +243,7 @@ export function XxxPanel({ ... }: XxxPanelProps): JSX.Element {
 图谱检测到两个关键超边（跨文件隐式关联），可直接指导架构决策：
 
 - **Frontend Styling System**：`tailwind_policy + color_system + style_md + quick_start + eslint_rules` 形成完整的样式约束网络（INFERRED 0.90），说明这五个规范文件高度耦合，修改样式决策时需同时验证
-- **Frontend Tech Architecture Stack**：`front_architecture + bff_design + nextjs_app_router + apollo_client + zustand + casdoor_auth` 形成技术栈约束网络（INFERRED 0.85），新模块必须在这个栈内选型
+- **Frontend Tech Architecture Stack**：`front_architecture + bff_design + nextjs_app_router + apollo_client + zustand` 形成技术栈约束网络（INFERRED 0.85），新模块必须在这个栈内选型
 
 ### 做架构决策前的图查询
 
@@ -266,7 +266,7 @@ export function XxxPanel({ ... }: XxxPanelProps): JSX.Element {
 
 图谱发现的 Surprising Connections 意味着你在架构中改动一处，可能影响另一处：
 - 前端样式系统五个文件高度耦合 → 修改颜色系统规范时，必须同时更新 ESLint 规则
-- BFF 层与 Apollo / Casdoor 紧密绑定 → 新认证方式不能绕过 BFF 门面
+- BFF 层与 Apollo 紧密绑定 → 新认证方式不能绕过 BFF 门面
 
 ## 完成检查清单
 

@@ -262,7 +262,7 @@ OrgAlreadyExistsError:
 
 ### OAuth 认证流程接口设计
 
-后端封装第三方 OAuth 提供商（如 Casdoor），**不直接暴露 OAuth 提供商 API**，对外提供统一的认证接口：
+后端封装第三方 OAuth 提供商，**不直接暴露 OAuth 提供商 API**，对外提供统一的认证接口：
 
 ```
 前端                  后端 BFF               ModelCraft Backend        OAuth Provider

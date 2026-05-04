@@ -73,9 +73,6 @@ docker compose --profile tools up -d          # 含 phpMyAdmin
 | `REDIS_PORT` | `6379` | `6379` | Redis 端口 |
 | `JWT_SECRET` | *(必填)* | *(必填)* | JWT 签名密钥 |
 | `CRYPTO_AES_KEY` | `12345678901234567890123456789012` | *(必填, 32字节)* | AES-256 密钥 |
-| `CASDOOR_ENDPOINT` | `http://9.135.32.8:8000` | - | Casdoor 地址 |
-| `CASDOOR_CLIENT_ID` | `765f754c2a59662a442b` | *(必填)* | OAuth Client ID |
-| `CASDOOR_CLIENT_SECRET` | `b09e8443c481f8545bab5312e9ffaa47f88179e0` | *(必填)* | OAuth Client Secret |
 | `AUTH_DESIGN_ENABLED` | `true` | - | 设计时鉴权开关 |
 
 ### 前端 (`.env`)
@@ -83,10 +80,6 @@ docker compose --profile tools up -d          # 含 phpMyAdmin
 | 变量 | 默认值 | 说明 |
 |------|--------|------|
 | `VITE_BACKEND_URL` | `http://localhost:8080` | 后端 API 地址 |
-| `NEXT_PUBLIC_CASDOOR_URL` | `http://9.135.32.8:8000` | Casdoor (浏览器可访问) |
-| `NEXT_PUBLIC_CASDOOR_CLIENT_ID` | `765f754c2a59662a442b` | OAuth Client ID |
-| `NEXT_PUBLIC_CASDOOR_ORGANIZATION` | `built-in` | Casdoor 组织 |
-| `NEXT_PUBLIC_CASDOOR_APP_NAME` | `modelcraft` | Casdoor 应用名 |
 | `VITE_COPILOT_ENABLED` | `true` | CopilotKit AI 开关 |
 
 > `NEXT_PUBLIC_*` 变量在构建时嵌入，暴露给浏览器。
@@ -103,7 +96,6 @@ docker compose --profile tools up -d          # 含 phpMyAdmin
 | 后端环境模板 | `modelcraft-backend/.env.dev.example` | 开发环境模板 |
 | Docker 环境模板 | `modelcraft-backend/.env.docker.example` | 最完整的变量参考 |
 | 后端 YAML 配置 | `modelcraft-backend/configs/config.yaml` | 应用配置（端口、连接池、日志等） |
-| Casdoor 配置 | `modelcraft-backend/casdoor/conf/app.conf` | Casdoor 端口和数据库 |
 | 前端环境变量 | `modelcraft-front/.env` | 活跃配置 |
 | 前端生产环境 | `modelcraft-front/.env.production` | 生产构建（`VITE_API_BASE_URL` 为空，同源） |
 
@@ -134,8 +126,6 @@ auth:
     enabled: false          # 设计时 API 鉴权（生产应为 true）
   runtime:
     enabled: true           # 运行时 API 始终鉴权
-  casdoor:
-    endpoint: http://9.135.32.8:8000
 
 logger:
   level: info
@@ -187,5 +177,4 @@ just db login
 | 网络 | `modelcraft-local-network` | `modelcraft-network` |
 | MySQL 数据 | `mysql_local_data` | `mysql_data` |
 | Redis 数据 | `redis_local_data` | `redis_data` |
-| Casdoor 数据 | - | `casdoor_data`, `casdoor_mysql_data` |
 | 应用挂载 | - | `./configs:/app/configs`, `./logs:/app/logs`, `./data:/app/data` |

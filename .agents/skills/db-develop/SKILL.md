@@ -126,7 +126,7 @@ Schema 定义在 `db/schema/mysql/`，**按编号顺序执行**：
 | `01_project.sql` | 项目域 | `projects`（复合主键：org_name + slug） |
 | `02_database_cluster.sql` | 数据库集群 | `database_clusters` |
 | `03_model_domain.sql` | 模型域 | `models`、`field_definitions`、`model_enums`、`logical_foreign_keys`、`model_groups` |
-| `04_auth.sql` | 认证配置 | `project_auth_configs`（Casdoor/OIDC 配置） |
+| `04_auth.sql` | 认证配置 | `project_auth_configs`（OIDC 配置） |
 | `05_organizations.sql` | 组织域 | `organizations` |
 | `06_users.sql` | 用户域 | `users`、`user_organizations` |
 | `07_roles_permissions.sql` | 权限域（Casbin） | `roles`、`user_roles`、`role_permissions` |
