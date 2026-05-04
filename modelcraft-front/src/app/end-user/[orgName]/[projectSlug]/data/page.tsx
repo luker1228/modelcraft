@@ -39,7 +39,7 @@ import {
   MODEL_DATABASE_CATALOG_END_USER,
 } from '@/api-client/model/graphql-docs.end-user.catalog'
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
-import ModelRecordWorkspace from '@web/components/features/model-editor/model-record-form/ModelRecordWorkspace'
+import RuntimeRecordWorkspace from '@web/components/features/model-editor/model-record-form/RuntimeRecordWorkspace'
 import { DataWorkspacePanel } from '@web/components/features/model-editor/DataWorkspacePanel'
 
 const LIST_ACCESSIBLE_PROJECTS = gql`
@@ -441,12 +441,11 @@ export default function EndUserDataPage() {
           onTabChange={setActiveModelId}
           onTabClose={handleCloseTab}
           renderContent={(activeTab) => (
-            <ModelRecordWorkspace
+            <RuntimeRecordWorkspace
               key={activeTab.id}
               modelId={activeTab.id}
               projectSlug={projectSlug}
               orgName={orgName}
-              workspaceMode="end_user"
             />
           )}
         />

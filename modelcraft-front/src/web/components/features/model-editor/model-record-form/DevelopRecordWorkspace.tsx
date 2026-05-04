@@ -1,9 +1,13 @@
 'use client'
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
-import { useQuery, useMutation, ApolloClient } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
-import { useProjectScopedClient, createModelRuntimeClient, createEndUserScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
+import {
+  useProjectScopedClient,
+  createModelRuntimeClient,
+  useProjectScopedContext,
+} from '@api-client/apollo/public'
 import { ModelRecordForm } from './index'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './ModelRecordTable'
@@ -22,15 +26,9 @@ import {
 } from '@api-client/cms/public'
 import type { FieldDefinition } from '@api-client/cms/public'
 import { NOOP_MUTATION, NOOP_QUERY } from '@/api-client/noop'
-import {
-  DEPRECATE_FIELD,
-  REMOVE_FIELD,
-  UNDEPRECATE_FIELD,
-} from '@/api-client/model'
+import { DEPRECATE_FIELD, REMOVE_FIELD, UNDEPRECATE_FIELD } from '@/api-client/model'
 import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
-import { GET_MODEL_RECORD_WORKSPACE_END_USER } from '@/api-client/model/graphql-docs.end-user'
 import { Button } from '@web/components/ui/button'
-import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
@@ -59,17 +57,17 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
+import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
 
 function toQueryValue(value: string | null | undefined): string {
   return (value ?? '').trim()
 }
 
-interface ModelRecordWorkspaceProps {
+export interface DevelopRecordWorkspaceProps {
   modelId: string
   projectSlug: string
   orgName: string
   refreshToken?: number
-  workspaceMode?: 'develop' | 'end_user'
   quickNav?: React.ReactNode
 }
 
@@ -125,37 +123,36 @@ function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
   return configured ?? ''
 }
 
-function getEndUserProjectContext(orgName: string, projectSlug: string) {
-  return { uri: `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}` }
-}
-
-export default function ModelRecordWorkspace({
+/**
+ * DevelopRecordWorkspace — 开发者模式数据工作区。
+ *
+ * 能力范围：
+ * - record query / create / edit / delete
+ * - 字段插入（InsertMenu）
+ * - 字段废弃 / 取消废弃 / 删除（字段生命周期维护）
+ * - 关系维护（RecordRelationManagerDialog）
+ *
+ * 使用 developer project-scoped client 作为管理端点，
+ * 使用 createModelRuntimeClient 作为数据端点。
+ * 不依赖 workspaceMode，不接受 workspaceMode prop。
+ */
+export default function DevelopRecordWorkspace({
   modelId,
   projectSlug,
   orgName,
   refreshToken = 0,
-  workspaceMode = 'develop',
   quickNav,
-}: ModelRecordWorkspaceProps) {
+}: DevelopRecordWorkspaceProps) {
   const projectClient = useProjectScopedClient(projectSlug)
-  const endUserToken = useEndUserAuthStore((s) => s.accessToken)
-
-  // 创建 project-scoped context
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
-  const endUserProjectContext = useMemo(
-    () => getEndUserProjectContext(orgName, projectSlug),
-    [orgName, projectSlug]
-  )
-  const modelQueryContext = workspaceMode === 'end_user' ? endUserProjectContext : projectScopedContext
-  const modelWorkspaceQuery = workspaceMode === 'end_user'
-    ? GET_MODEL_RECORD_WORKSPACE_END_USER
-    : GET_MODEL_RECORD_WORKSPACE
-  const modelQueryClient = useMemo(() => {
-    if (workspaceMode === 'end_user' && endUserToken) {
-      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
-    }
-    return projectClient
-  }, [workspaceMode, endUserToken, orgName, projectSlug, projectClient])
+
+  // 构建 develop workspace 的 RecordAccessAdapter
+  const accessAdapter = useMemo<RecordAccessAdapter>(() => ({
+    managementClient: projectClient,
+    managementContext: projectScopedContext,
+    createRuntimeClient: (databaseName: string, modelName: string) =>
+      createModelRuntimeClient(orgName, projectSlug, databaseName, modelName),
+  }), [projectClient, projectScopedContext, orgName, projectSlug])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
@@ -164,7 +161,7 @@ export default function ModelRecordWorkspace({
   const [relationManagerOpen, setRelationManagerOpen] = useState(false)
   const [relationRecordId, setRelationRecordId] = useState<string | null>(null)
 
-  // 添加数据状态
+  // 新增数据状态
   const [createDataOpen, setCreateDataOpen] = useState(false)
   const [createSaving, setCreateSaving] = useState(false)
 
@@ -178,20 +175,24 @@ export default function ModelRecordWorkspace({
   // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('')
 
-  // Fetch model details with fields and JSON schema
-  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(modelWorkspaceQuery, {
-    client: modelQueryClient,
-    variables: { id: modelId },
-    context: modelQueryContext,
-  })
+  // 拉取模型 schema（develop 用 project client）
+  const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
+    GET_MODEL_RECORD_WORKSPACE,
+    {
+      client: projectClient,
+      variables: { id: modelId },
+      context: projectScopedContext,
+    }
+  )
 
-  // 注意：model query 返回 GetModelPayload，model 在 payload.model 中
   const model = modelData?.model?.model
   const modelError = modelData?.model?.error
   const modelName = model?.name
   const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
-  const canInsertField = workspaceMode === 'develop' && !isManagedReadOnlyModel
-  const canManageFieldLifecycle = workspaceMode === 'develop' && !isManagedReadOnlyModel
+
+  // develop workspace 始终拥有字段生命周期能力（托管模型除外）
+  const canInsertField = !isManagedReadOnlyModel
+  const canManageFieldLifecycle = !isManagedReadOnlyModel
   const canCreateRecord = !isManagedReadOnlyModel
   const canEditRecord = !isManagedReadOnlyModel
   const canDeleteRecord = !isManagedReadOnlyModel
@@ -199,16 +200,13 @@ export default function ModelRecordWorkspace({
   const showManagedReadonlyToast = useCallback(() => {
     toast.warning('托管模型仅支持查看，不支持写入或结构修改')
   }, [])
-  // 创建动态的 Runtime Client，使用模型特定的 GraphQL 端点
+
+  // develop 场景：runtime client 使用 model-specific endpoint
   const runtimeClient = useMemo(() => {
     if (!model?.databaseName || !model?.name) return null
-    if (workspaceMode === 'end_user' && endUserToken) {
-      return createEndUserScopedClient(orgName, projectSlug, endUserToken)
-    }
     return createModelRuntimeClient(orgName, projectSlug, model.databaseName, model.name)
-  }, [workspaceMode, endUserToken, orgName, projectSlug, model?.databaseName, model?.name]) as ApolloClient<object> | null
+  }, [orgName, projectSlug, model?.databaseName, model?.name])
 
-  // Parse schema to get runtime fields
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {
     if (!model?.jsonSchema) return null
     try {
@@ -303,7 +301,6 @@ export default function ModelRecordWorkspace({
             name: labelFieldName,
             title: null,
             isPrimary: false,
-            // enum label projection column is virtual for the enum field; keep lifecycle aligned
             isDeprecated: deprecatedFieldNames.has(name),
             storageHint: 'TEXT',
             schemaType: 'STRING',
@@ -315,7 +312,6 @@ export default function ModelRecordWorkspace({
     return []
   }, [jsonSchema, model?.fields])
 
-  // 使用 model.fields 作为表头字段来源（更可靠）
   const displayFields = useMemo(() => {
     if (tableFieldInfos.length > 0) {
       return tableFieldInfos.map((field) => field.name)
@@ -323,14 +319,12 @@ export default function ModelRecordWorkspace({
     return runtimeFields.map((f) => typeof f === 'string' ? f : f.name)
   }, [tableFieldInfos, runtimeFields])
 
-  // Build a name→prop lookup from JSON Schema for cell rendering
   const propByName = useMemo(() => {
     if (!jsonSchema) return {}
     const protocols = getFieldProtocols(jsonSchema as import('@rjsf/utils').RJSFSchema)
     return Object.fromEntries(protocols.map(({ name, prop }) => [name, prop]))
   }, [jsonSchema])
 
-  // 辅助函数：根据字段名获取字段信息
   const getFieldInfo = useCallback(
     (fieldName: string): ModelRecordTableFieldInfo | null => {
       return tableFieldInfos.find((field) => field.name === fieldName) ?? null
@@ -338,20 +332,16 @@ export default function ModelRecordWorkspace({
     [tableFieldInfos]
   )
 
-  // 辅助函数：获取字段类型的简短显示
   const getFieldTypeDisplay = useCallback((fieldInfo: ModelRecordTableFieldInfo | null) => {
     if (!fieldInfo) return ''
-    // 优先使用 storageHint，其次使用 schemaType
     return fieldInfo.storageHint || fieldInfo.schemaType || ''
   }, [])
 
-  // Build dynamic query for fetching content
   const findManyQuery = useMemo(() => {
     if (!modelName) return null
     return buildFindManyQuery(modelName, runtimeFields)
   }, [modelName, runtimeFields])
 
-  // Fetch content list
   const {
     data: contentData,
     loading: contentLoading,
@@ -365,7 +355,6 @@ export default function ModelRecordWorkspace({
     },
   })
 
-  // Build delete mutation
   const deleteMutation = useMemo(() => {
     if (!modelName) return null
     return buildDeleteMutation(modelName)
@@ -380,19 +369,11 @@ export default function ModelRecordWorkspace({
     },
   })
 
-  const [deprecateField] = useMutation(DEPRECATE_FIELD, {
-    client: projectClient,
-  })
+  // develop-only：字段生命周期 mutation，使用 projectClient
+  const [deprecateField] = useMutation(DEPRECATE_FIELD, { client: projectClient })
+  const [undeprecateField] = useMutation(UNDEPRECATE_FIELD, { client: projectClient })
+  const [removeField] = useMutation(REMOVE_FIELD, { client: projectClient })
 
-  const [undeprecateField] = useMutation(UNDEPRECATE_FIELD, {
-    client: projectClient,
-  })
-
-  const [removeField] = useMutation(REMOVE_FIELD, {
-    client: projectClient,
-  })
-
-  // Build create mutation
   const createMutation = useMemo(() => {
     if (!modelName) return null
     return buildCreateMutation(modelName)
@@ -412,13 +393,11 @@ export default function ModelRecordWorkspace({
     },
   })
 
-  // Build findUnique query for editing
   const findUniqueQuery = useMemo(() => {
     if (!modelName) return null
     return buildFindUniqueQuery(modelName, runtimeFields)
   }, [modelName, runtimeFields])
 
-  // Build update mutation
   const updateMutation = useMemo(() => {
     if (!modelName) return null
     return buildUpdateMutation(modelName)
@@ -484,7 +463,6 @@ export default function ModelRecordWorkspace({
     setEditDataOpen(true)
 
     try {
-      // 获取当前数据
       const { data } = await runtimeClient.query<Record<string, unknown>>({
         query: findUniqueQuery,
         variables: { where: { id } },
@@ -508,7 +486,6 @@ export default function ModelRecordWorkspace({
     }
   }
 
-  // 打开添加数据弹窗
   const handleCreate = () => {
     if (isManagedReadOnlyModel) {
       showManagedReadonlyToast()
@@ -526,15 +503,14 @@ export default function ModelRecordWorkspace({
     setDeleteDialogOpen(true)
   }
 
+  // develop-only：字段废弃/取消废弃
   const handleToggleFieldDeprecated = useCallback(
     async (fieldInfo: ModelRecordTableFieldInfo) => {
       if (isManagedReadOnlyModel) {
         showManagedReadonlyToast()
         return
       }
-      if (!model?.id) {
-        return
-      }
+      if (!model?.id) return
 
       try {
         const mutate = fieldInfo.isDeprecated ? undeprecateField : deprecateField
@@ -564,6 +540,7 @@ export default function ModelRecordWorkspace({
     ]
   )
 
+  // develop-only：发起字段删除
   const handleRequestRemoveField = useCallback((fieldInfo: ModelRecordTableFieldInfo) => {
     if (isManagedReadOnlyModel) {
       showManagedReadonlyToast()
@@ -578,14 +555,13 @@ export default function ModelRecordWorkspace({
     setRemoveFieldDialogOpen(true)
   }, [isManagedReadOnlyModel, showManagedReadonlyToast])
 
+  // develop-only：确认删除字段
   const handleConfirmRemoveField = useCallback(async () => {
     if (isManagedReadOnlyModel) {
       showManagedReadonlyToast()
       return
     }
-    if (!model?.id || !removeFieldTarget) {
-      return
-    }
+    if (!model?.id || !removeFieldTarget) return
 
     try {
       await removeField({
@@ -623,9 +599,7 @@ export default function ModelRecordWorkspace({
 
     return contentList.filter((row) => {
       return Object.values(row).some((value) => {
-        if (value == null) {
-          return false
-        }
+        if (value == null) return false
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
           return String(value).toLowerCase().includes(keyword)
         }
@@ -654,301 +628,299 @@ export default function ModelRecordWorkspace({
   }
 
   return (
-    <div className="flex h-full flex-col">
-      {quickNav ?? (workspaceMode !== 'end_user' && (
-        <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-card p-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-8 shrink-0 text-muted-foreground"
-            disabled
-          >
-            <TerminalSquare className="mr-1.5 size-3.5" />
-            SQL 控制台（敬请期待）
-          </Button>
-        </div>
-      ))}
-
-      {isManagedReadOnlyModel && (
-        <div className="border-b border-border bg-card px-4 py-2">
-          <Alert variant="warning" className="py-2">
-            <AlertDescription className="text-xs">
-              当前为托管模型，数据与结构均为只读模式，新增/编辑/删除操作已禁用。
-            </AlertDescription>
-          </Alert>
-        </div>
-      )}
-
-      {/* 顶部搜索栏 */}
-      <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-        <div className="flex w-full max-w-xl items-center gap-2">
-          <Search className="size-4 text-muted-foreground" />
-          <Input
-            value={searchKeyword}
-            onChange={(event) => setSearchKeyword(event.target.value)}
-            placeholder={`搜索 ${model.title || model.name} 的记录...`}
-            className="h-8"
-          />
-        </div>
-        <div className="text-xs text-muted-foreground">
-          {filteredContentList.length} / {contentList.length} 条
-        </div>
-      </div>
-
-      {/* 紧凑工具栏 - 数据列表上方 */}
-      <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
-        <div className="flex items-center gap-4">
-          {/* Filter & Sort */}
-          <div className="flex items-center gap-1">
+    <RecordAccessAdapterProvider value={accessAdapter}>
+      <div className="flex h-full flex-col">
+        {quickNav ?? (
+          <div className="flex items-center gap-2 overflow-x-auto border-b border-border bg-card p-2">
             <Button
               variant="ghost"
               size="sm"
-              className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="h-8 shrink-0 text-muted-foreground"
+              disabled
             >
-              <Filter className="mr-1.5 size-3.5" />
-              <span>筛选</span>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
-            >
-              <List className="mr-1.5 size-3.5" />
-              <span>排序</span>
+              <TerminalSquare className="mr-1.5 size-3.5" />
+              SQL 控制台（敬请期待）
             </Button>
           </div>
+        )}
 
-          {/* 分隔线 */}
-          <div className="h-5 w-px bg-border" />
+        {isManagedReadOnlyModel && (
+          <div className="border-b border-border bg-card px-4 py-2">
+            <Alert variant="warning" className="py-2">
+              <AlertDescription className="text-xs">
+                当前为托管模型，数据与结构均为只读模式，新增/编辑/删除操作已禁用。
+              </AlertDescription>
+            </Alert>
+          </div>
+        )}
 
-          {/* Insert 下拉菜单 */}
-          <div className="flex items-center gap-2">
-            <ModelRecordInsertMenu
-              onCreateRecord={handleCreate}
-              modelId={modelId}
-              modelName={model?.name}
-              projectSlug={projectSlug}
-              orgName={orgName}
-              existingFieldNames={Object.keys((jsonSchema?.properties as Record<string, unknown>) ?? {})}
-              canInsertField={canInsertField}
-              canCreateRecord={canCreateRecord}
-              onInsertFieldSuccess={() => {
-                void refetch()
-                void refetchModel()
-              }}
+        {/* 顶部搜索栏 */}
+        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+          <div className="flex w-full max-w-xl items-center gap-2">
+            <Search className="size-4 text-muted-foreground" />
+            <Input
+              value={searchKeyword}
+              onChange={(event) => setSearchKeyword(event.target.value)}
+              placeholder={`搜索 ${model.title || model.name} 的记录...`}
+              className="h-8"
             />
+          </div>
+          <div className="text-xs text-muted-foreground">
+            {filteredContentList.length} / {contentList.length} 条
           </div>
         </div>
 
-        {/* 右侧工具 */}
-        <div className="flex items-center gap-2">
-          {!contentLoading && (
-            <span className="text-xs text-muted-foreground">
-              {filteredContentList.length} 条记录
-            </span>
-          )}
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-[26px] w-7 p-0"
-            onClick={() => refetch()}
-            disabled={contentLoading}
-            title="刷新数据"
-          >
-            <RefreshCw className={`size-3.5 ${contentLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-      </div>
-
-      {/* 主内容区 - 数据列表 */}
-      <ModelRecordTable
-        contentLoading={contentLoading}
-        contentList={filteredContentList}
-        displayFields={displayFields}
-        getFieldInfo={getFieldInfo}
-        getFieldTypeDisplay={getFieldTypeDisplay}
-        propByName={propByName}
-        onCreate={handleCreate}
-        onEdit={handleEdit}
-        onDelete={confirmDelete}
-        onManageRelations={(id) => {
-          setRelationRecordId(id)
-          setRelationManagerOpen(true)
-        }}
-        onToggleFieldDeprecated={handleToggleFieldDeprecated}
-        onDeleteField={handleRequestRemoveField}
-        canManageFieldLifecycle={canManageFieldLifecycle}
-        canCreateRecord={canCreateRecord}
-        canEditRecord={canEditRecord}
-        canDeleteRecord={canDeleteRecord}
-      />
-
-      <RecordRelationManagerDialog
-        open={relationManagerOpen}
-        onOpenChange={(open) => {
-          setRelationManagerOpen(open)
-          if (!open) {
-            setRelationRecordId(null)
-          }
-        }}
-        jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema | null}
-        orgName={orgName}
-        projectSlug={projectSlug}
-        modelId={modelId}
-        recordId={relationRecordId}
-        workspaceMode={workspaceMode}
-      />
-
-      {/* 添加数据侧边栏 */}
-      <Sheet open={createDataOpen} onOpenChange={setCreateDataOpen}>
-        <SheetContent side="right" className="w-[450px] overflow-y-auto sm:max-w-[500px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Plus className="size-5 text-primary" />
-              添加数据
-            </SheetTitle>
-            <SheetDescription>
-              向 <span className="font-mono text-primary">{model.name}</span> 添加一条新记录
-            </SheetDescription>
-          </SheetHeader>
-
-          {jsonSchema && (
-            <ModelRecordForm
-              jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
-              onSubmit={async (data) => {
-                if (isManagedReadOnlyModel) {
-                  showManagedReadonlyToast()
-                  throw new Error('托管模型仅支持查看')
-                }
-                setCreateSaving(true)
-                try {
-                  const sanitizedData = sanitizeMutationInputData(data, writableFieldNames)
-                  await createContent({ variables: { data: sanitizedData } })
-                  setCreateDataOpen(false)
-                } catch (error) {
-                  throw error  // ModelRecordForm catches and toasts
-                } finally {
-                  setCreateSaving(false)
-                }
-              }}
-              onCancel={() => setCreateDataOpen(false)}
-              isSubmitting={createSaving}
-              orgName={orgName}
-              projectSlug={projectSlug}
-              clusterName=""
-              databaseName={model.databaseName ?? ''}
-              modelId={modelId}
-              workspaceMode={workspaceMode}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
-
-      {/* 编辑数据侧边栏 */}
-      <Sheet open={editDataOpen} onOpenChange={setEditDataOpen}>
-        <SheetContent side="right" className="w-[450px] overflow-y-auto sm:max-w-[500px]">
-          <SheetHeader>
-            <SheetTitle className="flex items-center gap-2">
-              <Edit className="size-5 text-primary" />
-              编辑数据
-            </SheetTitle>
-            <SheetDescription>
-              编辑 <span className="font-mono text-primary">{model.name}</span> 中的记录
-              {editItemId && (
-                <span className="mt-1 block text-xs text-muted-foreground">ID: {editItemId}</span>
-              )}
-            </SheetDescription>
-          </SheetHeader>
-
-          {editLoading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="size-8 animate-spin text-muted-foreground" />
+        {/* 工具栏 */}
+        <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <Filter className="mr-1.5 size-3.5" />
+                <span>筛选</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+              >
+                <List className="mr-1.5 size-3.5" />
+                <span>排序</span>
+              </Button>
             </div>
-          ) : jsonSchema && (
-            <ModelRecordForm
-              jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
-              initialData={editFormData}
-              recordId={editItemId ?? undefined}
-              onSubmit={async (data) => {
-                if (isManagedReadOnlyModel) {
-                  showManagedReadonlyToast()
-                  throw new Error('托管模型仅支持查看')
-                }
-                setEditSaving(true)
-                try {
-                  const sanitizedData = sanitizeMutationInputData(data, writableFieldNames)
-                  await updateContent({ variables: { where: { id: editItemId }, data: sanitizedData } })
-                  setEditDataOpen(false)
-                } catch (error) {
-                  throw error  // ModelRecordForm catches and toasts
-                } finally {
-                  setEditSaving(false)
-                }
-              }}
-              onCancel={() => setEditDataOpen(false)}
-              isSubmitting={editSaving}
-              orgName={orgName}
-              projectSlug={projectSlug}
-              clusterName=""
-              databaseName={model.databaseName ?? ''}
-              modelId={modelId}
-              workspaceMode={workspaceMode}
-            />
-          )}
-        </SheetContent>
-      </Sheet>
 
-      {/* 删除确认对话框 */}
-      <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>确认删除</DialogTitle>
-            <DialogDescription>确定要删除这条数据吗？此操作不可撤销。</DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isManagedReadOnlyModel}>
-              删除
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <div className="h-5 w-px bg-border" />
 
-      {/* 删除字段确认对话框 */}
-      <Dialog
-        open={removeFieldDialogOpen}
-        onOpenChange={(open) => {
-          setRemoveFieldDialogOpen(open)
-          if (!open) {
-            setRemoveFieldTarget(null)
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>确认删除字段</DialogTitle>
-            <DialogDescription>
-              确定要删除字段 <span className="font-mono">{removeFieldTarget?.name}</span> 吗？此操作不可撤销。
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
+            {/* develop-only：插入菜单（含插入列） */}
+            <div className="flex items-center gap-2">
+              <ModelRecordInsertMenu
+                onCreateRecord={handleCreate}
+                modelId={modelId}
+                modelName={model?.name}
+                projectSlug={projectSlug}
+                orgName={orgName}
+                existingFieldNames={Object.keys((jsonSchema?.properties as Record<string, unknown>) ?? {})}
+                canInsertField={canInsertField}
+                canCreateRecord={canCreateRecord}
+                onInsertFieldSuccess={() => {
+                  void refetch()
+                  void refetchModel()
+                }}
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {!contentLoading && (
+              <span className="text-xs text-muted-foreground">
+                {filteredContentList.length} 条记录
+              </span>
+            )}
             <Button
               variant="outline"
-              onClick={() => {
-                setRemoveFieldDialogOpen(false)
-                setRemoveFieldTarget(null)
-              }}
+              size="sm"
+              className="h-[26px] w-7 p-0"
+              onClick={() => refetch()}
+              disabled={contentLoading}
+              title="刷新数据"
             >
-              取消
+              <RefreshCw className={`size-3.5 ${contentLoading ? 'animate-spin' : ''}`} />
             </Button>
-            <Button variant="destructive" onClick={handleConfirmRemoveField} disabled={isManagedReadOnlyModel}>
-              删除字段
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+          </div>
+        </div>
+
+        {/* 数据表格 — 包含字段生命周期控制 */}
+        <ModelRecordTable
+          contentLoading={contentLoading}
+          contentList={filteredContentList}
+          displayFields={displayFields}
+          getFieldInfo={getFieldInfo}
+          getFieldTypeDisplay={getFieldTypeDisplay}
+          propByName={propByName}
+          onCreate={handleCreate}
+          onEdit={handleEdit}
+          onDelete={confirmDelete}
+          onManageRelations={(id) => {
+            setRelationRecordId(id)
+            setRelationManagerOpen(true)
+          }}
+          onToggleFieldDeprecated={handleToggleFieldDeprecated}
+          onDeleteField={handleRequestRemoveField}
+          canManageFieldLifecycle={canManageFieldLifecycle}
+          canCreateRecord={canCreateRecord}
+          canEditRecord={canEditRecord}
+          canDeleteRecord={canDeleteRecord}
+        />
+
+        {/* 关系维护对话框 — develop workspace 始终可用 */}
+        <RecordRelationManagerDialog
+          open={relationManagerOpen}
+          onOpenChange={(open) => {
+            setRelationManagerOpen(open)
+            if (!open) setRelationRecordId(null)
+          }}
+          jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema | null}
+          orgName={orgName}
+          projectSlug={projectSlug}
+          modelId={modelId}
+          recordId={relationRecordId}
+        />
+
+        {/* 新增数据侧边栏 */}
+        <Sheet open={createDataOpen} onOpenChange={setCreateDataOpen}>
+          <SheetContent side="right" className="w-[450px] overflow-y-auto sm:max-w-[500px]">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Plus className="size-5 text-primary" />
+                添加数据
+              </SheetTitle>
+              <SheetDescription>
+                向 <span className="font-mono text-primary">{model.name}</span> 添加一条新记录
+              </SheetDescription>
+            </SheetHeader>
+
+            {jsonSchema && (
+              <ModelRecordForm
+                jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
+                onSubmit={async (data) => {
+                  if (isManagedReadOnlyModel) {
+                    showManagedReadonlyToast()
+                    throw new Error('托管模型仅支持查看')
+                  }
+                  setCreateSaving(true)
+                  try {
+                    const sanitizedData = sanitizeMutationInputData(data, writableFieldNames)
+                    await createContent({ variables: { data: sanitizedData } })
+                    setCreateDataOpen(false)
+                  } catch (error) {
+                    throw error
+                  } finally {
+                    setCreateSaving(false)
+                  }
+                }}
+                onCancel={() => setCreateDataOpen(false)}
+                isSubmitting={createSaving}
+                orgName={orgName}
+                projectSlug={projectSlug}
+                clusterName=""
+                databaseName={model.databaseName ?? ''}
+                modelId={modelId}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+
+        {/* 编辑数据侧边栏 */}
+        <Sheet open={editDataOpen} onOpenChange={setEditDataOpen}>
+          <SheetContent side="right" className="w-[450px] overflow-y-auto sm:max-w-[500px]">
+            <SheetHeader>
+              <SheetTitle className="flex items-center gap-2">
+                <Edit className="size-5 text-primary" />
+                编辑数据
+              </SheetTitle>
+              <SheetDescription>
+                编辑 <span className="font-mono text-primary">{model.name}</span> 中的记录
+                {editItemId && (
+                  <span className="mt-1 block text-xs text-muted-foreground">ID: {editItemId}</span>
+                )}
+              </SheetDescription>
+            </SheetHeader>
+
+            {editLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="size-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : jsonSchema && (
+              <ModelRecordForm
+                jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
+                initialData={editFormData}
+                recordId={editItemId ?? undefined}
+                onSubmit={async (data) => {
+                  if (isManagedReadOnlyModel) {
+                    showManagedReadonlyToast()
+                    throw new Error('托管模型仅支持查看')
+                  }
+                  setEditSaving(true)
+                  try {
+                    const sanitizedData = sanitizeMutationInputData(data, writableFieldNames)
+                    await updateContent({ variables: { where: { id: editItemId }, data: sanitizedData } })
+                    setEditDataOpen(false)
+                  } catch (error) {
+                    throw error
+                  } finally {
+                    setEditSaving(false)
+                  }
+                }}
+                onCancel={() => setEditDataOpen(false)}
+                isSubmitting={editSaving}
+                orgName={orgName}
+                projectSlug={projectSlug}
+                clusterName=""
+                databaseName={model.databaseName ?? ''}
+                modelId={modelId}
+                recordId={editItemId ?? undefined}
+              />
+            )}
+          </SheetContent>
+        </Sheet>
+
+        {/* 删除确认对话框 */}
+        <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>确认删除</DialogTitle>
+              <DialogDescription>确定要删除这条数据吗？此操作不可撤销。</DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                取消
+              </Button>
+              <Button variant="destructive" onClick={handleDelete} disabled={isManagedReadOnlyModel}>
+                删除
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* 删除字段确认对话框 — develop-only */}
+        <Dialog
+          open={removeFieldDialogOpen}
+          onOpenChange={(open) => {
+            setRemoveFieldDialogOpen(open)
+            if (!open) setRemoveFieldTarget(null)
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>确认删除字段</DialogTitle>
+              <DialogDescription>
+                确定要删除字段 <span className="font-mono">{removeFieldTarget?.name}</span> 吗？此操作不可撤销。
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setRemoveFieldDialogOpen(false)
+                  setRemoveFieldTarget(null)
+                }}
+              >
+                取消
+              </Button>
+              <Button
+                variant="destructive"
+                onClick={handleConfirmRemoveField}
+                disabled={isManagedReadOnlyModel}
+              >
+                删除字段
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </RecordAccessAdapterProvider>
   )
 }

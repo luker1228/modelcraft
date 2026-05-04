@@ -25,7 +25,7 @@ import {
   type DataWorkspaceTab,
 } from '@web/components/features/model-editor/DataWorkspacePanel'
 
-const ModelRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/ModelRecordWorkspace'))
+const DevelopRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'))
 const MAX_MODEL_TABS = 8
 
 export function ModelEditorView() {
@@ -182,13 +182,12 @@ export function ModelEditorView() {
                   </div>
                 }
               >
-                <ModelRecordWorkspace
+                <DevelopRecordWorkspace
                   key={`${activeTab.id}-${schemaRefreshToken}`}
                   modelId={activeTab.id}
                   projectSlug={projectSlug}
                   orgName={orgName}
                   refreshToken={schemaRefreshToken}
-                  workspaceMode="develop"
                 />
               </Suspense>
             )}

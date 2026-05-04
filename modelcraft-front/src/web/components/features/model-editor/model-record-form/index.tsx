@@ -11,6 +11,7 @@ import { OneToManyRelationManagerSection } from './OneToManyRelationManagerSecti
 import { FieldTemplate, BaseInputTemplate, ObjectFieldTemplate } from './templates'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
+import { useRecordAccessAdapter } from './access-adapter'
 
 interface ModelRecordFormProps {
   jsonSchema: RJSFSchema
@@ -24,7 +25,6 @@ interface ModelRecordFormProps {
   databaseName: string
   modelId: string
   recordId?: string
-  workspaceMode?: 'develop' | 'end_user'
 }
 
 const customWidgets = {
@@ -54,9 +54,9 @@ export function ModelRecordForm({
   databaseName,
   modelId,
   recordId,
-  workspaceMode = 'develop',
 }: ModelRecordFormProps) {
   const formRef = useRef<RJSFFormRef>(null)
+  const adapter = useRecordAccessAdapter()
 
   // Filter readOnly fields (primary keys, RELATION fields) out of the form schema
   const editableSchema = useMemo(
@@ -81,14 +81,15 @@ export function ModelRecordForm({
     }
   }, [editableSchema])
 
-  // Form context for widgets
+  // Form context for widgets — 注入 createRuntimeClient 使 RelationSelector 通过 access adapter 访问数据
   const formContext = useMemo(() => ({
     orgName,
     projectSlug,
     clusterName,
     databaseName,
     modelId,
-  }), [orgName, projectSlug, clusterName, databaseName, modelId])
+    createRuntimeClient: adapter.createRuntimeClient,
+  }), [orgName, projectSlug, clusterName, databaseName, modelId, adapter.createRuntimeClient])
 
   // Handle form submission
   const handleSubmit = async (data: IChangeEvent<Record<string, unknown>>) => {
@@ -130,7 +131,6 @@ export function ModelRecordForm({
           orgName={orgName}
           projectSlug={projectSlug}
           modelId={modelId}
-          workspaceMode={workspaceMode}
         />
       </div>
       <div className="flex justify-end gap-2 border-t p-4">

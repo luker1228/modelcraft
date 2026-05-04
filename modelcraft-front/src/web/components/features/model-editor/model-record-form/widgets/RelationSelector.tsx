@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
+import type { ApolloClient } from '@apollo/client'
 import { createModelRuntimeClient } from '@api-client/apollo/public'
 import { buildFindManyQuery, buildFindUniqueQuery } from '@api-client/cms/public'
 import {
@@ -37,9 +38,16 @@ interface FindManyQueryData {
   } | null
 }
 
+/**
+ * FormContext 注入的 createRuntimeClient 函数类型。
+ * develop workspace 注入 createModelRuntimeClient；
+ * runtime workspace 注入 createEndUserScopedClient（忽略 databaseName/modelName）。
+ */
 interface FormContext {
   orgName?: string
   projectSlug?: string
+  /** 可选：通过 access adapter 注入的 runtime client 工厂，优先于内建路由推导。 */
+  createRuntimeClient?: (databaseName: string, modelName: string) => ApolloClient<object>
 }
 
 // ──────────────────────────────────────────────
@@ -110,6 +118,7 @@ interface UseRelationSearchOptions {
   search: string
   enabled: boolean
   triggerNonce: number
+  createRuntimeClientOverride?: (databaseName: string, modelName: string) => ApolloClient<object>
 }
 
 interface UseRelationSearchResult {
@@ -126,6 +135,7 @@ function useRelationSearch({
   search,
   enabled,
   triggerNonce,
+  createRuntimeClientOverride,
 }: UseRelationSearchOptions): UseRelationSearchResult {
   const [records, setRecords] = useState<RemoteRecord[]>([])
   const [loading, setLoading] = useState(false)
@@ -135,8 +145,13 @@ function useRelationSearch({
     if (!orgName || !projectSlug || !databaseName || !modelName) {
       return null
     }
+    // 优先使用注入的 createRuntimeClient（来自 access adapter）
+    if (createRuntimeClientOverride) {
+      return createRuntimeClientOverride(databaseName, modelName)
+    }
+    // 降级：使用 develop-specific model runtime client
     return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
-  }, [orgName, projectSlug, databaseName, modelName])
+  }, [orgName, projectSlug, databaseName, modelName, createRuntimeClientOverride])
 
   // Debounce search input 300ms
   const [debouncedSearch, setDebouncedSearch] = useState(search)
@@ -207,6 +222,7 @@ interface UseCurrentRecordOptions {
   databaseName: string
   modelName: string
   currentId: string
+  createRuntimeClientOverride?: (databaseName: string, modelName: string) => ApolloClient<object>
 }
 
 function useCurrentRecord({
@@ -215,14 +231,18 @@ function useCurrentRecord({
   databaseName,
   modelName,
   currentId,
+  createRuntimeClientOverride,
 }: UseCurrentRecordOptions): RemoteRecord | null {
   const [record, setRecord] = useState<RemoteRecord | null>(null)
   const client = useMemo(() => {
     if (!orgName || !projectSlug || !databaseName || !modelName) {
       return null
     }
+    if (createRuntimeClientOverride) {
+      return createRuntimeClientOverride(databaseName, modelName)
+    }
     return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
-  }, [orgName, projectSlug, databaseName, modelName])
+  }, [orgName, projectSlug, databaseName, modelName, createRuntimeClientOverride])
 
   useEffect(() => {
     if (!currentId || !client) {
@@ -295,6 +315,10 @@ function useCurrentRecord({
  * - Falls back to bare id when _displayName is empty
  * - Supports nullable fields (clear button shown when field is not required)
  * - Shows `_displayName (id)` on the trigger for already-selected values
+ *
+ * 数据访问边界：
+ * - 若 formContext.createRuntimeClient 存在，通过注入的工厂访问（access adapter 模式）
+ * - 否则降级为 createModelRuntimeClient（兼容旧调用方）
  */
 export function RelationSelector(props: WidgetProps) {
   const { value, onChange, disabled, required, schema, formContext } = extractProps(props)
@@ -303,6 +327,7 @@ export function RelationSelector(props: WidgetProps) {
   const routeCtx = useMemo(() => getRouteContextFromPathname(), [])
   const orgName = ctx.orgName ?? routeCtx.orgName ?? ''
   const projectSlug = ctx.projectSlug ?? routeCtx.projectSlug ?? ''
+  const createRuntimeClientOverride = ctx.createRuntimeClient
 
   const xmc = schema['x-mc'] as XMC | undefined
   const xRelation = xmc?.relation
@@ -322,6 +347,7 @@ export function RelationSelector(props: WidgetProps) {
     databaseName,
     modelName,
     currentId,
+    createRuntimeClientOverride,
   })
 
   const enabled = open && !!orgName && !!projectSlug && !!databaseName && !!modelName
@@ -334,6 +360,7 @@ export function RelationSelector(props: WidgetProps) {
     search,
     enabled,
     triggerNonce: openTriggerNonce,
+    createRuntimeClientOverride,
   })
 
   const handleSelect = useCallback(
