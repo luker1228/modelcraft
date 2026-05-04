@@ -55,6 +55,7 @@ import {
   REVOKE_END_USER_ROLE_FROM_USER,
   UPDATE_END_USER_ROLE,
 } from '@/api-client/rbac'
+import type { EndUserPermissionAction, EndUserRowScope } from '@/types'
 
 // ── BundlesTab ────────────────────────────────────────────────────────────────
 
@@ -77,8 +78,8 @@ function BundlesTab({ roleId, orgName, projectSlug }: BundlesTabProps) {
     roleId,
   })
 
-  const assignedBundleIds = new Set(role?.permissionBundles.map((b) => b.id) ?? [])
-  const assignedBundles = role?.permissionBundles ?? []
+  const assignedBundleIds = new Set(role?.permissionBundles.map((entry) => entry.bundle.id) ?? [])
+  const assignedBundles = role?.permissionBundles.map((entry) => entry.bundle) ?? []
   const unassignedBundles = allBundles.filter((b) => !assignedBundleIds.has(b.id))
 
   const toggleExpand = (id: string) => {
@@ -90,10 +91,10 @@ function BundlesTab({ roleId, orgName, projectSlug }: BundlesTabProps) {
     })
   }
 
-  const ACTION_LABEL: Record<string, string> = {
+  const ACTION_LABEL: Record<EndUserPermissionAction, string> = {
     SELECT: '查询', INSERT: '新增', UPDATE: '更新', DELETE: '删除', EXPORT: '导出',
   }
-  const ROW_SCOPE_LABEL: Record<string, string> = {
+  const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
     ALL: '全部', SELF: '本人', DEPT: '本部门', DEPT_AND_CHILDREN: '部门及子部门',
   }
 
@@ -513,7 +514,8 @@ export default function RoleDetailPage() {
       const result = await updateRole({
         variables: { id: roleId, input: { description: descValue } },
       })
-      const payload = result.data?.updateEndUserRole
+      const data = result.data as Record<string, { error?: { message?: string } } | null | undefined> | null | undefined
+      const payload = data?.['updateEndUserRole']
       if (payload?.error) {
         toast.error(payload.error.message ?? '保存失败')
       } else {

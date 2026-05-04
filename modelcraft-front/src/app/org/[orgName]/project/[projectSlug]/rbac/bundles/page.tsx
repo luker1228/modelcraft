@@ -455,7 +455,7 @@ function ManagePoliciesSheet({
   }, [open])
 
   const originalIds = React.useMemo(
-    () => new Set((bundle?.permissions ?? []).map((p) => p.id)),
+    () => new Set((bundle?.permissions ?? []).map((entry) => entry.permission.id)),
     [bundle],
   )
 
@@ -510,8 +510,8 @@ function ManagePoliciesSheet({
   // 右侧：已关联（含待添加、不含待移除）
   const rightItems = React.useMemo(() => {
     const original = (bundle?.permissions ?? [])
-      .filter((p) => !pendingRemove.has(p.id))
-      .map((p) => ({
+      .filter((entry) => !pendingRemove.has(entry.permission.id))
+      .map(({ permission: p }) => ({
         id: p.id,
         source: (p.preset ? 'preset' : 'custom') as const,
         modelId: p.modelId,
@@ -798,13 +798,13 @@ function ManagePoliciesSheet({
                               ) : (
                                 <>
                                   <Badge
-                                    variant={ACTION_VARIANT[item.action ?? 'SELECT'] ?? 'secondary'}
+                                    variant={ACTION_VARIANT[(item.action ?? 'SELECT') as EndUserPermissionAction] ?? 'secondary'}
                                     className="h-4 px-1 py-0 text-[10px]"
                                   >
-                                    {ACTION_LABEL[item.action ?? 'SELECT'] ?? item.action}
+                                    {ACTION_LABEL[(item.action ?? 'SELECT') as EndUserPermissionAction] ?? item.action}
                                   </Badge>
                                   <Badge variant="outline" className="h-4 px-1 py-0 text-[10px]">
-                                    {ROW_SCOPE_LABEL[item.rowScope ?? 'ALL'] ?? item.rowScope}
+                                    {ROW_SCOPE_LABEL[(item.rowScope ?? 'ALL') as EndUserRowScope] ?? item.rowScope}
                                   </Badge>
                                 </>
                               )}
@@ -921,7 +921,7 @@ export default function BundleListPage() {
     projectSlug,
   })
 
-  const { bundle, allPermissions, loading: bundleLoading, addPermission, removePermission } = useBundleManage({
+  const { bundle, allPermissions, loading: bundleLoading, addPermission, removeItemByModelId } = useBundleManage({
     orgName,
     projectSlug,
     bundleId: selectedBundleId,
@@ -987,7 +987,7 @@ export default function BundleListPage() {
     async (permission: EndUserPermission) => {
       setRemovingId(permission.id)
       try {
-        const result = await removePermission(permission.id)
+        const result = await removeItemByModelId(permission.modelId)
         if (result.success) {
           toast.success(`已移除「${permissionLabel(permission)}」`)
         } else {
@@ -999,7 +999,7 @@ export default function BundleListPage() {
         setRemovingId(null)
       }
     },
-    [removePermission],
+    [removeItemByModelId],
   )
 
   const handleSaveManage = React.useCallback(
@@ -1016,8 +1016,14 @@ export default function BundleListPage() {
       }
 
       for (const id of toRemove) {
-        const result = await removePermission(id)
-        if (!result.success) failCount++
+        const permEntry = allPermissions.find((p) => p.id === id)
+          ?? bundle?.permissions?.find((entry) => entry.permission.id === id)?.permission
+        if (permEntry) {
+          const result = await removeItemByModelId(permEntry.modelId)
+          if (!result.success) failCount++
+        } else {
+          failCount++
+        }
       }
 
       if (failCount === 0) {
@@ -1027,7 +1033,7 @@ export default function BundleListPage() {
         toast.error(`${failCount} 项操作失败，请重试`)
       }
     },
-    [addPermission, removePermission],
+    [addPermission, removeItemByModelId, allPermissions, bundle],
   )
 
   // Mock: instantiate preset template

@@ -236,7 +236,7 @@ export default function RoleEditPage() {
 
   // Bundles not yet associated
   const assignedBundleIds = React.useMemo(
-    () => new Set(role?.permissionBundles.map((b) => b.id) ?? []),
+    () => new Set(role?.permissionBundles.map((entry) => entry.bundle.id) ?? []),
     [role]
   )
   const availableBundles = React.useMemo(
@@ -437,7 +437,7 @@ export default function RoleEditPage() {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {role.permissionBundles.map((bundle) => (
+                        {role.permissionBundles.map(({ bundle }) => (
                           <TableRow key={bundle.id}>
                             <TableCell className="font-semibold text-foreground">
                               {bundle.name}
