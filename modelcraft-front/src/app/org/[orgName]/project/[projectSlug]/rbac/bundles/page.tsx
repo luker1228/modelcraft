@@ -71,7 +71,7 @@ import { ScrollArea } from '@web/components/ui/scroll-area'
 
 import { useBundleList } from './_hooks/useBundleList'
 import { useBundleManage } from './_hooks/useBundleManage'
-import type { EndUserPermission, EndUserPermissionBundle } from '@/types'
+import type { EndUserPermission, EndUserPermissionBundle, EndUserPermissionAction, EndUserRowScope } from '@/types'
 
 // ── Validation Schema ────────────────────────────────────────────────────────
 
@@ -90,7 +90,7 @@ type CreateBundleFormValues = z.infer<typeof createBundleSchema>
 
 // ── Label maps ───────────────────────────────────────────────────────────────
 
-const ACTION_LABEL: Record<string, string> = {
+const ACTION_LABEL: Record<EndUserPermissionAction, string> = {
   SELECT: '查询',
   INSERT: '新增',
   UPDATE: '更新',
@@ -98,14 +98,14 @@ const ACTION_LABEL: Record<string, string> = {
   EXPORT: '导出',
 }
 
-const ROW_SCOPE_LABEL: Record<string, string> = {
+const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
   ALL: '全部',
   SELF: '本人',
   DEPT: '本部门',
   DEPT_AND_CHILDREN: '部门及子部门',
 }
 
-const ACTION_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const ACTION_VARIANT: Record<EndUserPermissionAction, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   SELECT: 'secondary',
   INSERT: 'default',
   UPDATE: 'outline',
@@ -277,7 +277,7 @@ function ViewBundleSheet({
           ) : (
             <ScrollArea className="h-full pr-1">
               <div className="space-y-1.5">
-                {permissions.map((perm) => (
+                {permissions.map(({ permission: perm }) => (
                   <div
                     key={perm.id}
                     className="flex items-center justify-between rounded-md border bg-card px-3 py-2"

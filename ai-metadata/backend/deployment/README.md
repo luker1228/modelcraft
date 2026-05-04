@@ -161,6 +161,39 @@ task deploy:infra -- --restart
 task deploy:app -- --restart
 ```
 
+## 🛡️ Gateway 部署联调检查项（强制）
+
+> **硬性约束**：前端请求必须先经过 Gateway，再由 Gateway 转发到 Backend；前端禁止直连 Backend。
+
+### 链路要求
+
+- [ ] 前端 `BACKEND_URL` 配置为 Gateway 地址（如 `http://<gateway-host>:8090`），不能配置为 Backend 直连地址（如 `:8080`）
+- [ ] Gateway `BACKEND_URL` 指向 Backend 内网地址
+- [ ] Browser/前端网络请求中，不应出现直连 Backend 的请求
+- [ ] Backend 不对前端公网暴露直连入口（仅允许 Gateway 访问）
+
+### 联调验收步骤
+
+```bash
+# 1) Gateway 健康检查
+curl -i http://<gateway-host>:8090/healthz
+
+# 2) Developer 体系联调
+# 通过前端 /api/auth/* -> Gateway /auth/*，确认登录/刷新正常
+
+# 3) EndUser 体系联调
+# 通过前端 /api/bff/org/{orgName}/end-user/auth/* -> Gateway /api/end-user/auth/*，确认登录/refresh/select-project 正常
+
+# 4) 反向验证：禁止前端直连 Backend
+# 将前端 BACKEND_URL 临时改为 Backend 直连地址后，请求应视为配置错误并回退。
+```
+
+### 常见错误
+
+- 前端 `.env` 将 `BACKEND_URL` 配成 Backend 地址（绕过 Gateway）
+- Nginx/Ingress 将 Backend 8080 暴露给浏览器侧流量
+- 联调只测通了功能，但未检查是否经过 Gateway 链路
+
 ## 📋 部署检查清单
 
 ### 部署前

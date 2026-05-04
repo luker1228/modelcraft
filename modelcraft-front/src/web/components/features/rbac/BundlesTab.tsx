@@ -64,7 +64,7 @@ import { ScrollArea } from '@web/components/ui/scroll-area'
 
 import { useBundleList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleList'
 import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
-import type { EndUserPermission, EndUserPermissionBundle } from '@/types'
+import type { EndUserPermission, EndUserPermissionBundle, EndUserPermissionAction, EndUserRowScope } from '@/types'
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -90,7 +90,7 @@ type CreateBundleFormValues = z.infer<typeof createBundleSchema>
 
 // ── Label maps ───────────────────────────────────────────────────────────────
 
-const ACTION_LABEL: Record<string, string> = {
+const ACTION_LABEL: Record<EndUserPermissionAction, string> = {
   SELECT: '查询',
   INSERT: '新增',
   UPDATE: '更新',
@@ -98,14 +98,14 @@ const ACTION_LABEL: Record<string, string> = {
   EXPORT: '导出',
 }
 
-const ROW_SCOPE_LABEL: Record<string, string> = {
+const ROW_SCOPE_LABEL: Record<EndUserRowScope, string> = {
   ALL: '全部',
   SELF: '本人',
   DEPT: '本部门',
   DEPT_AND_CHILDREN: '部门及子部门',
 }
 
-const ACTION_VARIANT: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
+const ACTION_VARIANT: Record<EndUserPermissionAction, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   SELECT: 'secondary',
   INSERT: 'default',
   UPDATE: 'outline',
@@ -277,7 +277,7 @@ function ViewBundleSheet({
           ) : (
             <ScrollArea className="h-full pr-1">
               <div className="space-y-1.5">
-                {permissions.map((perm) => (
+                {permissions.map(({ permission: perm }) => (
                   <div
                     key={perm.id}
                     className="flex items-center justify-between rounded-md border bg-card px-3 py-2"
@@ -377,7 +377,7 @@ function ManagePoliciesSheet({
   }, [open])
 
   const originalIds = React.useMemo(
-    () => new Set((bundle?.permissions ?? []).map((p) => p.id)),
+    () => new Set((bundle?.permissions ?? []).map((entry) => entry.permission.id)),
     [bundle],
   )
 
@@ -403,7 +403,9 @@ function ManagePoliciesSheet({
 
   // Right: original (not pending-remove) + pending-add
   const rightPermissions = React.useMemo(() => {
-    const original = (bundle?.permissions ?? []).filter((p) => !pendingRemove.has(p.id))
+    const original = (bundle?.permissions ?? [])
+      .filter((entry) => !pendingRemove.has(entry.permission.id))
+      .map((entry) => entry.permission)
     const added = Array.from(pendingAdd)
       .map((id) => permById.get(id))
       .filter((p): p is EndUserPermission => !!p)
@@ -666,7 +668,7 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
     projectSlug,
   })
 
-  const { bundle, allPermissions, loading: bundleLoading, addPermission, removePermission } = useBundleManage({
+  const { bundle, allPermissions, loading: bundleLoading, addPermission, removeItemByModelId } = useBundleManage({
     orgName,
     projectSlug,
     bundleId: selectedBundleId,
@@ -724,7 +726,7 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
     async (perm: EndUserPermission) => {
       setRemovingId(perm.id)
       try {
-        const result = await removePermission(perm.id)
+        const result = await removeItemByModelId(perm.modelId)
         if (result.success) {
           toast.success(`已移除「${permissionLabel(perm)}」`)
         } else {
@@ -736,7 +738,7 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
         setRemovingId(null)
       }
     },
-    [removePermission],
+    [removeItemByModelId],
   )
 
   const handleSaveManage = React.useCallback(
@@ -747,8 +749,15 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
         if (!result.success) failCount++
       }
       for (const id of toRemove) {
-        const result = await removePermission(id)
-        if (!result.success) failCount++
+        // toRemove 存的是 permissionId，通过 allPermissions 找到对应 modelId
+        const permEntry = allPermissions.find((p) => p.id === id)
+          ?? bundle?.permissions?.find((entry) => entry.permission.id === id)?.permission
+        if (permEntry) {
+          const result = await removeItemByModelId(permEntry.modelId)
+          if (!result.success) failCount++
+        } else {
+          failCount++
+        }
       }
       if (failCount === 0) {
         toast.success(`已保存 ${toAdd.length + toRemove.length} 项变更`)
@@ -757,7 +766,7 @@ export function BundlesTab({ orgName, projectSlug }: BundlesTabProps) {
         toast.error(`${failCount} 项操作失败，请重试`)
       }
     },
-    [addPermission, removePermission],
+    [addPermission, removeItemByModelId, allPermissions, bundle],
   )
 
   // ── Render ────────────────────────────────────────────────────────────────

@@ -212,3 +212,95 @@ BDD 全局登录应具备“无账号自动注册+重试登录”自愈能力，
 - Tags: graphql, bdd, troubleshooting, schema-validation
 
 ---
+
+## [LRN-20260503-A2T] best_practice
+
+**Logged**: 2026-05-03T11:35:00Z
+**Priority**: high
+**Status**: pending
+**Area**: tests
+
+### Summary
+测试调用已下线 REST 路由时，不应直接 `res.json()`；需先按文本读取并做 JSON 容错，否则会被 404 文本响应触发 `SyntaxError`。
+
+### Details
+`profile` 场景使用的 `handleAuthProviderWebhook` 命中 `/api/webhook/auth_provider`，当前服务已无该路由，返回非 JSON 文本。原实现直接 `await res.json()` 导致 `Unexpected non-whitespace character after JSON`。已改为先 `res.text()` 再 `JSON.parse`，并在非 JSON 时返回结构化错误；同时将场景数据构造从 webhook 迁移为“基准注册用户 + 伪造 userId”的方式，消除该解析崩溃。
+
+### Suggested Action
+所有 BDD REST client 方法默认采用“text→try parse JSON”的安全解析模板；对于历史路由，优先检查 openapi 合约是否仍存在。
+
+### Metadata
+- Source: error
+- Related Files: tests-bdd/support/rest-client.ts; tests-bdd/step-definitions/profile.steps.ts; modelcraft-backend/api/openapi/auth.yaml
+- Tags: bdd, rest-client, json-parse, deprecated-endpoint
+
+---
+
+## [LRN-20260504-001] best_practice
+
+**Logged**: 2026-05-04T00:00:00Z
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+前端到后端的业务请求必须强制经过 Gateway，不能允许前端直连 Backend。
+
+### Details
+在 Gateway 架构更新中明确了边界：Gateway 负责外层 token 校验、头注入（`X-User-ID`/`X-Internal-Token`）和链路观测（request-id/traceparent）。若前端绕过 Gateway 直连 Backend，会破坏统一认证代理链路与部署联调基线，导致线上排障和安全边界不一致。
+
+### Suggested Action
+在部署联调清单加入硬性检查：前端 `BACKEND_URL` 必须指向 Gateway，Browser 网络流量不得出现直连 Backend；Backend 仅对 Gateway 开放访问路径。
+
+### Metadata
+- Source: user_feedback
+- Related Files: ai-metadata/backend/deployment/README.md; ai-metadata/backend/development/gateway-architecture.md; modelcraft-gateway/internal/proxy/handler.go
+- Tags: gateway, deployment, integration, security-boundary
+
+---
+
+## [LRN-20260504-002] best_practice
+
+**Logged**: 2026-05-04T00:00:00Z
+**Priority**: high
+**Status**: pending
+**Area**: docs
+
+### Summary
+Developer 与 EndUser 在 ModelCraft 中属于并行双体系，文档应以“对照表 + 链路 + 边界”统一呈现，避免混写。
+
+### Details
+用户明确要求将 Developer 和 EndUser 作为两套体系同步到 ai-metadata。单独描述 Gateway 或单侧流程容易遗漏体系差异（登录入口、Token 验证、GraphQL 路径、后端识别头），导致联调与排障时口径不一致。
+
+### Suggested Action
+新增双体系文档作为统一入口，并在 gateway/deployment/index/README 建立交叉引用；后续涉及认证或网关变更，优先更新该对照文档。
+
+### Metadata
+- Source: user_feedback
+- Related Files: ai-metadata/backend/development/developer-enduser-system.md; ai-metadata/backend/development/gateway-architecture.md; ai-metadata/index.md
+- Tags: auth, dual-system, docs-consistency, gateway
+
+---
+
+## [LRN-20260504-003] best_practice
+
+**Logged**: 2026-05-04T00:00:00Z
+**Priority**: medium
+**Status**: pending
+**Area**: frontend
+
+### Summary
+前端文档中 `BACKEND_URL` 应明确解释为 Gateway 地址（BFF 上游），否则会误导成 Backend 直连。
+
+### Details
+在补齐 BFF 双体系路由时发现，历史表述“转发到 Go 后端”容易让开发者把 `BACKEND_URL` 配成 8080 Backend，进而绕过 Gateway 认证代理链路。该变量在当前实现中用于 BFF 路由上游，应统一口径为 Gateway 地址。
+
+### Suggested Action
+在前端架构与 API Client 文档中同时声明：`BACKEND_URL = Gateway`，并配套写明 Developer/EndUser 两套路由映射与“禁止直连 Backend”的硬性规则。
+
+### Metadata
+- Source: investigation
+- Related Files: ai-metadata/front/development/architecture.md; ai-metadata/front/development/api-client-design.md; modelcraft-front/src/app/api/auth/[...path]/route.ts
+- Tags: frontend, bff, gateway, env, docs
+
+---

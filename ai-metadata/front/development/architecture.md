@@ -152,6 +152,31 @@ graph TD
 
 ---
 
+## BFF 双体系路由（Developer / EndUser）
+
+> 硬性约束：前端所有业务请求必须先经过 BFF / Gateway，再到 Backend；禁止浏览器侧直连 Backend。
+
+### 上游地址约定
+
+- 前端环境变量 `BACKEND_URL` 在 BFF 语境下表示 **Gateway 地址**（例如 `http://<gateway-host>:8090`），不是 Backend 直连地址。
+
+### 路由对照表
+
+| 体系 | 前端入口 | Gateway 目标 | 实现位置 |
+|------|----------|--------------|----------|
+| Developer Auth | `/api/auth/[...path]` | `/auth/*` | `src/app/api/auth/[...path]/route.ts` |
+| Developer GraphQL | `/api/bff/graphql/org/{orgName}[/...]` | `/graphql/org/{orgName}[/...]` | `next.config.mjs` rewrites |
+| EndUser Auth | `/api/bff/org/{orgName}/end-user/auth/*` | `/api/end-user/auth/*` | `src/app/api/bff/org/[orgName]/end-user/auth/_proxy.ts` |
+| EndUser GraphQL | `/api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}` | `/graphql/end-user/org/{orgName}/project/{projectSlug}` | `src/app/api/bff/graphql/end-user/org/[orgName]/project/[projectSlug]/route.ts` |
+
+### 关键行为差异
+
+1. **Developer Auth**：统一 catch-all 路由转发，透传 `Set-Cookie`（`mc_refresh_token`）。
+2. **EndUser Auth**：通过 `_proxy.ts` 透传 cookie，并在 logout 场景追加清除 `mc_enduser_refresh_token`。
+3. **EndUser GraphQL**：使用独立 BFF 路径，避免与 Developer GraphQL 混用。
+
+---
+
 ## 认证流程
 
 ```mermaid
@@ -261,14 +286,17 @@ src/web/components/       ← 组件只做 UI 渲染，不直接接触 GraphQL
 
 ## 反向代理
 
-`next.config.mjs` 将以下路径代理到 Go 后端（`http://localhost:8080`），前端组件从不直接访问后端端口：
+`next.config.mjs` 将以下路径代理到 Gateway（由 `BACKEND_URL` 指定）；Gateway 再转发到 Backend。前端组件从不直接访问 Backend 端口：
 
 | 路径前缀 | 说明 |
 |---------|------|
-| `/api/auth/*` | 认证相关 |
+| `/api/auth/*` | Developer 认证（BFF → Gateway `/auth/*`） |
+| `/api/bff/org/*/end-user/auth/*` | EndUser 认证（BFF → Gateway `/api/end-user/auth/*`） |
+| `/api/bff/graphql/org/**` | Developer GraphQL（BFF 前缀） |
+| `/api/bff/graphql/end-user/org/*/project/*` | EndUser GraphQL（BFF 前缀） |
 | `/api/user/*` | 用户信息 |
 | `/api/org/*` | 组织管理 |
-| `/graphql/org/**` | 设计态 GraphQL |
+| `/graphql/org/**` | 设计态 GraphQL（保留兼容入口） |
 | `/org/*/project/*/db/*/model/*` | 运行态 GraphQL |
 
 ---

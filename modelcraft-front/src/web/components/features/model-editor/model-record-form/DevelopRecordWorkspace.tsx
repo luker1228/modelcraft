@@ -861,7 +861,6 @@ export default function DevelopRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
-                recordId={editItemId ?? undefined}
               />
             )}
           </SheetContent>

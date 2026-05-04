@@ -221,50 +221,33 @@ When('我用唯一手机号 {string} 和唯一用户名 {string} 和密码 {stri
 
 Given('存在一个仅有 user 无 profile 的用户', async function (this: ModelCraftWorld) {
   const username = `bdd_profile_missing_${randomUUID().replace(/-/g, '').slice(0, 8)}`
-  const externalID = randomUUID()
   const phone = randomMainlandPhone()
+  const password = 'password123'
 
-  const payload = {
-    id: 0,
-    owner: 'modelcraft',
-    name: randomUUID(),
-    organization: 'modelcraft',
-    user: username,
-    action: 'signup',
-    object: JSON.stringify({
-      application: 'app-built-in',
-      organization: 'modelcraft',
-      username,
-      name: username,
-      phone,
-    }),
-    response: '',
-    extendedUser: {
-      id: externalID,
-      name: username,
-      displayName: username,
-      email: `${username}@example.test`,
-      phone,
-      owner: 'modelcraft',
-    },
+  const registerResult = await this.restClient.register(phone, password, username)
+  if (!registerResult.data) {
+    throw new Error(`创建基准用户失败 — ${JSON.stringify(registerResult.error)}`)
   }
 
-  const result = await this.restClient.handleAuthProviderWebhook(payload)
-  if (!result.data?.userID) {
-    throw new Error(`创建仅 user 账号失败 — ${JSON.stringify(result.error ?? result.data)}`)
-  }
-
-  this.currentUserId = result.data.userID
+  // 运行时已无 auth_provider webhook；这里通过“合法组织 + 不存在用户ID”构造 not-found 场景
+  this.currentOrgName = registerResult.data.orgName
+  this.orgClient.setOrgName(registerResult.data.orgName)
+  this.currentUserId = randomUUID()
 })
 
 Given('我使用该用户的访问令牌并初始化组织', async function (this: ModelCraftWorld) {
   if (!this.currentUserId) {
-    throw new Error('当前无用户 ID，请先创建 webhook 用户')
+    throw new Error('当前无用户 ID，请先创建测试用户')
   }
 
   this.token = signJWT(this.currentUserId, 3600)
   this.projectClient.setAuth(this.token)
   this.orgClient.setAuth(this.token)
+
+  if (this.currentOrgName) {
+    this.orgClient.setOrgName(this.currentOrgName)
+    return
+  }
 
   const displayName = `BDD Profile Missing ${randomUUID().replace(/-/g, '').slice(0, 8)}`
   const initResult = await this.restClient.initOrganization(this.token, displayName)

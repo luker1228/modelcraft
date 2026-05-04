@@ -239,7 +239,19 @@ const client = createProjectScopedClient(orgName, slug)
 
 ## API Handlers 模块
 
-Next.js API Routes 作为代理层，将请求转发至 Go 后端。
+Next.js API Routes 作为代理层，将请求先转发至 Gateway，再由 Gateway 转发至 Backend。
+
+### BFF 双体系路由约定（强制）
+
+| 体系 | 前端 BFF 路径 | Gateway 路径 | 说明 |
+|------|---------------|--------------|------|
+| Developer | `/api/auth/*` | `/auth/*` | 管理端登录/刷新/登出等认证链路 |
+| Developer | `/api/bff/graphql/org/{orgName}[/...]` | `/graphql/org/{orgName}[/...]` | 设计态 Org/Project GraphQL |
+| EndUser | `/api/bff/org/{orgName}/end-user/auth/*` | `/api/end-user/auth/*` | 终端用户登录/刷新/select-project |
+| EndUser | `/api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}` | `/graphql/end-user/org/{orgName}/project/{projectSlug}` | 终端用户 GraphQL |
+
+- 前端 `BACKEND_URL` 必须配置为 Gateway 地址。
+- 禁止浏览器侧或前端服务侧直接请求 Backend 业务端口。
 
 | 路由 | 方法 | 说明 |
 |------|------|------|

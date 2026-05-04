@@ -233,10 +233,39 @@ export class RestClient {
       body: JSON.stringify(payload),
     })
 
-    const body = await res.json()
-    if (res.ok) {
-      return { status: res.status, data: body as WebhookResponse }
+    const raw = await res.text()
+    let body: unknown = null
+
+    if (raw.length > 0) {
+      try {
+        body = JSON.parse(raw)
+      } catch {
+        return {
+          status: res.status,
+          error: {
+            requestId: '',
+            error: {
+              code: 'NON_JSON_RESPONSE',
+              message: `webhook returned non-JSON response: ${raw.slice(0, 200)}`,
+            },
+          },
+        }
+      }
     }
-    return { status: res.status, error: body as RestErrorResponse }
+
+    if (res.ok) {
+      return { status: res.status, data: (body ?? {}) as WebhookResponse }
+    }
+
+    return {
+      status: res.status,
+      error: (body as RestErrorResponse) ?? {
+        requestId: '',
+        error: {
+          code: `HTTP_${res.status}`,
+          message: 'webhook request failed',
+        },
+      },
+    }
   }
 }

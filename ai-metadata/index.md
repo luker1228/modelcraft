@@ -30,6 +30,8 @@ ai-metadata/
 │   ├── development/                  # 开发规范
 │   │   ├── README.md
 │   │   ├── architecture.md
+│   │   ├── gateway-architecture.md
+│   │   ├── developer-enduser-system.md
 │   │   ├── comments.md
 │   │   ├── context-handling.md
 │   │   ├── contract-sync.md
@@ -135,6 +137,8 @@ ai-metadata/
 |------|------|
 | [backend/development/README.md](./backend/development/README.md) | 开发规范总览 & AI 使用指南 |
 | [backend/development/architecture.md](./backend/development/architecture.md) | DDD 分层架构、依赖规则、目录映射 |
+| [backend/development/gateway-architecture.md](./backend/development/gateway-architecture.md) | ⭐ Gateway 架构、认证代理链路与运行配置 |
+| [backend/development/developer-enduser-system.md](./backend/development/developer-enduser-system.md) | ⭐ Developer / EndUser 双体系（认证、路由、边界） |
 | [backend/development/comments.md](./backend/development/comments.md) | 代码注释规范 |
 | [backend/development/context-handling.md](./backend/development/context-handling.md) | Context 传递与使用规范 |
 | [backend/development/contract-sync.md](./backend/development/contract-sync.md) | GraphQL Schema 规范与代码生成工作流 |
@@ -184,8 +188,8 @@ ai-metadata/
 | 路径 | 说明 |
 |------|------|
 | [front/development/README.md](./front/development/README.md) | 前端开发规范总览、快速开始、常见错误 |
-| [front/development/architecture.md](./front/development/architecture.md) | 目录分层、组件约定、GraphQL Codegen |
-| [front/development/api-client-design.md](./front/development/api-client-design.md) | API Client 层设计规范（GraphQL 文档分模块 + 页面级 MSW mock） |
+| [front/development/architecture.md](./front/development/architecture.md) | 目录分层、组件约定、GraphQL Codegen、BFF 双体系路由 |
+| [front/development/api-client-design.md](./front/development/api-client-design.md) | API Client 层设计规范（GraphQL 文档分模块 + 页面级 MSW mock + 双体系 BFF 映射） |
 | [front/development/code-conventions.md](./front/development/code-conventions.md) | 命名约定、导入顺序、代码风格 |
 | [front/development/eslint-rules.md](./front/development/eslint-rules.md) | ESLint 配置与规则说明 |
 | [front/development/known-issues.md](./front/development/known-issues.md) | 已知问题与临时解决方案 |
