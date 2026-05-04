@@ -1,7 +1,7 @@
 'use client'
 
 // src/app/org/[orgName]/end-users/[userId]/page.tsx
-// Org 级终端用户详情页：基本信息、状态管理、项目访问（只读）
+// Org 级终端用户详情页：基本信息、状态管理、项目导航（只读）
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
@@ -19,22 +19,13 @@ import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@web/components/ui/card'
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@web/components/ui/table'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { getOrgScopedClient, createProjectScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient } from '@api-client/apollo/public'
 import {
   LIST_END_USERS,
   UPDATE_END_USER_STATUS,
   DELETE_END_USER,
 } from '@api-client/end-user/graphql-docs'
-import { GET_END_USER_ROLE_ASSIGNMENTS } from '@api-client/rbac'
 import { GET_PROJECTS } from '@api-client/project/graphql-docs'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -46,14 +37,6 @@ interface EndUserNode {
   createdBy?: string
   createdAt: string
   updatedAt: string
-}
-
-// 角色分配记录（按项目聚合）
-interface RoleAssignmentEntry {
-  projectSlug: string
-  projectTitle: string
-  roleName: string
-  assignedAt: string
 }
 
 // ── GraphQL response shapes ──────────────────────────────────────────────────
@@ -87,28 +70,17 @@ interface GetProjectsData {
   }>
 }
 
-interface RoleAssignmentsData {
-  endUserRoleAssignments?: Array<{
-    endUserId: string
-    assignedAt: string
-    role: {
-      id: string
-      name: string
-      isImplicit: boolean
-    }
-  }>
-}
+// ── Project Nav Section ───────────────────────────────────────────────────────
+// 纯导航：列出当前 Org 下所有项目，每项提供「前往管理」入口
+// 不涉及授权状态——EndUser 与项目是多对多关系，授权在项目侧管理
 
-// ── Project Access Section ────────────────────────────────────────────────────
-
-interface ProjectAccessSectionProps {
+interface ProjectNavSectionProps {
   orgName: string
-  userId: string
 }
 
-function ProjectAccessSection({ orgName, userId }: ProjectAccessSectionProps) {
+function ProjectNavSection({ orgName }: ProjectNavSectionProps) {
   const router = useRouter()
-  const [assignments, setAssignments] = useState<RoleAssignmentEntry[]>([])
+  const [projects, setProjects] = useState<Array<{ id: string; slug: string; title: string }>>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -117,141 +89,67 @@ function ProjectAccessSection({ orgName, userId }: ProjectAccessSectionProps) {
     setLoading(true)
     setError(null)
 
-    async function fetchAssignments() {
-      // Step 1: fetch all projects in this org
-      const orgClient = getOrgScopedClient()
-      const projectsResult = await orgClient.query<GetProjectsData>({
-        query: GET_PROJECTS,
-        fetchPolicy: 'network-only',
-      })
-      const projects = projectsResult.data?.projects ?? []
-
-      if (projects.length === 0) {
-        return []
-      }
-
-      // Step 2: for each project, query role assignments for this user
-      const results = await Promise.allSettled(
-        projects.map(async (project) => {
-          const projectClient = createProjectScopedClient(orgName, project.slug)
-          const { data } = await projectClient.query<RoleAssignmentsData>({
-            query: GET_END_USER_ROLE_ASSIGNMENTS,
-            variables: { endUserId: userId },
-            fetchPolicy: 'network-only',
-          })
-          const rows: RoleAssignmentEntry[] = []
-          for (const a of data?.endUserRoleAssignments ?? []) {
-            if (!a.role.isImplicit) {
-              rows.push({
-                projectSlug: project.slug,
-                projectTitle: project.title,
-                roleName: a.role.name,
-                assignedAt: a.assignedAt,
-              })
-            }
-          }
-          return rows
-        })
-      )
-
-      const all: RoleAssignmentEntry[] = []
-      for (const r of results) {
-        if (r.status === 'fulfilled') {
-          all.push(...r.value)
-        }
-      }
-      return all
-    }
-
-    fetchAssignments()
-      .then((rows) => {
-        if (!cancelled) {
-          setAssignments(rows)
-          setLoading(false)
-        }
+    const client = getOrgScopedClient()
+    client.query<GetProjectsData>({
+      query: GET_PROJECTS,
+      fetchPolicy: 'network-only',
+    })
+      .then(({ data }) => {
+        if (cancelled) return
+        setProjects(data?.projects ?? [])
+        setLoading(false)
       })
       .catch((e: unknown) => {
-        if (!cancelled) {
-          setError(e instanceof Error ? e.message : '加载项目访问数据失败')
-          setLoading(false)
-        }
+        if (cancelled) return
+        setError(e instanceof Error ? e.message : '加载失败')
+        setLoading(false)
       })
 
-    return () => {
-      cancelled = true
-    }
-  }, [orgName, userId])
+    return () => { cancelled = true }
+  }, [orgName])
 
   if (loading) {
     return (
-      <div className="space-y-2 p-4">
-        {[1, 2].map((i) => <Skeleton key={i} className="h-10 w-full" />)}
+      <div className="divide-y">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex items-center justify-between px-5 py-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-16" />
+          </div>
+        ))}
       </div>
     )
   }
 
   if (error) {
-    return (
-      <div className="p-4 text-sm text-destructive">{error}</div>
-    )
+    return <div className="px-5 py-4 text-sm text-destructive">{error}</div>
   }
 
-  if (assignments.length === 0) {
+  if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-start gap-4 px-6 py-8">
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-foreground">尚未分配任何项目角色</p>
-          <p className="text-sm text-muted-foreground">
-            在各项目的「终端用户访问」页为该用户分配角色后，这里将显示汇总。
-          </p>
-        </div>
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => router.push(`/org/${orgName}/workspace`)}
-        >
-          前往项目列表
-          <ArrowRight className="ml-1.5 size-3.5" />
-        </Button>
+      <div className="px-5 py-8 text-center">
+        <p className="text-sm text-muted-foreground">当前组织下尚未创建项目</p>
       </div>
     )
   }
 
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>项目</TableHead>
-          <TableHead>角色</TableHead>
-          <TableHead>授权时间</TableHead>
-          <TableHead className="w-24" />
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {assignments.map((row, i) => (
-          <TableRow key={i}>
-            <TableCell className="font-medium">{row.projectTitle}</TableCell>
-            <TableCell>{row.roleName}</TableCell>
-            <TableCell className="text-muted-foreground">
-              {new Date(row.assignedAt).toLocaleString('zh-CN')}
-            </TableCell>
-            <TableCell>
-              <Button
-                size="sm"
-                variant="ghost"
-                className="h-7 px-2 text-xs"
-                onClick={() =>
-                  router.push(`/org/${orgName}/project/${row.projectSlug}/end-user-access`)
-                }
-              >
-                前往管理
-                <ArrowRight className="ml-1 size-3" />
-              </Button>
-            </TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
+    <div className="divide-y">
+      {projects.map((project) => (
+        <button
+          key={project.id}
+          type="button"
+          className="group flex w-full items-center justify-between px-5 py-3 text-left transition-colors hover:bg-muted/40"
+          onClick={() => router.push(`/org/${orgName}/project/${project.slug}/end-user-access`)}
+        >
+          <span className="text-sm font-medium text-foreground">{project.title}</span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground transition-colors group-hover:text-foreground">
+            前往管理
+            <ArrowRight className="size-3.5 transition-transform group-hover:translate-x-0.5" />
+          </span>
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -468,18 +366,16 @@ export default function OrgEndUserDetailPage() {
               </CardContent>
             </Card>
 
-            {/* Project access card - 只读展示，引导到 Project 管理页 */}
+            {/* Project nav card - 引导到各项目终端用户管理页 */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-base">
                   <User className="size-4" />
-                  项目访问
+                  项目管理
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="border-t">
-                  <ProjectAccessSection orgName={orgName} userId={userId} />
-                </div>
+                <ProjectNavSection orgName={orgName} />
               </CardContent>
             </Card>
           </div>
