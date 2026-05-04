@@ -2,6 +2,13 @@
 
 package generated
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+)
+
 type EndUserGetModelError interface {
 	IsEndUserGetModelError()
 }
@@ -190,6 +197,57 @@ type RuntimeUserConnection struct {
 	EndCursor   *string        `json:"endCursor,omitempty"`
 }
 
+type Tuser struct {
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	CreatedAt string `json:"createdAt"`
+}
+
+type TuserDateTimeFilter struct {
+	Eq  *string `json:"eq,omitempty"`
+	Gte *string `json:"gte,omitempty"`
+	Lte *string `json:"lte,omitempty"`
+}
+
+type TuserFindManyResult struct {
+	Items    []*Tuser `json:"items"`
+	TimeCost int32    `json:"timeCost"`
+	ReqID    string   `json:"reqId"`
+}
+
+type TuserFindOneResult struct {
+	Item     *Tuser `json:"item,omitempty"`
+	TimeCost int32  `json:"timeCost"`
+	ReqID    string `json:"reqId"`
+}
+
+type TuserIDFilter struct {
+	Eq *string  `json:"eq,omitempty"`
+	In []string `json:"in,omitempty"`
+}
+
+type TuserOrderByInput struct {
+	CreatedAt *TuserSortDirection `json:"createdAt,omitempty"`
+}
+
+type TuserStringFilter struct {
+	Eq         *string  `json:"eq,omitempty"`
+	Contains   *string  `json:"contains,omitempty"`
+	StartsWith *string  `json:"startsWith,omitempty"`
+	In         []string `json:"in,omitempty"`
+}
+
+type TuserUniqueWhereInput struct {
+	ID       *string `json:"id,omitempty"`
+	Username *string `json:"username,omitempty"`
+}
+
+type TuserWhereInput struct {
+	ID        *TuserIDFilter       `json:"id,omitempty"`
+	Username  *TuserStringFilter   `json:"username,omitempty"`
+	CreatedAt *TuserDateTimeFilter `json:"createdAt,omitempty"`
+}
+
 type Unauthorized struct {
 	Message string `json:"message"`
 }
@@ -204,3 +262,58 @@ func (Unauthorized) IsModelCatalogError() {}
 func (Unauthorized) IsListProjectsError() {}
 
 func (Unauthorized) IsRuntimeUserQueryError() {}
+
+type TuserSortDirection string
+
+const (
+	TuserSortDirectionAsc  TuserSortDirection = "asc"
+	TuserSortDirectionDesc TuserSortDirection = "desc"
+)
+
+var AllTuserSortDirection = []TuserSortDirection{
+	TuserSortDirectionAsc,
+	TuserSortDirectionDesc,
+}
+
+func (e TuserSortDirection) IsValid() bool {
+	switch e {
+	case TuserSortDirectionAsc, TuserSortDirectionDesc:
+		return true
+	}
+	return false
+}
+
+func (e TuserSortDirection) String() string {
+	return string(e)
+}
+
+func (e *TuserSortDirection) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TuserSortDirection(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TuserSortDirection", str)
+	}
+	return nil
+}
+
+func (e TuserSortDirection) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TuserSortDirection) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TuserSortDirection) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}

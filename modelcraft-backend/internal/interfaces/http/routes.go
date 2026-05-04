@@ -700,10 +700,18 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 // This endpoint is designed for end-user runtime data access only,
 // providing a strict subset of capabilities compared to developer GraphQL.
 func SetupEndUserGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
-	// Create end-user resolver
+	// Create end-user resolver (for project-scoped queries)
 	endUserResolver := &endusergraphql.Resolver{
 		ModelDesignService: handlers.ModelAppService,
 		EndUserMgmtService: handlers.EndUserMgmtAppService,
+	}
+
+	// Create meta/user resolver (org-scoped, uses MetaUserAppService)
+	metaUserDBAdapter := appEnduser.NewPrivateDBManagerAdapter(handlers.PrivateDBManager)
+	metaUserResolver := &endusergraphql.Resolver{
+		ModelDesignService: handlers.ModelAppService,
+		EndUserMgmtService: handlers.EndUserMgmtAppService,
+		MetaUserService:    appEnduser.NewMetaUserAppService(metaUserDBAdapter),
 	}
 
 	// End-user GraphQL uses internal token auth (BFF-to-backend)
@@ -719,13 +727,14 @@ func SetupEndUserGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		r.Get("/", endusergraphql.EndUserPlaygroundHandler())
 	})
 
-	// Standard runtime endpoint for user resource queries (used by EndUserRef component).
-	router.Route("/graphql/runtime/org/{orgName}/project/{projectSlug}/user", func(r chi.Router) {
+	// Meta/user runtime endpoint: org-scoped system user queries (me/findOne/findMany).
+	// Route: /graphql/runtime/org/{orgName}/meta/user
+	// orgName is injected from URL path via ChiGraphQLOrgMiddleware; not exposed in GraphQL schema.
+	router.Route("/graphql/runtime/org/{orgName}/meta/user", func(r chi.Router) {
 		r.Use(requestIDInjectorMiddleware)
 		r.Use(internalTokenMW)
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
-		r.Use(middleware.ChiGraphQLProjectMiddleware())
-		r.Post("/", endusergraphql.EndUserGraphQLHandler(endUserResolver))
+		r.Post("/", endusergraphql.EndUserGraphQLHandler(metaUserResolver))
 		r.Get("/", endusergraphql.EndUserPlaygroundHandler())
 	})
 }

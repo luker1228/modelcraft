@@ -137,6 +137,9 @@ type ComplexityRoot struct {
 
 	Query struct {
 		Empty                func(childComplexity int) int
+		FindMany             func(childComplexity int, where *TuserWhereInput, orderBy []*TuserOrderByInput, skip *int32, take *int32) int
+		FindOne              func(childComplexity int, where TuserUniqueWhereInput) int
+		Me                   func(childComplexity int) int
 		Model                func(childComplexity int, id string) int
 		ModelCatalog         func(childComplexity int, input ModelCatalogInput) int
 		ModelDatabaseCatalog func(childComplexity int, input *ModelDatabaseCatalogInput) int
@@ -161,6 +164,24 @@ type ComplexityRoot struct {
 		TotalCount  func(childComplexity int) int
 	}
 
+	Tuser struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Username  func(childComplexity int) int
+	}
+
+	TuserFindManyResult struct {
+		Items    func(childComplexity int) int
+		ReqID    func(childComplexity int) int
+		TimeCost func(childComplexity int) int
+	}
+
+	TuserFindOneResult struct {
+		Item     func(childComplexity int) int
+		ReqID    func(childComplexity int) int
+		TimeCost func(childComplexity int) int
+	}
+
 	Unauthorized struct {
 		Message func(childComplexity int) int
 	}
@@ -170,6 +191,9 @@ type QueryResolver interface {
 	Empty(ctx context.Context) (*string, error)
 	ModelDatabaseCatalog(ctx context.Context, input *ModelDatabaseCatalogInput) (*GetModelDatabaseCatalogPayload, error)
 	ModelCatalog(ctx context.Context, input ModelCatalogInput) (*GetModelCatalogPayload, error)
+	Me(ctx context.Context) (*TuserFindOneResult, error)
+	FindOne(ctx context.Context, where TuserUniqueWhereInput) (*TuserFindOneResult, error)
+	FindMany(ctx context.Context, where *TuserWhereInput, orderBy []*TuserOrderByInput, skip *int32, take *int32) (*TuserFindManyResult, error)
 	Model(ctx context.Context, id string) (*EndUserGetModelPayload, error)
 	Projects(ctx context.Context) (*ListProjectsPayload, error)
 	User(ctx context.Context, id string) (*GetRuntimeUserPayload, error)
@@ -458,6 +482,34 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.Empty(childComplexity), true
+	case "Query.findMany":
+		if e.complexity.Query.FindMany == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findMany_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindMany(childComplexity, args["where"].(*TuserWhereInput), args["orderBy"].([]*TuserOrderByInput), args["skip"].(*int32), args["take"].(*int32)), true
+	case "Query.findOne":
+		if e.complexity.Query.FindOne == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findOne_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindOne(childComplexity, args["where"].(TuserUniqueWhereInput)), true
+	case "Query.me":
+		if e.complexity.Query.Me == nil {
+			break
+		}
+
+		return e.complexity.Query.Me(childComplexity), true
 	case "Query.model":
 		if e.complexity.Query.Model == nil {
 			break
@@ -582,6 +634,63 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RuntimeUserConnection.TotalCount(childComplexity), true
 
+	case "Tuser.createdAt":
+		if e.complexity.Tuser.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.Tuser.CreatedAt(childComplexity), true
+	case "Tuser.id":
+		if e.complexity.Tuser.ID == nil {
+			break
+		}
+
+		return e.complexity.Tuser.ID(childComplexity), true
+	case "Tuser.username":
+		if e.complexity.Tuser.Username == nil {
+			break
+		}
+
+		return e.complexity.Tuser.Username(childComplexity), true
+
+	case "TuserFindManyResult.items":
+		if e.complexity.TuserFindManyResult.Items == nil {
+			break
+		}
+
+		return e.complexity.TuserFindManyResult.Items(childComplexity), true
+	case "TuserFindManyResult.reqId":
+		if e.complexity.TuserFindManyResult.ReqID == nil {
+			break
+		}
+
+		return e.complexity.TuserFindManyResult.ReqID(childComplexity), true
+	case "TuserFindManyResult.timeCost":
+		if e.complexity.TuserFindManyResult.TimeCost == nil {
+			break
+		}
+
+		return e.complexity.TuserFindManyResult.TimeCost(childComplexity), true
+
+	case "TuserFindOneResult.item":
+		if e.complexity.TuserFindOneResult.Item == nil {
+			break
+		}
+
+		return e.complexity.TuserFindOneResult.Item(childComplexity), true
+	case "TuserFindOneResult.reqId":
+		if e.complexity.TuserFindOneResult.ReqID == nil {
+			break
+		}
+
+		return e.complexity.TuserFindOneResult.ReqID(childComplexity), true
+	case "TuserFindOneResult.timeCost":
+		if e.complexity.TuserFindOneResult.TimeCost == nil {
+			break
+		}
+
+		return e.complexity.TuserFindOneResult.TimeCost(childComplexity), true
+
 	case "Unauthorized.message":
 		if e.complexity.Unauthorized.Message == nil {
 			break
@@ -600,6 +709,12 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListRuntimeUsersInput,
 		ec.unmarshalInputModelCatalogInput,
 		ec.unmarshalInputModelDatabaseCatalogInput,
+		ec.unmarshalInputTuserDateTimeFilter,
+		ec.unmarshalInputTuserIDFilter,
+		ec.unmarshalInputTuserOrderByInput,
+		ec.unmarshalInputTuserStringFilter,
+		ec.unmarshalInputTuserUniqueWhereInput,
+		ec.unmarshalInputTuserWhereInput,
 	)
 	first := true
 
@@ -768,6 +883,101 @@ extend type Query {
   modelCatalog(input: ModelCatalogInput!): GetModelCatalogPayload!
 }
 `, BuiltIn: false},
+	{Name: "../../../../../api/graph/end_user/schema/meta_user.graphql", Input: `# 系统 user 元数据模型的专属 runtime GraphQL 契约。
+# 路由：/graphql/runtime/org/{orgName}/meta/user
+#
+# 设计约束：
+# - 租户字段（orgName）不对外暴露，始终由服务端上下文注入。
+# - 仅支持 me、findOne、findMany 三个查询操作。
+# - findMany 过滤字段白名单：id、username、createdAt。
+# - 排序字段白名单：createdAt。
+# - 分页：take 默认 20，最大 50；skip 默认 0，最大 1000。
+
+# 系统 user 实体。租户字段（orgName）不暴露。
+type Tuser {
+  id: ID!
+  username: String!
+  createdAt: String!
+}
+
+# 唯一查询条件（findOne 使用）。
+input TuserUniqueWhereInput {
+  id: ID
+  username: String
+}
+
+# ID 过滤操作符。
+input TuserIDFilter {
+  eq: ID
+  in: [ID!]
+}
+
+# 字符串过滤操作符。
+input TuserStringFilter {
+  eq: String
+  contains: String
+  startsWith: String
+  in: [String!]
+}
+
+# 时间戳过滤操作符。
+input TuserDateTimeFilter {
+  eq: String
+  gte: String
+  lte: String
+}
+
+# findMany 过滤条件（白名单字段：id、username、createdAt）。
+input TuserWhereInput {
+  id: TuserIDFilter
+  username: TuserStringFilter
+  createdAt: TuserDateTimeFilter
+}
+
+# 排序方向。
+enum TuserSortDirection {
+  asc
+  desc
+}
+
+# 排序条件（白名单字段：createdAt）。
+input TuserOrderByInput {
+  createdAt: TuserSortDirection
+}
+
+# me / findOne 查询结果。
+type TuserFindOneResult {
+  item: Tuser
+  timeCost: Int!
+  reqId: String!
+}
+
+# findMany 查询结果。
+type TuserFindManyResult {
+  items: [Tuser!]!
+  timeCost: Int!
+  reqId: String!
+}
+
+extend type Query {
+  # 返回当前已认证 end-user 的资料。租户范围由服务端上下文决定。
+  me: TuserFindOneResult!
+
+  # 按唯一条件（id 或 username）查询单个用户。
+  findOne(where: TuserUniqueWhereInput!): TuserFindOneResult!
+
+  # 按受限条件查询用户列表。
+  # take 默认 20，最大 50；skip 默认 0，最大 1000。
+  # where 字段白名单：id、username、createdAt。
+  # orderBy 字段白名单：createdAt。
+  findMany(
+    where: TuserWhereInput
+    orderBy: [TuserOrderByInput!]
+    skip: Int
+    take: Int
+  ): TuserFindManyResult!
+}
+`, BuiltIn: false},
 	{Name: "../../../../../api/graph/end_user/schema/model.graphql", Input: `# End-user model detail query (subset of project-domain model query).
 # Used by shared model workspace in end-user pages.
 
@@ -874,6 +1084,43 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		return nil, err
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findMany_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOTuserWhereInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserWhereInput)
+	if err != nil {
+		return nil, err
+	}
+	args["where"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "orderBy", ec.unmarshalOTuserOrderByInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserOrderByInputᚄ)
+	if err != nil {
+		return nil, err
+	}
+	args["orderBy"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "skip", ec.unmarshalOInt2ᚖint32)
+	if err != nil {
+		return nil, err
+	}
+	args["skip"] = arg2
+	arg3, err := graphql.ProcessArgField(ctx, rawArgs, "take", ec.unmarshalOInt2ᚖint32)
+	if err != nil {
+		return nil, err
+	}
+	args["take"] = arg3
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findOne_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalNTuserUniqueWhereInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserUniqueWhereInput)
+	if err != nil {
+		return nil, err
+	}
+	args["where"] = arg0
 	return args, nil
 }
 
@@ -2353,6 +2600,141 @@ func (ec *executionContext) fieldContext_Query_modelCatalog(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_me(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_me,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().Me(ctx)
+		},
+		nil,
+		ec.marshalNTuserFindOneResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindOneResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_me(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "item":
+				return ec.fieldContext_TuserFindOneResult_item(ctx, field)
+			case "timeCost":
+				return ec.fieldContext_TuserFindOneResult_timeCost(ctx, field)
+			case "reqId":
+				return ec.fieldContext_TuserFindOneResult_reqId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TuserFindOneResult", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_findOne(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_findOne,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FindOne(ctx, fc.Args["where"].(TuserUniqueWhereInput))
+		},
+		nil,
+		ec.marshalNTuserFindOneResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindOneResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_findOne(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "item":
+				return ec.fieldContext_TuserFindOneResult_item(ctx, field)
+			case "timeCost":
+				return ec.fieldContext_TuserFindOneResult_timeCost(ctx, field)
+			case "reqId":
+				return ec.fieldContext_TuserFindOneResult_reqId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TuserFindOneResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_findOne_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_findMany(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_findMany,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FindMany(ctx, fc.Args["where"].(*TuserWhereInput), fc.Args["orderBy"].([]*TuserOrderByInput), fc.Args["skip"].(*int32), fc.Args["take"].(*int32))
+		},
+		nil,
+		ec.marshalNTuserFindManyResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindManyResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_findMany(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "items":
+				return ec.fieldContext_TuserFindManyResult_items(ctx, field)
+			case "timeCost":
+				return ec.fieldContext_TuserFindManyResult_timeCost(ctx, field)
+			case "reqId":
+				return ec.fieldContext_TuserFindManyResult_reqId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type TuserFindManyResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_findMany_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_model(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -2931,6 +3313,283 @@ func (ec *executionContext) _RuntimeUserConnection_endCursor(ctx context.Context
 func (ec *executionContext) fieldContext_RuntimeUserConnection_endCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "RuntimeUserConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tuser_id(ctx context.Context, field graphql.CollectedField, obj *Tuser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Tuser_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Tuser_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tuser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tuser_username(ctx context.Context, field graphql.CollectedField, obj *Tuser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Tuser_username,
+		func(ctx context.Context) (any, error) {
+			return obj.Username, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Tuser_username(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tuser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Tuser_createdAt(ctx context.Context, field graphql.CollectedField, obj *Tuser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Tuser_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Tuser_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Tuser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TuserFindManyResult_items(ctx context.Context, field graphql.CollectedField, obj *TuserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TuserFindManyResult_items,
+		func(ctx context.Context) (any, error) {
+			return obj.Items, nil
+		},
+		nil,
+		ec.marshalNTuser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TuserFindManyResult_items(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TuserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Tuser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_Tuser_username(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Tuser_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tuser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TuserFindManyResult_timeCost(ctx context.Context, field graphql.CollectedField, obj *TuserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TuserFindManyResult_timeCost,
+		func(ctx context.Context) (any, error) {
+			return obj.TimeCost, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TuserFindManyResult_timeCost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TuserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TuserFindManyResult_reqId(ctx context.Context, field graphql.CollectedField, obj *TuserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TuserFindManyResult_reqId,
+		func(ctx context.Context) (any, error) {
+			return obj.ReqID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TuserFindManyResult_reqId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TuserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TuserFindOneResult_item(ctx context.Context, field graphql.CollectedField, obj *TuserFindOneResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TuserFindOneResult_item,
+		func(ctx context.Context) (any, error) {
+			return obj.Item, nil
+		},
+		nil,
+		ec.marshalOTuser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_TuserFindOneResult_item(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TuserFindOneResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Tuser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_Tuser_username(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Tuser_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Tuser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TuserFindOneResult_timeCost(ctx context.Context, field graphql.CollectedField, obj *TuserFindOneResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TuserFindOneResult_timeCost,
+		func(ctx context.Context) (any, error) {
+			return obj.TimeCost, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TuserFindOneResult_timeCost(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TuserFindOneResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _TuserFindOneResult_reqId(ctx context.Context, field graphql.CollectedField, obj *TuserFindOneResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_TuserFindOneResult_reqId,
+		func(ctx context.Context) (any, error) {
+			return obj.ReqID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_TuserFindOneResult_reqId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "TuserFindOneResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
@@ -4564,6 +5223,231 @@ func (ec *executionContext) unmarshalInputModelDatabaseCatalogInput(ctx context.
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputTuserDateTimeFilter(ctx context.Context, obj any) (TuserDateTimeFilter, error) {
+	var it TuserDateTimeFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "gte", "lte"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "gte":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gte"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Gte = data
+		case "lte":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lte"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lte = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTuserIDFilter(ctx context.Context, obj any) (TuserIDFilter, error) {
+	var it TuserIDFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "in"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "in":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("in"))
+			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.In = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTuserOrderByInput(ctx context.Context, obj any) (TuserOrderByInput, error) {
+	var it TuserOrderByInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"createdAt"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "createdAt":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAt"))
+			data, err := ec.unmarshalOTuserSortDirection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserSortDirection(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAt = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTuserStringFilter(ctx context.Context, obj any) (TuserStringFilter, error) {
+	var it TuserStringFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "contains", "startsWith", "in"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "contains":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contains"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Contains = data
+		case "startsWith":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startsWith"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartsWith = data
+		case "in":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("in"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.In = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTuserUniqueWhereInput(ctx context.Context, obj any) (TuserUniqueWhereInput, error) {
+	var it TuserUniqueWhereInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "username"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "username":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Username = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputTuserWhereInput(ctx context.Context, obj any) (TuserWhereInput, error) {
+	var it TuserWhereInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "username", "createdAt"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOTuserIDFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserIDFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "username":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+			data, err := ec.unmarshalOTuserStringFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserStringFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Username = data
+		case "createdAt":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAt"))
+			data, err := ec.unmarshalOTuserDateTimeFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserDateTimeFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAt = data
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -5587,6 +6471,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "me":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_me(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "findOne":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findOne(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "findMany":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findMany(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "model":
 			field := field
 
@@ -5795,6 +6745,150 @@ func (ec *executionContext) _RuntimeUserConnection(ctx context.Context, sel ast.
 			}
 		case "endCursor":
 			out.Values[i] = ec._RuntimeUserConnection_endCursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var tuserImplementors = []string{"Tuser"}
+
+func (ec *executionContext) _Tuser(ctx context.Context, sel ast.SelectionSet, obj *Tuser) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tuserImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Tuser")
+		case "id":
+			out.Values[i] = ec._Tuser_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "username":
+			out.Values[i] = ec._Tuser_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._Tuser_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var tuserFindManyResultImplementors = []string{"TuserFindManyResult"}
+
+func (ec *executionContext) _TuserFindManyResult(ctx context.Context, sel ast.SelectionSet, obj *TuserFindManyResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tuserFindManyResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TuserFindManyResult")
+		case "items":
+			out.Values[i] = ec._TuserFindManyResult_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "timeCost":
+			out.Values[i] = ec._TuserFindManyResult_timeCost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reqId":
+			out.Values[i] = ec._TuserFindManyResult_reqId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var tuserFindOneResultImplementors = []string{"TuserFindOneResult"}
+
+func (ec *executionContext) _TuserFindOneResult(ctx context.Context, sel ast.SelectionSet, obj *TuserFindOneResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, tuserFindOneResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("TuserFindOneResult")
+		case "item":
+			out.Values[i] = ec._TuserFindOneResult_item(ctx, field, obj)
+		case "timeCost":
+			out.Values[i] = ec._TuserFindOneResult_timeCost(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "reqId":
+			out.Values[i] = ec._TuserFindOneResult_reqId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -6571,6 +7665,98 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) marshalNTuser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserᚄ(ctx context.Context, sel ast.SelectionSet, v []*Tuser) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNTuser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuser(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNTuser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuser(ctx context.Context, sel ast.SelectionSet, v *Tuser) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Tuser(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTuserFindManyResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindManyResult(ctx context.Context, sel ast.SelectionSet, v TuserFindManyResult) graphql.Marshaler {
+	return ec._TuserFindManyResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTuserFindManyResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindManyResult(ctx context.Context, sel ast.SelectionSet, v *TuserFindManyResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TuserFindManyResult(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTuserFindOneResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindOneResult(ctx context.Context, sel ast.SelectionSet, v TuserFindOneResult) graphql.Marshaler {
+	return ec._TuserFindOneResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNTuserFindOneResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserFindOneResult(ctx context.Context, sel ast.SelectionSet, v *TuserFindOneResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._TuserFindOneResult(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNTuserOrderByInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserOrderByInput(ctx context.Context, v any) (*TuserOrderByInput, error) {
+	res, err := ec.unmarshalInputTuserOrderByInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNTuserUniqueWhereInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserUniqueWhereInput(ctx context.Context, v any) (TuserUniqueWhereInput, error) {
+	res, err := ec.unmarshalInputTuserUniqueWhereInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {
 	return ec.___Directive(ctx, sel, &v)
 }
@@ -6868,6 +8054,60 @@ func (ec *executionContext) marshalOEndUserModel2ᚖmodelcraftᚋinternalᚋinte
 	return ec._EndUserModel(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
+}
+
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {
 	if v == nil {
 		return nil, nil
@@ -7005,6 +8245,42 @@ func (ec *executionContext) marshalORuntimeUserQueryError2modelcraftᚋinternal�
 	return ec._RuntimeUserQueryError(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -7021,6 +8297,79 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) marshalOTuser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuser(ctx context.Context, sel ast.SelectionSet, v *Tuser) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Tuser(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOTuserDateTimeFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserDateTimeFilter(ctx context.Context, v any) (*TuserDateTimeFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTuserDateTimeFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOTuserIDFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserIDFilter(ctx context.Context, v any) (*TuserIDFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTuserIDFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOTuserOrderByInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserOrderByInputᚄ(ctx context.Context, v any) ([]*TuserOrderByInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*TuserOrderByInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNTuserOrderByInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserOrderByInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalOTuserSortDirection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserSortDirection(ctx context.Context, v any) (*TuserSortDirection, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(TuserSortDirection)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTuserSortDirection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserSortDirection(ctx context.Context, sel ast.SelectionSet, v *TuserSortDirection) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) unmarshalOTuserStringFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserStringFilter(ctx context.Context, v any) (*TuserStringFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTuserStringFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalOTuserWhereInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋenduserᚋgeneratedᚐTuserWhereInput(ctx context.Context, v any) (*TuserWhereInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputTuserWhereInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

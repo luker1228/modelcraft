@@ -169,3 +169,53 @@ type AccessibleProjectItem struct {
 	Slug  string
 	Title string
 }
+
+// --- Runtime Meta/User Query Commands ---
+
+// MetaUserFindOneCommand 通过唯一条件（id 或 username）查询单个 user。
+// OrgName 始终由上下文注入，禁止客户端传入。
+type MetaUserFindOneCommand struct {
+	OrgName  string // 从中间件上下文注入
+	ID       string // 唯一条件之一（id 或 username 必须提供其中一个）
+	Username string // 唯一条件之一
+}
+
+// MetaUserFindManyFilter 白名单过滤字段。
+type MetaUserFindManyFilter struct {
+	IDEq               *string
+	IDIn               []string
+	UsernameEq         *string
+	UsernameContains   *string
+	UsernameStartsWith *string
+	UsernameIn         []string
+	CreatedAtEq        *string
+	CreatedAtGte       *string
+	CreatedAtLte       *string
+}
+
+// MetaUserOrderByField 排序字段（白名单：createdAt）。
+type MetaUserOrderByField struct {
+	CreatedAt *string // "asc" 或 "desc"
+}
+
+// MetaUserFindManyCommand 受限列表查询命令。
+// take 默认 20，最大 50；skip 默认 0，最大 1000。
+type MetaUserFindManyCommand struct {
+	OrgName string // 从中间件上下文注入
+	Where   *MetaUserFindManyFilter
+	OrderBy []MetaUserOrderByField
+	Skip    int
+	Take    int
+}
+
+// MetaUserDTO runtime meta/user 查询结果 DTO（不含租户字段）。
+type MetaUserDTO struct {
+	ID        string
+	Username  string
+	CreatedAt time.Time
+}
+
+// MetaUserFindManyResult findMany 查询结果。
+type MetaUserFindManyResult struct {
+	Items []*MetaUserDTO
+}

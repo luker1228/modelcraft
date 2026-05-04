@@ -8,7 +8,7 @@ import (
 	"context"
 	"fmt"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
-	modeldesign "modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/interfaces/graphql/enduser/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"

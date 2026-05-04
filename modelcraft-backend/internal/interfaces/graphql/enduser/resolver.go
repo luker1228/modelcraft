@@ -12,4 +12,7 @@ type Resolver struct {
 	ModelDesignService *modeldesign.ModelDesignAppService
 	// End-user management service for standard user queries.
 	EndUserMgmtService *enduser.EndUserManagementAppService
+	// MetaUserService for runtime meta/user route (me/findOne/findMany).
+	// orgName is always injected from middleware; not exposed via GraphQL schema.
+	MetaUserService *enduser.MetaUserAppService
 }
