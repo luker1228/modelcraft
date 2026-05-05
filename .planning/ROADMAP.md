@@ -64,7 +64,11 @@ Plans:
   2. 所有原 end_user 路由（如 `/graphql/end-user/*`）均已从路由注册中移除，访问返回 404
   3. 原 end_user schema 中 6 条 query 均已确认：要么对应到 org/project schema 的现有接口，要么已明确删除（无残留死代码）
   4. `just generate-gql` 和 `just build` 通过，无编译错误
-**计划**：待定
+**计划**：3 个计划，3 个 wave
+Plans:
+- [ ] 03-PLAN-01.md — Wave 1：删除 Backend routes.go/chi_setup.go 中的 enduser GraphQL 调用和 import
+- [ ] 03-PLAN-02.md — Wave 2：删除 enduser 包目录、schema 目录、gqlgen 配置，更新 justfile
+- [ ] 03-PLAN-03.md — Wave 3：清理 Gateway 路由注册、EndUserGraphQLHandler 及 Deprecated auth 代码
 
 ---
 
