@@ -23,6 +23,8 @@ type Claims struct {
 // The gateway only holds the EC public key for verification.
 type Service struct {
 	publicKey                *ecdsa.PublicKey
+	// Deprecated: endUserJWTSecret 用于 HMAC 端用户 token 验证，已不再使用。
+	// 将在阶段 3 Schema 清理时移除。
 	endUserJWTSecret         []byte
 	refreshTokenTTL          time.Duration
 	refreshCookieName        string
@@ -135,15 +137,17 @@ func (s *Service) GetRefreshCookie(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
-// EndUserClaims is the JWT payload for end-user access tokens (HMAC-SHA256).
+// Deprecated: EndUserClaims 是 HMAC 端用户 token 的 payload 结构，已被 PlatformClaims（backend）替代。
+// 此类型将在阶段 3 Schema 清理时删除。
 type EndUserClaims struct {
 	UserID  string `json:"user_id"`
 	OrgName string `json:"org_name"`
 	jwt.RegisteredClaims
 }
 
-// VerifyEndUserAccessToken parses and validates an HMAC-SHA256 end-user access token.
-// If secret is empty, the token is decoded without signature verification (dev/test only).
+// Deprecated: VerifyEndUserAccessToken 使用 HMAC-SHA256 验证端用户 token。
+// 端用户 token 已在 Backend Token 核心统一阶段迁移至 ES256（mc-platform issuer）。
+// 请改用 VerifyAccessToken 进行验证。此方法将在阶段 3 Schema 清理时删除。
 func (s *Service) VerifyEndUserAccessToken(tokenString string) (*EndUserClaims, error) {
 	var claims EndUserClaims
 

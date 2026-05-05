@@ -17,8 +17,9 @@ type Config struct {
 	RefreshCookieName        string
 	EndUserRefreshCookieName string
 
-	// EndUserJWTSecret is the HMAC-SHA256 secret used to sign/verify end-user access tokens.
-	// Must match JWT_SECRET on the backend. Empty string disables signature verification (dev only).
+	// Deprecated: EndUserJWTSecret 曾用于 HMAC-SHA256 端用户 token 验证。
+	// 端用户 token 已迁移至 ES256（mc-platform issuer），此配置不再使用。
+	// 保留字段以维持向后兼容，将在阶段 3 Schema 清理时删除。
 	EndUserJWTSecret string
 
 	// Upstream (Go Backend)

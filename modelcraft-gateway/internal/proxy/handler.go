@@ -110,9 +110,9 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// EndUserGraphQLHandler validates the end-user Bearer JWT, then proxies to
-// /graphql/end-user/org/{orgName}/project/{projectSlug}.
-// It injects X-User-ID and X-Internal-Token so the backend can identify the caller.
+// EndUserGraphQLHandler 验证端用户 Bearer JWT（ES256，由 mc-platform 签发），
+// 然后代理至 /graphql/end-user/org/{orgName}/project/{projectSlug}。
+// 注入 X-User-ID 和 X-Internal-Token 供后端识别调用者。
 func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {
@@ -121,7 +121,9 @@ func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-	claims, err := h.authService.VerifyEndUserAccessToken(tokenStr)
+	// VerifyAccessToken 使用 ES256 公钥验证，与平台管理员 token 使用同一验证路径。
+	// 端用户 token 在 Backend Token 核心统一阶段后已改为 ES256 签发（mc-platform issuer）。
+	claims, err := h.authService.VerifyAccessToken(tokenStr)
 	if err != nil {
 		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid end-user access token",
 			zap.Error(err),
@@ -131,9 +133,9 @@ func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	ctx := context.WithValue(r.Context(), userIDContextKey, claims.Subject)
+	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
 	middleware.LoggerFromCtx(ctx).Info("gateway: end-user GraphQL request authenticated",
-		zap.String("user_id", claims.Subject),
+		zap.String("user_id", claims.UserID),
 		zap.String("path", r.URL.Path),
 	)
 

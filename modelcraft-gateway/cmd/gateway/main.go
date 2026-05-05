@@ -46,7 +46,7 @@ func main() {
 		cfg.RefreshTokenTTL,
 		cfg.RefreshCookieName,
 		cfg.EndUserRefreshCookieName,
-		cfg.EndUserJWTSecret,
+		cfg.EndUserJWTSecret, // Deprecated: 端用户 token 已迁移 ES256，此参数将在阶段 3 移除
 	)
 	if err != nil {
 		logger.Fatal("failed to initialise auth service", zap.Error(err))
