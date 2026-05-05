@@ -28,10 +28,10 @@ Every user — whether org admin or end user — authenticates through one unifi
 - [ ] **TOKEN-05**: Middleware enforces scope: `scope=org` blocked from `/graphql/org/{orgName}/project/*`; `scope=project` blocked from org-management routes
 - [ ] **SCHEMA-01**: Delete `api/graph/end_user/` directory and all associated handlers/resolvers/routes
 - [ ] **SCHEMA-02**: Migrate surviving end_user queries to org/project schemas (user/project queries already covered, remove dead ones)
-- [ ] **WORKSPACE-01**: Frontend `/end-user/{orgSlug}/login` page (new)
-- [ ] **WORKSPACE-02**: After login, show project list filtered by RBAC membership (via org GraphQL `projects` query)
-- [ ] **WORKSPACE-03**: Project selection triggers exchange to get Project Token (stored as httpOnly cookie, BFF-mediated)
-- [ ] **WORKSPACE-04**: Redirect to `/workspace/{orgSlug}/{projectSlug}`; workspace shows only runtime GraphQL CRUD tab (no design-time features)
+- [ ] **WORKSPACE-01**: Frontend `/u/{orgSlug}/login` page — **用户端 UI**（非管理端）
+- [ ] **WORKSPACE-02**: After login, show project list filtered by RBAC membership — **用户端 UI**
+- [ ] **WORKSPACE-03**: Project selection triggers exchange to get Project Token (stored as httpOnly cookie, BFF-mediated) — **用户端 UI**
+- [ ] **WORKSPACE-04**: Redirect to `/u/{orgSlug}/{projectSlug}/data`; workspace shows only runtime GraphQL CRUD tab — **用户端 UI**（`/u/` 前缀，独立于管理端 `/org/` 前缀）
 - [ ] **TEST-01**: BDD scenarios: login→exchange→workspace, scope boundary enforcement (403 on wrong scope), invalid token 401
 
 ### Out of Scope
@@ -67,6 +67,7 @@ Every user — whether org admin or end user — authenticates through one unifi
 | Hard cut on old issuers | Simplifies implementation; 1h TTL means users re-auth within an hour | — Pending |
 | httpOnly cookie for Project Token | Security over convenience; BFF mediates exchange | — Pending |
 | Delete `end_user` schema entirely | Shadow schema was maintenance debt; all data is accessible via project schema | — Pending |
+| 双 UI 架构（管理端 `/org/` vs 用户端 `/u/`）| 两类受众需求完全不同；一套 UI 无法同时胜任配置密集的设计时界面和精简的数据操作界面；路由前缀隔离，两套 UI 共享 Design System，业务逻辑和 BFF 完全独立 | — Pending（WORKSPACE 阶段实现用户端） |
 
 ## Evolution
 

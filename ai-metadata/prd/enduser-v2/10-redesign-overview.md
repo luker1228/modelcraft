@@ -39,6 +39,42 @@ Project 层：管"权"
 
 ---
 
+## UI 架构决策
+
+**核心原则：管理端和用户端是两套独立 UI，不共享主导航结构。**
+
+历史设计的困境根源在于试图用一套 UI 同时服务两类完全不同的受众。两者登录入口不同、权限体系不同、功能集合不重叠，强行共用只会让两端都难用。
+
+### 管理端（Admin / Developer UI）
+
+- **入口：** `/login` → 平台统一登录
+- **受众：** 平台管理员、开发者
+- **功能：** 模型设计、字段管理、RBAC 配置、EndUser 账号管理、数据库集群管理
+- **路由前缀：** `/org/[orgName]/...`（现有结构保持不变）
+- **特征：** 功能密集、配置导向、设计时操作
+
+### 用户端（EndUser / Workspace UI）
+
+- **入口：** `/u/[orgName]/login`（Org 级统一登录）
+- **受众：** 终端用户（EndUser）
+- **功能：** 登录 → 选择项目 → 进入 Workspace 操作数据（CRUD）
+- **路由前缀：** `/u/[orgName]/...` → `/u/[orgName]/[projectSlug]/data`
+- **特征：** 精简、数据操作导向、运行时视图
+
+### 为什么不用一套 UI
+
+| 维度 | 管理端 | 用户端 |
+|------|--------|--------|
+| 登录入口 | `/login` | `/u/[orgName]/login` |
+| Token 体系 | `scope=org` JWT | `scope=org` → exchange → `scope=project` |
+| 功能复杂度 | 高（设计时：模型/字段/RBAC） | 低（运行时：数据 CRUD） |
+| 导航结构 | 多层级侧边栏（Project 内嵌套 Org） | 扁平 Workspace 面板 |
+| 权限来源 | RBAC（Developer 角色） | RBAC PermissionBundle（EndUser 角色） |
+
+两者功能集合不重叠，也不存在"共用组件因 role 差异需要大量条件渲染"的场景。两套 UI 的唯一共享层是 Design System（shadcn/ui + Tailwind 变量）。
+
+---
+
 ## 变更范围
 
 ### 1. EndUser 账号归属

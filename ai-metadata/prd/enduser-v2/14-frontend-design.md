@@ -4,6 +4,21 @@
 
 ---
 
+## 双 UI 架构总览
+
+ModelCraft 前端分为**两套独立 UI**，路由前缀隔离，不共享主导航结构：
+
+| UI | 路由前缀 | 受众 | 入口 |
+|----|---------|------|------|
+| **管理端** | `/org/[orgName]/...` | 平台管理员、开发者 | `/login` |
+| **用户端** | `/u/[orgName]/...` | 终端用户（EndUser） | `/u/[orgName]/login` |
+
+**管理端路由保持不变**，EndUser v2 的所有前端变更均在用户端路由 `/u/[orgName]/...` 范围内，以及管理端的 EndUser 管理页（`/org/[orgName]/end-users`）。
+
+两套 UI 的唯一共享层是 Design System（shadcn/ui + Tailwind CSS 变量）。业务逻辑、路由、BFF 接口、Token 处理全部隔离。
+
+---
+
 ## 变更总览
 
 | 类别 | v1（当前） | v2（目标） |
