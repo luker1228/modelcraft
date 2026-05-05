@@ -27,7 +27,6 @@ import (
 	"sync"
 	"time"
 
-	endusergraphql "modelcraft/internal/interfaces/graphql/enduser"
 	orggraphql "modelcraft/internal/interfaces/graphql/org"
 	projectgraphql "modelcraft/internal/interfaces/graphql/project"
 
@@ -661,48 +660,4 @@ func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *c
 			r.Post("/init-private-db", handlers.EndUserDataHandler.InitPrivateDB)
 		})
 	}
-}
-
-// SetupEndUserGraphQLRoutesOnChi registers End-User GraphQL endpoint.
-// Route pattern: /graphql/end-user/org/{orgName}/project/{projectSlug}
-// This endpoint is designed for end-user runtime data access only,
-// providing a strict subset of capabilities compared to developer GraphQL.
-func SetupEndUserGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
-	// Create end-user resolver (for project-scoped queries)
-	endUserResolver := &endusergraphql.Resolver{
-		ModelDesignService: handlers.ModelAppService,
-		EndUserMgmtService: handlers.EndUserMgmtAppService,
-	}
-
-	// Create meta/user resolver (org-scoped, uses MetaUserAppService)
-	metaUserDBAdapter := appEnduser.NewPrivateDBManagerAdapter(handlers.PrivateDBManager)
-	metaUserResolver := &endusergraphql.Resolver{
-		ModelDesignService: handlers.ModelAppService,
-		EndUserMgmtService: handlers.EndUserMgmtAppService,
-		MetaUserService:    appEnduser.NewMetaUserAppService(metaUserDBAdapter),
-	}
-
-	// End-user GraphQL uses internal token auth (BFF-to-backend)
-	internalTokenMW := middleware.ChiInternalTokenMiddleware(cfg.Auth.InternalToken)
-
-	// Register end-user GraphQL endpoint
-	router.Route("/graphql/end-user/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
-		r.Use(requestIDInjectorMiddleware)
-		r.Use(internalTokenMW)
-		r.Use(middleware.ChiGraphQLOrgMiddleware())
-		r.Use(middleware.ChiGraphQLProjectMiddleware())
-		r.Post("/", endusergraphql.EndUserGraphQLHandler(endUserResolver))
-		r.Get("/", endusergraphql.EndUserPlaygroundHandler())
-	})
-
-	// Meta/user runtime endpoint: org-scoped system user queries (me/findOne/findMany).
-	// Route: /graphql/runtime/org/{orgName}/meta/user
-	// orgName is injected from URL path via ChiGraphQLOrgMiddleware; not exposed in GraphQL schema.
-	router.Route("/graphql/runtime/org/{orgName}/meta/user", func(r chi.Router) {
-		r.Use(requestIDInjectorMiddleware)
-		r.Use(internalTokenMW)
-		r.Use(middleware.ChiGraphQLOrgMiddleware())
-		r.Post("/", endusergraphql.EndUserGraphQLHandler(metaUserResolver))
-		r.Get("/", endusergraphql.EndUserPlaygroundHandler())
-	})
 }
