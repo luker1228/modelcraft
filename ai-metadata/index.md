@@ -99,13 +99,15 @@ ai-metadata/
     │   ├── 13-database-schema.md         # 数据库 Schema 变更（Atlas 迁移）
     │   ├── 14-frontend-design.md         # 前端页面/路由/BFF 变更
     │   └── 15-bdd-scenarios.md           # BDD 验收场景
-    └── cli/                              # ⭐ ModelCraft CLI（Agent-First）
-        ├── 00-cli-overview.md            # 总览：设计目标、命令树、v1 范围
-        ├── 01-auth-flow.md               # 认证流程与 Token 管理
-        ├── 02-data-commands.md           # 数据命令（query/get/create/update/delete）
-        ├── 03-discovery-and-introspection.md  # 资源发现与 Agent 自省
-        ├── 04-error-handling.md          # 错误处理与 Limit 机制
-        └── 05-architecture.md            # CLI 架构与后端变更需求
+    ├── cli/                              # ⭐ ModelCraft CLI（Agent-First）
+    │   ├── 00-cli-overview.md            # 总览：设计目标、命令树、v1 范围
+    │   ├── 01-auth-flow.md               # 认证流程与 Token 管理
+    │   ├── 02-data-commands.md           # 数据命令（query/get/create/update/delete）
+    │   ├── 03-discovery-and-introspection.md  # 资源发现与 Agent 自省
+    │   ├── 04-error-handling.md          # 错误处理与 Limit 机制
+    │   └── 05-architecture.md            # CLI 架构与后端变更需求
+    └── dual-ui-architecture/             # ⭐ 前端双 UI 架构（租户端 vs 用户端）
+        └── 00-overview.md                # 总览：路由边界、功能矩阵、认证体系差异
 ```
 
 ---
@@ -285,3 +287,11 @@ ai-metadata/
 | [prd/cli/03-discovery-and-introspection.md](./prd/cli/03-discovery-and-introspection.md) | 资源发现与 Agent 自省：catalog/describe/schema |
 | [prd/cli/04-error-handling.md](./prd/cli/04-error-handling.md) | 错误处理：统一格式、退出码、Agent 自修正、Limit 机制 |
 | [prd/cli/05-architecture.md](./prd/cli/05-architecture.md) | CLI 内部架构与后端变更需求 |
+
+### 前端双 UI 架构（租户端 vs 用户端）
+
+> 核心架构决策：两套独立 UI，路由前缀隔离，仅共享 Design System。
+
+| 路径 | 说明 |
+|------|------|
+| [prd/dual-ui-architecture/00-overview.md](./prd/dual-ui-architecture/00-overview.md) | ⭐ 总览：背景、功能边界矩阵、路由结构、认证体系差异、成功指标 |
