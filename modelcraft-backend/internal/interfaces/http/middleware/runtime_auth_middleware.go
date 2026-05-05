@@ -35,8 +35,7 @@ func (e *EndUserIdentity) IsDeveloper() bool {
 }
 
 // RuntimeAuthMiddleware validates JWT for Runtime endpoints.
-// It only accepts tokens with iss="mc-enduser" (EndUser JWT).
-// Developer JWTs (iss="mc-developer") are rejected with 401.
+// Only accepts tokens with iss="mc-platform"（统一 Token 体系后，所有 token 均使用此 issuer）。
 type RuntimeAuthMiddleware struct {
 	jwtValidator JWTValidator
 	logger       logfacade.Logger
