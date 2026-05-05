@@ -138,14 +138,6 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.codebuddy/hooks/gsd-session-state.sh"
-          }
-        ]
-      },
-      {
-        "hooks": [
-          {
-            "type": "command",
             "command": "\"/data/home/lukemxjia/.nvm/versions/node/v24.14.1/bin/node\" \"$CLAUDE_PROJECT_DIR\"/.codebuddy/hooks/gsd-update-banner.js"
           }
         ]
