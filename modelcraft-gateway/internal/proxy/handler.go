@@ -18,6 +18,7 @@ import (
 type contextKey string
 
 const userIDContextKey contextKey = "user_id"
+const tokenScopeContextKey contextKey = "token_scope"
 
 // Handler is a reverse proxy that forwards requests to the Go backend.
 // After validating the Bearer token, it injects X-User-ID (from JWT claims)
@@ -63,6 +64,12 @@ func (h *Handler) director(req *http.Request) {
 		)
 	}
 
+	// 注入 X-Token-Scope（来自 Gateway JWT 验证结果）。先 Del 再 Set 防止外部伪造。
+	if scope, ok := req.Context().Value(tokenScopeContextKey).(string); ok && scope != "" {
+		req.Header.Del("X-Token-Scope")
+		req.Header.Set("X-Token-Scope", scope)
+	}
+
 	// Propagate the internal request ID for end-to-end tracing.
 	if reqID := chiMiddleware.GetReqID(req.Context()); reqID != "" {
 		req.Header.Set("X-Request-Id", reqID)
@@ -88,8 +95,10 @@ func (h *Handler) GraphQLOrgHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL org request authenticated",
 		zap.String("user_id", claims.UserID),
+		zap.String("scope", claims.Scope),
 		zap.String("path", r.URL.Path),
 	)
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
@@ -103,8 +112,10 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL project request authenticated",
 		zap.String("user_id", claims.UserID),
+		zap.String("scope", claims.Scope),
 		zap.String("path", r.URL.Path),
 	)
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
@@ -112,7 +123,7 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 
 // EndUserGraphQLHandler 验证端用户 Bearer JWT（ES256，由 mc-platform 签发），
 // 然后代理至 /graphql/end-user/org/{orgName}/project/{projectSlug}。
-// 注入 X-User-ID 和 X-Internal-Token 供后端识别调用者。
+// 注入 X-User-ID、X-Token-Scope 和 X-Internal-Token 供后端识别调用者。
 func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {
@@ -122,7 +133,6 @@ func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) 
 
 	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
 	// VerifyAccessToken 使用 ES256 公钥验证，与平台管理员 token 使用同一验证路径。
-	// 端用户 token 在 Backend Token 核心统一阶段后已改为 ES256 签发（mc-platform issuer）。
 	claims, err := h.authService.VerifyAccessToken(tokenStr)
 	if err != nil {
 		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid end-user access token",
@@ -133,13 +143,28 @@ func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
+	// Runtime GraphQL 接受 scope=org 和 scope=project。
+	// 设计原则：防止向上越权，不限制向下调用。
+	// 只拒绝非法 scope 值（既不是 org 也不是 project）。
+	if claims.Scope != "org" && claims.Scope != "project" {
+		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid scope for runtime endpoint",
+			zap.String("scope", claims.Scope),
+			zap.String("path", r.URL.Path),
+		)
+		writeError(w, http.StatusForbidden, "INSUFFICIENT_SCOPE", "invalid token scope for runtime endpoint")
+		return
+	}
+
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
 	middleware.LoggerFromCtx(ctx).Info("gateway: end-user GraphQL request authenticated",
 		zap.String("user_id", claims.UserID),
+		zap.String("scope", claims.Scope),
 		zap.String("path", r.URL.Path),
 	)
 
 	// Inject internal token so backend internalTokenMW passes.
+	// director 函数会注入 X-Token-Scope（来自 context），供 RuntimeAuthMiddleware 读取。
 	r = r.WithContext(ctx)
 	r.Header.Set("X-Internal-Token", h.internalToken)
 	h.reverseProxy.ServeHTTP(w, r)

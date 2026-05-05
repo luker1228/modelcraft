@@ -15,6 +15,8 @@ import (
 // Claims is the JWT payload for access tokens issued by the backend auth service.
 type Claims struct {
 	UserID string `json:"user_id"`
+	// Scope 标识 token 的访问范围："org" | "project"
+	Scope string `json:"scope"`
 	jwt.RegisteredClaims
 }
 
