@@ -1,5 +1,8 @@
 package auth
 
+// Deprecated: ModelCraftClaims 不再用于签发 Token，由 PlatformClaims 替代。
+// 保留此文件仅为向后兼容，未来阶段将删除。
+
 import (
 	"errors"
 	"fmt"
@@ -57,8 +60,8 @@ func (c *ModelCraftClaims) Validate() error {
 		return fmt.Errorf("%w: user_id is required", ErrInvalidToken)
 	}
 
-	if c.Issuer != string(IssuerDeveloper) {
-		return fmt.Errorf("%w: expected issuer '%s', got '%s'", ErrInvalidToken, IssuerDeveloper, c.Issuer)
+	if c.Issuer != string(IssuerPlatform) {
+		return fmt.Errorf("%w: expected issuer '%s', got '%s'", ErrInvalidToken, IssuerPlatform, c.Issuer)
 	}
 
 	if c.ExpiresAt == nil || c.ExpiresAt.Before(time.Now()) {

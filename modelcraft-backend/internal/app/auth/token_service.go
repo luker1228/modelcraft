@@ -310,7 +310,7 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 
 	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
 
-	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, u.Name)
+	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, orgName, domainauth.TokenScopeOrg)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}
@@ -443,7 +443,16 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 
 	logger.Infof(ctx, "Token refreshed: user_id=%s", token.UserID)
 
-	accessToken, err := s.jwtSigner.IssueAccessToken(token.UserID, "")
+	// 查询用户的主 org（与 Login 路径一致，取第一个 membership 的 OrgName）
+	var refreshOrgName string
+	if s.membershipRepo != nil {
+		memberships, listErr := s.membershipRepo.ListByUserWithDetails(ctx, token.UserID, 1)
+		if listErr == nil && len(memberships) > 0 {
+			refreshOrgName = memberships[0].OrgName
+		}
+	}
+
+	accessToken, err := s.jwtSigner.IssueAccessToken(token.UserID, refreshOrgName, domainauth.TokenScopeOrg)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}

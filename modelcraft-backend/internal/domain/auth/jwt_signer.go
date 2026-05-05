@@ -66,7 +66,7 @@ func NewJWTSignerFromPEM(
 		ttl = defaultAccessTokenTTL
 	}
 	if issuer == "" {
-		issuer = string(IssuerDeveloper)
+		issuer = string(IssuerPlatform)
 	}
 
 	return &JWTSigner{privateKey: key, issuer: issuer, ttl: ttl}, nil
@@ -81,24 +81,33 @@ func GenerateDevSigner() (*JWTSigner, error) {
 	}
 	return &JWTSigner{
 		privateKey: key,
-		issuer:     string(IssuerDeveloper),
+		issuer:     string(IssuerPlatform),
 		ttl:        defaultAccessTokenTTL,
 	}, nil
 }
 
-// IssueAccessToken signs a short-lived ES256 JWT for the given user.
-func (s *JWTSigner) IssueAccessToken(userID, userName string) (string, error) {
+// IssueAccessToken 为指定用户签发短效 ES256 JWT（PlatformClaims 格式）。
+// orgName 不能为空；scope 必须是 TokenScopeOrg / TokenScopeProject / TokenScopeServiceKey 之一。
+func (s *JWTSigner) IssueAccessToken(userID, orgName, scope string) (string, error) {
+	if orgName == "" {
+		return "", errors.New("jwt_signer: orgName is required")
+	}
+	validScope := scope == TokenScopeOrg || scope == TokenScopeProject || scope == TokenScopeServiceKey
+	if !validScope {
+		return "", fmt.Errorf("jwt_signer: invalid scope %q", scope)
+	}
 	now := time.Now()
-	claims := &UserClaims{
-		UserID: userID,
+	claims := &PlatformClaims{
+		UserID:  userID,
+		OrgName: orgName,
+		Scope:   scope,
 		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    s.issuer,
+			Issuer:    string(IssuerPlatform),
 			Subject:   userID,
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
 		},
 	}
-	_ = userName // reserved for future claims enrichment
 	token := jwt.NewWithClaims(jwt.SigningMethodES256, claims)
 	return token.SignedString(s.privateKey)
 }

@@ -30,8 +30,8 @@ func (c *UserClaims) Validate() error {
 		return fmt.Errorf("%w: user_id is required", ErrUserClaimsInvalid)
 	}
 
-	if c.Issuer != string(IssuerDeveloper) {
-		return fmt.Errorf("%w: expected issuer '%s', got '%s'", ErrUserClaimsInvalid, IssuerDeveloper, c.Issuer)
+	if c.Issuer != string(IssuerPlatform) {
+		return fmt.Errorf("%w: expected issuer '%s', got '%s'", ErrUserClaimsInvalid, IssuerPlatform, c.Issuer)
 	}
 
 	if c.ExpiresAt == nil || c.ExpiresAt.Before(time.Now()) {
