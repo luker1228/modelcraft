@@ -121,55 +121,6 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
-// EndUserGraphQLHandler 验证端用户 Bearer JWT（ES256，由 mc-platform 签发），
-// 然后代理至 /graphql/end-user/org/{orgName}/project/{projectSlug}。
-// 注入 X-User-ID、X-Token-Scope 和 X-Internal-Token 供后端识别调用者。
-func (h *Handler) EndUserGraphQLHandler(w http.ResponseWriter, r *http.Request) {
-	authHeader := r.Header.Get("Authorization")
-	if !strings.HasPrefix(authHeader, "Bearer ") {
-		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "Authorization header required")
-		return
-	}
-
-	tokenStr := strings.TrimPrefix(authHeader, "Bearer ")
-	// VerifyAccessToken 使用 ES256 公钥验证，与平台管理员 token 使用同一验证路径。
-	claims, err := h.authService.VerifyAccessToken(tokenStr)
-	if err != nil {
-		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid end-user access token",
-			zap.Error(err),
-			zap.String("path", r.URL.Path),
-		)
-		writeError(w, http.StatusUnauthorized, "INVALID_TOKEN", "invalid or expired end-user token")
-		return
-	}
-
-	// Runtime GraphQL 接受 scope=org 和 scope=project。
-	// 设计原则：防止向上越权，不限制向下调用。
-	// 只拒绝非法 scope 值（既不是 org 也不是 project）。
-	if claims.Scope != "org" && claims.Scope != "project" {
-		middleware.LoggerFromCtx(r.Context()).Warn("gateway: invalid scope for runtime endpoint",
-			zap.String("scope", claims.Scope),
-			zap.String("path", r.URL.Path),
-		)
-		writeError(w, http.StatusForbidden, "INSUFFICIENT_SCOPE", "invalid token scope for runtime endpoint")
-		return
-	}
-
-	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
-	middleware.LoggerFromCtx(ctx).Info("gateway: end-user GraphQL request authenticated",
-		zap.String("user_id", claims.UserID),
-		zap.String("scope", claims.Scope),
-		zap.String("path", r.URL.Path),
-	)
-
-	// Inject internal token so backend internalTokenMW passes.
-	// director 函数会注入 X-Token-Scope（来自 context），供 RuntimeAuthMiddleware 读取。
-	r = r.WithContext(ctx)
-	r.Header.Set("X-Internal-Token", h.internalToken)
-	h.reverseProxy.ServeHTTP(w, r)
-}
-
 func (h *Handler) extractAndVerify(w http.ResponseWriter, r *http.Request) (*auth.Claims, bool) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {

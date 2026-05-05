@@ -25,16 +25,13 @@ type Claims struct {
 // The gateway only holds the EC public key for verification.
 type Service struct {
 	publicKey                *ecdsa.PublicKey
-	// Deprecated: endUserJWTSecret 用于 HMAC 端用户 token 验证，已不再使用。
-	// 将在阶段 3 Schema 清理时移除。
-	endUserJWTSecret         []byte
 	refreshTokenTTL          time.Duration
 	refreshCookieName        string
 	endUserRefreshCookieName string
 }
 
 // NewService parses a PEM-encoded EC public key and creates a Service.
-func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string, endUserCookieName string, endUserSecret string) (*Service, error) {
+func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string, endUserCookieName string) (*Service, error) {
 	block, _ := pem.Decode([]byte(publicKeyPEM))
 	if block == nil {
 		return nil, errors.New("auth: failed to decode public key PEM block")
@@ -52,7 +49,6 @@ func NewService(publicKeyPEM string, refreshTTL time.Duration, cookieName string
 
 	return &Service{
 		publicKey:                ecPub,
-		endUserJWTSecret:         []byte(endUserSecret),
 		refreshTokenTTL:          refreshTTL,
 		refreshCookieName:        cookieName,
 		endUserRefreshCookieName: endUserCookieName,
@@ -139,49 +135,7 @@ func (s *Service) GetRefreshCookie(r *http.Request) (string, error) {
 	return cookie.Value, nil
 }
 
-// Deprecated: EndUserClaims 是 HMAC 端用户 token 的 payload 结构，已被 PlatformClaims（backend）替代。
-// 此类型将在阶段 3 Schema 清理时删除。
-type EndUserClaims struct {
-	UserID  string `json:"user_id"`
-	OrgName string `json:"org_name"`
-	jwt.RegisteredClaims
-}
-
-// Deprecated: VerifyEndUserAccessToken 使用 HMAC-SHA256 验证端用户 token。
-// 端用户 token 已在 Backend Token 核心统一阶段迁移至 ES256（mc-platform issuer）。
-// 请改用 VerifyAccessToken 进行验证。此方法将在阶段 3 Schema 清理时删除。
-func (s *Service) VerifyEndUserAccessToken(tokenString string) (*EndUserClaims, error) {
-	var claims EndUserClaims
-
-	if len(s.endUserJWTSecret) == 0 {
-		// Dev mode: no secret configured — decode without verifying signature.
-		p := jwt.NewParser()
-		token, _, err := p.ParseUnverified(tokenString, &claims)
-		if err != nil {
-			return nil, fmt.Errorf("end-user token parse (unverified): %w", err)
-		}
-		c, ok := token.Claims.(*EndUserClaims)
-		if !ok {
-			return nil, errors.New("end-user token: invalid claims type")
-		}
-		return c, nil
-	}
-
-	token, err := jwt.ParseWithClaims(tokenString, &claims, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
-		}
-		return s.endUserJWTSecret, nil
-	})
-	if err != nil {
-		return nil, err
-	}
-	c, ok := token.Claims.(*EndUserClaims)
-	if !ok || !token.Valid {
-		return nil, errors.New("end-user token: invalid claims")
-	}
-	return c, nil
-}
+// GetEndUserRefreshCookie reads the end-user refresh token from the request cookie.
 func (s *Service) GetEndUserRefreshCookie(r *http.Request) (string, error) {
 	cookie, err := r.Cookie(s.endUserRefreshCookieName)
 	if err != nil {

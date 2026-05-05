@@ -17,11 +17,6 @@ type Config struct {
 	RefreshCookieName        string
 	EndUserRefreshCookieName string
 
-	// Deprecated: EndUserJWTSecret 曾用于 HMAC-SHA256 端用户 token 验证。
-	// 端用户 token 已迁移至 ES256（mc-platform issuer），此配置不再使用。
-	// 保留字段以维持向后兼容，将在阶段 3 Schema 清理时删除。
-	EndUserJWTSecret string
-
 	// Upstream (Go Backend)
 	BackendURL    string
 	InternalToken string
@@ -47,8 +42,6 @@ func Load() *Config {
 		RefreshTokenTTL:          7 * 24 * time.Hour,
 		RefreshCookieName:        "mc_refresh_token",
 		EndUserRefreshCookieName: "mc_enduser_refresh_token",
-
-		EndUserJWTSecret: getEnv("JWT_SECRET", ""),
 
 		BackendURL:    getEnv("BACKEND_URL", "http://localhost:8080"),
 		InternalToken: mustEnv("INTERNAL_TOKEN"),

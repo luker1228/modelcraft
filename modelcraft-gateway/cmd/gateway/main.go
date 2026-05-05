@@ -46,7 +46,6 @@ func main() {
 		cfg.RefreshTokenTTL,
 		cfg.RefreshCookieName,
 		cfg.EndUserRefreshCookieName,
-		cfg.EndUserJWTSecret, // Deprecated: 端用户 token 已迁移 ES256，此参数将在阶段 3 移除
 	)
 	if err != nil {
 		logger.Fatal("failed to initialise auth service", zap.Error(err))
@@ -107,10 +106,6 @@ func main() {
 	r.Post("/graphql/org/{orgName}/", proxyHandler.GraphQLOrgHandler)
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}", proxyHandler.GraphQLProjectHandler)
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}/", proxyHandler.GraphQLProjectHandler)
-
-	// End-User GraphQL — end-user HMAC JWT required.
-	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}", proxyHandler.EndUserGraphQLHandler)
-	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}/", proxyHandler.EndUserGraphQLHandler)
 
 	// Health check.
 	r.Get("/healthz", func(w http.ResponseWriter, _ *http.Request) {
