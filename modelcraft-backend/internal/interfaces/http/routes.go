@@ -24,7 +24,6 @@ import (
 	"modelcraft/pkg/logfacade"
 	"net/http"
 	"os"
-	"sort"
 	"sync"
 	"time"
 
@@ -52,7 +51,6 @@ import (
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // DesignHandlers holds all handlers and services needed for the design-time API.
@@ -133,57 +131,25 @@ func (p *endUserAuthDBProvider) GetOrInit(_ context.Context, _, _ string) (*sql.
 	return p.db, nil
 }
 
-type endUserJWTClaims struct {
-	jwt.RegisteredClaims
-	UserID       string   `json:"user_id"`
-	OrgName      string   `json:"org_name"`
-	ProjectSlugs []string `json:"project_slugs,omitempty"`
-}
-
 type endUserJWTIssuer struct {
-	secret []byte
-	ttl    time.Duration
+	signer *domainAuth.JWTSigner
 }
 
 func (i *endUserJWTIssuer) IssueEndUserToken(
 	_ context.Context,
 	input appEnduser.EndUserTokenIssueInput,
 ) (*appEnduser.EndUserTokenIssueResult, error) {
-	if len(i.secret) == 0 {
-		return nil, fmt.Errorf("jwt secret is empty")
+	if i.signer == nil {
+		return nil, fmt.Errorf("end-user jwt signer is nil")
 	}
-
-	ttl := i.ttl
-	if ttl <= 0 {
-		ttl = time.Hour
-	}
-
 	now := time.Now().UTC()
-	expiresAt := now.Add(ttl)
-	projectSlugs := append([]string(nil), input.ProjectSlugs...)
-	sort.Strings(projectSlugs)
-
-	claims := endUserJWTClaims{
-		RegisteredClaims: jwt.RegisteredClaims{
-			Issuer:    string(domainAuth.IssuerEndUser),
-			Subject:   input.UserID,
-			IssuedAt:  jwt.NewNumericDate(now),
-			ExpiresAt: jwt.NewNumericDate(expiresAt),
-		},
-		UserID:       input.UserID,
-		OrgName:      input.OrgName,
-		ProjectSlugs: projectSlugs,
-	}
-
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
-	signedToken, err := token.SignedString(i.secret)
+	accessToken, err := i.signer.IssueAccessToken(input.UserID, input.OrgName, domainAuth.TokenScopeOrg)
 	if err != nil {
 		return nil, err
 	}
-
 	return &appEnduser.EndUserTokenIssueResult{
-		AccessToken: signedToken,
-		ExpiresAt:   expiresAt,
+		AccessToken: accessToken,
+		ExpiresAt:   now.Add(time.Duration(i.signer.TTLSeconds()) * time.Second),
 	}, nil
 }
 
@@ -392,7 +358,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		&endUserAuthDBProvider{db: repoFactory.SqlDB},
 		&endUserAuthRepositoryFactory{},
 		endUserTxMgr,
-		&endUserJWTIssuer{secret: []byte(cfg.JWT.Secret), ttl: cfg.JWT.Expiration},
+		&endUserJWTIssuer{signer: jwtSigner},
 		logger,
 	)
 	orgEndUserMgmtAppService := appEnduser.NewEndUserManagementAppService(
@@ -403,7 +369,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
 		endUserTxMgr,
 	)
-	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, []byte(cfg.JWT.Secret), logger)
+	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, logger)
 	endUserMgmtHandler := enduserHandlers.NewManagementHandler(orgEndUserMgmtAppService, logger)
 	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, reverseEngineerApp, logger)
 

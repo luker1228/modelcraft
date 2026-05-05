@@ -1,7 +1,9 @@
 package enduser
 
 import (
+	"crypto/x509"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
@@ -12,6 +14,8 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
+	domainAuth "modelcraft/internal/domain/auth"
+
 	appEnduser "modelcraft/internal/app/enduser"
 )
 
@@ -20,29 +24,22 @@ import (
 // no separate internal routes are needed.
 type AuthHandler struct {
 	authService *appEnduser.EndUserAuthAppService
-	jwtSecret   []byte
+	jwtSigner   *domainAuth.JWTSigner
 	logger      logfacade.Logger
 }
 
 // NewAuthHandler creates an AuthHandler.
-// jwtSecret is the HMAC secret used to verify end-user Bearer tokens in /me.
+// jwtSigner is the ES256 signer used to verify end-user Bearer tokens in /me.
 func NewAuthHandler(
 	authService *appEnduser.EndUserAuthAppService,
-	jwtSecret []byte,
+	jwtSigner *domainAuth.JWTSigner,
 	logger logfacade.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
-		jwtSecret:   jwtSecret,
+		jwtSigner:   jwtSigner,
 		logger:      logger,
 	}
-}
-
-// endUserClaims is the JWT payload for end-user access tokens (HMAC-signed).
-type endUserClaims struct {
-	jwt.RegisteredClaims
-	UserID  string `json:"user_id"`
-	OrgName string `json:"org_name"`
 }
 
 // ============================================================
@@ -214,7 +211,7 @@ func (h *AuthHandler) EndUserSelectProject(w http.ResponseWriter, r *http.Reques
 }
 
 // EndUserMe handles GET /api/end-user/auth/me.
-// Identity is resolved entirely from the Bearer JWT (HMAC-verified).
+// Identity is resolved entirely from the Bearer JWT (ES256-verified).
 // No external headers required — orgName and userID come from token claims.
 func (h *AuthHandler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
@@ -257,17 +254,30 @@ func (h *AuthHandler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 // JWT helper
 // ============================================================
 
-func (h *AuthHandler) parseEndUserJWT(tokenStr string) (*endUserClaims, error) {
-	token, err := jwt.ParseWithClaims(tokenStr, &endUserClaims{}, func(t *jwt.Token) (interface{}, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+// parseEndUserJWT 使用 ES256 公钥验证端用户 Bearer token，解析为 PlatformClaims。
+func (h *AuthHandler) parseEndUserJWT(tokenStr string) (*domainAuth.PlatformClaims, error) {
+	pubKeyPEM, err := h.jwtSigner.PublicKeyPEM()
+	if err != nil {
+		return nil, fmt.Errorf("get public key: %w", err)
+	}
+	block, _ := pem.Decode([]byte(pubKeyPEM))
+	if block == nil {
+		return nil, fmt.Errorf("failed to decode public key PEM")
+	}
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, fmt.Errorf("parse public key: %w", err)
+	}
+	token, err := jwt.ParseWithClaims(tokenStr, &domainAuth.PlatformClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodECDSA); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
-		return h.jwtSecret, nil
+		return pub, nil
 	})
 	if err != nil || !token.Valid {
 		return nil, fmt.Errorf("invalid token")
 	}
-	claims, ok := token.Claims.(*endUserClaims)
+	claims, ok := token.Claims.(*domainAuth.PlatformClaims)
 	if !ok || claims.OrgName == "" || claims.Subject == "" {
 		return nil, fmt.Errorf("missing required claims")
 	}

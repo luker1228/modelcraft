@@ -12,20 +12,26 @@ type endUserContextKeyType string
 // endUserContextKey is the context key for end-user identity.
 const endUserContextKey endUserContextKeyType = "end_user_identity"
 
+// issuerPlatform 是统一 token 体系的 issuer 标识（与 domain/auth.IssuerPlatform 一致）。
+const issuerPlatform = "mc-platform"
+
 // EndUserIdentity represents the authenticated end-user identity.
 type EndUserIdentity struct {
 	EndUserID string `json:"endUserId"`
-	Issuer    string `json:"issuer"`
+	Issuer    string `json:"issuer"` // 统一为 mc-platform
+	Scope     string `json:"scope"`  // "org" | "project"
 }
 
-// IsEndUser returns true if the identity is a valid end-user (mc-enduser issuer).
+// IsEndUser 判断是否为可访问 Runtime 的身份（统一 token 体系后检查 mc-platform issuer）。
+// 阶段 1：所有 mc-platform token 均可访问 runtime；scope 强制校验由阶段 2 引入。
 func (e *EndUserIdentity) IsEndUser() bool {
-	return e.Issuer == "mc-enduser"
+	return e.Issuer == issuerPlatform
 }
 
-// IsDeveloper returns true if the identity is a developer (mc-developer issuer).
+// IsDeveloper Deprecated：统一 token 体系后，developer/enduser 概念消失。
+// 保留以兼容下游调用，将在阶段 2 重命名为 HasOrgScope。
 func (e *EndUserIdentity) IsDeveloper() bool {
-	return e.Issuer == "mc-developer"
+	return e.Issuer == issuerPlatform
 }
 
 // RuntimeAuthMiddleware validates JWT for Runtime endpoints.
@@ -78,7 +84,7 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// 3. Validate issuer must be "mc-enduser"
+		// 3. Validate issuer must be "mc-platform"
 		issuer, ok := claims["iss"].(string)
 		if !ok {
 			m.logger.Warn(ctx, "Missing iss claim in JWT")
@@ -86,13 +92,13 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if issuer != "mc-enduser" {
+		if issuer != issuerPlatform {
 			m.logger.Warn(ctx, "Invalid JWT issuer for runtime endpoint",
 				logfacade.String("issuer", issuer),
-				logfacade.String("expected", "mc-enduser"))
+				logfacade.String("expected", issuerPlatform))
 			http.Error(
 				w,
-				`{"error": "Unauthorized: Invalid issuer. Runtime endpoints only accept EndUser JWT (mc-enduser)"}`,
+				`{"error": "Unauthorized: Invalid issuer. Runtime endpoints require mc-platform JWT"}`,
 				http.StatusUnauthorized,
 			)
 			return
@@ -106,10 +112,12 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// 5. Inject end-user identity into context
+		// 5. Inject end-user identity into context（含 scope 字段）
+		scope, _ := claims["scope"].(string)
 		identity := &EndUserIdentity{
 			EndUserID: endUserID,
 			Issuer:    issuer,
+			Scope:     scope,
 		}
 		ctx = context.WithValue(ctx, endUserContextKey, identity)
 

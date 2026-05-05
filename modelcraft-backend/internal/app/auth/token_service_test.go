@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/shared"
 	"testing"
 	"time"
@@ -226,10 +227,11 @@ func createTestService(t *testing.T) (
 	profileRepo := newMockProfileRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
+	membershipRepo := &mockMembershipRepo{orgName: "test-org"}
 	jwtSigner, err := domainauth.GenerateDevSigner()
 	require.NoError(t, err)
 	svc := NewTokenService(
-		refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, nil, jwtSigner,
+		refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, membershipRepo, nil, jwtSigner,
 	)
 	return svc, refreshRepo, userRepo, profileRepo, auditRepo
 }
@@ -507,4 +509,20 @@ func TestTokenService_Logout_NonexistentToken(t *testing.T) {
 	// Logout with nonexistent token should succeed silently
 	err := svc.Logout(ctx, LogoutCommand{RefreshToken: "nonexistent"})
 	assert.NoError(t, err)
+}
+
+// mockMembershipRepo 为测试提供一个始终返回固定 org 的 membership repo。
+type mockMembershipRepo struct {
+	orgName string
+}
+
+func (m *mockMembershipRepo) ListByUserWithDetails(
+	_ context.Context, _ string, _ int,
+) ([]*membership.MembershipWithDetails, error) {
+	if m.orgName == "" {
+		return nil, nil
+	}
+	return []*membership.MembershipWithDetails{
+		{OrgName: m.orgName},
+	}, nil
 }

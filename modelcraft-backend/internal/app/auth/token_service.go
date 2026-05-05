@@ -19,13 +19,19 @@ import (
 	domainUser "modelcraft/internal/domain/user"
 )
 
+// MembershipOrgProvider 是 TokenService 用于获取用户主 Org 信息的最小接口。
+// 仅在签发 Token 时需要，不依赖完整的 MembershipRepository。
+type MembershipOrgProvider interface {
+	ListByUserWithDetails(ctx context.Context, userID string, limit int) ([]*membership.MembershipWithDetails, error)
+}
+
 // TokenService 处理认证令牌操作：注册、登录、刷新、登出。
 // 使用有状态的 DB 存储 Refresh Token（opaque token），支持轮换和盗用检测。
 type TokenService struct {
 	refreshTokenRepo domainauth.RefreshTokenRepository
 	userRepo         domainUser.UserRepository
 	profileRepo      domainProfile.Repository
-	membershipRepo   membership.MembershipRepository
+	membershipRepo   MembershipOrgProvider
 	auditLogRepo     domainauth.SecurityAuditLogRepository
 	passwordHasher   domainauth.PasswordHasher
 	refreshTTL       time.Duration
@@ -43,7 +49,7 @@ func NewTokenService(
 	passwordHasher domainauth.PasswordHasher,
 	refreshTTL time.Duration,
 	createOrgService *organization.CreateOrganizationService,
-	membershipRepo membership.MembershipRepository,
+	membershipRepo MembershipOrgProvider,
 	txManager repository.TxManager,
 	jwtSigner *domainauth.JWTSigner,
 ) *TokenService {
