@@ -31,7 +31,11 @@
   2. `POST /api/end-user/{orgSlug}/auth/login` 返回的 JWT，`iss` 同样为 `mc-platform`，`scope` 为 `"org"`，不再出现 `mc-enduser`
   3. 旧 `mc-developer` / `mc-enduser` issuer 签发的 Token 被服务端拒绝（401）
   4. Token 使用 ES256（ECDSA P-256）签名，与现有 `jwt_signer.go` 保持一致
-**计划**：待定
+**计划**：3 个计划，3 个 wave
+Plans:
+- [ ] 01-PLAN-01.md — Wave 1：领域层 PlatformClaims 定义、issuer 常量迁移、jwt_signer 签名扩展
+- [ ] 01-PLAN-02.md — Wave 2：应用层（token_service Refresh/Login）+ 接口层（enduser auth 迁移 ES256、middleware、rls）
+- [ ] 01-PLAN-03.md — Wave 3：Gateway 端用户 token 验证从 HMAC 切换为 ES256
 
 ---
 
@@ -44,7 +48,10 @@
   2. 携带 `scope=org` 的 Token 访问 `/graphql/org/{orgName}/project/*` 返回 403
   3. 携带 `scope=project` 的 Token 访问 org 管理路由（如项目 CRUD）返回 403
   4. 携带有效 `scope=project` Token 可正常访问 Runtime GraphQL 端点
-**计划**：待定
+**计划**：2 个计划，2 个 wave
+Plans:
+- [ ] 02-PLAN-01.md — Wave 1：Gateway Claims 扩展 + X-Token-Scope 注入 + backend ParsePlatformClaims
+- [ ] 02-PLAN-02.md — Wave 2：RequireScope 中间件 + ExchangeToken app 层 + handler/server/路由注册 + gateway 透传
 
 ---
 
