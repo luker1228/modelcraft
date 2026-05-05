@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo: 租户登录页 /tenant/login</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* ── Demo 标注栏 ── */
+  .demo-bar { background: #1a1a2e; color: #a78bfa; font-size: 12px; padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .demo-bar strong { color: #fff; }
+  .demo-tag { background: #7c3aed; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+
+  /* ── 页面 ── */
+  .page { flex: 1; display: flex; align-items: center; justify-content: center; padding: 40px 20px; }
+  .card { background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.10); padding: 48px 40px; width: 100%; max-width: 400px; text-align: center; }
+
+  .logo-area { margin-bottom: 36px; }
+  .logo-mark { width: 48px; height: 48px; background: #7c3aed; border-radius: 10px; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; }
+  .logo-mark svg { width: 28px; height: 28px; fill: #fff; }
+  .logo-name { font-size: 22px; font-weight: 600; color: #111; }
+  .logo-sub { font-size: 13px; color: #888; margin-top: 4px; }
+
+  .btn-oauth { display: block; width: 100%; padding: 13px; background: #7c3aed; color: #fff; border: none; border-radius: 8px; font-size: 15px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+  .btn-oauth:hover { background: #6d28d9; }
+
+  .footer-note { margin-top: 24px; font-size: 12px; color: #aaa; line-height: 1.6; }
+  .footer-note strong { color: #888; }
+
+  /* ── 注解 ── */
+  .annotation { background: #fef9c3; border: 1px dashed #f59e0b; border-radius: 6px; padding: 8px 12px; font-size: 11px; color: #92400e; text-align: left; margin-top: 20px; }
+  .annotation b { color: #b45309; }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <span><strong>Demo</strong> — 租户登录页</span>
+  <span>路由: <code>/tenant/login</code> &nbsp;|&nbsp; <span class="demo-tag">低保真 · 流程对齐</span></span>
+</div>
+
+<div class="page">
+  <div>
+    <div class="card">
+      <div class="logo-area">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="logo-name">ModelCraft</div>
+        <div class="logo-sub">租户管理平台</div>
+      </div>
+
+      <button class="btn-oauth" onclick="simulateOAuth()">
+        使用企业账号登录
+      </button>
+
+      <div class="footer-note">
+        <strong>仅限租户管理员 / 开发者使用</strong><br>
+        点击后将跳转至企业 OAuth 授权页面
+      </div>
+
+      <div class="annotation">
+        <b>交互说明：</b> 点击按钮 → BFF 调用 <code>GET /api/auth/login-url</code> → 获取 OAuth URL → 浏览器跳转<br>
+        OAuth 回调成功后颁发 <code>aud=tenant</code> Token → 跳转 <code>/org-selector</code>
+      </div>
+    </div>
+
+    <!-- 模拟 OAuth 跳转反馈 -->
+    <div id="sim-feedback" style="display:none; margin-top:16px; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:12px 16px; font-size:13px; color:#166534; text-align:center;">
+      ✓ 模拟 OAuth 成功 → 将跳转 <code>/org-selector</code>
+    </div>
+  </div>
+</div>
+
+<script>
+function simulateOAuth() {
+  const fb = document.getElementById('sim-feedback');
+  fb.style.display = 'block';
+  setTimeout(() => {
+    alert('[ Demo ] 模拟跳转到 /org-selector\n\n实际流程：OAuth 回调 → aud=tenant Token → /org-selector');
+  }, 400);
+}
+</script>
+</body>
+</html>

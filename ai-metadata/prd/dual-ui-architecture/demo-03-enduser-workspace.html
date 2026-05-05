@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demo: Workspace 主页 /end-user/[orgName]/workspace</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8fafc; min-height: 100vh; display: flex; flex-direction: column; }
+
+  .demo-bar { background: #0f172a; color: #7dd3fc; font-size: 12px; padding: 8px 20px; display: flex; justify-content: space-between; align-items: center; }
+  .demo-bar strong { color: #fff; }
+  .demo-tag { background: #0284c7; color: #fff; padding: 2px 8px; border-radius: 4px; font-size: 11px; }
+
+  /* ── 顶部栏 ── */
+  .topbar { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar-left { display: flex; align-items: center; gap: 10px; }
+  .org-logo { width: 32px; height: 32px; background: #0284c7; border-radius: 6px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 14px; font-weight: 700; }
+  .org-name { font-size: 16px; font-weight: 600; color: #0f172a; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .user-info { font-size: 13px; color: #475569; }
+  .btn-logout { font-size: 13px; color: #ef4444; background: none; border: 1px solid #fca5a5; border-radius: 6px; padding: 5px 12px; cursor: pointer; }
+  .btn-logout:hover { background: #fef2f2; }
+
+  /* ── Tab ── */
+  .tab-nav { background: #fff; border-bottom: 1px solid #e2e8f0; padding: 0 24px; display: flex; gap: 0; }
+  .tab-btn { padding: 14px 20px; font-size: 14px; color: #64748b; background: none; border: none; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+  .tab-btn.active { color: #0284c7; border-bottom-color: #0284c7; font-weight: 500; }
+  .tab-btn:hover:not(.active) { color: #334155; }
+  .tab-btn.disabled { color: #cbd5e1; cursor: not-allowed; }
+
+  /* ── 主内容 ── */
+  .main { flex: 1; padding: 32px 24px; }
+  .section-title { font-size: 18px; font-weight: 600; color: #0f172a; margin-bottom: 8px; }
+  .section-sub { font-size: 13px; color: #64748b; margin-bottom: 24px; }
+
+  /* ── 场景切换 ── */
+  .scenario-bar { display: flex; gap: 8px; margin-bottom: 24px; align-items: center; }
+  .scenario-label { font-size: 12px; color: #94a3b8; }
+  .scenario-btn { font-size: 12px; padding: 4px 12px; border: 1px solid #cbd5e1; background: #f8fafc; border-radius: 5px; cursor: pointer; color: #475569; }
+  .scenario-btn.active { background: #eff6ff; border-color: #93c5fd; color: #1d4ed8; }
+
+  /* ── Project 卡片网格 ── */
+  .project-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .project-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 10px; padding: 20px; cursor: pointer; transition: box-shadow 0.2s, border-color 0.2s; }
+  .project-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.08); border-color: #93c5fd; }
+  .project-icon { width: 40px; height: 40px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; margin-bottom: 12px; }
+  .project-name { font-size: 15px; font-weight: 600; color: #0f172a; margin-bottom: 6px; }
+  .project-desc { font-size: 13px; color: #64748b; line-height: 1.5; margin-bottom: 16px; min-height: 40px; }
+  .btn-enter { font-size: 13px; color: #0284c7; background: #eff6ff; border: none; border-radius: 6px; padding: 6px 14px; cursor: pointer; font-weight: 500; }
+  .btn-enter:hover { background: #dbeafe; }
+
+  /* ── 空状态 ── */
+  .empty-state { text-align: center; padding: 80px 20px; }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-size: 17px; font-weight: 500; color: #374151; margin-bottom: 8px; }
+  .empty-desc { font-size: 14px; color: #9ca3af; }
+
+  .annotation { background: #fef9c3; border: 1px dashed #f59e0b; border-radius: 6px; padding: 8px 12px; font-size: 11px; color: #92400e; margin-top: 24px; line-height: 1.6; }
+  .annotation b { color: #b45309; }
+</style>
+</head>
+<body>
+
+<div class="demo-bar">
+  <span><strong>Demo</strong> — 用户端 Workspace 主页</span>
+  <span>路由: <code>/end-user/acme/workspace</code> &nbsp;|&nbsp; <span class="demo-tag">低保真 · 流程对齐</span></span>
+</div>
+
+<!-- 顶部栏 -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="org-logo">A</div>
+    <div class="org-name">ACME 内部平台</div>
+  </div>
+  <div class="topbar-right">
+    <span class="user-info">alice</span>
+    <button class="btn-logout" onclick="alert('[ Demo ] 清除 httpOnly cookie → 跳转 /end-user/acme/login')">登出</button>
+  </div>
+</div>
+
+<!-- Tab 导航 -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab(this, 'projects')">Projects</button>
+  <button class="tab-btn disabled" title="待规划">（待定）</button>
+</div>
+
+<!-- 主内容 -->
+<div class="main">
+  <div class="scenario-bar">
+    <span class="scenario-label">▸ Demo 场景：</span>
+    <button class="scenario-btn active" onclick="setScenario('multi', this)">有多个 Project</button>
+    <button class="scenario-btn" onclick="setScenario('one', this)">只有 1 个 Project</button>
+    <button class="scenario-btn" onclick="setScenario('empty', this)">无可访问 Project</button>
+  </div>
+
+  <div id="content-area"></div>
+
+  <div class="annotation">
+    <b>数据来源：</b> GraphQL 查询 EndUser 可访问的 Project 列表（后端按 <code>end_user_role_users</code> 聚合去重）<br>
+    <b>跳转：</b> 点击 Project → <code>/end-user/acme/workspace/[projectSlug]/data</code>
+  </div>
+</div>
+
+<script>
+const projects = [
+  { slug: 'sales-system', name: '销售管理系统', desc: '管理销售线索、客户和订单', icon: '📊', color: '#eff6ff' },
+  { slug: 'hr-portal',    name: 'HR 员工门户',  desc: '假期申请、考勤和个人信息管理', icon: '👥', color: '#f0fdf4' },
+  { slug: 'ops-dashboard', name: '运营看板',     desc: '业务数据统计与报表查看', icon: '📈', color: '#fdf4ff' },
+];
+
+function setScenario(type, btn) {
+  document.querySelectorAll('.scenario-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const area = document.getElementById('content-area');
+  if (type === 'empty') {
+    area.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-icon">🔒</div>
+        <div class="empty-title">暂无项目访问权限</div>
+        <div class="empty-desc">您暂无任何项目的访问权限，请联系管理员授权</div>
+      </div>`;
+  } else {
+    const list = type === 'one' ? [projects[0]] : projects;
+    area.innerHTML = `
+      <div class="section-title">我的项目</div>
+      <div class="section-sub">选择要进入的项目</div>
+      <div class="project-grid">${list.map(p => `
+        <div class="project-card">
+          <div class="project-icon" style="background:${p.color}">${p.icon}</div>
+          <div class="project-name">${p.name}</div>
+          <div class="project-desc">${p.desc}</div>
+          <button class="btn-enter" onclick="enterProject('${p.slug}')">进入 →</button>
+        </div>`).join('')}
+      </div>`;
+  }
+}
+
+function enterProject(slug) {
+  alert(`[ Demo ] 跳转 → /end-user/acme/workspace/${slug}/data`);
+}
+
+// 初始化
+setScenario('multi', document.querySelector('.scenario-btn.active'));
+</script>
+</body>
+</html>

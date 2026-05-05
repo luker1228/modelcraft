@@ -282,9 +282,20 @@ Projects 页：Project 卡片网格
 
 | 文件 | 说明 |
 |------|------|
-| [01-tenant-ui-routes.md](./01-tenant-ui-routes.md) | 租户端完整路由表与页面详细设计（待补充） |
-| [02-app-ui-routes.md](./02-app-ui-routes.md) | 用户端完整路由表与页面详细设计（待补充） |
-| [03-auth-boundary.md](./03-auth-boundary.md) | 两端认证体系边界与 BFF 路由映射（待补充） |
+| [01-tenant-login.md](./01-tenant-login.md) | 租户登录页 `/tenant/login` — OAuth 跳转、回调、错误状态 |
+| [02-enduser-login.md](./02-enduser-login.md) | 用户端登录页 `/end-user/[orgName]/login` — 表单、错误、登录后跳转 |
+| [03-enduser-workspace.md](./03-enduser-workspace.md) | Workspace 主页 `/end-user/[orgName]/workspace` — Projects Tab、空状态 |
+| [04-enduser-data.md](./04-enduser-data.md) | 数据操作页 `/end-user/[orgName]/workspace/[projectSlug]/data` — 表格、CRUD、弹窗 |
+| [05-backend-api-contract.md](./05-backend-api-contract.md) | 后端 API 契约：end-user-auth.yaml 变更 + Org GraphQL 新增查询 |
+
+### Demo 页
+
+| 文件 | 对应子页 |
+|------|---------|
+| [demo-01-tenant-login.html](./demo-01-tenant-login.html) | 租户登录页交互流程 |
+| [demo-02-enduser-login.html](./demo-02-enduser-login.html) | 用户端登录页（含多场景切换） |
+| [demo-03-enduser-workspace.html](./demo-03-enduser-workspace.html) | Workspace 主页（Project 卡片、空状态） |
+| [demo-04-enduser-data.html](./demo-04-enduser-data.html) | 数据操作页（表格、新增/编辑弹窗、侧边栏） |
 
 ### 关联文档
 
