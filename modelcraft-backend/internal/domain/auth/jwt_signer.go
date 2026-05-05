@@ -117,6 +117,28 @@ func (s *JWTSigner) TTLSeconds() int {
 	return int(s.ttl.Seconds())
 }
 
+// ParsePlatformClaims parses and validates an ES256 JWT using the signer's own public key.
+// Returns the PlatformClaims if valid, or an error if the token is invalid, expired, or malformed.
+func (s *JWTSigner) ParsePlatformClaims(tokenStr string) (*PlatformClaims, error) {
+	claims := &PlatformClaims{}
+	token, err := jwt.ParseWithClaims(tokenStr, claims, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodECDSA); !ok {
+			return nil, fmt.Errorf("jwt_signer: unexpected signing method: %v", t.Header["alg"])
+		}
+		return &s.privateKey.PublicKey, nil
+	})
+	if err != nil {
+		return nil, fmt.Errorf("jwt_signer: parse platform claims: %w", err)
+	}
+	if !token.Valid {
+		return nil, errors.New("jwt_signer: token is not valid")
+	}
+	if err := claims.Validate(); err != nil {
+		return nil, fmt.Errorf("jwt_signer: invalid claims: %w", err)
+	}
+	return claims, nil
+}
+
 // PublicKeyPEM returns the PEM-encoded public key so the gateway can load it at startup.
 func (s *JWTSigner) PublicKeyPEM() (string, error) {
 	der, err := x509.MarshalPKIXPublicKey(&s.privateKey.PublicKey)

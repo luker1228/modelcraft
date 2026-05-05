@@ -96,3 +96,64 @@ func TestIssuerIsValid(t *testing.T) {
 		t.Error("IssuerEndUser should be invalid (deprecated)")
 	}
 }
+
+func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
+	signer, err := GenerateDevSigner()
+	if err != nil {
+		t.Fatalf("GenerateDevSigner: %v", err)
+	}
+
+	t.Run("valid org token roundtrip", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", TokenScopeOrg)
+		if err != nil {
+			t.Fatalf("IssueAccessToken: %v", err)
+		}
+		claims, err := signer.ParsePlatformClaims(tokenStr)
+		if err != nil {
+			t.Fatalf("ParsePlatformClaims: %v", err)
+		}
+		if claims.UserID != "user-1" {
+			t.Errorf("UserID = %q, want %q", claims.UserID, "user-1")
+		}
+		if claims.OrgName != "acme" {
+			t.Errorf("OrgName = %q, want %q", claims.OrgName, "acme")
+		}
+		if claims.Scope != TokenScopeOrg {
+			t.Errorf("Scope = %q, want %q", claims.Scope, TokenScopeOrg)
+		}
+	})
+
+	t.Run("valid project token roundtrip", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-2", "acme", TokenScopeProject)
+		if err != nil {
+			t.Fatalf("IssueAccessToken: %v", err)
+		}
+		claims, err := signer.ParsePlatformClaims(tokenStr)
+		if err != nil {
+			t.Fatalf("ParsePlatformClaims: %v", err)
+		}
+		if claims.Scope != TokenScopeProject {
+			t.Errorf("Scope = %q, want %q", claims.Scope, TokenScopeProject)
+		}
+	})
+
+	t.Run("invalid token returns error", func(t *testing.T) {
+		_, err := signer.ParsePlatformClaims("not-a-valid-token")
+		if err == nil {
+			t.Error("expected error for invalid token")
+		}
+	})
+
+	t.Run("tampered token returns error", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", TokenScopeOrg)
+		if err != nil {
+			t.Fatalf("IssueAccessToken: %v", err)
+		}
+		// 修改 token 内容（破坏签名）
+		tampered := tokenStr[:len(tokenStr)-5] + "XXXXX"
+		_, err = signer.ParsePlatformClaims(tampered)
+		if err == nil {
+			t.Error("expected error for tampered token")
+		}
+	})
+}
