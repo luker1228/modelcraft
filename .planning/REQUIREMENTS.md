@@ -60,18 +60,18 @@
 
 | 需求 | 阶段 | 状态 |
 |------|------|------|
-| TOKEN-01 | 阶段 1 | 待开发 |
-| TOKEN-02 | 阶段 1 | 待开发 |
-| TOKEN-03 | 阶段 1 | 待开发 |
-| TOKEN-04 | 阶段 1 | 待开发 |
-| TOKEN-05 | 阶段 1 | 待开发 |
-| SCHEMA-01 | 阶段 2 | 待开发 |
-| SCHEMA-02 | 阶段 2 | 待开发 |
-| WORKSPACE-01 | 阶段 3 | 待开发 |
-| WORKSPACE-02 | 阶段 3 | 待开发 |
-| WORKSPACE-03 | 阶段 3 | 待开发 |
-| WORKSPACE-04 | 阶段 3 | 待开发 |
-| TEST-01 | 阶段 3 | 待开发 |
+| TOKEN-01 | 阶段 1 — Token 核心统一 | 待开发 |
+| TOKEN-02 | 阶段 1 — Token 核心统一 | 待开发 |
+| TOKEN-03 | 阶段 1 — Token 核心统一 | 待开发 |
+| TOKEN-04 | 阶段 2 — 中间件 & Exchange 端点 | 待开发 |
+| TOKEN-05 | 阶段 2 — 中间件 & Exchange 端点 | 待开发 |
+| SCHEMA-01 | 阶段 3 — end_user Schema 清理 | 待开发 |
+| SCHEMA-02 | 阶段 3 — end_user Schema 清理 | 待开发 |
+| WORKSPACE-01 | 阶段 4 — 前端 Workspace 入口 | 待开发 |
+| WORKSPACE-02 | 阶段 4 — 前端 Workspace 入口 | 待开发 |
+| WORKSPACE-03 | 阶段 4 — 前端 Workspace 入口 | 待开发 |
+| WORKSPACE-04 | 阶段 4 — 前端 Workspace 入口 | 待开发 |
+| TEST-01 | 阶段 5 — 测试 & 收口 | 待开发 |
 
 **覆盖率**：
 - v1 需求：12 条
