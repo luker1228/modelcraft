@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
@@ -94,11 +95,7 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	if err != nil {
 		return nil, err
 	}
-	if rf := BuildRowFilter(rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
-	}
+	maps.Copy(input.Where, BuildRowFilter(rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID))
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
@@ -197,9 +194,7 @@ func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, e
 		return nil, err
 	}
 	if rf := BuildRowFilter(rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindFirst(p.Context, input)
 	if err != nil {
@@ -259,9 +254,7 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		return nil, err
 	}
 	if rf := BuildRowFilter(rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindMany(p.Context, input)
 	if err != nil {
@@ -1400,9 +1393,7 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 		}
 	}
 	if rf := BuildRowFilter(rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
+		maps.Copy(input.Where, rf)
 	}
 
 	// 返回包装结果
@@ -1469,9 +1460,7 @@ func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interf
 		return nil, err
 	}
 	if rf := BuildRowFilter(rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
+		maps.Copy(input.Where, rf)
 	}
 	// 返回包装结果
 	result := map[string]interface{}{
@@ -1627,9 +1616,7 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 		}
 	}
 	if rf := BuildRowFilter(rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
+		maps.Copy(input.Where, rf)
 	}
 
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
@@ -1682,9 +1669,7 @@ func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (inter
 		return nil, err
 	}
 	if rf := BuildRowFilter(rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
-		for k, v := range rf {
-			input.Where[k] = v
-		}
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.DeleteMany(p.Context, input)
 	if err != nil {
