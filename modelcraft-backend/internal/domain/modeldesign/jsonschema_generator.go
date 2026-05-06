@@ -300,6 +300,9 @@ func (g *JSONSchemaGenerator) decideWidget(field *FieldDefinition, fieldSchema m
 	// 6. 时间
 	case FormatTime:
 		return "time"
+	// 7. END_USER_REF → end-user-ref widget
+	case FormatEndUserRef:
+		return "end-user-ref"
 	}
 
 	return ""

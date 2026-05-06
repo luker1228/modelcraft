@@ -830,6 +830,7 @@ func TestJSONSchemaGenerator_EndUserRef_HasStringType(t *testing.T) {
 	assert.Equal(t, "string", owner["type"])
 	xmc := getXMC(owner)
 	assert.Equal(t, "END_USER_REF", xmc["format"])
+	assert.Equal(t, "end-user-ref", xmc["widget"]) // ← new assertion
 }
 
 // TestXMC_Widget_None 验证普通 STRING 字段不写 widget 键
