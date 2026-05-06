@@ -36,6 +36,15 @@ func TestResolvedModelPermissions_CheckAction_DeniesWhenNotAllowed(t *testing.T)
 	}
 }
 
+func TestResolvedModelPermissions_CheckAction_UnknownAction(t *testing.T) {
+	p := &modelruntime.ResolvedModelPermissions{
+		Select: modelruntime.ActionPermission{Allowed: true},
+	}
+	if err := p.CheckAction(modelruntime.Action("UNKNOWN")); err == nil {
+		t.Error("unknown action should be denied on non-nil permissions")
+	}
+}
+
 func TestResolvedModelPermissions_Get(t *testing.T) {
 	p := &modelruntime.ResolvedModelPermissions{
 		Select: modelruntime.ActionPermission{Allowed: true, IsSelf: true},
@@ -56,5 +65,9 @@ func TestResolvedModelPermissions_Get(t *testing.T) {
 	var nilP *modelruntime.ResolvedModelPermissions
 	if got := nilP.Get(modelruntime.Action("UNKNOWN")); got.Allowed {
 		t.Error("nil receiver + unknown action should be denied")
+	}
+	// nil receiver + known action → tenant admin → allowed
+	if got := nilP.Get(modelruntime.ActionSelect); !got.Allowed {
+		t.Error("nil receiver + known action should be allowed (tenant admin)")
 	}
 }
