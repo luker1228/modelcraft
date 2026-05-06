@@ -8,7 +8,6 @@ import (
 	"modelcraft/pkg/ctxutils"
 
 	appEnduser "modelcraft/internal/app/enduser"
-	domainProject "modelcraft/internal/domain/project"
 )
 
 // FindUsers is the resolver for the findUsers field.
@@ -22,13 +21,8 @@ func (r *queryResolver) FindUsers(
 		return nil, newGQLError("organization context required", "MISSING_ORGANIZATION")
 	}
 
-	projectSlug, _ := ctxutils.GetProjectSlugFromContext(ctx)
-
 	cmd := appEnduser.MetaUserFindManyCommand{
-		ProjectScope: domainProject.ProjectScope{
-			OrgName:     orgName,
-			ProjectSlug: projectSlug,
-		},
+		OrgName: orgName,
 	}
 	if skip != nil {
 		cmd.Skip = int(*skip)

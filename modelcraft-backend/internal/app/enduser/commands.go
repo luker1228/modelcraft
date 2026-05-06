@@ -1,7 +1,6 @@
 package enduser
 
 import (
-	"modelcraft/internal/domain/project"
 	"time"
 )
 
@@ -176,11 +175,12 @@ type AccessibleProjectItem struct {
 // --- Runtime Meta/User Query Commands ---
 
 // MetaUserFindOneCommand 通过唯一条件（id 或 username）查询单个 user。
-// OrgName 和 ProjectSlug 始终由上下文注入，禁止客户端传入。
+// OrgName 始终由上下文注入，禁止客户端传入。
+// meta/user 操作 Org 级表 (end_user_users)，不需要 ProjectSlug。
 type MetaUserFindOneCommand struct {
-	project.ProjectScope        // 嵌入: OrgName + ProjectSlug
-	ID                   string // 唯一条件之一（id 或 username 必须提供其中一个）
-	Username             string // 唯一条件之一
+	OrgName  string // 从中间件上下文注入
+	ID       string // 唯一条件之一（id 或 username 必须提供其中一个）
+	Username string // 唯一条件之一
 }
 
 // MetaUserFindManyFilter 白名单过滤字段。
@@ -203,12 +203,13 @@ type MetaUserOrderByField struct {
 
 // MetaUserFindManyCommand 受限列表查询命令。
 // take 默认 20，最大 50；skip 默认 0，最大 1000。
+// meta/user 操作 Org 级表 (end_user_users)，不需要 ProjectSlug。
 type MetaUserFindManyCommand struct {
-	project.ProjectScope // 嵌入: OrgName + ProjectSlug
-	Where                *MetaUserFindManyFilter
-	OrderBy              []MetaUserOrderByField
-	Skip                 int
-	Take                 int
+	OrgName string // 从中间件上下文注入
+	Where   *MetaUserFindManyFilter
+	OrderBy []MetaUserOrderByField
+	Skip    int
+	Take    int
 }
 
 // MetaUserDTO runtime meta/user 查询结果 DTO（不含租户字段）。

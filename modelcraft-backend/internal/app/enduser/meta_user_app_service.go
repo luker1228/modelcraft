@@ -61,12 +61,12 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "id or username is required")
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
+	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, "")
 
 	if cmd.ID != "" {
 		user, err := repo.GetByID(ctx, cmd.OrgName, cmd.ID)
@@ -135,7 +135,7 @@ func (s *MetaUserAppService) FindMany( //nolint:lll
 		orderDir = strings.ToUpper(dir)
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
+	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
