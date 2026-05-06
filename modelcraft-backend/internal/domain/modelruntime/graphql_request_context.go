@@ -82,4 +82,3 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	rctx.relationLoaders[key] = l
 	return l
 }
-

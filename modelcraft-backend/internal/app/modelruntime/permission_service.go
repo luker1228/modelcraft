@@ -2,7 +2,6 @@ package modelruntime
 
 import (
 	"context"
-
 	"modelcraft/internal/domain/modelruntime"
 	"modelcraft/internal/domain/rbac"
 )
@@ -24,7 +23,7 @@ func (s *endUserPermissionServiceImpl) Resolve(
 	ctx context.Context, orgName, projectSlug, endUserID, modelID string,
 ) (*modelruntime.ResolvedModelPermissions, error) {
 	if endUserID == "" {
-		return nil, nil
+		return nil, nil //nolint:nilnil // nil ResolvedModelPermissions is the tenant-admin sentinel (skip all checks)
 	}
 
 	permissions, err := s.rbacRepo.FindPermissionsByEndUserAndModel(ctx, orgName, projectSlug, endUserID, modelID)
@@ -41,7 +40,9 @@ func (s *endUserPermissionServiceImpl) Resolve(
 // rowScope 映射规则：
 //   - RowScopeAll  → IsSelf=false（不注入 WHERE）
 //   - RowScopeSelf → IsSelf=true（注入 WHERE <EndUserRef> = $endUserID）
-func toResolvedModelPermissions(eps rbac.EffectivePermissionSet, modelID string) *modelruntime.ResolvedModelPermissions {
+func toResolvedModelPermissions(
+	eps rbac.EffectivePermissionSet, modelID string,
+) *modelruntime.ResolvedModelPermissions {
 	return &modelruntime.ResolvedModelPermissions{
 		Select: toActionPermission(eps.GetPermission(modelID, rbac.ActionSelect)),
 		Insert: toActionPermission(eps.GetPermission(modelID, rbac.ActionInsert)),

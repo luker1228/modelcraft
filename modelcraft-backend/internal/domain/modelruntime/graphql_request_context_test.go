@@ -2,9 +2,8 @@ package modelruntime_test
 
 import (
 	"context"
-	"testing"
-
 	"modelcraft/internal/domain/modelruntime"
+	"testing"
 )
 
 func TestWithGraphqlRequestContext_EndUserPerms(t *testing.T) {

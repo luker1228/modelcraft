@@ -1,9 +1,8 @@
 package modelruntime_test
 
 import (
-	"testing"
-
 	"modelcraft/internal/domain/modelruntime"
+	"testing"
 )
 
 func TestResolvedModelPermissions_CheckAction_NilSkipsAll(t *testing.T) {

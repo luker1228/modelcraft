@@ -10,7 +10,7 @@ import (
 // RuntimeModel 运行时模型定义，包含模型的基本信息和字段定义。
 // 这是GraphQL Schema生成的核心数据结构。
 type RuntimeModel struct {
-	ID           string                          `json:"id"`           // 模型唯一标识符（UUID），用于权限查询
+	ID           string                          `json:"id"` // 模型唯一标识符（UUID），用于权限查询
 	OrgName      string                          `json:"orgName"`
 	ProjectSlug  string                          `json:"projectSlug"`
 	Name         string                          `json:"name"`
