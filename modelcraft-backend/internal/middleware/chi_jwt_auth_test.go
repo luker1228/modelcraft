@@ -113,7 +113,7 @@ func TestChiJWTAuthMiddleware_InternalToken(t *testing.T) {
 	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{InternalToken: "secret-internal-token"})
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
-	req := httptest.NewRequest(http.MethodPost, "/internal/end-users", nil)
+	req := httptest.NewRequest(http.MethodPost, "/internal/v1/end-user/auth/login", nil)
 	req.Header.Set("X-Internal-Token", "secret-internal-token")
 	rr := httptest.NewRecorder()
 
@@ -134,7 +134,7 @@ func TestChiJWTAuthMiddleware_InvalidInternalToken(t *testing.T) {
 	mw := ChiJWTAuthMiddleware(&JWTAuthConfig{InternalToken: "secret-internal-token"})
 	handler := mw(sentinelHandler(t, &reached, &gotUserID))
 
-	req := httptest.NewRequest(http.MethodPost, "/internal/end-users", nil)
+	req := httptest.NewRequest(http.MethodPost, "/internal/v1/end-user/auth/login", nil)
 	req.Header.Set("X-Internal-Token", "wrong-token")
 	rr := httptest.NewRecorder()
 

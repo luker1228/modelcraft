@@ -224,13 +224,6 @@ export async function callGoEndUserLoginOrg(params: {
 // Org 级 EndUser CRUD
 // ============================================================================
 
-// ── 后端响应类型（/internal/end-users 使用 items 字段，非 nodes）──────────────
-interface InternalListEndUsersResponse {
-  items: EndUserOrgUser[]
-  totalCount: number
-  pageInfo: { hasNextPage: boolean; endCursor?: string }
-}
-
 export async function callGoListOrgEndUsers(params: {
   orgName: string
   search?: string
@@ -245,19 +238,7 @@ export async function callGoListOrgEndUsers(params: {
     return { nodes: nodes.map(({ password: _pw, ...u }) => u as EndUserOrgUser), totalCount: nodes.length }
   }
 
-  const { headers, requestId } = createInternalHeaders(params.orgName)
-  const qs = new URLSearchParams()
-  if (params.search) qs.set('search', params.search)
-  if (params.first)  qs.set('first', String(params.first))
-  if (params.after)  qs.set('after', params.after)
-  const res = await fetch(
-    `${GATEWAY_URL}/internal/end-users?${qs}`,
-    { headers, credentials: 'include' }
-  )
-  if (!res.ok) throw await parseGoError(res, requestId)
-  const data = await res.json() as InternalListEndUsersResponse
-  // 后端返回 items，转换为前端期望的 nodes 结构
-  return { nodes: data.items ?? [], totalCount: data.totalCount ?? 0 }
+  throw new Error('Deprecated: /internal/end-users has been removed; migrate to Org GraphQL.')
 }
 
 export async function callGoCreateOrgEndUser(params: {
@@ -277,14 +258,7 @@ export async function callGoCreateOrgEndUser(params: {
     return { id, username: params.username, isForbidden: false, createdBy: 'admin', createdAt: now, updatedAt: now }
   }
 
-  const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GATEWAY_URL}/internal/end-users`, {
-    method: 'POST', headers,
-    body: JSON.stringify({ username: params.username, password: params.password }),
-  })
-  if (!res.ok) throw await parseGoError(res, requestId)
-  const data = await res.json() as { endUser: EndUserOrgUser }
-  return data.endUser
+  throw new Error('Deprecated: /internal/end-users has been removed; migrate to Org GraphQL.')
 }
 
 export async function callGoUpdateOrgEndUserStatus(params: {
@@ -300,14 +274,7 @@ export async function callGoUpdateOrgEndUserStatus(params: {
     return { ...user } as EndUserOrgUser
   }
 
-  const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GATEWAY_URL}/internal/end-users/${params.userId}/status`, {
-    method: 'PATCH', headers,
-    body: JSON.stringify({ isForbidden: params.isForbidden }),
-  })
-  if (!res.ok) throw await parseGoError(res, requestId)
-  const data = await res.json() as { endUser: EndUserOrgUser }
-  return data.endUser
+  throw new Error('Deprecated: /internal/end-users has been removed; migrate to Org GraphQL.')
 }
 
 export async function callGoDeleteOrgEndUser(params: {
@@ -321,11 +288,7 @@ export async function callGoDeleteOrgEndUser(params: {
     return
   }
 
-  const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(`${GATEWAY_URL}/internal/end-users/${params.userId}`, {
-    method: 'DELETE', headers,
-  })
-  if (!res.ok) throw await parseGoError(res, requestId)
+  throw new Error('Deprecated: /internal/end-users has been removed; migrate to Org GraphQL.')
 }
 
 // ============================================================================
@@ -475,12 +438,5 @@ export async function callGoGetUserAccessibleProjects(params: {
     })
   }
 
-  const { headers, requestId } = createInternalHeaders(params.orgName)
-  const res = await fetch(
-    `${GATEWAY_URL}/internal/end-users/${params.userId}/accessible-projects`,
-    { headers, credentials: 'include' }
-  )
-  if (!res.ok) throw await parseGoError(res, requestId)
-  const data = await res.json() as { projects: EndUserAccessibleProject[] }
-  return data.projects ?? []
+  throw new Error('Deprecated: /internal/end-users has been removed; migrate to Org GraphQL.')
 }

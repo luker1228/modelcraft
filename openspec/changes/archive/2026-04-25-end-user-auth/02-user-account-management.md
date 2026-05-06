@@ -26,10 +26,10 @@
 
 | 操作 | BFF Route | Go 内部接口 |
 |------|-----------|------------|
-| 列表 | `GET /api/bff/end-users` | `GET /internal/end-users` |
-| 创建 | `POST /api/bff/end-users` | `POST /internal/end-users` |
-| 禁用/启用 | `PATCH /api/bff/end-users/{userId}/status` | `PATCH /internal/end-users/{userId}/status` |
-| 删除 | `DELETE /api/bff/end-users/{userId}` | `DELETE /internal/end-users/{userId}` |
+| 列表 | `GET /api/bff/end-users` | `GET Org GraphQL end-user management API` |
+| 创建 | `POST /api/bff/end-users` | `POST Org GraphQL end-user management API` |
+| 禁用/启用 | `PATCH /api/bff/end-users/{userId}/status` | `PATCH Org GraphQL mutation updateEndUserStatus` |
+| 删除 | `DELETE /api/bff/end-users/{userId}` | `DELETE Org GraphQL mutation deleteEndUser` |
 
 ---
 

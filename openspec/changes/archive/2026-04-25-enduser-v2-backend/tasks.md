@@ -35,7 +35,7 @@
 - [x] 5.4 发布前执行全链路回归并输出迁移与回滚操作清单
   - 已执行（2026-04-25）：`npm --prefix ./tests-bdd run test:end-user-auth -- --name "被禁用的终端用户无法刷新 token" --name "终端用户选择已授权项目上下文" --name "被禁用的终端用户无法选择项目上下文"`
   - 阻塞已解除：
-    - 修复 `/internal/end-users` 路由注入，管理接口与认证接口统一走 org-scope 服务；
+    - 修复 `Org GraphQL end-user management API` 路由注入，管理接口与认证接口统一走 org-scope 服务；
     - BDD 客户端与 step 已对齐当前后端契约（header/body/错误码匹配）。
   - 回归结果（2026-04-25）：`API_BASE_URL=http://localhost:18080 npm --prefix ./tests-bdd run test:end-user-auth -- --name "被禁用的终端用户无法刷新 token" --name "终端用户选择已授权项目上下文" --name "被禁用的终端用户无法选择项目上下文"` → `3 scenarios (3 passed), 19 steps (19 passed)`。
   - 迁移操作清单：

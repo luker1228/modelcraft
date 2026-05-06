@@ -813,10 +813,10 @@ type PrivateDBManager struct {
 /internal/end-user/auth/refresh    POST  → endUserAuthHandler.Refresh
 /internal/end-user/auth/me         GET   → endUserAuthHandler.Me
 
-/internal/end-users                POST  → endUserMgmtHandler.Create
-/internal/end-users                GET   → endUserMgmtHandler.List
-/internal/end-users/{userId}/status PATCH → endUserMgmtHandler.UpdateStatus
-/internal/end-users/{userId}       DELETE → endUserMgmtHandler.Delete
+Org GraphQL end-user management API                POST  → endUserMgmtHandler.Create
+Org GraphQL end-user management API                GET   → endUserMgmtHandler.List
+Org GraphQL mutation updateEndUserStatus PATCH → endUserMgmtHandler.UpdateStatus
+Org GraphQL mutation deleteEndUser       DELETE → endUserMgmtHandler.Delete
 ```
 
 所有 `/internal/` 路由共用 `InternalTokenMiddleware`（校验 `X-Internal-Token` Header）。
@@ -1086,16 +1086,16 @@ P4-1 先完成，P4-2 后运行；P4-3/P4-4/P4-6 可并行；P4-5 依赖 P4-2；
 | AC # | 测试场景 | 预期结果 | 验证接口 |
 |------|----------|----------|----------|
 | **AC-1** | Project 未关联 Cluster，调用任意 end-user 接口 | HTTP 503，`code: CLUSTER_NOT_CONFIGURED` | POST /internal/end-user/auth/login |
-| **AC-2** | 首次在 Project 下创建终端用户（private 库不存在） | private_{slug} 库自动建库建表，201 成功 | POST /internal/end-users |
+| **AC-2** | 首次在 Project 下创建终端用户（private 库不存在） | private_{slug} 库自动建库建表，201 成功 | POST Org GraphQL end-user management API |
 | **AC-3** | 正确凭证登录 | 200，返回 `{ userId, refreshToken, expiresAt }` | POST /internal/end-user/auth/login |
 | **AC-4** | 错误密码登录 | 401，`code: INVALID_CREDENTIALS` | POST /internal/end-user/auth/login |
 | **AC-5** | 被禁用账号登录 | 403，`code: ACCOUNT_DISABLED` | POST /internal/end-user/auth/login |
 | **AC-6** | 正确 refresh token 调用 refresh | 200，新 token 有效；旧 token 返回 401 | POST /internal/end-user/auth/refresh |
 | **AC-7** | 使用已 revoked 的旧 refresh token | 401，`code: INVALID_REFRESH_TOKEN` | POST /internal/end-user/auth/refresh |
 | **AC-8** | logout 后旧 token 再用 | 401，`code: INVALID_REFRESH_TOKEN` | POST /internal/end-user/auth/refresh |
-| **AC-9** | 删除用户后该用户所有 sessions revoked | 旧 refresh token → 401 | DELETE /internal/end-users/{userId} + POST refresh |
+| **AC-9** | 删除用户后该用户所有 sessions revoked | 旧 refresh token → 401 | DELETE Org GraphQL mutation deleteEndUser + POST refresh |
 | **AC-10** | 两个 Project（crm, erp）各注册同名用户 alice | 各自独立，互不干扰 | 分别 POST /internal/end-user/auth/login |
-| **AC-11** | 注册用户名已存在 | 409，`code: CONFLICT.END_USER` | POST /internal/end-users 或 POST register |
+| **AC-11** | 注册用户名已存在 | 409，`code: CONFLICT.END_USER` | POST Org GraphQL end-user management API 或 POST register |
 | **AC-12** | 密码弱（不含数字/字母/不足 8 位） | 400，`code: PARAM_INVALID.END_USER` | POST register |
 | **AC-13** | 用户名格式不合法（含特殊字符） | 400，`code: PARAM_INVALID.END_USER` | POST register |
 | **AC-14** | me 接口查询被禁用用户 | 403，`code: ACCOUNT_DISABLED` | GET /internal/end-user/auth/me |

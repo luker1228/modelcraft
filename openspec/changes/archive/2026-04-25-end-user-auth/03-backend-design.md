@@ -253,7 +253,7 @@ Headers:
 
 ---
 
-### POST /internal/end-users — 创建终端用户
+### POST Org GraphQL end-user management API — 创建终端用户
 
 ```json
 { "orgName": "acme", "projectSlug": "crm", "username": "alice", "password": "Abc12345", "createdBy": "dev-uuid" }
@@ -267,11 +267,11 @@ Headers:
 5. 返回 201 { id, username, createdAt }
 ```
 
-### GET /internal/end-users?orgName=&projectSlug=&search=&page=&pageSize=
+### GET Org GraphQL listEndUsers query
 
 返回分页列表：`{ total, items: [{ id, username, isForbidden, createdAt }] }`
 
-### PATCH /internal/end-users/{userId}/status
+### PATCH Org GraphQL mutation updateEndUserStatus
 
 ```json
 { "isForbidden": true }
@@ -279,7 +279,7 @@ Headers:
 
 更新 `users.is_forbidden`。禁用后 access token 1h 内自然过期（MVP 可接受）。
 
-### DELETE /internal/end-users/{userId}
+### DELETE Org GraphQL mutation deleteEndUser
 
 物理删除 `users` 记录，同时 revoke 所有关联 `accounts`。
 

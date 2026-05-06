@@ -466,10 +466,10 @@ extend type Mutation {
 
 | GraphQL Operation | Go Resolver → 内网接口 |
 |-------------------|----------------------|
-| `listEndUsers` | `GET /internal/end-users` |
-| `createEndUser` | `POST /internal/end-users` |
-| `updateEndUserStatus` | `PATCH /internal/end-users/{userId}/status` |
-| `deleteEndUser` | `DELETE /internal/end-users/{userId}` |
+| `listEndUsers` | `GET Org GraphQL end-user management API` |
+| `createEndUser` | `POST Org GraphQL end-user management API` |
+| `updateEndUserStatus` | `PATCH Org GraphQL mutation updateEndUserStatus` |
+| `deleteEndUser` | `DELETE Org GraphQL mutation deleteEndUser` |
 
 ---
 
@@ -489,10 +489,10 @@ extend type Mutation {
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| `POST` | `/internal/end-users` | 创建用户（开发者创建，跳过自动登录） |
-| `GET` | `/internal/end-users` | 分页列表 |
-| `PATCH` | `/internal/end-users/{userId}/status` | 禁用/启用 |
-| `DELETE` | `/internal/end-users/{userId}` | 物理删除 + revoke sessions |
+| `POST` | `Org GraphQL end-user management API` | 创建用户（开发者创建，跳过自动登录） |
+| `GET` | `Org GraphQL end-user management API` | 分页列表 |
+| `PATCH` | `Org GraphQL mutation updateEndUserStatus` | 禁用/启用 |
+| `DELETE` | `Org GraphQL mutation deleteEndUser` | 物理删除 + revoke sessions |
 
 > 所有内网接口 Body 均需携带 `org_name` + `project_slug` 用于 DB 路由。
 > 鉴权：`X-Internal-Token: <shared-secret>` Header。
