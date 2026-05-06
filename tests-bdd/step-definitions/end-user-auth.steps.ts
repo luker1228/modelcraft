@@ -4,8 +4,8 @@
 import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from 'expect'
 import { ModelCraftWorld } from '../support/world'
-import { EndUserRestClient, EndUserAuthResult, EndUserListResult } from '../support/end-user-rest-client'
-import { GraphQLClient as ProjectGraphQLClient, EndUserProjectGraphQLClient } from '../support/graphql-client'
+import { EndUserRestClient, EndUserAuthResult, EndUserInfo } from '../support/end-user-rest-client'
+import { GraphQLClient as ProjectGraphQLClient, OrgGraphQLClient, EndUserProjectGraphQLClient } from '../support/graphql-client'
 
 // 每个 Scenario 的客户端实例
 let endUserClient: EndUserRestClient
@@ -18,6 +18,76 @@ let lastStatusCode: number = 0
 
 // Scenario 级别的用户映射（用于存储创建的终端用户）
 const endUserMap = new Map<string, { userId: string; username: string; password: string }>()
+
+// ─────────── Org GraphQL management types ───────────
+
+interface EndUserListResult {
+  users: Array<{ id: string; username: string; isForbidden: boolean }>
+  totalCount: number
+  hasNextPage: boolean
+}
+
+// ─────────── Org GraphQL mutations / queries ───────────
+
+const CREATE_END_USER_MUTATION = `
+  mutation CreateEndUser($input: CreateEndUserInput!) {
+    createEndUser(input: $input) {
+      endUser { id username }
+      error {
+        __typename
+        ... on EndUserAlreadyExists { message }
+        ... on InvalidInput { message }
+        ... on EndUserPasswordTooWeak { message }
+        ... on ResourceNotFound { message }
+      }
+    }
+  }
+`
+
+const LIST_END_USERS_QUERY = `
+  query ListEndUsers($input: ListEndUsersInput) {
+    listEndUsers(input: $input) {
+      connection { nodes { id username isForbidden } pageInfo { hasNextPage } totalCount }
+      error { __typename }
+    }
+  }
+`
+
+const UPDATE_END_USER_STATUS_MUTATION = `
+  mutation UpdateEndUserStatus($input: UpdateEndUserStatusInput!) {
+    updateEndUserStatus(input: $input) {
+      endUser { id username isForbidden }
+      error {
+        __typename
+        ... on ResourceNotFound { message }
+        ... on InvalidInput { message }
+      }
+    }
+  }
+`
+
+const DELETE_END_USER_MUTATION = `
+  mutation DeleteEndUser($input: DeleteEndUserInput!) {
+    deleteEndUser(input: $input) {
+      success
+      error {
+        __typename
+        ... on ResourceNotFound { message }
+      }
+    }
+  }
+`
+
+// ─────────── Helper: get an authenticated OrgGraphQLClient ───────────
+
+function getOrgGraphQLClient(world: ModelCraftWorld): OrgGraphQLClient {
+  const orgName = world.endUserOrgName || process.env.TEST_ORG_NAME || 'testorg'
+  const token = world.token || process.env.TEST_ACCESS_TOKEN
+  if (!token) throw new Error('No developer token available for Org GraphQL client')
+  const client = new OrgGraphQLClient(orgName)
+  client.setAuth(token)
+  return client
+}
 
 // ──────────────── Given ────────────────
 
@@ -188,16 +258,11 @@ async function ensureProjectAccessGranted(world: ModelCraftWorld, endUserID: str
   throw new Error(`前置条件：授予项目访问失败 — ${err?.__typename || 'UNKNOWN'}: ${err?.message || ''}`)
 }
 
-function ensureInternalToken(world: ModelCraftWorld): string {
-  if (!world.internalToken) {
-    world.internalToken = process.env.INTERNAL_TOKEN || 'test-internal-token'
-  }
-  return world.internalToken
-}
-
 Given('我以开发者身份登录', function (this: ModelCraftWorld) {
-  // 开发者 token 用于调用内部接口
-  ensureInternalToken(this)
+  // 开发者 token 从 world.token 或环境变量获取，已在 getOrgGraphQLClient 中使用
+  if (!this.token && process.env.TEST_ACCESS_TOKEN) {
+    this.token = process.env.TEST_ACCESS_TOKEN
+  }
 })
 
 Given(
@@ -217,18 +282,24 @@ Given(
       throw new Error(`前置条件：无法定位终端用户 ${username}`)
     }
 
-    const updateResult = await endUserClient.updateEndUserStatus(
-      user.userId,
-      true,
-      ensureInternalToken(this)
-    )
-    if (updateResult.error) {
-      throw new Error(`前置条件：禁用终端用户 ${username} 失败 — ${updateResult.error.code}: ${updateResult.error.message}`)
+    const orgClient = getOrgGraphQLClient(this)
+    const result = await orgClient.mutate<{
+      updateEndUserStatus: {
+        endUser: { id: string; username: string; isForbidden: boolean } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(UPDATE_END_USER_STATUS_MUTATION, {
+      input: { endUserId: user.userId, isForbidden: true },
+    })
+
+    if (result.updateEndUserStatus.error) {
+      const err = result.updateEndUserStatus.error
+      throw new Error(`前置条件：禁用终端用户 ${username} 失败 — ${err.__typename}: ${err.message || ''}`)
     }
   }
 )
 
-// Helper function to create end user
+// Helper function to create end user via Org GraphQL
 async function ensureEndUserExists(
   world: ModelCraftWorld,
   username: string,
@@ -238,53 +309,69 @@ async function ensureEndUserExists(
     return
   }
 
-  const result = await endUserClient.createEndUser(
-    { username, password },
-    ensureInternalToken(world)
-  )
-  if (!result.error) {
-    endUserMap.set(username, {
-      userId: result.data!.userId,
-      username,
-      password,
-    })
-    await ensureProjectAccessGranted(world, result.data!.userId)
+  const orgClient = getOrgGraphQLClient(world)
+
+  // Try to create the end user
+  const createResult = await orgClient.mutate<{
+    createEndUser: {
+      endUser: { id: string; username: string } | null
+      error: { __typename: string; message?: string } | null
+    }
+  }>(CREATE_END_USER_MUTATION, {
+    input: { username, password },
+  })
+
+  if (!createResult.createEndUser.error) {
+    const created = createResult.createEndUser.endUser!
+    endUserMap.set(username, { userId: created.id, username, password })
+    await ensureProjectAccessGranted(world, created.id)
     return
   }
 
-  if (result.error.code !== 'CONFLICT.END_USER' && result.error.code !== 'CONFLICT') {
-    throw new Error(`前置条件：创建终端用户 ${username} 失败 — ${result.error.code}: ${result.error.message}`)
+  const createErr = createResult.createEndUser.error
+  if (createErr.__typename !== 'EndUserAlreadyExists') {
+    throw new Error(`前置条件：创建终端用户 ${username} 失败 — ${createErr.__typename}: ${createErr.message || ''}`)
   }
 
-  // 用户已存在：复用存量用户并确保状态为启用
-  const listResult = await endUserClient.listEndUsers(
-    { search: username, first: 20 },
-    ensureInternalToken(world)
-  )
-  if (listResult.error) {
-    throw new Error(`前置条件：查询已存在终端用户 ${username} 失败 — ${listResult.error.code}: ${listResult.error.message}`)
+  // 用户已存在：通过 listEndUsers 查找 id，并确保状态为启用
+  const listResult = await orgClient.query<{
+    listEndUsers: {
+      connection: {
+        nodes: Array<{ id: string; username: string; isForbidden: boolean }>
+        pageInfo: { hasNextPage: boolean }
+        totalCount: number
+      }
+      error: { __typename: string } | null
+    }
+  }>(LIST_END_USERS_QUERY, { input: { search: username, first: 20 } })
+
+  if (listResult.listEndUsers.error) {
+    throw new Error(`前置条件：查询已存在终端用户 ${username} 失败 — ${listResult.listEndUsers.error.__typename}`)
   }
 
-  const existingUser = listResult.data?.users.find((u) => u.username === username)
+  const existingUser = listResult.listEndUsers.connection.nodes.find((u) => u.username === username)
   if (!existingUser) {
     throw new Error(`前置条件：终端用户 ${username} 已冲突但无法在列表中定位`)
   }
 
-  const enableResult = await endUserClient.updateEndUserStatus(
-    existingUser.id,
-    false,
-    ensureInternalToken(world)
-  )
-  if (enableResult.error) {
-    throw new Error(`前置条件：重置终端用户 ${username} 启用状态失败 — ${enableResult.error.code}: ${enableResult.error.message}`)
+  // 确保用户处于启用状态
+  if (existingUser.isForbidden) {
+    const enableResult = await orgClient.mutate<{
+      updateEndUserStatus: {
+        endUser: { id: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(UPDATE_END_USER_STATUS_MUTATION, {
+      input: { endUserId: existingUser.id, isForbidden: false },
+    })
+
+    if (enableResult.updateEndUserStatus.error) {
+      const err = enableResult.updateEndUserStatus.error
+      throw new Error(`前置条件：重置终端用户 ${username} 启用状态失败 — ${err.__typename}: ${err.message || ''}`)
+    }
   }
 
-  endUserMap.set(username, {
-    userId: existingUser.id,
-    username,
-    password,
-  })
-
+  endUserMap.set(username, { userId: existingUser.id, username, password })
   await ensureProjectAccessGranted(world, existingUser.id)
 }
 
@@ -356,13 +443,19 @@ Given(
     currentRefreshToken = loginResult.data!.refreshToken || null
     this.currentEndUserId = loginResult.data!.userId
 
-    const disableResult = await endUserClient.updateEndUserStatus(
-      user.userId,
-      true,
-      ensureInternalToken(this)
-    )
-    if (disableResult.error) {
-      throw new Error(`前置条件：禁用终端用户 ${username} 失败 — ${disableResult.error.code}`)
+    const orgClient = getOrgGraphQLClient(this)
+    const disableResult = await orgClient.mutate<{
+      updateEndUserStatus: {
+        endUser: { id: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(UPDATE_END_USER_STATUS_MUTATION, {
+      input: { endUserId: user.userId, isForbidden: true },
+    })
+
+    if (disableResult.updateEndUserStatus.error) {
+      const err = disableResult.updateEndUserStatus.error
+      throw new Error(`前置条件：禁用终端用户 ${username} 失败 — ${err.__typename}: ${err.message || ''}`)
     }
   }
 )
@@ -372,53 +465,83 @@ Given(
 When(
   '我创建终端用户，用户名为 {string}，密码为 {string}',
   async function (this: ModelCraftWorld, username: string, password: string) {
-    const result = await endUserClient.createEndUser(
-      { username, password },
-      ensureInternalToken(this)
-    )
-    lastStatusCode = result.status
+    const orgClient = getOrgGraphQLClient(this)
+    const result = await orgClient.mutate<{
+      createEndUser: {
+        endUser: { id: string; username: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(CREATE_END_USER_MUTATION, { input: { username, password } })
 
-    if (result.error) {
-      lastError = result.error
-    } else {
-      currentEndUserAuth = result.data!
+    // Map GraphQL response to legacy shape so Then steps remain unchanged
+    if (!result.createEndUser.error) {
+      const created = result.createEndUser.endUser!
+      lastStatusCode = 201
       lastError = null
-      endUserMap.set(username, {
-        userId: result.data!.userId,
-        username,
-        password,
-      })
+      currentEndUserAuth = { userId: created.id, username: created.username, expiresIn: 3600 }
+      endUserMap.set(username, { userId: created.id, username, password })
+    } else {
+      lastStatusCode = 400
+      const err = result.createEndUser.error
+      lastError = {
+        code: graphqlTypenameToCode(err.__typename),
+        message: err.message || err.__typename,
+      }
     }
   }
 )
 
 When('我查询终端用户列表，每页 {int} 条', async function (this: ModelCraftWorld, first: number) {
-  const result = await endUserClient.listEndUsers(
-    { first },
-    ensureInternalToken(this)
-  )
-  lastStatusCode = result.status
+  const orgClient = getOrgGraphQLClient(this)
+  const result = await orgClient.query<{
+    listEndUsers: {
+      connection: {
+        nodes: Array<{ id: string; username: string; isForbidden: boolean }>
+        pageInfo: { hasNextPage: boolean }
+        totalCount: number
+      }
+      error: { __typename: string } | null
+    }
+  }>(LIST_END_USERS_QUERY, { input: { first } })
 
-  if (result.error) {
-    lastError = result.error
+  if (result.listEndUsers.error) {
+    lastStatusCode = 400
+    lastError = { code: result.listEndUsers.error.__typename, message: result.listEndUsers.error.__typename }
   } else {
-    currentEndUserList = result.data!
+    lastStatusCode = 200
     lastError = null
+    currentEndUserList = {
+      users: result.listEndUsers.connection.nodes,
+      totalCount: result.listEndUsers.connection.totalCount,
+      hasNextPage: result.listEndUsers.connection.pageInfo.hasNextPage,
+    }
   }
 })
 
 When('我搜索终端用户，关键词为 {string}', async function (this: ModelCraftWorld, search: string) {
-  const result = await endUserClient.listEndUsers(
-    { search, first: 20 },
-    ensureInternalToken(this)
-  )
-  lastStatusCode = result.status
+  const orgClient = getOrgGraphQLClient(this)
+  const result = await orgClient.query<{
+    listEndUsers: {
+      connection: {
+        nodes: Array<{ id: string; username: string; isForbidden: boolean }>
+        pageInfo: { hasNextPage: boolean }
+        totalCount: number
+      }
+      error: { __typename: string } | null
+    }
+  }>(LIST_END_USERS_QUERY, { input: { search, first: 20 } })
 
-  if (result.error) {
-    lastError = result.error
+  if (result.listEndUsers.error) {
+    lastStatusCode = 400
+    lastError = { code: result.listEndUsers.error.__typename, message: result.listEndUsers.error.__typename }
   } else {
-    currentEndUserList = result.data!
+    lastStatusCode = 200
     lastError = null
+    currentEndUserList = {
+      users: result.listEndUsers.connection.nodes,
+      totalCount: result.listEndUsers.connection.totalCount,
+      hasNextPage: result.listEndUsers.connection.pageInfo.hasNextPage,
+    }
   }
 })
 
@@ -428,16 +551,22 @@ When('我禁用终端用户 {string}', async function (this: ModelCraftWorld, us
     throw new Error(`用户 ${username} 不存在`)
   }
 
-  const result = await endUserClient.updateEndUserStatus(
-    user.userId,
-    true, // isForbidden
-    ensureInternalToken(this)
-  )
-  lastStatusCode = result.status
+  const orgClient = getOrgGraphQLClient(this)
+  const result = await orgClient.mutate<{
+    updateEndUserStatus: {
+      endUser: { id: string } | null
+      error: { __typename: string; message?: string } | null
+    }
+  }>(UPDATE_END_USER_STATUS_MUTATION, {
+    input: { endUserId: user.userId, isForbidden: true },
+  })
 
-  if (result.error) {
-    lastError = result.error
+  if (result.updateEndUserStatus.error) {
+    lastStatusCode = 400
+    const err = result.updateEndUserStatus.error
+    lastError = { code: graphqlTypenameToCode(err.__typename), message: err.message || err.__typename }
   } else {
+    lastStatusCode = 200
     lastError = null
   }
 })
@@ -448,16 +577,22 @@ When('我启用终端用户 {string}', async function (this: ModelCraftWorld, us
     throw new Error(`用户 ${username} 不存在`)
   }
 
-  const result = await endUserClient.updateEndUserStatus(
-    user.userId,
-    false, // isForbidden = false (启用)
-    ensureInternalToken(this)
-  )
-  lastStatusCode = result.status
+  const orgClient = getOrgGraphQLClient(this)
+  const result = await orgClient.mutate<{
+    updateEndUserStatus: {
+      endUser: { id: string } | null
+      error: { __typename: string; message?: string } | null
+    }
+  }>(UPDATE_END_USER_STATUS_MUTATION, {
+    input: { endUserId: user.userId, isForbidden: false },
+  })
 
-  if (result.error) {
-    lastError = result.error
+  if (result.updateEndUserStatus.error) {
+    lastStatusCode = 400
+    const err = result.updateEndUserStatus.error
+    lastError = { code: graphqlTypenameToCode(err.__typename), message: err.message || err.__typename }
   } else {
+    lastStatusCode = 200
     lastError = null
   }
 })
@@ -468,15 +603,20 @@ When('我删除终端用户 {string}', async function (this: ModelCraftWorld, us
     throw new Error(`用户 ${username} 不存在`)
   }
 
-  const result = await endUserClient.deleteEndUser(
-    user.userId,
-    ensureInternalToken(this)
-  )
-  lastStatusCode = result.status
+  const orgClient = getOrgGraphQLClient(this)
+  const result = await orgClient.mutate<{
+    deleteEndUser: {
+      success: boolean
+      error: { __typename: string; message?: string } | null
+    }
+  }>(DELETE_END_USER_MUTATION, { input: { endUserId: user.userId } })
 
-  if (result.error) {
-    lastError = result.error
+  if (result.deleteEndUser.error) {
+    lastStatusCode = 400
+    const err = result.deleteEndUser.error
+    lastError = { code: graphqlTypenameToCode(err.__typename), message: err.message || err.__typename }
   } else {
+    lastStatusCode = 200
     lastError = null
     endUserMap.delete(username)
   }
@@ -488,19 +628,35 @@ When('开发者删除终端用户 {string}', async function (this: ModelCraftWor
     throw new Error(`用户 ${username} 不存在`)
   }
 
-  const result = await endUserClient.deleteEndUser(
-    user.userId,
-    ensureInternalToken(this)
-  )
-  lastStatusCode = result.status
+  const orgClient = getOrgGraphQLClient(this)
+  const result = await orgClient.mutate<{
+    deleteEndUser: {
+      success: boolean
+      error: { __typename: string; message?: string } | null
+    }
+  }>(DELETE_END_USER_MUTATION, { input: { endUserId: user.userId } })
 
-  if (result.error) {
-    lastError = result.error
+  if (result.deleteEndUser.error) {
+    lastStatusCode = 400
+    const err = result.deleteEndUser.error
+    lastError = { code: graphqlTypenameToCode(err.__typename), message: err.message || err.__typename }
   } else {
+    lastStatusCode = 200
     lastError = null
     endUserMap.delete(username)
   }
 })
+
+// Helper: map GraphQL __typename to legacy REST-style error code
+function graphqlTypenameToCode(typename: string): string {
+  const map: Record<string, string> = {
+    EndUserAlreadyExists: 'CONFLICT.END_USER',
+    InvalidInput: 'PARAM_INVALID',
+    ResourceNotFound: 'NOT_FOUND',
+    EndUserPasswordTooWeak: 'PARAM_INVALID.PASSWORD_TOO_WEAK',
+  }
+  return map[typename] || typename
+}
 
 // ──────────────── 终端用户自助操作 ────────────────
 
@@ -560,7 +716,7 @@ When('终端用户查询自己的信息', async function (this: ModelCraftWorld)
     lastError = result.error
   } else {
     lastError = null
-    this.lastEndUserInfo = result.data || null
+    this.lastEndUserInfo = (result.data as unknown as Record<string, unknown>) || null
   }
 })
 

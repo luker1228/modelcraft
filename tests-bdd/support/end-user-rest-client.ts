@@ -1,5 +1,7 @@
 // tests-bdd/support/end-user-rest-client.ts
 // End-User Auth REST API Client for BDD Tests
+// NOTE: Management operations (create/list/update/delete) have been removed —
+// they are now served by the Org GraphQL API. Only auth endpoints remain.
 
 import 'dotenv/config'
 
@@ -31,13 +33,6 @@ export interface EndUserInfo {
   updatedAt: string
 }
 
-export interface EndUserListResult {
-  users: EndUserInfo[]
-  totalCount: number
-  hasNextPage: boolean
-  endCursor?: string
-}
-
 export interface RestError {
   code: string
   message: string
@@ -50,34 +45,23 @@ export interface RestResult<T> {
 }
 
 // Request types
-interface CreateEndUserRequest {
-  username: string
-  password: string
-}
-
 interface LoginEndUserRequest {
   username: string
   password: string
-}
-
-interface ListEndUsersRequest {
-  search?: string
-  first?: number
-  after?: string
 }
 
 interface AnyBody {
   [key: string]: any
 }
 
-function parseExpiresIn(body?: AnyBody): number {
+function parseExpiresIn(body?: AnyBody | null): number {
   if (typeof body?.expiresIn === 'number') {
     return body.expiresIn
   }
   return 3600
 }
 
-function toRestError(status: number, body: AnyBody | null): RestError {
+function toRestError(status: number, body: AnyBody | null | undefined): RestError {
   if (body?.error?.code && body?.error?.message) {
     return body.error as RestError
   }
@@ -89,7 +73,8 @@ function toRestError(status: number, body: AnyBody | null): RestError {
 
 /**
  * End-User REST Client
- * 调用后端内部接口 /internal/end-user/* 和 /internal/end-users/*
+ * Only covers the /internal/end-user/auth/* endpoints.
+ * Management operations (create/list/update/delete) are now served by Org GraphQL.
  */
 export class EndUserRestClient {
   private orgName: string
@@ -111,157 +96,6 @@ export class EndUserRestClient {
   }
 
   // ============================================================
-  // 开发者管理接口 (需要 X-Internal-Token)
-  // ============================================================
-
-  /**
-   * 创建终端用户 (POST /internal/end-users)
-   */
-  async createEndUser(
-    request: CreateEndUserRequest,
-    internalToken: string
-  ): Promise<RestResult<EndUserAuthResult>> {
-    const res = await fetch(`${API_BASE_URL}/internal/end-users`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Internal-Token': internalToken,
-        'X-Org-Name': this.orgName,
-        'X-Project-Slug': this.projectSlug,
-      },
-      body: JSON.stringify({
-        username: request.username,
-        password: request.password,
-      }),
-    })
-
-    const body = await this.parseBody(res)
-
-    if (res.ok) {
-      return {
-        status: res.status,
-        data: {
-          userId: body?.endUser?.id,
-          username: body?.endUser?.username,
-          expiresIn: 3600,
-        },
-      }
-    }
-
-    return {
-      status: res.status,
-      error: toRestError(res.status, body),
-    }
-  }
-
-  /**
-   * 查询终端用户列表 (GET /internal/end-users)
-   */
-  async listEndUsers(
-    request: ListEndUsersRequest,
-    internalToken: string
-  ): Promise<RestResult<EndUserListResult>> {
-    const params = new URLSearchParams()
-    if (request.search) params.append('search', request.search)
-    if (request.first) params.append('first', request.first.toString())
-    if (request.after) params.append('after', request.after)
-
-    const res = await fetch(`${API_BASE_URL}/internal/end-users?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'X-Internal-Token': internalToken,
-        'X-Org-Name': this.orgName,
-        'X-Project-Slug': this.projectSlug,
-      },
-    })
-
-    const body = await this.parseBody(res)
-
-    if (res.ok) {
-      return {
-        status: res.status,
-        data: {
-          users: body?.items || [],
-          totalCount: body?.totalCount || 0,
-          hasNextPage: body?.pageInfo?.hasNextPage || false,
-          endCursor: body?.pageInfo?.endCursor,
-        },
-      }
-    }
-
-    return {
-      status: res.status,
-      error: toRestError(res.status, body),
-    }
-  }
-
-  /**
-   * 更新终端用户状态 (PATCH /internal/end-users/{userId}/status)
-   */
-  async updateEndUserStatus(
-    userId: string,
-    isForbidden: boolean,
-    internalToken: string
-  ): Promise<RestResult<void>> {
-    const res = await fetch(
-      `${API_BASE_URL}/internal/end-users/${userId}/status`,
-      {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Internal-Token': internalToken,
-          'X-Org-Name': this.orgName,
-          'X-Project-Slug': this.projectSlug,
-        },
-        body: JSON.stringify({
-          isForbidden: isForbidden,
-        }),
-      }
-    )
-
-    const body = await this.parseBody(res)
-
-    if (res.ok) {
-      return { status: res.status }
-    }
-
-    return {
-      status: res.status,
-      error: toRestError(res.status, body),
-    }
-  }
-
-  /**
-   * 删除终端用户 (DELETE /internal/end-users/{userId})
-   */
-  async deleteEndUser(
-    userId: string,
-    internalToken: string
-  ): Promise<RestResult<void>> {
-    const res = await fetch(
-      `${API_BASE_URL}/internal/end-users/${userId}`,
-      {
-        method: 'DELETE',
-        headers: {
-          'X-Internal-Token': internalToken,
-          'X-Org-Name': this.orgName,
-          'X-Project-Slug': this.projectSlug,
-        },
-      }
-    )
-
-    if (res.ok) {
-      return { status: res.status }
-    }
-
-    const body = await this.parseBody(res)
-    return {
-      status: res.status,
-      error: toRestError(res.status, body),
-    }
-  }
-
-  // ============================================================
   // 终端用户自助认证接口
   // ============================================================
 
@@ -269,7 +103,7 @@ export class EndUserRestClient {
    * 终端用户注册 (POST /internal/end-user/auth/register)
    */
   async registerEndUser(
-    request: CreateEndUserRequest
+    request: { username: string; password: string }
   ): Promise<RestResult<EndUserAuthResult>> {
     const res = await fetch(
       `${API_BASE_URL}/internal/end-user/auth/register`,

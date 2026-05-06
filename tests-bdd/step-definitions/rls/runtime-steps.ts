@@ -5,6 +5,7 @@ import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from 'expect'
 import { ModelCraftWorld } from '../../support/world'
 import { EndUserRestClient } from '../../support/end-user-rest-client'
+import { OrgGraphQLClient } from '../../support/graphql-client'
 
 // 用于存储 EndUser 相关的运行时状态
 const endUserRuntimeState = new Map<string, {
@@ -17,6 +18,30 @@ const endUserRuntimeState = new Map<string, {
 }>()
 
 const API_BASE_URL = process.env.API_BASE_URL ?? 'http://localhost:8080'
+
+const RUNTIME_CREATE_END_USER_MUTATION = `
+  mutation CreateEndUser($input: CreateEndUserInput!) {
+    createEndUser(input: $input) {
+      endUser { id username }
+      error {
+        __typename
+        ... on EndUserAlreadyExists { message }
+        ... on InvalidInput { message }
+        ... on EndUserPasswordTooWeak { message }
+        ... on ResourceNotFound { message }
+      }
+    }
+  }
+`
+
+const RUNTIME_LIST_END_USERS_QUERY = `
+  query ListEndUsers($input: ListEndUsersInput) {
+    listEndUsers(input: $input) {
+      connection { nodes { id username isForbidden } totalCount }
+      error { __typename }
+    }
+  }
+`
 
 // 辅助函数：创建 Runtime GraphQL 客户端
 function createRuntimeClient(orgName: string, projectSlug: string, token: string) {
@@ -71,16 +96,42 @@ Given('终端用户 {string} 创建了一条 {string} 记录，name 为 {string}
   // 确保用户已登录
   let state = endUserRuntimeState.get(username)
   if (!state) {
-    // 创建用户并登录
-    const client = new EndUserRestClient(this.endUserOrgName || this.orgName, this.endUserProjectSlug || this.projectSlug)
+    // 创建用户并登录（via Org GraphQL）
+    const orgName = this.endUserOrgName || this.orgName || ''
+    const projectSlug = this.endUserProjectSlug || this.projectSlug || ''
+    const client = new EndUserRestClient(orgName, projectSlug)
 
-    // 先创建用户
-    const createRes = await client.createEndUser(
-      { username, password: 'Pass1234' },
-      this.internalToken || process.env.INTERNAL_TOKEN || 'test-internal-token'
-    )
-    if (createRes.error) {
-      throw new Error(`创建终端用户 ${username} 失败: ${createRes.error.message}`)
+    const devToken = this.token || process.env.TEST_ACCESS_TOKEN
+    if (!devToken) throw new Error('No developer token for creating end user')
+    const orgClient = new OrgGraphQLClient(orgName)
+    orgClient.setAuth(devToken)
+
+    // 先创建用户（允许 AlreadyExists）
+    const createResult = await orgClient.mutate<{
+      createEndUser: {
+        endUser: { id: string; username: string } | null
+        error: { __typename: string; message?: string } | null
+      }
+    }>(RUNTIME_CREATE_END_USER_MUTATION, { input: { username, password: 'Pass1234' } })
+
+    let userId: string
+    if (!createResult.createEndUser.error) {
+      userId = createResult.createEndUser.endUser!.id
+    } else {
+      const err = createResult.createEndUser.error
+      if (err.__typename !== 'EndUserAlreadyExists') {
+        throw new Error(`创建终端用户 ${username} 失败: ${err.__typename} ${err.message || ''}`)
+      }
+      // 用户已存在，查找 id
+      const listResult = await orgClient.query<{
+        listEndUsers: {
+          connection: { nodes: Array<{ id: string; username: string }> }
+          error: { __typename: string } | null
+        }
+      }>(RUNTIME_LIST_END_USERS_QUERY, { input: { search: username, first: 20 } })
+      const found = listResult.listEndUsers.connection.nodes.find((u) => u.username === username)
+      if (!found) throw new Error(`终端用户 ${username} 已冲突但无法在列表中定位`)
+      userId = found.id
     }
 
     // 登录获取 token
@@ -91,8 +142,8 @@ Given('终端用户 {string} 创建了一条 {string} 记录，name 为 {string}
 
     state = {
       client,
-      token: loginRes.data.accessToken,
-      userId: loginRes.data.userId,
+      token: loginRes.data.accessToken || '',
+      userId,
       lastQueryResult: null,
       lastMutationResult: null,
       recordIds: new Map(),
