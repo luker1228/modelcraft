@@ -24,20 +24,21 @@ func NewMetaUserAppService(privateDBManager PrivateDBManager) *MetaUserAppServic
 }
 
 // GetMe 返回当前认证用户的 meta/user 资料。
-// userID 来自 JWT 中间件注入（ctxutils.GetUserIDFromContext），orgName 来自 URL 参数中间件注入。
+// userID 来自 JWT 中间件注入（ctxutils.GetUserIDFromContext），orgName/projectSlug 来自 URL 参数中间件注入。
 func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 	orgName, _ := ctxutils.GetOrgNameFromContext(ctx)
+	projectSlug, _ := ctxutils.GetProjectSlugFromContext(ctx)
 	userID, _ := ctxutils.GetUserIDFromContext(ctx)
 	if orgName == "" || userID == "" {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, "missing org or user context")
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, orgName, "")
+	db, err := s.privateDBManager.GetOrInit(ctx, orgName, projectSlug)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, orgName, "")
+	repo := infrrepo.NewSqlEndUserRepository(db, orgName, projectSlug)
 	user, err := repo.GetByID(ctx, orgName, userID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -50,7 +51,7 @@ func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 }
 
 // FindOne 按唯一条件（id 或 username）查询单个用户。
-// 至少提供 id 或 username 之一；orgName 来自 context。
+// 至少提供 id 或 username 之一；orgName 和 ProjectSlug 来自 context。
 // 未找到用户时返回 (nil, nil)，符合仓储层契约。
 func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCommand) (*MetaUserDTO, error) {
 	if cmd.OrgName == "" {
@@ -60,12 +61,12 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "id or username is required")
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
+	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, "")
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
 
 	if cmd.ID != "" {
 		user, err := repo.GetByID(ctx, cmd.OrgName, cmd.ID)
@@ -134,7 +135,7 @@ func (s *MetaUserAppService) FindMany( //nolint:lll
 		orderDir = strings.ToUpper(dir)
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
+	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}

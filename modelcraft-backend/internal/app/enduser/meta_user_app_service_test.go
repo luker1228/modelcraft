@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"modelcraft/internal/app/enduser"
+	domainProject "modelcraft/internal/domain/project"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -25,8 +26,8 @@ func TestMetaUserFindMany_TakeExceedsLimit_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "test-org",
-		Take:    51, // 超过 50 上限
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
+		Take:         51, // 超过 50 上限
 	}
 
 	_, err := svc.FindMany(ctx, cmd)
@@ -39,9 +40,9 @@ func TestMetaUserFindMany_SkipExceedsLimit_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "test-org",
-		Take:    10,
-		Skip:    1001, // 超过 1000 上限
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
+		Take:         10,
+		Skip:         1001, // 超过 1000 上限
 	}
 
 	_, err := svc.FindMany(ctx, cmd)
@@ -54,8 +55,8 @@ func TestMetaUserFindMany_NegativeSkip_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "test-org",
-		Skip:    -1,
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
+		Skip:         -1,
 	}
 
 	_, err := svc.FindMany(ctx, cmd)
@@ -69,8 +70,8 @@ func TestMetaUserFindMany_UnsupportedOrderByField_ReturnsError(t *testing.T) {
 
 	// CreatedAt 为 nil 触发非白名单字段校验
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "test-org",
-		Take:    10,
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
+		Take:         10,
 		OrderBy: []enduser.MetaUserOrderByField{
 			{CreatedAt: nil},
 		},
@@ -87,8 +88,8 @@ func TestMetaUserFindMany_InvalidSortDirection_ReturnsError(t *testing.T) {
 
 	invalidDir := "random"
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "test-org",
-		Take:    10,
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
+		Take:         10,
 		OrderBy: []enduser.MetaUserOrderByField{
 			{CreatedAt: &invalidDir},
 		},
@@ -104,8 +105,8 @@ func TestMetaUserFindMany_MissingOrgName_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "",
-		Take:    10,
+		ProjectScope: domainProject.ProjectScope{OrgName: ""},
+		Take:         10,
 	}
 
 	_, err := svc.FindMany(ctx, cmd)
@@ -120,7 +121,7 @@ func TestMetaUserFindOne_NoCondition_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindOneCommand{
-		OrgName: "test-org",
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
 		// ID 和 Username 均为空
 	}
 
@@ -134,8 +135,8 @@ func TestMetaUserFindOne_MissingOrgName_ReturnsError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindOneCommand{
-		OrgName: "",
-		ID:      "some-id",
+		ProjectScope: domainProject.ProjectScope{OrgName: ""},
+		ID:           "some-id",
 	}
 
 	_, err := svc.FindOne(ctx, cmd)
@@ -151,8 +152,8 @@ func TestMetaUserFindMany_ZeroTake_NoValidationError(t *testing.T) {
 	ctx := context.Background()
 
 	cmd := enduser.MetaUserFindManyCommand{
-		OrgName: "test-org",
-		Take:    0,
+		ProjectScope: domainProject.ProjectScope{OrgName: "test-org"},
+		Take:         0,
 	}
 
 	// stubDBManager 返回 nil *sql.DB，FindMany 在校验通过后会因 nil DB 而 panic。
