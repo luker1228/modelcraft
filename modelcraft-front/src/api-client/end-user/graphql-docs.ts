@@ -2,6 +2,26 @@ import { gql } from '@apollo/client'
 
 // ── Queries ────────────────────────────────────────────────────────────────────
 
+/**
+ * FIND_USERS — Project-scoped query.
+ * Endpoint: /graphql/org/{orgName}/project/{projectSlug}/
+ * Used by EndUserRef field selectors in the Tenant (design) workspace.
+ * Returns User (public projection: id, username, createdAt).
+ */
+export const FIND_USERS = gql`
+  query FindUsers($where: UserWhereInput, $skip: Int, $take: Int) {
+    findUsers(where: $where, skip: $skip, take: $take) {
+      items {
+        id
+        username
+        createdAt
+      }
+      totalCount
+      reqId
+    }
+  }
+`
+
 export const LIST_END_USERS = gql`
   query ListEndUsers($input: ListEndUsersInput) {
     listEndUsers(input: $input) {

@@ -1,10 +1,9 @@
 'use client'
 
-import React, { useMemo } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { useQuery } from '@apollo/client'
-import { getOrgScopedClient } from '@api-client/apollo/public'
-import { LIST_END_USERS } from '@api-client/end-user/graphql-docs'
+import { createProjectScopedClient } from '@api-client/apollo/public'
+import { FIND_USERS } from '@api-client/end-user/graphql-docs'
 import {
   Select,
   SelectContent,
@@ -15,30 +14,31 @@ import {
 
 interface FormContext {
   orgName?: string
+  projectSlug?: string
 }
 
-interface OrgEndUserNode {
+interface UserNode {
   id: string
   username: string
-  isForbidden: boolean
+  createdAt: string
 }
 
-interface ListEndUsersData {
-  listEndUsers?: {
-    connection?: {
-      nodes?: OrgEndUserNode[]
-    }
-    error?: { message?: string }
+interface FindUsersData {
+  findUsers?: {
+    items?: UserNode[]
+    totalCount?: number
+    reqId: string
   }
 }
 
 /**
  * EndUserSelectorWidget — RJSF custom widget for END_USER_REF fields.
  *
- * Renders a <Select> dropdown listing all active EndUsers in the Org.
- * Value is the EndUser UUID string. Used only in Tenant (design) workspace.
+ * Renders a <Select> dropdown listing EndUsers via the project-scoped
+ * `findUsers` query. Value is the EndUser UUID string.
+ * Used only in the Tenant (design) workspace.
  *
- * formContext must provide: orgName
+ * formContext must provide: orgName, projectSlug
  */
 export function EndUserSelectorWidget(props: WidgetProps) {
   const value = props.value as string | undefined
@@ -47,18 +47,46 @@ export function EndUserSelectorWidget(props: WidgetProps) {
   const readonly = props.readonly as boolean
   const ctx = (props.formContext as FormContext | undefined) ?? {}
   const orgName = ctx.orgName ?? ''
+  const projectSlug = ctx.projectSlug ?? ''
 
-  const client = useMemo(() => getOrgScopedClient(), [])
+  const [users, setUsers] = useState<UserNode[]>([])
+  const [loading, setLoading] = useState(false)
 
-  const { data, loading } = useQuery<ListEndUsersData>(LIST_END_USERS, {
-    client,
-    variables: { input: { first: 200 } },
-    skip: !orgName,
-    fetchPolicy: 'cache-first',
-  })
+  // Stable client per (orgName, projectSlug) pair
+  const client = useMemo(
+    () => (orgName && projectSlug ? createProjectScopedClient(orgName, projectSlug) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [orgName, projectSlug],
+  )
 
-  const users = data?.listEndUsers?.connection?.nodes ?? []
-  const activeUsers = users.filter((u) => !u.isForbidden)
+  useEffect(() => {
+    if (!client) return
+
+    let cancelled = false
+    setLoading(true)
+
+    client
+      .query<FindUsersData>({
+        query: FIND_USERS,
+        variables: { take: 200 },
+        fetchPolicy: 'cache-first',
+      })
+      .then((result) => {
+        if (!cancelled) {
+          setUsers(result.data?.findUsers?.items ?? [])
+          setLoading(false)
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [client])
 
   const handleChange = (val: string) => {
     onChange(val === '__none__' ? undefined : val)
@@ -66,7 +94,7 @@ export function EndUserSelectorWidget(props: WidgetProps) {
 
   return (
     <Select
-      value={(value as string | undefined) ?? '__none__'}
+      value={value ?? '__none__'}
       onValueChange={handleChange}
       disabled={disabled === true || readonly === true || loading}
     >
@@ -75,7 +103,7 @@ export function EndUserSelectorWidget(props: WidgetProps) {
       </SelectTrigger>
       <SelectContent>
         <SelectItem value="__none__">— 不指定 —</SelectItem>
-        {activeUsers.map((user) => (
+        {users.map((user) => (
           <SelectItem key={user.id} value={user.id}>
             {user.username}
           </SelectItem>

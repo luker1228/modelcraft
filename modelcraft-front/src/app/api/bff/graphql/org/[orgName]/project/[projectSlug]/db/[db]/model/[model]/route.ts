@@ -1,0 +1,57 @@
+// BFF: /api/bff/graphql/org/[orgName]/project/[projectSlug]/db/[db]/model/[model]
+// 透传到网关 /graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}
+
+import { NextRequest, NextResponse } from 'next/server'
+
+const GATEWAY_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+
+type Params = {
+  orgName: string
+  projectSlug: string
+  db: string
+  model: string
+}
+
+async function handler(
+  req: NextRequest,
+  { params }: { params: Promise<Params> }
+) {
+  const { orgName, projectSlug, db, model } = await params
+  const upstreamUrl = `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}/db/${db}/model/${model}`
+
+  const headers = new Headers()
+  headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')
+
+  const authHeader = req.headers.get('Authorization')
+  if (authHeader) headers.set('Authorization', authHeader)
+  const cookieHeader = req.headers.get('cookie')
+  if (cookieHeader) headers.set('Cookie', cookieHeader)
+
+  const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined
+
+  let upstreamRes: Response
+  try {
+    upstreamRes = await fetch(upstreamUrl, { method: req.method, headers, body })
+  } catch {
+    return NextResponse.json(
+      { errors: [{ message: '网关不可达' }] },
+      { status: 502 }
+    )
+  }
+
+  const resBody = await upstreamRes.arrayBuffer()
+  const response = new NextResponse(resBody, {
+    status: upstreamRes.status,
+    statusText: upstreamRes.statusText,
+  })
+
+  upstreamRes.headers.forEach((value, key) => {
+    if (['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) return
+    response.headers.append(key, value)
+  })
+
+  return response
+}
+
+export const GET = handler
+export const POST = handler

@@ -114,3 +114,77 @@ extend type Query {
   listProjectEndUsers(input: ListProjectEndUsersInput): ListProjectEndUsersPayload! @hasPermission(action: "end-user:read")
 }
 
+# ============================================
+# System User Query Types (findUsers / me)
+# Used by EndUserRef field selectors and tenant management.
+# Tenant callers: developer JWT via /graphql/org/{orgName}/project/{projectSlug}/
+# End-user callers: end-user JWT via /graphql/end-user/org/{orgName}/project/{projectSlug}/
+#
+# Note: "User" (not "Tuser") is used here because this is a fixed system model name.
+# The Tuser prefix exists only for custom models whose names may start with a digit,
+# making them invalid as GraphQL type names. "user" is always a valid identifier.
+# ============================================
+
+# User is the public projection of an end-user (no tenant fields).
+type User {
+  id: ID!
+  username: String!
+  createdAt: Time!
+}
+
+# ---- Filter inputs ----
+
+input StringFilter {
+  eq: String
+  contains: String
+  startsWith: String
+  in: [String!]
+}
+
+input IDFilter {
+  eq: ID
+  in: [ID!]
+}
+
+input DateTimeFilter {
+  eq: String
+  gte: String
+  lte: String
+}
+
+input UserWhereInput {
+  id: IDFilter
+  username: StringFilter
+  createdAt: DateTimeFilter
+}
+
+# ---- Result types ----
+
+type UserFindManyResult {
+  items: [User!]!
+  totalCount: Int
+  reqId: String!
+}
+
+type UserFindOneResult {
+  item: User
+  reqId: String!
+}
+
+# ---- Queries ----
+
+extend type Query {
+  # findUsers: list users with optional filtering and pagination.
+  # Accessible to both tenant developers and end-users (allowEndUser: true).
+  # Pagination: skip default 0 max 1000; take default 20 max 50.
+  findUsers(
+    where: UserWhereInput
+    skip: Int
+    take: Int
+  ): UserFindManyResult! @hasPermission(action: "end-user:read", allowEndUser: true)
+
+  # me: returns the currently authenticated caller's user profile.
+  # Accessible to end-users only (tenant callers have no end-user identity).
+  me: UserFindOneResult! @hasPermission(action: "end-user:read", allowEndUser: true)
+}
+

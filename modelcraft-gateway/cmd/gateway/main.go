@@ -106,6 +106,9 @@ func main() {
 	r.Post("/graphql/org/{orgName}/", proxyHandler.GraphQLOrgHandler)
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}", proxyHandler.GraphQLProjectHandler)
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}/", proxyHandler.GraphQLProjectHandler)
+	// Developer Runtime GraphQL — model-scoped queries (findMany/findUnique/create/update/delete)
+	r.Post("/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}", proxyHandler.GraphQLProjectHandler)
+	r.Post("/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}/", proxyHandler.GraphQLProjectHandler)
 
 	// End-user GraphQL — same ES256 JWT (aud="end_user"), path rewritten to /graphql/org/...
 	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}", proxyHandler.GraphQLEndUserProjectHandler)
