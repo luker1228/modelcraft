@@ -93,8 +93,6 @@ type DesignHandlers struct {
 	OrgEndUserMgmtAppService *appEnduser.EndUserManagementAppService
 	EndUserMgmtAppService    *appEnduser.EndUserManagementAppService
 	EndUserAuthHandler       *enduserHandlers.AuthHandler
-	EndUserMgmtHandler       *enduserHandlers.ManagementHandler
-	EndUserDataHandler       *enduserHandlers.DataHandler
 
 	// RBAC Services (Data-Level Row & Column Permission)
 	RBACPermissionSvc *appRbac.EndUserPermissionAppService
@@ -372,8 +370,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		endUserTxMgr,
 	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, logger)
-	endUserMgmtHandler := enduserHandlers.NewManagementHandler(orgEndUserMgmtAppService, logger)
-	endUserDataHandler := enduserHandlers.NewDataHandler(appService, privateDBManager, reverseEngineerApp, logger)
 
 	return &DesignHandlers{
 		AuthHandler:               authHandler,
@@ -401,8 +397,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		OrgEndUserMgmtAppService:  orgEndUserMgmtAppService,
 		EndUserMgmtAppService:     endUserMgmtAppService,
 		EndUserAuthHandler:        endUserAuthHandler,
-		EndUserMgmtHandler:        endUserMgmtHandler,
-		EndUserDataHandler:        endUserDataHandler,
 		RBACPermissionSvc:         rbacPermSvc,
 		RBACBundleSvc:             rbacBundleSvc,
 		RBACRoleSvc:               rbacRoleSvc,
