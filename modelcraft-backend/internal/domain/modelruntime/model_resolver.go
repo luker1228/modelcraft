@@ -95,7 +95,9 @@ func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (inter
 	if err != nil {
 		return nil, err
 	}
-	maps.Copy(input.Where, BuildRowFilter(rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID))
+	if rf := BuildRowFilter(rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID); rf != nil {
+		maps.Copy(input.Where, rf)
+	}
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
 		if bizerrors.Is(err, sql.ErrNoRows) {
