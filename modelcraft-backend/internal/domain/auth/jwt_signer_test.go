@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"strings"
 	"testing"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -13,8 +12,8 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 		t.Fatalf("GenerateDevSigner: %v", err)
 	}
 
-	t.Run("valid token with org scope", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", TokenScopeOrg)
+	t.Run("valid tenant token", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant})
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -35,7 +34,7 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 		claims := &PlatformClaims{}
 		_, err = jwt.ParseWithClaims(tokenStr, claims, func(_ *jwt.Token) (interface{}, error) {
 			return pubKey, nil
-		})
+		}, jwt.WithAudience(AudienceTenant))
 		if err != nil {
 			t.Fatalf("ParseWithClaims: %v", err)
 		}
@@ -46,8 +45,8 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 		if claims.OrgName != "acme" {
 			t.Errorf("OrgName = %q, want %q", claims.OrgName, "acme")
 		}
-		if claims.Scope != TokenScopeOrg {
-			t.Errorf("Scope = %q, want %q", claims.Scope, TokenScopeOrg)
+		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceTenant {
+			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceTenant)
 		}
 		if claims.Issuer != string(IssuerPlatform) {
 			t.Errorf("Issuer = %q, want %q", claims.Issuer, IssuerPlatform)
@@ -55,32 +54,19 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 	})
 
 	t.Run("empty orgName returns error", func(t *testing.T) {
-		_, err := signer.IssueAccessToken("user-1", "", TokenScopeOrg)
+		_, err := signer.IssueAccessToken("user-1", "", jwt.ClaimStrings{AudienceTenant})
 		if err == nil {
 			t.Error("expected error for empty orgName")
 		}
-		if !strings.Contains(err.Error(), "orgName") {
-			t.Errorf("error should mention orgName, got: %v", err)
-		}
 	})
 
-	t.Run("invalid scope returns error", func(t *testing.T) {
-		_, err := signer.IssueAccessToken("user-1", "acme", "invalid-scope")
-		if err == nil {
-			t.Error("expected error for invalid scope")
-		}
-		if !strings.Contains(err.Error(), "scope") {
-			t.Errorf("error should mention scope, got: %v", err)
-		}
-	})
-
-	t.Run("project scope token", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-2", "acme", TokenScopeProject)
+	t.Run("end_user audience token", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser})
 		if err != nil {
-			t.Fatalf("IssueAccessToken for project scope: %v", err)
+			t.Fatalf("IssueAccessToken for end_user: %v", err)
 		}
 		if tokenStr == "" {
-			t.Error("expected non-empty token for project scope")
+			t.Error("expected non-empty token for end_user audience")
 		}
 	})
 }
@@ -103,8 +89,8 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		t.Fatalf("GenerateDevSigner: %v", err)
 	}
 
-	t.Run("valid org token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", TokenScopeOrg)
+	t.Run("valid tenant token roundtrip", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant})
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -118,13 +104,13 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		if claims.OrgName != "acme" {
 			t.Errorf("OrgName = %q, want %q", claims.OrgName, "acme")
 		}
-		if claims.Scope != TokenScopeOrg {
-			t.Errorf("Scope = %q, want %q", claims.Scope, TokenScopeOrg)
+		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceTenant {
+			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceTenant)
 		}
 	})
 
-	t.Run("valid project token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-2", "acme", TokenScopeProject)
+	t.Run("valid end_user token roundtrip", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser})
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -132,8 +118,8 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ParsePlatformClaims: %v", err)
 		}
-		if claims.Scope != TokenScopeProject {
-			t.Errorf("Scope = %q, want %q", claims.Scope, TokenScopeProject)
+		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceEndUser {
+			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceEndUser)
 		}
 	})
 
@@ -145,7 +131,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	})
 
 	t.Run("tampered token returns error", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", TokenScopeOrg)
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant})
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}

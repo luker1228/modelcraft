@@ -19,7 +19,6 @@ const issuerPlatform = "mc-platform"
 type EndUserIdentity struct {
 	EndUserID string `json:"endUserId"`
 	Issuer    string `json:"issuer"` // 统一为 mc-platform
-	Scope     string `json:"scope"`  // "org" | "project"
 }
 
 // IsEndUser 判断是否为可访问 Runtime 的身份（统一 token 体系后检查 mc-platform issuer）。
@@ -111,25 +110,12 @@ func (m *RuntimeAuthMiddleware) Middleware(next http.Handler) http.Handler {
 			return
 		}
 
-		// 5. 从 Gateway 注入的 X-Token-Scope header 读取 scope（类似 X-User-ID 模式）。
-		// 设计原则：接受 org 和 project 两种 scope（上级可向下调用 runtime）。
-		// 空 header 时放行（SkipValidation 开发模式 / BFF X-Internal-Token 路径）。
-		headerScope := r.Header.Get("X-Token-Scope")
-		if headerScope != "" && headerScope != "org" && headerScope != "project" {
-			m.logger.Warn(ctx, "Invalid scope for runtime endpoint",
-				logfacade.String("x_token_scope", headerScope))
-			http.Error(w,
-				`{"error": "Forbidden: invalid token scope for runtime endpoint"}`,
-				http.StatusForbidden)
-			return
-		}
+		// 5. 从 Gateway 注入的 X-Token-Scope header 读取 scope 验证已移除。
+		// 端点级鉴权将通过 aud 字段实现（后续迭代）。
 
-		// claims["scope"] 只用于填充 EndUserIdentity.Scope，不做权限校验（已由 headerScope 处理）
-		scope, _ := claims["scope"].(string)
 		identity := &EndUserIdentity{
 			EndUserID: endUserID,
 			Issuer:    issuer,
-			Scope:     scope,
 		}
 		ctx = context.WithValue(ctx, endUserContextKey, identity)
 

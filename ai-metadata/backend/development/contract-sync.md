@@ -14,17 +14,22 @@
 api/graph/
 ├── org/schema/              # Org 域 GraphQL Schema
 │   ├── base.graphql         # 基础类型（Node、PageInfo 等）
+│   ├── end_user.graphql     # EndUser 相关类型（Org 级，如 accessible projects）
 │   ├── permission.graphql   # 权限相关类型
+│   ├── profile.graphql      # 用户 Profile 类型
 │   ├── project.graphql      # 项目 CRUD
 │   ├── schema.graphql       # 根 Query/Mutation
 │   └── user_management.graphql
-└── project/schema/          # Project 域 GraphQL Schema
+└── project/schema/          # Project 域 GraphQL Schema（tenant + end-user 共用）
     ├── base.graphql
-    ├── cluster.graphql
+    ├── cluster.graphql      # 数据库集群、ModelDatabaseCatalog（错误类型：InvalidInput | ResourceNotFound）
+    ├── end_user.graphql     # EndUser Project 级类型（含 end_user_role_users 相关）
     ├── enum.graphql
     ├── field.graphql
     ├── logical_foreign_key.graphql
-    ├── model.graphql
+    ├── model.graphql        # 模型 CRUD，ModelConnection（edges/node relay 分页），ModelQueryInput（databaseName/offset/limit）
+    ├── rbac.graphql
+    ├── rls.graphql
     └── schema.graphql       # 根 Query/Mutation
 ```
 
@@ -75,6 +80,8 @@ just generate-gql
 1. **Schema 优先** — 先修改 `.graphql` 文件，再运行 `just generate-gql`，最后实现 resolver
 2. **生成代码只读** — `internal/interfaces/graphql/generated/` 禁止手动编辑
 3. **业务域隔离** — Org 和 Project 两套 Schema 独立，不跨 Schema 引用类型
+4. **错误类型以 Schema 为准** — 前端 inline fragment `... on XxxError` 中的类型名必须与 Schema 中 union 定义一致；`ModelDatabaseCatalogError = InvalidInput | ResourceNotFound`，不存在 `ProjectNotFound` / `Unauthorized`
+5. **models query 用 relay 分页** — `models(input: ModelQueryInput)` 返回 `ModelConnection`（`edges/node`），入参用 `offset/limit`，不是 `page/pageSize`
 
 ---
 

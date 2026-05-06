@@ -16,10 +16,7 @@ export const MODEL_DATABASE_CATALOG_END_USER = gql`
         ... on InvalidInput {
           message
         }
-        ... on ProjectNotFound {
-          message
-        }
-        ... on Unauthorized {
+        ... on ResourceNotFound {
           message
         }
       }
@@ -28,28 +25,17 @@ export const MODEL_DATABASE_CATALOG_END_USER = gql`
 `
 
 export const MODEL_CATALOG_END_USER = gql`
-  query ModelCatalogEndUser($input: ModelCatalogInput!) {
-    modelCatalog(input: $input) {
-      data {
-        models {
+  query ModelCatalogEndUser($input: ModelQueryInput!) {
+    models(input: $input) {
+      edges {
+        node {
           id
           name
           title
           databaseName
         }
       }
-      error {
-        __typename
-        ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
-          message
-        }
-        ... on Unauthorized {
-          message
-        }
-      }
+      totalCount
     }
   }
 `

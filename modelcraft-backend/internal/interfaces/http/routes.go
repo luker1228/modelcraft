@@ -50,6 +50,7 @@ import (
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // DesignHandlers holds all handlers and services needed for the design-time API.
@@ -142,7 +143,9 @@ func (i *endUserJWTIssuer) IssueEndUserToken(
 		return nil, fmt.Errorf("end-user jwt signer is nil")
 	}
 	now := time.Now().UTC()
-	accessToken, err := i.signer.IssueAccessToken(input.UserID, input.OrgName, domainAuth.TokenScopeProject)
+	accessToken, err := i.signer.IssueAccessToken(
+		input.UserID, input.OrgName, jwt.ClaimStrings{domainAuth.AudienceEndUser},
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -432,7 +435,6 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 	}
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
-		r.Use(middleware.RequireScope(domainAuth.TokenScopeOrg)) // 只允许 org scope，防止 project scope 向上越权
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Post("/", orggraphql.OrgGraphQLHandler(orgResolver))
 		r.Get("/", orggraphql.OrgPlaygroundHandler())
@@ -489,7 +491,6 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 	// Register project endpoint: /graphql/org/{orgName}/project/{projectSlug}
 	router.Route("/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
-		r.Use(middleware.RequireScope(domainAuth.TokenScopeOrg, domainAuth.TokenScopeProject)) // org 和 project 均可访问
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLProjectMiddleware())
 		r.Post("/", projectgraphql.ProjectGraphQLHandler(projectResolver))

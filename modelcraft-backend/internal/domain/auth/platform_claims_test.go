@@ -15,7 +15,6 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		c := &PlatformClaims{
 			UserID:  "user-1",
 			OrgName: "acme",
-			Scope:   TokenScopeOrg,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    string(IssuerPlatform),
 				ExpiresAt: jwt.NewNumericDate(future),
@@ -30,7 +29,6 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		c := &PlatformClaims{
 			UserID:  "",
 			OrgName: "acme",
-			Scope:   TokenScopeOrg,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    string(IssuerPlatform),
 				ExpiresAt: jwt.NewNumericDate(future),
@@ -46,7 +44,6 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		c := &PlatformClaims{
 			UserID:  "user-1",
 			OrgName: "",
-			Scope:   TokenScopeOrg,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    string(IssuerPlatform),
 				ExpiresAt: jwt.NewNumericDate(future),
@@ -58,27 +55,10 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		}
 	})
 
-	t.Run("invalid scope", func(t *testing.T) {
-		c := &PlatformClaims{
-			UserID:  "user-1",
-			OrgName: "acme",
-			Scope:   "invalid",
-			RegisteredClaims: jwt.RegisteredClaims{
-				Issuer:    string(IssuerPlatform),
-				ExpiresAt: jwt.NewNumericDate(future),
-			},
-		}
-		err := c.Validate()
-		if err == nil {
-			t.Error("expected error for invalid scope")
-		}
-	})
-
 	t.Run("wrong issuer", func(t *testing.T) {
 		c := &PlatformClaims{
 			UserID:  "user-1",
 			OrgName: "acme",
-			Scope:   TokenScopeOrg,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    "mc-developer",
 				ExpiresAt: jwt.NewNumericDate(future),
@@ -94,7 +74,6 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		c := &PlatformClaims{
 			UserID:  "user-1",
 			OrgName: "acme",
-			Scope:   TokenScopeOrg,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    string(IssuerPlatform),
 				ExpiresAt: jwt.NewNumericDate(now.Add(-time.Minute)),
@@ -106,31 +85,28 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		}
 	})
 
-	t.Run("scope constants", func(t *testing.T) {
-		if TokenScopeOrg != "org" {
-			t.Errorf("TokenScopeOrg = %q, want %q", TokenScopeOrg, "org")
+	t.Run("audience constants", func(t *testing.T) {
+		if AudienceTenant != "tenant" {
+			t.Errorf("AudienceTenant = %q, want %q", AudienceTenant, "tenant")
 		}
-		if TokenScopeProject != "project" {
-			t.Errorf("TokenScopeProject = %q, want %q", TokenScopeProject, "project")
-		}
-		if TokenScopeServiceKey != "service_key" {
-			t.Errorf("TokenScopeServiceKey = %q, want %q", TokenScopeServiceKey, "service_key")
+		if AudienceEndUser != "end_user" {
+			t.Errorf("AudienceEndUser = %q, want %q", AudienceEndUser, "end_user")
 		}
 	})
 }
 
-func TestPlatformClaims_ProjectScope(t *testing.T) {
+func TestPlatformClaims_EndUserToken(t *testing.T) {
 	future := time.Now().Add(time.Hour)
 	c := &PlatformClaims{
 		UserID:  "user-1",
 		OrgName: "acme",
-		Scope:   TokenScopeProject,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    string(IssuerPlatform),
+			Audience:  jwt.ClaimStrings{AudienceEndUser},
 			ExpiresAt: jwt.NewNumericDate(future),
 		},
 	}
 	if err := c.Validate(); err != nil {
-		t.Errorf("expected nil for project scope, got %v", err)
+		t.Errorf("expected nil for end_user token, got %v", err)
 	}
 }

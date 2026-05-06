@@ -12,6 +12,8 @@ import (
 	"modelcraft/pkg/logfacade"
 	"time"
 
+	"github.com/golang-jwt/jwt/v5"
+
 	domainauth "modelcraft/internal/domain/auth"
 
 	domainProfile "modelcraft/internal/domain/profile"
@@ -316,7 +318,7 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 
 	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
 
-	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, orgName, domainauth.TokenScopeOrg)
+	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, orgName, jwt.ClaimStrings{domainauth.AudienceTenant})
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}
@@ -458,7 +460,9 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 		}
 	}
 
-	accessToken, err := s.jwtSigner.IssueAccessToken(token.UserID, refreshOrgName, domainauth.TokenScopeOrg)
+	accessToken, err := s.jwtSigner.IssueAccessToken(
+		token.UserID, refreshOrgName, jwt.ClaimStrings{domainauth.AudienceTenant},
+	)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}

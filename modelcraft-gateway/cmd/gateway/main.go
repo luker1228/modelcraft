@@ -107,7 +107,7 @@ func main() {
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}", proxyHandler.GraphQLProjectHandler)
 	r.Post("/graphql/org/{orgName}/project/{projectSlug}/", proxyHandler.GraphQLProjectHandler)
 
-	// End-user GraphQL — same ES256 JWT, scope="project", path rewritten to /graphql/org/...
+	// End-user GraphQL — same ES256 JWT (aud="end_user"), path rewritten to /graphql/org/...
 	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}", proxyHandler.GraphQLEndUserProjectHandler)
 	r.Post("/graphql/end-user/org/{orgName}/project/{projectSlug}/", proxyHandler.GraphQLEndUserProjectHandler)
 

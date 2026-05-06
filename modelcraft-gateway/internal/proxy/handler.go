@@ -18,7 +18,6 @@ import (
 type contextKey string
 
 const userIDContextKey contextKey = "user_id"
-const tokenScopeContextKey contextKey = "token_scope"
 
 // Handler is a reverse proxy that forwards requests to the Go backend.
 // After validating the Bearer token, it injects X-User-ID (from JWT claims)
@@ -64,12 +63,6 @@ func (h *Handler) director(req *http.Request) {
 		)
 	}
 
-	// 注入 X-Token-Scope（来自 Gateway JWT 验证结果）。先 Del 再 Set 防止外部伪造。
-	if scope, ok := req.Context().Value(tokenScopeContextKey).(string); ok && scope != "" {
-		req.Header.Del("X-Token-Scope")
-		req.Header.Set("X-Token-Scope", scope)
-	}
-
 	// Propagate the internal request ID for end-to-end tracing.
 	if reqID := chiMiddleware.GetReqID(req.Context()); reqID != "" {
 		req.Header.Set("X-Request-Id", reqID)
@@ -95,10 +88,8 @@ func (h *Handler) GraphQLOrgHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL org request authenticated",
 		zap.String("user_id", claims.UserID),
-		zap.String("scope", claims.Scope),
 		zap.String("path", r.URL.Path),
 	)
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
@@ -112,10 +103,8 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL project request authenticated",
 		zap.String("user_id", claims.UserID),
-		zap.String("scope", claims.Scope),
 		zap.String("path", r.URL.Path),
 	)
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
@@ -133,10 +122,8 @@ func (h *Handler) GraphQLEndUserProjectHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL end-user project request authenticated",
 		zap.String("user_id", claims.UserID),
-		zap.String("scope", claims.Scope),
 		zap.String("path", r.URL.Path),
 	)
 	// Rewrite: /graphql/end-user/org/... → /graphql/org/...

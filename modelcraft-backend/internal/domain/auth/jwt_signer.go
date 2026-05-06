@@ -13,6 +13,12 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// AudienceTenant is the aud value for tenant (developer/admin) tokens.
+const AudienceTenant = "tenant"
+
+// AudienceEndUser is the aud value for end-user tokens.
+const AudienceEndUser = "end_user"
+
 const defaultAccessTokenTTL = time.Hour
 
 // JWTSigner signs access tokens using ES256 (ECDSA P-256).
@@ -87,23 +93,19 @@ func GenerateDevSigner() (*JWTSigner, error) {
 }
 
 // IssueAccessToken 为指定用户签发短效 ES256 JWT（PlatformClaims 格式）。
-// orgName 不能为空；scope 必须是 TokenScopeOrg / TokenScopeProject / TokenScopeServiceKey 之一。
-func (s *JWTSigner) IssueAccessToken(userID, orgName, scope string) (string, error) {
+// orgName 不能为空。aud 字段用于标识受众类型（tenant / end_user），由调用方传入。
+func (s *JWTSigner) IssueAccessToken(userID, orgName string, aud jwt.ClaimStrings) (string, error) {
 	if orgName == "" {
 		return "", errors.New("jwt_signer: orgName is required")
-	}
-	validScope := scope == TokenScopeOrg || scope == TokenScopeProject || scope == TokenScopeServiceKey
-	if !validScope {
-		return "", fmt.Errorf("jwt_signer: invalid scope %q", scope)
 	}
 	now := time.Now()
 	claims := &PlatformClaims{
 		UserID:  userID,
 		OrgName: orgName,
-		Scope:   scope,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    string(IssuerPlatform),
 			Subject:   userID,
+			Audience:  aud,
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
 		},

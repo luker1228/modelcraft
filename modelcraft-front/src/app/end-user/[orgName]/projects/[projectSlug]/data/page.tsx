@@ -67,11 +67,9 @@ type DatabaseCatalogQueryResult = {
 }
 
 type ModelCatalogQueryResult = {
-  modelCatalog: {
-    data?: {
-      models: DataModel[]
-    } | null
-    error?: CatalogError | null
+  models: {
+    edges: Array<{ node: DataModel }>
+    totalCount: number
   }
 }
 
@@ -190,26 +188,19 @@ export default function EndUserDataPage() {
         const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
         const { data } = await client.query<ModelCatalogQueryResult>({
           query: MODEL_CATALOG_END_USER,
-          variables: { input: { databaseName: selectedDatabase, page: 1, pageSize: 200 } },
+          variables: { input: { databaseName: selectedDatabase, limit: 200 } },
           fetchPolicy: 'network-only',
         })
 
-        const payload = data?.modelCatalog
-        if (payload?.error) {
-          const { __typename: errType, message: errMsg } = payload.error
-          if (errType === 'PRIVATE_DB_NOT_INITIALIZED') {
-            setModels([])
-            setPrivateDbInitDialogOpen(true)
-            return
-          }
-          throw new Error(errMsg ?? '加载模型目录失败')
-        }
+        const payload = data?.models
         if (cancelled) return
 
         setModels(
-          (payload?.data?.models ?? []).filter(
-            (model) => Boolean(model?.id && model?.name && model?.databaseName)
-          )
+          (payload?.edges ?? [])
+            .map((edge) => edge.node)
+            .filter(
+              (model) => Boolean(model?.id && model?.name && model?.databaseName)
+            )
         )
       } catch (err) {
         if (cancelled) return
