@@ -26,6 +26,7 @@ export type XMCWidget =
   | 'textarea'
   | 'relation-selector'
   | 'relation-multi-readonly'
+  | 'end-user-ref'
 
 export interface XMC {
   widget?: XMCWidget

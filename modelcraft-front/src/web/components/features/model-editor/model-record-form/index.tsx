@@ -25,6 +25,7 @@ interface ModelRecordFormProps {
   databaseName: string
   modelId: string
   recordId?: string
+  workspaceMode?: 'design' | 'end_user'
 }
 
 const customWidgets = {
@@ -54,6 +55,7 @@ export function ModelRecordForm({
   databaseName,
   modelId,
   recordId,
+  workspaceMode = 'design',
 }: ModelRecordFormProps) {
   const formRef = useRef<RJSFFormRef>(null)
   const adapter = useRecordAccessAdapter()
@@ -66,7 +68,7 @@ export function ModelRecordForm({
 
   // Build uiSchema from x-mc.widget in JSON Schema, then enforce ui:order
   const uiSchema = useMemo<UiSchema>(() => {
-    const widgetUiSchema = buildUiSchema(editableSchema)
+    const widgetUiSchema = buildUiSchema(editableSchema, workspaceMode)
     const orderedFieldNames = editableSchema.properties
       ? Object.keys(editableSchema.properties)
       : []
@@ -79,7 +81,7 @@ export function ModelRecordForm({
       ...widgetUiSchema,
       'ui:order': orderedFieldNames,
     }
-  }, [editableSchema])
+  }, [editableSchema, workspaceMode])
 
   // Form context for widgets — 注入 createRuntimeClient 使 RelationSelector 通过 access adapter 访问数据
   const formContext = useMemo(() => ({

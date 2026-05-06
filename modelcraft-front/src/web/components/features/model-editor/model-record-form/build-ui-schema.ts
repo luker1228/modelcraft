@@ -1,10 +1,12 @@
 import type { UiSchema, RJSFSchema } from '@rjsf/utils'
 import { getXMC, type XMCWidget } from '@/types/xmc'
 
+export type WorkspaceMode = 'design' | 'end_user'
+
 /**
- * Widget name mapping: x-mc.widget value → RJSF widget string.
+ * Widget name mapping for non-end-user-ref widgets.
  */
-const WIDGET_MAP: Record<XMCWidget, string> = {
+const WIDGET_MAP: Partial<Record<XMCWidget, string>> = {
   'enum-select': 'EnumSelect',
   'date': 'date',
   'datetime-local': 'datetime-local',
@@ -18,13 +20,16 @@ const WIDGET_MAP: Record<XMCWidget, string> = {
  * Build RJSF uiSchema directly from the (filtered) JSON Schema.
  *
  * Reads `x-mc.widget` on each property and maps it to the appropriate
- * RJSF widget string via WIDGET_MAP.
+ * RJSF widget string.
  *
- * Connection context (orgName, projectSlug, etc.) is passed at runtime via
- * RJSF formContext and read directly inside each widget, so it is not needed
- * here when building the static uiSchema.
+ * For `end-user-ref` fields:
+ * - `end_user` mode: hidden (auto-injected by backend from JWT)
+ * - `design` mode: EndUserSelectorWidget (admin selects an EndUser)
  */
-export function buildUiSchema(jsonSchema: RJSFSchema): UiSchema {
+export function buildUiSchema(
+  jsonSchema: RJSFSchema,
+  workspaceMode: WorkspaceMode = 'design',
+): UiSchema {
   const uiSchema: UiSchema = {}
 
   if (!jsonSchema.properties) return uiSchema
@@ -33,7 +38,18 @@ export function buildUiSchema(jsonSchema: RJSFSchema): UiSchema {
     const xmc = getXMC(prop as Record<string, unknown>)
     const widget = xmc?.widget
 
-    if (widget && WIDGET_MAP[widget]) {
+    if (!widget) continue
+
+    if (widget === 'end-user-ref') {
+      if (workspaceMode === 'end_user') {
+        uiSchema[fieldName] = { 'ui:widget': 'hidden' }
+      } else {
+        uiSchema[fieldName] = { 'ui:widget': 'EndUserSelectorWidget' }
+      }
+      continue
+    }
+
+    if (WIDGET_MAP[widget]) {
       uiSchema[fieldName] = { 'ui:widget': WIDGET_MAP[widget] }
     }
   }
