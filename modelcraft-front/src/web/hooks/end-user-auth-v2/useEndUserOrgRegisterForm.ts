@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface EndUserOrgRegisterBffResponse {
@@ -64,7 +63,6 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const setEndUserToken = useEndUserAuthStore((s) => s.setAccessToken)
 
   const form = useForm<EndUserOrgRegisterFormValues>({
     resolver: zodResolver(orgRegisterSchema),
@@ -98,35 +96,16 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
 
         const projects: EndUserAccessibleProject[] = data.projects ?? []
 
-        if (projects.length === 0) {
-          router.push(`/end-user/${orgName}/no-project-access`)
-          return
-        }
-
-        if (data.refreshToken) {
-          sessionStorage.setItem(`eu_refresh_token_${orgName}`, data.refreshToken)
-        }
-
-        if (projects.length === 1) {
-          const projectSlug = projects[0].slug
-          sessionStorage.setItem(`eu_selected_project_${orgName}`, projectSlug)
-          const expiresIn = data.expiresAt
-            ? Math.max(1, Math.floor((new Date(data.expiresAt).getTime() - Date.now()) / 1000))
-            : 3600
-          setEndUserToken(data.accessToken ?? '', expiresIn)
-          router.push(`/end-user/${orgName}/${projectSlug}/data`)
-          return
-        }
-
+        // 无论 0/1/N 个 Project，均跳转 workspace
         sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
-        router.push(`/end-user/${orgName}/select-project`)
+        router.push(`/end-user/${orgName}/workspace`)
       } catch {
         setError('网络错误，请检查连接后重试')
       } finally {
         setIsLoading(false)
       }
     }),
-    [form, orgName, router, setEndUserToken]
+    [form, orgName, router]
   )
 
   return { form, onSubmit, isLoading, error }

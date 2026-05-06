@@ -4,12 +4,14 @@ This document provides guidelines for AI agents working with this project.
 
 ## Project Structure
 
-This is the ModelCraft project with separate frontend and backend codebases:
+This is the ModelCraft monorepo with all components co-located:
 
 - **Backend (Go)**: Code in `./modelcraft-backend`. See [AGENTS.md](modelcraft-backend/AGENTS.md)
   @./modelcraft-backend/AGENTS.md
 - **Frontend**: Code in `./modelcraft-front`. See [AGENTS.md](modelcraft-front/AGENTS.md)
   @./modelcraft-front/AGENTS.md
+- **Gateway**: Code in `./modelcraft-gateway`
+- **CLI**: Code in `./modelcraft-cli`
 
 ## AI Metadata
 
@@ -26,65 +28,39 @@ This is the ModelCraft project with separate frontend and backend codebases:
 
 ## Git 仓库结构
 
-本项目采用 **git submodule** + **git subtree** 混合管理。
-
-### Submodule（子项目）
-
-根仓库通过 submodule 引入两个子项目：
-
-| 子模块 | 路径 | 远程仓库 | 追踪分支 |
-|--------|------|----------|----------|
-| Backend (Go) | `./modelcraft-backend` | `modelcraft-go` (main) | `main` |
-| Frontend (Next.js) | `./modelcraft-front` | `modelcraft-front` | 默认 |
-
-```bash
-# 克隆项目（含子模块）
-git clone --recurse-submodules <repo-url>
-
-# 已有仓库拉取子模块
-git submodule update --init --recursive
-
-# 更新子模块到远程最新
-git submodule update --remote
-```
-
-### Subtree（API Contract 共享）
-
-后端 `api/` 目录是 API Contract 的**唯一真相源**，通过 **git subtree** 与前端共享：
+本项目采用 **monorepo** 结构，所有组件在同一 git 仓库中管理：
 
 ```
-modelcraft-backend/api/          ← 唯一真相源（后端仓库）
+modelcraft/                    ← 根仓库 (origin: modelcraft.git)
+├── modelcraft-backend/        ← Go 后端
+├── modelcraft-front/          ← Next.js 前端
+├── modelcraft-gateway/        ← Gateway 服务
+└── modelcraft-cli/            ← CLI 工具
+```
+
+### API Contract 共享
+
+后端 `modelcraft-backend/api/` 目录是 API Contract 的**唯一真相源**，前端通过 `front-contract-pull` skill 同步：
+
+```
+modelcraft-backend/api/          ← 唯一真相源
         │
-        │  git subtree push --prefix=api
+        │  front-contract-pull skill
         ▼
-modelcraft-api-contracts        ← 共享仓库 (contracts remote)
-        │
-        │  git subtree add/pull --prefix=contract
-        ▼
-modelcraft-front/contract/      ← 前端消费端（只读）
+modelcraft-front/contract/       ← 前端消费端（只读）
 ```
-
-| 项目 | Remote 名称 | Subtree 前缀 | Squash |
-|------|-------------|-------------|--------|
-| Backend | `contracts` | `api/` | 否 |
-| Frontend | `contracts` | `contract/` | 是 |
-
-共享仓库: `https://git.woa.com/lukemxjia/modelcraft-api-contracts.git`
 
 > 详见 @./ai-metadata/backend/development/contract-sync.md
 
-### 提交顺序
+### 提交规范
 
-1. **子项目内提交** — 在 `./modelcraft-backend` 或 `./modelcraft-front` 中提交代码变更
-2. **subtree push（如需）** — 后端修改 API 后执行 `git subtree push --prefix=api contracts main`
-3. **前端同步 Contract** — 使用 `front-contract-pull` skill 拉取最新 API Contract
-4. **根项目提交** — 回到根项目，`git add modelcraft-backend modelcraft-front` 后提交子模块引用
+- 所有组件在同一仓库提交，无需跨仓库操作
+- 修改 API 后运行 `front-contract-pull` 同步前端 contract
 
 ## Git Rules
 
 - Never use `git commit --no-verify`. Pre-commit hooks must always run. If a hook fails, fix the underlying issue instead of bypassing it.
 - **前端禁止直接修改 `contract/`** — 所有变更必须通过 `front-contract-pull` skill 获取。
-- **先 push 再 pull** — 后端必须先 `subtree push`，前端才能运行 `front-contract-pull`。
 
 Each subproject has its own pre-commit hook:
 
@@ -125,7 +101,6 @@ All agent-specific directories (`.claude`, `.codebuddy`) are **symlinks** that p
 
 **Rules:**
 - Edit content only in `./.agents/` — never edit through the symlink paths.
-- Each subproject (`modelcraft-backend/`, `modelcraft-front/`) follows the same symlink structure independently.
 
 ## Writing Rules
 

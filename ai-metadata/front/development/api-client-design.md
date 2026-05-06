@@ -13,7 +13,7 @@ src/api-client/
 │   └── public.ts                # 对外暴露的公开 API（门面）
 │
 ├── auth/
-│   ├── auth-client.ts           # AuthProvider SDK 封装：Token 生命周期管理
+│   ├── auth-client.ts           # 自建认证封装：Token 生命周期管理
 │   ├── go-auth-client.ts        # Go 后端内部认证客户端
 │   ├── token-utils.ts           # Token 读写工具
 │   └── public.ts                # 对外暴露的公开 API（门面）
@@ -199,7 +199,7 @@ const client = createProjectScopedClient(orgName, slug)
 
 ## Auth 模块
 
-负责 AuthProvider OAuth2 集成和 JWT Token 的完整生命周期管理。
+负责自建用户名/密码认证和 JWT Token 的完整生命周期管理。
 
 ### Token 存储
 
@@ -217,7 +217,7 @@ const client = createProjectScopedClient(orgName, slug)
 | `removeToken()` | 清除所有 Token（登出） |
 | `isAuthenticated()` | 检查是否已登录且未过期 |
 | `refreshAccessToken()` | 静默刷新 Token（单例模式） |
-| `redirectToLogin()` | 跳转 AuthProvider 登录页 |
+| `redirectToLogin()` | 跳转登录页 |
 
 **Token 刷新采用单例 Promise**，确保并发场景下只发起一次刷新请求。
 
@@ -255,7 +255,7 @@ Next.js API Routes 作为代理层，将请求先转发至 Gateway，再由 Gate
 
 | 路由 | 方法 | 说明 |
 |------|------|------|
-| `/api/auth/token` | POST | OAuth code → JWT |
+| `/api/auth/token` | POST | username/password → JWT |
 | `/api/auth/refresh` | POST | refresh token → 新 access token |
 | `/api/user/memberships` | GET | 获取用户所属组织列表 |
 | `/api/org/init` | POST | 初始化组织（幂等） |

@@ -16,7 +16,7 @@
 | **UI 组件** | shadcn/ui + Radix UI | 基础 UI 原语 |
 | **样式** | Tailwind CSS | 工具类样式 |
 | **图标** | Lucide React | 统一图标库 |
-| **认证** | AuthProvider SDK (OAuth2/OIDC) | Token 生命周期管理 |
+| **认证** | 自建用户名/密码 + JWT（ES256，Gateway 签发） | Token 生命周期管理 |
 | **表单** | React Hook Form + Zod | 表单与验证 |
 
 ---
@@ -27,8 +27,7 @@
 src/
 ├── app/            # Next.js App Router — 路由 + API Routes
 │   ├── api/        # API Routes（代理到 BFF 层）
-│   ├── login/      # 登录页
-│   ├── auth/       # OAuth 回调处理
+│   ├── login/      # 登录页（用户名/密码）
 │   ├── org-selector/
 │   └── org/[orgName]/          # 组织作用域路由
 │       └── projects/[projectSlug]/
@@ -135,8 +134,7 @@ graph TD
 
 | 路由 | 说明 |
 |------|------|
-| `/login` | 触发 AuthProvider 登录跳转 |
-| `/auth/callback` | OAuth 回调，交换 code 为 Token |
+| `/login` | 用户名/密码登录表单 |
 | `/org-selector` | 登录后选择组织 |
 | `/org/create` | 创建新组织 |
 
