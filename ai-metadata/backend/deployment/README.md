@@ -179,10 +179,10 @@ task deploy:app -- --restart
 curl -i http://<gateway-host>:8090/healthz
 
 # 2) Developer 体系联调
-# 通过前端 /api/auth/* -> Gateway /auth/*，确认登录/刷新正常
+# 通过前端 /api/auth/* -> Gateway /api/tenant/auth/*，确认登录/刷新正常
 
 # 3) EndUser 体系联调
-# 通过前端 /api/bff/org/{orgName}/end-user/auth/* -> Gateway /api/end-user/auth/*，确认登录/refresh/select-project 正常
+# 通过前端 /api/bff/org/{orgName}/end-user/auth/* -> Gateway /api/end-user/auth/*，确认登录/refresh 正常
 
 # 4) 反向验证：禁止前端直连 Backend
 # 将前端 BACKEND_URL 临时改为 Backend 直连地址后，请求应视为配置错误并回退。

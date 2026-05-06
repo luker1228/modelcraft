@@ -25,7 +25,7 @@ modelcraft-gateway/
 ├── internal/
 │   ├── auth/
 │   │   ├── service.go                  # JWT 校验与 refresh cookie 管理
-│   │   └── handler.go                  # /auth 与 /api/end-user/auth 代理编排
+│   │   └── handler.go                  # /api/tenant/auth 与 /api/end-user/auth 代理编排
 │   ├── proxy/
 │   │   ├── handler.go                  # GraphQL 代理（org/project/end-user）
 │   │   └── rest.go                     # /api/user/* REST 代理
@@ -48,8 +48,8 @@ modelcraft-gateway/
 
 | 路由前缀 | 认证方式 | 主要能力 |
 |---|---|---|
-| `/auth/*` | 无（公开） | Developer 登录/注册/刷新/登出代理 |
-| `/api/end-user/auth/*` | 无（公开） | EndUser 登录/注册/刷新/登出/选项目/me |
+| `/api/tenant/auth/*` | 无（公开） | Developer 登录/注册/刷新/登出代理 |
+| `/api/end-user/auth/*` | 无（公开） | EndUser 登录/注册/刷新/登出/me |
 | `/graphql/org/{orgName}` | Bearer ES256 | Org 级 GraphQL 代理 |
 | `/graphql/org/{orgName}/project/{projectSlug}` | Bearer ES256 | Project 级 GraphQL 代理 |
 | `/graphql/end-user/org/{orgName}/project/{projectSlug}` | Bearer HMAC JWT | EndUser GraphQL 代理（附加 `X-Internal-Token`） |
