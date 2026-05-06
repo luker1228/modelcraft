@@ -1154,3 +1154,56 @@ func (r *SqlEndUserDataPermissionRepository) ListProjectEndUserRoleUsers(
 	}
 	return items, total, nil
 }
+
+// FindPermissionsByEndUserAndModel 通过 role → bundle → permission 链路，
+// 查询指定 end-user 在某 model 上的全部权限点。
+// 使用已有的 sqlc 方法组合实现，避免裸 SQL。
+func (r *SqlEndUserDataPermissionRepository) FindPermissionsByEndUserAndModel(
+	ctx context.Context,
+	orgName, projectSlug, endUserID, modelID string,
+) ([]*rbac.EndUserPermission, error) {
+	if endUserID == "" || modelID == "" {
+		return nil, nil
+	}
+
+	// Step 1: collect bundleIDs from explicit roles
+	rolesBundleIDs, err := r.GetBundleIDsByUserExplicitRoles(ctx, endUserID, orgName, projectSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 2: collect bundleIDs directly granted
+	directBundleIDs, err := r.GetBundleIDsByUserDirect(ctx, endUserID, orgName, projectSlug)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 3: merge and deduplicate
+	seen := make(map[string]struct{}, len(rolesBundleIDs)+len(directBundleIDs))
+	bundleIDs := make([]string, 0, len(rolesBundleIDs)+len(directBundleIDs))
+	for _, id := range append(rolesBundleIDs, directBundleIDs...) {
+		if _, ok := seen[id]; !ok {
+			seen[id] = struct{}{}
+			bundleIDs = append(bundleIDs, id)
+		}
+	}
+
+	if len(bundleIDs) == 0 {
+		return nil, nil
+	}
+
+	// Step 4: expand bundles → permissions
+	allPerms, err := r.GetPermissionsByBundleIDs(ctx, orgName, bundleIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	// Step 5: filter by modelID
+	result := make([]*rbac.EndUserPermission, 0)
+	for _, p := range allPerms {
+		if p.ModelID == modelID {
+			result = append(result, p)
+		}
+	}
+	return result, nil
+}

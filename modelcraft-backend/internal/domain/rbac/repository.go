@@ -176,4 +176,13 @@ type EndUserPermissionRepository interface {
 	// GetPermissionsByBundleIDs 展开权限包 → 权限点（鉴权 Step 4）
 	// bundleIDs 为 Step 1~3 合并去重后的 ID 集合；bundleIDs 为空时直接返回空 slice
 	GetPermissionsByBundleIDs(ctx context.Context, orgName string, bundleIDs []string) ([]*EndUserPermission, error)
+
+	// FindPermissionsByEndUserAndModel 查询指定 end-user 在某 model 上的
+	// 所有有效权限点（跨 role → bundle → permission 链路）。
+	// 仅查该 model，不全量拉取，用于 per-request 权限解析。
+	// endUserID 或 modelID 为空时返回 nil（不报错）。
+	FindPermissionsByEndUserAndModel(
+		ctx context.Context,
+		orgName, projectSlug, endUserID, modelID string,
+	) ([]*EndUserPermission, error)
 }
