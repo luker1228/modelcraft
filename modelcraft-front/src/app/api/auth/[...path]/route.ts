@@ -18,6 +18,8 @@ async function handler(req: NextRequest, { params }: { params: { path: string[] 
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')
   const authHeader = req.headers.get('Authorization')
   if (authHeader) headers.set('Authorization', authHeader)
+  const cookieHeader = req.headers.get('cookie')
+  if (cookieHeader) headers.set('Cookie', cookieHeader)
 
   const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined
 

@@ -288,8 +288,8 @@ input MoveModelToGroupInput {
 
 # Model queries
 extend type Query {
-  model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read")
-  models(input: ModelQueryInput): ModelConnection! @hasPermission(action: "model:read")
+  model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
+  models(input: ModelQueryInput): ModelConnection! @hasPermission(action: "model:read", allowEndUser: true)
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")

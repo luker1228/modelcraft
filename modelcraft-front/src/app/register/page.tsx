@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
 import { registerFormSchema, type RegisterFormValues } from '@/shared/validation/auth'
 import { useRegister } from '@/web/hooks/auth/use-auth-form'
+import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { AuthLayout } from '@/web/components/features/auth/auth-layout'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -112,7 +113,7 @@ export default function RegisterPage() {
 
           <p className="text-center text-sm text-muted-foreground">
             已有账号？{' '}
-            <NextLink href="/login" className="font-medium text-primary hover:underline">
+            <NextLink href={TENANT_LOGIN_PATH} className="font-medium text-primary hover:underline">
               立即登录
             </NextLink>
           </p>

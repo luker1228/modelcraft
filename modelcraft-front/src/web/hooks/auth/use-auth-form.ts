@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@shared/stores/auth-store'
+import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import type { LoginFormValues, RegisterFormValues } from '@/shared/validation/auth'
 import type { LoginResponse, RegisterResponse, IdentifierType } from '@/types/auth'
 
@@ -128,7 +129,7 @@ export function useRegister(): UseRegisterReturn {
 
       if (!loginRes.ok) {
         setError('注册成功，请重新登录')
-        router.push('/tenant/login')
+        router.push(TENANT_LOGIN_PATH)
         return
       }
 

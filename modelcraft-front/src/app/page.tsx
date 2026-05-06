@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getToken, refreshAccessToken } from "@api-client/auth/public";
+import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 
 export default function Home() {
   const router = useRouter();
@@ -23,7 +24,7 @@ export default function Home() {
       if (!token) {
         // Middleware should have prevented reaching here, but be defensive
         console.warn("[HomePage] No token, redirecting to login");
-        router.push("/login");
+        router.push(TENANT_LOGIN_PATH);
         return;
       }
 

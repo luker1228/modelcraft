@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, getEndUserLoginPath } from '@shared/constants/routes'
 
 /**
  * Next.js Middleware — Single auth gate for all protected routes.
@@ -22,7 +23,7 @@ import { NextRequest, NextResponse } from 'next/server'
 // ============================================
 // 开发者认证配置
 // ============================================
-const DEV_PUBLIC_PATHS = ['/tenant/login', '/register']
+const DEV_PUBLIC_PATHS = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH]
 const DEV_REFRESH_COOKIE = 'mc_refresh_token'
 
 // ============================================
@@ -64,7 +65,7 @@ export function middleware(request: NextRequest) {
       const hasToken = request.cookies.has(END_USER_REFRESH_COOKIE)
       if (!hasToken) {
         const orgName = match[1]
-        const loginUrl = new URL(`/end-user/${orgName}/login`, request.url)
+        const loginUrl = new URL(getEndUserLoginPath(orgName), request.url)
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)
       }
@@ -83,7 +84,7 @@ export function middleware(request: NextRequest) {
 
   const hasRefreshToken = request.cookies.has(DEV_REFRESH_COOKIE)
   if (!hasRefreshToken) {
-    const loginUrl = new URL('/tenant/login', request.url)
+    const loginUrl = new URL(TENANT_LOGIN_PATH, request.url)
     loginUrl.searchParams.set('redirect', pathname)
     return NextResponse.redirect(loginUrl)
   }

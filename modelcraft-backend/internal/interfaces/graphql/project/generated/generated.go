@@ -6532,8 +6532,8 @@ input MoveModelToGroupInput {
 
 # Model queries
 extend type Query {
-  model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read")
-  models(input: ModelQueryInput): ModelConnection! @hasPermission(action: "model:read")
+  model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
+  models(input: ModelQueryInput): ModelConnection! @hasPermission(action: "model:read", allowEndUser: true)
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
@@ -25947,7 +25947,7 @@ func (ec *executionContext) _Query_model(ctx context.Context, field graphql.Coll
 					var zeroVal *GetModelPayload
 					return zeroVal, err
 				}
-				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, true)
 				if err != nil {
 					var zeroVal *GetModelPayload
 					return zeroVal, err
@@ -26017,7 +26017,7 @@ func (ec *executionContext) _Query_models(ctx context.Context, field graphql.Col
 					var zeroVal *ModelConnection
 					return zeroVal, err
 				}
-				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, true)
 				if err != nil {
 					var zeroVal *ModelConnection
 					return zeroVal, err

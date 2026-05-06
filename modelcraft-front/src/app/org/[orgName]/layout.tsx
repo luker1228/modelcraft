@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useRequireAuth } from "@web/hooks/auth/use-auth";
 import { useOrganizationStore } from "@shared/stores/organization";
+import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -28,7 +29,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
         if (!token) {
           // Should not happen — middleware guards this, but be safe
           console.warn("[OrgLayout] No token after auth restore")
-          router.push("/login")
+          router.push(TENANT_LOGIN_PATH)
           return
         }
 
@@ -66,7 +67,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("[OrgLayout] Error verifying org access:", error);
         localStorage.removeItem("defaultOrgName");
-        router.push("/login");
+        router.push(TENANT_LOGIN_PATH);
       }
     }
 

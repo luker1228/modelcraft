@@ -13,6 +13,7 @@ import {
 } from '@web/components/ui/dropdown-menu'
 import { UserMenu } from '@web/components/features/layout/UserMenu'
 import { useOrganizationStore } from '@shared/stores/organization'
+import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
@@ -168,7 +169,7 @@ export function AppLayout({
     localStorage.removeItem('defaultUserName')
     localStorage.removeItem('defaultOrgName')
     useOrganizationStore.getState().clearOrganization()
-    router.push('/tenant/login')
+    router.push(TENANT_LOGIN_PATH)
   }, [router])
 
   const handleOrgSelect = useCallback(

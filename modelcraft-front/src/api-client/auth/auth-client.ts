@@ -53,7 +53,7 @@ let _isRefreshing = false
 let _refreshPromise: Promise<string | null> | null = null
 
 /**
- * Refresh the access token by calling the gateway /auth/refresh endpoint.
+ * Refresh the access token through Next.js auth proxy endpoint `/api/auth/refresh`.
  * The httpOnly Cookie refresh token is sent automatically by the browser.
  * Concurrent calls share the same in-flight request.
  */
@@ -65,7 +65,7 @@ export async function refreshAccessToken(): Promise<string | null> {
   _isRefreshing = true
   _refreshPromise = (async () => {
     try {
-      const response = await fetch(`/auth/refresh`, {
+      const response = await fetch(`/api/auth/refresh`, {
         method: 'POST',
         credentials: 'include',
       })

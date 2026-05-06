@@ -10,6 +10,7 @@ import { Badge } from "@web/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@web/components/ui/card";
 import { Alert, AlertDescription } from "@web/components/ui/alert";
 import { Building2, ArrowLeft, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 
 // Function to convert display name to slug (underscores only, no hyphens)
 function generateSlug(displayName: string): string {
@@ -85,7 +86,7 @@ export default function CreateOrgPage() {
 
       if (!token) {
         setError("会话已过期，请重新登录");
-        setTimeout(() => router.push("/login"), 2000);
+        setTimeout(() => router.push(TENANT_LOGIN_PATH), 2000);
         return;
       }
 
@@ -243,7 +244,7 @@ export default function CreateOrgPage() {
               removeToken();
               localStorage.removeItem("defaultUserName");
               localStorage.removeItem("defaultOrgName");
-              router.push("/login");
+              router.push(TENANT_LOGIN_PATH);
             }}
             className="text-sm text-muted-foreground transition-colors hover:text-foreground"
           >

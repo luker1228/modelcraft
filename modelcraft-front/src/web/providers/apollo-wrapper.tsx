@@ -5,6 +5,7 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 import { createGlobalErrorHandler } from '@web/hooks/error/use-graphql-error-handler'
 import { removeToken } from '@api-client/auth/public'
+import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { refreshAccessToken } from '@api-client/auth/public'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@shared/utils/uuid'
@@ -64,7 +65,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
       console.error('[Auth error]: Token expired or invalid, redirecting to login')
       removeToken()
       if (typeof window !== 'undefined') {
-        window.location.href = '/tenant/login'
+        window.location.href = TENANT_LOGIN_PATH
       }
       return
     }
@@ -84,7 +85,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
         console.error('[Auth error]: Unauthenticated, redirecting to login')
         removeToken()
         if (typeof window !== 'undefined') {
-          window.location.href = '/tenant/login'
+          window.location.href = TENANT_LOGIN_PATH
         }
         return
       }

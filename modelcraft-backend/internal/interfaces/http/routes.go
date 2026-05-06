@@ -438,8 +438,6 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 // SetupProjectGraphQLRoutesOnChi registers GraphQL endpoints for project domain.
 // Route pattern: /graphql/org/{orgName}/project/{projectSlug}/
 func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
-	projectgraphql.SetEndUserManagementAppService(handlers.EndUserMgmtAppService)
-
 	// Create services needed for project domain
 	typeMapper := domainModelDesign.NewMySQLTypeMapper()
 	schemaComparisonService := domainModelDesign.NewMySQLSchemaComparisonService(typeMapper)

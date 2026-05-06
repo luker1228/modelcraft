@@ -3,9 +3,10 @@
 import { useEffect } from 'react'
 import { usePathname, useRouter } from 'next/navigation'
 import { refreshAccessToken } from '@api-client/auth/public'
+import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@shared/constants/routes'
 import { useAuthStore } from '@shared/stores/auth-store'
 
-const PUBLIC_ROUTES = ['/tenant/login', '/register']
+const PUBLIC_ROUTES = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH]
 const END_USER_ROUTE_RE = /^\/u\/[^/]+\/[^/]+(\/|$)/
 
 /**
@@ -27,7 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const newToken = await refreshAccessToken()
         if (!newToken) {
           useAuthStore.getState().clearAccessToken()
-          router.push('/tenant/login')
+          router.push(TENANT_LOGIN_PATH)
         }
       }
     }

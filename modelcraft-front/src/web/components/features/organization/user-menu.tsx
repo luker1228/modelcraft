@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,7 +54,7 @@ export function UserMenu() {
     clearOrganization()
 
     // Redirect to login page
-    router.push('/tenant/login')
+    router.push(TENANT_LOGIN_PATH)
   }
 
   if (!userInfo) {

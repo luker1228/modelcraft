@@ -9,9 +9,9 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/database/dml"
 	"modelcraft/internal/infrastructure/repository"
-	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"modelcraft/pkg/requestcontext"
 
@@ -93,7 +93,15 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 
 	// 将请求级状态（clientRepo、dataloader map）注入 context，
 	// 所有 resolver 闭包通过 p.Context 读取，与 Schema 类型结构完全解耦。
-	endUserID := middleware.GetEndUserID(ctx)
+	// Runtime 只认 ctxutils 注入的身份上下文：
+	// - end-user: X-User-Type=end_user + X-User-ID
+	// - tenant: 无 end-user 身份（endUserID 为空）
+	endUserID := ""
+	if ctxutils.IsEndUser(ctx) {
+		if uid, err := ctxutils.GetUserIDFromContext(ctx); err == nil {
+			endUserID = uid
+		}
+	}
 	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug, endUserID)
 
 	// 执行GraphQL查询
