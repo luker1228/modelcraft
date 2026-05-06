@@ -13,12 +13,24 @@ import (
 // capturingClientRepo wraps mockClientDatabaseRepository and captures the last CreateOne call.
 type capturingClientRepo struct {
 	mockClientDatabaseRepository
-	capturedCreateInput *CreateOneInput
+	capturedCreateInput     *CreateOneInput
+	capturedCreateManyInput *CreateManyInput
+	capturedUpdateOneInput  *UpdateOneInput
 }
 
 func (c *capturingClientRepo) CreateOne(_ context.Context, input *CreateOneInput) (string, error) {
 	c.capturedCreateInput = input
 	return "new-record-id", nil
+}
+
+func (c *capturingClientRepo) CreateMany(_ context.Context, input *CreateManyInput) (interface{}, error) {
+	c.capturedCreateManyInput = input
+	return map[string]any{"count": len(input.Data)}, nil
+}
+
+func (c *capturingClientRepo) UpdateOne(_ context.Context, input *UpdateOneInput) (map[string]any, error) {
+	c.capturedUpdateOneInput = input
+	return map[string]any{"id": "record-id"}, nil
 }
 
 // taskModelWithOwner is a RuntimeModel that has an END_USER_REF "owner" field.
@@ -122,6 +134,103 @@ func TestEndUserRefOwnerInjection_ViaRealResolver(t *testing.T) {
 			t,
 			"chosen-end-user-uuid",
 			repo.capturedCreateInput.Data["owner"],
+			"tenant admin may supply owner explicitly when no EndUser identity is present",
+		)
+	})
+}
+
+// TestEndUserRefOwnerInjection_CreateMany_ViaRealResolver verifies that the
+// createMany mutation cannot be used to spoof the owner field in batch creates.
+func TestEndUserRefOwnerInjection_CreateMany_ViaRealResolver(t *testing.T) {
+	model := taskModelWithOwner()
+
+	t.Run("injects owner from context in each createMany item (EndUser context)", func(t *testing.T) {
+		repo := &capturingClientRepo{}
+		schema := buildSchemaFor(t, model)
+
+		ctx := WithGraphqlRequestContext(
+			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123",
+		)
+
+		result := graphql.Do(graphql.Params{
+			Schema:  *schema,
+			Context: ctx,
+			RequestString: `mutation {
+				createMany(data: [
+					{ title: "record1", owner: "attacker-uuid" }
+				]) { count }
+			}`,
+		})
+
+		require.Empty(t, result.Errors, "createMany mutation must succeed without errors")
+		require.NotNil(t, repo.capturedCreateManyInput, "CreateMany must have been called")
+		require.Len(t, repo.capturedCreateManyInput.Data, 1)
+		assert.Equal(
+			t,
+			"end-user-uuid-123",
+			repo.capturedCreateManyInput.Data[0]["owner"],
+			"owner must be force-injected from context endUserID in every createMany item",
+		)
+	})
+}
+
+// TestEndUserRefOwnerInjection_UpdateOne_ViaRealResolver verifies that the
+// updateOne mutation cannot be used to reassign the owner field.
+func TestEndUserRefOwnerInjection_UpdateOne_ViaRealResolver(t *testing.T) {
+	model := taskModelWithOwner()
+
+	t.Run("injects owner from context, ignoring client-supplied value (EndUser context)", func(t *testing.T) {
+		repo := &capturingClientRepo{}
+		schema := buildSchemaFor(t, model)
+
+		ctx := WithGraphqlRequestContext(
+			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123",
+		)
+
+		result := graphql.Do(graphql.Params{
+			Schema:  *schema,
+			Context: ctx,
+			RequestString: `mutation {
+				update(where: { id: "some-record-id" }, data: { title: "new title", owner: "attacker-uuid" }) {
+					success
+				}
+			}`,
+		})
+
+		require.Empty(t, result.Errors, "updateOne mutation must succeed without errors")
+		require.NotNil(t, repo.capturedUpdateOneInput, "UpdateOne must have been called")
+		assert.Equal(
+			t,
+			"end-user-uuid-123",
+			repo.capturedUpdateOneInput.Data["owner"],
+			"owner must be force-injected from context endUserID, not the attacker-supplied value",
+		)
+	})
+
+	t.Run("preserves client-supplied owner when no EndUser identity (tenant admin context)", func(t *testing.T) {
+		repo := &capturingClientRepo{}
+		schema := buildSchemaFor(t, model)
+
+		ctx := WithGraphqlRequestContext(
+			context.Background(), repo, "org-1", "proj-1", "",
+		)
+
+		result := graphql.Do(graphql.Params{
+			Schema:  *schema,
+			Context: ctx,
+			RequestString: `mutation {
+				update(where: { id: "some-record-id" }, data: { title: "new title", owner: "chosen-end-user-uuid" }) {
+					success
+				}
+			}`,
+		})
+
+		require.Empty(t, result.Errors, "mutation must succeed without errors")
+		require.NotNil(t, repo.capturedUpdateOneInput, "UpdateOne must have been called")
+		assert.Equal(
+			t,
+			"chosen-end-user-uuid",
+			repo.capturedUpdateOneInput.Data["owner"],
 			"tenant admin may supply owner explicitly when no EndUser identity is present",
 		)
 	})

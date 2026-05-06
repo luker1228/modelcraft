@@ -1347,6 +1347,17 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 		return nil, err
 	}
 
+	// EndUser side: prevent ownership reassignment by force-injecting owner from JWT.
+	// Only applies if the model has an END_USER_REF field and an EndUser is authenticated.
+	if rctx.CurrentEndUserID != "" {
+		for _, field := range m.model.Fields {
+			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
+				input.Data[field.Name] = rctx.CurrentEndUserID
+				break
+			}
+		}
+	}
+
 	// 返回包装结果
 	result := map[string]interface{}{
 		FieldSuccess: true,
@@ -1543,6 +1554,18 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 	if err != nil {
 		return nil, err
 	}
+
+	// EndUser side: prevent ownership reassignment by force-injecting owner from JWT.
+	// updateMany uses a single data map applied to all matched records.
+	if rctx.CurrentEndUserID != "" {
+		for _, field := range m.model.Fields {
+			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
+				input.Data[field.Name] = rctx.CurrentEndUserID
+				break
+			}
+		}
+	}
+
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
 	if err != nil {
 		return nil, err
