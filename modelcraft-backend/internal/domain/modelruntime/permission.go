@@ -3,6 +3,7 @@ package modelruntime
 import (
 	"context"
 
+	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/pkg/bizerrors"
 )
 
@@ -78,4 +79,32 @@ type EndUserPermissionService interface {
 	// Resolve 查询并合并 end-user 在指定 model 上的有效权限。
 	// endUserID 为空（tenant admin）时返回 nil, nil。
 	Resolve(ctx context.Context, orgName, projectSlug, endUserID, modelID string) (*ResolvedModelPermissions, error)
+}
+
+// FindEndUserRefFieldName 在 RuntimeModel Fields 中找到 FormatEndUserRef 类型字段的名称。
+// 若无此字段，返回空字符串（SELF scope 降级为 ALL，不注入 WHERE）。
+func FindEndUserRefFieldName(fields map[string]*RuntimeField) string {
+	for _, f := range fields {
+		if f.Type != nil && f.Type.Format == modeldesign.FormatEndUserRef {
+			return f.Name
+		}
+	}
+	return ""
+}
+
+// BuildRowFilter 根据权限和 action 构造 WHERE 注入 map。
+// 返回 nil 表示无需注入（IsSelf=false 或 ownerField/endUserID 为空）。
+func BuildRowFilter(
+	perms *ResolvedModelPermissions,
+	action Action,
+	ownerField string,
+	endUserID string,
+) map[string]any {
+	if perms == nil || ownerField == "" || endUserID == "" {
+		return nil
+	}
+	if !perms.Get(action).IsSelf {
+		return nil
+	}
+	return map[string]any{ownerField: endUserID}
 }
