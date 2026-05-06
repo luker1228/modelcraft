@@ -39,9 +39,13 @@ func NewHandler(authSvc *Service, backendURL string, httpClient *http.Client, in
 // Login proxies the request body to the backend, extracts refreshToken from the
 // response into an httpOnly cookie, then forwards the remaining fields to the browser.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	raw, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/login", r.Body)
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/login", r.Body)
 	if err != nil {
 		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
 		return
 	}
 
@@ -57,8 +61,13 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = h.postBackendRaw(r.Context(), "/api/tenant/auth/register", bytes.NewReader(body)); err != nil {
-		proxyBackendError(w, err)
+	_, regStatus, regErr := h.postBackendRaw(r.Context(), "/api/tenant/auth/register", bytes.NewReader(body))
+	if regErr != nil {
+		proxyBackendError(w, regErr)
+		return
+	}
+	if regStatus >= 400 {
+		writeRaw(w, regStatus, body)
 		return
 	}
 
@@ -78,8 +87,8 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		"identifierType": "USERNAME",
 		"password":       req.Password,
 	})
-	loginRaw, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/login", bytes.NewReader(loginBody))
-	if err != nil {
+	loginRaw, loginStatus, loginErr := h.postBackendRaw(r.Context(), "/api/tenant/auth/login", bytes.NewReader(loginBody))
+	if loginErr != nil || loginStatus >= 400 {
 		writeJSON(w, http.StatusCreated, map[string]string{"message": "registered, please login"})
 		return
 	}
@@ -97,8 +106,8 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqBody, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
-	raw, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/refresh", bytes.NewReader(reqBody))
-	if err != nil {
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/refresh", bytes.NewReader(reqBody))
+	if err != nil || status >= 400 {
 		h.authService.ClearRefreshCookie(w)
 		writeError(w, http.StatusUnauthorized, "REFRESH_INVALID", "invalid or expired refresh token")
 		return
@@ -112,7 +121,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := h.authService.GetRefreshCookie(r)
 	if refreshToken != "" {
 		reqBody, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
-		_, _ = h.postBackendRaw(r.Context(), "/api/tenant/auth/logout", bytes.NewReader(reqBody))
+		_, _, _ = h.postBackendRaw(r.Context(), "/api/tenant/auth/logout", bytes.NewReader(reqBody))
 	}
 
 	h.authService.ClearRefreshCookie(w)
@@ -121,9 +130,13 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 
 // EndUserLogin proxies to backend /api/end-user/auth/login and manages end-user refresh cookie.
 func (h *Handler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
-	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/login", r.Body)
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/login", r.Body)
 	if err != nil {
 		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
 		return
 	}
 
@@ -132,9 +145,13 @@ func (h *Handler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 
 // EndUserRegister proxies to backend /api/end-user/auth/register and manages end-user refresh cookie.
 func (h *Handler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
-	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/register", r.Body)
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/register", r.Body)
 	if err != nil {
 		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
 		return
 	}
 
@@ -157,8 +174,8 @@ func (h *Handler) EndUserRefresh(w http.ResponseWriter, r *http.Request) {
 	req["refreshToken"] = refreshToken
 
 	body, _ := json.Marshal(req)
-	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/refresh", bytes.NewReader(body))
-	if err != nil {
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/refresh", bytes.NewReader(body))
+	if err != nil || status >= 400 {
 		h.authService.ClearEndUserRefreshCookie(w)
 		writeError(w, http.StatusUnauthorized, "REFRESH_INVALID", "invalid or expired refresh token")
 		return
@@ -178,7 +195,7 @@ func (h *Handler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 		req["refreshToken"] = refreshToken
 
 		body, _ := json.Marshal(req)
-		_, _ = h.postBackendRaw(r.Context(), "/api/end-user/auth/logout", bytes.NewReader(body))
+		_, _, _ = h.postBackendRaw(r.Context(), "/api/end-user/auth/logout", bytes.NewReader(body))
 	}
 
 	h.authService.ClearEndUserRefreshCookie(w)
@@ -201,9 +218,13 @@ func (h *Handler) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
 	req["refreshToken"] = refreshToken
 
 	body, _ := json.Marshal(req)
-	raw, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/select-project", bytes.NewReader(body))
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/select-project", bytes.NewReader(body))
 	if err != nil {
 		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
 		return
 	}
 
@@ -262,18 +283,20 @@ func (h *Handler) extractRefreshAndProxyWithCookieSetter(
 	writeJSON(w, status, body)
 }
 
-// proxyBackendError forwards a backend error response to the browser.
+// proxyBackendError writes a 502 for network/infra failures.
 func proxyBackendError(w http.ResponseWriter, err error) {
 	writeError(w, http.StatusBadGateway, "UPSTREAM_ERROR", err.Error())
 }
 
 // ---- backend client ----
 
-// postBackendRaw POSTs to the backend and returns the raw response body.
-func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reader) ([]byte, error) {
+// postBackendRaw POSTs to the backend and returns (body, statusCode, error).
+// Business errors (4xx) are returned as (body, statusCode, nil) so callers can
+// decide whether to proxy them directly. Only network/infra failures return a non-nil error.
+func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reader) ([]byte, int, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, h.backendURL+path, body)
 	if err != nil {
-		return nil, fmt.Errorf("create request: %w", err)
+		return nil, 0, fmt.Errorf("create request: %w", err)
 	}
 
 	req.Header.Set("Content-Type", "application/json")
@@ -284,20 +307,16 @@ func (h *Handler) postBackendRaw(ctx context.Context, path string, body io.Reade
 
 	resp, err := h.httpClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("backend request: %w", err)
+		return nil, 0, fmt.Errorf("backend request: %w", err)
 	}
 	defer resp.Body.Close()
 
 	raw, readErr := io.ReadAll(resp.Body)
 	if readErr != nil {
-		return nil, fmt.Errorf("read response: %w", readErr)
+		return nil, resp.StatusCode, fmt.Errorf("read response: %w", readErr)
 	}
 
-	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("backend error %d: %s", resp.StatusCode, string(raw))
-	}
-
-	return raw, nil
+	return raw, resp.StatusCode, nil
 }
 
 // getBackendRaw performs a GET to the backend and returns the raw response body.
@@ -349,4 +368,11 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, errorResponse{Code: code, Message: message})
+}
+
+// writeRaw writes raw bytes directly to the response with the given status.
+func writeRaw(w http.ResponseWriter, status int, body []byte) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(status)
+	_, _ = w.Write(body)
 }
