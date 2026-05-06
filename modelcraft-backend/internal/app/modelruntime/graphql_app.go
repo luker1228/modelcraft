@@ -113,12 +113,13 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 			logger.Errorf(ctx, "get model for permission resolve fail: %v", err)
 			return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
 		}
-		if model != nil {
-			endUserPerms, err = s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
-			if err != nil {
-				logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
-				return nil, fmt.Errorf("解析权限失败")
-			}
+		if model == nil {
+			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
+		}
+		endUserPerms, err = s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
+		if err != nil {
+			logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
+			return nil, fmt.Errorf("解析权限失败")
 		}
 	}
 
