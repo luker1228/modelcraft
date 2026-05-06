@@ -3,6 +3,7 @@ export {
   useDesignTimeClient,
   createProjectScopedClient,
   createModelRuntimeClient,
+  createEndUserModelRuntimeClient,
   createEndUserScopedClient,
   buildRuntimeEndpoint,
   getOrgScopedClient,

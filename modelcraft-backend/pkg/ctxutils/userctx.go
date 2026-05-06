@@ -24,7 +24,12 @@ const (
 
 	// ContextKeyProjectSlug is the key for storing the project slug in context.
 	ContextKeyProjectSlug contextKey = "project_slug"
+
+	// ContextKeyUserType distinguishes "end_user" from "tenant" (developer) callers.
+	ContextKeyUserType contextKey = "user_type"
 )
+
+const UserTypeEndUser = "end_user"
 
 // HttpRequestContext encapsulates HTTP request-related data
 // This is for HTTP layer concerns, not business logic
@@ -139,6 +144,17 @@ func GetPermissionsFromContext(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("permissions not found in context")
 	}
 	return permissions, nil
+}
+
+// SetUserType stores the user type ("end_user" or "tenant") in context.
+func SetUserType(ctx context.Context, userType string) context.Context {
+	return context.WithValue(ctx, ContextKeyUserType, userType)
+}
+
+// IsEndUser returns true if the request is from an EndUser caller.
+func IsEndUser(ctx context.Context) bool {
+	val, _ := ctx.Value(ContextKeyUserType).(string)
+	return val == UserTypeEndUser
 }
 
 // SetUseCache stores the useCache flag in context.

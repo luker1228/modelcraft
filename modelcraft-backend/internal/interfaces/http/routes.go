@@ -634,31 +634,3 @@ func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers
 	router.With(runtimeMW).Get(runtimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 }
-
-// SetupEndUserRoutesOnChi registers End-User internal HTTP routes (management + data).
-// end-user auth routes are now served via the OpenAPI-generated handler in chi_setup.go.
-func SetupEndUserRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
-	internalTokenMW := middleware.ChiInternalTokenMiddleware(cfg.Auth.InternalToken)
-
-	if handlers.EndUserMgmtHandler != nil {
-		router.Route("/internal/end-users", func(r chi.Router) {
-			r.Use(requestIDInjectorMiddleware)
-			r.Use(internalTokenMW)
-			r.Post("/", handlers.EndUserMgmtHandler.Create)
-			r.Get("/", handlers.EndUserMgmtHandler.List)
-			r.Patch("/{userId}/status", handlers.EndUserMgmtHandler.UpdateStatus)
-			r.Delete("/{userId}", handlers.EndUserMgmtHandler.Delete)
-			r.Get("/{userId}/accessible-projects", handlers.EndUserMgmtHandler.GetAccessibleProjects)
-		})
-	}
-
-	if handlers.EndUserDataHandler != nil {
-		router.Route("/internal/end-user/data", func(r chi.Router) {
-			r.Use(requestIDInjectorMiddleware)
-			r.Use(internalTokenMW)
-			r.Get("/database-catalog", handlers.EndUserDataHandler.DatabaseCatalog)
-			r.Get("/model-catalog", handlers.EndUserDataHandler.ModelCatalog)
-			r.Post("/init-private-db", handlers.EndUserDataHandler.InitPrivateDB)
-		})
-	}
-}

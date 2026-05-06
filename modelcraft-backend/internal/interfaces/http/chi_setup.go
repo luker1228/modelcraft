@@ -106,14 +106,6 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	}
 
 	// ============================================================
-	// Internal End-User HTTP Routes (management + data only)
-	// auth routes are handled by the OpenAPI-generated handler below
-	// ============================================================
-	if cfg.DesignHandlers != nil {
-		SetupEndUserRoutesOnChi(r, cfg.DesignHandlers, cfg.Config)
-	}
-
-	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler
 	// ============================================================
 

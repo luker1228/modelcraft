@@ -26,6 +26,15 @@ export function buildRuntimeEndpoint(
   return `${GATEWAY_URL}/api/bff/graphql/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
 }
 
+export function buildEndUserRuntimeEndpoint(
+  orgName: string,
+  projectSlug: string,
+  databaseName: string,
+  modelName: string
+): string {
+  return `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
+}
+
 function createAuthLink() {
   return setContext(async (_, { headers }: { headers?: Record<string, string> }) => {
     let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
@@ -151,6 +160,40 @@ export function createModelRuntimeClient(
 
   return new ApolloClient({
     link: createAuthLink().concat(httpLink),
+    cache: new InMemoryCache(),
+    defaultOptions: {
+      watchQuery: { errorPolicy: 'all' },
+      query: { errorPolicy: 'all' },
+      mutate: { errorPolicy: 'all' },
+    },
+  })
+}
+
+/**
+ * End-User Runtime Apollo Client factory
+ * Endpoint: /api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}
+ * Routes through Gateway (JWT validation + X-User-Type: end_user injection).
+ * Uses the End-User Bearer token.
+ */
+export function createEndUserModelRuntimeClient(
+  orgName: string,
+  projectSlug: string,
+  databaseName: string,
+  modelName: string,
+  endUserToken: string
+): ApolloClient<object> {
+  const uri = buildEndUserRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
+  const httpLink = createHttpLink({ uri, credentials: 'include' })
+
+  const authLink = setContext((_, { headers }: { headers?: Record<string, string> }) => ({
+    headers: {
+      ...(headers ?? {}),
+      authorization: `Bearer ${endUserToken}`,
+    },
+  }))
+
+  return new ApolloClient({
+    link: authLink.concat(httpLink),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },

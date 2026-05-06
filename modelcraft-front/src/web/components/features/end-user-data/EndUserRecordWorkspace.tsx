@@ -8,10 +8,10 @@ import {
   createEndUserModelRuntimeClient,
 } from '@api-client/apollo/public'
 import { getEndUserToken } from '@api-client/end-user/public'
-import { ModelRecordForm } from './index'
-import { ModelRecordTable } from './ModelRecordTable'
-import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
-import { getFieldProtocols } from './runtime/field-protocol'
+import { ModelRecordForm } from '@web/components/features/model-editor/model-record-form/index'
+import { ModelRecordTable } from '@web/components/shared/data-workspace/ModelRecordTable'
+import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from '@web/components/shared/data-workspace/ModelRecordTable'
+import { getFieldProtocols } from '@web/components/features/model-editor/model-record-form/runtime/field-protocol'
 import {
   buildFindManyQuery,
   buildFindUniqueQuery,
@@ -53,9 +53,9 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
-import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
+import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
 
-export interface RuntimeRecordWorkspaceProps {
+export interface EndUserRecordWorkspaceProps {
   modelId: string
   projectSlug: string
   orgName: string
@@ -115,9 +115,9 @@ function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
 }
 
 /**
- * RuntimeRecordWorkspace — 终端用户数据工作区。
+ * EndUserRecordWorkspace — 终端用户数据工作区。
  *
- * 能力范围（record CRUD，与 DevelopRecordWorkspace 等价）：
+ * 能力范围（record CRUD）：
  * - record query / create / edit / delete
  *
  * 刻意**不包含**：
@@ -129,18 +129,17 @@ function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
  * 使用 end-user scoped client 作为所有数据端点，
  * 身份由当前 end-user token 决定，不依赖 workspaceMode。
  */
-export default function RuntimeRecordWorkspace({
+export default function EndUserRecordWorkspace({
   modelId,
   projectSlug,
   orgName,
   refreshToken = 0,
-}: RuntimeRecordWorkspaceProps) {
+}: EndUserRecordWorkspaceProps) {
   const endUserContext = useMemo(
     () => ({ uri: `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}` }),
     [orgName, projectSlug]
   )
 
-  // runtime workspace 使用 end-user token；token 来自 localStorage（通过 getEndUserToken）
   const endUserToken = getEndUserToken()
 
   const managementClient = useMemo(() => {
@@ -148,8 +147,6 @@ export default function RuntimeRecordWorkspace({
     return createEndUserScopedClient(orgName, projectSlug, endUserToken)
   }, [orgName, projectSlug, endUserToken])
 
-  // 构建 runtime workspace 的 RecordAccessAdapter
-  // createRuntimeClient 始终返回 end-user scoped client（忽略 databaseName/modelName）
   const accessAdapter = useMemo<RecordAccessAdapter | null>(() => {
     if (!managementClient) return null
     const token = endUserToken
@@ -158,7 +155,7 @@ export default function RuntimeRecordWorkspace({
       managementContext: endUserContext,
       createRuntimeClient: (databaseName: string, modelName: string) => {
         if (!token) {
-          throw new Error('RuntimeRecordWorkspace: end-user token is not available')
+          throw new Error('EndUserRecordWorkspace: end-user token is not available')
         }
         return createEndUserModelRuntimeClient(orgName, projectSlug, databaseName, modelName, token)
       },
@@ -168,21 +165,17 @@ export default function RuntimeRecordWorkspace({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
 
-  // 新增数据状态
   const [createDataOpen, setCreateDataOpen] = useState(false)
   const [createSaving, setCreateSaving] = useState(false)
 
-  // 编辑数据状态
   const [editDataOpen, setEditDataOpen] = useState(false)
   const [editItemId, setEditItemId] = useState<string | null>(null)
   const [editFormData, setEditFormData] = useState<Record<string, unknown>>({})
   const [editSaving, setEditSaving] = useState(false)
   const [editLoading, setEditLoading] = useState(false)
 
-  // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('')
 
-  // 拉取模型 schema（runtime 用 end-user client + end-user query）
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
     GET_MODEL_RECORD_WORKSPACE_END_USER,
     {
@@ -198,7 +191,6 @@ export default function RuntimeRecordWorkspace({
   const modelName = model?.name
   const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
 
-  // runtime workspace：record CRUD 受 managed 限制，但无字段生命周期能力
   const canCreateRecord = !isManagedReadOnlyModel
   const canEditRecord = !isManagedReadOnlyModel
   const canDeleteRecord = !isManagedReadOnlyModel
@@ -207,8 +199,6 @@ export default function RuntimeRecordWorkspace({
     toast.warning('托管模型仅支持查看，不支持写入')
   }, [])
 
-  // runtime client 使用 end-user model runtime endpoint（/db/{db}/model/{model}）
-  // 必须等 model 数据加载完成后才能构建（需要 databaseName 和 name）
   const runtimeClient = useMemo(() => {
     if (!endUserToken) return null
     const dbName = model?.databaseName
@@ -276,7 +266,6 @@ export default function RuntimeRecordWorkspace({
   const tableFieldInfos = useMemo<ModelRecordTableFieldInfo[]>(() => {
     if (jsonSchema?.properties) {
       const props = jsonSchema.properties as Record<string, unknown>
-      // runtime 不显示废弃状态，字段生命周期由 develop 侧管理
       return Object.entries(props).flatMap(([name, rawProp]) => {
         if (!isRecord(rawProp)) return []
         const prop = rawProp
@@ -287,7 +276,7 @@ export default function RuntimeRecordWorkspace({
           name,
           title: typeof prop.title === 'string' ? prop.title : null,
           isPrimary: xmc?.isPrimary === true,
-          isDeprecated: false, // runtime 侧不展示废弃状态
+          isDeprecated: false,
           storageHint: deriveStorageHintFromSchemaProp(prop),
           schemaType: typeof prop.type === 'string' ? prop.type.toUpperCase() : null,
         }
@@ -568,7 +557,7 @@ export default function RuntimeRecordWorkspace({
           </div>
         </div>
 
-        {/* 工具栏 — runtime 只有基础数据操作（无字段插入） */}
+        {/* 工具栏 */}
         <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
@@ -592,7 +581,6 @@ export default function RuntimeRecordWorkspace({
 
             <div className="h-5 w-px bg-border" />
 
-            {/* runtime 只有"插入数据"，不含插入列 */}
             <Button
               size="sm"
               className="h-[26px] border-0 bg-primary px-2.5 text-xs font-normal text-white transition-colors duration-200 hover:bg-primary/90"
@@ -623,7 +611,7 @@ export default function RuntimeRecordWorkspace({
           </div>
         </div>
 
-        {/* 数据表格 — runtime 不含字段生命周期控制 */}
+        {/* 数据表格 */}
         <ModelRecordTable
           contentLoading={contentLoading}
           contentList={filteredContentList}

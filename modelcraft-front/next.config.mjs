@@ -127,6 +127,12 @@ const nextConfig = {
         source: '/api/bff/graphql/end-user/org/:orgName/project/:projectSlug',
         destination: `${backendUrl}/graphql/end-user/org/:orgName/project/:projectSlug`,
       },
+      // End-User Runtime GraphQL（终端用户模型数据 CRUD）
+      // 经 Gateway 鉴权，注入 X-User-ID + X-User-Type: end_user
+      {
+        source: '/api/bff/graphql/end-user/org/:orgName/project/:projectSlug/db/:db/model/:model',
+        destination: `${backendUrl}/graphql/end-user/org/:orgName/project/:projectSlug/db/:db/model/:model`,
+      },
       // 终端用户公开认证接口（JWT）
       {
         source: '/api/end-user/:path*',

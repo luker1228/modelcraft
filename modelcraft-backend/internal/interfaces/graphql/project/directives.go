@@ -6,6 +6,7 @@ import (
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -47,6 +48,14 @@ func (d *HasPermissionDirective) HasPermission(
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
 	}
 
+	// EndUser callers are granted all read actions without RBAC checks.
+	// Write/delete actions still require explicit permission.
+	if ctxutils.IsEndUser(ctx) && isReadAction(action) {
+		logger.Infof(ctx, "@hasPermission directive: end-user read access granted user=%s action=%s",
+			userID, action)
+		return next(ctx)
+	}
+
 	// OPTIMIZATION: Try to get permissions from JWT context first (no DB query)
 	if permissions, err := ctxutils.GetPermissionsFromContext(ctx); err == nil && permissions != nil {
 		logger.Infof(
@@ -58,6 +67,11 @@ func (d *HasPermissionDirective) HasPermission(
 
 	// FALLBACK: Query database if permissions not in context
 	return d.checkDatabasePermission(ctx, next, logger, userID, orgName, action)
+}
+
+// isReadAction returns true for actions that are read-only (ending in ":read" or ":list").
+func isReadAction(action string) bool {
+	return strings.HasSuffix(action, ":read") || strings.HasSuffix(action, ":list")
 }
 
 // validateContext extracts and validates user ID and organization from context

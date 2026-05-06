@@ -17,13 +17,10 @@ export const GET_MODEL_RECORD_WORKSPACE_END_USER = gql`
       }
       error {
         __typename
-        ... on EndUserModelNotFound {
+        ... on ResourceNotFound {
           message
         }
         ... on InvalidInput {
-          message
-        }
-        ... on ProjectNotFound {
           message
         }
       }

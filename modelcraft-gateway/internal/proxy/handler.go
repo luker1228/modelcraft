@@ -17,7 +17,12 @@ import (
 
 type contextKey string
 
-const userIDContextKey contextKey = "user_id"
+const (
+	userIDContextKey   contextKey = "user_id"
+	userTypeContextKey contextKey = "user_type"
+)
+
+const userTypeEndUser = "end_user"
 
 // Handler is a reverse proxy that forwards requests to the Go backend.
 // After validating the Bearer token, it injects X-User-ID (from JWT claims)
@@ -63,6 +68,11 @@ func (h *Handler) director(req *http.Request) {
 		)
 	}
 
+	// Inject user type so the backend can distinguish EndUser from tenant callers.
+	if userType, ok := req.Context().Value(userTypeContextKey).(string); ok && userType != "" {
+		req.Header.Set("X-User-Type", userType)
+	}
+
 	// Propagate the internal request ID for end-to-end tracing.
 	if reqID := chiMiddleware.GetReqID(req.Context()); reqID != "" {
 		req.Header.Set("X-Request-Id", reqID)
@@ -103,6 +113,13 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	// Propagate user type so the backend @hasPermission directive can identify EndUser callers.
+	for _, aud := range claims.Audience {
+		if aud == userTypeEndUser {
+			ctx = context.WithValue(ctx, userTypeContextKey, userTypeEndUser)
+			break
+		}
+	}
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL project request authenticated",
 		zap.String("user_id", claims.UserID),
 		zap.String("path", r.URL.Path),
@@ -122,6 +139,8 @@ func (h *Handler) GraphQLEndUserProjectHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	// End-user route always injects X-User-Type: end_user so the backend can bypass RBAC.
+	ctx = context.WithValue(ctx, userTypeContextKey, userTypeEndUser)
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL end-user project request authenticated",
 		zap.String("user_id", claims.UserID),
 		zap.String("path", r.URL.Path),
