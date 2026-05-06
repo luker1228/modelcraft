@@ -248,7 +248,7 @@ Next.js API Routes 作为代理层，将请求先转发至 Gateway，再由 Gate
 | Developer | `/api/auth/*` | `/auth/*` | 管理端登录/刷新/登出等认证链路 |
 | Developer | `/api/bff/graphql/org/{orgName}[/...]` | `/graphql/org/{orgName}[/...]` | 设计态 Org/Project GraphQL |
 | EndUser | `/api/bff/org/{orgName}/end-user/auth/*` | `/api/end-user/auth/*` | 终端用户登录/刷新/select-project |
-| EndUser | `/api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}` | `/graphql/end-user/org/{orgName}/project/{projectSlug}` | 终端用户 GraphQL |
+| EndUser | `/api/bff/graphql/org/{orgName}/project/{projectSlug}` | `/graphql/org/{orgName}/project/{projectSlug}` | 终端用户 GraphQL（与 Developer 共用同一端点） |
 
 - 前端 `BACKEND_URL` 必须配置为 Gateway 地址。
 - 禁止浏览器侧或前端服务侧直接请求 Backend 业务端口。

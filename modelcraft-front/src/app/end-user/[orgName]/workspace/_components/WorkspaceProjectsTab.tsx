@@ -29,7 +29,7 @@ export function WorkspaceProjectsTab({ orgName, projects }: WorkspaceProjectsTab
           <div
             key={project.slug}
             className="cursor-pointer rounded-lg border bg-background p-5 transition-shadow hover:border-primary/40 hover:shadow-md"
-            onClick={() => router.push(`/end-user/${orgName}/workspace/${project.slug}/data`)}
+            onClick={() => router.push(`/end-user/${orgName}/projects/${project.slug}/data`)}
           >
             <p className="font-semibold text-foreground">{project.title}</p>
             <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{project.slug}</p>
@@ -37,7 +37,7 @@ export function WorkspaceProjectsTab({ orgName, projects }: WorkspaceProjectsTab
               className="mt-4 text-sm font-medium text-primary hover:underline"
               onClick={(e) => {
                 e.stopPropagation()
-                router.push(`/end-user/${orgName}/workspace/${project.slug}/data`)
+                router.push(`/end-user/${orgName}/projects/${project.slug}/data`)
               }}
             >
               进入 →

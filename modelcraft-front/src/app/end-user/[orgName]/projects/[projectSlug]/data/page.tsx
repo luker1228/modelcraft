@@ -1,8 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState, useCallback } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { gql } from '@apollo/client'
 import { ChevronDown, Database, Loader2, Search, Table2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Input } from '@web/components/ui/input'
@@ -41,22 +40,7 @@ import {
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
 import RuntimeRecordWorkspace from '@web/components/features/model-editor/model-record-form/RuntimeRecordWorkspace'
 import { DataWorkspacePanel } from '@web/components/features/model-editor/DataWorkspacePanel'
-
-const LIST_ACCESSIBLE_PROJECTS = gql`
-  query ListAccessibleProjects {
-    projects {
-      data {
-        slug
-        title
-      }
-    }
-  }
-`
-
-type AccessibleProject = {
-  slug: string
-  title: string
-}
+import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 type DataModel = {
   id: string
@@ -111,33 +95,27 @@ export default function EndUserDataPage() {
   const [privateDbInitDialogOpen, setPrivateDbInitDialogOpen] = useState(false)
   const [initPrivateDbLoading, setInitPrivateDbLoading] = useState(false)
 
-  // Project switcher
-  const [accessibleProjects, setAccessibleProjects] = useState<AccessibleProject[]>([])
-
-  const fetchAccessibleProjects = useCallback(async () => {
-    const token = getEndUserToken()
-    if (!token || !orgName || !projectSlug) return
-    try {
-      const client = createEndUserScopedClient(orgName, projectSlug, token)
-      const result = await client.query<{
-        projects: { data?: AccessibleProject[] }
-      }>({ query: LIST_ACCESSIBLE_PROJECTS, fetchPolicy: 'network-only' })
-      setAccessibleProjects(result.data?.projects?.data ?? [])
-    } catch {
-      // 静默失败：切换器直接隐藏
-    }
-  }, [orgName, projectSlug])
+  // 从 sessionStorage 读取可访问项目列表（登录时已缓存）
+  const [accessibleProjects, setAccessibleProjects] = useState<EndUserAccessibleProject[]>([])
 
   useEffect(() => {
-    void fetchAccessibleProjects()
-  }, [fetchAccessibleProjects])
+    if (!orgName) return
+    const raw = sessionStorage.getItem(`eu_accessible_projects_${orgName}`)
+    if (raw) {
+      try {
+        setAccessibleProjects(JSON.parse(raw) as EndUserAccessibleProject[])
+      } catch {
+        setAccessibleProjects([])
+      }
+    }
+  }, [orgName])
 
   useEffect(() => {
     if (!orgName || !projectSlug) return
 
     const selectedProject = sessionStorage.getItem(`eu_selected_project_${orgName}`)
     if (selectedProject && selectedProject !== projectSlug) {
-      router.replace(`/end-user/${orgName}/${selectedProject}/data`)
+      router.replace(`/end-user/${orgName}/projects/${selectedProject}/data`)
       return
     }
 
@@ -337,7 +315,7 @@ export default function EndUserDataPage() {
                       onSelect={() => {
                         if (p.slug !== projectSlug) {
                           sessionStorage.setItem(`eu_selected_project_${orgName}`, p.slug)
-                          router.push(`/end-user/${orgName}/${p.slug}/data`)
+                          router.push(`/end-user/${orgName}/projects/${p.slug}/data`)
                         }
                       }}
                       className={p.slug === projectSlug ? 'bg-muted font-medium' : ''}

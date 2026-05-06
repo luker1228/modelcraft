@@ -121,6 +121,30 @@ func (h *Handler) GraphQLProjectHandler(w http.ResponseWriter, r *http.Request) 
 	h.reverseProxy.ServeHTTP(w, r.WithContext(ctx))
 }
 
+// GraphQLEndUserProjectHandler validates the end-user JWT and proxies to the
+// same project GraphQL backend as GraphQLProjectHandler, rewriting the path to
+// strip the /end-user/ segment.
+//
+// Incoming:  /graphql/end-user/org/{orgName}/project/{projectSlug}
+// Upstream:  /graphql/org/{orgName}/project/{projectSlug}
+func (h *Handler) GraphQLEndUserProjectHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := h.extractAndVerify(w, r)
+	if !ok {
+		return
+	}
+	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	ctx = context.WithValue(ctx, tokenScopeContextKey, claims.Scope)
+	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL end-user project request authenticated",
+		zap.String("user_id", claims.UserID),
+		zap.String("scope", claims.Scope),
+		zap.String("path", r.URL.Path),
+	)
+	// Rewrite: /graphql/end-user/org/... → /graphql/org/...
+	r = r.WithContext(ctx)
+	r.URL.Path = strings.Replace(r.URL.Path, "/graphql/end-user/", "/graphql/", 1)
+	h.reverseProxy.ServeHTTP(w, r)
+}
+
 func (h *Handler) extractAndVerify(w http.ResponseWriter, r *http.Request) (*auth.Claims, bool) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {

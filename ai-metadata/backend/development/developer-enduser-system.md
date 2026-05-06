@@ -53,32 +53,28 @@ ModelCraft 有两类用户，但共享同一套 JWT 格式（统一 issuer `mc-p
 | **JWT scope（登录后）** | `scope=org` | `scope=org` |
 | **JWT scope（进入 Project 后）** | `scope=project`（exchange 换取） | `scope=project`（exchange 换取） |
 | **Access Token 签名** | ES256（ECDSA P-256） | ES256（ECDSA P-256） |
-| **Org 级 GraphQL 路由** | `/graphql/org/{orgName}/` | `/graphql/end-user/org/{orgName}/` |
-| **Project 级 GraphQL 路由** | `/graphql/org/{orgName}/project/{projectSlug}/` | `/graphql/end-user/org/{orgName}/project/{projectSlug}/` |
+| **Org 级 GraphQL 路由** | `/graphql/org/{orgName}/` | `/graphql/org/{orgName}/`（共用） |
+| **Project 级 GraphQL 路由** | `/graphql/org/{orgName}/project/{projectSlug}/` | `/graphql/org/{orgName}/project/{projectSlug}/`（共用） |
 | **后端识别头** | `X-User-ID` + `X-Token-Scope` | `X-User-ID` + `X-Token-Scope` |
 
 ---
 
 ## 5. GraphQL Schema 分层
 
-EndUser 拥有 Org 级 + Project 级两层端点，对应两套 Schema：
+Developer 和 EndUser **共用同一套 GraphQL Schema**（`org.graphql` + `project.graphql`），通过 JWT 中的身份（`aud` / `scope`）在后端实现能力边界：
 
 ```
-Developer Org Schema（全量）            EndUser Org Schema（子集）
-/graphql/org/{orgName}/                /graphql/end-user/org/{orgName}/
-  createProject                          listProject（可访问的）
-  deleteProject                          me（个人 Profile）
-  manageUsers                            listApiKey / createApiKey
-  ...                                    ...
-
-Developer Project Schema                EndUser Project Schema
-/graphql/org/{orgName}/project/{slug}/  /graphql/end-user/org/{orgName}/project/{slug}/
-  模型设计 / 字段管理                      业务数据 CRUD（query / get / create / update / delete）
-  数据库结构                               Runtime GraphQL（动态 Schema）
+Org Schema（共用）                      Project Schema（共用）
+/graphql/org/{orgName}/                /graphql/org/{orgName}/project/{slug}/
+  createProject（Developer）             模型设计 / 字段管理（Developer）
+  deleteProject（Developer）             数据库结构（Developer）
+  manageUsers（Developer）               业务数据 CRUD（EndUser）
+  listProject（EndUser 只见可访问的）      Runtime GraphQL（EndUser）
+  me（EndUser）                          ...
   ...
 ```
 
-EndUser 的 Org Schema 是 Developer Org Schema 的子集，**不包含任何管理操作**（创建/删除 Project、用户管理等）。
+EndUser 在共用端点上访问，后端根据 Token 身份限制可操作的数据范围。`end_user.graphql` 文件已废弃，不再维护独立的 EndUser Schema。
 
 ---
 
@@ -94,7 +90,7 @@ Browser -> Front BFF(/api/auth/*) -> Gateway(/auth/*, /graphql/org/*) -> Backend
 
 ```
 Browser -> Front BFF(/api/bff/org/*/end-user/*) 
-        -> Gateway(/end-user/{orgSlug}/auth/*, /graphql/end-user/*) 
+        -> Gateway(/end-user/{orgSlug}/auth/*, /graphql/org/*)   ← 共用 project GraphQL 端点
         -> Backend
 ```
 
@@ -134,7 +130,7 @@ POST /api/auth/exchange
 ### Frontend BFF
 - Developer auth 代理：`modelcraft-front/src/app/api/auth/[...path]/route.ts`
 - EndUser auth 代理：`modelcraft-front/src/app/api/bff/org/[orgName]/end-user/auth/_proxy.ts`
-- EndUser GraphQL 代理：`modelcraft-front/src/app/api/bff/graphql/end-user/org/[orgName]/project/[projectSlug]/route.ts`
+- EndUser GraphQL 代理：复用 Developer GraphQL 端点（`/graphql/org/{orgName}/project/{projectSlug}/`）
 
 ### Backend
 - EndUser 路由与 JWT 签发（ES256）：`modelcraft-backend/internal/interfaces/http/routes.go`

@@ -118,7 +118,7 @@ export function useEndUserLoginForm(
 
         // 跳转：优先使用 ?redirect= 参数，否则跳转数据管理落地页
         const redirect = searchParams.get('redirect')
-        const target = redirect ?? `/end-user/${orgName}/${projectSlug}/data`
+        const target = redirect ?? `/end-user/${orgName}/projects/${projectSlug}/data`
         router.replace(target)
       } catch {
         setError('登录服务暂时不可用，请稍后重试')

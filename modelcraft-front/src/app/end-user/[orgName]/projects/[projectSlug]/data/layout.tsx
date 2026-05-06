@@ -14,4 +14,3 @@ export default function EndUserDataLayout({ children }: EndUserDataLayoutProps) 
     </EndUserAuthGuard>
   )
 }
-

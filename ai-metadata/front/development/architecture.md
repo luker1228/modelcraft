@@ -165,7 +165,7 @@ graph TD
 | Developer Auth | `/api/auth/[...path]` | `/auth/*` | `src/app/api/auth/[...path]/route.ts` |
 | Developer GraphQL | `/api/bff/graphql/org/{orgName}[/...]` | `/graphql/org/{orgName}[/...]` | `next.config.mjs` rewrites |
 | EndUser Auth | `/api/bff/org/{orgName}/end-user/auth/*` | `/api/end-user/auth/*` | `src/app/api/bff/org/[orgName]/end-user/auth/_proxy.ts` |
-| EndUser GraphQL | `/api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}` | `/graphql/end-user/org/{orgName}/project/{projectSlug}` | `src/app/api/bff/graphql/end-user/org/[orgName]/project/[projectSlug]/route.ts` |
+| EndUser GraphQL | `/api/bff/graphql/org/{orgName}/project/{projectSlug}` | `/graphql/org/{orgName}/project/{projectSlug}` | 共用 Project GraphQL 端点（与 Developer 相同路由） |
 
 ### 关键行为差异
 
@@ -290,8 +290,7 @@ src/web/components/       ← 组件只做 UI 渲染，不直接接触 GraphQL
 |---------|------|
 | `/api/auth/*` | Developer 认证（BFF → Gateway `/auth/*`） |
 | `/api/bff/org/*/end-user/auth/*` | EndUser 认证（BFF → Gateway `/api/end-user/auth/*`） |
-| `/api/bff/graphql/org/**` | Developer GraphQL（BFF 前缀） |
-| `/api/bff/graphql/end-user/org/*/project/*` | EndUser GraphQL（BFF 前缀） |
+| `/api/bff/graphql/org/**` | GraphQL（tenant + end-user 共用，BFF 前缀） |
 | `/api/user/*` | 用户信息 |
 | `/api/org/*` | 组织管理 |
 | `/graphql/org/**` | 设计态 GraphQL（保留兼容入口） |
