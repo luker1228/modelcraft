@@ -24,6 +24,9 @@ type graphqlRequestContext struct {
 	// CurrentEndUserID 是当前请求的 EndUser ID（从 JWT 提取）。
 	// 为空字符串表示请求来自 tenant admin（无 EndUser 身份）。
 	CurrentEndUserID string
+	// EndUserPerms 是当前 EndUser 在本次请求目标 model 上的权限快照。
+	// nil 表示请求来自 tenant admin，跳过所有权限检查。
+	EndUserPerms *ResolvedModelPermissions
 }
 
 // graphqlRequestContextKey 是 graphqlRequestContext 在 context 中的 key 类型。
@@ -33,6 +36,7 @@ type graphqlRequestContextKey struct{}
 func newGraphqlRequestContext(
 	clientRepo ClientDatabaseRepository,
 	orgName, projectSlug, currentEndUserID string,
+	endUserPerms *ResolvedModelPermissions,
 ) *graphqlRequestContext {
 	return &graphqlRequestContext{
 		ClientRepo:       clientRepo,
@@ -40,6 +44,7 @@ func newGraphqlRequestContext(
 		OrgName:          orgName,
 		ProjectSlug:      projectSlug,
 		CurrentEndUserID: currentEndUserID,
+		EndUserPerms:     endUserPerms,
 	}
 }
 
@@ -49,8 +54,9 @@ func WithGraphqlRequestContext(
 	ctx context.Context,
 	clientRepo ClientDatabaseRepository,
 	orgName, projectSlug, currentEndUserID string,
+	endUserPerms *ResolvedModelPermissions,
 ) context.Context {
-	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug, currentEndUserID)
+	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug, currentEndUserID, endUserPerms)
 	return context.WithValue(ctx, graphqlRequestContextKey{}, rctx)
 }
 
@@ -75,4 +81,10 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	l := newRelationBatchLoader(rctx.ClientRepo, tableName, referenceKey)
 	rctx.relationLoaders[key] = l
 	return l
+}
+
+// GetGraphqlRequestContextForTest exports the internal context accessor for testing only.
+// Production code uses getGraphqlRequestContext (unexported).
+func GetGraphqlRequestContextForTest(ctx context.Context) (*graphqlRequestContext, bool) {
+	return getGraphqlRequestContext(ctx)
 }

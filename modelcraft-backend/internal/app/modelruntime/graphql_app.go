@@ -102,7 +102,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 			endUserID = uid
 		}
 	}
-	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug, endUserID)
+	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug, endUserID, nil)
 
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{
