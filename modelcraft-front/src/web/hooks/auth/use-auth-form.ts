@@ -128,7 +128,7 @@ export function useRegister(): UseRegisterReturn {
 
       if (!loginRes.ok) {
         setError('注册成功，请重新登录')
-        router.push('/login')
+        router.push('/tenant/login')
         return
       }
 

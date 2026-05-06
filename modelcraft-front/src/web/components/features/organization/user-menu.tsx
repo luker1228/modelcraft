@@ -53,7 +53,7 @@ export function UserMenu() {
     clearOrganization()
 
     // Redirect to login page
-    router.push('/login')
+    router.push('/tenant/login')
   }
 
   if (!userInfo) {

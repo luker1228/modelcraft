@@ -64,7 +64,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
       console.error('[Auth error]: Token expired or invalid, redirecting to login')
       removeToken()
       if (typeof window !== 'undefined') {
-        window.location.href = '/login'
+        window.location.href = '/tenant/login'
       }
       return
     }
@@ -84,7 +84,7 @@ const errorLink = onError(({ graphQLErrors, networkError, operation, forward }) 
         console.error('[Auth error]: Unauthenticated, redirecting to login')
         removeToken()
         if (typeof window !== 'undefined') {
-          window.location.href = '/login'
+          window.location.href = '/tenant/login'
         }
         return
       }

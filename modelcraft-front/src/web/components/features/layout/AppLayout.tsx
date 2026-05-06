@@ -168,7 +168,7 @@ export function AppLayout({
     localStorage.removeItem('defaultUserName')
     localStorage.removeItem('defaultOrgName')
     useOrganizationStore.getState().clearOrganization()
-    router.push('/login')
+    router.push('/tenant/login')
   }, [router])
 
   const handleOrgSelect = useCallback(
