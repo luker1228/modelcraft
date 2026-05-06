@@ -6,28 +6,25 @@ import { WorkspaceProjectsTab } from './_components/WorkspaceProjectsTab'
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface WorkspacePageProps {
-  params: Promise<{ orgName: string }>
+  params: { orgName: string }
 }
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const router = useRouter()
-  const [orgName, setOrgName] = useState('')
+  const { orgName } = params
   const [projects, setProjects] = useState<EndUserAccessibleProject[]>([])
   const [activeTab, setActiveTab] = useState<'projects'>('projects')
 
   useEffect(() => {
-    void params.then(({ orgName: name }) => {
-      setOrgName(name)
-      const raw = sessionStorage.getItem(`eu_accessible_projects_${name}`)
-      if (raw) {
-        try {
-          setProjects(JSON.parse(raw) as EndUserAccessibleProject[])
-        } catch {
-          setProjects([])
-        }
+    const raw = sessionStorage.getItem(`eu_accessible_projects_${orgName}`)
+    if (raw) {
+      try {
+        setProjects(JSON.parse(raw) as EndUserAccessibleProject[])
+      } catch {
+        setProjects([])
       }
-    })
-  }, [params])
+    }
+  }, [orgName])
 
   const handleLogout = async () => {
     if (!orgName) return
