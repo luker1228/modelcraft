@@ -28,7 +28,6 @@ const RUNTIME_CREATE_END_USER_MUTATION = `
         ... on EndUserAlreadyExists { message }
         ... on InvalidInput { message }
         ... on EndUserPasswordTooWeak { message }
-        ... on ResourceNotFound { message }
       }
     }
   }
@@ -101,10 +100,16 @@ Given('终端用户 {string} 创建了一条 {string} 记录，name 为 {string}
     const projectSlug = this.endUserProjectSlug || this.projectSlug || ''
     const client = new EndUserRestClient(orgName, projectSlug)
 
-    const devToken = this.token || process.env.TEST_ACCESS_TOKEN
-    if (!devToken) throw new Error('No developer token for creating end user')
+    const internalToken = this.internalToken || process.env.INTERNAL_TOKEN
     const orgClient = new OrgGraphQLClient(orgName)
-    orgClient.setAuth(devToken)
+    if (internalToken) {
+      // Internal token grants superuser permissions server-side; no X-User-ID needed
+      orgClient.setInternalTokenAuth(internalToken)
+    } else {
+      const devToken = this.token || process.env.TEST_ACCESS_TOKEN
+      if (!devToken) throw new Error('No developer token for creating end user')
+      orgClient.setAuth(devToken)
+    }
 
     // 先创建用户（允许 AlreadyExists）
     const createResult = await orgClient.mutate<{

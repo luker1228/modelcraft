@@ -35,16 +35,25 @@ func (d *HasPermissionDirective) HasPermission(
 ) (interface{}, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	// Validate authentication and organization context
-	userID, orgName, err := d.validateContext(ctx, logger)
-	if err != nil {
-		return nil, err
-	}
-
 	// Validate action format
 	if action == "" {
 		logger.Errorf(ctx, "@hasPermission directive: empty action parameter")
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
+	}
+
+	// FAST PATH: If wildcard permissions are set in context (e.g. from X-Internal-Token),
+	// skip user identity validation and grant access immediately.
+	if permissions, pErr := ctxutils.GetPermissionsFromContext(ctx); pErr == nil && len(permissions) > 0 {
+		if middleware.CheckPermission(permissions, "*") || middleware.CheckPermission(permissions, action) {
+			logger.Infof(ctx, "@hasPermission directive: access granted via context permissions (source: context)")
+			return next(ctx)
+		}
+	}
+
+	// Validate authentication and organization context
+	userID, orgName, err := d.validateContext(ctx, logger)
+	if err != nil {
+		return nil, err
 	}
 
 	// OPTIMIZATION: Try to get permissions from JWT context first (no DB query)

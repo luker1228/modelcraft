@@ -69,6 +69,9 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 
 // tryInternalTokenAuth checks for X-Internal-Token header and handles the request if present.
 // Returns true if the request was handled (either accepted or rejected), false if not an internal token request.
+// When the internal token is valid, the request is forwarded with a superuser permission set so that
+// @hasPermission directives pass — internal token callers are trusted backend services.
+// If X-User-ID is also present, it is injected into the context to satisfy user identity checks.
 func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.Request, next http.Handler) bool {
 	if config.InternalToken == "" {
 		return false
@@ -81,6 +84,12 @@ func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return true
 	}
-	next.ServeHTTP(w, r)
+	// Internal token authenticated. Grant wildcard permissions so that @hasPermission
+	// directives pass without a database lookup — internal callers are fully trusted.
+	ctx := ctxutils.SetPermissions(r.Context(), []string{"*"})
+	if userID := r.Header.Get("X-User-ID"); userID != "" {
+		ctx = ctxutils.SetUserID(ctx, userID)
+	}
+	next.ServeHTTP(w, r.WithContext(ctx))
 	return true
 }
