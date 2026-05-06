@@ -52,4 +52,9 @@ func TestResolvedModelPermissions_Get(t *testing.T) {
 	if got := p.Get(modelruntime.Action("UNKNOWN")); got.Allowed {
 		t.Error("unknown action should be denied")
 	}
+	// nil receiver + unknown action should be denied
+	var nilP *modelruntime.ResolvedModelPermissions
+	if got := nilP.Get(modelruntime.Action("UNKNOWN")); got.Allowed {
+		t.Error("nil receiver + unknown action should be denied")
+	}
 }

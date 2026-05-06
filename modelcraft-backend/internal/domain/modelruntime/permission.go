@@ -38,9 +38,15 @@ type ResolvedModelPermissions struct {
 // Get 返回指定 action 的权限状态。未知 action 返回 denied。
 // nil receiver (tenant admin) returns Allowed: true for all known actions.
 func (p *ResolvedModelPermissions) Get(action Action) ActionPermission {
-	if p == nil {
-		return ActionPermission{Allowed: true}
+	switch action {
+	case ActionSelect, ActionInsert, ActionUpdate, ActionDelete:
+		if p == nil {
+			return ActionPermission{Allowed: true}
+		}
+	default:
+		return ActionPermission{Allowed: false} // unknown action always denied
 	}
+	// p is non-nil for known actions
 	switch action {
 	case ActionSelect:
 		return p.Select
