@@ -24,27 +24,29 @@ func NewMetaUserAppService(privateDBManager PrivateDBManager) *MetaUserAppServic
 }
 
 // GetMe 返回当前认证用户的 meta/user 资料。
-// userID 来自 JWT 中间件注入（ctxutils.GetUserIDFromContext），orgName/projectSlug 来自 URL 参数中间件注入。
+// userID 来自 JWT 中间件注入（ctxutils.GetUserIDFromContext），orgName 来自 URL 参数中间件注入。
 func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 	orgName, _ := ctxutils.GetOrgNameFromContext(ctx)
-	projectSlug, _ := ctxutils.GetProjectSlugFromContext(ctx)
 	userID, _ := ctxutils.GetUserIDFromContext(ctx)
 	if orgName == "" || userID == "" {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, "missing org or user context")
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, orgName, projectSlug)
+	db, err := s.privateDBManager.GetOrInit(ctx, orgName, "")
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, orgName, projectSlug)
+	repo := infrrepo.NewSqlEndUserRepository(db, orgName, "")
 	user, err := repo.GetByID(ctx, orgName, userID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	if user == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, userID)
+	}
+	if !user.IsActive() {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
 	return metaUserToDTO(user.ID, user.Username, user.CreatedAt), nil
