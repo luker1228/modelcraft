@@ -149,3 +149,45 @@ Feature: 终端用户认证管理
     Then 终端用户应该删除成功
     When 使用该用户的 refresh token 刷新
     Then 返回终端用户错误码 "INVALID_REFRESH_TOKEN"
+
+  # ==================== findUsers / me GraphQL 查询 ====================
+
+  Scenario: 开发者通过 findUsers 查询终端用户列表
+    Given 已存在终端用户 "findusers_dev1"，密码 "Pass1234"
+    And 已存在终端用户 "findusers_dev2"，密码 "Pass1234"
+    When 开发者调用 findUsers 查询，take 为 20
+    Then findUsers 应该返回用户列表
+    And findUsers 结果中应包含用户名 "findusers_dev1"
+    And findUsers 结果中应包含用户名 "findusers_dev2"
+
+  Scenario: 终端用户通过 findUsers 查询用户列表
+    Given 已存在终端用户 "findusers_eu1"，密码 "Pass1234"
+    And 终端用户 "findusers_eu1" 已登录
+    When 终端用户调用 findUsers 查询，take 为 20
+    Then findUsers 应该返回用户列表
+    And findUsers 结果中应包含用户名 "findusers_eu1"
+
+  Scenario: 终端用户调用 me 查询获取自己信息
+    Given 已存在终端用户 "mequery_eu"，密码 "Pass1234"
+    And 终端用户 "mequery_eu" 已登录
+    When 终端用户调用 me 查询
+    Then me 查询应该返回用户信息
+    And me 查询返回的用户名应该是 "mequery_eu"
+
+  Scenario: 被禁用的终端用户调用 me 查询返回错误
+    Given 已存在并登录后被禁用的终端用户 "mequery_disabled2"
+    When 终端用户调用 me 查询
+    Then me 查询应该返回错误
+    And me 查询错误码应该包含 "ACCOUNT_DISABLED"
+
+  Scenario: 开发者调用 me 查询返回 INVALID_CALLER 错误
+    When 开发者调用 me 查询
+    Then me 查询应该返回错误
+    And me 查询错误码应该包含 "INVALID_CALLER"
+
+  Scenario: 终端用户无法调用 listProjectEndUsers（默认拒绝）
+    Given 已存在终端用户 "directive_eu"，密码 "Pass1234"
+    And 终端用户 "directive_eu" 已登录
+    When 终端用户调用 listProjectEndUsers 查询
+    Then 应该返回权限拒绝错误
+    And 错误码应该是 "PERMISSION_DENIED"

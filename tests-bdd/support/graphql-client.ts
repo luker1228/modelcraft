@@ -54,3 +54,17 @@ export class OrgGraphQLClient extends BaseGraphQLClient {
     this.setURL(`${API_BASE_URL}/graphql/org/${orgName}/`)
   }
 }
+
+// End-user scoped project GraphQL client
+// Hits /graphql/org/{orgName}/project/{projectSlug}/ but with end-user auth headers
+export class EndUserProjectGraphQLClient extends BaseGraphQLClient {
+  constructor(orgName: string, projectSlug: string) {
+    super(`${API_BASE_URL}/graphql/org/${orgName}/project/${projectSlug}/`)
+  }
+
+  setEndUserAuth(userId: string): void {
+    this.token = userId
+    this.client.setHeader('X-User-ID', userId)
+    this.client.setHeader('X-User-Type', 'end_user')
+  }
+}

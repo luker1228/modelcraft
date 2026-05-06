@@ -5,7 +5,7 @@ import { Given, When, Then } from '@cucumber/cucumber'
 import { expect } from 'expect'
 import { ModelCraftWorld } from '../support/world'
 import { EndUserRestClient, EndUserAuthResult, EndUserListResult } from '../support/end-user-rest-client'
-import { GraphQLClient as ProjectGraphQLClient } from '../support/graphql-client'
+import { GraphQLClient as ProjectGraphQLClient, EndUserProjectGraphQLClient } from '../support/graphql-client'
 
 // 每个 Scenario 的客户端实例
 let endUserClient: EndUserRestClient
@@ -776,4 +776,172 @@ Then('返回终端用户错误码 {string}', function (this: ModelCraftWorld, er
   const actualCode = lastError!.code
   const matches = actualCode === errorCode || actualCode.startsWith(`${errorCode}.`)
   expect(matches).toBe(true)
+})
+
+// ==================== findUsers / me GraphQL steps ====================
+
+let endUserGqlClient: EndUserProjectGraphQLClient | null = null
+let findUsersResult: Array<{ id: string; username: string }> | null = null
+let meQueryResult: { id: string; username: string } | null = null
+let meQueryError: string | null = null
+let listEndUsersGqlError: string | null = null
+
+const FIND_USERS_QUERY = `
+  query FindUsers($take: Int) {
+    findUsers(take: $take) {
+      items { id username }
+      reqId
+    }
+  }
+`
+
+const ME_QUERY = `
+  query Me {
+    me {
+      item { id username }
+      reqId
+    }
+  }
+`
+
+const LIST_PROJECT_END_USERS_QUERY = `
+  query ListProjectEndUsers {
+    listProjectEndUsers {
+      connection { nodes { id username } }
+      error { __typename }
+    }
+  }
+`
+
+When('开发者调用 findUsers 查询，take 为 {int}', async function (this: ModelCraftWorld, take: number) {
+  const client = ensureProjectGraphQLClient(this)
+  findUsersResult = null
+  try {
+    const result = await client.query<{ findUsers: { items: Array<{ id: string; username: string }> } }>(
+      FIND_USERS_QUERY,
+      { take }
+    )
+    findUsersResult = result.findUsers.items
+  } catch (e: unknown) {
+    findUsersResult = null
+    const err = e as { response?: { errors?: Array<{ message: string }> } }
+    lastError = err.response?.errors?.[0]
+      ? { code: 'GRAPHQL_ERROR', message: err.response.errors[0].message }
+      : { code: 'UNKNOWN', message: String(e) }
+  }
+})
+
+When('终端用户调用 findUsers 查询，take 为 {int}', async function (this: ModelCraftWorld, take: number) {
+  if (!this.currentEndUserId) throw new Error('终端用户未登录')
+  if (!this.endUserOrgName || !this.endUserProjectSlug) throw new Error('缺少 org/project 上下文')
+
+  endUserGqlClient = new EndUserProjectGraphQLClient(this.endUserOrgName, this.endUserProjectSlug)
+  endUserGqlClient.setEndUserAuth(this.currentEndUserId)
+  findUsersResult = null
+
+  try {
+    const result = await endUserGqlClient.query<{ findUsers: { items: Array<{ id: string; username: string }> } }>(
+      FIND_USERS_QUERY,
+      { take }
+    )
+    findUsersResult = result.findUsers.items
+  } catch (e: unknown) {
+    findUsersResult = null
+    const err = e as { response?: { errors?: Array<{ message: string }> } }
+    lastError = err.response?.errors?.[0]
+      ? { code: 'GRAPHQL_ERROR', message: err.response.errors[0].message }
+      : { code: 'UNKNOWN', message: String(e) }
+  }
+})
+
+Then('findUsers 应该返回用户列表', function () {
+  expect(findUsersResult).not.toBeNull()
+  expect(Array.isArray(findUsersResult)).toBe(true)
+})
+
+Then('findUsers 结果中应包含用户名 {string}', function (username: string) {
+  expect(findUsersResult).not.toBeNull()
+  const found = findUsersResult!.some((u) => u.username === username)
+  expect(found).toBe(true)
+})
+
+When('终端用户调用 me 查询', async function (this: ModelCraftWorld) {
+  if (!this.currentEndUserId) throw new Error('终端用户未登录')
+  if (!this.endUserOrgName || !this.endUserProjectSlug) throw new Error('缺少 org/project 上下文')
+
+  endUserGqlClient = new EndUserProjectGraphQLClient(this.endUserOrgName, this.endUserProjectSlug)
+  endUserGqlClient.setEndUserAuth(this.currentEndUserId)
+
+  meQueryResult = null
+  meQueryError = null
+
+  try {
+    const result = await endUserGqlClient.query<{ me: { item: { id: string; username: string } | null } }>(ME_QUERY)
+    meQueryResult = result.me.item
+  } catch (e: unknown) {
+    const err = e as { response?: { errors?: Array<{ extensions?: { code?: string }; message: string }> } }
+    const gqlErr = err.response?.errors?.[0]
+    meQueryError = gqlErr?.extensions?.code || gqlErr?.message || String(e)
+  }
+})
+
+When('开发者调用 me 查询', async function (this: ModelCraftWorld) {
+  const client = ensureProjectGraphQLClient(this)
+  meQueryResult = null
+  meQueryError = null
+
+  try {
+    const result = await client.query<{ me: { item: { id: string; username: string } | null } }>(ME_QUERY)
+    meQueryResult = result.me.item
+  } catch (e: unknown) {
+    const err = e as { response?: { errors?: Array<{ extensions?: { code?: string }; message: string }> } }
+    const gqlErr = err.response?.errors?.[0]
+    meQueryError = gqlErr?.extensions?.code || gqlErr?.message || String(e)
+  }
+})
+
+Then('me 查询应该返回用户信息', function () {
+  expect(meQueryError).toBeNull()
+  expect(meQueryResult).not.toBeNull()
+})
+
+Then('me 查询返回的用户名应该是 {string}', function (username: string) {
+  expect(meQueryResult).not.toBeNull()
+  expect(meQueryResult!.username).toBe(username)
+})
+
+Then('me 查询应该返回错误', function () {
+  expect(meQueryError).not.toBeNull()
+})
+
+Then('me 查询错误码应该包含 {string}', function (code: string) {
+  expect(meQueryError).not.toBeNull()
+  expect(meQueryError!).toContain(code)
+})
+
+When('终端用户调用 listProjectEndUsers 查询', async function (this: ModelCraftWorld) {
+  if (!this.currentEndUserId) throw new Error('终端用户未登录')
+  if (!this.endUserOrgName || !this.endUserProjectSlug) throw new Error('缺少 org/project 上下文')
+
+  endUserGqlClient = new EndUserProjectGraphQLClient(this.endUserOrgName, this.endUserProjectSlug)
+  endUserGqlClient.setEndUserAuth(this.currentEndUserId)
+  listEndUsersGqlError = null
+
+  try {
+    await endUserGqlClient.query(LIST_PROJECT_END_USERS_QUERY)
+    listEndUsersGqlError = null
+  } catch (e: unknown) {
+    const err = e as { response?: { errors?: Array<{ extensions?: { code?: string }; message: string }> } }
+    const gqlErr = err.response?.errors?.[0]
+    listEndUsersGqlError = gqlErr?.extensions?.code || gqlErr?.message || String(e)
+  }
+})
+
+Then('应该返回权限拒绝错误', function () {
+  expect(listEndUsersGqlError).not.toBeNull()
+})
+
+Then('错误码应该是 {string}', function (code: string) {
+  expect(listEndUsersGqlError).not.toBeNull()
+  expect(listEndUsersGqlError!).toContain(code)
 })
