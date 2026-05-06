@@ -168,60 +168,8 @@ export interface EndUserInfo {
 // EndUser v1 — Org 级登录类型
 // ============================================================
 
-/** v1 可访问的 Project */
+/** 可访问的 Project（登录响应和 Workspace 页面共用） */
 export interface EndUserAccessibleProject {
   slug: string
   title: string
-}
-
-/**
- * v1 BFF 登录响应（三种结果）
- * - singleProject: true  → 直接跳转，accessToken 已签发
- * - singleProject: false → 进入 select-project 页面
- * - noProjectAccess: true → 登录成功但暂无项目权限，进入待授权页
- * - error                 → 登录失败（凭证错误 / 账号禁用 / 参数错误）
- */
-export type EndUserLoginResponse =
-  | {
-      singleProject: true
-      projectSlug: string
-      accessToken: string
-    }
-  | {
-      singleProject: false
-      projects: EndUserAccessibleProject[]
-      noProjectAccess?: boolean
-      message?: string
-    }
-  | {
-      error: {
-        code: 'INVALID_CREDENTIALS' | 'ACCOUNT_DISABLED' | 'PARAM_INVALID'
-        message: string
-      }
-    }
-
-/** v1 BFF select-project 请求 */
-export interface EndUserSelectProjectRequest {
-  projectSlug: string
-}
-
-/** v1 BFF select-project 响应 */
-export interface EndUserSelectProjectResponse {
-  accessToken: string
-  projectSlug: string
-}
-
-/** v1 BFF select-project 错误 */
-export interface EndUserSelectProjectError {
-  error: {
-    code: 'PROJECT_ACCESS_DENIED' | 'PENDING_SESSION_INVALID' | 'PARAM_INVALID'
-    message: string
-  }
-}
-
-/** v1 pending session JWT payload（临时，不含 projectSlug） */
-export interface EndUserPendingSessionPayload {
-  userId: string
-  orgName: string
-  projects: EndUserAccessibleProject[]
 }
