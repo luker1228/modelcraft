@@ -83,8 +83,3 @@ func (rctx *graphqlRequestContext) getOrCreateLoader(
 	return l
 }
 
-// GetGraphqlRequestContextForTest exports the internal context accessor for testing only.
-// Production code uses getGraphqlRequestContext (unexported).
-func GetGraphqlRequestContextForTest(ctx context.Context) (*graphqlRequestContext, bool) {
-	return getGraphqlRequestContext(ctx)
-}
