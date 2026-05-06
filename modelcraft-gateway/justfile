@@ -5,6 +5,7 @@ set shell := ["bash", "-cu"]
 
 BINARY_NAME := "modelcraft-gateway"
 SERVER_PATH  := "./cmd/gateway"
+GATEWAY_PORT := "8090"
 
 # ========================
 # 🚀 开发
@@ -14,9 +15,67 @@ SERVER_PATH  := "./cmd/gateway"
 default:
     @just --list
 
-# 本地运行（需要 .env 文件）
-run:
-    LOG_OUTPUT_PATH="${LOG_OUTPUT_PATH:-log/server.log}" go run {{SERVER_PATH}}/...
+# 本地运行（需要 .env 文件）。Use --force to stop existing processes first.
+[doc("Run the gateway in background. Use --force or force=true to stop existing processes first")]
+run *FLAGS:
+    #!/usr/bin/env bash
+    FORCE_MODE=false
+    for arg in {{FLAGS}}; do
+        if [ "$arg" = "--force" ] || [ "$arg" = "force=true" ]; then
+            FORCE_MODE=true
+            break
+        fi
+    done
+
+    if [ "$FORCE_MODE" = "true" ]; then
+        echo "🔪 Force mode: Stopping existing processes..."
+        if lsof -ti:{{GATEWAY_PORT}} > /dev/null 2>&1; then
+            lsof -ti:{{GATEWAY_PORT}} | xargs kill -9 2>/dev/null || fuser -k {{GATEWAY_PORT}}/tcp 2>/dev/null
+            echo "✅ Stopped process on port {{GATEWAY_PORT}}"
+        fi
+        if pgrep -f "go run.*cmd/gateway" > /dev/null; then
+            pkill -9 -f "go run.*cmd/gateway"
+            echo "✅ Stopped go run processes"
+        fi
+        pkill -f "^{{BINARY_NAME}}" 2>/dev/null && echo "✅ Stopped {{BINARY_NAME}} binary" || true
+        sleep 1
+    fi
+
+    echo "🚀 Starting gateway..."
+    mkdir -p log
+    echo "📝 Log output: log/server.log"
+    nohup sh -c "LOG_OUTPUT_PATH=log/server.log go run {{SERVER_PATH}}/..." > log/server.log 2>&1 &
+    PID=$!
+    sleep 2
+    if kill -0 $PID 2>/dev/null; then
+        echo "✅ Gateway started in background"
+        echo "   PID: $PID"
+        echo "   Logs: tail -f log/server.log"
+        echo "   Or use: just logs"
+    else
+        echo "❌ Gateway failed to start. Check log/server.log"
+        exit 1
+    fi
+
+# 查看实时日志
+logs:
+    tail -f log/server.log
+
+# 停止网关
+stop:
+    #!/usr/bin/env bash
+    if lsof -ti:{{GATEWAY_PORT}} > /dev/null 2>&1; then
+        lsof -ti:{{GATEWAY_PORT}} | xargs kill -9 2>/dev/null || true
+        echo "✅ Stopped gateway on port {{GATEWAY_PORT}}"
+    else
+        echo "ℹ️  No gateway process on port {{GATEWAY_PORT}}"
+    fi
+
+# 重启网关
+restart:
+    just stop
+    sleep 1
+    just run
 
 # 编译二进制
 build:
