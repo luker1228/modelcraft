@@ -20,14 +20,14 @@ paths:
   # ========================
   # Auth Endpoints
   # ========================
-  /api/auth/register:
-    $ref: "auth.yaml#/paths/~1api~1auth~1register"
-  /api/auth/login:
-    $ref: "auth.yaml#/paths/~1api~1auth~1login"
-  /api/auth/logout:
-    $ref: "auth.yaml#/paths/~1api~1auth~1logout"
-  /api/auth/refresh:
-    $ref: "auth.yaml#/paths/~1api~1auth~1refresh"
+  /api/tenant/auth/register:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1register"
+  /api/tenant/auth/login:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1login"
+  /api/tenant/auth/logout:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1logout"
+  /api/tenant/auth/refresh:
+    $ref: "auth.yaml#/paths/~1api~1tenant~1auth~1refresh"
 
   # ========================
   # End-User Auth Endpoints

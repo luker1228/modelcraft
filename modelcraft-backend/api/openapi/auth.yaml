@@ -1,7 +1,7 @@
 # Auth Domain - paths + schemas
 
 paths:
-  /api/auth/register:
+  /api/tenant/auth/register:
     post:
       operationId: register
       summary: Register user and initialize profile atomically
@@ -41,7 +41,7 @@ paths:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
 
-  /api/auth/login:
+  /api/tenant/auth/login:
     post:
       operationId: login
       summary: Login with phone number and password
@@ -79,7 +79,7 @@ paths:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
 
-  /api/auth/logout:
+  /api/tenant/auth/logout:
     post:
       operationId: logout
       summary: Logout (revoke refresh token via httpOnly cookie)
@@ -89,7 +89,7 @@ paths:
         "204":
           description: Logout successful
 
-  /api/auth/refresh:
+  /api/tenant/auth/refresh:
     post:
       operationId: refreshToken
       summary: Refresh tokens using httpOnly cookie (rotation)
