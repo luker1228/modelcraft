@@ -105,7 +105,7 @@ function RoleBadges({ roles, maxVisible = 2 }: RoleBadgesProps) {
   const explicitRoles = roles.filter((r) => !r.isImplicit)
 
   if (explicitRoles.length === 0) {
-    return <span className="text-sm text-muted-foreground/60 italic">暂无角色</span>
+    return <span className="text-sm italic text-muted-foreground/60">暂无角色</span>
   }
 
   const visible = explicitRoles.slice(0, maxVisible)
@@ -145,7 +145,7 @@ function UserTableSkeleton() {
               <TableCell><Skeleton className="h-4 w-32" /></TableCell>
               <TableCell><Skeleton className="h-4 w-48" /></TableCell>
               <TableCell><Skeleton className="h-4 w-36" /></TableCell>
-              <TableCell className="text-right"><Skeleton className="h-7 w-16 ml-auto" /></TableCell>
+              <TableCell className="text-right"><Skeleton className="ml-auto h-7 w-16" /></TableCell>
             </TableRow>
           ))}
         </TableBody>
@@ -262,7 +262,7 @@ function RoleTab({
         ))}
 
         {implicitRoles.length === 0 && explicitAssigned.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-4">
+          <p className="py-4 text-center text-sm text-muted-foreground">
             该用户暂未分配任何角色
           </p>
         )}
@@ -341,11 +341,11 @@ function AssignBundleDialog({
 
         <div className="space-y-3 py-2">
           {availableBundles.length === 0 ? (
-            <p className="text-center text-sm text-muted-foreground py-4">
+            <p className="py-4 text-center text-sm text-muted-foreground">
               所有权限包已授权，无可添加项
             </p>
           ) : (
-            <div className="space-y-2 max-h-[300px] overflow-y-auto">
+            <div className="max-h-[300px] space-y-2 overflow-y-auto">
               {availableBundles.map((bundle) => (
                 <button
                   key={bundle.id}
@@ -456,7 +456,7 @@ function BundleTab({
         ))}
 
         {user.assignedBundles.length === 0 && (
-          <p className="text-center text-sm text-muted-foreground py-4">
+          <p className="py-4 text-center text-sm text-muted-foreground">
             该用户暂未直接授权任何权限包
           </p>
         )}
@@ -522,7 +522,7 @@ function ModelGrantGroup({ modelId, permissions }: ModelGrantGroupProps) {
       </button>
 
       {open && (
-        <div className="border-t border-border bg-muted/10 px-4 py-3 space-y-2">
+        <div className="space-y-2 border-t border-border bg-muted/10 px-4 py-3">
           {grants.length === 0 ? (
             <p className="text-xs text-muted-foreground">该模型无有效授权</p>
           ) : (

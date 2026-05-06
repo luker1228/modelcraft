@@ -426,7 +426,7 @@ function UserDetailSheet({
             <SheetTitle className="font-semibold">{user.username}</SheetTitle>
             <Badge
               variant={!user.isForbidden ? 'outline' : 'destructive'}
-              className={!user.isForbidden ? 'border-emerald-200 bg-emerald-50 text-emerald-700 text-xs' : 'text-xs'}
+              className={!user.isForbidden ? 'border-emerald-200 bg-emerald-50 text-xs text-emerald-700' : 'text-xs'}
             >
               {!user.isForbidden ? '正常' : '已禁用'}
             </Badge>
@@ -640,11 +640,11 @@ export function EndUserManagementTable({ orgName, projectSlug }: EndUserManageme
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[220px] px-3 font-semibold text-sm text-muted-foreground">用户</TableHead>
-                <TableHead className="px-3 font-semibold text-sm text-muted-foreground">账号状态</TableHead>
-                <TableHead className="px-3 font-semibold text-sm text-muted-foreground">项目权限</TableHead>
-                <TableHead className="px-3 font-semibold text-sm text-muted-foreground">加入时间</TableHead>
-                <TableHead className="w-[160px] px-3 text-right font-semibold text-sm text-muted-foreground">操作</TableHead>
+                <TableHead className="w-[220px] px-3 text-sm font-semibold text-muted-foreground">用户</TableHead>
+                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">账号状态</TableHead>
+                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">项目权限</TableHead>
+                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">加入时间</TableHead>
+                <TableHead className="w-[160px] px-3 text-right text-sm font-semibold text-muted-foreground">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

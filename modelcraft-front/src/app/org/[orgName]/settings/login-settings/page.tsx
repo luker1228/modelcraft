@@ -36,7 +36,7 @@ export default function OrgLoginSettingsPage() {
     <div className="space-y-6">
       {/* Toggle rows */}
       <div className="divide-y divide-border rounded-md border border-border">
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between p-4">
           <div className="space-y-0.5">
             <p className="text-sm font-medium text-foreground">启用终端用户登录</p>
             <p className="text-sm text-muted-foreground">
@@ -46,7 +46,7 @@ export default function OrgLoginSettingsPage() {
           <Switch checked={enabled} onCheckedChange={setEnabled} />
         </div>
 
-        <div className="flex items-center justify-between px-4 py-4">
+        <div className="flex items-center justify-between p-4">
           <div className="space-y-0.5">
             <p className="text-sm font-medium text-foreground">允许用户自助注册</p>
             <p className="text-sm text-muted-foreground">

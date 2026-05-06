@@ -107,7 +107,7 @@ function DefaultModePicker({ value, onChange }: DefaultModePickerProps) {
             value={mode}
             checked={value === mode}
             onChange={() => onChange(mode)}
-            className="size-3.5 accent-primary cursor-pointer"
+            className="size-3.5 cursor-pointer accent-primary"
           />
           {DEFAULT_MODE_LABELS[mode]}
         </label>
@@ -185,7 +185,7 @@ export function ColumnPolicyEditor({
     <div className="flex flex-col gap-4">
       {/* Default mode picker */}
       <div className="flex items-center gap-3 rounded-md border border-border bg-muted/30 px-4 py-3">
-        <span className="text-sm font-medium text-foreground shrink-0">默认模式：</span>
+        <span className="shrink-0 text-sm font-medium text-foreground">默认模式：</span>
         <DefaultModePicker value={value.defaultMode} onChange={handleDefaultModeChange} />
       </div>
 
@@ -193,7 +193,7 @@ export function ColumnPolicyEditor({
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[40%]">字段名</TableHead>
+            <TableHead className="w-2/5">字段名</TableHead>
             <TableHead>覆盖策略（留空 = 使用默认模式）</TableHead>
           </TableRow>
         </TableHeader>
@@ -256,7 +256,7 @@ export function ColumnPolicyEditor({
           {/* Empty state */}
           {fields.length === 0 && (
             <TableRow>
-              <TableCell colSpan={2} className="text-center text-muted-foreground py-6">
+              <TableCell colSpan={2} className="py-6 text-center text-muted-foreground">
                 暂无字段
               </TableCell>
             </TableRow>

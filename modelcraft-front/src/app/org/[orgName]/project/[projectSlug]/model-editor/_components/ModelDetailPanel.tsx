@@ -328,7 +328,7 @@ export function ModelDetailPanel({
                                       </span>
                                     )}
                                     {field.isDeprecated && (
-                                      <span className="inline-flex items-center rounded bg-warning/10 px-1.5 py-0.5 font-mono text-[11px] text-warning">
+                                      <span className="bg-warning/10 text-warning inline-flex items-center rounded px-1.5 py-0.5 font-mono text-[11px]">
                                         已废弃
                                       </span>
                                     )}
@@ -367,8 +367,8 @@ export function ModelDetailPanel({
                               </td>
                               <td className="px-3 py-2 text-center">
                                 {field.isPrimary ? (
-                                    <span className="inline-flex size-5 items-center justify-center rounded bg-warning/10">
-                                        <Key className="size-3 text-warning" />
+                                    <span className="bg-warning/10 inline-flex size-5 items-center justify-center rounded">
+                                        <Key className="text-warning size-3" />
                                       </span>
                                 ) : (
                                   <span className="text-muted-foreground/30">-</span>

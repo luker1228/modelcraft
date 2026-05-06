@@ -12,11 +12,11 @@ const badgeVariants = cva(
         default:
           "bg-primary/10 text-primary",
         secondary:
-          "bg-background text-muted-foreground border border-border",
+          "border border-border bg-background text-muted-foreground",
         destructive:
           "bg-destructive/10 text-destructive",
         outline:
-          "border border-border text-foreground bg-transparent",
+          "border border-border bg-transparent text-foreground",
         success:
           "bg-[rgba(5,150,105,0.08)] text-[#059669]",
         warning:

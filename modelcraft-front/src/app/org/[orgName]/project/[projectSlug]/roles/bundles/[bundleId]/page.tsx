@@ -752,7 +752,7 @@ function AddItemDialog({
             )}
 
             {/* Footer 固定在第三列底部 */}
-            <div className="shrink-0 border-t border-border px-4 py-3 flex items-center justify-end gap-2">
+            <div className="flex shrink-0 items-center justify-end gap-2 border-t border-border px-4 py-3">
               <Button variant="outline" size="sm" onClick={handleClose} disabled={submitting}>
                 取消
               </Button>
@@ -954,7 +954,7 @@ export default function BundleDetailPage() {
       {activeTab === 'strategies' && (
         <div className="rounded-md border border-border">
           <div className="flex items-center border-b border-border bg-muted/30 px-4 py-2.5">
-            <div className="flex items-center gap-2 ml-auto">
+            <div className="ml-auto flex items-center gap-2">
               {databaseOptions.length > 0 && (
                 <Select value={filterDatabase} onValueChange={setFilterDatabase}>
                   <SelectTrigger className="h-7 w-44 text-xs">
@@ -1043,14 +1043,14 @@ export default function BundleDetailPage() {
                     className="group flex items-center gap-4 px-4 py-3 hover:bg-foreground/[0.015]"
                   >
                     {/* Col 1: 数据库 */}
-                    <div className="w-36 shrink-0 min-w-0">
+                    <div className="w-36 min-w-0 shrink-0">
                       <p className="truncate font-mono text-xs text-foreground">
                         {item.databaseName ?? <span className="text-muted-foreground/40">—</span>}
                       </p>
                     </div>
 
                     {/* Col 2: 模型标识 */}
-                    <div className="w-40 shrink-0 min-w-0">
+                    <div className="w-40 min-w-0 shrink-0">
                       <p className="truncate font-mono text-xs text-foreground">
                         {item.modelName ?? <span className="text-muted-foreground/40">—</span>}
                       </p>
@@ -1064,7 +1064,7 @@ export default function BundleDetailPage() {
                     </div>
 
                     {/* Col 4: 创建时间 */}
-                    <div className="w-36 shrink-0 min-w-0">
+                    <div className="w-36 min-w-0 shrink-0">
                       <p className="truncate text-xs text-muted-foreground">
                         {formatTs(item.createdAt)}
                       </p>

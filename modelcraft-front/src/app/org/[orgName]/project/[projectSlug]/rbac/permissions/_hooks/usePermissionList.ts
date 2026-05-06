@@ -37,7 +37,10 @@ export function usePermissionList({
     refetchQueries: [GET_END_USER_PERMISSIONS],
   })
 
-  const allPermissions: EndUserPermission[] = data?.endUserPermissions?.edges?.map((edge: any) => edge.node) ?? []
+  const allPermissions = useMemo<EndUserPermission[]>(
+    () => data?.endUserPermissions?.edges?.map((edge: any) => edge.node) ?? [],
+    [data]
+  )
 
   // Group permissions by modelId
   const groupedPermissions = useMemo<Record<string, EndUserPermission[]>>(() => {

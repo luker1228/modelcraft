@@ -118,7 +118,7 @@ export function RowScopeSelector({
 
               {/* Text block */}
               <div className="flex flex-col gap-0.5">
-                <span className="text-sm font-medium text-foreground leading-none">
+                <span className="text-sm font-medium leading-none text-foreground">
                   {option.label}
                 </span>
                 <span className="text-sm text-muted-foreground">{option.description}</span>

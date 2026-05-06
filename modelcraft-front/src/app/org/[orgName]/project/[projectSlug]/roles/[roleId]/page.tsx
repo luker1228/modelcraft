@@ -201,7 +201,7 @@ function BundlesTab({ roleId, orgName, projectSlug }: BundlesTabProps) {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive"
+                      className="size-7 shrink-0 text-muted-foreground opacity-0 transition-opacity hover:text-destructive group-hover:opacity-100"
                       disabled={revokingId === bundle.id}
                       onClick={() => handleRevoke(bundle.id, bundle.name)}
                     >

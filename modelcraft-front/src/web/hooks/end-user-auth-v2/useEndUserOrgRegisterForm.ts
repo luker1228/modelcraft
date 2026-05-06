@@ -70,7 +70,7 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
   })
 
   const onSubmit = useCallback(
-    form.handleSubmit(async (values) => {
+    (e?: React.BaseSyntheticEvent) => form.handleSubmit(async (values) => {
       setIsLoading(true)
       setError(null)
 
@@ -104,7 +104,7 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
       } finally {
         setIsLoading(false)
       }
-    }),
+    })(e),
     [form, orgName, router]
   )
 

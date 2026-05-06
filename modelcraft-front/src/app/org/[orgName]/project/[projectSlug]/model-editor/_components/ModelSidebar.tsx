@@ -213,7 +213,7 @@ export function ModelSidebar({
                 </span>
 
                 {model.createdVia === 'IMPORTED' && (
-                  <span className="rounded border border-warning/30 bg-warning/10 px-1 py-0 text-[10px] text-warning">
+                  <span className="border-warning/30 bg-warning/10 text-warning rounded border px-1 py-0 text-[10px]">
                     托管
                   </span>
                 )}

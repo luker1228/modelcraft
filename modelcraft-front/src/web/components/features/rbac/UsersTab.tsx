@@ -111,7 +111,7 @@ function RoleBadges({ roles, maxVisible = 2 }: RoleBadgesProps) {
   const explicitRoles = roles.filter((r) => !r.isImplicit)
 
   if (explicitRoles.length === 0) {
-    return <span className="italic text-sm text-muted-foreground/60">暂无角色</span>
+    return <span className="text-sm italic text-muted-foreground/60">暂无角色</span>
   }
 
   const visible = explicitRoles.slice(0, maxVisible)

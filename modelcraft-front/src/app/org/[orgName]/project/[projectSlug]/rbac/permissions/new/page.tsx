@@ -374,7 +374,7 @@ export default function CreatePermissionPage() {
         </div>
 
         {/* Step content card */}
-        <div className="rounded-lg border border-border bg-card px-6 py-6 shadow-sm">
+        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
           {/* Step title */}
           <h2 className="mb-5 text-base font-semibold text-foreground">
             {state.step === 'model-action' && '选择模型与动作'}

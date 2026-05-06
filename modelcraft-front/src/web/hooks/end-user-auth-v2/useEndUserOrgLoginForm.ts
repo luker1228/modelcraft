@@ -86,7 +86,7 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
   })
 
   const onSubmit = useCallback(
-    form.handleSubmit(async (values) => {
+    (e?: React.BaseSyntheticEvent) => form.handleSubmit(async (values) => {
       setIsLoading(true)
       setError(null)
 
@@ -120,7 +120,7 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
       } finally {
         setIsLoading(false)
       }
-    }),
+    })(e),
     [form, orgName, router]
   )
 

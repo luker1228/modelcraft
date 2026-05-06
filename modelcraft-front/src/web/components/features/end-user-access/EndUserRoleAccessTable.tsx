@@ -131,7 +131,7 @@ interface RoleBadgeListProps {
 
 function RoleBadge({ role, onRevoke }: { role: RoleItem; onRevoke: (role: RoleItem) => void }) {
   return (
-    <Badge variant="secondary" className="flex items-center gap-1 pr-1 shrink-0">
+    <Badge variant="secondary" className="flex shrink-0 items-center gap-1 pr-1">
       <span className="max-w-[120px] truncate">{role.name}</span>
       <button
         type="button"
@@ -441,10 +441,10 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="px-3 font-semibold text-sm text-muted-foreground">用户名</TableHead>
-                <TableHead className="px-3 font-semibold text-sm text-muted-foreground">角色</TableHead>
-                <TableHead className="px-3 font-semibold text-sm text-muted-foreground">首次授权</TableHead>
-                <TableHead className="w-[120px] px-3 text-right font-semibold text-sm text-muted-foreground">操作</TableHead>
+                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">用户名</TableHead>
+                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">角色</TableHead>
+                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">首次授权</TableHead>
+                <TableHead className="w-[120px] px-3 text-right text-sm font-semibold text-muted-foreground">操作</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>

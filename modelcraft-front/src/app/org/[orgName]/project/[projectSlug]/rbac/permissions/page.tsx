@@ -91,7 +91,7 @@ function PermissionListSkeleton() {
   return (
     <div className="space-y-3">
       {Array.from({ length: 3 }).map((_, i) => (
-        <div key={i} className="rounded-md border p-4 space-y-2">
+        <div key={i} className="space-y-2 rounded-md border p-4">
           <Skeleton className="h-5 w-40" />
           <div className="space-y-2 pt-2">
             {Array.from({ length: 2 }).map((_, j) => (

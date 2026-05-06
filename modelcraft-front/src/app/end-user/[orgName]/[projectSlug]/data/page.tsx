@@ -321,7 +321,7 @@ export default function EndUserDataPage() {
             {accessibleProjects.length > 1 ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <button className="mt-1 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                  <button className="mt-1 flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
                     <span>{orgName} / {projectSlug}</span>
                     <ChevronDown className="size-3.5" />
                   </button>
