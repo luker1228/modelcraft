@@ -9,6 +9,7 @@ import (
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/database/dml"
 	"modelcraft/internal/infrastructure/repository"
+	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
@@ -92,7 +93,8 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 
 	// 将请求级状态（clientRepo、dataloader map）注入 context，
 	// 所有 resolver 闭包通过 p.Context 读取，与 Schema 类型结构完全解耦。
-	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug)
+	endUserID := middleware.GetEndUserID(ctx)
+	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug, endUserID)
 
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{

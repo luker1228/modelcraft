@@ -146,3 +146,13 @@ func GetEndUserID(ctx context.Context) string {
 	}
 	return identity.EndUserID
 }
+
+// WithEndUserIDForTest injects endUserID directly into context for testing only.
+// Must not be used in production code.
+func WithEndUserIDForTest(ctx context.Context, endUserID string) context.Context {
+	identity := &EndUserIdentity{
+		EndUserID: endUserID,
+		Issuer:    issuerPlatform,
+	}
+	return context.WithValue(ctx, endUserContextKey, identity)
+}

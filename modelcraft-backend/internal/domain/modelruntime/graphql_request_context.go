@@ -21,18 +21,25 @@ type graphqlRequestContext struct {
 	OrgName string
 	// ProjectSlug 是请求的项目标识
 	ProjectSlug string
+	// CurrentEndUserID 是当前请求的 EndUser ID（从 JWT 提取）。
+	// 为空字符串表示请求来自 tenant admin（无 EndUser 身份）。
+	CurrentEndUserID string
 }
 
 // graphqlRequestContextKey 是 graphqlRequestContext 在 context 中的 key 类型。
 type graphqlRequestContextKey struct{}
 
 // newGraphqlRequestContext 创建一个新的请求级上下文。
-func newGraphqlRequestContext(clientRepo ClientDatabaseRepository, orgName, projectSlug string) *graphqlRequestContext {
+func newGraphqlRequestContext(
+	clientRepo ClientDatabaseRepository,
+	orgName, projectSlug, currentEndUserID string,
+) *graphqlRequestContext {
 	return &graphqlRequestContext{
-		ClientRepo:      clientRepo,
-		relationLoaders: make(map[string]*dataloader.Loader[string, map[string]any]),
-		OrgName:         orgName,
-		ProjectSlug:     projectSlug,
+		ClientRepo:       clientRepo,
+		relationLoaders:  make(map[string]*dataloader.Loader[string, map[string]any]),
+		OrgName:          orgName,
+		ProjectSlug:      projectSlug,
+		CurrentEndUserID: currentEndUserID,
 	}
 }
 
@@ -41,9 +48,9 @@ func newGraphqlRequestContext(clientRepo ClientDatabaseRepository, orgName, proj
 func WithGraphqlRequestContext(
 	ctx context.Context,
 	clientRepo ClientDatabaseRepository,
-	orgName, projectSlug string,
+	orgName, projectSlug, currentEndUserID string,
 ) context.Context {
-	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug)
+	rctx := newGraphqlRequestContext(clientRepo, orgName, projectSlug, currentEndUserID)
 	return context.WithValue(ctx, graphqlRequestContextKey{}, rctx)
 }
 

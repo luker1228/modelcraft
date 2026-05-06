@@ -1260,6 +1260,21 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 			}
 		}
 	}
+
+	// EndUser side: force-inject owner from JWT to prevent client spoofing.
+	// Only inject if the model actually has an END_USER_REF field (prevents
+	// accidentally clobbering a user-defined field named "owner" on models
+	// that do not use the END_USER_REF system field).
+	// Tenant admin side (no EndUser identity in context): use payload value as-is.
+	if rctx.CurrentEndUserID != "" {
+		for _, field := range m.model.Fields {
+			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
+				input.Data[field.Name] = rctx.CurrentEndUserID
+				break
+			}
+		}
+	}
+
 	input.Id = cast.ToString(input.Data[FieldID])
 
 	id, err := rctx.ClientRepo.CreateOne(p.Context, input)
@@ -1464,6 +1479,16 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 						return nil, err
 					}
 					dataItem[field.Name] = uuidv7
+				}
+			}
+		}
+		// EndUser side: force-inject owner field (END_USER_REF) to prevent client spoofing.
+		// Only applies if the model has an END_USER_REF field and an EndUser is authenticated.
+		if rctx.CurrentEndUserID != "" {
+			for _, field := range m.model.Fields {
+				if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
+					dataItem[field.Name] = rctx.CurrentEndUserID
+					break
 				}
 			}
 		}
