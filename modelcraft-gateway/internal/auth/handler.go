@@ -39,7 +39,7 @@ func NewHandler(authSvc *Service, backendURL string, httpClient *http.Client, in
 // Login proxies the request body to the backend, extracts refreshToken from the
 // response into an httpOnly cookie, then forwards the remaining fields to the browser.
 func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
-	raw, err := h.postBackendRaw(r.Context(), "/api/auth/login", r.Body)
+	raw, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/login", r.Body)
 	if err != nil {
 		proxyBackendError(w, err)
 		return
@@ -57,7 +57,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if _, err = h.postBackendRaw(r.Context(), "/api/auth/register", bytes.NewReader(body)); err != nil {
+	if _, err = h.postBackendRaw(r.Context(), "/api/tenant/auth/register", bytes.NewReader(body)); err != nil {
 		proxyBackendError(w, err)
 		return
 	}
@@ -78,7 +78,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		"identifierType": "USERNAME",
 		"password":       req.Password,
 	})
-	loginRaw, err := h.postBackendRaw(r.Context(), "/api/auth/login", bytes.NewReader(loginBody))
+	loginRaw, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/login", bytes.NewReader(loginBody))
 	if err != nil {
 		writeJSON(w, http.StatusCreated, map[string]string{"message": "registered, please login"})
 		return
@@ -97,7 +97,7 @@ func (h *Handler) Refresh(w http.ResponseWriter, r *http.Request) {
 	}
 
 	reqBody, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
-	raw, err := h.postBackendRaw(r.Context(), "/api/auth/refresh", bytes.NewReader(reqBody))
+	raw, err := h.postBackendRaw(r.Context(), "/api/tenant/auth/refresh", bytes.NewReader(reqBody))
 	if err != nil {
 		h.authService.ClearRefreshCookie(w)
 		writeError(w, http.StatusUnauthorized, "REFRESH_INVALID", "invalid or expired refresh token")
@@ -112,7 +112,7 @@ func (h *Handler) Logout(w http.ResponseWriter, r *http.Request) {
 	refreshToken, _ := h.authService.GetRefreshCookie(r)
 	if refreshToken != "" {
 		reqBody, _ := json.Marshal(map[string]string{"refreshToken": refreshToken})
-		_, _ = h.postBackendRaw(r.Context(), "/api/auth/logout", bytes.NewReader(reqBody))
+		_, _ = h.postBackendRaw(r.Context(), "/api/tenant/auth/logout", bytes.NewReader(reqBody))
 	}
 
 	h.authService.ClearRefreshCookie(w)

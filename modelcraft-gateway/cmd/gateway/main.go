@@ -83,8 +83,8 @@ func main() {
 	r.Use(chiMiddleware.Recoverer)
 	r.Use(middleware.RequestLogger(logger))
 
-	// Auth endpoints — no JWT required.
-	r.Route("/auth", func(r chi.Router) {
+	// Tenant auth endpoints — no JWT required.
+	r.Route("/api/tenant/auth", func(r chi.Router) {
 		r.Post("/login", authHandler.Login)
 		r.Post("/register", authHandler.Register)
 		r.Post("/refresh", authHandler.Refresh)
