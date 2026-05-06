@@ -153,10 +153,10 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 	// they carry end-user HMAC JWTs (endUserClaims) which are validated inside each
 	// handler. Applying the design-time ChiJWTAuthMiddleware here would always fail.
 	publicPaths := map[string]bool{
-		"/api/auth/register": true,
-		"/api/auth/login":    true,
-		"/api/auth/logout":   true,
-		"/api/auth/refresh":  true,
+		"/api/tenant/auth/register": true,
+		"/api/tenant/auth/login":    true,
+		"/api/tenant/auth/logout":   true,
+		"/api/tenant/auth/refresh":  true,
 		// End-user auth: all routes use their own in-handler JWT validation
 		"/api/end-user/auth/login":          true,
 		"/api/end-user/auth/register":       true,
