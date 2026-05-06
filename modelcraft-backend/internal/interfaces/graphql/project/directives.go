@@ -6,7 +6,6 @@ import (
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"strings"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/vektah/gqlparser/v2/gqlerror"
@@ -28,11 +27,13 @@ func NewHasPermissionDirective(userRoleService *appPermission.UserRoleService) *
 
 // HasPermission checks if the user has the required permission before executing the field resolver
 // Optimized to prioritize JWT claims (context permissions) over database queries for better performance.
+// allowEndUser: when true, EndUser callers bypass RBAC checks entirely for this operation.
 func (d *HasPermissionDirective) HasPermission(
 	ctx context.Context,
 	obj interface{},
 	next graphql.Resolver,
 	action string,
+	allowEndUser bool,
 ) (interface{}, error) {
 	logger := logfacade.GetLogger(ctx)
 
@@ -48,10 +49,14 @@ func (d *HasPermissionDirective) HasPermission(
 		return nil, newGQLError("Invalid permission directive configuration", "INVALID_DIRECTIVE")
 	}
 
-	// EndUser callers are granted all read actions without RBAC checks.
-	// Write/delete actions still require explicit permission.
-	if ctxutils.IsEndUser(ctx) && isReadAction(action) {
-		logger.Infof(ctx, "@hasPermission directive: end-user read access granted user=%s action=%s",
+	// End-user callers: default-deny. Only operations explicitly marked allowEndUser=true are accessible.
+	if ctxutils.IsEndUser(ctx) {
+		if !allowEndUser {
+			logger.Infof(ctx, "@hasPermission directive: end-user access denied (allowEndUser=false) user=%s action=%s",
+				userID, action)
+			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-default-deny")
+		}
+		logger.Infof(ctx, "@hasPermission directive: end-user access granted (allowEndUser=true) user=%s action=%s",
 			userID, action)
 		return next(ctx)
 	}
@@ -67,11 +72,6 @@ func (d *HasPermissionDirective) HasPermission(
 
 	// FALLBACK: Query database if permissions not in context
 	return d.checkDatabasePermission(ctx, next, logger, userID, orgName, action)
-}
-
-// isReadAction returns true for actions that are read-only (ending in ":read" or ":list").
-func isReadAction(action string) bool {
-	return strings.HasSuffix(action, ":read") || strings.HasSuffix(action, ":list")
 }
 
 // validateContext extracts and validates user ID and organization from context
