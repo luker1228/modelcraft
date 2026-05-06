@@ -6,7 +6,7 @@ import validator from '@rjsf/validator-ajv8'
 import type { RJSFSchema, UiSchema } from '@rjsf/utils'
 import { buildUiSchema } from './build-ui-schema'
 import { filterJsonSchemaForForm } from './filter-json-schema-for-form'
-import { EnumSelect, EnumSchemaSelect, RelationSelector } from './widgets'
+import { EnumSelect, EnumSchemaSelect, RelationSelector, EndUserSelectorWidget } from './widgets'
 import { OneToManyRelationManagerSection } from './OneToManyRelationManagerSection'
 import { FieldTemplate, BaseInputTemplate, ObjectFieldTemplate } from './templates'
 import { Button } from '@web/components/ui/button'
@@ -32,6 +32,7 @@ const customWidgets = {
   EnumSelect,
   EnumSchemaSelect,
   RelationSelector,
+  EndUserSelectorWidget,
 }
 
 const customTemplates = {
