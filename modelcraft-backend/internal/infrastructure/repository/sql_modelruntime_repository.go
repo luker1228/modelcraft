@@ -127,6 +127,7 @@ func DbgenModelToRuntimeModel(row dbgen.Model) *modelruntime.RuntimeModel {
 		displayField = &row.DisplayField.String
 	}
 	return &modelruntime.RuntimeModel{
+		ID:           row.ID,
 		OrgName:      row.OrgName,
 		ProjectSlug:  row.ProjectSlug,
 		Name:         row.Name,

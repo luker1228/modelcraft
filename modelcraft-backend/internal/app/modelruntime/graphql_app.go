@@ -25,6 +25,7 @@ import (
 type GraphqlAppService struct {
 	modelRepo            modelruntime.ModelRepository
 	graphqlSchemaManager *modelruntime.GraphqlSchemaManager
+	permService          modelruntime.EndUserPermissionService
 }
 
 // GetSchema 获取或构建 GraphQL Schema。
@@ -91,8 +92,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	}
 	clientRepo := dml.NewClientDB(clientSqlDB)
 
-	// 将请求级状态（clientRepo、dataloader map）注入 context，
-	// 所有 resolver 闭包通过 p.Context 读取，与 Schema 类型结构完全解耦。
+	// 提取 endUserID。
 	// Runtime 只认 ctxutils 注入的身份上下文：
 	// - end-user: X-User-Type=end_user + X-User-ID
 	// - tenant: 无 end-user 身份（endUserID 为空）
@@ -102,7 +102,27 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 			endUserID = uid
 		}
 	}
-	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug, endUserID, nil)
+
+	// 解析 end-user 权限快照。
+	// 仅 end-user 请求需要查权限（endUserID != ""），tenant admin 时 permService 返回 nil。
+	// 需要 model.ID，因此单独加载 model（GetSchema 内部缓存 schema，此处只取 ID）。
+	var endUserPerms *modelruntime.ResolvedModelPermissions
+	if endUserID != "" {
+		model, err := s.modelRepo.GetByName(ctx, modelLocator)
+		if err != nil {
+			logger.Errorf(ctx, "get model for permission resolve fail: %v", err)
+			return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
+		}
+		if model != nil {
+			endUserPerms, err = s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
+			if err != nil {
+				logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
+				return nil, fmt.Errorf("解析权限失败")
+			}
+		}
+	}
+
+	reqCtx := modelruntime.WithGraphqlRequestContext(ctx, clientRepo, orgName, projectSlug, endUserID, endUserPerms)
 
 	// 执行GraphQL查询
 	result := graphql.Do(graphql.Params{
@@ -175,10 +195,12 @@ func isMutationOperation(query, operationName string) (bool, error) {
 func NewGraphqlAppService(
 	modelRepo modelruntime.ModelRepository,
 	lfkRepo modeldesign.LogicalForeignKeyRepository,
+	permService modelruntime.EndUserPermissionService,
 ) *GraphqlAppService {
 	schemaManager := modelruntime.NewGraphqlSchemaManager(modelRepo, lfkRepo)
 	return &GraphqlAppService{
 		modelRepo:            modelRepo,
 		graphqlSchemaManager: schemaManager,
+		permService:          permService,
 	}
 }

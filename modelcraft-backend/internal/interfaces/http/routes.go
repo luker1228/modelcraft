@@ -590,11 +590,10 @@ type RuntimeHandlers struct {
 func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 	modelRuntimeRepo := repository.NewSqlModelRuntimeRepository(loggingDB)
 	lfkRepo := repository.NewSqlLogicalForeignKeyRepository(loggingDB)
-	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo)
+	permRepo := repository.NewSqlEndUserDataPermissionRepository(loggingDB)
+	permService := modelruntime.NewEndUserPermissionService(permRepo)
+	graphqlAppService := modelruntime.NewGraphqlAppService(modelRuntimeRepo, lfkRepo, permService)
 	handler := runtimeHandler.NewModelRuntimeHandler(graphqlAppService)
-	// TODO: Create and wire RLSResolver with policy repository
-	// rlsPolicyRepo := repository.NewSqlModelRLSPolicyRepository(loggingDB)
-	// rlsResolver := runtimeHandler.NewRLSResolver(logfacade.GetLogger(), rlsPolicyRepo)
 	return &RuntimeHandlers{ModelRuntimeHandler: handler}
 }
 
