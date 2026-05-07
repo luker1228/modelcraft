@@ -46,6 +46,7 @@ export default function CreateOrgPage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [generatedSlug, setGeneratedSlug] = useState("");
+  const [endUserAdminPassword, setEndUserAdminPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -75,6 +76,11 @@ export default function CreateOrgPage() {
       return;
     }
 
+    if (!endUserAdminPassword.trim()) {
+      setError("用户端管理员密码不能为空");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -100,6 +106,7 @@ export default function CreateOrgPage() {
         body: JSON.stringify({
           displayName: displayName.trim(),
           organizationName: generatedSlug,
+          endUserAdminPassword: endUserAdminPassword,
         }),
       });
 
@@ -205,6 +212,25 @@ export default function CreateOrgPage() {
                   </div>
                 )}
 
+                {/* End-User Admin Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="endUserAdminPassword">
+                    用户端管理员密码 <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    id="endUserAdminPassword"
+                    type="password"
+                    placeholder="至少 8 位，包含字母和数字"
+                    value={endUserAdminPassword}
+                    onChange={(e) => setEndUserAdminPassword(e.target.value)}
+                    disabled={loading}
+                    className="text-base"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    将作为用户端 admin 账号的初始密码，可与您的登录密码相同
+                  </p>
+                </div>
+
                 {/* Error Alert */}
                 {error && (
                   <Alert variant="destructive">
@@ -217,7 +243,7 @@ export default function CreateOrgPage() {
                 <Button
                   type="submit"
                   className="w-full bg-primary hover:bg-primary/90"
-                  disabled={loading || !displayName.trim()}
+                  disabled={loading || !displayName.trim() || !endUserAdminPassword.trim()}
                 >
                   {loading ? (
                     <>
