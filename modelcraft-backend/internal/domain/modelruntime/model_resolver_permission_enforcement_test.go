@@ -51,12 +51,12 @@ func (r *fullCapturingRepo) DeleteOne(_ context.Context, input *DeleteOneInput) 
 	return map[string]any{"id": "x"}, nil
 }
 
-func (r *fullCapturingRepo) UpdateMany(_ context.Context, input *UpdateManyInput) (interface{}, error) {
+func (r *fullCapturingRepo) UpdateMany(_ context.Context, input *UpdateManyInput) (any, error) {
 	r.capturedUpdateManyWhere = input.Where
 	return map[string]any{"count": 1}, nil
 }
 
-func (r *fullCapturingRepo) DeleteMany(_ context.Context, input *DeleteManyInput) (interface{}, error) {
+func (r *fullCapturingRepo) DeleteMany(_ context.Context, input *DeleteManyInput) (any, error) {
 	r.capturedDeleteManyWhere = input.Where
 	return map[string]any{"count": 1}, nil
 }
@@ -196,7 +196,6 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 	}
 
 	for _, op := range operations {
-		op := op
 		t.Run(op.name, func(t *testing.T) {
 			repo := &fullCapturingRepo{}
 			ctx := WithGraphqlRequestContext(
@@ -276,7 +275,6 @@ func TestPermissionEnforcement_ActionGate_TenantAdmin(t *testing.T) {
 	}
 
 	for _, op := range operations {
-		op := op
 		t.Run(op.name, func(t *testing.T) {
 			repo := &fullCapturingRepo{}
 			// nil EndUserPerms = tenant admin
