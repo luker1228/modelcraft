@@ -27,15 +27,13 @@ export const MODEL_DATABASE_CATALOG_END_USER = gql`
 export const MODEL_CATALOG_END_USER = gql`
   query ModelCatalogEndUser($input: ModelQueryInput!) {
     models(input: $input) {
-      edges {
-        node {
-          id
-          name
-          title
-          databaseName
-        }
+      items {
+        id
+        name
+        title
+        databaseName
       }
-      totalCount
+      hasNextPage
     }
   }
 `

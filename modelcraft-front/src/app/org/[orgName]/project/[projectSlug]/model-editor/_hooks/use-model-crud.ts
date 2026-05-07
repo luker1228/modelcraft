@@ -111,7 +111,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     variables: {
       input: {
         databaseName: state.selectedDatabase,
-        limit: 100,
+        pageSize: 100,
       },
     },
     skip: !projectSlug || !state.selectedDatabase || state.connectionChecking || state.connectionFailed,
@@ -119,8 +119,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   })
 
   const models: EditorModel[] = useMemo(() => {
-    if (!modelsData?.models?.edges) return []
-    return modelsData.models.edges.map((edge) => edge.node)
+    return modelsData?.models?.items ?? []
   }, [modelsData])
 
   useEffect(() => {
@@ -156,13 +155,13 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
           variables: {
             input: {
               databaseName,
-              limit: 100,
+              pageSize: 100,
             },
           },
           fetchPolicy: 'network-only',
         })
 
-        const modelsInDatabase = result.data?.models?.edges?.map((edge) => edge.node) ?? []
+        const modelsInDatabase: EditorModel[] = result.data?.models?.items ?? []
         setRelationModelsCache((prev) => ({ ...prev, [databaseName]: modelsInDatabase }))
         setRelationModelsLoaded((prev) => ({ ...prev, [databaseName]: true }))
       } catch {

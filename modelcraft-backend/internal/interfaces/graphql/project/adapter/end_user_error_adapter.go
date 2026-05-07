@@ -83,20 +83,3 @@ func (a *EndUserErrorAdapter) ConvertToDeleteError(err *bizerrors.BusinessError)
 		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 	}
 }
-
-// ConvertToListError converts business error to ListProjectEndUsersError union type.
-func (a *EndUserErrorAdapter) ConvertToListError(err *bizerrors.BusinessError) generated.ListProjectEndUsersError {
-	if err == nil {
-		return nil
-	}
-
-	switch err.Info().GetCode() {
-	case bizerrors.EndUserClusterNotConfigured.GetCode(), bizerrors.ClusterNotFound.GetCode():
-		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
-	case bizerrors.ProjectNotFound.GetCode():
-		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeProject}
-	default:
-		a.logger.Errorf(a.ctx, "unknown list end-users error code: %s", err.Info().GetCode())
-		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeCluster}
-	}
-}

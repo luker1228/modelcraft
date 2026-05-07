@@ -361,12 +361,6 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	EndUserConnection struct {
-		Nodes      func(childComplexity int) int
-		PageInfo   func(childComplexity int) int
-		TotalCount func(childComplexity int) int
-	}
-
 	EndUserImplicitRoleCannotBeModified struct {
 		Message    func(childComplexity int) int
 		Suggestion func(childComplexity int) int
@@ -671,11 +665,6 @@ type ComplexityRoot struct {
 		Error      func(childComplexity int) int
 	}
 
-	ListProjectEndUsersPayload struct {
-		Connection func(childComplexity int) int
-		Error      func(childComplexity int) int
-	}
-
 	LogicalForeignKey struct {
 		Direction    func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -713,22 +702,11 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
-	ModelConnection struct {
-		Edges      func(childComplexity int) int
-		PageInfo   func(childComplexity int) int
-		TotalCount func(childComplexity int) int
-	}
-
 	ModelDatabaseCatalogPayload struct {
 		Databases  func(childComplexity int) int
 		Page       func(childComplexity int) int
 		PageSize   func(childComplexity int) int
 		TotalCount func(childComplexity int) int
-	}
-
-	ModelEdge struct {
-		Cursor func(childComplexity int) int
-		Node   func(childComplexity int) int
 	}
 
 	ModelGroup struct {
@@ -748,6 +726,11 @@ type ComplexityRoot struct {
 		ModelID   func(childComplexity int) int
 		ModelName func(childComplexity int) int
 		Schema    func(childComplexity int) int
+	}
+
+	ModelListResult struct {
+		HasNextPage func(childComplexity int) int
+		Items       func(childComplexity int) int
 	}
 
 	ModelRLSPolicy struct {
@@ -879,7 +862,6 @@ type ComplexityRoot struct {
 		Hello                         func(childComplexity int) int
 		ListDatabases                 func(childComplexity int, input ListDatabasesInput) int
 		ListProjectEndUserRoleUsers   func(childComplexity int, input *ListProjectEndUserRoleUsersInput) int
-		ListProjectEndUsers           func(childComplexity int, input *ListProjectEndUsersInput) int
 		ListTables                    func(childComplexity int, input ListTablesInput) int
 		LogicalForeignKeys            func(childComplexity int, modelID string) int
 		Model                         func(childComplexity int, id string, withActualSchema *bool) int
@@ -1145,14 +1127,13 @@ type QueryResolver interface {
 	DatabaseCluster(ctx context.Context) (*GetClusterPayload, error)
 	ListDatabases(ctx context.Context, input ListDatabasesInput) (*DatabaseConnection, error)
 	ListTables(ctx context.Context, input ListTablesInput) (*TableListConnection, error)
-	ListProjectEndUsers(ctx context.Context, input *ListProjectEndUsersInput) (*ListProjectEndUsersPayload, error)
 	Enum(ctx context.Context, name string) (*GetEnumPayload, error)
 	Enums(ctx context.Context) ([]*EnumDefinition, error)
 	EnumReferences(ctx context.Context, name string) ([]string, error)
 	Fields(ctx context.Context, modelID string) ([]*Field, error)
 	LogicalForeignKeys(ctx context.Context, modelID string) ([]*LogicalForeignKey, error)
 	Model(ctx context.Context, id string, withActualSchema *bool) (*GetModelPayload, error)
-	Models(ctx context.Context, input *ModelQueryInput) (*ModelConnection, error)
+	Models(ctx context.Context, input *ModelQueryInput) (*ModelListResult, error)
 	ModelByName(ctx context.Context, name string, databaseName string) (*GetModelPayload, error)
 	ModelJSONSchema(ctx context.Context, id string) (*ModelJSONSchema, error)
 	ModelGroups(ctx context.Context) ([]*ModelGroup, error)
@@ -2139,25 +2120,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserCannotAssignImplicitRole.Suggestion(childComplexity), true
-
-	case "EndUserConnection.nodes":
-		if e.complexity.EndUserConnection.Nodes == nil {
-			break
-		}
-
-		return e.complexity.EndUserConnection.Nodes(childComplexity), true
-	case "EndUserConnection.pageInfo":
-		if e.complexity.EndUserConnection.PageInfo == nil {
-			break
-		}
-
-		return e.complexity.EndUserConnection.PageInfo(childComplexity), true
-	case "EndUserConnection.totalCount":
-		if e.complexity.EndUserConnection.TotalCount == nil {
-			break
-		}
-
-		return e.complexity.EndUserConnection.TotalCount(childComplexity), true
 
 	case "EndUserImplicitRoleCannotBeModified.message":
 		if e.complexity.EndUserImplicitRoleCannotBeModified.Message == nil {
@@ -3167,19 +3129,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ListProjectEndUserRoleUsersPayload.Error(childComplexity), true
 
-	case "ListProjectEndUsersPayload.connection":
-		if e.complexity.ListProjectEndUsersPayload.Connection == nil {
-			break
-		}
-
-		return e.complexity.ListProjectEndUsersPayload.Connection(childComplexity), true
-	case "ListProjectEndUsersPayload.error":
-		if e.complexity.ListProjectEndUsersPayload.Error == nil {
-			break
-		}
-
-		return e.complexity.ListProjectEndUsersPayload.Error(childComplexity), true
-
 	case "LogicalForeignKey.direction":
 		if e.complexity.LogicalForeignKey.Direction == nil {
 			break
@@ -3351,25 +3300,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ModelAlreadyExists.Suggestion(childComplexity), true
 
-	case "ModelConnection.edges":
-		if e.complexity.ModelConnection.Edges == nil {
-			break
-		}
-
-		return e.complexity.ModelConnection.Edges(childComplexity), true
-	case "ModelConnection.pageInfo":
-		if e.complexity.ModelConnection.PageInfo == nil {
-			break
-		}
-
-		return e.complexity.ModelConnection.PageInfo(childComplexity), true
-	case "ModelConnection.totalCount":
-		if e.complexity.ModelConnection.TotalCount == nil {
-			break
-		}
-
-		return e.complexity.ModelConnection.TotalCount(childComplexity), true
-
 	case "ModelDatabaseCatalogPayload.databases":
 		if e.complexity.ModelDatabaseCatalogPayload.Databases == nil {
 			break
@@ -3394,19 +3324,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelDatabaseCatalogPayload.TotalCount(childComplexity), true
-
-	case "ModelEdge.cursor":
-		if e.complexity.ModelEdge.Cursor == nil {
-			break
-		}
-
-		return e.complexity.ModelEdge.Cursor(childComplexity), true
-	case "ModelEdge.node":
-		if e.complexity.ModelEdge.Node == nil {
-			break
-		}
-
-		return e.complexity.ModelEdge.Node(childComplexity), true
 
 	case "ModelGroup.displayOrder":
 		if e.complexity.ModelGroup.DisplayOrder == nil {
@@ -3470,6 +3387,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.ModelJsonSchema.Schema(childComplexity), true
+
+	case "ModelListResult.hasNextPage":
+		if e.complexity.ModelListResult.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.ModelListResult.HasNextPage(childComplexity), true
+	case "ModelListResult.items":
+		if e.complexity.ModelListResult.Items == nil {
+			break
+		}
+
+		return e.complexity.ModelListResult.Items(childComplexity), true
 
 	case "ModelRLSPolicy.createdAt":
 		if e.complexity.ModelRLSPolicy.CreatedAt == nil {
@@ -4394,17 +4324,6 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ListProjectEndUserRoleUsers(childComplexity, args["input"].(*ListProjectEndUserRoleUsersInput)), true
-	case "Query.listProjectEndUsers":
-		if e.complexity.Query.ListProjectEndUsers == nil {
-			break
-		}
-
-		args, err := ec.field_Query_listProjectEndUsers_args(ctx, rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Query.ListProjectEndUsers(childComplexity, args["input"].(*ListProjectEndUsersInput)), true
 	case "Query.listTables":
 		if e.complexity.Query.ListTables == nil {
 			break
@@ -5124,7 +5043,6 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputListEndUserPermissionsInput,
 		ec.unmarshalInputListEndUserRolesInput,
 		ec.unmarshalInputListProjectEndUserRoleUsersInput,
-		ec.unmarshalInputListProjectEndUsersInput,
 		ec.unmarshalInputListTablesInput,
 		ec.unmarshalInputModelDatabaseCatalogInput,
 		ec.unmarshalInputModelQueryInput,
@@ -5561,7 +5479,6 @@ type EndUserPasswordTooWeak implements Error {
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ResourceNotFound | InvalidInput
 union UpdateEndUserError = ResourceNotFound | InvalidInput
 union DeleteEndUserError = ResourceNotFound
-union ListProjectEndUsersError = ResourceNotFound
 
 # InitPrivateDBError indicates private DB initialization failures.
 type InitPrivateDBError implements Error {
@@ -5583,12 +5500,6 @@ type EndUser implements Node {
   updatedAt: Time!
 }
 
-type EndUserConnection {
-  nodes: [EndUser!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
 # ============================================
 # Payload Types
 # ============================================
@@ -5606,11 +5517,6 @@ type UpdateEndUserStatusPayload {
 type DeleteEndUserPayload {
   success: Boolean!
   error: DeleteEndUserError
-}
-
-type ListProjectEndUsersPayload {
-  connection: EndUserConnection   # nullable: null when error exists
-  error: ListProjectEndUsersError
 }
 
 type InitPrivateDBPayload {
@@ -5635,21 +5541,6 @@ input UpdateEndUserStatusInput {
 input DeleteEndUserInput {
   userId: ID!
 }
-
-input ListProjectEndUsersInput {
-  search: String     # username fuzzy search
-  first: Int         # page size, default 20
-  after: String      # cursor
-}
-
-# ============================================
-# Query & Mutation
-# ============================================
-
-extend type Query {
-  listProjectEndUsers(input: ListProjectEndUsersInput): ListProjectEndUsersPayload! @hasPermission(action: "end-user:read")
-}
-
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/enum.graphql", Input: `# Enum-related types, inputs and mutations
 
@@ -6159,24 +6050,17 @@ enum DbTableStatus {
   CLUSTER_UNREACHABLE  # 无法连接到集群或数据库
 }
 
-# Model connection for pagination
-type ModelConnection {
-  edges: [ModelEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-# Model edge for pagination
-type ModelEdge {
-  node: Model!
-  cursor: String!
+# Model list result for forward-only pagination
+type ModelListResult {
+  items: [Model!]!
+  hasNextPage: Boolean!
 }
 
 # Model input types
 input ModelQueryInput {
   databaseName: String!
-  offset: Int
-  limit: Int
+  pageIndex: Int   # 从 1 开始，默认 1
+  pageSize: Int    # 默认 20
   search: String
 }
 
@@ -6366,7 +6250,7 @@ input MoveModelToGroupInput {
 # Model queries
 extend type Query {
   model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
-  models(input: ModelQueryInput): ModelConnection! @hasPermission(action: "model:read", allowEndUser: true)
+  models(input: ModelQueryInput): ModelListResult! @hasPermission(action: "model:read", allowEndUser: true)  # offset/limit 向后分页，items 直接返回 Model 列表
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
@@ -8364,17 +8248,6 @@ func (ec *executionContext) field_Query_listProjectEndUserRoleUsers_args(ctx con
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalOListProjectEndUserRoleUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUserRoleUsersInput)
-	if err != nil {
-		return nil, err
-	}
-	args["input"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Query_listProjectEndUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
-	var err error
-	args := map[string]any{}
-	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalOListProjectEndUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersInput)
 	if err != nil {
 		return nil, err
 	}
@@ -13444,117 +13317,6 @@ func (ec *executionContext) fieldContext_EndUserCannotAssignImplicitRole_suggest
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserConnection_nodes(ctx context.Context, field graphql.CollectedField, obj *EndUserConnection) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserConnection_nodes,
-		func(ctx context.Context) (any, error) {
-			return obj.Nodes, nil
-		},
-		nil,
-		ec.marshalNEndUser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserConnection_nodes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_EndUser_id(ctx, field)
-			case "username":
-				return ec.fieldContext_EndUser_username(ctx, field)
-			case "isForbidden":
-				return ec.fieldContext_EndUser_isForbidden(ctx, field)
-			case "createdBy":
-				return ec.fieldContext_EndUser_createdBy(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_EndUser_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_EndUser_updatedAt(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *EndUserConnection) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserConnection_pageInfo,
-		func(ctx context.Context) (any, error) {
-			return obj.PageInfo, nil
-		},
-		nil,
-		ec.marshalNPageInfo2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐPageInfo,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _EndUserConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *EndUserConnection) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_EndUserConnection_totalCount,
-		func(ctx context.Context) (any, error) {
-			return obj.TotalCount, nil
-		},
-		nil,
-		ec.marshalNInt2int32,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_EndUserConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "EndUserConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
 		},
 	}
 	return fc, nil
@@ -18666,72 +18428,6 @@ func (ec *executionContext) fieldContext_ListProjectEndUserRoleUsersPayload_erro
 	return fc, nil
 }
 
-func (ec *executionContext) _ListProjectEndUsersPayload_connection(ctx context.Context, field graphql.CollectedField, obj *ListProjectEndUsersPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ListProjectEndUsersPayload_connection,
-		func(ctx context.Context) (any, error) {
-			return obj.Connection, nil
-		},
-		nil,
-		ec.marshalOEndUserConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserConnection,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ListProjectEndUsersPayload_connection(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ListProjectEndUsersPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "nodes":
-				return ec.fieldContext_EndUserConnection_nodes(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_EndUserConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_EndUserConnection_totalCount(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type EndUserConnection", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ListProjectEndUsersPayload_error(ctx context.Context, field graphql.CollectedField, obj *ListProjectEndUsersPayload) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ListProjectEndUsersPayload_error,
-		func(ctx context.Context) (any, error) {
-			return obj.Error, nil
-		},
-		nil,
-		ec.marshalOListProjectEndUsersError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersError,
-		true,
-		false,
-	)
-}
-
-func (ec *executionContext) fieldContext_ListProjectEndUsersPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ListProjectEndUsersPayload",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type ListProjectEndUsersError does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _LogicalForeignKey_id(ctx context.Context, field graphql.CollectedField, obj *LogicalForeignKey) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -19620,109 +19316,6 @@ func (ec *executionContext) fieldContext_ModelAlreadyExists_suggestion(_ context
 	return fc, nil
 }
 
-func (ec *executionContext) _ModelConnection_edges(ctx context.Context, field graphql.CollectedField, obj *ModelConnection) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ModelConnection_edges,
-		func(ctx context.Context) (any, error) {
-			return obj.Edges, nil
-		},
-		nil,
-		ec.marshalNModelEdge2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelEdgeᚄ,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ModelConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ModelConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "node":
-				return ec.fieldContext_ModelEdge_node(ctx, field)
-			case "cursor":
-				return ec.fieldContext_ModelEdge_cursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ModelEdge", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ModelConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *ModelConnection) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ModelConnection_pageInfo,
-		func(ctx context.Context) (any, error) {
-			return obj.PageInfo, nil
-		},
-		nil,
-		ec.marshalNPageInfo2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐPageInfo,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ModelConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ModelConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "hasNextPage":
-				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
-			case "hasPreviousPage":
-				return ec.fieldContext_PageInfo_hasPreviousPage(ctx, field)
-			case "startCursor":
-				return ec.fieldContext_PageInfo_startCursor(ctx, field)
-			case "endCursor":
-				return ec.fieldContext_PageInfo_endCursor(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ModelConnection_totalCount(ctx context.Context, field graphql.CollectedField, obj *ModelConnection) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ModelConnection_totalCount,
-		func(ctx context.Context) (any, error) {
-			return obj.TotalCount, nil
-		},
-		nil,
-		ec.marshalNInt2int32,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ModelConnection_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ModelConnection",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _ModelDatabaseCatalogPayload_databases(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -19838,98 +19431,6 @@ func (ec *executionContext) fieldContext_ModelDatabaseCatalogPayload_pageSize(_ 
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ModelEdge_node(ctx context.Context, field graphql.CollectedField, obj *ModelEdge) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ModelEdge_node,
-		func(ctx context.Context) (any, error) {
-			return obj.Node, nil
-		},
-		nil,
-		ec.marshalNModel2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModel,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ModelEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ModelEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "id":
-				return ec.fieldContext_Model_id(ctx, field)
-			case "projectSlug":
-				return ec.fieldContext_Model_projectSlug(ctx, field)
-			case "name":
-				return ec.fieldContext_Model_name(ctx, field)
-			case "title":
-				return ec.fieldContext_Model_title(ctx, field)
-			case "description":
-				return ec.fieldContext_Model_description(ctx, field)
-			case "databaseName":
-				return ec.fieldContext_Model_databaseName(ctx, field)
-			case "storageType":
-				return ec.fieldContext_Model_storageType(ctx, field)
-			case "createdVia":
-				return ec.fieldContext_Model_createdVia(ctx, field)
-			case "displayField":
-				return ec.fieldContext_Model_displayField(ctx, field)
-			case "fields":
-				return ec.fieldContext_Model_fields(ctx, field)
-			case "group":
-				return ec.fieldContext_Model_group(ctx, field)
-			case "dbTable":
-				return ec.fieldContext_Model_dbTable(ctx, field)
-			case "jsonSchema":
-				return ec.fieldContext_Model_jsonSchema(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Model_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Model_updatedAt(ctx, field)
-			case "rlsPolicy":
-				return ec.fieldContext_Model_rlsPolicy(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type Model", field.Name)
-		},
-	}
-	return fc, nil
-}
-
-func (ec *executionContext) _ModelEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *ModelEdge) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_ModelEdge_cursor,
-		func(ctx context.Context) (any, error) {
-			return obj.Cursor, nil
-		},
-		nil,
-		ec.marshalNString2string,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_ModelEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "ModelEdge",
-		Field:      field,
-		IsMethod:   false,
-		IsResolver: false,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type String does not have child fields")
 		},
 	}
 	return fc, nil
@@ -20254,6 +19755,98 @@ func (ec *executionContext) fieldContext_ModelJsonSchema_schema(_ context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelListResult_items(ctx context.Context, field graphql.CollectedField, obj *ModelListResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelListResult_items,
+		func(ctx context.Context) (any, error) {
+			return obj.Items, nil
+		},
+		nil,
+		ec.marshalNModel2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelListResult_items(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelListResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Model_id(ctx, field)
+			case "projectSlug":
+				return ec.fieldContext_Model_projectSlug(ctx, field)
+			case "name":
+				return ec.fieldContext_Model_name(ctx, field)
+			case "title":
+				return ec.fieldContext_Model_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Model_description(ctx, field)
+			case "databaseName":
+				return ec.fieldContext_Model_databaseName(ctx, field)
+			case "storageType":
+				return ec.fieldContext_Model_storageType(ctx, field)
+			case "createdVia":
+				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "displayField":
+				return ec.fieldContext_Model_displayField(ctx, field)
+			case "fields":
+				return ec.fieldContext_Model_fields(ctx, field)
+			case "group":
+				return ec.fieldContext_Model_group(ctx, field)
+			case "dbTable":
+				return ec.fieldContext_Model_dbTable(ctx, field)
+			case "jsonSchema":
+				return ec.fieldContext_Model_jsonSchema(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Model_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Model_updatedAt(ctx, field)
+			case "rlsPolicy":
+				return ec.fieldContext_Model_rlsPolicy(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Model", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelListResult_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *ModelListResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelListResult_hasNextPage,
+		func(ctx context.Context) (any, error) {
+			return obj.HasNextPage, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelListResult_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelListResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -25138,76 +24731,6 @@ func (ec *executionContext) fieldContext_Query_listTables(ctx context.Context, f
 	return fc, nil
 }
 
-func (ec *executionContext) _Query_listProjectEndUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	return graphql.ResolveField(
-		ctx,
-		ec.OperationContext,
-		field,
-		ec.fieldContext_Query_listProjectEndUsers,
-		func(ctx context.Context) (any, error) {
-			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().ListProjectEndUsers(ctx, fc.Args["input"].(*ListProjectEndUsersInput))
-		},
-		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
-			directive0 := next
-
-			directive1 := func(ctx context.Context) (any, error) {
-				action, err := ec.unmarshalNString2string(ctx, "end-user:read")
-				if err != nil {
-					var zeroVal *ListProjectEndUsersPayload
-					return zeroVal, err
-				}
-				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
-				if err != nil {
-					var zeroVal *ListProjectEndUsersPayload
-					return zeroVal, err
-				}
-				if ec.directives.HasPermission == nil {
-					var zeroVal *ListProjectEndUsersPayload
-					return zeroVal, errors.New("directive hasPermission is not implemented")
-				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
-			}
-
-			next = directive1
-			return next
-		},
-		ec.marshalNListProjectEndUsersPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersPayload,
-		true,
-		true,
-	)
-}
-
-func (ec *executionContext) fieldContext_Query_listProjectEndUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
-	fc = &graphql.FieldContext{
-		Object:     "Query",
-		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
-		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			switch field.Name {
-			case "connection":
-				return ec.fieldContext_ListProjectEndUsersPayload_connection(ctx, field)
-			case "error":
-				return ec.fieldContext_ListProjectEndUsersPayload_error(ctx, field)
-			}
-			return nil, fmt.Errorf("no field named %q was found under type ListProjectEndUsersPayload", field.Name)
-		},
-	}
-	defer func() {
-		if r := recover(); r != nil {
-			err = ec.Recover(ctx, r)
-			ec.Error(ctx, err)
-		}
-	}()
-	ctx = graphql.WithFieldContext(ctx, fc)
-	if fc.Args, err = ec.field_Query_listProjectEndUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
-		ec.Error(ctx, err)
-		return fc, err
-	}
-	return fc, nil
-}
-
 func (ec *executionContext) _Query_enum(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -25696,16 +25219,16 @@ func (ec *executionContext) _Query_models(ctx context.Context, field graphql.Col
 			directive1 := func(ctx context.Context) (any, error) {
 				action, err := ec.unmarshalNString2string(ctx, "model:read")
 				if err != nil {
-					var zeroVal *ModelConnection
+					var zeroVal *ModelListResult
 					return zeroVal, err
 				}
 				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, true)
 				if err != nil {
-					var zeroVal *ModelConnection
+					var zeroVal *ModelListResult
 					return zeroVal, err
 				}
 				if ec.directives.HasPermission == nil {
-					var zeroVal *ModelConnection
+					var zeroVal *ModelListResult
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
 				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
@@ -25714,7 +25237,7 @@ func (ec *executionContext) _Query_models(ctx context.Context, field graphql.Col
 			next = directive1
 			return next
 		},
-		ec.marshalNModelConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelConnection,
+		ec.marshalNModelListResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelListResult,
 		true,
 		true,
 	)
@@ -25728,14 +25251,12 @@ func (ec *executionContext) fieldContext_Query_models(ctx context.Context, field
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "edges":
-				return ec.fieldContext_ModelConnection_edges(ctx, field)
-			case "pageInfo":
-				return ec.fieldContext_ModelConnection_pageInfo(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_ModelConnection_totalCount(ctx, field)
+			case "items":
+				return ec.fieldContext_ModelListResult_items(ctx, field)
+			case "hasNextPage":
+				return ec.fieldContext_ModelListResult_hasNextPage(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type ModelConnection", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type ModelListResult", field.Name)
 		},
 	}
 	defer func() {
@@ -32911,47 +32432,6 @@ func (ec *executionContext) unmarshalInputListProjectEndUserRoleUsersInput(ctx c
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputListProjectEndUsersInput(ctx context.Context, obj any) (ListProjectEndUsersInput, error) {
-	var it ListProjectEndUsersInput
-	asMap := map[string]any{}
-	for k, v := range obj.(map[string]any) {
-		asMap[k] = v
-	}
-
-	fieldsInOrder := [...]string{"search", "first", "after"}
-	for _, k := range fieldsInOrder {
-		v, ok := asMap[k]
-		if !ok {
-			continue
-		}
-		switch k {
-		case "search":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.Search = data
-		case "first":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
-			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.First = data
-		case "after":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
-			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-			it.After = data
-		}
-	}
-
-	return it, nil
-}
-
 func (ec *executionContext) unmarshalInputListTablesInput(ctx context.Context, obj any) (ListTablesInput, error) {
 	var it ListTablesInput
 	asMap := map[string]any{}
@@ -33055,7 +32535,7 @@ func (ec *executionContext) unmarshalInputModelQueryInput(ctx context.Context, o
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"databaseName", "offset", "limit", "search"}
+	fieldsInOrder := [...]string{"databaseName", "pageIndex", "pageSize", "search"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -33069,20 +32549,20 @@ func (ec *executionContext) unmarshalInputModelQueryInput(ctx context.Context, o
 				return it, err
 			}
 			it.DatabaseName = data
-		case "offset":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("offset"))
+		case "pageIndex":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pageIndex"))
 			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Offset = data
-		case "limit":
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("limit"))
+			it.PageIndex = data
+		case "pageSize":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("pageSize"))
 			data, err := ec.unmarshalOInt2ᚖint32(ctx, v)
 			if err != nil {
 				return it, err
 			}
-			it.Limit = data
+			it.PageSize = data
 		case "search":
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("search"))
 			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
@@ -35045,22 +34525,6 @@ func (ec *executionContext) _ListProjectEndUserRoleUsersError(ctx context.Contex
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
-func (ec *executionContext) _ListProjectEndUsersError(ctx context.Context, sel ast.SelectionSet, obj ListProjectEndUsersError) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case ResourceNotFound:
-		return ec._ResourceNotFound(ctx, sel, &obj)
-	case *ResourceNotFound:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._ResourceNotFound(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -38095,55 +37559,6 @@ func (ec *executionContext) _EndUserCannotAssignImplicitRole(ctx context.Context
 	return out
 }
 
-var endUserConnectionImplementors = []string{"EndUserConnection"}
-
-func (ec *executionContext) _EndUserConnection(ctx context.Context, sel ast.SelectionSet, obj *EndUserConnection) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, endUserConnectionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("EndUserConnection")
-		case "nodes":
-			out.Values[i] = ec._EndUserConnection_nodes(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "pageInfo":
-			out.Values[i] = ec._EndUserConnection_pageInfo(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "totalCount":
-			out.Values[i] = ec._EndUserConnection_totalCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var endUserImplicitRoleCannotBeModifiedImplementors = []string{"EndUserImplicitRoleCannotBeModified", "Error", "UpdateEndUserRoleError", "DeleteEndUserRoleError"}
 
 func (ec *executionContext) _EndUserImplicitRoleCannotBeModified(ctx context.Context, sel ast.SelectionSet, obj *EndUserImplicitRoleCannotBeModified) graphql.Marshaler {
@@ -40423,44 +39838,6 @@ func (ec *executionContext) _ListProjectEndUserRoleUsersPayload(ctx context.Cont
 	return out
 }
 
-var listProjectEndUsersPayloadImplementors = []string{"ListProjectEndUsersPayload"}
-
-func (ec *executionContext) _ListProjectEndUsersPayload(ctx context.Context, sel ast.SelectionSet, obj *ListProjectEndUsersPayload) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, listProjectEndUsersPayloadImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ListProjectEndUsersPayload")
-		case "connection":
-			out.Values[i] = ec._ListProjectEndUsersPayload_connection(ctx, field, obj)
-		case "error":
-			out.Values[i] = ec._ListProjectEndUsersPayload_error(ctx, field, obj)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var logicalForeignKeyImplementors = []string{"LogicalForeignKey", "CreateLogicalForeignKeyResult"}
 
 func (ec *executionContext) _LogicalForeignKey(ctx context.Context, sel ast.SelectionSet, obj *LogicalForeignKey) graphql.Marshaler {
@@ -40688,55 +40065,6 @@ func (ec *executionContext) _ModelAlreadyExists(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var modelConnectionImplementors = []string{"ModelConnection"}
-
-func (ec *executionContext) _ModelConnection(ctx context.Context, sel ast.SelectionSet, obj *ModelConnection) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, modelConnectionImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ModelConnection")
-		case "edges":
-			out.Values[i] = ec._ModelConnection_edges(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "pageInfo":
-			out.Values[i] = ec._ModelConnection_pageInfo(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "totalCount":
-			out.Values[i] = ec._ModelConnection_totalCount(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
 var modelDatabaseCatalogPayloadImplementors = []string{"ModelDatabaseCatalogPayload"}
 
 func (ec *executionContext) _ModelDatabaseCatalogPayload(ctx context.Context, sel ast.SelectionSet, obj *ModelDatabaseCatalogPayload) graphql.Marshaler {
@@ -40765,50 +40093,6 @@ func (ec *executionContext) _ModelDatabaseCatalogPayload(ctx context.Context, se
 			}
 		case "pageSize":
 			out.Values[i] = ec._ModelDatabaseCatalogPayload_pageSize(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch(ctx)
-	if out.Invalids > 0 {
-		return graphql.Null
-	}
-
-	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
-
-	for label, dfs := range deferred {
-		ec.processDeferredGroup(graphql.DeferredGroup{
-			Label:    label,
-			Path:     graphql.GetPath(ctx),
-			FieldSet: dfs,
-			Context:  ctx,
-		})
-	}
-
-	return out
-}
-
-var modelEdgeImplementors = []string{"ModelEdge"}
-
-func (ec *executionContext) _ModelEdge(ctx context.Context, sel ast.SelectionSet, obj *ModelEdge) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, modelEdgeImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	deferred := make(map[string]*graphql.FieldSet)
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("ModelEdge")
-		case "node":
-			out.Values[i] = ec._ModelEdge_node(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				out.Invalids++
-			}
-		case "cursor":
-			out.Values[i] = ec._ModelEdge_cursor(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -40958,6 +40242,50 @@ func (ec *executionContext) _ModelJsonSchema(ctx context.Context, sel ast.Select
 			}
 		case "schema":
 			out.Values[i] = ec._ModelJsonSchema_schema(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var modelListResultImplementors = []string{"ModelListResult"}
+
+func (ec *executionContext) _ModelListResult(ctx context.Context, sel ast.SelectionSet, obj *ModelListResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, modelListResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModelListResult")
+		case "items":
+			out.Values[i] = ec._ModelListResult_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hasNextPage":
+			out.Values[i] = ec._ModelListResult_hasNextPage(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -41977,28 +41305,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
-		case "listProjectEndUsers":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Query_listProjectEndUsers(ctx, field)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
-			}
-
-			rrm := func(ctx context.Context) graphql.Marshaler {
-				return ec.OperationContext.RootResolverMiddleware(ctx,
-					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "enum":
 			field := field
 
@@ -42845,7 +42151,7 @@ func (ec *executionContext) _RepairModelPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "ListProjectEndUsersError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.SelectionSet, obj *ResourceNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, resourceNotFoundImplementors)
@@ -45320,50 +44626,6 @@ func (ec *executionContext) marshalNEffectivePermissionSources2ᚖmodelcraftᚋi
 	return ec._EffectivePermissionSources(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEndUser2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUser) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUser(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) marshalNEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUser(ctx context.Context, sel ast.SelectionSet, v *EndUser) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -46688,20 +45950,6 @@ func (ec *executionContext) marshalNListProjectEndUserRoleUsersPayload2ᚖmodelc
 	return ec._ListProjectEndUserRoleUsersPayload(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNListProjectEndUsersPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersPayload(ctx context.Context, sel ast.SelectionSet, v ListProjectEndUsersPayload) graphql.Marshaler {
-	return ec._ListProjectEndUsersPayload(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNListProjectEndUsersPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersPayload(ctx context.Context, sel ast.SelectionSet, v *ListProjectEndUsersPayload) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ListProjectEndUsersPayload(ctx, sel, v)
-}
-
 func (ec *executionContext) unmarshalNListTablesInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListTablesInput(ctx context.Context, v any) (ListTablesInput, error) {
 	res, err := ec.unmarshalInputListTablesInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -46815,74 +46063,6 @@ func (ec *executionContext) marshalNModel2ᚖmodelcraftᚋinternalᚋinterfaces�
 	return ec._Model(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNModelConnection2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelConnection(ctx context.Context, sel ast.SelectionSet, v ModelConnection) graphql.Marshaler {
-	return ec._ModelConnection(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNModelConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelConnection(ctx context.Context, sel ast.SelectionSet, v *ModelConnection) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ModelConnection(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNModelEdge2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelEdge) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNModelEdge2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelEdge(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
-func (ec *executionContext) marshalNModelEdge2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelEdge(ctx context.Context, sel ast.SelectionSet, v *ModelEdge) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
-		}
-		return graphql.Null
-	}
-	return ec._ModelEdge(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalNModelGroup2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelGroup) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -46935,6 +46115,20 @@ func (ec *executionContext) marshalNModelGroup2ᚖmodelcraftᚋinternalᚋinterf
 		return graphql.Null
 	}
 	return ec._ModelGroup(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNModelListResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelListResult(ctx context.Context, sel ast.SelectionSet, v ModelListResult) graphql.Marshaler {
+	return ec._ModelListResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNModelListResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelListResult(ctx context.Context, sel ast.SelectionSet, v *ModelListResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModelListResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNMoveModelToGroupInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐMoveModelToGroupInput(ctx context.Context, v any) (MoveModelToGroupInput, error) {
@@ -48239,13 +47433,6 @@ func (ec *executionContext) marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterface
 	return ec._EndUser(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOEndUserConnection2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserConnection(ctx context.Context, sel ast.SelectionSet, v *EndUserConnection) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._EndUserConnection(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOEndUserPermission2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐEndUserPermission(ctx context.Context, sel ast.SelectionSet, v *EndUserPermission) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -48466,21 +47653,6 @@ func (ec *executionContext) unmarshalOListProjectEndUserRoleUsersInput2ᚖmodelc
 		return nil, nil
 	}
 	res, err := ec.unmarshalInputListProjectEndUserRoleUsersInput(ctx, v)
-	return &res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalOListProjectEndUsersError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersError(ctx context.Context, sel ast.SelectionSet, v ListProjectEndUsersError) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._ListProjectEndUsersError(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalOListProjectEndUsersInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐListProjectEndUsersInput(ctx context.Context, v any) (*ListProjectEndUsersInput, error) {
-	if v == nil {
-		return nil, nil
-	}
-	res, err := ec.unmarshalInputListProjectEndUsersInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 

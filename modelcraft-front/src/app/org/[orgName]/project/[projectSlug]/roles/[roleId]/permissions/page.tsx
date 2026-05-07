@@ -46,12 +46,11 @@ type ModelDatabaseCatalogData = {
 
 type ModelsForRelationData = {
   models: {
-    edges: Array<{
-      node: {
-        id: string
-        name: string
-      }
+    items: Array<{
+      id: string
+      name: string
     }>
+    hasNextPage?: boolean
   }
 }
 
@@ -187,7 +186,7 @@ export default function RolePermissionsPage() {
   )
 
   const modelCatalog = useMemo(() => {
-    return modelsData?.models?.edges?.map((edge) => edge.node) ?? []
+    return modelsData?.models?.items ?? []
   }, [modelsData])
 
   const rolePermissions = useMemo(

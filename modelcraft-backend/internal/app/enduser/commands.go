@@ -196,20 +196,14 @@ type MetaUserFindManyFilter struct {
 	CreatedAtLte       *string
 }
 
-// MetaUserOrderByField 排序字段（白名单：createdAt）。
-type MetaUserOrderByField struct {
-	CreatedAt *string // "asc" 或 "desc"
-}
-
-// MetaUserFindManyCommand 受限列表查询命令。
-// take 默认 20，最大 50；skip 默认 0，最大 1000。
+// MetaUserFindManyCommand 受限列表查询命令（cursor 分页）。
+// 排序固定为 created_at DESC, id DESC（最新优先）。
+// first 默认 20，最大 50；After 为空表示第一页。
 type MetaUserFindManyCommand struct {
-	OrgName     string // 从中间件上下文注入
-	ProjectSlug string // 从中间件上下文注入，用于定位私有数据库 cluster
-	Where       *MetaUserFindManyFilter
-	OrderBy     []MetaUserOrderByField
-	Skip        int
-	Take        int
+	OrgName string // 从中间件上下文注入
+	Where   *MetaUserFindManyFilter
+	After   string // cursor（Base64 编码），空字符串表示第一页
+	First   int    // page size，默认 20，最大 50
 }
 
 // MetaUserDTO runtime meta/user 查询结果 DTO（不含租户字段）。
@@ -219,7 +213,9 @@ type MetaUserDTO struct {
 	CreatedAt time.Time
 }
 
-// MetaUserFindManyResult findMany 查询结果。
+// MetaUserFindManyResult findMany 查询结果（cursor 分页）。
 type MetaUserFindManyResult struct {
-	Items []*MetaUserDTO
+	Items      []*MetaUserDTO
+	NextCursor string // 下一页 cursor（Base64 编码）；空字符串表示无更多数据
+	HasMore    bool
 }

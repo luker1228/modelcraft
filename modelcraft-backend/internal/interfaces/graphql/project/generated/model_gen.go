@@ -143,10 +143,6 @@ type ListProjectEndUserRoleUsersError interface {
 	IsListProjectEndUserRoleUsersError()
 }
 
-type ListProjectEndUsersError interface {
-	IsListProjectEndUsersError()
-}
-
 type ModelDatabaseCatalogError interface {
 	IsModelDatabaseCatalogError()
 }
@@ -774,12 +770,6 @@ func (this EndUserCannotAssignImplicitRole) GetMessage() string { return this.Me
 
 func (EndUserCannotAssignImplicitRole) IsAssignEndUserRoleError() {}
 
-type EndUserConnection struct {
-	Nodes      []*EndUser `json:"nodes"`
-	PageInfo   *PageInfo  `json:"pageInfo"`
-	TotalCount int32      `json:"totalCount"`
-}
-
 type EndUserImplicitRoleCannotBeModified struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -1304,17 +1294,6 @@ type ListProjectEndUserRoleUsersPayload struct {
 	Error      ListProjectEndUserRoleUsersError  `json:"error,omitempty"`
 }
 
-type ListProjectEndUsersInput struct {
-	Search *string `json:"search,omitempty"`
-	First  *int32  `json:"first,omitempty"`
-	After  *string `json:"after,omitempty"`
-}
-
-type ListProjectEndUsersPayload struct {
-	Connection *EndUserConnection       `json:"connection,omitempty"`
-	Error      ListProjectEndUsersError `json:"error,omitempty"`
-}
-
 type ListTablesInput struct {
 	DatabaseName    string `json:"databaseName"`
 	ExcludeExisting *bool  `json:"excludeExisting,omitempty"`
@@ -1370,12 +1349,6 @@ func (this ModelAlreadyExists) GetMessage() string { return this.Message }
 
 func (ModelAlreadyExists) IsCreateModelError() {}
 
-type ModelConnection struct {
-	Edges      []*ModelEdge `json:"edges"`
-	PageInfo   *PageInfo    `json:"pageInfo"`
-	TotalCount int32        `json:"totalCount"`
-}
-
 type ModelDatabaseCatalogInput struct {
 	Search   *string `json:"search,omitempty"`
 	Page     *int32  `json:"page,omitempty"`
@@ -1387,11 +1360,6 @@ type ModelDatabaseCatalogPayload struct {
 	TotalCount int32           `json:"totalCount"`
 	Page       int32           `json:"page"`
 	PageSize   int32           `json:"pageSize"`
-}
-
-type ModelEdge struct {
-	Node   *Model `json:"node"`
-	Cursor string `json:"cursor"`
 }
 
 type ModelGroup struct {
@@ -1418,10 +1386,15 @@ type ModelJSONSchema struct {
 	Schema    string `json:"schema"`
 }
 
+type ModelListResult struct {
+	Items       []*Model `json:"items"`
+	HasNextPage bool     `json:"hasNextPage"`
+}
+
 type ModelQueryInput struct {
 	DatabaseName string  `json:"databaseName"`
-	Offset       *int32  `json:"offset,omitempty"`
-	Limit        *int32  `json:"limit,omitempty"`
+	PageIndex    *int32  `json:"pageIndex,omitempty"`
+	PageSize     *int32  `json:"pageSize,omitempty"`
 	Search       *string `json:"search,omitempty"`
 }
 
@@ -1616,8 +1589,6 @@ func (ResourceNotFound) IsCreateEndUserError() {}
 func (ResourceNotFound) IsUpdateEndUserError() {}
 
 func (ResourceNotFound) IsDeleteEndUserError() {}
-
-func (ResourceNotFound) IsListProjectEndUsersError() {}
 
 func (ResourceNotFound) IsInitPrivateDBPayloadError() {}
 

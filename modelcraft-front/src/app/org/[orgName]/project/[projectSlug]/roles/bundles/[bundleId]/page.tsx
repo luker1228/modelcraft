@@ -427,7 +427,7 @@ interface DatabaseCatalogData {
 
 interface ModelsQueryData {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  models?: { edges?: Array<{ node?: ModelOption | null } | null> }
+  models?: { items?: Array<ModelOption | null> }
 }
 
 function AddItemDialog({
@@ -467,15 +467,14 @@ function AddItemDialog({
     GET_MODELS_BY_DATABASE,
     {
       client: projectClient,
-      variables: { input: { databaseName: selectedDatabase, limit: 200 } },
+      variables: { input: { databaseName: selectedDatabase, pageSize: 200 } },
       skip: !open || !selectedDatabase,
     },
   )
 
   const modelOptions = React.useMemo<ModelOption[]>(() => {
-    const edges = modelsData?.models?.edges ?? []
-    return edges
-      .map((e) => e?.node)
+    const items = modelsData?.models?.items ?? []
+    return items
       .filter((n): n is ModelOption => Boolean(n?.id && n?.name))
       .sort((a, b) => (a.title ?? a.name).localeCompare(b.title ?? b.name))
   }, [modelsData])

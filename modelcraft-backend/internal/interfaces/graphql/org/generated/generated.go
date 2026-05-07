@@ -343,7 +343,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		DatabaseCluster     func(childComplexity int, projectSlug string) int
-		FindUsers           func(childComplexity int, where *UserWhereInput, skip *int32, take *int32) int
+		FindUsers           func(childComplexity int, where *UserWhereInput, after *string, first *int32) int
 		Hello               func(childComplexity int) int
 		ListEndUsers        func(childComplexity int, input *ListEndUsersInput) int
 		Me                  func(childComplexity int) int
@@ -442,9 +442,10 @@ type ComplexityRoot struct {
 	}
 
 	UserFindManyResult struct {
+		HasMore    func(childComplexity int) int
 		Items      func(childComplexity int) int
+		NextCursor func(childComplexity int) int
 		ReqID      func(childComplexity int) int
-		TotalCount func(childComplexity int) int
 	}
 
 	UserFindOneResult struct {
@@ -489,7 +490,7 @@ type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
 	Node(ctx context.Context, id string) (Node, error)
 	ListEndUsers(ctx context.Context, input *ListEndUsersInput) (*ListEndUsersPayload, error)
-	FindUsers(ctx context.Context, where *UserWhereInput, skip *int32, take *int32) (*UserFindManyResult, error)
+	FindUsers(ctx context.Context, where *UserWhereInput, after *string, first *int32) (*UserFindManyResult, error)
 	PermissionRoles(ctx context.Context, orgName string, includeSystem *bool) ([]*PermissionRole, error)
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
@@ -1643,7 +1644,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.complexity.Query.FindUsers(childComplexity, args["where"].(*UserWhereInput), args["skip"].(*int32), args["take"].(*int32)), true
+		return e.complexity.Query.FindUsers(childComplexity, args["where"].(*UserWhereInput), args["after"].(*string), args["first"].(*int32)), true
 	case "Query.hello":
 		if e.complexity.Query.Hello == nil {
 			break
@@ -2017,24 +2018,30 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.UserName(childComplexity), true
 
+	case "UserFindManyResult.hasMore":
+		if e.complexity.UserFindManyResult.HasMore == nil {
+			break
+		}
+
+		return e.complexity.UserFindManyResult.HasMore(childComplexity), true
 	case "UserFindManyResult.items":
 		if e.complexity.UserFindManyResult.Items == nil {
 			break
 		}
 
 		return e.complexity.UserFindManyResult.Items(childComplexity), true
+	case "UserFindManyResult.nextCursor":
+		if e.complexity.UserFindManyResult.NextCursor == nil {
+			break
+		}
+
+		return e.complexity.UserFindManyResult.NextCursor(childComplexity), true
 	case "UserFindManyResult.reqId":
 		if e.complexity.UserFindManyResult.ReqID == nil {
 			break
 		}
 
 		return e.complexity.UserFindManyResult.ReqID(childComplexity), true
-	case "UserFindManyResult.totalCount":
-		if e.complexity.UserFindManyResult.TotalCount == nil {
-			break
-		}
-
-		return e.complexity.UserFindManyResult.TotalCount(childComplexity), true
 
 	case "UserFindOneResult.item":
 		if e.complexity.UserFindOneResult.Item == nil {
@@ -2372,13 +2379,14 @@ input ListEndUsersInput {
 extend type Query {
   listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
 
-  # findUsers: list end-users with optional filtering and pagination.
+  # findUsers: list end-users with cursor-based pagination.
   # Accessible to both tenant developers and end-users (allowEndUser: true).
-  # Pagination: skip default 0 max 1000; take default 20 max 50.
+  # Sorted by created_at DESC, id DESC (newest first).
+  # Pagination: first default 20 max 50; after is a cursor from previous response.
   findUsers(
     where: UserWhereInput
-    skip: Int
-    take: Int
+    after: String
+    first: Int
   ): UserFindManyResult! @hasPermission(action: "end-user:read")
 }
 
@@ -2427,7 +2435,8 @@ input UserWhereInput {
 
 type UserFindManyResult {
   items: [EndUserPublic!]!
-  totalCount: Int
+  nextCursor: String
+  hasMore: Boolean!
   reqId: String!
 }
 
@@ -3486,16 +3495,16 @@ func (ec *executionContext) field_Query_findUsers_args(ctx context.Context, rawA
 		return nil, err
 	}
 	args["where"] = arg0
-	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "skip", ec.unmarshalOInt2ᚖint32)
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "after", ec.unmarshalOString2ᚖstring)
 	if err != nil {
 		return nil, err
 	}
-	args["skip"] = arg1
-	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "take", ec.unmarshalOInt2ᚖint32)
+	args["after"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "first", ec.unmarshalOInt2ᚖint32)
 	if err != nil {
 		return nil, err
 	}
-	args["take"] = arg2
+	args["first"] = arg2
 	return args, nil
 }
 
@@ -9446,7 +9455,7 @@ func (ec *executionContext) _Query_findUsers(ctx context.Context, field graphql.
 		ec.fieldContext_Query_findUsers,
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.resolvers.Query().FindUsers(ctx, fc.Args["where"].(*UserWhereInput), fc.Args["skip"].(*int32), fc.Args["take"].(*int32))
+			return ec.resolvers.Query().FindUsers(ctx, fc.Args["where"].(*UserWhereInput), fc.Args["after"].(*string), fc.Args["first"].(*int32))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -9483,8 +9492,10 @@ func (ec *executionContext) fieldContext_Query_findUsers(ctx context.Context, fi
 			switch field.Name {
 			case "items":
 				return ec.fieldContext_UserFindManyResult_items(ctx, field)
-			case "totalCount":
-				return ec.fieldContext_UserFindManyResult_totalCount(ctx, field)
+			case "nextCursor":
+				return ec.fieldContext_UserFindManyResult_nextCursor(ctx, field)
+			case "hasMore":
+				return ec.fieldContext_UserFindManyResult_hasMore(ctx, field)
 			case "reqId":
 				return ec.fieldContext_UserFindManyResult_reqId(ctx, field)
 			}
@@ -11644,30 +11655,59 @@ func (ec *executionContext) fieldContext_UserFindManyResult_items(_ context.Cont
 	return fc, nil
 }
 
-func (ec *executionContext) _UserFindManyResult_totalCount(ctx context.Context, field graphql.CollectedField, obj *UserFindManyResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserFindManyResult_nextCursor(ctx context.Context, field graphql.CollectedField, obj *UserFindManyResult) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
 		ec.OperationContext,
 		field,
-		ec.fieldContext_UserFindManyResult_totalCount,
+		ec.fieldContext_UserFindManyResult_nextCursor,
 		func(ctx context.Context) (any, error) {
-			return obj.TotalCount, nil
+			return obj.NextCursor, nil
 		},
 		nil,
-		ec.marshalOInt2ᚖint32,
+		ec.marshalOString2ᚖstring,
 		true,
 		false,
 	)
 }
 
-func (ec *executionContext) fieldContext_UserFindManyResult_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+func (ec *executionContext) fieldContext_UserFindManyResult_nextCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "UserFindManyResult",
 		Field:      field,
 		IsMethod:   false,
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
-			return nil, errors.New("field of type Int does not have child fields")
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserFindManyResult_hasMore(ctx context.Context, field graphql.CollectedField, obj *UserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserFindManyResult_hasMore,
+		func(ctx context.Context) (any, error) {
+			return obj.HasMore, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserFindManyResult_hasMore(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -18201,8 +18241,13 @@ func (ec *executionContext) _UserFindManyResult(ctx context.Context, sel ast.Sel
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
-		case "totalCount":
-			out.Values[i] = ec._UserFindManyResult_totalCount(ctx, field, obj)
+		case "nextCursor":
+			out.Values[i] = ec._UserFindManyResult_nextCursor(ctx, field, obj)
+		case "hasMore":
+			out.Values[i] = ec._UserFindManyResult_hasMore(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "reqId":
 			out.Values[i] = ec._UserFindManyResult_reqId(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

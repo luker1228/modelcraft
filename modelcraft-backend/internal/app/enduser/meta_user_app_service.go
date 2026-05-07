@@ -3,9 +3,11 @@ package enduser
 import (
 	"context"
 	"database/sql"
+	"encoding/base64"
 	"fmt"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
+	"strconv"
 	"strings"
 	"time"
 
@@ -78,8 +80,9 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 	return metaUserToDTO(user.ID, user.Username, user.CreatedAt), nil
 }
 
-// FindMany 执行受限列表查询。
-// 分页：take 默认 20，最大 50；skip 默认 0，最大 1000。
+// FindMany 执行受限列表查询（cursor 分页）。
+// 排序固定为 created_at DESC, id DESC（最新优先）。
+// first 默认 20，最大 50；After 为空字符串表示第一页。
 func (s *MetaUserAppService) FindMany(
 	ctx context.Context,
 	cmd MetaUserFindManyCommand,
@@ -88,51 +91,59 @@ func (s *MetaUserAppService) FindMany(
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "orgName is required")
 	}
 
-	take := cmd.Take
-	if take <= 0 {
-		take = 20
+	first := cmd.First
+	if first <= 0 {
+		first = 20
 	}
-	if take > 50 {
+	if first > 50 {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid,
-			fmt.Sprintf("take must be <= 50, got %d", cmd.Take))
-	}
-	skip := cmd.Skip
-	if skip < 0 {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid,
-			fmt.Sprintf("skip must be >= 0, got %d", cmd.Skip))
-	}
-	if skip > 1000 {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid,
-			fmt.Sprintf("skip must be <= 1000, got %d", cmd.Skip))
+			fmt.Sprintf("first must be <= 50, got %d", cmd.First))
 	}
 
-	orderDir := "ASC"
-	for _, ob := range cmd.OrderBy {
-		if ob.CreatedAt == nil {
+	var (
+		cursorTime time.Time
+		cursorID   string
+	)
+	if cmd.After != "" {
+		var err error
+		cursorTime, cursorID, err = decodeCursor(cmd.After)
+		if err != nil {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid,
-				"unsupported orderBy field: only createdAt is allowed")
+				fmt.Sprintf("invalid cursor: %s", cmd.After))
 		}
-		dir := strings.ToLower(*ob.CreatedAt)
-		if dir != "asc" && dir != "desc" {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid,
-				fmt.Sprintf("invalid sort direction: %s (must be asc or desc)", *ob.CreatedAt))
-		}
-		orderDir = strings.ToUpper(dir)
 	}
 
-	items, err := s.runFindMany(ctx, cmd.OrgName, cmd.Where, orderDir, skip, take)
+	// 多取一条，用于判断 hasMore
+	items, err := s.runFindMany(ctx, cmd.OrgName, cmd.Where, cursorTime, cursorID, first+1)
 	if err != nil {
 		return nil, err
 	}
-	return &MetaUserFindManyResult{Items: items}, nil
+
+	hasMore := len(items) > first
+	if hasMore {
+		items = items[:first]
+	}
+
+	var nextCursor string
+	if hasMore && len(items) > 0 {
+		last := items[len(items)-1]
+		nextCursor = encodeCursor(last.CreatedAt, last.ID)
+	}
+
+	return &MetaUserFindManyResult{
+		Items:      items,
+		NextCursor: nextCursor,
+		HasMore:    hasMore,
+	}, nil
 }
 
 func (s *MetaUserAppService) runFindMany(
 	ctx context.Context,
 	orgName string,
 	where *MetaUserFindManyFilter,
-	orderDir string,
-	skip, take int,
+	cursorTime time.Time,
+	cursorID string,
+	limit int,
 ) ([]*MetaUserDTO, error) {
 	args := []any{orgName}
 	conditions := []string{"org_name = ?"}
@@ -141,12 +152,18 @@ func (s *MetaUserAppService) runFindMany(
 		conditions, args = applyMetaUserFilter(conditions, args, where)
 	}
 
-	//nolint:gosec // orderDir is whitelist-validated to "ASC" or "DESC"
+	// cursor 条件：(created_at, id) < (cursorTime, cursorID)，DESC 方向向前翻页
+	if !cursorTime.IsZero() && cursorID != "" {
+		conditions = append(conditions, "(created_at < ? OR (created_at = ? AND id < ?))")
+		args = append(args, cursorTime, cursorTime, cursorID)
+	}
+
+	//nolint:gosec // conditions 仅由白名单字段拼接，无用户输入直接进入 SQL 结构
 	query := "SELECT id, username, created_at FROM end_user_users WHERE " +
 		strings.Join(conditions, " AND ") +
-		" ORDER BY created_at " + orderDir + " LIMIT ? OFFSET ?"
+		" ORDER BY created_at DESC, id DESC LIMIT ?"
 
-	args = append(args, take, skip)
+	args = append(args, limit)
 
 	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
@@ -154,7 +171,7 @@ func (s *MetaUserAppService) runFindMany(
 	}
 	defer rows.Close()
 
-	dtos := make([]*MetaUserDTO, 0, take)
+	dtos := make([]*MetaUserDTO, 0, limit)
 	for rows.Next() {
 		var (
 			id        string
@@ -218,6 +235,31 @@ func applyMetaUserFilter(conditions []string, args []any, where *MetaUserFindMan
 		args = append(args, *where.CreatedAtLte)
 	}
 	return conditions, args
+}
+
+// encodeCursor 将 created_at + id 编码为 Base64 cursor 字符串。
+// 格式：Base64("<unixMilli>|<id>")，例如 "1716217200000|abc-uuid"。
+func encodeCursor(t time.Time, id string) string {
+	raw := fmt.Sprintf("%d|%s", t.UnixMilli(), id)
+	return base64.StdEncoding.EncodeToString([]byte(raw))
+}
+
+// decodeCursor 解码 Base64 cursor 字符串，返回 created_at 时间和 id。
+func decodeCursor(cursor string) (time.Time, string, error) {
+	b, err := base64.StdEncoding.DecodeString(cursor)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("base64 decode failed: %w", err)
+	}
+	parts := strings.SplitN(string(b), "|", 2)
+	if len(parts) != 2 {
+		return time.Time{}, "", fmt.Errorf("invalid cursor format")
+	}
+	ms, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return time.Time{}, "", fmt.Errorf("invalid cursor timestamp: %w", err)
+	}
+	t := time.UnixMilli(ms).UTC()
+	return t, parts[1], nil
 }
 
 func metaUserToDTO(id, username string, createdAt time.Time) *MetaUserDTO {

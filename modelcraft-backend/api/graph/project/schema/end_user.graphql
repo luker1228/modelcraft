@@ -25,7 +25,6 @@ type EndUserPasswordTooWeak implements Error {
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ResourceNotFound | InvalidInput
 union UpdateEndUserError = ResourceNotFound | InvalidInput
 union DeleteEndUserError = ResourceNotFound
-union ListProjectEndUsersError = ResourceNotFound
 
 # InitPrivateDBError indicates private DB initialization failures.
 type InitPrivateDBError implements Error {
@@ -47,12 +46,6 @@ type EndUser implements Node {
   updatedAt: Time!
 }
 
-type EndUserConnection {
-  nodes: [EndUser!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
 # ============================================
 # Payload Types
 # ============================================
@@ -70,11 +63,6 @@ type UpdateEndUserStatusPayload {
 type DeleteEndUserPayload {
   success: Boolean!
   error: DeleteEndUserError
-}
-
-type ListProjectEndUsersPayload {
-  connection: EndUserConnection   # nullable: null when error exists
-  error: ListProjectEndUsersError
 }
 
 type InitPrivateDBPayload {
@@ -99,18 +87,3 @@ input UpdateEndUserStatusInput {
 input DeleteEndUserInput {
   userId: ID!
 }
-
-input ListProjectEndUsersInput {
-  search: String     # username fuzzy search
-  first: Int         # page size, default 20
-  after: String      # cursor
-}
-
-# ============================================
-# Query & Mutation
-# ============================================
-
-extend type Query {
-  listProjectEndUsers(input: ListProjectEndUsersInput): ListProjectEndUsersPayload! @hasPermission(action: "end-user:read")
-}
-

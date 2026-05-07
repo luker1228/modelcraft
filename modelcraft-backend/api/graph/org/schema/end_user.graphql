@@ -99,13 +99,14 @@ input ListEndUsersInput {
 extend type Query {
   listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
 
-  # findUsers: list end-users with optional filtering and pagination.
+  # findUsers: list end-users with cursor-based pagination.
   # Accessible to both tenant developers and end-users (allowEndUser: true).
-  # Pagination: skip default 0 max 1000; take default 20 max 50.
+  # Sorted by created_at DESC, id DESC (newest first).
+  # Pagination: first default 20 max 50; after is a cursor from previous response.
   findUsers(
     where: UserWhereInput
-    skip: Int
-    take: Int
+    after: String
+    first: Int
   ): UserFindManyResult! @hasPermission(action: "end-user:read")
 }
 
@@ -154,7 +155,8 @@ input UserWhereInput {
 
 type UserFindManyResult {
   items: [EndUserPublic!]!
-  totalCount: Int
+  nextCursor: String
+  hasMore: Boolean!
   reqId: String!
 }
 

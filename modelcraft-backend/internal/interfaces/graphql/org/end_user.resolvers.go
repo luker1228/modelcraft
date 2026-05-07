@@ -278,7 +278,7 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 }
 
 // FindUsers is the resolver for the findUsers field.
-func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWhereInput, skip *int32, take *int32) (*generated.UserFindManyResult, error) {
+func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWhereInput, after *string, first *int32) (*generated.UserFindManyResult, error) {
 	reqID := ctxutils.GetRequestID(ctx)
 
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
@@ -289,11 +289,11 @@ func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWher
 	cmd := appEnduser.MetaUserFindManyCommand{
 		OrgName: orgName,
 	}
-	if skip != nil {
-		cmd.Skip = int(*skip)
+	if after != nil {
+		cmd.After = *after
 	}
-	if take != nil {
-		cmd.Take = int(*take)
+	if first != nil {
+		cmd.First = int(*first)
 	}
 	if where != nil {
 		cmd.Where = convertUserWhereInput(where)
@@ -317,8 +317,15 @@ func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWher
 		})
 	}
 
+	var nextCursor *string
+	if result.NextCursor != "" {
+		nextCursor = &result.NextCursor
+	}
+
 	return &generated.UserFindManyResult{
-		Items: items,
-		ReqID: reqID,
+		Items:      items,
+		NextCursor: nextCursor,
+		HasMore:    result.HasMore,
+		ReqID:      reqID,
 	}, nil
 }

@@ -14,7 +14,6 @@ import (
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"strconv"
 )
 
 // CreateModel is the resolver for the createModel field.
@@ -629,8 +628,8 @@ func (r *queryResolver) Model(ctx context.Context, id string, withActualSchema *
 }
 
 // Models is the resolver for the models field.
-func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryInput) (*generated.ModelConnection, error) {
-	var result *generated.ModelConnection
+func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryInput) (*generated.ModelListResult, error) {
+	var result *generated.ModelListResult
 	graphqlErr := bizerrors.WithGraphqlErrorHandler(ctx, func() error {
 		// Validate required input
 		if input == nil {
@@ -657,26 +656,25 @@ func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryI
 			r.FieldSelectionChecker = NewFieldSelectionChecker()
 		}
 
-		// Check if edges.node field is selected
-		needsModelData := r.FieldSelectionChecker.IsAnyFieldSelected(ctx, []string{"edges", "totalCount"})
+		// Check if items field is selected
+		needsModelData := r.FieldSelectionChecker.IsAnyFieldSelected(ctx, []string{"items"})
 
 		// Set default values
-		offset := 0
-		limit := 20
+		pageIndex := 1
+		pageSize := 20
 		search := ""
 
-		if input.Offset != nil {
-			offset = int(*input.Offset)
+		if input.PageIndex != nil {
+			pageIndex = int(*input.PageIndex)
 		}
-		if input.Limit != nil {
-			limit = int(*input.Limit)
+		if input.PageSize != nil {
+			pageSize = int(*input.PageSize)
 		}
 		if input.Search != nil {
 			search = *input.Search
 		}
 
 		var models []modeldesign.DataModel
-		var total int
 
 		if needsModelData {
 			// Convert to domain query
@@ -686,48 +684,40 @@ func (r *queryResolver) Models(ctx context.Context, input *generated.ModelQueryI
 				DatabaseName: input.DatabaseName,
 				Name:         search,
 				Title:        search,
-				Page:         (offset / limit) + 1,
-				PageSize:     limit,
+				Page:         pageIndex,
+				PageSize:     pageSize,
 			}
 
 			// Query models using app service
-			models, total, err = r.ModelDesignService.QueryModels(ctx, queryObj)
+			models, _, err = r.ModelDesignService.QueryModels(ctx, queryObj)
 			if err != nil {
 				return fmt.Errorf("failed to query models: %w", err)
 			}
 		} else {
-			// If model data not needed, return empty edges
 			models = []modeldesign.DataModel{}
-			total = 0
 		}
 
 		// Convert domain models to GraphQL models
-		edges := make([]*generated.ModelEdge, len(models))
+		items := make([]*generated.Model, len(models))
 		for i, m := range models {
 			graphqlModel, err := adapter.ModelMapper.ConvertToGraphQLModel(&m)
 			if err != nil {
 				return fmt.Errorf("failed to convert domain model to GraphQL model: %w", err)
 			}
-			if r.FieldSelectionChecker.IsFieldSelected(ctx, "edges.node.rlsPolicy") {
+			if r.FieldSelectionChecker.IsFieldSelected(ctx, "items.rlsPolicy") {
 				if err := attachModelRLSPolicy(ctx, r.RLSPolicyAppService, graphqlModel); err != nil {
 					return fmt.Errorf("failed to attach model rls policy: %w", err)
 				}
 			}
-			edges[i] = &generated.ModelEdge{
-				Node:   graphqlModel,
-				Cursor: strconv.Itoa(offset + i + 1),
-			}
+			items[i] = graphqlModel
 		}
 
-		// Calculate pagination info
-		hasNextPage := offset+limit < total
+		// hasNextPage: true when returned count equals the requested pageSize
+		hasNextPage := len(models) == pageSize
 
-		result = &generated.ModelConnection{
-			Edges: edges,
-			PageInfo: &generated.PageInfo{
-				HasNextPage: hasNextPage,
-			},
-			TotalCount: int32(total), //nolint:gosec // total won't overflow int32
+		result = &generated.ModelListResult{
+			Items:       items,
+			HasNextPage: hasNextPage,
 		}
 		return nil
 	})

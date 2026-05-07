@@ -81,7 +81,7 @@ just generate-gql
 2. **生成代码只读** — `internal/interfaces/graphql/generated/` 禁止手动编辑
 3. **业务域隔离** — Org 和 Project 两套 Schema 独立，不跨 Schema 引用类型
 4. **错误类型以 Schema 为准** — 前端 inline fragment `... on XxxError` 中的类型名必须与 Schema 中 union 定义一致；`ModelDatabaseCatalogError = InvalidInput | ResourceNotFound`，不存在 `ProjectNotFound` / `Unauthorized`
-5. **models query 用 relay 分页** — `models(input: ModelQueryInput)` 返回 `ModelConnection`（`edges/node`），入参用 `offset/limit`，不是 `page/pageSize`
+5. **models query 用 offset/limit 向后分页** — `models(input: ModelQueryInput)` 返回 `ModelListResult`（`items: [Model!]!, hasNextPage: Boolean!`），入参用 `offset/limit`。不使用 relay 的 `edges/node/cursor/pageInfo` 结构。
 
 ---
 

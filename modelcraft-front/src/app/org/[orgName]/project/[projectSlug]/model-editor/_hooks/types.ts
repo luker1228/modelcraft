@@ -45,13 +45,10 @@ export interface EditorModelDetail extends EditorModel {
 }
 
 // GraphQL response types
-export interface ModelsEdge {
-  node: EditorModel
-}
-
 export interface ModelsQueryData {
   models?: {
-    edges: ModelsEdge[]
+    items: EditorModel[]
+    hasNextPage?: boolean
   }
 }
 

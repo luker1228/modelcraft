@@ -5,70 +5,61 @@ import { gql } from '@apollo/client'
 export const GET_MODELS = gql`
   query GetModels($input: ModelQueryInput) {
     models(input: $input) {
-      edges {
-        node {
-          id
-          projectSlug
+      items {
+        id
+        projectSlug
+        name
+        title
+        description
+        databaseName
+        storageType
+        fields {
           name
           title
+          format
+          schemaType
+          storageHint
+          nonNull
+          required
+          isPrimary
+          isUnique
           description
-          databaseName
-          storageType
-          fields {
-            name
-            title
-            format
-            schemaType
-            storageHint
-            nonNull
-            required
-            isPrimary
-            isUnique
-            description
-            relateFkId
-            belongsToFkId
-            enum {
-              id
-              name
-              displayName
-              description
-              isMultiSelect
-              options {
-                code
-                label
-                order
-                description
-              }
-            }
-            validationConfig {
-              minLength
-              maxLength
-              pattern
-              minimum
-              maximum
-            }
-            createdAt
-            updatedAt
-          }
-          group {
+          relateFkId
+          belongsToFkId
+          enum {
             id
             name
-            isVirtual
-            displayOrder
+            displayName
+            description
+            isMultiSelect
+            options {
+              code
+              label
+              order
+              description
+            }
           }
-          dbTable
+          validationConfig {
+            minLength
+            maxLength
+            pattern
+            minimum
+            maximum
+          }
           createdAt
           updatedAt
         }
-        cursor
+        group {
+          id
+          name
+          isVirtual
+          displayOrder
+        }
+        dbTable
+        createdAt
+        updatedAt
       }
-      pageInfo {
-        hasNextPage
-        hasPreviousPage
-        startCursor
-        endCursor
-      }
-      totalCount
+      hasNextPage
     }
   }
 `
@@ -76,13 +67,11 @@ export const GET_MODELS = gql`
 export const GET_MODELS_BY_DATABASE = gql`
   query GetModelsByDatabase($input: ModelQueryInput) {
     models(input: $input) {
-      edges {
-        node {
-          id
-          name
-          title
-          databaseName
-        }
+      items {
+        id
+        name
+        title
+        databaseName
       }
     }
   }

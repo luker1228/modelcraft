@@ -68,8 +68,8 @@ type DatabaseCatalogQueryResult = {
 
 type ModelCatalogQueryResult = {
   models: {
-    edges: Array<{ node: DataModel }>
-    totalCount: number
+    items: Array<DataModel>
+    hasNextPage: boolean
   }
 }
 
@@ -188,7 +188,7 @@ export default function EndUserDataPage() {
         const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
         const { data } = await client.query<ModelCatalogQueryResult>({
           query: MODEL_CATALOG_END_USER,
-          variables: { input: { databaseName: selectedDatabase, limit: 200 } },
+          variables: { input: { databaseName: selectedDatabase, pageSize: 200 } },
           fetchPolicy: 'network-only',
         })
 
@@ -196,8 +196,7 @@ export default function EndUserDataPage() {
         if (cancelled) return
 
         setModels(
-          (payload?.edges ?? [])
-            .map((edge) => edge.node)
+          (payload?.items ?? [])
             .filter(
               (model) => Boolean(model?.id && model?.name && model?.databaseName)
             )

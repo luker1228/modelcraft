@@ -82,24 +82,17 @@ enum DbTableStatus {
   CLUSTER_UNREACHABLE  # 无法连接到集群或数据库
 }
 
-# Model connection for pagination
-type ModelConnection {
-  edges: [ModelEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
-}
-
-# Model edge for pagination
-type ModelEdge {
-  node: Model!
-  cursor: String!
+# Model list result for forward-only pagination
+type ModelListResult {
+  items: [Model!]!
+  hasNextPage: Boolean!
 }
 
 # Model input types
 input ModelQueryInput {
   databaseName: String!
-  offset: Int
-  limit: Int
+  pageIndex: Int   # 从 1 开始，默认 1
+  pageSize: Int    # 默认 20
   search: String
 }
 
@@ -289,7 +282,7 @@ input MoveModelToGroupInput {
 # Model queries
 extend type Query {
   model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
-  models(input: ModelQueryInput): ModelConnection! @hasPermission(action: "model:read", allowEndUser: true)
+  models(input: ModelQueryInput): ModelListResult! @hasPermission(action: "model:read", allowEndUser: true)  # offset/limit 向后分页，items 直接返回 Model 列表
   modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
   modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
   modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")

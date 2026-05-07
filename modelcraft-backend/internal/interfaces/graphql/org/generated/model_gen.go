@@ -758,7 +758,8 @@ func (this User) GetID() string { return this.ID }
 
 type UserFindManyResult struct {
 	Items      []*EndUserPublic `json:"items"`
-	TotalCount *int32           `json:"totalCount,omitempty"`
+	NextCursor *string          `json:"nextCursor,omitempty"`
+	HasMore    bool             `json:"hasMore"`
 	ReqID      string           `json:"reqId"`
 }
 
