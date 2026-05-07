@@ -62,6 +62,8 @@ func convertOrgUpdateEndUserError(err *bizerrors.BusinessError) generated.Update
 	switch err.Info().GetCode() {
 	case bizerrors.EndUserNotFound.GetCode(), bizerrors.NotFound.GetCode():
 		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
+	case appEnduser.ErrBuiltinUserCannotBeDisabled.GetCode():
+		return &generated.BuiltinUserCannotBeDisabled{Message: err.Msg()}
 	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
 		return &generated.InvalidInput{Message: err.Msg()}
 	default:
@@ -72,6 +74,9 @@ func convertOrgUpdateEndUserError(err *bizerrors.BusinessError) generated.Update
 func convertOrgDeleteEndUserError(err *bizerrors.BusinessError) generated.DeleteEndUserError {
 	if err == nil {
 		return nil
+	}
+	if err.Info().GetCode() == appEnduser.ErrBuiltinUserCannotBeDeleted.GetCode() {
+		return &generated.BuiltinUserCannotBeDeleted{Message: err.Msg()}
 	}
 	return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
 }
