@@ -36,6 +36,7 @@ func TestSqlEndUserRepository_Save_DuplicateKey(t *testing.T) {
 			user.Username,
 			user.Password.Hash,
 			0,
+			0,
 			user.CreatedBy,
 		).
 		WillReturnError(&sqldriver.MySQLError{Number: 1062, Message: "Duplicate entry"})
@@ -58,12 +59,13 @@ func TestSqlEndUserRepository_GetByUsername_NotFound(t *testing.T) {
 		"username",
 		"password",
 		"is_forbidden",
+		"is_builtin",
 		"created_by",
 		"created_at",
 		"updated_at",
 	})
 
-	mock.ExpectQuery("SELECT id, username, password, is_forbidden, created_by, created_at, updated_at").
+	mock.ExpectQuery("SELECT id, username, password, is_forbidden, is_builtin, created_by, created_at, updated_at").
 		WithArgs("alice", "org-a").
 		WillReturnRows(rows)
 
