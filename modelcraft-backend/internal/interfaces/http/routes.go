@@ -94,6 +94,9 @@ type DesignHandlers struct {
 	EndUserMgmtAppService    *appEnduser.EndUserManagementAppService
 	EndUserAuthHandler       *enduserHandlers.AuthHandler
 
+	// Org Creation Service
+	CreateOrgService *appOrg.CreateOrganizationService
+
 	// RBAC Services (Data-Level Row & Column Permission)
 	RBACPermissionSvc *appRbac.EndUserPermissionAppService
 	RBACBundleSvc     *appRbac.EndUserBundleAppService
@@ -411,6 +414,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		RBACBundleSvc:             rbacBundleSvc,
 		RBACRoleSvc:               rbacRoleSvc,
 		RBACAuthzSvc:              rbacAuthzSvc,
+		CreateOrgService:          createOrgService,
 	}, nil
 }
 

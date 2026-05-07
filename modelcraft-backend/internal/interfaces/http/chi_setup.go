@@ -116,6 +116,7 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 		cfg.AuthHandler,
 		cfg.UserHandler,
 		cfg.DesignHandlers.EndUserAuthHandler,
+		cfg.DesignHandlers.CreateOrgService,
 	)
 
 	// Create generated Chi handler with NO built-in middleware.

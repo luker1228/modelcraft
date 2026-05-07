@@ -2,11 +2,16 @@ package http
 
 import (
 	"encoding/json"
+	"errors"
+	"strings"
+
 	"modelcraft/internal/interfaces/http/generated"
+	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
 
+	appOrg "modelcraft/internal/app/organization"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	enduserHandlers "modelcraft/internal/interfaces/http/handlers/enduser"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
@@ -20,6 +25,7 @@ type Server struct {
 	authHandler        *authHandlers.Handler
 	userHandler        *userHandlers.Handler
 	endUserAuthHandler *enduserHandlers.AuthHandler
+	createOrgService   *appOrg.CreateOrganizationService
 }
 
 // Ensure compile-time interface compliance.
@@ -30,11 +36,13 @@ func NewServer(
 	authHandler *authHandlers.Handler,
 	userHandler *userHandlers.Handler,
 	endUserAuthHandler *enduserHandlers.AuthHandler,
+	createOrgService *appOrg.CreateOrganizationService,
 ) *Server {
 	return &Server{
 		authHandler:        authHandler,
 		userHandler:        userHandler,
 		endUserAuthHandler: endUserAuthHandler,
+		createOrgService:   createOrgService,
 	}
 }
 
@@ -140,4 +148,72 @@ func GetOpenAPISpec() ([]byte, error) {
 		return nil, err
 	}
 	return json.Marshal(spec)
+}
+
+// ========================
+// Organization Endpoints
+// ========================
+
+// InitOrg handles POST /api/org/init — creates an organization for the authenticated user.
+func (s *Server) InitOrg(w http.ResponseWriter, r *http.Request) {
+	requestID := ctxutils.GetRequestID(r.Context())
+
+	var req struct {
+		DisplayName          string `json:"displayName"`
+		OrganizationName     string `json:"organizationName"`
+		EndUserAdminPassword string `json:"endUserAdminPassword"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "Invalid request body", "requestId": requestID,
+		})
+		return
+	}
+	if strings.TrimSpace(req.DisplayName) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "displayName is required", "requestId": requestID,
+		})
+		return
+	}
+	if strings.TrimSpace(req.EndUserAdminPassword) == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]any{
+			"error": "endUserAdminPassword is required", "requestId": requestID,
+		})
+		return
+	}
+
+	userID, err := ctxutils.GetUserIDFromContext(r.Context())
+	if err != nil || userID == "" {
+		writeJSON(w, http.StatusUnauthorized, map[string]any{
+			"error": "user not authenticated", "requestId": requestID,
+		})
+		return
+	}
+
+	result, err := s.createOrgService.Execute(r.Context(), &appOrg.CreateOrganizationInput{
+		DisplayName:          req.DisplayName,
+		OrganizationName:     req.OrganizationName,
+		OwnerUserID:          userID,
+		EndUserAdminPassword: req.EndUserAdminPassword,
+	})
+	if err != nil {
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			writeJSON(w, bizErr.GetHTTPStatusCode(), map[string]any{
+				"error": bizErr.Msg(), "code": bizErr.Info().GetCode(), "requestId": requestID,
+			})
+			return
+		}
+		writeJSON(w, http.StatusInternalServerError, map[string]any{
+			"error": "org init failed", "requestId": requestID,
+		})
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":        requestID,
+		"organizationName": result.OrganizationName,
+		"displayName":      result.DisplayName,
+		"alreadyExisted":   result.AlreadyExisted,
+	})
 }
