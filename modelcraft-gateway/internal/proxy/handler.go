@@ -151,6 +151,29 @@ func (h *Handler) GraphQLEndUserProjectHandler(w http.ResponseWriter, r *http.Re
 	h.reverseProxy.ServeHTTP(w, r)
 }
 
+// GraphQLEndUserOrgHandler validates the end-user JWT and proxies to the
+// same org GraphQL backend as GraphQLOrgHandler, rewriting the path to
+// strip the /end-user/ segment.
+//
+// Incoming:  /graphql/end-user/org/{orgName}
+// Upstream:  /graphql/org/{orgName}
+func (h *Handler) GraphQLEndUserOrgHandler(w http.ResponseWriter, r *http.Request) {
+	claims, ok := h.extractAndVerify(w, r)
+	if !ok {
+		return
+	}
+	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
+	ctx = context.WithValue(ctx, userTypeContextKey, userTypeEndUser)
+	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL end-user org request authenticated",
+		zap.String("user_id", claims.UserID),
+		zap.String("path", r.URL.Path),
+	)
+	// Rewrite: /graphql/end-user/org/... → /graphql/org/...
+	r = r.WithContext(ctx)
+	r.URL.Path = strings.Replace(r.URL.Path, "/graphql/end-user/", "/graphql/", 1)
+	h.reverseProxy.ServeHTTP(w, r)
+}
+
 func (h *Handler) extractAndVerify(w http.ResponseWriter, r *http.Request) (*auth.Claims, bool) {
 	authHeader := r.Header.Get("Authorization")
 	if !strings.HasPrefix(authHeader, "Bearer ") {

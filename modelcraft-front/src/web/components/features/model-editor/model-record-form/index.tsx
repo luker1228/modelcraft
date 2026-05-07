@@ -91,8 +91,9 @@ export function ModelRecordForm({
     clusterName,
     databaseName,
     modelId,
+    workspaceMode,
     createRuntimeClient: adapter.createRuntimeClient,
-  }), [orgName, projectSlug, clusterName, databaseName, modelId, adapter.createRuntimeClient])
+  }), [orgName, projectSlug, clusterName, databaseName, modelId, workspaceMode, adapter.createRuntimeClient])
 
   // Handle form submission
   const handleSubmit = async (data: IChangeEvent<Record<string, unknown>>) => {

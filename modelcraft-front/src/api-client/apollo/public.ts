@@ -5,6 +5,7 @@ export {
   createModelRuntimeClient,
   createEndUserModelRuntimeClient,
   createEndUserScopedClient,
+  createEndUserOrgScopedClient,
   buildRuntimeEndpoint,
   getOrgScopedClient,
   useProjectScopedClient,

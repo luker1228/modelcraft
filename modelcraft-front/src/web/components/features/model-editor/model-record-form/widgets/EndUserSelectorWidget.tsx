@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState, useEffect } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { getOrgScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient, createEndUserOrgScopedClient } from '@api-client/apollo/public'
+import { getEndUserToken } from '@api-client/end-user/public'
 import { FIND_USERS } from '@api-client/end-user/graphql-docs'
 import {
   Select,
@@ -27,23 +28,40 @@ interface FindUsersData {
   }
 }
 
+interface FormContext {
+  orgName?: string
+  projectSlug?: string
+  workspaceMode?: 'design' | 'end_user'
+}
+
 /**
  * EndUserSelectorWidget — RJSF custom widget for END_USER_REF fields.
  *
- * Fetches EndUsers via the org-scoped `findUsers` query.
- * EndUser is Org-scoped (not Project-scoped), so uses getOrgScopedClient().
- * Used only in the Tenant (design) workspace.
+ * Org-scoped query: findUsers is served at /graphql/org/{orgName}/.
+ * - design mode: uses getOrgScopedClient() (admin token via Cookie)
+ * - end_user mode: uses createEndUserOrgScopedClient() (end-user Bearer token)
+ *
+ * Default option "— 自己 —" submits empty string; backend fills current user from JWT.
  */
 export function EndUserSelectorWidget(props: WidgetProps) {
   const value = props.value as string | undefined
   const onChange = props.onChange
   const disabled = props.disabled as boolean
   const readonly = props.readonly as boolean
+  const { orgName, workspaceMode = 'design' } = (props.formContext ?? {}) as FormContext
 
   const [users, setUsers] = useState<UserNode[]>([])
   const [loading, setLoading] = useState(false)
 
-  const client = useMemo(() => getOrgScopedClient(), [])
+  const client = useMemo(() => {
+    if (workspaceMode === 'end_user' && orgName) {
+      const token = getEndUserToken()
+      if (token) {
+        return createEndUserOrgScopedClient(orgName, token)
+      }
+    }
+    return getOrgScopedClient()
+  }, [workspaceMode, orgName])
 
   useEffect(() => {
     let cancelled = false
