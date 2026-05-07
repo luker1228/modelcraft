@@ -20,9 +20,17 @@ type EndUserPasswordTooWeak implements Error {
   suggestion: String
 }
 
+type BuiltinUserCannotBeDeleted implements Error {
+  message: String!
+}
+
+type BuiltinUserCannotBeDisabled implements Error {
+  message: String!
+}
+
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
-union UpdateEndUserError = ResourceNotFound | InvalidInput
-union DeleteEndUserError = ResourceNotFound
+union UpdateEndUserError = ResourceNotFound | InvalidInput | BuiltinUserCannotBeDisabled
+union DeleteEndUserError = ResourceNotFound | BuiltinUserCannotBeDeleted
 union ListEndUsersError = InvalidInput
 
 # ============================================
@@ -33,6 +41,7 @@ type EndUser implements Node {
   id: ID!
   username: String!
   isForbidden: Boolean!
+  isBuiltin: Boolean!
   createdBy: String
   createdAt: Time!
   updatedAt: Time!

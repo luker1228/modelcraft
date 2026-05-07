@@ -63,6 +63,14 @@ type ComplexityRoot struct {
 		Type   func(childComplexity int) int
 	}
 
+	BuiltinUserCannotBeDeleted struct {
+		Message func(childComplexity int) int
+	}
+
+	BuiltinUserCannotBeDisabled struct {
+		Message func(childComplexity int) int
+	}
+
 	CannotDeleteDefaultProject struct {
 		Message func(childComplexity int) int
 	}
@@ -166,6 +174,7 @@ type ComplexityRoot struct {
 		CreatedAt   func(childComplexity int) int
 		CreatedBy   func(childComplexity int) int
 		ID          func(childComplexity int) int
+		IsBuiltin   func(childComplexity int) int
 		IsForbidden func(childComplexity int) int
 		UpdatedAt   func(childComplexity int) int
 		Username    func(childComplexity int) int
@@ -568,6 +577,20 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.AuthVariable.Type(childComplexity), true
 
+	case "BuiltinUserCannotBeDeleted.message":
+		if e.complexity.BuiltinUserCannotBeDeleted.Message == nil {
+			break
+		}
+
+		return e.complexity.BuiltinUserCannotBeDeleted.Message(childComplexity), true
+
+	case "BuiltinUserCannotBeDisabled.message":
+		if e.complexity.BuiltinUserCannotBeDisabled.Message == nil {
+			break
+		}
+
+		return e.complexity.BuiltinUserCannotBeDisabled.Message(childComplexity), true
+
 	case "CannotDeleteDefaultProject.message":
 		if e.complexity.CannotDeleteDefaultProject.Message == nil {
 			break
@@ -891,6 +914,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUser.ID(childComplexity), true
+	case "EndUser.isBuiltin":
+		if e.complexity.EndUser.IsBuiltin == nil {
+			break
+		}
+
+		return e.complexity.EndUser.IsBuiltin(childComplexity), true
 	case "EndUser.isForbidden":
 		if e.complexity.EndUser.IsForbidden == nil {
 			break
@@ -2293,9 +2322,17 @@ type EndUserPasswordTooWeak implements Error {
   suggestion: String
 }
 
+type BuiltinUserCannotBeDeleted implements Error {
+  message: String!
+}
+
+type BuiltinUserCannotBeDisabled implements Error {
+  message: String!
+}
+
 union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
-union UpdateEndUserError = ResourceNotFound | InvalidInput
-union DeleteEndUserError = ResourceNotFound
+union UpdateEndUserError = ResourceNotFound | InvalidInput | BuiltinUserCannotBeDisabled
+union DeleteEndUserError = ResourceNotFound | BuiltinUserCannotBeDeleted
 union ListEndUsersError = InvalidInput
 
 # ============================================
@@ -2306,6 +2343,7 @@ type EndUser implements Node {
   id: ID!
   username: String!
   isForbidden: Boolean!
+  isBuiltin: Boolean!
   createdBy: String
   createdAt: Time!
   updatedAt: Time!
@@ -3864,6 +3902,64 @@ func (ec *executionContext) fieldContext_AuthVariable_type(_ context.Context, fi
 	return fc, nil
 }
 
+func (ec *executionContext) _BuiltinUserCannotBeDeleted_message(ctx context.Context, field graphql.CollectedField, obj *BuiltinUserCannotBeDeleted) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BuiltinUserCannotBeDeleted_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BuiltinUserCannotBeDeleted_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BuiltinUserCannotBeDeleted",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BuiltinUserCannotBeDisabled_message(ctx context.Context, field graphql.CollectedField, obj *BuiltinUserCannotBeDisabled) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BuiltinUserCannotBeDisabled_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BuiltinUserCannotBeDisabled_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BuiltinUserCannotBeDisabled",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _CannotDeleteDefaultProject_message(ctx context.Context, field graphql.CollectedField, obj *CannotDeleteDefaultProject) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -4142,6 +4238,8 @@ func (ec *executionContext) fieldContext_CreateEndUserPayload_endUser(_ context.
 				return ec.fieldContext_EndUser_username(ctx, field)
 			case "isForbidden":
 				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "isBuiltin":
+				return ec.fieldContext_EndUser_isBuiltin(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_EndUser_createdBy(ctx, field)
 			case "createdAt":
@@ -5451,6 +5549,35 @@ func (ec *executionContext) fieldContext_EndUser_isForbidden(_ context.Context, 
 	return fc, nil
 }
 
+func (ec *executionContext) _EndUser_isBuiltin(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUser_isBuiltin,
+		func(ctx context.Context) (any, error) {
+			return obj.IsBuiltin, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUser_isBuiltin(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUser",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _EndUser_createdBy(ctx context.Context, field graphql.CollectedField, obj *EndUser) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5597,6 +5724,8 @@ func (ec *executionContext) fieldContext_EndUserConnection_nodes(_ context.Conte
 				return ec.fieldContext_EndUser_username(ctx, field)
 			case "isForbidden":
 				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "isBuiltin":
+				return ec.fieldContext_EndUser_isBuiltin(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_EndUser_createdBy(ctx, field)
 			case "createdAt":
@@ -11046,6 +11175,8 @@ func (ec *executionContext) fieldContext_UpdateEndUserStatusPayload_endUser(_ co
 				return ec.fieldContext_EndUser_username(ctx, field)
 			case "isForbidden":
 				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "isBuiltin":
+				return ec.fieldContext_EndUser_isBuiltin(ctx, field)
 			case "createdBy":
 				return ec.fieldContext_EndUser_createdBy(ctx, field)
 			case "createdAt":
@@ -14379,6 +14510,13 @@ func (ec *executionContext) _DeleteEndUserError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._ResourceNotFound(ctx, sel, obj)
+	case BuiltinUserCannotBeDeleted:
+		return ec._BuiltinUserCannotBeDeleted(ctx, sel, &obj)
+	case *BuiltinUserCannotBeDeleted:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BuiltinUserCannotBeDeleted(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14534,6 +14672,20 @@ func (ec *executionContext) _Error(ctx context.Context, sel ast.SelectionSet, ob
 			return graphql.Null
 		}
 		return ec._CannotDeleteDefaultProject(ctx, sel, obj)
+	case BuiltinUserCannotBeDisabled:
+		return ec._BuiltinUserCannotBeDisabled(ctx, sel, &obj)
+	case *BuiltinUserCannotBeDisabled:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BuiltinUserCannotBeDisabled(ctx, sel, obj)
+	case BuiltinUserCannotBeDeleted:
+		return ec._BuiltinUserCannotBeDeleted(ctx, sel, &obj)
+	case *BuiltinUserCannotBeDeleted:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BuiltinUserCannotBeDeleted(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -14826,6 +14978,13 @@ func (ec *executionContext) _UpdateEndUserError(ctx context.Context, sel ast.Sel
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
+	case BuiltinUserCannotBeDisabled:
+		return ec._BuiltinUserCannotBeDisabled(ctx, sel, &obj)
+	case *BuiltinUserCannotBeDisabled:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BuiltinUserCannotBeDisabled(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -15020,6 +15179,84 @@ func (ec *executionContext) _AuthVariable(ctx context.Context, sel ast.Selection
 			}
 		case "type":
 			out.Values[i] = ec._AuthVariable_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var builtinUserCannotBeDeletedImplementors = []string{"BuiltinUserCannotBeDeleted", "Error", "DeleteEndUserError"}
+
+func (ec *executionContext) _BuiltinUserCannotBeDeleted(ctx context.Context, sel ast.SelectionSet, obj *BuiltinUserCannotBeDeleted) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, builtinUserCannotBeDeletedImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BuiltinUserCannotBeDeleted")
+		case "message":
+			out.Values[i] = ec._BuiltinUserCannotBeDeleted_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var builtinUserCannotBeDisabledImplementors = []string{"BuiltinUserCannotBeDisabled", "Error", "UpdateEndUserError"}
+
+func (ec *executionContext) _BuiltinUserCannotBeDisabled(ctx context.Context, sel ast.SelectionSet, obj *BuiltinUserCannotBeDisabled) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, builtinUserCannotBeDisabledImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BuiltinUserCannotBeDisabled")
+		case "message":
+			out.Values[i] = ec._BuiltinUserCannotBeDisabled_message(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -15830,6 +16067,11 @@ func (ec *executionContext) _EndUser(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "isForbidden":
 			out.Values[i] = ec._EndUser_isForbidden(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isBuiltin":
+			out.Values[i] = ec._EndUser_isBuiltin(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
