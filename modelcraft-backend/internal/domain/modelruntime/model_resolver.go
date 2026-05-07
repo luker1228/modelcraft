@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"maps"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
@@ -45,6 +46,12 @@ func newGraphqlModelResolver(ctx context.Context, model *RuntimeModel,
 	}
 }
 
+// endUserRefFieldName 返回此 model 中 FormatEndUserRef 类型字段的名称。
+// 空字符串表示该 model 无 owner 字段，SELF scope 降级为 ALL（不注入 WHERE）。
+func (m *graphqlModelResolver) endUserRefFieldName() string {
+	return FindEndUserRefFieldName(m.model.Fields)
+}
+
 func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.Schema, error) {
 	logger := logfacade.GetLogger(ctx)
 
@@ -79,11 +86,19 @@ func (m *graphqlModelResolver) newGraphqlSchema(ctx context.Context) (*graphql.S
 
 func (m *graphqlModelResolver) executeFindUnique(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
 	startTime := time.Now()
 
 	input, err := newFindUniqueInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindUnique(p.Context, input)
 	if err != nil {
@@ -173,11 +188,19 @@ func (m *graphqlModelResolver) createRootQuery(ctx context.Context, modelType gr
 
 func (m *graphqlModelResolver) executeFindFirst(p graphql.ResolveParams) (any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
 	startTime := time.Now()
 
 	input, err := newFindFirstInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindFirst(p.Context, input)
 	if err != nil {
@@ -227,11 +250,19 @@ func (m *graphqlModelResolver) createFindFirstField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
 	startTime := time.Now()
 
 	input, err := newFindManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.FindMany(p.Context, input)
 	if err != nil {
@@ -282,6 +313,9 @@ func (m *graphqlModelResolver) createFindManyField(modelType graphql.Type) (*gra
 
 func (m *graphqlModelResolver) executeAggregate(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
 	input, err := newAggregateInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -424,6 +458,9 @@ func (m *graphqlModelResolver) createAggregateResultType(ctx context.Context) *g
 // executeCount 执行count查询操作
 func (m *graphqlModelResolver) executeCount(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
 	input, err := newCountInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1243,6 +1280,9 @@ func (m *graphqlModelResolver) createRootMutation(modelType graphql.Type) (*grap
 
 func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionInsert); err != nil {
+		return nil, err
+	}
 	input, err := newCreateOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1342,6 +1382,9 @@ func (m *graphqlModelResolver) createCreateOneField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionUpdate); err != nil {
+		return nil, err
+	}
 	input, err := newUpdateOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1356,6 +1399,11 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 				break
 			}
 		}
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 
 	// 返回包装结果
@@ -1414,9 +1462,17 @@ func (m *graphqlModelResolver) createUpdateOneField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeDeleteOne(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionDelete); err != nil {
+		return nil, err
+	}
 	input, err := newDeleteOneInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 	// 返回包装结果
 	result := map[string]interface{}{
@@ -1474,6 +1530,9 @@ func (m *graphqlModelResolver) createDeleteOneField(modelType graphql.Type) (*gr
 
 func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionInsert); err != nil {
+		return nil, err
+	}
 	logger := logfacade.GetLogger(p.Context)
 	logger.Infof(p.Context, "type=%T", p.Args[FieldData])
 	input, err := newCreateManyInput(m.model.Name, p)
@@ -1550,6 +1609,9 @@ func (m *graphqlModelResolver) createCreateManyField(modelType graphql.Type) (*g
 
 func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionUpdate); err != nil {
+		return nil, err
+	}
 	input, err := newUpdateManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
@@ -1564,6 +1626,11 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 				break
 			}
 		}
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionUpdate, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 
 	result, err := rctx.ClientRepo.UpdateMany(p.Context, input)
@@ -1608,9 +1675,17 @@ func (m *graphqlModelResolver) createUpdateManyField(modelType graphql.Type) (*g
 
 func (m *graphqlModelResolver) executeDeleteMany(p graphql.ResolveParams) (interface{}, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionDelete); err != nil {
+		return nil, err
+	}
 	input, err := newDeleteManyInput(m.model.Name, p)
 	if err != nil {
 		return nil, err
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionDelete, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
 	}
 	result, err := rctx.ClientRepo.DeleteMany(p.Context, input)
 	if err != nil {

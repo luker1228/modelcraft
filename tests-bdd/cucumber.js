@@ -8,7 +8,6 @@ module.exports = {
       'support/**/*.ts',
       'step-definitions/**/*.ts',
     ],
-    paths: ['features/**/*.feature'],
     format: [
       'progress-bar',
       'html:reports/test-report.html',
