@@ -43,4 +43,18 @@ var (
 		EnMessage: "End user account is disabled",
 		ZhMessage: "终端用户账号已禁用",
 	}
+
+	// ErrBuiltinUserCannotBeDeleted is returned when attempting to delete a builtin admin EndUser.
+	ErrBuiltinUserCannotBeDeleted = bizerrors.ErrorDefinition{
+		Code:      bizerrors.ErrorTypeOperationFailed + ".BUILTIN_USER_DELETE",
+		EnMessage: "Built-in admin user cannot be deleted",
+		ZhMessage: "内置管理员账号不可删除",
+	}
+
+	// ErrBuiltinUserCannotBeDisabled is returned when attempting to disable a builtin admin EndUser.
+	ErrBuiltinUserCannotBeDisabled = bizerrors.ErrorDefinition{
+		Code:      bizerrors.ErrorTypeOperationFailed + ".BUILTIN_USER_DISABLE",
+		EnMessage: "Built-in admin user cannot be disabled",
+		ZhMessage: "内置管理员账号不可禁用",
+	}
 )
