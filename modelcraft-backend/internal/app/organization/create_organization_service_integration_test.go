@@ -2,6 +2,7 @@ package organization_test
 
 import (
 	"context"
+	"fmt"
 	"modelcraft/internal/app/organization"
 	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/permission"
@@ -245,7 +246,7 @@ func newTestService(
 	roleRepo *mockRoleRepo,
 	membershipRepo *mockMembershipRepo,
 ) *organization.CreateOrganizationService {
-	return organization.NewCreateOrganizationService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	return organization.NewCreateOrganizationService(txManager, userRepo, orgRepo, roleRepo, membershipRepo, nil)
 }
 
 func makeOwnerRole() *permission.Role {
@@ -278,6 +279,9 @@ func TestCreateOrganizationService_Execute_Success(t *testing.T) {
 	membershipRepo.On("CountByUser", ctx, userID).Return(int64(0), nil)
 	orgRepo.On("ExistsByName", ctx, "testorg").Return(false, nil)
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "owner", "__SYSTEM__").Return(makeOwnerRole(), nil)
+	roleRepo.On("GetRoleByNameAndOrg", ctx, "admin", "__SYSTEM__").Return(&permission.Role{ID: 2, Name: "admin", OrgName: "__SYSTEM__", IsSystem: true}, nil)
+	roleRepo.On("GetRoleByNameAndOrg", ctx, "editor", "__SYSTEM__").Return(&permission.Role{ID: 3, Name: "editor", OrgName: "__SYSTEM__", IsSystem: true}, nil)
+	roleRepo.On("GetRoleByNameAndOrg", ctx, "viewer", "__SYSTEM__").Return(&permission.Role{ID: 4, Name: "viewer", OrgName: "__SYSTEM__", IsSystem: true}, nil)
 	// Transaction succeeds — actual repo calls inside the tx are covered by auto-test
 	txManager.On("WithTx", ctx).Return(nil)
 
@@ -410,7 +414,9 @@ func TestCreateOrganizationService_Execute_RoleNotFound(t *testing.T) {
 	userRepo.On("GetByID", ctx, userID).Return(makeTestUser(userID), nil)
 	membershipRepo.On("CountByUser", ctx, userID).Return(int64(0), nil)
 	orgRepo.On("ExistsByName", ctx, "testorg").Return(false, nil)
+	// Simulate owner role missing from DB — service will attempt recreation but DB is down
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "owner", "__SYSTEM__").Return(nil, nil)
+	roleRepo.On("CreateRole", ctx, mock.AnythingOfType("*permission.Role")).Return(fmt.Errorf("db error"))
 
 	svc := newTestService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
 
