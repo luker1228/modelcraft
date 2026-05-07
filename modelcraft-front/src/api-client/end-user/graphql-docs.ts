@@ -9,14 +9,15 @@ import { gql } from '@apollo/client'
  * Returns User (public projection: id, username, createdAt).
  */
 export const FIND_USERS = gql`
-  query FindUsers($where: UserWhereInput, $skip: Int, $take: Int) {
-    findUsers(where: $where, skip: $skip, take: $take) {
+  query FindUsers($where: UserWhereInput, $after: String, $first: Int) {
+    findUsers(where: $where, after: $after, first: $first) {
       items {
         id
         username
         createdAt
       }
-      totalCount
+      nextCursor
+      hasMore
       reqId
     }
   }

@@ -21,7 +21,8 @@ interface UserNode {
 interface FindUsersData {
   findUsers?: {
     items?: UserNode[]
-    totalCount?: number
+    nextCursor?: string
+    hasMore?: boolean
     reqId: string
   }
 }
@@ -51,7 +52,7 @@ export function EndUserSelectorWidget(props: WidgetProps) {
     client
       .query<FindUsersData>({
         query: FIND_USERS,
-        variables: { take: 50 },
+        variables: { first: 50 },
         fetchPolicy: 'cache-first',
       })
       .then((result) => {
@@ -83,7 +84,7 @@ export function EndUserSelectorWidget(props: WidgetProps) {
         <SelectValue placeholder={loading ? '加载中...' : '选择用户'} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="__none__">— 不指定 —</SelectItem>
+        <SelectItem value="__none__">— 自己 —</SelectItem>
         {users.map((user) => (
           <SelectItem key={user.id} value={user.id}>
             {user.username}

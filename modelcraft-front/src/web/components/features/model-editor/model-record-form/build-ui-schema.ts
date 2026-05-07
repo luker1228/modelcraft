@@ -41,11 +41,7 @@ export function buildUiSchema(
     if (!widget) continue
 
     if (widget === 'end-user-ref') {
-      if (workspaceMode === 'end_user') {
-        uiSchema[fieldName] = { 'ui:widget': 'hidden' }
-      } else {
-        uiSchema[fieldName] = { 'ui:widget': 'EndUserSelectorWidget' }
-      }
+      uiSchema[fieldName] = { 'ui:widget': 'EndUserSelectorWidget' }
       continue
     }
 
