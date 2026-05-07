@@ -11,10 +11,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
+import { Badge } from '@web/components/ui/badge'
 
 interface UserNode {
   id: string
   username: string
+  isBuiltin: boolean
   createdAt: string
 }
 
@@ -30,8 +32,9 @@ interface FindUsersData {
  * EndUserSelectorWidget — RJSF custom widget for END_USER_REF fields.
  *
  * Fetches EndUsers via the org-scoped `findUsers` query.
- * EndUser is Org-scoped (not Project-scoped), so uses getOrgScopedClient().
- * Used only in the Tenant (design) workspace.
+ * - Builtin admin is pinned at the top with a 「系统」chip.
+ * - No 「不指定」option: every record must have an owner.
+ * - New records default to the builtin admin's ID.
  */
 export function EndUserSelectorWidget(props: WidgetProps) {
   const value = props.value as string | undefined
@@ -56,7 +59,16 @@ export function EndUserSelectorWidget(props: WidgetProps) {
       })
       .then((result) => {
         if (!cancelled) {
-          setUsers(result.data?.findUsers?.items ?? [])
+          const items = result.data?.findUsers?.items ?? []
+          setUsers(items)
+
+          // Default new records to the builtin admin's ID
+          if (!value) {
+            const builtin = items.find((u) => u.isBuiltin)
+            if (builtin) {
+              onChange(builtin.id)
+            }
+          }
           setLoading(false)
         }
       })
@@ -67,26 +79,35 @@ export function EndUserSelectorWidget(props: WidgetProps) {
     return () => {
       cancelled = true
     }
-  }, [client])
+  }, [client]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleChange = (val: string) => {
-    onChange(val === '__none__' ? undefined : val)
-  }
+  // Builtin admin pinned at top, then the rest sorted by username
+  const sortedUsers = useMemo(() => {
+    const builtin = users.filter((u) => u.isBuiltin)
+    const normal = users.filter((u) => !u.isBuiltin)
+    return [...builtin, ...normal]
+  }, [users])
 
   return (
     <Select
-      value={value ?? '__none__'}
-      onValueChange={handleChange}
+      value={value ?? ''}
+      onValueChange={onChange}
       disabled={disabled === true || readonly === true || loading}
     >
       <SelectTrigger>
         <SelectValue placeholder={loading ? '加载中...' : '选择用户'} />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="__none__">— 不指定 —</SelectItem>
-        {users.map((user) => (
+        {sortedUsers.map((user) => (
           <SelectItem key={user.id} value={user.id}>
-            {user.username}
+            <span className="flex items-center gap-2">
+              {user.username}
+              {user.isBuiltin && (
+                <Badge variant="secondary" className="text-xs">
+                  系统
+                </Badge>
+              )}
+            </span>
           </SelectItem>
         ))}
       </SelectContent>

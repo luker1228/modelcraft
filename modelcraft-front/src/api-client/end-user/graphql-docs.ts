@@ -14,6 +14,7 @@ export const FIND_USERS = gql`
       items {
         id
         username
+        isBuiltin
         createdAt
       }
       totalCount
@@ -30,6 +31,7 @@ export const LIST_END_USERS = gql`
           id
           username
           isForbidden
+          isBuiltin
           createdBy
           createdAt
           updatedAt
@@ -60,6 +62,7 @@ export const CREATE_END_USER = gql`
         id
         username
         isForbidden
+        isBuiltin
         createdBy
         createdAt
         updatedAt
