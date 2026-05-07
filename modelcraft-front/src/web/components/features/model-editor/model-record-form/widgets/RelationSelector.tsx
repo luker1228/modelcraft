@@ -22,6 +22,7 @@ import { Button } from '@web/components/ui/button'
 import { ChevronsUpDown, X, Check, Loader2 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import type { XMC } from '@/types/xmc'
+import { useWidgetRouteContext } from '../_hooks/useWidgetRouteContext'
 
 // ──────────────────────────────────────────────
 // Types
@@ -87,22 +88,6 @@ function extractProps(props: WidgetProps) {
     required: props.required as boolean,
     schema: props.schema as Record<string, unknown>,
     formContext: props.formContext as Record<string, unknown> | undefined,
-  }
-}
-
-function getRouteContextFromPathname(): { orgName?: string; projectSlug?: string } {
-  if (typeof window === 'undefined') {
-    return {}
-  }
-
-  const match = window.location.pathname.match(/\/org\/([^/]+)\/project\/([^/]+)/)
-  if (!match) {
-    return {}
-  }
-
-  return {
-    orgName: decodeURIComponent(match[1]),
-    projectSlug: decodeURIComponent(match[2]),
   }
 }
 
@@ -324,9 +309,7 @@ export function RelationSelector(props: WidgetProps) {
   const { value, onChange, disabled, required, schema, formContext } = extractProps(props)
 
   const ctx = (formContext ?? {}) as unknown as FormContext
-  const routeCtx = useMemo(() => getRouteContextFromPathname(), [])
-  const orgName = ctx.orgName ?? routeCtx.orgName ?? ''
-  const projectSlug = ctx.projectSlug ?? routeCtx.projectSlug ?? ''
+  const { orgName, projectSlug } = useWidgetRouteContext(ctx)
   const createRuntimeClientOverride = ctx.createRuntimeClient
 
   const xmc = schema['x-mc'] as XMC | undefined

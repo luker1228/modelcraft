@@ -291,6 +291,12 @@ type DatabaseConnectionInput struct {
 	ConnectionTimeout *int32 `json:"connectionTimeout,omitempty"`
 }
 
+type DateTimeFilter struct {
+	Eq  *string `json:"eq,omitempty"`
+	Gte *string `json:"gte,omitempty"`
+	Lte *string `json:"lte,omitempty"`
+}
+
 type DeleteClusterPayload struct {
 	Success bool               `json:"success"`
 	Error   DeleteClusterError `json:"error,omitempty"`
@@ -357,6 +363,12 @@ func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
 
 func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
+type EndUserPublic struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	CreatedAt time.Time `json:"createdAt"`
+}
+
 type GetClusterPayload struct {
 	Cluster *DatabaseCluster `json:"cluster,omitempty"`
 	Error   GetClusterError  `json:"error,omitempty"`
@@ -375,6 +387,11 @@ type GetOrganizationPayload struct {
 type GetProjectPayload struct {
 	Project *Project        `json:"project,omitempty"`
 	Error   GetProjectError `json:"error,omitempty"`
+}
+
+type IDFilter struct {
+	Eq *string  `json:"eq,omitempty"`
+	In []string `json:"in,omitempty"`
 }
 
 type InvalidInput struct {
@@ -645,6 +662,13 @@ type SetProjectAuthSchemaPayload struct {
 	Error      SetProjectAuthSchemaError `json:"error,omitempty"`
 }
 
+type StringFilter struct {
+	Eq         *string  `json:"eq,omitempty"`
+	Contains   *string  `json:"contains,omitempty"`
+	StartsWith *string  `json:"startsWith,omitempty"`
+	In         []string `json:"in,omitempty"`
+}
+
 type TestConnectionPayload struct {
 	Success        bool                `json:"success"`
 	ConnectionTime *float64            `json:"connectionTime,omitempty"`
@@ -732,12 +756,29 @@ type User struct {
 func (User) IsNode()            {}
 func (this User) GetID() string { return this.ID }
 
+type UserFindManyResult struct {
+	Items      []*EndUserPublic `json:"items"`
+	TotalCount *int32           `json:"totalCount,omitempty"`
+	ReqID      string           `json:"reqId"`
+}
+
+type UserFindOneResult struct {
+	Item  *EndUserPublic `json:"item,omitempty"`
+	ReqID string         `json:"reqId"`
+}
+
 type UserRoleAssignment struct {
 	ID        int32     `json:"id"`
 	UserID    string    `json:"userId"`
 	RoleID    int32     `json:"roleId"`
 	OrgName   string    `json:"orgName"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+type UserWhereInput struct {
+	ID        *IDFilter       `json:"id,omitempty"`
+	Username  *StringFilter   `json:"username,omitempty"`
+	CreatedAt *DateTimeFilter `json:"createdAt,omitempty"`
 }
 
 type AuthVariableType string

@@ -41,7 +41,6 @@ type Resolver struct {
 
 	// End-User
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
-	MetaUserAppService    *appEnduser.MetaUserAppService
 
 	// RBAC (Data-Level Row & Column Permission)
 	RBACPermissionSvc *apprbac.EndUserPermissionAppService

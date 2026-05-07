@@ -186,6 +186,12 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
+	EndUserPublic struct {
+		CreatedAt func(childComplexity int) int
+		ID        func(childComplexity int) int
+		Username  func(childComplexity int) int
+	}
+
 	GetClusterPayload struct {
 		Cluster func(childComplexity int) int
 		Error   func(childComplexity int) int
@@ -337,6 +343,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		DatabaseCluster     func(childComplexity int, projectSlug string) int
+		FindUsers           func(childComplexity int, where *UserWhereInput, skip *int32, take *int32) int
 		Hello               func(childComplexity int) int
 		ListEndUsers        func(childComplexity int, input *ListEndUsersInput) int
 		Me                  func(childComplexity int) int
@@ -434,6 +441,17 @@ type ComplexityRoot struct {
 		UserName  func(childComplexity int) int
 	}
 
+	UserFindManyResult struct {
+		Items      func(childComplexity int) int
+		ReqID      func(childComplexity int) int
+		TotalCount func(childComplexity int) int
+	}
+
+	UserFindOneResult struct {
+		Item  func(childComplexity int) int
+		ReqID func(childComplexity int) int
+	}
+
 	UserRoleAssignment struct {
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
@@ -471,6 +489,7 @@ type QueryResolver interface {
 	Ping(ctx context.Context) (string, error)
 	Node(ctx context.Context, id string) (Node, error)
 	ListEndUsers(ctx context.Context, input *ListEndUsersInput) (*ListEndUsersPayload, error)
+	FindUsers(ctx context.Context, where *UserWhereInput, skip *int32, take *int32) (*UserFindManyResult, error)
 	PermissionRoles(ctx context.Context, orgName string, includeSystem *bool) ([]*PermissionRole, error)
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
@@ -929,6 +948,25 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPasswordTooWeak.Suggestion(childComplexity), true
+
+	case "EndUserPublic.createdAt":
+		if e.complexity.EndUserPublic.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.EndUserPublic.CreatedAt(childComplexity), true
+	case "EndUserPublic.id":
+		if e.complexity.EndUserPublic.ID == nil {
+			break
+		}
+
+		return e.complexity.EndUserPublic.ID(childComplexity), true
+	case "EndUserPublic.username":
+		if e.complexity.EndUserPublic.Username == nil {
+			break
+		}
+
+		return e.complexity.EndUserPublic.Username(childComplexity), true
 
 	case "GetClusterPayload.cluster":
 		if e.complexity.GetClusterPayload.Cluster == nil {
@@ -1595,6 +1633,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.DatabaseCluster(childComplexity, args["projectSlug"].(string)), true
+	case "Query.findUsers":
+		if e.complexity.Query.FindUsers == nil {
+			break
+		}
+
+		args, err := ec.field_Query_findUsers_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.FindUsers(childComplexity, args["where"].(*UserWhereInput), args["skip"].(*int32), args["take"].(*int32)), true
 	case "Query.hello":
 		if e.complexity.Query.Hello == nil {
 			break
@@ -1968,6 +2017,38 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.User.UserName(childComplexity), true
 
+	case "UserFindManyResult.items":
+		if e.complexity.UserFindManyResult.Items == nil {
+			break
+		}
+
+		return e.complexity.UserFindManyResult.Items(childComplexity), true
+	case "UserFindManyResult.reqId":
+		if e.complexity.UserFindManyResult.ReqID == nil {
+			break
+		}
+
+		return e.complexity.UserFindManyResult.ReqID(childComplexity), true
+	case "UserFindManyResult.totalCount":
+		if e.complexity.UserFindManyResult.TotalCount == nil {
+			break
+		}
+
+		return e.complexity.UserFindManyResult.TotalCount(childComplexity), true
+
+	case "UserFindOneResult.item":
+		if e.complexity.UserFindOneResult.Item == nil {
+			break
+		}
+
+		return e.complexity.UserFindOneResult.Item(childComplexity), true
+	case "UserFindOneResult.reqId":
+		if e.complexity.UserFindOneResult.ReqID == nil {
+			break
+		}
+
+		return e.complexity.UserFindOneResult.ReqID(childComplexity), true
+
 	case "UserRoleAssignment.createdAt":
 		if e.complexity.UserRoleAssignment.CreatedAt == nil {
 			break
@@ -2014,10 +2095,13 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateProjectInput,
 		ec.unmarshalInputCreateRoleInput,
 		ec.unmarshalInputDatabaseConnectionInput,
+		ec.unmarshalInputDateTimeFilter,
 		ec.unmarshalInputDeleteEndUserInput,
+		ec.unmarshalInputIDFilter,
 		ec.unmarshalInputListEndUsersInput,
 		ec.unmarshalInputListProjectsInput,
 		ec.unmarshalInputSetProjectAuthSchemaInput,
+		ec.unmarshalInputStringFilter,
 		ec.unmarshalInputTestDatabaseConnectionInput,
 		ec.unmarshalInputUpdateClusterConnectionInput,
 		ec.unmarshalInputUpdateEndUserStatusInput,
@@ -2025,6 +2109,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateOrganizationInput,
 		ec.unmarshalInputUpdateProjectInput,
 		ec.unmarshalInputUpdateRoleInput,
+		ec.unmarshalInputUserWhereInput,
 	)
 	first := true
 
@@ -2286,6 +2371,15 @@ input ListEndUsersInput {
 
 extend type Query {
   listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
+
+  # findUsers: list end-users with optional filtering and pagination.
+  # Accessible to both tenant developers and end-users (allowEndUser: true).
+  # Pagination: skip default 0 max 1000; take default 20 max 50.
+  findUsers(
+    where: UserWhereInput
+    skip: Int
+    take: Int
+  ): UserFindManyResult! @hasPermission(action: "end-user:read")
 }
 
 extend type Mutation {
@@ -2294,6 +2388,53 @@ extend type Mutation {
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
 }
 
+# ============================================
+# System User Types (for EndUserRef field selectors)
+# EndUser is Org-scoped — these types live here, not in project schema.
+# Note: named EndUserPublic to avoid conflict with tenant User type in profile.graphql.
+# ============================================
+
+# EndUserPublic is the public projection of an end-user (no tenant fields).
+type EndUserPublic {
+  id: ID!
+  username: String!
+  createdAt: Time!
+}
+
+input StringFilter {
+  eq: String
+  contains: String
+  startsWith: String
+  in: [String!]
+}
+
+input IDFilter {
+  eq: ID
+  in: [ID!]
+}
+
+input DateTimeFilter {
+  eq: String
+  gte: String
+  lte: String
+}
+
+input UserWhereInput {
+  id: IDFilter
+  username: StringFilter
+  createdAt: DateTimeFilter
+}
+
+type UserFindManyResult {
+  items: [EndUserPublic!]!
+  totalCount: Int
+  reqId: String!
+}
+
+type UserFindOneResult {
+  item: EndUserPublic
+  reqId: String!
+}
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/permission.graphql", Input: `# Permission Management Types
 
@@ -3334,6 +3475,27 @@ func (ec *executionContext) field_Query_databaseCluster_args(ctx context.Context
 		return nil, err
 	}
 	args["projectSlug"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_findUsers_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "where", ec.unmarshalOUserWhereInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserWhereInput)
+	if err != nil {
+		return nil, err
+	}
+	args["where"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "skip", ec.unmarshalOInt2ᚖint32)
+	if err != nil {
+		return nil, err
+	}
+	args["skip"] = arg1
+	arg2, err := graphql.ProcessArgField(ctx, rawArgs, "take", ec.unmarshalOInt2ᚖint32)
+	if err != nil {
+		return nil, err
+	}
+	args["take"] = arg2
 	return args, nil
 }
 
@@ -5569,6 +5731,93 @@ func (ec *executionContext) fieldContext_EndUserPasswordTooWeak_suggestion(_ con
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPublic_id(ctx context.Context, field graphql.CollectedField, obj *EndUserPublic) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPublic_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPublic_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPublic",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPublic_username(ctx context.Context, field graphql.CollectedField, obj *EndUserPublic) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPublic_username,
+		func(ctx context.Context) (any, error) {
+			return obj.Username, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPublic_username(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPublic",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPublic_createdAt(ctx context.Context, field graphql.CollectedField, obj *EndUserPublic) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPublic_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPublic_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPublic",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
 		},
 	}
 	return fc, nil
@@ -9189,6 +9438,73 @@ func (ec *executionContext) fieldContext_Query_listEndUsers(ctx context.Context,
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_findUsers(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_findUsers,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().FindUsers(ctx, fc.Args["where"].(*UserWhereInput), fc.Args["skip"].(*int32), fc.Args["take"].(*int32))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:read")
+				if err != nil {
+					var zeroVal *UserFindManyResult
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *UserFindManyResult
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNUserFindManyResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserFindManyResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_findUsers(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "items":
+				return ec.fieldContext_UserFindManyResult_items(ctx, field)
+			case "totalCount":
+				return ec.fieldContext_UserFindManyResult_totalCount(ctx, field)
+			case "reqId":
+				return ec.fieldContext_UserFindManyResult_reqId(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type UserFindManyResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_findUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_permissionRoles(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -11291,6 +11607,167 @@ func (ec *executionContext) fieldContext_User_profile(_ context.Context, field g
 	return fc, nil
 }
 
+func (ec *executionContext) _UserFindManyResult_items(ctx context.Context, field graphql.CollectedField, obj *UserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserFindManyResult_items,
+		func(ctx context.Context) (any, error) {
+			return obj.Items, nil
+		},
+		nil,
+		ec.marshalNEndUserPublic2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserPublicᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserFindManyResult_items(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserPublic_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUserPublic_username(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPublic_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPublic", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserFindManyResult_totalCount(ctx context.Context, field graphql.CollectedField, obj *UserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserFindManyResult_totalCount,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalCount, nil
+		},
+		nil,
+		ec.marshalOInt2ᚖint32,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserFindManyResult_totalCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserFindManyResult_reqId(ctx context.Context, field graphql.CollectedField, obj *UserFindManyResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserFindManyResult_reqId,
+		func(ctx context.Context) (any, error) {
+			return obj.ReqID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserFindManyResult_reqId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserFindManyResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserFindOneResult_item(ctx context.Context, field graphql.CollectedField, obj *UserFindOneResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserFindOneResult_item,
+		func(ctx context.Context) (any, error) {
+			return obj.Item, nil
+		},
+		nil,
+		ec.marshalOEndUserPublic2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserPublic,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserFindOneResult_item(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserFindOneResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUserPublic_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUserPublic_username(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUserPublic_createdAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUserPublic", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _UserFindOneResult_reqId(ctx context.Context, field graphql.CollectedField, obj *UserFindOneResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_UserFindOneResult_reqId,
+		func(ctx context.Context) (any, error) {
+			return obj.ReqID, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_UserFindOneResult_reqId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "UserFindOneResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _UserRoleAssignment_id(ctx context.Context, field graphql.CollectedField, obj *UserRoleAssignment) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -13190,6 +13667,47 @@ func (ec *executionContext) unmarshalInputDatabaseConnectionInput(ctx context.Co
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputDateTimeFilter(ctx context.Context, obj any) (DateTimeFilter, error) {
+	var it DateTimeFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "gte", "lte"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "gte":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("gte"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Gte = data
+		case "lte":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("lte"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Lte = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDeleteEndUserInput(ctx context.Context, obj any) (DeleteEndUserInput, error) {
 	var it DeleteEndUserInput
 	asMap := map[string]any{}
@@ -13211,6 +13729,40 @@ func (ec *executionContext) unmarshalInputDeleteEndUserInput(ctx context.Context
 				return it, err
 			}
 			it.UserID = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputIDFilter(ctx context.Context, obj any) (IDFilter, error) {
+	var it IDFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "in"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOID2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "in":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("in"))
+			data, err := ec.unmarshalOID2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.In = data
 		}
 	}
 
@@ -13313,6 +13865,54 @@ func (ec *executionContext) unmarshalInputSetProjectAuthSchemaInput(ctx context.
 				return it, err
 			}
 			it.Variables = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputStringFilter(ctx context.Context, obj any) (StringFilter, error) {
+	var it StringFilter
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"eq", "contains", "startsWith", "in"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "eq":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("eq"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Eq = data
+		case "contains":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("contains"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Contains = data
+		case "startsWith":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("startsWith"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.StartsWith = data
+		case "in":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("in"))
+			data, err := ec.unmarshalOString2ᚕstringᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.In = data
 		}
 	}
 
@@ -13572,6 +14172,47 @@ func (ec *executionContext) unmarshalInputUpdateRoleInput(ctx context.Context, o
 				return it, err
 			}
 			it.Description = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUserWhereInput(ctx context.Context, obj any) (UserWhereInput, error) {
+	var it UserWhereInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"id", "username", "createdAt"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "id":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+			data, err := ec.unmarshalOIDFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐIDFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.ID = data
+		case "username":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+			data, err := ec.unmarshalOStringFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐStringFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Username = data
+		case "createdAt":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("createdAt"))
+			data, err := ec.unmarshalODateTimeFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDateTimeFilter(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.CreatedAt = data
 		}
 	}
 
@@ -15356,6 +15997,55 @@ func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast
 	return out
 }
 
+var endUserPublicImplementors = []string{"EndUserPublic"}
+
+func (ec *executionContext) _EndUserPublic(ctx context.Context, sel ast.SelectionSet, obj *EndUserPublic) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPublicImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EndUserPublic")
+		case "id":
+			out.Values[i] = ec._EndUserPublic_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "username":
+			out.Values[i] = ec._EndUserPublic_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._EndUserPublic_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var getClusterPayloadImplementors = []string{"GetClusterPayload"}
 
 func (ec *executionContext) _GetClusterPayload(ctx context.Context, sel ast.SelectionSet, obj *GetClusterPayload) graphql.Marshaler {
@@ -16572,6 +17262,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "findUsers":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_findUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "permissionRoles":
 			field := field
 
@@ -17473,6 +18185,93 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 	return out
 }
 
+var userFindManyResultImplementors = []string{"UserFindManyResult"}
+
+func (ec *executionContext) _UserFindManyResult(ctx context.Context, sel ast.SelectionSet, obj *UserFindManyResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userFindManyResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserFindManyResult")
+		case "items":
+			out.Values[i] = ec._UserFindManyResult_items(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalCount":
+			out.Values[i] = ec._UserFindManyResult_totalCount(ctx, field, obj)
+		case "reqId":
+			out.Values[i] = ec._UserFindManyResult_reqId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var userFindOneResultImplementors = []string{"UserFindOneResult"}
+
+func (ec *executionContext) _UserFindOneResult(ctx context.Context, sel ast.SelectionSet, obj *UserFindOneResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, userFindOneResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("UserFindOneResult")
+		case "item":
+			out.Values[i] = ec._UserFindOneResult_item(ctx, field, obj)
+		case "reqId":
+			out.Values[i] = ec._UserFindOneResult_reqId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var userRoleAssignmentImplementors = []string{"UserRoleAssignment"}
 
 func (ec *executionContext) _UserRoleAssignment(ctx context.Context, sel ast.SelectionSet, obj *UserRoleAssignment) graphql.Marshaler {
@@ -18228,6 +19027,60 @@ func (ec *executionContext) marshalNEndUser2ᚖmodelcraftᚋinternalᚋinterface
 		return graphql.Null
 	}
 	return ec._EndUser(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEndUserPublic2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserPublicᚄ(ctx context.Context, sel ast.SelectionSet, v []*EndUserPublic) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEndUserPublic2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserPublic(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNEndUserPublic2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserPublic(ctx context.Context, sel ast.SelectionSet, v *EndUserPublic) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._EndUserPublic(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNGetClusterPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐGetClusterPayload(ctx context.Context, sel ast.SelectionSet, v GetClusterPayload) graphql.Marshaler {
@@ -19024,6 +19877,20 @@ func (ec *executionContext) unmarshalNUpdateRoleInput2modelcraftᚋinternalᚋin
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNUserFindManyResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserFindManyResult(ctx context.Context, sel ast.SelectionSet, v UserFindManyResult) graphql.Marshaler {
+	return ec._UserFindManyResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNUserFindManyResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserFindManyResult(ctx context.Context, sel ast.SelectionSet, v *UserFindManyResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._UserFindManyResult(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNUserRoleAssignment2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserRoleAssignmentᚄ(ctx context.Context, sel ast.SelectionSet, v []*UserRoleAssignment) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -19421,6 +20288,14 @@ func (ec *executionContext) unmarshalODatabaseConnectionInput2ᚖmodelcraftᚋin
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) unmarshalODateTimeFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDateTimeFilter(ctx context.Context, v any) (*DateTimeFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputDateTimeFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) marshalODeleteClusterError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDeleteClusterError(ctx context.Context, sel ast.SelectionSet, v DeleteClusterError) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -19470,6 +20345,13 @@ func (ec *executionContext) marshalOEndUserConnection2ᚖmodelcraftᚋinternal�
 	return ec._EndUserConnection(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOEndUserPublic2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUserPublic(ctx context.Context, sel ast.SelectionSet, v *EndUserPublic) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EndUserPublic(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOFloat2ᚖfloat64(ctx context.Context, v any) (*float64, error) {
 	if v == nil {
 		return nil, nil
@@ -19513,6 +20395,68 @@ func (ec *executionContext) marshalOGetProjectError2modelcraftᚋinternalᚋinte
 		return graphql.Null
 	}
 	return ec._GetProjectError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOID2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNID2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOID2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNID2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOIDFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐIDFilter(ctx context.Context, v any) (*IDFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputIDFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {
@@ -19642,6 +20586,42 @@ func (ec *executionContext) marshalOSetProjectAuthSchemaError2modelcraftᚋinter
 	return ec._SetProjectAuthSchemaError(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {
 	if v == nil {
 		return nil, nil
@@ -19658,6 +20638,14 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = ctx
 	res := graphql.MarshalString(*v)
 	return res
+}
+
+func (ec *executionContext) unmarshalOStringFilter2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐStringFilter(ctx context.Context, v any) (*StringFilter, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputStringFilter(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOTestConnectionError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐTestConnectionError(ctx context.Context, sel ast.SelectionSet, v TestConnectionError) graphql.Marshaler {
@@ -19714,6 +20702,14 @@ func (ec *executionContext) marshalOUserRoleAssignment2ᚖmodelcraftᚋinternal�
 		return graphql.Null
 	}
 	return ec._UserRoleAssignment(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOUserWhereInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐUserWhereInput(ctx context.Context, v any) (*UserWhereInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputUserWhereInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐEnumValueᚄ(ctx context.Context, sel ast.SelectionSet, v []introspection.EnumValue) graphql.Marshaler {

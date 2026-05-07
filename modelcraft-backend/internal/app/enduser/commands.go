@@ -203,13 +203,13 @@ type MetaUserOrderByField struct {
 
 // MetaUserFindManyCommand 受限列表查询命令。
 // take 默认 20，最大 50；skip 默认 0，最大 1000。
-// meta/user 操作 Org 级表 (end_user_users)，不需要 ProjectSlug。
 type MetaUserFindManyCommand struct {
-	OrgName string // 从中间件上下文注入
-	Where   *MetaUserFindManyFilter
-	OrderBy []MetaUserOrderByField
-	Skip    int
-	Take    int
+	OrgName     string // 从中间件上下文注入
+	ProjectSlug string // 从中间件上下文注入，用于定位私有数据库 cluster
+	Where       *MetaUserFindManyFilter
+	OrderBy     []MetaUserOrderByField
+	Skip        int
+	Take        int
 }
 
 // MetaUserDTO runtime meta/user 查询结果 DTO（不含租户字段）。

@@ -2,7 +2,7 @@
 
 import React, { useMemo, useState, useEffect } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { createProjectScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient } from '@api-client/apollo/public'
 import { FIND_USERS } from '@api-client/end-user/graphql-docs'
 import {
   Select,
@@ -11,11 +11,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-
-interface FormContext {
-  orgName?: string
-  projectSlug?: string
-}
 
 interface UserNode {
   id: string
@@ -34,41 +29,29 @@ interface FindUsersData {
 /**
  * EndUserSelectorWidget — RJSF custom widget for END_USER_REF fields.
  *
- * Renders a <Select> dropdown listing EndUsers via the project-scoped
- * `findUsers` query. Value is the EndUser UUID string.
+ * Fetches EndUsers via the org-scoped `findUsers` query.
+ * EndUser is Org-scoped (not Project-scoped), so uses getOrgScopedClient().
  * Used only in the Tenant (design) workspace.
- *
- * formContext must provide: orgName, projectSlug
  */
 export function EndUserSelectorWidget(props: WidgetProps) {
   const value = props.value as string | undefined
   const onChange = props.onChange
   const disabled = props.disabled as boolean
   const readonly = props.readonly as boolean
-  const ctx = (props.formContext as FormContext | undefined) ?? {}
-  const orgName = ctx.orgName ?? ''
-  const projectSlug = ctx.projectSlug ?? ''
 
   const [users, setUsers] = useState<UserNode[]>([])
   const [loading, setLoading] = useState(false)
 
-  // Stable client per (orgName, projectSlug) pair
-  const client = useMemo(
-    () => (orgName && projectSlug ? createProjectScopedClient(orgName, projectSlug) : null),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [orgName, projectSlug],
-  )
+  const client = useMemo(() => getOrgScopedClient(), [])
 
   useEffect(() => {
-    if (!client) return
-
     let cancelled = false
     setLoading(true)
 
     client
       .query<FindUsersData>({
         query: FIND_USERS,
-        variables: { take: 200 },
+        variables: { take: 50 },
         fetchPolicy: 'cache-first',
       })
       .then((result) => {
@@ -78,9 +61,7 @@ export function EndUserSelectorWidget(props: WidgetProps) {
         }
       })
       .catch(() => {
-        if (!cancelled) {
-          setLoading(false)
-        }
+        if (!cancelled) setLoading(false)
       })
 
     return () => {

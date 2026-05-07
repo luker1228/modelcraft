@@ -622,12 +622,6 @@ type DatabaseLite struct {
 	Name string `json:"name"`
 }
 
-type DateTimeFilter struct {
-	Eq  *string `json:"eq,omitempty"`
-	Gte *string `json:"gte,omitempty"`
-	Lte *string `json:"lte,omitempty"`
-}
-
 type DbColumnInfo struct {
 	ColumnType   string                 `json:"columnType"`
 	ColumnLength *int                   `json:"columnLength,omitempty"`
@@ -1151,11 +1145,6 @@ func (this GroupAlreadyExists) GetMessage() string { return this.Message }
 func (GroupAlreadyExists) IsCreateGroupError() {}
 
 func (GroupAlreadyExists) IsRenameGroupError() {}
-
-type IDFilter struct {
-	Eq *string  `json:"eq,omitempty"`
-	In []string `json:"in,omitempty"`
-}
 
 type ImportModelInput struct {
 	DatabaseName string `json:"databaseName"`
@@ -1806,13 +1795,6 @@ type SetProjectAuthSchemaPayload struct {
 	Error      SetProjectAuthSchemaError `json:"error,omitempty"`
 }
 
-type StringFilter struct {
-	Eq         *string  `json:"eq,omitempty"`
-	Contains   *string  `json:"contains,omitempty"`
-	StartsWith *string  `json:"startsWith,omitempty"`
-	In         []string `json:"in,omitempty"`
-}
-
 type SyncModelSchemaInput struct {
 	ID                string `json:"id"`
 	Schema            string `json:"schema"`
@@ -1933,12 +1915,6 @@ type UpdateModelMetaPayload struct {
 	Error   UpdateModelError `json:"error,omitempty"`
 }
 
-type User struct {
-	ID        string    `json:"id"`
-	Username  string    `json:"username"`
-	CreatedAt time.Time `json:"createdAt"`
-}
-
 type UserBundleAlreadyAssigned struct {
 	Message string `json:"message"`
 }
@@ -1948,17 +1924,6 @@ func (this UserBundleAlreadyAssigned) GetMessage() string { return this.Message 
 
 func (UserBundleAlreadyAssigned) IsAssignBundleToEndUserError() {}
 
-type UserFindManyResult struct {
-	Items      []*User `json:"items"`
-	TotalCount *int32  `json:"totalCount,omitempty"`
-	ReqID      string  `json:"reqId"`
-}
-
-type UserFindOneResult struct {
-	Item  *User  `json:"item,omitempty"`
-	ReqID string `json:"reqId"`
-}
-
 type UserRoleAlreadyAssigned struct {
 	Message string `json:"message"`
 }
@@ -1967,12 +1932,6 @@ func (UserRoleAlreadyAssigned) IsError()                {}
 func (this UserRoleAlreadyAssigned) GetMessage() string { return this.Message }
 
 func (UserRoleAlreadyAssigned) IsAssignEndUserRoleError() {}
-
-type UserWhereInput struct {
-	ID        *IDFilter       `json:"id,omitempty"`
-	Username  *StringFilter   `json:"username,omitempty"`
-	CreatedAt *DateTimeFilter `json:"createdAt,omitempty"`
-}
 
 type ValidateRLSExprInput struct {
 	// 所属模型 ID（用于字段名白名单校验）

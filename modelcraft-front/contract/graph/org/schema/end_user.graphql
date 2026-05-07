@@ -98,6 +98,15 @@ input ListEndUsersInput {
 
 extend type Query {
   listEndUsers(input: ListEndUsersInput): ListEndUsersPayload! @hasPermission(action: "end-user:read")
+
+  # findUsers: list end-users with optional filtering and pagination.
+  # Accessible to both tenant developers and end-users (allowEndUser: true).
+  # Pagination: skip default 0 max 1000; take default 20 max 50.
+  findUsers(
+    where: UserWhereInput
+    skip: Int
+    take: Int
+  ): UserFindManyResult! @hasPermission(action: "end-user:read")
 }
 
 extend type Mutation {
@@ -106,3 +115,50 @@ extend type Mutation {
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
 }
 
+# ============================================
+# System User Types (for EndUserRef field selectors)
+# EndUser is Org-scoped — these types live here, not in project schema.
+# Note: named EndUserPublic to avoid conflict with tenant User type in profile.graphql.
+# ============================================
+
+# EndUserPublic is the public projection of an end-user (no tenant fields).
+type EndUserPublic {
+  id: ID!
+  username: String!
+  createdAt: Time!
+}
+
+input StringFilter {
+  eq: String
+  contains: String
+  startsWith: String
+  in: [String!]
+}
+
+input IDFilter {
+  eq: ID
+  in: [ID!]
+}
+
+input DateTimeFilter {
+  eq: String
+  gte: String
+  lte: String
+}
+
+input UserWhereInput {
+  id: IDFilter
+  username: StringFilter
+  createdAt: DateTimeFilter
+}
+
+type UserFindManyResult {
+  items: [EndUserPublic!]!
+  totalCount: Int
+  reqId: String!
+}
+
+type UserFindOneResult {
+  item: EndUserPublic
+  reqId: String!
+}

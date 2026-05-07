@@ -99,6 +99,9 @@ type DesignHandlers struct {
 	RBACBundleSvc     *appRbac.EndUserBundleAppService
 	RBACRoleSvc       *appRbac.EndUserRoleAppService
 	RBACAuthzSvc      *appRbac.EndUserAuthzService
+
+	// SystemDB is the system main database connection (stores end_user_users etc.)
+	SystemDB *sql.DB
 }
 
 // endUserAuthRepositoryFactory creates end-user repositories from a DB connection.
@@ -389,6 +392,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		UserRepo:                  userRepo,
 		ClusterManager:            clusterManager,
 		PrivateDBManager:          privateDBManager,
+		SystemDB:                  repoFactory.SqlDB,
 		GroupAppService:           groupAppService,
 		LogicalFKAppService:       logicalFKAppService,
 		RLSPolicyAppService:       rlsPolicyAppService,
@@ -420,6 +424,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		PermissionService:      handlers.PermPermissionService,
 		UserRoleService:        handlers.PermUserRoleService,
 		EndUserMgmtAppService:  handlers.OrgEndUserMgmtAppService,
+		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
 	}
 
 	jwtConfig := &middleware.JWTAuthConfig{
@@ -468,7 +473,6 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
 		PrivateDBManager:         handlers.PrivateDBManager,
 		EndUserMgmtAppService:    handlers.EndUserMgmtAppService,
-		MetaUserAppService:       appEnduser.NewMetaUserAppService(handlers.PrivateDBManager),
 		RBACPermissionSvc:        handlers.RBACPermissionSvc,
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,

@@ -276,3 +276,49 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 		},
 	}, nil
 }
+
+// FindUsers is the resolver for the findUsers field.
+func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWhereInput, skip *int32, take *int32) (*generated.UserFindManyResult, error) {
+	reqID := ctxutils.GetRequestID(ctx)
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil || orgName == "" {
+		return nil, newGQLError("organization context required", "MISSING_ORGANIZATION")
+	}
+
+	cmd := appEnduser.MetaUserFindManyCommand{
+		OrgName: orgName,
+	}
+	if skip != nil {
+		cmd.Skip = int(*skip)
+	}
+	if take != nil {
+		cmd.Take = int(*take)
+	}
+	if where != nil {
+		cmd.Where = convertUserWhereInput(where)
+	}
+
+	result, err := r.MetaUserAppService.FindMany(ctx, cmd)
+	if err != nil {
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			return nil, newGQLError(bizErr.Msg(), bizErr.Info().GetCode())
+		}
+		return nil, err
+	}
+
+	items := make([]*generated.EndUserPublic, 0, len(result.Items))
+	for _, dto := range result.Items {
+		items = append(items, &generated.EndUserPublic{
+			ID:        dto.ID,
+			Username:  dto.Username,
+			CreatedAt: dto.CreatedAt,
+		})
+	}
+
+	return &generated.UserFindManyResult{
+		Items: items,
+		ReqID: reqID,
+	}, nil
+}

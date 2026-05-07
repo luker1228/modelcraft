@@ -12,19 +12,19 @@ import (
 	infrrepo "modelcraft/internal/infrastructure/repository"
 )
 
-// MetaUserAppService 提供 runtime meta/user 路由专属的受限查询能力。
-// 所有方法均从 context 注入 orgName，禁止客户端传入租户字段。
+// MetaUserAppService 提供 meta/user 路由专属的受限查询能力。
+// end_user_users 存储在系统主库，直接使用系统 *sql.DB，不经过用户配置的 cluster。
 type MetaUserAppService struct {
-	privateDBManager PrivateDBManager
+	db *sql.DB
 }
 
 // NewMetaUserAppService 创建 MetaUserAppService。
-func NewMetaUserAppService(privateDBManager PrivateDBManager) *MetaUserAppService {
-	return &MetaUserAppService{privateDBManager: privateDBManager}
+// db 应为系统主库连接（repoFactory.SqlDB）。
+func NewMetaUserAppService(db *sql.DB) *MetaUserAppService {
+	return &MetaUserAppService{db: db}
 }
 
-// GetMe 返回当前认证用户的 meta/user 资料。
-// userID 来自 JWT 中间件注入（ctxutils.GetUserIDFromContext），orgName 来自 URL 参数中间件注入。
+// GetMe 返回当前认证用户的资料（仅 EndUser 可调用）。
 func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 	orgName, _ := ctxutils.GetOrgNameFromContext(ctx)
 	userID, _ := ctxutils.GetUserIDFromContext(ctx)
@@ -32,12 +32,7 @@ func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, "missing org or user context")
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, orgName, "")
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	repo := infrrepo.NewSqlEndUserRepository(db, orgName, "")
+	repo := infrrepo.NewSqlEndUserRepository(s.db, orgName, "")
 	user, err := repo.GetByID(ctx, orgName, userID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -48,13 +43,10 @@ func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 	if !user.IsActive() {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
-
 	return metaUserToDTO(user.ID, user.Username, user.CreatedAt), nil
 }
 
 // FindOne 按唯一条件（id 或 username）查询单个用户。
-// 至少提供 id 或 username 之一；orgName 和 ProjectSlug 来自 context。
-// 未找到用户时返回 (nil, nil)，符合仓储层契约。
 func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCommand) (*MetaUserDTO, error) {
 	if cmd.OrgName == "" {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "orgName is required")
@@ -63,12 +55,7 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "id or username is required")
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, "")
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 
 	if cmd.ID != "" {
 		user, err := repo.GetByID(ctx, cmd.OrgName, cmd.ID)
@@ -93,9 +80,7 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 
 // FindMany 执行受限列表查询。
 // 分页：take 默认 20，最大 50；skip 默认 0，最大 1000。
-// 过滤字段白名单：id、username、createdAt。
-// 排序字段白名单：createdAt。
-func (s *MetaUserAppService) FindMany( //nolint:lll
+func (s *MetaUserAppService) FindMany(
 	ctx context.Context,
 	cmd MetaUserFindManyCommand,
 ) (*MetaUserFindManyResult, error) {
@@ -103,7 +88,6 @@ func (s *MetaUserAppService) FindMany( //nolint:lll
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "orgName is required")
 	}
 
-	// 分页边界校验
 	take := cmd.Take
 	if take <= 0 {
 		take = 20
@@ -122,7 +106,6 @@ func (s *MetaUserAppService) FindMany( //nolint:lll
 			fmt.Sprintf("skip must be <= 1000, got %d", cmd.Skip))
 	}
 
-	// 排序字段白名单校验（白名单：createdAt）
 	orderDir := "ASC"
 	for _, ob := range cmd.OrderBy {
 		if ob.CreatedAt == nil {
@@ -137,23 +120,15 @@ func (s *MetaUserAppService) FindMany( //nolint:lll
 		orderDir = strings.ToUpper(dir)
 	}
 
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	items, err := s.runFindMany(ctx, db, cmd.OrgName, cmd.Where, orderDir, skip, take)
+	items, err := s.runFindMany(ctx, cmd.OrgName, cmd.Where, orderDir, skip, take)
 	if err != nil {
 		return nil, err
 	}
 	return &MetaUserFindManyResult{Items: items}, nil
 }
 
-// runFindMany 执行实际的数据库查询，支持 where/orderBy/skip/limit。
-// orderDir 只接受白名单值 "ASC"/"DESC"（由 FindMany 校验保证）。
 func (s *MetaUserAppService) runFindMany(
 	ctx context.Context,
-	db *sql.DB,
 	orgName string,
 	where *MetaUserFindManyFilter,
 	orderDir string,
@@ -166,15 +141,14 @@ func (s *MetaUserAppService) runFindMany(
 		conditions, args = applyMetaUserFilter(conditions, args, where)
 	}
 
-	// orderDir 已经过白名单校验（"ASC"/"DESC"），可以安全拼接到 SQL。
-	//nolint:gosec // orderDir is whitelist-validated to "ASC" or "DESC" before reaching this point
+	//nolint:gosec // orderDir is whitelist-validated to "ASC" or "DESC"
 	query := "SELECT id, username, created_at FROM end_user_users WHERE " +
 		strings.Join(conditions, " AND ") +
 		" ORDER BY created_at " + orderDir + " LIMIT ? OFFSET ?"
 
 	args = append(args, take, skip)
 
-	rows, err := db.QueryContext(ctx, query, args...)
+	rows, err := s.db.QueryContext(ctx, query, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -198,7 +172,6 @@ func (s *MetaUserAppService) runFindMany(
 	return dtos, nil
 }
 
-// applyMetaUserFilter 将过滤条件追加到 conditions/args（白名单字段：id, username, createdAt）。
 func applyMetaUserFilter(conditions []string, args []any, where *MetaUserFindManyFilter) ([]string, []any) {
 	if where.IDEq != nil {
 		conditions = append(conditions, "id = ?")
