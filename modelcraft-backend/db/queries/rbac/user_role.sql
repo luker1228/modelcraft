@@ -31,8 +31,8 @@ JOIN end_user_users u
   AND u.org_name = ur.org_name
 WHERE r.org_name = ?
   AND r.project_slug = ?
-  AND (? = '' OR u.username LIKE CONCAT('%', ?, '%'))
-  AND (? = '' OR ur.role_id = ?) AND `r`.`deleted_at` = 0 ;
+  AND (sqlc.arg(search_filter) = '' OR u.username LIKE CONCAT('%', sqlc.arg(search), '%'))
+  AND (sqlc.arg(role_id_filter) = '' OR ur.role_id = sqlc.arg(role_id)) AND `r`.`deleted_at` = 0 ;
 
 -- name: ListProjectEndUserRoleUsers :many
 -- 分页查询 Project 下有角色分配的用户列表（支持用户名搜索和角色过滤）
@@ -63,7 +63,7 @@ JOIN end_user_users u
   AND u.org_name = ur.org_name
 WHERE r.org_name = ?
   AND r.project_slug = ?
-  AND (? = '' OR u.username LIKE CONCAT('%', ?, '%'))
-  AND (? = '' OR ur.role_id = ?)
-  AND (? = '' OR ur.id > ?) AND `r`.`deleted_at` = 0 ORDER BY ur.id ASC
+  AND (sqlc.arg(search_filter) = '' OR u.username LIKE CONCAT('%', sqlc.arg(search), '%'))
+  AND (sqlc.arg(role_id_filter) = '' OR ur.role_id = sqlc.arg(role_id))
+  AND (sqlc.arg(after_filter) = '' OR ur.id > sqlc.arg(after)) AND `r`.`deleted_at` = 0 ORDER BY ur.id ASC
 LIMIT ?;

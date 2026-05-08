@@ -20,18 +20,18 @@ WHERE org_name = ?
 `
 
 type CountModelDatabasesParams struct {
-	OrgName     string
-	ProjectSlug string
-	Column3     interface{}
-	CONCAT      interface{}
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
 }
 
 func (q *Queries) CountModelDatabases(ctx context.Context, arg CountModelDatabasesParams) (int64, error) {
 	row := q.db.QueryRowContext(ctx, countModelDatabases,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.Column3,
-		arg.CONCAT,
+		arg.SearchFilter,
+		arg.Search,
 	)
 	var count int64
 	err := row.Scan(&count)
@@ -50,17 +50,17 @@ WHERE org_name = ?
 `
 
 type CountModelsParams struct {
-	OrgName      string
-	ProjectSlug  string
-	DatabaseName string
-	Column4      interface{}
-	CONCAT       interface{}
-	Column6      interface{}
-	CONCAT_2     interface{}
-	Column8      interface{}
-	Status       sql.NullString
-	Column10     interface{}
-	StorageType  string
+	OrgName           string
+	ProjectSlug       string
+	DatabaseName      string
+	NameFilter        interface{}
+	NameSearch        interface{}
+	TitleFilter       interface{}
+	TitleSearch       interface{}
+	StatusFilter      interface{}
+	Status            sql.NullString
+	StorageTypeFilter interface{}
+	StorageType       string
 }
 
 func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64, error) {
@@ -68,13 +68,13 @@ func (q *Queries) CountModels(ctx context.Context, arg CountModelsParams) (int64
 		arg.OrgName,
 		arg.ProjectSlug,
 		arg.DatabaseName,
-		arg.Column4,
-		arg.CONCAT,
-		arg.Column6,
-		arg.CONCAT_2,
-		arg.Column8,
+		arg.NameFilter,
+		arg.NameSearch,
+		arg.TitleFilter,
+		arg.TitleSearch,
+		arg.StatusFilter,
 		arg.Status,
-		arg.Column10,
+		arg.StorageTypeFilter,
 		arg.StorageType,
 	)
 	var count int64
@@ -402,20 +402,20 @@ LIMIT ? OFFSET ?
 `
 
 type ListModelDatabasesParams struct {
-	OrgName     string
-	ProjectSlug string
-	Column3     interface{}
-	CONCAT      interface{}
-	Limit       int32
-	Offset      int32
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+	Limit        int32
+	Offset       int32
 }
 
 func (q *Queries) ListModelDatabases(ctx context.Context, arg ListModelDatabasesParams) ([]string, error) {
 	rows, err := q.db.QueryContext(ctx, listModelDatabases,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.Column3,
-		arg.CONCAT,
+		arg.SearchFilter,
+		arg.Search,
 		arg.Limit,
 		arg.Offset,
 	)
@@ -453,19 +453,19 @@ LIMIT ? OFFSET ?
 `
 
 type ListModelsParams struct {
-	OrgName      string
-	ProjectSlug  string
-	DatabaseName string
-	Column4      interface{}
-	CONCAT       interface{}
-	Column6      interface{}
-	CONCAT_2     interface{}
-	Column8      interface{}
-	Status       sql.NullString
-	Column10     interface{}
-	StorageType  string
-	Limit        int32
-	Offset       int32
+	OrgName           string
+	ProjectSlug       string
+	DatabaseName      string
+	NameFilter        interface{}
+	NameSearch        interface{}
+	TitleFilter       interface{}
+	TitleSearch       interface{}
+	StatusFilter      interface{}
+	Status            sql.NullString
+	StorageTypeFilter interface{}
+	StorageType       string
+	Limit             int32
+	Offset            int32
 }
 
 func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model, error) {
@@ -473,13 +473,13 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 		arg.OrgName,
 		arg.ProjectSlug,
 		arg.DatabaseName,
-		arg.Column4,
-		arg.CONCAT,
-		arg.Column6,
-		arg.CONCAT_2,
-		arg.Column8,
+		arg.NameFilter,
+		arg.NameSearch,
+		arg.TitleFilter,
+		arg.TitleSearch,
+		arg.StatusFilter,
 		arg.Status,
-		arg.Column10,
+		arg.StorageTypeFilter,
 		arg.StorageType,
 		arg.Limit,
 		arg.Offset,

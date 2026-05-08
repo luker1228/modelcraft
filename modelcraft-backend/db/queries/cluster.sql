@@ -27,8 +27,6 @@ SELECT COUNT(*) FROM database_clusters
 WHERE org_name = ? AND project_slug = ? AND `database_clusters`.`deleted_at` = 0 ;
 
 -- name: ListDatabaseClustersUpdatedAfter :many
+-- 全局扫描：不按租户过滤，供连接池同步使用
 SELECT * FROM database_clusters
-WHERE updated_at > ?
-  AND org_name = sqlc.arg(org_name)
-  AND (sqlc.narg(project_slug_filter) IS NULL OR project_slug = sqlc.narg(project_slug_filter))
-  AND `database_clusters`.`deleted_at` = 0 ;
+WHERE updated_at > ? AND `database_clusters`.`deleted_at` = 0 ;

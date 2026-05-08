@@ -402,36 +402,36 @@ func (r *SqlModelDesignRepository) Query(
 	}
 
 	rows, err := r.q.ListModels(ctx, dbgen.ListModelsParams{
-		OrgName:      queryObj.OrgName,
-		ProjectSlug:  queryObj.ProjectSlug,
-		DatabaseName: queryObj.DatabaseName,
-		Column4:      nameFilter,
-		CONCAT:       nameArg,
-		Column6:      titleFilter,
-		CONCAT_2:     titleArg,
-		Column8:      nullableStatusFilter(statusArg),
-		Status:       statusArg,
-		Column10:     nullableStorageTypeFilter(storageTypeArg),
-		StorageType:  storageTypeArg,
-		Limit:        limit,
-		Offset:       offset,
+		OrgName:           queryObj.OrgName,
+		ProjectSlug:       queryObj.ProjectSlug,
+		DatabaseName:      queryObj.DatabaseName,
+		NameFilter:        nameFilter,
+		NameSearch:        nameArg,
+		TitleFilter:       titleFilter,
+		TitleSearch:       titleArg,
+		StatusFilter:      nullableStatusFilter(statusArg),
+		Status:            statusArg,
+		StorageTypeFilter: nullableStorageTypeFilter(storageTypeArg),
+		StorageType:       storageTypeArg,
+		Limit:             limit,
+		Offset:            offset,
 	})
 	if err != nil {
 		return nil, 0, err
 	}
 
 	total, err := r.q.CountModels(ctx, dbgen.CountModelsParams{
-		OrgName:      queryObj.OrgName,
-		ProjectSlug:  queryObj.ProjectSlug,
-		DatabaseName: queryObj.DatabaseName,
-		Column4:      nameFilter,
-		CONCAT:       nameArg,
-		Column6:      titleFilter,
-		CONCAT_2:     titleArg,
-		Column8:      nullableStatusFilter(statusArg),
-		Status:       statusArg,
-		Column10:     nullableStorageTypeFilter(storageTypeArg),
-		StorageType:  storageTypeArg,
+		OrgName:           queryObj.OrgName,
+		ProjectSlug:       queryObj.ProjectSlug,
+		DatabaseName:      queryObj.DatabaseName,
+		NameFilter:        nameFilter,
+		NameSearch:        nameArg,
+		TitleFilter:       titleFilter,
+		TitleSearch:       titleArg,
+		StatusFilter:      nullableStatusFilter(statusArg),
+		Status:            statusArg,
+		StorageTypeFilter: nullableStorageTypeFilter(storageTypeArg),
+		StorageType:       storageTypeArg,
 	})
 	if err != nil {
 		return nil, 0, err
@@ -463,22 +463,22 @@ func (r *SqlModelDesignRepository) ListDatabaseCatalog(
 
 	searchFilter, searchArg := nullableTrickArgs(search)
 	rows, err := r.q.ListModelDatabases(ctx, dbgen.ListModelDatabasesParams{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Column3:     searchFilter,
-		CONCAT:      searchArg,
-		Limit:       limit,
-		Offset:      offset,
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		SearchFilter: searchFilter,
+		Search:       searchArg,
+		Limit:        limit,
+		Offset:       offset,
 	})
 	if err != nil {
 		return nil, 0, err
 	}
 
 	total, err := r.q.CountModelDatabases(ctx, dbgen.CountModelDatabasesParams{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		Column3:     searchFilter,
-		CONCAT:      searchArg,
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		SearchFilter: searchFilter,
+		Search:       searchArg,
 	})
 	if err != nil {
 		return nil, 0, err

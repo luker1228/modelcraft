@@ -207,21 +207,13 @@ func (r *SqlDatabaseClusterRepository) ExistsByProjectKey(
 	return count > 0, nil
 }
 
-// ListUpdatedAfter returns clusters updated after the given time.
-// orgName is required, projectSlug is optional (pass empty string to omit).
+// ListUpdatedAfter returns clusters updated after the given time (global scan, not tenant-scoped).
 func (r *SqlDatabaseClusterRepository) ListUpdatedAfter(
 	ctx context.Context,
-	orgName, projectSlug string,
 	updatedAfter time.Time,
 	status ...cluster.ClusterStatus,
 ) ([]*cluster.DatabaseCluster, error) {
-	projectSlugFilter := sql.NullString{String: projectSlug, Valid: projectSlug != ""}
-
-	rows, err := r.q.ListDatabaseClustersUpdatedAfter(ctx, dbgen.ListDatabaseClustersUpdatedAfterParams{
-		UpdatedAt:         sql.NullTime{Time: updatedAfter, Valid: true},
-		OrgName:           orgName,
-		ProjectSlugFilter: projectSlugFilter,
-	})
+	rows, err := r.q.ListDatabaseClustersUpdatedAfter(ctx, sql.NullTime{Time: updatedAfter, Valid: true})
 	if err != nil {
 		return nil, err
 	}

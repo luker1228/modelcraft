@@ -1120,27 +1120,27 @@ func (r *SqlEndUserDataPermissionRepository) ListProjectEndUserRoleUsers(
 	}
 
 	total, err := r.q.ListProjectEndUserRoleUsersCount(ctx, dbgen.ListProjectEndUserRoleUsersCountParams{
-		OrgName:     query.OrgName,
-		ProjectSlug: query.ProjectSlug,
-		Column3:     query.Search,
-		CONCAT:      query.Search,
-		Column5:     query.RoleID,
-		RoleID:      query.RoleID,
+		OrgName:      query.OrgName,
+		ProjectSlug:  query.ProjectSlug,
+		SearchFilter: query.Search,
+		Search:       query.Search,
+		RoleIDFilter: query.RoleID,
+		RoleID:       query.RoleID,
 	})
 	if err != nil {
 		return nil, 0, sqlerr.WrapSQLError(err)
 	}
 
 	rows, err := r.q.ListProjectEndUserRoleUsers(ctx, dbgen.ListProjectEndUserRoleUsersParams{
-		OrgName:     query.OrgName,
-		ProjectSlug: query.ProjectSlug,
-		Column3:     query.Search,
-		CONCAT:      query.Search,
-		Column5:     query.RoleID,
-		RoleID:      query.RoleID,
-		Column7:     query.After,
-		ID:          query.After,
-		Limit:       int32(first),
+		OrgName:      query.OrgName,
+		ProjectSlug:  query.ProjectSlug,
+		SearchFilter: query.Search,
+		Search:       query.Search,
+		RoleIDFilter: query.RoleID,
+		RoleID:       query.RoleID,
+		AfterFilter:  query.After,
+		After:        query.After,
+		Limit:        int32(first),
 	})
 	if err != nil {
 		return nil, 0, sqlerr.WrapSQLError(err)

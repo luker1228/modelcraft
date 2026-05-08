@@ -150,7 +150,8 @@ type Querier interface {
 	ListBundlesByRole(ctx context.Context, roleID string) ([]EndUserPermissionBundle, error)
 	ListBundlesByUser(ctx context.Context, arg ListBundlesByUserParams) ([]EndUserPermissionBundle, error)
 	ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error)
-	ListDatabaseClustersUpdatedAfter(ctx context.Context, arg ListDatabaseClustersUpdatedAfterParams) ([]DatabaseCluster, error)
+	// 全局扫描：不按租户过滤，供连接池同步使用
+	ListDatabaseClustersUpdatedAfter(ctx context.Context, updatedAt sql.NullTime) ([]DatabaseCluster, error)
 	ListEndUserBundlesByProject(ctx context.Context, arg ListEndUserBundlesByProjectParams) ([]EndUserPermissionBundle, error)
 	ListEndUserPermissionsByModel(ctx context.Context, arg ListEndUserPermissionsByModelParams) ([]EndUserDataPermission, error)
 	ListEndUserPermissionsByProject(ctx context.Context, arg ListEndUserPermissionsByProjectParams) ([]EndUserDataPermission, error)

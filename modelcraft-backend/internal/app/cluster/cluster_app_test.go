@@ -102,12 +102,10 @@ func (m *MockClusterRepository) ExistsByProjectKey(ctx context.Context, orgName,
 
 func (m *MockClusterRepository) ListUpdatedAfter(
 	ctx context.Context,
-	orgName string,
-	projectSlug string,
 	updatedAfter time.Time,
 	status ...cluster.ClusterStatus,
 ) ([]*cluster.DatabaseCluster, error) {
-	args := m.Called(ctx, orgName, projectSlug, updatedAfter, status)
+	args := m.Called(ctx, updatedAfter, status)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

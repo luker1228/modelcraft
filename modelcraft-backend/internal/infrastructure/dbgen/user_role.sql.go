@@ -73,15 +73,15 @@ LIMIT ?
 `
 
 type ListProjectEndUserRoleUsersParams struct {
-	OrgName     string
-	ProjectSlug string
-	Column3     interface{}
-	CONCAT      interface{}
-	Column5     interface{}
-	RoleID      string
-	Column7     interface{}
-	ID          string
-	Limit       int32
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+	RoleIDFilter interface{}
+	RoleID       string
+	AfterFilter  interface{}
+	After        string
+	Limit        int32
 }
 
 type ListProjectEndUserRoleUsersRow struct {
@@ -109,12 +109,12 @@ func (q *Queries) ListProjectEndUserRoleUsers(ctx context.Context, arg ListProje
 	rows, err := q.db.QueryContext(ctx, listProjectEndUserRoleUsers,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.Column3,
-		arg.CONCAT,
-		arg.Column5,
+		arg.SearchFilter,
+		arg.Search,
+		arg.RoleIDFilter,
 		arg.RoleID,
-		arg.Column7,
-		arg.ID,
+		arg.AfterFilter,
+		arg.After,
 		arg.Limit,
 	)
 	if err != nil {
@@ -172,12 +172,12 @@ WHERE r.org_name = ?
 `
 
 type ListProjectEndUserRoleUsersCountParams struct {
-	OrgName     string
-	ProjectSlug string
-	Column3     interface{}
-	CONCAT      interface{}
-	Column5     interface{}
-	RoleID      string
+	OrgName      string
+	ProjectSlug  string
+	SearchFilter interface{}
+	Search       interface{}
+	RoleIDFilter interface{}
+	RoleID       string
 }
 
 // 统计 Project 下有角色分配的用户总数（支持用户名搜索和角色过滤）
@@ -185,9 +185,9 @@ func (q *Queries) ListProjectEndUserRoleUsersCount(ctx context.Context, arg List
 	row := q.db.QueryRowContext(ctx, listProjectEndUserRoleUsersCount,
 		arg.OrgName,
 		arg.ProjectSlug,
-		arg.Column3,
-		arg.CONCAT,
-		arg.Column5,
+		arg.SearchFilter,
+		arg.Search,
+		arg.RoleIDFilter,
 		arg.RoleID,
 	)
 	var count int64

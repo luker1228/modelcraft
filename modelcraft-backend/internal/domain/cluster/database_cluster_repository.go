@@ -28,11 +28,9 @@ type DatabaseClusterRepository interface {
 	// ExistsByProjectKey 检查项目是否已有集群（用于一对一约束验证）
 	ExistsByProjectKey(ctx context.Context, orgName, projectSlug string) (bool, error)
 
-	// ListUpdatedAfter 获取项目下指定时间之后更新的集群列表（org + project scoped）
+	// ListUpdatedAfter 获取指定时间之后更新的集群列表（全局扫描，不按租户过滤，供连接池同步使用）
 	ListUpdatedAfter(
 		ctx context.Context,
-		orgName string,
-		projectSlug string,
 		updatedAfter time.Time,
 		status ...ClusterStatus,
 	) ([]*DatabaseCluster, error)

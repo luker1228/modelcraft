@@ -297,7 +297,7 @@ func (cm *ClusterConnectionManager) syncConnections(ctx context.Context) {
 
 	// 获取自上次同步以来更新的集群（传入空字符串表示跨所有组织和项目）
 	updatedClusters, err := cm.repo.ListUpdatedAfter(
-		ctx, "", "", cm.lastSyncTime, cluster.ClusterStatusActive,
+		ctx, cm.lastSyncTime, cluster.ClusterStatusActive,
 	)
 	if err != nil {
 		cm.logger.Error(context.Background(), "获取更新的集群失败", logfacade.Err(err))

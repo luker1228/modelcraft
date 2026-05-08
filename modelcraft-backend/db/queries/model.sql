@@ -14,10 +14,10 @@ SELECT * FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
-  AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
-  AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
-  AND (? IS NULL OR status = ?)
-  AND (? IS NULL OR storage_type = ?) AND `models`.`deleted_at` = 0 ORDER BY created_at DESC
+  AND (sqlc.arg(name_filter) IS NULL OR name LIKE CONCAT('%', sqlc.arg(name_search), '%'))
+  AND (sqlc.arg(title_filter) IS NULL OR title LIKE CONCAT('%', sqlc.arg(title_search), '%'))
+  AND (sqlc.arg(status_filter) IS NULL OR status = sqlc.arg(status))
+  AND (sqlc.arg(storage_type_filter) IS NULL OR storage_type = sqlc.arg(storage_type)) AND `models`.`deleted_at` = 0 ORDER BY created_at DESC
 LIMIT ? OFFSET ?;
 
 -- name: CountModels :one
@@ -25,17 +25,17 @@ SELECT COUNT(*) FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
-  AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
-  AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
-  AND (? IS NULL OR status = ?)
-  AND (? IS NULL OR storage_type = ?) AND `models`.`deleted_at` = 0 ;
+  AND (sqlc.arg(name_filter) IS NULL OR name LIKE CONCAT('%', sqlc.arg(name_search), '%'))
+  AND (sqlc.arg(title_filter) IS NULL OR title LIKE CONCAT('%', sqlc.arg(title_search), '%'))
+  AND (sqlc.arg(status_filter) IS NULL OR status = sqlc.arg(status))
+  AND (sqlc.arg(storage_type_filter) IS NULL OR storage_type = sqlc.arg(storage_type)) AND `models`.`deleted_at` = 0 ;
 
 -- name: ListModelDatabases :many
 SELECT DISTINCT database_name
 FROM models
 WHERE org_name = ?
   AND project_slug = ?
-  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%')) AND `models`.`deleted_at` = 0 ORDER BY database_name ASC
+  AND (sqlc.arg(search_filter) IS NULL OR database_name LIKE CONCAT('%', sqlc.arg(search), '%')) AND `models`.`deleted_at` = 0 ORDER BY database_name ASC
 LIMIT ? OFFSET ?;
 
 -- name: CountModelDatabases :one
@@ -43,7 +43,7 @@ SELECT COUNT(DISTINCT database_name)
 FROM models
 WHERE org_name = ?
   AND project_slug = ?
-  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%')) AND `models`.`deleted_at` = 0 ;
+  AND (sqlc.arg(search_filter) IS NULL OR database_name LIKE CONCAT('%', sqlc.arg(search), '%')) AND `models`.`deleted_at` = 0 ;
 
 -- name: GetAllModels :many
 SELECT * FROM models WHERE `models`.`deleted_at` = 0 ;
