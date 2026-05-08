@@ -1,8 +1,6 @@
 import type { UiSchema, RJSFSchema } from '@rjsf/utils'
 import { getXMC, type XMCWidget } from '@/types/xmc'
 
-export type WorkspaceMode = 'design' | 'end_user'
-
 /**
  * Widget name mapping for non-end-user-ref widgets.
  */
@@ -22,14 +20,10 @@ const WIDGET_MAP: Partial<Record<XMCWidget, string>> = {
  * Reads `x-mc.widget` on each property and maps it to the appropriate
  * RJSF widget string.
  *
- * For `end-user-ref` fields:
- * - `end_user` mode: hidden (auto-injected by backend from JWT)
- * - `design` mode: EndUserSelectorWidget (admin selects an EndUser)
+ * For `end-user-ref` fields: always renders EndUserSelectorWidget.
+ * The widget picks the correct token (end-user or admin) by availability.
  */
-export function buildUiSchema(
-  jsonSchema: RJSFSchema,
-  workspaceMode: WorkspaceMode = 'design',
-): UiSchema {
+export function buildUiSchema(jsonSchema: RJSFSchema): UiSchema {
   const uiSchema: UiSchema = {}
 
   if (!jsonSchema.properties) return uiSchema

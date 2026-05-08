@@ -1301,15 +1301,15 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 		}
 	}
 
-	// EndUser side: force-inject owner from JWT to prevent client spoofing.
+	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
 	// Only inject if the model actually has an END_USER_REF field (prevents
 	// accidentally clobbering a user-defined field named "owner" on models
 	// that do not use the END_USER_REF system field).
-	// Tenant admin side (no EndUser identity in context): use payload value as-is.
-	if rctx.CurrentEndUserID != "" {
+	// When no owner identity is available: use payload value as-is.
+	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
 		for _, field := range m.model.Fields {
 			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = rctx.CurrentEndUserID
+				input.Data[field.Name] = ownerID
 				break
 			}
 		}
@@ -1390,12 +1390,12 @@ func (m *graphqlModelResolver) executeUpdateOne(p graphql.ResolveParams) (interf
 		return nil, err
 	}
 
-	// EndUser side: prevent ownership reassignment by force-injecting owner from JWT.
-	// Only applies if the model has an END_USER_REF field and an EndUser is authenticated.
-	if rctx.CurrentEndUserID != "" {
+	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
+	// Only applies if the model has an END_USER_REF field and an owner identity is available.
+	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
 		for _, field := range m.model.Fields {
 			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = rctx.CurrentEndUserID
+				input.Data[field.Name] = ownerID
 				break
 			}
 		}
@@ -1552,12 +1552,12 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 				}
 			}
 		}
-		// EndUser side: force-inject owner field (END_USER_REF) to prevent client spoofing.
-		// Only applies if the model has an END_USER_REF field and an EndUser is authenticated.
-		if rctx.CurrentEndUserID != "" {
+		// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
+		// Only applies if the model has an END_USER_REF field and an owner identity is available.
+		if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
 			for _, field := range m.model.Fields {
 				if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-					dataItem[field.Name] = rctx.CurrentEndUserID
+					dataItem[field.Name] = ownerID
 					break
 				}
 			}
@@ -1617,12 +1617,12 @@ func (m *graphqlModelResolver) executeUpdateMany(p graphql.ResolveParams) (inter
 		return nil, err
 	}
 
-	// EndUser side: prevent ownership reassignment by force-injecting owner from JWT.
+	// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
 	// updateMany uses a single data map applied to all matched records.
-	if rctx.CurrentEndUserID != "" {
+	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
 		for _, field := range m.model.Fields {
 			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = rctx.CurrentEndUserID
+				input.Data[field.Name] = ownerID
 				break
 			}
 		}

@@ -56,6 +56,9 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 				if userType := r.Header.Get("X-User-Type"); userType != "" {
 					ctx = ctxutils.SetUserType(ctx, userType)
 				}
+				if adminID := r.Header.Get("X-End-User-Admin-ID"); adminID != "" {
+					ctx = ctxutils.SetEndUserAdminID(ctx, adminID)
+				}
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return
 			}

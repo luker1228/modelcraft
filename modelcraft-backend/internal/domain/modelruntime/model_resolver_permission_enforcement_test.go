@@ -199,7 +199,7 @@ func TestPermissionEnforcement_ActionGate_ZeroPerms(t *testing.T) {
 		t.Run(op.name, func(t *testing.T) {
 			repo := &fullCapturingRepo{}
 			ctx := WithGraphqlRequestContext(
-				context.Background(), repo, "org-1", "proj-1", "user-abc",
+				context.Background(), repo, "org-1", "proj-1", "user-abc", "",
 				zeroPerm,
 			)
 
@@ -279,7 +279,7 @@ func TestPermissionEnforcement_ActionGate_TenantAdmin(t *testing.T) {
 			repo := &fullCapturingRepo{}
 			// nil EndUserPerms = tenant admin
 			ctx := WithGraphqlRequestContext(
-				context.Background(), repo, "org-1", "proj-1", "",
+				context.Background(), repo, "org-1", "proj-1", "", "",
 				nil,
 			)
 
@@ -302,7 +302,7 @@ func TestPermissionEnforcement_ActionGate_AllowedPerm(t *testing.T) {
 	t.Run("findMany allowed when Select.Allowed=true", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "user-abc",
+			context.Background(), repo, "org-1", "proj-1", "user-abc", "",
 			selectAllPerm(),
 		)
 
@@ -314,7 +314,7 @@ func TestPermissionEnforcement_ActionGate_AllowedPerm(t *testing.T) {
 	t.Run("create allowed when Insert.Allowed=true", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "user-abc",
+			context.Background(), repo, "org-1", "proj-1", "user-abc", "",
 			selectAllPerm(),
 		)
 
@@ -337,7 +337,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("findMany injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx, `{ findMany { items { id title } } }`)
 		require.Empty(t, result.Errors)
@@ -348,7 +348,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("findUnique injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx, `{ findUnique(where: { id: "x" }) { item { id } } }`)
 		require.Empty(t, result.Errors)
@@ -359,7 +359,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("findFirst injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx, `{ findFirst { item { id } } }`)
 		require.Empty(t, result.Errors)
@@ -370,7 +370,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("update injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx,
 			`mutation { update(where: { id: "x" }, data: { title: "t" }) { success } }`)
@@ -382,7 +382,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("delete injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx,
 			`mutation { delete(where: { id: "x" }) { success } }`)
@@ -394,7 +394,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("updateMany injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx,
 			`mutation { updateMany(where: {}, data: { title: "t" }, take: 1) { count } }`)
@@ -406,7 +406,7 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 	t.Run("deleteMany injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", endUserID, perms,
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
 		result := doQuery(schema, ctx,
 			`mutation { deleteMany(where: {}, take: 1) { count } }`)
@@ -425,7 +425,7 @@ func TestPermissionEnforcement_RowFilter_AllScope(t *testing.T) {
 
 	repo := &fullCapturingRepo{}
 	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "proj-1", endUserID,
+		context.Background(), repo, "org-1", "proj-1", endUserID, "",
 		allScopePerm(),
 	)
 
@@ -445,7 +445,7 @@ func TestPermissionEnforcement_RowFilter_TenantAdmin(t *testing.T) {
 	repo := &fullCapturingRepo{}
 	// nil EndUserPerms = tenant admin
 	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "proj-1", "",
+		context.Background(), repo, "org-1", "proj-1", "", "",
 		nil,
 	)
 
@@ -466,7 +466,7 @@ func TestPermissionEnforcement_RowFilter_NoEndUserRefField(t *testing.T) {
 
 	repo := &fullCapturingRepo{}
 	ctx := WithGraphqlRequestContext(
-		context.Background(), repo, "org-1", "proj-1", endUserID,
+		context.Background(), repo, "org-1", "proj-1", endUserID, "",
 		selfScopePerm(),
 	)
 

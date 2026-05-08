@@ -13,7 +13,7 @@ func TestWithGraphqlRequestContext_EndUserPerms(t *testing.T) {
 	ctx := modelruntime.WithGraphqlRequestContext(
 		context.Background(),
 		nil, // clientRepo
-		"org1", "proj1", "user123",
+		"org1", "proj1", "user123", "",
 		perms,
 	)
 	rctx, ok := modelruntime.GetGraphqlRequestContextForTest(ctx)
@@ -31,7 +31,7 @@ func TestWithGraphqlRequestContext_EndUserPerms(t *testing.T) {
 func TestWithGraphqlRequestContext_NilPerms_TenantAdmin(t *testing.T) {
 	ctx := modelruntime.WithGraphqlRequestContext(
 		context.Background(),
-		nil, "org1", "proj1", "",
+		nil, "org1", "proj1", "", "",
 		nil, // tenant admin
 	)
 	rctx, ok := modelruntime.GetGraphqlRequestContextForTest(ctx)

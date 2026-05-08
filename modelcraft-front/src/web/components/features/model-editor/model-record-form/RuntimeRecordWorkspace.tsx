@@ -679,7 +679,6 @@ export default function RuntimeRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
-                workspaceMode="end_user"
               />
             )}
           </SheetContent>
@@ -733,7 +732,6 @@ export default function RuntimeRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
-                workspaceMode="end_user"
               />
             )}
           </SheetContent>

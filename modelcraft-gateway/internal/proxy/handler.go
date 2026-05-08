@@ -8,6 +8,9 @@ import (
 	"strings"
 
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
+
+	//nolint:staticcheck // chi.URLParam is deprecated but chi.URLParamFromCtx is not available in this version
+	"github.com/go-chi/chi/v5"
 	"go.opentelemetry.io/otel/propagation"
 	"go.uber.org/zap"
 
@@ -18,8 +21,9 @@ import (
 type contextKey string
 
 const (
-	userIDContextKey   contextKey = "user_id"
-	userTypeContextKey contextKey = "user_type"
+	userIDContextKey          contextKey = "user_id"
+	userTypeContextKey        contextKey = "user_type"
+	endUserAdminIDContextKey contextKey = "end_user_admin_id"
 )
 
 const userTypeEndUser = "end_user"
@@ -71,6 +75,12 @@ func (h *Handler) director(req *http.Request) {
 	// Inject user type so the backend can distinguish EndUser from tenant callers.
 	if userType, ok := req.Context().Value(userTypeContextKey).(string); ok && userType != "" {
 		req.Header.Set("X-User-Type", userType)
+	}
+
+	// Inject the end-user admin ID (from tenant admin JWT) so the backend
+	// can auto-fill END_USER_REF fields when no explicit owner is provided.
+	if adminID, ok := req.Context().Value(endUserAdminIDContextKey).(string); ok && adminID != "" {
+		req.Header.Set("X-End-User-Admin-ID", adminID)
 	}
 
 	// Propagate the internal request ID for end-to-end tracing.
@@ -151,9 +161,14 @@ func (h *Handler) GraphQLEndUserProjectHandler(w http.ResponseWriter, r *http.Re
 	h.reverseProxy.ServeHTTP(w, r)
 }
 
-// GraphQLEndUserOrgHandler validates the end-user JWT and proxies to the
+// GraphQLEndUserOrgHandler validates the JWT and proxies to the
 // same org GraphQL backend as GraphQLOrgHandler, rewriting the path to
 // strip the /end-user/ segment.
+//
+// Accepts both admin and end-user tokens.
+// - End-user: X-User-Type: end_user is injected (from aud claim).
+// - Tenant admin: X-End-User-Admin-ID is injected (from end_user_admin_ids claim)
+//   so the backend can auto-fill END_USER_REF fields.
 //
 // Incoming:  /graphql/end-user/org/{orgName}
 // Upstream:  /graphql/org/{orgName}
@@ -163,7 +178,21 @@ func (h *Handler) GraphQLEndUserOrgHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	ctx := context.WithValue(r.Context(), userIDContextKey, claims.UserID)
-	ctx = context.WithValue(ctx, userTypeContextKey, userTypeEndUser)
+	// Propagate user type based on JWT audience (same logic as GraphQLProjectHandler).
+	for _, aud := range claims.Audience {
+		if aud == userTypeEndUser {
+			ctx = context.WithValue(ctx, userTypeContextKey, userTypeEndUser)
+			break
+		}
+	}
+	// For tenant admin tokens: inject the org's end-user super-admin ID
+	// so the backend can auto-fill END_USER_REF fields.
+	if len(claims.EndUserAdminIDs) > 0 {
+		orgName := chi.URLParam(r, "orgName")
+		if adminID, found := claims.EndUserAdminIDs[orgName]; found {
+			ctx = context.WithValue(ctx, endUserAdminIDContextKey, adminID)
+		}
+	}
 	middleware.LoggerFromCtx(ctx).Info("gateway: GraphQL end-user org request authenticated",
 		zap.String("user_id", claims.UserID),
 		zap.String("path", r.URL.Path),

@@ -27,6 +27,10 @@ const (
 
 	// ContextKeyUserType distinguishes "end_user" from "tenant" (developer) callers.
 	ContextKeyUserType contextKey = "user_type"
+
+	// ContextKeyEndUserAdminID stores the org's end-user super-admin ID
+	// (injected by gateway from JWT end_user_admin_ids claim for tenant admin callers).
+	ContextKeyEndUserAdminID contextKey = "end_user_admin_id"
 )
 
 const UserTypeEndUser = "end_user"
@@ -161,6 +165,18 @@ func IsEndUser(ctx context.Context) bool {
 // When false, the runtime GraphQL handler bypasses the schema cache.
 func SetUseCache(ctx context.Context, useCache bool) context.Context {
 	return context.WithValue(ctx, ContextKeyUseCache, useCache)
+}
+
+// SetEndUserAdminID stores the org's end-user super-admin ID in context.
+func SetEndUserAdminID(ctx context.Context, adminID string) context.Context {
+	return context.WithValue(ctx, ContextKeyEndUserAdminID, adminID)
+}
+
+// GetEndUserAdminID extracts the org's end-user super-admin ID from context.
+// Returns empty string if not set.
+func GetEndUserAdminID(ctx context.Context) string {
+	val, _ := ctx.Value(ContextKeyEndUserAdminID).(string)
+	return val
 }
 
 // GetUseCache extracts the useCache flag from context.

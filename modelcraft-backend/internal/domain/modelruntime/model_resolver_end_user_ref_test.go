@@ -85,7 +85,7 @@ func TestEndUserRefOwnerInjection_ViaRealResolver(t *testing.T) {
 
 		// Simulate EndUser request: CurrentEndUserID is set in rctx
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123",
+			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123", "",
 			nil,
 		)
 
@@ -116,7 +116,7 @@ func TestEndUserRefOwnerInjection_ViaRealResolver(t *testing.T) {
 
 		// Simulate tenant admin request: CurrentEndUserID is empty
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "",
+			context.Background(), repo, "org-1", "proj-1", "", "",
 			nil,
 		)
 
@@ -151,7 +151,7 @@ func TestEndUserRefOwnerInjection_CreateMany_ViaRealResolver(t *testing.T) {
 		schema := buildSchemaFor(t, model)
 
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123",
+			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123", "",
 			nil,
 		)
 
@@ -187,7 +187,7 @@ func TestEndUserRefOwnerInjection_UpdateOne_ViaRealResolver(t *testing.T) {
 		schema := buildSchemaFor(t, model)
 
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123",
+			context.Background(), repo, "org-1", "proj-1", "end-user-uuid-123", "",
 			nil,
 		)
 
@@ -216,7 +216,7 @@ func TestEndUserRefOwnerInjection_UpdateOne_ViaRealResolver(t *testing.T) {
 		schema := buildSchemaFor(t, model)
 
 		ctx := WithGraphqlRequestContext(
-			context.Background(), repo, "org-1", "proj-1", "",
+			context.Background(), repo, "org-1", "proj-1", "", "",
 			nil,
 		)
 

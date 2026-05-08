@@ -145,7 +145,7 @@ func (i *endUserJWTIssuer) IssueEndUserToken(
 	}
 	now := time.Now().UTC()
 	accessToken, err := i.signer.IssueAccessToken(
-		input.UserID, input.OrgName, jwt.ClaimStrings{domainAuth.AudienceEndUser},
+		input.UserID, input.OrgName, jwt.ClaimStrings{domainAuth.AudienceEndUser}, nil,
 	)
 	if err != nil {
 		return nil, err

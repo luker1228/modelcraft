@@ -16,8 +16,9 @@ import (
 // UserID and OrgName are custom fields; Audience (aud) identifies the token type
 // (tenant / end_user) and will be used for endpoint-level auth in a future iteration.
 type Claims struct {
-	UserID  string `json:"user_id"`
-	OrgName string `json:"org_name"`
+	UserID          string            `json:"user_id"`
+	OrgName         string            `json:"org_name"`
+	EndUserAdminIDs map[string]string `json:"end_user_admin_ids,omitempty"`
 	jwt.RegisteredClaims
 }
 

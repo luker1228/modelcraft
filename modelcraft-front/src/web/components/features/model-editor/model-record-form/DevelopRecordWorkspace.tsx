@@ -808,7 +808,6 @@ export default function DevelopRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
-                workspaceMode="design"
               />
             )}
           </SheetContent>
@@ -862,7 +861,6 @@ export default function DevelopRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
-                workspaceMode="design"
               />
             )}
           </SheetContent>

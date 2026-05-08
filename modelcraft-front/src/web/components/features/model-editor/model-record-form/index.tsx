@@ -25,7 +25,6 @@ interface ModelRecordFormProps {
   databaseName: string
   modelId: string
   recordId?: string
-  workspaceMode?: 'design' | 'end_user'
 }
 
 const customWidgets = {
@@ -56,7 +55,6 @@ export function ModelRecordForm({
   databaseName,
   modelId,
   recordId,
-  workspaceMode = 'design',
 }: ModelRecordFormProps) {
   const formRef = useRef<RJSFFormRef>(null)
   const adapter = useRecordAccessAdapter()
@@ -69,7 +67,7 @@ export function ModelRecordForm({
 
   // Build uiSchema from x-mc.widget in JSON Schema, then enforce ui:order
   const uiSchema = useMemo<UiSchema>(() => {
-    const widgetUiSchema = buildUiSchema(editableSchema, workspaceMode)
+    const widgetUiSchema = buildUiSchema(editableSchema)
     const orderedFieldNames = editableSchema.properties
       ? Object.keys(editableSchema.properties)
       : []
@@ -82,7 +80,7 @@ export function ModelRecordForm({
       ...widgetUiSchema,
       'ui:order': orderedFieldNames,
     }
-  }, [editableSchema, workspaceMode])
+  }, [editableSchema])
 
   // Form context for widgets — 注入 createRuntimeClient 使 RelationSelector 通过 access adapter 访问数据
   const formContext = useMemo(() => ({
@@ -91,9 +89,8 @@ export function ModelRecordForm({
     clusterName,
     databaseName,
     modelId,
-    workspaceMode,
     createRuntimeClient: adapter.createRuntimeClient,
-  }), [orgName, projectSlug, clusterName, databaseName, modelId, workspaceMode, adapter.createRuntimeClient])
+  }), [orgName, projectSlug, clusterName, databaseName, modelId, adapter.createRuntimeClient])
 
   // Handle form submission
   const handleSubmit = async (data: IChangeEvent<Record<string, unknown>>) => {

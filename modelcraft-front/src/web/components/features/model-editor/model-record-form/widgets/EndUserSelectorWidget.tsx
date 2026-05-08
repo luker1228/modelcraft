@@ -2,8 +2,9 @@
 
 import React, { useMemo, useState, useEffect } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { getOrgScopedClient, createEndUserOrgScopedClient } from '@api-client/apollo/public'
+import { createEndUserOrgScopedClient } from '@api-client/apollo/public'
 import { getEndUserToken } from '@api-client/end-user/public'
+import { useAuthStore } from '@shared/stores/auth-store'
 import { FIND_USERS } from '@api-client/end-user/graphql-docs'
 import {
   Select,
@@ -30,16 +31,14 @@ interface FindUsersData {
 
 interface FormContext {
   orgName?: string
-  projectSlug?: string
-  workspaceMode?: 'design' | 'end_user'
 }
 
 /**
  * EndUserSelectorWidget — RJSF custom widget for END_USER_REF fields.
  *
- * Org-scoped query: findUsers is served at /graphql/org/{orgName}/.
- * - design mode: uses getOrgScopedClient() (admin token via Cookie)
- * - end_user mode: uses createEndUserOrgScopedClient() (end-user Bearer token)
+ * Always goes through /api/bff/graphql/end-user/org/{orgName}/.
+ * Token is picked by availability: end-user token first, then admin token.
+ * Gateway determines X-User-Type from JWT audience.
  *
  * Default option "— 自己 —" submits empty string; backend fills current user from JWT.
  */
@@ -48,22 +47,21 @@ export function EndUserSelectorWidget(props: WidgetProps) {
   const onChange = props.onChange
   const disabled = props.disabled as boolean
   const readonly = props.readonly as boolean
-  const { orgName, workspaceMode = 'design' } = (props.formContext ?? {}) as FormContext
+  const { orgName } = (props.formContext ?? {}) as FormContext
 
   const [users, setUsers] = useState<UserNode[]>([])
   const [loading, setLoading] = useState(false)
 
   const client = useMemo(() => {
-    if (workspaceMode === 'end_user' && orgName) {
-      const token = getEndUserToken()
-      if (token) {
-        return createEndUserOrgScopedClient(orgName, token)
-      }
-    }
-    return getOrgScopedClient()
-  }, [workspaceMode, orgName])
+    if (!orgName) return null
+    const token = getEndUserToken() || useAuthStore.getState().accessToken
+    if (!token) return null
+    return createEndUserOrgScopedClient(orgName, token)
+  }, [orgName])
 
   useEffect(() => {
+    if (!client) return
+
     let cancelled = false
     setLoading(true)
 
@@ -112,3 +110,4 @@ export function EndUserSelectorWidget(props: WidgetProps) {
     </Select>
   )
 }
+

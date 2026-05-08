@@ -677,7 +677,7 @@ func TestCreateOneToManyResolverFromFK(t *testing.T) {
 			require.NotNil(t, resolveFn)
 
 			p := graphql.ResolveParams{
-				Context: WithGraphqlRequestContext(context.Background(), mock, "org-1", "project-1", "", nil),
+				Context: WithGraphqlRequestContext(context.Background(), mock, "org-1", "project-1", "", "", nil),
 				Source:  tt.source,
 			}
 
