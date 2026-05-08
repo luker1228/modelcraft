@@ -51,6 +51,12 @@ paths:
   /api/user/memberships:
     $ref: "user.yaml#/paths/~1api~1user~1memberships"
 
+  # ========================
+  # Organization Endpoints
+  # ========================
+  /api/org/init:
+    $ref: "org.yaml#/paths/~1api~1org~1init"
+
 
 components:
   securitySchemes:
@@ -117,4 +123,10 @@ components:
       $ref: "user.yaml#/components/schemas/GetMembershipsResponse"
     MembershipInfo:
       $ref: "user.yaml#/components/schemas/MembershipInfo"
+
+    # -- Org --
+    InitOrgRequest:
+      $ref: "org.yaml#/schemas/InitOrgRequest"
+    InitOrgResponse:
+      $ref: "org.yaml#/schemas/InitOrgResponse"
 

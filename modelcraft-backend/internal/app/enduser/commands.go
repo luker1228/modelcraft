@@ -144,6 +144,7 @@ type CreateEndUserResult struct {
 	ID          string
 	Username    string
 	IsForbidden bool
+	IsBuiltin   bool // platform-managed builtin account
 	CreatedBy   string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -154,6 +155,7 @@ type EndUserDTO struct {
 	ID          string
 	Username    string
 	IsForbidden bool
+	IsBuiltin   bool // platform-managed builtin account
 	CreatedBy   string
 	CreatedAt   time.Time
 	UpdatedAt   time.Time

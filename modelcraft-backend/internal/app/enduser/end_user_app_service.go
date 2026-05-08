@@ -171,6 +171,9 @@ func (s *EndUserManagementAppService) UpdateEndUserStatus(
 	if user == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
 	}
+	if cmd.IsForbidden && user.IsBuiltin {
+		return nil, bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDisabled)
+	}
 
 	if cmd.IsForbidden {
 		user.Disable()
@@ -211,6 +214,9 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	if user == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
 	}
+	if user.IsBuiltin {
+		return bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDeleted)
+	}
 
 	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
 		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
@@ -242,6 +248,7 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 		ID:          entity.ID,
 		Username:    entity.Username,
 		IsForbidden: entity.IsForbidden,
+		IsBuiltin:   entity.IsBuiltin,
 		CreatedBy:   entity.CreatedBy,
 		CreatedAt:   entity.CreatedAt,
 		UpdatedAt:   entity.UpdatedAt,
@@ -291,4 +298,46 @@ func (s *EndUserManagementAppService) convertRepoError(ctx context.Context, err 
 // NewPrivateDBManagerAdapter 将 infrastructure PrivateDBManager 适配为应用层接口。
 func NewPrivateDBManagerAdapter(manager *infrrepo.PrivateDBManager) PrivateDBManager {
 	return manager
+}
+
+// NewEndUserManagementAppServiceWithRepo creates a thin service wrapper backed
+// directly by a repository — for unit-testing guards without a real DB.
+func NewEndUserManagementAppServiceWithRepo(repo domainenduser.EndUserRepository) *EndUserManagementAppServiceWithRepoImpl {
+	return &EndUserManagementAppServiceWithRepoImpl{repo: repo}
+}
+
+// EndUserManagementAppServiceWithRepoImpl is a test-helper service that exposes
+// guard logic directly without requiring a PrivateDBManager.
+type EndUserManagementAppServiceWithRepoImpl struct {
+	repo domainenduser.EndUserRepository
+}
+
+// DeleteEndUserDirect deletes a user, enforcing the builtin guard.
+func (s *EndUserManagementAppServiceWithRepoImpl) DeleteEndUserDirect(ctx context.Context, orgName, userID string) error {
+	user, err := s.repo.GetByID(ctx, orgName, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return bizerrors.NewError(bizerrors.NotFound, userID)
+	}
+	if user.IsBuiltin {
+		return bizerrors.NewError(ErrBuiltinUserCannotBeDeleted)
+	}
+	return s.repo.Delete(ctx, orgName, userID)
+}
+
+// UpdateEndUserStatusDirect updates status, enforcing the builtin guard.
+func (s *EndUserManagementAppServiceWithRepoImpl) UpdateEndUserStatusDirect(ctx context.Context, orgName, userID string, isForbidden bool) error {
+	user, err := s.repo.GetByID(ctx, orgName, userID)
+	if err != nil {
+		return err
+	}
+	if user == nil {
+		return bizerrors.NewError(bizerrors.NotFound, userID)
+	}
+	if isForbidden && user.IsBuiltin {
+		return bizerrors.NewError(ErrBuiltinUserCannotBeDisabled)
+	}
+	return s.repo.UpdateStatus(ctx, orgName, userID, isForbidden)
 }

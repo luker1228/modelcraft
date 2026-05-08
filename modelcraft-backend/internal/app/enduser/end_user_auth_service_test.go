@@ -240,6 +240,15 @@ func (r *inMemoryEndUserRepo) HasProjectAccessByRole(
 	return false, nil
 }
 
+func (r *inMemoryEndUserRepo) GetBuiltinByOrg(_ context.Context, orgName string) (*domainenduser.EndUser, error) {
+	for _, u := range r.usersByID {
+		if u.OrgName == orgName && u.IsBuiltin {
+			return u, nil
+		}
+	}
+	return nil, nil //nolint:nilnil
+}
+
 type inMemoryEndUserSessionRepo struct {
 	sessionsByID   map[string]*domainenduser.EndUserSession
 	sessionsByHash map[string]*domainenduser.EndUserSession

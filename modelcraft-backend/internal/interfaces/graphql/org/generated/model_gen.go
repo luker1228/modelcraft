@@ -150,6 +150,24 @@ type AuthVariableInput struct {
 	Type AuthVariableType `json:"type"`
 }
 
+type BuiltinUserCannotBeDeleted struct {
+	Message string `json:"message"`
+}
+
+func (BuiltinUserCannotBeDeleted) IsError()                {}
+func (this BuiltinUserCannotBeDeleted) GetMessage() string { return this.Message }
+
+func (BuiltinUserCannotBeDeleted) IsDeleteEndUserError() {}
+
+type BuiltinUserCannotBeDisabled struct {
+	Message string `json:"message"`
+}
+
+func (BuiltinUserCannotBeDisabled) IsError()                {}
+func (this BuiltinUserCannotBeDisabled) GetMessage() string { return this.Message }
+
+func (BuiltinUserCannotBeDisabled) IsUpdateEndUserError() {}
+
 type CannotDeleteDefaultProject struct {
 	Message string `json:"message"`
 }
@@ -330,6 +348,7 @@ type EndUser struct {
 	ID          string    `json:"id"`
 	Username    string    `json:"username"`
 	IsForbidden bool      `json:"isForbidden"`
+	IsBuiltin   bool      `json:"isBuiltin"`
 	CreatedBy   *string   `json:"createdBy,omitempty"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`

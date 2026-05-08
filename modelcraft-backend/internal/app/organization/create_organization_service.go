@@ -17,15 +17,20 @@ import (
 
 	"github.com/google/uuid"
 
+	domainenduser "modelcraft/internal/domain/enduser"
 	domainPermission "modelcraft/internal/domain/permission"
 )
 
 // CreateOrganizationInput 创建组织的输入参数
 type CreateOrganizationInput struct {
-	DisplayName      string // Required: human-readable display name
-	OrganizationName string // Optional: slug (auto-generated if empty)
-	OwnerUserID      string
+	DisplayName          string // Required: human-readable display name
+	OrganizationName     string // Optional: slug (auto-generated if empty)
+	OwnerUserID          string
+	EndUserAdminPassword string // Initial password for the builtin admin EndUser
 }
+
+// EndUserRepoFactory creates a tenant-scoped EndUser repository from a transaction Querier.
+type EndUserRepoFactory func(q dbgen.Querier, orgName string) domainenduser.EndUserRepository
 
 // CreateOrganizationOutput 创建组织的输出结果
 type CreateOrganizationOutput struct {
@@ -41,11 +46,12 @@ type CreateOrganizationOutput struct {
 // CreateOrganizationService 创建组织的应用服务
 // 负责编排组织创建的完整流程：组织、成员关系、角色分配
 type CreateOrganizationService struct {
-	txManager      repository.TxManager
-	userRepo       user.UserRepository
-	orgRepo        organization.OrganizationRepository
-	roleRepo       domainPermission.RoleRepository
-	membershipRepo membership.MembershipRepository
+	txManager          repository.TxManager
+	userRepo           user.UserRepository
+	orgRepo            organization.OrganizationRepository
+	roleRepo           domainPermission.RoleRepository
+	membershipRepo     membership.MembershipRepository
+	endUserRepoFactory EndUserRepoFactory // factory for creating tx-scoped EndUser repos
 }
 
 // NewCreateOrganizationService 创建组织服务实例
@@ -55,13 +61,15 @@ func NewCreateOrganizationService(
 	orgRepo organization.OrganizationRepository,
 	roleRepo domainPermission.RoleRepository,
 	membershipRepo membership.MembershipRepository,
+	endUserRepoFactory EndUserRepoFactory,
 ) *CreateOrganizationService {
 	return &CreateOrganizationService{
-		txManager:      txManager,
-		userRepo:       userRepo,
-		orgRepo:        orgRepo,
-		roleRepo:       roleRepo,
-		membershipRepo: membershipRepo,
+		txManager:          txManager,
+		userRepo:           userRepo,
+		orgRepo:            orgRepo,
+		roleRepo:           roleRepo,
+		membershipRepo:     membershipRepo,
+		endUserRepoFactory: endUserRepoFactory,
 	}
 }
 
@@ -110,6 +118,7 @@ func (s *CreateOrganizationService) Execute(
 	// Step 6: Execute transaction
 	output, err := s.createOrganizationInTransaction(
 		ctx, orgSlug, displayName, existingUser.ID, ownerRole.ID,
+		input.EndUserAdminPassword,
 	)
 	if err != nil {
 		return nil, err
@@ -241,6 +250,9 @@ func (s *CreateOrganizationService) getOwnerRole(ctx context.Context) (*domainPe
 				logger.Error(ctx, "Failed to get system role", logfacade.Err(err))
 				return nil, bizerrors.Wrapf(err, "failed to get system role: %s", roleName)
 			}
+			role = nil // treat IsNotFoundError as nil for recreation below
+		}
+		if role == nil {
 			// Role absent (e.g. DB was reset after startup). Recreate it.
 			logger.Warnf(ctx, "System role %q not found in DB — recreating "+
 				"(DB may have been reset after startup)", roleName)
@@ -267,6 +279,7 @@ func (s *CreateOrganizationService) getOwnerRole(ctx context.Context) (*domainPe
 // createOrganizationInTransaction executes the organization creation in a transaction
 func (s *CreateOrganizationService) createOrganizationInTransaction(
 	ctx context.Context, orgSlug, displayName, userID string, roleID int,
+	endUserAdminPassword string,
 ) (*CreateOrganizationOutput, error) {
 	logger := logfacade.GetLogger(ctx)
 	var output *CreateOrganizationOutput
@@ -319,6 +332,37 @@ func (s *CreateOrganizationService) createOrganizationInTransaction(
 			OwnerUserID:      userID,
 			RoleID:           int64(roleID),
 		}
+
+		// Step 4: Create builtin admin EndUser (idempotent: skip if admin already exists)
+		if s.endUserRepoFactory != nil && endUserAdminPassword != "" {
+			euRepo := s.endUserRepoFactory(q, orgSlug)
+			existing, txErr := euRepo.GetByUsername(ctx, orgSlug, domainenduser.BuiltinAdminUsername)
+			if txErr != nil {
+				logger.Error(ctx, "Failed to check builtin admin existence", logfacade.Err(txErr))
+				return bizerrors.Wrap(txErr, "Failed to check builtin admin existence")
+			}
+			if existing == nil {
+				hashedPwd, txErr := domainenduser.NewHashedPasswordFromPlain(endUserAdminPassword)
+				if txErr != nil {
+					logger.Error(ctx, "Failed to hash admin password", logfacade.Err(txErr))
+					return bizerrors.Wrap(txErr, "Failed to hash builtin admin password")
+				}
+				adminID, txErr := bizutils.GenerateUUIDV7()
+				if txErr != nil {
+					return bizerrors.Wrap(txErr, "Failed to generate builtin admin ID")
+				}
+				adminUser, txErr := domainenduser.NewBuiltinEndUser(adminID, orgSlug, userID, hashedPwd)
+				if txErr != nil {
+					return bizerrors.Wrap(txErr, "Failed to create builtin admin entity")
+				}
+				if txErr = euRepo.Save(ctx, adminUser); txErr != nil {
+					logger.Error(ctx, "Failed to save builtin admin", logfacade.Err(txErr))
+					return bizerrors.Wrap(txErr, "Failed to save builtin admin")
+				}
+				logger.Infof(ctx, "Builtin admin EndUser created: id=%s, org=%s", adminID, orgSlug)
+			}
+		}
+
 		return nil
 	})
 	if err != nil {
