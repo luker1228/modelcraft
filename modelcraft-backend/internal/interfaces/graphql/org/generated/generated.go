@@ -198,6 +198,7 @@ type ComplexityRoot struct {
 	EndUserPublic struct {
 		CreatedAt func(childComplexity int) int
 		ID        func(childComplexity int) int
+		IsBuiltin func(childComplexity int) int
 		Username  func(childComplexity int) int
 	}
 
@@ -991,6 +992,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.EndUserPublic.ID(childComplexity), true
+	case "EndUserPublic.isBuiltin":
+		if e.complexity.EndUserPublic.IsBuiltin == nil {
+			break
+		}
+
+		return e.complexity.EndUserPublic.IsBuiltin(childComplexity), true
 	case "EndUserPublic.username":
 		if e.complexity.EndUserPublic.Username == nil {
 			break
@@ -2444,6 +2451,7 @@ extend type Mutation {
 type EndUserPublic {
   id: ID!
   username: String!
+  isBuiltin: Boolean!
   createdAt: Time!
 }
 
@@ -5927,6 +5935,35 @@ func (ec *executionContext) fieldContext_EndUserPublic_username(_ context.Contex
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _EndUserPublic_isBuiltin(ctx context.Context, field graphql.CollectedField, obj *EndUserPublic) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_EndUserPublic_isBuiltin,
+		func(ctx context.Context) (any, error) {
+			return obj.IsBuiltin, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_EndUserPublic_isBuiltin(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "EndUserPublic",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -11777,6 +11814,8 @@ func (ec *executionContext) fieldContext_UserFindManyResult_items(_ context.Cont
 				return ec.fieldContext_EndUserPublic_id(ctx, field)
 			case "username":
 				return ec.fieldContext_EndUserPublic_username(ctx, field)
+			case "isBuiltin":
+				return ec.fieldContext_EndUserPublic_isBuiltin(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPublic_createdAt(ctx, field)
 			}
@@ -11901,6 +11940,8 @@ func (ec *executionContext) fieldContext_UserFindOneResult_item(_ context.Contex
 				return ec.fieldContext_EndUserPublic_id(ctx, field)
 			case "username":
 				return ec.fieldContext_EndUserPublic_username(ctx, field)
+			case "isBuiltin":
+				return ec.fieldContext_EndUserPublic_isBuiltin(ctx, field)
 			case "createdAt":
 				return ec.fieldContext_EndUserPublic_createdAt(ctx, field)
 			}
@@ -16297,6 +16338,11 @@ func (ec *executionContext) _EndUserPublic(ctx context.Context, sel ast.Selectio
 			}
 		case "username":
 			out.Values[i] = ec._EndUserPublic_username(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isBuiltin":
+			out.Values[i] = ec._EndUserPublic_isBuiltin(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

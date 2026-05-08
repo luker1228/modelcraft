@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@shared/stores/auth-store'
+import { invalidateMembershipsCache } from '@shared/cache/memberships-cache'
 import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import type { LoginFormValues, RegisterFormValues } from '@/shared/validation/auth'
 import type { LoginResponse, RegisterResponse, IdentifierType } from '@/types/auth'
@@ -54,6 +55,9 @@ export function useLogin(): UseLoginReturn {
 
       // 存储 access token
       useAuthStore.getState().setAccessToken(accessToken, data.expiresIn ?? 3600)
+
+      // 清除旧账号的 memberships 缓存，确保 OrgLayout 用新 token 重新拉取
+      invalidateMembershipsCache()
 
       // 从 JWT payload 或响应字段中提取 userName / orgName
       const payload = parseJwtPayload(accessToken)
@@ -137,6 +141,9 @@ export function useRegister(): UseRegisterReturn {
 
       // Step 3: 存储 access token
       useAuthStore.getState().setAccessToken(accessToken, loginData.expiresIn ?? 3600)
+
+      // 清除旧账号的 memberships 缓存，确保 OrgLayout 用新 token 重新拉取
+      invalidateMembershipsCache()
 
       // Step 4: 从 JWT payload 或响应字段中提取 userName / orgName
       const payload = parseJwtPayload(accessToken)

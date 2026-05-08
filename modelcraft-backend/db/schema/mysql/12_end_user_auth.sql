@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS `end_user_users` (
   `username` VARCHAR(64) NOT NULL COMMENT 'Org 内唯一用户名',
   `password` VARCHAR(255) NOT NULL COMMENT 'bcrypt 密码哈希',
   `is_forbidden` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否禁用',
+  `is_builtin` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否为平台内置账号（每个 Org 唯一，不可删除/禁用）',
   `created_by` VARCHAR(36) NULL COMMENT '创建者（平台用户 ID）',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -1,0 +1,51 @@
+paths:
+  /api/org/init:
+    post:
+      operationId: initOrg
+      summary: Initialize (create) an organization for the authenticated user
+      tags:
+        - Organization
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "org.yaml#/schemas/InitOrgRequest"
+      responses:
+        '200':
+          description: Organization initialized
+          content:
+            application/json:
+              schema:
+                $ref: "org.yaml#/schemas/InitOrgResponse"
+        '400':
+          description: Invalid input
+        '409':
+          description: Organization already exists
+
+schemas:
+  InitOrgRequest:
+    type: object
+    required:
+      - displayName
+      - endUserAdminPassword
+    properties:
+      displayName:
+        type: string
+      organizationName:
+        type: string
+      endUserAdminPassword:
+        type: string
+        description: Initial password for the builtin admin EndUser
+
+  InitOrgResponse:
+    type: object
+    properties:
+      requestId:
+        type: string
+      organizationName:
+        type: string
+      displayName:
+        type: string
+      alreadyExisted:
+        type: boolean

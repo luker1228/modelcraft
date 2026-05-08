@@ -316,6 +316,7 @@ func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWher
 		items = append(items, &generated.EndUserPublic{
 			ID:        dto.ID,
 			Username:  dto.Username,
+			IsBuiltin: dto.IsBuiltin,
 			CreatedAt: dto.CreatedAt,
 		})
 	}

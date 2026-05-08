@@ -135,6 +135,7 @@ extend type Mutation {
 type EndUserPublic {
   id: ID!
   username: String!
+  isBuiltin: Boolean!
   createdAt: Time!
 }
 

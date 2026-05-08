@@ -385,6 +385,7 @@ func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 type EndUserPublic struct {
 	ID        string    `json:"id"`
 	Username  string    `json:"username"`
+	IsBuiltin bool      `json:"isBuiltin"`
 	CreatedAt time.Time `json:"createdAt"`
 }
 

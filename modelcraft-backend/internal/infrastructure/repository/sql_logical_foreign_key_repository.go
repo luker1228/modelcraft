@@ -19,11 +19,11 @@ type logicalFKQuerier interface {
 	DeleteLogicalForeignKeyByPairID(ctx context.Context, arg dbgen.DeleteLogicalForeignKeyByPairIDParams) error
 	FindLogicalForeignKeysByModelID(
 		ctx context.Context, arg dbgen.FindLogicalForeignKeysByModelIDParams,
-	) ([]dbgen.LogicalForeignKey, error)
+	) ([]dbgen.FindLogicalForeignKeysByModelIDRow, error)
 	FindLogicalForeignKeysByPairID(
 		ctx context.Context, arg dbgen.FindLogicalForeignKeysByPairIDParams,
-	) ([]dbgen.LogicalForeignKey, error)
-	GetLogicalForeignKeyByID(ctx context.Context, id string) (dbgen.LogicalForeignKey, error)
+	) ([]dbgen.FindLogicalForeignKeysByPairIDRow, error)
+	GetLogicalForeignKeyByID(ctx context.Context, id string) (dbgen.GetLogicalForeignKeyByIDRow, error)
 	FindFieldsByBelongsToFKID(
 		ctx context.Context, arg dbgen.FindFieldsByBelongsToFKIDParams,
 	) ([]dbgen.FindFieldsByBelongsToFKIDRow, error)
@@ -67,7 +67,9 @@ func (r *SqlLogicalForeignKeyRepository) GetByID(
 	if err != nil {
 		return nil, err
 	}
-	return LogicalForeignKeyToDomain(row)
+	return logicalFKRowToDomain(row.ID, row.PairID, row.OrgName, row.Direction, row.ModelID, row.ModelName,
+		row.RefModelID, row.RefModelName, row.RefDatabaseName, row.RefTableName,
+		row.SourceFields, row.TargetFields, row.IsDeletable, row.CreatedAt, row.UpdatedAt)
 }
 
 // FindByModel finds all logical foreign keys where model_id = modelID within the org.
@@ -81,7 +83,17 @@ func (r *SqlLogicalForeignKeyRepository) FindByModel(
 	if err != nil {
 		return nil, err
 	}
-	return logicalForeignKeyRowsToDomain(rows)
+	result := make([]*modeldesign.LogicalForeignKey, len(rows))
+	for i, row := range rows {
+		lf, err := logicalFKRowToDomain(row.ID, row.PairID, row.OrgName, row.Direction, row.ModelID, row.ModelName,
+			row.RefModelID, row.RefModelName, row.RefDatabaseName, row.RefTableName,
+			row.SourceFields, row.TargetFields, row.IsDeletable, row.CreatedAt, row.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = lf
+	}
+	return result, nil
 }
 
 // FindByPairID finds all rows of a FK pair by pair_id within the org.
@@ -95,7 +107,17 @@ func (r *SqlLogicalForeignKeyRepository) FindByPairID(
 	if err != nil {
 		return nil, err
 	}
-	return logicalForeignKeyRowsToDomain(rows)
+	result := make([]*modeldesign.LogicalForeignKey, len(rows))
+	for i, row := range rows {
+		lf, err := logicalFKRowToDomain(row.ID, row.PairID, row.OrgName, row.Direction, row.ModelID, row.ModelName,
+			row.RefModelID, row.RefModelName, row.RefDatabaseName, row.RefTableName,
+			row.SourceFields, row.TargetFields, row.IsDeletable, row.CreatedAt, row.UpdatedAt)
+		if err != nil {
+			return nil, err
+		}
+		result[i] = lf
+	}
+	return result, nil
 }
 
 // FindByBelongsToField finds logical foreign keys referenced by the given belongs_to_fk_id within the org.
@@ -194,57 +216,61 @@ func LogicalForeignKeyToCreateParams(lf *modeldesign.LogicalForeignKey) (dbgen.C
 
 // LogicalForeignKeyToDomain converts a dbgen.LogicalForeignKey row to a domain entity.
 func LogicalForeignKeyToDomain(row dbgen.LogicalForeignKey) (*modeldesign.LogicalForeignKey, error) {
+	return logicalFKRowToDomain(row.ID, row.PairID, row.OrgName, row.Direction, row.ModelID, row.ModelName,
+		row.RefModelID, row.RefModelName, row.RefDatabaseName, row.RefTableName,
+		row.SourceFields, row.TargetFields, row.IsDeletable, row.CreatedAt, row.UpdatedAt)
+}
+
+// logicalFKRowToDomain is the shared converter used by all FK query result types.
+func logicalFKRowToDomain(
+	id, pairID, orgName string,
+	direction dbgen.LogicalForeignKeysDirection,
+	modelID, modelName string,
+	refModelID sql.NullString,
+	refModelName string,
+	refDatabaseName, refTableName sql.NullString,
+	sourceFieldsJSON, targetFieldsJSON json.RawMessage,
+	isDeletable bool,
+	createdAt, updatedAt sql.NullTime,
+) (*modeldesign.LogicalForeignKey, error) {
 	var sourceFields []string
-	if len(row.SourceFields) > 0 {
-		if err := json.Unmarshal(row.SourceFields, &sourceFields); err != nil {
-			return nil, fmt.Errorf("LogicalForeignKeyToDomain: unmarshal source_fields: %w", err)
+	if len(sourceFieldsJSON) > 0 {
+		if err := json.Unmarshal(sourceFieldsJSON, &sourceFields); err != nil {
+			return nil, fmt.Errorf("logicalFKRowToDomain: unmarshal source_fields: %w", err)
 		}
 	}
 	var targetFields []string
-	if len(row.TargetFields) > 0 {
-		if err := json.Unmarshal(row.TargetFields, &targetFields); err != nil {
-			return nil, fmt.Errorf("LogicalForeignKeyToDomain: unmarshal target_fields: %w", err)
+	if len(targetFieldsJSON) > 0 {
+		if err := json.Unmarshal(targetFieldsJSON, &targetFields); err != nil {
+			return nil, fmt.Errorf("logicalFKRowToDomain: unmarshal target_fields: %w", err)
 		}
 	}
 
-	var createdAt, updatedAt time.Time
-	if row.CreatedAt.Valid {
-		createdAt = row.CreatedAt.Time
+	var createdAtTime, updatedAtTime time.Time
+	if createdAt.Valid {
+		createdAtTime = createdAt.Time
 	}
-	if row.UpdatedAt.Valid {
-		updatedAt = row.UpdatedAt.Time
+	if updatedAt.Valid {
+		updatedAtTime = updatedAt.Time
 	}
 
 	return &modeldesign.LogicalForeignKey{
-		ID:              row.ID,
-		PairID:          row.PairID,
-		OrgName:         row.OrgName,
-		Direction:       modeldesign.LogicalFKDirection(row.Direction),
-		ModelID:         row.ModelID,
-		ModelName:       row.ModelName,
-		RefModelID:      row.RefModelID.String,
-		RefModelName:    row.RefModelName,
-		RefDatabaseName: row.RefDatabaseName.String,
-		RefTableName:    row.RefTableName.String,
+		ID:              id,
+		PairID:          pairID,
+		OrgName:         orgName,
+		Direction:       modeldesign.LogicalFKDirection(direction),
+		ModelID:         modelID,
+		ModelName:       modelName,
+		RefModelID:      refModelID.String,
+		RefModelName:    refModelName,
+		RefDatabaseName: refDatabaseName.String,
+		RefTableName:    refTableName.String,
 		SourceFields:    sourceFields,
 		TargetFields:    targetFields,
-		IsDeletable:     row.IsDeletable,
-		CreatedAt:       createdAt,
-		UpdatedAt:       updatedAt,
+		IsDeletable:     isDeletable,
+		CreatedAt:       createdAtTime,
+		UpdatedAt:       updatedAtTime,
 	}, nil
-}
-
-// logicalForeignKeyRowsToDomain converts a slice of dbgen.LogicalForeignKey rows to domain entities.
-func logicalForeignKeyRowsToDomain(rows []dbgen.LogicalForeignKey) ([]*modeldesign.LogicalForeignKey, error) {
-	result := make([]*modeldesign.LogicalForeignKey, len(rows))
-	for i, row := range rows {
-		lf, err := LogicalForeignKeyToDomain(row)
-		if err != nil {
-			return nil, err
-		}
-		result[i] = lf
-	}
-	return result, nil
 }
 
 var _ modeldesign.LogicalForeignKeyRepository = (*SqlLogicalForeignKeyRepository)(nil)

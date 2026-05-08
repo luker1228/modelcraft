@@ -212,6 +212,7 @@ type MetaUserFindManyCommand struct {
 type MetaUserDTO struct {
 	ID        string
 	Username  string
+	IsBuiltin bool
 	CreatedAt time.Time
 }
 

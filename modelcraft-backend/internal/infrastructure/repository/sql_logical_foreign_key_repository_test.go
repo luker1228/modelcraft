@@ -38,27 +38,27 @@ func (m *MockQuerierForFK) DeleteLogicalForeignKeyByPairID(
 
 func (m *MockQuerierForFK) FindLogicalForeignKeysByModelID(
 	ctx context.Context, arg dbgen.FindLogicalForeignKeysByModelIDParams,
-) ([]dbgen.LogicalForeignKey, error) {
+) ([]dbgen.FindLogicalForeignKeysByModelIDRow, error) {
 	args := m.Called(ctx, arg)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]dbgen.LogicalForeignKey), args.Error(1)
+	return args.Get(0).([]dbgen.FindLogicalForeignKeysByModelIDRow), args.Error(1)
 }
 
 func (m *MockQuerierForFK) FindLogicalForeignKeysByPairID(
 	ctx context.Context, arg dbgen.FindLogicalForeignKeysByPairIDParams,
-) ([]dbgen.LogicalForeignKey, error) {
+) ([]dbgen.FindLogicalForeignKeysByPairIDRow, error) {
 	args := m.Called(ctx, arg)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]dbgen.LogicalForeignKey), args.Error(1)
+	return args.Get(0).([]dbgen.FindLogicalForeignKeysByPairIDRow), args.Error(1)
 }
 
-func (m *MockQuerierForFK) GetLogicalForeignKeyByID(ctx context.Context, id string) (dbgen.LogicalForeignKey, error) {
+func (m *MockQuerierForFK) GetLogicalForeignKeyByID(ctx context.Context, id string) (dbgen.GetLogicalForeignKeyByIDRow, error) {
 	args := m.Called(ctx, id)
-	return args.Get(0).(dbgen.LogicalForeignKey), args.Error(1)
+	return args.Get(0).(dbgen.GetLogicalForeignKeyByIDRow), args.Error(1)
 }
 
 func (m *MockQuerierForFK) FindFieldsByBelongsToFKID(
