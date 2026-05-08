@@ -22,6 +22,7 @@
 | [tenant-scope-and-propagation.md](./tenant-scope-and-propagation.md) | 租户隔离与参数传递规范 ⭐ | 涉及 org / org+project 隔离与参数链路时 |
 | [comments.md](./comments.md) | 注释规范 | 代码注释 |
 | [sqlc-custom-types.md](./sqlc-custom-types.md) | sqlc 自定义类型规范 | 自定义类型实现 |
+| [soft-delete-sqlc.md](./soft-delete-sqlc.md) | MySQL + sqlc 软删除规范（`deleted_at` / `delete_token`） ⭐ | 设计/修改软删除、唯一索引、SQL 查询改写 |
 | [contract-sync.md](./contract-sync.md) | API Contract 共享规范 ⭐ | 修改 `api/` 目录时 |
 | [tx-querier-rules.md](./tx-querier-rules.md) | WithTx/Querier 事务使用规范 ⭐ | 修改 `internal/app/**/*.go` 的事务逻辑时 |
 

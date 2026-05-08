@@ -65,7 +65,9 @@ func RewriteBlock(policy *Policy, anns Annotations, block QueryBlock) (string, b
 		return original, false, nil
 	}
 
-	rewritten := strings.TrimSpace(parsed.SQL)
+	// Keep original SQL text as rewrite base so sqlc-specific syntax such as
+	// sqlc.slice(...) is preserved byte-for-byte unless we explicitly patch it.
+	rewritten := original
 	switch parsed.Kind {
 	case StatementKindSelect:
 		for _, table := range parsed.Tables {
@@ -142,20 +144,24 @@ func quoteIdent(name string) string {
 }
 
 func injectPredicateIntoSelect(sql string, predicate string) (string, bool) {
-	upper := strings.ToUpper(sql)
+	orderingRe := regexp.MustCompile(`(?is)\b(order\s+by|limit|for\s+update|lock\s+in\s+share\s+mode)\b`)
+	whereRe := regexp.MustCompile(`(?is)\bwhere\b`)
 	insertAt := len(sql)
-	for _, kw := range []string{" ORDER BY ", " LIMIT ", " FOR UPDATE", " LOCK IN SHARE MODE"} {
-		if idx := strings.Index(upper, kw); idx >= 0 && idx < insertAt {
-			insertAt = idx
-		}
+	if loc := orderingRe.FindStringIndex(sql); loc != nil {
+		insertAt = loc[0]
 	}
 
-	prefix := strings.TrimRight(sql[:insertAt], " ")
+	prefix := strings.TrimRight(sql[:insertAt], " \t\r\n")
 	suffix := sql[insertAt:]
-	upperPrefix := strings.ToUpper(prefix)
 
-	if idx := strings.LastIndex(upperPrefix, " WHERE "); idx >= 0 {
+	if whereLoc := whereRe.FindStringIndex(prefix); whereLoc != nil {
+		if suffix != "" && !strings.HasPrefix(suffix, " ") && !strings.HasPrefix(suffix, "\n") && !strings.HasPrefix(suffix, "\t") {
+			suffix = " " + suffix
+		}
 		return prefix + " AND " + predicate + suffix, true
+	}
+	if suffix != "" && !strings.HasPrefix(suffix, " ") && !strings.HasPrefix(suffix, "\n") && !strings.HasPrefix(suffix, "\t") {
+		suffix = " " + suffix
 	}
 	return prefix + " WHERE " + predicate + suffix, true
 }
@@ -163,6 +169,7 @@ func injectPredicateIntoSelect(sql string, predicate string) (string, bool) {
 var deleteStmtPattern = regexp.MustCompile(`(?is)^DELETE\s+FROM\s+(.+?)(?:\s+WHERE\s+(.+))?$`)
 
 func rewriteDeleteSQL(sql string, table TableRef, includeDeleteToken bool) (string, bool) {
+	sql = stripLeadingLineComments(sql)
 	if strings.HasPrefix(strings.ToUpper(strings.TrimSpace(sql)), "UPDATE ") {
 		return sql, false
 	}
@@ -176,6 +183,8 @@ func rewriteDeleteSQL(sql string, table TableRef, includeDeleteToken bool) (stri
 	whereExpr := ""
 	if len(matches) > 2 {
 		whereExpr = strings.TrimSpace(matches[2])
+		whereExpr = strings.TrimSuffix(whereExpr, ";")
+		whereExpr = strings.TrimSpace(whereExpr)
 	}
 
 	qualifier := quoteIdent(table.AliasOrName())
@@ -197,4 +206,18 @@ func rewriteDeleteSQL(sql string, table TableRef, includeDeleteToken bool) (stri
 
 	rewritten := "UPDATE " + tableExpr + " SET " + strings.Join(setClauses, ", ") + " WHERE " + where
 	return rewritten, true
+}
+
+func stripLeadingLineComments(sql string) string {
+	lines := strings.Split(sql, "\n")
+	start := 0
+	for start < len(lines) {
+		trimmed := strings.TrimSpace(lines[start])
+		if trimmed == "" || strings.HasPrefix(trimmed, "--") {
+			start++
+			continue
+		}
+		break
+	}
+	return strings.Join(lines[start:], "\n")
 }

@@ -40,6 +40,7 @@ ai-metadata/
 │   │   ├── logging.md
 │   │   ├── repo-develop.md
 │   │   ├── sqlc-custom-types.md
+│   │   ├── soft-delete-sqlc.md
 │   │   ├── tenant-scope-and-propagation.md
 │   │   └── type-conversion.md
 │   ├── testing/                      # 测试策略

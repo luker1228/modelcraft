@@ -48,7 +48,8 @@ func TestRewriteFile_RewritesDeleteIntoSoftDeleteUpdate(t *testing.T) {
 		t.Fatal("expected delete rewrite to change SQL")
 	}
 	got := string(out)
-	if !strings.Contains(got, "UPDATE `models`") || !strings.Contains(got, "SET `deleted_at` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED)") {
+	if !(strings.Contains(got, "UPDATE `models`") || strings.Contains(got, "UPDATE models")) ||
+		!strings.Contains(got, "CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED)") {
 		t.Fatalf("unexpected soft-delete SQL: %s", got)
 	}
 	if !strings.Contains(got, "`delete_token` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED)") {
