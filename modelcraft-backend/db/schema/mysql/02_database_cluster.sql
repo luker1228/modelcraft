@@ -33,6 +33,8 @@ CREATE TABLE IF NOT EXISTS `database_clusters` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 主键约束
   PRIMARY KEY (`id`),
@@ -40,10 +42,11 @@ CREATE TABLE IF NOT EXISTS `database_clusters` (
   -- 不使用外键约束（避免复杂性，Project永不删除只归档）
 
   -- 唯一索引
-  UNIQUE KEY `idx_cluster_project_unique` (`org_name`, `project_slug`) COMMENT '一对一约束：一个项目只能有一个集群',
+  UNIQUE KEY `idx_cluster_project_unique` (`org_name`, `project_slug`, `delete_token`) COMMENT '一对一约束：一个项目只能有一个活跃集群',
 
   -- 普通索引
   KEY `idx_status` (`status`) COMMENT '状态查询索引',
-  KEY `idx_cluster_project` (`org_name`, `project_slug`) COMMENT '项目查询索引'
+  KEY `idx_cluster_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
+  KEY `idx_cluster_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃集群查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='数据库集群配置信息表';

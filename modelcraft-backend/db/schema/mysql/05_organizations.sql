@@ -16,7 +16,10 @@ CREATE TABLE IF NOT EXISTS `organizations` (
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   INDEX `idx_org_owner` (`owner_id`) COMMENT '按所有者查找组织',
-  INDEX `idx_org_status` (`status`) COMMENT '按状态筛选'
+  INDEX `idx_org_status` (`status`) COMMENT '按状态筛选',
+  INDEX `idx_org_live_status` (`deleted_at`, `status`) COMMENT '按活跃状态筛选组织'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='组织表（多租户容器）';

@@ -315,15 +315,32 @@ generate-oapi:
     oapi-codegen --config api/openapi/oapi-codegen.yaml api/openapi/openapi.yaml
     echo "✅ OpenAPI 代码生成完成"
 
-# 清理 GraphQL 生成的代码 never should be used (commented out)
+# SQL soft delete lint
+[doc("Lint SQL queries for soft-delete rules")]
+soft-delete-lint:
+    echo "🔍 SQL soft-delete lint..."
+    go run ./cmd/sqlsoftdelete lint --config db/soft_delete.yaml
+    echo "✅ SQL soft-delete lint 通过"
 
-# 通用 safe querier 生成（gowrap）
-[doc("Generate safe querier wrapper using gowrap (generic)")]
-generate-safe-querier package_path="./internal/infrastructure/dbgen" interface_name="Querier" output_file="internal/infrastructure/dbgenwrap/safe_querier_gen.go" wrapper_name="SafeQuerier" constructor_name="NewSafeQuerier" delegate_type="dbgen.Querier": install-sqlc
+# SQL soft delete codemod
+[doc("Codemod SQL queries to soft-delete rules")]
+soft-delete-codemod:
+    echo "🔧 SQL soft-delete codemod..."
+    go run ./cmd/sqlsoftdelete codemod --config db/soft_delete.yaml
+    echo "✅ SQL soft-delete codemod 完成"
+
+# 生成 sqlc 代码（先做 soft-delete lint）
+[doc("Generate sqlc code after soft-delete lint")]
+generate-sqlc: install-sqlc soft-delete-lint
     echo "📊 生成 sqlc 代码..."
     sqlc generate
     echo "✅ sqlc 代码生成完成"
 
+# 清理 GraphQL 生成的代码 never should be used (commented out)
+
+# 通用 safe querier 生成（gowrap）
+[doc("Generate safe querier wrapper using gowrap (generic)")]
+generate-safe-querier package_path="./internal/infrastructure/dbgen" interface_name="Querier" output_file="internal/infrastructure/dbgenwrap/safe_querier_gen.go" wrapper_name="SafeQuerier" constructor_name="NewSafeQuerier" delegate_type="dbgen.Querier": generate-sqlc
     chmod +x {{SAFE_QUERIER_GOWRAP_SCRIPT}}
     {{SAFE_QUERIER_GOWRAP_SCRIPT}} \
       --package-path "{{package_path}}" \

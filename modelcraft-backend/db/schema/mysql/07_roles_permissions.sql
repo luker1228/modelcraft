@@ -27,13 +27,16 @@ CREATE TABLE IF NOT EXISTS `roles` (
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 唯一约束：租户内角色名称唯一（系统角色使用 __SYSTEM__ 标识，全局唯一）
-  UNIQUE KEY `uk_role_name_org` (`name`, `org_name`) COMMENT '租户内角色名称唯一',
+  UNIQUE KEY `uk_role_name_org` (`name`, `org_name`, `delete_token`) COMMENT '租户内角色名称唯一',
 
   -- 索引
   INDEX `idx_org_name` (`org_name`) COMMENT '按组织查询角色',
-  INDEX `idx_is_system` (`is_system`) COMMENT '筛选系统角色'
+  INDEX `idx_is_system` (`is_system`) COMMENT '筛选系统角色',
+  INDEX `idx_roles_live_org` (`org_name`, `deleted_at`) COMMENT '组织活跃角色查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='角色表（支持系统角色和租户自定义角色）';
 

@@ -19,10 +19,13 @@ CREATE TABLE IF NOT EXISTS `users` (
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
-  UNIQUE INDEX `uk_phone` (`phone`) COMMENT '手机号唯一约束（用于本地登录）',
-  UNIQUE INDEX `uk_user_name` (`name`) COMMENT '用户名（userName）唯一约束',
-  INDEX `idx_external_id` (`external_id`) COMMENT '按外部 ID 快速查找'
+  UNIQUE INDEX `uk_phone` (`phone`, `delete_token`) COMMENT '手机号唯一约束（用于本地登录）',
+  UNIQUE INDEX `uk_user_name` (`name`, `delete_token`) COMMENT '用户名（userName）唯一约束',
+  INDEX `idx_external_id` (`external_id`) COMMENT '按外部 ID 快速查找',
+  INDEX `idx_users_live_name` (`deleted_at`, `name`) COMMENT '活跃用户查询索引'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- -----------------------------------------------------------------------------
@@ -69,9 +72,12 @@ CREATE TABLE IF NOT EXISTS `profile` (
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   CONSTRAINT `fk_profile_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  UNIQUE KEY `uk_profile_user_id` (`user_id`) COMMENT '保证一个用户仅有一个 profile'
+  UNIQUE KEY `uk_profile_user_id` (`user_id`, `delete_token`) COMMENT '保证一个用户仅有一个活跃 profile',
+  INDEX `idx_profile_live_user` (`deleted_at`, `user_id`) COMMENT '活跃 profile 查询索引'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户资料表';
 
 -- -----------------------------------------------------------------------------

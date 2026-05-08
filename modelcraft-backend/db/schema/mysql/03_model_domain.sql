@@ -34,6 +34,8 @@ CREATE TABLE IF NOT EXISTS `models` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 主键约束
   PRIMARY KEY (`id`),
@@ -41,10 +43,11 @@ CREATE TABLE IF NOT EXISTS `models` (
   -- 不使用外键约束（避免复杂性，Project永不删除只归档）
 
   -- 唯一索引
-  UNIQUE KEY `idx_models_name` (`org_name`, `project_slug`, `database_name`, `name`) COMMENT '组织+项目内模型名称唯一索引',
+  UNIQUE KEY `idx_models_name` (`org_name`, `project_slug`, `database_name`, `name`, `delete_token`) COMMENT '组织+项目内模型名称唯一索引',
 
   -- 普通索引
-  KEY `idx_models_project` (`org_name`, `project_slug`) COMMENT '项目查询索引'
+  KEY `idx_models_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
+  KEY `idx_models_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃模型查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型定义主表';
 
@@ -69,6 +72,8 @@ CREATE TABLE IF NOT EXISTS `model_groups` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 主键约束
   PRIMARY KEY (`id`),
@@ -76,10 +81,11 @@ CREATE TABLE IF NOT EXISTS `model_groups` (
   -- 不使用外键约束（避免复杂性，Project永不删除只归档）
 
   -- 唯一索引
-  UNIQUE KEY `idx_model_groups_name` (`org_name`, `project_slug`, `name`) COMMENT '组织+项目内分组名称唯一索引',
+  UNIQUE KEY `idx_model_groups_name` (`org_name`, `project_slug`, `name`, `delete_token`) COMMENT '组织+项目内分组名称唯一索引',
 
   -- 普通索引
-  KEY `idx_model_groups_project_order` (`org_name`, `project_slug`, `display_order`) COMMENT '项目分组排序查询索引'
+  KEY `idx_model_groups_project_order` (`org_name`, `project_slug`, `display_order`) COMMENT '项目分组排序查询索引',
+  KEY `idx_model_groups_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃分组查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型分组定义表';
 
@@ -119,6 +125,8 @@ CREATE TABLE IF NOT EXISTS `logical_foreign_keys` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 主键约束
   PRIMARY KEY (`id`),
@@ -127,6 +135,7 @@ CREATE TABLE IF NOT EXISTS `logical_foreign_keys` (
   KEY `idx_logical_fk_pair` (`pair_id`) COMMENT '外键对查询索引',
   KEY `idx_logical_fk_model` (`model_id`) COMMENT '模型查询索引',
   KEY `idx_logical_fk_org_model` (`org_name`, `model_id`) COMMENT '组织+模型查询索引',
+  KEY `idx_logical_fk_live_org` (`org_name`, `deleted_at`) COMMENT '组织活跃逻辑外键查询索引',
 
   -- 外键约束
   CONSTRAINT `fk_logical_fk_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE,
@@ -158,6 +167,8 @@ CREATE TABLE IF NOT EXISTS `model_enums` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 主键约束
   PRIMARY KEY (`id`),
@@ -165,10 +176,11 @@ CREATE TABLE IF NOT EXISTS `model_enums` (
   -- 不使用外键约束（避免复杂性，Project永不删除只归档）
 
   -- 唯一索引
-  UNIQUE KEY `idx_model_enums_name` (`org_name`, `project_slug`, `name`) COMMENT '组织+项目内枚举名称唯一索引',
+  UNIQUE KEY `idx_model_enums_name` (`org_name`, `project_slug`, `name`, `delete_token`) COMMENT '组织+项目内枚举名称唯一索引',
 
   -- 普通索引
-  KEY `idx_model_enums_project` (`org_name`, `project_slug`) COMMENT '项目查询索引'
+  KEY `idx_model_enums_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
+  KEY `idx_model_enums_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃枚举查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型枚举定义表';
 
@@ -219,13 +231,16 @@ CREATE TABLE IF NOT EXISTS `field_definitions` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
   
   -- 复合主键约束
-  PRIMARY KEY (`model_id`, `name`),
+  PRIMARY KEY (`model_id`, `name`, `delete_token`),
   
   -- 索引：多租户查询优化（与其他表保持一致）
   INDEX `idx_field_definitions_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
   INDEX `idx_field_definitions_model` (`org_name`, `project_slug`, `model_name`) COMMENT '模型查询索引',
+  INDEX `idx_field_definitions_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃字段查询索引',
   
   -- 外键约束
   CONSTRAINT `fk_field_definitions_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE

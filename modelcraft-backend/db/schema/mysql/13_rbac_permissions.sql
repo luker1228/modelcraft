@@ -40,14 +40,17 @@ CREATE TABLE `end_user_data_permissions` (
   -- }
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at`    BIGINT UNSIGNED NOT NULL DEFAULT 0               COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token`  BIGINT UNSIGNED NOT NULL DEFAULT 0               COMMENT '唯一键避让位，0 表示活跃',
 
   PRIMARY KEY (`id`),
   -- 业务唯一键：同一模型下名称不可重复
   UNIQUE KEY `uq_permissions_model_name`
-    (`model_id`, `name`),
+    (`model_id`, `name`, `delete_token`),
   -- 按组织/项目快速检索
   INDEX `idx_permissions_org_project` (`org_name`, `project_slug`),
   INDEX `idx_permissions_model_id` (`model_id`),
+  INDEX `idx_permissions_live_org_project` (`org_name`, `project_slug`, `deleted_at`),
   -- FK → models.id（模型可删除，级联清理权限实体）
   CONSTRAINT `fk_permissions_model`
     FOREIGN KEY (`model_id`) REFERENCES `models` (`id`)
@@ -68,16 +71,19 @@ CREATE TABLE `end_user_permission_bundles` (
   `description`   TEXT         NULL                        COMMENT '权限包描述',
   `created_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at`    BIGINT UNSIGNED NOT NULL DEFAULT 0      COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token`  BIGINT UNSIGNED NOT NULL DEFAULT 0      COMMENT '唯一键避让位，0 表示活跃',
 
   PRIMARY KEY (`id`),
   -- 同一项目下 slug 唯一（对外标识符）
   UNIQUE KEY `uq_bundles_org_project_slug`
-    (`org_name`, `project_slug`, `slug`),
+    (`org_name`, `project_slug`, `slug`, `delete_token`),
   -- 同一项目下权限包名称唯一
   UNIQUE KEY `uq_bundles_org_project_name`
-    (`org_name`, `project_slug`, `name`),
+    (`org_name`, `project_slug`, `name`, `delete_token`),
   -- 快速检索
-  INDEX `idx_bundles_org_project` (`org_name`, `project_slug`)
+  INDEX `idx_bundles_org_project` (`org_name`, `project_slug`),
+  INDEX `idx_bundles_live_org_project` (`org_name`, `project_slug`, `deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
   COMMENT='权限包：数据权限 item 的命名集合，用于角色授权或用户直接授权';
 

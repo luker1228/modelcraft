@@ -74,7 +74,7 @@ func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) 
 	const query = `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
 		FROM end_user_users
-		WHERE id = ? AND org_name = ?
+		WHERE id = ? AND org_name = ? AND deleted_at = 0
 	`
 
 	if orgName == "" {
@@ -91,7 +91,7 @@ func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, usern
 	const query = `
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
 		FROM end_user_users
-		WHERE username = ? AND org_name = ?
+		WHERE username = ? AND org_name = ? AND deleted_at = 0
 	`
 
 	if orgName == "" {
@@ -154,7 +154,7 @@ func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, orgName, id str
 	const query = `
 		UPDATE end_user_users
 		SET is_forbidden = ?, updated_at = NOW()
-		WHERE id = ? AND org_name = ?
+		WHERE id = ? AND org_name = ? AND deleted_at = 0
 	`
 
 	if orgName == "" {
@@ -174,10 +174,16 @@ func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, orgName, id str
 	return nil
 }
 
-// Delete physically deletes an end-user.
+// Delete soft-deletes an end-user.
 // Returns NO_ROWS_AFFECTED when user does not exist.
 func (r *SqlEndUserRepository) Delete(ctx context.Context, orgName, id string) error {
-	const query = `DELETE FROM end_user_users WHERE id = ? AND org_name = ?`
+	const query = `
+		UPDATE end_user_users
+		SET deleted_at = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED),
+		    delete_token = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED),
+		    updated_at = NOW()
+		WHERE id = ? AND org_name = ? AND deleted_at = 0
+	`
 
 	if orgName == "" {
 		orgName = r.orgName
@@ -210,7 +216,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 	}
 
 	// Total count (without cursor, with optional search)
-	countSQL := `SELECT COUNT(*) FROM end_user_users WHERE org_name = ?`
+	countSQL := `SELECT COUNT(*) FROM end_user_users WHERE org_name = ? AND deleted_at = 0`
 	countArgs := make([]interface{}, 0, 2)
 	countArgs = append(countArgs, query.OrgName)
 	if query.Search != "" {
@@ -228,6 +234,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 		SELECT id, username, password, is_forbidden, created_by, created_at, updated_at
 		FROM end_user_users
 		WHERE org_name = ?
+		  AND deleted_at = 0
 		  AND (? = '' OR username LIKE CONCAT('%', ?, '%'))
 		  AND (? = '' OR id > ?)
 		ORDER BY id ASC
@@ -314,8 +321,10 @@ func (r *SqlEndUserRepository) ListAccessibleProjectsByRoleAssignment(
 		LEFT JOIN projects p
 		  ON p.org_name = r.org_name
 		 AND p.slug = r.project_slug
+		 AND p.deleted_at = 0
 		WHERE ur.org_name = ?
 		  AND ur.user_id = ?
+		  AND r.deleted_at = 0
 		ORDER BY r.project_slug ASC
 	`
 
@@ -360,6 +369,7 @@ func (r *SqlEndUserRepository) HasProjectAccessByRole(
 		WHERE ur.org_name = ?
 		  AND ur.user_id = ?
 		  AND r.project_slug = ?
+		  AND r.deleted_at = 0
 	`
 
 	var count int64

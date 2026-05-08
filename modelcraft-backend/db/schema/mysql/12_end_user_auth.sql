@@ -15,12 +15,16 @@ CREATE TABLE IF NOT EXISTS `end_user_users` (
   `created_by` VARCHAR(36) NULL COMMENT '创建者（平台用户 ID）',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_end_user_users_org_username` (`org_name`, `username`),
-  UNIQUE KEY `uk_end_user_users_org_id` (`org_name`, `id`),
+  UNIQUE KEY `uk_end_user_users_org_username` (`org_name`, `username`, `delete_token`),
+  UNIQUE KEY `uk_end_user_users_org_id` (`org_name`, `id`, `delete_token`),
+  KEY `idx_end_user_users_org_id_fk` (`org_name`, `id`),
   KEY `idx_end_user_users_org` (`org_name`),
   KEY `idx_end_user_users_created_by` (`created_by`),
+  KEY `idx_end_user_users_live_org` (`org_name`, `deleted_at`),
 
   CONSTRAINT `fk_end_user_users_created_by`
     FOREIGN KEY (`created_by`) REFERENCES `users`(`id`) ON DELETE SET NULL
@@ -56,12 +60,16 @@ CREATE TABLE IF NOT EXISTS `end_user_roles` (
     COMMENT '内置隐式角色标志：0=显式角色（用户手动分配），1=隐式角色（系统自动注入）',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_end_user_roles_project_name` (`org_name`, `project_slug`, `name`),
-  UNIQUE KEY `uk_end_user_roles_org_id` (`org_name`, `id`),
+  UNIQUE KEY `uk_end_user_roles_project_name` (`org_name`, `project_slug`, `name`, `delete_token`),
+  UNIQUE KEY `uk_end_user_roles_org_id` (`org_name`, `id`, `delete_token`),
+  KEY `idx_end_user_roles_org_id_fk` (`org_name`, `id`),
   KEY `idx_end_user_roles_project` (`org_name`, `project_slug`),
-  KEY `idx_end_user_roles_implicit` (`is_implicit`)
+  KEY `idx_end_user_roles_implicit` (`is_implicit`),
+  KEY `idx_end_user_roles_live_project` (`org_name`, `project_slug`, `deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='终端用户角色表（Project 级隔离）';
 
 CREATE TABLE IF NOT EXISTS `end_user_role_users` (

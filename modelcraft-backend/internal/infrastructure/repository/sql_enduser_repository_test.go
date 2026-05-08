@@ -80,7 +80,7 @@ func TestSqlEndUserRepository_Delete_NoRowsAffected(t *testing.T) {
 
 	repo := NewSqlEndUserRepository(db, "org-a", "project-a")
 
-	mock.ExpectExec("DELETE FROM end_user_users").
+	mock.ExpectExec("UPDATE end_user_users").
 		WithArgs("user-404", "org-a").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 

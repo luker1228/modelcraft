@@ -19,14 +19,18 @@ CREATE TABLE IF NOT EXISTS `projects` (
   -- 时间戳字段
   `created_at` DATETIME(3) NULL COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL COMMENT '更新时间',
+  `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   -- 复合主键约束
-  PRIMARY KEY (`org_name`, `slug`) COMMENT '组织+项目标识符复合主键',
+  PRIMARY KEY (`org_name`, `slug`, `delete_token`) COMMENT '组织+项目标识符复合主键（含软删避让位）',
 
   -- 普通索引
   KEY `idx_org_name` (`org_name`) COMMENT '组织查询索引',
   KEY `idx_project_slug` (`slug`) COMMENT '项目标识符查询索引',
+  KEY `idx_projects_org_slug` (`org_name`, `slug`) COMMENT '活跃项目查询索引',
   KEY `idx_project_status` (`status`) COMMENT '状态查询索引',
-  KEY `idx_project_cluster` (`cluster_id`) COMMENT '集群查询索引'
+  KEY `idx_project_cluster` (`cluster_id`) COMMENT '集群查询索引',
+  KEY `idx_project_live_org` (`org_name`, `deleted_at`) COMMENT '组织活跃项目查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='项目信息表（多租户，复合主键，只归档不删除）';
