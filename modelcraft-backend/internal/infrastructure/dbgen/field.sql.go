@@ -13,7 +13,7 @@ import (
 )
 
 const countFieldsByModelID = `-- name: CountFieldsByModelID :one
-SELECT COUNT(*) FROM field_definitions WHERE model_id = ?
+SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) CountFieldsByModelID(ctx context.Context, modelID string) (int64, error) {
@@ -80,7 +80,7 @@ func (q *Queries) CreateFieldDefinition(ctx context.Context, arg CreateFieldDefi
 }
 
 const deleteFieldsByModelID = `-- name: DeleteFieldsByModelID :exec
-DELETE FROM field_definitions WHERE model_id = ?
+UPDATE field_definitions SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (model_id = ?) AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) DeleteFieldsByModelID(ctx context.Context, modelID string) error {
@@ -89,8 +89,12 @@ func (q *Queries) DeleteFieldsByModelID(ctx context.Context, modelID string) err
 }
 
 const deleteFieldsByNames = `-- name: DeleteFieldsByNames :execresult
-DELETE FROM field_definitions
-WHERE model_id = ? AND name IN (/*SLICE:names*/?)
+UPDATE field_definitions
+SET deleted_at = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED),
+    delete_token = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED)
+WHERE model_id = ?
+  AND name IN (/*SLICE:names*/?)
+  AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteFieldsByNamesParams struct {
@@ -114,7 +118,7 @@ func (q *Queries) DeleteFieldsByNames(ctx context.Context, arg DeleteFieldsByNam
 }
 
 const existsFieldByName = `-- name: ExistsFieldByName :one
-SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND name = ?
+SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND name = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ExistsFieldByNameParams struct {
@@ -130,9 +134,8 @@ func (q *Queries) ExistsFieldByName(ctx context.Context, arg ExistsFieldByNamePa
 }
 
 const getFieldByModelIDAndName = `-- name: GetFieldByModelIDAndName :one
-SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
-WHERE model_id = ? AND name = ?
-LIMIT 1
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at, deleted_at, delete_token FROM field_definitions
+WHERE model_id = ? AND name = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetFieldByModelIDAndNameParams struct {
@@ -167,14 +170,15 @@ func (q *Queries) GetFieldByModelIDAndName(ctx context.Context, arg GetFieldByMo
 		&i.Metadata,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getFieldsByModelID = `-- name: GetFieldsByModelID :many
-SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at FROM field_definitions
-WHERE model_id = ?
-ORDER BY display_order ASC
+SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, is_deprecated, status, validation, display_order, metadata, created_at, updated_at, deleted_at, delete_token FROM field_definitions
+WHERE model_id = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY display_order ASC
 `
 
 func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]FieldDefinition, error) {
@@ -210,6 +214,8 @@ func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]Fie
 			&i.Metadata,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -226,8 +232,7 @@ func (q *Queries) GetFieldsByModelID(ctx context.Context, modelID string) ([]Fie
 
 const getTailFieldDisplayOrder = `-- name: GetTailFieldDisplayOrder :one
 SELECT display_order FROM field_definitions
-WHERE model_id = ?
-ORDER BY display_order DESC
+WHERE model_id = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY display_order DESC
 LIMIT 1
 `
 

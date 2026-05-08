@@ -54,7 +54,7 @@ func (q *Queries) CreateProject(ctx context.Context, arg CreateProjectParams) er
 
 const existsProjectBySlug = `-- name: ExistsProjectBySlug :one
 SELECT COUNT(*) FROM projects
-WHERE slug = ? AND org_name = ?
+WHERE slug = ? AND org_name = ? AND ` + "`" + `projects` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ExistsProjectBySlugParams struct {
@@ -70,9 +70,8 @@ func (q *Queries) ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySl
 }
 
 const getProjectByClusterID = `-- name: GetProjectByClusterID :one
-SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
-WHERE org_name = ? AND cluster_id = ?
-LIMIT 1
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at, deleted_at, delete_token FROM projects
+WHERE org_name = ? AND cluster_id = ? AND ` + "`" + `projects` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetProjectByClusterIDParams struct {
@@ -92,14 +91,15 @@ func (q *Queries) GetProjectByClusterID(ctx context.Context, arg GetProjectByClu
 		&i.ClusterID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getProjectBySlugAndOrg = `-- name: GetProjectBySlugAndOrg :one
-SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
-WHERE slug = ? AND org_name = ?
-LIMIT 1
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at, deleted_at, delete_token FROM projects
+WHERE slug = ? AND org_name = ? AND ` + "`" + `projects` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetProjectBySlugAndOrgParams struct {
@@ -119,13 +119,14 @@ func (q *Queries) GetProjectBySlugAndOrg(ctx context.Context, arg GetProjectBySl
 		&i.ClusterID,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const listProjects = `-- name: ListProjects :many
-SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
-ORDER BY created_at DESC
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at, deleted_at, delete_token FROM projects WHERE ` + "`" + `projects` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
@@ -146,6 +147,8 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 			&i.ClusterID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -161,9 +164,8 @@ func (q *Queries) ListProjects(ctx context.Context) ([]Project, error) {
 }
 
 const listProjectsByOrg = `-- name: ListProjectsByOrg :many
-SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at FROM projects
-WHERE org_name = ?
-ORDER BY created_at DESC
+SELECT org_name, slug, title, description, status, cluster_id, created_at, updated_at, deleted_at, delete_token FROM projects
+WHERE org_name = ? AND ` + "`" + `projects` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY created_at DESC
 `
 
 func (q *Queries) ListProjectsByOrg(ctx context.Context, orgName string) ([]Project, error) {
@@ -184,6 +186,8 @@ func (q *Queries) ListProjectsByOrg(ctx context.Context, orgName string) ([]Proj
 			&i.ClusterID,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

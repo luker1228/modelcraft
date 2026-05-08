@@ -57,9 +57,8 @@ func (q *Queries) CreateEndUserPermission(ctx context.Context, arg CreateEndUser
 }
 
 const deleteEndUserPermission = `-- name: DeleteEndUserPermission :execresult
-DELETE FROM end_user_data_permissions
-WHERE id = ?
-  AND org_name = ?
+UPDATE end_user_data_permissions SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?
+  AND org_name = ?) AND ` + "`" + `end_user_data_permissions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteEndUserPermissionParams struct {
@@ -72,10 +71,10 @@ func (q *Queries) DeleteEndUserPermission(ctx context.Context, arg DeleteEndUser
 }
 
 const getEndUserPermissionByID = `-- name: GetEndUserPermissionByID :one
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at, deleted_at, delete_token
 FROM end_user_data_permissions
 WHERE id = ?
-  AND org_name = ?
+  AND org_name = ? AND ` + "`" + `end_user_data_permissions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetEndUserPermissionByIDParams struct {
@@ -99,17 +98,18 @@ func (q *Queries) GetEndUserPermissionByID(ctx context.Context, arg GetEndUserPe
 		&i.RowPolicy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getEndUserPermissionByModelAndName = `-- name: GetEndUserPermissionByModelAndName :one
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at, deleted_at, delete_token
 FROM end_user_data_permissions
 WHERE model_id = ?
   AND org_name = ?
-  AND name = ?
-LIMIT 1
+  AND name = ? AND ` + "`" + `end_user_data_permissions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetEndUserPermissionByModelAndNameParams struct {
@@ -134,6 +134,8 @@ func (q *Queries) GetEndUserPermissionByModelAndName(ctx context.Context, arg Ge
 		&i.RowPolicy,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
@@ -152,11 +154,10 @@ func (q *Queries) IsPermissionReferencedByBundleItem(ctx context.Context, custom
 }
 
 const listEndUserPermissionsByModel = `-- name: ListEndUserPermissionsByModel :many
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at, deleted_at, delete_token
 FROM end_user_data_permissions
 WHERE model_id = ?
-  AND org_name = ?
-ORDER BY created_at
+  AND org_name = ? AND ` + "`" + `end_user_data_permissions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY created_at
 `
 
 type ListEndUserPermissionsByModelParams struct {
@@ -186,6 +187,8 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 			&i.RowPolicy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -201,11 +204,10 @@ func (q *Queries) ListEndUserPermissionsByModel(ctx context.Context, arg ListEnd
 }
 
 const listEndUserPermissionsByProject = `-- name: ListEndUserPermissionsByProject :many
-SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at
+SELECT id, org_name, project_slug, database_name, model_name, model_id, name, description, column_policy, row_policy, created_at, updated_at, deleted_at, delete_token
 FROM end_user_data_permissions
 WHERE org_name = ?
-  AND project_slug = ?
-ORDER BY created_at
+  AND project_slug = ? AND ` + "`" + `end_user_data_permissions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY created_at
 `
 
 type ListEndUserPermissionsByProjectParams struct {
@@ -235,6 +237,8 @@ func (q *Queries) ListEndUserPermissionsByProject(ctx context.Context, arg ListE
 			&i.RowPolicy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

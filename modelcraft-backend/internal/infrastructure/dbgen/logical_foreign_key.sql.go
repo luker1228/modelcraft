@@ -92,9 +92,8 @@ func (q *Queries) CreateLogicalForeignKey(ctx context.Context, arg CreateLogical
 }
 
 const deleteLogicalForeignKeyByPairID = `-- name: DeleteLogicalForeignKeyByPairID :exec
-DELETE FROM logical_foreign_keys
-WHERE pair_id = ?
-  AND org_name = ?
+UPDATE logical_foreign_keys SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (pair_id = ?
+  AND org_name = ?) AND ` + "`" + `logical_foreign_keys` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteLogicalForeignKeyByPairIDParams struct {
@@ -111,7 +110,7 @@ const findFieldsByBelongsToFKID = `-- name: FindFieldsByBelongsToFKID :many
 SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE belongs_to_fk_id = ?
-  AND org_name = ?
+  AND org_name = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type FindFieldsByBelongsToFKIDParams struct {
@@ -194,7 +193,7 @@ const findFieldsByRelateFKID = `-- name: FindFieldsByRelateFKID :many
 SELECT model_id, name, org_name, project_slug, model_name, database_name, enum_name, belongs_to_fk_id, relate_fk_id, title, description, format, non_null, required, is_unique, is_primary, status, validation, display_order, metadata, created_at, updated_at
 FROM field_definitions
 WHERE relate_fk_id = ?
-  AND org_name = ?
+  AND org_name = ? AND ` + "`" + `field_definitions` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type FindFieldsByRelateFKIDParams struct {
@@ -278,7 +277,7 @@ SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref
        ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE model_id = ?
-  AND org_name = ?
+  AND org_name = ? AND ` + "`" + `logical_foreign_keys` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type FindLogicalForeignKeysByModelIDParams struct {
@@ -286,15 +285,33 @@ type FindLogicalForeignKeysByModelIDParams struct {
 	OrgName string
 }
 
-func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, arg FindLogicalForeignKeysByModelIDParams) ([]LogicalForeignKey, error) {
+type FindLogicalForeignKeysByModelIDRow struct {
+	ID              string
+	PairID          string
+	OrgName         string
+	Direction       LogicalForeignKeysDirection
+	ModelID         string
+	ModelName       string
+	RefModelID      sql.NullString
+	RefModelName    string
+	RefDatabaseName sql.NullString
+	RefTableName    sql.NullString
+	SourceFields    json.RawMessage
+	TargetFields    json.RawMessage
+	IsDeletable     bool
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+}
+
+func (q *Queries) FindLogicalForeignKeysByModelID(ctx context.Context, arg FindLogicalForeignKeysByModelIDParams) ([]FindLogicalForeignKeysByModelIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByModelID, arg.ModelID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []LogicalForeignKey
+	var items []FindLogicalForeignKeysByModelIDRow
 	for rows.Next() {
-		var i LogicalForeignKey
+		var i FindLogicalForeignKeysByModelIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.PairID,
@@ -330,7 +347,7 @@ SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref
        ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE pair_id = ?
-  AND org_name = ?
+  AND org_name = ? AND ` + "`" + `logical_foreign_keys` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type FindLogicalForeignKeysByPairIDParams struct {
@@ -338,15 +355,33 @@ type FindLogicalForeignKeysByPairIDParams struct {
 	OrgName string
 }
 
-func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]LogicalForeignKey, error) {
+type FindLogicalForeignKeysByPairIDRow struct {
+	ID              string
+	PairID          string
+	OrgName         string
+	Direction       LogicalForeignKeysDirection
+	ModelID         string
+	ModelName       string
+	RefModelID      sql.NullString
+	RefModelName    string
+	RefDatabaseName sql.NullString
+	RefTableName    sql.NullString
+	SourceFields    json.RawMessage
+	TargetFields    json.RawMessage
+	IsDeletable     bool
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+}
+
+func (q *Queries) FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]FindLogicalForeignKeysByPairIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByPairID, arg.PairID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []LogicalForeignKey
+	var items []FindLogicalForeignKeysByPairIDRow
 	for rows.Next() {
-		var i LogicalForeignKey
+		var i FindLogicalForeignKeysByPairIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.PairID,
@@ -382,7 +417,7 @@ SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref
        ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
 WHERE ref_model_id = ?
-  AND org_name = ?
+  AND org_name = ? AND ` + "`" + `logical_foreign_keys` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type FindLogicalForeignKeysByRefModelIDParams struct {
@@ -390,15 +425,33 @@ type FindLogicalForeignKeysByRefModelIDParams struct {
 	OrgName    string
 }
 
-func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]LogicalForeignKey, error) {
+type FindLogicalForeignKeysByRefModelIDRow struct {
+	ID              string
+	PairID          string
+	OrgName         string
+	Direction       LogicalForeignKeysDirection
+	ModelID         string
+	ModelName       string
+	RefModelID      sql.NullString
+	RefModelName    string
+	RefDatabaseName sql.NullString
+	RefTableName    sql.NullString
+	SourceFields    json.RawMessage
+	TargetFields    json.RawMessage
+	IsDeletable     bool
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+}
+
+func (q *Queries) FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]FindLogicalForeignKeysByRefModelIDRow, error) {
 	rows, err := q.db.QueryContext(ctx, findLogicalForeignKeysByRefModelID, arg.RefModelID, arg.OrgName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []LogicalForeignKey
+	var items []FindLogicalForeignKeysByRefModelIDRow
 	for rows.Next() {
-		var i LogicalForeignKey
+		var i FindLogicalForeignKeysByRefModelIDRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.PairID,
@@ -433,13 +486,30 @@ const getLogicalForeignKeyByID = `-- name: GetLogicalForeignKeyByID :one
 SELECT id, pair_id, org_name, direction, model_id, model_name, ref_model_id, ref_model_name,
        ref_database_name, ref_table_name, source_fields, target_fields, is_deletable, created_at, updated_at
 FROM logical_foreign_keys
-WHERE id = ?
-LIMIT 1
+WHERE id = ? AND ` + "`" + `logical_foreign_keys` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
-func (q *Queries) GetLogicalForeignKeyByID(ctx context.Context, id string) (LogicalForeignKey, error) {
+type GetLogicalForeignKeyByIDRow struct {
+	ID              string
+	PairID          string
+	OrgName         string
+	Direction       LogicalForeignKeysDirection
+	ModelID         string
+	ModelName       string
+	RefModelID      sql.NullString
+	RefModelName    string
+	RefDatabaseName sql.NullString
+	RefTableName    sql.NullString
+	SourceFields    json.RawMessage
+	TargetFields    json.RawMessage
+	IsDeletable     bool
+	CreatedAt       sql.NullTime
+	UpdatedAt       sql.NullTime
+}
+
+func (q *Queries) GetLogicalForeignKeyByID(ctx context.Context, id string) (GetLogicalForeignKeyByIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getLogicalForeignKeyByID, id)
-	var i LogicalForeignKey
+	var i GetLogicalForeignKeyByIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.PairID,

@@ -240,6 +240,10 @@ type DatabaseCluster struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 终端用户会话表（Org 级隔离）
@@ -303,6 +307,10 @@ type EndUserDataPermission struct {
 	RowPolicy *json.RawMessage
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 权限包：数据权限 item 的命名集合，用于角色授权或用户直接授权
@@ -321,6 +329,10 @@ type EndUserPermissionBundle struct {
 	Description sql.NullString
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 权限包历史快照：记录每次 data permission item 列表变更，支持回滚
@@ -341,24 +353,6 @@ type EndUserPermissionBundleSnapshot struct {
 	RestoredFrom sql.NullInt32
 }
 
-// EndUser ↔ Project 授权关联表（多对多）
-type EndUserProjectAccess struct {
-	// 记录 ID (UUID)
-	ID string
-	// 终端用户 ID
-	EndUserID string
-	// 所属 Org
-	OrgName string
-	// 项目标识
-	ProjectSlug string
-	// 分配的权限包 ID（NULL = 仅访问）
-	PermissionBundleID sql.NullString
-	// 授权者（平台用户 ID）
-	GrantedBy sql.NullString
-	// 授权时间
-	GrantedAt time.Time
-}
-
 // 终端用户角色表（Project 级隔离）
 type EndUserRole struct {
 	// 角色 ID (UUID)
@@ -371,10 +365,14 @@ type EndUserRole struct {
 	Name string
 	// 角色描述
 	Description sql.NullString
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
 	// 内置隐式角色标志：0=显式角色（用户手动分配），1=隐式角色（系统自动注入）
 	IsImplicit bool
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 角色-权限包 关联：角色持有哪些权限包
@@ -422,6 +420,10 @@ type EndUserUser struct {
 	CreatedBy sql.NullString
 	CreatedAt time.Time
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 用户直接授权-权限包：绕过角色直接给用户授予权限包
@@ -488,6 +490,10 @@ type FieldDefinition struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 逻辑外键定义表
@@ -522,6 +528,10 @@ type LogicalForeignKey struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 模型定义主表
@@ -560,6 +570,10 @@ type Model struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 	// 模型创建来源：NEW=新建，IMPORTED=导入
 	CreatedVia ModelsCreatedVia
 }
@@ -586,6 +600,10 @@ type ModelEnum struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 模型字段与枚举关联表
@@ -624,6 +642,10 @@ type ModelGroup struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // Model RLS 策略配置
@@ -659,6 +681,10 @@ type Organization struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 用户资料表
@@ -677,6 +703,10 @@ type Profile struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 项目信息表（多租户，复合主键，只归档不删除）
@@ -697,6 +727,10 @@ type Project struct {
 	CreatedAt sql.NullTime
 	// 更新时间
 	UpdatedAt sql.NullTime
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // Project-level authentication configuration
@@ -759,6 +793,10 @@ type Role struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 角色权限表（仅存储自定义角色权限）
@@ -805,6 +843,10 @@ type User struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
 }
 
 // 用户-组织关联表

@@ -21,4 +21,4 @@ FROM end_user_permission_bundles b
   JOIN end_user_user_bundles ub ON b.id = ub.bundle_id
 WHERE ub.user_id = ?
   AND ub.org_name = ?
-  AND ub.project_slug = ?;
+  AND ub.project_slug = ? AND `b`.`deleted_at` = 0 ;

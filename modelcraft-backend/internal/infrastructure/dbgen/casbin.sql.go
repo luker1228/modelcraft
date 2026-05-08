@@ -94,7 +94,7 @@ func (q *Queries) DeletePermissionsByRole(ctx context.Context, roleID int64) err
 }
 
 const deleteRole = `-- name: DeleteRole :exec
-DELETE FROM roles WHERE id = ?
+UPDATE roles SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?) AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) DeleteRole(ctx context.Context, id int64) error {
@@ -128,7 +128,7 @@ func (q *Queries) DeleteUserRolesByRole(ctx context.Context, roleID int64) error
 }
 
 const getRoleByID = `-- name: GetRoleByID :one
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles WHERE id = ? LIMIT 1
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles WHERE id = ? AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
@@ -142,12 +142,14 @@ func (q *Queries) GetRoleByID(ctx context.Context, id int64) (Role, error) {
 		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getRoleByName = `-- name: GetRoleByName :one
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles WHERE name = ? LIMIT 1
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles WHERE name = ? AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) {
@@ -161,12 +163,14 @@ func (q *Queries) GetRoleByName(ctx context.Context, name string) (Role, error) 
 		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getRoleByNameAndOrg = `-- name: GetRoleByNameAndOrg :one
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles WHERE name = ? AND org_name = ? LIMIT 1
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles WHERE name = ? AND org_name = ? AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetRoleByNameAndOrgParams struct {
@@ -185,12 +189,14 @@ func (q *Queries) GetRoleByNameAndOrg(ctx context.Context, arg GetRoleByNameAndO
 		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getSystemRoleByName = `-- name: GetSystemRoleByName :one
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles WHERE name = ? AND is_system = true LIMIT 1
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles WHERE name = ? AND is_system = true AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetSystemRoleByName(ctx context.Context, name string) (Role, error) {
@@ -204,6 +210,8 @@ func (q *Queries) GetSystemRoleByName(ctx context.Context, name string) (Role, e
 		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
@@ -347,7 +355,7 @@ func (q *Queries) ListRoleUsers(ctx context.Context, arg ListRoleUsersParams) ([
 }
 
 const listRoles = `-- name: ListRoles :many
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles ORDER BY name ASC
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles WHERE ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY name ASC
 `
 
 func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
@@ -367,6 +375,8 @@ func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
 			&i.OrgName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -382,9 +392,8 @@ func (q *Queries) ListRoles(ctx context.Context) ([]Role, error) {
 }
 
 const listRolesByOrg = `-- name: ListRolesByOrg :many
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles
-WHERE org_name = ?
-ORDER BY name ASC
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles
+WHERE org_name = ? AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY name ASC
 `
 
 func (q *Queries) ListRolesByOrg(ctx context.Context, orgName string) ([]Role, error) {
@@ -404,6 +413,8 @@ func (q *Queries) ListRolesByOrg(ctx context.Context, orgName string) ([]Role, e
 			&i.OrgName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -419,9 +430,8 @@ func (q *Queries) ListRolesByOrg(ctx context.Context, orgName string) ([]Role, e
 }
 
 const listRolesByOrgIncludeSystem = `-- name: ListRolesByOrgIncludeSystem :many
-SELECT id, name, description, is_system, org_name, created_at, updated_at FROM roles
-WHERE org_name = ? OR org_name = '__SYSTEM__'
-ORDER BY name ASC
+SELECT id, name, description, is_system, org_name, created_at, updated_at, deleted_at, delete_token FROM roles
+WHERE org_name = ? OR org_name = '__SYSTEM__' AND ` + "`" + `roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY name ASC
 `
 
 func (q *Queries) ListRolesByOrgIncludeSystem(ctx context.Context, orgName string) ([]Role, error) {
@@ -441,6 +451,8 @@ func (q *Queries) ListRolesByOrgIncludeSystem(ctx context.Context, orgName strin
 			&i.OrgName,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

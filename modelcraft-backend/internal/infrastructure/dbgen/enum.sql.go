@@ -69,8 +69,7 @@ func (q *Queries) CreateFieldEnumAssociation(ctx context.Context, arg CreateFiel
 }
 
 const deleteEnum = `-- name: DeleteEnum :exec
-DELETE FROM model_enums
-WHERE org_name = ? AND project_slug = ? AND name = ?
+UPDATE model_enums SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (org_name = ? AND project_slug = ? AND name = ?) AND ` + "`" + `model_enums` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteEnumParams struct {
@@ -110,7 +109,7 @@ func (q *Queries) DeleteFieldEnumAssociationsByModelID(ctx context.Context, mode
 
 const existsEnumByName = `-- name: ExistsEnumByName :one
 SELECT COUNT(*) FROM model_enums
-WHERE org_name = ? AND project_slug = ? AND name = ?
+WHERE org_name = ? AND project_slug = ? AND name = ? AND ` + "`" + `model_enums` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ExistsEnumByNameParams struct {
@@ -127,7 +126,7 @@ func (q *Queries) ExistsEnumByName(ctx context.Context, arg ExistsEnumByNamePara
 }
 
 const getEnumByID = `-- name: GetEnumByID :one
-SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at FROM model_enums WHERE id = ? LIMIT 1
+SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at, deleted_at, delete_token FROM model_enums WHERE id = ? AND ` + "`" + `model_enums` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetEnumByID(ctx context.Context, id string) (ModelEnum, error) {
@@ -144,14 +143,15 @@ func (q *Queries) GetEnumByID(ctx context.Context, id string) (ModelEnum, error)
 		&i.IsMultiSelect,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getEnumByName = `-- name: GetEnumByName :one
-SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at FROM model_enums
-WHERE org_name = ? AND project_slug = ? AND name = ?
-LIMIT 1
+SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at, deleted_at, delete_token FROM model_enums
+WHERE org_name = ? AND project_slug = ? AND name = ? AND ` + "`" + `model_enums` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetEnumByNameParams struct {
@@ -174,6 +174,8 @@ func (q *Queries) GetEnumByName(ctx context.Context, arg GetEnumByNameParams) (M
 		&i.IsMultiSelect,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
@@ -182,7 +184,7 @@ const getEnumReferencesByName = `-- name: GetEnumReferencesByName :many
 SELECT fea.model_id, fea.field_name, fd.model_name
 FROM model_field_enum_associations fea
 INNER JOIN field_definitions fd ON fea.model_id = fd.model_id AND fea.field_name = fd.name
-WHERE fea.org_name = ? AND fea.project_slug = ? AND fea.enum_name = ?
+WHERE fea.org_name = ? AND fea.project_slug = ? AND fea.enum_name = ? AND ` + "`" + `fd` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetEnumReferencesByNameParams struct {
@@ -221,8 +223,8 @@ func (q *Queries) GetEnumReferencesByName(ctx context.Context, arg GetEnumRefere
 }
 
 const getEnumsByNames = `-- name: GetEnumsByNames :many
-SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at FROM model_enums
-WHERE org_name = ? AND project_slug = ? AND name IN (/*SLICE:names*/?)
+SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at, deleted_at, delete_token FROM model_enums
+WHERE org_name = ? AND project_slug = ? AND name IN (/*SLICE:names*/?) AND ` + "`" + `model_enums` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetEnumsByNamesParams struct {
@@ -263,6 +265,8 @@ func (q *Queries) GetEnumsByNames(ctx context.Context, arg GetEnumsByNamesParams
 			&i.IsMultiSelect,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -385,9 +389,8 @@ func (q *Queries) GetFieldEnumAssociationsByModelID(ctx context.Context, modelID
 }
 
 const listEnums = `-- name: ListEnums :many
-SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at FROM model_enums
-WHERE org_name = ? AND project_slug = ?
-ORDER BY name ASC
+SELECT id, org_name, project_slug, name, display_name, description, options, is_multi_select, created_at, updated_at, deleted_at, delete_token FROM model_enums
+WHERE org_name = ? AND project_slug = ? AND ` + "`" + `model_enums` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY name ASC
 `
 
 type ListEnumsParams struct {
@@ -415,6 +418,8 @@ func (q *Queries) ListEnums(ctx context.Context, arg ListEnumsParams) ([]ModelEn
 			&i.IsMultiSelect,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

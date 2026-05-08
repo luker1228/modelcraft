@@ -64,6 +64,11 @@ func RewriteBlock(policy *Policy, anns Annotations, block QueryBlock) (string, b
 	if anns.IncludeDeleted || anns.OnlyDeleted || anns.PhysicalDelete {
 		return original, false, nil
 	}
+	// sqlc.slice(...) is expanded by sqlc's internal text-edit pipeline. For now
+	// keep these statements unchanged to avoid generator edit-boundary failures.
+	if strings.Contains(strings.ToLower(original), "sqlc.slice(") {
+		return original, false, nil
+	}
 
 	// Keep original SQL text as rewrite base so sqlc-specific syntax such as
 	// sqlc.slice(...) is preserved byte-for-byte unless we explicitly patch it.
@@ -153,6 +158,15 @@ func injectPredicateIntoSelect(sql string, predicate string) (string, bool) {
 
 	prefix := strings.TrimRight(sql[:insertAt], " \t\r\n")
 	suffix := sql[insertAt:]
+	// Keep terminal semicolon at tail, never in the predicate insertion segment.
+	if strings.HasSuffix(prefix, ";") {
+		prefix = strings.TrimSuffix(prefix, ";")
+		if suffix == "" {
+			suffix = ";"
+		} else {
+			suffix = ";" + suffix
+		}
+	}
 
 	if whereLoc := whereRe.FindStringIndex(prefix); whereLoc != nil {
 		if suffix != "" && !strings.HasPrefix(suffix, " ") && !strings.HasPrefix(suffix, "\n") && !strings.HasPrefix(suffix, "\t") {
@@ -174,7 +188,12 @@ func rewriteDeleteSQL(sql string, table TableRef, includeDeleteToken bool) (stri
 		return sql, false
 	}
 
-	matches := deleteStmtPattern.FindStringSubmatch(strings.TrimSpace(sql))
+	trimmed := strings.TrimSpace(sql)
+	if semi := strings.Index(trimmed, ";"); semi >= 0 {
+		trimmed = strings.TrimSpace(trimmed[:semi])
+	}
+
+	matches := deleteStmtPattern.FindStringSubmatch(trimmed)
 	if len(matches) == 0 {
 		return "", false
 	}
@@ -204,7 +223,7 @@ func rewriteDeleteSQL(sql string, table TableRef, includeDeleteToken bool) (stri
 		where = "(" + whereExpr + ") AND " + activePred
 	}
 
-	rewritten := "UPDATE " + tableExpr + " SET " + strings.Join(setClauses, ", ") + " WHERE " + where
+	rewritten := "UPDATE " + tableExpr + " SET " + strings.Join(setClauses, ", ") + " WHERE " + where + ";"
 	return rewritten, true
 }
 

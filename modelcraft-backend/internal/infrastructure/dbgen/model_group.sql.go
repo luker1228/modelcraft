@@ -34,7 +34,7 @@ func (q *Queries) CreateModelGroup(ctx context.Context, arg CreateModelGroupPara
 }
 
 const deleteModelGroup = `-- name: DeleteModelGroup :exec
-DELETE FROM model_groups WHERE id = ?
+UPDATE model_groups SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?) AND ` + "`" + `model_groups` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) DeleteModelGroup(ctx context.Context, id string) error {
@@ -43,7 +43,7 @@ func (q *Queries) DeleteModelGroup(ctx context.Context, id string) error {
 }
 
 const getModelGroupByID = `-- name: GetModelGroupByID :one
-SELECT id, org_name, project_slug, name, display_order, created_at, updated_at FROM model_groups WHERE id = ? LIMIT 1
+SELECT id, org_name, project_slug, name, display_order, created_at, updated_at, deleted_at, delete_token FROM model_groups WHERE id = ? AND ` + "`" + `model_groups` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error) {
@@ -57,14 +57,15 @@ func (q *Queries) GetModelGroupByID(ctx context.Context, id string) (ModelGroup,
 		&i.DisplayOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getModelGroupByName = `-- name: GetModelGroupByName :one
-SELECT id, org_name, project_slug, name, display_order, created_at, updated_at FROM model_groups
-WHERE org_name = ? AND project_slug = ? AND name = ?
-LIMIT 1
+SELECT id, org_name, project_slug, name, display_order, created_at, updated_at, deleted_at, delete_token FROM model_groups
+WHERE org_name = ? AND project_slug = ? AND name = ? AND ` + "`" + `model_groups` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetModelGroupByNameParams struct {
@@ -84,14 +85,15 @@ func (q *Queries) GetModelGroupByName(ctx context.Context, arg GetModelGroupByNa
 		&i.DisplayOrder,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getTailModelGroupDisplayOrder = `-- name: GetTailModelGroupDisplayOrder :one
 SELECT display_order FROM model_groups
-WHERE org_name = ? AND project_slug = ?
-ORDER BY display_order DESC
+WHERE org_name = ? AND project_slug = ? AND ` + "`" + `model_groups` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY display_order DESC
 LIMIT 1
 `
 
@@ -108,9 +110,8 @@ func (q *Queries) GetTailModelGroupDisplayOrder(ctx context.Context, arg GetTail
 }
 
 const listModelGroupsByProject = `-- name: ListModelGroupsByProject :many
-SELECT id, org_name, project_slug, name, display_order, created_at, updated_at FROM model_groups
-WHERE org_name = ? AND project_slug = ?
-ORDER BY display_order ASC
+SELECT id, org_name, project_slug, name, display_order, created_at, updated_at, deleted_at, delete_token FROM model_groups
+WHERE org_name = ? AND project_slug = ? AND ` + "`" + `model_groups` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY display_order ASC
 `
 
 type ListModelGroupsByProjectParams struct {
@@ -135,6 +136,8 @@ func (q *Queries) ListModelGroupsByProject(ctx context.Context, arg ListModelGro
 			&i.DisplayOrder,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

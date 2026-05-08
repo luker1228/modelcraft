@@ -36,7 +36,7 @@ func (q *Queries) ExistsByUserName(ctx context.Context, name string) (bool, erro
 const getUserByName = `-- name: GetUserByName :one
 SELECT id, phone, password_hash, name, external_id, created_at, updated_at
 FROM users
-WHERE name = ? LIMIT 1
+WHERE name = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetUserByNameRow struct {
@@ -67,7 +67,7 @@ func (q *Queries) GetUserByName(ctx context.Context, name string) (GetUserByName
 const getUserByPhone = `-- name: GetUserByPhone :one
 SELECT id, phone, password_hash, name, external_id, created_at, updated_at
 FROM users
-WHERE phone = ? LIMIT 1
+WHERE phone = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetUserByPhoneRow struct {

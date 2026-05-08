@@ -41,12 +41,12 @@ func (q *Queries) GrantBundleToUser(ctx context.Context, arg GrantBundleToUserPa
 }
 
 const listBundlesByUser = `-- name: ListBundlesByUser :many
-SELECT b.id, b.slug, b.org_name, b.project_slug, b.name, b.description, b.created_at, b.updated_at
+SELECT b.id, b.slug, b.org_name, b.project_slug, b.name, b.description, b.created_at, b.updated_at, b.deleted_at, b.delete_token
 FROM end_user_permission_bundles b
   JOIN end_user_user_bundles ub ON b.id = ub.bundle_id
 WHERE ub.user_id = ?
   AND ub.org_name = ?
-  AND ub.project_slug = ?
+  AND ub.project_slug = ? AND ` + "`" + `b` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ListBundlesByUserParams struct {
@@ -73,6 +73,8 @@ func (q *Queries) ListBundlesByUser(ctx context.Context, arg ListBundlesByUserPa
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

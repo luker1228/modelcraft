@@ -49,8 +49,7 @@ func (q *Queries) CreateDatabaseCluster(ctx context.Context, arg CreateDatabaseC
 }
 
 const deleteDatabaseCluster = `-- name: DeleteDatabaseCluster :exec
-DELETE FROM database_clusters
-WHERE id = ? AND org_name = ? AND project_slug = ?
+UPDATE database_clusters SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ? AND org_name = ? AND project_slug = ?) AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteDatabaseClusterParams struct {
@@ -66,7 +65,7 @@ func (q *Queries) DeleteDatabaseCluster(ctx context.Context, arg DeleteDatabaseC
 
 const existsDatabaseClusterByProjectKey = `-- name: ExistsDatabaseClusterByProjectKey :one
 SELECT COUNT(*) FROM database_clusters
-WHERE org_name = ? AND project_slug = ?
+WHERE org_name = ? AND project_slug = ? AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ExistsDatabaseClusterByProjectKeyParams struct {
@@ -82,9 +81,8 @@ func (q *Queries) ExistsDatabaseClusterByProjectKey(ctx context.Context, arg Exi
 }
 
 const getDatabaseClusterByID = `-- name: GetDatabaseClusterByID :one
-SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at FROM database_clusters
-WHERE id = ? AND org_name = ?
-LIMIT 1
+SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at, deleted_at, delete_token FROM database_clusters
+WHERE id = ? AND org_name = ? AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetDatabaseClusterByIDParams struct {
@@ -114,14 +112,15 @@ func (q *Queries) GetDatabaseClusterByID(ctx context.Context, arg GetDatabaseClu
 		&i.Version,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getDatabaseClusterByProjectKey = `-- name: GetDatabaseClusterByProjectKey :one
-SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at FROM database_clusters
-WHERE org_name = ? AND project_slug = ?
-LIMIT 1
+SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at, deleted_at, delete_token FROM database_clusters
+WHERE org_name = ? AND project_slug = ? AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetDatabaseClusterByProjectKeyParams struct {
@@ -151,14 +150,16 @@ func (q *Queries) GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDat
 		&i.Version,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const listDatabaseClusters = `-- name: ListDatabaseClusters :many
-SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at FROM database_clusters
+SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at, deleted_at, delete_token FROM database_clusters
 WHERE org_name = ? AND project_slug = ?
-  AND (? IS NULL OR status = ?)
+  AND (? IS NULL OR status = ?) AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ListDatabaseClustersParams struct {
@@ -201,6 +202,8 @@ func (q *Queries) ListDatabaseClusters(ctx context.Context, arg ListDatabaseClus
 			&i.Version,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -216,10 +219,10 @@ func (q *Queries) ListDatabaseClusters(ctx context.Context, arg ListDatabaseClus
 }
 
 const listDatabaseClustersUpdatedAfter = `-- name: ListDatabaseClustersUpdatedAfter :many
-SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at FROM database_clusters
+SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at, deleted_at, delete_token FROM database_clusters
 WHERE updated_at > ?
   AND (? IS NULL OR org_name = ?)
-  AND (? IS NULL OR project_slug = ?)
+  AND (? IS NULL OR project_slug = ?) AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ListDatabaseClustersUpdatedAfterParams struct {
@@ -264,6 +267,8 @@ func (q *Queries) ListDatabaseClustersUpdatedAfter(ctx context.Context, arg List
 			&i.Version,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

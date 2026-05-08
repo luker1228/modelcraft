@@ -16,7 +16,7 @@ SELECT COUNT(DISTINCT database_name)
 FROM models
 WHERE org_name = ?
   AND project_slug = ?
-  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%'))
+  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%')) AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type CountModelDatabasesParams struct {
@@ -46,7 +46,7 @@ WHERE org_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR status = ?)
-  AND (? IS NULL OR storage_type = ?)
+  AND (? IS NULL OR storage_type = ?) AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type CountModelsParams struct {
@@ -129,7 +129,7 @@ func (q *Queries) CreateModel(ctx context.Context, arg CreateModelParams) error 
 }
 
 const deleteModel = `-- name: DeleteModel :exec
-DELETE FROM models WHERE id = ?
+UPDATE models SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?) AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) DeleteModel(ctx context.Context, id string) error {
@@ -138,8 +138,9 @@ func (q *Queries) DeleteModel(ctx context.Context, id string) error {
 }
 
 const findModelsByDeploymentStatus = `-- name: FindModelsByDeploymentStatus :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE deployment_status IN (/*SLICE:statuses*/?)
+  AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error) {
@@ -179,6 +180,8 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 			&i.CreatedVia,
 		); err != nil {
 			return nil, err
@@ -195,7 +198,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 }
 
 const getAllModels = `-- name: GetAllModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
@@ -225,6 +228,8 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 			&i.CreatedVia,
 		); err != nil {
 			return nil, err
@@ -241,7 +246,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 }
 
 const getModelByID = `-- name: GetModelByID :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models WHERE id = ? LIMIT 1
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE id = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
@@ -265,15 +270,16 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 		&i.SyncError,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 		&i.CreatedVia,
 	)
 	return i, err
 }
 
 const getModelByName = `-- name: GetModelByName :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
-WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ?
-LIMIT 1
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetModelByNameParams struct {
@@ -309,16 +315,19 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 		&i.SyncError,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 		&i.CreatedVia,
 	)
 	return i, err
 }
 
 const getModelMetaByIDs = `-- name: GetModelMetaByIDs :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND id IN (/*SLICE:ids*/?)
+  AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetModelMetaByIDsParams struct {
@@ -366,6 +375,8 @@ func (q *Queries) GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsPa
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 			&i.CreatedVia,
 		); err != nil {
 			return nil, err
@@ -386,8 +397,7 @@ SELECT DISTINCT database_name
 FROM models
 WHERE org_name = ?
   AND project_slug = ?
-  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%'))
-ORDER BY database_name ASC
+  AND (? IS NULL OR database_name LIKE CONCAT('%', ?, '%')) AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY database_name ASC
 LIMIT ? OFFSET ?
 `
 
@@ -431,15 +441,14 @@ func (q *Queries) ListModelDatabases(ctx context.Context, arg ListModelDatabases
 }
 
 const listModels = `-- name: ListModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
   AND (? IS NULL OR name LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR title LIKE CONCAT('%', ?, '%'))
   AND (? IS NULL OR status = ?)
-  AND (? IS NULL OR storage_type = ?)
-ORDER BY created_at DESC
+  AND (? IS NULL OR storage_type = ?) AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY created_at DESC
 LIMIT ? OFFSET ?
 `
 
@@ -500,6 +509,8 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 			&i.SyncError,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 			&i.CreatedVia,
 		); err != nil {
 			return nil, err

@@ -108,7 +108,7 @@ func (q *Queries) DeleteMembership(ctx context.Context, id string) error {
 }
 
 const existsOrganizationByName = `-- name: ExistsOrganizationByName :one
-SELECT COUNT(*) FROM organizations WHERE name = ?
+SELECT COUNT(*) FROM organizations WHERE name = ? AND ` + "`" + `organizations` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) ExistsOrganizationByName(ctx context.Context, name string) (int64, error) {
@@ -119,7 +119,7 @@ func (q *Queries) ExistsOrganizationByName(ctx context.Context, name string) (in
 }
 
 const existsUserByExternalID = `-- name: ExistsUserByExternalID :one
-SELECT COUNT(*) FROM users WHERE external_id = ?
+SELECT COUNT(*) FROM users WHERE external_id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error) {
@@ -130,7 +130,7 @@ func (q *Queries) ExistsUserByExternalID(ctx context.Context, externalID sql.Nul
 }
 
 const findIDByExternalID = `-- name: FindIDByExternalID :one
-SELECT id FROM users WHERE external_id = ? LIMIT 1
+SELECT id FROM users WHERE external_id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error) {
@@ -190,7 +190,7 @@ func (q *Queries) GetMembershipByUserAndOrg(ctx context.Context, arg GetMembersh
 }
 
 const getOrganizationByName = `-- name: GetOrganizationByName :one
-SELECT name, display_name, owner_id, status, created_at, updated_at FROM organizations WHERE name = ? LIMIT 1
+SELECT name, display_name, owner_id, status, created_at, updated_at, deleted_at, delete_token FROM organizations WHERE name = ? AND ` + "`" + `organizations` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetOrganizationByName(ctx context.Context, name string) (Organization, error) {
@@ -203,12 +203,14 @@ func (q *Queries) GetOrganizationByName(ctx context.Context, name string) (Organ
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getUserByExternalID = `-- name: GetUserByExternalID :one
-SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at FROM users WHERE external_id = ? LIMIT 1
+SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at, deleted_at, delete_token FROM users WHERE external_id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error) {
@@ -223,12 +225,14 @@ func (q *Queries) GetUserByExternalID(ctx context.Context, externalID sql.NullSt
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at FROM users WHERE id = ? LIMIT 1
+SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at, deleted_at, delete_token FROM users WHERE id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
@@ -243,6 +247,8 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.DisplayName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
@@ -330,8 +336,7 @@ SELECT m.id, m.user_id, m.org_name, m.status, m.invited_by, m.invited_at, m.join
        o.display_name AS org_display_name
 FROM user_organizations m
 INNER JOIN organizations o ON m.org_name = o.name
-WHERE m.user_id = ? AND m.status = 'active'
-ORDER BY m.joined_at DESC
+WHERE m.user_id = ? AND m.status = 'active' AND ` + "`" + `o` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY m.joined_at DESC
 LIMIT ?
 `
 
@@ -392,8 +397,7 @@ SELECT m.id, m.user_id, m.org_name, m.status, m.invited_by, m.invited_at, m.join
        COALESCE(u.name, '') AS user_name
 FROM user_organizations m
 LEFT JOIN users u ON m.user_id = u.id
-WHERE m.org_name = ?
-ORDER BY m.created_at DESC
+WHERE m.org_name = ? AND ` + "`" + `u` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY m.created_at DESC
 `
 
 type ListMembershipsWithUserNameRow struct {
@@ -444,10 +448,9 @@ func (q *Queries) ListMembershipsWithUserName(ctx context.Context, orgName strin
 }
 
 const listOrganizationsByUser = `-- name: ListOrganizationsByUser :many
-SELECT o.name, o.display_name, o.owner_id, o.status, o.created_at, o.updated_at FROM organizations o
+SELECT o.name, o.display_name, o.owner_id, o.status, o.created_at, o.updated_at, o.deleted_at, o.delete_token FROM organizations o
 INNER JOIN user_organizations m ON o.name = m.org_name
-WHERE m.user_id = ? AND m.status = 'active'
-ORDER BY o.created_at DESC
+WHERE m.user_id = ? AND m.status = 'active' AND ` + "`" + `o` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY o.created_at DESC
 `
 
 func (q *Queries) ListOrganizationsByUser(ctx context.Context, userID string) ([]Organization, error) {
@@ -466,6 +469,8 @@ func (q *Queries) ListOrganizationsByUser(ctx context.Context, userID string) ([
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

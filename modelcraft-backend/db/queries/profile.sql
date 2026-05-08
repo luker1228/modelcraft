@@ -6,8 +6,7 @@ VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3));
 SELECT p.id, p.user_id, p.nickname, p.avatar_url, p.bio, p.created_at, p.updated_at
 FROM profile p
 INNER JOIN user_organizations uo ON uo.user_id = p.user_id
-WHERE p.user_id = ? AND uo.org_name = ?
-LIMIT 1;
+WHERE p.user_id = ? AND uo.org_name = ? AND `p`.`deleted_at` = 0 LIMIT 1;
 
 -- name: UpdateProfileByUserID :execresult
 UPDATE profile p

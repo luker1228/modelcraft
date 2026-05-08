@@ -3,29 +3,27 @@ INSERT INTO roles (name, description, is_system, org_name, created_at, updated_a
 VALUES (?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetRoleByID :one
-SELECT * FROM roles WHERE id = ? LIMIT 1;
+SELECT * FROM roles WHERE id = ? AND `roles`.`deleted_at` = 0 LIMIT 1;
 
 -- name: GetRoleByName :one
-SELECT * FROM roles WHERE name = ? LIMIT 1;
+SELECT * FROM roles WHERE name = ? AND `roles`.`deleted_at` = 0 LIMIT 1;
 
 -- name: GetRoleByNameAndOrg :one
-SELECT * FROM roles WHERE name = ? AND org_name = ? LIMIT 1;
+SELECT * FROM roles WHERE name = ? AND org_name = ? AND `roles`.`deleted_at` = 0 LIMIT 1;
 
 -- name: GetSystemRoleByName :one
-SELECT * FROM roles WHERE name = ? AND is_system = true LIMIT 1;
+SELECT * FROM roles WHERE name = ? AND is_system = true AND `roles`.`deleted_at` = 0 LIMIT 1;
 
 -- name: ListRoles :many
-SELECT * FROM roles ORDER BY name ASC;
+SELECT * FROM roles WHERE `roles`.`deleted_at` = 0 ORDER BY name ASC;
 
 -- name: ListRolesByOrg :many
 SELECT * FROM roles
-WHERE org_name = ?
-ORDER BY name ASC;
+WHERE org_name = ? AND `roles`.`deleted_at` = 0 ORDER BY name ASC;
 
 -- name: ListRolesByOrgIncludeSystem :many
 SELECT * FROM roles
-WHERE org_name = ? OR org_name = '__SYSTEM__'
-ORDER BY name ASC;
+WHERE org_name = ? OR org_name = '__SYSTEM__' AND `roles`.`deleted_at` = 0 ORDER BY name ASC;
 
 -- name: UpdateRole :exec
 UPDATE roles
@@ -33,7 +31,7 @@ SET description = ?, updated_at = NOW(3)
 WHERE id = ?;
 
 -- name: DeleteRole :exec
-DELETE FROM roles WHERE id = ?;
+UPDATE roles SET `deleted_at` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), `delete_token` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?) AND `roles`.`deleted_at` = 0;
 
 -- name: CreatePermission :exec
 INSERT INTO role_permissions (role_id, org_name, obj, act, created_at)

@@ -14,21 +14,20 @@ SELECT *
 FROM end_user_permission_bundles
 WHERE id = ?
   AND org_name = ?
-  AND project_slug = ?;
+  AND project_slug = ? AND `end_user_permission_bundles`.`deleted_at` = 0 ;
 
 -- name: GetEndUserBundleBySlug :one
 SELECT *
 FROM end_user_permission_bundles
 WHERE slug = ?
   AND org_name = ?
-  AND project_slug = ?;
+  AND project_slug = ? AND `end_user_permission_bundles`.`deleted_at` = 0 ;
 
 -- name: ListEndUserBundlesByProject :many
 SELECT *
 FROM end_user_permission_bundles
 WHERE org_name = ?
-  AND project_slug = ?
-ORDER BY name;
+  AND project_slug = ? AND `end_user_permission_bundles`.`deleted_at` = 0 ORDER BY name;
 
 -- name: UpdateEndUserBundle :execresult
 UPDATE end_user_permission_bundles
@@ -40,12 +39,9 @@ WHERE id = ?
   AND project_slug = ?;
 
 -- name: DeleteEndUserBundle :execresult
-DELETE FROM end_user_permission_bundles
-WHERE id = ?
+UPDATE end_user_permission_bundles SET `deleted_at` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), `delete_token` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?
   AND org_name = ?
-  AND project_slug = ?;
-
--- ─── Bundle Data Permission Items ───────────────────────────────
+  AND project_slug = ?) AND `end_user_permission_bundles`.`deleted_at` = 0;
 
 -- name: UpsertBundleDataPermissionItem :exec
 -- Replace 语义：同一 bundle+model 最多一个 item

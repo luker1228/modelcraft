@@ -4,22 +4,18 @@ VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetProjectBySlugAndOrg :one
 SELECT * FROM projects
-WHERE slug = ? AND org_name = ?
-LIMIT 1;
+WHERE slug = ? AND org_name = ? AND `projects`.`deleted_at` = 0 LIMIT 1;
 
 -- name: GetProjectByClusterID :one
 SELECT * FROM projects
-WHERE org_name = ? AND cluster_id = ?
-LIMIT 1;
+WHERE org_name = ? AND cluster_id = ? AND `projects`.`deleted_at` = 0 LIMIT 1;
 
 -- name: ListProjects :many
-SELECT * FROM projects
-ORDER BY created_at DESC;
+SELECT * FROM projects WHERE `projects`.`deleted_at` = 0 ORDER BY created_at DESC;
 
 -- name: ListProjectsByOrg :many
 SELECT * FROM projects
-WHERE org_name = ?
-ORDER BY created_at DESC;
+WHERE org_name = ? AND `projects`.`deleted_at` = 0 ORDER BY created_at DESC;
 
 -- name: UpdateProject :exec
 UPDATE projects
@@ -33,4 +29,4 @@ WHERE slug = ? AND org_name = ?;
 
 -- name: ExistsProjectBySlug :one
 SELECT COUNT(*) FROM projects
-WHERE slug = ? AND org_name = ?;
+WHERE slug = ? AND org_name = ? AND `projects`.`deleted_at` = 0 ;

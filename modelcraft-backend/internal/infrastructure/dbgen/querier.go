@@ -40,7 +40,6 @@ type Querier interface {
 	DeleteDatabaseCluster(ctx context.Context, arg DeleteDatabaseClusterParams) error
 	DeleteEndUserBundle(ctx context.Context, arg DeleteEndUserBundleParams) (sql.Result, error)
 	DeleteEndUserPermission(ctx context.Context, arg DeleteEndUserPermissionParams) (sql.Result, error)
-	// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
 	DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRoleParams) (sql.Result, error)
 	DeleteEnum(ctx context.Context, arg DeleteEnumParams) error
 	DeleteExpiredRefreshTokens(ctx context.Context) error
@@ -72,9 +71,9 @@ type Querier interface {
 	FindFieldsByBelongsToFKID(ctx context.Context, arg FindFieldsByBelongsToFKIDParams) ([]FindFieldsByBelongsToFKIDRow, error)
 	FindFieldsByRelateFKID(ctx context.Context, arg FindFieldsByRelateFKIDParams) ([]FindFieldsByRelateFKIDRow, error)
 	FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error)
-	FindLogicalForeignKeysByModelID(ctx context.Context, arg FindLogicalForeignKeysByModelIDParams) ([]LogicalForeignKey, error)
-	FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]LogicalForeignKey, error)
-	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]LogicalForeignKey, error)
+	FindLogicalForeignKeysByModelID(ctx context.Context, arg FindLogicalForeignKeysByModelIDParams) ([]FindLogicalForeignKeysByModelIDRow, error)
+	FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]FindLogicalForeignKeysByPairIDRow, error)
+	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]FindLogicalForeignKeysByRefModelIDRow, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
 	GetBundleCurrentVersion(ctx context.Context, bundleID string) (interface{}, error)
@@ -106,7 +105,7 @@ type Querier interface {
 	GetFieldEnumAssociationsByEnumName(ctx context.Context, arg GetFieldEnumAssociationsByEnumNameParams) ([]ModelFieldEnumAssociation, error)
 	GetFieldEnumAssociationsByModelID(ctx context.Context, modelID string) ([]ModelFieldEnumAssociation, error)
 	GetFieldsByModelID(ctx context.Context, modelID string) ([]FieldDefinition, error)
-	GetLogicalForeignKeyByID(ctx context.Context, id string) (LogicalForeignKey, error)
+	GetLogicalForeignKeyByID(ctx context.Context, id string) (GetLogicalForeignKeyByIDRow, error)
 	GetMembershipByID(ctx context.Context, id string) (UserOrganization, error)
 	GetMembershipByUserAndOrg(ctx context.Context, arg GetMembershipByUserAndOrgParams) (UserOrganization, error)
 	GetModelByID(ctx context.Context, id string) (Model, error)
@@ -122,7 +121,7 @@ type Querier interface {
 	// ----------------------------------------
 	GetModelRLSPolicy(ctx context.Context, modelID string) (ModelRlsPolicy, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
-	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (Profile, error)
+	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
 	// ----------------------------------------
 	// Project Auth Schema Queries
 	// ----------------------------------------
@@ -167,6 +166,10 @@ type Querier interface {
 	ListOrganizationsByUser(ctx context.Context, userID string) ([]Organization, error)
 	ListPermissionsByRole(ctx context.Context, roleID int64) ([]RolePermission, error)
 	ListPermissionsByRoleAndOrg(ctx context.Context, arg ListPermissionsByRoleAndOrgParams) ([]RolePermission, error)
+	// 分页查询 Project 下有角色分配的用户列表（支持用户名搜索和角色过滤）
+	ListProjectEndUserRoleUsers(ctx context.Context, arg ListProjectEndUserRoleUsersParams) ([]ListProjectEndUserRoleUsersRow, error)
+	// 统计 Project 下有角色分配的用户总数（支持用户名搜索和角色过滤）
+	ListProjectEndUserRoleUsersCount(ctx context.Context, arg ListProjectEndUserRoleUsersCountParams) (int64, error)
 	ListProjects(ctx context.Context) ([]Project, error)
 	ListProjectsByOrg(ctx context.Context, orgName string) ([]Project, error)
 	ListRoleUsers(ctx context.Context, arg ListRoleUsersParams) ([]UserRole, error)
@@ -175,8 +178,6 @@ type Querier interface {
 	ListRolesByOrgIncludeSystem(ctx context.Context, orgName string) ([]Role, error)
 	ListRolesByUser(ctx context.Context, arg ListRolesByUserParams) ([]string, error)
 	ListUserRoles(ctx context.Context, arg ListUserRolesParams) ([]UserRole, error)
-	ListProjectEndUserRoleUsers(ctx context.Context, arg ListProjectEndUserRoleUsersParams) ([]ListProjectEndUserRoleUsersRow, error)
-	ListProjectEndUserRoleUsersCount(ctx context.Context, arg ListProjectEndUserRoleUsersCountParams) (int64, error)
 	RemoveBundleDataPermissionItem(ctx context.Context, arg RemoveBundleDataPermissionItemParams) (sql.Result, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeBundleFromRole(ctx context.Context, arg RevokeBundleFromRoleParams) (sql.Result, error)
@@ -202,7 +203,6 @@ type Querier interface {
 	UpdateProfileByUserID(ctx context.Context, arg UpdateProfileByUserIDParams) (sql.Result, error)
 	UpdateProject(ctx context.Context, arg UpdateProjectParams) error
 	UpdateRole(ctx context.Context, arg UpdateRoleParams) error
-	// ─── Bundle Data Permission Items ───────────────────────────────
 	// Replace 语义：同一 bundle+model 最多一个 item
 	UpsertBundleDataPermissionItem(ctx context.Context, arg UpsertBundleDataPermissionItemParams) error
 	UpsertModelRLSPolicy(ctx context.Context, arg UpsertModelRLSPolicyParams) error

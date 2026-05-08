@@ -4,19 +4,17 @@ VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(3), N
 
 -- name: GetFieldByModelIDAndName :one
 SELECT * FROM field_definitions
-WHERE model_id = ? AND name = ?
-LIMIT 1;
+WHERE model_id = ? AND name = ? AND `field_definitions`.`deleted_at` = 0 LIMIT 1;
 
 -- name: GetFieldsByModelID :many
 SELECT * FROM field_definitions
-WHERE model_id = ?
-ORDER BY display_order ASC;
+WHERE model_id = ? AND `field_definitions`.`deleted_at` = 0 ORDER BY display_order ASC;
 
 -- name: CountFieldsByModelID :one
-SELECT COUNT(*) FROM field_definitions WHERE model_id = ?;
+SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND `field_definitions`.`deleted_at` = 0 ;
 
 -- name: ExistsFieldByName :one
-SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND name = ?;
+SELECT COUNT(*) FROM field_definitions WHERE model_id = ? AND name = ? AND `field_definitions`.`deleted_at` = 0 ;
 
 -- name: UpdateField :execresult
 UPDATE field_definitions
@@ -34,14 +32,17 @@ SET status = ?, updated_at = NOW(3)
 WHERE model_id = ? AND name IN (sqlc.slice('names'));
 
 -- name: DeleteFieldsByModelID :exec
-DELETE FROM field_definitions WHERE model_id = ?;
+UPDATE field_definitions SET `deleted_at` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), `delete_token` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (model_id = ?) AND `field_definitions`.`deleted_at` = 0;
 
 -- name: DeleteFieldsByNames :execresult
-DELETE FROM field_definitions
-WHERE model_id = ? AND name IN (sqlc.slice('names'));
+UPDATE field_definitions
+SET deleted_at = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED),
+    delete_token = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED)
+WHERE model_id = ?
+  AND name IN (sqlc.slice('names'))
+  AND `field_definitions`.`deleted_at` = 0;
 
 -- name: GetTailFieldDisplayOrder :one
 SELECT display_order FROM field_definitions
-WHERE model_id = ?
-ORDER BY display_order DESC
+WHERE model_id = ? AND `field_definitions`.`deleted_at` = 0 ORDER BY display_order DESC
 LIMIT 1;

@@ -54,10 +54,9 @@ func (q *Queries) CreateEndUserBundle(ctx context.Context, arg CreateEndUserBund
 }
 
 const deleteEndUserBundle = `-- name: DeleteEndUserBundle :execresult
-DELETE FROM end_user_permission_bundles
-WHERE id = ?
+UPDATE end_user_permission_bundles SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?
   AND org_name = ?
-  AND project_slug = ?
+  AND project_slug = ?) AND ` + "`" + `end_user_permission_bundles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteEndUserBundleParams struct {
@@ -100,11 +99,11 @@ func (q *Queries) GetBundleDataPermissionItemByBundleAndModel(ctx context.Contex
 }
 
 const getEndUserBundleByID = `-- name: GetEndUserBundleByID :one
-SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at
+SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at, deleted_at, delete_token
 FROM end_user_permission_bundles
 WHERE id = ?
   AND org_name = ?
-  AND project_slug = ?
+  AND project_slug = ? AND ` + "`" + `end_user_permission_bundles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetEndUserBundleByIDParams struct {
@@ -125,16 +124,18 @@ func (q *Queries) GetEndUserBundleByID(ctx context.Context, arg GetEndUserBundle
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getEndUserBundleBySlug = `-- name: GetEndUserBundleBySlug :one
-SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at
+SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at, deleted_at, delete_token
 FROM end_user_permission_bundles
 WHERE slug = ?
   AND org_name = ?
-  AND project_slug = ?
+  AND project_slug = ? AND ` + "`" + `end_user_permission_bundles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetEndUserBundleBySlugParams struct {
@@ -155,6 +156,8 @@ func (q *Queries) GetEndUserBundleBySlug(ctx context.Context, arg GetEndUserBund
 		&i.Description,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
@@ -200,11 +203,10 @@ func (q *Queries) ListBundleDataPermissionItems(ctx context.Context, bundleID st
 }
 
 const listEndUserBundlesByProject = `-- name: ListEndUserBundlesByProject :many
-SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at
+SELECT id, slug, org_name, project_slug, name, description, created_at, updated_at, deleted_at, delete_token
 FROM end_user_permission_bundles
 WHERE org_name = ?
-  AND project_slug = ?
-ORDER BY name
+  AND project_slug = ? AND ` + "`" + `end_user_permission_bundles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY name
 `
 
 type ListEndUserBundlesByProjectParams struct {
@@ -230,6 +232,8 @@ func (q *Queries) ListEndUserBundlesByProject(ctx context.Context, arg ListEndUs
 			&i.Description,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -288,7 +292,6 @@ func (q *Queries) UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBund
 }
 
 const upsertBundleDataPermissionItem = `-- name: UpsertBundleDataPermissionItem :exec
-
 INSERT INTO end_user_bundle_data_permission_items (
   id,
   bundle_id,
@@ -317,7 +320,6 @@ type UpsertBundleDataPermissionItemParams struct {
 	SortOrder          int32
 }
 
-// ─── Bundle Data Permission Items ───────────────────────────────
 // Replace 语义：同一 bundle+model 最多一个 item
 func (q *Queries) UpsertBundleDataPermissionItem(ctx context.Context, arg UpsertBundleDataPermissionItemParams) error {
 	_, err := q.db.ExecContext(ctx, upsertBundleDataPermissionItem,

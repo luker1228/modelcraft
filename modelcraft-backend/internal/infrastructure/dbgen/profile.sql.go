@@ -8,6 +8,7 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 const createInitialProfile = `-- name: CreateInitialProfile :exec
@@ -38,8 +39,7 @@ const getProfileByUserID = `-- name: GetProfileByUserID :one
 SELECT p.id, p.user_id, p.nickname, p.avatar_url, p.bio, p.created_at, p.updated_at
 FROM profile p
 INNER JOIN user_organizations uo ON uo.user_id = p.user_id
-WHERE p.user_id = ? AND uo.org_name = ?
-LIMIT 1
+WHERE p.user_id = ? AND uo.org_name = ? AND ` + "`" + `p` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetProfileByUserIDParams struct {
@@ -47,9 +47,19 @@ type GetProfileByUserIDParams struct {
 	OrgName string
 }
 
-func (q *Queries) GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (Profile, error) {
+type GetProfileByUserIDRow struct {
+	ID        string
+	UserID    string
+	Nickname  string
+	AvatarUrl sql.NullString
+	Bio       sql.NullString
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
+
+func (q *Queries) GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error) {
 	row := q.db.QueryRowContext(ctx, getProfileByUserID, arg.UserID, arg.OrgName)
-	var i Profile
+	var i GetProfileByUserIDRow
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,

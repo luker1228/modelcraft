@@ -18,7 +18,7 @@ FROM end_user_roles r
    AND r.org_name = rb.org_name
 WHERE r.org_name = ?
   AND rb.project_slug = ?
-  AND r.is_implicit = TRUE
+  AND r.is_implicit = TRUE AND ` + "`" + `r` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetBundleIDsByImplicitRolesParams struct {
@@ -130,10 +130,11 @@ func (q *Queries) GetBundleIDsByUserExplicitRoles(ctx context.Context, arg GetBu
 }
 
 const getCustomPermissionsByIDs = `-- name: GetCustomPermissionsByIDs :many
-SELECT p.id, p.org_name, p.project_slug, p.database_name, p.model_name, p.model_id, p.name, p.description, p.column_policy, p.row_policy, p.created_at, p.updated_at
+SELECT p.id, p.org_name, p.project_slug, p.database_name, p.model_name, p.model_id, p.name, p.description, p.column_policy, p.row_policy, p.created_at, p.updated_at, p.deleted_at, p.delete_token
 FROM end_user_data_permissions p
 WHERE p.id IN (/*SLICE:permissionids*/?)
   AND p.org_name = ?
+  AND ` + "`" + `p` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetCustomPermissionsByIDsParams struct {
@@ -175,6 +176,8 @@ func (q *Queries) GetCustomPermissionsByIDs(ctx context.Context, arg GetCustomPe
 			&i.RowPolicy,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}

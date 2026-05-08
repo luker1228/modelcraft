@@ -26,7 +26,7 @@ FROM end_user_roles r
    AND r.org_name = rb.org_name
 WHERE r.org_name = ?
   AND rb.project_slug = ?
-  AND r.is_implicit = TRUE;
+  AND r.is_implicit = TRUE AND `r`.`deleted_at` = 0 ;
 
 -- name: GetDataPermissionItemsByBundleIDs :many
 -- ⚡ 鉴权链 Step 4: 展开权限包 → data permission items
@@ -39,4 +39,5 @@ WHERE i.bundle_id IN (sqlc.slice(bundleIDs));
 SELECT p.*
 FROM end_user_data_permissions p
 WHERE p.id IN (sqlc.slice(permissionIDs))
-  AND p.org_name = ?;
+  AND p.org_name = ?
+  AND `p`.`deleted_at` = 0;
