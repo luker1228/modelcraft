@@ -20,7 +20,7 @@ func NewSqlProfileRepository(q dbgen.Querier) profile.Repository {
 	return &SqlProfileRepository{q: dbgenwrap.NewSafeQuerier(q)}
 }
 
-func profileToDomain(row dbgen.Profile) *profile.Profile {
+func profileToDomain(row dbgen.GetProfileByUserIDRow) *profile.Profile {
 	return &profile.Profile{
 		ID:        row.ID,
 		UserID:    row.UserID,

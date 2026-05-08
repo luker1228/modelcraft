@@ -167,24 +167,13 @@ func (r *SqlDatabaseClusterRepository) GetByProjectKey(
 	return DatabaseClusterToDomain(row)
 }
 
-// List returns all clusters within a project, optionally filtered by status.
+// List returns all clusters within a project.
 func (r *SqlDatabaseClusterRepository) List(
-	ctx context.Context, orgName, projectSlug string, status ...cluster.ClusterStatus,
+	ctx context.Context, orgName, projectSlug string,
 ) ([]*cluster.DatabaseCluster, error) {
-	var column3 interface{}
-	var statusFilter sql.NullString
-
-	if len(status) > 0 {
-		s := string(status[0])
-		column3 = s
-		statusFilter = sql.NullString{String: s, Valid: true}
-	}
-
 	rows, err := r.q.ListDatabaseClusters(ctx, dbgen.ListDatabaseClustersParams{
 		OrgName:     orgName,
 		ProjectSlug: projectSlug,
-		Column3:     column3,
-		Status:      statusFilter,
 	})
 	if err != nil {
 		return nil, err
@@ -219,27 +208,19 @@ func (r *SqlDatabaseClusterRepository) ExistsByProjectKey(
 }
 
 // ListUpdatedAfter returns clusters updated after the given time.
-// orgName and projectSlug are optional filters: pass empty string to omit each.
+// orgName is required, projectSlug is optional (pass empty string to omit).
 func (r *SqlDatabaseClusterRepository) ListUpdatedAfter(
 	ctx context.Context,
 	orgName, projectSlug string,
 	updatedAfter time.Time,
 	status ...cluster.ClusterStatus,
 ) ([]*cluster.DatabaseCluster, error) {
-	var column2, column4 interface{}
-	if orgName != "" {
-		column2 = orgName
-	}
-	if projectSlug != "" {
-		column4 = projectSlug
-	}
+	projectSlugFilter := sql.NullString{String: projectSlug, Valid: projectSlug != ""}
 
 	rows, err := r.q.ListDatabaseClustersUpdatedAfter(ctx, dbgen.ListDatabaseClustersUpdatedAfterParams{
-		UpdatedAt:   sql.NullTime{Time: updatedAfter, Valid: true},
-		Column2:     column2,
-		OrgName:     orgName,
-		Column4:     column4,
-		ProjectSlug: projectSlug,
+		UpdatedAt:         sql.NullTime{Time: updatedAfter, Valid: true},
+		OrgName:           orgName,
+		ProjectSlugFilter: projectSlugFilter,
 	})
 	if err != nil {
 		return nil, err

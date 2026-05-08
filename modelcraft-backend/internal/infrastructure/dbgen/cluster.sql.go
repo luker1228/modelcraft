@@ -158,24 +158,16 @@ func (q *Queries) GetDatabaseClusterByProjectKey(ctx context.Context, arg GetDat
 
 const listDatabaseClusters = `-- name: ListDatabaseClusters :many
 SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at, deleted_at, delete_token FROM database_clusters
-WHERE org_name = ? AND project_slug = ?
-  AND (? IS NULL OR status = ?) AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+WHERE org_name = ? AND project_slug = ? AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ListDatabaseClustersParams struct {
 	OrgName     string
 	ProjectSlug string
-	Column3     interface{}
-	Status      sql.NullString
 }
 
 func (q *Queries) ListDatabaseClusters(ctx context.Context, arg ListDatabaseClustersParams) ([]DatabaseCluster, error) {
-	rows, err := q.db.QueryContext(ctx, listDatabaseClusters,
-		arg.OrgName,
-		arg.ProjectSlug,
-		arg.Column3,
-		arg.Status,
-	)
+	rows, err := q.db.QueryContext(ctx, listDatabaseClusters, arg.OrgName, arg.ProjectSlug)
 	if err != nil {
 		return nil, err
 	}
@@ -221,25 +213,23 @@ func (q *Queries) ListDatabaseClusters(ctx context.Context, arg ListDatabaseClus
 const listDatabaseClustersUpdatedAfter = `-- name: ListDatabaseClustersUpdatedAfter :many
 SELECT id, org_name, project_slug, title, description, host, port, username, password, connection_timeout, charset, max_open_conns, max_idle_conns, conn_max_lifetime, status, version, created_at, updated_at, deleted_at, delete_token FROM database_clusters
 WHERE updated_at > ?
-  AND (? IS NULL OR org_name = ?)
-  AND (? IS NULL OR project_slug = ?) AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND org_name = ?
+  AND (? IS NULL OR project_slug = ?)
+  AND ` + "`" + `database_clusters` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type ListDatabaseClustersUpdatedAfterParams struct {
-	UpdatedAt   sql.NullTime
-	Column2     interface{}
-	OrgName     string
-	Column4     interface{}
-	ProjectSlug string
+	UpdatedAt         sql.NullTime
+	OrgName           string
+	ProjectSlugFilter sql.NullString
 }
 
 func (q *Queries) ListDatabaseClustersUpdatedAfter(ctx context.Context, arg ListDatabaseClustersUpdatedAfterParams) ([]DatabaseCluster, error) {
 	rows, err := q.db.QueryContext(ctx, listDatabaseClustersUpdatedAfter,
 		arg.UpdatedAt,
-		arg.Column2,
 		arg.OrgName,
-		arg.Column4,
-		arg.ProjectSlug,
+		arg.ProjectSlugFilter,
+		arg.ProjectSlugFilter,
 	)
 	if err != nil {
 		return nil, err

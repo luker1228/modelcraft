@@ -20,7 +20,7 @@ type DatabaseClusterRepository interface {
 	GetByProjectKey(ctx context.Context, orgName, projectSlug string) (*DatabaseCluster, error)
 
 	// List 列出项目下的数据库集群（org + project scoped）
-	List(ctx context.Context, orgName, projectSlug string, status ...ClusterStatus) ([]*DatabaseCluster, error)
+	List(ctx context.Context, orgName, projectSlug string) ([]*DatabaseCluster, error)
 
 	// Delete 删除数据库集群（软删除）（org + project scoped）
 	Delete(ctx context.Context, orgName, projectSlug, id string) error

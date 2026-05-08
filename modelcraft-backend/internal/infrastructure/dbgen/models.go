@@ -424,6 +424,8 @@ type EndUserUser struct {
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃
 	DeleteToken uint64
+	// 是否为平台内置账号（每个 Org 唯一，不可删除/禁用）
+	IsBuiltin bool
 }
 
 // 用户直接授权-权限包：绕过角色直接给用户授予权限包

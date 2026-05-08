@@ -64,9 +64,8 @@ func (m *MockClusterRepository) List(
 	ctx context.Context,
 	orgName string,
 	projectSlug string,
-	status ...cluster.ClusterStatus,
 ) ([]*cluster.DatabaseCluster, error) {
-	args := m.Called(ctx, orgName, projectSlug, status)
+	args := m.Called(ctx, orgName, projectSlug)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

@@ -240,7 +240,7 @@ func (s *DatabaseClusterAppService) GetClusterByProject(
 // ListClusters retrieves the list of database clusters
 func (s *DatabaseClusterAppService) ListClusters(
 	ctx context.Context,
-	projectID, statusStr string,
+	projectID string,
 ) ([]*cluster.DatabaseCluster, error) {
 	logger := s.getLogger(ctx)
 
@@ -250,12 +250,7 @@ func (s *DatabaseClusterAppService) ListClusters(
 		return nil, err
 	}
 
-	var status []cluster.ClusterStatus
-	if statusStr != "" {
-		status = append(status, cluster.ClusterStatus(statusStr))
-	}
-
-	entities, err := s.clusterRepo.List(ctx, orgName, projectID, status...)
+	entities, err := s.clusterRepo.List(ctx, orgName, projectID)
 	if err != nil {
 		logger.Errorf(ctx, "failed to get database cluster list: %v", err)
 		return nil, err

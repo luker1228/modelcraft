@@ -6,8 +6,8 @@ CREATE TABLE IF NOT EXISTS `database_clusters` (
   `id` VARCHAR(36) NOT NULL COMMENT '集群唯一标识符',
 
   -- 项目关联字段（复合引用）
-  `org_name` VARCHAR(36) NOT NULL COMMENT '所属组织名称（来自projects表复合主键）',
-  `project_slug` VARCHAR(64) NOT NULL COMMENT '所属项目标识符（来自projects表复合主键）',
+  `org_name` VARCHAR(36) NOT NULL DEFAULT '' COMMENT '所属组织名称（来自projects表复合主键）',
+  `project_slug` VARCHAR(64) NOT NULL DEFAULT '' COMMENT '所属项目标识符（来自projects表复合主键）',
 
   -- 基本信息字段
   `title` VARCHAR(255) NOT NULL COMMENT '集群显示标题',

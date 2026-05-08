@@ -783,14 +783,14 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 // toEndUserDomain 从 ListProjectEndUserRoleUsersRow 构建 enduser.EndUser
 func toEndUserDomain(row dbgen.ListProjectEndUserRoleUsersRow) *enduserdomain.EndUser {
 	createdBy := ""
-	if row.UserCreatedBy.Valid {
-		createdBy = row.UserCreatedBy.String
+	if row.CreatedBy.Valid {
+		createdBy = row.CreatedBy.String
 	}
 	return &enduserdomain.EndUser{
 		ID:          row.UserID,
 		OrgName:     row.OrgName,
 		Username:    row.Username,
-		IsForbidden: row.IsForbidden == 1,
+		IsForbidden: row.IsForbidden,
 		CreatedBy:   createdBy,
 		CreatedAt:   row.UserCreatedAt,
 		UpdatedAt:   row.UserUpdatedAt,
@@ -810,7 +810,7 @@ func toRoleDomain(row dbgen.ListProjectEndUserRoleUsersRow) *rbac.EndUserRole {
 		ID:          row.RoleID,
 		Name:        row.RoleName,
 		Description: description,
-		IsImplicit:  row.IsImplicit == 1,
+		IsImplicit:  row.IsImplicit,
 	}
 }
 
@@ -1122,7 +1122,9 @@ func (r *SqlEndUserDataPermissionRepository) ListProjectEndUserRoleUsers(
 	total, err := r.q.ListProjectEndUserRoleUsersCount(ctx, dbgen.ListProjectEndUserRoleUsersCountParams{
 		OrgName:     query.OrgName,
 		ProjectSlug: query.ProjectSlug,
-		Search:      query.Search,
+		Column3:     query.Search,
+		CONCAT:      query.Search,
+		Column5:     query.RoleID,
 		RoleID:      query.RoleID,
 	})
 	if err != nil {
@@ -1132,9 +1134,12 @@ func (r *SqlEndUserDataPermissionRepository) ListProjectEndUserRoleUsers(
 	rows, err := r.q.ListProjectEndUserRoleUsers(ctx, dbgen.ListProjectEndUserRoleUsersParams{
 		OrgName:     query.OrgName,
 		ProjectSlug: query.ProjectSlug,
-		Search:      query.Search,
+		Column3:     query.Search,
+		CONCAT:      query.Search,
+		Column5:     query.RoleID,
 		RoleID:      query.RoleID,
-		After:       query.After,
+		Column7:     query.After,
+		ID:          query.After,
 		Limit:       int32(first),
 	})
 	if err != nil {

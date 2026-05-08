@@ -12,8 +12,7 @@ WHERE org_name = ? AND project_slug = ? AND `database_clusters`.`deleted_at` = 0
 
 -- name: ListDatabaseClusters :many
 SELECT * FROM database_clusters
-WHERE org_name = ? AND project_slug = ?
-  AND (? IS NULL OR status = ?) AND `database_clusters`.`deleted_at` = 0 ;
+WHERE org_name = ? AND project_slug = ? AND `database_clusters`.`deleted_at` = 0 ;
 
 -- name: UpdateDatabaseClusterWithVersion :execresult
 UPDATE database_clusters
@@ -30,5 +29,6 @@ WHERE org_name = ? AND project_slug = ? AND `database_clusters`.`deleted_at` = 0
 -- name: ListDatabaseClustersUpdatedAfter :many
 SELECT * FROM database_clusters
 WHERE updated_at > ?
-  AND (? IS NULL OR org_name = ?)
-  AND (? IS NULL OR project_slug = ?) AND `database_clusters`.`deleted_at` = 0 ;
+  AND org_name = sqlc.arg(org_name)
+  AND (sqlc.narg(project_slug_filter) IS NULL OR project_slug = sqlc.narg(project_slug_filter))
+  AND `database_clusters`.`deleted_at` = 0 ;
