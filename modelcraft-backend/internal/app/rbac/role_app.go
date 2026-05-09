@@ -176,12 +176,28 @@ func (s *EndUserRoleAppService) AssignRoleToUser(
 }
 
 // RevokeRoleFromUser 撤销用户角色分配
+// 若目标角色为 is_protected=true 且目标用户为 is_builtin=true，则拒绝撤销。
 func (s *EndUserRoleAppService) RevokeRoleFromUser(
 	ctx context.Context,
 	cmd RevokeRoleFromUserCommand,
 ) error {
+	role, err := s.getRoleOrNotFound(ctx, cmd.OrgName, cmd.RoleID)
+	if err != nil {
+		return err
+	}
+	if role.IsProtected {
+		isBuiltin, builtinErr := s.rbacRepo.IsUserBuiltin(ctx, cmd.OrgName, cmd.UserID)
+		if builtinErr != nil {
+			return bizerrors.ConvertRepositoryError(ctx, builtinErr)
+		}
+		if isBuiltin {
+			return bizerrors.NewErrorFromContext(
+				ctx,
+				bizerrors.EndUserCannotRevokeProtectedRoleFromBuiltin,
+			)
+		}
+	}
 	if err := s.rbacRepo.RevokeRoleFromUser(ctx, cmd.UserID, cmd.OrgName, cmd.ProjectSlug, cmd.RoleID); err != nil {
-		// 外键约束失败 = EndUser 不属于该 Org
 		if shared.IsRepoError(err, shared.ErrTypeConstraint) {
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFoundInProject, cmd.UserID)
 		}
