@@ -1,0 +1,13 @@
+set shell := ["bash", "-cu"]
+
+build:
+	go build -ldflags "-X main.version=$(git describe --tags --always) -X main.commit=$(git rev-parse --short HEAD) -X main.buildTime=$(date -u +%Y-%m-%dT%H:%M:%SZ)" -o bin/mc ./main.go
+
+test:
+	go test ./...
+
+fmt:
+	gofmt -w .
+
+tidy:
+	go mod tidy
