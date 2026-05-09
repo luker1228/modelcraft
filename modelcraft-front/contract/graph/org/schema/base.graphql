@@ -4,7 +4,7 @@ scalar Date
 scalar Time
 
 # Permission directive for operation-level authorization
-directive @hasPermission(action: String!) on FIELD_DEFINITION
+directive @hasPermission(action: String!, allowEndUser: Boolean! = false) on FIELD_DEFINITION
 
 # Node interface for Relay specification
 interface Node {

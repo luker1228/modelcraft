@@ -54,7 +54,97 @@ export const LIST_END_USERS = gql`
   }
 `
 
+/**
+ * END_USER_PROJECTS — Org-scoped query for end-users.
+ * Endpoint: /api/bff/graphql/end-user/org/{orgName}/
+ * Returns all projects the current end-user has access to via role assignments.
+ * Requires end-user Bearer token.
+ */
+export const END_USER_PROJECTS = gql`
+  query EndUserProjects {
+    endUserProjects {
+      id
+      slug
+      title
+      description
+      status
+      orgName
+      createdAt
+      updatedAt
+    }
+  }
+`
+
 // ── Mutations ──────────────────────────────────────────────────────────────────
+
+export const CREATE_END_USER = gql`
+  mutation CreateEndUser($input: CreateEndUserInput!) {
+    createEndUser(input: $input) {
+      endUser {
+        id
+        username
+        isForbidden
+        isBuiltin
+        createdBy
+        createdAt
+        updatedAt
+      }
+      error {
+        __typename
+        ... on EndUserAlreadyExists {
+          message
+        }
+        ... on EndUserPasswordTooWeak {
+          message
+          suggestion
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+export const UPDATE_END_USER_STATUS = gql`
+  mutation UpdateEndUserStatus($input: UpdateEndUserStatusInput!) {
+    updateEndUserStatus(input: $input) {
+      endUser {
+        id
+        username
+        isForbidden
+        updatedAt
+      }
+      error {
+        __typename
+        ... on ResourceNotFound {
+          message
+          resourceType
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+export const DELETE_END_USER = gql`
+  mutation DeleteEndUser($input: DeleteEndUserInput!) {
+    deleteEndUser(input: $input) {
+      success
+      error {
+        __typename
+        ... on ResourceNotFound {
+          message
+          resourceType
+        }
+      }
+    }
+  }
+`
 
 export const CREATE_END_USER = gql`
   mutation CreateEndUser($input: CreateEndUserInput!) {

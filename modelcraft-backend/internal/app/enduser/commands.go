@@ -170,8 +170,12 @@ type GetEndUserCommand struct {
 
 // AccessibleProjectItem represents one project that an end-user can access in an org.
 type AccessibleProjectItem struct {
-	Slug  string
-	Title string
+	Slug        string
+	Title       string
+	Description string
+	Status      string // "active" | "archived"
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // --- Runtime Meta/User Query Commands ---

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"modelcraft-cli/cmd"
@@ -14,13 +13,9 @@ var (
 )
 
 func main() {
-	root := cmd.NewRootCommand(cmd.BuildInfo{
+	os.Exit(cmd.Execute(cmd.BuildInfo{
 		Version:   version,
 		Commit:    commit,
 		BuildTime: buildTime,
-	})
-	if err := root.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
-	}
+	}, os.Args[1:], os.Stdout, os.Stderr))
 }

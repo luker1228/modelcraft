@@ -6,10 +6,19 @@ import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 interface WorkspaceProjectsTabProps {
   orgName: string
   projects: EndUserAccessibleProject[]
+  loading?: boolean
 }
 
-export function WorkspaceProjectsTab({ orgName, projects }: WorkspaceProjectsTabProps) {
+export function WorkspaceProjectsTab({ orgName, projects, loading }: WorkspaceProjectsTabProps) {
   const router = useRouter()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-20">
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      </div>
+    )
+  }
 
   if (projects.length === 0) {
     return (

@@ -320,7 +320,13 @@ func (r *SqlEndUserRepository) ListAccessibleProjectsByRoleAssignment(
 	orgName, endUserID string,
 ) ([]enduser.AccessibleProject, error) {
 	const query = `
-		SELECT DISTINCT ur.role_id, r.project_slug, COALESCE(p.title, r.project_slug) AS project_title
+		SELECT DISTINCT
+		  r.project_slug,
+		  COALESCE(p.title, r.project_slug) AS project_title,
+		  COALESCE(p.description, '') AS project_description,
+		  COALESCE(p.status, 'active') AS project_status,
+		  p.created_at,
+		  p.updated_at
 		FROM end_user_role_users ur
 		JOIN end_user_roles r
 		  ON r.id = ur.role_id
@@ -344,16 +350,27 @@ func (r *SqlEndUserRepository) ListAccessibleProjectsByRoleAssignment(
 	seen := make(map[string]struct{})
 	projects := make([]enduser.AccessibleProject, 0)
 	for rows.Next() {
-		var roleID, projectSlug, projectTitle string
-		if scanErr := rows.Scan(&roleID, &projectSlug, &projectTitle); scanErr != nil {
+		var p enduser.AccessibleProject
+		var createdAt, updatedAt *time.Time
+		if scanErr := rows.Scan(
+			&p.ProjectSlug,
+			&p.ProjectTitle,
+			&p.ProjectDescription,
+			&p.ProjectStatus,
+			&createdAt,
+			&updatedAt,
+		); scanErr != nil {
 			return nil, sqlerr.WrapSQLError(scanErr)
 		}
-		if _, ok := seen[projectSlug]; !ok {
-			seen[projectSlug] = struct{}{}
-			projects = append(projects, enduser.AccessibleProject{
-				ProjectSlug:  projectSlug,
-				ProjectTitle: projectTitle,
-			})
+		if createdAt != nil {
+			p.ProjectCreatedAt = *createdAt
+		}
+		if updatedAt != nil {
+			p.ProjectUpdatedAt = *updatedAt
+		}
+		if _, ok := seen[p.ProjectSlug]; !ok {
+			seen[p.ProjectSlug] = struct{}{}
+			projects = append(projects, p)
 		}
 	}
 	if err = rows.Err(); err != nil {

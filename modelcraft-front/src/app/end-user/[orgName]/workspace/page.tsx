@@ -1,30 +1,28 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import { useQuery } from '@apollo/client'
+import { ApolloProvider } from '@apollo/client'
 import { WorkspaceProjectsTab } from './_components/WorkspaceProjectsTab'
+import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
+import { createEndUserOrgScopedClient } from '@api-client/apollo/clients'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface WorkspacePageProps {
   params: { orgName: string }
 }
 
-export default function WorkspacePage({ params }: WorkspacePageProps) {
+function WorkspaceContent({ orgName }: { orgName: string }) {
   const router = useRouter()
-  const { orgName } = params
-  const [projects, setProjects] = useState<EndUserAccessibleProject[]>([])
-  const [activeTab, setActiveTab] = useState<'projects'>('projects')
+  const activeTab = 'projects'
 
-  useEffect(() => {
-    const raw = sessionStorage.getItem(`eu_accessible_projects_${orgName}`)
-    if (raw) {
-      try {
-        setProjects(JSON.parse(raw) as EndUserAccessibleProject[])
-      } catch {
-        setProjects([])
-      }
-    }
-  }, [orgName])
+  const { data, loading } = useQuery<{ endUserProjects: EndUserAccessibleProject[] }>(
+    END_USER_PROJECTS
+  )
+
+  const projects = data?.endUserProjects ?? []
 
   const handleLogout = async () => {
     if (!orgName) return
@@ -56,7 +54,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
               ? 'border-primary text-primary'
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
-          onClick={() => setActiveTab('projects')}
         >
           Projects
         </button>
@@ -72,9 +69,25 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
       {/* 主内容 */}
       <main className="flex-1 p-6">
         {activeTab === 'projects' && (
-          <WorkspaceProjectsTab orgName={orgName} projects={projects} />
+          <WorkspaceProjectsTab orgName={orgName} projects={projects} loading={loading} />
         )}
       </main>
     </div>
+  )
+}
+
+export default function WorkspacePage({ params }: WorkspacePageProps) {
+  const { orgName } = params
+  const accessToken = useEndUserAuthStore((s) => s.accessToken)
+
+  const client = useMemo(
+    () => createEndUserOrgScopedClient(orgName, accessToken ?? ''),
+    [orgName, accessToken]
+  )
+
+  return (
+    <ApolloProvider client={client}>
+      <WorkspaceContent orgName={orgName} />
+    </ApolloProvider>
   )
 }

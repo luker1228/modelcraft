@@ -274,8 +274,12 @@ func (s *EndUserManagementAppService) ListAccessibleProjects(
 	items := make([]AccessibleProjectItem, 0, len(projects))
 	for _, p := range projects {
 		items = append(items, AccessibleProjectItem{
-			Slug:  p.ProjectSlug,
-			Title: p.ProjectTitle,
+			Slug:        p.ProjectSlug,
+			Title:       p.ProjectTitle,
+			Description: p.ProjectDescription,
+			Status:      p.ProjectStatus,
+			CreatedAt:   p.ProjectCreatedAt,
+			UpdatedAt:   p.ProjectUpdatedAt,
 		})
 	}
 	return items, nil

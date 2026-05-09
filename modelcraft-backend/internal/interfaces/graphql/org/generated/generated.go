@@ -353,6 +353,7 @@ type ComplexityRoot struct {
 
 	Query struct {
 		DatabaseCluster     func(childComplexity int, projectSlug string) int
+		EndUserProjects     func(childComplexity int) int
 		FindUsers           func(childComplexity int, where *UserWhereInput, after *string, first *int32) int
 		Hello               func(childComplexity int) int
 		ListEndUsers        func(childComplexity int, input *ListEndUsersInput) int
@@ -501,6 +502,7 @@ type QueryResolver interface {
 	Node(ctx context.Context, id string) (Node, error)
 	ListEndUsers(ctx context.Context, input *ListEndUsersInput) (*ListEndUsersPayload, error)
 	FindUsers(ctx context.Context, where *UserWhereInput, after *string, first *int32) (*UserFindManyResult, error)
+	EndUserProjects(ctx context.Context) ([]*Project, error)
 	PermissionRoles(ctx context.Context, orgName string, includeSystem *bool) ([]*PermissionRole, error)
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
@@ -1670,6 +1672,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.DatabaseCluster(childComplexity, args["projectSlug"].(string)), true
+	case "Query.endUserProjects":
+		if e.complexity.Query.EndUserProjects == nil {
+			break
+		}
+
+		return e.complexity.Query.EndUserProjects(childComplexity), true
 	case "Query.findUsers":
 		if e.complexity.Query.FindUsers == nil {
 			break
@@ -2433,6 +2441,11 @@ extend type Query {
     after: String
     first: Int
   ): UserFindManyResult! @hasPermission(action: "end-user:read", allowEndUser: true)
+
+  # endUserProjects: list projects accessible to the current end-user via role assignments.
+  # Only accessible to end-users (allowEndUser: true, tenant developers are blocked).
+  # Returns deduplicated projects ordered by creation time.
+  endUserProjects: [Project!]! @hasPermission(action: "end-user:read", allowEndUser: true)
 }
 
 extend type Mutation {
@@ -9793,6 +9806,78 @@ func (ec *executionContext) fieldContext_Query_findUsers(ctx context.Context, fi
 	if fc.Args, err = ec.field_Query_findUsers_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_endUserProjects(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_endUserProjects,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().EndUserProjects(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:read")
+				if err != nil {
+					var zeroVal []*Project
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, true)
+				if err != nil {
+					var zeroVal []*Project
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal []*Project
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNProject2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProjectᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_endUserProjects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Project_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Project_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_Project_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Project_description(ctx, field)
+			case "status":
+				return ec.fieldContext_Project_status(ctx, field)
+			case "orgName":
+				return ec.fieldContext_Project_orgName(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Project_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Project_updatedAt(ctx, field)
+			case "authSchema":
+				return ec.fieldContext_Project_authSchema(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Project", field.Name)
+		},
 	}
 	return fc, nil
 }
@@ -17765,6 +17850,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_findUsers(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "endUserProjects":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_endUserProjects(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}

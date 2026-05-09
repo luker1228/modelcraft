@@ -269,11 +269,11 @@ function AssignRoleDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isAddingRole ? '添加角色' : '添加终端用户'}</DialogTitle>
+          <DialogTitle>{isAddingRole ? '追加角色' : '授权用户访问'}</DialogTitle>
           <DialogDescription>
             {isAddingRole
-              ? `为 ${preselectedUser.username} 添加一个新角色。`
-              : '从 Org 用户列表中选择用户并分配角色。分配成功后用户即可访问本项目。'}
+              ? `为 ${preselectedUser.username} 追加一个角色。`
+              : '为 Org 用户分配本项目角色，授权后即可访问。'}
           </DialogDescription>
         </DialogHeader>
 
@@ -291,7 +291,7 @@ function AssignRoleDialog({
                   >
                     RBAC 角色设置
                   </Link>
-                  {' '}创建角色后再添加用户。
+                  {' '}创建角色后再授权用户。
                 </>
               )}
           </div>
@@ -440,7 +440,7 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
             onClick={() => setAddDialogOpen(true)}
           >
             <Plus className="mr-1.5 size-4" />
-            添加用户
+            授权用户
           </Button>
         </div>
       </div>
@@ -481,9 +481,9 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
                   <TableCell colSpan={4}>
                     <div className="flex flex-col items-center justify-center py-14 text-center">
                       <Users className="mb-3 size-9 text-muted-foreground/30" strokeWidth={1.5} />
-                      <p className="text-sm font-semibold text-foreground">暂无角色分配</p>
+                      <p className="text-sm font-semibold text-foreground">暂无授权记录</p>
                       <p className="mt-1 text-xs text-muted-foreground">
-                        点击「添加用户」为 Org 用户分配角色，授权后用户即可访问本项目
+                        点击「授权用户」为 Org 用户分配角色，授权后用户即可访问本项目
                       </p>
                     </div>
                   </TableCell>
@@ -530,7 +530,7 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
                       }
                     >
                       <Plus className="mr-1 size-3" />
-                      添加角色
+                      追加角色
                     </Button>
                   </TableCell>
                 </TableRow>

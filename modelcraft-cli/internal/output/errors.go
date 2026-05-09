@@ -34,7 +34,7 @@ func NewCLIError(code, message string, retryable bool, suggestion string, detail
 func ExitCode(err error) int {
 	var cliErr *CLIError
 	if !errors.As(err, &cliErr) {
-		return 1
+		return 7
 	}
 
 	switch cliErr.Code {
@@ -54,6 +54,10 @@ func ExitCode(err error) int {
 }
 
 func WriteError(w io.Writer, format string, compact bool, err error) error {
+	if err := validateFormat(format); err != nil {
+		return err
+	}
+
 	var cliErr *CLIError
 	if !errors.As(err, &cliErr) {
 		cliErr = NewCLIError(
@@ -87,6 +91,14 @@ func WriteError(w io.Writer, format string, compact bool, err error) error {
 		},
 	}
 	return writeJSON(w, compact, payload)
+}
+
+func validateFormat(format string) error {
+	if format != "json" {
+		return fmt.Errorf("unsupported output format %q", format)
+	}
+
+	return nil
 }
 
 func writeJSON(w io.Writer, compact bool, payload any) error {

@@ -1,11 +1,18 @@
 package enduser
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // AccessibleProject represents one project that an end-user can access in an org.
 type AccessibleProject struct {
-	ProjectSlug  string
-	ProjectTitle string
+	ProjectSlug        string
+	ProjectTitle       string
+	ProjectDescription string
+	ProjectStatus      string // raw value: "active" | "archived"
+	ProjectCreatedAt   time.Time
+	ProjectUpdatedAt   time.Time
 }
 
 // EndUserRepository defines persistence operations for end-users.

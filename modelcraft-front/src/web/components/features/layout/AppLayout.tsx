@@ -257,7 +257,7 @@ export function AppLayout({
           { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`, tabParam: 'tab=bundles' },
           { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`, tabParam: 'tab=permissions' },
         ]},
-        { label: '终端用户管理', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
+        { label: '用户授权', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
       ],
     },
     {

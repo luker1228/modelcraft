@@ -11,7 +11,7 @@ export default function ProjectEndUserAccessPage() {
 
   return (
     <PageLayout maxWidth="7xl">
-      <PageHeader title="终端用户访问控制" />
+      <PageHeader title="用户授权" />
       <EndUserRoleAccessTable orgName={orgName} projectSlug={projectSlug} />
     </PageLayout>
   )

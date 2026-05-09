@@ -333,3 +333,50 @@ func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWher
 		ReqID:      reqID,
 	}, nil
 }
+
+// EndUserProjects is the resolver for the endUserProjects field.
+func (r *queryResolver) EndUserProjects(ctx context.Context) ([]*generated.Project, error) {
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
+	}
+
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "user context required")
+	}
+
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "end-user service not initialized")
+	}
+
+	projects, err := service.ListAccessibleProjects(ctx, orgName, userID)
+	if err != nil {
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			return nil, newGQLError(bizErr.Msg(), bizErr.Info().GetCode())
+		}
+		return nil, err
+	}
+
+	result := make([]*generated.Project, 0, len(projects))
+	for _, p := range projects {
+		status := generated.ProjectStatusActive
+		if p.Status == "archived" {
+			status = generated.ProjectStatusArchived
+		}
+		result = append(result, &generated.Project{
+			ID:          p.Slug,
+			Slug:        p.Slug,
+			Title:       p.Title,
+			Description: p.Description,
+			Status:      status,
+			OrgName:     orgName,
+			AuthSchema:  &generated.ProjectAuthSchema{Variables: []*generated.AuthVariable{}},
+			CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+	return result, nil
+}

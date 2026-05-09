@@ -44,3 +44,29 @@ func TestCLIErrorExitCodeAndEnvelope(t *testing.T) {
 		t.Fatalf("expected CLI sentinel")
 	}
 }
+
+func TestNonCLIErrorMapsToServerErrorExitCode(t *testing.T) {
+	err := errors.New("plain failure")
+
+	if code := ExitCode(err); code != 7 {
+		t.Fatalf("ExitCode() = %d, want 7", code)
+	}
+}
+
+func TestWriteSuccessRejectsUnsupportedFormat(t *testing.T) {
+	buf := new(bytes.Buffer)
+
+	err := WriteSuccess(buf, "yaml", true, map[string]any{"version": "v0.1.0"}, nil)
+	if err == nil {
+		t.Fatal("WriteSuccess() error = nil, want unsupported format error")
+	}
+}
+
+func TestWriteErrorRejectsUnsupportedFormat(t *testing.T) {
+	buf := new(bytes.Buffer)
+
+	err := WriteError(buf, "yaml", true, errors.New("plain failure"))
+	if err == nil {
+		t.Fatal("WriteError() error = nil, want unsupported format error")
+	}
+}

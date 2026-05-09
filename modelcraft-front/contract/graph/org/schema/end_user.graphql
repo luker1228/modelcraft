@@ -116,7 +116,12 @@ extend type Query {
     where: UserWhereInput
     after: String
     first: Int
-  ): UserFindManyResult! @hasPermission(action: "end-user:read")
+  ): UserFindManyResult! @hasPermission(action: "end-user:read", allowEndUser: true)
+
+  # endUserProjects: list projects accessible to the current end-user via role assignments.
+  # Only accessible to end-users (allowEndUser: true, tenant developers are blocked).
+  # Returns deduplicated projects ordered by creation time.
+  endUserProjects: [Project!]! @hasPermission(action: "end-user:read", allowEndUser: true)
 }
 
 extend type Mutation {
