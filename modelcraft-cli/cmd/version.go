@@ -1,8 +1,7 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
+	"modelcraft-cli/internal/output"
 
 	"github.com/spf13/cobra"
 )
@@ -18,25 +17,11 @@ func newVersionCommand(info BuildInfo) *cobra.Command {
 				BuildTime string `json:"buildTime"`
 			}
 
-			payload := struct {
-				OK   bool        `json:"ok"`
-				Data versionData `json:"data"`
-			}{
-				OK: true,
-				Data: versionData{
-					Version:   info.Version,
-					Commit:    info.Commit,
-					BuildTime: info.BuildTime,
-				},
-			}
-
-			encoded, err := json.Marshal(payload)
-			if err != nil {
-				return fmt.Errorf("marshal version response: %w", err)
-			}
-
-			_, err = fmt.Fprintf(cmd.OutOrStdout(), "%s\n", encoded)
-			return err
+			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, versionData{
+				Version:   info.Version,
+				Commit:    info.Commit,
+				BuildTime: info.BuildTime,
+			}, nil)
 		},
 	}
 }
