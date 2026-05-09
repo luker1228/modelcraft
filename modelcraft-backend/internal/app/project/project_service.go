@@ -13,6 +13,9 @@ import (
 	domainCluster "modelcraft/internal/domain/cluster"
 )
 
+// adminRoleName is the reserved name for the per-project protected admin role.
+const adminRoleName = "admin"
+
 // PrivateDBProvisioner is deprecated and kept only for compatibility.
 // Implemented by infrastructure PrivateDBManager.
 type PrivateDBProvisioner interface {
@@ -113,7 +116,7 @@ func (s *ProjectAppService) CreateProject(
 		return nil, bizerrors.Wrapf(err, "failed to generate cluster ID")
 	}
 
-	// Atomically persist project and cluster using tx-scoped repositories
+	// Atomically persist project, cluster, admin role, and builtin user assignment
 	txErr := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		txProjectRepo := repository.NewSqlProjectRepository(q)
 		txClusterRepo := repository.NewSqlDatabaseClusterRepository(q)
@@ -153,6 +156,11 @@ func (s *ProjectAppService) CreateProject(
 			return bizerrors.Wrapf(err, "failed to save cluster")
 		}
 
+		// Create protected admin role and assign builtin user
+		if err := s.provisionAdminRole(ctx, q, cmd.OrgName, cmd.Slug, logger); err != nil {
+			return err
+		}
+
 		return nil
 	})
 	if txErr != nil {
@@ -162,6 +170,51 @@ func (s *ProjectAppService) CreateProject(
 	logger.Infof(ctx, "project and cluster created successfully: project=%s cluster=%s", proj.Slug, clusterID)
 
 	return proj, nil
+}
+
+// provisionAdminRole creates the protected admin role for a project and assigns
+// the Org's builtin admin user to it — all within the caller's transaction.
+// If no builtin user exists yet, the role is still created but the assignment is skipped.
+func (s *ProjectAppService) provisionAdminRole(
+	ctx context.Context,
+	q dbgen.Querier,
+	orgName, projectSlug string,
+	logger logfacade.Logger,
+) error {
+	adminRoleID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return bizerrors.Wrapf(err, "failed to generate admin role ID")
+	}
+	if err := q.CreateEndUserRole(ctx, dbgen.CreateEndUserRoleParams{
+		ID:          adminRoleID,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		Name:        adminRoleName,
+		IsImplicit:  false,
+		IsProtected: true,
+	}); err != nil {
+		return bizerrors.Wrapf(err, "failed to create admin role")
+	}
+
+	builtinUserID, err := q.GetBuiltinEndUserByOrg(ctx, orgName)
+	if err != nil {
+		logger.Warnf(ctx, "no builtin end-user for org %s, skipping admin role assignment", orgName)
+		return nil
+	}
+
+	assignID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return bizerrors.Wrapf(err, "failed to generate role assignment ID")
+	}
+	if err := q.AssignRoleToUser(ctx, dbgen.AssignRoleToUserParams{
+		ID:      assignID,
+		UserID:  builtinUserID,
+		RoleID:  adminRoleID,
+		OrgName: orgName,
+	}); err != nil {
+		return bizerrors.Wrapf(err, "failed to assign admin role to builtin user")
+	}
+	return nil
 }
 
 // GetProjectByNameAndOrg retrieves a project by name within an organization.

@@ -76,6 +76,8 @@ type Querier interface {
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]FindLogicalForeignKeysByRefModelIDRow, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
+	// 查询 Org 内置 admin 用户（is_builtin=true），用于 Project 创建时自动分配 admin 角色
+	GetBuiltinEndUserByOrg(ctx context.Context, orgName string) (string, error)
 	GetBundleCurrentVersion(ctx context.Context, bundleID string) (interface{}, error)
 	GetBundleDataPermissionItemByBundleAndModel(ctx context.Context, arg GetBundleDataPermissionItemByBundleAndModelParams) (EndUserBundleDataPermissionItem, error)
 	// ⚡ 鉴权链 Step 3: 隐式角色关联的权限包 ID 列表（对所有认证用户执行，无需 user_id）

@@ -38,6 +38,23 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 	return err
 }
 
+const getBuiltinEndUserByOrg = `-- name: GetBuiltinEndUserByOrg :one
+SELECT id
+FROM end_user_users
+WHERE org_name = ?
+  AND is_builtin = 1
+  AND deleted_at = 0
+LIMIT 1
+`
+
+// 查询 Org 内置 admin 用户（is_builtin=true），用于 Project 创建时自动分配 admin 角色
+func (q *Queries) GetBuiltinEndUserByOrg(ctx context.Context, orgName string) (string, error) {
+	row := q.db.QueryRowContext(ctx, getBuiltinEndUserByOrg, orgName)
+	var id string
+	err := row.Scan(&id)
+	return id, err
+}
+
 const isEndUserBuiltin = `-- name: IsEndUserBuiltin :one
 SELECT is_builtin
 FROM end_user_users
