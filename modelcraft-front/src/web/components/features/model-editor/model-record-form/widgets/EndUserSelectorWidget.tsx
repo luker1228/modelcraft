@@ -5,6 +5,8 @@ import type { WidgetProps } from '@rjsf/utils'
 import { createEndUserOrgScopedClient, getOrgScopedClient } from '@api-client/apollo/clients'
 import { getEndUserToken } from '@api-client/end-user/public'
 import { FIND_USERS } from '@api-client/end-user/graphql-docs'
+import { useWidgetRouteContext } from '../_hooks/useWidgetRouteContext'
+import { resolveWidgetFormContext } from './resolveWidgetFormContext'
 import {
   Select,
   SelectContent,
@@ -46,81 +48,73 @@ interface FormContext {
  * - Builtin admin is pinned at the top with a 「系统」chip.
  * - No 「不指定」option: every record must have an owner.
  * - New records default to the builtin admin's ID.
+ *
+ * NOTE: In RJSF v6, formContext lives in props.registry.formContext — NOT as a direct
+ * top-level prop. We read from registry first and fall back to URL pathname parsing
+ * via useWidgetRouteContext so the widget is resilient across render paths.
  */
 export function EndUserSelectorWidget(props: WidgetProps) {
   const value = props.value as string | undefined
   const onChange = props.onChange
   const disabled = props.disabled as boolean
   const readonly = props.readonly as boolean
-  const { orgName, workspaceMode = 'design' } = (props.formContext ?? {}) as FormContext
 
-  console.log('[EndUserSelectorWidget] render', {
-    orgName,
-    workspaceMode,
-    value,
-    disabled,
-    readonly,
-    // 打印原始 formContext，确认 RJSF 是否真的传进来了
-    rawFormContext: props.formContext,
-    // 打印全量 props key，看有没有意外字段
-    propsKeys: Object.keys(props),
-  })
+  // RJSF v6: formContext lives in props.registry.formContext.
+  // Fall back to props.formContext for forward-compatibility.
+  // See resolveWidgetFormContext.test.ts for the locked contract.
+  const rawFormContext = resolveWidgetFormContext(
+    props as unknown as Record<string, unknown>
+  ) as FormContext | undefined
+  const { workspaceMode = 'design' } = rawFormContext ?? {}
+
+  // orgName: prefer formContext, fall back to URL pathname (same pattern as RelationSelector)
+  const { orgName } = useWidgetRouteContext(rawFormContext)
 
   const [users, setUsers] = useState<UserNode[]>([])
   const [loading, setLoading] = useState(false)
 
   const client = useMemo(() => {
-    console.log('[EndUserSelectorWidget] computing client', { orgName, workspaceMode })
-
+    // orgName is required — without it we cannot build any Apollo client.
+    // Return null and skip the query rather than throwing, so the form stays usable.
     if (!orgName) {
-      console.warn('[EndUserSelectorWidget] client=null: orgName is empty')
+      console.warn(
+        '[EndUserSelectorWidget] orgName is unavailable — skipping user query. ' +
+        `workspaceMode=${workspaceMode}, formContext=${JSON.stringify(rawFormContext)}`
+      )
       return null
     }
 
     if (workspaceMode === 'end_user') {
       const token = getEndUserToken()
-      console.log('[EndUserSelectorWidget] end_user mode, token present:', !!token)
       if (!token) {
         console.warn('[EndUserSelectorWidget] client=null: no end-user token in localStorage')
         return null
       }
-      const c = createEndUserOrgScopedClient(orgName, token)
-      console.log('[EndUserSelectorWidget] created end-user org client →', `/api/bff/graphql/end-user/org/${orgName}/`)
-      return c
+      return createEndUserOrgScopedClient(orgName, token)
     }
 
     // Design path
-    const c = getOrgScopedClient()
-    console.log('[EndUserSelectorWidget] using tenant org-scoped client →', `/api/bff/graphql/org/${orgName}/`)
-    return c
+    return getOrgScopedClient()
   }, [orgName, workspaceMode])
 
   useEffect(() => {
-    console.log('[EndUserSelectorWidget] useEffect fired', { client: !!client, orgName, workspaceMode })
-
     if (!client) {
-      console.warn('[EndUserSelectorWidget] skipping query: client is null')
       return
     }
 
     let cancelled = false
     setLoading(true)
-    console.log('[EndUserSelectorWidget] firing findUsers query', { first: 50 })
 
     client
       .query<FindUsersData>({
         query: FIND_USERS,
         variables: { first: 50 },
-        fetchPolicy: 'cache-first',
+        // network-only: 每次表单打开（widget mount）都必须拿最新用户列表。
+        // 不能用 cache-first：Sheet 关闭再打开时 Apollo 会命中空缓存（第一次
+        // 打开时后端可能确实没有用户），导致新建用户后再开表单仍然看不到用户。
+        fetchPolicy: 'network-only',
       })
       .then((result) => {
-        console.log('[EndUserSelectorWidget] findUsers response', {
-          errors: result.errors,
-          itemCount: result.data?.findUsers?.items?.length ?? 0,
-          items: result.data?.findUsers?.items,
-          hasMore: result.data?.findUsers?.hasMore,
-          reqId: result.data?.findUsers?.reqId,
-        })
         if (!cancelled) {
           const items = result.data?.findUsers?.items ?? []
           setUsers(items)
@@ -128,7 +122,6 @@ export function EndUserSelectorWidget(props: WidgetProps) {
           // Default new records to the builtin admin's ID
           if (!value) {
             const builtin = items.find((u) => u.isBuiltin)
-            console.log('[EndUserSelectorWidget] auto-select builtin admin:', builtin ?? 'not found')
             if (builtin) {
               onChange(builtin.id)
             }

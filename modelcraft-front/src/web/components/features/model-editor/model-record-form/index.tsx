@@ -62,6 +62,7 @@ export function ModelRecordForm({
   recordId,
   workspaceMode = 'design',
 }: ModelRecordFormProps) {
+  console.log('[ModelRecordForm] MOUNTED', { orgName, projectSlug, workspaceMode, modelId })
   const formRef = useRef<RJSFFormRef>(null)
   const adapter = useRecordAccessAdapter()
 
