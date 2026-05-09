@@ -361,29 +361,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemError'
-  /api/org/init:
-    post:
-      operationId: initOrg
-      summary: Initialize (create) an organization for the authenticated user
-      tags:
-        - Organization
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/InitOrgRequest'
-      responses:
-        '200':
-          description: Organization initialized
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/InitOrgResponse'
-        '400':
-          description: Invalid input
-        '409':
-          description: Organization already exists
 components:
   securitySchemes:
     BearerAuth:
@@ -837,30 +814,6 @@ components:
           format: int64
           description: Join timestamp in milliseconds (Unix epoch)
           example: 1708435200000
-    InitOrgRequest:
-      type: object
-      required:
-        - displayName
-        - endUserAdminPassword
-      properties:
-        displayName:
-          type: string
-        organizationName:
-          type: string
-        endUserAdminPassword:
-          type: string
-          description: Initial password for the builtin admin EndUser
-    InitOrgResponse:
-      type: object
-      properties:
-        requestId:
-          type: string
-        organizationName:
-          type: string
-        displayName:
-          type: string
-        alreadyExisted:
-          type: boolean
     RegisterProfileSnapshot:
       type: object
       required:

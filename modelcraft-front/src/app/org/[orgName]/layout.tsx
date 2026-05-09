@@ -53,10 +53,10 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
           }
 
           console.warn(
-            `[OrgLayout] Access denied to "${orgName}" and no memberships found, redirecting to org creation`
+            `[OrgLayout] Access denied to "${orgName}" and no memberships found, redirecting to login`
           );
           localStorage.removeItem("defaultOrgName");
-          router.push("/org/create");
+          router.push(TENANT_LOGIN_PATH);
           return;
         }
 

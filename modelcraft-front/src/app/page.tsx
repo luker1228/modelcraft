@@ -37,8 +37,8 @@ export default function Home() {
         return;
       }
 
-      console.log("[HomePage] default org not found, redirecting to org creation");
-      router.push("/org/create");
+      console.log("[HomePage] default org not found, redirecting to login");
+      router.push(TENANT_LOGIN_PATH);
     }
 
     init();

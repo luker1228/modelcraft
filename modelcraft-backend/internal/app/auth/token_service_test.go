@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"modelcraft/internal/app/organization"
 	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/shared"
 	"testing"
@@ -509,6 +510,79 @@ func TestTokenService_Logout_NonexistentToken(t *testing.T) {
 	// Logout with nonexistent token should succeed silently
 	err := svc.Logout(ctx, LogoutCommand{RefreshToken: "nonexistent"})
 	assert.NoError(t, err)
+}
+
+// ========== Register — builtin admin 创建 ==========
+
+// spyOrgCreationService 记录 Execute 被调用时传入的所有 input，供断言使用。
+type spyOrgCreationService struct {
+	calls []*organization.CreateOrganizationInput
+}
+
+func (s *spyOrgCreationService) Execute(
+	_ context.Context,
+	input *organization.CreateOrganizationInput,
+) (*organization.CreateOrganizationOutput, error) {
+	s.calls = append(s.calls, input)
+	return &organization.CreateOrganizationOutput{
+		OrganizationName: "spy-org",
+	}, nil
+}
+
+// createTestServiceWithOrgSpy 返回带 spy 的 TokenService，
+// 用于断言注册流程是否正确传递 EndUserAdminPassword。
+func createTestServiceWithOrgSpy(t *testing.T) (*TokenService, *spyOrgCreationService) {
+	t.Helper()
+	spy := &spyOrgCreationService{}
+	refreshRepo := newMockRefreshTokenRepo()
+	userRepo := newMockUserRepo()
+	profileRepo := newMockProfileRepo()
+	auditRepo := &mockAuditLogRepo{}
+	hasher := &mockPasswordHasher{}
+	membershipRepo := &mockMembershipRepo{orgName: "spy-org"}
+	jwtSigner, err := domainauth.GenerateDevSigner()
+	require.NoError(t, err)
+	svc := NewTokenService(
+		refreshRepo, userRepo, profileRepo, auditRepo, hasher,
+		7*24*time.Hour, spy, membershipRepo, nil, jwtSigner,
+	)
+	return svc, spy
+}
+
+// TestTokenService_Register_PassesPasswordToOrgCreation 验证注册时
+// EndUserAdminPassword 与注册密码保持一致。
+func TestTokenService_Register_PassesPasswordToOrgCreation(t *testing.T) {
+	svc, spy := createTestServiceWithOrgSpy(t)
+	ctx := context.Background()
+
+	const password = "securePassword1"
+	_, err := svc.Register(ctx, RegisterCommand{
+		Phone:    "13800138001",
+		Password: password,
+		UserName: "builtin_test_user",
+	})
+	require.NoError(t, err)
+
+	require.Len(t, spy.calls, 1, "createOrgService.Execute should be called once")
+	assert.Equal(t, password, spy.calls[0].EndUserAdminPassword,
+		"EndUserAdminPassword must equal the registration password")
+}
+
+// TestTokenService_Register_OrgCreationCalledWithOwnerID 验证 Execute 收到正确的 OwnerUserID。
+func TestTokenService_Register_OrgCreationCalledWithOwnerID(t *testing.T) {
+	svc, spy := createTestServiceWithOrgSpy(t)
+	ctx := context.Background()
+
+	result, err := svc.Register(ctx, RegisterCommand{
+		Phone:    "13800138002",
+		Password: "securePassword1",
+		UserName: "owner_check_user",
+	})
+	require.NoError(t, err)
+
+	require.Len(t, spy.calls, 1)
+	assert.Equal(t, result.UserID, spy.calls[0].OwnerUserID,
+		"OwnerUserID passed to org creation must match the newly registered user's ID")
 }
 
 // mockMembershipRepo 为测试提供一个始终返回固定 org 的 membership repo。

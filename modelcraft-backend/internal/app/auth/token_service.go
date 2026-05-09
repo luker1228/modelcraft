@@ -27,6 +27,16 @@ type MembershipOrgProvider interface {
 	ListByUserWithDetails(ctx context.Context, userID string, limit int) ([]*membership.MembershipWithDetails, error)
 }
 
+// OrgCreationService 是 TokenService 依赖的组织创建最小接口。
+// 注册时用于自动为新用户创建个人组织（含 builtin admin EndUser）。
+// 抽象为接口以便单测注入 spy。
+type OrgCreationService interface {
+	Execute(
+		ctx context.Context,
+		input *organization.CreateOrganizationInput,
+	) (*organization.CreateOrganizationOutput, error)
+}
+
 // TokenService 处理认证令牌操作：注册、登录、刷新、登出。
 // 使用有状态的 DB 存储 Refresh Token（opaque token），支持轮换和盗用检测。
 type TokenService struct {
@@ -37,7 +47,7 @@ type TokenService struct {
 	auditLogRepo     domainauth.SecurityAuditLogRepository
 	passwordHasher   domainauth.PasswordHasher
 	refreshTTL       time.Duration
-	createOrgService *organization.CreateOrganizationService
+	createOrgService OrgCreationService
 	txManager        repository.TxManager
 	jwtSigner        *domainauth.JWTSigner
 }
@@ -50,7 +60,7 @@ func NewTokenService(
 	auditLogRepo domainauth.SecurityAuditLogRepository,
 	passwordHasher domainauth.PasswordHasher,
 	refreshTTL time.Duration,
-	createOrgService *organization.CreateOrganizationService,
+	createOrgService OrgCreationService,
 	membershipRepo MembershipOrgProvider,
 	txManager repository.TxManager,
 	jwtSigner *domainauth.JWTSigner,
@@ -167,9 +177,10 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 	}
 
 	orgOutput, err := s.createOrgService.Execute(ctx, &organization.CreateOrganizationInput{
-		DisplayName:      cmd.UserName,
-		OrganizationName: "", // 由组织服务根据 displayName 生成 slug
-		OwnerUserID:      u.ID,
+		DisplayName:          cmd.UserName,
+		OrganizationName:     "", // 由组织服务根据 displayName 生成 slug
+		OwnerUserID:          u.ID,
+		EndUserAdminPassword: cmd.Password, // builtin admin 密码与注册密码保持一致
 	})
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create personal organization")

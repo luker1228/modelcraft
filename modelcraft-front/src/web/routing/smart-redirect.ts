@@ -25,9 +25,9 @@ export function getSmartRedirectUrl(
   memberships: MembershipInfo[],
   lastSelectedOrgId?: string
 ): string {
-  // 没有组织 - 跳转到创建组织页面
+  // 没有组织 - 跳转到登录页（注册时已自动创建 org，如果仍无则账号异常）
   if (memberships.length === 0) {
-    return '/org/create'
+    return '/tenant/login'
   }
 
   // 单个组织 - 直接进入该组织的工作空间
