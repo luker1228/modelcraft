@@ -75,18 +75,18 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
       setError(null)
 
       try {
-        const loginRes = await fetch(`/api/end-user/auth/login`, {
+        const registerRes = await fetch(`/api/bff/org/${orgName}/end-user/auth/register`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
           body: JSON.stringify({
-            orgName,
             username: values.username,
             password: values.password,
           }),
         })
 
-        const data = (await loginRes.json()) as EndUserOrgRegisterBffResponse
-        if (!loginRes.ok) {
+        const data = (await registerRes.json()) as EndUserOrgRegisterBffResponse
+        if (!registerRes.ok) {
           setError(getErrorMessage(data.error?.code, data.error?.message))
           form.resetField('password')
           form.resetField('confirmPassword')
