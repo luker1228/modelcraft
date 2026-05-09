@@ -25,6 +25,11 @@ interface ModelRecordFormProps {
   databaseName: string
   modelId: string
   recordId?: string
+  /** Controls which Apollo client EndUserSelectorWidget uses to fetch users.
+   *  - 'design'   → Tenant client via /graphql/org/ (default)
+   *  - 'end_user' → End-user client via /graphql/end-user/org/
+   */
+  workspaceMode?: 'design' | 'end_user'
 }
 
 const customWidgets = {
@@ -55,6 +60,7 @@ export function ModelRecordForm({
   databaseName,
   modelId,
   recordId,
+  workspaceMode = 'design',
 }: ModelRecordFormProps) {
   const formRef = useRef<RJSFFormRef>(null)
   const adapter = useRecordAccessAdapter()
@@ -83,14 +89,24 @@ export function ModelRecordForm({
   }, [editableSchema])
 
   // Form context for widgets — 注入 createRuntimeClient 使 RelationSelector 通过 access adapter 访问数据
-  const formContext = useMemo(() => ({
-    orgName,
-    projectSlug,
-    clusterName,
-    databaseName,
-    modelId,
-    createRuntimeClient: adapter.createRuntimeClient,
-  }), [orgName, projectSlug, clusterName, databaseName, modelId, adapter.createRuntimeClient])
+  const formContext = useMemo(() => {
+    const ctx = {
+      orgName,
+      projectSlug,
+      clusterName,
+      databaseName,
+      modelId,
+      workspaceMode,
+      createRuntimeClient: adapter.createRuntimeClient,
+    }
+    console.log('[ModelRecordForm] formContext built', {
+      orgName,
+      projectSlug,
+      workspaceMode,
+      modelId,
+    })
+    return ctx
+  }, [orgName, projectSlug, clusterName, databaseName, modelId, workspaceMode, adapter.createRuntimeClient])
 
   // Handle form submission
   const handleSubmit = async (data: IChangeEvent<Record<string, unknown>>) => {

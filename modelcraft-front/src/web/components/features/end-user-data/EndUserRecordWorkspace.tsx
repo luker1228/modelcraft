@@ -667,6 +667,7 @@ export default function EndUserRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
+                workspaceMode="end_user"
               />
             )}
           </SheetContent>
@@ -720,6 +721,7 @@ export default function EndUserRecordWorkspace({
                 clusterName=""
                 databaseName={model.databaseName ?? ''}
                 modelId={modelId}
+                workspaceMode="end_user"
               />
             )}
           </SheetContent>
