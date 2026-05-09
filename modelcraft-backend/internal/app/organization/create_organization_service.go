@@ -99,8 +99,9 @@ func (s *CreateOrganizationService) Execute(
 		return nil, err
 	}
 
-	// Step 3: Check idempotent - return existing org if user already has one
-	if output := s.handleExistingOrganization(ctx, existingUser.ID); output != nil {
+	// Step 3: Check idempotent - return existing org if user already has one.
+	// If endUserAdminPassword is provided, also ensure builtin admin exists.
+	if output := s.handleExistingOrganization(ctx, existingUser.ID, input.EndUserAdminPassword); output != nil {
 		return output, nil
 	}
 
@@ -183,9 +184,10 @@ func (s *CreateOrganizationService) validateUser(ctx context.Context, userID str
 	return existingUser, nil
 }
 
-// handleExistingOrganization returns existing organization if user already has one (idempotent)
+// handleExistingOrganization returns existing organization if user already has one (idempotent).
+// If endUserAdminPassword is non-empty and no builtin admin exists yet, one is created.
 func (s *CreateOrganizationService) handleExistingOrganization(
-	ctx context.Context, userID string,
+	ctx context.Context, userID string, endUserAdminPassword string,
 ) *CreateOrganizationOutput {
 	logger := logfacade.GetLogger(ctx)
 	orgCount, err := s.membershipRepo.CountByUser(ctx, userID)
@@ -208,6 +210,38 @@ func (s *CreateOrganizationService) handleExistingOrganization(
 	}
 
 	org := existingOrgs[0]
+
+	// If a password is provided, ensure the builtin admin exists (idempotent short tx).
+	if s.endUserRepoFactory != nil && endUserAdminPassword != "" {
+		if txErr := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+			euRepo := s.endUserRepoFactory(q, org.Name)
+			existing, checkErr := euRepo.GetByUsername(ctx, org.Name, domainenduser.BuiltinAdminUsername)
+			if checkErr != nil {
+				return checkErr
+			}
+			if existing != nil {
+				return nil // already exists, nothing to do
+			}
+			hashedPwd, hashErr := domainenduser.NewHashedPasswordFromPlain(endUserAdminPassword)
+			if hashErr != nil {
+				return hashErr
+			}
+			adminID, idErr := bizutils.GenerateUUIDV7()
+			if idErr != nil {
+				return idErr
+			}
+			adminUser, buildErr := domainenduser.NewBuiltinEndUser(adminID, org.Name, userID, hashedPwd)
+			if buildErr != nil {
+				return buildErr
+			}
+			return euRepo.Save(ctx, adminUser)
+		}); txErr != nil {
+			logger.Error(ctx, "Failed to ensure builtin admin on existing org", logfacade.Err(txErr))
+		} else {
+			logger.Infof(ctx, "Builtin admin ensured for existing org: org=%s", org.Name)
+		}
+	}
+
 	return &CreateOrganizationOutput{
 		OrganizationID:   org.Name,
 		OrganizationName: org.Name,

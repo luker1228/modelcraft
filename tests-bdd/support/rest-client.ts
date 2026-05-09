@@ -27,6 +27,7 @@ export interface LoginResponse {
   userId: string
   userName: string
   orgName: string
+  accessToken: string
   refreshToken: string
   expiresAt: string
 }
@@ -40,10 +41,13 @@ export interface RefreshResponse {
 
 export interface InitOrgResponse {
   requestId: string
-  success: boolean
-  orgName: string
+  organizationName: string
+  /** @deprecated backend returns organizationName, not orgName */
+  orgName?: string
   displayName: string
-  alreadyExists: boolean
+  alreadyExisted: boolean
+  /** @deprecated backend returns alreadyExisted, not alreadyExists */
+  alreadyExists?: boolean
 }
 
 export interface MembershipInfo {
@@ -102,7 +106,7 @@ export class RestClient {
     userName?: string
   ): Promise<RestResult<RegisterResponse>> {
     const normalizedUserName = userName ?? this.buildUserNameFromPhone(phone)
-    const res = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const res = await fetch(`${API_BASE_URL}/api/tenant/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone, userName: normalizedUserName, password }),
@@ -114,7 +118,7 @@ export class RestClient {
 
     // 兼容旧后端：当调用方未显式传 userName 时，允许回退到仅 phone+password 的老协议
     if (!userName && res.status === 400) {
-      const legacyRes = await fetch(`${API_BASE_URL}/api/auth/register`, {
+      const legacyRes = await fetch(`${API_BASE_URL}/api/tenant/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone, password }),
@@ -134,7 +138,7 @@ export class RestClient {
     password: string,
     identifierType: 'PHONE' | 'USERNAME' = 'PHONE'
   ): Promise<RestResult<LoginResponse>> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const res = await fetch(`${API_BASE_URL}/api/tenant/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ identifier, identifierType, password }),
@@ -146,7 +150,7 @@ export class RestClient {
 
     // 兼容旧后端：手机号登录可回退到 { phone, password }
     if (identifierType === 'PHONE' && /^1[3-9]\d{9}$/.test(identifier) && res.status === 400) {
-      const legacyRes = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      const legacyRes = await fetch(`${API_BASE_URL}/api/tenant/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ phone: identifier, password }),
@@ -162,7 +166,7 @@ export class RestClient {
   }
 
   async refresh(refreshToken: string): Promise<RestResult<RefreshResponse>> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    const res = await fetch(`${API_BASE_URL}/api/tenant/auth/refresh`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -175,7 +179,7 @@ export class RestClient {
   }
 
   async logout(refreshToken: string): Promise<RestResult<void>> {
-    const res = await fetch(`${API_BASE_URL}/api/auth/logout`, {
+    const res = await fetch(`${API_BASE_URL}/api/tenant/auth/logout`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ refreshToken }),
@@ -190,17 +194,25 @@ export class RestClient {
   async initOrganization(
     accessToken: string,
     displayName: string,
-    organizationName?: string
+    organizationName?: string,
+    endUserAdminPassword?: string,
+    /** If provided, use X-Internal-Token + X-User-ID instead of Bearer token */
+    internalAuth?: { internalToken: string; userId: string }
   ): Promise<RestResult<InitOrgResponse>> {
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+    if (internalAuth) {
+      headers['X-Internal-Token'] = internalAuth.internalToken
+      headers['X-User-ID'] = internalAuth.userId
+    } else {
+      headers['Authorization'] = `Bearer ${accessToken}`
+    }
     const res = await fetch(`${API_BASE_URL}/api/org/init`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${accessToken}`,
-      },
+      headers,
       body: JSON.stringify({
         displayName,
         ...(organizationName ? { organizationName } : {}),
+        ...(endUserAdminPassword ? { endUserAdminPassword } : {}),
       }),
     })
 

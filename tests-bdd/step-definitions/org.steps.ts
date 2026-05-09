@@ -68,7 +68,7 @@ const REVOKE_API_KEY = `
 
 Given('我已登录并持有 access token', async function (this: ModelCraftWorld) {
   const phone = randomPhone()
-  const password = `bdd${randomUUID().replace(/-/g, '').slice(0, 10)}`
+  const password = `bdd${randomUUID().replace(/-/g, '').slice(0, 10)}Aa1!`
 
   const regResult = await this.restClient.register(phone, password)
   if (!regResult.data) {
@@ -77,7 +77,14 @@ Given('我已登录并持有 access token', async function (this: ModelCraftWorl
 
   this.currentUserId = regResult.data.userId
   this.currentOrgName = regResult.data.orgName
-  this.orgClient.setOrgName(regResult.data.orgName)
+
+  // Store internal token for subsequent calls (backend uses X-Internal-Token + X-User-ID auth)
+  if (!this.internalToken && process.env.INTERNAL_TOKEN) {
+    this.internalToken = process.env.INTERNAL_TOKEN
+  }
+
+  this.orgClient.setOrgName(this.currentOrgName)
+  // Use a signed JWT for GraphQL calls (orgClient), internal token for REST
   this.token = signJWT(regResult.data.userId, 3600)
   this.projectClient.setAuth(this.token)
   this.orgClient.setAuth(this.token)
@@ -107,8 +114,8 @@ When('我初始化组织 displayName 为 {string}', async function (this: ModelC
   const result = this.lastRestResult as RestResult<InitOrgResponse>
   if (result.data) {
     this.initDisplayName = displayName
-    this.initOrgName = result.data.orgName
-    this.initAlreadyExists = result.data.alreadyExists
+    this.initOrgName = result.data.organizationName
+    this.initAlreadyExists = result.data.alreadyExisted
   }
 })
 
@@ -125,9 +132,9 @@ When('我首次初始化组织 displayName 为 {string}', async function (this: 
   }
 
   this.initDisplayName = displayName
-  this.firstInitOrgName = result.data.orgName
-  this.initOrgName = result.data.orgName
-  this.initAlreadyExists = result.data.alreadyExists
+  this.firstInitOrgName = result.data.organizationName
+  this.initOrgName = result.data.organizationName
+  this.initAlreadyExists = result.data.alreadyExisted
 })
 
 When('我再次使用相同 displayName 初始化组织', async function (this: ModelCraftWorld) {
@@ -145,9 +152,9 @@ When('我再次使用相同 displayName 初始化组织', async function (this: 
     throw new Error(`二次初始化失败 — ${JSON.stringify(result.error)}`)
   }
 
-  this.secondInitOrgName = result.data.orgName
-  this.initOrgName = result.data.orgName
-  this.initAlreadyExists = result.data.alreadyExists
+  this.secondInitOrgName = result.data.organizationName
+  this.initOrgName = result.data.organizationName
+  this.initAlreadyExists = result.data.alreadyExisted
 })
 
 Then('组织初始化应该成功', function (this: ModelCraftWorld) {
@@ -155,21 +162,20 @@ Then('组织初始化应该成功', function (this: ModelCraftWorld) {
   expect(result).not.toBeNull()
   expect(result.status).toBe(200)
   expect(result.data).toBeDefined()
-  expect(result.data!.success).toBe(true)
-  expect(result.data!.orgName).toBeTruthy()
+  expect(result.data!.organizationName).toBeTruthy()
   expect(result.data!.displayName).toBeTruthy()
 })
 
 Then('初始化结果 should have alreadyExists false', function (this: ModelCraftWorld) {
   const result = this.lastRestResult as RestResult<InitOrgResponse>
   expect(result.data).toBeDefined()
-  expect(result.data!.alreadyExists).toBe(false)
+  expect(result.data!.alreadyExisted).toBe(false)
 })
 
 Then('第二次初始化结果 should have alreadyExists true', function (this: ModelCraftWorld) {
   const result = this.lastRestResult as RestResult<InitOrgResponse>
   expect(result.data).toBeDefined()
-  expect(result.data!.alreadyExists).toBe(true)
+  expect(result.data!.alreadyExisted).toBe(true)
 })
 
 Then('两次初始化返回的 orgName 应相同', function (this: ModelCraftWorld) {
@@ -277,4 +283,87 @@ Then('API Key 角色应更新为空', async function (this: ModelCraftWorld) {
   if (this.currentAPIKeyID) {
     await this.orgClient.mutate(REVOKE_API_KEY, { id: this.currentAPIKeyID })
   }
+})
+
+// ─────────────────────────────────────────────────────────────────
+// Builtin Admin EndUser — init-org 场景专用
+// ─────────────────────────────────────────────────────────────────
+
+const LIST_END_USERS_WITH_BUILTIN_QUERY = `
+  query ListEndUsersWithBuiltin($input: ListEndUsersInput) {
+    listEndUsers(input: $input) {
+      connection { nodes { id username isForbidden isBuiltin } pageInfo { hasNextPage } totalCount }
+      error { __typename }
+    }
+  }
+`
+
+interface EndUserNode {
+  id: string
+  username: string
+  isForbidden: boolean
+  isBuiltin: boolean
+}
+
+let builtinAdminUser: EndUserNode | null = null
+
+When(
+  '我初始化组织 displayName 为 {string} 并设置 endUserAdminPassword 为 {string}',
+  async function (this: ModelCraftWorld, displayName: string, adminPassword: string) {
+    if (!this.currentUserId) {
+      throw new Error('当前无用户 ID，请先执行"我已登录并持有 access token"')
+    }
+    const internalToken = this.internalToken || process.env.INTERNAL_TOKEN
+    if (!internalToken) {
+      throw new Error('缺少 INTERNAL_TOKEN，无法直连后端调用 /api/org/init')
+    }
+    this.lastRestResult = await this.restClient.initOrganization(
+      '',
+      displayName,
+      undefined,
+      adminPassword,
+      { internalToken, userId: this.currentUserId }
+    )
+    const result = this.lastRestResult as RestResult<InitOrgResponse>
+    if (result.data) {
+      this.initDisplayName = displayName
+      this.initOrgName = result.data.organizationName
+      this.initAlreadyExists = result.data.alreadyExisted
+      // 将 orgClient 指向新建的 org，以便后续步骤查询
+      this.orgClient.setOrgName(result.data.organizationName)
+      this.orgClient.setAuth(this.token)
+    }
+  }
+)
+
+Then('该组织下应存在一个 isBuiltin 为 true 的终端用户', async function (this: ModelCraftWorld) {
+  // Use internal token for GraphQL query if available
+  const internalToken = this.internalToken || process.env.INTERNAL_TOKEN
+  if (internalToken && this.currentUserId) {
+    this.orgClient.setInternalTokenAuth(internalToken, this.currentUserId)
+  }
+
+  const res = await this.orgClient.query<{
+    listEndUsers: {
+      connection: { nodes: EndUserNode[]; pageInfo: { hasNextPage: boolean }; totalCount: number }
+      error: { __typename: string } | null
+    }
+  }>(LIST_END_USERS_WITH_BUILTIN_QUERY, {})
+
+  expect(res.listEndUsers.error).toBeNull()
+
+  const builtins = res.listEndUsers.connection.nodes.filter((u) => u.isBuiltin)
+  expect(builtins.length).toBeGreaterThanOrEqual(1)
+
+  builtinAdminUser = builtins[0]
+})
+
+Then('该 builtin 用户的用户名应为 {string}', function (this: ModelCraftWorld, expectedUsername: string) {
+  expect(builtinAdminUser).not.toBeNull()
+  expect(builtinAdminUser!.username).toBe(expectedUsername)
+})
+
+Then('该 builtin 用户的 isForbidden 应为 false', function (this: ModelCraftWorld) {
+  expect(builtinAdminUser).not.toBeNull()
+  expect(builtinAdminUser!.isForbidden).toBe(false)
 })
