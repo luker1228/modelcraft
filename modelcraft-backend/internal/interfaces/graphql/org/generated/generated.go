@@ -43,7 +43,7 @@ type ResolverRoot interface {
 }
 
 type DirectiveRoot struct {
-	HasPermission func(ctx context.Context, obj any, next graphql.Resolver, action string) (res any, err error)
+	HasPermission func(ctx context.Context, obj any, next graphql.Resolver, action string, allowEndUser bool) (res any, err error)
 }
 
 type ComplexityRoot struct {
@@ -2256,7 +2256,7 @@ scalar Date
 scalar Time
 
 # Permission directive for operation-level authorization
-directive @hasPermission(action: String!) on FIELD_DEFINITION
+directive @hasPermission(action: String!, allowEndUser: Boolean! = false) on FIELD_DEFINITION
 
 # Node interface for Relay specification
 interface Node {
@@ -2432,7 +2432,7 @@ extend type Query {
     where: UserWhereInput
     after: String
     first: Int
-  ): UserFindManyResult! @hasPermission(action: "end-user:read")
+  ): UserFindManyResult! @hasPermission(action: "end-user:read", allowEndUser: true)
 }
 
 extend type Mutation {
@@ -3238,6 +3238,11 @@ func (ec *executionContext) dir_hasPermission_args(ctx context.Context, rawArgs 
 		return nil, err
 	}
 	args["action"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "allowEndUser", ec.unmarshalNBoolean2bool)
+	if err != nil {
+		return nil, err
+	}
+	args["allowEndUser"] = arg1
 	return args, nil
 }
 
@@ -6478,11 +6483,16 @@ func (ec *executionContext) _Mutation_createEndUser(ctx context.Context, field g
 					var zeroVal *CreateEndUserPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *CreateEndUserPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *CreateEndUserPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6543,11 +6553,16 @@ func (ec *executionContext) _Mutation_updateEndUserStatus(ctx context.Context, f
 					var zeroVal *UpdateEndUserStatusPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *UpdateEndUserStatusPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UpdateEndUserStatusPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6608,11 +6623,16 @@ func (ec *executionContext) _Mutation_deleteEndUser(ctx context.Context, field g
 					var zeroVal *DeleteEndUserPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *DeleteEndUserPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *DeleteEndUserPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6673,11 +6693,16 @@ func (ec *executionContext) _Mutation_createCustomRole(ctx context.Context, fiel
 					var zeroVal *CreateCustomRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *CreateCustomRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *CreateCustomRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6738,11 +6763,16 @@ func (ec *executionContext) _Mutation_updatePermissionRole(ctx context.Context, 
 					var zeroVal *UpdatePermissionRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *UpdatePermissionRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UpdatePermissionRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6803,11 +6833,16 @@ func (ec *executionContext) _Mutation_deletePermissionRole(ctx context.Context, 
 					var zeroVal *DeletePermissionRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *DeletePermissionRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *DeletePermissionRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6868,11 +6903,16 @@ func (ec *executionContext) _Mutation_addPermissionToRole(ctx context.Context, f
 					var zeroVal *AddRolePermissionPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *AddRolePermissionPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *AddRolePermissionPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6933,11 +6973,16 @@ func (ec *executionContext) _Mutation_removePermissionFromRole(ctx context.Conte
 					var zeroVal *RemoveRolePermissionPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *RemoveRolePermissionPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *RemoveRolePermissionPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -6998,11 +7043,16 @@ func (ec *executionContext) _Mutation_assignRoleToUser(ctx context.Context, fiel
 					var zeroVal *AssignRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *AssignRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *AssignRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7063,11 +7113,16 @@ func (ec *executionContext) _Mutation_revokeRoleFromUser(ctx context.Context, fi
 					var zeroVal *RevokeRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *RevokeRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *RevokeRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7128,11 +7183,16 @@ func (ec *executionContext) _Mutation_updateMyProfile(ctx context.Context, field
 					var zeroVal *UpdateMyProfilePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *UpdateMyProfilePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UpdateMyProfilePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7193,11 +7253,16 @@ func (ec *executionContext) _Mutation_createProject(ctx context.Context, field g
 					var zeroVal *CreateProjectPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *CreateProjectPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *CreateProjectPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7258,11 +7323,16 @@ func (ec *executionContext) _Mutation_updateProject(ctx context.Context, field g
 					var zeroVal *UpdateProjectPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *UpdateProjectPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UpdateProjectPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7323,11 +7393,16 @@ func (ec *executionContext) _Mutation_deleteProject(ctx context.Context, field g
 					var zeroVal *DeleteProjectPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *DeleteProjectPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *DeleteProjectPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7388,11 +7463,16 @@ func (ec *executionContext) _Mutation_updateProjectCluster(ctx context.Context, 
 					var zeroVal *UpdateClusterPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *UpdateClusterPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UpdateClusterPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7453,11 +7533,16 @@ func (ec *executionContext) _Mutation_testDatabaseConnection(ctx context.Context
 					var zeroVal *TestConnectionPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *TestConnectionPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *TestConnectionPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7520,11 +7605,16 @@ func (ec *executionContext) _Mutation_setProjectAuthSchema(ctx context.Context, 
 					var zeroVal *SetProjectAuthSchemaPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *SetProjectAuthSchemaPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *SetProjectAuthSchemaPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7585,11 +7675,16 @@ func (ec *executionContext) _Mutation_updateOrganization(ctx context.Context, fi
 					var zeroVal *UpdateOrganizationPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *UpdateOrganizationPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UpdateOrganizationPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7650,11 +7745,16 @@ func (ec *executionContext) _Mutation_createRole(ctx context.Context, field grap
 					var zeroVal *CreateRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *CreateRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *CreateRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -7715,11 +7815,16 @@ func (ec *executionContext) _Mutation_deleteRole(ctx context.Context, field grap
 					var zeroVal *DeleteRolePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *DeleteRolePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *DeleteRolePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9567,11 +9672,16 @@ func (ec *executionContext) _Query_listEndUsers(ctx context.Context, field graph
 					var zeroVal *ListEndUsersPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *ListEndUsersPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *ListEndUsersPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9632,11 +9742,16 @@ func (ec *executionContext) _Query_findUsers(ctx context.Context, field graphql.
 					var zeroVal *UserFindManyResult
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, true)
+				if err != nil {
+					var zeroVal *UserFindManyResult
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *UserFindManyResult
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9701,11 +9816,16 @@ func (ec *executionContext) _Query_permissionRoles(ctx context.Context, field gr
 					var zeroVal []*PermissionRole
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*PermissionRole
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal []*PermissionRole
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9776,11 +9896,16 @@ func (ec *executionContext) _Query_permissionRole(ctx context.Context, field gra
 					var zeroVal *PermissionRole
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *PermissionRole
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *PermissionRole
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9851,11 +9976,16 @@ func (ec *executionContext) _Query_userRoleAssignments(ctx context.Context, fiel
 					var zeroVal []*UserRoleAssignment
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*UserRoleAssignment
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal []*UserRoleAssignment
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9922,11 +10052,16 @@ func (ec *executionContext) _Query_rolePermissionsList(ctx context.Context, fiel
 					var zeroVal []*PermissionDef
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*PermissionDef
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal []*PermissionDef
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -9986,11 +10121,16 @@ func (ec *executionContext) _Query_myUserProfile(ctx context.Context, field grap
 					var zeroVal *GetMyUserProfilePayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *GetMyUserProfilePayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *GetMyUserProfilePayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -10040,11 +10180,16 @@ func (ec *executionContext) _Query_project(ctx context.Context, field graphql.Co
 					var zeroVal *GetProjectPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *GetProjectPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *GetProjectPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -10105,11 +10250,16 @@ func (ec *executionContext) _Query_projects(ctx context.Context, field graphql.C
 					var zeroVal []*Project
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*Project
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal []*Project
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -10184,11 +10334,16 @@ func (ec *executionContext) _Query_databaseCluster(ctx context.Context, field gr
 					var zeroVal *GetClusterPayload
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *GetClusterPayload
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal *GetClusterPayload
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -10338,11 +10493,16 @@ func (ec *executionContext) _Query_organizationMembers(ctx context.Context, fiel
 					var zeroVal []*OrganizationMember
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*OrganizationMember
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal []*OrganizationMember
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1
@@ -10403,11 +10563,16 @@ func (ec *executionContext) _Query_roles(ctx context.Context, field graphql.Coll
 					var zeroVal []*Role
 					return zeroVal, err
 				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal []*Role
+					return zeroVal, err
+				}
 				if ec.directives.HasPermission == nil {
 					var zeroVal []*Role
 					return zeroVal, errors.New("directive hasPermission is not implemented")
 				}
-				return ec.directives.HasPermission(ctx, nil, directive0, action)
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
 			}
 
 			next = directive1

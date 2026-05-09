@@ -1,8 +1,8 @@
 package enduser_test
 
 import (
-	"testing"
 	"modelcraft/internal/domain/enduser"
+	"testing"
 )
 
 func TestNewBuiltinEndUser_SetsIsBuiltin(t *testing.T) {

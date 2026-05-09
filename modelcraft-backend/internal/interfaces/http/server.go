@@ -3,13 +3,12 @@ package http
 import (
 	"encoding/json"
 	"errors"
-	"strings"
-
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
+	"strings"
 
 	appOrg "modelcraft/internal/app/organization"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"

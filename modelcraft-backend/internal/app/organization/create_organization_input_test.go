@@ -1,9 +1,8 @@
 package organization_test
 
 import (
-	"testing"
-
 	"modelcraft/internal/app/organization"
+	"testing"
 )
 
 func TestCreateOrganizationInput_HasEndUserAdminPassword(t *testing.T) {

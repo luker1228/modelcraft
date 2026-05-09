@@ -47,7 +47,6 @@ type ChiRouterConfig struct {
 //	  ├── /health, /test                          → net/http (no auth)
 //	  ├── /api/openapi.json                       → net/http (no auth)
 //	  ├── /graphql/org/*                          → gateway-trusted auth (X-User-ID)
-//	  ├── /graphql/end-user/*                     → internal-token auth
 //	  └── /api/* (generated OpenAPI handler)      → Chi with conditional auth
 //	        ├── /api/auth/register, /login, /logout     → public (no auth)
 //	        └── everything else                       → gateway-trusted auth (X-User-ID)

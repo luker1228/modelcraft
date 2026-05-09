@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	domainenduser "modelcraft/internal/domain/enduser"
 	appenduser "modelcraft/internal/app/enduser"
+	domainenduser "modelcraft/internal/domain/enduser"
 )
 
 // fakeEndUserRepo implements domainenduser.EndUserRepository for testing.
@@ -18,9 +18,11 @@ func (f *fakeEndUserRepo) Save(_ context.Context, u *domainenduser.EndUser) erro
 	f.users[u.ID] = u
 	return nil
 }
+
 func (f *fakeEndUserRepo) GetByID(_ context.Context, _, id string) (*domainenduser.EndUser, error) {
 	return f.users[id], nil
 }
+
 func (f *fakeEndUserRepo) GetByUsername(_ context.Context, _, username string) (*domainenduser.EndUser, error) {
 	for _, u := range f.users {
 		if u.Username == username {
@@ -29,6 +31,7 @@ func (f *fakeEndUserRepo) GetByUsername(_ context.Context, _, username string) (
 	}
 	return nil, nil
 }
+
 func (f *fakeEndUserRepo) GetBuiltinByOrg(_ context.Context, _ string) (*domainenduser.EndUser, error) {
 	for _, u := range f.users {
 		if u.IsBuiltin {
@@ -37,22 +40,27 @@ func (f *fakeEndUserRepo) GetBuiltinByOrg(_ context.Context, _ string) (*domaine
 	}
 	return nil, nil
 }
+
 func (f *fakeEndUserRepo) UpdateStatus(_ context.Context, _, id string, isForbidden bool) error {
 	if u, ok := f.users[id]; ok {
 		u.IsForbidden = isForbidden
 	}
 	return nil
 }
+
 func (f *fakeEndUserRepo) Delete(_ context.Context, _, id string) error {
 	delete(f.users, id)
 	return nil
 }
+
 func (f *fakeEndUserRepo) ListWithTotal(_ context.Context, _ domainenduser.ListEndUsersQuery) ([]*domainenduser.EndUser, int64, error) {
 	return nil, 0, nil
 }
+
 func (f *fakeEndUserRepo) ListAccessibleProjectsByRoleAssignment(_ context.Context, _, _ string) ([]domainenduser.AccessibleProject, error) {
 	return nil, nil
 }
+
 func (f *fakeEndUserRepo) HasProjectAccessByRole(_ context.Context, _, _, _ string) (bool, error) {
 	return false, nil
 }

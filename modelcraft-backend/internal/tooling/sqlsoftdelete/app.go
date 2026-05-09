@@ -17,7 +17,7 @@ import (
 const defaultConfigPath = "db/soft_delete.yaml"
 
 // Run executes the sqlsoftdelete command with subcommands.
-func Run(args []string, stdout io.Writer, stderr io.Writer) int {
+func Run(args []string, stdout, stderr io.Writer) int {
 	if stdout == nil {
 		stdout = io.Discard
 	}
@@ -45,7 +45,7 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 	}
 }
 
-func runLint(args []string, stdout io.Writer, stderr io.Writer) int {
+func runLint(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("lint", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", defaultConfigPath, "Path to soft delete policy file")
@@ -84,7 +84,7 @@ func runLint(args []string, stdout io.Writer, stderr io.Writer) int {
 	return 0
 }
 
-func runCodemod(args []string, stdout io.Writer, stderr io.Writer) int {
+func runCodemod(args []string, stdout, stderr io.Writer) int {
 	fs := flag.NewFlagSet("codemod", flag.ContinueOnError)
 	fs.SetOutput(stderr)
 	configPath := fs.String("config", defaultConfigPath, "Path to soft delete policy file")

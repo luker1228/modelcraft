@@ -116,7 +116,7 @@ extend type Query {
     where: UserWhereInput
     after: String
     first: Int
-  ): UserFindManyResult! @hasPermission(action: "end-user:read")
+  ): UserFindManyResult! @hasPermission(action: "end-user:read", allowEndUser: true)
 }
 
 extend type Mutation {

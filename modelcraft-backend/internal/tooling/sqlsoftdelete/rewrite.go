@@ -148,7 +148,7 @@ func quoteIdent(name string) string {
 	return "`" + trimmed + "`"
 }
 
-func injectPredicateIntoSelect(sql string, predicate string) (string, bool) {
+func injectPredicateIntoSelect(sql, predicate string) (string, bool) {
 	orderingRe := regexp.MustCompile(`(?is)\b(order\s+by|limit|for\s+update|lock\s+in\s+share\s+mode)\b`)
 	whereRe := regexp.MustCompile(`(?is)\bwhere\b`)
 	insertAt := len(sql)

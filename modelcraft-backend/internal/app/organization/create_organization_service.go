@@ -187,7 +187,7 @@ func (s *CreateOrganizationService) validateUser(ctx context.Context, userID str
 // handleExistingOrganization returns existing organization if user already has one (idempotent).
 // If endUserAdminPassword is non-empty and no builtin admin exists yet, one is created.
 func (s *CreateOrganizationService) handleExistingOrganization(
-	ctx context.Context, userID string, endUserAdminPassword string,
+	ctx context.Context, userID, endUserAdminPassword string,
 ) *CreateOrganizationOutput {
 	logger := logfacade.GetLogger(ctx)
 	orgCount, err := s.membershipRepo.CountByUser(ctx, userID)

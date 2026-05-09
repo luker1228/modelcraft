@@ -27,11 +27,13 @@ func NewHasPermissionDirective(userRoleService *appPermission.UserRoleService) *
 
 // HasPermission checks if the user has the required permission before executing the field resolver
 // Optimized to prioritize JWT claims (context permissions) over database queries for better performance.
+// allowEndUser: when true, EndUser callers bypass RBAC checks entirely for this operation.
 func (d *HasPermissionDirective) HasPermission(
 	ctx context.Context,
 	obj interface{},
 	next graphql.Resolver,
 	action string,
+	allowEndUser bool,
 ) (interface{}, error) {
 	logger := logfacade.GetLogger(ctx)
 
@@ -54,6 +56,18 @@ func (d *HasPermissionDirective) HasPermission(
 	userID, orgName, err := d.validateContext(ctx, logger)
 	if err != nil {
 		return nil, err
+	}
+
+	// End-user callers: default-deny. Only operations explicitly marked allowEndUser=true are accessible.
+	if ctxutils.IsEndUser(ctx) {
+		if !allowEndUser {
+			logger.Infof(ctx, "@hasPermission directive: end-user access denied (allowEndUser=false) user=%s action=%s",
+				userID, action)
+			return nil, newPermissionDeniedError(action, userID, orgName, "end-user-default-deny")
+		}
+		logger.Infof(ctx, "@hasPermission directive: end-user access granted (allowEndUser=true) user=%s action=%s",
+			userID, action)
+		return next(ctx)
 	}
 
 	// OPTIMIZATION: Try to get permissions from JWT context first (no DB query)
