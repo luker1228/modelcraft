@@ -9,9 +9,9 @@ func TestVersionCommandPrintsInjectedMetadata(t *testing.T) {
 	t.Setenv("NO_COLOR", "1")
 
 	cmd := NewRootCommand(BuildInfo{
-		Version:   "v0.1.0",
-		Commit:    "abc1234",
-		BuildTime: "2026-05-09T12:00:00Z",
+		Version:   "v0.1.0\"beta",
+		Commit:    "abc\\1234",
+		BuildTime: "2026-05-09T12:00:00Z\nnext",
 	})
 
 	buf := new(bytes.Buffer)
@@ -24,8 +24,18 @@ func TestVersionCommandPrintsInjectedMetadata(t *testing.T) {
 	}
 
 	got := buf.String()
-	want := "{\"ok\":true,\"data\":{\"version\":\"v0.1.0\",\"commit\":\"abc1234\",\"buildTime\":\"2026-05-09T12:00:00Z\"}}\n"
+	want := "{\"ok\":true,\"data\":{\"version\":\"v0.1.0\\\"beta\",\"commit\":\"abc\\\\1234\",\"buildTime\":\"2026-05-09T12:00:00Z\\nnext\"}}\n"
 	if got != want {
 		t.Fatalf("version output mismatch\nwant: %s\ngot:  %s", want, got)
+	}
+}
+
+func TestVersionCommandRejectsUnexpectedArgs(t *testing.T) {
+	cmd := NewRootCommand(BuildInfo{})
+	cmd.SetArgs([]string{"version", "extra"})
+
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("Execute() error = nil, want non-nil")
 	}
 }

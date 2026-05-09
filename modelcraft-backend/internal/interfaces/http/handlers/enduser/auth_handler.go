@@ -86,25 +86,23 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(ctx)
 
 	var req struct {
-		OrgName     string `json:"orgName"`
-		ProjectSlug string `json:"projectSlug"`
-		Username    string `json:"username"`
-		Password    string `json:"password"`
+		OrgName  string `json:"orgName"`
+		Username string `json:"username"`
+		Password string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
 		return
 	}
-	if req.OrgName == "" || req.ProjectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName and projectSlug are required")
+	if req.OrgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
 		return
 	}
 
 	result, err := h.authService.RegisterEndUser(ctx, appEnduser.RegisterCommand{
-		OrgName:     req.OrgName,
-		ProjectSlug: req.ProjectSlug,
-		Username:    req.Username,
-		Password:    req.Password,
+		OrgName:  req.OrgName,
+		Username: req.Username,
+		Password: req.Password,
 	})
 	if err != nil {
 		h.handleBizError(w, r, requestID, err, "end-user register failed")

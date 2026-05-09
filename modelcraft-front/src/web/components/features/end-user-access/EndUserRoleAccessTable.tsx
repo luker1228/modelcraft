@@ -7,6 +7,7 @@
 // 展示：一行 = 一个用户，角色列展示多个 Badge，可单独撤销
 
 import { useState, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { Plus, RefreshCw, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@web/components/ui/button'
@@ -216,6 +217,9 @@ interface AssignRoleDialogProps {
   preselectedUser?: { id: string; username: string }
   // 该用户已拥有的角色 id，从可选角色中过滤掉
   assignedRoleIds?: string[]
+  // 用于构造 RBAC 跳转链接
+  orgName: string
+  projectSlug: string
 }
 
 function AssignRoleDialog({
@@ -226,6 +230,8 @@ function AssignRoleDialog({
   onConfirm,
   preselectedUser,
   assignedRoleIds = [],
+  orgName,
+  projectSlug,
 }: AssignRoleDialogProps) {
   const [selectedUserId, setSelectedUserId] = useState(preselectedUser?.id ?? '')
   const [selectedRoleId, setSelectedRoleId] = useState('')
@@ -275,7 +281,19 @@ function AssignRoleDialog({
           <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
             {isAddingRole
               ? '该用户已拥有全部可用角色。'
-              : '当前项目尚无可用角色。请先在 RBAC 设置页创建角色后再添加用户。'}
+              : (
+                <>
+                  当前项目尚无可用角色。请先前往{' '}
+                  <Link
+                    href={`/org/${orgName}/project/${projectSlug}/roles`}
+                    className="font-medium underline underline-offset-2 hover:text-amber-900"
+                    onClick={onClose}
+                  >
+                    RBAC 角色设置
+                  </Link>
+                  {' '}创建角色后再添加用户。
+                </>
+              )}
           </div>
         ) : (
           <div className="space-y-4 py-2">
@@ -529,6 +547,8 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
         orgUsers={orgUsers}
         availableRoles={availableRoles}
         onConfirm={handleAssignRole}
+        orgName={orgName}
+        projectSlug={projectSlug}
       />
 
       {/* 追加角色 dialog（已有用户追加场景） */}
@@ -540,6 +560,8 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
         onConfirm={handleAssignRole}
         preselectedUser={addRoleForUser ?? undefined}
         assignedRoleIds={addRoleForUser?.assignedRoleIds}
+        orgName={orgName}
+        projectSlug={projectSlug}
       />
 
       {/* 撤销角色确认 */}

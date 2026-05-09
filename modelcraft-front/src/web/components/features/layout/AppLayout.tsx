@@ -188,13 +188,9 @@ export function AppLayout({
   const isNavActive = useCallback(
     (href: string) => {
       if (pathname === href || pathname?.startsWith(href + '/')) return true
-      // rbac/* 路由高亮「访问控制」
-      const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
-      const rbacBase = `/org/${orgName}/project/${projectSlug}/rbac`
-      if (href === rolesHref && pathname?.startsWith(rbacBase)) return true
       return false
     },
-    [pathname, orgName, projectSlug]
+    [pathname]
   )
 
   const isSubItemActive = useCallback(

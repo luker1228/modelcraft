@@ -176,7 +176,7 @@ export function useCreatePermissionWizard(
       if (onSuccess) {
         onSuccess()
       } else {
-        window.location.href = `/org/${orgName}/project/${projectSlug}/rbac/permissions`
+        window.location.href = `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`
       }
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : '创建权限点时发生错误，请重试')
