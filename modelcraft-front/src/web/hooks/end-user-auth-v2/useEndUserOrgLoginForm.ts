@@ -11,6 +11,7 @@ import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 
 // ============================================================================
 // BFF Response Types
@@ -79,6 +80,7 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const setAccessToken = useEndUserAuthStore((s) => s.setAccessToken)
 
   const form = useForm<EndUserOrgLoginFormValues>({
     resolver: zodResolver(orgLoginSchema),
@@ -109,6 +111,17 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
           return
         }
 
+        // 把 accessToken 写入 store 供后续 GraphQL 请求使用
+        if (data.accessToken) {
+          // expiresAt 是 ISO 8601，转换为 expiresIn 秒数
+          let expiresIn = 3600
+          if (data.expiresAt) {
+            const ms = new Date(data.expiresAt).getTime() - Date.now()
+            if (ms > 0) expiresIn = Math.floor(ms / 1000)
+          }
+          setAccessToken(data.accessToken, expiresIn)
+        }
+
         const projects: EndUserAccessibleProject[] = data.projects ?? []
 
         // 无论 0/1/N 个 Project，均跳转 workspace
@@ -121,7 +134,7 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
         setIsLoading(false)
       }
     })(e),
-    [form, orgName, router]
+    [form, orgName, router, setAccessToken]
   )
 
   return { form, onSubmit, isLoading, error }

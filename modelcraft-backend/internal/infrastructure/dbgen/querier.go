@@ -144,6 +144,8 @@ type Querier interface {
 	InsertBundleSnapshot(ctx context.Context, arg InsertBundleSnapshotParams) error
 	InsertRefreshToken(ctx context.Context, arg InsertRefreshTokenParams) error
 	InsertSecurityAuditLog(ctx context.Context, arg InsertSecurityAuditLogParams) error
+	// 检查指定用户是否为 Org 内置 admin（is_builtin=true）
+	IsEndUserBuiltin(ctx context.Context, arg IsEndUserBuiltinParams) (bool, error)
 	IsPermissionReferencedByBundleItem(ctx context.Context, customPermissionID sql.NullString) (bool, error)
 	ListBundleDataPermissionItems(ctx context.Context, bundleID string) ([]EndUserBundleDataPermissionItem, error)
 	ListBundleSnapshots(ctx context.Context, bundleID string) ([]EndUserPermissionBundleSnapshot, error)
@@ -188,7 +190,7 @@ type Querier interface {
 	UpdateDatabaseClusterWithVersion(ctx context.Context, arg UpdateDatabaseClusterWithVersionParams) (sql.Result, error)
 	UpdateEndUserBundle(ctx context.Context, arg UpdateEndUserBundleParams) (sql.Result, error)
 	UpdateEndUserPermission(ctx context.Context, arg UpdateEndUserPermissionParams) (sql.Result, error)
-	// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
+	// 注意：is_implicit=TRUE 或 is_protected=TRUE 的角色由业务层阻断，不走 SQL 层约束
 	UpdateEndUserRole(ctx context.Context, arg UpdateEndUserRoleParams) (sql.Result, error)
 	UpdateEnum(ctx context.Context, arg UpdateEnumParams) error
 	UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.Result, error)

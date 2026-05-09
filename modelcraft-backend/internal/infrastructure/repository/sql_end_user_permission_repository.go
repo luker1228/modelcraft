@@ -777,6 +777,7 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 		Name:        row.Name,
 		Description: description,
 		IsImplicit:  row.IsImplicit,
+		IsProtected: row.IsProtected,
 	}
 }
 
@@ -996,6 +997,23 @@ func (r *SqlEndUserDataPermissionRepository) RevokeRoleFromUser(
 		OrgName: orgName,
 	})
 	return sqlerr.WrapSQLError(err)
+}
+
+func (r *SqlEndUserDataPermissionRepository) IsUserBuiltin(
+	ctx context.Context,
+	orgName, userID string,
+) (bool, error) {
+	isBuiltin, err := r.q.IsEndUserBuiltin(ctx, dbgen.IsEndUserBuiltinParams{
+		ID:      userID,
+		OrgName: orgName,
+	})
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return false, nil
+		}
+		return false, sqlerr.WrapSQLError(err)
+	}
+	return isBuiltin, nil
 }
 
 func (r *SqlEndUserDataPermissionRepository) GetBundleIDsByUserDirect(

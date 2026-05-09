@@ -47,9 +47,10 @@ INSERT INTO end_user_roles (
   project_slug,
   name,
   description,
-  is_implicit
+  is_implicit,
+  is_protected
 )
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserRoleParams struct {
@@ -59,6 +60,7 @@ type CreateEndUserRoleParams struct {
 	Name        string
 	Description sql.NullString
 	IsImplicit  bool
+	IsProtected bool
 }
 
 func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRoleParams) error {
@@ -69,6 +71,7 @@ func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRolePa
 		arg.Name,
 		arg.Description,
 		arg.IsImplicit,
+		arg.IsProtected,
 	)
 	return err
 }
@@ -76,7 +79,8 @@ func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRolePa
 const deleteEndUserRole = `-- name: DeleteEndUserRole :execresult
 UPDATE end_user_roles SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?
   AND org_name = ?
-  AND is_implicit = FALSE) AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND is_implicit = FALSE
+  AND is_protected = FALSE) AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteEndUserRoleParams struct {
@@ -89,7 +93,7 @@ func (q *Queries) DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRolePa
 }
 
 const getEndUserRoleByID = `-- name: GetEndUserRoleByID :one
-SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token
+SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token, is_protected
 FROM end_user_roles
 WHERE id = ?
   AND org_name = ? AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
@@ -114,6 +118,7 @@ func (q *Queries) GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByID
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeleteToken,
+		&i.IsProtected,
 	)
 	return i, err
 }
@@ -160,7 +165,7 @@ func (q *Queries) ListBundlesByRole(ctx context.Context, roleID string) ([]EndUs
 }
 
 const listEndUserRolesByProject = `-- name: ListEndUserRolesByProject :many
-SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token
+SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token, is_protected
 FROM end_user_roles
 WHERE org_name = ?
   AND (project_slug = ? OR is_implicit = TRUE) AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY is_implicit DESC, name
@@ -191,6 +196,7 @@ func (q *Queries) ListEndUserRolesByProject(ctx context.Context, arg ListEndUser
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.DeleteToken,
+			&i.IsProtected,
 		); err != nil {
 			return nil, err
 		}
@@ -228,6 +234,7 @@ SET name = ?,
 WHERE id = ?
   AND org_name = ?
   AND is_implicit = FALSE
+  AND is_protected = FALSE
 `
 
 type UpdateEndUserRoleParams struct {
@@ -237,7 +244,7 @@ type UpdateEndUserRoleParams struct {
 	OrgName     string
 }
 
-// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
+// 注意：is_implicit=TRUE 或 is_protected=TRUE 的角色由业务层阻断，不走 SQL 层约束
 func (q *Queries) UpdateEndUserRole(ctx context.Context, arg UpdateEndUserRoleParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updateEndUserRole,
 		arg.Name,

@@ -13,6 +13,15 @@ WHERE user_id = ?
   AND role_id = ?
   AND org_name = ?;
 
+-- name: IsEndUserBuiltin :one
+-- 检查指定用户是否为 Org 内置 admin（is_builtin=true）
+SELECT is_builtin
+FROM end_user_users
+WHERE id = ?
+  AND org_name = ?
+  AND deleted_at = 0
+LIMIT 1;
+
 -- name: ListRolesByUser :many
 SELECT role_id
 FROM end_user_role_users

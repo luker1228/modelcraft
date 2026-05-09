@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useQuery } from '@apollo/client'
 import { ApolloProvider } from '@apollo/client'
@@ -30,6 +30,7 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
       method: 'POST',
       credentials: 'same-origin',
     })
+    useEndUserAuthStore.getState().clearSession()
     router.push(`/end-user/${orgName}/login`)
   }
 
@@ -76,14 +77,80 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
   )
 }
 
+interface RefreshResponse {
+  accessToken?: string
+  expiresAt?: string
+  error?: { code?: string }
+}
+
+/**
+ * 页面挂载时，若 store 里没有有效 token，用 refresh cookie 换取新 accessToken。
+ * 返回 ready=true 后再渲染 Apollo 请求，避免以空 token 发出请求。
+ */
+function useEndUserTokenReady(orgName: string): boolean {
+  const accessToken = useEndUserAuthStore((s) => s.accessToken)
+  const isExpired = useEndUserAuthStore((s) => s.isTokenExpired)
+  const setAccessToken = useEndUserAuthStore((s) => s.setAccessToken)
+  const router = useRouter()
+  const [ready, setReady] = useState(!!accessToken && !isExpired())
+
+  useEffect(() => {
+    if (accessToken && !isExpired()) {
+      setReady(true)
+      return
+    }
+
+    // token 缺失或已过期，尝试 silent refresh
+    void (async () => {
+      try {
+        const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/refresh`, {
+          method: 'POST',
+          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ orgName }),
+        })
+        if (!res.ok) {
+          router.replace(`/end-user/${orgName}/login`)
+          return
+        }
+        const data = (await res.json()) as RefreshResponse
+        if (data.accessToken) {
+          let expiresIn = 3600
+          if (data.expiresAt) {
+            const ms = new Date(data.expiresAt).getTime() - Date.now()
+            if (ms > 0) expiresIn = Math.floor(ms / 1000)
+          }
+          setAccessToken(data.accessToken, expiresIn)
+          setReady(true)
+        } else {
+          router.replace(`/end-user/${orgName}/login`)
+        }
+      } catch {
+        router.replace(`/end-user/${orgName}/login`)
+      }
+    })()
+  }, [orgName, accessToken, isExpired, setAccessToken, router])
+
+  return ready
+}
+
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { orgName } = params
   const accessToken = useEndUserAuthStore((s) => s.accessToken)
+  const ready = useEndUserTokenReady(orgName)
 
   const client = useMemo(
     () => createEndUserOrgScopedClient(orgName, accessToken ?? ''),
     [orgName, accessToken]
   )
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <p className="text-sm text-muted-foreground">加载中...</p>
+      </div>
+    )
+  }
 
   return (
     <ApolloProvider client={client}>

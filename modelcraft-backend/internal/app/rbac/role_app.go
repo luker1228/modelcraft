@@ -115,22 +115,36 @@ func (s *EndUserRoleAppService) ListRolesByProject(
 	return roles, nil
 }
 
-// AssignBundleToRole 将权限包关联到角色（隐式角色也允许配置权限包）
+// AssignBundleToRole 将权限包关联到角色（受保护角色不可修改权限包）
 func (s *EndUserRoleAppService) AssignBundleToRole(
 	ctx context.Context,
 	cmd AssignBundleToRoleCommand,
 ) (*rbacdomain.EndUserRole, error) {
+	role, err := s.getRoleOrNotFound(ctx, cmd.OrgName, cmd.RoleID)
+	if err != nil {
+		return nil, err
+	}
+	if err := role.GuardBundleModify(); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserProtectedRoleCannotBeModified, role.Name)
+	}
 	if err := s.rbacRepo.AssignBundleToRole(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.RoleID, cmd.BundleID); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	return s.GetRoleByID(ctx, cmd.OrgName, cmd.RoleID)
 }
 
-// RevokeBundleFromRole 从角色解除权限包关联
+// RevokeBundleFromRole 从角色解除权限包关联（受保护角色不可修改权限包）
 func (s *EndUserRoleAppService) RevokeBundleFromRole(
 	ctx context.Context,
 	cmd RevokeBundleFromRoleCommand,
 ) (*rbacdomain.EndUserRole, error) {
+	role, err := s.getRoleOrNotFound(ctx, cmd.OrgName, cmd.RoleID)
+	if err != nil {
+		return nil, err
+	}
+	if err := role.GuardBundleModify(); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserProtectedRoleCannotBeModified, role.Name)
+	}
 	if err := s.rbacRepo.RevokeBundleFromRole(ctx, cmd.RoleID, cmd.BundleID); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}

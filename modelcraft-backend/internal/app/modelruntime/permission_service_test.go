@@ -173,6 +173,10 @@ func (s *stubRBACRepo) GetPermissionsByBundleIDs(
 	return nil, nil
 }
 
+func (s *stubRBACRepo) IsUserBuiltin(_ context.Context, _, _ string) (bool, error) {
+	return false, nil
+}
+
 // makeRowPolicy creates a RowPolicy with the given settings and normalizes it.
 func makeRowPolicy(
 	selectAllowed bool, selectScope rbac.PolicyScope,

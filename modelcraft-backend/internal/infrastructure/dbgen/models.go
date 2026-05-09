@@ -373,6 +373,8 @@ type EndUserRole struct {
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃
 	DeleteToken uint64
+	// 受保护角色：不可删除、不可改名、不可修改权限包关联
+	IsProtected bool
 }
 
 // 角色-权限包 关联：角色持有哪些权限包
@@ -416,6 +418,8 @@ type EndUserUser struct {
 	Password string
 	// 是否禁用
 	IsForbidden bool
+	// 是否为平台内置账号（每个 Org 唯一，不可删除/禁用）
+	IsBuiltin bool
 	// 创建者（平台用户 ID）
 	CreatedBy sql.NullString
 	CreatedAt time.Time
@@ -424,8 +428,6 @@ type EndUserUser struct {
 	DeletedAt uint64
 	// 唯一键避让位，0 表示活跃
 	DeleteToken uint64
-	// 是否为平台内置账号（每个 Org 唯一，不可删除/禁用）
-	IsBuiltin bool
 }
 
 // 用户直接授权-权限包：绕过角色直接给用户授予权限包

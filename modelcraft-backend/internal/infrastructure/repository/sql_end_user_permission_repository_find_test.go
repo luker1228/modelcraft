@@ -180,3 +180,7 @@ func (s *stubPermRepo) GetPermissionsByBundleIDs(
 ) ([]*rbac.EndUserPermission, error) {
 	return nil, nil
 }
+
+func (s *stubPermRepo) IsUserBuiltin(_ context.Context, _, _ string) (bool, error) {
+	return false, nil
+}

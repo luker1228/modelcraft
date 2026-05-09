@@ -545,6 +545,20 @@ var (
 		ZhMessage: "内置隐式角色不可手动分配给用户",
 	}
 
+	// EndUserProtectedRoleCannotBeModified 受保护角色不可删除、改名或修改权限包
+	EndUserProtectedRoleCannotBeModified = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.PROTECTED_ROLE",
+		EnMessage: "Protected role cannot be modified or deleted: {0}",
+		ZhMessage: "受保护角色不可修改或删除: {0}",
+	}
+
+	// EndUserCannotRevokeProtectedRoleFromBuiltin builtin 用户的受保护角色不可撤销
+	EndUserCannotRevokeProtectedRoleFromBuiltin = ErrorDefinition{
+		Code:      ErrorTypeOperationFailed + ".RBAC.REVOKE_PROTECTED_BUILTIN",
+		EnMessage: "Cannot revoke protected role from builtin admin user",
+		ZhMessage: "不可撤销内置管理员用户的受保护角色",
+	}
+
 	// UserBundleAlreadyAssigned 用户已绑定该权限包
 	UserBundleAlreadyAssigned = ErrorDefinition{
 		Code:      ErrorTypeConflict + ".RBAC.USER_BUNDLE",

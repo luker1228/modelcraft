@@ -38,6 +38,28 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 	return err
 }
 
+const isEndUserBuiltin = `-- name: IsEndUserBuiltin :one
+SELECT is_builtin
+FROM end_user_users
+WHERE id = ?
+  AND org_name = ?
+  AND deleted_at = 0
+LIMIT 1
+`
+
+type IsEndUserBuiltinParams struct {
+	ID      string
+	OrgName string
+}
+
+// 检查指定用户是否为 Org 内置 admin（is_builtin=true）
+func (q *Queries) IsEndUserBuiltin(ctx context.Context, arg IsEndUserBuiltinParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, isEndUserBuiltin, arg.ID, arg.OrgName)
+	var is_builtin bool
+	err := row.Scan(&is_builtin)
+	return is_builtin, err
+}
+
 const listProjectEndUserRoleUsers = `-- name: ListProjectEndUserRoleUsers :many
 SELECT
   ur.id,

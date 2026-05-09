@@ -153,6 +153,10 @@ type EndUserPermissionRepository interface {
 	// RevokeRoleFromUser 撤销用户的角色关联
 	RevokeRoleFromUser(ctx context.Context, userID, orgName, projectSlug, roleID string) error
 
+	// IsUserBuiltin 查询用户是否为 Org 内置 admin（is_builtin=true）
+	// 用于 RevokeRoleFromUser 的 protected 角色撤销保护
+	IsUserBuiltin(ctx context.Context, orgName, userID string) (bool, error)
+
 	// ListProjectEndUserRoleUsers 列出 Project 下所有有角色分配的用户（支持搜索和分页）
 	ListProjectEndUserRoleUsers(
 		ctx context.Context,
