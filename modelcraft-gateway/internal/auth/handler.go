@@ -251,6 +251,86 @@ func (h *Handler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, json.RawMessage(raw))
 }
 
+// CLIEndUserLogin proxies to backend /api/end-user/auth/login and returns raw JSON token payload.
+// No cookies are set for CLI routes.
+func (h *Handler) CLIEndUserLogin(w http.ResponseWriter, r *http.Request) {
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/login", r.Body)
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, json.RawMessage(raw))
+}
+
+// CLIEndUserRefresh proxies to backend /api/end-user/auth/refresh and returns raw JSON token payload.
+func (h *Handler) CLIEndUserRefresh(w http.ResponseWriter, r *http.Request) {
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/refresh", r.Body)
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, json.RawMessage(raw))
+}
+
+// CLIEndUserLogout proxies to backend /api/end-user/auth/logout. No cookie operations are performed.
+func (h *Handler) CLIEndUserLogout(w http.ResponseWriter, r *http.Request) {
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/logout", r.Body)
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// CLIEndUserSelectProject proxies to backend /api/end-user/auth/select-project and returns raw JSON payload.
+func (h *Handler) CLIEndUserSelectProject(w http.ResponseWriter, r *http.Request) {
+	raw, status, err := h.postBackendRaw(r.Context(), "/api/end-user/auth/select-project", r.Body)
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+	if status >= 400 {
+		writeRaw(w, status, raw)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, json.RawMessage(raw))
+}
+
+// CLIEndUserMe proxies GET /api/end-user/auth/me with Bearer token forwarding.
+func (h *Handler) CLIEndUserMe(w http.ResponseWriter, r *http.Request) {
+	authHeader := r.Header.Get("Authorization")
+	if authHeader == "" {
+		writeError(w, http.StatusUnauthorized, "MISSING_TOKEN", "Authorization header required")
+		return
+	}
+
+	raw, err := h.getBackendRaw(r.Context(), "/api/end-user/auth/me", func(req *http.Request) {
+		req.Header.Set("Authorization", authHeader)
+	})
+	if err != nil {
+		proxyBackendError(w, err)
+		return
+	}
+
+	writeJSON(w, http.StatusOK, json.RawMessage(raw))
+}
+
 // ---- proxy helpers ----
 
 // extractRefreshAndProxy extracts "refreshToken" from the raw JSON body,

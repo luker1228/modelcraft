@@ -101,6 +101,15 @@ func main() {
 		r.Get("/me", authHandler.EndUserMe)
 	})
 
+	// CLI end-user auth endpoints — JSON passthrough, no cookie management.
+	r.Route("/api/cli/end-user/auth", func(r chi.Router) {
+		r.Post("/login", authHandler.CLIEndUserLogin)
+		r.Post("/refresh", authHandler.CLIEndUserRefresh)
+		r.Post("/logout", authHandler.CLIEndUserLogout)
+		r.Post("/select-project", authHandler.CLIEndUserSelectProject)
+		r.Get("/me", authHandler.CLIEndUserMe)
+	})
+
 	// GraphQL proxy endpoints — JWT required (validated inside handler).
 	r.Post("/graphql/org/{orgName}", proxyHandler.GraphQLOrgHandler)
 	r.Post("/graphql/org/{orgName}/", proxyHandler.GraphQLOrgHandler)
