@@ -19,6 +19,7 @@ func NewRootCommand(info BuildInfo) *cobra.Command {
 	root := &cobra.Command{Use: "mc", SilenceUsage: true, SilenceErrors: true}
 	root.AddCommand(newVersionCommand(info))
 	root.AddCommand(newAuthCommand())
+	root.AddCommand(newCatalogCommand())
 	return root
 }
 
