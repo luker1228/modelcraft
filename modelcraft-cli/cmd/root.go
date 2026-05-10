@@ -20,6 +20,10 @@ func NewRootCommand(info BuildInfo) *cobra.Command {
 	root.AddCommand(newVersionCommand(info))
 	root.AddCommand(newAuthCommand())
 	root.AddCommand(newCatalogCommand())
+	root.AddCommand(newQueryCommand())
+	root.AddCommand(newGetCommand())
+	root.AddCommand(newCountCommand())
+	root.AddCommand(newAggregateCommand())
 	return root
 }
 
