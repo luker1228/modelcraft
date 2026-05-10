@@ -61,6 +61,23 @@ func TestEnsureFreshReturnsExistingCredentialsWhenTokenIsStillFresh(t *testing.T
 	}
 }
 
+func TestEnsureFreshTrustsCallerManagedAccessToken(t *testing.T) {
+	mgr := Manager{Now: func() time.Time { return time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC) }}
+	creds := config.Credentials{AccessToken: "env-token", ExpiresAt: time.Time{}}
+	client := &fakeAuthClient{}
+
+	got, err := mgr.EnsureFresh(context.Background(), creds, client)
+	if err != nil {
+		t.Fatalf("EnsureFresh() error = %v", err)
+	}
+	if client.refreshed {
+		t.Fatal("expected no refresh for caller-managed access token")
+	}
+	if got.AccessToken != "env-token" {
+		t.Fatalf("AccessToken = %q, want env-token", got.AccessToken)
+	}
+}
+
 func TestEnsureFreshReturnsTokenExpiredWhenRefreshTokenMissing(t *testing.T) {
 	mgr := Manager{Now: func() time.Time { return time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC) }}
 	creds := config.Credentials{ExpiresAt: time.Date(2026, 5, 9, 11, 59, 59, 0, time.UTC)}

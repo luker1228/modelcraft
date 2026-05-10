@@ -22,6 +22,11 @@ func (m Manager) EnsureFresh(ctx context.Context, creds config.Credentials, clie
 		now = m.Now()
 	}
 
+	// Explicit bearer-token usage (for example via MC_ACCESS_TOKEN) is caller-managed.
+	if creds.AccessToken != "" && creds.RefreshToken == "" {
+		return creds, nil
+	}
+
 	if creds.ExpiresAt.After(now.Add(60 * time.Second)) {
 		return creds, nil
 	}
@@ -34,7 +39,7 @@ func (m Manager) EnsureFresh(ctx context.Context, creds config.Credentials, clie
 			"Run 'mc auth login'.",
 			nil,
 		)
-	}
+		}
 
 	fresh, err := client.Refresh(ctx, creds.Server, creds.OrgName, creds.RefreshToken)
 	if err != nil {

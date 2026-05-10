@@ -3,7 +3,6 @@ package app
 import (
 	"os"
 
-	"modelcraft-cli/internal/auth"
 	"modelcraft-cli/internal/config"
 )
 
@@ -18,15 +17,16 @@ func ResolveContext(creds config.Credentials, project string) (config.Credential
 	}
 	if accessToken := os.Getenv("MC_ACCESS_TOKEN"); accessToken != "" {
 		resolved.AccessToken = accessToken
+		resolved.RefreshToken = ""
 	}
 
 	targetProject := project
 	if envProject := os.Getenv("MC_PROJECT"); envProject != "" {
 		targetProject = envProject
 	}
-	if targetProject == "" {
-		return resolved, nil
+	if targetProject != "" {
+		resolved.CurrentProject = targetProject
 	}
 
-	return auth.SwitchProject(resolved, targetProject)
+	return resolved, nil
 }
