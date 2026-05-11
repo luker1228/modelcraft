@@ -28,5 +28,5 @@
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", "menu-refactor", ".agents"]
+  "exclude": ["node_modules", "menu-refactor", ".agents", "src/mocks", "e2e", "playwright.config.ts"]
 }

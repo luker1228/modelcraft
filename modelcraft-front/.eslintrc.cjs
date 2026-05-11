@@ -61,7 +61,7 @@ module.exports = {
     // --- TypeScript any 安全规则 ---
     {
       files: ['**/*.{ts,tsx}'],
-      excludedFiles: ['src/generated/**', 'src/mocks/handlers/*/generated.ts'],
+      excludedFiles: ['src/generated/**', 'src/mocks/**', 'e2e/**', 'playwright.config.ts'],
       parser: '@typescript-eslint/parser',
       parserOptions: {
         project: ['./tsconfig.json'],

@@ -147,9 +147,10 @@ export default function DevelopRecordWorkspace({
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
 
   // 构建 develop workspace 的 RecordAccessAdapter
+  // orgName/projectSlug 在此组件中必须存在，断言收窄类型
   const accessAdapter = useMemo<RecordAccessAdapter>(() => ({
     managementClient: projectClient,
-    managementContext: projectScopedContext,
+    managementContext: projectScopedContext ?? { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` },
     createRuntimeClient: (databaseName: string, modelName: string) =>
       createModelRuntimeClient(orgName, projectSlug, databaseName, modelName),
   }), [projectClient, projectScopedContext, orgName, projectSlug])

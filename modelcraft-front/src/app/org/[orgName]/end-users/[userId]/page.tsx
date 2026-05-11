@@ -173,7 +173,7 @@ export default function OrgEndUserDetailPage() {
     let cancelled = false
     setLoadError(null)
 
-    const client = getOrgScopedClient(orgName)
+    const client = getOrgScopedClient()
 
     client.query<ListEndUsersData>({
       query: LIST_END_USERS,
@@ -206,7 +206,7 @@ export default function OrgEndUserDetailPage() {
     setStatusError(null)
     setStatusLoading(true)
     try {
-      const client = getOrgScopedClient(orgName)
+      const client = getOrgScopedClient()
       const { data } = await client.mutate<UpdateStatusData>({
         mutation: UPDATE_END_USER_STATUS,
         variables: { input: { userId: user.id, isForbidden: !user.isForbidden } },
@@ -228,7 +228,7 @@ export default function OrgEndUserDetailPage() {
     if (!user) return
     if (!confirm(`确认删除用户「${user.username}」？此操作不可恢复。`)) return
     try {
-      const client = getOrgScopedClient(orgName)
+      const client = getOrgScopedClient()
       const { data } = await client.mutate<DeleteEndUserData>({
         mutation: DELETE_END_USER,
         variables: { input: { userId: user.id } },

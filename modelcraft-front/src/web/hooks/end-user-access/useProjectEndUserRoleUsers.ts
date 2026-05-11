@@ -100,7 +100,7 @@ interface RevokeEndUserRoleData {
 
 export function useProjectEndUserRoleUsers(orgName: string, projectSlug: string) {
   const projectClient = useProjectScopedClient(projectSlug, orgName)
-  const orgClient = getOrgScopedClient(orgName)
+  const orgClient = getOrgScopedClient()
 
   // 列出该 Project 下的所有角色分配
   const {

@@ -95,7 +95,7 @@ export function EndUserSelectorWidget(props: WidgetProps) {
 
     // Design path
     return getOrgScopedClient()
-  }, [orgName, workspaceMode])
+  }, [orgName, workspaceMode, rawFormContext])
 
   useEffect(() => {
     if (!client) {
