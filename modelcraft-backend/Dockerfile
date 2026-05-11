@@ -46,8 +46,7 @@ RUN mkdir -p /app/data /app/configs /app/logs && \
 
 # 从构建阶段复制二进制文件
 COPY --from=builder /app/main .
-COPY --from=builder /app/configs/config.docker.yaml ./configs/config.yaml
-COPY --from=builder /app/configs/config.yaml ./configs/config.example.yaml
+COPY --from=builder /app/configs/config.yaml ./configs/config.yaml
 
 # 设置文件权限
 RUN chmod +x main && \

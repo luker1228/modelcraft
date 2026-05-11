@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+*.md
+.env
+.env.*
+!.env.production
+.husky
+e2e
+graphify-out
+prototypes
+docs

@@ -3,3 +3,37 @@
 Command failures and integration errors.
 
 ---
+
+## [ERR-20260511-001] docker-compose-detection
+
+**Logged**: 2026-05-11T00:00:00+08:00
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### Summary
+当前环境不支持 `docker compose -f ...` 子命令，但提供了独立的 `docker-compose` 可执行文件。
+
+### Error
+```
+unknown shorthand flag: 'f' in -f
+```
+
+### Context
+- Command attempted: `docker compose -f deploy/compose/docker-compose.local.yml config`
+- Environment had `docker-compose version v5.1.0`
+- Root cause: 当前机器没有可用的 Docker Compose plugin，`docker compose` 路径不可用
+
+### Suggested Fix
+在根目录 `justfile` 中添加 compose 命令探测：优先 `docker compose`，不可用时回退到 `docker-compose`。
+
+### Metadata
+- Reproducible: yes
+- Related Files: justfile
+
+### Resolution
+- **Resolved**: 2026-05-11T00:00:00+08:00
+- **Commit/PR**: local workspace change
+- **Notes**: 根目录 `justfile` 已加入 compose 命令探测与回退逻辑。
+
+---

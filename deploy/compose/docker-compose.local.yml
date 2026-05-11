@@ -1,0 +1,144 @@
+services:
+  backend:
+    build:
+      context: ../../modelcraft-backend
+      dockerfile: Dockerfile
+    image: modelcraft-backend:local
+    container_name: modelcraft-backend
+    env_file:
+      - ../env/backend.local.env
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../modelcraft-backend/data:/app/data
+      - ../../modelcraft-backend/configs:/app/configs
+      - backend_logs:/app/logs
+    depends_on:
+      modelcraft-mysql:
+        condition: service_healthy
+      modelcraft-redis:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  gateway:
+    build:
+      context: ../../modelcraft-gateway
+      dockerfile: Dockerfile
+    image: modelcraft-gateway:local
+    container_name: modelcraft-gateway
+    env_file:
+      - ../env/gateway.local.env
+    ports:
+      - "8090:8090"
+    volumes:
+      - ../../modelcraft-gateway/log:/app/log
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  frontend:
+    build:
+      context: ../../modelcraft-front
+      dockerfile: Dockerfile
+      args:
+        BACKEND_URL: http://gateway:8090
+    image: modelcraft-frontend:local
+    container_name: modelcraft-frontend
+    env_file:
+      - ../env/frontend.local.env
+    ports:
+      - "3000:3000"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  modelcraft-mysql:
+    image: mysql:8.0
+    container_name: modelcraft-mysql
+    env_file:
+      - ../env/mysql.local.env
+    ports:
+      - "6033:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ../../modelcraft-backend/db/schema/mysql:/docker-entrypoint-initdb.d:ro
+    command: --default-authentication-plugin=mysql_native_password
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -p$$MYSQL_ROOT_PASSWORD"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  modelcraft-redis:
+    image: redis:7-alpine
+    container_name: modelcraft-redis
+    env_file:
+      - ../env/redis.local.env
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: ["sh", "-c", "redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a $$REDIS_PASSWORD ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: modelcraft-phpmyadmin
+    env_file:
+      - ../env/phpmyadmin.local.env
+    ports:
+      - "8081:80"
+    depends_on:
+      modelcraft-mysql:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    profiles:
+      - tools
+
+volumes:
+  mysql_data:
+  redis_data:
+  backend_logs:
+
+networks:
+  modelcraft-network:
+    driver: bridge

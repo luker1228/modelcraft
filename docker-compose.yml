@@ -5,7 +5,8 @@
 #   指定镜像 tag: IMAGE_TAG=v1.2.3 docker compose up -d
 #
 # 必须在 .env 中配置（或通过环境变量注入）：
-#   DB_PASSWORD, JWT_SECRET, CRYPTO_AES_KEY, INTERNAL_TOKEN, JWT_PUBLIC_KEY
+#   DB_PASSWORD, JWT_SECRET, JWT_PRIVATE_KEY, JWT_PUBLIC_KEY,
+#   CRYPTO_AES_KEY, INTERNAL_TOKEN
 
 version: '3.8'
 
@@ -38,7 +39,9 @@ services:
       - REDIS_PASSWORD=${REDIS_PASSWORD:-redis123}
       # Security
       - JWT_SECRET=${JWT_SECRET}
+      - JWT_PRIVATE_KEY=${JWT_PRIVATE_KEY}
       - CRYPTO_AES_KEY=${CRYPTO_AES_KEY}
+      - INTERNAL_TOKEN=${INTERNAL_TOKEN}
       # Logger
       - LOGGER_LEVEL=${LOGGER_LEVEL:-info}
       - LOGGER_OUTPUT_PATH=stdout
@@ -97,6 +100,36 @@ services:
       timeout: 5s
       retries: 3
       start_period: 15s
+
+  # ---------------------------------------------------------------------------
+  # modelcraft-front (Next.js)
+  # ---------------------------------------------------------------------------
+  frontend:
+    build:
+      context: ./modelcraft-front
+      dockerfile: Dockerfile
+      args:
+        # 前端通过 Next.js rewrites 代理到 Gateway（服务器端地址）
+        - BACKEND_URL=http://gateway:8090
+    image: modelcraft-frontend:${IMAGE_TAG:-latest}
+    container_name: modelcraft-frontend
+    ports:
+      - "${FRONTEND_PORT:-3000}:3000"
+    environment:
+      - NODE_ENV=production
+      - TZ=Asia/Shanghai
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
 
   # ---------------------------------------------------------------------------
   # MySQL 8

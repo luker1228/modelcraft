@@ -11,6 +11,9 @@ const nextConfig = {
   generateBuildId: async () => buildId,
   reactStrictMode: true,
 
+  // 启用 standalone 输出，Docker 镜像使用
+  output: 'standalone',
+
   // 生产环境优化
   productionBrowserSourceMaps: false, // 禁用 sourcemap 减少体积
   swcMinify: true, // 使用 SWC 压缩
