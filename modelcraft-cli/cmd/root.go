@@ -24,6 +24,8 @@ func NewRootCommand(info BuildInfo) *cobra.Command {
 	root.AddCommand(newGetCommand())
 	root.AddCommand(newCountCommand())
 	root.AddCommand(newAggregateCommand())
+	root.AddCommand(newSchemaCommand())
+	root.AddCommand(newDescribeCommand())
 	return root
 }
 

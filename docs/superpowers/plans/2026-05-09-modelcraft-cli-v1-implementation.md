@@ -1030,7 +1030,7 @@ git commit -m "feat(cli): add gateway-backed auth commands"
 - Test: `modelcraft-cli/internal/client/catalog_test.go`
 - Test: `modelcraft-cli/cmd/catalog_test.go`
 
-- [ ] **Step 1: Write failing tests for path parsing and project fallback**
+- [x] **Step 1: Write failing tests for path parsing and project fallback**
 
 ```go
 package resource
@@ -1061,12 +1061,12 @@ func TestCatalogProjectsDoesNotRequireCurrentProject(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd modelcraft-cli && go test ./internal/resource ./internal/client ./cmd -run 'Test(ParseDatabaseModelUsesCurrentProjectFallback|ParseModelPathRejectsSingleSegment|CatalogProjectsDoesNotRequireCurrentProject)' -v`
 Expected: FAIL with missing parser/catalog implementation.
 
-- [ ] **Step 3: Implement the parser and catalog clients/commands**
+- [x] **Step 3: Implement the parser and catalog clients/commands**
 
 ```go
 // modelcraft-cli/internal/resource/path.go
@@ -1130,7 +1130,7 @@ func newCatalogCommand(deps Dependencies) *cobra.Command {
 }
 ```
 
-- [ ] **Step 4: Run tests and manual project-fallback checks**
+- [x] **Step 4: Run tests and manual project-fallback checks**
 
 Run:
 - `cd modelcraft-cli && go test ./internal/resource ./internal/client ./cmd -v`
@@ -1141,7 +1141,7 @@ Then manually verify:
 - `cd modelcraft-cli && go run . catalog databases --project sales`
 Expected: stable JSON envelopes; no implicit database fallback.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add modelcraft-cli/internal/resource/path.go modelcraft-cli/internal/resource/path_test.go modelcraft-cli/internal/client/graphql.go modelcraft-cli/internal/client/catalog.go modelcraft-cli/internal/client/catalog_test.go modelcraft-cli/cmd/catalog.go modelcraft-cli/cmd/catalog_test.go
@@ -1156,7 +1156,7 @@ git commit -m "feat(cli): add resource parsing and catalog discovery commands"
 - Test: `modelcraft-cli/internal/client/runtime_test.go`
 - Test: `modelcraft-cli/cmd/query_test.go`
 
-- [ ] **Step 1: Write failing tests for runtime query translation and `NO_PROJECT_CONTEXT`**
+- [x] **Step 1: Write failing tests for runtime query translation and `NO_PROJECT_CONTEXT`**
 
 ```go
 package client
@@ -1184,12 +1184,12 @@ func TestQueryCommandReturnsNoProjectContextWhenDatabaseModelLacksFallback(t *te
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd modelcraft-cli && go test ./internal/client ./cmd -run 'Test(QueryBuildsModelScopedRuntimeEndpoint|QueryCommandReturnsNoProjectContextWhenDatabaseModelLacksFallback)' -v`
 Expected: FAIL with missing runtime client/command code.
 
-- [ ] **Step 3: Implement runtime GraphQL client and read commands**
+- [x] **Step 3: Implement runtime GraphQL client and read commands**
 
 ```go
 // modelcraft-cli/internal/client/runtime.go
@@ -1235,7 +1235,7 @@ func newQueryCommand(deps Dependencies) *cobra.Command {
 }
 ```
 
-- [ ] **Step 4: Run runtime command tests and a local smoke query**
+- [x] **Step 4: Run runtime command tests and a local smoke query**
 
 Run:
 - `cd modelcraft-cli && go test ./internal/client ./cmd -v`
@@ -1245,7 +1245,7 @@ Smoke:
 - `cd modelcraft-cli && go run . query sales.maindb.users --take 1`
 Expected: JSON output with `ok=true` or a GraphQL-derived English error envelope.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add modelcraft-cli/internal/client/runtime.go modelcraft-cli/internal/client/runtime_test.go modelcraft-cli/cmd/query.go modelcraft-cli/cmd/query_test.go
@@ -1262,7 +1262,7 @@ git commit -m "feat(cli): add runtime read commands"
 - Test: `modelcraft-cli/cmd/schema_test.go`
 - Test: `modelcraft-cli/cmd/describe_test.go`
 
-- [ ] **Step 1: Write failing tests for static schema export and model describe output**
+- [x] **Step 1: Write failing tests for static schema export and model describe output**
 
 ```go
 package schema
@@ -1288,12 +1288,12 @@ func TestDescribeModelUsesRuntimeIntrospection(t *testing.T) {
 }
 ```
 
-- [ ] **Step 2: Run tests to verify they fail**
+- [x] **Step 2: Run tests to verify they fail**
 
 Run: `cd modelcraft-cli && go test ./internal/schema ./cmd -run 'Test(BuildCommandSchemaIncludesQueryFlags|DescribeModelUsesRuntimeIntrospection)' -v`
 Expected: FAIL with missing schema and describe implementations.
 
-- [ ] **Step 3: Implement local schema generation and remote describe**
+- [x] **Step 3: Implement local schema generation and remote describe**
 
 ```go
 // modelcraft-cli/internal/schema/commands.go
@@ -1349,7 +1349,7 @@ func newDescribeCommand(deps Dependencies) *cobra.Command {
 }
 ```
 
-- [ ] **Step 4: Run tests and inspect command schema output**
+- [x] **Step 4: Run tests and inspect command schema output**
 
 Run:
 - `cd modelcraft-cli && go test ./internal/schema ./cmd -v`
@@ -1358,7 +1358,7 @@ Expected:
 - tests `PASS`
 - schema output is local, fast, and does not require credentials.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add modelcraft-cli/internal/schema/commands.go modelcraft-cli/internal/schema/commands_test.go modelcraft-cli/cmd/schema.go modelcraft-cli/cmd/schema_test.go modelcraft-cli/cmd/describe.go modelcraft-cli/cmd/describe_test.go
