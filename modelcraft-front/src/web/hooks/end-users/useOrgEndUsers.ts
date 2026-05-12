@@ -12,6 +12,7 @@ import {
   DELETE_END_USER,
 } from '@api-client/end-user/graphql-docs'
 import { getOrgScopedClient } from '@api-client/apollo/clients'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -84,6 +85,7 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
   const [error, setError] = useState<string | null>(null)
   const [version, setVersion] = useState(0)
   const [search, setSearch] = useState('')
+  const { markStep } = useOnboarding()
   const [debouncedSearch, setDebouncedSearch] = useState('')
 
   // Debounce search by 300ms
@@ -151,8 +153,9 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
     if (err) {
       throw new Error(err.message ?? '创建用户失败')
     }
+    markStep('add_end_user')
     reload()
-  }, [reload])
+  }, [reload, markStep])
 
   const toggleUserStatus = useCallback(async (userId: string, isForbidden: boolean) => {
     const client = getOrgScopedClient()

@@ -8,6 +8,7 @@ import {
   DELETE_END_USER_ROLE,
 } from '@/api-client/rbac'
 import type { EndUserRole } from '@/types'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 interface UseRoleListProps {
   orgName: string
@@ -29,6 +30,7 @@ interface UseRoleListReturn {
 
 export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRoleListReturn {
   const client = useProjectScopedClient(projectSlug, orgName)
+  const { markStep } = useOnboarding()
 
   const { data, loading, error } = useQuery(GET_END_USER_ROLES, {
     client,
@@ -38,6 +40,7 @@ export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRole
   const [createRoleMutation] = useMutation(CREATE_END_USER_ROLE, {
     client,
     refetchQueries: [GET_END_USER_ROLES],
+    onCompleted: () => markStep('create_role'),
   })
 
   const [deleteRoleMutation] = useMutation(DELETE_END_USER_ROLE, {

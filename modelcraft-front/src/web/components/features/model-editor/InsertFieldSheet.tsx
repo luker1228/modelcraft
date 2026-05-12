@@ -33,6 +33,7 @@ import {
 } from '@web/components/ui/tooltip'
 import { Columns, Loader2, Save, HelpCircle, Link2 } from 'lucide-react'
 import { hasSystemLabelSuffix } from '@/shared/model/system-field'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import type {
   EnumSourceOption,
   LogicalForeignKey,
@@ -105,6 +106,7 @@ export function InsertFieldSheet({
   const projectClient = useProjectScopedClient(projectSlug)
 
   const projectScopedContext = useProjectScopedContext(orgName, projectSlug)
+  const { markStep } = useOnboarding()
 
   const [fieldData, setFieldData] = useState(DEFAULT_FIELD_DATA)
   const [saving, setSaving] = useState(false)
@@ -206,6 +208,7 @@ export function InsertFieldSheet({
       setFieldData(DEFAULT_FIELD_DATA)
       setSubmitError(null)
       setSaving(false)
+      markStep('add_field')
       onSuccess?.()
       if (!continueModeRef.current) {
         onOpenChange(false)
