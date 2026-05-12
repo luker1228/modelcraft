@@ -1,3 +1,21 @@
-.worktrees/
-deploy/env/*.local.env
-!deploy/env/*.local.env.example
+# Build artifacts
+modelcraft-backend/main
+modelcraft-backend/server
+modelcraft-backend/modelcraft
+modelcraft-backend/bin/
+modelcraft-gateway/gateway
+modelcraft-gateway/bin/
+modelcraft-cli/bin/
+
+# Logs
+modelcraft-gateway/logs/
+modelcraft-backend/logs/
+
+# Test coverage
+modelcraft-backend/coverage.out
+
+# Frontend build
+modelcraft-front/.next/
+
+# Graphify cache
+graphify-out/cache/

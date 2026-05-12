@@ -42,24 +42,24 @@ run *FLAGS:
     fi
 
     echo "🚀 Starting gateway..."
-    mkdir -p log
-    echo "📝 Log output: log/server.log"
-    nohup sh -c "LOG_OUTPUT_PATH=log/server.log go run {{SERVER_PATH}}/..." > log/server.log 2>&1 &
+    mkdir -p logs
+    echo "📝 Log output: logs/server.log"
+    nohup sh -c "LOG_OUTPUT_PATH=logs/server.log go run {{SERVER_PATH}}/..." > logs/server.log 2>&1 &
     PID=$!
     sleep 2
     if kill -0 $PID 2>/dev/null; then
         echo "✅ Gateway started in background"
         echo "   PID: $PID"
-        echo "   Logs: tail -f log/server.log"
+        echo "   Logs: tail -f logs/server.log"
         echo "   Or use: just logs"
     else
-        echo "❌ Gateway failed to start. Check log/server.log"
+        echo "❌ Gateway failed to start. Check logs/server.log"
         exit 1
     fi
 
 # 查看实时日志
 logs:
-    tail -f log/server.log
+    tail -f logs/server.log
 
 # 停止网关
 stop:
