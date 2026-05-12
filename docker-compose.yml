@@ -74,6 +74,7 @@ services:
       dockerfile: Dockerfile
     image: modelcraft-gateway:${IMAGE_TAG:-latest}
     container_name: modelcraft-gateway
+    user: "0:0"
     ports:
       - "${GATEWAY_PORT:-8090}:8090"
     environment:

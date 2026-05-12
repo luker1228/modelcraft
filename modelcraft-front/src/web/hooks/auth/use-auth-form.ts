@@ -44,7 +44,7 @@ export function useLogin(): UseLoginReturn {
         }),
       })
 
-      const data = (await res.json()) as { accessToken?: string; error?: string; message?: string; orgName?: string; expiresIn?: number; userName?: string }
+      const data = (await res.json()) as { accessToken?: string; error?: string | { code?: string; message?: string }; message?: string; orgName?: string; expiresIn?: number; userName?: string }
 
       if (!res.ok) {
         setError(extractErrorMessage(data.message ?? data.error, '登录失败，请稍后重试'))
@@ -120,7 +120,7 @@ export function useRegister(): UseRegisterReturn {
         }),
       })
 
-      const registerData = (await registerRes.json()) as { accessToken?: string; error?: string; message?: string }
+      const registerData = (await registerRes.json()) as { accessToken?: string; error?: string | { code?: string; message?: string }; message?: string }
 
       if (!registerRes.ok) {
         setError(extractErrorMessage(registerData.message ?? registerData.error, '注册失败，请稍后重试'))

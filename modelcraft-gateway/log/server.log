@@ -1439,3 +1439,14 @@
 {"level":"INFO","timestamp":"2026-05-11T05:43:45.673+0800","caller":"middleware/logger.go:54","msg":"request_end","request_id":"2389ea7a-9226-4adf-97cd-312117d83cdf","method":"GET","path":"/jsrpc.php","status":404,"duration_ms":0}
 {"level":"INFO","timestamp":"2026-05-11T05:43:45.695+0800","caller":"middleware/logger.go:33","msg":"request_start","request_id":"21c9b904-9c5d-4506-8f9f-fcf5b9893a7a","method":"POST","path":"/index.php","remote_addr":"9.135.100.135:36834"}
 {"level":"INFO","timestamp":"2026-05-11T05:43:45.695+0800","caller":"middleware/logger.go:54","msg":"request_end","request_id":"21c9b904-9c5d-4506-8f9f-fcf5b9893a7a","method":"POST","path":"/index.php","status":404,"duration_ms":0}
+{"level":"INFO","timestamp":"2026-05-11T23:41:56.955+0800","caller":"gateway/main.go:152","msg":"shutting down..."}
+{"level":"INFO","timestamp":"2026-05-11T23:41:56.994+0800","caller":"gateway/main.go:159","msg":"gateway stopped"}
+{"level":"INFO","timestamp":"2026-05-12T18:02:53.056+0800","caller":"gateway/main.go:154","msg":"modelcraft-gateway starting","addr":":8090"}
+{"level":"INFO","timestamp":"2026-05-12T18:02:58.105+0800","caller":"middleware/logger.go:33","msg":"request_start","request_id":"3d9a033f-697e-4e85-9a8e-ac6e1f7528d6","method":"GET","path":"/healthz","remote_addr":"[::1]:35512"}
+{"level":"INFO","timestamp":"2026-05-12T18:02:58.106+0800","caller":"middleware/logger.go:54","msg":"request_end","request_id":"3d9a033f-697e-4e85-9a8e-ac6e1f7528d6","method":"GET","path":"/healthz","status":200,"duration_ms":0}
+{"level":"INFO","timestamp":"2026-05-12T18:03:28.159+0800","caller":"middleware/logger.go:33","msg":"request_start","request_id":"a422a198-f75c-4a40-a350-39d3edb509af","method":"GET","path":"/healthz","remote_addr":"[::1]:55214"}
+{"level":"INFO","timestamp":"2026-05-12T18:03:28.159+0800","caller":"middleware/logger.go:54","msg":"request_end","request_id":"a422a198-f75c-4a40-a350-39d3edb509af","method":"GET","path":"/healthz","status":200,"duration_ms":0}
+{"level":"INFO","timestamp":"2026-05-12T18:03:58.218+0800","caller":"middleware/logger.go:33","msg":"request_start","request_id":"8651a0fb-c944-44db-b71d-105c350fb7ea","method":"GET","path":"/healthz","remote_addr":"[::1]:37948"}
+{"level":"INFO","timestamp":"2026-05-12T18:03:58.218+0800","caller":"middleware/logger.go:54","msg":"request_end","request_id":"8651a0fb-c944-44db-b71d-105c350fb7ea","method":"GET","path":"/healthz","status":200,"duration_ms":0}
+{"level":"INFO","timestamp":"2026-05-12T18:04:28.258+0800","caller":"middleware/logger.go:33","msg":"request_start","request_id":"dc4d91ab-eeff-4b8d-836e-d1d492016c5e","method":"GET","path":"/healthz","remote_addr":"[::1]:37856"}
+{"level":"INFO","timestamp":"2026-05-12T18:04:28.258+0800","caller":"middleware/logger.go:54","msg":"request_end","request_id":"dc4d91ab-eeff-4b8d-836e-d1d492016c5e","method":"GET","path":"/healthz","status":200,"duration_ms":0}

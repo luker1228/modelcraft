@@ -1,7 +1,8 @@
 # justfile — ModelCraft monorepo root
 #
 # 本地 Docker 部署入口：
-#   just deploy            # 初始化 env（若缺失）并启动本地部署
+#   just deploy            # 启动（不重新构建）
+#   just deploy force      # 构建后启动（代码有变动时使用）
 #   just deploy init       # 从 example 生成 deploy/env/*.env
 #   just deploy down       # 停止并删除容器
 #   just deploy stop       # 停止容器
@@ -10,6 +11,7 @@
 #   just deploy ps         # 查看状态
 #   just deploy tools      # 启动附带 phpMyAdmin
 #   just deploy build      # 仅构建镜像
+#   just deploy rebuild    # 强制重新构建（无缓存）
 
 set shell := ["bash", "-cu"]
 
@@ -77,6 +79,14 @@ deploy action="up":
         done
     }
 
+    print_urls() {
+        echo "✅ Local deployment is up"
+        echo "   Frontend:   http://localhost:3000"
+        echo "   Gateway:    http://localhost:8090"
+        echo "   Backend:    http://localhost:8080"
+        echo "   MySQL:      localhost:6033"
+    }
+
     case "{{action}}" in
         init)
             ensure_core_envs
@@ -86,17 +96,22 @@ deploy action="up":
         up|start)
             ensure_core_envs
             check_required_files
+            echo "🐳 Starting local deployment..."
+            compose up -d
+            echo ""
+            compose ps
+            echo ""
+            print_urls
+            ;;
+        force)
+            ensure_core_envs
+            check_required_files
             echo "🐳 Building and starting local deployment..."
             compose up -d --build
             echo ""
             compose ps
             echo ""
-            echo "✅ Local deployment is up"
-            echo "   Frontend:   http://localhost:3000"
-            echo "   Gateway:    http://localhost:8090"
-            echo "   Backend:    http://localhost:8080"
-            echo "   MySQL:      localhost:6033"
-            echo "   Redis:      localhost:6379"
+            print_urls
             ;;
         down)
             echo "🛑 Stopping and removing containers..."
@@ -134,7 +149,7 @@ deploy action="up":
             ensure_tools_env
             check_required_files tools
             echo "🐳 Starting local deployment with phpMyAdmin..."
-            compose --profile tools up -d --build
+            compose --profile tools up -d
             compose ps
             echo ""
             echo "   phpMyAdmin: http://localhost:8081"
@@ -151,7 +166,7 @@ deploy action="up":
             ;;
         *)
             echo "❌ Unknown action: {{action}}"
-            echo "   Available: init, up, down, stop, restart, build, rebuild, logs, ps, tools, clean"
+            echo "   Available: init, up, force, down, stop, restart, build, rebuild, logs, ps, tools, clean"
             exit 1
             ;;
     esac
@@ -189,3 +204,47 @@ ps:
         echo "❌ Neither 'docker compose' nor 'docker-compose' is available"
         exit 1
     fi
+
+[doc("Start backend services only (mysql + backend + gateway)")]
+deploy-backend action="up":
+    #!/usr/bin/env bash
+    set -e
+    COMPOSE_FILE="{{compose_file}}"
+
+    compose() {
+        if docker compose version >/dev/null 2>&1; then
+            docker compose -f "$COMPOSE_FILE" "$@"
+        elif command -v docker-compose >/dev/null 2>&1; then
+            docker-compose -f "$COMPOSE_FILE" "$@"
+        else
+            echo "❌ Neither 'docker compose' nor 'docker-compose' is available"
+            exit 1
+        fi
+    }
+
+    case "{{action}}" in
+        up|start)
+            echo "🐳 Starting backend services (mysql + backend + gateway)..."
+            compose up -d modelcraft-mysql backend gateway
+            echo ""
+            compose ps
+            echo ""
+            echo "✅ Backend is up"
+            echo "   Gateway:  http://localhost:8090"
+            echo "   Backend:  http://localhost:8080"
+            echo "   MySQL:    localhost:6033"
+            ;;
+        force)
+            echo "🐳 Building and starting backend services..."
+            compose up -d --build modelcraft-mysql backend gateway
+            compose ps
+            ;;
+        down)
+            compose stop backend gateway modelcraft-mysql
+            echo "✅ Backend services stopped"
+            ;;
+        *)
+            echo "Available: up, force, down"
+            exit 1
+            ;;
+    esac
