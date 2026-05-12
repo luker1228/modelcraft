@@ -8,16 +8,29 @@ import {
   readOnboardingState,
   writeOnboardingState,
 } from './storage'
-import { ONBOARDING_STEPS, type OnboardingStepDef } from './steps'
+import { ONBOARDING_GROUPS, ONBOARDING_STEPS, type OnboardingSubStep, type OnboardingGroup } from './steps'
 
-export interface OnboardingStep extends OnboardingStepDef {
+// ── Derived types ──────────────────────────────────────────────────────────
+
+export interface OnboardingSubStepWithStatus extends OnboardingSubStep {
   status: 'completed' | 'current' | 'locked'
-  index: number // 1-based
 }
 
+export type OnboardingGroupStatus = 'completed' | 'current' | 'locked'
+
+export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'> {
+  status: OnboardingGroupStatus
+  steps: OnboardingSubStepWithStatus[]
+  /** index of the current sub-step within this group (0-based), or -1 if not current group */
+  currentSubStepIndex: number
+}
+
+// ── Context value ──────────────────────────────────────────────────────────
+
 interface OnboardingContextValue {
-  steps: OnboardingStep[]
-  currentStep: OnboardingStep | null
+  groups: OnboardingGroupWithStatus[]
+  currentGroup: OnboardingGroupWithStatus | null
+  currentStep: OnboardingSubStepWithStatus | null
   projectSlug: string | null
   completedCount: number
   totalCount: number
@@ -32,6 +45,8 @@ interface OnboardingContextValue {
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
+
+// ── Provider ───────────────────────────────────────────────────────────────
 
 export function OnboardingProvider({
   orgName,
@@ -49,30 +64,19 @@ export function OnboardingProvider({
     setState(readOnboardingState(orgName))
   }, [orgName])
 
-  const persist = useCallback(
-    (next: OnboardingState) => {
-      setState(next)
+  const markStep = useCallback((id: OnboardingStepId, projectSlug?: string) => {
+    setState((prev) => {
+      if (prev.completedSteps.includes(id)) return prev
+      const next: OnboardingState = {
+        ...prev,
+        completedSteps: [...prev.completedSteps, id],
+        projectSlug:
+          id === 'create_project' && projectSlug ? projectSlug : prev.projectSlug,
+      }
       writeOnboardingState(next)
-    },
-    []
-  )
-
-  const markStep = useCallback(
-    (id: OnboardingStepId, projectSlug?: string) => {
-      setState((prev) => {
-        if (prev.completedSteps.includes(id)) return prev
-        const next: OnboardingState = {
-          ...prev,
-          completedSteps: [...prev.completedSteps, id],
-          projectSlug:
-            id === 'create_project' && projectSlug ? projectSlug : prev.projectSlug,
-        }
-        writeOnboardingState(next)
-        return next
-      })
-    },
-    []
-  )
+      return next
+    })
+  }, [])
 
   const openPanel = useCallback(() => {
     setState((prev) => {
@@ -100,27 +104,60 @@ export function OnboardingProvider({
 
   const reset = useCallback(() => {
     const next = defaultOnboardingState(orgName)
-    persist(next)
-  }, [orgName, persist])
+    setState(next)
+    writeOnboardingState(next)
+  }, [orgName])
 
-  // Derive step statuses
+  // ── Derive grouped status ──────────────────────────────────────────────
+
   const completedSet = new Set(state.completedSteps)
-  let foundCurrent = false
-  const steps: OnboardingStep[] = ONBOARDING_STEPS.map((def, i) => {
-    const completed = completedSet.has(def.id)
-    let status: OnboardingStep['status']
-    if (completed) {
-      status = 'completed'
-    } else if (!foundCurrent) {
-      status = 'current'
-      foundCurrent = true
+  let foundCurrentGroup = false
+
+  const groups: OnboardingGroupWithStatus[] = ONBOARDING_GROUPS.map((group) => {
+    const stepsWithStatus: OnboardingSubStepWithStatus[] = group.steps.map((step) => {
+      const completed = completedSet.has(step.id)
+      return { ...step, status: completed ? 'completed' : 'locked' } satisfies OnboardingSubStepWithStatus
+    })
+
+    const allCompleted = stepsWithStatus.every((s) => completedSet.has(s.id))
+
+    let groupStatus: OnboardingGroupStatus
+    if (allCompleted) {
+      groupStatus = 'completed'
+    } else if (!foundCurrentGroup) {
+      groupStatus = 'current'
+      foundCurrentGroup = true
     } else {
-      status = 'locked'
+      groupStatus = 'locked'
     }
-    return { ...def, status, index: i + 1 }
+
+    // Assign sub-step statuses within current group
+    let foundCurrentSubStep = false
+    const resolvedSteps: OnboardingSubStepWithStatus[] = stepsWithStatus.map((step) => {
+      if (groupStatus === 'completed') return { ...step, status: 'completed' }
+      if (groupStatus === 'locked') return { ...step, status: 'locked' }
+      // current group: assign current/locked to sub-steps
+      if (completedSet.has(step.id)) return { ...step, status: 'completed' }
+      if (!foundCurrentSubStep) {
+        foundCurrentSubStep = true
+        return { ...step, status: 'current' }
+      }
+      return { ...step, status: 'locked' }
+    })
+
+    const currentSubStepIndex = resolvedSteps.findIndex((s) => s.status === 'current')
+
+    return {
+      id: group.id,
+      label: group.label,
+      status: groupStatus,
+      steps: resolvedSteps,
+      currentSubStepIndex,
+    }
   })
 
-  const currentStep = steps.find((s) => s.status === 'current') ?? null
+  const currentGroup = groups.find((g) => g.status === 'current') ?? null
+  const currentStep = currentGroup?.steps.find((s) => s.status === 'current') ?? null
   const completedCount = state.completedSteps.length
   const totalCount = ONBOARDING_STEPS.length
   const isComplete = completedCount === totalCount
@@ -128,7 +165,8 @@ export function OnboardingProvider({
   return (
     <OnboardingContext.Provider
       value={{
-        steps,
+        groups,
+        currentGroup,
         currentStep,
         projectSlug: state.projectSlug,
         completedCount,
@@ -147,6 +185,8 @@ export function OnboardingProvider({
     </OnboardingContext.Provider>
   )
 }
+
+// ── Hook ───────────────────────────────────────────────────────────────────
 
 export function useOnboarding(): OnboardingContextValue {
   const ctx = useContext(OnboardingContext)
