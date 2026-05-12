@@ -1,0 +1,116 @@
+<h2>Onboarding Checklist — 3 种布局方案</h2>
+<p class="subtitle">选择你最喜欢的呈现方式（从 Org 层出发，覆盖模型创建 → 权限设置 → 终端用户）</p>
+
+<div class="cards">
+
+  <!-- Option A -->
+  <div class="card" data-choice="a" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f9fa;padding:16px;border-radius:8px;position:relative;min-height:200px">
+      <!-- Main content area mockup -->
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:11px;color:#64748b">
+        <div style="font-weight:600;color:#0f172a;margin-bottom:4px">📋 Org / my-org / Projects</div>
+        <div style="height:60px;background:#f1f5f9;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px">项目列表...</div>
+      </div>
+      <!-- Floating checklist panel -->
+      <div style="position:absolute;bottom:12px;right:12px;width:180px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,0.1);padding:10px;font-size:10px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <span style="font-weight:600;color:#0f172a">🚀 快速开始</span>
+          <span style="color:#94a3b8;font-size:9px">3/5</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:5px">
+          <div style="display:flex;align-items:center;gap:6px;color:#10b981"><span>✓</span><span style="text-decoration:line-through;color:#94a3b8">创建项目</span></div>
+          <div style="display:flex;align-items:center;gap:6px;color:#10b981"><span>✓</span><span style="text-decoration:line-through;color:#94a3b8">创建模型</span></div>
+          <div style="display:flex;align-items:center;gap:6px;color:#10b981"><span>✓</span><span style="text-decoration:line-through;color:#94a3b8">设计字段</span></div>
+          <div style="display:flex;align-items:center;gap:6px;font-weight:600;color:#6366f1;background:#eef2ff;padding:3px 6px;border-radius:4px"><span>→</span><span>设置权限</span></div>
+          <div style="display:flex;align-items:center;gap:6px;color:#94a3b8"><span>○</span><span>添加终端用户</span></div>
+        </div>
+        <div style="margin-top:8px;background:#e2e8f0;border-radius:4px;height:4px">
+          <div style="width:60%;background:#6366f1;border-radius:4px;height:4px"></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A. 悬浮进度面板</h3>
+      <p>右下角固定浮层，随页面跟随，随时可折叠。用户在真实页面操作，面板自动打勾。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>全程可见，不丢失进度</li><li>Intercom / Linear 同款体验</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>可能遮挡右下角内容</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option B -->
+  <div class="card" data-choice="b" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f9fa;padding:16px;border-radius:8px;min-height:200px">
+      <!-- Sidebar with checklist item -->
+      <div style="display:flex;gap:8px;height:180px">
+        <div style="width:110px;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:8px;font-size:10px;flex-shrink:0">
+          <div style="color:#94a3b8;font-size:9px;margin-bottom:6px;font-weight:600">MY-ORG</div>
+          <div style="padding:4px 6px;color:#64748b;border-radius:4px;margin-bottom:2px">项目</div>
+          <div style="padding:4px 6px;color:#64748b;border-radius:4px;margin-bottom:2px">终端用户</div>
+          <div style="padding:4px 6px;color:#64748b;border-radius:4px;margin-bottom:2px">权限</div>
+          <div style="height:1px;background:#e2e8f0;margin:6px 0"></div>
+          <div style="padding:4px 6px;background:#eef2ff;color:#6366f1;border-radius:4px;font-weight:600;display:flex;align-items:center;gap:4px">
+            <span>🚀</span><span>快速开始</span>
+            <span style="margin-left:auto;background:#6366f1;color:#fff;border-radius:9999px;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:8px">2</span>
+          </div>
+        </div>
+        <div style="flex:1;background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font-size:10px">
+          <div style="font-weight:600;color:#0f172a;margin-bottom:8px">🚀 快速开始 <span style="color:#94a3b8;font-weight:400">— 3 / 5 完成</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px">
+            <div style="display:flex;align-items:center;gap:6px;color:#94a3b8"><span>✓</span><span style="text-decoration:line-through">创建项目</span></div>
+            <div style="display:flex;align-items:center;gap:6px;color:#94a3b8"><span>✓</span><span style="text-decoration:line-through">创建模型</span></div>
+            <div style="display:flex;align-items:center;gap:6px;color:#94a3b8"><span>✓</span><span style="text-decoration:line-through">设计字段</span></div>
+            <div style="display:flex;align-items:center;gap:6px;color:#6366f1;font-weight:600"><span>→</span><span>设置权限</span><span style="margin-left:auto;color:#6366f1;font-size:9px">进入 →</span></div>
+            <div style="display:flex;align-items:center;gap:6px;color:#94a3b8"><span>○</span><span>添加终端用户</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B. 侧边栏入口 + 主区展开</h3>
+      <p>左侧导航新增"快速开始"入口，点击后主区域展示步骤列表，和普通页面一致的导航体验。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>不遮挡任何内容</li><li>融入现有导航结构</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>离开该页面就看不到进度</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Option C -->
+  <div class="card" data-choice="c" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f8f9fa;padding:16px;border-radius:8px;min-height:200px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px;font-size:10px">
+        <div style="font-weight:600;color:#0f172a;margin-bottom:10px">my-org / my-project</div>
+        <!-- Banner at top -->
+        <div style="background:linear-gradient(135deg,#eef2ff,#f0fdf4);border:1px solid #c7d2fe;border-radius:6px;padding:10px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+            <span style="font-weight:600;color:#4338ca">🚀 快速开始 — 完成剩余 2 步</span>
+            <span style="color:#94a3b8;cursor:pointer">✕</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <div style="flex:1;background:#c7d2fe;border-radius:3px;height:3px"></div>
+            <div style="flex:1;background:#c7d2fe;border-radius:3px;height:3px"></div>
+            <div style="flex:1;background:#c7d2fe;border-radius:3px;height:3px"></div>
+            <div style="flex:1;background:#4338ca;border-radius:3px;height:3px"></div>
+            <div style="flex:1;background:#e2e8f0;border-radius:3px;height:3px"></div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <button style="background:#4338ca;color:#fff;border:none;border-radius:4px;padding:4px 8px;font-size:9px;cursor:pointer">设置权限 →</button>
+            <span style="color:#64748b;font-size:9px;align-self:center">下一步：添加终端用户</span>
+          </div>
+        </div>
+        <div style="height:50px;background:#f1f5f9;border-radius:4px;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:10px">模型编辑器...</div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C. 页面顶部 Banner（可关闭）</h3>
+      <p>在 Project 页顶部显示进度条 + 当前步骤，完成后消失。Stripe、Notion 的新用户引导常用此模式。</p>
+      <div class="pros-cons">
+        <div class="pros"><h4>优点</h4><ul><li>上下文感知（在对的页面显示）</li><li>完成后自动消失，零打扰</li></ul></div>
+        <div class="cons"><h4>缺点</h4><ul><li>跨页面时需要重新出现，逻辑稍复杂</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+</div>

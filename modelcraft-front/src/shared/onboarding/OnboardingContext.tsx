@@ -36,7 +36,15 @@ export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'
 
 // ── Context value ──────────────────────────────────────────────────────────
 
-export type OnboardingPendingAction = 'create_project' | 'create_model' | 'add_field' | null
+export type OnboardingPendingAction =
+  | 'create_project'
+  | 'create_model'
+  | 'create_permission'
+  | 'create_bundle'
+  | 'create_role'
+  | 'add_end_user'
+  | 'assign_role'
+  | null
 
 interface OnboardingContextValue {
   groups: OnboardingGroupWithStatus[]

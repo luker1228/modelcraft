@@ -1,0 +1,115 @@
+<h2>悬浮进度面板 — UI 设计</h2>
+<p class="subtitle">右下角固定浮层，展示 8 步 onboarding 进度。两种状态：折叠 vs 展开</p>
+
+<div class="split">
+
+  <!-- Collapsed state -->
+  <div class="mockup">
+    <div class="mockup-header">折叠状态（默认）</div>
+    <div class="mockup-body" style="min-height:320px;background:#f8fafc;position:relative;border-radius:6px">
+      <!-- Page background -->
+      <div style="padding:16px;font-size:11px;color:#94a3b8">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px;margin-bottom:8px">
+          <div style="font-weight:600;color:#0f172a;font-size:12px">my-org / my-project</div>
+          <div style="margin-top:6px;height:40px;background:#f1f5f9;border-radius:4px"></div>
+        </div>
+      </div>
+      <!-- Collapsed pill -->
+      <div style="position:absolute;bottom:16px;right:16px;background:#18181b;color:#fff;border-radius:9999px;padding:8px 14px;font-size:11px;display:flex;align-items:center;gap:8px;box-shadow:0 4px 16px rgba(0,0,0,0.2);cursor:pointer">
+        <span style="font-size:13px">🚀</span>
+        <span style="font-weight:500">快速开始</span>
+        <!-- Progress dots -->
+        <div style="display:flex;gap:3px;margin-left:4px">
+          <div style="width:6px;height:6px;border-radius:50%;background:#10b981"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#10b981"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#10b981"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#6366f1;outline:2px solid #818cf8"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#3f3f46"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#3f3f46"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#3f3f46"></div>
+          <div style="width:6px;height:6px;border-radius:50%;background:#3f3f46"></div>
+        </div>
+        <span style="color:#a1a1aa;font-size:10px">3/8</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded state -->
+  <div class="mockup">
+    <div class="mockup-header">展开状态（点击后）</div>
+    <div class="mockup-body" style="min-height:320px;background:#f8fafc;position:relative;border-radius:6px">
+      <!-- Page background -->
+      <div style="padding:16px;font-size:11px;color:#94a3b8">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:6px;padding:10px">
+          <div style="font-weight:600;color:#0f172a;font-size:12px">my-org / my-project</div>
+          <div style="margin-top:6px;height:20px;background:#f1f5f9;border-radius:4px"></div>
+        </div>
+      </div>
+      <!-- Expanded panel -->
+      <div style="position:absolute;bottom:16px;right:16px;width:220px;background:#18181b;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);overflow:hidden">
+        <!-- Header -->
+        <div style="padding:12px 14px 10px;border-bottom:1px solid #27272a">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="color:#fff;font-weight:600;font-size:12px">🚀 快速开始</span>
+            <span style="color:#71717a;font-size:10px;cursor:pointer">✕</span>
+          </div>
+          <!-- Progress bar -->
+          <div style="background:#27272a;border-radius:4px;height:4px">
+            <div style="width:37.5%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:4px;height:4px"></div>
+          </div>
+          <div style="color:#71717a;font-size:10px;margin-top:4px">3 / 8 步完成</div>
+        </div>
+        <!-- Steps list -->
+        <div style="padding:8px 0;font-size:11px">
+          <!-- done -->
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#fff">✓</div>
+            <span style="color:#52525b;text-decoration:line-through">创建项目</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#fff">✓</div>
+            <span style="color:#52525b;text-decoration:line-through">创建模型</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;background:#10b981;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#fff">✓</div>
+            <span style="color:#52525b;text-decoration:line-through">添加字段</span>
+          </div>
+          <!-- current -->
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px;background:#1c1c1f">
+            <div style="width:16px;height:16px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#fff;outline:2px solid #4f46e5">4</div>
+            <span style="color:#fff;font-weight:600">应用权限预设</span>
+            <span style="margin-left:auto;color:#818cf8;font-size:10px">→</span>
+          </div>
+          <!-- locked -->
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #3f3f46;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#52525b">5</div>
+            <span style="color:#52525b">创建角色</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #3f3f46;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#52525b">6</div>
+            <span style="color:#52525b">添加终端用户</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #3f3f46;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#52525b">7</div>
+            <span style="color:#52525b">分配角色</span>
+          </div>
+          <div style="padding:6px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;border:1.5px solid #3f3f46;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:9px;color:#52525b">8</div>
+            <span style="color:#52525b">终端用户登录</span>
+          </div>
+        </div>
+        <!-- CTA -->
+        <div style="padding:10px 14px;border-top:1px solid #27272a">
+          <button style="width:100%;background:#6366f1;color:#fff;border:none;border-radius:6px;padding:7px;font-size:11px;font-weight:600;cursor:pointer">前往：应用权限预设 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:14px 18px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px">
+  <p style="margin:0;font-size:13px;color:#166534">
+    <strong>交互说明：</strong>当前步骤高亮 + 点击可直接跳转到对应页面；已完成步骤灰显划线；未到达步骤显示序号但可点击预览。面板底部 CTA 按钮始终指向"当前步骤"。
+  </p>
+</div>

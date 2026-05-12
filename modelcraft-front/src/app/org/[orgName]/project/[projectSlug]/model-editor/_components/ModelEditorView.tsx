@@ -46,18 +46,8 @@ export function ModelEditorView() {
   const fieldOps = useFieldOperations({ orgName, projectSlug, state })
   const fkOps = useForeignKeys({ projectSlug, state })
 
-  // Onboarding: respond to pendingAction from the panel
-  const { pendingAction, setPendingAction } = useOnboarding()
-  useEffect(() => {
-    if (pendingAction === 'create_model') {
-      state.setCreateModelOpen(true)
-      setPendingAction(null)
-    } else if (pendingAction === 'add_field') {
-      state.setInsertFieldOpen(true)
-      setPendingAction(null)
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingAction])
+  // Onboarding: pendingAction is consumed by ModelSidebar directly via useOnboarding
+  // No auto-open needed here — sidebar reads pendingAction to show highlight/tooltip
 
   useEffect(() => {
     if (!state.selectedModelId) return

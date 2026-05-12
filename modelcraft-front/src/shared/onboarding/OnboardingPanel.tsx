@@ -4,7 +4,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { ChevronUp, ChevronDown, X, Check } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
-import { useOnboarding } from './OnboardingContext'
+import { useOnboarding, type OnboardingPendingAction } from './OnboardingContext'
 
 export function OnboardingPanel({ orgName }: { orgName: string }) {
   const {
@@ -177,7 +177,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                         <button
                           className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-primary/[0.06]"
                           onClick={() => {
-                            setPendingAction(step.id as 'create_project' | 'create_model' | 'add_field')
+                            setPendingAction(step.id as OnboardingPendingAction)
                             if (route) router.push(route)
                           }}
                         >

@@ -101,7 +101,7 @@ export function usePermissionsView({
   const [applyPresetPolicyMutation] = useMutation(APPLY_END_USER_PRESET_POLICY, {
     client,
     refetchQueries: [GET_END_USER_PERMISSIONS],
-    onCompleted: () => markStep('apply_preset'),
+    onCompleted: () => markStep('create_permission'),
   })
 
   // ── Derived: databaseNames from model groups ───────────────────────────────

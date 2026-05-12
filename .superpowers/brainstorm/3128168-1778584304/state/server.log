@@ -1,0 +1,7 @@
+{"type":"server-started","port":55844,"host":"127.0.0.1","url_host":"localhost","url":"http://localhost:55844","screen_dir":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/content","state_dir":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/state"}
+{"type":"screen-added","file":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/content/approaches.html"}
+{"type":"screen-added","file":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/content/waiting-1.html"}
+{"type":"screen-added","file":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/content/panel-design.html"}
+{"type":"screen-added","file":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/content/panel-v2.html"}
+{"type":"screen-added","file":"/data/home/lukemxjia/modelcraft/.superpowers/brainstorm/3128168-1778584304/content/waiting-2.html"}
+{"type":"server-stopped","reason":"idle timeout"}

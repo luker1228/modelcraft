@@ -6,8 +6,6 @@ import {
 } from './storage'
 import { ONBOARDING_GROUPS, ONBOARDING_STEPS } from './steps'
 
-// ── Mirror derivation logic from OnboardingContext ─────────────────────────
-
 function deriveGroups(completedSteps: OnboardingStepId[]) {
   const completedSet = new Set(completedSteps)
   return ONBOARDING_GROUPS.map((group) => {
@@ -30,7 +28,7 @@ describe('onboarding group derivation', () => {
     const g1 = groups[0]
     const navStep = g1.steps.find((s) => s.kind === 'nav')
     expect(navStep?.status).toBe('nav')
-    expect(g1.status).toBe('todo') // tracked step not done
+    expect(g1.status).toBe('todo')
   })
 
   it('group 1 completes only when create_project is done', () => {
@@ -43,20 +41,25 @@ describe('onboarding group derivation', () => {
     expect(groups.every((g) => g.status === 'todo')).toBe(true)
   })
 
-  it('group 2 completes when both create_model and add_field are done', () => {
-    const groups = deriveGroups(['create_model', 'add_field'])
+  it('group 2 completes when create_model is done', () => {
+    const groups = deriveGroups(['create_model'])
     expect(groups[1].status).toBe('completed')
   })
 
-  it('group 2 not complete when only create_model done', () => {
-    const groups = deriveGroups(['create_model'])
+  it('group 2 not complete when nothing done', () => {
+    const groups = deriveGroups([])
     expect(groups[1].status).toBe('todo')
   })
 
-  it('group 3 can be completed independently of group 2', () => {
-    const groups = deriveGroups(['apply_preset', 'create_role'])
+  it('group 3 completes when all permission steps done', () => {
+    const groups = deriveGroups(['create_permission', 'create_bundle', 'create_role'])
     expect(groups[2].status).toBe('completed')
-    expect(groups[1].status).toBe('todo') // group 2 unaffected
+  })
+
+  it('group 3 can be completed independently of group 2', () => {
+    const groups = deriveGroups(['create_permission', 'create_bundle', 'create_role'])
+    expect(groups[2].status).toBe('completed')
+    expect(groups[1].status).toBe('todo')
   })
 
   it('tracked steps count matches ONBOARDING_STEPS', () => {
@@ -64,16 +67,12 @@ describe('onboarding group derivation', () => {
     expect(allTracked.length).toBe(ONBOARDING_STEPS.length)
   })
 
-  it('all 8 tracked steps covered', () => {
-    expect(ONBOARDING_STEPS.length).toBe(8)
-  })
-
-  it('isComplete when all 8 tracked steps done', () => {
+  it('isComplete when all tracked steps done', () => {
     const all: OnboardingStepId[] = [
       'create_project',
       'create_model',
-      'add_field',
-      'apply_preset',
+      'create_permission',
+      'create_bundle',
       'create_role',
       'add_end_user',
       'assign_role',
@@ -103,7 +102,7 @@ describe('onboarding group derivation', () => {
     expect(next.projectSlug).toBe('my-project')
   })
 
-  it('tracked step route returns null when projectSlug is null', () => {
+  it('tracked step route returns workspace when projectSlug is null', () => {
     const step = ONBOARDING_STEPS.find((s) => s.id === 'create_model')!
     expect(step.route({ orgName: 'my-org', projectSlug: null })).toBe('/org/my-org/workspace')
   })

@@ -1,0 +1,117 @@
+<h2>悬浮进度面板 — 重新设计（符合 ModelCraft 品牌）</h2>
+<p class="subtitle">白底 · 结构边框 · Indigo 唯一动作色 · Stripe Dashboard 调性</p>
+
+<div class="split">
+
+  <!-- Collapsed state -->
+  <div class="mockup">
+    <div class="mockup-header">折叠状态</div>
+    <div class="mockup-body" style="min-height:340px;background:#F6F8FA;position:relative;border-radius:6px;font-family:Inter,system-ui,sans-serif">
+      <!-- Page chrome -->
+      <div style="padding:16px;font-size:11px">
+        <div style="background:#fff;border:1px solid #E3E8EE;border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:600;color:#1A1F36;margin-bottom:6px">my-org / my-project</div>
+          <div style="height:50px;background:#F6F8FA;border-radius:6px;border:1px solid #E3E8EE"></div>
+        </div>
+      </div>
+      <!-- Collapsed panel — white card, shadow-md -->
+      <div style="position:absolute;bottom:20px;right:20px;background:#fff;border:1px solid #E3E8EE;border-radius:8px;box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);padding:10px 14px;display:flex;align-items:center;gap:10px;cursor:pointer;min-width:200px">
+        <!-- Left indigo accent bar (active state) -->
+        <div style="width:3px;height:32px;background:#4F46E5;border-radius:2px;flex-shrink:0"></div>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600;color:#1A1F36;margin-bottom:4px">快速开始</div>
+          <!-- Progress bar -->
+          <div style="background:#E3E8EE;border-radius:4px;height:3px;width:100%">
+            <div style="width:37.5%;background:#4F46E5;border-radius:4px;height:3px"></div>
+          </div>
+          <div style="font-size:10px;color:#697386;margin-top:3px">3 / 8 步完成</div>
+        </div>
+        <!-- Chevron -->
+        <div style="color:#8792A2;font-size:10px">▲</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Expanded state -->
+  <div class="mockup">
+    <div class="mockup-header">展开状态</div>
+    <div class="mockup-body" style="min-height:340px;background:#F6F8FA;position:relative;border-radius:6px;font-family:Inter,system-ui,sans-serif">
+      <!-- Page chrome -->
+      <div style="padding:16px;font-size:11px">
+        <div style="background:#fff;border:1px solid #E3E8EE;border-radius:8px;padding:12px">
+          <div style="font-size:12px;font-weight:600;color:#1A1F36;margin-bottom:6px">my-org / my-project</div>
+          <div style="height:20px;background:#F6F8FA;border-radius:6px;border:1px solid #E3E8EE"></div>
+        </div>
+      </div>
+      <!-- Expanded panel -->
+      <div style="position:absolute;bottom:16px;right:16px;width:232px;background:#fff;border:1px solid #E3E8EE;border-radius:8px;box-shadow:0 10px 15px -3px rgba(0,0,0,0.1);overflow:hidden">
+        <!-- Header -->
+        <div style="padding:12px 14px;border-bottom:1px solid #E3E8EE">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:600;color:#1A1F36">快速开始</span>
+            <button style="border:none;background:none;color:#8792A2;cursor:pointer;font-size:12px;line-height:1;padding:0">✕</button>
+          </div>
+          <!-- Progress bar -->
+          <div style="background:#EBEEF2;border-radius:4px;height:4px">
+            <div style="width:37.5%;background:#4F46E5;border-radius:4px;height:4px"></div>
+          </div>
+          <div style="font-size:10px;color:#697386;margin-top:4px;font-weight:500">3 / 8 步完成</div>
+        </div>
+        <!-- Steps list -->
+        <div style="padding:6px 0;font-size:11px">
+
+          <!-- done -->
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#10b981;font-size:9px;border:1px solid rgba(16,185,129,0.3)">✓</div>
+            <span style="color:#8792A2;text-decoration:line-through">创建项目</span>
+          </div>
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#10b981;font-size:9px;border:1px solid rgba(16,185,129,0.3)">✓</div>
+            <span style="color:#8792A2;text-decoration:line-through">创建模型</span>
+          </div>
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;background:rgba(16,185,129,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#10b981;font-size:9px;border:1px solid rgba(16,185,129,0.3)">✓</div>
+            <span style="color:#8792A2;text-decoration:line-through">添加字段</span>
+          </div>
+
+          <!-- current — indigo selected state -->
+          <div style="padding:5px 14px 5px 11px;display:flex;align-items:center;gap:8px;background:rgba(79,70,229,0.06);border-left:3px solid #4F46E5">
+            <div style="width:16px;height:16px;border-radius:50%;background:rgba(79,70,229,0.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#4F46E5;font-size:9px;font-weight:600;border:1.5px solid #4F46E5">4</div>
+            <span style="color:#4F46E5;font-weight:600;flex:1">应用权限预设</span>
+            <span style="color:#4F46E5;font-size:10px">→</span>
+          </div>
+
+          <!-- locked -->
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8792A2;font-size:9px;border:1.5px solid #E3E8EE">5</div>
+            <span style="color:#8792A2">创建角色</span>
+          </div>
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8792A2;font-size:9px;border:1.5px solid #E3E8EE">6</div>
+            <span style="color:#8792A2">添加终端用户</span>
+          </div>
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8792A2;font-size:9px;border:1.5px solid #E3E8EE">7</div>
+            <span style="color:#8792A2">分配角色</span>
+          </div>
+          <div style="padding:5px 14px;display:flex;align-items:center;gap:8px">
+            <div style="width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#8792A2;font-size:9px;border:1.5px solid #E3E8EE">8</div>
+            <span style="color:#8792A2">终端用户登录</span>
+          </div>
+        </div>
+        <!-- CTA -->
+        <div style="padding:10px 14px;border-top:1px solid #E3E8EE">
+          <button style="width:100%;background:#4F46E5;color:#fff;border:none;border-radius:6px;padding:7px 12px;font-size:11px;font-weight:500;cursor:pointer;font-family:Inter,system-ui,sans-serif">前往：应用权限预设 →</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div style="margin-top:20px;padding:14px 18px;background:#F6F8FA;border:1px solid #E3E8EE;border-radius:8px;font-family:Inter,system-ui,sans-serif">
+  <p style="margin:0;font-size:12px;color:#697386">
+    <strong style="color:#1A1F36">设计语言：</strong>白底 + 结构边框（#E3E8EE）+ Indigo 唯一动作色 + shadow-lg 浮层。
+    折叠态为白色卡片胶囊，左侧 3px Indigo 竖线表示「激活中」。展开态步骤列表沿用侧边栏选中态样式（rgba(79,70,229,0.08) + 3px 左边框）。
+  </p>
+</div>

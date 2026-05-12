@@ -68,16 +68,6 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
             : `/org/${orgName}/workspace`,
       },
-      {
-        kind: 'tracked',
-        id: 'add_field',
-        label: '添加字段',
-        type: 'action',
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
-      },
     ],
   },
   {
@@ -86,12 +76,22 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
     steps: [
       {
         kind: 'tracked',
-        id: 'apply_preset',
-        label: '应用权限预设',
+        id: 'create_permission',
+        label: '创建权限点',
         type: 'action',
         route: ({ orgName, projectSlug }) =>
           projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/rbac/permissions`
+            ? `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`
+            : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
+        id: 'create_bundle',
+        label: '创建权限包',
+        type: 'action',
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`
             : `/org/${orgName}/workspace`,
       },
       {
@@ -101,7 +101,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         type: 'action',
         route: ({ orgName, projectSlug }) =>
           projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/rbac/roles`
+            ? `/org/${orgName}/project/${projectSlug}/roles`
             : `/org/${orgName}/workspace`,
       },
     ],
