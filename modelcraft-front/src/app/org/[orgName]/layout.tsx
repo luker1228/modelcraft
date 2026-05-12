@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useRequireAuth } from "@web/hooks/auth/use-auth";
 import { useOrganizationStore } from "@shared/stores/organization";
 import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
+import { OnboardingProvider } from "@shared/onboarding/OnboardingContext";
+import { OnboardingPanel } from "@shared/onboarding/OnboardingPanel";
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -82,5 +84,10 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
-  return <>{children}</>;
+  return (
+    <OnboardingProvider orgName={orgName}>
+      {children}
+      <OnboardingPanel orgName={orgName} />
+    </OnboardingProvider>
+  );
 }
