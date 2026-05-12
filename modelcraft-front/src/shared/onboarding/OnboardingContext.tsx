@@ -48,11 +48,13 @@ export type OnboardingPendingAction =
   | 'create_role'
   | 'add_end_user'
   | 'assign_role'
+  | 'highlight_first_project'
   | null
 
 interface OnboardingContextValue {
   groups: OnboardingGroupWithStatus[]
   projectSlug: string | null
+  hasProjects: boolean
   completedCount: number
   totalCount: number
   isComplete: boolean
@@ -67,6 +69,8 @@ interface OnboardingContextValue {
   reset: () => void
   setPendingAction: (action: OnboardingPendingAction) => void
   setExpandedGroupId: (id: string | null) => void
+  /** Called by workspace page when project list is fetched */
+  syncProjects: (projects: Array<{ slug: string }>) => void
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
@@ -85,6 +89,7 @@ export function OnboardingProvider({
   )
   const [pendingAction, setPendingAction] = useState<OnboardingPendingAction>(null)
   const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null)
+  const [hasProjects, setHasProjects] = useState(false)
 
   useEffect(() => {
     setState(readOnboardingState(orgName))
@@ -133,6 +138,27 @@ export function OnboardingProvider({
     setState(next)
     writeOnboardingState(next)
   }, [orgName])
+
+  const syncProjects = useCallback((projects: Array<{ slug: string }>) => {
+    setHasProjects(projects.length > 0)
+    if (projects.length > 0) {
+      // Auto-complete create_project and store first project slug
+      setState((prev) => {
+        const alreadyDone = prev.completedSteps.includes('create_project')
+        const slug = prev.projectSlug ?? projects[0].slug
+        if (alreadyDone && prev.projectSlug) return prev
+        const next: OnboardingState = {
+          ...prev,
+          completedSteps: alreadyDone
+            ? prev.completedSteps
+            : [...prev.completedSteps, 'create_project'],
+          projectSlug: slug,
+        }
+        writeOnboardingState(next)
+        return next
+      })
+    }
+  }, [])
 
   // ── Derive group/step status ───────────────────────────────────────────────
 
@@ -185,6 +211,7 @@ export function OnboardingProvider({
       value={{
         groups,
         projectSlug: state.projectSlug,
+        hasProjects,
         completedCount,
         totalCount,
         isComplete,
@@ -199,6 +226,7 @@ export function OnboardingProvider({
         reset,
         setPendingAction,
         setExpandedGroupId,
+        syncProjects,
       }}
     >
       {children}

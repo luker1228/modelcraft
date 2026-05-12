@@ -135,11 +135,18 @@ export default function WorkspacePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   // Onboarding: auto-open create dialog if triggered from panel
-  const { pendingAction, setPendingAction } = useOnboarding()
+  const { pendingAction, setPendingAction, syncProjects } = useOnboarding()
+  const [highlightFirstProject, setHighlightFirstProject] = useState(false)
+
   useEffect(() => {
     if (pendingAction === 'create_project') {
       setDialogOpen(true)
       setPendingAction(null)
+    } else if (pendingAction === 'highlight_first_project') {
+      setHighlightFirstProject(true)
+      setPendingAction(null)
+      // Auto-clear highlight after 3s
+      setTimeout(() => setHighlightFirstProject(false), 3000)
     }
   }, [pendingAction, setPendingAction])
 
@@ -182,8 +189,9 @@ export default function WorkspacePage() {
   useEffect(() => {
     if (data?.projects) {
       setProjects(data.projects)
+      syncProjects(data.projects.map((p: { slug: string }) => ({ slug: p.slug })))
     }
-  }, [data, setProjects])
+  }, [data, setProjects, syncProjects])
 
   useEffect(() => {
     if (queryError) {
@@ -445,14 +453,21 @@ export default function WorkspacePage() {
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredProjects.map((project) => (
-                  <ProjectCard
+                {filteredProjects.map((project, index) => (
+                  <div
                     key={project.id}
-                    project={project}
-                    onSelect={handleSelectProject}
-                    onEdit={handleEditProject}
-                    onDelete={handleOpenDeleteDialog}
-                  />
+                    className={index === 0 && highlightFirstProject
+                      ? 'rounded-lg ring-2 ring-amber-400 ring-offset-2 transition-all duration-300'
+                      : undefined
+                    }
+                  >
+                    <ProjectCard
+                      project={project}
+                      onSelect={handleSelectProject}
+                      onEdit={handleEditProject}
+                      onDelete={handleOpenDeleteDialog}
+                    />
+                  </div>
                 ))}
               </div>
             ) : (

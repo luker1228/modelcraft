@@ -10,6 +10,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
   const {
     groups,
     projectSlug: storedProjectSlug,
+    hasProjects,
     completedCount,
     totalCount,
     isComplete,
@@ -31,7 +32,11 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
 
   /** True if this step requires a project but none is available */
   const needsProject = (stepId: string): boolean => {
-    const projectScopedIds = ['select_database', 'create_model', 'insert_column', 'insert_data', 'create_permission', 'create_bundle', 'create_role']
+    const projectScopedIds = [
+      'goto_model_editor',
+      'select_database', 'create_model', 'insert_column', 'insert_data',
+      'create_permission', 'create_bundle', 'create_role',
+    ]
     return projectScopedIds.includes(stepId) && !projectSlug
   }
 
@@ -114,6 +119,9 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
           const isCurrentGroup = group.id === currentGroupId
           const trackedDone = group.steps.filter((s) => s.kind === 'tracked' && s.status === 'completed').length
           const trackedTotal = group.steps.filter((s) => s.kind === 'tracked').length
+          // Groups that require a project are locked when no projects exist yet
+          const groupNeedsProject = group.steps.some((s) => needsProject(s.id))
+          const groupBlocked = groupNeedsProject && !hasProjects
 
           return (
             <div key={group.id}>
@@ -121,9 +129,10 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
               <button
                 className={cn(
                   'flex w-full items-center gap-2 px-3.5 py-2 text-left transition-colors hover:bg-accent/50',
-                  isCurrentGroup && group.status !== 'completed' && 'bg-primary/[0.03]'
+                  isCurrentGroup && group.status !== 'completed' && 'bg-primary/[0.03]',
+                  groupBlocked && 'cursor-default opacity-50'
                 )}
-                onClick={() => handleGroupClick(group.id)}
+                onClick={() => { if (!groupBlocked) handleGroupClick(group.id) }}
               >
                 {group.status === 'completed' ? (
                   <div className="flex size-5 flex-shrink-0 items-center justify-center rounded-full border border-[#10b981]/30 bg-[#10b981]/10">
@@ -163,14 +172,23 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                 <div className="ml-[26px] border-l border-border pb-2 pl-3 pr-3.5">
                   {/* Project-required banner */}
                   {!projectSlug && group.steps.some((s) => s.kind === 'tracked' && needsProject(s.id)) && (
-                    <div className="mb-1.5 mt-1 flex items-center gap-1.5 rounded-md border border-border bg-[#F6F8FA] px-2.5 py-1.5">
-                      <span className="text-[11px] text-muted-foreground">请先进入一个项目再操作此步骤</span>
-                      <button
-                        className="ml-auto shrink-0 text-[11px] font-medium text-primary hover:underline"
-                        onClick={() => router.push(`/org/${orgName}/workspace`)}
-                      >
-                        前往 →
-                      </button>
+                    <div className="mb-1.5 mt-1 rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
+                      {!hasProjects ? (
+                        <p className="text-[11px] text-muted-foreground">请先创建一个项目再操作此步骤</p>
+                      ) : (
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] text-muted-foreground">请先进入一个项目再操作此步骤</span>
+                          <button
+                            className="ml-auto shrink-0 text-[11px] font-medium text-primary hover:underline"
+                            onClick={() => {
+                              setPendingAction('highlight_first_project')
+                              router.push(`/org/${orgName}/workspace`)
+                            }}
+                          >
+                            前往 →
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
