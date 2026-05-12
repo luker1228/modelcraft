@@ -11,6 +11,7 @@ import {
 import {
   ONBOARDING_GROUPS,
   ONBOARDING_STEPS,
+  ALL_TRACKED_STEPS,
   type OnboardingTrackedStep,
   type OnboardingNavStep,
   type OnboardingGroup,
@@ -18,7 +19,7 @@ import {
 
 // ── Derived types ──────────────────────────────────────────────────────────
 
-export type OnboardingStepStatus = 'completed' | 'todo'
+export type OnboardingStepStatus = 'completed' | 'current' | 'locked'
 
 export type OnboardingTrackedStepWithStatus = OnboardingTrackedStep & {
   status: OnboardingStepStatus
@@ -29,8 +30,8 @@ export type OnboardingSubStepWithStatus =
   | OnboardingTrackedStepWithStatus
 
 export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'> {
-  /** completed = all tracked sub-steps done */
-  status: OnboardingStepStatus
+  /** completed = all required tracked sub-steps done; todo = in progress or not started */
+  status: 'completed' | 'todo'
   steps: OnboardingSubStepWithStatus[]
 }
 
@@ -38,7 +39,10 @@ export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'
 
 export type OnboardingPendingAction =
   | 'create_project'
+  | 'select_database'
   | 'create_model'
+  | 'insert_column'
+  | 'insert_data'
   | 'create_permission'
   | 'create_bundle'
   | 'create_role'
@@ -55,12 +59,14 @@ interface OnboardingContextValue {
   panelOpen: boolean
   dismissed: boolean
   pendingAction: OnboardingPendingAction
+  expandedGroupId: string | null
   markStep: (id: OnboardingStepId, projectSlug?: string) => void
   openPanel: () => void
   closePanel: () => void
   dismiss: () => void
   reset: () => void
   setPendingAction: (action: OnboardingPendingAction) => void
+  setExpandedGroupId: (id: string | null) => void
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
@@ -78,6 +84,7 @@ export function OnboardingProvider({
     defaultOnboardingState(orgName)
   )
   const [pendingAction, setPendingAction] = useState<OnboardingPendingAction>(null)
+  const [expandedGroupId, setExpandedGroupId] = useState<string | null>(null)
 
   useEffect(() => {
     setState(readOnboardingState(orgName))
@@ -131,20 +138,34 @@ export function OnboardingProvider({
 
   const completedSet = new Set(state.completedSteps)
 
+  // Find the first non-completed, non-optional tracked step ID (global current)
+  const globalCurrentId = ALL_TRACKED_STEPS.find(
+    (s) => !s.optional && !completedSet.has(s.id)
+  )?.id ?? null
+
+  let markedCurrent = false
   const groups: OnboardingGroupWithStatus[] = ONBOARDING_GROUPS.map((group) => {
+    const isOptionalGroup = group.optional === true
+
     const steps: OnboardingSubStepWithStatus[] = group.steps.map((step) => {
-      if (step.kind === 'nav') {
-        return { ...step, status: 'nav' as const }
+      if (step.kind === 'nav') return { ...step, status: 'nav' as const }
+      if (completedSet.has(step.id)) return { ...step, status: 'completed' } satisfies OnboardingTrackedStepWithStatus
+      // For optional groups: all incomplete steps are 'locked' (greyed, still clickable)
+      if (isOptionalGroup) return { ...step, status: 'locked' } satisfies OnboardingTrackedStepWithStatus
+      // For required groups: first non-completed = current
+      if (step.id === globalCurrentId && !markedCurrent) {
+        markedCurrent = true
+        return { ...step, status: 'current' } satisfies OnboardingTrackedStepWithStatus
       }
-      return {
-        ...step,
-        status: completedSet.has(step.id) ? 'completed' : 'todo',
-      } satisfies OnboardingTrackedStepWithStatus
+      return { ...step, status: 'locked' } satisfies OnboardingTrackedStepWithStatus
     })
 
-    // Group is completed only when all tracked sub-steps are done
     const trackedSteps = steps.filter((s): s is OnboardingTrackedStepWithStatus => s.kind === 'tracked')
-    const allDone = trackedSteps.length > 0 && trackedSteps.every((s) => s.status === 'completed')
+    // Optional group: completed when all its steps are done (but doesn't affect overall completion)
+    const requiredTracked = trackedSteps.filter((s) => !s.optional)
+    const allDone = isOptionalGroup
+      ? trackedSteps.every((s) => s.status === 'completed')
+      : requiredTracked.length > 0 && requiredTracked.every((s) => s.status === 'completed')
 
     return {
       id: group.id,
@@ -154,7 +175,8 @@ export function OnboardingProvider({
     }
   })
 
-  const completedCount = state.completedSteps.length
+  // Only required (non-optional) steps count toward completion
+  const completedCount = ONBOARDING_STEPS.filter((s) => completedSet.has(s.id)).length
   const totalCount = ONBOARDING_STEPS.length
   const isComplete = completedCount === totalCount
 
@@ -169,12 +191,14 @@ export function OnboardingProvider({
         panelOpen: state.panelOpen,
         dismissed: state.dismissed,
         pendingAction,
+        expandedGroupId,
         markStep,
         openPanel,
         closePanel,
         dismiss,
         reset,
         setPendingAction,
+        setExpandedGroupId,
       }}
     >
       {children}

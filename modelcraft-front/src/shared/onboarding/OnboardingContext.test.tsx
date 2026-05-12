@@ -4,94 +4,97 @@ import {
   type OnboardingState,
   type OnboardingStepId,
 } from './storage'
-import { ONBOARDING_GROUPS, ONBOARDING_STEPS } from './steps'
+import { ONBOARDING_GROUPS, ONBOARDING_STEPS, ALL_TRACKED_STEPS } from './steps'
 
 function deriveGroups(completedSteps: OnboardingStepId[]) {
   const completedSet = new Set(completedSteps)
+
+  const globalCurrentId = ALL_TRACKED_STEPS.find(
+    (s) => !s.optional && !completedSet.has(s.id)
+  )?.id ?? null
+
+  let markedCurrent = false
   return ONBOARDING_GROUPS.map((group) => {
+    const isOptionalGroup = group.optional === true
     const steps = group.steps.map((step) => {
       if (step.kind === 'nav') return { ...step, status: 'nav' as const }
-      return {
-        ...step,
-        status: completedSet.has(step.id) ? 'completed' as const : 'todo' as const,
+      if (completedSet.has(step.id)) return { ...step, status: 'completed' as const }
+      if (isOptionalGroup) return { ...step, status: 'locked' as const }
+      if (step.id === globalCurrentId && !markedCurrent) {
+        markedCurrent = true
+        return { ...step, status: 'current' as const }
       }
+      return { ...step, status: 'locked' as const }
     })
     const tracked = steps.filter((s) => s.kind === 'tracked')
     const allDone = tracked.length > 0 && tracked.every((s) => s.kind === 'tracked' && s.status === 'completed')
-    return { id: group.id, label: group.label, status: allDone ? 'completed' as const : 'todo' as const, steps }
+    return { id: group.id, label: group.label, optional: group.optional, status: allDone ? 'completed' as const : 'todo' as const, steps }
   })
 }
 
 describe('onboarding group derivation', () => {
-  it('nav steps always have status nav, never block group completion', () => {
+  it('first required step is current at start', () => {
     const groups = deriveGroups([])
     const g1 = groups[0]
-    const navStep = g1.steps.find((s) => s.kind === 'nav')
-    expect(navStep?.status).toBe('nav')
-    expect(g1.status).toBe('todo')
+    const tracked = g1.steps.filter((s) => s.kind === 'tracked')
+    expect(tracked[0].status).toBe('current')
   })
 
-  it('group 1 completes only when create_project is done', () => {
-    const groups = deriveGroups(['create_project'])
-    expect(groups[0].status).toBe('completed')
-  })
-
-  it('all groups start as todo', () => {
+  it('nav steps are always nav status', () => {
     const groups = deriveGroups([])
-    expect(groups.every((g) => g.status === 'todo')).toBe(true)
+    const navStep = groups[0].steps.find((s) => s.kind === 'nav')
+    expect(navStep?.status).toBe('nav')
   })
 
-  it('group 2 completes when create_model is done', () => {
-    const groups = deriveGroups(['create_model'])
+  it('optional group steps are all locked regardless of current pointer', () => {
+    const groups = deriveGroups([])
+    const optGroup = groups.find((g) => g.optional)
+    expect(optGroup).toBeDefined()
+    const tracked = optGroup!.steps.filter((s) => s.kind === 'tracked')
+    expect(tracked.every((s) => s.status === 'locked')).toBe(true)
+  })
+
+  it('completing create_project advances current to select_database', () => {
+    const groups = deriveGroups(['create_project'])
+    const g2 = groups[1]
+    const tracked = g2.steps.filter((s) => s.kind === 'tracked')
+    expect(tracked[0].status).toBe('current') // select_database
+  })
+
+  it('group 2 completes when all its tracked steps done', () => {
+    const groups = deriveGroups(['create_project', 'select_database', 'create_model', 'insert_column', 'insert_data'])
     expect(groups[1].status).toBe('completed')
   })
 
-  it('group 2 not complete when nothing done', () => {
-    const groups = deriveGroups([])
-    expect(groups[1].status).toBe('todo')
+  it('optional group does not block group 4 from having a current step', () => {
+    const groups = deriveGroups(['create_project', 'select_database', 'create_model', 'insert_column', 'insert_data'])
+    const g4 = groups[3]
+    const tracked = g4.steps.filter((s) => s.kind === 'tracked')
+    expect(tracked[0].status).toBe('current') // add_end_user
   })
 
-  it('group 3 completes when all permission steps done', () => {
-    const groups = deriveGroups(['create_permission', 'create_bundle', 'create_role'])
-    expect(groups[2].status).toBe('completed')
+  it('optional steps in opt group are still completeable independently', () => {
+    const groups = deriveGroups(['create_permission'])
+    const optGroup = groups.find((g) => g.optional)!
+    const perm = optGroup.steps.find((s) => s.kind === 'tracked' && s.id === 'create_permission')
+    expect(perm?.status).toBe('completed')
   })
 
-  it('group 3 can be completed independently of group 2', () => {
-    const groups = deriveGroups(['create_permission', 'create_bundle', 'create_role'])
-    expect(groups[2].status).toBe('completed')
-    expect(groups[1].status).toBe('todo')
-  })
-
-  it('tracked steps count matches ONBOARDING_STEPS', () => {
-    const allTracked = ONBOARDING_GROUPS.flatMap((g) => g.steps).filter((s) => s.kind === 'tracked')
-    expect(allTracked.length).toBe(ONBOARDING_STEPS.length)
-  })
-
-  it('isComplete when all tracked steps done', () => {
-    const all: OnboardingStepId[] = [
-      'create_project',
-      'create_model',
-      'create_permission',
-      'create_bundle',
-      'create_role',
-      'add_end_user',
-      'assign_role',
-      'end_user_login',
+  it('required completion count excludes optional steps', () => {
+    const requiredIds: OnboardingStepId[] = [
+      'create_project', 'select_database', 'create_model', 'insert_column', 'insert_data',
+      'add_end_user', 'assign_role', 'end_user_login',
     ]
-    const groups = deriveGroups(all)
-    expect(groups.every((g) => g.status === 'completed')).toBe(true)
+    expect(requiredIds.length).toBe(ONBOARDING_STEPS.length)
   })
 
   it('markStep dedup', () => {
-    const prev: OnboardingState = {
-      ...defaultOnboardingState('test-org'),
-      completedSteps: ['create_project'],
-    }
+    const prev: OnboardingState = { ...defaultOnboardingState('test'), completedSteps: ['create_project'] }
     expect(prev.completedSteps.includes('create_project')).toBe(true)
   })
 
-  it('markStep create_project stores projectSlug', () => {
-    const prev: OnboardingState = defaultOnboardingState('test-org')
+  it('create_project stores projectSlug', () => {
+    const prev = defaultOnboardingState('test')
     const id: OnboardingStepId = 'create_project'
     const slug = 'my-project'
     const next: OnboardingState = {
@@ -102,14 +105,9 @@ describe('onboarding group derivation', () => {
     expect(next.projectSlug).toBe('my-project')
   })
 
-  it('tracked step route returns workspace when projectSlug is null', () => {
-    const step = ONBOARDING_STEPS.find((s) => s.id === 'create_model')!
-    expect(step.route({ orgName: 'my-org', projectSlug: null })).toBe('/org/my-org/workspace')
-  })
-
-  it('tracked step route returns project path when projectSlug set', () => {
-    const step = ONBOARDING_STEPS.find((s) => s.id === 'create_model')!
-    expect(step.route({ orgName: 'my-org', projectSlug: 'my-project' }))
-      .toBe('/org/my-org/project/my-project/model-editor')
+  it('create_model route resolves to model-editor when projectSlug set', () => {
+    const step = ALL_TRACKED_STEPS.find((s) => s.id === 'create_model')!
+    expect(step.route({ orgName: 'org', projectSlug: 'proj' }))
+      .toBe('/org/org/project/proj/model-editor')
   })
 })

@@ -6,6 +6,7 @@ export interface OnboardingTrackedStep {
   id: OnboardingStepId
   label: string
   type: 'action' | 'manual'
+  optional?: boolean
   route: (params: { orgName: string; projectSlug: string | null }) => string | null
 }
 
@@ -22,6 +23,7 @@ export type OnboardingSubStep = OnboardingTrackedStep | OnboardingNavStep
 export interface OnboardingGroup {
   id: string
   label: string
+  optional?: boolean
   steps: OnboardingSubStep[]
 }
 
@@ -60,8 +62,38 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
       },
       {
         kind: 'tracked',
+        id: 'select_database',
+        label: '选择数据库',
+        type: 'action',
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/model-editor`
+            : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
         id: 'create_model',
         label: '创建模型',
+        type: 'action',
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/model-editor`
+            : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
+        id: 'insert_column',
+        label: '插入列',
+        type: 'action',
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/model-editor`
+            : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
+        id: 'insert_data',
+        label: '添加第一条数据',
         type: 'action',
         route: ({ orgName, projectSlug }) =>
           projectSlug
@@ -73,12 +105,14 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
   {
     id: 'configure_permissions',
     label: '创建权限及角色',
+    optional: true,
     steps: [
       {
         kind: 'tracked',
         id: 'create_permission',
         label: '创建权限点',
         type: 'action',
+        optional: true,
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`
@@ -89,6 +123,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         id: 'create_bundle',
         label: '创建权限包',
         type: 'action',
+        optional: true,
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`
@@ -99,6 +134,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         id: 'create_role',
         label: '创建角色',
         type: 'action',
+        optional: true,
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/roles`
@@ -135,7 +171,12 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
   },
 ]
 
-/** Flat list of tracked steps only — used for completion counting */
+/** Flat list of tracked steps only — used for completion counting (excludes optional) */
 export const ONBOARDING_STEPS: OnboardingTrackedStep[] = ONBOARDING_GROUPS
+  .flatMap((g) => g.steps)
+  .filter((s): s is OnboardingTrackedStep => s.kind === 'tracked' && !s.optional)
+
+/** All tracked steps including optional — for full state tracking */
+export const ALL_TRACKED_STEPS: OnboardingTrackedStep[] = ONBOARDING_GROUPS
   .flatMap((g) => g.steps)
   .filter((s): s is OnboardingTrackedStep => s.kind === 'tracked')

@@ -2,7 +2,10 @@ export const ONBOARDING_KEY = 'mc_onboarding_v1'
 
 export type OnboardingStepId =
   | 'create_project'
+  | 'select_database'
   | 'create_model'
+  | 'insert_column'
+  | 'insert_data'
   | 'create_permission'
   | 'create_bundle'
   | 'create_role'
