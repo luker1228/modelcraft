@@ -12,25 +12,21 @@ import { ONBOARDING_GROUPS, ONBOARDING_STEPS, type OnboardingSubStep, type Onboa
 
 // ── Derived types ──────────────────────────────────────────────────────────
 
+export type OnboardingStepStatus = 'completed' | 'todo'
+
 export interface OnboardingSubStepWithStatus extends OnboardingSubStep {
-  status: 'completed' | 'current' | 'locked'
+  status: OnboardingStepStatus
 }
 
-export type OnboardingGroupStatus = 'completed' | 'current' | 'locked'
-
 export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'> {
-  status: OnboardingGroupStatus
+  status: OnboardingStepStatus  // completed only when ALL sub-steps done
   steps: OnboardingSubStepWithStatus[]
-  /** index of the current sub-step within this group (0-based), or -1 if not current group */
-  currentSubStepIndex: number
 }
 
 // ── Context value ──────────────────────────────────────────────────────────
 
 interface OnboardingContextValue {
   groups: OnboardingGroupWithStatus[]
-  currentGroup: OnboardingGroupWithStatus | null
-  currentStep: OnboardingSubStepWithStatus | null
   projectSlug: string | null
   completedCount: number
   totalCount: number
@@ -59,7 +55,6 @@ export function OnboardingProvider({
     defaultOnboardingState(orgName)
   )
 
-  // Hydrate from localStorage on mount (client only)
   useEffect(() => {
     setState(readOnboardingState(orgName))
   }, [orgName])
@@ -108,56 +103,24 @@ export function OnboardingProvider({
     writeOnboardingState(next)
   }, [orgName])
 
-  // ── Derive grouped status ──────────────────────────────────────────────
+  // ── Derive group/step status — all steps are freely accessible ────────────
 
   const completedSet = new Set(state.completedSteps)
-  let foundCurrentGroup = false
 
   const groups: OnboardingGroupWithStatus[] = ONBOARDING_GROUPS.map((group) => {
-    const stepsWithStatus: OnboardingSubStepWithStatus[] = group.steps.map((step) => {
-      const completed = completedSet.has(step.id)
-      return { ...step, status: completed ? 'completed' : 'locked' } satisfies OnboardingSubStepWithStatus
-    })
-
-    const allCompleted = stepsWithStatus.every((s) => completedSet.has(s.id))
-
-    let groupStatus: OnboardingGroupStatus
-    if (allCompleted) {
-      groupStatus = 'completed'
-    } else if (!foundCurrentGroup) {
-      groupStatus = 'current'
-      foundCurrentGroup = true
-    } else {
-      groupStatus = 'locked'
-    }
-
-    // Assign sub-step statuses within current group
-    let foundCurrentSubStep = false
-    const resolvedSteps: OnboardingSubStepWithStatus[] = stepsWithStatus.map((step) => {
-      if (groupStatus === 'completed') return { ...step, status: 'completed' }
-      if (groupStatus === 'locked') return { ...step, status: 'locked' }
-      // current group: assign current/locked to sub-steps
-      if (completedSet.has(step.id)) return { ...step, status: 'completed' }
-      if (!foundCurrentSubStep) {
-        foundCurrentSubStep = true
-        return { ...step, status: 'current' }
-      }
-      return { ...step, status: 'locked' }
-    })
-
-    const currentSubStepIndex = resolvedSteps.findIndex((s) => s.status === 'current')
-
+    const steps: OnboardingSubStepWithStatus[] = group.steps.map((step) => ({
+      ...step,
+      status: completedSet.has(step.id) ? 'completed' : 'todo',
+    }))
+    const allDone = steps.every((s) => s.status === 'completed')
     return {
       id: group.id,
       label: group.label,
-      status: groupStatus,
-      steps: resolvedSteps,
-      currentSubStepIndex,
+      status: allDone ? 'completed' : 'todo',
+      steps,
     }
   })
 
-  const currentGroup = groups.find((g) => g.status === 'current') ?? null
-  const currentStep = currentGroup?.steps.find((s) => s.status === 'current') ?? null
   const completedCount = state.completedSteps.length
   const totalCount = ONBOARDING_STEPS.length
   const isComplete = completedCount === totalCount
@@ -166,8 +129,6 @@ export function OnboardingProvider({
     <OnboardingContext.Provider
       value={{
         groups,
-        currentGroup,
-        currentStep,
         projectSlug: state.projectSlug,
         completedCount,
         totalCount,
