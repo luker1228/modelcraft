@@ -61,13 +61,13 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	_, regStatus, regErr := h.postBackendRaw(r.Context(), "/api/tenant/auth/register", bytes.NewReader(body))
+	regRaw, regStatus, regErr := h.postBackendRaw(r.Context(), "/api/tenant/auth/register", bytes.NewReader(body))
 	if regErr != nil {
 		proxyBackendError(w, regErr)
 		return
 	}
 	if regStatus >= 400 {
-		writeRaw(w, regStatus, body)
+		writeRaw(w, regStatus, regRaw)
 		return
 	}
 

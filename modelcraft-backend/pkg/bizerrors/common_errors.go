@@ -236,10 +236,16 @@ var (
 		ZhMessage: "用户不存在: {0}",
 	}
 
-	UserAlreadyExists = ErrorDefinition{
-		Code:      ErrorTypeConflict + ".USER",
-		EnMessage: "User already exists: {0}",
-		ZhMessage: "用户已存在: {0}",
+	UserNameAlreadyExists = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".USER_ALREADY_EXISTS",
+		EnMessage: "Username already exists: {0}",
+		ZhMessage: "该用户名已被注册",
+	}
+
+	PhoneAlreadyExists = ErrorDefinition{
+		Code:      ErrorTypeConflict + ".PHONE_ALREADY_EXISTS",
+		EnMessage: "Phone already exists: {0}",
+		ZhMessage: "该手机号已被注册",
 	}
 )
 

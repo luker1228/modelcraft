@@ -1,19 +1,38 @@
 ---
 name: backend-debug
 description: >
-  排查和修复 ModelCraft 后端错误。当用户提供 GraphQL 响应中的错误（包含 errors 数组、requestId、message 字段），
-  或者描述后端报错、接口异常、服务崩溃时，使用此 skill。
-  触发场景包括：
-  (1) 用户粘贴了带 errors/requestId 的 JSON 响应，
-  (2) 说"后端报错了"、"接口返回错误"、"帮我看看这个错误"、"定位问题"，
-  (3) 说"使用 just log"、"查看日志"、"找到错误原因"后想修复，
-  (4) 任何需要通过日志定位再修复代码的后端问题。
-  遇到上述情形时，主动使用此 skill，即便用户没有明确说"debug"。
+  排查和修复 ModelCraft 服务端错误（backend + gateway）。仅在“明确服务端排错”场景触发，必须同时满足：
+  (A) 服务端上下文明确（如：后端 / backend / modelcraft-backend / gateway / API / GraphQL resolver / Go 服务）；
+  (B) 排错意图明确（如：报错 / 异常 / requestId / logs / debug / 定位原因 / 修复错误）。
+  典型触发：
+  (1) 用户粘贴了带 errors/requestId 的后端或 gateway 响应/日志；
+  (2) 明确说“后端报错了”“gateway 报错了”“接口返回错误”“帮我定位服务端问题”；
+  (3) 明确要求查看 backend/gateway 日志并定位根因。
+  不触发：
+  - 纯功能开发、重构、代码讲解、部署配置修改、前端问题；
+  - 仅出现“日志”“错误”等泛词但未指向服务端。
+  规则：默认不自动触发；只有在满足 A+B 时才使用本 skill。
 ---
 
-# 后端问题排查与修复
+# 服务端问题排查与修复（Backend + Gateway）
 
 目标：**先用日志精准定位根因，再选择合适的验证手段（单测 / 数据库），最后最小化修复**。
+
+---
+
+## 0）先识别环境（必须）
+
+排查前先判断运行环境，后续命令按环境分支执行：
+
+- `dev`：服务在宿主机通过 `just run` 运行，日志通常在项目目录 `logs/` 或终端输出。
+- `docker`：服务在容器里运行，日志在容器文件或 `docker logs`。
+
+建议先做一次快速识别：
+
+```bash
+# 是否有容器在跑
+docker ps --format '{{.Names}}'
+```
 
 ---
 
@@ -35,7 +54,7 @@ description: >
 
 ---
 
-## 第二步：用 requestId 查日志链
+## 第二步：用 requestId 查日志链（优先 grep）
 
 ```bash
 cd modelcraft-backend
@@ -66,9 +85,34 @@ just log-cat <requestId>
 - **看 `stack` 字段**——只有 Interfaces 层才打 stack，能定位到精确的代码路径
 - **看 SQL 日志**——`[SQLC] query ok` 行带有 `sql` 和 `sql_args` 字段，可以直接拿去数据库重现查询
 
-如果需要看实时日志流（没有 requestId 时）：
+日志检索规范：
+
+- **优先使用 `grep`**（含容器内 `grep`），先精确命中 requestId，再扩展上下文。
+- 无 `grep` 再考虑其它工具。
+
+按环境查日志：
+
 ```bash
-just logs
+# dev: backend
+cd modelcraft-backend
+grep -n "<requestId>" logs/server.log
+
+# dev: gateway
+cd modelcraft-gateway
+grep -n "<requestId>" log/server.log
+
+# docker: backend
+docker exec modelcraft-backend sh -lc "grep -n '<requestId>' /app/logs/server.log"
+
+# docker: gateway
+docker exec modelcraft-gateway sh -lc "grep -n '<requestId>' /app/logs/server.log"
+```
+
+如果 requestId 不在 file log，再查容器标准日志：
+
+```bash
+docker logs modelcraft-backend 2>&1 | grep "<requestId>"
+docker logs modelcraft-gateway 2>&1 | grep "<requestId>"
 ```
 
 ---
@@ -182,6 +226,16 @@ SELECT * FROM projects WHERE slug = '<slug>' AND org_name = '<org_name>';
 ```bash
 just db login .env.autotest
 ```
+
+### 4c. Gateway 专项验证
+
+**适用**：问题发生在鉴权、代理转发、请求头注入、跨服务 requestId 传递。
+
+重点检查：
+
+- gateway `request_start/request_end` 是否成对，状态码是否符合预期。
+- 同一 `request_id` 是否在 backend 出现（确认转发链路）。
+- 是否存在鉴权拦截（如 missing Authorization、invalid token）。
 
 ---
 

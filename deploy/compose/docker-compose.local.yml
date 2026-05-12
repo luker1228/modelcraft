@@ -38,7 +38,7 @@ services:
     ports:
       - "8090:8090"
     volumes:
-      - ../../modelcraft-gateway/log:/app/log
+      - ../../modelcraft-gateway/log:/app/logs
     depends_on:
       backend:
         condition: service_healthy

@@ -84,11 +84,11 @@ services:
       - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
       - JWT_SECRET=${JWT_SECRET}
       - INTERNAL_TOKEN=${INTERNAL_TOKEN}
-      - LOG_OUTPUT_PATH=/app/log/server.log
+      - LOG_OUTPUT_PATH=/app/logs/server.log
       - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
       - TZ=Asia/Shanghai
     volumes:
-      - ./modelcraft-gateway/log:/app/log
+      - ./modelcraft-gateway/log:/app/logs
     depends_on:
       backend:
         condition: service_healthy

@@ -318,7 +318,7 @@ func TestTokenService_Register_DuplicatePhone(t *testing.T) {
 		UserName: "jane_doe",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "CONFLICT")
+	assert.Contains(t, err.Error(), "CONFLICT.PHONE_ALREADY_EXISTS")
 }
 
 func TestTokenService_Register_DuplicateUserName(t *testing.T) {
@@ -338,7 +338,7 @@ func TestTokenService_Register_DuplicateUserName(t *testing.T) {
 		UserName: "john_doe",
 	})
 	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "CONFLICT.USER")
+	assert.Contains(t, err.Error(), "CONFLICT.USER_ALREADY_EXISTS")
 }
 
 // ========== Login Tests ==========

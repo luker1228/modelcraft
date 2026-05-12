@@ -109,7 +109,7 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	if nameExists {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, cmd.UserName)
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserNameAlreadyExists, cmd.UserName)
 	}
 
 	// 5. 检查手机号是否已注册
@@ -118,7 +118,7 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	if phoneExists {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, phone.Masked())
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, phone.Masked())
 	}
 
 	// 6. 哈希密码
@@ -205,7 +205,15 @@ func (s *TokenService) createUserAndProfile(
 	) error {
 		if err := userRepo.Create(ctx, u); err != nil {
 			if shared.IsDuplicateKeyError(err) {
-				return bizerrors.NewErrorFromContext(ctx, bizerrors.UserAlreadyExists, maskedPhone)
+				phoneExists, phoneErr := userRepo.ExistsByPhone(ctx, u.Phone.String())
+				if phoneErr == nil && phoneExists {
+					return bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, maskedPhone)
+				}
+				nameExists, nameErr := userRepo.ExistsByName(ctx, u.Name)
+				if nameErr == nil && nameExists {
+					return bizerrors.NewErrorFromContext(ctx, bizerrors.UserNameAlreadyExists, u.Name)
+				}
+				return bizerrors.NewErrorFromContext(ctx, bizerrors.Conflict, "duplicate user record")
 			}
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
