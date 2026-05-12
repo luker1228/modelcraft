@@ -161,20 +161,37 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
               {/* Sub-steps — shown only when expanded */}
               {isExpanded && (
                 <div className="ml-[26px] border-l border-border pb-2 pl-3 pr-3.5">
-                  {group.steps.map((step) => {
+                  {/* Project-required banner */}
+                  {!projectSlug && group.steps.some((s) => s.kind === 'tracked' && needsProject(s.id)) && (
+                    <div className="mb-1.5 mt-1 flex items-center gap-1.5 rounded-md border border-border bg-[#F6F8FA] px-2.5 py-1.5">
+                      <span className="text-[11px] text-muted-foreground">请先进入一个项目再操作此步骤</span>
+                      <button
+                        className="ml-auto shrink-0 text-[11px] font-medium text-primary hover:underline"
+                        onClick={() => router.push(`/org/${orgName}/workspace`)}
+                      >
+                        前往 →
+                      </button>
+                    </div>
+                  )}
 
-                    // ── Nav step — always clickable ──────────────────────
+                  {group.steps.map((step) => {
+                    // ── Nav step ──────────────────────────────────────────
                     if (step.kind === 'nav') {
                       const route = step.route({ orgName, projectSlug })
+                      // Nav steps pointing to a project path require projectSlug
+                      const navNeedsProject = route.includes('/project/') && !projectSlug
                       return (
                         <div key={step.id} className="py-1">
                           <button
-                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-primary/[0.04]"
-                            onClick={() => router.push(route)}
+                            className={cn(
+                              'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
+                              navNeedsProject ? 'cursor-default opacity-40' : 'hover:bg-primary/[0.04]'
+                            )}
+                            onClick={() => { if (!navNeedsProject) router.push(route) }}
                           >
                             <div className="size-1.5 flex-shrink-0 rounded-full bg-border" />
                             <span className="flex-1 text-[11px] text-foreground">{step.label}</span>
-                            <span className="text-[10px] text-muted-foreground">→</span>
+                            {!navNeedsProject && <span className="text-[10px] text-muted-foreground">→</span>}
                           </button>
                         </div>
                       )
