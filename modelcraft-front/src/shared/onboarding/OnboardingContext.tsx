@@ -8,22 +8,35 @@ import {
   readOnboardingState,
   writeOnboardingState,
 } from './storage'
-import { ONBOARDING_GROUPS, ONBOARDING_STEPS, type OnboardingSubStep, type OnboardingGroup } from './steps'
+import {
+  ONBOARDING_GROUPS,
+  ONBOARDING_STEPS,
+  type OnboardingTrackedStep,
+  type OnboardingNavStep,
+  type OnboardingGroup,
+} from './steps'
 
 // ── Derived types ──────────────────────────────────────────────────────────
 
 export type OnboardingStepStatus = 'completed' | 'todo'
 
-export interface OnboardingSubStepWithStatus extends OnboardingSubStep {
+export type OnboardingTrackedStepWithStatus = OnboardingTrackedStep & {
   status: OnboardingStepStatus
 }
 
+export type OnboardingSubStepWithStatus =
+  | (OnboardingNavStep & { status: 'nav' })
+  | OnboardingTrackedStepWithStatus
+
 export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'> {
-  status: OnboardingStepStatus  // completed only when ALL sub-steps done
+  /** completed = all tracked sub-steps done */
+  status: OnboardingStepStatus
   steps: OnboardingSubStepWithStatus[]
 }
 
 // ── Context value ──────────────────────────────────────────────────────────
+
+export type OnboardingPendingAction = 'create_project' | 'create_model' | 'add_field' | null
 
 interface OnboardingContextValue {
   groups: OnboardingGroupWithStatus[]
@@ -33,11 +46,13 @@ interface OnboardingContextValue {
   isComplete: boolean
   panelOpen: boolean
   dismissed: boolean
+  pendingAction: OnboardingPendingAction
   markStep: (id: OnboardingStepId, projectSlug?: string) => void
   openPanel: () => void
   closePanel: () => void
   dismiss: () => void
   reset: () => void
+  setPendingAction: (action: OnboardingPendingAction) => void
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null)
@@ -54,6 +69,7 @@ export function OnboardingProvider({
   const [state, setState] = useState<OnboardingState>(() =>
     defaultOnboardingState(orgName)
   )
+  const [pendingAction, setPendingAction] = useState<OnboardingPendingAction>(null)
 
   useEffect(() => {
     setState(readOnboardingState(orgName))
@@ -103,16 +119,25 @@ export function OnboardingProvider({
     writeOnboardingState(next)
   }, [orgName])
 
-  // ── Derive group/step status — all steps are freely accessible ────────────
+  // ── Derive group/step status ───────────────────────────────────────────────
 
   const completedSet = new Set(state.completedSteps)
 
   const groups: OnboardingGroupWithStatus[] = ONBOARDING_GROUPS.map((group) => {
-    const steps: OnboardingSubStepWithStatus[] = group.steps.map((step) => ({
-      ...step,
-      status: completedSet.has(step.id) ? 'completed' : 'todo',
-    }))
-    const allDone = steps.every((s) => s.status === 'completed')
+    const steps: OnboardingSubStepWithStatus[] = group.steps.map((step) => {
+      if (step.kind === 'nav') {
+        return { ...step, status: 'nav' as const }
+      }
+      return {
+        ...step,
+        status: completedSet.has(step.id) ? 'completed' : 'todo',
+      } satisfies OnboardingTrackedStepWithStatus
+    })
+
+    // Group is completed only when all tracked sub-steps are done
+    const trackedSteps = steps.filter((s): s is OnboardingTrackedStepWithStatus => s.kind === 'tracked')
+    const allDone = trackedSteps.length > 0 && trackedSteps.every((s) => s.status === 'completed')
+
     return {
       id: group.id,
       label: group.label,
@@ -135,11 +160,13 @@ export function OnboardingProvider({
         isComplete,
         panelOpen: state.panelOpen,
         dismissed: state.dismissed,
+        pendingAction,
         markStep,
         openPanel,
         closePanel,
         dismiss,
         reset,
+        setPendingAction,
       }}
     >
       {children}

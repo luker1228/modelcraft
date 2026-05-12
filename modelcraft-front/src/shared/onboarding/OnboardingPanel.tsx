@@ -1,6 +1,6 @@
 'use client'
 
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { ChevronUp, ChevronDown, X, Check } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
@@ -9,7 +9,7 @@ import { useOnboarding } from './OnboardingContext'
 export function OnboardingPanel({ orgName }: { orgName: string }) {
   const {
     groups,
-    projectSlug,
+    projectSlug: storedProjectSlug,
     completedCount,
     totalCount,
     isComplete,
@@ -18,17 +18,18 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
     closePanel,
     dismiss,
     markStep,
+    setPendingAction,
   } = useOnboarding()
 
   const router = useRouter()
+  const params = useParams()
+
+  const urlProjectSlug = (params.projectSlug as string | undefined) ?? null
+  const projectSlug = urlProjectSlug ?? storedProjectSlug
 
   if (isComplete) return null
 
   const progressPct = (completedCount / totalCount) * 100
-
-  const navigate = (route: string | null) => {
-    if (route) router.push(route)
-  }
 
   // ── Collapsed ──────────────────────────────────────────────────────────────
   if (!panelOpen) {
@@ -59,7 +60,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
 
   // ── Expanded ──────────────────────────────────────────────────────────────
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[256px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+    <div className="fixed bottom-6 right-6 z-50 w-[260px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
 
       {/* Header */}
       <div className="border-b border-border px-3.5 py-3">
@@ -84,106 +85,126 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
         </p>
       </div>
 
-      {/* Groups — all always expanded, all steps clickable */}
-      <div className="max-h-[480px] overflow-y-auto py-2">
-        {groups.map((group, groupIndex) => (
-          <div key={group.id} className="mb-1">
-            {/* Group header row */}
-            <div className="flex items-center gap-2 px-3.5 py-1.5">
-              {group.status === 'completed' ? (
-                <div className="flex size-5 flex-shrink-0 items-center justify-center rounded-full border border-[#10b981]/30 bg-[#10b981]/10">
-                  <Check className="size-3 text-[#10b981]" strokeWidth={2.5} />
-                </div>
-              ) : (
-                <div className="flex size-5 flex-shrink-0 items-center justify-center rounded-full border border-border bg-[#F6F8FA]">
-                  <span className="text-[9px] font-medium text-muted-foreground">{groupIndex + 1}</span>
-                </div>
-              )}
-              <span
-                className={cn(
+      {/* Groups */}
+      <div className="max-h-[520px] overflow-y-auto py-2">
+        {groups.map((group, groupIndex) => {
+          const trackedDone = group.steps
+            .filter((s) => s.kind === 'tracked')
+            .filter((s) => s.kind === 'tracked' && s.status === 'completed').length
+          const trackedTotal = group.steps.filter((s) => s.kind === 'tracked').length
+
+          return (
+            <div key={group.id} className="mb-1">
+              {/* Group header */}
+              <div className="flex items-center gap-2 px-3.5 py-1.5">
+                {group.status === 'completed' ? (
+                  <div className="flex size-5 flex-shrink-0 items-center justify-center rounded-full border border-[#10b981]/30 bg-[#10b981]/10">
+                    <Check className="size-3 text-[#10b981]" strokeWidth={2.5} />
+                  </div>
+                ) : (
+                  <div className="flex size-5 flex-shrink-0 items-center justify-center rounded-full border border-border bg-[#F6F8FA]">
+                    <span className="text-[9px] font-medium text-muted-foreground">{groupIndex + 1}</span>
+                  </div>
+                )}
+                <span className={cn(
                   'text-[12px] font-semibold',
                   group.status === 'completed' ? 'text-muted-foreground' : 'text-foreground'
-                )}
-              >
-                {group.label}
-              </span>
-              {group.status !== 'completed' && group.steps.length > 1 && (
-                <span className="ml-auto text-[10px] text-muted-foreground">
-                  {group.steps.filter((s) => s.status === 'completed').length}/{group.steps.length}
+                )}>
+                  {group.label}
                 </span>
-              )}
-            </div>
+                {group.status !== 'completed' && trackedTotal > 0 && (
+                  <span className="ml-auto text-[10px] text-muted-foreground">
+                    {trackedDone}/{trackedTotal}
+                  </span>
+                )}
+              </div>
 
-            {/* Sub-steps — always visible, all clickable */}
-            <div className="ml-[26px] border-l border-border pb-1 pl-3 pr-3.5">
-              {group.steps.map((step) => {
-                const route = step.route({ orgName, projectSlug })
-                const isEndUserLogin = step.id === 'end_user_login'
+              {/* Sub-steps */}
+              <div className="ml-[26px] border-l border-border pb-1 pl-3 pr-3.5">
+                {group.steps.map((step) => {
 
-                return (
-                  <div key={step.id} className="py-1">
-                    {isEndUserLogin && step.status === 'todo' ? (
-                      // Step 8: show login URL + manual confirm
-                      <div className="rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
-                        <div className="mb-1 flex items-center gap-1.5">
-                          <div className="size-1.5 flex-shrink-0 rounded-full bg-primary" />
-                          <span className="text-[11px] font-medium text-foreground">{step.label}</span>
-                        </div>
-                        <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
-                        <code className="block break-all font-mono text-[10px] text-foreground">
-                          /end-user/org/{orgName}/login
-                        </code>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="mt-2 h-7 w-full text-[11px]"
-                          onClick={() => markStep('end_user_login')}
+                  // ── Nav step — pure navigation, always clickable ──────────
+                  if (step.kind === 'nav') {
+                    const route = step.route({ orgName, projectSlug })
+                    return (
+                      <div key={step.id} className="py-1">
+                        <button
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-primary/[0.04]"
+                          onClick={() => router.push(route)}
                         >
-                          已完成 ✓
-                        </Button>
+                          <div className="size-1.5 flex-shrink-0 rounded-full bg-border" />
+                          <span className="flex-1 text-[11px] text-foreground">{step.label}</span>
+                          <span className="text-[10px] text-muted-foreground">→</span>
+                        </button>
                       </div>
-                    ) : (
-                      // Regular step row — always clickable if has a route
-                      <button
-                        className={cn(
-                          'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
-                          route
-                            ? 'cursor-pointer hover:bg-primary/[0.04]'
-                            : 'cursor-default'
-                        )}
-                        onClick={() => navigate(route)}
-                        disabled={!route}
-                      >
-                        {step.status === 'completed' ? (
-                          <div className="flex size-3.5 flex-shrink-0 items-center justify-center rounded-full border border-[#10b981]/40 bg-[#10b981]/10">
-                            <Check className="size-2 text-[#10b981]" strokeWidth={3} />
+                    )
+                  }
+
+                  // ── Tracked step ─────────────────────────────────────────
+                  const isDone = step.status === 'completed'
+                  const route = step.route({ orgName, projectSlug })
+
+                  // Manual confirm (end_user_login)
+                  if (step.type === 'manual' && !isDone) {
+                    return (
+                      <div key={step.id} className="py-1">
+                        <div className="rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
+                          <div className="mb-1 flex items-center gap-1.5">
+                            <div className="size-1.5 flex-shrink-0 rounded-full bg-primary/40" />
+                            <span className="text-[11px] font-medium text-foreground">{step.label}</span>
                           </div>
-                        ) : (
-                          <div className="size-1.5 flex-shrink-0 rounded-full bg-primary/40" />
-                        )}
-                        <span
-                          className={cn(
-                            'flex-1 text-[11px]',
-                            step.status === 'completed'
-                              ? 'text-muted-foreground line-through'
-                              : 'text-foreground'
-                          )}
+                          <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
+                          <code className="block break-all font-mono text-[10px] text-foreground">
+                            /end-user/org/{orgName}/login
+                          </code>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="mt-2 h-7 w-full text-[11px]"
+                            onClick={() => markStep('end_user_login')}
+                          >
+                            已完成 ✓
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  }
+
+                  // Action step — navigate + trigger page dialog
+                  if (step.type === 'action' && !isDone) {
+                    return (
+                      <div key={step.id} className="py-1">
+                        <button
+                          className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-primary/[0.06]"
+                          onClick={() => {
+                            setPendingAction(step.id as 'create_project' | 'create_model' | 'add_field')
+                            if (route) router.push(route)
+                          }}
                         >
-                          {step.label}
-                        </span>
-                        {step.status === 'todo' && route && (
-                          <span className="text-[10px] text-primary opacity-0 transition-opacity group-hover:opacity-100">
-                            →
-                          </span>
-                        )}
-                      </button>
-                    )}
-                  </div>
-                )
-              })}
+                          <div className="size-1.5 flex-shrink-0 rounded-full bg-primary/40" />
+                          <span className="flex-1 text-[11px] font-medium text-primary">{step.label}</span>
+                          <span className="text-[10px] text-primary">↗</span>
+                        </button>
+                      </div>
+                    )
+                  }
+
+                  // Completed tracked step (any type)
+                  return (
+                    <div key={step.id} className="py-1">
+                      <div className="flex items-center gap-2 px-2 py-1.5 opacity-60">
+                        <div className="flex size-3.5 flex-shrink-0 items-center justify-center rounded-full border border-[#10b981]/40 bg-[#10b981]/10">
+                          <Check className="size-2 text-[#10b981]" strokeWidth={3} />
+                        </div>
+                        <span className="flex-1 text-[11px] text-muted-foreground line-through">{step.label}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Collapse chevron */}

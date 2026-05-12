@@ -53,6 +53,7 @@ import type {
 } from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@api-client/auth/public"
 import { useOrgScopedContext } from "@api-client/apollo/public"
+import { useOnboarding } from "@shared/onboarding/OnboardingContext"
 
 /** 将后端英文数据库错误信息本地化为中文 */
 function localizeDbError(msg: string): string {
@@ -132,6 +133,15 @@ export default function WorkspacePage() {
   const [currentOrg, setCurrentOrgInfo] = useState<MembershipInfo | null>(null)
   const [memberships, setMemberships] = useState<MembershipInfo[]>([])
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
+
+  // Onboarding: auto-open create dialog if triggered from panel
+  const { pendingAction, setPendingAction } = useOnboarding()
+  useEffect(() => {
+    if (pendingAction === 'create_project') {
+      setDialogOpen(true)
+      setPendingAction(null)
+    }
+  }, [pendingAction, setPendingAction])
 
   // Store
   const { projects, setProjects, setLoading } = useProjectStore()

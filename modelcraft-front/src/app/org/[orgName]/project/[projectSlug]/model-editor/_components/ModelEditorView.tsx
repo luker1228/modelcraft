@@ -24,6 +24,7 @@ import {
   DataWorkspacePanel,
   type DataWorkspaceTab,
 } from '@web/components/features/model-editor/DataWorkspacePanel'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 const DevelopRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'))
 const MAX_MODEL_TABS = 8
@@ -44,6 +45,19 @@ export function ModelEditorView() {
   const crud = useModelCRUD({ orgName, projectSlug, state })
   const fieldOps = useFieldOperations({ orgName, projectSlug, state })
   const fkOps = useForeignKeys({ projectSlug, state })
+
+  // Onboarding: respond to pendingAction from the panel
+  const { pendingAction, setPendingAction } = useOnboarding()
+  useEffect(() => {
+    if (pendingAction === 'create_model') {
+      state.setCreateModelOpen(true)
+      setPendingAction(null)
+    } else if (pendingAction === 'add_field') {
+      state.setInsertFieldOpen(true)
+      setPendingAction(null)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAction])
 
   useEffect(() => {
     if (!state.selectedModelId) return
