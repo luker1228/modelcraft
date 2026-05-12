@@ -37,6 +37,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -103,6 +104,8 @@ export function AppLayout({
 
   const orgName = params.orgName as string
   const projectSlug = params.projectSlug as string
+
+  const { completedCount, totalCount, isComplete, dismissed, openPanel } = useOnboarding()
 
   useEffect(() => {
     setStoredUserName(localStorage.getItem('defaultUserName') || '')
@@ -484,19 +487,44 @@ export function AppLayout({
             ))}
           </div>
 
-          {/* Sidebar footer — toggle button */}
-          <div className="flex h-11 flex-shrink-0 items-center border-t border-border px-2">
-            <button
-              onClick={toggleSidebar}
-              className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-              title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-            >
-              {sidebarCollapsed ? (
-                <PanelLeft className="size-4" strokeWidth={1.5} />
-              ) : (
-                <PanelLeftClose className="size-4" strokeWidth={1.5} />
-              )}
-            </button>
+          {/* Sidebar footer */}
+          <div className="flex-shrink-0 border-t border-border">
+            {/* Quick start entry — shown when onboarding is incomplete and not dismissed */}
+            {!isComplete && !dismissed && (
+              <button
+                onClick={openPanel}
+                className={cn(
+                  'flex w-full items-center gap-2 px-3 py-2 text-left transition-colors',
+                  sidebarCollapsed ? 'justify-center' : '',
+                  'text-muted-foreground hover:bg-accent hover:text-foreground'
+                )}
+                title="快速开始"
+              >
+                <Sparkles className="size-4 flex-shrink-0" strokeWidth={1.5} />
+                {!sidebarCollapsed && (
+                  <>
+                    <span className="flex-1 text-[12px] font-medium">快速开始</span>
+                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                      {completedCount}/{totalCount}
+                    </span>
+                  </>
+                )}
+              </button>
+            )}
+            {/* Collapse toggle */}
+            <div className="flex h-11 items-center px-2">
+              <button
+                onClick={toggleSidebar}
+                className="flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+              >
+                {sidebarCollapsed ? (
+                  <PanelLeft className="size-4" strokeWidth={1.5} />
+                ) : (
+                  <PanelLeftClose className="size-4" strokeWidth={1.5} />
+                )}
+              </button>
+            </div>
           </div>
         </aside>
 
