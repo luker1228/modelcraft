@@ -176,7 +176,13 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {user.createdBy || <span className="text-muted-foreground/50">—</span>}
+                      {user.createdBy ? (
+                        <span title={user.createdBy} className="font-mono text-xs">
+                          {user.createdBy.slice(0, 8)}…
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground/50">—</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
                       {formatDate(user.createdAt)}
@@ -226,6 +232,7 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         onCreate={createUser}
+        orgName={orgName}
       />
     </div>
   )

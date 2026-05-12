@@ -84,18 +84,35 @@ interface RefreshResponse {
 }
 
 /**
- * 页面挂载时，若 store 里没有有效 token，用 refresh cookie 换取新 accessToken。
+ * 页面挂载时，若 store 里没有有效 token，先尝试从 sessionStorage 恢复（登录时写入），
+ * 再尝试用 refresh cookie 换取新 accessToken。
  * 返回 ready=true 后再渲染 Apollo 请求，避免以空 token 发出请求。
  */
 function useEndUserTokenReady(orgName: string): boolean {
-  const accessToken = useEndUserAuthStore((s) => s.accessToken)
-  const isExpired = useEndUserAuthStore((s) => s.isTokenExpired)
   const setAccessToken = useEndUserAuthStore((s) => s.setAccessToken)
   const router = useRouter()
-  const [ready, setReady] = useState(!!accessToken && !isExpired())
+
+  // 用 getState() 同步读，避免 hook 订阅延迟导致初始值错误
+  const [ready, setReady] = useState(() => {
+    const storeState = useEndUserAuthStore.getState()
+    if (storeState.accessToken && !storeState.isTokenExpired()) return true
+
+    // store 为空时，尝试从 sessionStorage 恢复（登录时写入的备份）
+    if (typeof window !== 'undefined') {
+      const savedToken = sessionStorage.getItem(`eu_token_${orgName}`)
+      const savedExpiresAt = Number(sessionStorage.getItem(`eu_token_expires_at_${orgName}`) ?? '0')
+      if (savedToken && Date.now() < savedExpiresAt - 5 * 60 * 1000) {
+        const expiresIn = Math.floor((savedExpiresAt - Date.now()) / 1000)
+        useEndUserAuthStore.getState().setAccessToken(savedToken, expiresIn)
+        return true
+      }
+    }
+    return false
+  })
 
   useEffect(() => {
-    if (accessToken && !isExpired()) {
+    const storeState = useEndUserAuthStore.getState()
+    if (storeState.accessToken && !storeState.isTokenExpired()) {
       setReady(true)
       return
     }
@@ -129,7 +146,7 @@ function useEndUserTokenReady(orgName: string): boolean {
         router.replace(`/end-user/${orgName}/login`)
       }
     })()
-  }, [orgName, accessToken, isExpired, setAccessToken, router])
+  }, [orgName, setAccessToken, router])
 
   return ready
 }

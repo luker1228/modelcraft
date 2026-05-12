@@ -71,7 +71,7 @@ export default function OrgLoginSettingsPage() {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="token-issuer">Token Issuer</Label>
+          <Label htmlFor="token-issuer">令牌颁发者（Token Issuer）</Label>
           <Input
             id="token-issuer"
             value={issuer}

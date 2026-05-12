@@ -87,7 +87,7 @@ export function ProfileEditForm({
         </Label>
         <Input
           id="avatarUrl"
-          placeholder="例如 /mocks/avatar-user.png"
+          placeholder="https://example.com/avatar.png"
           {...register('avatarUrl')}
           aria-invalid={Boolean(errors.avatarUrl)}
         />

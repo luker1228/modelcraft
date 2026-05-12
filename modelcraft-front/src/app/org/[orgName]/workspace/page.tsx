@@ -32,6 +32,13 @@ import {
   Plus,
   FolderOpen,
   Settings,
+  CheckCircle2,
+  Circle,
+  Database,
+  LayoutTemplate,
+  Users,
+  ShieldCheck,
+  ArrowRight,
   MoreVertical,
   Clock,
 } from "lucide-react"
@@ -46,6 +53,21 @@ import type {
 } from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@api-client/auth/public"
 import { useOrgScopedContext } from "@api-client/apollo/public"
+
+/** 将后端英文数据库错误信息本地化为中文 */
+function localizeDbError(msg: string): string {
+  const lower = msg.toLowerCase()
+  if (lower.includes('connection refused')) return '连接被拒绝，请检查主机地址和端口'
+  if (lower.includes('authentication failed') || lower.includes('access denied')) return '认证失败，请检查用户名和密码'
+  if (lower.includes('unknown host') || lower.includes('no such host')) return '主机地址无法解析，请检查主机名'
+  if (lower.includes('timeout') || lower.includes('timed out')) return '连接超时，请检查网络和主机配置'
+  if (lower.includes('数据库连接失败') || lower.includes('connect:')) {
+    // 截取 "Please verify..." 之前的部分以去除英文提示
+    const colonIdx = msg.indexOf(': Please')
+    if (colonIdx > 0) return '数据库连接失败，请检查主机地址、端口和账号信息'
+  }
+  return msg
+}
 
 // Membership info from API response
 interface MembershipInfo {
@@ -144,17 +166,22 @@ export default function WorkspacePage() {
     fetchPolicy: 'cache-and-network',
     skip: authLoading,
     context: orgScopedContext,
-    onCompleted: (queryData) => {
-      if (queryData?.projects) {
-        setProjects(queryData.projects)
-      }
-    },
-    onError: (error) => {
+  })
+
+  // 用 useEffect 监听 data/error 变化，替代废弃的 onCompleted/onError 回调
+  useEffect(() => {
+    if (data?.projects) {
+      setProjects(data.projects)
+    }
+  }, [data, setProjects])
+
+  useEffect(() => {
+    if (queryError) {
       toast.error('获取项目列表失败', {
-        description: error.message || error.toString()
+        description: queryError.message || queryError.toString()
       })
     }
-  })
+  }, [queryError])
 
   // GraphQL 变更
   const [createProjectMutation] = useMutation<CreateProjectResult>(CREATE_PROJECT, {
@@ -312,10 +339,9 @@ export default function WorkspacePage() {
       }
 
       const errorMessage = payload?.error?.message ?? "连接失败"
-      const suggestion = payload?.error?.suggestion
       return {
         success: false,
-        message: suggestion ? `${errorMessage}: ${suggestion}` : errorMessage,
+        message: localizeDbError(errorMessage),
       }
     } catch (err) {
       return {
@@ -486,21 +512,103 @@ export default function WorkspacePage() {
 
             {/* Empty State */}
             {filteredProjects.length === 0 && !loading && (
-              <div className="flex flex-col items-center justify-center py-20">
-                <FolderOpen className="mb-4 size-10 text-muted-foreground/30" strokeWidth={1.5} />
-                <p className="text-[14px] font-medium text-foreground">
-                  {searchTerm ? '未找到匹配的项目' : '暂无项目'}
-                </p>
-                <p className="mt-1 text-[13px] text-muted-foreground">
-                  {searchTerm ? '尝试调整搜索条件' : '创建第一个项目，开始数据建模'}
-                </p>
-                {!searchTerm && (
-                  <Button size="sm" className="mt-5" onClick={handleOpenCreateDialog}>
-                    <Plus className="mr-1.5 size-3.5" />
-                    新建项目
-                  </Button>
-                )}
-              </div>
+              searchTerm ? (
+                /* 搜索无结果 - 简单提示 */
+                <div className="flex flex-col items-center justify-center py-20">
+                  <FolderOpen className="mb-4 size-10 text-muted-foreground/30" strokeWidth={1.5} />
+                  <p className="text-[14px] font-medium text-foreground">未找到匹配的项目</p>
+                  <p className="mt-1 text-[13px] text-muted-foreground">尝试调整搜索条件</p>
+                </div>
+              ) : (
+                /* 首次使用 Onboarding 引导 */
+                <div className="mx-auto mt-4 w-full max-w-2xl">
+                  <div className="mb-6 text-center">
+                    <h2 className="text-lg font-semibold text-foreground">欢迎使用 ModelCraft</h2>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      按以下步骤开始，大约需要 5 分钟完成基础配置
+                    </p>
+                  </div>
+
+                  <div className="space-y-3">
+                    {/* Step 1 - 已完成 */}
+                    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4">
+                      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-emerald-100">
+                        <CheckCircle2 className="size-4 text-emerald-600" strokeWidth={2} />
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-muted-foreground line-through">注册账号 &amp; 创建组织</p>
+                        <p className="text-xs text-muted-foreground/60">已完成</p>
+                      </div>
+                    </div>
+
+                    {/* Step 2 - 当前步骤（高亮） */}
+                    <div className="flex items-start gap-4 rounded-lg border-2 border-primary/30 bg-primary/5 p-4 shadow-sm">
+                      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+                        <Database className="size-3.5" strokeWidth={2} />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-semibold text-foreground">创建第一个项目</p>
+                          <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-medium text-primary">当前步骤</span>
+                        </div>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          连接你的 MySQL 数据库，ModelCraft 会自动将数据表暴露为 API 接口
+                        </p>
+                        <Button size="sm" className="mt-3" onClick={handleOpenCreateDialog}>
+                          <Plus className="mr-1.5 size-3.5" />
+                          新建项目
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* Step 3 */}
+                    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4 opacity-50">
+                      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/30">
+                        <LayoutTemplate className="size-3.5 text-muted-foreground/50" strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">设计数据模型</p>
+                        <p className="text-xs text-muted-foreground/60">
+                          在项目中定义字段、逻辑外键和枚举，完善数据结构
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 4 */}
+                    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4 opacity-50">
+                      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/30">
+                        <Users className="size-3.5 text-muted-foreground/50" strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">创建终端用户</p>
+                        <p className="text-xs text-muted-foreground/60">
+                          在「终端用户」页面添加可访问数据的用户账号
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Step 5 */}
+                    <div className="flex items-start gap-4 rounded-lg border border-border bg-card p-4 opacity-50">
+                      <div className="mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-full border-2 border-muted-foreground/30">
+                        <ShieldCheck className="size-3.5 text-muted-foreground/50" strokeWidth={1.5} />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-muted-foreground">分配项目权限</p>
+                        <p className="text-xs text-muted-foreground/60">
+                          在项目「用户授权」页面为终端用户分配角色，用户即可通过 API 访问数据
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p className="mt-5 text-center text-xs text-muted-foreground">
+                    完成配置后，终端用户可通过
+                    <span className="mx-1 font-mono font-medium text-foreground">/end-user/{orgName}/login</span>
+                    登录访问数据
+                    <ArrowRight className="ml-0.5 inline size-3" />
+                  </p>
+                </div>
+              )
             )}
         </PageLayout>
       </AppLayout>

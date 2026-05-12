@@ -71,10 +71,10 @@ function getErrorMessage(code?: string, fallback?: string): string {
  * Org 级终端用户登录表单 hook。
  *
  * 登录分支：
- * - singleProject: true  → 直接写入 store，跳转数据页
- * - singleProject: false + noProjectAccess=true → 跳转待授权页
- * - 登录成功 → 写入 sessionStorage，跳转 workspace
- * - error   → 显示错误信息
+ * - 登录失败（4xx）  → 显示错误信息（error 字段）
+ * - 登录成功 + 有项目权限 → 写入 store/sessionStorage，跳转 workspace
+ * - 登录成功 + 无项目权限 → 后端不返回 accessToken，跳转 no-project-access 引导页
+ * - 网络异常          → 显示网络错误提示
  */
 export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormReturn {
   const router = useRouter()
@@ -120,12 +120,19 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
             if (ms > 0) expiresIn = Math.floor(ms / 1000)
           }
           setAccessToken(data.accessToken, expiresIn)
+          // 同时写入 sessionStorage，防止客户端导航后 Zustand store 内存被重置
+          sessionStorage.setItem(`eu_token_${orgName}`, data.accessToken)
+          sessionStorage.setItem(`eu_token_expires_at_${orgName}`, String(Date.now() + expiresIn * 1000))
+        } else {
+          // 无 accessToken = 登录成功但当前账号没有任何项目访问权限
+          // 跳转到"暂无权限"引导页，而不是 workspace
+          router.push(`/end-user/${orgName}/no-project-access`)
+          return
         }
 
         const projects: EndUserAccessibleProject[] = data.projects ?? []
 
-        // 无论 0/1/N 个 Project，均跳转 workspace
-        // workspace 页面自行从 sessionStorage 读取 project 列表
+        // 写入可访问项目列表，跳转 workspace
         sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
         router.push(`/end-user/${orgName}/workspace`)
       } catch {

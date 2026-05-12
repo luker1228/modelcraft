@@ -47,7 +47,7 @@ export function useLogin(): UseLoginReturn {
       const data = (await res.json()) as { accessToken?: string; error?: string; message?: string; orgName?: string; expiresIn?: number; userName?: string }
 
       if (!res.ok) {
-        setError(data.message ?? data.error ?? '登录失败，请稍后重试')
+        setError(extractErrorMessage(data.message ?? data.error, '登录失败，请稍后重试'))
         return
       }
 
@@ -76,6 +76,16 @@ export function useLogin(): UseLoginReturn {
   }
 
   return { login, isLoading, error, identifierType, setIdentifierType }
+}
+
+/** 从 API 响应中提取错误消息字符串，兼容 string、{message} 、{code, message} 等格式 */
+function extractErrorMessage(raw: unknown, fallback: string): string {
+  if (typeof raw === 'string') return raw
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>
+    if (typeof obj.message === 'string') return obj.message
+  }
+  return fallback
 }
 
 /** 解析 JWT payload（不验签，仅读取字段） */
@@ -113,7 +123,7 @@ export function useRegister(): UseRegisterReturn {
       const registerData = (await registerRes.json()) as { accessToken?: string; error?: string; message?: string }
 
       if (!registerRes.ok) {
-        setError(registerData.message ?? registerData.error ?? '注册失败，请稍后重试')
+        setError(extractErrorMessage(registerData.message ?? registerData.error, '注册失败，请稍后重试'))
         return
       }
 

@@ -33,7 +33,7 @@ function formatDate(dateStr?: string | null): string {
 function getStatusVariant(
   status: string
 ): 'default' | 'secondary' | 'destructive' | 'outline' {
-  switch (status) {
+  switch (status.toUpperCase()) {
     case 'ACTIVE':
       return 'default'
     case 'INVITED':
@@ -43,6 +43,22 @@ function getStatusVariant(
     default:
       return 'outline'
   }
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  active: '正常',
+  ACTIVE: '正常',
+  invited: '待接受',
+  INVITED: '待接受',
+  suspended: '已停用',
+  SUSPENDED: '已停用',
+}
+
+const ROLE_LABEL: Record<string, string> = {
+  owner: '所有者',
+  admin: '管理员',
+  editor: '编辑者',
+  viewer: '查看者',
 }
 
 export default function DevelopersMembersPage() {
@@ -118,10 +134,10 @@ export default function DevelopersMembersPage() {
                     </TableCell>
                     <TableCell className="font-mono text-sm text-muted-foreground">{member.userID}</TableCell>
                     <TableCell>
-                      <Badge variant="outline">{member.role?.name ?? '-'}</Badge>
+                      <Badge variant="outline">{ROLE_LABEL[member.role?.name ?? ''] ?? member.role?.name ?? '-'}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusVariant(member.status)}>{member.status}</Badge>
+                      <Badge variant={getStatusVariant(member.status)}>{STATUS_LABEL[member.status] ?? member.status}</Badge>
                     </TableCell>
                     <TableCell className="font-sans text-sm text-muted-foreground">
                       {formatDate(member.joinedAt)}

@@ -81,6 +81,7 @@ export default function LoginPage() {
                         ? '请输入手机号'
                         : '请输入用户名'
                     }
+                    autoComplete={identifierType === 'PHONE' ? 'tel' : 'username'}
                     {...field}
                   />
                 </FormControl>
@@ -96,7 +97,7 @@ export default function LoginPage() {
               <FormItem>
                 <FormLabel>密码</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="请输入密码" {...field} />
+                  <PasswordInput placeholder="请输入密码" autoComplete="current-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

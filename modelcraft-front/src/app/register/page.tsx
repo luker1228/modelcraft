@@ -51,7 +51,7 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>手机号</FormLabel>
                 <FormControl>
-                  <Input placeholder="请输入手机号" {...field} />
+                  <Input placeholder="请输入手机号" autoComplete="tel" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -67,6 +67,7 @@ export default function RegisterPage() {
                 <FormControl>
                   <Input
                     placeholder="字母/数字/_-，不能数字开头"
+                    autoComplete="username"
                     {...field}
                   />
                 </FormControl>
@@ -85,7 +86,7 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>密码</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="至少 8 位密码" {...field} />
+                  <PasswordInput placeholder="至少 8 位密码" autoComplete="new-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -99,7 +100,7 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>确认密码</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="请再次输入密码" {...field} />
+                  <PasswordInput placeholder="请再次输入密码" autoComplete="new-password" {...field} />
                 </FormControl>
                 <FormMessage />
               </FormItem>

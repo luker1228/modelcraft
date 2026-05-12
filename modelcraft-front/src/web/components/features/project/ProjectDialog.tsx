@@ -323,7 +323,7 @@ export function ProjectDialog({
                       </FormControl>
                       {!isEditing && (
                         <FormDescription>
-                          用于 URL、API 和私有库名 `mc_private_&lt;slug&gt;`，创建后不可修改
+                          已根据项目名称自动生成，可手动修改。用于 URL、API 和私有库名 `mc_private_&lt;slug&gt;`，创建后不可修改
                         </FormDescription>
                       )}
                       <FormMessage />

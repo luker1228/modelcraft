@@ -159,7 +159,7 @@ export function UserMenu({
           onClick={handleSettings}
         >
           <Settings className="mr-2 size-4" />
-          <span>设置</span>
+          <span>组织设置</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
