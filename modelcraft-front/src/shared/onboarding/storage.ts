@@ -1,14 +1,8 @@
-export const ONBOARDING_KEY = 'mc_onboarding_v1'
+export const ONBOARDING_KEY = 'mc_onboarding_v2'
 
 export type OnboardingStepId =
   | 'create_project'
-  | 'select_database'
   | 'create_model'
-  | 'insert_column'
-  | 'insert_data'
-  | 'create_permission'
-  | 'create_bundle'
-  | 'create_role'
   | 'add_end_user'
   | 'assign_role'
   | 'end_user_login'
@@ -17,7 +11,6 @@ export interface OnboardingState {
   orgName: string
   projectSlug: string | null
   completedSteps: OnboardingStepId[]
-  dismissed: boolean
   panelOpen: boolean
 }
 
@@ -26,8 +19,7 @@ export function defaultOnboardingState(orgName: string): OnboardingState {
     orgName,
     projectSlug: null,
     completedSteps: [],
-    dismissed: false,
-    panelOpen: false,
+    panelOpen: true,
   }
 }
 

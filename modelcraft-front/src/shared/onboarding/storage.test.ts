@@ -6,7 +6,6 @@ import {
   defaultOnboardingState,
 } from './storage'
 
-// Mock localStorage in Node environment
 const localStorageMock = (() => {
   let store: Record<string, string> = {}
   return {
@@ -29,34 +28,44 @@ describe('onboarding storage', () => {
     expect(state).toEqual(defaultOnboardingState('my-org'))
   })
 
+  it('default state has panelOpen: true', () => {
+    const state = defaultOnboardingState('my-org')
+    expect(state.panelOpen).toBe(true)
+  })
+
+  it('default state has no dismissed field', () => {
+    const state = defaultOnboardingState('my-org')
+    expect('dismissed' in state).toBe(false)
+  })
+
   it('round-trips state to localStorage', () => {
     const state = {
       orgName: 'my-org',
       projectSlug: 'my-project',
       completedSteps: ['create_project' as const],
-      dismissed: false,
       panelOpen: true,
     }
     writeOnboardingState(state)
     expect(readOnboardingState('my-org')).toEqual(state)
   })
 
-  it('returns default state when orgName does not match stored state', () => {
+  it('returns default state when orgName does not match', () => {
     const state = {
       orgName: 'org-a',
       projectSlug: null,
       completedSteps: [],
-      dismissed: false,
       panelOpen: false,
     }
     writeOnboardingState(state)
-    const result = readOnboardingState('org-b')
-    expect(result).toEqual(defaultOnboardingState('org-b'))
+    expect(readOnboardingState('org-b')).toEqual(defaultOnboardingState('org-b'))
   })
 
   it('handles corrupt localStorage gracefully', () => {
     localStorage.setItem(ONBOARDING_KEY, 'not-json')
-    const result = readOnboardingState('my-org')
-    expect(result).toEqual(defaultOnboardingState('my-org'))
+    expect(readOnboardingState('my-org')).toEqual(defaultOnboardingState('my-org'))
+  })
+
+  it('uses v2 key to avoid collision with old data', () => {
+    expect(ONBOARDING_KEY).toBe('mc_onboarding_v2')
   })
 })
