@@ -171,23 +171,23 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
               {isExpanded && (
                 <div className="ml-[26px] border-l border-border pb-2 pl-3 pr-3.5">
                   {/* Project-required banner */}
-                  {!projectSlug && group.steps.some((s) => s.kind === 'tracked' && needsProject(s.id)) && (
-                    <div className="mb-1.5 mt-1 rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
+                  {!projectSlug && group.steps.some((s) => needsProject(s.id)) && (
+                    <div className="mb-1.5 mt-1 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2">
                       {!hasProjects ? (
-                        <p className="text-[11px] text-muted-foreground">请先创建一个项目再操作此步骤</p>
+                        <p className="text-[11px] font-medium text-amber-800">请先创建一个项目</p>
                       ) : (
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[11px] text-muted-foreground">请先进入一个项目再操作此步骤</span>
+                        <>
+                          <p className="mb-1.5 text-[11px] font-medium text-amber-800">请先选择一个项目</p>
                           <button
-                            className="ml-auto shrink-0 text-[11px] font-medium text-primary hover:underline"
+                            className="flex w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600"
                             onClick={() => {
                               setPendingAction('highlight_first_project')
                               router.push(`/org/${orgName}/workspace`)
                             }}
                           >
-                            前往 →
+                            选择项目 →
                           </button>
-                        </div>
+                        </>
                       )}
                     </div>
                   )}
@@ -270,29 +270,21 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                     const requiresProject = needsProject(step.id)
                     return (
                       <div key={step.id} className={cn('py-1', isLocked && 'opacity-40')}>
-                        {isCurrent ? (
-                          // Current step — amber highlight
+                        {isCurrent && !requiresProject ? (
+                          // Current step with project available — amber highlight
                           <div className="rounded-md border border-amber-200 bg-amber-50 px-2.5 py-2">
                             <p className="mb-1.5 text-[10px] font-semibold text-amber-700">👆 当前步骤</p>
-                            {requiresProject ? (
-                              <div className="flex items-center gap-1.5">
-                                <div className="size-1.5 flex-shrink-0 rounded-full bg-amber-400" />
-                                <span className="text-[11px] text-amber-800">{step.label}</span>
-                                <span className="ml-auto text-[10px] text-amber-600">请先进入项目 →</span>
-                              </div>
-                            ) : (
-                              <button
-                                className="flex w-full items-center gap-2 text-left"
-                                onClick={() => {
-                                  setPendingAction(step.id as OnboardingPendingAction)
-                                  if (route) router.push(route)
-                                }}
-                              >
-                                <div className="size-1.5 flex-shrink-0 rounded-full bg-amber-500" />
-                                <span className="flex-1 text-[11px] font-semibold text-amber-900">{step.label}</span>
-                                <span className="text-[10px] text-amber-600">↗</span>
-                              </button>
-                            )}
+                            <button
+                              className="flex w-full items-center gap-2 text-left"
+                              onClick={() => {
+                                setPendingAction(step.id as OnboardingPendingAction)
+                                if (route) router.push(route)
+                              }}
+                            >
+                              <div className="size-1.5 flex-shrink-0 rounded-full bg-amber-500" />
+                              <span className="flex-1 text-[11px] font-semibold text-amber-900">{step.label}</span>
+                              <span className="text-[10px] text-amber-600">↗</span>
+                            </button>
                           </div>
                         ) : isDone ? (
                           // Completed
