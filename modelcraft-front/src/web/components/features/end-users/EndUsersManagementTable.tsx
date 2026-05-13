@@ -81,9 +81,10 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
           </Button>
           <Button
             size="sm"
+            variant="outline"
             className={cn(
               highlightAddUser &&
-                'border-amber-400 bg-amber-50 ring-2 ring-amber-400 ring-offset-1 animate-pulse hover:border-amber-500 hover:bg-amber-100'
+                'border-amber-400 bg-amber-50 text-amber-900 ring-2 ring-amber-400 ring-offset-1 animate-pulse hover:border-amber-500 hover:bg-amber-100'
             )}
             onClick={() => {
               if (highlightAddUser) setPendingAction(null)
