@@ -156,7 +156,7 @@ export function ModelEditorView() {
         </div>
       )}
 
-      {/* Tutorial spotlight overlay — dims everything except the sidebar */}
+      {/* Tutorial spotlight overlay */}
       {spotlightSidebar && (
         <div
           className="fixed inset-0 z-40 bg-black/50"
@@ -165,16 +165,14 @@ export function ModelEditorView() {
       )}
 
       {/* Left Sidebar - Model List */}
-      <div className={spotlightSidebar ? 'relative z-50' : undefined}>
-        <ModelSidebar
-          state={state}
-          crud={crud}
-          databases={crud.databases}
-          databasesLoading={crud.databasesLoading}
-          filteredModels={crud.filteredModels}
-          modelsLoading={crud.modelsLoading}
-        />
-      </div>
+      <ModelSidebar
+        state={state}
+        crud={crud}
+        databases={crud.databases}
+        databasesLoading={crud.databasesLoading}
+        filteredModels={crud.filteredModels}
+        modelsLoading={crud.modelsLoading}
+      />
 
       {/* Right Content Area */}
       <main className="flex min-w-0 flex-1 flex-col bg-background p-4">

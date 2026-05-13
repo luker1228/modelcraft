@@ -83,7 +83,8 @@ export function ModelSidebar({
 
       {/* ── Zone 1: Database Context ── */}
       <div className="p-3">
-        <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
+        <div className={pendingAction === 'select_database' ? 'relative z-50' : undefined}>
+          <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -135,6 +136,7 @@ export function ModelSidebar({
             )}
           </PopoverContent>
         </Popover>
+        </div>
       </div>
 
       {/* ── Divider ── */}
@@ -145,19 +147,21 @@ export function ModelSidebar({
 
         {/* Action buttons */}
         <div className="flex flex-col gap-1 px-3 py-2.5">
-          <Button
-            size="sm"
-            variant="outline"
-            className={cn(
-              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-              !state.selectedDatabase && 'pointer-events-none opacity-40',
-            )}
-            onClick={handleCreateModelClick}
-            disabled={!state.selectedDatabase}
-          >
-            <Plus className="mr-1 size-3.5" />
-            新建模型
-          </Button>
+          <div className={pendingAction === 'create_model' ? 'relative z-50' : undefined}>
+            <Button
+              size="sm"
+              variant="outline"
+              className={cn(
+                'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+                !state.selectedDatabase && 'pointer-events-none opacity-40',
+              )}
+              onClick={handleCreateModelClick}
+              disabled={!state.selectedDatabase}
+            >
+              <Plus className="mr-1 size-3.5" />
+              新建模型
+            </Button>
+          </div>
           <Button
             size="sm"
             variant="outline"
