@@ -242,7 +242,10 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                     // ── Nav step ──────────────────────────────────────────
                     if (step.kind === 'nav') {
                       const route = step.route({ orgName, projectSlug })
-                      const navBlocked = needsProject(step.id)
+                      // needsProject but has projects → redirect to workspace to select one
+                      const needsProjectSelect = needsProject(step.id) && hasProjects
+                      // needsProject and no projects at all → fully blocked
+                      const navBlocked = needsProject(step.id) && !hasProjects
                       return (
                         <div key={step.id} className="py-1">
                           <button
@@ -250,7 +253,16 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                               'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
                               navBlocked ? 'cursor-default opacity-40' : 'hover:bg-primary/[0.04]'
                             )}
-                            onClick={() => { if (!navBlocked) router.push(route) }}
+                            onClick={() => {
+                              if (navBlocked) return
+                              if (needsProjectSelect) {
+                                // Guide user to select a project first
+                                setPendingAction('highlight_first_project')
+                                router.push(`/org/${orgName}/workspace`)
+                              } else {
+                                router.push(route)
+                              }
+                            }}
                           >
                             <div className="size-1.5 flex-shrink-0 rounded-full bg-border" />
                             <span className="flex-1 text-[11px] text-foreground">{step.label}</span>
