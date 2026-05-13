@@ -156,6 +156,8 @@ export const RESET_END_USER_PASSWORD = gql`
     }
   }
 `
+
+export const DELETE_END_USER = gql`
   mutation DeleteEndUser($input: DeleteEndUserInput!) {
     deleteEndUser(input: $input) {
       success
