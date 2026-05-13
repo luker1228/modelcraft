@@ -10,6 +10,8 @@ import { useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { Plus, RefreshCw, Users, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { cn } from '@/shared/utils'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Skeleton } from '@web/components/ui/skeleton'
@@ -380,6 +382,9 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
     revokeRole,
   } = useProjectEndUserRoleUsers(orgName, projectSlug)
 
+  const { pendingAction, setPendingAction } = useOnboarding()
+  const highlightAssign = pendingAction === 'assign_role'
+
   // 按用户聚合
   const groupedEntries = useMemo(() => groupEntries(entries), [entries])
 
@@ -436,8 +441,14 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
           </Button>
           <Button
             size="sm"
-            className="bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => setAddDialogOpen(true)}
+            className={cn(
+              'bg-primary text-primary-foreground hover:bg-primary/90',
+              highlightAssign && 'border-amber-400 bg-amber-50 text-amber-900 ring-2 ring-amber-400 ring-offset-1 animate-pulse hover:border-amber-500 hover:bg-amber-100'
+            )}
+            onClick={() => {
+              if (highlightAssign) setPendingAction(null)
+              setAddDialogOpen(true)
+            }}
           >
             <Plus className="mr-1.5 size-4" />
             授权用户
