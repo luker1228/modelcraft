@@ -38,11 +38,11 @@ export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'
 // ── Context value ──────────────────────────────────────────────────────────
 
 export type OnboardingPendingAction =
-  | 'create_project'
-  | 'create_model'
+  | 'nav_create_project'
+  | 'nav_create_model'
   | 'select_database'
-  | 'add_end_user'
-  | 'assign_role'
+  | 'nav_add_end_user'
+  | 'nav_assign_role'
   | 'highlight_first_project'
   | null
 
@@ -88,14 +88,12 @@ export function OnboardingProvider({
     setState(readOnboardingState(orgName))
   }, [orgName])
 
-  const markStep = useCallback((id: OnboardingStepId, projectSlug?: string) => {
+  const markStep = useCallback((id: OnboardingStepId) => {
     setState((prev) => {
       if (prev.completedSteps.includes(id)) return prev
       const next: OnboardingState = {
         ...prev,
         completedSteps: [...prev.completedSteps, id],
-        projectSlug:
-          id === 'create_project' && projectSlug ? projectSlug : prev.projectSlug,
       }
       writeOnboardingState(next)
       return next
@@ -127,17 +125,12 @@ export function OnboardingProvider({
   const syncProjects = useCallback((projects: Array<{ slug: string }>) => {
     setHasProjects(projects.length > 0)
     if (projects.length > 0) {
-      // Auto-complete create_project and store first project slug
+      // Store first project slug so project-scoped nav steps can build routes
       setState((prev) => {
-        const alreadyDone = prev.completedSteps.includes('create_project')
-        const slug = prev.projectSlug ?? projects[0].slug
-        if (alreadyDone && prev.projectSlug) return prev
+        if (prev.projectSlug) return prev
         const next: OnboardingState = {
           ...prev,
-          completedSteps: alreadyDone
-            ? prev.completedSteps
-            : [...prev.completedSteps, 'create_project'],
-          projectSlug: slug,
+          projectSlug: projects[0].slug,
         }
         writeOnboardingState(next)
         return next

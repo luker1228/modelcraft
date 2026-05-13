@@ -74,7 +74,7 @@ export function ModelSidebar({
   }
 
   const handleCreateModelClick = () => {
-    if (pendingAction === 'create_model') setPendingAction(null)
+    if (pendingAction === 'nav_create_model') setPendingAction(null)
     handleCreateModel()
   }
 
@@ -152,7 +152,7 @@ export function ModelSidebar({
             className={cn(
               'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
               !state.selectedDatabase && 'pointer-events-none opacity-40',
-              pendingAction === 'create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+              pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
             )}
             onClick={handleCreateModelClick}
             disabled={!state.selectedDatabase}

@@ -383,7 +383,7 @@ export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAcce
   } = useProjectEndUserRoleUsers(orgName, projectSlug)
 
   const { pendingAction, setPendingAction } = useOnboarding()
-  const highlightAssign = pendingAction === 'assign_role'
+  const highlightAssign = pendingAction === 'nav_assign_role'
 
   // 按用户聚合
   const groupedEntries = useMemo(() => groupEntries(entries), [entries])

@@ -1,11 +1,11 @@
 import type { OnboardingStepId } from './storage'
 
-/** A sub-step that records completion */
+/** A sub-step that records completion — always type: 'manual', user confirms */
 export interface OnboardingTrackedStep {
   kind: 'tracked'
   id: OnboardingStepId
   label: string
-  type: 'action' | 'manual'
+  type: 'manual'
   route: (params: { orgName: string; projectSlug: string | null }) => string | null
 }
 
@@ -37,11 +37,17 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName }) => `/org/${orgName}/workspace`,
       },
       {
-        kind: 'tracked',
-        id: 'create_project',
+        kind: 'nav',
+        id: 'nav_create_project',
         label: '新建项目',
-        type: 'action',
         route: ({ orgName }) => `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
+        id: 'confirm_project',
+        label: '确认已完成',
+        type: 'manual',
+        route: () => null,
       },
     ],
   },
@@ -68,14 +74,20 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
             : `/org/${orgName}/workspace`,
       },
       {
-        kind: 'tracked',
-        id: 'create_model',
+        kind: 'nav',
+        id: 'nav_create_model',
         label: '点击新建模型',
-        type: 'action',
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
             : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
+        id: 'confirm_model',
+        label: '确认已完成',
+        type: 'manual',
+        route: () => null,
       },
     ],
   },
@@ -90,11 +102,17 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName }) => `/org/${orgName}/end-users`,
       },
       {
-        kind: 'tracked',
-        id: 'add_end_user',
+        kind: 'nav',
+        id: 'nav_add_end_user',
         label: '新建终端用户',
-        type: 'action',
         route: ({ orgName }) => `/org/${orgName}/end-users`,
+      },
+      {
+        kind: 'tracked',
+        id: 'confirm_end_user',
+        label: '确认已完成',
+        type: 'manual',
+        route: () => null,
       },
     ],
   },
@@ -112,14 +130,20 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
             : `/org/${orgName}/workspace`,
       },
       {
-        kind: 'tracked',
-        id: 'assign_role',
+        kind: 'nav',
+        id: 'nav_assign_role',
         label: '为用户分配角色',
-        type: 'action',
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/end-user-access`
             : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'tracked',
+        id: 'confirm_permission',
+        label: '确认已完成',
+        type: 'manual',
+        route: () => null,
       },
     ],
   },

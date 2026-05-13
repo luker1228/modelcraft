@@ -4,7 +4,6 @@ import { CREATE_PROJECT, UPDATE_PROJECT, DELETE_PROJECT } from '@/api-client/pro
 import { useProjectStore } from '@web/stores'
 import { useGraphQLErrorHandler } from '@web/hooks/error/use-graphql-error-handler'
 import type { Project, CreateProjectInput, UpdateProjectInput } from '@/types'
-import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 // ── GraphQL response types ──────────────────────────────────────────
 
@@ -42,7 +41,6 @@ interface DeleteProjectData {
 export function useProjectsWithErrorHandling() {
   const { setProjects, addProject, updateProject, removeProject } = useProjectStore()
   const { handleError } = useGraphQLErrorHandler()
-  const { markStep } = useOnboarding()
 
   // 查询项目列表
   const { data, loading, error, refetch } = useQuery<GetProjectsData>(GET_PROJECTS, {
@@ -65,7 +63,6 @@ export function useProjectsWithErrorHandling() {
     onCompleted: (mutationData) => {
       if (mutationData?.createProject?.project) {
         addProject(mutationData.createProject.project)
-        markStep('create_project', mutationData.createProject.project.slug)
       }
     },
     refetchQueries: [{ query: GET_PROJECTS }],

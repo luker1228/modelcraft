@@ -45,7 +45,7 @@ interface EndUsersManagementTableProps {
 export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProps) {
   const router = useRouter()
   const { pendingAction, setPendingAction } = useOnboarding()
-  const highlightAddUser = pendingAction === 'add_end_user'
+  const highlightAddUser = pendingAction === 'nav_add_end_user'
   const { users, isLoading, error, search, setSearch, reload, createUser, deleteUser } =
     useOrgEndUsers(orgName)
   const [createOpen, setCreateOpen] = useState(false)

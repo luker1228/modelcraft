@@ -33,8 +33,8 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
   /** True if this step requires a project but none is available */
   const needsProject = (stepId: string): boolean => {
     const projectScopedIds = [
-      'goto_model_editor', 'select_database_nav', 'create_model',
-      'goto_end_user_access', 'assign_role',
+      'goto_model_editor', 'select_database_nav', 'nav_create_model',
+      'goto_end_user_access', 'nav_assign_role',
     ]
     return projectScopedIds.includes(stepId) && !projectSlug
   }
@@ -255,8 +255,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                             )}
                             onClick={() => {
                               if (navBlocked) return
-                              // goto_model_editor / goto_end_user_access: always guide the user
-                              // to click a project card themselves — never jump directly into the project
+                              // Project-entry nav steps: guide user to click a project card
                               const alwaysHighlight =
                                 (step.id === 'goto_model_editor' || step.id === 'goto_end_user_access') &&
                                 hasProjects
@@ -265,11 +264,16 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                                 router.push(`/org/${orgName}/workspace`)
                                 return
                               }
-                              // select_database_nav: navigate to model-editor and spotlight the DB picker
-                              if (step.id === 'select_database_nav') {
-                                setPendingAction('select_database')
-                                router.push(route)
-                                return
+                              // Action nav steps: set pendingAction to highlight target button
+                              const actionNavMap: Record<string, OnboardingPendingAction> = {
+                                select_database_nav: 'select_database',
+                                nav_create_project: 'nav_create_project',
+                                nav_create_model: 'nav_create_model',
+                                nav_add_end_user: 'nav_add_end_user',
+                                nav_assign_role: 'nav_assign_role',
+                              }
+                              if (actionNavMap[step.id]) {
+                                setPendingAction(actionNavMap[step.id])
                               }
                               router.push(route)
                             }}
@@ -284,9 +288,8 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
 
                     // ── Tracked step ─────────────────────────────────────
                     const isDone = step.status === 'completed'
-                    const route = step.route({ orgName, projectSlug })
 
-                    // Manual confirm (end_user_login)
+                    // All tracked steps are manual confirm
                     if (step.type === 'manual') {
                       if (isDone) {
                         return (
@@ -300,59 +303,31 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                           </div>
                         )
                       }
+                      // end_user_login: show login URL before confirm button
+                      const isLoginStep = step.id === 'end_user_login'
                       return (
                         <div key={step.id} className="py-1">
                           <div className="rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
-                            <div className="mb-1 flex items-center gap-1.5">
-                              <div className="size-1.5 flex-shrink-0 rounded-full bg-muted-foreground/40" />
-                              <span className="text-[11px] font-medium text-foreground">{step.label}</span>
-                            </div>
-                            <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
-                            <code className="block break-all font-mono text-[10px] text-foreground">
-                              /end-user/org/{orgName}/login
-                            </code>
+                            {isLoginStep && (
+                              <>
+                                <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
+                                <code className="mb-2 block break-all font-mono text-[10px] text-foreground">
+                                  /end-user/org/{orgName}/login
+                                </code>
+                              </>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
-                              className="mt-2 h-7 w-full text-[11px]"
-                              onClick={() => markStep('end_user_login')}
+                              className="h-7 w-full text-[11px]"
+                              onClick={() => markStep(step.id)}
                             >
-                              已完成 ✓
+                              ✓ 确认完成
                             </Button>
                           </div>
                         </div>
                       )
                     }
-
-                    // Action step — two states only: done or todo
-                    const requiresProject = needsProject(step.id)
-                    return (
-                      <div key={step.id} className="py-1">
-                        {isDone ? (
-                          // Completed
-                          <div className="flex items-center gap-2 px-2 py-1.5 opacity-60">
-                            <div className="flex size-3.5 flex-shrink-0 items-center justify-center rounded-full border border-[#10b981]/40 bg-[#10b981]/10">
-                              <Check className="size-2 text-[#10b981]" strokeWidth={3} />
-                            </div>
-                            <span className="flex-1 text-[11px] text-muted-foreground line-through">{step.label}</span>
-                          </div>
-                        ) : (
-                          // Todo — always clickable, no lock
-                          <button
-                            className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-primary/[0.04]"
-                            onClick={() => {
-                              if (requiresProject) return
-                              setPendingAction(step.id as OnboardingPendingAction)
-                              if (route) router.push(route)
-                            }}
-                          >
-                            <div className="size-1.5 flex-shrink-0 rounded-full bg-muted-foreground/30" />
-                            <span className="flex-1 text-[11px] text-foreground">{step.label}</span>
-                            {requiresProject
-                              ? <span className="text-[10px] text-muted-foreground/40">需进入项目</span>
-                              : <span className="text-[10px] text-muted-foreground/50">→</span>
-                            }
-                          </button>
                         )}
                       </div>
                     )

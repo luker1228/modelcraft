@@ -1,10 +1,10 @@
 export const ONBOARDING_KEY = 'mc_onboarding_v2'
 
 export type OnboardingStepId =
-  | 'create_project'
-  | 'create_model'
-  | 'add_end_user'
-  | 'assign_role'
+  | 'confirm_project'
+  | 'confirm_model'
+  | 'confirm_end_user'
+  | 'confirm_permission'
   | 'end_user_login'
 
 export interface OnboardingState {

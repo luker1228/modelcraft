@@ -3,7 +3,6 @@ import { GET_MODELS, GET_MODEL_GROUPS } from '@/api-client/model'
 import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@/api-client/model'
 import { useModelStore, useAppStore } from '@web/stores'
 import type { Model, ModelGroup, CreateModelInput, UpdateModelMetaInput } from '@/types'
-import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 // ── GraphQL response types ──────────────────────────────────────────
 
@@ -64,7 +63,6 @@ interface DeleteModelData {
 export function useModels() {
   const selectedProject = useAppStore((state) => state.selectedProject)
   const { setModels, addModel, updateModel, removeModel } = useModelStore()
-  const { markStep } = useOnboarding()
 
   // 查询模型列表
   const { data, loading, error, refetch } = useQuery<GetModelsData>(GET_MODELS, {
@@ -87,7 +85,6 @@ export function useModels() {
     onCompleted: (mutationData) => {
       if (mutationData?.createModel?.model) {
         addModel(mutationData.createModel.model)
-        markStep('create_model')
       }
     },
     refetchQueries: [{ query: GET_MODELS }],

@@ -16,7 +16,6 @@ import type {
   EndUserPermissionBundle,
   EffectivePermissions,
 } from '@/types'
-import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 // ── Mock ───────────────────────────────────────────────────────────────────────
 // GET_END_USER_LIST 尚未在后端实现，Wave 1 阶段使用固定 Mock 数组跑通 MSW 流程
@@ -97,7 +96,6 @@ export interface UseUserAuthReturn {
 
 export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUserAuthReturn {
   const client = useProjectScopedClient(projectSlug, orgName)
-  const { markStep } = useOnboarding()
 
   const [selectedUser, setSelectedUser] = useState<MockEndUserUser | null>(null)
 
@@ -152,10 +150,9 @@ export function useUserAuth({ orgName, projectSlug }: UseUserAuthProps): UseUser
       if (payload?.error) {
         return { success: false, errorMessage: payload.error.message ?? '分配角色失败' }
       }
-      markStep('assign_role')
       return { success: true }
     },
-    [assignRoleMutation, markStep]
+    [assignRoleMutation]
   )
 
   const revokeRole = useCallback(
