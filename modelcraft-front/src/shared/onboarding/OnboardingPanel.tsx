@@ -255,13 +255,17 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                             )}
                             onClick={() => {
                               if (navBlocked) return
-                              if (needsProjectSelect) {
-                                // Guide user to select a project first
+                              // goto_model_editor / goto_end_user_access: always guide the user
+                              // to click a project card themselves — never jump directly into the project
+                              const alwaysHighlight =
+                                (step.id === 'goto_model_editor' || step.id === 'goto_end_user_access') &&
+                                hasProjects
+                              if (alwaysHighlight || needsProjectSelect) {
                                 setPendingAction('highlight_first_project')
                                 router.push(`/org/${orgName}/workspace`)
-                              } else {
-                                router.push(route)
+                                return
                               }
+                              router.push(route)
                             }}
                           >
                             <div className="size-1.5 flex-shrink-0 rounded-full bg-border" />
