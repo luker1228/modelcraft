@@ -61,3 +61,57 @@ WHERE org_name = ? AND project_slug = ? AND name IN (sqlc.slice('names'));
 > 适用表：`model_enums`、`field_definitions`、`models`、`logical_foreign_keys`、`model_field_enum_associations` 等所有 project 域资源表。
 
 ---
+
+### BM-20260513-0002 · protected admin 角色未短路通配权限导致 runtime 误拒绝
+
+**严重程度**: HIGH  
+**分类**: rbac / runtime-authz  
+**发现日期**: 2026-05-13
+
+#### 问题描述
+
+`FindPermissionsByEndUserAndModel` 仅按 bundle 链路解析权限（显式角色 bundle + 用户直连 bundle），没有在入口对 `is_protected=true && name=admin` 做短路处理。结果是 admin 用户在 bundle 为空时仍会被判定 `insert` 不允许，GraphQL create 返回 `Permission denied: insert`。
+
+#### 错误模式
+
+```go
+// ❌ 错误：admin 也走 bundle 解析链路
+bundleIDs := collectBundleIDsFromRoleAndUser(...)
+permissions := resolvePermissions(bundleIDs, modelID)
+if !permissions.Insert.Allowed {
+    return permissionDenied("insert")
+}
+```
+
+```go
+// ✅ 正确：protected admin 先短路为 wildcard
+if isProtectedAdmin(endUserID, orgName, projectSlug) {
+    return wildcardPermissions(modelID) // select/insert/update/delete 全开
+}
+
+bundleIDs := collectBundleIDsFromRoleAndUser(...)
+permissions := resolvePermissions(bundleIDs, modelID)
+```
+
+#### 根因
+
+把“admin 是受保护内置全权限角色”的业务语义，错误实现成“admin 也必须依赖 bundle 才有数据权限”。实现语义与产品规则不一致。
+
+#### 症状
+
+- GraphQL runtime create 失败：`[OPERATION_FAILED.PERMISSION] Permission denied: insert`
+- 用户已是受保护 `admin`，但在 DB 中无 role/user bundle 绑定时必现
+- 部署后若仍用旧镜像（未 build）会误判为“修复无效”
+
+#### 修复范围
+
+1. 在 `FindPermissionsByEndUserAndModel` 增加 `hasProtectedAdminRole` 前置判定
+2. 命中后直接返回 model 级 wildcard（`select/insert/update/delete` + `ScopeAll`）
+3. 增加回归测试覆盖：admin 命中时不应触发 bundle 查询链路
+
+#### ⚡ Checklist 规则（Review 时必查）
+
+> **受保护 `admin` 角色必须在 runtime 权限入口先短路为全权限，不得依赖 bundle 绑定。**  
+> 判定条件：`project_slug` 匹配 + `is_protected=true` + `name` 大小写不敏感等于 `admin`。
+
+---

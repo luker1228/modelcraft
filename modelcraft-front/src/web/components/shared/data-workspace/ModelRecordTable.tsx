@@ -93,16 +93,16 @@ export function ModelRecordTable({
   const resizeStartWidth = useRef<number>(0)
   const tableRef = useRef<HTMLTableElement>(null)
 
-  const DEFAULT_COLUMN_WIDTH = 150
-  const MIN_COLUMN_WIDTH = 60
+  const DEFAULT_COLUMN_WIDTH = 220
+  const MIN_COLUMN_WIDTH = 80
   const INDEX_COLUMN_WIDTH = 50
   const ACTION_COLUMN_WIDTH = 132
 
   const getColumnWidth = useCallback(
     (field: string) => {
-      return columnWidths[field] || DEFAULT_COLUMN_WIDTH
+      return Math.max(columnWidths[field] ?? DEFAULT_COLUMN_WIDTH, MIN_COLUMN_WIDTH)
     },
-    [columnWidths]
+    [columnWidths, DEFAULT_COLUMN_WIDTH, MIN_COLUMN_WIDTH]
   )
 
   const handleResizeStart = useCallback(
@@ -223,11 +223,20 @@ export function ModelRecordTable({
     return copied
   }, [])
 
+  const tableWidth = useMemo(() => {
+    const fieldsWidth = visibleFields.reduce((sum, field) => sum + getColumnWidth(field), 0)
+    return INDEX_COLUMN_WIDTH + ACTION_COLUMN_WIDTH + fieldsWidth
+  }, [visibleFields, getColumnWidth])
+
   return (
     <TooltipProvider>
       <div className="flex flex-1 flex-col overflow-hidden bg-card">
         <div className="flex-1 overflow-auto">
-          <Table ref={tableRef} className="table-fixed">
+          <Table
+            ref={tableRef}
+            className="table-fixed"
+            style={{ width: tableWidth, minWidth: tableWidth }}
+          >
             <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow className="border-b border-border hover:bg-transparent">
                 <TableHead
@@ -377,7 +386,7 @@ export function ModelRecordTable({
                   )
                 })}
                 <TableHead
-                  className="bg-card py-2.5 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground"
+                  className="sticky right-0 z-20 border-l border-border/60 bg-card py-2.5 text-right text-xs font-medium uppercase tracking-wider text-muted-foreground"
                   style={{ width: ACTION_COLUMN_WIDTH }}
                 >
                   操作
@@ -436,7 +445,7 @@ export function ModelRecordTable({
                           return (
                             <TableCell
                               key={field}
-                              className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-primary/[0.03]' : ''}`}
+                              className={`overflow-hidden py-2 ${isPairedLabel || isPairedCode ? 'bg-primary/[0.03]' : ''}`}
                               style={{ width: getColumnWidth(field) }}
                             >
                               <span className="font-mono text-xs text-muted-foreground/50">NULL</span>
@@ -450,14 +459,14 @@ export function ModelRecordTable({
                         return (
                           <TableCell
                             key={field}
-                            className={`py-2 ${isPairedLabel || isPairedCode ? 'bg-primary/[0.03]' : ''}`}
+                            className={`overflow-hidden py-2 ${isPairedLabel || isPairedCode ? 'bg-primary/[0.03]' : ''}`}
                             style={{ width: getColumnWidth(field) }}
                           >
                             <Tooltip delayDuration={300}>
                               <TooltipTrigger asChild>
-                                <div className="space-y-0.5" style={{ maxWidth: getColumnWidth(field) - 16 }}>
+                                <div className="w-full min-w-0 max-w-full space-y-0.5">
                                   <span
-                                    className={`block truncate text-sm ${
+                                    className={`block w-full truncate text-sm ${
                                       isPairedCode
                                         ? 'font-mono font-normal text-muted-foreground'
                                         : 'font-normal text-foreground'
@@ -466,12 +475,12 @@ export function ModelRecordTable({
                                     {renderedValue}
                                   </span>
                                   {isPairedCode && pairedRawValue !== undefined && pairedRawValue !== null && (
-                                    <span className="block truncate text-[10px] text-muted-foreground/80">
+                                    <span className="block max-w-full truncate text-[10px] text-muted-foreground/80">
                                       {renderCellValue(pairedRawValue, propByName[pairMeta.pairedField] ?? {})}
                                     </span>
                                   )}
                                   {isPairedLabel && pairedRawValue !== undefined && pairedRawValue !== null && (
-                                    <span className="block truncate font-mono text-[10px] text-muted-foreground/80">
+                                    <span className="block max-w-full truncate font-mono text-[10px] text-muted-foreground/80">
                                       {renderCellValue(pairedRawValue, propByName[pairMeta.pairedField] ?? {})}
                                     </span>
                                   )}
@@ -511,7 +520,10 @@ export function ModelRecordTable({
                           </TableCell>
                         )
                       })}
-                      <TableCell className="py-2 text-right" style={{ width: ACTION_COLUMN_WIDTH }}>
+                      <TableCell
+                        className="sticky right-0 z-10 border-l border-border/60 bg-card py-2 text-right group-hover:bg-foreground/[0.015]"
+                        style={{ width: ACTION_COLUMN_WIDTH }}
+                      >
                         <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"

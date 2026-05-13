@@ -97,3 +97,38 @@ fetch(`/api/bff/org/${orgName}/end-user/users/${userId}`, { method: 'DELETE' })
 2. **浏览器端可以直接用 Apollo Client 调 Org/Project GraphQL** — `listEndUsers`、`listProjects` 等接口，在 hook 里直接 `useQuery` 即可，auth link 自动注入 JWT。
 3. **服务端 BFF route 用 X-Internal-Token 认证，不转发用户 JWT** — BFF 应该用服务端持有的 `X-Internal-Token`（配合 `X-Org-Name`/`X-Project-Slug` header）自主完成认证，优先用 `callGoXxx()` 封装，也可以直接打 GraphQL（带 Internal Token）。
 4. **症状识别** — 后端 `request_id` 为空 + HTTP 401 = 请求被 JWT 中间件拦截，检查认证 header 是否正确传递。
+
+---
+
+## Issue: ModelRecordTable 列宽看起来被长 ID“锁死”，拖拽像在整体缩放
+
+**日期**: 2026-05-14
+
+**症状**:
+
+- 长 ID（UUID）列很难继续缩小
+- 拖动某列宽度时，视觉上像整表一起变化
+- 期望是单列可缩小，内容显示 `xxx...` 截断
+
+**根因**:
+
+1. 仅用 `min-w-max` 兜底时，表格最小宽度会受内容 max-content 影响，长文本会把最小宽度“顶住”
+2. 单元格容器缺少 `min-w-0`/`overflow-hidden` 时，`truncate` 不稳定，长字符串会影响列宽行为
+
+**涉及文件**:
+
+- `src/web/components/shared/data-workspace/ModelRecordTable.tsx`
+
+**修复方案**:
+
+- 表格宽度改为**按列配置计算**：`width = minWidth = 索引列 + 数据列宽总和 + 操作列`
+- 数据单元格加 `overflow-hidden`
+- 内容容器加 `w-full min-w-0 max-w-full`
+- 主值保持 `truncate`，确保长 ID 显示为 `xxx...`
+- 操作列（关联/编辑/删除）使用 `sticky right-0` 固定在右侧，数据列横向滚动
+
+**经验教训**:
+
+1. **不要把 `min-w-max` 当作唯一方案** — 对长文本表格应优先“配置驱动宽度”，避免内容反向控制布局。
+2. **`truncate` 生效有前提** — 父容器要允许收缩（`min-w-0`）并裁剪（`overflow-hidden`）。
+3. **固定操作列要成对处理** — 表头和单元格都要 `sticky right-0`，并补 `bg + z-index + border-l`。

@@ -1,8 +1,17 @@
 build:
 	go build -o bin/mc .
 
+# Run unit tests only (no binary compilation needed)
 test:
-	go test ./...
+	go test ./cmd/... ./internal/...
+
+# Run integration tests (compiles the binary, then tests against mock servers)
+test-integration:
+	go test ./tests/integration/... -v -timeout 60s
+
+# Run all tests: unit + integration
+test-all:
+	go test ./... -timeout 60s
 
 fmt:
 	gofmt -w .

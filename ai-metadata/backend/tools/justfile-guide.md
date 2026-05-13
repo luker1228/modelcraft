@@ -109,9 +109,13 @@ just --dry-run <cmd> # 干运行（只显示命令不执行）
 
 | 命令 | 说明 | 参数 |
 |------|------|------|
+| `just deploy` | 根仓库本地部署启动（默认 `up`，不重建镜像） | `action="up\|start\|force\|build\|rebuild\|down\|stop\|restart\|logs\|ps\|status\|tools"` |
+| `just deploy force` | 根仓库本地部署：构建并启动（等价 `compose up -d --build`） | - |
 | `just deploy-infra` | 管理基础设施 (MySQL, Redis) | `action="start\|status\|stop\|restart"` |
 | `just deploy-app` | 管理应用服务 | `action="start\|status\|stop\|restart"` |
 | `just deploy-all` | 管理所有服务 | `action="start\|status\|stop\|restart"` |
+
+> ⚠️ 代码有变动且通过 Docker 验证时，请优先使用 `just deploy force`。仅执行 `just deploy` 不会重建镜像，可能出现“代码已改但行为未生效”的假象。
 
 ### 数据库管理
 
