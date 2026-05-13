@@ -145,8 +145,7 @@ export default function WorkspacePage() {
     } else if (pendingAction === 'highlight_first_project') {
       setHighlightFirstProject(true)
       setPendingAction(null)
-      // Auto-clear highlight after 3s
-      setTimeout(() => setHighlightFirstProject(false), 3000)
+      // No auto-clear — stays until user clicks the project card
     }
   }, [pendingAction, setPendingAction])
 
@@ -453,22 +452,30 @@ export default function WorkspacePage() {
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {filteredProjects.map((project, index) => (
-                  <div
-                    key={project.id}
-                    className={index === 0 && highlightFirstProject
-                      ? 'rounded-lg ring-2 ring-amber-400 ring-offset-2 transition-all duration-300'
-                      : undefined
-                    }
-                  >
-                    <ProjectCard
-                      project={project}
-                      onSelect={handleSelectProject}
-                      onEdit={handleEditProject}
-                      onDelete={handleOpenDeleteDialog}
-                    />
-                  </div>
-                ))}
+                {filteredProjects.map((project, index) => {
+                  const isSpotlit = index === 0 && highlightFirstProject
+                  return (
+                    <div
+                      key={project.id}
+                      className={isSpotlit ? 'relative z-50' : undefined}
+                    >
+                      <ProjectCard
+                        project={project}
+                        onSelect={(p) => {
+                          if (isSpotlit) setHighlightFirstProject(false)
+                          handleSelectProject(p)
+                        }}
+                        onEdit={handleEditProject}
+                        onDelete={handleOpenDeleteDialog}
+                      />
+                      {isSpotlit && (
+                        <div className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-md bg-white px-3 py-1.5 text-[12px] font-semibold text-foreground shadow-lg ring-1 ring-border">
+                          👆 点击进入项目
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             ) : (
               <div className="space-y-1.5">
@@ -637,6 +644,14 @@ export default function WorkspacePage() {
             )}
         </PageLayout>
       </AppLayout>
+
+      {/* Tutorial spotlight overlay */}
+      {highlightFirstProject && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50"
+          onClick={() => setHighlightFirstProject(false)}
+        />
+      )}
 
       {/* Dialogs */}
       <ProjectDialog
