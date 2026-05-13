@@ -7,6 +7,8 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, MoreHorizontal, RefreshCw, Users, Search, ExternalLink } from 'lucide-react'
+import { cn } from '@/shared/utils'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Input } from '@web/components/ui/input'
@@ -42,6 +44,8 @@ interface EndUsersManagementTableProps {
 
 export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProps) {
   const router = useRouter()
+  const { pendingAction, setPendingAction } = useOnboarding()
+  const highlightAddUser = pendingAction === 'add_end_user'
   const { users, isLoading, error, search, setSearch, reload, createUser, deleteUser } =
     useOrgEndUsers(orgName)
   const [createOpen, setCreateOpen] = useState(false)
@@ -75,7 +79,17 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
             <RefreshCw className={`mr-1.5 size-4 ${isLoading ? 'animate-spin' : ''}`} />
             刷新
           </Button>
-          <Button size="sm" onClick={() => setCreateOpen(true)}>
+          <Button
+            size="sm"
+            className={cn(
+              highlightAddUser &&
+                'border-amber-400 bg-amber-50 ring-2 ring-amber-400 ring-offset-1 animate-pulse hover:border-amber-500 hover:bg-amber-100'
+            )}
+            onClick={() => {
+              if (highlightAddUser) setPendingAction(null)
+              setCreateOpen(true)
+            }}
+          >
             <Plus className="mr-1.5 size-4" />
             新增用户
           </Button>
