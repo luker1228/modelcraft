@@ -196,20 +196,19 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                     // ── Nav step ──────────────────────────────────────────
                     if (step.kind === 'nav') {
                       const route = step.route({ orgName, projectSlug })
-                      // Nav steps pointing to a project path require projectSlug
-                      const navNeedsProject = route.includes('/project/') && !projectSlug
+                      const navBlocked = needsProject(step.id)
                       return (
                         <div key={step.id} className="py-1">
                           <button
                             className={cn(
                               'flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors',
-                              navNeedsProject ? 'cursor-default opacity-40' : 'hover:bg-primary/[0.04]'
+                              navBlocked ? 'cursor-default opacity-40' : 'hover:bg-primary/[0.04]'
                             )}
-                            onClick={() => { if (!navNeedsProject) router.push(route) }}
+                            onClick={() => { if (!navBlocked) router.push(route) }}
                           >
                             <div className="size-1.5 flex-shrink-0 rounded-full bg-border" />
                             <span className="flex-1 text-[11px] text-foreground">{step.label}</span>
-                            {!navNeedsProject && <span className="text-[10px] text-muted-foreground">→</span>}
+                            {!navBlocked && <span className="text-[10px] text-muted-foreground">→</span>}
                           </button>
                         </div>
                       )
