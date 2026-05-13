@@ -1,16 +1,15 @@
 import type { OnboardingStepId } from './storage'
 
-/** A sub-step that records completion (driven by mutation onCompleted) */
+/** A sub-step that records completion */
 export interface OnboardingTrackedStep {
   kind: 'tracked'
   id: OnboardingStepId
   label: string
   type: 'action' | 'manual'
-  optional?: boolean
   route: (params: { orgName: string; projectSlug: string | null }) => string | null
 }
 
-/** A sub-step that is pure navigation — no completion tracking, always clickable */
+/** A sub-step that is pure navigation — no completion tracking */
 export interface OnboardingNavStep {
   kind: 'nav'
   id: string
@@ -23,7 +22,6 @@ export type OnboardingSubStep = OnboardingTrackedStep | OnboardingNavStep
 export interface OnboardingGroup {
   id: string
   label: string
-  optional?: boolean
   steps: OnboardingSubStep[]
 }
 
@@ -41,7 +39,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
       {
         kind: 'tracked',
         id: 'create_project',
-        label: '创建项目',
+        label: '新建项目',
         type: 'action',
         route: ({ orgName }) => `/org/${orgName}/workspace`,
       },
@@ -54,17 +52,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
       {
         kind: 'nav',
         id: 'goto_model_editor',
-        label: '前往模型编辑',
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
-      },
-      {
-        kind: 'tracked',
-        id: 'select_database',
-        label: '选择数据库',
-        type: 'action',
+        label: '进入项目，前往模型编辑',
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
@@ -73,97 +61,67 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
       {
         kind: 'tracked',
         id: 'create_model',
-        label: '创建模型',
+        label: '点击新建模型',
         type: 'action',
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
-      },
-      {
-        kind: 'tracked',
-        id: 'insert_column',
-        label: '插入列',
-        type: 'action',
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
-      },
-      {
-        kind: 'tracked',
-        id: 'insert_data',
-        label: '添加第一条数据',
-        type: 'action',
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
-      },
-    ],
-  },
-  {
-    id: 'configure_permissions',
-    label: '创建权限及角色',
-    optional: true,
-    steps: [
-      {
-        kind: 'tracked',
-        id: 'create_permission',
-        label: '创建权限点',
-        type: 'action',
-        optional: true,
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`
-            : `/org/${orgName}/workspace`,
-      },
-      {
-        kind: 'tracked',
-        id: 'create_bundle',
-        label: '创建权限包',
-        type: 'action',
-        optional: true,
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`
-            : `/org/${orgName}/workspace`,
-      },
-      {
-        kind: 'tracked',
-        id: 'create_role',
-        label: '创建角色',
-        type: 'action',
-        optional: true,
-        route: ({ orgName, projectSlug }) =>
-          projectSlug
-            ? `/org/${orgName}/project/${projectSlug}/roles`
             : `/org/${orgName}/workspace`,
       },
     ],
   },
   {
     id: 'add_users',
-    label: '创建用户并体验',
+    label: '创建终端用户',
     steps: [
+      {
+        kind: 'nav',
+        id: 'goto_end_users',
+        label: '前往终端用户',
+        route: ({ orgName }) => `/org/${orgName}/end-users`,
+      },
       {
         kind: 'tracked',
         id: 'add_end_user',
-        label: '添加终端用户',
+        label: '新建终端用户',
         type: 'action',
         route: ({ orgName }) => `/org/${orgName}/end-users`,
+      },
+    ],
+  },
+  {
+    id: 'assign_permissions',
+    label: '分配权限',
+    steps: [
+      {
+        kind: 'nav',
+        id: 'goto_end_user_access',
+        label: '进入项目，前往终端用户授权',
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/end-user-access`
+            : `/org/${orgName}/workspace`,
       },
       {
         kind: 'tracked',
         id: 'assign_role',
-        label: '分配角色',
+        label: '为用户分配角色',
         type: 'action',
-        route: ({ orgName }) => `/org/${orgName}/end-users`,
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/end-user-access`
+            : `/org/${orgName}/workspace`,
       },
+    ],
+  },
+  {
+    id: 'experience_login',
+    label: '体验终端用户登录',
+    steps: [
       {
         kind: 'tracked',
         id: 'end_user_login',
-        label: '终端用户体验',
+        label: '终端用户登录体验',
         type: 'manual',
         route: () => null,
       },
@@ -171,12 +129,10 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
   },
 ]
 
-/** Flat list of tracked steps only — used for completion counting (excludes optional) */
+/** Flat list of all tracked steps — used for completion counting */
 export const ONBOARDING_STEPS: OnboardingTrackedStep[] = ONBOARDING_GROUPS
   .flatMap((g) => g.steps)
-  .filter((s): s is OnboardingTrackedStep => s.kind === 'tracked' && !s.optional)
-
-/** All tracked steps including optional — for full state tracking */
-export const ALL_TRACKED_STEPS: OnboardingTrackedStep[] = ONBOARDING_GROUPS
-  .flatMap((g) => g.steps)
   .filter((s): s is OnboardingTrackedStep => s.kind === 'tracked')
+
+/** Alias for compatibility */
+export const ALL_TRACKED_STEPS = ONBOARDING_STEPS
