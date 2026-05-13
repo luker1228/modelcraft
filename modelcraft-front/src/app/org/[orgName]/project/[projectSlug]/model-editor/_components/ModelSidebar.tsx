@@ -29,6 +29,7 @@ import {
 import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 import { useOnboarding } from '@shared/onboarding/OnboardingContext'
+import { useEffect } from 'react'
 
 interface DatabaseOption {
   name: string
@@ -52,6 +53,13 @@ export function ModelSidebar({
   modelsLoading,
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
+
+  // Auto-open the database popover when tutorial guides user to select a database
+  useEffect(() => {
+    if (pendingAction === 'select_database') {
+      state.setDatabaseOpen(true)
+    }
+  }, [pendingAction]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleModelDetailClick = (modelId: string) => {
     state.setSelectedModelId(modelId)
