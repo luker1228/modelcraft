@@ -12,7 +12,7 @@ import { GET_MODELS } from '@/api-client/model'
 import { DATABASE_CATALOG } from '@/api-client/cluster'
 import type { EndUserPermission, Model } from '@/types'
 import type { EndUserPermissionPreset } from '@/generated/graphql'
-import { useOnboarding } from '@shared/onboarding/OnboardingContext'
+
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -62,7 +62,6 @@ export function usePermissionsView({
 }): UsePermissionsViewReturn {
   const client = useProjectScopedClient(projectSlug, orgName)
   const skip = !projectSlug || !orgName
-  const { markStep } = useOnboarding()
 
   // Phase 1: Fetch available databases from the cluster catalog.
   const {
@@ -101,7 +100,6 @@ export function usePermissionsView({
   const [applyPresetPolicyMutation] = useMutation(APPLY_END_USER_PRESET_POLICY, {
     client,
     refetchQueries: [GET_END_USER_PERMISSIONS],
-    onCompleted: () => markStep('create_permission'),
   })
 
   // ── Derived: databaseNames from model groups ───────────────────────────────

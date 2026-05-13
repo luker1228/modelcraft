@@ -105,7 +105,7 @@ export function AppLayout({
   const orgName = params.orgName as string
   const projectSlug = params.projectSlug as string
 
-  const { completedCount, totalCount, isComplete, dismissed, openPanel } = useOnboarding()
+  const { completedCount, totalCount, isComplete, openPanel } = useOnboarding()
 
   useEffect(() => {
     setStoredUserName(localStorage.getItem('defaultUserName') || '')
@@ -489,8 +489,8 @@ export function AppLayout({
 
           {/* Sidebar footer */}
           <div className="flex-shrink-0 border-t border-border">
-            {/* Quick start entry — shown when onboarding is incomplete and not dismissed */}
-            {!isComplete && !dismissed && (
+            {/* Quick start entry — shown when onboarding is incomplete */}
+            {!isComplete && (
               <button
                 onClick={openPanel}
                 className={cn(
