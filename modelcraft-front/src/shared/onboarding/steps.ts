@@ -52,7 +52,16 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
       {
         kind: 'nav',
         id: 'goto_model_editor',
-        label: '进入项目，前往模型编辑',
+        label: '进入项目',
+        route: ({ orgName, projectSlug }) =>
+          projectSlug
+            ? `/org/${orgName}/project/${projectSlug}/model-editor`
+            : `/org/${orgName}/workspace`,
+      },
+      {
+        kind: 'nav',
+        id: 'select_database_nav',
+        label: '选择数据库',
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`

@@ -40,6 +40,7 @@ export interface OnboardingGroupWithStatus extends Omit<OnboardingGroup, 'steps'
 export type OnboardingPendingAction =
   | 'create_project'
   | 'create_model'
+  | 'select_database'
   | 'add_end_user'
   | 'assign_role'
   | 'highlight_first_project'

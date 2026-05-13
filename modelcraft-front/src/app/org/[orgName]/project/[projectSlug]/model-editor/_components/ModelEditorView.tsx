@@ -46,8 +46,9 @@ export function ModelEditorView() {
   const fieldOps = useFieldOperations({ orgName, projectSlug, state })
   const fkOps = useForeignKeys({ projectSlug, state })
 
-  // Onboarding: pendingAction is consumed by ModelSidebar directly via useOnboarding
-  // No auto-open needed here — sidebar reads pendingAction to show highlight/tooltip
+  // Onboarding: spotlight overlay for select_database and create_model steps
+  const { pendingAction, setPendingAction } = useOnboarding()
+  const spotlightSidebar = pendingAction === 'select_database' || pendingAction === 'create_model'
 
   useEffect(() => {
     if (!state.selectedModelId) return
@@ -155,15 +156,25 @@ export function ModelEditorView() {
         </div>
       )}
 
+      {/* Tutorial spotlight overlay — dims everything except the sidebar */}
+      {spotlightSidebar && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50"
+          onClick={() => setPendingAction(null)}
+        />
+      )}
+
       {/* Left Sidebar - Model List */}
-      <ModelSidebar
-        state={state}
-        crud={crud}
-        databases={crud.databases}
-        databasesLoading={crud.databasesLoading}
-        filteredModels={crud.filteredModels}
-        modelsLoading={crud.modelsLoading}
-      />
+      <div className={spotlightSidebar ? 'relative z-50' : undefined}>
+        <ModelSidebar
+          state={state}
+          crud={crud}
+          databases={crud.databases}
+          databasesLoading={crud.databasesLoading}
+          filteredModels={crud.filteredModels}
+          modelsLoading={crud.modelsLoading}
+        />
+      </div>
 
       {/* Right Content Area */}
       <main className="flex min-w-0 flex-1 flex-col bg-background p-4">

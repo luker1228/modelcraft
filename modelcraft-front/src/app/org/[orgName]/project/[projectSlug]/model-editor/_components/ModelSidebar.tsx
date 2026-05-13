@@ -53,9 +53,6 @@ export function ModelSidebar({
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
 
-  // create_model highlight: onboarding guides user to click the new model button
-  const highlightCreateModel = pendingAction === 'create_model'
-
   const handleModelDetailClick = (modelId: string) => {
     state.setSelectedModelId(modelId)
   }
@@ -66,6 +63,19 @@ export function ModelSidebar({
       return
     }
     state.setCreateModelOpen(true)
+  }
+
+  // Clear pendingAction when user interacts with the spotlit sidebar elements
+  const handleDatabaseSelect = (dbName: string) => {
+    if (pendingAction === 'select_database') setPendingAction(null)
+    state.setSelectedDatabase(dbName)
+    state.setSelectedModelId(null)
+    state.setDatabaseOpen(false)
+  }
+
+  const handleCreateModelClick = () => {
+    if (pendingAction === 'create_model') setPendingAction(null)
+    handleCreateModel()
   }
 
   return (
@@ -116,9 +126,7 @@ export function ModelSidebar({
                       : 'text-muted-foreground hover:bg-accent hover:text-foreground'
                   )}
                   onClick={() => {
-                    state.setSelectedDatabase(db.name)
-                    state.setSelectedModelId(null)
-                    state.setDatabaseOpen(false)
+                    handleDatabaseSelect(db.name)
                   }}
                 >
                   {db.name}
@@ -143,22 +151,13 @@ export function ModelSidebar({
             className={cn(
               'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
               !state.selectedDatabase && 'pointer-events-none opacity-40',
-              pendingAction === 'create_model' && state.selectedDatabase && 'border-amber-400 bg-amber-50 ring-2 ring-amber-400 ring-offset-1 animate-pulse hover:border-amber-500 hover:bg-amber-100'
             )}
-            onClick={() => {
-              if (pendingAction === 'create_model') setPendingAction(null)
-              handleCreateModel()
-            }}
+            onClick={handleCreateModelClick}
             disabled={!state.selectedDatabase}
           >
             <Plus className="mr-1 size-3.5" />
             新建模型
           </Button>
-          {pendingAction === 'create_model' && state.selectedDatabase && (
-            <div className="flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2.5 py-1.5">
-              <span className="text-[11px] font-semibold text-amber-700">👆 点击上方创建模型</span>
-            </div>
-          )}
           <Button
             size="sm"
             variant="outline"

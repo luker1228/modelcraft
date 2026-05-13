@@ -33,7 +33,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
   /** True if this step requires a project but none is available */
   const needsProject = (stepId: string): boolean => {
     const projectScopedIds = [
-      'goto_model_editor', 'create_model',
+      'goto_model_editor', 'select_database_nav', 'create_model',
       'goto_end_user_access', 'assign_role',
     ]
     return projectScopedIds.includes(stepId) && !projectSlug
@@ -263,6 +263,12 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                               if (alwaysHighlight || needsProjectSelect) {
                                 setPendingAction('highlight_first_project')
                                 router.push(`/org/${orgName}/workspace`)
+                                return
+                              }
+                              // select_database_nav: navigate to model-editor and spotlight the DB picker
+                              if (step.id === 'select_database_nav') {
+                                setPendingAction('select_database')
+                                router.push(route)
                                 return
                               }
                               router.push(route)
