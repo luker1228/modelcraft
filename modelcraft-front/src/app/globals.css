@@ -121,5 +121,15 @@
     --chart-5: 340 75% 55%;
   }
 
+/* ── Tutorial highlight ─────────────────────────────────────────── */
+@keyframes tutorial-pulse {
+  0%, 100% { outline-color: #4F46E5; }
+  50% { outline-color: #818CF8; }
+}
 
-
+.tutorial-highlight {
+  outline: 2px solid #4F46E5;
+  outline-offset: 3px;
+  border-radius: 6px;
+  animation: tutorial-pulse 1.5s ease-in-out infinite;
+}
