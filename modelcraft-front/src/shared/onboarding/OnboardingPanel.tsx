@@ -328,9 +328,6 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                         </div>
                       )
                     }
-                        )}
-                      </div>
-                    )
                   })}
                 </div>
               )}
