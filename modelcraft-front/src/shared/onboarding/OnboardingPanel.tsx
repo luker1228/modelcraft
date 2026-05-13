@@ -33,9 +33,8 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
   /** True if this step requires a project but none is available */
   const needsProject = (stepId: string): boolean => {
     const projectScopedIds = [
-      'goto_model_editor',
-      'select_database', 'create_model', 'insert_column', 'insert_data',
-      'create_permission', 'create_bundle', 'create_role',
+      'goto_model_editor', 'create_model',
+      'goto_end_user_access', 'assign_role',
     ]
     return projectScopedIds.includes(stepId) && !projectSlug
   }
