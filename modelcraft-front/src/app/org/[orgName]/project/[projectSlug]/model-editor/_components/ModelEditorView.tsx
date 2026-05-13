@@ -24,7 +24,7 @@ import {
   DataWorkspacePanel,
   type DataWorkspaceTab,
 } from '@web/components/features/model-editor/DataWorkspacePanel'
-import { useOnboarding } from '@shared/onboarding/OnboardingContext'
+  // Onboarding: pendingAction is consumed by ModelSidebar directly via useOnboarding
 
 const DevelopRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'))
 const MAX_MODEL_TABS = 8
@@ -46,9 +46,7 @@ export function ModelEditorView() {
   const fieldOps = useFieldOperations({ orgName, projectSlug, state })
   const fkOps = useForeignKeys({ projectSlug, state })
 
-  // Onboarding: spotlight overlay for select_database and create_model steps
-  const { pendingAction, setPendingAction } = useOnboarding()
-  const spotlightSidebar = pendingAction === 'select_database' || pendingAction === 'create_model'
+  // Onboarding: pendingAction is consumed by ModelSidebar directly via useOnboarding
 
   useEffect(() => {
     if (!state.selectedModelId) return
@@ -154,14 +152,6 @@ export function ModelEditorView() {
             <span className="text-sm">正在检查数据库连接...</span>
           </div>
         </div>
-      )}
-
-      {/* Tutorial spotlight overlay */}
-      {spotlightSidebar && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50"
-          onClick={() => setPendingAction(null)}
-        />
       )}
 
       {/* Left Sidebar - Model List */}

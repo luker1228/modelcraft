@@ -91,8 +91,7 @@ export function ModelSidebar({
 
       {/* ── Zone 1: Database Context ── */}
       <div className="p-3">
-        <div className={pendingAction === 'select_database' ? 'relative z-50' : undefined}>
-          <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
+        <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
           <PopoverTrigger asChild>
             <Button
               variant="outline"
@@ -101,7 +100,8 @@ export function ModelSidebar({
                 'h-9 w-full justify-between px-3 text-sm font-medium transition-colors',
                 state.selectedDatabase
                   ? 'border-primary/40 bg-primary/5 text-foreground hover:border-primary/60 hover:bg-primary/10'
-                  : 'border-dashed border-muted-foreground/40 bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground'
+                  : 'border-dashed border-muted-foreground/40 bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground',
+                pendingAction === 'select_database' && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
               )}
               disabled={databasesLoading}
             >
@@ -144,7 +144,6 @@ export function ModelSidebar({
             )}
           </PopoverContent>
         </Popover>
-        </div>
       </div>
 
       {/* ── Divider ── */}
@@ -155,21 +154,20 @@ export function ModelSidebar({
 
         {/* Action buttons */}
         <div className="flex flex-col gap-1 px-3 py-2.5">
-          <div className={pendingAction === 'create_model' ? 'relative z-50' : undefined}>
-            <Button
-              size="sm"
-              variant="outline"
-              className={cn(
-                'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-                !state.selectedDatabase && 'pointer-events-none opacity-40',
-              )}
-              onClick={handleCreateModelClick}
-              disabled={!state.selectedDatabase}
+          <Button
+            size="sm"
+            variant="outline"
+            className={cn(
+              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+              !state.selectedDatabase && 'pointer-events-none opacity-40',
+              pendingAction === 'create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+            )}
+            onClick={handleCreateModelClick}
+            disabled={!state.selectedDatabase}
             >
               <Plus className="mr-1 size-3.5" />
               新建模型
             </Button>
-          </div>
           <Button
             size="sm"
             variant="outline"
