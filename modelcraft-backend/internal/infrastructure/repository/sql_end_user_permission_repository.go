@@ -1189,6 +1189,15 @@ func (r *SqlEndUserDataPermissionRepository) FindPermissionsByEndUserAndModel(
 		return nil, nil
 	}
 
+	// 内置受保护 admin 角色等价于通配权限：无需绑定 bundle。
+	isAdminWildcard, err := r.hasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)
+	if err != nil {
+		return nil, err
+	}
+	if isAdminWildcard {
+		return []*rbac.EndUserPermission{newAdminWildcardPermission(orgName, projectSlug, modelID)}, nil
+	}
+
 	// Step 1: collect bundleIDs from explicit roles
 	rolesBundleIDs, err := r.GetBundleIDsByUserExplicitRoles(ctx, endUserID, orgName, projectSlug)
 	if err != nil {
@@ -1229,4 +1238,48 @@ func (r *SqlEndUserDataPermissionRepository) FindPermissionsByEndUserAndModel(
 		}
 	}
 	return result, nil
+}
+
+func (r *SqlEndUserDataPermissionRepository) hasProtectedAdminRole(
+	ctx context.Context,
+	orgName, projectSlug, endUserID string,
+) (bool, error) {
+	roleIDs, err := r.q.ListRolesByUser(ctx, dbgen.ListRolesByUserParams{UserID: endUserID, OrgName: orgName})
+	if err != nil {
+		return false, err
+	}
+
+	for _, roleID := range roleIDs {
+		role, getErr := r.q.GetEndUserRoleByID(ctx, dbgen.GetEndUserRoleByIDParams{ID: roleID, OrgName: orgName})
+		if getErr != nil {
+			if sqlerr.IsNotFoundError(getErr) {
+				continue
+			}
+			return false, getErr
+		}
+		if role.ProjectSlug == projectSlug && role.IsProtected && strings.EqualFold(role.Name, "admin") {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func newAdminWildcardPermission(orgName, projectSlug, modelID string) *rbac.EndUserPermission {
+	rowPolicy := &rbac.RowPolicy{
+		Select: rbac.SelectPolicy{Allowed: true, Scope: rbac.ScopeAll},
+		Insert: rbac.InsertPolicy{Allowed: true, Scope: rbac.ScopeAll},
+		Update: rbac.UpdatePolicy{Allowed: true, Scope: rbac.ScopeAll, CheckScope: rbac.ScopeAll},
+		Delete: rbac.DeletePolicy{Allowed: true, Scope: rbac.ScopeAll},
+	}
+	rowPolicy.Normalize()
+	return &rbac.EndUserPermission{
+		ID:           fmt.Sprintf("admin-wildcard:%s", modelID),
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		ModelID:      modelID,
+		Name:         "admin-wildcard",
+		Type:         rbac.PermissionTypeCustom,
+		ColumnPolicy: nil,
+		RowPolicy:    rowPolicy,
+	}
 }

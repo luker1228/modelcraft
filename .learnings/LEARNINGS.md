@@ -396,3 +396,72 @@ Zustand 内存 store 在 Next.js `router.push` 客户端导航后通常保留，
 - Tags: zustand, nextjs, useState-init, getState, token-refresh
 
 ---
+
+## [LRN-20260513-001] insight
+
+**Logged**: 2026-05-13T18:50:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+Runtime GraphQL 的 end-user 权限解析链缺少 implicit role（Step 3），可能导致 admin 仍被判定无 insert 权限。
+
+### Details
+`FindPermissionsByEndUserAndModel` 当前仅合并了“用户显式角色绑定的 bundle + 用户直连 bundle”，未调用 `GetBundleIDsByImplicitRoles`。但仓库接口和 authz SQL 已定义 implicit role 为鉴权链 Step 3。若“admin 全权限”依赖 implicit role 或相关系统角色注入，这条遗漏会使 `ResolvedModelPermissions.Insert.Allowed=false`，在 create 路径直接抛出 `OPERATION_FAILED.PERMISSION`。
+
+### Suggested Action
+在 `FindPermissionsByEndUserAndModel` 中补齐 implicit bundle 收集与合并去重；并增加回归测试覆盖“仅 implicit role 授权时 create 应通过”的场景。
+
+### Metadata
+- Source: investigation
+- Related Files: modelcraft-backend/internal/infrastructure/repository/sql_end_user_permission_repository.go; modelcraft-backend/db/queries/rbac/authz.sql; modelcraft-backend/internal/domain/modelruntime/model_resolver.go
+- Tags: runtime-graphql, rbac, implicit-role, permission-denied, insert
+
+---
+
+## [LRN-20260513-002] insight
+
+**Logged**: 2026-05-13T19:00:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+受保护的 `admin` 角色本身不自动拥有数据权限；若未绑定任何 bundle，runtime create 会被判定 `Permission denied: insert`。
+
+### Details
+本地 docker 排查显示：请求走的是 end-user runtime 路径（gateway 日志 `graphql/end-user/...`），后端仅查询了 `GetBundleIDsByUserExplicitRoles` 与 `GetBundleIDsByUserDirect`，随后直接报权限不足。数据库中该用户虽已绑定 `admin` 受保护角色，但 `end_user_role_bundles` / `end_user_user_bundles` / 项目级 implicit role bundle 均为 0，且项目下不存在权限包与权限项，因此 insert 必然被拒绝。
+
+### Suggested Action
+在项目初始化或角色分配流程中，显式为 admin 角色绑定至少一个包含 insert 的权限 bundle（如 preset READ_WRITE_ALL），并补一条健康检查：admin 角色存在但无 bundle 时给出告警。
+
+### Metadata
+- Source: investigation
+- Related Files: modelcraft-backend/internal/app/project/project_service.go; modelcraft-backend/db/schema/mysql/13_rbac_permissions.sql; modelcraft-backend/db/schema/mysql/15_admin_role.sql
+- Tags: rbac, admin-role, bundle-binding, runtime-permission, docker-debug
+
+---
+
+## [LRN-20260513-003] correction
+
+**Logged**: 2026-05-13T19:20:00+08:00
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+项目规则确认：受保护 `admin` 角色名本身等价于通配权限，Runtime 不应要求该角色额外绑定 bundle。
+
+### Details
+在定位 `Permission denied: insert` 后，用户明确纠正业务语义：`admin` 是内置角色名，语义上就是全权限，不需要通过 `end_user_role_bundles` 或 `end_user_user_bundles` 再做数据权限绑定。此前“admin 需绑定 bundle”仅是旧实现行为，不符合当前产品规则。
+
+### Suggested Action
+在 runtime 权限解析中加入 `admin` 角色短路：命中 `is_protected=true && name=admin` 时，直接返回该 model 的全动作允许策略（select/insert/update/delete 全开）。
+
+### Metadata
+- Source: user_feedback
+- Related Files: modelcraft-backend/internal/infrastructure/repository/sql_end_user_permission_repository.go
+- Tags: rbac, admin-wildcard, correction, runtime-graphql
+
+---

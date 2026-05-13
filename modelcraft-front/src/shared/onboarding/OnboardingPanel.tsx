@@ -312,7 +312,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
                               <>
                                 <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
                                 <code className="mb-2 block break-all font-mono text-[10px] text-foreground">
-                                  /end-user/org/{orgName}/login
+                                  /end-user/{orgName}/login
                                 </code>
                               </>
                             )}
