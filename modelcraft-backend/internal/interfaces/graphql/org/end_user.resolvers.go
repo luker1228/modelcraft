@@ -194,6 +194,56 @@ func (r *mutationResolver) DeleteEndUser(ctx context.Context, input generated.De
 	return &generated.DeleteEndUserPayload{Success: true}, nil
 }
 
+// ResetEndUserPassword is the resolver for the resetEndUserPassword field.
+func (r *mutationResolver) ResetEndUserPassword(ctx context.Context, input generated.ResetEndUserPasswordInput) (*generated.ResetEndUserPasswordPayload, error) {
+	if strings.TrimSpace(input.UserID) == "" {
+		return &generated.ResetEndUserPasswordPayload{
+			Error: &generated.InvalidInput{Message: "userId is required"},
+		}, nil
+	}
+	if strings.TrimSpace(input.NewPassword) == "" {
+		return &generated.ResetEndUserPasswordPayload{
+			Error: &generated.InvalidInput{Message: "newPassword is required"},
+		}, nil
+	}
+
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		return &generated.ResetEndUserPasswordPayload{
+			Error: &generated.InvalidInput{Message: "end-user service not initialized"},
+		}, nil
+	}
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.ResetEndUserPasswordPayload{
+			Error: &generated.InvalidInput{Message: "orgName not found in context"},
+		}, nil
+	}
+
+	err = service.ResetEndUserPassword(ctx, appEnduser.ResetEndUserPasswordCommand{
+		OrgName:     orgName,
+		UserID:      input.UserID,
+		NewPassword: input.NewPassword,
+	})
+	if err != nil {
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			logger := logfacade.GetLogger(ctx)
+			logger.Error(ctx, "failed to reset end user password",
+				logfacade.Err(bizErr),
+				logfacade.Stack(bizErr),
+			)
+			return &generated.ResetEndUserPasswordPayload{
+				Error: convertOrgResetEndUserPasswordError(bizErr),
+			}, nil
+		}
+		return nil, err
+	}
+
+	return &generated.ResetEndUserPasswordPayload{Success: true}, nil
+}
+
 // ListEndUsers is the resolver for the listEndUsers field.
 func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListEndUsersInput) (*generated.ListEndUsersPayload, error) {
 	service := r.EndUserMgmtAppService

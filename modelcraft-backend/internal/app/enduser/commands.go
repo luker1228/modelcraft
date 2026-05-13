@@ -137,6 +137,13 @@ type DeleteEndUserCommand struct {
 	UserID      string
 }
 
+// ResetEndUserPasswordCommand represents a request to reset an end-user's password.
+type ResetEndUserPasswordCommand struct {
+	OrgName     string
+	UserID      string
+	NewPassword string
+}
+
 // --- Result Types for User Management (required by end_user_app_service.go) ---
 
 // CreateEndUserResult represents the result of creating an end-user.

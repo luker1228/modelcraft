@@ -245,6 +245,7 @@ type ComplexityRoot struct {
 		DeleteRole               func(childComplexity int, id string) int
 		Pong                     func(childComplexity int) int
 		RemovePermissionFromRole func(childComplexity int, roleID int32, obj string, act string) int
+		ResetEndUserPassword     func(childComplexity int, input ResetEndUserPasswordInput) int
 		RevokeRoleFromUser       func(childComplexity int, userID string, roleID int32, orgName string) int
 		SetProjectAuthSchema     func(childComplexity int, input SetProjectAuthSchemaInput) int
 		TestDatabaseConnection   func(childComplexity int, input TestDatabaseConnectionInput) int
@@ -377,6 +378,11 @@ type ComplexityRoot struct {
 		Success func(childComplexity int) int
 	}
 
+	ResetEndUserPasswordPayload struct {
+		Error   func(childComplexity int) int
+		Success func(childComplexity int) int
+	}
+
 	ResourceNotFound struct {
 		Message      func(childComplexity int) int
 		ResourceType func(childComplexity int) int
@@ -478,6 +484,7 @@ type MutationResolver interface {
 	CreateEndUser(ctx context.Context, input CreateEndUserInput) (*CreateEndUserPayload, error)
 	UpdateEndUserStatus(ctx context.Context, input UpdateEndUserStatusInput) (*UpdateEndUserStatusPayload, error)
 	DeleteEndUser(ctx context.Context, input DeleteEndUserInput) (*DeleteEndUserPayload, error)
+	ResetEndUserPassword(ctx context.Context, input ResetEndUserPasswordInput) (*ResetEndUserPasswordPayload, error)
 	CreateCustomRole(ctx context.Context, input CreateCustomRoleInput) (*CreateCustomRolePayload, error)
 	UpdatePermissionRole(ctx context.Context, roleID int32, input UpdateRoleInput) (*UpdatePermissionRolePayload, error)
 	DeletePermissionRole(ctx context.Context, roleID int32) (*DeletePermissionRolePayload, error)
@@ -1212,6 +1219,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.RemovePermissionFromRole(childComplexity, args["roleId"].(int32), args["obj"].(string), args["act"].(string)), true
+	case "Mutation.resetEndUserPassword":
+		if e.complexity.Mutation.ResetEndUserPassword == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_resetEndUserPassword_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.ResetEndUserPassword(childComplexity, args["input"].(ResetEndUserPasswordInput)), true
 	case "Mutation.revokeRoleFromUser":
 		if e.complexity.Mutation.RevokeRoleFromUser == nil {
 			break
@@ -1833,6 +1851,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.RemoveRolePermissionPayload.Success(childComplexity), true
 
+	case "ResetEndUserPasswordPayload.error":
+		if e.complexity.ResetEndUserPasswordPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.ResetEndUserPasswordPayload.Error(childComplexity), true
+	case "ResetEndUserPasswordPayload.success":
+		if e.complexity.ResetEndUserPasswordPayload.Success == nil {
+			break
+		}
+
+		return e.complexity.ResetEndUserPasswordPayload.Success(childComplexity), true
+
 	case "ResourceNotFound.message":
 		if e.complexity.ResourceNotFound.Message == nil {
 			break
@@ -2151,6 +2182,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputIDFilter,
 		ec.unmarshalInputListEndUsersInput,
 		ec.unmarshalInputListProjectsInput,
+		ec.unmarshalInputResetEndUserPasswordInput,
 		ec.unmarshalInputSetProjectAuthSchemaInput,
 		ec.unmarshalInputStringFilter,
 		ec.unmarshalInputTestDatabaseConnectionInput,
@@ -2356,6 +2388,7 @@ union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | Inval
 union UpdateEndUserError = ResourceNotFound | InvalidInput | BuiltinUserCannotBeDisabled
 union DeleteEndUserError = ResourceNotFound | BuiltinUserCannotBeDeleted
 union ListEndUsersError = InvalidInput
+union ResetEndUserPasswordError = ResourceNotFound | EndUserPasswordTooWeak | InvalidInput | BuiltinUserCannotBeDisabled
 
 # ============================================
 # EndUser Types
@@ -2396,6 +2429,11 @@ type DeleteEndUserPayload {
   error: DeleteEndUserError
 }
 
+type ResetEndUserPasswordPayload {
+  success: Boolean!
+  error: ResetEndUserPasswordError
+}
+
 type ListEndUsersPayload {
   connection: EndUserConnection
   error: ListEndUsersError
@@ -2417,6 +2455,11 @@ input UpdateEndUserStatusInput {
 
 input DeleteEndUserInput {
   userId: ID!
+}
+
+input ResetEndUserPasswordInput {
+  userId: ID!
+  newPassword: String! # at least 8 chars, must contain letter + digit
 }
 
 input ListEndUsersInput {
@@ -2452,6 +2495,7 @@ extend type Mutation {
   createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
+  resetEndUserPassword(input: ResetEndUserPasswordInput!): ResetEndUserPasswordPayload! @hasPermission(action: "end-user:update")
 }
 
 # ============================================
@@ -3407,6 +3451,17 @@ func (ec *executionContext) field_Mutation_removePermissionFromRole_args(ctx con
 		return nil, err
 	}
 	args["act"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_resetEndUserPassword_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNResetEndUserPasswordInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
 	return args, nil
 }
 
@@ -6681,6 +6736,76 @@ func (ec *executionContext) fieldContext_Mutation_deleteEndUser(ctx context.Cont
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_deleteEndUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_resetEndUserPassword(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_resetEndUserPassword,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().ResetEndUserPassword(ctx, fc.Args["input"].(ResetEndUserPasswordInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:update")
+				if err != nil {
+					var zeroVal *ResetEndUserPasswordPayload
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *ResetEndUserPasswordPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *ResetEndUserPasswordPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNResetEndUserPasswordPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_resetEndUserPassword(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_ResetEndUserPasswordPayload_success(ctx, field)
+			case "error":
+				return ec.fieldContext_ResetEndUserPasswordPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ResetEndUserPasswordPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_resetEndUserPassword_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -10864,6 +10989,64 @@ func (ec *executionContext) fieldContext_RemoveRolePermissionPayload_error(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _ResetEndUserPasswordPayload_success(ctx context.Context, field graphql.CollectedField, obj *ResetEndUserPasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ResetEndUserPasswordPayload_success,
+		func(ctx context.Context) (any, error) {
+			return obj.Success, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ResetEndUserPasswordPayload_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResetEndUserPasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ResetEndUserPasswordPayload_error(ctx context.Context, field graphql.CollectedField, obj *ResetEndUserPasswordPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ResetEndUserPasswordPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOResetEndUserPasswordError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ResetEndUserPasswordPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ResetEndUserPasswordPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ResetEndUserPasswordError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ResourceNotFound_message(ctx context.Context, field graphql.CollectedField, obj *ResourceNotFound) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -14299,6 +14482,40 @@ func (ec *executionContext) unmarshalInputListProjectsInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputResetEndUserPasswordInput(ctx context.Context, obj any) (ResetEndUserPasswordInput, error) {
+	var it ResetEndUserPasswordInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"userId", "newPassword"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "userId":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+			data, err := ec.unmarshalNID2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.UserID = data
+		case "newPassword":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("newPassword"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.NewPassword = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSetProjectAuthSchemaInput(ctx context.Context, obj any) (SetProjectAuthSchemaInput, error) {
 	var it SetProjectAuthSchemaInput
 	asMap := map[string]any{}
@@ -15169,6 +15386,43 @@ func (ec *executionContext) _PermissionManagementError(ctx context.Context, sel 
 	}
 }
 
+func (ec *executionContext) _ResetEndUserPasswordError(ctx context.Context, sel ast.SelectionSet, obj ResetEndUserPasswordError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserPasswordTooWeak:
+		return ec._EndUserPasswordTooWeak(ctx, sel, &obj)
+	case *EndUserPasswordTooWeak:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
+	case BuiltinUserCannotBeDisabled:
+		return ec._BuiltinUserCannotBeDisabled(ctx, sel, &obj)
+	case *BuiltinUserCannotBeDisabled:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._BuiltinUserCannotBeDisabled(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _RevokeRoleError(ctx context.Context, sel ast.SelectionSet, obj RevokeRoleError) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -15575,7 +15829,7 @@ func (ec *executionContext) _BuiltinUserCannotBeDeleted(ctx context.Context, sel
 	return out
 }
 
-var builtinUserCannotBeDisabledImplementors = []string{"BuiltinUserCannotBeDisabled", "Error", "UpdateEndUserError"}
+var builtinUserCannotBeDisabledImplementors = []string{"BuiltinUserCannotBeDisabled", "Error", "UpdateEndUserError", "ResetEndUserPasswordError"}
 
 func (ec *executionContext) _BuiltinUserCannotBeDisabled(ctx context.Context, sel ast.SelectionSet, obj *BuiltinUserCannotBeDisabled) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, builtinUserCannotBeDisabledImplementors)
@@ -16529,7 +16783,7 @@ func (ec *executionContext) _EndUserConnection(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError"}
+var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError", "ResetEndUserPasswordError"}
 
 func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast.SelectionSet, obj *EndUserPasswordTooWeak) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPasswordTooWeakImplementors)
@@ -16776,7 +17030,7 @@ func (ec *executionContext) _GetProjectPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "Error", "CreateEndUserError", "UpdateEndUserError", "ListEndUsersError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
+var invalidInputImplementors = []string{"InvalidInput", "Error", "CreateEndUserError", "UpdateEndUserError", "ListEndUsersError", "ResetEndUserPasswordError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -16898,6 +17152,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "deleteEndUser":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_deleteEndUser(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "resetEndUserPassword":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_resetEndUserPassword(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -18217,7 +18478,48 @@ func (ec *executionContext) _RemoveRolePermissionPayload(ctx context.Context, se
 	return out
 }
 
-var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError", "UpdatePermissionRoleError", "DeletePermissionRoleError", "RolePermissionError", "AssignRoleError", "RevokeRoleError", "GetMyUserProfileError", "UpdateMyProfileError", "GetProjectError", "UpdateProjectError", "DeleteProjectError", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "SetProjectAuthSchemaError", "GetOrganizationError", "DeleteRoleError"}
+var resetEndUserPasswordPayloadImplementors = []string{"ResetEndUserPasswordPayload"}
+
+func (ec *executionContext) _ResetEndUserPasswordPayload(ctx context.Context, sel ast.SelectionSet, obj *ResetEndUserPasswordPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, resetEndUserPasswordPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ResetEndUserPasswordPayload")
+		case "success":
+			out.Values[i] = ec._ResetEndUserPasswordPayload_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "error":
+			out.Values[i] = ec._ResetEndUserPasswordPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "UpdateEndUserError", "DeleteEndUserError", "ResetEndUserPasswordError", "UpdatePermissionRoleError", "DeletePermissionRoleError", "RolePermissionError", "AssignRoleError", "RevokeRoleError", "GetMyUserProfileError", "UpdateMyProfileError", "GetProjectError", "UpdateProjectError", "DeleteProjectError", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "SetProjectAuthSchemaError", "GetOrganizationError", "DeleteRoleError"}
 
 func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.SelectionSet, obj *ResourceNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, resourceNotFoundImplementors)
@@ -20190,6 +20492,25 @@ func (ec *executionContext) marshalNRemoveRolePermissionPayload2ᚖmodelcraftᚋ
 	return ec._RemoveRolePermissionPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNResetEndUserPasswordInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordInput(ctx context.Context, v any) (ResetEndUserPasswordInput, error) {
+	res, err := ec.unmarshalInputResetEndUserPasswordInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNResetEndUserPasswordPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordPayload(ctx context.Context, sel ast.SelectionSet, v ResetEndUserPasswordPayload) graphql.Marshaler {
+	return ec._ResetEndUserPasswordPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNResetEndUserPasswordPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordPayload(ctx context.Context, sel ast.SelectionSet, v *ResetEndUserPasswordPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ResetEndUserPasswordPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNResourceType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResourceType(ctx context.Context, v any) (ResourceType, error) {
 	var res ResourceType
 	err := res.UnmarshalGQL(v)
@@ -21161,6 +21482,13 @@ func (ec *executionContext) marshalOProjectStatus2ᚖmodelcraftᚋinternalᚋint
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalOResetEndUserPasswordError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐResetEndUserPasswordError(ctx context.Context, sel ast.SelectionSet, v ResetEndUserPasswordError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ResetEndUserPasswordError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalORevokeRoleError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐRevokeRoleError(ctx context.Context, sel ast.SelectionSet, v RevokeRoleError) graphql.Marshaler {

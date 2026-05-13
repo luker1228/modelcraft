@@ -10,6 +10,7 @@ import {
   CREATE_END_USER,
   UPDATE_END_USER_STATUS,
   DELETE_END_USER,
+  RESET_END_USER_PASSWORD,
 } from '@api-client/end-user/graphql-docs'
 import { getOrgScopedClient } from '@api-client/apollo/clients'
 
@@ -40,6 +41,7 @@ interface UseOrgEndUsersReturn {
   createUser: (payload: CreateEndUserPayload) => Promise<void>
   toggleUserStatus: (userId: string, isForbidden: boolean) => Promise<void>
   deleteUser: (userId: string) => Promise<void>
+  resetPassword: (userId: string, newPassword: string) => Promise<void>
 }
 
 // ── GraphQL response shapes ─────────────────────────────────────────────────
@@ -73,6 +75,13 @@ interface DeleteEndUserData {
   deleteEndUser: {
     success: boolean
     error?: { __typename: string; message?: string }
+  }
+}
+
+interface ResetEndUserPasswordData {
+  resetEndUserPassword: {
+    success: boolean
+    error?: { __typename: string; message?: string; suggestion?: string }
   }
 }
 
@@ -180,5 +189,17 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
     reload()
   }, [reload])
 
-  return { users, isLoading, error, search, setSearch, reload, createUser, toggleUserStatus, deleteUser }
+  const resetPassword = useCallback(async (userId: string, newPassword: string) => {
+    const client = getOrgScopedClient()
+    const { data } = await client.mutate<ResetEndUserPasswordData>({
+      mutation: RESET_END_USER_PASSWORD,
+      variables: { input: { userId, newPassword } },
+    })
+    const err = data?.resetEndUserPassword?.error
+    if (err) {
+      throw new Error(err.message ?? '重置密码失败')
+    }
+  }, [])
+
+  return { users, isLoading, error, search, setSearch, reload, createUser, toggleUserStatus, deleteUser, resetPassword }
 }

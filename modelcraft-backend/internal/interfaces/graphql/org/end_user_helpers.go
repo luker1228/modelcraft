@@ -88,6 +88,23 @@ func convertOrgListEndUsersError(err *bizerrors.BusinessError) generated.ListEnd
 	return &generated.InvalidInput{Message: err.Msg()}
 }
 
+func convertOrgResetEndUserPasswordError(err *bizerrors.BusinessError) generated.ResetEndUserPasswordError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserNotFound.GetCode(), bizerrors.NotFound.GetCode():
+		return &generated.ResourceNotFound{Message: err.Msg(), ResourceType: generated.ResourceTypeEndUser}
+	case appEnduser.ErrBuiltinUserCannotBeDisabled.GetCode():
+		return &generated.BuiltinUserCannotBeDisabled{Message: err.Msg()}
+	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
+		suggestion := "Use at least 8 characters containing letters and digits"
+		return &generated.EndUserPasswordTooWeak{Message: err.Msg(), Suggestion: &suggestion}
+	default:
+		return &generated.InvalidInput{Message: err.Msg()}
+	}
+}
+
 func toOrgOptionalString(value string) *string {
 	if strings.TrimSpace(value) == "" {
 		return nil

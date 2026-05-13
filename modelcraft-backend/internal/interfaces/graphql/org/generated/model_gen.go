@@ -86,6 +86,10 @@ type PermissionManagementError interface {
 	GetSuggestion() *string
 }
 
+type ResetEndUserPasswordError interface {
+	IsResetEndUserPasswordError()
+}
+
 type RevokeRoleError interface {
 	IsRevokeRoleError()
 }
@@ -167,6 +171,8 @@ func (BuiltinUserCannotBeDisabled) IsError()                {}
 func (this BuiltinUserCannotBeDisabled) GetMessage() string { return this.Message }
 
 func (BuiltinUserCannotBeDisabled) IsUpdateEndUserError() {}
+
+func (BuiltinUserCannotBeDisabled) IsResetEndUserPasswordError() {}
 
 type CannotDeleteDefaultProject struct {
 	Message string `json:"message"`
@@ -382,6 +388,8 @@ func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
 
 func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
+func (EndUserPasswordTooWeak) IsResetEndUserPasswordError() {}
+
 type EndUserPublic struct {
 	ID        string    `json:"id"`
 	Username  string    `json:"username"`
@@ -427,6 +435,8 @@ func (InvalidInput) IsCreateEndUserError() {}
 func (InvalidInput) IsUpdateEndUserError() {}
 
 func (InvalidInput) IsListEndUsersError() {}
+
+func (InvalidInput) IsResetEndUserPasswordError() {}
 
 func (InvalidInput) IsCreateCustomRoleError() {}
 
@@ -600,6 +610,16 @@ type RemoveRolePermissionPayload struct {
 	Error   RolePermissionError `json:"error,omitempty"`
 }
 
+type ResetEndUserPasswordInput struct {
+	UserID      string `json:"userId"`
+	NewPassword string `json:"newPassword"`
+}
+
+type ResetEndUserPasswordPayload struct {
+	Success bool                      `json:"success"`
+	Error   ResetEndUserPasswordError `json:"error,omitempty"`
+}
+
 type ResourceNotFound struct {
 	Message      string       `json:"message"`
 	ResourceType ResourceType `json:"resourceType"`
@@ -611,6 +631,8 @@ func (this ResourceNotFound) GetMessage() string { return this.Message }
 func (ResourceNotFound) IsUpdateEndUserError() {}
 
 func (ResourceNotFound) IsDeleteEndUserError() {}
+
+func (ResourceNotFound) IsResetEndUserPasswordError() {}
 
 func (ResourceNotFound) IsUpdatePermissionRoleError() {}
 

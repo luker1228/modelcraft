@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"database/sql/driver"
 	"errors"
+	"fmt"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
 	"testing"
@@ -247,6 +248,17 @@ func (r *inMemoryEndUserRepo) GetBuiltinByOrg(_ context.Context, orgName string)
 		}
 	}
 	return nil, nil //nolint:nilnil
+}
+
+func (r *inMemoryEndUserRepo) UpdatePassword(
+	_ context.Context, _, id string, hashedPassword domainenduser.HashedPassword,
+) error {
+	u, ok := r.usersByID[id]
+	if !ok {
+		return fmt.Errorf("user not found: %s", id)
+	}
+	u.Password = hashedPassword
+	return nil
 }
 
 type inMemoryEndUserSessionRepo struct {

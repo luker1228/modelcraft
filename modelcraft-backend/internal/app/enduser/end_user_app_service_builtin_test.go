@@ -65,6 +65,10 @@ func (f *fakeEndUserRepo) HasProjectAccessByRole(_ context.Context, _, _, _ stri
 	return false, nil
 }
 
+func (f *fakeEndUserRepo) UpdatePassword(_ context.Context, _, _ string, _ domainenduser.HashedPassword) error {
+	return nil
+}
+
 func makeBuiltinUser() *domainenduser.EndUser {
 	pwd, _ := domainenduser.NewHashedPasswordFromPlain("Password1")
 	u, _ := domainenduser.NewBuiltinEndUser("builtin-id", "myorg", "creator", pwd)

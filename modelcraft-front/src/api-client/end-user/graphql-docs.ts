@@ -131,7 +131,31 @@ export const UPDATE_END_USER_STATUS = gql`
   }
 `
 
-export const DELETE_END_USER = gql`
+export const RESET_END_USER_PASSWORD = gql`
+  mutation ResetEndUserPassword($input: ResetEndUserPasswordInput!) {
+    resetEndUserPassword(input: $input) {
+      success
+      error {
+        __typename
+        ... on ResourceNotFound {
+          message
+          resourceType
+        }
+        ... on EndUserPasswordTooWeak {
+          message
+          suggestion
+        }
+        ... on BuiltinUserCannotBeDisabled {
+          message
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
   mutation DeleteEndUser($input: DeleteEndUserInput!) {
     deleteEndUser(input: $input) {
       success

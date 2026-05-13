@@ -240,6 +240,44 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	return nil
 }
 
+// ResetEndUserPassword 重置终端用户密码（开发者管理侧）。
+func (s *EndUserManagementAppService) ResetEndUserPassword(
+	ctx context.Context,
+	cmd ResetEndUserPasswordCommand,
+) error {
+	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
+	if err != nil {
+		return s.convertDBError(ctx, err)
+	}
+
+	if err := domainenduser.ValidatePasswordStrength(cmd.NewPassword); err != nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
+	}
+
+	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, "")
+	user, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
+	if err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if user == nil {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
+	}
+	if user.IsBuiltin {
+		return bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDisabled)
+	}
+
+	hashedPwd, err := domainenduser.NewHashedPasswordFromPlain(cmd.NewPassword)
+	if err != nil {
+		return bizerrors.Wrapf(err, "failed to hash password")
+	}
+
+	if err := repo.UpdatePassword(ctx, cmd.OrgName, cmd.UserID, hashedPwd); err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	return nil
+}
+
 func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndUserDTO {
 	if entity == nil {
 		return nil

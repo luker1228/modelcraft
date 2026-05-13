@@ -152,6 +152,35 @@ func nullableCreatedBy(createdBy string) any {
 	return createdBy
 }
 
+// UpdatePassword updates the password hash for a user under org scope.
+func (r *SqlEndUserRepository) UpdatePassword(
+	ctx context.Context,
+	orgName, id string,
+	hashedPassword enduser.HashedPassword,
+) error {
+	const query = `
+		UPDATE end_user_users
+		SET password = ?, updated_at = NOW()
+		WHERE id = ? AND org_name = ? AND deleted_at = 0
+	`
+
+	if orgName == "" {
+		orgName = r.orgName
+	}
+
+	result, err := r.db.ExecContext(ctx, query, hashedPassword.Hash, id, orgName)
+	if err != nil {
+		return sqlerr.WrapSQLError(err)
+	}
+
+	rows, _ := result.RowsAffected()
+	if rows == 0 {
+		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, fmt.Sprintf("end user not found: %s", id))
+	}
+
+	return nil
+}
+
 // UpdateStatus updates user's is_forbidden field.
 // Returns NO_ROWS_AFFECTED when user does not exist.
 func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error {

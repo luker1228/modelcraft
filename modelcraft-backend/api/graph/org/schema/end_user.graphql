@@ -32,6 +32,7 @@ union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | Inval
 union UpdateEndUserError = ResourceNotFound | InvalidInput | BuiltinUserCannotBeDisabled
 union DeleteEndUserError = ResourceNotFound | BuiltinUserCannotBeDeleted
 union ListEndUsersError = InvalidInput
+union ResetEndUserPasswordError = ResourceNotFound | EndUserPasswordTooWeak | InvalidInput | BuiltinUserCannotBeDisabled
 
 # ============================================
 # EndUser Types
@@ -72,6 +73,11 @@ type DeleteEndUserPayload {
   error: DeleteEndUserError
 }
 
+type ResetEndUserPasswordPayload {
+  success: Boolean!
+  error: ResetEndUserPasswordError
+}
+
 type ListEndUsersPayload {
   connection: EndUserConnection
   error: ListEndUsersError
@@ -93,6 +99,11 @@ input UpdateEndUserStatusInput {
 
 input DeleteEndUserInput {
   userId: ID!
+}
+
+input ResetEndUserPasswordInput {
+  userId: ID!
+  newPassword: String! # at least 8 chars, must contain letter + digit
 }
 
 input ListEndUsersInput {
@@ -128,6 +139,7 @@ extend type Mutation {
   createEndUser(input: CreateEndUserInput!): CreateEndUserPayload! @hasPermission(action: "end-user:create")
   updateEndUserStatus(input: UpdateEndUserStatusInput!): UpdateEndUserStatusPayload! @hasPermission(action: "end-user:update")
   deleteEndUser(input: DeleteEndUserInput!): DeleteEndUserPayload! @hasPermission(action: "end-user:delete")
+  resetEndUserPassword(input: ResetEndUserPasswordInput!): ResetEndUserPasswordPayload! @hasPermission(action: "end-user:update")
 }
 
 # ============================================

@@ -34,6 +34,9 @@ type EndUserRepository interface {
 	// UpdateStatus updates the is_forbidden field under org scope.
 	UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error
 
+	// UpdatePassword updates the password hash for a user under org scope.
+	UpdatePassword(ctx context.Context, orgName, id string, hashedPassword HashedPassword) error
+
 	// Delete physically deletes a user record under org scope.
 	Delete(ctx context.Context, orgName, id string) error
 

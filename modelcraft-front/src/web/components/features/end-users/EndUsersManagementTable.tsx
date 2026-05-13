@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
 import { CreateEndUserDialog } from './CreateEndUserDialog'
+import { ResetEndUserPasswordDialog } from './ResetEndUserPasswordDialog'
 import { useOrgEndUsers, type OrgEndUser } from '@web/hooks/end-users/useOrgEndUsers'
 
 function formatDate(dateStr: string): string {
@@ -46,10 +47,11 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
   const router = useRouter()
   const { pendingAction, setPendingAction } = useOnboarding()
   const highlightAddUser = pendingAction === 'nav_add_end_user'
-  const { users, isLoading, error, search, setSearch, reload, createUser, deleteUser } =
+  const { users, isLoading, error, search, setSearch, reload, createUser, deleteUser, resetPassword } =
     useOrgEndUsers(orgName)
   const [createOpen, setCreateOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [resetTarget, setResetTarget] = useState<OrgEndUser | null>(null)
 
   const handleDelete = async (userId: string) => {
     if (!confirm('确认删除此用户？此操作不可恢复。')) return
@@ -220,6 +222,9 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
                             <ExternalLink className="mr-1.5 size-3.5" />
                             查看详情
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setResetTarget(user)}>
+                            修改密码
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive"
@@ -248,6 +253,16 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
         onClose={() => setCreateOpen(false)}
         onCreate={createUser}
         orgName={orgName}
+      />
+
+      <ResetEndUserPasswordDialog
+        open={resetTarget !== null}
+        onClose={() => setResetTarget(null)}
+        username={resetTarget?.username ?? ''}
+        onReset={async (newPassword) => {
+          if (!resetTarget) return
+          await resetPassword(resetTarget.id, newPassword)
+        }}
       />
     </div>
   )
