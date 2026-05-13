@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ChevronUp, ChevronDown, X, Check, ChevronRight } from 'lucide-react'
+import { ChevronUp, ChevronDown, RotateCcw, Check, ChevronRight } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
 import { useOnboarding, type OnboardingPendingAction } from './OnboardingContext'
@@ -18,7 +18,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
     expandedGroupId,
     openPanel,
     closePanel,
-    dismiss,
+    reset,
     markStep,
     setPendingAction,
     setExpandedGroupId,
@@ -40,7 +40,61 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
     return projectScopedIds.includes(stepId) && !projectSlug
   }
 
-  if (isComplete) return null
+  if (isComplete) {
+    if (!panelOpen) {
+      return (
+        <div
+          className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-white px-3 py-2.5 shadow-md transition-shadow hover:shadow-lg"
+          onClick={openPanel}
+          role="button"
+          aria-label="展开教程完成面板"
+        >
+          <div className="h-8 w-0.5 flex-shrink-0 rounded-full bg-[#10b981]" />
+          <div className="flex flex-col gap-1">
+            <span className="text-[12px] font-semibold text-foreground">快速开始</span>
+            <div className="h-1 w-32 overflow-hidden rounded-full bg-[#EBEEF2]">
+              <div className="h-full w-full rounded-full bg-[#10b981]" />
+            </div>
+            <span className="text-[10px] font-medium text-[#10b981]">全部完成 🎉</span>
+          </div>
+          <ChevronUp className="ml-1 size-3.5 text-muted-foreground" />
+        </div>
+      )
+    }
+    return (
+      <div className="fixed bottom-6 right-6 z-50 w-[260px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+        <div className="border-b border-border px-3.5 py-3">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[12px] font-semibold text-foreground">快速开始</span>
+          </div>
+          <div className="h-1 overflow-hidden rounded-full bg-[#EBEEF2]">
+            <div className="h-full w-full rounded-full bg-[#10b981] transition-all duration-300" />
+          </div>
+          <p className="mt-1 text-[10px] font-medium text-[#10b981]">{totalCount} / {totalCount} 步完成</p>
+        </div>
+        <div className="px-4 py-5 text-center">
+          <div className="mb-2 text-2xl">🎉</div>
+          <p className="text-[13px] font-semibold text-foreground">教程完成！</p>
+          <p className="mt-1 text-[11px] text-muted-foreground">你已完成所有入门步骤</p>
+        </div>
+        <div className="border-t border-border">
+          <button
+            onClick={() => { reset(); openPanel() }}
+            className="flex w-full items-center justify-center gap-1 py-1.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            <RotateCcw className="size-3" />
+            重新开始
+          </button>
+          <button
+            onClick={closePanel}
+            className="flex w-full items-center justify-center border-t border-border py-1.5 text-muted-foreground transition-colors hover:bg-accent"
+          >
+            <ChevronDown className="size-3.5" />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   const progressPct = (completedCount / totalCount) * 100
 
@@ -93,13 +147,6 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
       <div className="border-b border-border px-3.5 py-3">
         <div className="mb-2 flex items-center justify-between">
           <span className="text-[12px] font-semibold text-foreground">快速开始</span>
-          <button
-            onClick={dismiss}
-            className="flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-            aria-label="关闭并不再显示"
-          >
-            <X className="size-3" />
-          </button>
         </div>
         <div className="h-1 overflow-hidden rounded-full bg-[#EBEEF2]">
           <div
@@ -321,14 +368,24 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
         })}
       </div>
 
-      {/* Collapse chevron */}
-      <button
-        onClick={closePanel}
-        className="flex w-full items-center justify-center border-t border-border py-1.5 text-muted-foreground transition-colors hover:bg-accent"
-        aria-label="折叠面板"
-      >
-        <ChevronDown className="size-3.5" />
-      </button>
+      {/* Footer */}
+      <div className="border-t border-border">
+        <button
+          onClick={() => { reset(); openPanel() }}
+          className="flex w-full items-center justify-center gap-1 py-1.5 text-[10px] text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label="重新开始教程"
+        >
+          <RotateCcw className="size-3" />
+          重新开始
+        </button>
+        <button
+          onClick={closePanel}
+          className="flex w-full items-center justify-center border-t border-border py-1.5 text-muted-foreground transition-colors hover:bg-accent"
+          aria-label="折叠面板"
+        >
+          <ChevronDown className="size-3.5" />
+        </button>
+      </div>
     </div>
   )
 }
