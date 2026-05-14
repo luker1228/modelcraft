@@ -41,13 +41,21 @@ modelcraft-agent (Python / FastAPI)   ← 新服务
   │ (GraphQL → data)   │     │ clear_filter()           │
   └────────────────────┘     └──────────────────────────┘
        │                              │
+       │  Bearer JWT 透传              │
        ▼                              ▼
-  Backend GraphQL             FilterPanel (React State)
-  (JWT 透传 → Gateway 鉴权)   whereJsonCommitted 更新 → 触发查询
+  Gateway (:8090)             FilterPanel (React State)
+  - 验签 JWT                  whereJsonCommitted 更新 → 触发查询
+  - 删除 Authorization 头
+  - 注入 X-User-ID / X-Internal-Token
+       │
+       ▼
+  Backend GraphQL (:8080)
+  (信任 X-User-ID，不直接接受外部 JWT)
 ```
 
 **关键设计决策：**
-- **鉴权/租户隔离**：Python 服务不做任何鉴权，JWT Token 从前端 session 透传，由 Gateway 统一处理
+- **强制过 Gateway（:8090）**：Python Agent 的所有 GraphQL 调用必须发往 `http://gateway:8090`，禁止直连 `backend:8080`。Gateway 负责 JWT 验签、删除 Authorization 头、注入 `X-User-ID` + `X-Internal-Token`。
+- **JWT 透传链路**：前端 JWT → BFF 注入到 CopilotKit 请求 → Python Agent 从 properties 中取出 → 作为 `Authorization: Bearer <token>` 发给 Gateway
 - **LLM Provider**：通过环境变量切换（DeepSeek / OpenAI / Claude），当前使用 DeepSeek（OpenAI-compatible API）
 - **UI 操控**：通过 CopilotKit Frontend Actions，Agent 可直接设置 FilterPanel 的筛选条件
 
@@ -182,9 +190,10 @@ useCopilotAction({
 ```
 1. 用户输入 → CopilotSidebar
 2. Agent 决策：调用 query_model("users", "maindb", {}, ["id","name","createdAt"], 5)
-3. Python 调用 Backend GraphQL（透传 JWT）
-4. 返回数据列表
-5. Agent 格式化后回复给用户
+3. Python 构建 GraphQL 请求，带 Authorization: Bearer <JWT>
+4. 请求发往 Gateway(:8090) → 验签 → 注入 X-User-ID → 转发 Backend(:8080)
+5. 返回数据列表
+6. Agent 格式化后回复给用户
 ```
 
 ---
@@ -197,7 +206,7 @@ LLM_PROVIDER=deepseek
 LLM_MODEL=deepseek-chat
 LLM_API_KEY=sk-xxx
 LLM_BASE_URL=https://api.deepseek.com
-BACKEND_GRAPHQL_BASE_URL=http://backend:8080
+GATEWAY_URL=http://gateway:8090       # 所有 GraphQL 调用必须过网关，禁止直连 backend:8080
 # orgName / projectSlug 不在此配置，由每次请求的 CopilotKit properties 运行时注入
 
 # modelcraft-front/.env（追加）
@@ -207,7 +216,9 @@ AGENT_SERVICE_URL=http://modelcraft-agent:8000
 **URL 构建逻辑：** Python Agent 从 CopilotKit 消息的 `properties` 字段读取 `orgName` 和 `projectSlug`（前端 `CopilotProvider` 已注入），动态构建 GraphQL endpoint：
 
 ```python
-url = f"{config.BACKEND_GRAPHQL_BASE_URL}/graphql/org/{org_name}/project/{project_slug}/"
+url = f"{config.GATEWAY_URL}/graphql/org/{org_name}/project/{project_slug}/"
+# JWT Token 作为 Authorization: Bearer <token> 请求头
+# Gateway 验签后注入 X-User-ID，backend 信任该头
 ```
 
 ---
