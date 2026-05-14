@@ -89,7 +89,7 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   // Conditionally wrap with CopilotKit when user activates it
   if (showCopilot) {
     return (
-      <CopilotWrapper selectedProject={selectedProject}>
+      <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
         {mainContent}
       </CopilotWrapper>
     )

@@ -18,6 +18,7 @@ const CopilotSidebar = dynamic(
 interface CopilotProviderProps {
   children: React.ReactNode
   selectedProject: Project | null
+  orgName: string
 }
 
 /**
@@ -29,12 +30,13 @@ interface CopilotProviderProps {
  * @param children - Child components to wrap
  * @param selectedProject - Currently selected project for context
  */
-const CopilotProvider = memo(({ children, selectedProject }: CopilotProviderProps) => {
+const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotProviderProps) => {
   // Memoize copilot context to prevent unnecessary re-renders
   const copilotContext = useMemo(() => ({
     projectId: selectedProject?.id || 'default',
     projectSlug: selectedProject?.slug || 'Default Project',
-  }), [selectedProject?.id, selectedProject?.slug])
+    orgName: orgName,
+  }), [selectedProject?.id, selectedProject?.slug, orgName])
 
   // Memoize initial message to prevent recreation
   const initialMessage = useMemo(() => {
@@ -114,13 +116,14 @@ AIAssistantButton.displayName = 'AIAssistantButton'
  * 
  * Provides suspense boundary and fallback UI
  */
-export const CopilotWrapper = memo(({ 
-  children, 
-  selectedProject 
+export const CopilotWrapper = memo(({
+  children,
+  selectedProject,
+  orgName,
 }: CopilotProviderProps) => {
   return (
     <Suspense fallback={children}>
-      <CopilotProvider selectedProject={selectedProject}>
+      <CopilotProvider selectedProject={selectedProject} orgName={orgName}>
         {children}
       </CopilotProvider>
     </Suspense>
