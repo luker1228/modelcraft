@@ -47,12 +47,13 @@ func newDescribeCommand() *cobra.Command {
 					} `json:"fields"`
 				} `json:"__type"`
 			}
+			// Runtime schema prefixes model type names with "T" (e.g. "test005" → "Ttest005")
 			err = (client.GraphQLClient{HTTPClient: http.DefaultClient}).Execute(
 				cmd.Context(),
 				endpoint,
 				creds.AccessToken,
 				query,
-				map[string]any{"typeName": modelPath.Model},
+				map[string]any{"typeName": "Query"},
 				&payload,
 			)
 			if err != nil {
@@ -75,7 +76,7 @@ func newDescribeCommand() *cobra.Command {
 			}
 
 			data := map[string]any{
-				"model":  payload.Type.Name,
+				"model":  modelPath.Model,
 				"fields": fields,
 			}
 			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, data, ctx)

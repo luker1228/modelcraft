@@ -16,11 +16,10 @@ func TestSchemaCommandsReturnsLocalSchema(t *testing.T) {
 	if !bytes.Contains(stdout.Bytes(), []byte(`"commands"`)) {
 		t.Fatalf("missing commands payload: %s", stdout.String())
 	}
-	if !bytes.Contains(stdout.Bytes(), []byte(`"query"`)) {
-		t.Fatalf("missing query command: %s", stdout.String())
+	if !bytes.Contains(stdout.Bytes(), []byte(`"run"`)) {
+		t.Fatalf("missing run command: %s", stdout.String())
 	}
-	if !bytes.Contains(stdout.Bytes(), []byte(`"take"`)) {
-		t.Fatalf("missing query flag take: %s", stdout.String())
+	if !bytes.Contains(stdout.Bytes(), []byte(`"describe"`)) {
+		t.Fatalf("missing describe command: %s", stdout.String())
 	}
 }
-

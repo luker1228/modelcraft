@@ -12,7 +12,7 @@ func TestCatalogDatabasesUsesProjectEndpoint(t *testing.T) {
 		if r.URL.Path != "/graphql/end-user/org/acme/project/sales" {
 			t.Fatalf("path = %s, want project catalog endpoint", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{"data":{"modelDatabaseCatalog":{"items":[{"name":"maindb"}]}}}`))
+		_, _ = w.Write([]byte(`{"data":{"modelDatabaseCatalog":{"data":{"databases":[{"name":"maindb"}]}}}}`))
 	}))
 	defer srv.Close()
 
@@ -28,7 +28,7 @@ func TestCatalogDatabasesUsesProjectEndpoint(t *testing.T) {
 
 func TestCatalogModelsUsesDatabaseFilter(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"data":{"modelCatalog":{"items":[{"name":"users"}]}}}`))
+		_, _ = w.Write([]byte(`{"data":{"models":{"items":[{"name":"users"}]}}}`))
 	}))
 	defer srv.Close()
 

@@ -4,7 +4,7 @@
 export function isValidJson(value: string): boolean {
   if (!value.trim()) return false
   try {
-    const parsed = JSON.parse(value)
+    const parsed = JSON.parse(value) as unknown
     return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)
   } catch {
     return false
@@ -36,11 +36,12 @@ export function formatJson(value: string): string {
 export function getFilterCount(whereJson: string | null): number | '•' | null {
   if (!whereJson) return null
   try {
-    const parsed = JSON.parse(whereJson)
+    const parsed = JSON.parse(whereJson) as unknown
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
-    if (Array.isArray(parsed.AND)) return parsed.AND.length || null
-    if (Array.isArray(parsed.OR)) return parsed.OR.length || null
-    const keys = Object.keys(parsed).filter((k) => k !== 'NOT')
+    const obj = parsed as Record<string, unknown>
+    if (Array.isArray(obj.AND)) return obj.AND.length || null
+    if (Array.isArray(obj.OR)) return obj.OR.length || null
+    const keys = Object.keys(obj).filter((k) => k !== 'NOT')
     return keys.length > 0 ? '•' : null
   } catch {
     return null

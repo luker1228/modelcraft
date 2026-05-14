@@ -19,43 +19,29 @@ type FlagDoc struct {
 func BuildCommandSchema() CommandSchema {
 	return CommandSchema{
 		Commands: map[string]CommandDoc{
-			"query": {
-				Description: "Query multiple records from a runtime model.",
-				Usage:       "mc query <project.database.model|database.model>",
+			"run": {
+				Description: "Execute a raw GraphQL query against a runtime model endpoint.",
+				Usage:       "mc run <project.database.model|database.model> [query]",
 				Flags: map[string]FlagDoc{
-					"where":   {Type: "json", Required: false, Description: "JSON where filter."},
-					"select":  {Type: "string[]", Required: false, Description: "Selected fields."},
-					"orderBy": {Type: "json", Required: false, Description: "JSON orderBy expression."},
-					"take":    {Type: "int", Required: false, Description: "Page size."},
-					"skip":    {Type: "int", Required: false, Description: "Records to skip."},
-				},
-			},
-			"get": {
-				Description: "Query a single record from a runtime model.",
-				Usage:       "mc get <project.database.model|database.model>",
-				Flags: map[string]FlagDoc{
-					"where":  {Type: "json", Required: true, Description: "JSON where filter."},
-					"select": {Type: "string[]", Required: false, Description: "Selected fields."},
-				},
-			},
-			"count": {
-				Description: "Count records from a runtime model.",
-				Usage:       "mc count <project.database.model|database.model>",
-				Flags: map[string]FlagDoc{
-					"where": {Type: "json", Required: false, Description: "JSON where filter."},
-				},
-			},
-			"aggregate": {
-				Description: "Aggregate records from a runtime model.",
-				Usage:       "mc aggregate <project.database.model|database.model>",
-				Flags: map[string]FlagDoc{
-					"where":  {Type: "json", Required: false, Description: "JSON where filter."},
-					"fields": {Type: "string[]", Required: false, Description: "Aggregation fields."},
+					"credentials": {Type: "string", Required: false, Description: "Path to credentials file."},
+					"project":     {Type: "string", Required: false, Description: "Project slug override."},
 				},
 			},
 			"describe": {
-				Description: "Describe a runtime model using GraphQL introspection.",
+				Description: "Describe a runtime model's fields and types via GraphQL introspection.",
 				Usage:       "mc describe <project.database.model|database.model>",
+			},
+			"catalog projects": {
+				Description: "List projects accessible to the current end-user.",
+				Usage:       "mc catalog projects",
+			},
+			"catalog databases": {
+				Description: "List databases within a project.",
+				Usage:       "mc catalog databases [--project <slug>]",
+			},
+			"catalog models": {
+				Description: "List models within a database.",
+				Usage:       "mc catalog models --database <name> [--project <slug>]",
 			},
 			"schema commands": {
 				Description: "Export static CLI command schema.",

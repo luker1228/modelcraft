@@ -7,14 +7,14 @@ import (
 	"testing"
 )
 
-func TestQueryCommandReturnsNoProjectContextWhenDatabaseModelLacksFallback(t *testing.T) {
+func TestRunCommandReturnsNoProjectContextWhenDatabaseModelLacksFallback(t *testing.T) {
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "credentials.json")
 	_ = os.WriteFile(credPath, []byte(`{"server":"https://gateway.example.com","orgName":"acme","accessToken":"tok"}`), 0o600)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)
-	code := Execute(BuildInfo{}, []string{"query", "maindb.users", "--credentials", credPath}, stdout, stderr)
+	code := Execute(BuildInfo{}, []string{"run", "maindb.users", "{ count }", "--credentials", credPath}, stdout, stderr)
 
 	if code != 5 {
 		t.Fatalf("Execute() code = %d, want 5, stdout=%s", code, stdout.String())
