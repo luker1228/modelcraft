@@ -368,33 +368,8 @@ func (s *CreateOrganizationService) createOrganizationInTransaction(
 		}
 
 		// Step 4: Create builtin admin EndUser (idempotent: skip if admin already exists)
-		if s.endUserRepoFactory != nil && endUserAdminPassword != "" {
-			euRepo := s.endUserRepoFactory(q, orgSlug)
-			existing, txErr := euRepo.GetByUsername(ctx, orgSlug, domainenduser.BuiltinAdminUsername)
-			if txErr != nil {
-				logger.Error(ctx, "Failed to check builtin admin existence", logfacade.Err(txErr))
-				return bizerrors.Wrap(txErr, "Failed to check builtin admin existence")
-			}
-			if existing == nil {
-				hashedPwd, txErr := domainenduser.NewHashedPasswordFromPlain(endUserAdminPassword)
-				if txErr != nil {
-					logger.Error(ctx, "Failed to hash admin password", logfacade.Err(txErr))
-					return bizerrors.Wrap(txErr, "Failed to hash builtin admin password")
-				}
-				adminID, txErr := bizutils.GenerateUUIDV7()
-				if txErr != nil {
-					return bizerrors.Wrap(txErr, "Failed to generate builtin admin ID")
-				}
-				adminUser, txErr := domainenduser.NewBuiltinEndUser(adminID, orgSlug, userID, hashedPwd)
-				if txErr != nil {
-					return bizerrors.Wrap(txErr, "Failed to create builtin admin entity")
-				}
-				if txErr = euRepo.Save(ctx, adminUser); txErr != nil {
-					logger.Error(ctx, "Failed to save builtin admin", logfacade.Err(txErr))
-					return bizerrors.Wrap(txErr, "Failed to save builtin admin")
-				}
-				logger.Infof(ctx, "Builtin admin EndUser created: id=%s, org=%s", adminID, orgSlug)
-			}
+		if txErr = s.maybeCreateBuiltinAdmin(ctx, q, orgSlug, userID, endUserAdminPassword); txErr != nil {
+			return txErr
 		}
 
 		return nil
@@ -404,6 +379,47 @@ func (s *CreateOrganizationService) createOrganizationInTransaction(
 		return nil, err
 	}
 	return output, nil
+}
+
+// maybeCreateBuiltinAdmin creates the builtin admin EndUser for a new org if not already present.
+// It is a no-op when the factory is nil or no password is supplied.
+func (s *CreateOrganizationService) maybeCreateBuiltinAdmin(
+	ctx context.Context, q dbgen.Querier, orgSlug, ownerUserID, adminPassword string,
+) error {
+	if s.endUserRepoFactory == nil || adminPassword == "" {
+		return nil
+	}
+	logger := logfacade.GetLogger(ctx)
+	euRepo := s.endUserRepoFactory(q, orgSlug)
+
+	existing, err := euRepo.GetByUsername(ctx, orgSlug, domainenduser.BuiltinAdminUsername)
+	if err != nil {
+		logger.Error(ctx, "Failed to check builtin admin existence", logfacade.Err(err))
+		return bizerrors.Wrap(err, "Failed to check builtin admin existence")
+	}
+	if existing != nil {
+		return nil
+	}
+
+	hashedPwd, err := domainenduser.NewHashedPasswordFromPlain(adminPassword)
+	if err != nil {
+		logger.Error(ctx, "Failed to hash admin password", logfacade.Err(err))
+		return bizerrors.Wrap(err, "Failed to hash builtin admin password")
+	}
+	adminID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return bizerrors.Wrap(err, "Failed to generate builtin admin ID")
+	}
+	adminUser, err := domainenduser.NewBuiltinEndUser(adminID, orgSlug, ownerUserID, hashedPwd)
+	if err != nil {
+		return bizerrors.Wrap(err, "Failed to create builtin admin entity")
+	}
+	if err = euRepo.Save(ctx, adminUser); err != nil {
+		logger.Error(ctx, "Failed to save builtin admin", logfacade.Err(err))
+		return bizerrors.Wrap(err, "Failed to save builtin admin")
+	}
+	logger.Infof(ctx, "Builtin admin EndUser created: id=%s, org=%s", adminID, orgSlug)
+	return nil
 }
 
 // validateOrgSlugFormat validates the organization slug format.

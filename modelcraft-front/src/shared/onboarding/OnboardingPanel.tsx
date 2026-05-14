@@ -52,7 +52,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
           <div className="flex flex-col gap-1">
             <span className="text-[12px] font-semibold text-foreground">快速开始</span>
             <div className="h-1 w-32 overflow-hidden rounded-full bg-[#EBEEF2]">
-              <div className="h-full w-full rounded-full bg-[#10b981]" />
+              <div className="size-full rounded-full bg-[#10b981]" />
             </div>
             <span className="text-[10px] font-medium text-[#10b981]">全部完成 🎉</span>
           </div>
@@ -67,7 +67,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
             <span className="text-[12px] font-semibold text-foreground">快速开始</span>
           </div>
           <div className="h-1 overflow-hidden rounded-full bg-[#EBEEF2]">
-            <div className="h-full w-full rounded-full bg-[#10b981] transition-all duration-300" />
+            <div className="size-full rounded-full bg-[#10b981] transition-all duration-300" />
           </div>
           <p className="mt-1 text-[10px] font-medium text-[#10b981]">{totalCount} / {totalCount} 步完成</p>
         </div>

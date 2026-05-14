@@ -56,7 +56,9 @@ func (m *MockQuerierForFK) FindLogicalForeignKeysByPairID(
 	return args.Get(0).([]dbgen.FindLogicalForeignKeysByPairIDRow), args.Error(1)
 }
 
-func (m *MockQuerierForFK) GetLogicalForeignKeyByID(ctx context.Context, id string) (dbgen.GetLogicalForeignKeyByIDRow, error) {
+func (m *MockQuerierForFK) GetLogicalForeignKeyByID(
+	ctx context.Context, id string,
+) (dbgen.GetLogicalForeignKeyByIDRow, error) {
 	args := m.Called(ctx, id)
 	return args.Get(0).(dbgen.GetLogicalForeignKeyByIDRow), args.Error(1)
 }

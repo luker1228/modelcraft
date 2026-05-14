@@ -344,7 +344,9 @@ func NewPrivateDBManagerAdapter(manager *infrrepo.PrivateDBManager) PrivateDBMan
 
 // NewEndUserManagementAppServiceWithRepo creates a thin service wrapper backed
 // directly by a repository — for unit-testing guards without a real DB.
-func NewEndUserManagementAppServiceWithRepo(repo domainenduser.EndUserRepository) *EndUserManagementAppServiceWithRepoImpl {
+func NewEndUserManagementAppServiceWithRepo(
+	repo domainenduser.EndUserRepository,
+) *EndUserManagementAppServiceWithRepoImpl {
 	return &EndUserManagementAppServiceWithRepoImpl{repo: repo}
 }
 
@@ -355,7 +357,9 @@ type EndUserManagementAppServiceWithRepoImpl struct {
 }
 
 // DeleteEndUserDirect deletes a user, enforcing the builtin guard.
-func (s *EndUserManagementAppServiceWithRepoImpl) DeleteEndUserDirect(ctx context.Context, orgName, userID string) error {
+func (s *EndUserManagementAppServiceWithRepoImpl) DeleteEndUserDirect(
+	ctx context.Context, orgName, userID string,
+) error {
 	user, err := s.repo.GetByID(ctx, orgName, userID)
 	if err != nil {
 		return err
@@ -370,7 +374,9 @@ func (s *EndUserManagementAppServiceWithRepoImpl) DeleteEndUserDirect(ctx contex
 }
 
 // UpdateEndUserStatusDirect updates status, enforcing the builtin guard.
-func (s *EndUserManagementAppServiceWithRepoImpl) UpdateEndUserStatusDirect(ctx context.Context, orgName, userID string, isForbidden bool) error {
+func (s *EndUserManagementAppServiceWithRepoImpl) UpdateEndUserStatusDirect(
+	ctx context.Context, orgName, userID string, isForbidden bool,
+) error {
 	user, err := s.repo.GetByID(ctx, orgName, userID)
 	if err != nil {
 		return err

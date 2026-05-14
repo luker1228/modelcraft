@@ -125,8 +125,10 @@ func runCodemod(args []string, stdout, stderr io.Writer) int {
 			continue
 		}
 
-		content := append(rewritten, '\n')
-		if writeErr := os.WriteFile(file, content, 0o644); writeErr != nil {
+		content := make([]byte, len(rewritten)+1)
+		copy(content, rewritten)
+		content[len(rewritten)] = '\n'
+		if writeErr := os.WriteFile(file, content, 0o600); writeErr != nil {
 			fmt.Fprintf(stderr, "write %s: %v\n", file, writeErr)
 			return 1
 		}

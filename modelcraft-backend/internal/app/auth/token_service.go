@@ -204,18 +204,7 @@ func (s *TokenService) createUserAndProfile(
 		profileRepo domainProfile.Repository,
 	) error {
 		if err := userRepo.Create(ctx, u); err != nil {
-			if shared.IsDuplicateKeyError(err) {
-				phoneExists, phoneErr := userRepo.ExistsByPhone(ctx, u.Phone.String())
-				if phoneErr == nil && phoneExists {
-					return bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, maskedPhone)
-				}
-				nameExists, nameErr := userRepo.ExistsByName(ctx, u.Name)
-				if nameErr == nil && nameExists {
-					return bizerrors.NewErrorFromContext(ctx, bizerrors.UserNameAlreadyExists, u.Name)
-				}
-				return bizerrors.NewErrorFromContext(ctx, bizerrors.Conflict, "duplicate user record")
-			}
-			return bizerrors.ConvertRepositoryError(ctx, err)
+			return s.classifyCreateUserError(ctx, userRepo, u, maskedPhone, err)
 		}
 
 		if err := profileRepo.CreateInitialProfile(ctx, p); err != nil {
@@ -244,6 +233,28 @@ func (s *TokenService) createUserAndProfile(
 	}
 
 	return nil
+}
+
+// classifyCreateUserError maps a duplicate-key error on user creation to a specific business error.
+func (s *TokenService) classifyCreateUserError(
+	ctx context.Context,
+	userRepo domainUser.UserRepository,
+	u *domainUser.User,
+	maskedPhone string,
+	createErr error,
+) error {
+	if !shared.IsDuplicateKeyError(createErr) {
+		return bizerrors.ConvertRepositoryError(ctx, createErr)
+	}
+	phoneExists, phoneErr := userRepo.ExistsByPhone(ctx, u.Phone.String())
+	if phoneErr == nil && phoneExists {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, maskedPhone)
+	}
+	nameExists, nameErr := userRepo.ExistsByName(ctx, u.Name)
+	if nameErr == nil && nameExists {
+		return bizerrors.NewErrorFromContext(ctx, bizerrors.UserNameAlreadyExists, u.Name)
+	}
+	return bizerrors.NewErrorFromContext(ctx, bizerrors.Conflict, "duplicate user record")
 }
 
 // Login 登录（支持手机号或用户名），生成 Refresh Token 存入 DB，返回明文给 BFF。

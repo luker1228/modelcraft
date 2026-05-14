@@ -279,9 +279,12 @@ func TestCreateOrganizationService_Execute_Success(t *testing.T) {
 	membershipRepo.On("CountByUser", ctx, userID).Return(int64(0), nil)
 	orgRepo.On("ExistsByName", ctx, "testorg").Return(false, nil)
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "owner", "__SYSTEM__").Return(makeOwnerRole(), nil)
-	roleRepo.On("GetRoleByNameAndOrg", ctx, "admin", "__SYSTEM__").Return(&permission.Role{ID: 2, Name: "admin", OrgName: "__SYSTEM__", IsSystem: true}, nil)
-	roleRepo.On("GetRoleByNameAndOrg", ctx, "editor", "__SYSTEM__").Return(&permission.Role{ID: 3, Name: "editor", OrgName: "__SYSTEM__", IsSystem: true}, nil)
-	roleRepo.On("GetRoleByNameAndOrg", ctx, "viewer", "__SYSTEM__").Return(&permission.Role{ID: 4, Name: "viewer", OrgName: "__SYSTEM__", IsSystem: true}, nil)
+	roleRepo.On("GetRoleByNameAndOrg", ctx, "admin", "__SYSTEM__").
+		Return(&permission.Role{ID: 2, Name: "admin", OrgName: "__SYSTEM__", IsSystem: true}, nil)
+	roleRepo.On("GetRoleByNameAndOrg", ctx, "editor", "__SYSTEM__").
+		Return(&permission.Role{ID: 3, Name: "editor", OrgName: "__SYSTEM__", IsSystem: true}, nil)
+	roleRepo.On("GetRoleByNameAndOrg", ctx, "viewer", "__SYSTEM__").
+		Return(&permission.Role{ID: 4, Name: "viewer", OrgName: "__SYSTEM__", IsSystem: true}, nil)
 	// Transaction succeeds — actual repo calls inside the tx are covered by auto-test
 	txManager.On("WithTx", ctx).Return(nil)
 

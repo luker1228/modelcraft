@@ -8,8 +8,9 @@ import (
 )
 
 const (
-	deletedAtExpr   = "CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED)"
-	deleteTokenExpr = "CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED)"
+	deletedAtExpr = "CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED)"
+	// deleteTokenExpr is a timestamp expression used as a soft-delete token, not a credential.
+	deleteTokenExpr = "CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED)" //nolint:gosec
 )
 
 func RewriteFile(policy *Policy, src []byte) ([]byte, bool, error) {
@@ -148,6 +149,14 @@ func quoteIdent(name string) string {
 	return "`" + trimmed + "`"
 }
 
+// suffixNeedsLeadingSpace reports whether a non-empty suffix lacks a leading whitespace.
+func suffixNeedsLeadingSpace(s string) bool {
+	return s != "" &&
+		!strings.HasPrefix(s, " ") &&
+		!strings.HasPrefix(s, "\n") &&
+		!strings.HasPrefix(s, "\t")
+}
+
 func injectPredicateIntoSelect(sql, predicate string) (string, bool) {
 	orderingRe := regexp.MustCompile(`(?is)\b(order\s+by|limit|for\s+update|lock\s+in\s+share\s+mode)\b`)
 	whereRe := regexp.MustCompile(`(?is)\bwhere\b`)
@@ -169,12 +178,12 @@ func injectPredicateIntoSelect(sql, predicate string) (string, bool) {
 	}
 
 	if whereLoc := whereRe.FindStringIndex(prefix); whereLoc != nil {
-		if suffix != "" && !strings.HasPrefix(suffix, " ") && !strings.HasPrefix(suffix, "\n") && !strings.HasPrefix(suffix, "\t") {
+		if suffixNeedsLeadingSpace(suffix) {
 			suffix = " " + suffix
 		}
 		return prefix + " AND " + predicate + suffix, true
 	}
-	if suffix != "" && !strings.HasPrefix(suffix, " ") && !strings.HasPrefix(suffix, "\n") && !strings.HasPrefix(suffix, "\t") {
+	if suffixNeedsLeadingSpace(suffix) {
 		suffix = " " + suffix
 	}
 	return prefix + " WHERE " + predicate + suffix, true
@@ -215,11 +224,12 @@ func rewriteDeleteSQL(sql string, table TableRef, includeDeleteToken bool) (stri
 	}
 
 	var where string
-	if whereExpr == "" {
+	switch {
+	case whereExpr == "":
 		where = activePred
-	} else if strings.Contains(strings.ToLower(whereExpr), "deleted_at") {
+	case strings.Contains(strings.ToLower(whereExpr), "deleted_at"):
 		where = whereExpr
-	} else {
+	default:
 		where = "(" + whereExpr + ") AND " + activePred
 	}
 

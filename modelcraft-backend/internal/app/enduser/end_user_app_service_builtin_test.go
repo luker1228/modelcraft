@@ -53,11 +53,15 @@ func (f *fakeEndUserRepo) Delete(_ context.Context, _, id string) error {
 	return nil
 }
 
-func (f *fakeEndUserRepo) ListWithTotal(_ context.Context, _ domainenduser.ListEndUsersQuery) ([]*domainenduser.EndUser, int64, error) {
+func (f *fakeEndUserRepo) ListWithTotal(
+	_ context.Context, _ domainenduser.ListEndUsersQuery,
+) ([]*domainenduser.EndUser, int64, error) {
 	return nil, 0, nil
 }
 
-func (f *fakeEndUserRepo) ListAccessibleProjectsByRoleAssignment(_ context.Context, _, _ string) ([]domainenduser.AccessibleProject, error) {
+func (f *fakeEndUserRepo) ListAccessibleProjectsByRoleAssignment(
+	_ context.Context, _, _ string,
+) ([]domainenduser.AccessibleProject, error) {
 	return nil, nil
 }
 

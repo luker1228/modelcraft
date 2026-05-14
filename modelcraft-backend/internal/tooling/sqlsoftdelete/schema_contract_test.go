@@ -10,29 +10,42 @@ import (
 func TestSchemaContract_SoftDeleteColumnsExist(t *testing.T) {
 	required := map[string][]string{
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "01_project.sql"): {
-			"`projects`", "`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`projects`",
+			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "02_database_cluster.sql"): {
-			"`database_clusters`", "`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`database_clusters`",
+			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "03_model_domain.sql"): {
 			"`models`", "`model_groups`", "`logical_foreign_keys`", "`model_enums`", "`field_definitions`",
 			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "05_organizations.sql"): {
-			"`organizations`", "`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`organizations`",
+			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "06_users.sql"): {
-			"`users`", "`profile`", "`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`users`", "`profile`",
+			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "07_roles_permissions.sql"): {
-			"`roles`", "`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`roles`",
+			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "12_end_user_auth.sql"): {
-			"`end_user_users`", "`end_user_roles`", "`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`end_user_users`", "`end_user_roles`",
+			"`deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0",
+			"`delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "13_rbac_permissions.sql"): {
-			"`end_user_data_permissions`", "`end_user_permission_bundles`", "`deleted_at`", "BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token`",
+			"`end_user_data_permissions`", "`end_user_permission_bundles`",
+			"`deleted_at`", "BIGINT UNSIGNED NOT NULL DEFAULT 0", "`delete_token`",
 		},
 	}
 

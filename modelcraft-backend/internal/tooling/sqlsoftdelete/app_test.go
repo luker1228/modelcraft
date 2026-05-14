@@ -16,13 +16,15 @@ func TestRun_LintFailureMissingDeletedAt(t *testing.T) {
 	}
 
 	sql := "-- name: ListModels :many\nSELECT * FROM models WHERE org_name = ?;\n"
-	if err := os.WriteFile(queryFile, []byte(sql), 0o644); err != nil {
+	if err := os.WriteFile(queryFile, []byte(sql), 0o600); err != nil {
 		t.Fatalf("WriteFile(query) error = %v", err)
 	}
 
 	policyPath := filepath.Join(tmpDir, "soft_delete.yaml")
-	policy := "default_mode: enabled\nlint_paths:\n  - \"" + filepath.ToSlash(filepath.Join(tmpDir, "queries", "*.sql")) + "\"\nblacklist_tables: []\ndelete_token_tables: []\n"
-	if err := os.WriteFile(policyPath, []byte(policy), 0o644); err != nil {
+	lintPaths := "  - \"" + filepath.ToSlash(filepath.Join(tmpDir, "queries", "*.sql")) + "\""
+	policy := "default_mode: enabled\nlint_paths:\n" + lintPaths +
+		"\nblacklist_tables: []\ndelete_token_tables: []\n"
+	if err := os.WriteFile(policyPath, []byte(policy), 0o600); err != nil {
 		t.Fatalf("WriteFile(policy) error = %v", err)
 	}
 
