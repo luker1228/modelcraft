@@ -614,7 +614,7 @@ export default function EndUserRecordWorkspace({
                 <Filter className="mr-1.5 size-3.5" />
                 <span>筛选</span>
                 {filterCount !== null && (
-                  <span className="ml-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                  <span className="ml-1.5 flex size-4 items-center justify-center rounded-sm bg-primary text-[10px] font-medium text-primary-foreground">
                     {filterCount}
                   </span>
                 )}
