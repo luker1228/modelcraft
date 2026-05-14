@@ -14,7 +14,7 @@ export interface WhereJsonEditorProps {
 /**
  * Plain textarea JSON editor with validation status, format, clear, and apply actions.
  *
- * Exposes a ref-based `insertSnippet` method so parent components (FilterPanel)
+ * Exposes a ref-based `insertAtCursor` method so parent components (FilterPanel)
  * can programmatically insert text at the current cursor position — used by
  * FieldSchemaPanel when a field is clicked.
  *
@@ -77,6 +77,8 @@ export const WhereJsonEditor = React.forwardRef<WhereJsonEditorRef, WhereJsonEdi
         </div>
 
         {/* Textarea */}
+        {/* Code-editor aesthetic — intentionally dark so JSON is visually distinct
+            from the surrounding light UI. Using Catppuccin Mocha palette as a one-off exception. */}
         <textarea
           ref={textareaRef}
           value={value}
