@@ -19,3 +19,4 @@ modelcraft-front/.next/
 
 # Graphify cache
 graphify-out/cache/
+.superpowers/
