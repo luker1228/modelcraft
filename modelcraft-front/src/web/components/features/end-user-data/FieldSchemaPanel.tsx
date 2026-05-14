@@ -20,7 +20,7 @@ function getTypeLabel(field: FieldDefinition): string {
   if (fmt === 'RELATION') return 'Relation'
   const hint = field.storageHint?.toUpperCase()
   if (hint === 'BOOL' || hint === 'BOOLEAN') return 'Bool'
-  if (hint === 'INT' || hint === 'BIGINT') return 'Int'
+  if (hint === 'INT' || hint === 'BIGINT' || hint === 'NUMBER') return 'Int'
   if (hint === 'FLOAT' || hint === 'DECIMAL') return 'Float'
   if (hint === 'DATETIME' || hint === 'DATE') return 'Date'
   if (fmt === 'ENUM') return 'Enum'
@@ -58,7 +58,7 @@ export function FieldSchemaPanel({ fields, onFieldClick }: FieldSchemaPanelProps
               key={field.name}
               type="button"
               onClick={() => handleFieldClick(field)}
-              className="flex items-center justify-between rounded px-1.5 py-1 text-left hover:bg-muted"
+              className="flex items-center justify-between rounded px-1.5 py-1 text-left hover:bg-muted focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
               title={`点击插入 "${field.name}": {}`}
             >
               <span className="font-mono text-primary">{field.name}</span>
