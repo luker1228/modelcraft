@@ -20,6 +20,8 @@
  */
 import { NextRequest, NextResponse } from 'next/server'
 
+export const maxDuration = 60
+
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? 'http://localhost:8000'
 
 async function handler(req: NextRequest): Promise<NextResponse> {
@@ -60,7 +62,12 @@ async function handler(req: NextRequest): Promise<NextResponse> {
 
   let upstreamRes: Response
   try {
-    upstreamRes = await fetch(upstreamUrl, { method: req.method, headers, body })
+    upstreamRes = await fetch(upstreamUrl, {
+      method: req.method,
+      headers,
+      body,
+      signal: AbortSignal.timeout(55000),
+    })
   } catch {
     return NextResponse.json(
       { error: 'Agent service unreachable' },
@@ -68,8 +75,10 @@ async function handler(req: NextRequest): Promise<NextResponse> {
     )
   }
 
-  const resBody = await upstreamRes.arrayBuffer()
-  const response = new NextResponse(resBody, {
+  // Pass through the response stream directly — do NOT buffer with arrayBuffer().
+  // The agent returns SSE; buffering would block the client until the full response
+  // is ready and break streaming UX entirely.
+  const response = new NextResponse(upstreamRes.body, {
     status: upstreamRes.status,
     statusText: upstreamRes.statusText,
   })
