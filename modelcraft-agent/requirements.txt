@@ -1,0 +1,7 @@
+fastapi==0.115.12
+uvicorn[standard]==0.34.2
+copilotkit==0.1.89
+langgraph==0.4.3
+openai==1.77.0
+httpx==0.28.1
+python-dotenv==1.1.0
