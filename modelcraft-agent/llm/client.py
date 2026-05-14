@@ -15,6 +15,8 @@ def get_llm_client() -> AsyncOpenAI:
     DeepSeek and OpenAI both use the OpenAI SDK; only base_url differs.
     For Anthropic, swap this to the anthropic SDK in a future iteration.
     """
+    if not config.LLM_API_KEY:
+        raise ValueError("LLM_API_KEY is not set or empty")
     if config.LLM_PROVIDER in ("deepseek", "openai"):
         kwargs = {"api_key": config.LLM_API_KEY}
         if config.LLM_BASE_URL:
