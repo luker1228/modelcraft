@@ -43,10 +43,6 @@ export function FilterPanel({
     onWhereJsonDraftChange(formatJson(whereJsonDraft))
   }
 
-  function handleClear() {
-    onClear() // Parent atomically clears draft + committed state
-  }
-
   function handleFieldClick(snippet: string) {
     editorRef.current?.insertAtCursor(snippet)
   }
@@ -58,7 +54,7 @@ export function FilterPanel({
         value={whereJsonDraft}
         onChange={onWhereJsonDraftChange}
         onFormat={handleFormat}
-        onClear={handleClear}
+        onClear={onClear}
         onApply={onApply}
         isValid={valid}
       />
