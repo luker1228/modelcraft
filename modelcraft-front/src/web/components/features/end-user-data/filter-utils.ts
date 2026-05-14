@@ -38,8 +38,8 @@ export function getFilterCount(whereJson: string | null): number | '•' | null 
   try {
     const parsed = JSON.parse(whereJson)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null
-    if (Array.isArray(parsed.AND)) return parsed.AND.length
-    if (Array.isArray(parsed.OR)) return parsed.OR.length
+    if (Array.isArray(parsed.AND)) return parsed.AND.length || null
+    if (Array.isArray(parsed.OR)) return parsed.OR.length || null
     const keys = Object.keys(parsed).filter((k) => k !== 'NOT')
     return keys.length > 0 ? '•' : null
   } catch {

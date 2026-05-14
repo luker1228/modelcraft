@@ -44,4 +44,10 @@ describe('getFilterCount', () => {
   it('returns null for empty object', () => {
     expect(getFilterCount('{}')).toBeNull()
   })
+  it('returns null for empty AND array', () => {
+    expect(getFilterCount('{"AND":[]}')).toBeNull()
+  })
+  it('returns null for empty OR array', () => {
+    expect(getFilterCount('{"OR":[]}')).toBeNull()
+  })
 })
