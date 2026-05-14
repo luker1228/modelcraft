@@ -13,4 +13,4 @@ LLM_BASE_URL: str = os.environ.get("LLM_BASE_URL", "https://api.deepseek.com")
 GATEWAY_URL: str = os.environ.get("GATEWAY_URL", "http://localhost:8090")
 
 # Server settings
-PORT: int = int(os.environ.get("PORT", "8000"))
+PORT: int = int(os.environ.get("PORT") or "8000")
