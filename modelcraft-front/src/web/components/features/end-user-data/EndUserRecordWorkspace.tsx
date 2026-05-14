@@ -52,6 +52,9 @@ import {
   Search,
   RefreshCw,
 } from 'lucide-react'
+import { cn } from '@/shared/utils'
+import { FilterPanel } from './FilterPanel'
+import { getFilterCount } from './filter-utils'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
 
@@ -175,6 +178,39 @@ export default function EndUserRecordWorkspace({
   const [editLoading, setEditLoading] = useState(false)
 
   const [searchKeyword, setSearchKeyword] = useState('')
+
+  // --- Filter state ---
+  const [filterOpen, setFilterOpen] = useState(false)
+  // Draft: changes on every keystroke, does NOT trigger a query
+  const [whereJsonDraft, setWhereJsonDraft] = useState<string>('')
+  // Committed: only updated on "应用筛选", drives the actual GraphQL where clause
+  const [whereJsonCommitted, setWhereJsonCommitted] = useState<string | null>(null)
+
+  const whereInput = useMemo(() => {
+    if (!whereJsonCommitted?.trim()) return undefined
+    try {
+      return JSON.parse(whereJsonCommitted) as Record<string, unknown>
+    } catch {
+      return undefined
+    }
+  }, [whereJsonCommitted])
+
+  function handleApplyFilter() {
+    const trimmed = whereJsonDraft.trim()
+    setWhereJsonCommitted(trimmed || null)
+  }
+
+  function handleClearFilter() {
+    // Atomically clear both draft and committed state so the filter is removed immediately.
+    // We cannot call setWhereJsonDraft('') then handleApplyFilter() because React would
+    // batch the updates and handleApplyFilter would still see the old draft value.
+    setWhereJsonDraft('')
+    setWhereJsonCommitted(null)
+  }
+
+  const filterCount = getFilterCount(whereJsonCommitted)
+  const hasActiveFilter = filterCount !== null
+  // --- End filter state ---
 
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
     GET_MODEL_RECORD_WORKSPACE_END_USER,
@@ -346,6 +382,7 @@ export default function EndUserRecordWorkspace({
     variables: {
       take: 50,
       skip: 0,
+      where: whereInput,
     },
   })
 
@@ -564,10 +601,23 @@ export default function EndUserRecordWorkspace({
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
+                onClick={() => setFilterOpen((open) => !open)}
+                className={cn(
+                  'h-[26px] px-2.5 text-xs font-normal',
+                  filterOpen
+                    ? 'border border-primary text-primary ring-2 ring-primary/20'
+                    : hasActiveFilter
+                      ? 'border border-primary text-primary'
+                      : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
+                )}
               >
                 <Filter className="mr-1.5 size-3.5" />
                 <span>筛选</span>
+                {filterCount !== null && (
+                  <span className="ml-1.5 flex size-4 items-center justify-center rounded-full bg-primary text-[10px] font-bold text-primary-foreground">
+                    {filterCount}
+                  </span>
+                )}
               </Button>
               <Button
                 variant="ghost"
@@ -610,6 +660,17 @@ export default function EndUserRecordWorkspace({
             </Button>
           </div>
         </div>
+
+        {/* 筛选面板（工具栏下方内联展开） */}
+        {filterOpen && (
+          <FilterPanel
+            fields={runtimeFields}
+            whereJsonDraft={whereJsonDraft}
+            onWhereJsonDraftChange={setWhereJsonDraft}
+            onApply={handleApplyFilter}
+            onClear={handleClearFilter}
+          />
+        )}
 
         {/* 数据表格 */}
         <ModelRecordTable
