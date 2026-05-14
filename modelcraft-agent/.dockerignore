@@ -1,0 +1,15 @@
+.env
+.env.local
+.env.*.local
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.git
+.gitignore
+.DS_Store
+.venv
+venv
+*.egg-info
+dist
+build
