@@ -103,6 +103,38 @@ services:
       start_period: 15s
 
   # ---------------------------------------------------------------------------
+  # modelcraft-agent (Python AI Agent)
+  # ---------------------------------------------------------------------------
+  modelcraft-agent:
+    build:
+      context: ./modelcraft-agent
+      dockerfile: Dockerfile
+    image: modelcraft-agent:${IMAGE_TAG:-latest}
+    container_name: modelcraft-agent
+    ports:
+      - "${AGENT_PORT:-8000}:8000"
+    environment:
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
+      - LLM_API_KEY=${LLM_API_KEY}
+      - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
+      - GATEWAY_URL=http://gateway:8090
+      - PORT=8000
+      - TZ=Asia/Shanghai
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ---------------------------------------------------------------------------
   # modelcraft-front (Next.js)
   # ---------------------------------------------------------------------------
   frontend:
@@ -119,6 +151,7 @@ services:
     environment:
       - NODE_ENV=production
       - TZ=Asia/Shanghai
+      - AGENT_SERVICE_URL=http://modelcraft-agent:8000
     depends_on:
       gateway:
         condition: service_healthy
