@@ -51,15 +51,15 @@ modelcraft-agent (Python / FastAPI)   ← 新服务
   Gateway (:8090)
   - 从 Authorization: Bearer <jwt> 验签
   - 提取 X-User-ID 注入（供 Backend 日志/鉴权）
-  - 删除 Authorization header（Backend 只信任 X-User-ID）
+  - Authorization header 保留，原样透传给 Backend
        │
        ▼
   Backend GraphQL (:8080)
-  (只信任 X-User-ID，Authorization 已被 Gateway 删除)
+  (收到 X-User-ID + Authorization header)
 ```
 
 **关键设计决策：**
-- **强制过 Gateway（:8090）**：Python Agent 的所有 GraphQL 调用必须发往 `http://gateway:8090`，禁止直连 `backend:8080`。Gateway 从 `Authorization: Bearer <jwt>` 验签、提取 `X-User-ID` 注入后，删除 Authorization header 再转发 Backend。Backend 只信任 `X-User-ID`，不直接接受外部 JWT。
+- **强制过 Gateway（:8090）**：Python Agent 的所有 GraphQL 调用必须发往 `http://gateway:8090`，禁止直连 `backend:8080`。Gateway 验签 JWT，提取 `X-User-ID` 注入，`Authorization` header 保留原样透传给 Backend。
 - **JWT 全程 Header 透传**：浏览器 → BFF（原样透传 Authorization header）→ Python Agent（从 FastAPI request.headers 读取）→ Gateway（每次 Tool 调用都带上 `Authorization: Bearer <token>`）。不走 CopilotKit properties，properties 只传业务上下文（orgName/projectSlug）。
 - **LLM Provider**：通过环境变量切换（DeepSeek / OpenAI / Claude），当前使用 DeepSeek（OpenAI-compatible API）
 - **UI 操控**：通过 CopilotKit Frontend Actions，Agent 可直接设置 FilterPanel 的筛选条件
@@ -207,7 +207,7 @@ useCopilotAction({
 1. 用户输入 → CopilotSidebar
 2. Agent 决策：调用 query_model("users", "maindb", {}, ["id","name","createdAt"], 5)
 3. Python 构建 GraphQL 请求，带 Authorization: Bearer <JWT>
-4. 请求发往 Gateway(:8090) → 验签 → 注入 X-User-ID → 删除 Authorization → 转发 Backend(:8080)
+4. 请求发往 Gateway(:8090) → 验签 → 注入 X-User-ID → Authorization 保留 → 转发 Backend(:8080)
 5. 返回数据列表
 6. Agent 格式化后回复给用户
 ```

@@ -30,7 +30,7 @@ const userTypeEndUser = "end_user"
 
 // Handler is a reverse proxy that forwards requests to the Go backend.
 // After validating the Bearer token, it injects X-User-ID (from JWT claims)
-// and strips the Authorization header before forwarding upstream.
+// and forwards the Authorization header as-is to the upstream backend.
 type Handler struct {
 	backendURL    *url.URL
 	authService   *auth.Service
@@ -59,9 +59,6 @@ func NewHandler(backendURL, internalToken string, authService *auth.Service) (*H
 func (h *Handler) director(req *http.Request) {
 	req.URL.Scheme = h.backendURL.Scheme
 	req.URL.Host = h.backendURL.Host
-
-	// Strip Gateway JWT; backend identifies the caller via X-User-ID only.
-	req.Header.Del("Authorization")
 
 	// Inject the authenticated user ID so the backend can identify the caller.
 	if userID, ok := req.Context().Value(userIDContextKey).(string); ok && userID != "" {
