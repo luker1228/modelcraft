@@ -99,7 +99,7 @@ export const WhereJsonEditor = React.forwardRef<WhereJsonEditorRef, WhereJsonEdi
               isEmpty
                 ? 'text-muted-foreground'
                 : isValid
-                  ? 'text-green-600'
+                  ? 'text-success'
                   : 'text-destructive'
             )}
           >
