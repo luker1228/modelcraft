@@ -65,14 +65,16 @@ class GraphQLClient:
 
         # Use GraphQL variables — avoids JSON/GraphQL syntax incompatibility
         # where JSON must be passed as a variable, not inlined as a literal
-        query = """
-query FindMany($take: Int, $skip: Int, $where: JSON) {
-  findMany(take: $take, skip: $skip, where: $where) {
-    items { %s }
+        # Dynamic where type: T{ModelName}WhereInput per runtime schema contract
+        where_type = f"T{model_name}WhereInput"
+        query = f"""
+query FindMany($take: Int, $skip: Int, $where: {where_type}) {{
+  findMany(take: $take, skip: $skip, where: $where) {{
+    items {{ {fields_str} }}
     totalCount
-  }
-}
-""" % fields_str
+  }}
+}}
+"""
 
         variables: dict[str, Any] = {"take": take, "skip": skip}
         if where is not None:
