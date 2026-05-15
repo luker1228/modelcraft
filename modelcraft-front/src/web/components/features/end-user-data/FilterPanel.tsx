@@ -1,64 +1,121 @@
-import React, { useRef } from 'react'
+'use client'
+
+import { useState, useCallback } from 'react'
+import { cn } from '@/shared/utils'
 import type { FieldDefinition } from '@api-client/cms/public'
-import { WhereJsonEditor, type WhereJsonEditorRef } from './WhereJsonEditor'
-import { FieldSchemaPanel } from './FieldSchemaPanel'
-import { isValidJson, formatJson } from './filter-utils'
+import type { FilterRow } from './filter-utils'
+import { filterRowsToWhereJson } from './filter-utils'
+import { StructuredFilterTab } from './StructuredFilterTab'
+import { useCopilotKitAvailable } from './FilterCopilotActions'
+import { AiQueryTab } from './AiQueryTab'
+
+type TabId = 'structured' | 'ai'
 
 export interface FilterPanelProps {
-  /** Field definitions from the current model's jsonSchema (runtimeFields). */
+  /** Field definitions from the current model's jsonSchema. */
   fields: FieldDefinition[]
-  /** Draft JSON string — changes on every keystroke, does NOT trigger a query. */
-  whereJsonDraft: string
-  /** Called on every keystroke in the editor. */
-  onWhereJsonDraftChange: (json: string) => void
   /**
-   * Called when the user clicks "应用筛选".
-   * The parent is responsible for committing whereJsonDraft → whereJsonCommitted.
-   *
-   * AI note: to programmatically apply a filter, set whereJsonDraft to a valid
-   * where JSON and then call onApply. The parent will commit and trigger the query.
+   * Called when the user applies a structured filter.
+   * Receives the generated where JSON string (ready to JSON.parse and pass to useQuery).
    */
-  onApply: () => void
+  onApply: (whereJson: string) => void
   /**
-   * Called when the user clicks "清空". Bypasses the draft/apply flow entirely
-   * so the parent can atomically clear both draft and committed state.
-   * (Cannot use onApply here because React batches state updates — the draft
-   * cleared by setWhereJsonDraft('') would not be visible to onApply yet.)
+   * Called to clear the active filter and reset the table to full data.
+   * Invoked both by the "清空" button and on Tab switch.
    */
   onClear: () => void
 }
 
-export function FilterPanel({
-  fields,
-  whereJsonDraft,
-  onWhereJsonDraftChange,
-  onApply,
-  onClear,
-}: FilterPanelProps) {
-  const editorRef = useRef<WhereJsonEditorRef>(null)
+/**
+ * Filter panel with two independent tabs:
+ * - "筛选": Structured row-based filter builder (field + operator + value)
+ * - "AI 查询": Natural language query via modelcraft-agent (only rendered when CopilotKit available)
+ *
+ * Tab switching always calls onClear to reset the current query first.
+ */
+export function FilterPanel({ fields, onApply, onClear }: FilterPanelProps) {
+  const hasCopilot = useCopilotKitAvailable()
+  const [activeTab, setActiveTab] = useState<TabId>('structured')
+  const [rows, setRows] = useState<FilterRow[]>([])
 
-  const valid = isValidJson(whereJsonDraft)
+  const handleTabSwitch = useCallback(
+    (tab: TabId) => {
+      if (tab === activeTab) return
+      // Tab switch = full reset per design decision
+      setRows([])
+      onClear()
+      setActiveTab(tab)
+    },
+    [activeTab, onClear]
+  )
 
-  function handleFormat() {
-    onWhereJsonDraftChange(formatJson(whereJsonDraft))
-  }
+  const handleApply = useCallback(() => {
+    // Normalize boolean pseudo-operators before passing to filterRowsToWhereJson:
+    // equals_true → operator: 'equals', value: 'true'
+    // equals_false → operator: 'equals', value: 'false'
+    const normalizedRows = rows.map((row) => {
+      if (row.operator === 'equals_true') return { ...row, operator: 'equals', value: 'true' }
+      if (row.operator === 'equals_false') return { ...row, operator: 'equals', value: 'false' }
+      return row
+    })
+    const where = filterRowsToWhereJson(normalizedRows)
+    if (!where) {
+      onClear()
+      return
+    }
+    onApply(JSON.stringify(where))
+  }, [rows, onApply, onClear])
 
-  function handleFieldClick(snippet: string) {
-    editorRef.current?.insertAtCursor(snippet)
-  }
+  const handleClear = useCallback(() => {
+    setRows([])
+    onClear()
+  }, [onClear])
 
   return (
-    <div className="flex gap-3 border-b border-border bg-muted/30 px-4 py-3">
-      <WhereJsonEditor
-        ref={editorRef}
-        value={whereJsonDraft}
-        onChange={onWhereJsonDraftChange}
-        onFormat={handleFormat}
-        onClear={onClear}
-        onApply={onApply}
-        isValid={valid}
-      />
-      <FieldSchemaPanel fields={fields} onFieldClick={handleFieldClick} />
+    <div className="border-b border-border bg-background">
+      {/* Tab bar */}
+      <div className="flex border-b border-border bg-muted/40">
+        <button
+          type="button"
+          onClick={() => handleTabSwitch('structured')}
+          className={cn(
+            'px-4 py-2 text-xs font-medium transition-colors',
+            activeTab === 'structured'
+              ? 'border-b-2 border-primary bg-background text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          )}
+        >
+          🔧 筛选
+        </button>
+        {hasCopilot && (
+          <button
+            type="button"
+            onClick={() => handleTabSwitch('ai')}
+            className={cn(
+              'px-4 py-2 text-xs font-medium transition-colors',
+              activeTab === 'ai'
+                ? 'border-b-2 border-primary bg-background text-foreground'
+                : 'text-muted-foreground hover:text-foreground'
+            )}
+          >
+            ✨ AI 查询
+          </button>
+        )}
+      </div>
+
+      {/* Tab content */}
+      {activeTab === 'structured' && (
+        <StructuredFilterTab
+          fields={fields}
+          rows={rows}
+          onRowsChange={setRows}
+          onApply={handleApply}
+          onClear={handleClear}
+        />
+      )}
+      {activeTab === 'ai' && hasCopilot && (
+        <AiQueryTab fields={fields} />
+      )}
     </div>
   )
 }
