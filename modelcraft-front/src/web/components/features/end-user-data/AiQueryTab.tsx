@@ -1,13 +1,12 @@
 'use client'
 
 import { useState } from 'react'
-import { useCopilotReadable, useCopilotChat } from '@copilotkit/react-core'
+import { useCopilotReadable } from '@copilotkit/react-core'
 import { Button } from '@web/components/ui/button'
 import type { FieldDefinition } from '@api-client/cms/public'
 
 interface AiQueryTabProps {
   fields: FieldDefinition[]
-  /** Called after AI applies a filter via set_filter action */
   onFilterApplied?: () => void
 }
 
@@ -17,6 +16,15 @@ const QUICK_PROMPTS = [
   '状态为激活',
 ]
 
+/**
+ * AI 自然语言查询 Tab。
+ *
+ * 直接 POST 到 /api/copilotkit（BFF 代理），不依赖 useCopilotChat。
+ * 避免 useCopilotChat 内部 useAgent('default') 在 agent 服务不可达时崩溃。
+ *
+ * agent 会调用 nl2filter 生成 where JSON，然后通过 set_filter frontend action
+ * （已在 FilterCopilotActions 注册）自动应用到表格。
+ */
 export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQueryTabProps) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
@@ -28,30 +36,46 @@ export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQuer
     .map((f) => `${f.name}(${f.storageHint ?? f.schemaType ?? 'STRING'})`)
     .join(', ')
 
+  // Inject field schema into agent context for useCopilotReadable consumers
   useCopilotReadable({
     description: '当前模型的字段列表（name:type 格式），供 nl2filter 生成 where 条件使用',
     value: fieldSchemaText,
   })
-
-  const { append } = useCopilotChat() as {
-    append: (msg: { role: string; content: string }) => Promise<void>
-  }
 
   async function handleGenerate(prompt: string) {
     if (!prompt.trim() || isLoading) return
     setLastPrompt(prompt)
     setErrorMsg('')
     setIsLoading(true)
+
     try {
-      await append({
-        role: 'user',
-        content: `请用 set_filter action 为以下条件生成筛选并应用：${prompt}`,
+      const res = await fetch('/api/copilotkit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          messages: [
+            {
+              role: 'user',
+              content: `请用 set_filter action 为以下条件生成筛选并应用：${prompt}。当前模型字段：${fieldSchemaText}`,
+            },
+          ],
+          agentName: 'modelcraft_agent',
+          state: {},
+        }),
       })
+
+      if (!res.ok) {
+        const text = await res.text().catch(() => '')
+        throw new Error(`${res.status}: ${text || res.statusText}`)
+      }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err)
-      setErrorMsg(msg.includes('not found') || msg.includes('unreachable')
-        ? 'AI 服务未启动，请先运行 modelcraft-agent'
-        : `请求失败：${msg}`)
+      if (msg.includes('502') || msg.includes('unreachable') || msg.includes('fetch')) {
+        setErrorMsg('AI 服务未启动，请先运行 modelcraft-agent')
+      } else {
+        setErrorMsg(`请求失败：${msg}`)
+      }
     } finally {
       setIsLoading(false)
       setInput('')
