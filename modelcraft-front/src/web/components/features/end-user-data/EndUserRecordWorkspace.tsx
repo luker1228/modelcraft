@@ -45,7 +45,7 @@ import {
 } from '@web/components/ui/sheet'
 import {
 
-  List,
+
   Plus,
   Edit,
   Loader2,
@@ -55,6 +55,8 @@ import {
 import { cn } from '@/shared/utils'
 import { FilterBar } from './FilterPanel'
 import { getFilterCount } from './filter-utils'
+import { SortPopover, buildOrderBy } from './SortPopover'
+import type { SortState } from './SortPopover'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
 import { useCopilotKitAvailable, FilterCopilotActions } from './FilterCopilotActions'
@@ -203,8 +205,14 @@ export default function EndUserRecordWorkspace({
     setWhereJsonCommitted(null)
   }
 
-
-  // --- End filter state ---
+  // --- Sort state ---
+  const [sortState, setSortState] = useState<SortState>({
+    field: '',
+    direction: 'asc',
+    stableSort: true,
+  })
+  const orderByInput = useMemo(() => buildOrderBy(sortState), [sortState])
+  // --- End filter/sort state ---
 
   // ----- CopilotKit Frontend Actions -----
   // Guard: only mount the actions component when CopilotKit context is available.
@@ -387,6 +395,7 @@ export default function EndUserRecordWorkspace({
       take: 50,
       skip: 0,
       where: whereInput,
+      orderBy: orderByInput,
     },
   })
 
@@ -608,14 +617,11 @@ export default function EndUserRecordWorkspace({
         <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <List className="mr-1.5 size-3.5" />
-                <span>排序</span>
-              </Button>
+              <SortPopover
+                fields={runtimeFields.filter((f): f is FieldDefinition => typeof f !== 'string')}
+                sort={sortState}
+                onSortChange={setSortState}
+              />
             </div>
 
             <div className="h-5 w-px bg-border" />
