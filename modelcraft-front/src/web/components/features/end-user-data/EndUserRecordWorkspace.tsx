@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useCallback, useEffect, useMemo, useContext } from 'react'
+import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
 import {
@@ -57,7 +57,7 @@ import { FilterPanel } from './FilterPanel'
 import { getFilterCount } from './filter-utils'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
-import { CopilotContext, FilterCopilotActions } from './FilterCopilotActions'
+import { useCopilotKitAvailable, FilterCopilotActions } from './FilterCopilotActions'
 
 
 export interface EndUserRecordWorkspaceProps {
@@ -183,9 +183,8 @@ export default function EndUserRecordWorkspace({
 
   // --- Filter state ---
   const [filterOpen, setFilterOpen] = useState(false)
-  // Draft: changes on every keystroke, does NOT trigger a query
-  const [whereJsonDraft, setWhereJsonDraft] = useState<string>('')
-  // Committed: only updated on "应用筛选", drives the actual GraphQL where clause
+  // Only committed where JSON drives the actual GraphQL query.
+  // Draft state is now owned by FilterPanel internally (StructuredFilterTab rows).
   const [whereJsonCommitted, setWhereJsonCommitted] = useState<string | null>(null)
 
   const whereInput = useMemo(() => {
@@ -197,16 +196,11 @@ export default function EndUserRecordWorkspace({
     }
   }, [whereJsonCommitted])
 
-  function handleApplyFilter() {
-    const trimmed = whereJsonDraft.trim()
-    setWhereJsonCommitted(trimmed || null)
+  function handleApplyFilter(whereJson: string) {
+    setWhereJsonCommitted(whereJson)
   }
 
   function handleClearFilter() {
-    // Atomically clear both draft and committed state so the filter is removed immediately.
-    // We cannot call setWhereJsonDraft('') then handleApplyFilter() because React would
-    // batch the updates and handleApplyFilter would still see the old draft value.
-    setWhereJsonDraft('')
     setWhereJsonCommitted(null)
   }
 
@@ -218,7 +212,11 @@ export default function EndUserRecordWorkspace({
   // Guard: only mount the actions component when CopilotKit context is available.
   // EndUserRecordWorkspace can render outside CopilotWrapper (e.g. /end-user/ routes),
   // and useCopilotAction throws when called outside CopilotKit context.
-  const hasCopilot = useContext(CopilotContext) !== null
+  //
+  // NOTE: useContext(CopilotContext) !== null is NOT a reliable guard because both
+  // @copilotkit/react-core's CopilotContext and @copilotkitnext/react's CopilotKitContext
+  // have non-null default values. We must inspect copilotkit instance directly.
+  const hasCopilot = useCopilotKitAvailable()
 
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
     GET_MODEL_RECORD_WORKSPACE_END_USER,
@@ -673,8 +671,6 @@ export default function EndUserRecordWorkspace({
         {filterOpen && (
           <FilterPanel
             fields={runtimeFields}
-            whereJsonDraft={whereJsonDraft}
-            onWhereJsonDraftChange={setWhereJsonDraft}
             onApply={handleApplyFilter}
             onClear={handleClearFilter}
           />
@@ -817,7 +813,7 @@ export default function EndUserRecordWorkspace({
       {/* Mount CopilotKit actions only when context exists — avoids null.subscribe crash */}
       {hasCopilot && (
         <FilterCopilotActions
-          onSetFilter={(json) => { setWhereJsonDraft(json); setWhereJsonCommitted(json) }}
+          onSetFilter={(json) => { setWhereJsonCommitted(json) }}
           onClearFilter={handleClearFilter}
         />
       )}
