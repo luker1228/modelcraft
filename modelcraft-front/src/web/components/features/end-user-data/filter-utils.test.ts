@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { isValidJson, formatJson, getFilterCount } from './filter-utils'
+import { isValidJson, formatJson, getFilterCount, filterRowsToWhereJson } from './filter-utils'
+import type { FilterRow } from './filter-utils'
 
 describe('isValidJson', () => {
   it('returns true for valid JSON object', () => {
@@ -49,5 +50,86 @@ describe('getFilterCount', () => {
   })
   it('returns null for empty OR array', () => {
     expect(getFilterCount('{"OR":[]}')).toBeNull()
+  })
+})
+
+describe('filterRowsToWhereJson', () => {
+  it('returns null for empty rows', () => {
+    expect(filterRowsToWhereJson([])).toBeNull()
+  })
+
+  it('returns null when all rows have empty value', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'name', operator: 'contains', value: '' }]
+    expect(filterRowsToWhereJson(rows)).toBeNull()
+  })
+
+  it('returns null when field is not selected', () => {
+    const rows: FilterRow[] = [{ id: '1', field: '', operator: 'contains', value: '张' }]
+    expect(filterRowsToWhereJson(rows)).toBeNull()
+  })
+
+  it('wraps single string condition with AND array', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'name', operator: 'contains', value: '张' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ name: { contains: '张' } }],
+    })
+  })
+
+  it('wraps multiple conditions in AND array', () => {
+    const rows: FilterRow[] = [
+      { id: '1', field: 'name', operator: 'contains', value: '张' },
+      { id: '2', field: 'age', operator: 'gt', value: '18' },
+    ]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [
+        { name: { contains: '张' } },
+        { age: { gt: 18 } },
+      ],
+    })
+  })
+
+  it('coerces number string to number for numeric operators', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'score', operator: 'gte', value: '90' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ score: { gte: 90 } }],
+    })
+  })
+
+  it('keeps string value for equals on text field', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'status', operator: 'equals', value: 'active', fieldType: 'STRING' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ status: { equals: 'active' } }],
+    })
+  })
+
+  it('coerces to number for equals on number field', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'age', operator: 'equals', value: '25', fieldType: 'NUMBER' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ age: { equals: 25 } }],
+    })
+  })
+
+  it('skips rows with empty value and includes valid ones', () => {
+    const rows: FilterRow[] = [
+      { id: '1', field: 'name', operator: 'contains', value: '张' },
+      { id: '2', field: 'age', operator: 'gt', value: '' },
+    ]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ name: { contains: '张' } }],
+    })
+  })
+
+  it('handles boolean equals: is true', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'active', operator: 'equals', value: 'true', fieldType: 'BOOLEAN' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ active: { equals: true } }],
+    })
+  })
+
+  it('handles boolean equals: is false', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'active', operator: 'equals', value: 'false', fieldType: 'BOOLEAN' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ active: { equals: false } }],
+    })
   })
 })

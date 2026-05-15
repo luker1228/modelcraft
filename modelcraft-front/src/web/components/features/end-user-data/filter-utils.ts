@@ -47,3 +47,66 @@ export function getFilterCount(whereJson: string | null): number | '•' | null 
     return null
   }
 }
+
+/** 数值操作符集合——这些操作符的值需要 coerce 为 number */
+const NUMERIC_OPERATORS = new Set(['gt', 'gte', 'lt', 'lte'])
+
+/**
+ * 单条筛选行的数据结构。
+ * fieldType 仅在 equals/not 时影响值的类型推断；
+ * gt/gte/lt/lte 始终 coerce 为 number。
+ */
+export interface FilterRow {
+  id: string
+  field: string
+  operator: string
+  value: string
+  /** 字段的存储类型，用于 equals/not 时决定值类型。
+   *  来源：FieldDefinition.storageHint?.toUpperCase() 或 schemaType?.toUpperCase()
+   *  可选，缺失时按字符串处理。
+   */
+  fieldType?: string
+}
+
+/**
+ * 将结构化条件行数组转为后端 where JSON 对象。
+ *
+ * 规则：
+ * - 跳过 field 为空或 value 为空的行
+ * - 所有有效行用 AND 数组包裹
+ * - 只有 1 行有效时仍然包在 AND 数组中（始终统一格式）
+ * - 无有效行返回 null
+ * - gt/gte/lt/lte 操作符：value 强制转为 number
+ * - equals/not：fieldType 为 NUMBER/INT/FLOAT/DECIMAL → 转 number；
+ *               fieldType 为 BOOLEAN → "true"/"false" 转 boolean；
+ *               其他 → 保持 string
+ */
+export function filterRowsToWhereJson(
+  rows: FilterRow[]
+): Record<string, unknown> | null {
+  const conditions: Record<string, unknown>[] = []
+
+  for (const row of rows) {
+    if (!row.field.trim() || !row.value.trim()) continue
+
+    let coercedValue: unknown = row.value
+
+    if (NUMERIC_OPERATORS.has(row.operator)) {
+      const n = Number(row.value)
+      coercedValue = Number.isNaN(n) ? row.value : n
+    } else if (row.operator === 'equals' || row.operator === 'not') {
+      const ft = row.fieldType?.toUpperCase() ?? ''
+      if (['NUMBER', 'INT', 'INTEGER', 'FLOAT', 'DECIMAL'].includes(ft)) {
+        const n = Number(row.value)
+        coercedValue = Number.isNaN(n) ? row.value : n
+      } else if (ft === 'BOOLEAN') {
+        coercedValue = row.value === 'true'
+      }
+    }
+
+    conditions.push({ [row.field]: { [row.operator]: coercedValue } })
+  }
+
+  if (conditions.length === 0) return null
+  return { AND: conditions }
+}
