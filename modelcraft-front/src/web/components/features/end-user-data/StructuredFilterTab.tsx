@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useRef } from 'react'
+import { useCallback } from 'react'
 import { X, Plus } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { cn } from '@/shared/utils'
@@ -83,90 +83,76 @@ function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterC
   const isBool = operators === BOOLEAN_OPERATORS
   const currentOp = operators.find((op) => op.value === row.operator) ?? operators[0]
 
-  // Auto-size the value input: measure with a hidden span
-  const valueSpanRef = useRef<HTMLSpanElement>(null)
-
   return (
     <div
       className={cn(
-        'group flex h-[26px] shrink-0 items-stretch rounded-sm border bg-muted',
+        'group flex h-[26px] shrink-0 items-stretch overflow-hidden rounded-sm border bg-muted text-xs',
         row.value.trim() || isBool ? 'border-border' : 'border-dashed border-border/60'
       )}
     >
-      {/* Field selector — styled as plain text */}
-      <div className="relative inline-flex shrink-0 items-center">
-        <span className="pointer-events-none flex h-full select-none items-center pl-2 pr-1 text-xs text-muted-foreground">
-          {row.field || '字段'}
-        </span>
+      {/* Part 1: Field selector */}
+      <div className="relative flex shrink-0 items-center">
         <select
           value={row.field}
           onChange={(e) => onUpdate(row.id, { field: e.target.value })}
-          className="absolute inset-0 size-full cursor-pointer appearance-none bg-transparent opacity-0"
-          title="选择字段"
+          className="h-full cursor-pointer appearance-none bg-transparent py-0 pl-2 pr-5 text-xs text-muted-foreground hover:bg-muted-foreground/10 hover:text-foreground focus:outline-none"
         >
           {displayFields.map((f) => (
-            <option key={f.name} value={f.name}>
-              {f.name}
-            </option>
+            <option key={f.name} value={f.name}>{f.name}</option>
           ))}
         </select>
+        {/* dropdown chevron */}
+        <svg className="pointer-events-none absolute right-1 text-muted-foreground/50" width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 10.5L3 5.5h10z" />
+        </svg>
       </div>
 
-      {/* Operator selector — shows label */}
-      <div className="relative inline-block shrink-0">
-        {/* Invisible sizer so the cell is exactly as wide as the label */}
-        <span className="invisible block shrink-0 px-1 text-xs">
-          {currentOp?.label ?? 'equals'}
-        </span>
+      {/* Divider */}
+      <div className="w-px self-stretch bg-border/60" />
+
+      {/* Part 2: Operator selector */}
+      <div className="relative flex shrink-0 items-center">
         <select
           value={row.operator}
           onChange={(e) => onUpdate(row.id, { operator: e.target.value })}
-          className="absolute inset-0 size-full cursor-pointer appearance-none bg-transparent px-1 text-center text-xs text-foreground opacity-0"
-          title="选择操作符"
+          className="h-full cursor-pointer appearance-none bg-transparent py-0 pl-2 pr-5 font-mono text-xs text-foreground hover:bg-muted-foreground/10 focus:outline-none"
         >
           {operators.map((op) => (
-            <option key={op.value} value={op.value}>
-              {op.label}
-            </option>
+            <option key={op.value} value={op.value}>{op.label}</option>
           ))}
         </select>
-        {/* Visible label */}
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-xs text-foreground">
-          {currentOp?.label ?? 'equals'}
-        </span>
+        {/* dropdown chevron */}
+        <svg className="pointer-events-none absolute right-1 text-muted-foreground/50" width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 10.5L3 5.5h10z" />
+        </svg>
       </div>
 
-      {/* Value input — inline, auto-width */}
-      {isBool ? null : (
-        <div className="relative inline-block max-w-[180px]">
-          {/* Hidden span to measure value width */}
-          <span
-            ref={valueSpanRef}
-            className="invisible block whitespace-pre px-1 text-xs"
-          >
-            {row.value || ' '}
-          </span>
-          <input
-            type="text"
-            value={row.value}
-            onChange={(e) => onUpdate(row.id, { value: e.target.value })}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') onApply()
-            }}
-            placeholder="值"
-            className="absolute inset-0 size-full bg-transparent px-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-          />
-        </div>
+      {/* Divider */}
+      {!isBool && <div className="w-px self-stretch bg-border/60" />}
+
+      {/* Part 3: Value input */}
+      {!isBool && (
+        <input
+          type="text"
+          value={row.value}
+          onChange={(e) => onUpdate(row.id, { value: e.target.value })}
+          onKeyDown={(e) => { if (e.key === 'Enter') onApply() }}
+          placeholder="值"
+          className="w-24 bg-transparent px-2 py-0 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+        />
       )}
 
-      {/* Remove button — visible on hover */}
+      {/* Divider before remove */}
+      <div className="w-px self-stretch bg-border/60 opacity-0 transition-opacity group-hover:opacity-100" />
+
+      {/* Remove button */}
       <button
         type="button"
         onClick={() => onRemove(row.id)}
         aria-label={`删除 ${row.field} 筛选条件`}
-        className="flex h-full items-center justify-center px-1 text-muted-foreground/40 transition-colors hover:text-foreground group-hover:text-muted-foreground"
+        className="flex w-0 shrink-0 items-center justify-center overflow-hidden text-muted-foreground transition-all hover:text-foreground group-hover:w-5"
       >
-        <X size={12} strokeWidth={1.5} />
+        <X size={11} strokeWidth={1.5} />
       </button>
     </div>
   )
