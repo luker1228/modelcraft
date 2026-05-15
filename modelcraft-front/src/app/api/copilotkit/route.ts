@@ -25,7 +25,7 @@ export const maxDuration = 60
 const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? 'http://localhost:8000'
 
 async function handler(req: NextRequest): Promise<NextResponse> {
-  const upstreamUrl = `${AGENT_SERVICE_URL}/copilotkit`
+  const upstreamUrl = `${AGENT_SERVICE_URL}/copilotkit/`
 
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')
