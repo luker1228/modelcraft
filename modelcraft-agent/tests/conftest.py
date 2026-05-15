@@ -5,7 +5,7 @@ from typing import Generator
 import pytest
 import structlog
 from structlog.testing import LogCapture
-from structlog.contextvars import merge_contextvars
+from structlog.contextvars import clear_contextvars, merge_contextvars
 
 
 @contextmanager
@@ -25,6 +25,7 @@ def capture_logs_with_context() -> Generator[list, None, None]:
 
 @pytest.fixture(autouse=True)
 def _reset_structlog():
-    """Reset structlog to default state between tests to prevent state leakage."""
+    """Reset structlog to default state and clear contextvars between tests to prevent state leakage."""
     yield
+    clear_contextvars()
     structlog.reset_defaults()

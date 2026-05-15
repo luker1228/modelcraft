@@ -93,3 +93,7 @@ async def test_find_many_logs_error_on_http_failure():
 
     error_log = next((l for l in cap if l["event"] == "error"), None)
     assert error_log is not None, "error event not logged on HTTP 500"
+
+    end_log = next((l for l in cap if l["event"] == "graphql.call.end"), None)
+    assert end_log is not None, "graphql.call.end not emitted on error path"
+    assert end_log["has_errors"] is True

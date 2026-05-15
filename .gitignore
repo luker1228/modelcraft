@@ -20,3 +20,7 @@ modelcraft-front/.next/
 # Graphify cache
 graphify-out/cache/
 .superpowers/
+
+# Python cache
+modelcraft-agent/__pycache__/
+modelcraft-agent/.env

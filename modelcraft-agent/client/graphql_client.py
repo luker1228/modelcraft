@@ -92,6 +92,8 @@ query FindMany($take: Int, $skip: Int, $where: {where_type}) {{
         log = get_logger()
         log.info("graphql.call.start", url=url, operation="findMany")
         start = time.perf_counter()
+        response = None
+        result = None
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
                 response = await client.post(url, headers=headers, json=payload)
@@ -99,7 +101,15 @@ query FindMany($take: Int, $skip: Int, $where: {where_type}) {{
                 result = response.json()
         except Exception:
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
+            status_code = response.status_code if response is not None else 0
             log.exception("error", url=url, operation="findMany", duration_ms=duration_ms)
+            log.info(
+                "graphql.call.end",
+                url=url,
+                duration_ms=duration_ms,
+                has_errors=True,
+                status_code=status_code,
+            )
             raise
 
         duration_ms = round((time.perf_counter() - start) * 1000, 2)
