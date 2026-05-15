@@ -17,24 +17,12 @@ const QUICK_PROMPTS = [
   '状态为激活',
 ]
 
-/**
- * AI 自然语言查询 Tab。
- *
- * 挂载时通过 useCopilotReadable 把当前模型字段列表注入 agent context，
- * 使 modelcraft-agent 的 nl2filter tool 能知道可用字段。
- *
- * 用户点"生成筛选"后发送消息给 agent；agent 调用 nl2filter 生成 JSON，
- * 然后通过 set_filter frontend action（已在 FilterCopilotActions 注册）
- * 自动应用到表格。
- *
- * 注意：此组件必须在 CopilotKitProvider 树内渲染（由 hasCopilot guard 保证）。
- */
 export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQueryTabProps) {
   const [input, setInput] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [lastPrompt, setLastPrompt] = useState('')
+  const [errorMsg, setErrorMsg] = useState('')
 
-  // Inject field schema into agent context so nl2filter knows available fields
   const fieldSchemaText = fields
     .filter((f) => !f.name.startsWith('_'))
     .map((f) => `${f.name}(${f.storageHint ?? f.schemaType ?? 'STRING'})`)
@@ -52,12 +40,18 @@ export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQuer
   async function handleGenerate(prompt: string) {
     if (!prompt.trim() || isLoading) return
     setLastPrompt(prompt)
+    setErrorMsg('')
     setIsLoading(true)
     try {
       await append({
         role: 'user',
         content: `请用 set_filter action 为以下条件生成筛选并应用：${prompt}`,
       })
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setErrorMsg(msg.includes('not found') || msg.includes('unreachable')
+        ? 'AI 服务未启动，请先运行 modelcraft-agent'
+        : `请求失败：${msg}`)
     } finally {
       setIsLoading(false)
       setInput('')
@@ -71,7 +65,6 @@ export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQuer
           用自然语言描述筛选条件，AI 自动生成并应用：
         </p>
 
-        {/* Input row */}
         <div className="flex gap-2">
           <input
             type="text"
@@ -94,14 +87,16 @@ export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQuer
           </Button>
         </div>
 
-        {/* Loading / last prompt feedback */}
         {isLoading && (
           <p className="text-xs text-muted-foreground">
             ✨ 正在生成「{lastPrompt}」的筛选条件…
           </p>
         )}
 
-        {/* Quick prompts */}
+        {errorMsg && (
+          <p className="text-xs text-destructive">{errorMsg}</p>
+        )}
+
         <div className="flex flex-wrap items-center gap-1.5">
           <span className="text-[10px] text-muted-foreground">快捷：</span>
           {QUICK_PROMPTS.map((p) => (

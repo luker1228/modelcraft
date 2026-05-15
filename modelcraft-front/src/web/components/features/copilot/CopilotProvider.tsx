@@ -166,7 +166,11 @@ export const EndUserCopilotWrapper = memo(({
       <Suspense fallback={children}>
         <CopilotKit
           runtimeUrl="/api/copilotkit"
-          agent="modelcraft_agent"
+          // NOTE: Do NOT pass agent= here.
+          // Binding a specific agent causes useCopilotKit to do a runtime sync on mount
+          // and throw "Agent not found" if the Python agent service is offline.
+          // Without agent=, useCopilotChat().append still works when the service is up,
+          // and fails gracefully (promise rejection) when it's down.
           properties={copilotContext}
         >
           {children}
