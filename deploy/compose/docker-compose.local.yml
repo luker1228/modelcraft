@@ -52,6 +52,29 @@ services:
       retries: 3
       start_period: 15s
 
+  modelcraft-agent:
+    build:
+      context: ../../modelcraft-agent
+      dockerfile: Dockerfile
+    image: modelcraft-agent:local
+    container_name: modelcraft-agent
+    env_file:
+      - ../env/agent.local.env
+    ports:
+      - "8000:8000"
+    depends_on:
+      gateway:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
   # frontend:  # 暂时屏蔽，前端调试中
   #   build:
   #     context: ../../modelcraft-front
