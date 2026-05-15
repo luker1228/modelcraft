@@ -6,12 +6,14 @@ Gateway validates JWT, injects X-User-ID, preserves Authorization header,
 then forwards to Backend.
 """
 import re
+import time
 from typing import Any
 from urllib.parse import quote
 
 import httpx
 
 import config
+from logging_setup import get_logger
 
 _FIELD_NAME_RE = re.compile(r'^[_A-Za-z][_0-9A-Za-z]*$')
 
@@ -87,7 +89,26 @@ query FindMany($take: Int, $skip: Int, $where: {where_type}) {{
         }
         payload = {"query": query, "variables": variables}
 
-        async with httpx.AsyncClient(timeout=30.0) as client:
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            return response.json()
+        log = get_logger()
+        log.info("graphql.call.start", url=url, operation="findMany")
+        start = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(timeout=30.0) as client:
+                response = await client.post(url, headers=headers, json=payload)
+                response.raise_for_status()
+                result = response.json()
+        except Exception:
+            duration_ms = round((time.perf_counter() - start) * 1000, 2)
+            log.exception("error", url=url, operation="findMany", duration_ms=duration_ms)
+            raise
+
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        has_errors = bool(result.get("errors"))
+        log.info(
+            "graphql.call.end",
+            url=url,
+            duration_ms=duration_ms,
+            has_errors=has_errors,
+            status_code=response.status_code,
+        )
+        return result
