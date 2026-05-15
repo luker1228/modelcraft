@@ -14,30 +14,28 @@ import type { FieldDefinition } from '@api-client/cms/public'
 interface OperatorOption {
   label: string
   value: string
-  /** Short symbol shown inside the chip */
-  symbol: string
 }
 
 const STRING_OPERATORS: OperatorOption[] = [
-  { label: '包含', value: 'contains', symbol: '~' },
-  { label: '等于', value: 'equals', symbol: '=' },
-  { label: '不等于', value: 'not', symbol: '≠' },
-  { label: '开头是', value: 'startsWith', symbol: '^' },
-  { label: '结尾是', value: 'endsWith', symbol: '$' },
+  { label: 'contains', value: 'contains' },
+  { label: 'equals', value: 'equals' },
+  { label: 'not', value: 'not' },
+  { label: 'startsWith', value: 'startsWith' },
+  { label: 'endsWith', value: 'endsWith' },
 ]
 
 const NUMBER_OPERATORS: OperatorOption[] = [
-  { label: '等于', value: 'equals', symbol: '=' },
-  { label: '不等于', value: 'not', symbol: '≠' },
-  { label: '大于', value: 'gt', symbol: '>' },
-  { label: '大于等于', value: 'gte', symbol: '≥' },
-  { label: '小于', value: 'lt', symbol: '<' },
-  { label: '小于等于', value: 'lte', symbol: '≤' },
+  { label: 'equals', value: 'equals' },
+  { label: 'not', value: 'not' },
+  { label: 'gt', value: 'gt' },
+  { label: 'gte', value: 'gte' },
+  { label: 'lt', value: 'lt' },
+  { label: 'lte', value: 'lte' },
 ]
 
 const BOOLEAN_OPERATORS: OperatorOption[] = [
-  { label: '是 true', value: 'equals_true', symbol: 'is' },
-  { label: '是 false', value: 'equals_false', symbol: '!is' },
+  { label: 'is true', value: 'equals_true' },
+  { label: 'is false', value: 'equals_false' },
 ]
 
 function getOperatorsForField(field: FieldDefinition | undefined): OperatorOption[] {
@@ -114,11 +112,11 @@ function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterC
         </select>
       </div>
 
-      {/* Operator selector — shows symbol */}
+      {/* Operator selector — shows label */}
       <div className="relative inline-block shrink-0">
-        {/* Invisible sizer so the cell is exactly as wide as the symbol */}
+        {/* Invisible sizer so the cell is exactly as wide as the label */}
         <span className="invisible block shrink-0 px-1 text-xs">
-          {currentOp?.symbol ?? '='}
+          {currentOp?.label ?? 'equals'}
         </span>
         <select
           value={row.operator}
@@ -128,13 +126,13 @@ function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterC
         >
           {operators.map((op) => (
             <option key={op.value} value={op.value}>
-              {op.symbol} ({op.label})
+              {op.label}
             </option>
           ))}
         </select>
-        {/* Visible symbol */}
+        {/* Visible label */}
         <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-xs text-foreground">
-          {currentOp?.symbol ?? '='}
+          {currentOp?.label ?? 'equals'}
         </span>
       </div>
 
