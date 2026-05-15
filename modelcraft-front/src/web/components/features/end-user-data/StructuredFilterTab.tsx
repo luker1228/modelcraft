@@ -142,7 +142,12 @@ export function StructuredFilterTab({
     [rows, onRowsChange, displayFields]
   )
 
-  const hasAnyValue = rows.some((r) => r.field && r.value.trim())
+  const hasAnyValue = rows.some((r) => {
+    if (!r.field) return false
+    const fieldDef = displayFields.find((f) => f.name === r.field)
+    const isBool = getOperatorsForField(fieldDef) === BOOLEAN_OPERATORS
+    return isBool || r.value.trim() !== ''
+  })
 
   return (
     <div className="flex flex-col">
