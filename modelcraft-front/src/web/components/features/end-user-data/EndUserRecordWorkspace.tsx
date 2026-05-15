@@ -44,7 +44,7 @@ import {
   SheetTitle,
 } from '@web/components/ui/sheet'
 import {
-  Filter,
+
   List,
   Plus,
   Edit,
@@ -53,7 +53,7 @@ import {
   RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
-import { FilterPanel } from './FilterPanel'
+import { FilterBar } from './FilterPanel'
 import { getFilterCount } from './filter-utils'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
@@ -182,9 +182,8 @@ export default function EndUserRecordWorkspace({
   const [searchKeyword, setSearchKeyword] = useState('')
 
   // --- Filter state ---
-  const [filterOpen, setFilterOpen] = useState(false)
+  // Draft state is now owned by FilterBar (StructuredFilterTab rows).
   // Only committed where JSON drives the actual GraphQL query.
-  // Draft state is now owned by FilterPanel internally (StructuredFilterTab rows).
   const [whereJsonCommitted, setWhereJsonCommitted] = useState<string | null>(null)
 
   const whereInput = useMemo(() => {
@@ -204,8 +203,7 @@ export default function EndUserRecordWorkspace({
     setWhereJsonCommitted(null)
   }
 
-  const filterCount = getFilterCount(whereJsonCommitted)
-  const hasActiveFilter = filterCount !== null
+
   // --- End filter state ---
 
   // ----- CopilotKit Frontend Actions -----
@@ -584,47 +582,32 @@ export default function EndUserRecordWorkspace({
           </div>
         )}
 
-        {/* 顶部搜索栏 */}
-        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-          <div className="flex w-full max-w-xl items-center gap-2">
-            <Search className="size-4 text-muted-foreground" />
-            <Input
-              value={searchKeyword}
-              onChange={(event) => setSearchKeyword(event.target.value)}
-              placeholder={`搜索 ${model.title || model.name} 的记录...`}
-              className="h-8"
-            />
+        {/* Filter bar — chip-style inline filters + search + count (Supabase style) */}
+        <FilterBar
+          fields={runtimeFields}
+          onApply={handleApplyFilter}
+          onClear={handleClearFilter}
+        >
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              <Search className="size-3.5 shrink-0 text-muted-foreground" />
+              <Input
+                value={searchKeyword}
+                onChange={(event) => setSearchKeyword(event.target.value)}
+                placeholder={`搜索 ${model.title || model.name}...`}
+                className="h-[26px] w-40 text-xs"
+              />
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {filteredContentList.length} / {contentList.length} 条
+            </span>
           </div>
-          <div className="text-xs text-muted-foreground">
-            {filteredContentList.length} / {contentList.length} 条
-          </div>
-        </div>
+        </FilterBar>
 
         {/* 工具栏 */}
         <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setFilterOpen((open) => !open)}
-                className={cn(
-                  'h-[26px] px-2.5 text-xs font-normal',
-                  filterOpen
-                    ? 'border border-primary text-primary ring-2 ring-primary/20'
-                    : hasActiveFilter
-                      ? 'border border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:bg-muted hover:text-foreground'
-                )}
-              >
-                <Filter className="mr-1.5 size-3.5" />
-                <span>筛选</span>
-                {filterCount !== null && (
-                  <span className="ml-1.5 flex size-4 items-center justify-center rounded-sm bg-primary text-[10px] font-medium text-primary-foreground">
-                    {filterCount}
-                  </span>
-                )}
-              </Button>
               <Button
                 variant="ghost"
                 size="sm"
@@ -666,15 +649,6 @@ export default function EndUserRecordWorkspace({
             </Button>
           </div>
         </div>
-
-        {/* 筛选面板（工具栏下方内联展开） */}
-        {filterOpen && (
-          <FilterPanel
-            fields={runtimeFields}
-            onApply={handleApplyFilter}
-            onClear={handleClearFilter}
-          />
-        )}
 
         {/* 数据表格 */}
         <ModelRecordTable

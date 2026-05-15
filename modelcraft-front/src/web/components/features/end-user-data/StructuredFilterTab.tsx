@@ -182,6 +182,12 @@ export interface StructuredFilterTabProps {
   onRowsChange: (rows: FilterRow[]) => void
   onApply: () => void
   onClear: () => void
+  /**
+   * When true, renders chips inline without a footer bar (no Apply/Clear buttons).
+   * Filter is applied immediately on Enter or chip removal.
+   * Used when embedded directly in the search bar row.
+   */
+  inline?: boolean
 }
 
 let _idCounter = 0
@@ -199,6 +205,7 @@ export function StructuredFilterTab({
   onRowsChange,
   onApply,
   onClear,
+  inline = false,
 }: StructuredFilterTabProps) {
   const displayFields = fields.filter((f) => !f.name.startsWith('_'))
 
@@ -252,16 +259,23 @@ export function StructuredFilterTab({
   })
 
   return (
-    <div className="flex flex-col">
+    <div className={cn('flex', inline ? 'flex-wrap items-center gap-1.5' : 'flex-col')}>
       {/* Chip bar */}
-      <div className="flex flex-wrap items-center gap-1.5 px-3 py-2.5">
+      <div className={cn(
+        'flex flex-wrap items-center gap-1.5',
+        !inline && 'px-3 py-2.5'
+      )}>
         {rows.map((row) => (
           <FilterChip
             key={row.id}
             row={row}
             displayFields={displayFields}
             onUpdate={updateRow}
-            onRemove={removeRow}
+            onRemove={(id) => {
+              removeRow(id)
+              // In inline mode, removing a chip immediately re-applies (or clears)
+              if (inline) onApply()
+            }}
             onApply={onApply}
           />
         ))}
@@ -282,25 +296,28 @@ export function StructuredFilterTab({
         </button>
       </div>
 
-      {/* Footer */}
-      <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2">
-        <button
-          type="button"
-          onClick={onClear}
-          disabled={rows.length === 0}
-          className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          清空
-        </button>
-        <Button
-          size="sm"
-          className="h-7 px-4 text-xs"
-          onClick={onApply}
-          disabled={!hasAnyValue}
-        >
-          应用
-        </Button>
-      </div>
+      {/* Footer — only shown in non-inline (panel) mode */}
+      {!inline && (
+        <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2">
+          <button
+            type="button"
+            onClick={onClear}
+            disabled={rows.length === 0}
+            className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            清空
+          </button>
+          <Button
+            size="sm"
+            className="h-7 px-4 text-xs"
+            onClick={onApply}
+            disabled={!hasAnyValue}
+          >
+            应用
+          </Button>
+        </div>
+      )}
     </div>
   )
 }
+
