@@ -132,4 +132,58 @@ describe('filterRowsToWhereJson', () => {
       AND: [{ active: { equals: false } }],
     })
   })
+
+  // --- Issue #1: not operator tests ---
+
+  it('not operator with NUMBER fieldType coerces to number', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'age', operator: 'not', value: '30', fieldType: 'NUMBER' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ age: { not: 30 } }],
+    })
+  })
+
+  it('not operator with BOOLEAN fieldType coerces to boolean', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'active', operator: 'not', value: 'true', fieldType: 'BOOLEAN' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ active: { not: true } }],
+    })
+  })
+
+  // --- Issue #2: Boolean case sensitivity contract ---
+  // Contract: value comparison is case-sensitive. Only lowercase 'true' produces boolean true.
+  // 'True', 'TRUE', 'TRUE' → boolean false (because 'True' !== 'true').
+
+  it('boolean coercion is case-sensitive: only lowercase "true" yields true', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'active', operator: 'equals', value: 'True', fieldType: 'BOOLEAN' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ active: { equals: false } }],
+    })
+  })
+
+  // --- Issue #3: NaN fallback ---
+  // When a non-numeric string is used with a numeric operator, value passes through as-is.
+
+  it('NaN fallback: non-numeric string with numeric operator passes through as string', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'age', operator: 'gt', value: 'abc' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ age: { gt: 'abc' } }],
+    })
+  })
+
+  // --- Issue #6 (minor): whitespace-only value treated as empty, row is skipped ---
+
+  it('skips rows with whitespace-only value', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'name', operator: 'contains', value: '   ' }]
+    expect(filterRowsToWhereJson(rows)).toBeNull()
+  })
+
+  // --- Issue #7 (minor): equals with missing fieldType keeps value as string ---
+
+  it('equals with missing fieldType keeps value as string', () => {
+    const rows: FilterRow[] = [{ id: '1', field: 'status', operator: 'equals', value: 'active' }]
+    expect(filterRowsToWhereJson(rows)).toEqual({
+      AND: [{ status: { equals: 'active' } }],
+    })
+  })
 })
+

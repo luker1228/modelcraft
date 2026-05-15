@@ -52,20 +52,51 @@ export function getFilterCount(whereJson: string | null): number | '•' | null 
 const NUMERIC_OPERATORS = new Set(['gt', 'gte', 'lt', 'lte'])
 
 /**
+ * 筛选操作符联合类型。
+ * `(string & {})` 保留对任意字符串的兼容性，同时让 IDE 提示已知值。
+ */
+export type FilterOperator =
+  | 'equals'
+  | 'not'
+  | 'contains'
+  | 'startsWith'
+  | 'endsWith'
+  | 'gt'
+  | 'gte'
+  | 'lt'
+  | 'lte'
+  | (string & {})
+
+/**
+ * 字段存储类型联合类型。
+ * `(string & {})` 保留对任意字符串的兼容性，同时让 IDE 提示已知值。
+ */
+export type FilterFieldType =
+  | 'STRING'
+  | 'NUMBER'
+  | 'INT'
+  | 'INTEGER'
+  | 'FLOAT'
+  | 'DECIMAL'
+  | 'BOOLEAN'
+  | (string & {})
+
+/**
  * 单条筛选行的数据结构。
  * fieldType 仅在 equals/not 时影响值的类型推断；
  * gt/gte/lt/lte 始终 coerce 为 number。
  */
 export interface FilterRow {
+  /** Stable React key for the row. Not used in query output. */
   id: string
   field: string
-  operator: string
+  operator: FilterOperator
   value: string
   /** 字段的存储类型，用于 equals/not 时决定值类型。
    *  来源：FieldDefinition.storageHint?.toUpperCase() 或 schemaType?.toUpperCase()
    *  可选，缺失时按字符串处理。
    */
-  fieldType?: string
+  fieldType?: FilterFieldType
 }
 
 /**
