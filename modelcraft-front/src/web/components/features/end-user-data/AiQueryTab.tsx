@@ -45,7 +45,9 @@ export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQuer
     value: fieldSchemaText,
   })
 
-  const { append } = useCopilotChat()
+  const { append } = useCopilotChat() as {
+    append: (msg: { role: string; content: string }) => Promise<void>
+  }
 
   async function handleGenerate(prompt: string) {
     if (!prompt.trim() || isLoading) return
@@ -64,7 +66,7 @@ export function AiQueryTab({ fields, onFilterApplied: _onFilterApplied }: AiQuer
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-3 px-3 py-3">
+      <div className="flex flex-col gap-3 p-3">
         <p className="text-xs text-muted-foreground">
           用自然语言描述筛选条件，AI 自动生成并应用：
         </p>

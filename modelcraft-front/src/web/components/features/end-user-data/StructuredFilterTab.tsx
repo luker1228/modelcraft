@@ -151,7 +151,7 @@ export function StructuredFilterTab({
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-2 px-3 py-3">
+      <div className="flex flex-col gap-2 p-3">
         {rows.length === 0 ? (
           <p className="text-xs text-muted-foreground">暂无条件，点击"添加条件"开始筛选。</p>
         ) : (
@@ -190,7 +190,7 @@ export function StructuredFilterTab({
 
                 {/* Value input — hidden for boolean (operator encodes value) */}
                 {isBool ? (
-                  <div className="h-8 flex-[1.2] rounded-md border border-input bg-muted/40 px-2 text-xs text-muted-foreground flex items-center">
+                  <div className="flex h-8 flex-[1.2] items-center rounded-md border border-input bg-muted/40 px-2 text-xs text-muted-foreground">
                     {row.operator === 'equals_true' ? 'true' : 'false'}
                   </div>
                 ) : (
