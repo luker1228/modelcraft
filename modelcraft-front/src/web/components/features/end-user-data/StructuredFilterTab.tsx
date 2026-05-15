@@ -1,9 +1,14 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { X, Plus } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { cn } from '@/shared/utils'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@web/components/ui/popover'
 import type { FilterRow } from './filter-utils'
 import type { FieldDefinition } from '@api-client/cms/public'
 
@@ -66,7 +71,163 @@ function getFieldType(field: FieldDefinition | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// FilterChip — single inline condition pill
+// AddFilterPopover — pick field / operator / value, then confirm
+// ---------------------------------------------------------------------------
+
+interface AddFilterPopoverProps {
+  displayFields: FieldDefinition[]
+  onAdd: (row: Omit<FilterRow, 'id'>) => void
+}
+
+function AddFilterPopover({ displayFields, onAdd }: AddFilterPopoverProps) {
+  const [open, setOpen] = useState(false)
+  const firstField = displayFields[0]
+
+  const [draftField, setDraftField] = useState(firstField?.name ?? '')
+  const [draftOperator, setDraftOperator] = useState(() =>
+    getDefaultOperator(getOperatorsForField(firstField))
+  )
+  const [draftValue, setDraftValue] = useState('')
+
+  const fieldDef = displayFields.find((f) => f.name === draftField)
+  const operators = getOperatorsForField(fieldDef)
+  const isBool = operators === BOOLEAN_OPERATORS
+
+  function handleFieldChange(name: string) {
+    const def = displayFields.find((f) => f.name === name)
+    const ops = getOperatorsForField(def)
+    setDraftField(name)
+    setDraftOperator(getDefaultOperator(ops))
+    setDraftValue('')
+  }
+
+  function handleAdd() {
+    onAdd({
+      field: draftField,
+      operator: draftOperator,
+      value: isBool ? '' : draftValue,
+      fieldType: getFieldType(fieldDef),
+    })
+    // Reset draft for next use
+    setDraftValue('')
+    setDraftOperator(getDefaultOperator(getOperatorsForField(fieldDef)))
+    setOpen(false)
+  }
+
+  const canAdd = draftField && (isBool || draftValue.trim() !== '')
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          type="button"
+          disabled={displayFields.length === 0}
+          className={cn(
+            'flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-dashed border-border/60 px-2 text-xs text-muted-foreground transition-colors',
+            'hover:border-border hover:bg-muted hover:text-foreground',
+            'disabled:cursor-not-allowed disabled:opacity-40'
+          )}
+        >
+          <Plus size={11} strokeWidth={1.5} />
+          添加筛选
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        side="bottom"
+        align="start"
+        className="w-72 p-3"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+      >
+        <p className="mb-3 text-xs font-medium text-foreground">添加筛选条件</p>
+
+        <div className="flex flex-col gap-2.5">
+          {/* Step 1: Field */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              字段
+            </label>
+            <div className="relative">
+              <select
+                value={draftField}
+                onChange={(e) => handleFieldChange(e.target.value)}
+                className="h-8 w-full cursor-pointer appearance-none rounded-md border border-input bg-background py-0 pl-2.5 pr-7 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                {displayFields.map((f) => (
+                  <option key={f.name} value={f.name}>{f.name}</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 10.5L3 5.5h10z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Step 2: Operator */}
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+              操作符
+            </label>
+            <div className="relative">
+              <select
+                value={draftOperator}
+                onChange={(e) => setDraftOperator(e.target.value)}
+                className="h-8 w-full cursor-pointer appearance-none rounded-md border border-input bg-background py-0 pl-2.5 pr-7 font-mono text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+              >
+                {operators.map((op) => (
+                  <option key={op.value} value={op.value}>{op.label}</option>
+                ))}
+              </select>
+              <svg className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground/60" width="10" height="10" viewBox="0 0 16 16" fill="currentColor">
+                <path d="M8 10.5L3 5.5h10z" />
+              </svg>
+            </div>
+          </div>
+
+          {/* Step 3: Value (hidden for boolean) */}
+          {!isBool && (
+            <div className="flex flex-col gap-1">
+              <label className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+                值
+              </label>
+              <input
+                type="text"
+                value={draftValue}
+                onChange={(e) => setDraftValue(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && canAdd) handleAdd() }}
+                placeholder="输入筛选值…"
+                autoFocus
+                className="h-8 w-full rounded-md border border-input bg-background px-2.5 text-xs text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-1 focus:ring-ring"
+              />
+            </div>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="mt-3.5 flex items-center justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => setOpen(false)}
+            className="text-xs text-muted-foreground hover:text-foreground"
+          >
+            取消
+          </button>
+          <Button
+            size="sm"
+            className="h-7 px-4 text-xs"
+            onClick={handleAdd}
+            disabled={!canAdd}
+          >
+            添加
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// FilterChip — single committed condition pill
 // ---------------------------------------------------------------------------
 
 interface FilterChipProps {
@@ -81,16 +242,10 @@ function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterC
   const fieldDef = displayFields.find((f) => f.name === row.field)
   const operators = getOperatorsForField(fieldDef)
   const isBool = operators === BOOLEAN_OPERATORS
-  const currentOp = operators.find((op) => op.value === row.operator) ?? operators[0]
 
   return (
-    <div
-      className={cn(
-        'group flex h-[26px] shrink-0 items-stretch overflow-hidden rounded-sm border bg-muted text-xs',
-        row.value.trim() || isBool ? 'border-border' : 'border-dashed border-border/60'
-      )}
-    >
-      {/* Part 1: Field selector */}
+    <div className="group flex h-[26px] shrink-0 items-stretch overflow-hidden rounded-sm border border-border bg-muted text-xs">
+      {/* Part 1: Field */}
       <div className="relative flex shrink-0 items-center">
         <select
           value={row.field}
@@ -101,16 +256,14 @@ function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterC
             <option key={f.name} value={f.name}>{f.name}</option>
           ))}
         </select>
-        {/* dropdown chevron */}
         <svg className="pointer-events-none absolute right-1 text-muted-foreground/50" width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
           <path d="M8 10.5L3 5.5h10z" />
         </svg>
       </div>
 
-      {/* Divider */}
       <div className="w-px self-stretch bg-border/60" />
 
-      {/* Part 2: Operator selector */}
+      {/* Part 2: Operator */}
       <div className="relative flex shrink-0 items-center">
         <select
           value={row.operator}
@@ -121,31 +274,28 @@ function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterC
             <option key={op.value} value={op.value}>{op.label}</option>
           ))}
         </select>
-        {/* dropdown chevron */}
         <svg className="pointer-events-none absolute right-1 text-muted-foreground/50" width="8" height="8" viewBox="0 0 16 16" fill="currentColor">
           <path d="M8 10.5L3 5.5h10z" />
         </svg>
       </div>
 
-      {/* Divider */}
-      {!isBool && <div className="w-px self-stretch bg-border/60" />}
-
-      {/* Part 3: Value input */}
+      {/* Part 3: Value */}
       {!isBool && (
-        <input
-          type="text"
-          value={row.value}
-          onChange={(e) => onUpdate(row.id, { value: e.target.value })}
-          onKeyDown={(e) => { if (e.key === 'Enter') onApply() }}
-          placeholder="值"
-          className="w-24 bg-transparent px-2 py-0 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
-        />
+        <>
+          <div className="w-px self-stretch bg-border/60" />
+          <input
+            type="text"
+            value={row.value}
+            onChange={(e) => onUpdate(row.id, { value: e.target.value })}
+            onKeyDown={(e) => { if (e.key === 'Enter') onApply() }}
+            placeholder="值"
+            className="w-24 bg-transparent px-2 py-0 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+          />
+        </>
       )}
 
-      {/* Divider before remove */}
+      {/* Remove */}
       <div className="w-px self-stretch bg-border/60 opacity-0 transition-opacity group-hover:opacity-100" />
-
-      {/* Remove button */}
       <button
         type="button"
         onClick={() => onRemove(row.id)}
@@ -168,11 +318,6 @@ export interface StructuredFilterTabProps {
   onRowsChange: (rows: FilterRow[]) => void
   onApply: () => void
   onClear: () => void
-  /**
-   * When true, renders chips inline without a footer bar (no Apply/Clear buttons).
-   * Filter is applied immediately on Enter or chip removal.
-   * Used when embedded directly in the search bar row.
-   */
   inline?: boolean
 }
 
@@ -182,7 +327,7 @@ function nextId() {
 }
 
 // ---------------------------------------------------------------------------
-// StructuredFilterTab — chip bar layout
+// StructuredFilterTab
 // ---------------------------------------------------------------------------
 
 export function StructuredFilterTab({
@@ -195,26 +340,26 @@ export function StructuredFilterTab({
 }: StructuredFilterTabProps) {
   const displayFields = fields.filter((f) => !f.name.startsWith('_'))
 
-  const addRow = useCallback(() => {
-    const firstField = displayFields[0]
-    const operators = getOperatorsForField(firstField)
-    onRowsChange([
-      ...rows,
-      {
-        id: nextId(),
-        field: firstField?.name ?? '',
-        operator: getDefaultOperator(operators),
-        value: '',
-        fieldType: getFieldType(firstField),
-      },
-    ])
-  }, [rows, onRowsChange, displayFields])
+  const addRow = useCallback(
+    (draft: Omit<FilterRow, 'id'>) => {
+      const newRow: FilterRow = { ...draft, id: nextId() }
+      const updated = [...rows, newRow]
+      onRowsChange(updated)
+      // Auto-apply when a new condition is confirmed
+      if (inline) {
+        // defer so state is flushed first
+        setTimeout(() => onApply(), 0)
+      }
+    },
+    [rows, onRowsChange, onApply, inline]
+  )
 
   const removeRow = useCallback(
     (id: string) => {
       onRowsChange(rows.filter((r) => r.id !== id))
+      if (inline) setTimeout(() => onApply(), 0)
     },
-    [rows, onRowsChange]
+    [rows, onRowsChange, onApply, inline]
   )
 
   const updateRow = useCallback(
@@ -244,66 +389,45 @@ export function StructuredFilterTab({
     return isBool || r.value.trim() !== ''
   })
 
-  return (
-    <div className={cn('flex', inline ? 'flex-wrap items-center gap-1.5' : 'flex-col')}>
-      {/* Chip bar */}
-      <div className={cn(
-        'flex flex-wrap items-center gap-1.5',
-        !inline && 'px-3 py-2.5'
-      )}>
-        {rows.map((row) => (
-          <FilterChip
-            key={row.id}
-            row={row}
-            displayFields={displayFields}
-            onUpdate={updateRow}
-            onRemove={(id) => {
-              removeRow(id)
-              // In inline mode, removing a chip immediately re-applies (or clears)
-              if (inline) onApply()
-            }}
-            onApply={onApply}
-          />
-        ))}
+  const chipBar = (
+    <div className={cn('flex flex-wrap items-center gap-1.5', !inline && 'px-3 py-2.5')}>
+      {rows.map((row) => (
+        <FilterChip
+          key={row.id}
+          row={row}
+          displayFields={displayFields}
+          onUpdate={updateRow}
+          onRemove={removeRow}
+          onApply={onApply}
+        />
+      ))}
+      <AddFilterPopover displayFields={displayFields} onAdd={addRow} />
+    </div>
+  )
 
-        {/* Add filter chip */}
+  if (inline) return chipBar
+
+  return (
+    <div className="flex flex-col">
+      {chipBar}
+      <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2">
         <button
           type="button"
-          onClick={addRow}
-          disabled={displayFields.length === 0}
-          className={cn(
-            'flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-dashed border-border/60 px-2 text-xs text-muted-foreground transition-colors',
-            'hover:border-border hover:bg-muted hover:text-foreground',
-            'disabled:cursor-not-allowed disabled:opacity-40'
-          )}
+          onClick={onClear}
+          disabled={rows.length === 0}
+          className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Plus size={11} strokeWidth={1.5} />
-          添加筛选
+          清空
         </button>
+        <Button
+          size="sm"
+          className="h-7 px-4 text-xs"
+          onClick={onApply}
+          disabled={!hasAnyValue}
+        >
+          应用
+        </Button>
       </div>
-
-      {/* Footer — only shown in non-inline (panel) mode */}
-      {!inline && (
-        <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2">
-          <button
-            type="button"
-            onClick={onClear}
-            disabled={rows.length === 0}
-            className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            清空
-          </button>
-          <Button
-            size="sm"
-            className="h-7 px-4 text-xs"
-            onClick={onApply}
-            disabled={!hasAnyValue}
-          >
-            应用
-          </Button>
-        </div>
-      )}
     </div>
   )
 }
-
