@@ -23,8 +23,16 @@ from copilotkit.types import Message, MetaEvent
 
 import config
 from agent import modelcraft_graph
+from logging_setup import setup_logging
+from middleware import ObservabilityMiddleware
 
 app = FastAPI(title="modelcraft-agent", version="0.1.0")
+
+# Observability: must be added before any routes are registered.
+# Middleware is applied in reverse order of add_middleware() calls;
+# ObservabilityMiddleware is outermost so it wraps all requests.
+setup_logging()
+app.add_middleware(ObservabilityMiddleware)
 
 
 # ---------------------------------------------------------------------------
