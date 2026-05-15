@@ -3,6 +3,7 @@
 import { memo, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import type { Project } from '@/types'
+import { CopilotAvailableContext } from '@web/components/features/end-user-data/FilterCopilotActions'
 
 // Lazy load CopilotKit components to reduce initial bundle size
 const CopilotKit = dynamic(
@@ -122,12 +123,57 @@ export const CopilotWrapper = memo(({
   orgName,
 }: CopilotProviderProps) => {
   return (
-    <Suspense fallback={children}>
-      <CopilotProvider selectedProject={selectedProject} orgName={orgName}>
-        {children}
-      </CopilotProvider>
-    </Suspense>
+    <CopilotAvailableContext.Provider value={true}>
+      <Suspense fallback={children}>
+        <CopilotProvider selectedProject={selectedProject} orgName={orgName}>
+          {children}
+        </CopilotProvider>
+      </Suspense>
+    </CopilotAvailableContext.Provider>
   )
 })
 
 CopilotWrapper.displayName = 'CopilotWrapper'
+
+/**
+ * Lightweight CopilotKit wrapper for End-User routes.
+ *
+ * Provides CopilotKit context (agent, runtimeUrl, properties) so that
+ * AI-powered components like AiQueryTab can use useCopilotChat / useCopilotReadable,
+ * but does NOT render the CopilotSidebar chat UI.
+ *
+ * Sets CopilotAvailableContext to true so that useCopilotKitAvailable() returns
+ * true and the "✨ AI 查询" tab becomes visible in FilterPanel.
+ */
+interface EndUserCopilotWrapperProps {
+  children: React.ReactNode
+  orgName: string
+  projectSlug: string
+}
+
+export const EndUserCopilotWrapper = memo(({
+  children,
+  orgName,
+  projectSlug,
+}: EndUserCopilotWrapperProps) => {
+  const copilotContext = useMemo(() => ({
+    orgName,
+    projectSlug,
+  }), [orgName, projectSlug])
+
+  return (
+    <CopilotAvailableContext.Provider value={true}>
+      <Suspense fallback={children}>
+        <CopilotKit
+          runtimeUrl="/api/copilotkit"
+          agent="modelcraft_agent"
+          properties={copilotContext}
+        >
+          {children}
+        </CopilotKit>
+      </Suspense>
+    </CopilotAvailableContext.Provider>
+  )
+})
+
+EndUserCopilotWrapper.displayName = 'EndUserCopilotWrapper'
