@@ -1,6 +1,7 @@
 'use client'
 
-import { useCallback } from 'react'
+import { useCallback, useRef } from 'react'
+import { X, Plus } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { cn } from '@/shared/utils'
 import type { FilterRow } from './filter-utils'
@@ -13,28 +14,30 @@ import type { FieldDefinition } from '@api-client/cms/public'
 interface OperatorOption {
   label: string
   value: string
+  /** Short symbol shown inside the chip */
+  symbol: string
 }
 
 const STRING_OPERATORS: OperatorOption[] = [
-  { label: '包含', value: 'contains' },
-  { label: '等于', value: 'equals' },
-  { label: '不等于', value: 'not' },
-  { label: '开头是', value: 'startsWith' },
-  { label: '结尾是', value: 'endsWith' },
+  { label: '包含', value: 'contains', symbol: '~' },
+  { label: '等于', value: 'equals', symbol: '=' },
+  { label: '不等于', value: 'not', symbol: '≠' },
+  { label: '开头是', value: 'startsWith', symbol: '^' },
+  { label: '结尾是', value: 'endsWith', symbol: '$' },
 ]
 
 const NUMBER_OPERATORS: OperatorOption[] = [
-  { label: '等于', value: 'equals' },
-  { label: '不等于', value: 'not' },
-  { label: '大于', value: 'gt' },
-  { label: '大于等于', value: 'gte' },
-  { label: '小于', value: 'lt' },
-  { label: '小于等于', value: 'lte' },
+  { label: '等于', value: 'equals', symbol: '=' },
+  { label: '不等于', value: 'not', symbol: '≠' },
+  { label: '大于', value: 'gt', symbol: '>' },
+  { label: '大于等于', value: 'gte', symbol: '≥' },
+  { label: '小于', value: 'lt', symbol: '<' },
+  { label: '小于等于', value: 'lte', symbol: '≤' },
 ]
 
 const BOOLEAN_OPERATORS: OperatorOption[] = [
-  { label: '是', value: 'equals_true' },
-  { label: '否', value: 'equals_false' },
+  { label: '是 true', value: 'equals_true', symbol: 'is' },
+  { label: '是 false', value: 'equals_false', symbol: '!is' },
 ]
 
 function getOperatorsForField(field: FieldDefinition | undefined): OperatorOption[] {
@@ -54,10 +57,6 @@ function getDefaultOperator(operators: OperatorOption[]): string {
   return operators[0]?.value ?? 'equals'
 }
 
-/**
- * Derive fieldType string for filterRowsToWhereJson from a FieldDefinition.
- * We pass it on the FilterRow so the util can coerce values correctly.
- */
 function getFieldType(field: FieldDefinition | undefined): string {
   if (!field) return 'STRING'
   const hint = field.storageHint?.toUpperCase() ?? ''
@@ -69,7 +68,114 @@ function getFieldType(field: FieldDefinition | undefined): string {
 }
 
 // ---------------------------------------------------------------------------
-// Props
+// FilterChip — single inline condition pill
+// ---------------------------------------------------------------------------
+
+interface FilterChipProps {
+  row: FilterRow
+  displayFields: FieldDefinition[]
+  onUpdate: (id: string, patch: Partial<FilterRow>) => void
+  onRemove: (id: string) => void
+  onApply: () => void
+}
+
+function FilterChip({ row, displayFields, onUpdate, onRemove, onApply }: FilterChipProps) {
+  const fieldDef = displayFields.find((f) => f.name === row.field)
+  const operators = getOperatorsForField(fieldDef)
+  const isBool = operators === BOOLEAN_OPERATORS
+  const currentOp = operators.find((op) => op.value === row.operator) ?? operators[0]
+
+  // Auto-size the value input: measure with a hidden span
+  const valueSpanRef = useRef<HTMLSpanElement>(null)
+
+  return (
+    <div
+      className={cn(
+        'group flex h-[26px] shrink-0 items-stretch rounded-sm border bg-muted',
+        row.value.trim() || isBool ? 'border-border' : 'border-dashed border-border/60'
+      )}
+    >
+      {/* Field selector — styled as plain text */}
+      <div className="relative inline-flex shrink-0 items-center">
+        <span className="pointer-events-none flex h-full select-none items-center pl-2 pr-1 text-xs text-muted-foreground">
+          {row.field || '字段'}
+        </span>
+        <select
+          value={row.field}
+          onChange={(e) => onUpdate(row.id, { field: e.target.value })}
+          className="absolute inset-0 size-full cursor-pointer appearance-none bg-transparent opacity-0"
+          title="选择字段"
+        >
+          {displayFields.map((f) => (
+            <option key={f.name} value={f.name}>
+              {f.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Operator selector — shows symbol */}
+      <div className="relative inline-block shrink-0">
+        {/* Invisible sizer so the cell is exactly as wide as the symbol */}
+        <span className="invisible block shrink-0 px-1 text-xs">
+          {currentOp?.symbol ?? '='}
+        </span>
+        <select
+          value={row.operator}
+          onChange={(e) => onUpdate(row.id, { operator: e.target.value })}
+          className="absolute inset-0 size-full cursor-pointer appearance-none bg-transparent px-1 text-center text-xs text-foreground opacity-0"
+          title="选择操作符"
+        >
+          {operators.map((op) => (
+            <option key={op.value} value={op.value}>
+              {op.symbol} ({op.label})
+            </option>
+          ))}
+        </select>
+        {/* Visible symbol */}
+        <span className="pointer-events-none absolute inset-0 flex items-center justify-center font-mono text-xs text-foreground">
+          {currentOp?.symbol ?? '='}
+        </span>
+      </div>
+
+      {/* Value input — inline, auto-width */}
+      {isBool ? null : (
+        <div className="relative inline-block max-w-[180px]">
+          {/* Hidden span to measure value width */}
+          <span
+            ref={valueSpanRef}
+            className="invisible block whitespace-pre px-1 text-xs"
+          >
+            {row.value || ' '}
+          </span>
+          <input
+            type="text"
+            value={row.value}
+            onChange={(e) => onUpdate(row.id, { value: e.target.value })}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') onApply()
+            }}
+            placeholder="值"
+            className="absolute inset-0 size-full bg-transparent px-1 text-xs text-foreground placeholder:text-muted-foreground/50 focus:outline-none"
+          />
+        </div>
+      )}
+
+      {/* Remove button — visible on hover */}
+      <button
+        type="button"
+        onClick={() => onRemove(row.id)}
+        aria-label={`删除 ${row.field} 筛选条件`}
+        className="flex h-full items-center justify-center px-1 text-muted-foreground/40 transition-colors hover:text-foreground group-hover:text-muted-foreground"
+      >
+        <X size={12} strokeWidth={1.5} />
+      </button>
+    </div>
+  )
+}
+
+// ---------------------------------------------------------------------------
+// Props + ID counter
 // ---------------------------------------------------------------------------
 
 export interface StructuredFilterTabProps {
@@ -80,14 +186,14 @@ export interface StructuredFilterTabProps {
   onClear: () => void
 }
 
-// ---------------------------------------------------------------------------
-// Component
-// ---------------------------------------------------------------------------
-
 let _idCounter = 0
 function nextId() {
   return `row-${++_idCounter}`
 }
+
+// ---------------------------------------------------------------------------
+// StructuredFilterTab — chip bar layout
+// ---------------------------------------------------------------------------
 
 export function StructuredFilterTab({
   fields,
@@ -96,7 +202,6 @@ export function StructuredFilterTab({
   onApply,
   onClear,
 }: StructuredFilterTabProps) {
-  // Display fields: exclude internal _-prefixed fields
   const displayFields = fields.filter((f) => !f.name.startsWith('_'))
 
   const addRow = useCallback(() => {
@@ -127,7 +232,6 @@ export function StructuredFilterTab({
         rows.map((r) => {
           if (r.id !== id) return r
           const updated = { ...r, ...patch }
-          // When field changes, reset operator to the first valid one for new field type
           if (patch.field !== undefined) {
             const newField = displayFields.find((f) => f.name === patch.field)
             const ops = getOperatorsForField(newField)
@@ -151,91 +255,42 @@ export function StructuredFilterTab({
 
   return (
     <div className="flex flex-col">
-      <div className="flex flex-col gap-2 p-3">
-        {rows.length === 0 ? (
-          <p className="text-xs text-muted-foreground">暂无条件，点击"添加条件"开始筛选。</p>
-        ) : (
-          rows.map((row) => {
-            const fieldDef = displayFields.find((f) => f.name === row.field)
-            const operators = getOperatorsForField(fieldDef)
-            const isBool = operators === BOOLEAN_OPERATORS
+      {/* Chip bar */}
+      <div className="flex flex-wrap items-center gap-1.5 px-3 py-2.5">
+        {rows.map((row) => (
+          <FilterChip
+            key={row.id}
+            row={row}
+            displayFields={displayFields}
+            onUpdate={updateRow}
+            onRemove={removeRow}
+            onApply={onApply}
+          />
+        ))}
 
-            return (
-              <div key={row.id} className="flex items-center gap-1.5">
-                {/* Field selector */}
-                <select
-                  value={row.field}
-                  onChange={(e) => updateRow(row.id, { field: e.target.value })}
-                  className="h-8 flex-1 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  {displayFields.map((f) => (
-                    <option key={f.name} value={f.name}>
-                      {f.name}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Operator selector */}
-                <select
-                  value={row.operator}
-                  onChange={(e) => updateRow(row.id, { operator: e.target.value })}
-                  className="h-8 w-24 rounded-md border border-input bg-background px-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
-                >
-                  {operators.map((op) => (
-                    <option key={op.value} value={op.value}>
-                      {op.label}
-                    </option>
-                  ))}
-                </select>
-
-                {/* Value input — hidden for boolean (operator encodes value) */}
-                {isBool ? (
-                  <div className="flex h-8 flex-[1.2] items-center rounded-md border border-input bg-muted/40 px-2 text-xs text-muted-foreground">
-                    {row.operator === 'equals_true' ? 'true' : 'false'}
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={row.value}
-                    onChange={(e) => updateRow(row.id, { value: e.target.value })}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') onApply()
-                    }}
-                    className={cn(
-                      'h-8 flex-[1.2] rounded-md border bg-background px-2 text-xs focus:outline-none focus:ring-1 focus:ring-ring',
-                      row.value.trim() ? 'border-primary ring-1 ring-primary/30' : 'border-input'
-                    )}
-                  />
-                )}
-
-                {/* Remove button */}
-                <button
-                  type="button"
-                  onClick={() => removeRow(row.id)}
-                  className="flex size-6 shrink-0 items-center justify-center text-muted-foreground hover:text-foreground"
-                  aria-label="删除条件"
-                >
-                  ×
-                </button>
-              </div>
-            )
-          })
-        )}
-
+        {/* Add filter chip */}
         <button
           type="button"
           onClick={addRow}
-          className="mt-0.5 self-start text-xs text-primary hover:underline"
+          disabled={displayFields.length === 0}
+          className={cn(
+            'flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-dashed border-border/60 px-2 text-xs text-muted-foreground transition-colors',
+            'hover:border-border hover:bg-muted hover:text-foreground',
+            'disabled:cursor-not-allowed disabled:opacity-40'
+          )}
         >
-          + 添加条件
+          <Plus size={11} strokeWidth={1.5} />
+          添加筛选
         </button>
       </div>
 
-      <div className="flex items-center justify-between border-t border-border bg-muted/40 px-3 py-2">
+      {/* Footer */}
+      <div className="flex items-center justify-between border-t border-border bg-muted/30 px-3 py-2">
         <button
           type="button"
           onClick={onClear}
-          className="text-xs text-muted-foreground hover:text-foreground"
+          disabled={rows.length === 0}
+          className="text-xs text-muted-foreground transition-colors hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40"
         >
           清空
         </button>
