@@ -15,6 +15,9 @@ from langgraph.prebuilt import ToolNode, InjectedState
 from langchain_core.tools import tool
 from typing_extensions import TypedDict
 
+import time
+from logging_setup import get_logger
+
 import config
 from client.graphql_client import GraphQLClient
 
@@ -72,21 +75,39 @@ async def query_model(
     Returns:
         JSON string with items array and totalCount.
     """
-    take = max(1, min(take, 200))
-    client = GraphQLClient(authorization=state["authorization"])
-    result = await client.find_many(
-        org_name=state["org_name"],
-        project_slug=state["project_slug"],
-        db_name=db_name,
-        model_name=model_name,
-        fields=fields,
-        where=where,
-        take=take,
-    )
-    if "errors" in result and result["errors"]:
-        return f"GraphQL error: {result['errors']}"
-    data = result.get("data", {}).get("findMany", {})
-    return json.dumps(data, ensure_ascii=False)
+    log = get_logger()
+    args_summary = str({
+        "db_name": db_name,
+        "model_name": model_name,
+        "fields": fields,
+        "take": take,
+        "where": where,
+    })[:200]
+    log.info("tool.call.start", tool_name="query_model", args_summary=args_summary)
+    start = time.perf_counter()
+    try:
+        take = max(1, min(take, 200))
+        client = GraphQLClient(authorization=state["authorization"])
+        result = await client.find_many(
+            org_name=state["org_name"],
+            project_slug=state["project_slug"],
+            db_name=db_name,
+            model_name=model_name,
+            fields=fields,
+            where=where,
+            take=take,
+        )
+        if "errors" in result and result["errors"]:
+            return f"GraphQL error: {result['errors']}"
+        data = result.get("data", {}).get("findMany", {})
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        log.info("tool.call.end", tool_name="query_model", duration_ms=duration_ms, success=True)
+        return json.dumps(data, ensure_ascii=False)
+    except Exception:
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        log.exception("error", tool_name="query_model", duration_ms=duration_ms)
+        log.info("tool.call.end", tool_name="query_model", duration_ms=duration_ms, success=False)
+        raise
 
 
 @tool
@@ -105,8 +126,13 @@ async def nl2filter(
         A JSON string representing the ModelCraft where clause,
         e.g. {"AND": [{"name": {"contains": "张"}}]}
     """
-    llm = _get_llm()
-    system_prompt = f"""You are a filter JSON generator for ModelCraft.
+    log = get_logger()
+    args_summary = str({"natural_language": natural_language, "field_names": field_names})[:200]
+    log.info("tool.call.start", tool_name="nl2filter", args_summary=args_summary)
+    start = time.perf_counter()
+    try:
+        llm = _get_llm()
+        system_prompt = f"""You are a filter JSON generator for ModelCraft.
 Convert the user's natural language filter description into a valid ModelCraft where JSON.
 
 Available fields: {field_names}
@@ -119,14 +145,21 @@ ModelCraft where JSON rules:
 
 Return ONLY the raw JSON object, no explanation, no markdown code fences."""
 
-    response = await llm.ainvoke([
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": natural_language},
-    ])
-    raw = response.content.strip()
-    # Validate it parses as JSON before returning
-    json.loads(raw)
-    return raw
+        response = await llm.ainvoke([
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": natural_language},
+        ])
+        raw = response.content.strip()
+        # Validate it parses as JSON before returning
+        json.loads(raw)
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        log.info("tool.call.end", tool_name="nl2filter", duration_ms=duration_ms, success=True)
+        return raw
+    except Exception:
+        duration_ms = round((time.perf_counter() - start) * 1000, 2)
+        log.exception("error", tool_name="nl2filter", duration_ms=duration_ms)
+        log.info("tool.call.end", tool_name="nl2filter", duration_ms=duration_ms, success=False)
+        raise
 
 
 # ---------------------------------------------------------------------------

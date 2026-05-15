@@ -11,6 +11,7 @@ perform any authentication — Gateway handles JWT validation.
 import uuid
 import json
 import asyncio
+import time
 from typing import Optional, List, Any, AsyncGenerator
 
 import uvicorn
@@ -23,8 +24,9 @@ from copilotkit.types import Message, MetaEvent
 
 import config
 from agent import modelcraft_graph
-from logging_setup import setup_logging
+from logging_setup import setup_logging, get_logger
 from middleware import ObservabilityMiddleware
+from structlog.contextvars import bind_contextvars
 
 app = FastAPI(title="modelcraft-agent", version="0.1.0")
 
@@ -66,21 +68,48 @@ def _to_langchain_messages(messages: List[Message]) -> list:
 
 async def _stream_graph(thread_id: str, state: dict, lc_messages: list) -> AsyncGenerator[str, None]:
     """Run the LangGraph and yield newline-delimited JSON events."""
+    # Bind thread_id so all downstream logs (tools, graphql) carry it.
+    bind_contextvars(thread_id=thread_id)
+
+    log = get_logger()
     initial = {
         **state,
         "messages": lc_messages,
     }
     config_run = {"configurable": {"thread_id": thread_id}}
 
+    # Track per-run LLM start times for accurate duration measurement.
+    llm_start_times: dict[str, float] = {}
+
     async for event in modelcraft_graph.astream_events(initial, config=config_run, version="v2"):
         kind = event.get("event", "")
-        # Text tokens from the LLM
-        if kind == "on_chat_model_stream":
+        run_id = event.get("run_id", "")
+
+        if kind == "on_chat_model_start":
+            llm_start_times[run_id] = time.perf_counter()
+            log.info("llm.call.start", model=config.LLM_MODEL)
+
+        elif kind == "on_chat_model_stream":
             chunk = event.get("data", {}).get("chunk", {})
             content = getattr(chunk, "content", "") or ""
             if content:
                 yield json.dumps({"type": "text", "content": content}) + "\n"
-        # Agent finished
+
+        elif kind == "on_chat_model_end":
+            start_t = llm_start_times.pop(run_id, None)
+            duration_ms = round(
+                (time.perf_counter() - (start_t if start_t is not None else time.perf_counter())) * 1000, 2
+            )
+            output = event.get("data", {}).get("output")
+            usage = getattr(output, "usage_metadata", None) or {}
+            log.info(
+                "llm.call.end",
+                model=config.LLM_MODEL,
+                duration_ms=duration_ms,
+                input_tokens=usage.get("input_tokens", 0),
+                output_tokens=usage.get("output_tokens", 0),
+            )
+
         elif kind == "on_chain_end" and event.get("name") == "LangGraph":
             output = event.get("data", {}).get("output", {})
             messages_out = output.get("messages", [])
