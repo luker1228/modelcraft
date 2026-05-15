@@ -57,8 +57,8 @@ import { FilterPanel } from './FilterPanel'
 import { getFilterCount } from './filter-utils'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
-import { useCopilotAction, CopilotContext } from '@copilotkit/react-core'
-import { useContext } from 'react'
+import { CopilotContext, FilterCopilotActions } from './FilterCopilotActions'
+
 
 export interface EndUserRecordWorkspaceProps {
   modelId: string
@@ -823,48 +823,4 @@ export default function EndUserRecordWorkspace({
       )}
     </RecordAccessAdapterProvider>
   )
-}
-
-/**
- * Registers CopilotKit frontend actions for the filter panel.
- *
- * This is a separate component so that `useCopilotAction` is only called when
- * CopilotKit context is actually present. Mounting this component conditionally
- * (via `hasCopilot`) avoids the `Cannot read properties of null (reading 'subscribe')`
- * error that occurs when hooks run outside of a CopilotKit provider.
- */
-function FilterCopilotActions({
-  onSetFilter,
-  onClearFilter,
-}: {
-  onSetFilter: (json: string) => void
-  onClearFilter: () => void
-}) {
-  useCopilotAction({
-    name: 'set_filter',
-    description:
-      '设置 FilterPanel 的 where 筛选条件。接受 ModelCraft filter JSON 字符串，例如: {"AND":[{"name":{"contains":"张"}}]}',
-    parameters: [
-      {
-        name: 'filter_json',
-        type: 'string',
-        description: 'ModelCraft where JSON 字符串',
-        required: true,
-      },
-    ],
-    handler: async ({ filter_json }: { filter_json: string }) => {
-      onSetFilter(filter_json)
-    },
-  })
-
-  useCopilotAction({
-    name: 'clear_filter',
-    description: '清空 FilterPanel 的所有筛选条件，恢复全量数据展示',
-    parameters: [],
-    handler: async () => {
-      onClearFilter()
-    },
-  })
-
-  return null
 }
