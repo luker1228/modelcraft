@@ -13,6 +13,56 @@ version: '3.8'
 services:
 
   # ---------------------------------------------------------------------------
+  # etcd (APISIX config storage)
+  # ---------------------------------------------------------------------------
+  etcd:
+    image: bitnami/etcd:3.5
+    container_name: modelcraft-etcd
+    environment:
+      ALLOW_NONE_AUTHENTICATION: "yes"
+    volumes:
+      - etcd_data:/bitnami/etcd
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------------------------------------
+  # APISIX (API Gateway, replaces modelcraft-gateway)
+  # ---------------------------------------------------------------------------
+  apisix:
+    image: apache/apisix:3.9.0-debian
+    container_name: modelcraft-apisix
+    ports:
+      - "${GATEWAY_PORT:-9080}:9080"
+      - "9180:9180"
+    environment:
+      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+    volumes:
+      - ./apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    depends_on:
+      etcd:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - modelcraft-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9080/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+
+  # ---------------------------------------------------------------------------
   # modelcraft-backend (Go API)
   # ---------------------------------------------------------------------------
   backend:
@@ -66,41 +116,41 @@ services:
       start_period: 40s
 
   # ---------------------------------------------------------------------------
-  # modelcraft-gateway (Auth + Reverse Proxy)
+  # modelcraft-gateway (replaced by APISIX — kept for emergency rollback)
   # ---------------------------------------------------------------------------
-  gateway:
-    build:
-      context: ./modelcraft-gateway
-      dockerfile: Dockerfile
-    image: modelcraft-gateway:${IMAGE_TAG:-latest}
-    container_name: modelcraft-gateway
-    user: "0:0"
-    ports:
-      - "${GATEWAY_PORT:-8090}:8090"
-    environment:
-      - GATEWAY_PORT=8090
-      - BACKEND_URL=http://backend:8080
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-      - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
-      - JWT_SECRET=${JWT_SECRET}
-      - INTERNAL_TOKEN=${INTERNAL_TOKEN}
-      - LOG_OUTPUT_PATH=/app/logs/server.log
-      - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-      - TZ=Asia/Shanghai
-    volumes:
-      - ./modelcraft-gateway/log:/app/logs
-    depends_on:
-      backend:
-        condition: service_healthy
-    networks:
-      - modelcraft-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/healthz"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 15s
+  # gateway:
+  #   build:
+  #     context: ./modelcraft-gateway
+  #     dockerfile: Dockerfile
+  #   image: modelcraft-gateway:${IMAGE_TAG:-latest}
+  #   container_name: modelcraft-gateway
+  #   user: "0:0"
+  #   ports:
+  #     - "${GATEWAY_PORT:-8090}:8090"
+  #   environment:
+  #     - GATEWAY_PORT=8090
+  #     - BACKEND_URL=http://backend:8080
+  #     - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
+  #     - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
+  #     - JWT_SECRET=${JWT_SECRET}
+  #     - INTERNAL_TOKEN=${INTERNAL_TOKEN}
+  #     - LOG_OUTPUT_PATH=/app/logs/server.log
+  #     - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  #     - TZ=Asia/Shanghai
+  #   volumes:
+  #     - ./modelcraft-gateway/log:/app/logs
+  #   depends_on:
+  #     backend:
+  #       condition: service_healthy
+  #   networks:
+  #     - modelcraft-network
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/healthz"]
+  #     interval: 30s
+  #     timeout: 5s
+  #     retries: 3
+  #     start_period: 15s
 
   # ---------------------------------------------------------------------------
   # modelcraft-agent (Python AI Agent)
@@ -118,11 +168,11 @@ services:
       - LLM_MODEL=${LLM_MODEL:-deepseek-chat}
       - LLM_API_KEY=${LLM_API_KEY:?LLM_API_KEY is required. Set it in .env file.}
       - LLM_BASE_URL=${LLM_BASE_URL:-https://api.deepseek.com}
-      - GATEWAY_URL=http://gateway:8090
+      - GATEWAY_URL=http://apisix:9080
       - PORT=8000
       - TZ=Asia/Shanghai
     depends_on:
-      gateway:
+      apisix:
         condition: service_healthy
     networks:
       - modelcraft-network
@@ -143,7 +193,7 @@ services:
       dockerfile: Dockerfile
       args:
         # 前端通过 Next.js rewrites 代理到 Gateway（服务器端地址）
-        - BACKEND_URL=http://gateway:8090
+        - BACKEND_URL=http://apisix:9080
     image: modelcraft-frontend:${IMAGE_TAG:-latest}
     container_name: modelcraft-frontend
     ports:
@@ -153,7 +203,7 @@ services:
       - TZ=Asia/Shanghai
       - AGENT_SERVICE_URL=http://modelcraft-agent:8000
     depends_on:
-      gateway:
+      apisix:
         condition: service_healthy
     networks:
       - modelcraft-network
@@ -238,6 +288,7 @@ volumes:
   mysql_data:
   redis_data:
   backend_logs:
+  etcd_data:
 
 networks:
   modelcraft-network:
