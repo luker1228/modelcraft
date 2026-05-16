@@ -21,7 +21,7 @@ const AudienceEndUser = "end_user"
 
 // ApisixConsumerKey is the APISIX jwt-auth Consumer key embedded in every
 // platform token. It must match the Consumer definition in APISIX config.
-const ApisixConsumerKey = "mc-user"
+const ApisixConsumerKey = "mcuser"
 
 const defaultAccessTokenTTL = time.Hour
 
