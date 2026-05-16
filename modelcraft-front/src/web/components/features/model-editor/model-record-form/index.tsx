@@ -16,6 +16,8 @@ import { useRecordAccessAdapter } from './access-adapter'
 interface ModelRecordFormProps {
   jsonSchema: RJSFSchema
   initialData?: Record<string, unknown>
+  /** Prefill values for new record creation (merged on top of defaults). Used by AI actions. */
+  initialValues?: Record<string, unknown>
   onSubmit: (data: Record<string, unknown>) => Promise<void>
   onCancel: () => void
   isSubmitting?: boolean
@@ -51,6 +53,7 @@ type RJSFFormRef = Form<Record<string, unknown>>
 export function ModelRecordForm({
   jsonSchema,
   initialData,
+  initialValues,
   onSubmit,
   onCancel,
   isSubmitting = false,
@@ -128,7 +131,7 @@ export function ModelRecordForm({
           ref={formRef}
           schema={editableSchema}
           uiSchema={uiSchema}
-          formData={initialData}
+          formData={initialValues && Object.keys(initialValues).length > 0 ? { ...initialValues, ...initialData } : initialData}
           validator={validator}
           widgets={customWidgets as never}
           templates={customTemplates as never}

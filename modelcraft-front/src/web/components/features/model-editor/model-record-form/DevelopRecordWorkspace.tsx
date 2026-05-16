@@ -58,6 +58,13 @@ import {
 } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
+import { useWorkspaceAIRef } from '@web/contexts/workspace-ai-ref-context'
+
+export interface DevelopRecordWorkspaceAIRef {
+  openCreate: (prefill: Record<string, unknown>) => void
+  openEdit: (recordId: string, patch: Record<string, unknown>) => Promise<void>
+  setHighlight: (ids: string[], reasons: Record<string, string>) => void
+}
 
 function toQueryValue(value: string | null | undefined): string {
   return (value ?? '').trim()
@@ -175,6 +182,11 @@ export default function DevelopRecordWorkspace({
 
   // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('')
+
+  // AI 控制状态
+  const [createPrefill, setCreatePrefill] = useState<Record<string, unknown>>({})
+  const [highlightedIds, setHighlightedIds] = useState<string[]>([])
+  const [highlightReasons, setHighlightReasons] = useState<Record<string, string>>({})
 
   // 拉取模型 schema（develop 用 project client）
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
@@ -338,6 +350,53 @@ export default function DevelopRecordWorkspace({
     return fieldInfo.storageHint || fieldInfo.schemaType || ''
   }, [])
 
+  const findUniqueQuery = useMemo(() => {
+    if (!modelName) return null
+    return buildFindUniqueQuery(modelName, runtimeFields)
+  }, [modelName, runtimeFields])
+
+  // AI コントロール — WorkspaceAIRefContext に命令型インタフェースを公開
+  const workspaceAiRef = useWorkspaceAIRef()
+
+  if (workspaceAiRef) {
+    workspaceAiRef.current = {
+      openCreate: (prefill) => {
+        setCreatePrefill(prefill)
+        setCreateDataOpen(true)
+      },
+      openEdit: async (id, patch) => {
+        setEditItemId(id)
+        setEditLoading(true)
+        setEditDataOpen(true)
+        try {
+          if (!runtimeClient || !findUniqueQuery) return
+          const { data } = await runtimeClient.query({
+            query: findUniqueQuery,
+            variables: { where: { id } },
+            fetchPolicy: 'network-only',
+          })
+          const item = (data as Record<string, Record<string, unknown>>)?.findUnique?.item
+          if (isRecord(item)) {
+            const base = writableFieldNames.reduce<Record<string, unknown>>((acc, f) => {
+              acc[f] = item[f] ?? ''
+              return acc
+            }, {})
+            setEditFormData({ ...base, ...patch })
+          }
+        } catch {
+          toast.error('获取数据失败')
+          setEditDataOpen(false)
+        } finally {
+          setEditLoading(false)
+        }
+      },
+      setHighlight: (ids, reasons) => {
+        setHighlightedIds(ids)
+        setHighlightReasons(reasons)
+      },
+    }
+  }
+
   const findManyQuery = useMemo(() => {
     if (!modelName) return null
     return buildFindManyQuery(modelName, runtimeFields)
@@ -393,11 +452,6 @@ export default function DevelopRecordWorkspace({
       setCreateSaving(false)
     },
   })
-
-  const findUniqueQuery = useMemo(() => {
-    if (!modelName) return null
-    return buildFindUniqueQuery(modelName, runtimeFields)
-  }, [modelName, runtimeFields])
 
   const updateMutation = useMemo(() => {
     if (!modelName) return null
@@ -754,6 +808,8 @@ export default function DevelopRecordWorkspace({
           canCreateRecord={canCreateRecord}
           canEditRecord={canEditRecord}
           canDeleteRecord={canDeleteRecord}
+          highlightedIds={highlightedIds}
+          highlightReasons={highlightReasons}
         />
 
         {/* 关系维护对话框 — develop workspace 始终可用 */}
@@ -786,6 +842,7 @@ export default function DevelopRecordWorkspace({
             {jsonSchema && (
               <ModelRecordForm
                 jsonSchema={jsonSchema as import('@rjsf/utils').RJSFSchema}
+                initialValues={createPrefill}
                 onSubmit={async (data) => {
                   if (isManagedReadOnlyModel) {
                     showManagedReadonlyToast()
