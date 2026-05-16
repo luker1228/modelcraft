@@ -1,6 +1,7 @@
 'use client'
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
 import {
   Table,
@@ -57,6 +58,10 @@ interface ModelRecordTableProps {
   canCreateRecord?: boolean
   canEditRecord?: boolean
   canDeleteRecord?: boolean
+  /** 高亮行的 ID 列表（Agent highlight_records 工具设置） */
+  highlightedIds?: string[]
+  /** 高亮原因 map，key 为 record id，value 为原因文字 */
+  highlightReasons?: Record<string, string>
 }
 
 type PairRole = 'label' | 'code'
@@ -84,6 +89,8 @@ export function ModelRecordTable({
   canCreateRecord = true,
   canEditRecord = true,
   canDeleteRecord = true,
+  highlightedIds,
+  highlightReasons,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
 
@@ -422,11 +429,17 @@ export function ModelRecordTable({
               ) : (
                 contentList.map((item, index) => {
                   const rowId = String(item.id)
+                  const isHighlighted = highlightedIds?.includes(rowId) ?? false
+                  const highlightReason = highlightReasons?.[rowId]
 
                   return (
                     <TableRow
                       key={rowId}
-                      className="border-b border-border/60 bg-card transition-colors hover:bg-foreground/[0.015]"
+                      className={cn(
+                        'border-b border-border/60 bg-card transition-colors hover:bg-foreground/[0.015]',
+                        isHighlighted && 'bg-amber-50 ring-1 ring-inset ring-amber-300'
+                      )}
+                      title={highlightReason}
                     >
                       <TableCell
                         className="py-2 text-xs tabular-nums text-muted-foreground"
