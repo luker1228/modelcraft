@@ -36,6 +36,12 @@ auth:
   # 内网 HTTP 接口共享令牌（X-Internal-Token）
   internal_token: ""  # Override via INTERNAL_TOKEN
 
+  # 刷新令牌 Set-Cookie 属性配置
+  cookie:
+    domain: ""          # 留空则使用请求主机；生产环境按需配置
+    secure: false       # 安全标志；生产环境应设为 true（HTTPS）；通过 AUTH_COOKIE_SECURE=true 覆盖
+    same_site: "strict" # "strict" | "lax" | "none"
+
   # 设计时 API 认证配置（GraphQL Design API + REST API）
   design:
     # 是否启用认证（开发环境可设为false，生产环境必须为true）

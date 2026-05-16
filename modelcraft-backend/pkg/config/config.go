@@ -69,9 +69,17 @@ type CryptoConfig struct {
 	AESKey string `mapstructure:"aes_key"` // AES-256密钥，必须是32字节
 }
 
+// CookieConfig 刷新令牌 Set-Cookie 属性配置
+type CookieConfig struct {
+	Domain   string `mapstructure:"domain"`    // Cookie 域名（留空则使用请求主机）
+	Secure   bool   `mapstructure:"secure"`    // Secure 标志；生产环境应设为 true（HTTPS）
+	SameSite string `mapstructure:"same_site"` // "strict" | "lax" | "none"
+}
+
 // AuthConfig 认证配置
 type AuthConfig struct {
 	InternalToken string            `mapstructure:"internal_token"` // 内网接口共享令牌（X-Internal-Token）
+	Cookie        CookieConfig      `mapstructure:"cookie"`         // 刷新令牌 Cookie 配置
 	Design        DesignAuthConfig  `mapstructure:"design"`         // 设计时API认证配置
 	Runtime       RuntimeAuthConfig `mapstructure:"runtime"`        // 运行时API认证配置
 }
@@ -185,6 +193,9 @@ func setupEnvBindings(v *viper.Viper) {
 
 	// 认证配置环境变量绑定
 	_ = v.BindEnv("auth.internal_token", "INTERNAL_TOKEN")
+	_ = v.BindEnv("auth.cookie.domain", "AUTH_COOKIE_DOMAIN")
+	_ = v.BindEnv("auth.cookie.secure", "AUTH_COOKIE_SECURE")
+	_ = v.BindEnv("auth.cookie.same_site", "AUTH_COOKIE_SAME_SITE")
 	_ = v.BindEnv("auth.design.enabled", "AUTH_DESIGN_ENABLED")
 	_ = v.BindEnv("auth.design.jwt_public_key_path", "AUTH_JWT_PUBLIC_KEY_PATH")
 	_ = v.BindEnv("auth.design.jwt_public_key", "AUTH_JWT_PUBLIC_KEY")
