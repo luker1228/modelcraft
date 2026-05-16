@@ -42,8 +42,9 @@ describe('onboarding storage', () => {
     const state = {
       orgName: 'my-org',
       projectSlug: 'my-project',
-      completedSteps: ['create_project' as const],
+      completedSteps: ['confirm_project' as const],
       panelOpen: true,
+      dismissed: false,
     }
     writeOnboardingState(state)
     expect(readOnboardingState('my-org')).toEqual(state)
@@ -55,6 +56,7 @@ describe('onboarding storage', () => {
       projectSlug: null,
       completedSteps: [],
       panelOpen: false,
+      dismissed: false,
     }
     writeOnboardingState(state)
     expect(readOnboardingState('org-b')).toEqual(defaultOnboardingState('org-b'))

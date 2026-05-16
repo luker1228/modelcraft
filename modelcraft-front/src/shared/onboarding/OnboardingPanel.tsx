@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useParams } from 'next/navigation'
-import { ChevronUp, ChevronDown, RotateCcw, Check, ChevronRight } from 'lucide-react'
+import { ChevronUp, ChevronDown, RotateCcw, Check, ChevronRight, X } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
 import { useOnboarding, type OnboardingPendingAction } from './OnboardingContext'
@@ -15,14 +15,18 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
     totalCount,
     isComplete,
     panelOpen,
+    dismissed,
     expandedGroupId,
     openPanel,
     closePanel,
+    dismiss,
     reset,
     markStep,
     setPendingAction,
     setExpandedGroupId,
   } = useOnboarding()
+
+  if (dismissed) return null
 
   const router = useRouter()
   const params = useParams()
@@ -134,6 +138,13 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
           </span>
         </div>
         <ChevronUp className="ml-1 size-3.5 text-muted-foreground" />
+        <button
+          onClick={(e) => { e.stopPropagation(); dismiss() }}
+          className="ml-1 rounded p-0.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          aria-label="关闭快速开始"
+        >
+          <X className="size-3.5" />
+        </button>
       </div>
     )
   }

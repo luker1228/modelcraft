@@ -54,11 +54,13 @@ interface OnboardingContextValue {
   totalCount: number
   isComplete: boolean
   panelOpen: boolean
+  dismissed: boolean
   pendingAction: OnboardingPendingAction
   expandedGroupId: string | null
   markStep: (id: OnboardingStepId, projectSlug?: string) => void
   openPanel: () => void
   closePanel: () => void
+  dismiss: () => void
   reset: () => void
   setPendingAction: (action: OnboardingPendingAction) => void
   setExpandedGroupId: (id: string | null) => void
@@ -111,6 +113,14 @@ export function OnboardingProvider({
   const closePanel = useCallback(() => {
     setState((prev) => {
       const next = { ...prev, panelOpen: false }
+      writeOnboardingState(next)
+      return next
+    })
+  }, [])
+
+  const dismiss = useCallback(() => {
+    setState((prev) => {
+      const next = { ...prev, panelOpen: false, dismissed: true }
       writeOnboardingState(next)
       return next
     })
@@ -183,11 +193,13 @@ export function OnboardingProvider({
         totalCount,
         isComplete,
         panelOpen: state.panelOpen,
+        dismissed: state.dismissed,
         pendingAction,
         expandedGroupId,
         markStep,
         openPanel,
         closePanel,
+        dismiss,
         reset,
         setPendingAction,
         setExpandedGroupId,

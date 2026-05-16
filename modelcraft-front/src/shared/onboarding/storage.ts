@@ -12,6 +12,7 @@ export interface OnboardingState {
   projectSlug: string | null
   completedSteps: OnboardingStepId[]
   panelOpen: boolean
+  dismissed: boolean
 }
 
 export function defaultOnboardingState(orgName: string): OnboardingState {
@@ -20,6 +21,7 @@ export function defaultOnboardingState(orgName: string): OnboardingState {
     projectSlug: null,
     completedSteps: [],
     panelOpen: true,
+    dismissed: false,
   }
 }
 
