@@ -1,0 +1,35 @@
+#
+# APISIX startup configuration.
+# Connects to etcd for dynamic config storage.
+# Plugin list controls which plugins are available cluster-wide.
+#
+apisix:
+  node_listen: 9080
+  enable_ipv6: false
+
+etcd:
+  host:
+    - "http://etcd:2379"
+  prefix: /apisix
+  timeout: 30
+
+deployment:
+  role: traditional
+  role_traditional:
+    config_provider: etcd
+
+plugin_attr:
+  opentelemetry:
+    resource:
+      service.name: modelcraft-apisix
+    collector:
+      address: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
+
+plugins:
+  - cors
+  - request-id
+  - opentelemetry
+  - jwt-auth
+  - serverless-pre-function
+  - proxy-rewrite
+  - response-rewrite
