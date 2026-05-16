@@ -12,6 +12,7 @@ from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, END
 from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, InjectedState
+from langgraph.checkpoint.memory import MemorySaver
 from langchain_core.tools import tool
 from typing_extensions import TypedDict
 
@@ -201,7 +202,7 @@ def _build_graph() -> Any:
     graph.set_entry_point("agent")
     graph.add_conditional_edges("agent", should_continue, {"tools": "tools", END: END})
     graph.add_edge("tools", "agent")
-    return graph.compile()
+    return graph.compile(checkpointer=MemorySaver())
 
 
 # Lazy initialization — graph is compiled on first access, not at import time
