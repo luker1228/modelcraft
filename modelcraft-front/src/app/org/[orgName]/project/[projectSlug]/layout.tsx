@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { LoadingScreen } from '@web/components/common/LoadingScreen'
@@ -8,10 +8,56 @@ import { CopilotWrapper, AIAssistantButton } from '@web/components/features/copi
 import { RouteValidator } from '@web/components/common/RouteValidator'
 import { useAppStore } from '@web/stores/app'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
+import { useCopilotReadable } from '@copilotkit/react-core'
+import { ProjectCopilotActions } from '@web/components/features/copilot/ProjectCopilotActions'
+import { WorkspaceAIRefContext } from '@web/contexts/workspace-ai-ref-context'
+import type { DevelopRecordWorkspaceAIRef } from '@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'
 import "@copilotkit/react-ui/styles.css"
 
 interface ProjectLayoutProps {
   children: React.ReactNode
+}
+
+function ProjectAIContext({
+  orgName,
+  projectSlug,
+  workspaceAiRef,
+}: {
+  orgName: string
+  projectSlug: string
+  workspaceAiRef: React.MutableRefObject<DevelopRecordWorkspaceAIRef | null>
+}) {
+  useCopilotReadable({
+    description: '当前 AI 上下文',
+    value: {
+      layer: 'project',
+      orgName,
+      projectSlug,
+      availableActions: [
+        'navigate_to_org',
+        'navigate_to_model',
+        'navigate_to_data',
+        'open_create_model',
+        'open_create_record',
+        'open_edit_record',
+        'highlight_records',
+        'set_filter',
+        'clear_filter',
+        'list_models',
+        'get_model_fields',
+        'query_model',
+        'nl2filter',
+      ],
+    },
+  })
+
+  return (
+    <ProjectCopilotActions
+      orgName={orgName}
+      projectSlug={projectSlug}
+      workspaceAiRef={workspaceAiRef}
+    />
+  )
 }
 
 /**
@@ -45,6 +91,9 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   
   // Lazy-load CopilotKit only when user requests it
   const [showCopilot, setShowCopilot] = useState(false)
+
+  // Ref for AI actions to access the workspace
+  const workspaceAiRef = useRef<DevelopRecordWorkspaceAIRef | null>(null)
 
   // Sync URL path to store when project changes
   useEffect(() => {
@@ -89,11 +138,22 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   // Conditionally wrap with CopilotKit when user activates it
   if (showCopilot) {
     return (
-      <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
-        {mainContent}
-      </CopilotWrapper>
+      <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
+        <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
+          <ProjectAIContext
+            orgName={orgName}
+            projectSlug={projectSlug}
+            workspaceAiRef={workspaceAiRef}
+          />
+          {mainContent}
+        </CopilotWrapper>
+      </WorkspaceAIRefContext.Provider>
     )
   }
 
-  return mainContent
+  return (
+    <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
+      {mainContent}
+    </WorkspaceAIRefContext.Provider>
+  )
 }
