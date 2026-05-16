@@ -26,22 +26,6 @@ services:
       retries: 3
       start_period: 40s
 
-  etcd:
-    image: bitnami/etcd:3.5
-    container_name: modelcraft-etcd
-    environment:
-      ALLOW_NONE_AUTHENTICATION: "yes"
-    volumes:
-      - etcd_data:/bitnami/etcd
-    networks:
-      - modelcraft-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "etcdctl", "endpoint", "health"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   apisix:
     image: apache/apisix:3.9.0-debian
     container_name: modelcraft-apisix
@@ -54,8 +38,6 @@ services:
       - ../../apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ../../apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
     depends_on:
-      etcd:
-        condition: service_healthy
       backend:
         condition: service_healthy
     networks:
@@ -176,7 +158,6 @@ volumes:
   mysql_data:
   # redis_data:  # 暂时屏蔽
   backend_logs:
-  etcd_data:
 
 networks:
   modelcraft-network:
