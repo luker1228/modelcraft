@@ -6,7 +6,7 @@ import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
 import { useOnboarding, type OnboardingPendingAction } from './OnboardingContext'
 
-export function OnboardingPanel({ orgName }: { orgName: string }) {
+export function OnboardingPanel({ orgName, className }: { orgName: string; className?: string }) {
   const {
     groups,
     projectSlug: storedProjectSlug,
@@ -47,10 +47,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
     if (!panelOpen) {
       return (
         <div
-          className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-white px-3 py-2.5 shadow-md transition-shadow hover:shadow-lg"
-          onClick={openPanel}
-          role="button"
-          aria-label="展开教程完成面板"
+        className={cn("fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-white px-3 py-2.5 shadow-md transition-shadow hover:shadow-lg", className)}
         >
           <div className="h-8 w-0.5 flex-shrink-0 rounded-full bg-[#10b981]" />
           <div className="flex flex-col gap-1">
@@ -65,7 +62,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
       )
     }
     return (
-      <div className="fixed bottom-6 right-6 z-50 w-[260px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+      <div className={cn("fixed bottom-6 right-6 z-50 w-[260px] overflow-hidden rounded-xl border border-border bg-white shadow-lg", className)}>
         <div className="border-b border-border px-3.5 py-3">
           <div className="mb-2 flex items-center justify-between">
             <span className="text-[12px] font-semibold text-foreground">快速开始</span>
@@ -119,10 +116,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
   if (!panelOpen) {
     return (
       <div
-        className="fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-white px-3 py-2.5 shadow-md transition-shadow hover:shadow-lg"
-        onClick={openPanel}
-        role="button"
-        aria-label="展开快速开始面板"
+        className={cn("fixed bottom-6 right-6 z-50 flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-white px-3 py-2.5 shadow-md transition-shadow hover:shadow-lg", className)}
       >
         <div className="h-8 w-0.5 flex-shrink-0 rounded-full bg-primary" />
         <div className="flex flex-col gap-1">
@@ -151,7 +145,7 @@ export function OnboardingPanel({ orgName }: { orgName: string }) {
 
   // ── Expanded panel ─────────────────────────────────────────────────────────
   return (
-    <div className="fixed bottom-6 right-6 z-50 w-[260px] overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+    <div className={cn("fixed bottom-6 right-6 z-50 w-[260px] overflow-hidden rounded-xl border border-border bg-white shadow-lg", className)}>
 
       {/* Header */}
       <div className="border-b border-border px-3.5 py-3">
