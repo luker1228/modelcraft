@@ -8,7 +8,29 @@ import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 import { OnboardingProvider } from "@shared/onboarding/OnboardingContext";
 import { OnboardingPanel } from "@shared/onboarding/OnboardingPanel";
 import { AIAssistantButton, CopilotWrapper } from "@web/components/features/copilot/CopilotProvider";
+import { useCopilotReadable } from '@copilotkit/react-core'
+import { OrgCopilotActions } from '@web/components/features/copilot/OrgCopilotActions'
 import "@copilotkit/react-ui/styles.css"
+
+function OrgAIContext({ orgName }: { orgName: string }) {
+  useCopilotReadable({
+    description: '当前 AI 上下文',
+    value: {
+      layer: 'org',
+      orgName,
+      availableActions: [
+        'navigate_to_project',
+        'navigate_to_settings',
+        'open_create_project',
+        'highlight_project',
+        'list_projects',
+        'nl2filter',
+      ],
+    },
+  })
+
+  return <OrgCopilotActions orgName={orgName} />
+}
 
 export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const params = useParams();
@@ -101,6 +123,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   if (showCopilot) {
     return (
       <CopilotWrapper selectedProject={null} orgName={orgName}>
+        <OrgAIContext orgName={orgName} />
         {content}
       </CopilotWrapper>
     );
