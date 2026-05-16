@@ -1,0 +1,135 @@
+# Permission Management Types
+
+type PermissionRole {
+  id: Int!
+  name: String!
+  description: String
+  isSystem: Boolean!
+  orgName: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PermissionDef {
+  obj: String!
+  act: String!
+}
+
+type UserRoleAssignment {
+  id: Int!
+  userId: String!
+  roleId: Int!
+  orgName: String!
+  createdAt: Time!
+}
+
+# Permission Management Queries
+extend type Query {
+  # List all roles for an organization
+  permissionRoles(orgName: String!, includeSystem: Boolean): [PermissionRole!]! @hasPermission(action: "role:read")
+
+  # Get a specific role by ID
+  permissionRole(id: Int!): PermissionRole @hasPermission(action: "role:read")
+
+  # List user role assignments
+  userRoleAssignments(userId: String!, orgName: String!): [UserRoleAssignment!]! @hasPermission(action: "role:read")
+
+  # List permissions for a role
+  rolePermissionsList(roleId: Int!): [PermissionDef!]! @hasPermission(action: "role:read")
+}
+
+# Permission Management Mutations
+extend type Mutation {
+  # Create a custom role
+  createCustomRole(input: CreateCustomRoleInput!): CreateCustomRolePayload! @hasPermission(action: "role:manage")
+
+  # Update a role
+  updatePermissionRole(roleId: Int!, input: UpdateRoleInput!): UpdatePermissionRolePayload! @hasPermission(action: "role:manage")
+
+  # Delete a role
+  deletePermissionRole(roleId: Int!): DeletePermissionRolePayload! @hasPermission(action: "role:manage")
+
+  # Add permission to role
+  addPermissionToRole(roleId: Int!, obj: String!, act: String!): AddRolePermissionPayload! @hasPermission(action: "role:manage")
+
+  # Remove permission from role
+  removePermissionFromRole(roleId: Int!, obj: String!, act: String!): RemoveRolePermissionPayload! @hasPermission(action: "role:manage")
+
+  # Assign role to user
+  assignRoleToUser(userId: String!, roleId: Int!, orgName: String!): AssignRolePayload! @hasPermission(action: "role:manage")
+
+  # Revoke role from user
+  revokeRoleFromUser(userId: String!, roleId: Int!, orgName: String!): RevokeRolePayload! @hasPermission(action: "role:manage")
+}
+
+# Input Types
+input CreateCustomRoleInput {
+  name: String!
+  description: String
+  orgName: String!
+}
+
+input UpdateRoleInput {
+  name: String
+  description: String
+}
+
+# Payload Types
+type CreateCustomRolePayload {
+  role: PermissionRole
+  error: CreateCustomRoleError
+}
+
+type UpdatePermissionRolePayload {
+  role: PermissionRole
+  error: UpdatePermissionRoleError
+}
+
+type DeletePermissionRolePayload {
+  success: Boolean!
+  error: DeletePermissionRoleError
+}
+
+type AddRolePermissionPayload {
+  success: Boolean!
+  error: RolePermissionError
+}
+
+type RemoveRolePermissionPayload {
+  success: Boolean!
+  error: RolePermissionError
+}
+
+type AssignRolePayload {
+  userRole: UserRoleAssignment
+  error: AssignRoleError
+}
+
+type RevokeRolePayload {
+  success: Boolean!
+  error: RevokeRoleError
+}
+
+# Error Types
+interface PermissionManagementError {
+  message: String!
+  suggestion: String
+}
+
+type PermissionRoleAlreadyExists implements PermissionManagementError {
+  message: String!
+  suggestion: String
+}
+
+type PermissionSystemRoleCannotBeModified implements PermissionManagementError {
+  message: String!
+  suggestion: String
+}
+
+# Error Unions
+union CreateCustomRoleError = PermissionRoleAlreadyExists | InvalidInput
+union UpdatePermissionRoleError = ResourceNotFound | PermissionSystemRoleCannotBeModified | PermissionRoleAlreadyExists | InvalidInput
+union DeletePermissionRoleError = ResourceNotFound | PermissionSystemRoleCannotBeModified
+union RolePermissionError = ResourceNotFound | PermissionSystemRoleCannotBeModified | InvalidInput
+union AssignRoleError = ResourceNotFound | InvalidInput
+union RevokeRoleError = ResourceNotFound

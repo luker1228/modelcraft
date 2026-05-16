@@ -1,0 +1,74 @@
+# Profile query/mutation types and payloads
+
+# ============================================
+# Profile Error Types
+# ============================================
+
+union GetMyUserProfileError = ResourceNotFound
+union UpdateMyProfileError = ResourceNotFound | InvalidInput
+
+# ============================================
+# Profile Domain Types
+# ============================================
+
+enum UserStatus {
+  REGISTERED
+  ACTIVE
+  SUSPENDED
+}
+
+type Profile implements Node {
+  id: ID!
+  userId: ID!
+  nickname: String!
+  avatarUrl: String
+  bio: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type User implements Node {
+  id: ID!
+  phone: String!
+  userName: String!
+  status: UserStatus!
+  createdAt: String!
+  updatedAt: String!
+  profile: Profile!
+}
+
+# ============================================
+# Payload Types
+# ============================================
+
+type GetMyUserProfilePayload {
+  user: User
+  error: GetMyUserProfileError
+}
+
+type UpdateMyProfilePayload {
+  profile: Profile
+  error: UpdateMyProfileError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input UpdateMyProfileInput {
+  nickname: String
+  avatarUrl: String
+  bio: String
+}
+
+# ============================================
+# Queries & Mutations
+# ============================================
+
+extend type Query {
+  myUserProfile: GetMyUserProfilePayload! @hasPermission(action: "user:read")
+}
+
+extend type Mutation {
+  updateMyProfile(input: UpdateMyProfileInput!): UpdateMyProfilePayload! @hasPermission(action: "profile:update")
+}

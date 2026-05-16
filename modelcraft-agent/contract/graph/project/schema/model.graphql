@@ -1,0 +1,305 @@
+# Model-related types, inputs, queries and mutations
+
+# ============================================
+# Model Error Types
+# ============================================
+
+# Model-specific error types
+type ModelAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type CannotDeleteDeployedModel implements Error {
+  message: String!
+  suggestion: String
+}
+
+type ModelTableAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+# Error unions for each mutation and query
+union GetModelError = ResourceNotFound | InvalidInput
+union CreateModelError = ModelAlreadyExists | InvalidInput | ResourceNotFound | ModelTableAlreadyExists
+union UpdateModelError = ResourceNotFound | InvalidInput
+union DeleteModelError = ResourceNotFound | CannotDeleteDeployedModel
+
+# ============================================
+# Model Payload Types
+# ============================================
+
+type GetModelPayload {
+  model: Model
+  error: GetModelError
+}
+
+type CreateModelPayload {
+  model: Model
+  error: CreateModelError
+}
+
+type UpdateModelMetaPayload {
+  success: Boolean!
+  model: Model
+  error: UpdateModelError
+}
+
+type DeleteModelPayload {
+  success: Boolean!
+  error: DeleteModelError
+}
+
+# Model type implementing Node interface
+type Model implements Node {
+  id: ID!
+  projectSlug: String!  # Project slug (orgName from context)
+  name: String!
+  title: String!
+  description: String!
+  databaseName: String!
+  storageType: String!
+  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入(托管)
+  displayField: String  # 用于 runtime _label 解析的字段名
+  fields: [Field!]!
+  group: ModelGroup!
+  dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
+  jsonSchema: String  # 模型的 JSON Schema（按需计算，仅当请求该字段时计算）
+  createdAt: String!
+  updatedAt: String!
+
+  """
+  RLS 策略配置（无 owner 字段时返回 null）
+  """
+  rlsPolicy: ModelRLSPolicy
+}
+
+# DbTableStatus - 实际表状态
+enum DbTableStatus {
+  TABLE_EXISTS         # 表存在且列信息查询成功
+  TABLE_MISSING        # 已连接数据库但表不存在
+  CLUSTER_UNREACHABLE  # 无法连接到集群或数据库
+}
+
+# Model list result for forward-only pagination
+type ModelListResult {
+  items: [Model!]!
+  hasNextPage: Boolean!
+}
+
+# Model input types
+input ModelQueryInput {
+  databaseName: String!
+  pageIndex: Int   # 从 1 开始，默认 1
+  pageSize: Int    # 默认 20
+  search: String
+}
+
+input CreateModelInput {
+  name: String!
+  title: String!
+  description: String
+  databaseName: String!
+  displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
+}
+
+input UpdateModelMetaInput {
+  title: String
+  description: String
+  displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
+}
+
+input ImportModelInput {
+  databaseName: String!
+  tableName: String!
+}
+
+type ImportModelPayload {
+  modelId: String!
+  modelName: String!
+  fieldsCount: Int64!
+  skippedFields: [String!]!
+}
+
+# JSON Schema export type
+type ModelJsonSchema {
+  modelId: ID!
+  modelName: String!
+  schema: String!
+}
+
+# Schema-based model operations
+input CreateModelFromSchemaInput {
+  schema: String!
+  databaseName: String!
+}
+
+type CreateModelFromSchemaPayload {
+  model: Model
+}
+
+input SyncModelSchemaInput {
+  id: ID!
+  schema: String!
+  deleteExtraFields: Boolean
+}
+
+type SyncModelSchemaPayload {
+  model: Model
+  fieldsAdded: Int64!
+  fieldsSkipped: [String!]!
+  fieldsDeleted: Int64!
+  deletedFields: [String!]!
+}
+
+# Repair feature types
+enum RepairMode {
+  DRY_RUN
+  ADDITIVE
+  FULL_SYNC
+}
+
+enum HealthStatus {
+  HEALTHY
+  NEEDS_REPAIR
+  BROKEN
+}
+
+enum SchemaIssueType {
+  TABLE_MISSING
+  FIELD_MISSING
+  FIELD_TYPE_MISMATCH
+  FIELD_CONSTRAINT_MISMATCH
+  DATABASE_MISSING
+  CLUSTER_NOT_FOUND
+  FIELD_HAS_DEPENDENCIES
+}
+
+type SchemaIssue {
+  type: SchemaIssueType!
+  description: String!
+  tableName: String!
+  fieldName: String
+  details: String
+}
+
+type RepairModelPayload {
+  model: Model
+  changesApplied: Boolean!
+  detectedIssues: [SchemaIssue!]!
+  executedDDL: [String!]!
+  healthStatusBefore: HealthStatus!
+  healthStatusAfter: HealthStatus!
+  extraFieldsRemoved: [String!]!
+  fieldsAdded: [String!]!
+}
+
+input RepairModelInput {
+  modelId: ID!
+  mode: RepairMode!
+  deleteExtraFields: Boolean = false
+}
+
+# ============================================
+# ModelGroup Types
+# ============================================
+
+# ModelGroup represents a named collection of models within a project.
+# The virtual ungrouped group (id: "__ungrouped__") is always present and cannot be modified.
+type ModelGroup {
+  id: ID!
+  name: String!
+  isVirtual: Boolean!
+  displayOrder: String!
+  models: [Model!]!
+}
+
+# ModelGroup error types
+type GroupAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type InvalidGroupName implements Error {
+  message: String!
+  suggestion: String
+}
+
+# ModelGroup error unions
+union CreateGroupError = GroupAlreadyExists | InvalidGroupName
+union RenameGroupError = GroupAlreadyExists | InvalidGroupName | ResourceNotFound
+union DeleteGroupError = ResourceNotFound
+union ReorderGroupError = ResourceNotFound
+union MoveModelToGroupError = ResourceNotFound
+
+# ModelGroup payload types
+type CreateGroupPayload {
+  group: ModelGroup
+  error: CreateGroupError
+}
+
+type RenameGroupPayload {
+  group: ModelGroup
+  error: RenameGroupError
+}
+
+type DeleteGroupPayload {
+  success: Boolean!
+  error: DeleteGroupError
+}
+
+type ReorderGroupPayload {
+  success: Boolean!
+  error: ReorderGroupError
+}
+
+type MoveModelToGroupPayload {
+  success: Boolean!
+  error: MoveModelToGroupError
+}
+
+# ModelGroup input types
+input CreateGroupInput {
+  name: String!
+}
+
+input RenameGroupInput {
+  groupId: ID!
+  newName: String!
+}
+
+input ReorderGroupInput {
+  groupId: ID!
+  afterGroupId: ID
+}
+
+input MoveModelToGroupInput {
+  modelId: ID!
+  groupId: ID
+}
+
+# Model queries
+extend type Query {
+  model(id: ID!, withActualSchema: Boolean): GetModelPayload! @hasPermission(action: "model:read", allowEndUser: true)
+  models(input: ModelQueryInput): ModelListResult! @hasPermission(action: "model:read", allowEndUser: true)  # offset/limit 向后分页，items 直接返回 Model 列表
+  modelByName(name: String!, databaseName: String!): GetModelPayload! @hasPermission(action: "model:read")
+  modelJsonSchema(id: ID!): ModelJsonSchema @hasPermission(action: "model:read")
+  modelGroups: [ModelGroup!]! @hasPermission(action: "model:read")
+}
+
+# Model mutations
+extend type Mutation {
+  createModel(input: CreateModelInput!): CreateModelPayload! @hasPermission(action: "model:create")
+  updateModelMeta(id: ID!, input: UpdateModelMetaInput!): UpdateModelMetaPayload! @hasPermission(action: "model:update")
+  deleteModel(id: ID!, dropTable: Boolean = false): DeleteModelPayload! @hasPermission(action: "model:delete")
+  importModel(input: ImportModelInput!): ImportModelPayload! @hasPermission(action: "model:create")
+  createModelFromSchema(input: CreateModelFromSchemaInput!): CreateModelFromSchemaPayload! @hasPermission(action: "model:create")
+  syncModelSchema(input: SyncModelSchemaInput!): SyncModelSchemaPayload! @hasPermission(action: "model:update")
+  repairModel(input: RepairModelInput!): RepairModelPayload! @hasPermission(action: "model:update")
+  createGroup(input: CreateGroupInput!): CreateGroupPayload! @hasPermission(action: "model:create")
+  renameGroup(input: RenameGroupInput!): RenameGroupPayload! @hasPermission(action: "model:update")
+  deleteGroup(groupId: ID!): DeleteGroupPayload! @hasPermission(action: "model:delete")
+  reorderGroup(input: ReorderGroupInput!): ReorderGroupPayload! @hasPermission(action: "model:update")
+  moveModelToGroup(input: MoveModelToGroupInput!): MoveModelToGroupPayload! @hasPermission(action: "model:update")
+}

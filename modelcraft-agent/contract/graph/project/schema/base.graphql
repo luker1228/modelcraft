@@ -1,0 +1,58 @@
+# Base types and interfaces
+scalar Int64
+scalar Date
+scalar Time
+
+# Permission directive for operation-level authorization
+directive @hasPermission(action: String!, allowEndUser: Boolean! = false) on FIELD_DEFINITION
+
+# Node interface for Relay specification
+interface Node {
+  id: ID!
+}
+
+# Unified not-found error type replacing all *NotFound variants
+enum ResourceType {
+  PROJECT
+  CLUSTER
+  MODEL
+  ENUM
+  GROUP
+  USER
+  PROFILE
+  ORGANIZATION
+  ROLE
+  END_USER
+  END_USER_PERMISSION
+  END_USER_PERMISSION_BUNDLE
+  END_USER_PERMISSION_BUNDLE_SNAPSHOT
+  END_USER_ROLE
+  END_USER_IN_PROJECT
+  PERMISSION_ROLE
+  PERMISSION_USER
+  UNKNOWN
+}
+
+type ResourceNotFound implements Error {
+  message: String!
+  resourceType: ResourceType!
+}
+
+# Pagination types
+type PageInfo {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+# Common queries
+type Query {
+  hello: String!
+  ping: String!
+  node(id: ID!): Node
+}
+
+type Mutation {
+  pong: String!
+}

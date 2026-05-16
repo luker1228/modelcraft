@@ -1,0 +1,89 @@
+# End-User related types, inputs and mutations
+#
+# Dependencies (defined in other files, referenced here):
+#   - interface Error           → cluster.graphql
+#   - type InvalidInput         → field.graphql
+#   - type ResourceNotFound     → base.graphql
+#   - scalar Time               → base.graphql
+#   - interface Node            → base.graphql
+#   - type PageInfo             → base.graphql
+
+# ============================================
+# End User Error Types (new types only)
+# ============================================
+
+type EndUserAlreadyExists implements Error {
+  message: String!
+}
+
+type EndUserPasswordTooWeak implements Error {
+  message: String!
+  suggestion: String
+}
+
+# ClusterNotFound is now ResourceNotFound with resourceType=CLUSTER
+union CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | ResourceNotFound | InvalidInput
+union UpdateEndUserError = ResourceNotFound | InvalidInput
+union DeleteEndUserError = ResourceNotFound
+
+# InitPrivateDBError indicates private DB initialization failures.
+type InitPrivateDBError implements Error {
+  message: String!
+}
+
+union InitPrivateDBPayloadError = InitPrivateDBError | ResourceNotFound
+
+# ============================================
+# End User Types
+# ============================================
+
+type EndUser implements Node {
+  id: ID!
+  username: String!
+  isForbidden: Boolean!
+  createdBy: String!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+# ============================================
+# Payload Types
+# ============================================
+
+type CreateEndUserPayload {
+  endUser: EndUser
+  error: CreateEndUserError
+}
+
+type UpdateEndUserStatusPayload {
+  endUser: EndUser
+  error: UpdateEndUserError
+}
+
+type DeleteEndUserPayload {
+  success: Boolean!
+  error: DeleteEndUserError
+}
+
+type InitPrivateDBPayload {
+  success: Boolean!
+  error: InitPrivateDBPayloadError
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input CreateEndUserInput {
+  username: String!   # 3–64 chars, ^[a-zA-Z0-9_-]+$
+  password: String!   # at least 8 chars, must contain letter + digit
+}
+
+input UpdateEndUserStatusInput {
+  userId: ID!
+  isForbidden: Boolean!
+}
+
+input DeleteEndUserInput {
+  userId: ID!
+}

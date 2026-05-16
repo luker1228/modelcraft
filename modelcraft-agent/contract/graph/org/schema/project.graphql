@@ -1,0 +1,354 @@
+# Project and DatabaseCluster related types, inputs, queries and mutations
+
+# ============================================
+# Error interface (shared)
+# ============================================
+
+# Error interface for typed error handling
+interface Error {
+  message: String!
+}
+
+# ============================================
+# Project Error Types
+# ============================================
+
+# Project-specific error types
+type ProjectAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type CannotDeleteDefaultProject implements Error {
+  message: String!
+}
+
+# Error unions for each mutation and query
+union GetProjectError = ResourceNotFound
+union CreateProjectError = ProjectAlreadyExists | InvalidInput | DatabaseConnectionFailed
+union UpdateProjectError = ResourceNotFound | InvalidInput
+union DeleteProjectError = ResourceNotFound | CannotDeleteDefaultProject
+
+# ============================================
+# Cluster Error Types
+# ============================================
+
+# Cluster-specific error types
+type ClusterAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type ClusterAlreadyExistsForProject implements Error {
+  message: String!
+  suggestion: String
+}
+
+type DatabaseConnectionFailed implements Error {
+  message: String!
+  suggestion: String
+}
+
+# Error unions for cluster operations
+union GetClusterError = ResourceNotFound
+union UpdateClusterError = ResourceNotFound | InvalidInput | DatabaseConnectionFailed
+union DeleteClusterError = ResourceNotFound
+union TestConnectionError = ResourceNotFound | DatabaseConnectionFailed
+
+# ============================================
+# Cluster Payload Types
+# ============================================
+
+type GetClusterPayload {
+  cluster: DatabaseCluster
+  error: GetClusterError
+}
+
+type UpdateClusterPayload {
+  cluster: DatabaseCluster
+  error: UpdateClusterError
+}
+
+type DeleteClusterPayload {
+  success: Boolean!
+  error: DeleteClusterError
+}
+
+type TestConnectionPayload {
+  success: Boolean!
+  connectionTime: Float # Connection time in milliseconds
+  error: TestConnectionError
+}
+
+# ============================================
+# Database Cluster Types
+# ============================================
+
+# Database connection information type
+type DatabaseConnectionInfo {
+  host: String!
+  port: Int64!
+  username: String!
+  password: String! # Will be masked in responses
+}
+
+
+# DatabaseCluster type implementing Node interface
+type DatabaseCluster implements Node {
+  id: ID!
+  projectSlug: String! # Project slug (orgName from context)
+  title: String!
+  description: String!
+  connectionInfo: DatabaseConnectionInfo!
+  connectionTimeout: Int!
+  status: ClusterStatus!
+  version: Int!
+  createdAt: String!
+  updatedAt: String!
+  deletedAt: String
+}
+
+# Cluster status enum
+enum ClusterStatus {
+  ACTIVE
+  DISABLED
+}
+
+# ============================================
+# Cluster Input Types
+# ============================================
+
+# Database connection input type
+input DatabaseConnectionInput {
+  host: String!
+  port: Int!
+  username: String!
+  password: String!
+  connectionTimeout: Int
+}
+
+# Cluster connection input (used when creating a project)
+input ClusterConnectionInput {
+  title: String!
+  description: String
+  connectionInfo: DatabaseConnectionInput!
+}
+
+# Update cluster connection input (used when updating project's cluster)
+input UpdateClusterConnectionInput {
+  title: String
+  description: String
+  connectionInfo: DatabaseConnectionInput
+  skipConnectionTest: Boolean # Default false; set true to skip connection validation
+}
+
+
+# Test database connection input type (supports both existing cluster and direct connection info)
+input TestDatabaseConnectionInput {
+  projectSlug: String
+  connectionInfo: DatabaseConnectionInput # Optional: test direct connection info
+}
+
+# ============================================
+# ProjectStatus Enum
+# ============================================
+
+# ProjectStatus enum
+enum ProjectStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+# ============================================
+# Project Types
+# ============================================
+
+# Project type implementing Node interface
+type Project implements Node {
+  id: ID! # Same as slug for backward compatibility
+  slug: String!
+  title: String!
+  description: String!
+  status: ProjectStatus!
+  orgName: String! # Multi-tenant organization identifier
+  createdAt: String!
+  updatedAt: String!
+}
+
+# Project connection for pagination
+type ProjectConnection {
+  edges: [ProjectEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+# Project edge for pagination
+type ProjectEdge {
+  node: Project!
+  cursor: String!
+}
+
+# ============================================
+# Project Input Types
+# ============================================
+
+input CreateProjectInput {
+  slug: String!
+  title: String!
+  description: String
+  clusterInput: ClusterConnectionInput! # Required: cluster must be created with project
+  skipConnectionTest: Boolean # Default false; set true to skip connection validation
+}
+
+input UpdateProjectInput {
+  slug: String!
+  title: String
+  description: String
+}
+
+input ListProjectsInput {
+  status: ProjectStatus
+}
+
+# ============================================
+# Project Payload Types
+# ============================================
+
+type GetProjectPayload {
+  project: Project
+  error: GetProjectError
+}
+
+type CreateProjectPayload {
+  project: Project
+  error: CreateProjectError
+}
+
+type UpdateProjectPayload {
+  project: Project
+  error: UpdateProjectError
+}
+
+type DeleteProjectPayload {
+  success: Boolean!
+  error: DeleteProjectError
+}
+
+# ============================================
+# Queries
+# ============================================
+
+extend type Query {
+  project(slug: String!): GetProjectPayload! @hasPermission(action: "project:read")
+  projects(input: ListProjectsInput): [Project!]! @hasPermission(action: "project:read")
+  databaseCluster(projectSlug: String!): GetClusterPayload! @hasPermission(action: "project:read")
+}
+
+# ============================================
+# Mutations
+# ============================================
+
+# ============================================
+# Project AuthSchema Types (RLS)
+# ============================================
+
+type ProjectAuthSchema {
+  """
+  认证变量列表（不含内置 uid）
+  """
+  variables: [AuthVariable!]!
+}
+
+# AuthVariable type definition (mirrors project domain)
+type AuthVariable {
+  """
+  变量名（如 "tenant_id"）
+  """
+  name: String!
+
+  """
+  JWT 来源路径（如 "jwt.tenant_id"）
+  """
+  source: String!
+
+  """
+  变量类型
+  """
+  type: AuthVariableType!
+}
+
+enum AuthVariableType {
+  UUID
+  STRING
+  INTEGER
+}
+
+# Extend Project type to include authSchema
+extend type Project {
+  """
+  认证变量配置（用于 RLS 表达式中的 _auth 引用）
+  """
+  authSchema: ProjectAuthSchema!
+}
+
+# ----------------------------------------
+# Project AuthSchema Error Types
+# ----------------------------------------
+
+union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
+
+# ----------------------------------------
+# Project AuthSchema Payload Types
+# ----------------------------------------
+
+type SetProjectAuthSchemaPayload {
+  authSchema: ProjectAuthSchema
+  error: SetProjectAuthSchemaError
+}
+
+# ----------------------------------------
+# Project AuthSchema Input Types
+# ----------------------------------------
+
+input AuthVariableInput {
+  """
+  变量名
+  """
+  name: String!
+
+  """
+  JWT 来源路径
+  """
+  source: String!
+
+  """
+  变量类型
+  """
+  type: AuthVariableType!
+}
+
+input SetProjectAuthSchemaInput {
+  """
+  项目 slug
+  """
+  projectSlug: String!
+
+  """
+  认证变量列表（uid 内置，无需声明）
+  """
+  variables: [AuthVariableInput!]!
+}
+
+extend type Mutation {
+  createProject(input: CreateProjectInput!): CreateProjectPayload! @hasPermission(action: "project:create")
+  updateProject(input: UpdateProjectInput!): UpdateProjectPayload! @hasPermission(action: "project:update")
+  deleteProject(slug: String!): DeleteProjectPayload! @hasPermission(action: "project:delete")
+  updateProjectCluster(projectSlug: String!, input: UpdateClusterConnectionInput!): UpdateClusterPayload! @hasPermission(action: "project:update")
+  testDatabaseConnection(input: TestDatabaseConnectionInput!): TestConnectionPayload! @hasPermission(action: "project:read")
+
+  """
+  设置 Project 认证变量配置
+  用于声明扩展 JWT 变量（如 tenant_id、role）
+  """
+  setProjectAuthSchema(input: SetProjectAuthSchemaInput!): SetProjectAuthSchemaPayload! @hasPermission(action: "project:update")
+}

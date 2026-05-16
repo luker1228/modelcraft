@@ -1,0 +1,217 @@
+# Field-related types, inputs and mutations
+
+# SchemaType enum - 基础类型，决定查询操作（仅查询返回，输入时自动推导）
+enum SchemaType {
+  STRING
+  NUMBER
+  BOOLEAN
+  ARRAY
+  OBJECT
+}
+
+# FormatType enum - 格式类型，影响MySQL映射
+enum FormatType {
+  # 基于STRING
+  STRING
+  UUID
+  DATE
+  DATETIME
+  TIME
+
+  # 基于NUMBER
+  NUMBER
+  INTEGER
+  DECIMAL
+
+  # 基于BOOLEAN
+  BOOLEAN
+  RELATION
+
+  # 枚举类型
+  ENUM
+
+  # RLS: EndUserRef 类型 - 指向当前项目 EndUser 的 ID
+  END_USER_REF
+}
+
+# 通用输入错误（跨模块复用）
+type InvalidInput implements Error {
+  message: String!
+  suggestion: String
+}
+
+# model-enum 专项错误
+type FieldFormatImmutable implements Error {
+  message: String!
+  code: String!
+}
+
+type FieldReferenceInUse implements Error {
+  message: String!
+  code: String!
+  suggestion: String
+}
+
+# Field type
+type Field {
+  name: String!
+  title: String!
+
+  # 两层类型定义
+  schemaType: SchemaType!
+  format: FormatType!
+  storageHint: String!
+
+  nonNull: Boolean!
+  required: Boolean!
+  isUnique: Boolean!
+  isPrimary: Boolean!
+  isDeprecated: Boolean!
+  isArray: Boolean!
+  description: String
+  validationConfig: ValidationConfig
+  metadata: String
+  relateFkId: String
+  belongsToFkId: String
+
+  enum: EnumDefinition
+  enumName: String
+
+  dbColumn: DbColumnInfo
+  createdAt: String!
+  updatedAt: String!
+}
+
+# DbColumnInfo - 实际数据库列信息
+type DbColumnInfo {
+  columnType: String!
+  columnLength: Int64
+  unique: Boolean!
+  nonNull: Boolean!
+  isPrimaryKey: Boolean!
+  defaultValue: String
+  constraints: [ActualConstraintType!]!
+  foreignKey: ActualForeignKey
+  conflicts: [FieldConflict!]!
+}
+
+# ActualConstraintType - 实际约束类型
+enum ActualConstraintType {
+  UNIQUE
+  NOT_NULL
+}
+
+# ActualForeignKey - 实际外键信息
+type ActualForeignKey {
+  referencedTable: String!
+  referencedColumn: String!
+  constraintName: String!
+}
+
+# FieldConflict - 字段冲突信息
+type FieldConflict {
+  aspect: FieldConflictAspect!
+  expected: String!
+  actual: String!
+}
+
+# FieldConflictAspect - 字段冲突方面
+enum FieldConflictAspect {
+  PRIMARY_MISMATCH
+  UNIQUE_MISMATCH
+  NOT_NULL_MISMATCH
+}
+
+# ValidationConfig types
+type ValidationConfig {
+  minLength: Int64
+  maxLength: Int64
+  pattern: String
+  minimum: Float
+  maximum: Float
+}
+
+# ValidationConfig Input
+input ValidationConfigInput {
+  minLength: Int64
+  maxLength: Int64
+  pattern: String
+  minimum: Float
+  maximum: Float
+}
+
+input AddFieldInput {
+  name: String!
+  title: String!
+  format: FormatType!
+  storageHint: String
+  nonNull: Boolean = false
+  required: Boolean = false
+  isUnique: Boolean = false
+  isArray: Boolean = false
+  description: String
+  validationConfig: ValidationConfigInput
+  relateFkId: String
+
+  # model-enum 扁平化参数
+  relateEnumName: String
+}
+
+input UpdateFieldInput {
+  title: String
+  description: String
+  validationConfig: ValidationConfigInput
+}
+
+# Field queries
+extend type Query {
+  fields(modelID: ID!): [Field!]! @hasPermission(action: "model:read")
+}
+
+union AddFieldsError = InvalidInput
+union UpdateFieldError = InvalidInput | FieldFormatImmutable
+union RemoveFieldError = InvalidInput | FieldReferenceInUse
+
+type AddFieldItemResult {
+  name: String!
+  success: Boolean!
+  error: AddFieldsError
+}
+
+type AddFieldsPayload {
+  model: Model
+  results: [AddFieldItemResult!]!
+  error: AddFieldsError
+}
+
+type UpdateFieldPayload {
+  model: Model
+  error: UpdateFieldError
+}
+
+type RemoveFieldPayload {
+  model: Model
+  error: RemoveFieldError
+}
+
+# Field mutations
+extend type Mutation {
+  addFields(modelID: ID!, input: [AddFieldInput!]!): AddFieldsPayload! @hasPermission(action: "model:update")
+  updateField(modelID: ID!, fieldName: String!, input: UpdateFieldInput!): UpdateFieldPayload! @hasPermission(action: "model:update")
+  removeField(modelID: ID!, fieldName: String!): RemoveFieldPayload! @hasPermission(action: "model:update")
+
+  """
+  将字段标记为废弃。
+  废弃的字段仍然存在于数据库中，但标识为不推荐使用。
+  若字段已处于废弃状态，幂等返回成功。
+  状态转换：ACTIVE → DEPRECATED
+  """
+  deprecateField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
+
+  """
+  解除字段的废弃状态，恢复为正常可用。
+  若字段未处于废弃状态，幂等返回成功。
+  状态转换：DEPRECATED → ACTIVE
+  """
+  undeprecateField(modelID: ID!, fieldName: String!): Model @hasPermission(action: "model:update")
+}

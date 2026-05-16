@@ -1,0 +1,84 @@
+# Logical Foreign Key - types, inputs, mutations and queries
+
+enum FKDirection {
+  NORMAL
+  REVERSE
+}
+
+enum FKCreateMode {
+  BIDIRECTIONAL
+  UNIDIRECTIONAL
+}
+
+type LogicalForeignKey {
+  id: ID!
+  pairId: String!
+  direction: FKDirection!
+  modelId: String!
+  modelName: String!
+  refModelId: String!
+  refModelName: String!
+  sourceFields: [String!]!
+  targetFields: [String!]!
+  isDeletable: Boolean!
+}
+
+input CreateLogicalForeignKeyInput {
+  modelId: ID!
+  refModelId: ID!
+  sourceFields: [String!]!
+  targetFields: [String!]!
+  createMode: FKCreateMode = BIDIRECTIONAL
+}
+
+type FKColumnsNotFoundError {
+  message: String!
+}
+
+type FKPairHasRelateFieldsError {
+  message: String!
+}
+
+type FKNotFoundError {
+  message: String!
+}
+
+type FKFieldCountMismatchError {
+  message: String!
+}
+
+type FKNotDeletableError {
+  message: String!
+}
+
+union CreateLogicalForeignKeyResult =
+    LogicalForeignKey
+  | FKColumnsNotFoundError
+  | FKFieldCountMismatchError
+
+type CreateLogicalForeignKeyPayload {
+  result: CreateLogicalForeignKeyResult!
+}
+
+union DeleteLogicalForeignKeyResult =
+    DeleteLogicalForeignKeySuccess
+  | FKNotFoundError
+  | FKPairHasRelateFieldsError
+  | FKNotDeletableError
+
+type DeleteLogicalForeignKeySuccess {
+  pairId: String!
+}
+
+type DeleteLogicalForeignKeyPayload {
+  result: DeleteLogicalForeignKeyResult!
+}
+
+extend type Query {
+  logicalForeignKeys(modelId: ID!): [LogicalForeignKey!]! @hasPermission(action: "model:read")
+}
+
+extend type Mutation {
+  createLogicalForeignKey(input: CreateLogicalForeignKeyInput!): CreateLogicalForeignKeyPayload! @hasPermission(action: "model:update")
+  deleteLogicalForeignKey(pairId: String!): DeleteLogicalForeignKeyPayload! @hasPermission(action: "model:update")
+}

@@ -1,0 +1,330 @@
+# ============================================
+# RLS Schema for ModelCraft
+# File: api/graph/project/schema/rls.graphql
+# ============================================
+
+# ----------------------------------------
+# Enums
+# ----------------------------------------
+
+enum RLSPreset {
+  """
+  默认策略：读写自己
+  五件套均为 {"owner":{"_eq":{"_auth":"uid"}}}
+  """
+  READ_WRITE_OWNER
+
+  """
+  读取全部，写自己
+  selectPredicate=true，其余为 OWNER_EQUALS_USER
+  """
+  READ_ALL_WRITE_OWNER
+
+  """
+  只读全部
+  selectPredicate=true，其余为 false
+  """
+  READ_ALL
+
+  """
+  读写全部（⚠️ 高危策略）
+  五件套均为 true
+  """
+  READ_WRITE_ALL
+
+  """
+  无访问权限
+  五件套均为 false
+  """
+  NO_ACCESS
+}
+
+enum AuthVariableType {
+  UUID
+  STRING
+  INTEGER
+}
+
+enum RLSExprType {
+  SELECT_PREDICATE
+  INSERT_CHECK
+  UPDATE_PREDICATE
+  UPDATE_CHECK
+  DELETE_PREDICATE
+}
+
+# ----------------------------------------
+# Types
+# ----------------------------------------
+
+type ModelRLSPolicy {
+  """
+  所属模型 ID
+  """
+  modelId: ID!
+
+  """
+  SELECT USING 谓词（JSON 字符串）
+  """
+  selectPredicate: String!
+
+  """
+  INSERT WITH CHECK 谓词（JSON 字符串）
+  """
+  insertCheck: String!
+
+  """
+  UPDATE USING 谓词（JSON 字符串）
+  """
+  updatePredicate: String!
+
+  """
+  UPDATE WITH CHECK 谓词（JSON 字符串）
+  """
+  updateCheck: String!
+
+  """
+  DELETE USING 谓词（JSON 字符串）
+  """
+  deletePredicate: String!
+
+  """
+  当前策略匹配的 Preset，自定义组合时返回 null
+  """
+  preset: RLSPreset
+
+  """
+  创建时间
+  """
+  createdAt: String!
+
+  """
+  更新时间
+  """
+  updatedAt: String!
+}
+
+type AuthVariable {
+  """
+  变量名（如 "tenant_id"）
+  """
+  name: String!
+
+  """
+  JWT 来源路径（如 "jwt.tenant_id"）
+  """
+  source: String!
+
+  """
+  变量类型
+  """
+  type: AuthVariableType!
+}
+
+type ProjectAuthSchema {
+  """
+  认证变量列表（不含内置 uid）
+  """
+  variables: [AuthVariable!]!
+}
+
+type ValidationResult {
+  """
+  是否校验通过
+  """
+  valid: Boolean!
+
+  """
+  校验错误信息列表（valid=false 时返回）
+  """
+  errors: [ValidationError!]
+}
+
+type ValidationError {
+  """
+  错误位置（如 "selectPredicate._and[0].owner"）
+  """
+  path: String!
+
+  """
+  错误描述
+  """
+  message: String!
+
+  """
+  错误码
+  """
+  code: String!
+}
+
+# ----------------------------------------
+# Error Types
+# ----------------------------------------
+
+type ModelHasNoOwnerField implements Error {
+  message: String!
+  suggestion: String
+}
+
+type EndUserRefAlreadyExists implements Error {
+  message: String!
+  suggestion: String
+}
+
+type InvalidRLSExpression implements Error {
+  message: String!
+  suggestion: String
+  path: String
+}
+
+type InvalidAuthVariable implements Error {
+  message: String!
+  suggestion: String
+  variable: String
+}
+
+type RLSCheckViolation implements Error {
+  message: String!
+  operation: String
+}
+
+union SetProjectAuthSchemaError = ResourceNotFound | InvalidInput
+
+type DangerousPolicyNotConfirmed implements Error {
+  message: String!
+  suggestion: String
+}
+
+union SetModelRLSPolicyError = ResourceNotFound | ModelHasNoOwnerField | InvalidRLSExpression | InvalidAuthVariable
+union ValidateRLSExprError = ResourceNotFound | InvalidRLSExpression | InvalidAuthVariable
+
+# ----------------------------------------
+# Payload Types
+# ----------------------------------------
+
+type SetModelRLSPolicyPayload {
+  policy: ModelRLSPolicy
+  error: SetModelRLSPolicyError
+}
+
+type ValidateRLSExprPayload {
+  result: ValidationResult!
+  error: ValidateRLSExprError
+}
+
+type SetProjectAuthSchemaPayload {
+  authSchema: ProjectAuthSchema
+  error: SetProjectAuthSchemaError
+}
+
+# ----------------------------------------
+# Input Types
+# ----------------------------------------
+
+input SetModelRLSPolicyInput {
+  """
+  模型 ID
+  """
+  modelId: ID!
+
+  """
+  SELECT USING 谓词（JSON 字符串）
+  """
+  selectPredicate: String!
+
+  """
+  INSERT WITH CHECK 谓词（JSON 字符串）
+  """
+  insertCheck: String!
+
+  """
+  UPDATE USING 谓词（JSON 字符串）
+  """
+  updatePredicate: String!
+
+  """
+  UPDATE WITH CHECK 谓词（JSON 字符串）
+  """
+  updateCheck: String!
+
+  """
+  DELETE USING 谓词（JSON 字符串）
+  """
+  deletePredicate: String!
+}
+
+input ValidateRLSExprInput {
+  """
+  所属模型 ID（用于字段名白名单校验）
+  """
+  modelId: ID!
+
+  """
+  要校验的谓词类型
+  """
+  exprType: RLSExprType!
+
+  """
+  表达式 JSON 字符串
+  """
+  expression: String!
+}
+
+input AuthVariableInput {
+  """
+  变量名
+  """
+  name: String!
+
+  """
+  JWT 来源路径
+  """
+  source: String!
+
+  """
+  变量类型
+  """
+  type: AuthVariableType!
+}
+
+input SetProjectAuthSchemaInput {
+  """
+  认证变量列表（uid 内置，无需声明）
+  """
+  variables: [AuthVariableInput!]!
+}
+
+# ----------------------------------------
+# Queries & Mutations
+# ----------------------------------------
+
+extend type Query {
+  """
+  获取 Model RLS 策略配置
+  """
+  modelRLSPolicy(modelId: ID!): ModelRLSPolicy @hasPermission(action: "model:read")
+
+  """
+  获取当前项目 auth_schema
+  """
+  projectAuthSchema: ProjectAuthSchema! @hasPermission(action: "project:read")
+}
+
+extend type Mutation {
+  """
+  设置 Model RLS 策略
+  支持完整的五件套 JSON 表达式，不限于 Preset
+  """
+  setModelRLSPolicy(input: SetModelRLSPolicyInput!): SetModelRLSPolicyPayload! @hasPermission(action: "model:update")
+
+  """
+  校验 RLS 表达式合法性
+  用于 Policy 配置页面的实时校验
+  """
+  validateRLSExpr(input: ValidateRLSExprInput!): ValidateRLSExprPayload! @hasPermission(action: "model:read")
+
+  """
+  设置当前项目 auth_schema
+  """
+  setProjectAuthSchema(input: SetProjectAuthSchemaInput!): SetProjectAuthSchemaPayload! @hasPermission(action: "project:update")
+}
