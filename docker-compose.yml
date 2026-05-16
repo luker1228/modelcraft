@@ -116,43 +116,6 @@ services:
       start_period: 40s
 
   # ---------------------------------------------------------------------------
-  # modelcraft-gateway (replaced by APISIX — kept for emergency rollback)
-  # ---------------------------------------------------------------------------
-  # gateway:
-  #   build:
-  #     context: ./modelcraft-gateway
-  #     dockerfile: Dockerfile
-  #   image: modelcraft-gateway:${IMAGE_TAG:-latest}
-  #   container_name: modelcraft-gateway
-  #   user: "0:0"
-  #   ports:
-  #     - "${GATEWAY_PORT:-8090}:8090"
-  #   environment:
-  #     - GATEWAY_PORT=8090
-  #     - BACKEND_URL=http://backend:8080
-  #     - FRONTEND_URL=${FRONTEND_URL:-http://localhost:3000}
-  #     - JWT_PUBLIC_KEY=${JWT_PUBLIC_KEY}
-  #     - JWT_SECRET=${JWT_SECRET}
-  #     - INTERNAL_TOKEN=${INTERNAL_TOKEN}
-  #     - LOG_OUTPUT_PATH=/app/logs/server.log
-  #     - OTEL_EXPORTER_OTLP_ENDPOINT=${OTEL_EXPORTER_OTLP_ENDPOINT:-}
-  #     - TZ=Asia/Shanghai
-  #   volumes:
-  #     - ./modelcraft-gateway/log:/app/logs
-  #   depends_on:
-  #     backend:
-  #       condition: service_healthy
-  #   networks:
-  #     - modelcraft-network
-  #   restart: unless-stopped
-  #   healthcheck:
-  #     test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/healthz"]
-  #     interval: 30s
-  #     timeout: 5s
-  #     retries: 3
-  #     start_period: 15s
-
-  # ---------------------------------------------------------------------------
   # modelcraft-agent (Python AI Agent)
   # ---------------------------------------------------------------------------
   modelcraft-agent:
