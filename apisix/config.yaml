@@ -17,7 +17,7 @@ plugin_attr:
     resource:
       service.name: modelcraft-apisix
     collector:
-      address: "${OTEL_EXPORTER_OTLP_ENDPOINT:-}"
+      address: ""  # set OTEL endpoint here if needed
 
 plugins:
   - cors

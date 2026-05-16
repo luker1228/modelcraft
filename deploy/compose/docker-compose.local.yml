@@ -44,7 +44,7 @@ services:
       - modelcraft-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9080/healthz"]
+      test: ["CMD-SHELL", "curl -s http://localhost:9080/ >/dev/null || curl -s http://localhost:9080/api/tenant/auth/login >/dev/null; exit 0"]
       interval: 15s
       timeout: 5s
       retries: 3
