@@ -364,7 +364,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	)
 
 	// Create auth handler with token service
-	authHandler := authHandlers.NewHandler(tokenService, logger)
+	authHandler := authHandlers.NewHandler(tokenService, cfg.Auth.Cookie, logger)
 
 	// Create end-user services and handlers
 	privateDBManager := repository.NewPrivateDBManager(clusterManager, &cfg.Database, logger)

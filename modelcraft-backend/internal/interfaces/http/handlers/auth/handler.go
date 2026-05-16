@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"modelcraft/internal/interfaces/http/generated"
 	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
@@ -14,15 +15,51 @@ import (
 // Handler handles HTTP auth endpoints.
 type Handler struct {
 	tokenService *appAuth.TokenService
+	cookieCfg    config.CookieConfig
 	logger       logfacade.Logger
 }
 
 // NewHandler creates a new auth Handler.
-func NewHandler(tokenService *appAuth.TokenService, logger logfacade.Logger) *Handler {
+func NewHandler(tokenService *appAuth.TokenService, cookieCfg config.CookieConfig, logger logfacade.Logger) *Handler {
 	return &Handler{
 		tokenService: tokenService,
+		cookieCfg:    cookieCfg,
 		logger:       logger,
 	}
+}
+
+const tenantRefreshCookieName = "mc_refresh_token"
+
+func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string) {
+	sameSite := http.SameSiteStrictMode
+	switch h.cookieCfg.SameSite {
+	case "lax":
+		sameSite = http.SameSiteLaxMode
+	case "none":
+		sameSite = http.SameSiteNoneMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     tenantRefreshCookieName,
+		Value:    token,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		HttpOnly: true,
+		Secure:   h.cookieCfg.Secure,
+		SameSite: sameSite,
+		MaxAge:   30 * 24 * 60 * 60, // 30 days
+	})
+}
+
+func (h *Handler) clearRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     tenantRefreshCookieName,
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		HttpOnly: true,
+		Secure:   h.cookieCfg.Secure,
+		MaxAge:   -1,
+	})
 }
 
 // HandleRegister handles POST /api/auth/register — phone+userName+password registration.
@@ -61,9 +98,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleLogin handles POST /api/auth/login — supports phone or username login.
-// The refresh token is NOT returned in the response body; the gateway is
-// responsible for extracting it from this response and storing it in an
-// httpOnly cookie.
+// The refresh token is stored in an httpOnly cookie and NOT returned in the response body.
 func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
@@ -115,66 +150,57 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		orgName = &s
 	}
 
-	// NOTE: RefreshToken is intentionally included here so the gateway can
-	// intercept the response, extract it, store it in an httpOnly cookie, and
-	// then strip it before forwarding to the browser.
+	h.setRefreshCookie(w, result.RefreshToken)
+
 	writeJSON(w, http.StatusOK, map[string]any{
-		"requestId":    requestID,
-		"userId":       result.UserID,
-		"userName":     userName,
-		"orgName":      orgName,
-		"accessToken":  result.AccessToken,
-		"refreshToken": result.RefreshToken, // gateway strips this, browser never sees it
-		"expiresIn":    result.ExpiresIn,
+		"requestId":   requestID,
+		"userId":      result.UserID,
+		"userName":    userName,
+		"orgName":     orgName,
+		"accessToken": result.AccessToken,
+		"expiresIn":   result.ExpiresIn,
+		// refreshToken intentionally omitted — stored in httpOnly cookie
 	})
 }
 
 // HandleRefresh handles POST /api/auth/refresh — token rotation.
-// The refresh token is read from the request body (supplied by the gateway,
-// which extracts it from the httpOnly cookie before forwarding).
+// The refresh token is read from the httpOnly cookie set at login.
 func (h *Handler) HandleRefresh(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(r.Context())
 
-	var req struct {
-		RefreshToken string `json:"refreshToken"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.RefreshToken == "" {
-		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "refreshToken required")
+	cookie, err := r.Cookie(tenantRefreshCookieName)
+	if err != nil || cookie.Value == "" {
+		writeAuthError(w, http.StatusUnauthorized, requestID, "REFRESH_MISSING", "refresh token not found")
 		return
 	}
 
 	result, err := h.tokenService.Refresh(r.Context(), appAuth.RefreshCommand{
-		RefreshToken: req.RefreshToken,
+		RefreshToken: cookie.Value,
 	})
 	if err != nil {
+		h.clearRefreshCookie(w)
 		h.handleBusinessError(w, r, requestID, err, "Refresh failed")
 		return
 	}
 
-	// NOTE: RefreshToken included so the gateway can rotate the cookie.
+	h.setRefreshCookie(w, result.RefreshToken)
 	writeJSON(w, http.StatusOK, map[string]any{
-		"requestId":    requestID,
-		"accessToken":  result.AccessToken,
-		"refreshToken": result.RefreshToken, // gateway rotates cookie, browser never sees it
-		"expiresIn":    result.ExpiresIn,
+		"requestId":   requestID,
+		"accessToken": result.AccessToken,
+		"expiresIn":   result.ExpiresIn,
 	})
 }
 
 // HandleLogout handles POST /api/auth/logout — revokes refresh token.
-// The refresh token is read from the request body (supplied by the gateway,
-// which extracts it from the httpOnly cookie before forwarding).
+// The refresh token is read from the httpOnly cookie and then the cookie is cleared.
 func (h *Handler) HandleLogout(w http.ResponseWriter, r *http.Request) {
-	var req struct {
-		RefreshToken string `json:"refreshToken"`
-	}
-	// Best-effort decode — if missing we still clear the cookie side via gateway
-	_ = json.NewDecoder(r.Body).Decode(&req)
-
-	if req.RefreshToken != "" {
+	cookie, _ := r.Cookie(tenantRefreshCookieName)
+	if cookie != nil && cookie.Value != "" {
 		_ = h.tokenService.Logout(r.Context(), appAuth.LogoutCommand{
-			RefreshToken: req.RefreshToken,
+			RefreshToken: cookie.Value,
 		})
 	}
+	h.clearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
