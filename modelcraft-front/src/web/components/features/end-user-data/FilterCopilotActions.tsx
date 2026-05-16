@@ -1,11 +1,41 @@
 'use client'
 
-import { useContext } from 'react'
+import { createContext, useContext } from 'react'
 import { useCopilotAction, CopilotContext } from '@copilotkit/react-core'
 
 interface FilterCopilotActionsProps {
   onSetFilter: (filterJson: string) => void
   onClearFilter: () => void
+}
+
+/**
+ * Explicit opt-in context for components that need to check whether
+ * a CopilotKitProvider is present in the tree.
+ *
+ * Problem background:
+ * - @copilotkitnext/react's CopilotKitContext has a DEFAULT value of
+ *   { copilotkit: null }. This means useContext() always returns a
+ *   non-null object, making `!== null` guards useless.
+ * - @copilotkit/react-core's CopilotContext similarly defaults to a
+ *   non-null emptyCopilotContext object.
+ * - Calling ANY hook from @copilotkitnext/react (e.g. useCopilotKit,
+ *   useFrontendTool) outside a provider triggers null.subscribe() crash
+ *   in the library's internal useEffect.
+ *
+ * Solution:
+ * - CopilotWrapper (the component that actually renders CopilotKitProvider)
+ *   wraps its children in <CopilotAvailableContext.Provider value={true}>.
+ * - Components check useContext(CopilotAvailableContext) instead of
+ *   relying on the library's own context default values.
+ */
+export const CopilotAvailableContext = createContext<boolean>(false)
+
+/**
+ * Returns true only when a real CopilotKitProvider is present in the tree.
+ * Must be used together with CopilotAvailableContext.Provider (see CopilotWrapper).
+ */
+export function useCopilotKitAvailable(): boolean {
+  return useContext(CopilotAvailableContext)
 }
 
 /**
@@ -15,7 +45,7 @@ interface FilterCopilotActionsProps {
  * present. Both tenant-admin and end-user data views can use this component.
  *
  * Usage:
- *   const hasCopilot = useContext(CopilotContext) !== null
+ *   const hasCopilot = useCopilotKitAvailable()
  *   {hasCopilot && <FilterCopilotActions onSetFilter={...} onClearFilter={...} />}
  */
 export function FilterCopilotActions({ onSetFilter, onClearFilter }: FilterCopilotActionsProps) {
@@ -51,5 +81,8 @@ export function FilterCopilotActions({ onSetFilter, onClearFilter }: FilterCopil
 /**
  * Re-export CopilotContext for convenience so callers don't need a direct
  * dependency on @copilotkit/react-core just to check context availability.
+ *
+ * @deprecated Use useCopilotKitAvailable() instead — CopilotContext default
+ * value is non-null so `useContext(CopilotContext) !== null` is always true.
  */
 export { CopilotContext }

@@ -27,7 +27,10 @@
       "mcp__playwright__browser_fill_form",
       "mcp__playwright__browser_network_requests",
       "mcp__playwright__browser_network_request",
-      "mcp__playwright__browser_evaluate"
+      "mcp__playwright__browser_evaluate",
+      "Bash(docker-compose -f docker-compose.local.yml build modelcraft-agent)",
+      "Bash(pip3 index *)",
+      "Bash(pip3 show *)"
     ]
   }
 }

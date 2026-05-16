@@ -91,40 +91,6 @@ pipeline {
           }
         }
 
-        stage('gateway') {
-          when {
-            anyOf {
-              changeset pattern: 'modelcraft-gateway/**', comparator: 'GLOB'
-              tag pattern: '*', comparator: 'GLOB'
-            }
-          }
-          steps {
-            dir('modelcraft-gateway') {
-              sh '''
-                set -euo pipefail
-                go mod tidy
-                git diff --exit-code go.mod go.sum
-                go mod verify
-              '''
-              sh 'just lint'
-              withEnv(['INTERNAL_TOKEN=ci-placeholder-token']) {
-                sh 'go test ./... -v -coverprofile=coverage.out | tee test-report.txt'
-              }
-              sh '''
-                set -euo pipefail
-                mkdir -p bin
-                go build -ldflags="-w -s" -o bin/modelcraft-gateway ./cmd/gateway/...
-              '''
-            }
-          }
-          post {
-            always {
-              archiveArtifacts artifacts: 'modelcraft-gateway/bin/modelcraft-gateway,modelcraft-gateway/coverage.out,modelcraft-gateway/test-report.txt',
-                               allowEmptyArchive: true
-            }
-          }
-        }
-
         stage('front') {
           when {
             anyOf {
@@ -189,19 +155,19 @@ pipeline {
             script: "docker inspect --format='{{.Config.Image}}' modelcraft-backend 2>/dev/null || echo ''",
             returnStdout: true
           ).trim()
-          def prevGatewayImg = sh(
-            script: "docker inspect --format='{{.Config.Image}}' modelcraft-gateway 2>/dev/null || echo ''",
+          def prevApisixImg = sh(
+            script: "docker inspect --format='{{.Config.Image}}' modelcraft-apisix 2>/dev/null || echo ''",
             returnStdout: true
           ).trim()
           env.PREV_BACKEND_IMG = prevBackendImg
-          env.PREV_GATEWAY_IMG = prevGatewayImg
-          echo "旧版本 backend=${prevBackendImg ?: '(未运行)'} gateway=${prevGatewayImg ?: '(未运行)'}"
+          env.PREV_APISIX_IMG = prevApisixImg
+          echo "旧版本 backend=${prevBackendImg ?: '(未运行)'} apisix=${prevApisixImg ?: '(未运行)'}"
 
           // ── Step 2: 构建新镜像 ─────────────────────────────────────────────
-          sh "IMAGE_TAG=${env.IMAGE_TAG} docker compose build --no-cache backend gateway"
+          sh "IMAGE_TAG=${env.IMAGE_TAG} docker compose build --no-cache backend"
 
           // ── Step 3: 启动/更新容器（基础设施服务如 MySQL/Redis 不重建）──────
-          sh "IMAGE_TAG=${env.IMAGE_TAG} docker compose up -d --no-deps backend gateway"
+          sh "IMAGE_TAG=${env.IMAGE_TAG} docker compose up -d --no-deps backend apisix"
 
           // ── Step 4: 健康检查（等待最多 120 秒）───────────────────────────
           def healthy = sh(
@@ -209,9 +175,9 @@ pipeline {
               set +e
               for i in $(seq 1 24); do
                 BACKEND=$(docker inspect --format="{{.State.Health.Status}}" modelcraft-backend 2>/dev/null)
-                GATEWAY=$(docker inspect --format="{{.State.Health.Status}}" modelcraft-gateway 2>/dev/null)
-                echo "[$i/24] backend=${BACKEND} gateway=${GATEWAY}"
-                if [ "$BACKEND" = "healthy" ] && [ "$GATEWAY" = "healthy" ]; then
+                APISIX=$(docker inspect --format="{{.State.Health.Status}}" modelcraft-apisix 2>/dev/null)
+                echo "[$i/24] backend=${BACKEND} apisix=${APISIX}"
+                if [ "$BACKEND" = "healthy" ] && [ "$APISIX" = "healthy" ]; then
                   exit 0
                 fi
                 sleep 5
@@ -229,12 +195,7 @@ pipeline {
               sh "docker run -d --name modelcraft-backend-rollback --network modelcraft_modelcraft-network ${env.PREV_BACKEND_IMG} || true"
               sh "docker rename modelcraft-backend-rollback modelcraft-backend || true"
             }
-            if (env.PREV_GATEWAY_IMG) {
-              sh "docker compose stop gateway || true"
-              sh "docker run -d --name modelcraft-gateway-rollback --network modelcraft_modelcraft-network ${env.PREV_GATEWAY_IMG} || true"
-              sh "docker rename modelcraft-gateway-rollback modelcraft-gateway || true"
-            }
-            error("部署失败，已回滚到旧版本。请检查日志：docker logs modelcraft-backend / modelcraft-gateway")
+            error("部署失败，已回滚到旧版本。请检查日志：docker logs modelcraft-backend / modelcraft-apisix")
           }
 
           echo "✅ 部署成功 — 版本: ${env.IMAGE_TAG}"
