@@ -9,9 +9,6 @@ Available tools:
   - list_models         列出项目下某个数据库的所有模型
   - get_model_fields    获取模型的字段定义
   - query_model         查询模型数据（findMany）
-  - create_record       创建记录
-  - update_record       更新记录
-  - delete_record       删除记录
   - nl2filter           自然语言转 filter JSON
 """
 import json
@@ -39,11 +36,12 @@ from client.graphql_client import GraphQLClient
 
 class AgentState(TypedDict):
     messages: Annotated[list, add_messages]
-    # JWT from the incoming HTTP request — forwarded to Gateway on every tool call.
     authorization: str
-    # Runtime context injected by CopilotKit from CopilotProvider properties.
     org_name: str
     project_slug: str
+    layer: str          # "org" | "project" | ""
+    current_model: str  # current model name from route (project layer)
+    current_db: str     # current database name from route
 
 
 # ---------------------------------------------------------------------------
@@ -220,129 +218,6 @@ async def query_model(
 
 
 @tool
-async def create_record(
-    db_name: str,
-    model_name: str,
-    data: dict,
-    return_fields: list[str],
-    state: Annotated[AgentState, InjectedState()],
-) -> str:
-    """
-    Create a new record in a model.
-
-    Args:
-        db_name: Database name
-        model_name: Model name
-        data: Field values to set, e.g. {"name": "张三", "age": 25}
-        return_fields: Fields to return after creation, e.g. ["id", "name"]
-
-    Returns:
-        JSON of the created record.
-    """
-    log, start = _log_tool("create_record", str({"db": db_name, "model": model_name}))
-    try:
-        result = await _client(state).create_record(
-            org_name=state["org_name"],
-            project_slug=state["project_slug"],
-            db_name=db_name,
-            model_name=model_name,
-            data=data,
-            return_fields=return_fields,
-        )
-        if "errors" in result and result["errors"]:
-            return f"GraphQL error: {result['errors']}"
-        record = result.get("data", {}).get("createOne", {})
-        _log_tool_end(log, "create_record", start, True)
-        return json.dumps(record, ensure_ascii=False)
-    except Exception:
-        log.exception("error", tool_name="create_record")
-        _log_tool_end(log, "create_record", start, False)
-        raise
-
-
-@tool
-async def update_record(
-    db_name: str,
-    model_name: str,
-    record_id: str,
-    data: dict,
-    return_fields: list[str],
-    state: Annotated[AgentState, InjectedState()],
-) -> str:
-    """
-    Update an existing record by ID.
-
-    Args:
-        db_name: Database name
-        model_name: Model name
-        record_id: Record ID to update
-        data: Fields to update, e.g. {"name": "李四"}
-        return_fields: Fields to return after update, e.g. ["id", "name"]
-
-    Returns:
-        JSON of the updated record.
-    """
-    log, start = _log_tool("update_record", str({"db": db_name, "model": model_name, "id": record_id}))
-    try:
-        result = await _client(state).update_record(
-            org_name=state["org_name"],
-            project_slug=state["project_slug"],
-            db_name=db_name,
-            model_name=model_name,
-            id=record_id,
-            data=data,
-            return_fields=return_fields,
-        )
-        if "errors" in result and result["errors"]:
-            return f"GraphQL error: {result['errors']}"
-        record = result.get("data", {}).get("updateOne", {})
-        _log_tool_end(log, "update_record", start, True)
-        return json.dumps(record, ensure_ascii=False)
-    except Exception:
-        log.exception("error", tool_name="update_record")
-        _log_tool_end(log, "update_record", start, False)
-        raise
-
-
-@tool
-async def delete_record(
-    db_name: str,
-    model_name: str,
-    record_id: str,
-    state: Annotated[AgentState, InjectedState()],
-) -> str:
-    """
-    Delete a record by ID.
-
-    Args:
-        db_name: Database name
-        model_name: Model name
-        record_id: Record ID to delete
-
-    Returns:
-        JSON with deleted record id.
-    """
-    log, start = _log_tool("delete_record", str({"db": db_name, "model": model_name, "id": record_id}))
-    try:
-        result = await _client(state).delete_record(
-            org_name=state["org_name"],
-            project_slug=state["project_slug"],
-            db_name=db_name,
-            model_name=model_name,
-            id=record_id,
-        )
-        if "errors" in result and result["errors"]:
-            return f"GraphQL error: {result['errors']}"
-        deleted = result.get("data", {}).get("deleteOne", {})
-        _log_tool_end(log, "delete_record", start, True)
-        return json.dumps(deleted, ensure_ascii=False)
-    except Exception:
-        log.exception("error", tool_name="delete_record")
-        _log_tool_end(log, "delete_record", start, False)
-        raise
-
-
-@tool
 async def nl2filter(
     natural_language: str,
     field_names: list[str],
@@ -398,9 +273,6 @@ _tools = [
     list_models,
     get_model_fields,
     query_model,
-    create_record,
-    update_record,
-    delete_record,
     nl2filter,
 ]
 _tool_node = ToolNode(_tools)
@@ -412,20 +284,43 @@ def _build_graph() -> Any:
     async def agent_node(state: AgentState):
         org = state.get("org_name", "")
         project = state.get("project_slug", "")
-        context = f"当前组织：{org}" + (f"，项目：{project}" if project else "")
+        layer = state.get("layer", "")
+        current_model = state.get("current_model", "")
+        current_db = state.get("current_db", "")
+
+        if layer == "org":
+            context = (
+                f"当前在 Org 页面（组织：{org}）。\n"
+                "可用工具：navigate_to_project、navigate_to_settings、open_create_project、highlight_project、list_projects、nl2filter。\n"
+                "注意：不可直接调用 list_models、query_model 等 project 级工具。\n"
+                "如需操作项目数据，先调用 navigate_to_project(slug) 跳转到对应项目。"
+            )
+        elif layer == "project":
+            model_ctx = f"，当前模型：{current_model}（数据库：{current_db}）" if current_model else ""
+            context = (
+                f"当前在 Project 页面（组织：{org}，项目：{project}{model_ctx}）。\n"
+                "可用工具：navigate_to_org、navigate_to_model、navigate_to_data、"
+                "open_create_model、open_create_record、open_edit_record、highlight_records、"
+                "list_models、get_model_fields、query_model、nl2filter。\n"
+                "写操作规则：open_create_record 和 open_edit_record 只预填表单，用户点 Save 才真正保存。\n"
+                "操作前先用 get_model_fields 确认字段名，避免预填错误字段。\n"
+                "如需返回 org 级操作，调用 navigate_to_org。"
+            )
+        else:
+            context = (
+                f"当前组织：{org}{'，项目：' + project if project else ''}。\n"
+                "可用工具取决于当前页面，请先询问用户当前在哪个页面。"
+            )
+
         system_msg = {
             "role": "system",
             "content": (
-                f"你是 ModelCraft AI 助手。{context}。\n\n"
-                "你可以帮用户：\n"
-                "1. 列出项目（list_projects）\n"
-                "2. 查看数据模型（list_models、get_model_fields）\n"
-                "3. 查询数据（query_model）\n"
-                "4. 创建/更新/删除记录（create_record、update_record、delete_record）\n"
-                "5. 自然语言转筛选条件（nl2filter）\n\n"
-                "查询数据前先用 list_models 确认模型名称，用 get_model_fields 确认字段名称。\n"
-                "如果用户说筛选或过滤，先用 nl2filter 生成 filter JSON，再告知前端已应用。\n"
-                "操作数据前向用户确认，删除操作需明确得到用户同意。"
+                "你是 ModelCraft AI 助手，帮助用户通过对话完成所有操作。\n\n"
+                f"{context}\n\n"
+                "通用原则：\n"
+                "- 操作数据前先用 list_models 和 get_model_fields 确认模型和字段存在\n"
+                "- 删除操作禁止自动执行，必须引导用户在界面手动确认\n"
+                "- 如果用户说筛选或过滤，先用 nl2filter 生成 filter JSON，再告知前端已应用"
             ),
         }
         messages = [system_msg] + state["messages"]
