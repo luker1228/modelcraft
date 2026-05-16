@@ -107,6 +107,9 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceTenant {
 			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceTenant)
 		}
+		if claims.Key != ApisixConsumerKey {
+			t.Errorf("Key = %q, want %q", claims.Key, ApisixConsumerKey)
+		}
 	})
 
 	t.Run("valid end_user token roundtrip", func(t *testing.T) {

@@ -15,6 +15,7 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		c := &PlatformClaims{
 			UserID:  "user-1",
 			OrgName: "acme",
+			Key:     ApisixConsumerKey,
 			RegisteredClaims: jwt.RegisteredClaims{
 				Issuer:    string(IssuerPlatform),
 				ExpiresAt: jwt.NewNumericDate(future),
@@ -22,6 +23,9 @@ func TestPlatformClaims_Validate(t *testing.T) {
 		}
 		if err := c.Validate(); err != nil {
 			t.Errorf("expected nil, got %v", err)
+		}
+		if c.Key != ApisixConsumerKey {
+			t.Errorf("Key = %q, want %q", c.Key, ApisixConsumerKey)
 		}
 	})
 

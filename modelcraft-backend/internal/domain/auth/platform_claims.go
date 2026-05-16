@@ -13,6 +13,7 @@ import (
 type PlatformClaims struct {
 	UserID          string            `json:"user_id"`
 	OrgName         string            `json:"org_name"`
+	Key             string            `json:"key"` // APISIX jwt-auth Consumer key
 	EndUserAdminIDs map[string]string `json:"end_user_admin_ids,omitempty"`
 	jwt.RegisteredClaims
 }

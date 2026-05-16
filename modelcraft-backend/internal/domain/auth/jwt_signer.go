@@ -19,6 +19,10 @@ const AudienceTenant = "tenant"
 // AudienceEndUser is the aud value for end-user tokens.
 const AudienceEndUser = "end_user"
 
+// ApisixConsumerKey is the APISIX jwt-auth Consumer key embedded in every
+// platform token. It must match the Consumer definition in APISIX config.
+const ApisixConsumerKey = "mc-user"
+
 const defaultAccessTokenTTL = time.Hour
 
 // JWTSigner signs access tokens using ES256 (ECDSA P-256).
@@ -107,6 +111,7 @@ func (s *JWTSigner) IssueAccessToken(
 	claims := &PlatformClaims{
 		UserID:          userID,
 		OrgName:         orgName,
+		Key:             ApisixConsumerKey,
 		EndUserAdminIDs: endUserAdminIDs,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    string(IssuerPlatform),
