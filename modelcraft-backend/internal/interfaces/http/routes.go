@@ -385,7 +385,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
 		endUserTxMgr,
 	)
-	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, logger)
+	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, cfg.Auth.Cookie, logger)
 
 	return &DesignHandlers{
 		AuthHandler:               authHandler,

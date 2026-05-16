@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"fmt"
 	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
@@ -19,12 +20,15 @@ import (
 	appEnduser "modelcraft/internal/app/enduser"
 )
 
+const endUserRefreshCookieName = "mc_enduser_refresh_token"
+
 // AuthHandler handles end-user authentication HTTP requests.
 // All endpoints are registered via the OpenAPI-generated ServerInterface;
 // no separate internal routes are needed.
 type AuthHandler struct {
 	authService *appEnduser.EndUserAuthAppService
 	jwtSigner   *domainAuth.JWTSigner
+	cookieCfg   config.CookieConfig
 	logger      logfacade.Logger
 }
 
@@ -33,13 +37,47 @@ type AuthHandler struct {
 func NewAuthHandler(
 	authService *appEnduser.EndUserAuthAppService,
 	jwtSigner *domainAuth.JWTSigner,
+	cookieCfg config.CookieConfig,
 	logger logfacade.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		jwtSigner:   jwtSigner,
+		cookieCfg:   cookieCfg,
 		logger:      logger,
 	}
+}
+
+func (h *AuthHandler) setEndUserRefreshCookie(w http.ResponseWriter, token string) {
+	sameSite := http.SameSiteStrictMode
+	switch h.cookieCfg.SameSite {
+	case "lax":
+		sameSite = http.SameSiteLaxMode
+	case "none":
+		sameSite = http.SameSiteNoneMode
+	}
+	http.SetCookie(w, &http.Cookie{
+		Name:     endUserRefreshCookieName,
+		Value:    token,
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		HttpOnly: true,
+		Secure:   h.cookieCfg.Secure,
+		SameSite: sameSite,
+		MaxAge:   30 * 24 * 60 * 60,
+	})
+}
+
+func (h *AuthHandler) clearEndUserRefreshCookie(w http.ResponseWriter) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     endUserRefreshCookieName,
+		Value:    "",
+		Path:     "/",
+		Domain:   h.cookieCfg.Domain,
+		HttpOnly: true,
+		Secure:   h.cookieCfg.Secure,
+		MaxAge:   -1,
+	})
 }
 
 // ============================================================
@@ -75,8 +113,9 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.setEndUserRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
-		result.AccessToken, result.RefreshToken, result.ExpiresAt,
+		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
 		toProjectList(result.Projects), ""))
 }
 
@@ -109,35 +148,28 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.setEndUserRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
-		"", result.RefreshToken, result.ExpiresAt, nil, ""))
+		"", "" /* stored in httpOnly cookie */, result.ExpiresAt, nil, ""))
 }
 
 // EndUserLogout handles POST /api/end-user/auth/logout.
 func (h *AuthHandler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	requestID := ctxutils.GetRequestID(ctx)
 
-	var req struct {
-		OrgName      string `json:"orgName"`
-		RefreshToken string `json:"refreshToken"`
-	}
-	// Body is optional per spec; ignore decode errors gracefully.
-	_ = json.NewDecoder(r.Body).Decode(&req)
-
-	if req.OrgName == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
-		return
-	}
-
-	if err := h.authService.LogoutEndUser(ctx, appEnduser.LogoutCommand{
-		OrgName:      req.OrgName,
-		RefreshToken: req.RefreshToken,
-	}); err != nil {
-		h.handleBizError(w, r, requestID, err, "end-user logout failed")
-		return
+	cookie, _ := r.Cookie(endUserRefreshCookieName)
+	if cookie != nil && cookie.Value != "" {
+		var req struct {
+			OrgName string `json:"orgName"`
+		}
+		_ = json.NewDecoder(r.Body).Decode(&req)
+		_ = h.authService.LogoutEndUser(ctx, appEnduser.LogoutCommand{
+			RefreshToken: cookie.Value,
+			OrgName:      req.OrgName,
+		})
 	}
 
+	h.clearEndUserRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -146,9 +178,14 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	requestID := ctxutils.GetRequestID(ctx)
 
+	cookie, err := r.Cookie(endUserRefreshCookieName)
+	if err != nil || cookie.Value == "" {
+		h.writeError(w, http.StatusUnauthorized, requestID, "REFRESH_MISSING", "refresh token not found")
+		return
+	}
+
 	var req struct {
-		OrgName      string `json:"orgName"`
-		RefreshToken string `json:"refreshToken"`
+		OrgName string `json:"orgName"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
@@ -161,15 +198,17 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 
 	result, err := h.authService.RefreshEndUserToken(ctx, appEnduser.RefreshCommand{
 		OrgName:      req.OrgName,
-		RefreshToken: req.RefreshToken,
+		RefreshToken: cookie.Value,
 	})
 	if err != nil {
+		h.clearEndUserRefreshCookie(w)
 		h.handleBizError(w, r, requestID, err, "end-user refresh failed")
 		return
 	}
 
+	h.setEndUserRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
-		result.AccessToken, result.RefreshToken, result.ExpiresAt,
+		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
 		toProjectList(result.Projects), ""))
 }
 
@@ -178,10 +217,15 @@ func (h *AuthHandler) EndUserSelectProject(w http.ResponseWriter, r *http.Reques
 	ctx := r.Context()
 	requestID := ctxutils.GetRequestID(ctx)
 
+	cookie, err := r.Cookie(endUserRefreshCookieName)
+	if err != nil || cookie.Value == "" {
+		h.writeError(w, http.StatusUnauthorized, requestID, "REFRESH_MISSING", "refresh token not found")
+		return
+	}
+
 	var req struct {
-		OrgName      string `json:"orgName"`
-		RefreshToken string `json:"refreshToken"`
-		ProjectSlug  string `json:"projectSlug"`
+		OrgName     string `json:"orgName"`
+		ProjectSlug string `json:"projectSlug"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
@@ -195,7 +239,7 @@ func (h *AuthHandler) EndUserSelectProject(w http.ResponseWriter, r *http.Reques
 	result, err := h.authService.SelectProjectContext(ctx, appEnduser.SelectProjectCommand{
 		OrgName:      req.OrgName,
 		ProjectSlug:  req.ProjectSlug,
-		RefreshToken: req.RefreshToken,
+		RefreshToken: cookie.Value,
 	})
 	if err != nil {
 		h.handleBizError(w, r, requestID, err, "end-user select-project failed")
