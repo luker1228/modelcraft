@@ -130,7 +130,7 @@ export function usePermissionsView({
   const modelsForDb = useMemo<ModelWithPermissions[]>(() => {
     const models: Model[] = modelsData?.models?.items ?? []
 
-    return models
+    return [...models]
       .sort((a, b) => (a.title || a.name).localeCompare(b.title || b.name))
       .map((model) => ({
         model,
