@@ -50,7 +50,6 @@ deploy action="up":
         copy_if_missing "$ENV_DIR/mysql.local.env" "$ENV_DIR/mysql.local.env.example"
         copy_if_missing "$ENV_DIR/redis.local.env" "$ENV_DIR/redis.local.env.example"
         copy_if_missing "$ENV_DIR/backend.local.env" "$ENV_DIR/backend.local.env.example"
-        copy_if_missing "$ENV_DIR/gateway.local.env" "$ENV_DIR/gateway.local.env.example"
         copy_if_missing "$ENV_DIR/frontend.local.env" "$ENV_DIR/frontend.local.env.example"
     }
 
@@ -63,7 +62,6 @@ deploy action="up":
           "$ENV_DIR/mysql.local.env"
           "$ENV_DIR/redis.local.env"
           "$ENV_DIR/backend.local.env"
-          "$ENV_DIR/gateway.local.env"
           "$ENV_DIR/frontend.local.env"
         )
 
@@ -205,7 +203,7 @@ ps:
         exit 1
     fi
 
-[doc("Start backend services only (mysql + backend + gateway)")]
+[doc("Start backend services only (mysql + backend + apisix)")]
 deploy-backend action="up":
     #!/usr/bin/env bash
     set -e
@@ -224,23 +222,23 @@ deploy-backend action="up":
 
     case "{{action}}" in
         up|start)
-            echo "🐳 Starting backend services (mysql + backend + gateway)..."
-            compose up -d modelcraft-mysql backend gateway
+            echo "🐳 Starting backend services (mysql + backend + apisix)..."
+            compose up -d modelcraft-mysql backend apisix
             echo ""
             compose ps
             echo ""
             echo "✅ Backend is up"
-            echo "   Gateway:  http://localhost:8090"
+            echo "   Gateway:  http://localhost:9080"
             echo "   Backend:  http://localhost:8080"
             echo "   MySQL:    localhost:6033"
             ;;
         force)
             echo "🐳 Building and starting backend services..."
-            compose up -d --build modelcraft-mysql backend gateway
+            compose up -d --build modelcraft-mysql backend apisix
             compose ps
             ;;
         down)
-            compose stop backend gateway modelcraft-mysql
+            compose stop backend apisix modelcraft-mysql
             echo "✅ Backend services stopped"
             ;;
         *)

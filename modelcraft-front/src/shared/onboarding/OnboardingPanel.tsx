@@ -26,10 +26,10 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
     setExpandedGroupId,
   } = useOnboarding()
 
-  if (dismissed) return null
-
   const router = useRouter()
   const params = useParams()
+
+  if (dismissed) return null
 
   const urlProjectSlug = (params.projectSlug as string | undefined) ?? null
   const projectSlug = urlProjectSlug ?? storedProjectSlug

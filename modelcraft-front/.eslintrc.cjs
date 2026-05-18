@@ -39,6 +39,7 @@ module.exports = {
       // 架构守则：禁止 web 层和 app 页面直连后端 GraphQL 端点
       // 所有 GraphQL 请求必须经过 BFF 代理（/api/bff/graphql/org/...）
       // 参见 ai-metadata/front/development/bff-design.md
+      // 注意：gateway-routes.ts 是唯一例外，它是路径字符串的单一真相源
       {
         selector: 'Literal[value=/(?<!\\/api\\/bff)\\/graphql\\/org\\//]',
         message: '禁止直连后端 GraphQL 端点。请使用 BFF 代理路径：/api/bff/graphql/org/... 参见 bff-design.md',
@@ -58,6 +59,14 @@ module.exports = {
     ],
   },
   overrides: [
+    // gateway-routes.ts 是唯一允许写 /graphql/ 路径字符串的文件
+    // 其余所有 BFF route 文件必须从 gateway-routes.ts 导入，不允许手写路径字符串
+    {
+      files: ['src/app/api/bff/gateway-routes.ts'],
+      rules: {
+        'no-restricted-syntax': 'off',
+      },
+    },
     // --- TypeScript any 安全规则 ---
     {
       files: ['**/*.{ts,tsx}'],

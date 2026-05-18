@@ -139,7 +139,7 @@ export default function WorkspacePage() {
   const [highlightFirstProject, setHighlightFirstProject] = useState(false)
 
   useEffect(() => {
-    if (pendingAction === 'create_project') {
+    if (pendingAction === 'nav_create_project') {
       setDialogOpen(true)
       setPendingAction(null)
     } else if (pendingAction === 'highlight_first_project') {

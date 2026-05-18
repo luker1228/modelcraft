@@ -302,8 +302,8 @@ export default function EndUserRecordWorkspace({
       }
     }
 
-    if (!jsonSchema) return ['id']
-    return extractFieldsFromSchema(jsonSchema as { properties?: Record<string, unknown> })
+    if (!jsonSchema) return [{ name: 'id', type: 'string', schemaType: 'STRING' }] as FieldDefinition[]
+    return [] as FieldDefinition[]
   }, [jsonSchema])
 
   const writableFieldNames = useMemo(

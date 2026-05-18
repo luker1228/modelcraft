@@ -158,7 +158,7 @@ export function createEndUserOrgScopedClient(
   orgName: string,
   endUserToken: string
 ): ApolloClient<object> {
-  const uri = `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}/`
+  const uri = `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}`
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   const authLink = setContext((_, { headers }: { headers?: Record<string, string> }) => ({

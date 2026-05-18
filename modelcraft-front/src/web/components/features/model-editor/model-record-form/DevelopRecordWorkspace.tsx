@@ -370,12 +370,13 @@ export default function DevelopRecordWorkspace({
         setEditDataOpen(true)
         try {
           if (!runtimeClient || !findUniqueQuery) return
-          const { data } = await runtimeClient.query({
+          const queryResult = await runtimeClient.query({
             query: findUniqueQuery,
             variables: { where: { id } },
             fetchPolicy: 'network-only',
           })
-          const item = (data as Record<string, Record<string, unknown>>)?.findUnique?.item
+          const rawData = queryResult.data as Record<string, Record<string, unknown>>
+          const item = rawData?.findUnique?.item
           if (isRecord(item)) {
             const base = writableFieldNames.reduce<Record<string, unknown>>((acc, f) => {
               acc[f] = item[f] ?? ''
