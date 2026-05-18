@@ -1,16 +1,14 @@
 package middleware
 
 import (
+	"crypto/subtle"
 	"modelcraft/pkg/ctxutils"
 	"net/http"
 )
 
 // JWTAuthConfig holds configuration for the JWT authentication middleware.
 type JWTAuthConfig struct {
-	// ModelCraftSecret is retained for compatibility but no longer used for bearer token validation.
-	// Backend design-time endpoints authenticate exclusively via gateway-injected headers.
-	ModelCraftSecret []byte
-	SkipValidation   bool
+	SkipValidation bool
 	// InternalToken allows BFF server-side callers to authenticate via X-Internal-Token header,
 	// bypassing the requirement for a user JWT. When set, requests carrying a matching
 	// X-Internal-Token are granted access without a userID in context.
@@ -95,4 +93,9 @@ func tryInternalTokenAuth(config *JWTAuthConfig, w http.ResponseWriter, r *http.
 	}
 	next.ServeHTTP(w, r.WithContext(ctx))
 	return true
+}
+
+// matchInternalToken compares tokens in constant time to prevent timing attacks.
+func matchInternalToken(expected, provided string) bool {
+	return subtle.ConstantTimeCompare([]byte(expected), []byte(provided)) == 1
 }

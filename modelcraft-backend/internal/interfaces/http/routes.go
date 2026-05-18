@@ -403,7 +403,12 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 // SetupOrgGraphQLRoutesOnChi registers GraphQL endpoints for org domain.
 // Route pattern: /graphql/org/{orgName}/
-func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
+func SetupOrgGraphQLRoutesOnChi(
+	router chi.Router,
+	handlers *DesignHandlers,
+	cfg *config.Config,
+	jwtConfig *middleware.JWTAuthConfig,
+) {
 	// Create org resolver with only org-domain services
 	orgResolver := &orggraphql.Resolver{
 		ProjectAppService:      handlers.ProjectAppService,
@@ -420,11 +425,6 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
 	}
 
-	jwtConfig := &middleware.JWTAuthConfig{
-		ModelCraftSecret: []byte(cfg.JWT.Secret),
-		SkipValidation:   cfg.Auth.Design.SkipJWTValidation,
-		InternalToken:    cfg.Auth.InternalToken,
-	}
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
@@ -435,7 +435,12 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 
 // SetupProjectGraphQLRoutesOnChi registers GraphQL endpoints for project domain.
 // Route pattern: /graphql/org/{orgName}/project/{projectSlug}/
-func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg *config.Config) {
+func SetupProjectGraphQLRoutesOnChi(
+	router chi.Router,
+	handlers *DesignHandlers,
+	cfg *config.Config,
+	jwtConfig *middleware.JWTAuthConfig,
+) {
 	// Create services needed for project domain
 	typeMapper := domainModelDesign.NewMySQLTypeMapper()
 	schemaComparisonService := domainModelDesign.NewMySQLSchemaComparisonService(typeMapper)
@@ -469,12 +474,6 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,
 		RBACAuthzSvc:             handlers.RBACAuthzSvc,
-	}
-
-	jwtConfig := &middleware.JWTAuthConfig{
-		ModelCraftSecret: []byte(cfg.JWT.Secret),
-		SkipValidation:   cfg.Auth.Design.SkipJWTValidation,
-		InternalToken:    cfg.Auth.InternalToken,
 	}
 
 	// Register project endpoint: /graphql/org/{orgName}/project/{projectSlug}
@@ -602,8 +601,7 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 // JWT authentication is enforced when cfg.Auth.Runtime.Enabled is true.
 func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers, cfg *config.Config) {
 	jwtConfig := &middleware.JWTAuthConfig{
-		ModelCraftSecret: []byte(cfg.JWT.Secret),
-		SkipValidation:   !cfg.Auth.Runtime.Enabled,
+		SkipValidation: !cfg.Auth.Runtime.Enabled,
 	}
 
 	runtimeMW := func(next http.Handler) http.Handler {

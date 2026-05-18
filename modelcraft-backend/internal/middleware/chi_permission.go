@@ -1,9 +1,6 @@
 package middleware
 
 import (
-	"modelcraft/pkg/ctxutils"
-	"modelcraft/pkg/logfacade"
-	"net/http"
 	"strings"
 )
 
@@ -29,83 +26,4 @@ func CheckPermission(userPermissions []string, required string) bool {
 		}
 	}
 	return false
-}
-
-// ChiRequirePermission returns a Chi-compatible middleware that checks if the user has the required permission.
-// It must run after ChiJWTAuthMiddleware so that permissions are available in the request context.
-func ChiRequirePermission(permission string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := logfacade.GetLogger(r.Context())
-			permissions, _ := ctxutils.GetPermissionsFromContext(r.Context())
-			if permissions == nil {
-				logger.Errorf(r.Context(), "No permissions found in context for required permission: %s", permission)
-				writeJSONError(w, http.StatusForbidden, "permission denied", "AUTH_PERMISSION_DENIED")
-				return
-			}
-
-			if !CheckPermission(permissions, permission) {
-				userID, _ := ctxutils.GetUserIDFromContext(r.Context())
-				logger.Errorf(r.Context(), "User %s lacks required permission: %s", userID, permission)
-				writeJSONError(w, http.StatusForbidden, "permission denied", "AUTH_PERMISSION_DENIED")
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-// ChiRequireAnyPermission returns a Chi-compatible middleware that checks if the user has at least one
-// of the required permissions.
-func ChiRequireAnyPermission(requiredPermissions ...string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := logfacade.GetLogger(r.Context())
-			permissions, _ := ctxutils.GetPermissionsFromContext(r.Context())
-			if permissions == nil {
-				logger.Errorf(r.Context(), "No permissions found in context, required any of: %v", requiredPermissions)
-				writeJSONError(w, http.StatusForbidden, "permission denied", "AUTH_PERMISSION_DENIED")
-				return
-			}
-
-			for _, p := range requiredPermissions {
-				if CheckPermission(permissions, p) {
-					next.ServeHTTP(w, r)
-					return
-				}
-			}
-
-			userID, _ := ctxutils.GetUserIDFromContext(r.Context())
-			logger.Errorf(r.Context(), "User %s lacks any of required permissions: %v", userID, requiredPermissions)
-			writeJSONError(w, http.StatusForbidden, "permission denied", "AUTH_PERMISSION_DENIED")
-		})
-	}
-}
-
-// ChiRequireAllPermissions returns a Chi-compatible middleware that checks if the user has all of the
-// required permissions.
-func ChiRequireAllPermissions(requiredPermissions ...string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := logfacade.GetLogger(r.Context())
-			permissions, _ := ctxutils.GetPermissionsFromContext(r.Context())
-			if permissions == nil {
-				logger.Errorf(r.Context(), "No permissions found in context, required all of: %v", requiredPermissions)
-				writeJSONError(w, http.StatusForbidden, "permission denied", "AUTH_PERMISSION_DENIED")
-				return
-			}
-
-			for _, p := range requiredPermissions {
-				if !CheckPermission(permissions, p) {
-					userID, _ := ctxutils.GetUserIDFromContext(r.Context())
-					logger.Errorf(r.Context(), "User %s lacks required permission: %s", userID, p)
-					writeJSONError(w, http.StatusForbidden, "permission denied", "AUTH_PERMISSION_DENIED")
-					return
-				}
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
 }

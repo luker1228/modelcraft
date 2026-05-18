@@ -87,14 +87,8 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// GraphQL Routes - Org API
 	// ============================================================
 	if cfg.DesignHandlers != nil {
-		SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config)
-	}
-
-	// ============================================================
-	// GraphQL Routes - Project API
-	// ============================================================
-	if cfg.DesignHandlers != nil {
-		SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config)
+		SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
+		SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 	}
 
 	// ============================================================
