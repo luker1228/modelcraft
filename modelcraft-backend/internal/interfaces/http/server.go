@@ -83,10 +83,6 @@ func (s *Server) EndUserRefreshToken(w http.ResponseWriter, r *http.Request) {
 	s.endUserAuthHandler.EndUserRefreshToken(w, r)
 }
 
-func (s *Server) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
-	s.endUserAuthHandler.EndUserSelectProject(w, r)
-}
-
 func (s *Server) EndUserMe(w http.ResponseWriter, r *http.Request) {
 	s.endUserAuthHandler.EndUserMe(w, r)
 }

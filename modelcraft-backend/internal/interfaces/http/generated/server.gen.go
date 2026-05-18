@@ -227,24 +227,6 @@ type EndUserRegisterRequest struct {
 	Username    string `json:"username"`
 }
 
-// EndUserSelectProjectRequest defines model for EndUserSelectProjectRequest.
-type EndUserSelectProjectRequest struct {
-	OrgName     string `json:"orgName"`
-	ProjectSlug string `json:"projectSlug"`
-
-	// RefreshToken Refresh token (gateway reads from httpOnly cookie; direct callers may pass inline)
-	RefreshToken *string `json:"refreshToken,omitempty"`
-}
-
-// EndUserSelectProjectResponse defines model for EndUserSelectProjectResponse.
-type EndUserSelectProjectResponse struct {
-	// RequestId Unique request trace ID
-	RequestId string `json:"requestId"`
-
-	// SelectedProject The selected project slug
-	SelectedProject string `json:"selectedProject"`
-}
-
 // EndUserTokenResponse defines model for EndUserTokenResponse.
 type EndUserTokenResponse struct {
 	// AccessToken Short-lived JWT access token
@@ -437,9 +419,6 @@ type EndUserRefreshTokenJSONRequestBody = EndUserRefreshRequest
 // EndUserRegisterJSONRequestBody defines body for EndUserRegister for application/json ContentType.
 type EndUserRegisterJSONRequestBody = EndUserRegisterRequest
 
-// EndUserSelectProjectJSONRequestBody defines body for EndUserSelectProject for application/json ContentType.
-type EndUserSelectProjectJSONRequestBody = EndUserSelectProjectRequest
-
 // LoginJSONRequestBody defines body for Login for application/json ContentType.
 type LoginJSONRequestBody = LoginRequest
 
@@ -463,9 +442,6 @@ type ServerInterface interface {
 	// End-user self-registration
 	// (POST /api/end-user/auth/register)
 	EndUserRegister(w http.ResponseWriter, r *http.Request)
-	// Select a project context for the end-user session
-	// (POST /api/end-user/auth/select-project)
-	EndUserSelectProject(w http.ResponseWriter, r *http.Request)
 	// Login with phone number and password
 	// (POST /api/tenant/auth/login)
 	Login(w http.ResponseWriter, r *http.Request)
@@ -514,12 +490,6 @@ func (_ Unimplemented) EndUserRefreshToken(w http.ResponseWriter, r *http.Reques
 // End-user self-registration
 // (POST /api/end-user/auth/register)
 func (_ Unimplemented) EndUserRegister(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusNotImplemented)
-}
-
-// Select a project context for the end-user session
-// (POST /api/end-user/auth/select-project)
-func (_ Unimplemented) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
@@ -629,20 +599,6 @@ func (siw *ServerInterfaceWrapper) EndUserRegister(w http.ResponseWriter, r *htt
 
 	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		siw.Handler.EndUserRegister(w, r)
-	}))
-
-	for _, middleware := range siw.HandlerMiddlewares {
-		handler = middleware(handler)
-	}
-
-	handler.ServeHTTP(w, r)
-}
-
-// EndUserSelectProject operation middleware
-func (siw *ServerInterfaceWrapper) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
-
-	handler := http.Handler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		siw.Handler.EndUserSelectProject(w, r)
 	}))
 
 	for _, middleware := range siw.HandlerMiddlewares {
@@ -855,9 +811,6 @@ func HandlerWithOptions(si ServerInterface, options ChiServerOptions) http.Handl
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/end-user/auth/register", wrapper.EndUserRegister)
-	})
-	r.Group(func(r chi.Router) {
-		r.Post(options.BaseURL+"/api/end-user/auth/select-project", wrapper.EndUserSelectProject)
 	})
 	r.Group(func(r chi.Router) {
 		r.Post(options.BaseURL+"/api/tenant/auth/login", wrapper.Login)

@@ -63,19 +63,6 @@ type RefreshResult struct {
 	ExpiresAt    time.Time
 }
 
-// SelectProjectCommand represents project context selection after login.
-type SelectProjectCommand struct {
-	OrgName      string
-	ProjectSlug  string
-	RefreshToken string
-}
-
-// SelectProjectResult represents project context selection result.
-type SelectProjectResult struct {
-	UserID      string
-	ProjectSlug string
-}
-
 // GetMeCommand represents a request to get the current end-user's profile.
 // orgName and userID are resolved from the Bearer JWT by the handler layer.
 type GetMeCommand struct {

@@ -219,43 +219,6 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 	}, nil
 }
 
-// SelectProjectContext validates that user can select the target project without reissuing token.
-func (s *EndUserAuthAppService) SelectProjectContext(
-	ctx context.Context,
-	cmd SelectProjectCommand,
-) (*SelectProjectResult, error) {
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, cmd.OrgName, "")
-	session, err := sessionRepo.GetByTokenHash(ctx, hashToken(cmd.RefreshToken))
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if session == nil || !session.IsValid() {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
-	}
-
-	userRepo := s.repoFactory.NewEndUserRepository(s.db, cmd.OrgName, "")
-	user, err := userRepo.GetByID(ctx, cmd.OrgName, session.UserID)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if user == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
-	}
-	if !user.IsActive() {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
-	}
-
-	hasAccess, err := userRepo.HasProjectAccessByRole(ctx, cmd.OrgName, session.UserID, cmd.ProjectSlug)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if !hasAccess {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserProjectAccessDenied, cmd.ProjectSlug)
-	}
-
-	return &SelectProjectResult{UserID: session.UserID, ProjectSlug: cmd.ProjectSlug}, nil
-}
-
 // LogoutEndUser handles end-user logout (idempotent).
 func (s *EndUserAuthAppService) LogoutEndUser(ctx context.Context, cmd LogoutCommand) error {
 	tokenHash := hashToken(cmd.RefreshToken)

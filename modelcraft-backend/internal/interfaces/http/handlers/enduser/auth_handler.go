@@ -212,46 +212,6 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 		toProjectList(result.Projects), ""))
 }
 
-// EndUserSelectProject handles POST /api/end-user/auth/select-project.
-func (h *AuthHandler) EndUserSelectProject(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	requestID := ctxutils.GetRequestID(ctx)
-
-	cookie, err := r.Cookie(endUserRefreshCookieName)
-	if err != nil || cookie.Value == "" {
-		h.writeError(w, http.StatusUnauthorized, requestID, "REFRESH_MISSING", "refresh token not found")
-		return
-	}
-
-	var req struct {
-		OrgName     string `json:"orgName"`
-		ProjectSlug string `json:"projectSlug"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
-		return
-	}
-	if req.OrgName == "" || req.ProjectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName and projectSlug are required")
-		return
-	}
-
-	result, err := h.authService.SelectProjectContext(ctx, appEnduser.SelectProjectCommand{
-		OrgName:      req.OrgName,
-		ProjectSlug:  req.ProjectSlug,
-		RefreshToken: cookie.Value,
-	})
-	if err != nil {
-		h.handleBizError(w, r, requestID, err, "end-user select-project failed")
-		return
-	}
-
-	h.writeJSON(w, http.StatusOK, map[string]interface{}{
-		"requestId":       requestID,
-		"selectedProject": result.ProjectSlug,
-	})
-}
-
 // EndUserMe handles GET /api/end-user/auth/me.
 // Identity is resolved entirely from the Bearer JWT (ES256-verified).
 // No external headers required — orgName and userID come from token claims.
