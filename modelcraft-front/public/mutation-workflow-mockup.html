@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mutation Workflow Mockup</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f6fa; display: flex; height: 100vh; overflow: hidden; }
+
+  /* Main content */
+  .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { height: 52px; background: white; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; padding: 0 20px; gap: 12px; }
+  .topbar-title { font-size: 14px; font-weight: 600; color: #111827; }
+  .topbar-badge { font-size: 11px; color: #6b7280; background: #f3f4f6; padding: 2px 8px; border-radius: 999px; }
+
+  .table-wrap { flex: 1; overflow: auto; padding: 20px; }
+  table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+  thead { background: #f9fafb; }
+  th { padding: 10px 16px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 12px 16px; font-size: 13px; color: #374151; border-bottom: 1px solid #f3f4f6; }
+  tr:last-child td { border-bottom: none; }
+  tr.highlighted { background: #fff7ed; }
+  tr.highlighted td { color: #92400e; }
+  .badge { display: inline-flex; align-items: center; gap: 4px; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 500; }
+  .badge-active { background: #dcfce7; color: #15803d; }
+  .badge-pending { background: #fef9c3; color: #854d0e; }
+
+  /* Sidebar */
+  .sidebar { width: 340px; background: white; border-left: 1px solid #e5e7eb; display: flex; flex-direction: column; height: 100vh; }
+  .sidebar-header { padding: 14px 16px; border-bottom: 1px solid #e5e7eb; display: flex; align-items: center; justify-content: space-between; }
+  .sidebar-title { font-size: 14px; font-weight: 600; color: #111827; display: flex; align-items: center; gap-6; }
+  .ai-dot { width: 8px; height: 8px; border-radius: 50%; background: #7c3aed; margin-right: 8px; animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+
+  .messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  .msg { display: flex; gap: 8px; }
+  .msg-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .msg-avatar.ai { background: #7c3aed; color: white; }
+  .msg-avatar.user { background: #e5e7eb; color: #374151; }
+  .msg-bubble { background: #f9fafb; border-radius: 8px; padding: 10px 12px; font-size: 13px; color: #374151; line-height: 1.5; max-width: 260px; }
+  .msg-bubble.user-bubble { background: #7c3aed; color: white; }
+  .msg.user { flex-direction: row-reverse; }
+  .msg.user .msg-bubble { background: #7c3aed; color: white; }
+
+  /* Proposal card */
+  .proposal-card { border: 1.5px solid #f59e0b; border-radius: 10px; background: #fffbeb; padding: 14px; margin: 4px 0; }
+  .proposal-header { display: flex; align-items: center; gap-6; margin-bottom: 10px; }
+  .proposal-icon { font-size: 16px; margin-right: 6px; }
+  .proposal-title { font-size: 13px; font-weight: 600; color: #92400e; }
+  .proposal-subtitle { font-size: 11px; color: #b45309; margin-top: 1px; }
+
+  .proposal-diff { background: white; border: 1px solid #fde68a; border-radius: 6px; padding: 10px 12px; margin: 10px 0; }
+  .diff-row { display: flex; align-items: center; gap: 8px; font-size: 12px; padding: 3px 0; }
+  .diff-label { color: #6b7280; width: 70px; flex-shrink: 0; }
+  .diff-old { color: #ef4444; text-decoration: line-through; }
+  .diff-arrow { color: #9ca3af; }
+  .diff-new { color: #059669; font-weight: 500; }
+
+  .proposal-actions { display: flex; gap: 8px; margin-top: 12px; }
+  .btn { padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
+  .btn-confirm { background: #f59e0b; color: white; flex: 1; }
+  .btn-confirm:hover { background: #d97706; }
+  .btn-reject { background: white; color: #6b7280; border: 1px solid #e5e7eb; flex: 1; }
+  .btn-reject:hover { background: #f9fafb; }
+  .btn-edit { background: white; color: #7c3aed; border: 1px solid #ddd6fe; }
+  .btn-edit:hover { background: #f5f3ff; }
+
+  /* Confirmed card */
+  .confirmed-card { border: 1.5px solid #10b981; border-radius: 10px; background: #f0fdf4; padding: 12px 14px; }
+  .confirmed-header { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #065f46; }
+  .confirmed-icon { font-size: 15px; }
+  .confirmed-sub { font-size: 12px; color: #059669; margin-top: 4px; }
+
+  /* Step indicator */
+  .step-indicator { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+  .step { width: 20px; height: 20px; border-radius: 50%; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+  .step-done { background: #10b981; color: white; }
+  .step-active { background: #f59e0b; color: white; }
+  .step-pending { background: #e5e7eb; color: #9ca3af; }
+  .step-line { flex: 1; height: 1.5px; background: #e5e7eb; }
+  .step-line.done { background: #10b981; }
+
+  .tab-bar { display: flex; border-bottom: 1px solid #e5e7eb; }
+  .tab { padding: 8px 14px; font-size: 12px; color: #6b7280; cursor: pointer; border-bottom: 2px solid transparent; }
+  .tab.active { color: #7c3aed; border-bottom-color: #7c3aed; font-weight: 600; }
+
+  .input-bar { padding: 12px; border-top: 1px solid #e5e7eb; display: flex; gap: 8px; }
+  .input-field { flex: 1; padding: 8px 12px; border: 1px solid #e5e7eb; border-radius: 6px; font-size: 13px; color: #374151; outline: none; }
+  .input-field:focus { border-color: #7c3aed; }
+  .send-btn { width: 34px; height: 34px; background: #7c3aed; border: none; border-radius: 6px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+
+  .state-label { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .5px; color: #9ca3af; padding: 0 4px; margin-bottom: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Main table -->
+<div class="main">
+  <div class="topbar">
+    <span class="topbar-title">orders</span>
+    <span class="topbar-badge">数据库: maindb</span>
+    <span class="topbar-badge">3 条记录</span>
+  </div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>客户名称</th>
+          <th>金额</th>
+          <th>状态</th>
+          <th>创建时间</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>001</td>
+          <td>张三</td>
+          <td>¥1,200.00</td>
+          <td><span class="badge badge-active">已完成</span></td>
+          <td>2024-01-15</td>
+        </tr>
+        <tr class="highlighted">
+          <td>002</td>
+          <td>李四 <span style="font-size:11px;color:#b45309;margin-left:4px;">← 待修改</span></td>
+          <td>¥850.00 → <strong style="color:#059669">¥950.00</strong></td>
+          <td><span class="badge badge-pending">待支付</span></td>
+          <td>2024-01-18</td>
+        </tr>
+        <tr>
+          <td>003</td>
+          <td>王五</td>
+          <td>¥2,300.00</td>
+          <td><span class="badge badge-active">已完成</span></td>
+          <td>2024-01-20</td>
+        </tr>
+      </tbody>
+    </table>
+    <div style="margin-top:12px; font-size:12px; color:#9ca3af; padding: 0 4px;">
+      💡 高亮行 = Agent 提案影响的记录
+    </div>
+  </div>
+</div>
+
+<!-- AI Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-title">
+      <div class="ai-dot"></div>
+      ModelCraft AI 助手
+    </div>
+    <div style="display:flex;gap:4px">
+      <div style="width:6px;height:6px;border-radius:50%;background:#10b981"></div>
+      <span style="font-size:11px;color:#6b7280">在线</span>
+    </div>
+  </div>
+
+  <div class="tab-bar">
+    <div class="tab active">对话</div>
+    <div class="tab">历史</div>
+  </div>
+
+  <div class="messages">
+
+    <!-- User message -->
+    <div class="msg user">
+      <div class="msg-avatar user">我</div>
+      <div class="msg-bubble">把订单 002 的金额改成 950</div>
+    </div>
+
+    <!-- AI: propose -->
+    <div class="msg">
+      <div class="msg-avatar ai">AI</div>
+      <div style="flex:1">
+        <div class="msg-bubble" style="margin-bottom:8px">我已分析订单 002 的当前数据，准备了以下修改提案：</div>
+
+        <!-- Step indicator -->
+        <div class="step-indicator" style="margin: 0 0 10px 0">
+          <div class="step step-done">✓</div>
+          <div class="step-line done"></div>
+          <div class="step step-active">2</div>
+          <div class="step-line"></div>
+          <div class="step step-pending">3</div>
+          <div class="step-line"></div>
+          <div class="step step-pending">4</div>
+          <div style="font-size:10px;color:#b45309;margin-left:6px;font-weight:600">等待确认</div>
+        </div>
+
+        <!-- Proposal card -->
+        <div class="proposal-card">
+          <div class="proposal-header">
+            <span class="proposal-icon">📝</span>
+            <div>
+              <div class="proposal-title">更新记录 · orders / ID:002</div>
+              <div class="proposal-subtitle">1 个字段将被修改</div>
+            </div>
+          </div>
+
+          <div class="proposal-diff">
+            <div class="state-label">变更详情</div>
+            <div class="diff-row">
+              <span class="diff-label">amount</span>
+              <span class="diff-old">850.00</span>
+              <span class="diff-arrow">→</span>
+              <span class="diff-new">950.00</span>
+            </div>
+            <div class="diff-row" style="border-top:1px solid #fef3c7;margin-top:6px;padding-top:6px">
+              <span class="diff-label">操作</span>
+              <span style="font-size:12px;color:#374151">updateOne · maindb.orders</span>
+            </div>
+          </div>
+
+          <div class="proposal-actions">
+            <button class="btn btn-confirm" onclick="showConfirmed()">✓ 确认执行</button>
+            <button class="btn btn-reject" onclick="showRejected()">✗ 取消</button>
+            <button class="btn btn-edit">编辑</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="input-bar">
+    <input class="input-field" placeholder="发送消息..." />
+    <button class="send-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+function showConfirmed() {
+  const messages = document.querySelector('.messages')
+  // Remove proposal card interaction
+  document.querySelector('.proposal-actions').innerHTML = '<div style="font-size:12px;color:#059669;font-weight:600;padding:4px 0">✓ 已确认，执行中...</div>'
+  document.querySelector('.step-indicator').innerHTML = `
+    <div class="step step-done">✓</div>
+    <div class="step-line done"></div>
+    <div class="step step-done">✓</div>
+    <div class="step-line done"></div>
+    <div class="step step-active">3</div>
+    <div class="step-line"></div>
+    <div class="step step-pending">4</div>
+    <div style="font-size:10px;color:#b45309;margin-left:6px;font-weight:600">执行中...</div>
+  `
+
+  setTimeout(() => {
+    // Show success
+    const row = document.querySelectorAll('tr.highlighted')[0]
+    if (row) {
+      row.querySelector('td:nth-child(3)').innerHTML = '¥950.00'
+      row.querySelector('td:nth-child(2)').innerHTML = '李四'
+      row.classList.remove('highlighted')
+    }
+
+    document.querySelector('.step-indicator').innerHTML = `
+      <div class="step step-done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step step-done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step step-done">✓</div>
+      <div class="step-line done"></div>
+      <div class="step step-done">✓</div>
+      <div style="font-size:10px;color:#059669;margin-left:6px;font-weight:600">完成</div>
+    `
+
+    const done = document.createElement('div')
+    done.className = 'msg'
+    done.innerHTML = `
+      <div class="msg-avatar ai">AI</div>
+      <div>
+        <div class="confirmed-card">
+          <div class="confirmed-header"><span class="confirmed-icon">✅</span> 修改成功</div>
+          <div class="confirmed-sub">订单 002 金额已更新为 ¥950.00，数据表已刷新。</div>
+        </div>
+      </div>
+    `
+    messages.appendChild(done)
+    messages.scrollTop = messages.scrollHeight
+  }, 1200)
+}
+
+function showRejected() {
+  document.querySelector('.proposal-card').style.opacity = '0.5'
+  document.querySelector('.proposal-actions').innerHTML = '<div style="font-size:12px;color:#6b7280;padding:4px 0">已取消操作</div>'
+  const messages = document.querySelector('.messages')
+  const msg = document.createElement('div')
+  msg.className = 'msg'
+  msg.innerHTML = `<div class="msg-avatar ai">AI</div><div class="msg-bubble">好的，已取消。如果需要其他帮助请告诉我。</div>`
+  messages.appendChild(msg)
+  messages.scrollTop = messages.scrollHeight
+}
+</script>
+</body>
+</html>

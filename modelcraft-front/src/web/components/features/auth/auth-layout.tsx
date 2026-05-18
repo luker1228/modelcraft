@@ -1,8 +1,8 @@
 'use client'
 
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@web/components/ui/card'
 import { Separator } from '@web/components/ui/separator'
-import { Sparkles, Globe, ShieldCheck, Link as LinkIcon } from 'lucide-react'
 
 interface AuthLayoutProps {
   children: React.ReactNode
@@ -12,19 +12,19 @@ interface AuthLayoutProps {
 
 const features = [
   {
-    icon: <Globe className="size-5" strokeWidth={1.5} />,
+    icon: <Image src="/icons/icon-globe.png" alt="HTTP 接口" width={20} height={20} />,
     title: '数据库 HTTP 接口',
     desc: '自动将数据库表暴露为 GraphQL API 接口',
     bgColor: 'bg-primary',
   },
   {
-    icon: <ShieldCheck className="size-5" strokeWidth={1.5} />,
+    icon: <Image src="/icons/icon-shield-check.png" alt="权限管理" width={20} height={20} />,
     title: '权限管理',
     desc: '基于角色的细粒度数据访问权限控制',
     bgColor: 'bg-emerald-600',
   },
   {
-    icon: <LinkIcon className="size-5" strokeWidth={1.5} />,
+    icon: <Image src="/icons/icon-link2.png" alt="逻辑外键" width={20} height={20} />,
     title: '逻辑外键与枚举',
     desc: '无需数据库约束，灵活定义关联关系与枚举类型',
     bgColor: 'bg-amber-600',
@@ -40,7 +40,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           {/* Logo */}
           <div className="flex items-center gap-3">
             <div className="flex size-12 items-center justify-center rounded-lg bg-primary shadow-sm">
-              <Sparkles className="size-6 text-primary-foreground" strokeWidth={1.5} />
+              <Image src="/icons/icon-sparkles.png" alt="ModelCraft" width={24} height={24} />
             </div>
             <span className="text-2xl font-semibold text-foreground">
               ModelCraft
@@ -112,7 +112,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-3 px-8 pt-8 lg:hidden">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary">
-              <Sparkles className="size-5 text-primary-foreground" strokeWidth={1.5} />
+              <Image src="/icons/icon-sparkles.png" alt="ModelCraft" width={20} height={20} />
             </div>
             <span className="text-xl font-semibold text-foreground">
               ModelCraft

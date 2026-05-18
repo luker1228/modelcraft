@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode, useCallback, useMemo, useState, useEffect } from 'react'
+import Image from 'next/image'
 import { useRouter, useParams, usePathname } from 'next/navigation'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -18,21 +19,11 @@ import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
 import {
-  Sparkles,
   Search,
   HelpCircle,
   ChevronRight,
   ChevronDown,
-  FolderOpen,
-  Users,
-  Settings,
   Check,
-  PanelLeftClose,
-  PanelLeft,
-  Table2,
-  List,
-  Shield,
-  KeyRound,
   type LucideIcon,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
@@ -63,7 +54,8 @@ interface NavSubItem {
 
 interface NavItem {
   label: string
-  icon: LucideIcon
+  /** LucideIcon component or path string to a custom PNG (e.g. "/icons/icon-foo.png") */
+  icon: LucideIcon | string
   href: string
   /** Optional sub-items rendered as expandable children when sidebar is expanded */
   children?: NavSubItem[]
@@ -231,15 +223,15 @@ export function AppLayout({
     {
       header: '工作区',
       items: [
-        { label: '项目', icon: FolderOpen, href: `/org/${orgName}/workspace` },
-        { label: '开发者', icon: Users, href: `/org/${orgName}/developers` },
-        { label: '终端用户', icon: KeyRound, href: `/org/${orgName}/end-users` },
+        { label: '项目', icon: '/icons/icon-folder-open.png', href: `/org/${orgName}/workspace` },
+        { label: '开发者', icon: '/icons/icon-users.png', href: `/org/${orgName}/developers` },
+        { label: '终端用户', icon: '/icons/icon-key-round.png', href: `/org/${orgName}/end-users` },
       ],
     },
     {
       header: '设置',
       items: [
-        { label: '组织设置', icon: Settings, href: `/org/${orgName}/settings` },
+        { label: '组织设置', icon: '/icons/icon-settings.png', href: `/org/${orgName}/settings` },
       ],
     },
   ]
@@ -248,25 +240,25 @@ export function AppLayout({
     {
       header: '数据建模',
       items: [
-        { label: '数据模型', icon: Table2, href: `/org/${orgName}/project/${projectSlug}/model-editor` },
-        { label: '枚举管理', icon: List, href: `/org/${orgName}/project/${projectSlug}/enums` },
+        { label: '数据模型', icon: '/icons/icon-table2.png', href: `/org/${orgName}/project/${projectSlug}/model-editor` },
+        { label: '枚举管理', icon: '/icons/icon-list.png', href: `/org/${orgName}/project/${projectSlug}/enums` },
       ],
     },
     {
       header: '权限管理',
       items: [
-        { label: '访问控制', icon: Shield, href: `/org/${orgName}/project/${projectSlug}/roles`, children: [
+        { label: '访问控制', icon: '/icons/icon-shield.png', href: `/org/${orgName}/project/${projectSlug}/roles`, children: [
           { label: '角色', href: `/org/${orgName}/project/${projectSlug}/roles`, tabParam: 'tab=roles' },
           { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`, tabParam: 'tab=bundles' },
           { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`, tabParam: 'tab=permissions' },
         ]},
-        { label: '用户授权', icon: KeyRound, href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
+        { label: '用户授权', icon: '/icons/icon-key-round.png', href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
       ],
     },
     {
       header: '设置',
       items: [
-        { label: '项目设置', icon: Settings, href: `/org/${orgName}/project/${projectSlug}/settings` },
+        { label: '项目设置', icon: '/icons/icon-settings.png', href: `/org/${orgName}/project/${projectSlug}/settings` },
       ],
     },
   ]
@@ -286,7 +278,7 @@ export function AppLayout({
           <DropdownMenuTrigger asChild>
             <button className="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-foreground transition-colors hover:bg-accent">
               <div className="flex size-6 flex-shrink-0 items-center justify-center rounded bg-primary">
-                <Sparkles className="size-3.5 text-white" strokeWidth={1.5} />
+                <Image src="/icons/icon-sparkles.png" alt="ModelCraft" width={14} height={14} />
               </div>
               {!sidebarCollapsed && (
                 <span className="max-w-[120px] truncate text-[13px]">
@@ -441,10 +433,20 @@ export function AppLayout({
                           )}
                           title={sidebarCollapsed ? item.label : undefined}
                         >
-                          <item.icon
-                            className={cn('size-4 flex-shrink-0', active ? 'text-primary' : 'text-muted-foreground')}
-                            strokeWidth={1.5}
-                          />
+                          {typeof item.icon === 'string' ? (
+                            <Image
+                              src={item.icon}
+                              alt={item.label}
+                              width={16}
+                              height={16}
+                              className={cn('size-4 flex-shrink-0', active ? 'opacity-100' : 'opacity-50')}
+                            />
+                          ) : (
+                            <item.icon
+                              className={cn('size-4 flex-shrink-0', active ? 'text-primary' : 'text-muted-foreground')}
+                              strokeWidth={1.5}
+                            />
+                          )}
                           {!sidebarCollapsed && (
                             <>
                               <span className="flex-1">{item.label}</span>
@@ -500,7 +502,7 @@ export function AppLayout({
                 )}
                 title="快速开始"
               >
-                <Sparkles className="size-4 flex-shrink-0" strokeWidth={1.5} />
+                <Image src="/icons/icon-sparkles.png" alt="快速开始" width={16} height={16} className="flex-shrink-0" />
                 {!sidebarCollapsed && (
                   <>
                     <span className="flex-1 text-[12px] font-medium">快速开始</span>
@@ -519,9 +521,9 @@ export function AppLayout({
                 title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
               >
                 {sidebarCollapsed ? (
-                  <PanelLeft className="size-4" strokeWidth={1.5} />
+                  <Image src="/icons/icon-panel-left.png" alt="展开侧边栏" width={16} height={16} />
                 ) : (
-                  <PanelLeftClose className="size-4" strokeWidth={1.5} />
+                  <Image src="/icons/icon-panel-left.png" alt="折叠侧边栏" width={16} height={16} className="-scale-x-100" />
                 )}
               </button>
             </div>

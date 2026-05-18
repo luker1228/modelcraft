@@ -210,6 +210,8 @@ ai-metadata/
 | [front/style/quick-start.md](./front/style/quick-start.md) | 设计系统快速上手 |
 | [front/style/tailwind-usage-policy.md](./front/style/tailwind-usage-policy.md) | Tailwind CSS 使用策略 |
 | [front/style/ui-checklist.md](./front/style/ui-checklist.md) | ⭐ UI Checklist — 选中态、颜色、布局、Lint 提交前必查 |
+| [front/style/icons.md](./front/style/icons.md) | ⭐ 图标体系文档 — 62 个图标的语义分类、使用位置、渲染上下文及 AI Prompt |
+| [front/style/icon-prompts.md](./front/style/icon-prompts.md) | 图标 AI 生成 Prompt 清单（P0–P2，15 个）— 含批量 sprite sheet 生成指令和切图命令 |
 | [front/style/design-system-demo-v2.html](./front/style/design-system-demo-v2.html) | 设计系统可视化 Demo |
 
 ---
