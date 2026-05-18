@@ -12,27 +12,20 @@ import (
 	infrrepo "modelcraft/internal/infrastructure/repository"
 )
 
-// PrivateDBManager 定义私有数据库连接管理器接口。
-type PrivateDBManager interface {
-	// Deprecated: GetOrInit still accepts projectSlug for backward compatibility,
-	// but EndUser is now Org-scoped. The projectSlug parameter will be removed.
-	GetOrInit(ctx context.Context, orgName, projectSlug string) (*sql.DB, error)
-}
-
 // EndUserManagementAppService 终端用户管理应用服务。
 type EndUserManagementAppService struct {
-	privateDBManager PrivateDBManager
-	txManager        TxManager
+	db        *sql.DB
+	txManager TxManager
 }
 
 // NewEndUserManagementAppService 创建终端用户管理应用服务。
 func NewEndUserManagementAppService(
-	privateDBManager PrivateDBManager,
+	db *sql.DB,
 	txManager TxManager,
 ) *EndUserManagementAppService {
 	return &EndUserManagementAppService{
-		privateDBManager: privateDBManager,
-		txManager:        txManager,
+		db:        db,
+		txManager: txManager,
 	}
 }
 
@@ -41,11 +34,6 @@ func (s *EndUserManagementAppService) CreateEndUser(
 	ctx context.Context,
 	cmd CreateEndUserCommand,
 ) (*CreateEndUserResult, error) {
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
-	if err != nil {
-		return nil, s.convertDBError(ctx, err)
-	}
-
 	if err := domainenduser.ValidatePasswordStrength(cmd.Password); err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
 	}
@@ -68,7 +56,7 @@ func (s *EndUserManagementAppService) CreateEndUser(
 		return nil, bizerrors.Wrapf(err, "failed to create end user entity")
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	if err := repo.Save(ctx, user); err != nil {
 		return nil, s.convertRepoError(ctx, err, cmd.Username)
 	}
@@ -88,11 +76,6 @@ func (s *EndUserManagementAppService) ListEndUsers(
 	ctx context.Context,
 	cmd ListEndUsersCommand,
 ) (*ListEndUsersResult, error) {
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
-	if err != nil {
-		return nil, s.convertDBError(ctx, err)
-	}
-
 	first := cmd.First
 	if first <= 0 {
 		first = 20
@@ -101,7 +84,7 @@ func (s *EndUserManagementAppService) ListEndUsers(
 		first = 100
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	users, totalCount, err := repo.ListWithTotal(ctx, domainenduser.ListEndUsersQuery{
 		OrgName: cmd.OrgName,
 		Search:  cmd.Search,
@@ -136,12 +119,7 @@ func (s *EndUserManagementAppService) GetEndUser(
 	ctx context.Context,
 	cmd GetEndUserCommand,
 ) (*EndUserDTO, error) {
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
-	if err != nil {
-		return nil, s.convertDBError(ctx, err)
-	}
-
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	user, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -158,12 +136,7 @@ func (s *EndUserManagementAppService) UpdateEndUserStatus(
 	ctx context.Context,
 	cmd UpdateEndUserStatusCommand,
 ) (*EndUserDTO, error) {
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
-	if err != nil {
-		return nil, s.convertDBError(ctx, err)
-	}
-
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	user, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -201,12 +174,7 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	ctx context.Context,
 	cmd DeleteEndUserCommand,
 ) error {
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, cmd.ProjectSlug)
-	if err != nil {
-		return s.convertDBError(ctx, err)
-	}
-
-	userRepo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, cmd.ProjectSlug)
+	userRepo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	user, err := userRepo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
@@ -218,9 +186,9 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 		return bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDeleted)
 	}
 
-	err = s.txManager.WithTx(ctx, db, func(ctx context.Context, txDB SQLDBTX) error {
-		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
-		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB, cmd.OrgName, cmd.ProjectSlug)
+	err = s.txManager.WithTx(ctx, s.db, func(ctx context.Context, txDB SQLDBTX) error {
+		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, "")
+		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB, cmd.OrgName, "")
 
 		if err := txSessionRepo.RevokeAllByUserID(ctx, cmd.UserID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
@@ -245,16 +213,11 @@ func (s *EndUserManagementAppService) ResetEndUserPassword(
 	ctx context.Context,
 	cmd ResetEndUserPasswordCommand,
 ) error {
-	db, err := s.privateDBManager.GetOrInit(ctx, cmd.OrgName, "")
-	if err != nil {
-		return s.convertDBError(ctx, err)
-	}
-
 	if err := domainenduser.ValidatePasswordStrength(cmd.NewPassword); err != nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
 	}
 
-	repo := infrrepo.NewSqlEndUserRepository(db, cmd.OrgName, "")
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	user, err := repo.GetByID(ctx, cmd.OrgName, cmd.UserID)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
@@ -278,32 +241,12 @@ func (s *EndUserManagementAppService) ResetEndUserPassword(
 	return nil
 }
 
-func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndUserDTO {
-	if entity == nil {
-		return nil
-	}
-	return &EndUserDTO{
-		ID:          entity.ID,
-		Username:    entity.Username,
-		IsForbidden: entity.IsForbidden,
-		IsBuiltin:   entity.IsBuiltin,
-		CreatedBy:   entity.CreatedBy,
-		CreatedAt:   entity.CreatedAt,
-		UpdatedAt:   entity.UpdatedAt,
-	}
-}
-
 // ListAccessibleProjects 获取指定终端用户在当前 Org 下可访问的项目列表。
 func (s *EndUserManagementAppService) ListAccessibleProjects(
 	ctx context.Context,
 	orgName, userID string,
 ) ([]AccessibleProjectItem, error) {
-	db, err := s.privateDBManager.GetOrInit(ctx, orgName, "")
-	if err != nil {
-		return nil, s.convertDBError(ctx, err)
-	}
-
-	repo := infrrepo.NewSqlEndUserRepository(db, orgName, "")
+	repo := infrrepo.NewSqlEndUserRepository(s.db, orgName, "")
 	projects, err := repo.ListAccessibleProjectsByRoleAssignment(ctx, orgName, userID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -323,11 +266,19 @@ func (s *EndUserManagementAppService) ListAccessibleProjects(
 	return items, nil
 }
 
-func (s *EndUserManagementAppService) convertDBError(ctx context.Context, err error) error {
-	if shared.IsNotFoundError(err) {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserClusterNotConfigured)
+func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndUserDTO {
+	if entity == nil {
+		return nil
 	}
-	return bizerrors.ConvertRepositoryError(ctx, err)
+	return &EndUserDTO{
+		ID:          entity.ID,
+		Username:    entity.Username,
+		IsForbidden: entity.IsForbidden,
+		IsBuiltin:   entity.IsBuiltin,
+		CreatedBy:   entity.CreatedBy,
+		CreatedAt:   entity.CreatedAt,
+		UpdatedAt:   entity.UpdatedAt,
+	}
 }
 
 func (s *EndUserManagementAppService) convertRepoError(ctx context.Context, err error, username string) error {
@@ -335,11 +286,6 @@ func (s *EndUserManagementAppService) convertRepoError(ctx context.Context, err 
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserConflict, username)
 	}
 	return bizerrors.ConvertRepositoryError(ctx, err)
-}
-
-// NewPrivateDBManagerAdapter 将 infrastructure PrivateDBManager 适配为应用层接口。
-func NewPrivateDBManagerAdapter(manager *infrrepo.PrivateDBManager) PrivateDBManager {
-	return manager
 }
 
 // NewEndUserManagementAppServiceWithRepo creates a thin service wrapper backed

@@ -9,7 +9,7 @@ type Params = { orgName: string }
 
 async function handler(req: NextRequest, { params }: { params: Promise<Params> }) {
   const { orgName } = await params
-  const upstreamUrl = `${GATEWAY_URL}/graphql/end-user/org/${orgName}`
+  const upstreamUrl = `${GATEWAY_URL}/graphql/org/${orgName}`
 
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')

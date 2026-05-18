@@ -89,10 +89,9 @@ type DesignHandlers struct {
 	PrivateDBManager *repository.PrivateDBManager
 
 	// End-User Services
-	EndUserAuthAppService    *appEnduser.EndUserAuthAppService
-	OrgEndUserMgmtAppService *appEnduser.EndUserManagementAppService
-	EndUserMgmtAppService    *appEnduser.EndUserManagementAppService
-	EndUserAuthHandler       *enduserHandlers.AuthHandler
+	EndUserAuthAppService *appEnduser.EndUserAuthAppService
+	EndUserAppService     *appEnduser.EndUserManagementAppService
+	EndUserAuthHandler    *enduserHandlers.AuthHandler
 
 	// Org Creation Service
 	CreateOrgService *appOrg.CreateOrganizationService
@@ -122,17 +121,6 @@ func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(
 	orgName, projectSlug string,
 ) domainEndUser.EndUserSessionRepository {
 	return repository.NewSqlEndUserSessionRepository(db, orgName, projectSlug)
-}
-
-type endUserAuthDBProvider struct {
-	db *sql.DB
-}
-
-func (p *endUserAuthDBProvider) GetOrInit(_ context.Context, _, _ string) (*sql.DB, error) {
-	if p.db == nil {
-		return nil, fmt.Errorf("end-user auth database is not configured")
-	}
-	return p.db, nil
 }
 
 type endUserJWTIssuer struct {
@@ -371,18 +359,14 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	endUserTxMgr := &endUserTxManager{}
 	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
-		&endUserAuthDBProvider{db: repoFactory.SqlDB},
+		repoFactory.SqlDB,
 		&endUserAuthRepositoryFactory{},
 		endUserTxMgr,
 		&endUserJWTIssuer{signer: jwtSigner},
 		logger,
 	)
-	orgEndUserMgmtAppService := appEnduser.NewEndUserManagementAppService(
-		&endUserAuthDBProvider{db: repoFactory.SqlDB},
-		endUserTxMgr,
-	)
-	endUserMgmtAppService := appEnduser.NewEndUserManagementAppService(
-		appEnduser.NewPrivateDBManagerAdapter(privateDBManager),
+	endUserAppService := appEnduser.NewEndUserManagementAppService(
+		repoFactory.SqlDB,
 		endUserTxMgr,
 	)
 	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, cfg.Auth.Cookie, logger)
@@ -411,8 +395,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		RLSPolicyAppService:       rlsPolicyAppService,
 		AuthSchemaAppService:      authSchemaAppService,
 		EndUserAuthAppService:     endUserAuthAppService,
-		OrgEndUserMgmtAppService:  orgEndUserMgmtAppService,
-		EndUserMgmtAppService:     endUserMgmtAppService,
+		EndUserAppService:         endUserAppService,
 		EndUserAuthHandler:        endUserAuthHandler,
 		RBACPermissionSvc:         rbacPermSvc,
 		RBACBundleSvc:             rbacBundleSvc,
@@ -437,7 +420,7 @@ func SetupOrgGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers, cfg
 		RoleService:            handlers.PermRoleService,
 		PermissionService:      handlers.PermPermissionService,
 		UserRoleService:        handlers.PermUserRoleService,
-		EndUserMgmtAppService:  handlers.OrgEndUserMgmtAppService,
+		EndUserMgmtAppService:  handlers.EndUserAppService,
 		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
 	}
 
@@ -486,7 +469,7 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		RLSPolicyAppService:      handlers.RLSPolicyAppService,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
 		PrivateDBManager:         handlers.PrivateDBManager,
-		EndUserMgmtAppService:    handlers.EndUserMgmtAppService,
+		EndUserMgmtAppService:    handlers.EndUserAppService,
 		RBACPermissionSvc:        handlers.RBACPermissionSvc,
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,

@@ -17,15 +17,6 @@ import (
 	domainenduser "modelcraft/internal/domain/enduser"
 )
 
-type fakeDBProvider struct{}
-
-func (p *fakeDBProvider) GetOrInit(
-	_ context.Context,
-	_, _ string,
-) (*sql.DB, error) {
-	return &sql.DB{}, nil
-}
-
 type fakeTokenIssuer struct {
 	forceErr     error
 	issuedInputs []EndUserTokenIssueInput
@@ -341,7 +332,7 @@ func createEndUserAuthServiceForTest(t *testing.T) (
 	sessionRepo := newInMemoryEndUserSessionRepo()
 
 	svc := NewEndUserAuthAppService(
-		&fakeDBProvider{},
+		&sql.DB{},
 		&fakeRepoFactory{userRepo: userRepo, sessionRepo: sessionRepo},
 		&fakeTxManager{},
 		&fakeTokenIssuer{},

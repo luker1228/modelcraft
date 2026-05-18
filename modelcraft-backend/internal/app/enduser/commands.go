@@ -8,10 +8,9 @@ import (
 
 // RegisterCommand represents a self-registration request from an end-user.
 type RegisterCommand struct {
-	OrgName     string
-	ProjectSlug string
-	Username    string
-	Password    string
+	OrgName  string
+	Username string
+	Password string
 }
 
 // RegisterResult represents the result of a successful registration.
