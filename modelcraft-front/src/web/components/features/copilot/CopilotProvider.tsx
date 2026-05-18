@@ -62,6 +62,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
     >
       {children}
       <CopilotSidebar
+        agentId="modelcraft_agent"
         labels={{
           title: "ModelCraft AI 助手",
           initial: initialMessage,

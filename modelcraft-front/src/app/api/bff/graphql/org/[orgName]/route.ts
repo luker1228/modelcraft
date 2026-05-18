@@ -10,6 +10,8 @@ async function handler(req: NextRequest, { params }: { params: Promise<Params> }
   const { orgName } = await params
   const upstreamUrl = tenantOrgGraphQL(orgName)
 
+  console.log('[BFF] org handler hit', { method: req.method, orgName, upstreamUrl })
+
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')
 
@@ -18,12 +20,18 @@ async function handler(req: NextRequest, { params }: { params: Promise<Params> }
   const cookieHeader = req.headers.get('cookie')
   if (cookieHeader) headers.set('Cookie', cookieHeader)
 
+  const xAction = req.headers.get('X-Action')
+  if (xAction) headers.set('X-Action', xAction)
+  console.log('[BFF] org forwarding headers', { 'X-Action': xAction, hasAuth: !!authHeader })
+
   const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined
 
   let upstreamRes: Response
   try {
     upstreamRes = await fetch(upstreamUrl, { method: req.method, headers, body })
-  } catch {
+    console.log('[BFF] org upstream response', { status: upstreamRes.status, upstreamUrl })
+  } catch (err) {
+    console.error('[BFF] org upstream unreachable', { upstreamUrl, err })
     return NextResponse.json(
       { errors: [{ message: '网关不可达' }] },
       { status: 502 }

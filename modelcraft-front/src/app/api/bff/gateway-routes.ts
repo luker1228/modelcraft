@@ -40,6 +40,13 @@ export const endUserOrgGraphQL = (orgName: string) =>
 export const endUserProjectGraphQL = (orgName: string, projectSlug: string) =>
   `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}`
 
+export const endUserRuntimeGraphQL = (
+  orgName: string,
+  projectSlug: string,
+  db: string,
+  model: string,
+) => `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}/db/${db}/model/${model}`
+
 // ── End-User Auth ───────────────────────────────────────────────────────────
 
 export const endUserAuthPath = (path: string) =>

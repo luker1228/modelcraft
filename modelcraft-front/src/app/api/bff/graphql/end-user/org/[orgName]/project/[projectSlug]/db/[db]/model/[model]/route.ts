@@ -1,37 +1,38 @@
-// BFF: /api/bff/graphql/org/[orgName]/project/[projectSlug]
-// 直接透传到网关 /graphql/org/{orgName}/project/{projectSlug}
+// BFF: /api/bff/graphql/end-user/org/[orgName]/project/[projectSlug]/db/[db]/model/[model]
+// 透传到网关 /end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}
 
 import { NextRequest, NextResponse } from 'next/server'
-import { tenantProjectGraphQL } from '@/app/api/bff/gateway-routes'
+import { endUserRuntimeGraphQL } from '@/app/api/bff/gateway-routes'
 
-type Params = { orgName: string; projectSlug: string }
+type Params = {
+  orgName: string
+  projectSlug: string
+  db: string
+  model: string
+}
 
-async function handler(req: NextRequest, { params }: { params: Promise<Params> }) {
-  const { orgName, projectSlug } = await params
-  const upstreamUrl = tenantProjectGraphQL(orgName, projectSlug)
-
-  console.log('[BFF] org/project handler hit', { method: req.method, orgName, projectSlug, upstreamUrl })
+async function handler(
+  req: NextRequest,
+  { params }: { params: Promise<Params> }
+) {
+  const { orgName, projectSlug, db, model } = await params
+  const upstreamUrl = endUserRuntimeGraphQL(orgName, projectSlug, db, model)
 
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')
 
   const authHeader = req.headers.get('Authorization')
   if (authHeader) headers.set('Authorization', authHeader)
-  const cookieHeader = req.headers.get('cookie')
-  if (cookieHeader) headers.set('Cookie', cookieHeader)
 
   const xAction = req.headers.get('X-Action')
   if (xAction) headers.set('X-Action', xAction)
-  console.log('[BFF] org/project forwarding headers', { 'X-Action': xAction, hasAuth: !!authHeader })
 
   const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined
 
   let upstreamRes: Response
   try {
     upstreamRes = await fetch(upstreamUrl, { method: req.method, headers, body })
-    console.log('[BFF] org/project upstream response', { status: upstreamRes.status, upstreamUrl })
-  } catch (err) {
-    console.error('[BFF] org/project upstream unreachable', { upstreamUrl, err })
+  } catch {
     return NextResponse.json(
       { errors: [{ message: '网关不可达' }] },
       { status: 502 }
@@ -43,6 +44,7 @@ async function handler(req: NextRequest, { params }: { params: Promise<Params> }
     status: upstreamRes.status,
     statusText: upstreamRes.statusText,
   })
+
   upstreamRes.headers.forEach((value, key) => {
     if (['content-encoding', 'content-length', 'transfer-encoding', 'connection'].includes(key.toLowerCase())) return
     response.headers.append(key, value)

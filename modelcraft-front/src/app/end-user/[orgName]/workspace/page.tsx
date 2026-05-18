@@ -97,7 +97,6 @@ function useEndUserTokenReady(orgName: string): boolean {
     const storeState = useEndUserAuthStore.getState()
     if (storeState.accessToken && !storeState.isTokenExpired()) return true
 
-    // store 为空时，尝试从 sessionStorage 恢复（登录时写入的备份）
     if (typeof window !== 'undefined') {
       const savedToken = sessionStorage.getItem(`eu_token_${orgName}`)
       const savedExpiresAt = Number(sessionStorage.getItem(`eu_token_expires_at_${orgName}`) ?? '0')

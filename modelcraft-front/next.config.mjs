@@ -113,38 +113,12 @@ const nextConfig = {
         source: '/graphql/org/:orgName/:path*',
         destination: `${backendUrl}/graphql/org/:orgName/:path*`,
       },
-      // BFF GraphQL 前缀代理（前端 Apollo 默认使用 /api/bff/graphql/*）
-      // 无尾斜杠组织级端点: /api/bff/graphql/org/{orgName}
-      {
-        source: '/api/bff/graphql/org/:orgName',
-        destination: `${backendUrl}/graphql/org/:orgName`,
-      },
-      // 含尾斜杠及更深层级（项目级/运行态）端点
-      {
-        source: '/api/bff/graphql/org/:orgName/:path*',
-        destination: `${backendUrl}/graphql/org/:orgName/:path*`,
-      },
-      // End-User GraphQL（终端用户运行态 GraphQL）
-      // Endpoint: /api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}
-      {
-        source: '/api/bff/graphql/end-user/org/:orgName/project/:projectSlug',
-        destination: `${backendUrl}/graphql/end-user/org/:orgName/project/:projectSlug`,
-      },
-      // End-User Runtime GraphQL（终端用户模型数据 CRUD）
-      // 经 Gateway 鉴权，注入 X-User-ID + X-User-Type: end_user
-      {
-        source: '/api/bff/graphql/end-user/org/:orgName/project/:projectSlug/db/:db/model/:model',
-        destination: `${backendUrl}/graphql/end-user/org/:orgName/project/:projectSlug/db/:db/model/:model`,
-      },
+      // 注意：/api/bff/graphql/* 路径均由 App Router route.ts 处理，不在此配置 rewrite。
+      // rewrite 优先级高于 route handler，多余的 rewrite 会绕过 BFF 鉴权逻辑并可能造成路径误匹配。
       // 终端用户公开认证接口（JWT）
       {
         source: '/api/end-user/:path*',
         destination: `${backendUrl}/api/end-user/:path*`,
-      },
-      // 内部 API（终端用户数据）
-      {
-        source: '/internal/:path*',
-        destination: `${backendUrl}/internal/:path*`,
       },
       // 用户信息 API
       {

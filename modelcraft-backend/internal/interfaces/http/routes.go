@@ -706,4 +706,10 @@ func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers
 	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
 	router.With(runtimeMW).Get(runtimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
+
+	// End-user runtime routes — same handler, end-user JWT identity injected by APISIX.
+	// No X-Action middleware: runtime queries are schema-driven and don't need operation validation.
+	endUserRuntimePath := "/end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
+	router.With(runtimeMW).Get(endUserRuntimePath, handlers.ModelRuntimeHandler.HandlePlayground)
+	router.With(runtimeMW).Post(endUserRuntimePath, handlers.ModelRuntimeHandler.HandleQuery)
 }
