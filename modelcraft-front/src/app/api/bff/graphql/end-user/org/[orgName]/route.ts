@@ -1,15 +1,14 @@
 // BFF: /api/bff/graphql/end-user/org/[orgName]
-// 直接透传到网关 /graphql/end-user/org/{orgName}
+// 直接透传到网关 /end-user/graphql/org/{orgName}
 
 import { NextRequest, NextResponse } from 'next/server'
-
-const GATEWAY_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+import { endUserOrgGraphQL } from '@/app/api/bff/gateway-routes'
 
 type Params = { orgName: string }
 
 async function handler(req: NextRequest, { params }: { params: Promise<Params> }) {
   const { orgName } = await params
-  const upstreamUrl = `${GATEWAY_URL}/graphql/org/${orgName}`
+  const upstreamUrl = endUserOrgGraphQL(orgName)
 
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')

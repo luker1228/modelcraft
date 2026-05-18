@@ -51,6 +51,78 @@ routes:
         include_in_response: true
 
   # ── Protected routes: ES256 JWT verification + X-User-ID injection ──────────
+  - id: enduser-graphql
+    uri: /end-user/graphql/*
+    upstream_id: backend
+    plugins:
+      cors:
+        allow_origins: "http://localhost:3000"
+        allow_methods: "POST,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,X-Action"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - |
+            return function(conf, ctx)
+              local core = require("apisix.core")
+              local jwt = require("resty.jwt")
+
+              local PUB_KEY = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEw1SV3/9qLTugs2eF1dw963KpTNtk\ntbdCtuciyI3OJ01MclvPTFE/Thqti3TegWLdaxidmpPQ5pemawUXIqu6Yg==\n-----END PUBLIC KEY-----"
+
+              local auth_header = core.request.header(ctx, "Authorization")
+              if not auth_header then
+                core.response.exit(401, {message = "Authorization header required"})
+                return
+              end
+
+              local token = auth_header:match("Bearer%s+(.+)")
+              if not token then
+                core.response.exit(401, {message = "Bearer token required"})
+                return
+              end
+
+              local jwt_obj = jwt:verify(PUB_KEY, token)
+              if not jwt_obj or not jwt_obj.verified then
+                core.response.exit(401, {message = "Invalid or expired token"})
+                return
+              end
+
+              local payload = jwt_obj.payload
+              if not payload then
+                core.response.exit(401, {message = "Invalid token payload"})
+                return
+              end
+
+              -- end-user route: only accept end_user tokens
+              local user_type = "tenant"
+              if payload.aud then
+                local aud = payload.aud
+                if type(aud) == "table" then
+                  for _, v in ipairs(aud) do
+                    if v == "end_user" then user_type = "end_user" break end
+                  end
+                elseif aud == "end_user" then
+                  user_type = "end_user"
+                end
+              end
+
+              if user_type ~= "end_user" then
+                core.response.exit(403, {message = "end-user token required for this endpoint"})
+                return
+              end
+
+              -- Inject end-user identity
+              if payload.user_id then
+                core.request.set_header(ctx, "X-User-ID", payload.user_id)
+              end
+              core.request.set_header(ctx, "X-User-Type", "end_user")
+            end
+
   - id: graphql-all
     uri: /graphql/*
     upstream_id: backend
@@ -98,39 +170,11 @@ routes:
                 return
               end
 
-              -- Determine user type from aud claim
-              local user_type = "tenant"
-              if payload.aud then
-                local aud = payload.aud
-                if type(aud) == "table" then
-                  for _, v in ipairs(aud) do
-                    if v == "end_user" then user_type = "end_user" break end
-                  end
-                elseif aud == "end_user" then
-                  user_type = "end_user"
-                end
+              -- graphql-all is tenant-only: inject X-Tenant-User-Id and X-User-Type
+              if payload.user_id then
+                core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
               end
-              core.request.set_header(ctx, "X-User-Type", user_type)
-
-              if user_type == "end_user" then
-                -- EndUser token: user_id is the end-user's own ID
-                if payload.user_id then
-                  core.request.set_header(ctx, "X-User-ID", payload.user_id)
-                end
-              else
-                -- Tenant token: user_id is the tenant admin ID → X-Tenant-User-Id
-                -- end_user_admin_ids[orgName] is the end-user admin ID → X-User-ID
-                if payload.user_id then
-                  core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
-                end
-                if payload.end_user_admin_ids then
-                  -- Extract orgName from URL: /graphql/org/{orgName}/...
-                  local org_name = ngx.var.uri:match("^/graphql/org/([^/]+)")
-                  if org_name and payload.end_user_admin_ids[org_name] then
-                    core.request.set_header(ctx, "X-User-ID", payload.end_user_admin_ids[org_name])
-                  end
-                end
-              end
+              core.request.set_header(ctx, "X-User-Type", "tenant")
             end
 
   - id: api-user

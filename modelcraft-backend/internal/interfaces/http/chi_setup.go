@@ -44,12 +44,12 @@ type ChiRouterConfig struct {
 //
 //	Chi Router (primary)
 //	  ├── Global: RequestID, RealIP, CORS, Logger, Recoverer
-//	  ├── /health, /test                          → net/http (no auth)
-//	  ├── /api/openapi.json                       → net/http (no auth)
-//	  ├── /graphql/org/*                          → gateway-trusted auth (X-User-ID)
-//	  └── /api/* (generated OpenAPI handler)      → Chi with conditional auth
-//	        ├── /api/auth/register, /login, /logout     → public (no auth)
-//	        └── everything else                       → gateway-trusted auth (X-User-ID)
+//	  ├── /health, /test                               → net/http (no auth)
+//	  ├── /api/openapi.json                            → net/http (no auth)
+//	  ├── /graphql/org/*                               → tenant-only GraphQL (X-Tenant-User-Id)
+//	  ├── /end-user/graphql/org/*                      → end-user GraphQL (X-User-ID)
+//	  ├── /graphql/org/*/project/*/db/*/model/*        → runtime GraphQL
+//	  └── /api/* (generated OpenAPI handler)           → Chi with conditional auth
 func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	r := chi.NewRouter()
 
@@ -84,11 +84,19 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	r.Get("/api/openapi.json", openAPISpecHandler())
 
 	// ============================================================
-	// GraphQL Routes - Org API
+	// GraphQL Routes - Tenant (Org + Project)
 	// ============================================================
 	if cfg.DesignHandlers != nil {
 		SetupOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 		SetupProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
+	}
+
+	// ============================================================
+	// GraphQL Routes - End-User (Org + Project, same resolvers)
+	// ============================================================
+	if cfg.DesignHandlers != nil {
+		SetupEndUserOrgGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
+		SetupEndUserProjectGraphQLRoutesOnChi(r, cfg.DesignHandlers, cfg.Config, cfg.JWTConfig)
 	}
 
 	// ============================================================

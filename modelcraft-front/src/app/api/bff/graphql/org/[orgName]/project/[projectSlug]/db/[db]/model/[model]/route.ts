@@ -2,8 +2,7 @@
 // 透传到网关 /graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}
 
 import { NextRequest, NextResponse } from 'next/server'
-
-const GATEWAY_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+import { tenantRuntimeGraphQL } from '@/app/api/bff/gateway-routes'
 
 type Params = {
   orgName: string
@@ -17,7 +16,7 @@ async function handler(
   { params }: { params: Promise<Params> }
 ) {
   const { orgName, projectSlug, db, model } = await params
-  const upstreamUrl = `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}/db/${db}/model/${model}`
+  const upstreamUrl = tenantRuntimeGraphQL(orgName, projectSlug, db, model)
 
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')

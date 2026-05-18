@@ -488,6 +488,91 @@ func SetupProjectGraphQLRoutesOnChi(
 	})
 }
 
+// SetupEndUserOrgGraphQLRoutesOnChi registers Org GraphQL endpoints for end-user callers.
+// Route pattern: /end-user/graphql/org/{orgName}/
+// Uses the same resolver as the tenant route but with end-user identity middleware.
+func SetupEndUserOrgGraphQLRoutesOnChi(
+	router chi.Router,
+	handlers *DesignHandlers,
+	cfg *config.Config,
+	jwtConfig *middleware.JWTAuthConfig,
+) {
+	orgResolver := &orggraphql.Resolver{
+		ProjectAppService:      handlers.ProjectAppService,
+		ClusterAppService:      handlers.ClusterAppService,
+		AuthSchemaAppService:   handlers.AuthSchemaAppService,
+		OrganizationAppService: handlers.OrgAppService,
+		ProfileAppService:      handlers.ProfileAppService,
+		UserRepo:               handlers.UserRepo,
+		RoleAppService:         handlers.RoleAppService,
+		RoleService:            handlers.PermRoleService,
+		PermissionService:      handlers.PermPermissionService,
+		UserRoleService:        handlers.PermUserRoleService,
+		EndUserMgmtAppService:  handlers.EndUserAppService,
+		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
+	}
+
+	router.Route("/end-user/graphql/org/{orgName}", func(r chi.Router) {
+		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
+		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLActionMiddleware())
+		r.Post("/", orggraphql.OrgGraphQLHandler(orgResolver))
+		r.Get("/", orggraphql.OrgPlaygroundHandler())
+	})
+}
+
+// SetupEndUserProjectGraphQLRoutesOnChi registers Project GraphQL endpoints for end-user callers.
+// Route pattern: /end-user/graphql/org/{orgName}/project/{projectSlug}/
+// Uses the same resolver as the tenant route but with end-user identity middleware.
+func SetupEndUserProjectGraphQLRoutesOnChi(
+	router chi.Router,
+	handlers *DesignHandlers,
+	cfg *config.Config,
+	jwtConfig *middleware.JWTAuthConfig,
+) {
+	typeMapper := domainModelDesign.NewMySQLTypeMapper()
+	schemaComparisonService := domainModelDesign.NewMySQLSchemaComparisonService(typeMapper)
+	deployRepo := ddl.NewDeploymentService(handlers.ClusterManager)
+	repairUseCase := modeldesign.NewRepairModelUseCase(
+		handlers.ModelRepository,
+		handlers.ClusterManager,
+		deployRepo,
+		schemaComparisonService,
+	)
+
+	actualSchemaService := ddl.NewActualSchemaService()
+	actualSchemaQueryUseCase := modeldesign.NewActualSchemaQueryUseCase(actualSchemaService, handlers.ClusterManager)
+
+	projectResolver := &projectgraphql.Resolver{
+		ClusterAppService:        handlers.ClusterAppService,
+		ModelDesignService:       handlers.ModelAppService,
+		ReverseEngineerService:   handlers.ReverseEngineerAppService,
+		RepairModelUseCase:       repairUseCase,
+		ActualSchemaQueryUseCase: actualSchemaQueryUseCase,
+		GroupAppService:          handlers.GroupAppService,
+		LogicalFKAppService:      handlers.LogicalFKAppService,
+		EnumAppService:           handlers.EnumAppService,
+		UserRoleService:          handlers.PermUserRoleService,
+		FieldSelectionChecker:    projectgraphql.NewFieldSelectionChecker(),
+		RLSPolicyAppService:      handlers.RLSPolicyAppService,
+		AuthSchemaAppService:     handlers.AuthSchemaAppService,
+		EndUserMgmtAppService:    handlers.EndUserAppService,
+		RBACPermissionSvc:        handlers.RBACPermissionSvc,
+		RBACBundleSvc:            handlers.RBACBundleSvc,
+		RBACRoleSvc:              handlers.RBACRoleSvc,
+		RBACAuthzSvc:             handlers.RBACAuthzSvc,
+	}
+
+	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
+		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
+		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLProjectMiddleware())
+		r.Use(middleware.ChiGraphQLActionMiddleware())
+		r.Post("/", projectgraphql.ProjectGraphQLHandler(projectResolver))
+		r.Get("/", projectgraphql.ProjectPlaygroundHandler())
+	})
+}
+
 // LoadRSAPublicKey loads the RSA public key for design API JWT validation.
 // It supports two sources (in priority order):
 // 1. PEM file path (AUTH_JWT_PUBLIC_KEY_PATH)

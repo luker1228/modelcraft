@@ -2,14 +2,13 @@
 // 直接透传到网关 /graphql/org/{orgName}/project/{projectSlug}
 
 import { NextRequest, NextResponse } from 'next/server'
-
-const GATEWAY_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+import { tenantProjectGraphQL } from '@/app/api/bff/gateway-routes'
 
 type Params = { orgName: string; projectSlug: string }
 
 async function handler(req: NextRequest, { params }: { params: Promise<Params> }) {
   const { orgName, projectSlug } = await params
-  const upstreamUrl = `${GATEWAY_URL}/graphql/org/${orgName}/project/${projectSlug}`
+  const upstreamUrl = tenantProjectGraphQL(orgName, projectSlug)
 
   const headers = new Headers()
   headers.set('Content-Type', req.headers.get('Content-Type') ?? 'application/json')

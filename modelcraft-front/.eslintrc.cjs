@@ -108,14 +108,28 @@ module.exports = {
         }],
       },
     },
-    // BFF 代理路由和 go-client 本身需要引用后端路径，豁免直连检测
+    // gateway-routes.ts 是唯一允许写 /graphql/ 路径字符串的文件
+    // 其余所有 BFF route 文件必须从 gateway-routes.ts 导入，不允许手写路径字符串
     {
       files: [
         'src/app/api/bff/**/*.{ts,tsx}',
         'src/bff/**/*.{ts,tsx}',
       ],
+      excludedFiles: [
+        'src/app/api/bff/gateway-routes.ts',
+      ],
       rules: {
-        'no-restricted-syntax': 'off',
+        'no-restricted-syntax': [
+          'error',
+          {
+            selector: 'Literal[value=/\\/graphql\\//]',
+            message: 'BFF route 文件禁止直接写 /graphql/ 路径字符串。请从 gateway-routes.ts 导入对应的 builder 函数（如 tenantOrgGraphQL, endUserOrgGraphQL）。',
+          },
+          {
+            selector: 'TemplateLiteral > TemplateElement[value.raw=/\\/graphql\\//]',
+            message: 'BFF route 文件禁止直接写 /graphql/ 路径字符串。请从 gateway-routes.ts 导入对应的 builder 函数（如 tenantOrgGraphQL, endUserOrgGraphQL）。',
+          },
+        ],
       },
     },
   ],
