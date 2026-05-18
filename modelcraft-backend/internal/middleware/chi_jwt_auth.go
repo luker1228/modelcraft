@@ -47,15 +47,17 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 			}
 
 			// Gateway-trusted identity: the gateway validates the bearer token,
-			// strips the Authorization header, and injects X-User-ID (and optionally
-			// X-User-Type for EndUser callers) into the forwarded request.
+			// strips the Authorization header, and injects:
+			// - X-User-ID: end-user ID (for end_user tokens, or admin end-user ID for tenant tokens)
+			// - X-User-Type: "tenant" or "end_user"
+			// - X-Tenant-User-Id: tenant admin's user ID (only for tenant tokens)
 			if userID := r.Header.Get("X-User-ID"); userID != "" {
 				ctx := ctxutils.SetUserID(r.Context(), userID)
 				if userType := r.Header.Get("X-User-Type"); userType != "" {
 					ctx = ctxutils.SetUserType(ctx, userType)
 				}
-				if adminID := r.Header.Get("X-End-User-Admin-ID"); adminID != "" {
-					ctx = ctxutils.SetEndUserAdminID(ctx, adminID)
+				if tenantUserID := r.Header.Get("X-Tenant-User-Id"); tenantUserID != "" {
+					ctx = ctxutils.SetTenantUserID(ctx, tenantUserID)
 				}
 				next.ServeHTTP(w, r.WithContext(ctx))
 				return

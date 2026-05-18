@@ -47,7 +47,7 @@ func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.Cr
 		projectSlug = slug
 	}
 
-	createdBy, _ := ctxutils.GetUserIDFromContext(ctx)
+	createdBy, _ := ctxutils.GetTenantUserIDFromContext(ctx)
 	result, err := service.CreateEndUser(ctx, appEnduser.CreateEndUserCommand{
 		OrgName:     orgName,
 		ProjectSlug: projectSlug,

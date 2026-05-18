@@ -20,7 +20,7 @@ func (r *mutationResolver) UpdateMyProfile(ctx context.Context, input generated.
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "organization context required")
 	}
 
-	userID, err := ctxutils.GetUserIDFromContext(ctx)
+	userID, err := ctxutils.GetTenantUserIDFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "user context required")
 	}
@@ -79,7 +79,7 @@ func (r *queryResolver) MyUserProfile(ctx context.Context) (*generated.GetMyUser
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "organization context required")
 	}
 
-	userID, err := ctxutils.GetUserIDFromContext(ctx)
+	userID, err := ctxutils.GetTenantUserIDFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ParamInvalid, "user context required")
 	}

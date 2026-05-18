@@ -58,7 +58,7 @@ routes:
       cors:
         allow_origins: "http://localhost:3000"
         allow_methods: "POST,OPTIONS"
-        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,X-Action"
         expose_headers: "X-Request-Id"
         allow_credential: true
       request-id:
@@ -92,8 +92,44 @@ routes:
                 return
               end
 
-              if jwt_obj.payload and jwt_obj.payload.user_id then
-                core.request.set_header(ctx, "X-User-ID", jwt_obj.payload.user_id)
+              local payload = jwt_obj.payload
+              if not payload then
+                core.response.exit(401, {message = "Invalid token payload"})
+                return
+              end
+
+              -- Determine user type from aud claim
+              local user_type = "tenant"
+              if payload.aud then
+                local aud = payload.aud
+                if type(aud) == "table" then
+                  for _, v in ipairs(aud) do
+                    if v == "end_user" then user_type = "end_user" break end
+                  end
+                elseif aud == "end_user" then
+                  user_type = "end_user"
+                end
+              end
+              core.request.set_header(ctx, "X-User-Type", user_type)
+
+              if user_type == "end_user" then
+                -- EndUser token: user_id is the end-user's own ID
+                if payload.user_id then
+                  core.request.set_header(ctx, "X-User-ID", payload.user_id)
+                end
+              else
+                -- Tenant token: user_id is the tenant admin ID → X-Tenant-User-Id
+                -- end_user_admin_ids[orgName] is the end-user admin ID → X-User-ID
+                if payload.user_id then
+                  core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
+                end
+                if payload.end_user_admin_ids then
+                  -- Extract orgName from URL: /graphql/org/{orgName}/...
+                  local org_name = ngx.var.uri:match("^/graphql/org/([^/]+)")
+                  if org_name and payload.end_user_admin_ids[org_name] then
+                    core.request.set_header(ctx, "X-User-ID", payload.end_user_admin_ids[org_name])
+                  end
+                end
               end
             end
 
@@ -138,8 +174,16 @@ routes:
                 return
               end
 
-              if jwt_obj.payload and jwt_obj.payload.user_id then
-                core.request.set_header(ctx, "X-User-ID", jwt_obj.payload.user_id)
+              local payload = jwt_obj.payload
+              if not payload then
+                core.response.exit(401, {message = "Invalid token payload"})
+                return
+              end
+
+              -- api-user is tenant-only; inject X-Tenant-User-Id from user_id
+              if payload.user_id then
+                core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
+                core.request.set_header(ctx, "X-User-Type", "tenant")
               end
             end
 

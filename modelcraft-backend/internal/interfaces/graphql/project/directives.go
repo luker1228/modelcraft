@@ -79,7 +79,12 @@ func (d *HasPermissionDirective) validateContext(
 	ctx context.Context,
 	logger logfacade.Logger,
 ) (userID, orgName string, err error) {
-	userID, err = ctxutils.GetUserIDFromContext(ctx)
+	// End-user callers use X-User-ID; tenant callers use X-Tenant-User-Id.
+	if ctxutils.IsEndUser(ctx) {
+		userID, err = ctxutils.GetUserIDFromContext(ctx)
+	} else {
+		userID, err = ctxutils.GetTenantUserIDFromContext(ctx)
+	}
 	if err != nil || userID == "" {
 		logger.Errorf(ctx, "@hasPermission directive: missing user authentication: %v", err)
 		return "", "", &gqlerror.Error{

@@ -102,7 +102,7 @@ func (r *mutationResolver) DeleteRole(ctx context.Context, id string) (*generate
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*generated.CurrentUser, error) {
 	// Extract user info from context using standard methods
-	userIDStr, _ := ctxutils.GetUserIDFromContext(ctx)
+	userIDStr, _ := ctxutils.GetTenantUserIDFromContext(ctx)
 	orgNameStr, _ := ctxutils.GetOrgNameFromContext(ctx)
 
 	perms, _ := ctxutils.GetPermissionsFromContext(ctx)
@@ -136,7 +136,7 @@ func (r *queryResolver) Me(ctx context.Context) (*generated.CurrentUser, error) 
 // MyOrganizations is the resolver for the myOrganizations field.
 func (r *queryResolver) MyOrganizations(ctx context.Context) ([]*generated.Organization, error) {
 	// Get current user's external ID from context
-	userIDStr, err := ctxutils.GetUserIDFromContext(ctx)
+	userIDStr, err := ctxutils.GetTenantUserIDFromContext(ctx)
 	if err != nil {
 		return nil, err
 	}

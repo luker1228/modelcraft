@@ -16,7 +16,6 @@ func ChiGraphQLOrgMiddleware() func(http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			logger := logfacade.GetLogger(r.Context())
 
-			// Extract orgName from URL path parameter {orgName}
 			orgName := chi.URLParam(r, "orgName")
 			if orgName == "" {
 				logger.Errorf(r.Context(), "No organization specified in URL path")
@@ -27,7 +26,6 @@ func ChiGraphQLOrgMiddleware() func(http.Handler) http.Handler {
 
 			logger.Infof(r.Context(), "Organization context set from URL path: %s", orgName)
 
-			// Inject orgName into request context for downstream handlers
 			ctx := ctxutils.SetOrgName(r.Context(), orgName)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

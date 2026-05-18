@@ -428,6 +428,7 @@ func SetupOrgGraphQLRoutesOnChi(
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
+		r.Use(middleware.ChiGraphQLActionMiddleware())
 		r.Post("/", orggraphql.OrgGraphQLHandler(orgResolver))
 		r.Get("/", orggraphql.OrgPlaygroundHandler())
 	})
@@ -481,6 +482,7 @@ func SetupProjectGraphQLRoutesOnChi(
 		r.Use(middleware.ChiJWTAuthMiddleware(jwtConfig))
 		r.Use(middleware.ChiGraphQLOrgMiddleware())
 		r.Use(middleware.ChiGraphQLProjectMiddleware())
+		r.Use(middleware.ChiGraphQLActionMiddleware())
 		r.Post("/", projectgraphql.ProjectGraphQLHandler(projectResolver))
 		r.Get("/", projectgraphql.ProjectPlaygroundHandler())
 	})

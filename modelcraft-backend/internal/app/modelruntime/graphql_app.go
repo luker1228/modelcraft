@@ -123,7 +123,7 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 		}
 	}
 
-	endUserAdminID := ctxutils.GetEndUserAdminID(ctx)
+	endUserAdminID, _ := ctxutils.GetTenantUserIDFromContext(ctx)
 	reqCtx := modelruntime.WithGraphqlRequestContext(
 		ctx, clientRepo, orgName, projectSlug, endUserID, endUserAdminID, endUserPerms,
 	)

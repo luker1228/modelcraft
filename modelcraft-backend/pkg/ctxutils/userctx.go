@@ -28,9 +28,9 @@ const (
 	// ContextKeyUserType distinguishes "end_user" from "tenant" (developer) callers.
 	ContextKeyUserType contextKey = "user_type"
 
-	// ContextKeyEndUserAdminID stores the org's end-user super-admin ID
-	// (injected by gateway from JWT end_user_admin_ids claim for tenant admin callers).
-	ContextKeyEndUserAdminID contextKey = "end_user_admin_id"
+	// ContextKeyTenantUserID stores the tenant admin's user ID.
+	// Set from X-Tenant-User-Id header (injected by APISIX for tenant tokens).
+	ContextKeyTenantUserID contextKey = "tenant_user_id"
 )
 
 const UserTypeEndUser = "end_user"
@@ -167,16 +167,19 @@ func SetUseCache(ctx context.Context, useCache bool) context.Context {
 	return context.WithValue(ctx, ContextKeyUseCache, useCache)
 }
 
-// SetEndUserAdminID stores the org's end-user super-admin ID in context.
-func SetEndUserAdminID(ctx context.Context, adminID string) context.Context {
-	return context.WithValue(ctx, ContextKeyEndUserAdminID, adminID)
+// SetTenantUserID stores the tenant admin's user ID in context.
+func SetTenantUserID(ctx context.Context, tenantUserID string) context.Context {
+	return context.WithValue(ctx, ContextKeyTenantUserID, tenantUserID)
 }
 
-// GetEndUserAdminID extracts the org's end-user super-admin ID from context.
-// Returns empty string if not set.
-func GetEndUserAdminID(ctx context.Context) string {
-	val, _ := ctx.Value(ContextKeyEndUserAdminID).(string)
-	return val
+// GetTenantUserIDFromContext extracts the tenant admin's user ID from context.
+// Returns ("", error) if not set — only present for tenant (developer/admin) callers.
+func GetTenantUserIDFromContext(ctx context.Context) (string, error) {
+	val, _ := ctx.Value(ContextKeyTenantUserID).(string)
+	if val == "" {
+		return "", fmt.Errorf("tenant user ID not found in context")
+	}
+	return val, nil
 }
 
 // GetUseCache extracts the useCache flag from context.
