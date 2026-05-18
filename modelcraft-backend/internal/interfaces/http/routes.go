@@ -83,10 +83,9 @@ type DesignHandlers struct {
 	// Auth Services
 
 	// Repositories
-	ModelRepository  domainModelDesign.ModelRepository
-	UserRepo         domainUser.UserRepository
-	ClusterManager   *repository.ClusterConnectionManager
-	PrivateDBManager *repository.PrivateDBManager
+	ModelRepository domainModelDesign.ModelRepository
+	UserRepo        domainUser.UserRepository
+	ClusterManager  *repository.ClusterConnectionManager
 
 	// End-User Services
 	EndUserAuthAppService *appEnduser.EndUserAuthAppService
@@ -355,8 +354,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	authHandler := authHandlers.NewHandler(tokenService, cfg.Auth.Cookie, logger)
 
 	// Create end-user services and handlers
-	privateDBManager := repository.NewPrivateDBManager(clusterManager, &cfg.Database, logger)
-
 	endUserTxMgr := &endUserTxManager{}
 	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
 		repoFactory.SqlDB,
@@ -388,7 +385,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		ModelRepository:           modelRepository,
 		UserRepo:                  userRepo,
 		ClusterManager:            clusterManager,
-		PrivateDBManager:          privateDBManager,
 		SystemDB:                  repoFactory.SqlDB,
 		GroupAppService:           groupAppService,
 		LogicalFKAppService:       logicalFKAppService,
@@ -468,7 +464,6 @@ func SetupProjectGraphQLRoutesOnChi(router chi.Router, handlers *DesignHandlers,
 		FieldSelectionChecker:    projectgraphql.NewFieldSelectionChecker(),
 		RLSPolicyAppService:      handlers.RLSPolicyAppService,
 		AuthSchemaAppService:     handlers.AuthSchemaAppService,
-		PrivateDBManager:         handlers.PrivateDBManager,
 		EndUserMgmtAppService:    handlers.EndUserAppService,
 		RBACPermissionSvc:        handlers.RBACPermissionSvc,
 		RBACBundleSvc:            handlers.RBACBundleSvc,

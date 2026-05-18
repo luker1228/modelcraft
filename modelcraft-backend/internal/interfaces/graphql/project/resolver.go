@@ -7,7 +7,6 @@ import (
 	"modelcraft/internal/app/permission"
 	apprbac "modelcraft/internal/app/rbac"
 	"modelcraft/internal/app/rls"
-	"modelcraft/internal/infrastructure/repository"
 )
 
 // Resolver is the GraphQL resolver for project domain
@@ -35,9 +34,6 @@ type Resolver struct {
 	// RLS (Row Level Security)
 	RLSPolicyAppService  *rls.ModelRLSPolicyAppService
 	AuthSchemaAppService *rls.AuthSchemaAppService
-
-	// Private DB
-	PrivateDBManager *repository.PrivateDBManager
 
 	// End-User
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
