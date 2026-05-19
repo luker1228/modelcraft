@@ -167,11 +167,13 @@ export const EndUserCopilotWrapper = memo(({
       <Suspense fallback={children}>
         <CopilotKit
           runtimeUrl="/api/copilotkit"
-          // NOTE: Do NOT pass agent= here.
-          // Binding a specific agent causes useCopilotKit to do a runtime sync on mount
-          // and throw "Agent not found" if the Python agent service is offline.
-          // Without agent=, useCopilotChat().append still works when the service is up,
-          // and fails gracefully (promise rejection) when it's down.
+          agent="modelcraft_agent"
+          // NOTE: agent= must be set. Without it, CopilotKit v1.54+ internally calls
+          // useAgent("default") after the runtime /info sync and throws "Agent not found"
+          // because the runtime only knows "modelcraft_agent". The /info call itself does
+          // NOT reach the Python agent service, so this is safe even when the agent is
+          // offline — offline failures surface only when AiQueryTab.handleGenerate fires,
+          // which already shows a user-facing error message.
           properties={copilotContext}
         >
           {children}

@@ -140,6 +140,114 @@ Schema 定义在 `db/schema/mysql/`，**按编号顺序执行**：
 - **幂等建表**：所有表使用 `CREATE TABLE IF NOT EXISTS`，重复执行安全
 - **所有表**：`ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`
 
+## 强制约束：唯一索引字段必须 `NOT NULL`
+
+> **硬性规则**：凡是参与 `PRIMARY KEY` / `UNIQUE KEY`（含联合唯一索引）的字段，必须声明为 `NOT NULL`。
+
+原因：MySQL 里 `NULL != NULL`，联合唯一索引中出现 `NULL` 时，可能出现“看似重复却不冲突”的脏数据。
+
+```sql
+-- ❌ 错误示例：c 允许 NULL，唯一约束会失效
+UNIQUE KEY uk_abc (a, b, c)
+
+-- 可能同时插入成功
+(a, b, c) = (1, 2, NULL)
+(a, b, c) = (1, 2, NULL)
+```
+
+```sql
+-- ✅ 正确示例：唯一索引字段全部 NOT NULL
+a BIGINT NOT NULL,
+b BIGINT NOT NULL,
+c BIGINT NOT NULL,
+UNIQUE KEY uk_abc (a, b, c)
+```
+
+评审清单：
+1. 新增/修改唯一索引时，逐个检查索引列是否 `NOT NULL`
+2. 不要依赖 `NULL` 参与唯一约束表达业务语义
+3. 软删除场景继续使用 `delete_token`（`NOT NULL DEFAULT 0`）做唯一避让
+
+## 强制约束：字段默认值策略
+
+> **硬性规则**：字段应尽量设置 `DEFAULT` 值；默认值必须是“系统保留值”，不得与业务有效值冲突。
+
+目的：降低写入遗漏导致的 `NULL`/空值问题，同时避免默认值被误当成真实业务数据。
+
+```sql
+-- ❌ 错误示例：默认值与业务值冲突
+status VARCHAR(32) NOT NULL DEFAULT 'active'
+-- active 是真实业务状态，无法区分“未显式赋值”与“用户真实设置为 active”
+```
+
+```sql
+-- ✅ 正确示例：使用保留默认值（不与业务值冲突）
+status VARCHAR(32) NOT NULL DEFAULT '__UNSET__'
+```
+
+```sql
+-- ✅ 正确示例：软删除/时间戳场景使用约定哨兵值
+deleted_at BIGINT UNSIGNED NOT NULL DEFAULT 0
+```
+
+评审清单：
+1. 新增字段时，优先提供 `NOT NULL + DEFAULT`
+2. 先定义该字段的“业务值集合”，再选择不冲突的默认值
+3. 若无法提供安全默认值，再允许 `NULL`，并在应用层显式处理
+4. 禁止用会误导业务语义的默认值（如真实状态、真实枚举值）
+
+## 强制约束：软删除字段规则（`deleted_at` / `delete_token`）
+
+### 核心字段定义
+
+```sql
+deleted_at   BIGINT UNSIGNED NOT NULL DEFAULT 0,
+delete_token BIGINT UNSIGNED NOT NULL DEFAULT 0
+```
+
+语义约定：
+- `deleted_at = 0`：活跃数据
+- `deleted_at > 0`：已软删除（Unix 毫秒时间戳）
+- `delete_token = 0`：活跃数据
+- `delete_token > 0`：墓碑记录唯一逃逸值（仅用于唯一索引避让）
+
+### 查询与写入规则
+
+读路径（`SELECT` / `COUNT` / `EXISTS` / `JOIN` / 子查询）必须显式过滤：
+
+```sql
+deleted_at = 0
+```
+
+更新活跃数据必须带条件：
+
+```sql
+... WHERE ... AND deleted_at = 0
+```
+
+软删除禁止物理 `DELETE`，统一使用：
+
+```sql
+UPDATE <table>
+SET deleted_at = <unix_millis_expr>,
+    delete_token = <unique_token_expr>
+WHERE ... AND deleted_at = 0
+```
+
+### 与唯一索引联动
+
+若业务键需要“删后重建”，唯一键必须包含 `delete_token`：
+
+```sql
+UNIQUE KEY uk_xxx (<biz_columns...>, delete_token)
+```
+
+这样活跃数据（`delete_token=0`）保持唯一，墓碑数据可并存。
+
+### 例外（黑名单机制）
+
+黑名单表可保持物理删除，不强制要求 `deleted_at`；以 `modelcraft-backend/db/soft_delete.yaml` 配置为准。
+
 ---
 
 ## just db 命令详解
