@@ -3,7 +3,7 @@
 import React, { useMemo, useState, useEffect } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
 import { createEndUserOrgScopedClient, getOrgScopedClient } from '@api-client/apollo/clients'
-import { getEndUserToken } from '@api-client/end-user/public'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { FIND_USERS } from '@api-client/end-user/graphql-docs'
 import { useWidgetRouteContext } from '../_hooks/useWidgetRouteContext'
 import { resolveWidgetFormContext } from './resolveWidgetFormContext'
@@ -85,12 +85,12 @@ export function EndUserSelectorWidget(props: WidgetProps) {
     }
 
     if (workspaceMode === 'end_user') {
-      const token = getEndUserToken()
-      if (!token) {
-        console.warn('[EndUserSelectorWidget] client=null: no end-user token in localStorage')
+      const hasToken = !!useEndUserAuthStore.getState().accessToken
+      if (!hasToken) {
+        console.warn('[EndUserSelectorWidget] client=null: no end-user token in store')
         return null
       }
-      return createEndUserOrgScopedClient(orgName, token)
+      return createEndUserOrgScopedClient(orgName)
     }
 
     // Design path

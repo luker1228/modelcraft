@@ -10,7 +10,7 @@ export type { EndUserInfo }
 
 export interface EndUserRefreshParams {
   orgName: string
-  projectSlug: string
+  projectSlug?: string
 }
 
 // ============================================================================

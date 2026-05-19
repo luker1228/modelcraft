@@ -7,7 +7,7 @@ import {
   createEndUserScopedClient,
   createEndUserModelRuntimeClient,
 } from '@api-client/apollo/public'
-import { getEndUserToken } from '@api-client/end-user/public'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { ModelRecordForm } from './index'
 import { ModelRecordTable } from './ModelRecordTable'
 import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
@@ -140,30 +140,26 @@ export default function RuntimeRecordWorkspace({
     [orgName, projectSlug]
   )
 
-  // runtime workspace 使用 end-user token；token 来自 localStorage（通过 getEndUserToken）
-  const endUserToken = getEndUserToken()
+  // runtime workspace 使用 end-user token；从 store 读取是否已登录
+  const hasEndUserToken = useEndUserAuthStore((s) => !!s.accessToken)
 
   const managementClient = useMemo(() => {
-    if (!endUserToken) return null
-    return createEndUserScopedClient(orgName, projectSlug, endUserToken)
-  }, [orgName, projectSlug, endUserToken])
+    if (!hasEndUserToken) return null
+    return createEndUserScopedClient(orgName, projectSlug)
+  }, [orgName, projectSlug, hasEndUserToken])
 
   // 构建 runtime workspace 的 RecordAccessAdapter
   // createRuntimeClient 始终返回 end-user scoped client（忽略 databaseName/modelName）
   const accessAdapter = useMemo<RecordAccessAdapter | null>(() => {
     if (!managementClient) return null
-    const token = endUserToken
     return {
       managementClient,
       managementContext: endUserContext,
       createRuntimeClient: (databaseName: string, modelName: string) => {
-        if (!token) {
-          throw new Error('RuntimeRecordWorkspace: end-user token is not available')
-        }
-        return createEndUserModelRuntimeClient(orgName, projectSlug, databaseName, modelName, token)
+        return createEndUserModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
       },
     }
-  }, [managementClient, endUserContext, orgName, projectSlug, endUserToken])
+  }, [managementClient, endUserContext, orgName, projectSlug])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
@@ -210,12 +206,12 @@ export default function RuntimeRecordWorkspace({
   // runtime client 使用 end-user model runtime endpoint（/db/{db}/model/{model}）
   // 必须等 model 数据加载完成后才能构建（需要 databaseName 和 name）
   const runtimeClient = useMemo(() => {
-    if (!endUserToken) return null
+    if (!hasEndUserToken) return null
     const dbName = model?.databaseName
     const mName = model?.name
     if (!dbName || !mName) return null
-    return createEndUserModelRuntimeClient(orgName, projectSlug, dbName, mName, endUserToken)
-  }, [orgName, projectSlug, endUserToken, model?.databaseName, model?.name])
+    return createEndUserModelRuntimeClient(orgName, projectSlug, dbName, mName)
+  }, [orgName, projectSlug, hasEndUserToken, model?.databaseName, model?.name])
 
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {
     if (!model?.jsonSchema) return null

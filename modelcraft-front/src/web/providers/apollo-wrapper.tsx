@@ -10,6 +10,7 @@ import { refreshAccessToken } from '@api-client/auth/public'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@shared/utils/uuid'
 import { useAuthStore } from '@shared/stores/auth-store'
+import { buildXAction } from '@api-client/apollo/x-action'
 
 function isEndUserPath(): boolean {
   if (typeof window === 'undefined') return false
@@ -35,7 +36,7 @@ const httpLink = createHttpLink({
 })
 
 // 认证链接（如果需要）
-const authLink = setContext(async (_: unknown, { headers }: { headers?: Record<string, string> }) => {
+const authLink = setContext(async (operation: { operationName?: string; query: import('@apollo/client').DocumentNode }, { headers }: { headers?: Record<string, string> }) => {
   // 获取认证token（如果有的话）
   let token = typeof window !== 'undefined' ? useAuthStore.getState().accessToken : null
   if (!token && typeof window !== 'undefined' && !isEndUserPath()) {
@@ -49,6 +50,11 @@ const authLink = setContext(async (_: unknown, { headers }: { headers?: Record<s
 
   if (token) {
     nextHeaders.authorization = `Bearer ${token}`
+  }
+
+  const xAction = buildXAction(operation)
+  if (xAction) {
+    nextHeaders['X-Action'] = xAction
   }
 
   return {

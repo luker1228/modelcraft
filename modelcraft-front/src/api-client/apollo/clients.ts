@@ -3,14 +3,15 @@
 
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
-import {
-  getOperationDefinition,
-} from '@apollo/client/utilities'
+
 import { useContext, createContext, useMemo } from 'react'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { generateUUID } from '@/shared/utils/uuid'
 import { useAuthStore } from '@shared/stores/auth-store'
 import { refreshAccessToken } from '@api-client/auth/public'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { refreshEndUserAccessToken } from '@api-client/end-user/end-user-auth-client'
+import { buildXAction } from './x-action'
 
 // Gateway base URL — empty string means same-origin (when behind a reverse proxy)
 const GATEWAY_URL = ''
@@ -43,17 +44,6 @@ export function buildEndUserRuntimeEndpoint(
   return `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}/db/${databaseName}/model/${modelName}`
 }
 
-function buildXAction(operation: { operationName?: string; query: import('@apollo/client').DocumentNode }): string | null {
-  try {
-    const def = getOperationDefinition(operation.query) as { operation?: string } | null | undefined
-    if (!def || !operation.operationName) return null
-    const opType = def.operation ?? 'query'
-    return `${opType}:${operation.operationName}`
-  } catch (err) {
-    console.error('[buildXAction] error:', err)
-    return null
-  }
-}
 
 function createAuthLink() {
   return setContext(async (operation, { headers }: { headers?: Record<string, string> }) => {
@@ -148,6 +138,36 @@ export function createProjectScopedClient(
   })
 }
 
+function createEndUserAuthLink(orgName: string) {
+  return setContext(async (operation, { headers }: { headers?: Record<string, string> }) => {
+    try {
+      let token = typeof window !== 'undefined' ? useEndUserAuthStore.getState().accessToken : null
+      if (typeof window !== 'undefined' && useEndUserAuthStore.getState().isTokenExpired()) {
+        token = await refreshEndUserAccessToken({ orgName })
+      }
+
+      const nextHeaders: Record<string, string> = {
+        ...(headers ?? {}),
+        'x-client-request-id': generateUUID(),
+      }
+
+      if (token) {
+        nextHeaders.authorization = `Bearer ${token}`
+      }
+
+      const xAction = buildXAction(operation)
+      if (xAction) {
+        nextHeaders['X-Action'] = xAction
+      }
+
+      return { headers: nextHeaders }
+    } catch (err) {
+      console.error('[EndUserAuthLink] ERROR:', err)
+      return { headers }
+    }
+  })
+}
+
 /**
  * End-User Scoped Apollo Client factory
  * Endpoint: /api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}
@@ -155,25 +175,13 @@ export function createProjectScopedClient(
  */
 export function createEndUserScopedClient(
   orgName: string,
-  projectSlug: string,
-  endUserToken: string
+  projectSlug: string
 ): ApolloClient<object> {
   const uri = `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}`
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
-  const authLink = setContext((operation, { headers }: { headers?: Record<string, string> }) => {
-    const xAction = buildXAction(operation)
-    return {
-      headers: {
-        ...(headers ?? {}),
-        authorization: `Bearer ${endUserToken}`,
-        ...(xAction ? { 'X-Action': xAction } : {}),
-      },
-    }
-  })
-
   return new ApolloClient({
-    link: authLink.concat(httpLink),
+    link: createEndUserAuthLink(orgName).concat(httpLink),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },
@@ -189,25 +197,13 @@ export function createEndUserScopedClient(
  * Uses the End-User Bearer token for org-level queries (e.g. findUsers).
  */
 export function createEndUserOrgScopedClient(
-  orgName: string,
-  endUserToken: string
+  orgName: string
 ): ApolloClient<object> {
   const uri = `${GATEWAY_URL}/api/bff/graphql/end-user/org/${orgName}`
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
-  const authLink = setContext((operation, { headers }: { headers?: Record<string, string> }) => {
-    const xAction = buildXAction(operation)
-    return {
-      headers: {
-        ...(headers ?? {}),
-        authorization: `Bearer ${endUserToken}`,
-        ...(xAction ? { 'X-Action': xAction } : {}),
-      },
-    }
-  })
-
   return new ApolloClient({
-    link: authLink.concat(httpLink),
+    link: createEndUserAuthLink(orgName).concat(httpLink),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },
@@ -247,25 +243,13 @@ export function createEndUserModelRuntimeClient(
   orgName: string,
   projectSlug: string,
   databaseName: string,
-  modelName: string,
-  endUserToken: string
+  modelName: string
 ): ApolloClient<object> {
   const uri = buildEndUserRuntimeEndpoint(orgName, projectSlug, databaseName, modelName)
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
-  const authLink = setContext((operation, { headers }: { headers?: Record<string, string> }) => {
-    const xAction = buildXAction(operation)
-    return {
-      headers: {
-        ...(headers ?? {}),
-        authorization: `Bearer ${endUserToken}`,
-        ...(xAction ? { 'X-Action': xAction } : {}),
-      },
-    }
-  })
-
   return new ApolloClient({
-    link: authLink.concat(httpLink),
+    link: createEndUserAuthLink(orgName).concat(httpLink),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },

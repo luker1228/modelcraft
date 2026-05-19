@@ -152,12 +152,11 @@ function useEndUserTokenReady(orgName: string): boolean {
 
 export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { orgName } = params
-  const accessToken = useEndUserAuthStore((s) => s.accessToken)
   const ready = useEndUserTokenReady(orgName)
 
   const client = useMemo(
-    () => createEndUserOrgScopedClient(orgName, accessToken ?? ''),
-    [orgName, accessToken]
+    () => createEndUserOrgScopedClient(orgName),
+    [orgName]
   )
 
   if (!ready) {

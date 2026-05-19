@@ -1,0 +1,286 @@
+END-USER AUTH ARCHITECTURE - FILE TREE & DEPENDENCY MAP
+
+📦 src/
+├── 📁 api-client/
+│   ├── 📁 end-user/
+│   │   ├── 📄 end-user-auth-client.ts          ← REFRESH LOGIC & TOKEN HELPERS
+│   │   │   ├─ refreshEndUserAccessToken()       • Main refresh function
+│   │   │   ├─ getEndUserToken()                 • Get token from store
+│   │   │   ├─ fetchAndCacheEndUserInfo()        • Get username from /me
+│   │   │   ├─ isEndUserAuthenticated()          • Check if valid token
+│   │   │   └─ removeEndUserSession()            • Clear session
+│   │   │
+│   │   ├── 📄 end-user-go-client.ts            (Backend integration)
+│   │   └── 📄 public.ts                         (Public exports)
+│   │
+│   └── 📁 apollo/
+│       └── 📄 clients.ts                        ← APOLLO CLIENT FACTORIES
+│           ├─ createAuthLink()                  • Tenant auth link (WORKING)
+│           ├─ createEndUserScopedClient()       • End-user client (BROKEN - no refresh)
+│           ├─ createEndUserOrgScopedClient()    • Org-level client (BROKEN)
+│           ├─ createEndUserModelRuntimeClient() • Runtime client (BROKEN)
+│           └─ buildXAction()                    • X-Action header builder
+│
+├── 📁 app/
+│   ├── 📁 api/
+│   │   └── 📁 bff/
+│   │       └── 📁 org/
+│   │           └── 📁 [orgName]/
+│   │               └── 📁 end-user/
+│   │                   ├── 📁 auth/
+│   │                   │   ├── 📁 refresh/
+│   │                   │   │   └── 📄 route.ts  ← BFF REFRESH ENDPOINT
+│   │                   │   │       • Read HttpOnly cookie
+│   │                   │   │       • Inject refreshToken to body
+│   │                   │   │       • Proxy to Go backend
+│   │                   │   │       • Return new accessToken + rotate cookie
+│   │                   │   │
+│   │                   │   ├── 📄 _proxy.ts     ← PROXY HELPER
+│   │                   │   │   • proxyEndUserAuth()  • Transparent proxy + cookie handling
+│   │                   │   │   • Cookie rotation logic
+│   │                   │   │   • Error handling
+│   │                   │   │
+│   │                   │   ├── 📄 login/route.ts   (Login endpoint)
+│   │                   │   ├── 📄 register/route.ts (Register endpoint)
+│   │                   │   ├── 📄 me/route.ts      (Get user info)
+│   │                   │   └── 📄 logout/route.ts  (Logout endpoint)
+│   │                   │
+│   │                   └── 📁 select-project/  (Project selection)
+│   │
+│   └── 📁 end-user/
+│       └── 📁 [orgName]/
+│           ├── 📁 login/
+│           │   └── 📄 page.tsx                  • End-user login UI
+│           │
+│           ├── 📁 workspace/
+│           │   └── 📄 page.tsx                  • End-user workspace (protected)
+│           │
+│           └── 📁 projects/
+│               └── 📁 [projectSlug]/
+│                   ├── 📁 data/
+│                   │   └── 📄 page.tsx          • Model record page (uses Apollo)
+│                   │
+│                   └── ... (other project routes)
+│
+├── 📁 shared/
+│   ├── 📁 stores/
+│   │   ├── 📄 end-user-auth-store.ts            ← ZUSTAND STORE
+│   │   │   • accessToken: string | null
+│   │   │   • expiresAt: number | null (Unix timestamp ms)
+│   │   │   • userInfo: EndUserInfo | null
+│   │   │   • setAccessToken(token, expiresIn)
+│   │   │   • setUserInfo(info)
+│   │   │   • clearSession()
+│   │   │   • isTokenExpired() [5 min buffer]
+│   │   │
+│   │   └── 📄 auth-store.ts                     (Tenant auth store - for reference)
+│   │
+│   ├── 📁 constants/
+│   │   └── 📄 routes.ts
+│   │       • getEndUserLoginPath(orgName)
+│   │       • END_USER_REFRESH_COOKIE constant
+│   │
+│   └── 📁 utils/
+│       ├── 📄 jwt.ts
+│       │   • decodeJWTPayload<T>(token): T | null
+│       │
+│       └── 📄 uuid.ts
+│
+├── 📁 types/
+│   ├── 📄 end-user-auth.ts                      ← TYPE DEFINITIONS
+│   │   • EndUserLoginRequest
+│   │   • EndUserAuthResponse
+│   │   • EndUserMeResponse
+│   │   • EndUserJWTPayload
+│   │   • EndUserInfo
+│   │   • EndUserErrorCode
+│   │   • mapEndUserErrorCode()
+│   │
+│   └── 📄 auth.ts                               (Tenant auth types - for reference)
+│
+├── 📁 web/
+│   ├── 📁 hooks/
+│   │   ├── 📁 end-user-auth/
+│   │   │   ├── 📄 useRequireEndUserAuth.ts     • Hook to check auth + auto-refresh
+│   │   │   └── 📄 useEndUserOrgLoginForm.ts    • Login form logic
+│   │   │
+│   │   └── 📁 auth/
+│   │       └── 📄 useRequireAuth.ts             (Tenant auth hook - for reference)
+│   │
+│   └── 📁 components/
+│       ├── 📁 features/
+│       │   ├── 📁 end-user-data/
+│       │   │   └── 📄 EndUserRecordWorkspace.tsx  • Uses createEndUserScopedClient()
+│       │   │
+│       │   └── 📁 model-editor/
+│       │       └── ... (design-time features)
+│       │
+│       └── ... (other components)
+│
+├── 📄 middleware.ts                             ← ROUTE PROTECTION
+│   • END_USER_PUBLIC_PATH_RE regex              • /end-user/{orgName}/login
+│   • END_USER_WORKSPACE_RE regex                • /end-user/{orgName}/workspace
+│   • END_USER_PROJECT_RE regex                  • /end-user/{orgName}/projects/*
+│   • Cookie check: mc_enduser_refresh_token
+│   • Redirect: /end-user/{orgName}/login?redirect=...
+│
+└── 📁 mocks/
+    └── 📁 handlers/
+        └── 📁 end-user/
+            └── 📄 auth-handlers.ts               (MSW mock handlers for testing)
+
+
+DATA FLOW DIAGRAM
+═════════════════════════════════════════════════════════════════════════════════════════════
+
+LOGIN
+─────
+[Browser]
+   │ POST /api/bff/org/{orgName}/end-user/auth/login
+   ↓
+[BFF refresh/route.ts] ────→ [Go Backend /api/end-user/auth/login]
+   ↓                              ↓
+   ← accessToken, expiresAt        ← refreshToken (Set-Cookie)
+   ↓
+[Browser]
+   │ Store in useEndUserAuthStore:
+   │  • accessToken (in-memory)
+   │  • expiresAt (in-memory)
+   │  • mc_enduser_refresh_token (HttpOnly cookie)
+   ↓
+[Ready to use]
+
+
+GRAPHQL QUERY (Apollo)
+──────────────────────
+[React Component]
+   │ useLazyQuery() / useQuery()
+   ↓
+[Apollo Link] ──────────────────────────────┐
+   │ Get token: getEndUserToken()           │
+   │ Check: isTokenExpired()? [5 min buffer]│  
+   │ If YES: refreshEndUserAccessToken()   │
+   │         (with org/projectSlug params)  │
+   │ ← Update store + cookie rotation       │
+   │ Build headers:                         │
+   │  • Authorization: Bearer {token}      │
+   │  • X-Action: "query:RecordSearch"     │
+   │  • X-Client-Request-Id: UUID          │
+   ↓
+[BFF /api/bff/graphql/end-user/org/{org}/project/{prj}]
+   │
+   ↓
+[Gateway] ─ Validates JWT ─ Injects X-User-Type: end_user
+   │
+   ↓
+[Go Backend] ─ Enforces end-user permissions
+   │
+   ↓ Returns GraphQL result
+[Apollo Cache] ─ Store result
+   │
+   ↓
+[React Component] ─ Display data
+
+
+REFRESH (Silent)
+────────────────
+[Timer / Apollo Link Check]
+   │ isTokenExpired()? → YES (now > expiresAt - 5min)
+   ↓
+[refreshEndUserAccessToken()]
+   │ Concurrent guard: _isRefreshing && _refreshPromise?
+   │ → YES: return shared promise
+   │ → NO: proceed
+   ↓
+[BFF POST /api/bff/org/{orgName}/end-user/auth/refresh]
+   ├─ req.cookies.get(mc_enduser_refresh_token) → extracts refreshToken
+   ├─ injects to body: { orgName, refreshToken }
+   ↓
+[Go Backend /api/end-user/auth/refresh]
+   ├─ Validates refresh token
+   ├─ Rotates refresh token (new cookie)
+   ├─ Issues new access token (JWT)
+   ↓ Response: { accessToken, expiresAt, Set-Cookie }
+[BFF Response]
+   ├─ Transparently pass Set-Cookie to browser
+   ├─ Return EndUserAuthResponse
+   ↓
+[useEndUserAuthStore]
+   ├─ setAccessToken(newToken, expiresIn)
+   ├─ Decode JWT: extract org_name, project_slug, sub
+   ├─ setUserInfo() auto-populated
+   ↓
+[Ready to use]
+
+
+LOGOUT
+──────
+[User Click]
+   ↓
+[BFF POST /api/bff/org/{orgName}/end-user/auth/logout]
+   │ (credentials: include) ← sends HttpOnly cookie
+   ↓
+[Go Backend /api/end-user/auth/logout]
+   │ Revoke refresh token
+   ↓ OK
+[BFF Response]
+   ├─ + Set-Cookie: mc_enduser_refresh_token=; Max-Age=0; HttpOnly
+   ↓
+[Browser]
+   ├─ Cookie cleared
+   ├─ useEndUserAuthStore.clearSession()
+   │  • accessToken = null
+   │  • expiresAt = null
+   │  • userInfo = null
+   ├─ Apollo cache cleared
+   ↓
+[Redirect] → /end-user/{orgName}/login
+
+
+IMPORT TREE
+═══════════════════════════════════════════════════════════════════════════════════════════
+
+useEndUserAuthStore.ts
+├─ imports: zustand, types/end-user-auth.ts
+└─ exported by: end-user-auth-client.ts, components
+
+end-user-auth-client.ts
+├─ imports: useEndUserAuthStore, decodeJWTPayload, types/end-user-auth.ts
+├─ calls: POST /api/bff/org/{orgName}/end-user/auth/refresh
+└─ used by: Apollo Link (TO BE), components, middleware
+
+apollo/clients.ts
+├─ imports: useEndUserAuthStore (CURRENTLY BROKEN - not checking refresh)
+├─ imports: createAuthLink, end-user-auth-client? (SHOULD)
+└─ functions:
+    ├─ createEndUserScopedClient() ← NEEDS FIX
+    ├─ createEndUserOrgScopedClient() ← NEEDS FIX
+    └─ createEndUserModelRuntimeClient() ← NEEDS FIX
+
+middleware.ts
+├─ imports: END_USER_REFRESH_COOKIE
+├─ checks: req.cookies.has(END_USER_REFRESH_COOKIE)
+└─ redirects: to /end-user/{orgName}/login
+
+[orgName]/end-user/auth/refresh/route.ts
+├─ imports: END_USER_REFRESH_COOKIE, proxyEndUserAuth
+├─ reads: req.cookies.get(END_USER_REFRESH_COOKIE)?.value
+├─ calls: proxyEndUserAuth(req, 'refresh', 'POST')
+└─ forwards to: Go Backend /api/end-user/auth/refresh
+
+[orgName]/end-user/auth/_proxy.ts
+├─ env: BACKEND_URL
+├─ const: END_USER_REFRESH_COOKIE
+├─ function: proxyEndUserAuth(req, path, method)
+└─ handles: Cookie + Set-Cookie transparency
+
+types/end-user-auth.ts
+├─ exported interfaces: all auth-related types
+├─ exported function: mapEndUserErrorCode()
+└─ used by: ALL auth files
+
+hooks/end-user-auth/useRequireEndUserAuth.ts
+├─ imports: useEndUserAuthStore, refreshEndUserAccessToken
+├─ purpose: Check auth on mount + auto-refresh
+└─ usage: Wrapped around protected pages
+

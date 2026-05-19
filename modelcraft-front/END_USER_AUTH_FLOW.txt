@@ -1,0 +1,345 @@
+╔════════════════════════════════════════════════════════════════════════════════════════════╗
+║                         END-USER TOKEN LIFECYCLE & REFRESH FLOW                            ║
+╚════════════════════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1: LOGIN                                                                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Browser                          BFF                              Go Backend
+  │                               │                                   │
+  ├─ POST /api/bff/org/          │                                   │
+  │   {orgName}/end-user/        │                                   │
+  │   auth/login                 │                                   │
+  │ {username, password, ...}    │                                   │
+  ├──────────────────────────────┼─ POST /api/end-user/auth/login ──┤
+  │                              │ (same body)                        │
+  │                              │                                   │
+  │                              │ Response:                         │
+  │                              │ {                                 │
+  │                              │   accessToken: "JWT...",          │
+  │                              │   refreshToken: "...",            │
+  │                              │   expiresAt: "2026-05-20T12:34" } │
+  │                              │ Set-Cookie: mc_enduser_refresh...│
+  │◄─ accessToken, expiresAt ────┤                                   │
+  │◄─ Set-Cookie: mc_enduser... ──                                   │
+  │                              │                                   │
+  └─ Store token in:            │                                   │
+     useEndUserAuthStore         │                                   │
+     ├─ accessToken (in-memory)  │                                   │
+     ├─ expiresAt (in-memory)    │                                   │
+     └─ mc_enduser_refresh_token │                                   │
+        (HttpOnly cookie from    │                                   │
+         browser/Set-Cookie)     │                                   │
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 2: SILENT REFRESH (5 min before expiry)                                              │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Timeline:
+┌──────────────────────────────────────────────────────────────────┐
+│ Token Issued        Warning Window      Expiry                   │
+│ (now)               (now + 55min)       (now + 1h)               │
+│ │                   │                   │                        │
+│ └───────────────────┴───────────────────┘                        │
+│  5 MIN              55 MIN              60 MIN                    │
+│  ← isTokenExpired() checks this: expiresAt - 5*60*1000 ←         │
+│                                                                   │
+│ Call refreshEndUserAccessToken() when:                           │
+│   Date.now() > (expiresAt - 5 * 60 * 1000)                       │
+└──────────────────────────────────────────────────────────────────┘
+
+Where Called:
+1. Apollo Link (new): Check on each GraphQL operation
+2. useRequireEndUserAuth hook: Check on page load/mount
+3. Manual: Call refreshEndUserAccessToken() explicitly
+
+Flow:
+Browser                          BFF                              Go Backend
+  │                               │                                   │
+  ├─ Check: isTokenExpired()?    │                                   │
+  │   → YES (5 min buffer)        │                                   │
+  │                              │                                   │
+  ├─ POST /api/bff/org/          │                                   │
+  │   {orgName}/end-user/        │                                   │
+  │   auth/refresh               │                                   │
+  │ {orgName}                    │                                   │
+  │ (credentials: include)        │                                   │
+  │ ← mc_enduser_refresh_token   │                                   │
+  │    (HttpOnly cookie)          │                                   │
+  ├──────────────────────────────┼─ Extract cookie               ┤
+  │                              │ POST /api/end-user/auth/      │
+  │                              │ refresh                       │
+  │                              │ {orgName, refreshToken}       │
+  │                              │ (body injection)              │
+  │                              │                                   │
+  │                              │ Validate refresh token        │
+  │                              │ ├─ Check expiry              │
+  │                              │ ├─ Check revocation          │
+  │                              │ ├─ Rotate token              │
+  │                              │ └─ Issue new accessToken     │
+  │                              │    (new JWT)                  │
+  │                              │                                   │
+  │                              │ Response:                         │
+  │                              │ {                                 │
+  │                              │   accessToken: "JWT2...",         │
+  │                              │   refreshToken: "NEW...",         │
+  │                              │   expiresAt: "2026-05-20T13:34" } │
+  │                              │ Set-Cookie: mc_enduser_... (NEW) │
+  │                              │                                   │
+  │◄─ accessToken, expiresAt ────┤                                   │
+  │◄─ Set-Cookie: mc_enduser...(NEW)                                │
+  │                              │                                   │
+  └─ Store NEW token:           │                                   │
+     ├─ accessToken = JWT2...   │                                   │
+     ├─ expiresAt = (new time)  │                                   │
+     ├─ Decode JWT2:            │                                   │
+     │  ├─ sub → id             │                                   │
+     │  ├─ org_name → orgName   │                                   │
+     │  └─ project_slug → prj.  │                                   │
+     └─ userInfo updated        │                                   │
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3: GRAPHQL OPERATION (with token)                                                    │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Component                    Apollo Link               Server
+  │                              │                        │
+  ├─ useLazyQuery()             │                        │
+  │ or useQuery()               │                        │
+  │ or useMutation()            │                        │
+  │                              │                        │
+  ├─ Trigger GraphQL op.        │                        │
+  │                              ├─ Check: isTokenExpired()?        
+  │                              │   → NO (within window)
+  │                              │
+  │                              ├─ Get token from store
+  │                              │   token = getEndUserToken()
+  │                              │
+  │                              ├─ Build headers:
+  │                              │   Authorization: "Bearer {token}"
+  │                              │   X-Action: "query:SearchRecords"
+  │                              │   X-Client-Request-Id: UUID
+  │                              │
+  │                              ├─ POST /api/bff/graphql/end-user/
+  │                              │         org/{orgName}/project/{prj}
+  │                              │ Headers + GraphQL operation
+  │                              ├───────────────────────────────┬─┤
+  │                              │ Gateway validates JWT         │
+  │                              │ Injects X-User-Type: end_user │
+  │                              │ Forwards to backend           │
+  │                              │                                │
+  │                              │ Backend returns result        │
+  │                              │◄───────────────────────────────┤
+  │◄─ Result (in ApolloCache)   │                        │
+  │                              │                        │
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 4: TOKEN EXPIRY DURING OPERATION (auto-refresh)                                      │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Component                    Apollo Link               Store / BFF / Backend
+  │                              │                        │
+  ├─ Trigger GraphQL op.        │                        │
+  │ (10 ms after refresh window  │                        │
+  │  should have triggered)      │                        │
+  │                              ├─ Check: isTokenExpired()?        
+  │                              │   → YES! (now > expiresAt - 5min)
+  │                              │
+  │                              ├─ Concurrent check:
+  │                              │   if (_isRefreshing && promise)
+  │                              │   └─ return shared promise
+  │                              │
+  │                              ├─ _isRefreshing = true
+  │                              ├─ POST /api/bff/org/{org}/
+  │                              │   end-user/auth/refresh
+  │                              │──────────────────────────────┬──┤
+  │                              │ Get new token                │
+  │                              │ Update store                 │
+  │                              │◄───────────────────────────────┤
+  │                              │
+  │                              ├─ token = newAccessToken
+  │                              ├─ _isRefreshing = false
+  │                              ├─ _refreshPromise = null
+  │                              │
+  │                              ├─ Retry GraphQL with new token
+  │                              │   (set in nextHeaders)
+  │                              │──────────────────────────────┬──┤
+  │                              │ Backend returns result       │
+  │                              │◄───────────────────────────────┤
+  │◄─ Result (in ApolloCache)   │                        │
+  │                              │                        │
+
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 5: LOGOUT                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+Browser                          BFF                              Go Backend
+  │                               │                                   │
+  ├─ User clicks Logout          │                                   │
+  │                              │                                   │
+  ├─ POST /api/bff/org/          │                                   │
+  │   {orgName}/end-user/        │                                   │
+  │   auth/logout                │                                   │
+  │ (credentials: include)        │                                   │
+  ├──────────────────────────────┼─ POST /api/end-user/auth/logout ─┤
+  │                              │ (with refresh cookie)             │
+  │                              │ Revoke refresh token              │
+  │                              │ Return OK                         │
+  │◄────────────────────────────┤                                   │
+  │ (response from BFF)           │                                   │
+  │ + Set-Cookie:                 │                                   │
+  │   mc_enduser_refresh_token=;  │                                   │
+  │   Max-Age=0;                  │                                   │
+  │   HttpOnly; (cookie clear)    │                                   │
+  │                              │                                   │
+  └─ Clear everything:           │                                   │
+     ├─ useEndUserAuthStore.clearSession()
+     │  ├─ accessToken = null
+     │  ├─ expiresAt = null
+     │  ├─ userInfo = null
+     │  ├─ Apollo cache cleared
+     │  └─ Redirect to login
+
+
+╔════════════════════════════════════════════════════════════════════════════════════════════╗
+║                              STORAGE LAYER ARCHITECTURE                                    ║
+╚════════════════════════════════════════════════════════════════════════════════════════════╝
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ useEndUserAuthStore (Zustand In-Memory)                                                    │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                             │
+│  accessToken: string | null                                                                │
+│  ├─ Type: JWT access token (short-lived: 1h default)                                       │
+│  ├─ Lifetime: In-memory, survives page reload if store persists                           │
+│  ├─ Used by: Apollo Link, GraphQL operations                                              │
+│  └─ Cleared on: logout, refresh failure                                                    │
+│                                                                                             │
+│  expiresAt: number | null                                                                  │
+│  ├─ Type: Unix timestamp (milliseconds)                                                    │
+│  ├─ Calculated: Date.now() + expiresIn * 1000                                             │
+│  ├─ Used by: isTokenExpired() check                                                        │
+│  └─ Triggers refresh: When now > (expiresAt - 5*60*1000)                                   │
+│                                                                                             │
+│  userInfo: EndUserInfo | null                                                              │
+│  ├─ id: userId (JWT sub claim)                                                             │
+│  ├─ username: Filled by /me endpoint                                                       │
+│  ├─ orgName: Extracted from JWT org_name claim                                             │
+│  └─ projectSlug: Extracted from JWT project_slug claim                                     │
+│                                                                                             │
+│  Methods:                                                                                  │
+│  ├─ setAccessToken(token, expiresIn): Store new token + calc expiry                        │
+│  ├─ setUserInfo(info): Update user metadata                                                │
+│  ├─ clearSession(): Clear all (token + userInfo)                                           │
+│  └─ isTokenExpired(): Check if needs refresh (5 min buffer)                                │
+│                                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Browser HttpOnly Cookie Storage (Set by Go Backend during login/refresh)                   │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                             │
+│  Cookie Name: mc_enduser_refresh_token                                                      │
+│  ├─ Value: Refresh token (long-lived, rotated on each refresh)                             │
+│  ├─ HttpOnly: YES ✓ (immune to XSS)                                                        │
+│  ├─ SameSite: Strict ✓ (CSRF protection)                                                   │
+│  ├─ Secure: YES ✓ (HTTPS only)                                                             │
+│  ├─ Path: / ✓ (available to all routes)                                                    │
+│  ├─ Domain: (implicit, same-origin)                                                        │
+│  ├─ Lifetime: Long-lived (e.g., 7-30 days, backend-configured)                             │
+│  ├─ Used by: BFF refresh route (auto-included in credentials: include)                     │
+│  └─ Cleared on: logout (Set-Cookie with Max-Age=0)                                         │
+│                                                                                             │
+│  Browser Behavior:                                                                         │
+│  ├─ Automatically sent: fetch(..., { credentials: 'include' })                             │
+│  ├─ Never accessible: document.cookie (due to HttpOnly)                                    │
+│  ├─ BFF receives: req.cookies.get(END_USER_REFRESH_COOKIE)?.value                          │
+│  └─ Rotated by: Go backend returns new Set-Cookie on each refresh                          │
+│                                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────────────────────────────────────────────────────────────────────────────────┐
+│ Apollo Cache (Per Apollo Client Instance)                                                   │
+├─────────────────────────────────────────────────────────────────────────────────────────────┤
+│                                                                                             │
+│  InMemoryCache() (fresh per client)                                                        │
+│  ├─ Caches GraphQL query/mutation results                                                  │
+│  ├─ Cleared on logout: clearSession() → cache.clearStore()                                 │
+│  ├─ Multiple clients possible:                                                             │
+│  │  ├─ createEndUserScopedClient(org, prj, token)                                          │
+│  │  ├─ createEndUserModelRuntimeClient(org, prj, db, model, token)                         │
+│  │  └─ createEndUserOrgScopedClient(org, token)                                            │
+│  └─ Each instance independent (no cache sharing)                                           │
+│                                                                                             │
+└─────────────────────────────────────────────────────────────────────────────────────────────┘
+
+
+╔════════════════════════════════════════════════════════════════════════════════════════════╗
+║                                  REFRESH CONCURRENCY PATTERN                               ║
+╚════════════════════════════════════════════════════════════════════════════════════════════╝
+
+Problem: If multiple Apollo operations trigger refresh simultaneously (network latency),
+         we'd make N refresh requests instead of 1.
+
+Solution: Shared Promise Pattern
+
+```typescript
+let _isRefreshing = false
+let _refreshPromise: Promise<string | null> | null = null
+
+export async function refreshEndUserAccessToken(params): Promise<string | null> {
+  // Other requests wait for ongoing refresh
+  if (_isRefreshing && _refreshPromise) {
+    return _refreshPromise  // ← Share same promise!
+  }
+
+  _isRefreshing = true
+  _refreshPromise = (async () => {
+    try {
+      const res = await fetch('/api/bff/org/{org}/end-user/auth/refresh', ...)
+      // ... handle response, update store
+      return newToken
+    } finally {
+      _isRefreshing = false
+      _refreshPromise = null
+    }
+  })()
+
+  return _refreshPromise
+}
+```
+
+Timeline:
+```
+Operation 1  Operation 2  Operation 3
+  │            │            │
+  ├─ Check expired
+  │ → YES       │            │
+  │            ├─ Check expired
+  │ Refresh starts │ → YES     │
+  │             ├─ Check expired
+  │             │ → YES      │
+  │ _isRefreshing=true
+  │ _refreshPromise = fetch(...)
+  │             │
+  │             └─ _isRefreshing && _refreshPromise?
+  │             │ → YES! Return same promise
+  │             │            │
+  │             │            └─ _isRefreshing && _refreshPromise?
+  │             │            │ → YES! Return same promise
+  │             │            │
+  └─ resolve ──┘            │
+      (token1)              │
+      (used by Op1)         │
+                └─ resolve ─┘
+                    (token1, same)
+                    (used by Op2/3)
+
+Result: Only 1 refresh request! ✓
+```
+

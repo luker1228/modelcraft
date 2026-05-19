@@ -7,7 +7,7 @@ import {
   createEndUserScopedClient,
   createEndUserModelRuntimeClient,
 } from '@api-client/apollo/public'
-import { getEndUserToken } from '@api-client/end-user/public'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { ModelRecordForm } from '@web/components/features/model-editor/model-record-form/index'
 import { ModelRecordTable } from '@web/components/shared/data-workspace/ModelRecordTable'
 import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from '@web/components/shared/data-workspace/ModelRecordTable'
@@ -147,27 +147,23 @@ export default function EndUserRecordWorkspace({
     [orgName, projectSlug]
   )
 
-  const endUserToken = getEndUserToken()
+  const hasEndUserToken = useEndUserAuthStore((s) => !!s.accessToken)
 
   const managementClient = useMemo(() => {
-    if (!endUserToken) return null
-    return createEndUserScopedClient(orgName, projectSlug, endUserToken)
-  }, [orgName, projectSlug, endUserToken])
+    if (!hasEndUserToken) return null
+    return createEndUserScopedClient(orgName, projectSlug)
+  }, [orgName, projectSlug, hasEndUserToken])
 
   const accessAdapter = useMemo<RecordAccessAdapter | null>(() => {
     if (!managementClient) return null
-    const token = endUserToken
     return {
       managementClient,
       managementContext: endUserContext,
       createRuntimeClient: (databaseName: string, modelName: string) => {
-        if (!token) {
-          throw new Error('EndUserRecordWorkspace: end-user token is not available')
-        }
-        return createEndUserModelRuntimeClient(orgName, projectSlug, databaseName, modelName, token)
+        return createEndUserModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
       },
     }
-  }, [managementClient, endUserContext, orgName, projectSlug, endUserToken])
+  }, [managementClient, endUserContext, orgName, projectSlug])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
@@ -248,12 +244,12 @@ export default function EndUserRecordWorkspace({
   }, [])
 
   const runtimeClient = useMemo(() => {
-    if (!endUserToken) return null
+    if (!hasEndUserToken) return null
     const dbName = model?.databaseName
     const mName = model?.name
     if (!dbName || !mName) return null
-    return createEndUserModelRuntimeClient(orgName, projectSlug, dbName, mName, endUserToken)
-  }, [orgName, projectSlug, endUserToken, model?.databaseName, model?.name])
+    return createEndUserModelRuntimeClient(orgName, projectSlug, dbName, mName)
+  }, [orgName, projectSlug, hasEndUserToken, model?.databaseName, model?.name])
 
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {
     if (!model?.jsonSchema) return null

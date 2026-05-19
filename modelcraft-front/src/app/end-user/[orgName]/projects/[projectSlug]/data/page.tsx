@@ -121,12 +121,11 @@ export default function EndUserDataPage() {
   }, [orgName, projectSlug, router])
 
   const loadDatabaseCatalog = async (): Promise<void> => {
-    const accessToken = getEndUserToken()
-    if (!accessToken || !orgName || !projectSlug) return
+    if (!orgName || !projectSlug) return
 
     setDatabasesLoading(true)
     try {
-      const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
+      const client = createEndUserScopedClient(orgName, projectSlug)
       const { data } = await client.query<DatabaseCatalogQueryResult>({
         query: MODEL_DATABASE_CATALOG_END_USER,
         variables: { input: { page: 1, pageSize: 100 } },
@@ -180,12 +179,11 @@ export default function EndUserDataPage() {
         return
       }
 
-      const accessToken = getEndUserToken()
-      if (!accessToken || !orgName || !projectSlug) return
+      if (!orgName || !projectSlug) return
 
       setModelsLoading(true)
       try {
-        const client = createEndUserScopedClient(orgName, projectSlug, accessToken)
+        const client = createEndUserScopedClient(orgName, projectSlug)
         const { data } = await client.query<ModelCatalogQueryResult>({
           query: MODEL_CATALOG_END_USER,
           variables: { input: { databaseName: selectedDatabase, pageSize: 200 } },
