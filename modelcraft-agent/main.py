@@ -56,11 +56,11 @@ async def copilotkit_endpoint(input_data: RunAgentInput, request: Request):
 
     # Extract Authorization from HTTP header and inject into graph state
     # so tools can authenticate their GraphQL calls through the gateway.
+    # Always set the key (even empty) so AgentState["authorization"] never raises KeyError.
     authorization = request.headers.get("Authorization", "")
-    if authorization:
-        current_state = dict(input_data.state) if input_data.state else {}
-        current_state["authorization"] = authorization
-        input_data = input_data.model_copy(update={"state": current_state})
+    current_state = dict(input_data.state) if input_data.state else {}
+    current_state["authorization"] = authorization
+    input_data = input_data.model_copy(update={"state": current_state})
 
     request_agent = _agent.clone()
 

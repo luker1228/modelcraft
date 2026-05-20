@@ -4,6 +4,8 @@ import { memo, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
 import type { Project } from '@/types'
 import { CopilotAvailableContext } from '@web/components/features/end-user-data/FilterCopilotActions'
+import { useAuthStore } from '@shared/stores/auth-store'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 
 // Lazy load CopilotKit components to reduce initial bundle size
 const CopilotKit = dynamic(
@@ -15,6 +17,7 @@ const CopilotSidebar = dynamic(
   () => import("@copilotkit/react-ui").then(mod => mod.CopilotSidebar),
   { ssr: false }
 )
+
 interface CopilotProviderProps {
   children: React.ReactNode
   selectedProject: Project | null
@@ -23,22 +26,24 @@ interface CopilotProviderProps {
 
 /**
  * CopilotKit Provider component
- * 
- * Wraps children with CopilotKit context and provides AI assistant sidebar
- * Lazy-loaded to optimize initial page load performance
- * 
- * @param children - Child components to wrap
- * @param selectedProject - Currently selected project for context
+ *
+ * Wraps children with CopilotKit context and provides AI assistant sidebar.
+ * Forwards the tenant access token so the agent can authenticate GraphQL calls.
  */
 const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotProviderProps) => {
-  // Memoize copilot context to prevent unnecessary re-renders
+  const accessToken = useAuthStore((s) => s.accessToken)
+
   const copilotContext = useMemo(() => ({
     projectId: selectedProject?.id || 'default',
     projectSlug: selectedProject?.slug || 'Default Project',
     orgName: orgName,
   }), [selectedProject?.id, selectedProject?.slug, orgName])
 
-  // Memoize initial message to prevent recreation
+  const headers = useMemo<Record<string, string> | undefined>(
+    () => accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    [accessToken]
+  )
+
   const initialMessage = useMemo(() => {
     const projectSlug = selectedProject?.slug || 'Default Project'
     return `你好！我是 ModelCraft AI 助手，当前项目：${projectSlug}。
@@ -57,11 +62,11 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
     <CopilotKit
       runtimeUrl="/api/copilotkit"
       agent="modelcraft_agent"
+      headers={headers}
       properties={copilotContext}
     >
       {children}
       <CopilotSidebar
-        agentId="modelcraft_agent"
         labels={{
           title: "ModelCraft AI 助手",
           initial: initialMessage,
@@ -76,46 +81,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
 CopilotProvider.displayName = 'CopilotProvider'
 
 /**
- * AI Assistant floating button
- * 
- * Displays a floating action button to open the AI assistant
- */
-export const AIAssistantButton = memo(({ onClick }: { onClick: () => void }) => {
-  return (
-    <button
-      onClick={onClick}
-      className="fixed bottom-6 right-6 z-50 flex size-12 cursor-pointer items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/25 transition-all duration-200 hover:bg-primary/90 hover:shadow-xl hover:shadow-primary/30"
-      title="打开 AI 助手"
-      aria-label="打开 AI 助手"
-    >
-      <svg 
-        xmlns="http://www.w3.org/2000/svg" 
-        width="20" 
-        height="20" 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        stroke="currentColor" 
-        strokeWidth="2" 
-        strokeLinecap="round" 
-        strokeLinejoin="round"
-      >
-        <path d="M12 8V4H8"/>
-        <rect width="16" height="12" x="4" y="8" rx="2"/>
-        <path d="M2 14h2"/>
-        <path d="M20 14h2"/>
-        <path d="M15 13v2"/>
-        <path d="M9 13v2"/>
-      </svg>
-    </button>
-  )
-})
-
-AIAssistantButton.displayName = 'AIAssistantButton'
-
-/**
- * Wrapper component for lazy-loaded CopilotKit
- * 
- * Provides suspense boundary and fallback UI
+ * Wrapper component for lazy-loaded CopilotKit (tenant-admin routes)
  */
 export const CopilotWrapper = memo(({
   children,
@@ -136,10 +102,9 @@ export const CopilotWrapper = memo(({
 CopilotWrapper.displayName = 'CopilotWrapper'
 
 /**
- * Lightweight CopilotKit wrapper for End-User routes.
+ * CopilotKit wrapper for End-User routes.
  *
- * Provides CopilotKit context and the same CopilotSidebar as the tenant-admin
- * routes, so both surfaces share a consistent AI assistant experience.
+ * Forwards the end-user access token so the agent can authenticate GraphQL calls.
  */
 interface EndUserCopilotWrapperProps {
   children: React.ReactNode
@@ -152,10 +117,17 @@ export const EndUserCopilotWrapper = memo(({
   orgName,
   projectSlug,
 }: EndUserCopilotWrapperProps) => {
+  const accessToken = useEndUserAuthStore((s) => s.accessToken)
+
   const copilotContext = useMemo(() => ({
     orgName,
     projectSlug,
   }), [orgName, projectSlug])
+
+  const headers = useMemo<Record<string, string> | undefined>(
+    () => accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+    [accessToken]
+  )
 
   const initialMessage = useMemo(() => `你好！我是 ModelCraft AI 助手，当前项目：${projectSlug}。
 
@@ -172,11 +144,11 @@ export const EndUserCopilotWrapper = memo(({
         <CopilotKit
           runtimeUrl="/api/copilotkit"
           agent="modelcraft_agent"
+          headers={headers}
           properties={copilotContext}
         >
           {children}
           <CopilotSidebar
-            agentId="modelcraft_agent"
             labels={{
               title: "ModelCraft AI 助手",
               initial: initialMessage,

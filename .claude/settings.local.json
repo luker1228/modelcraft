@@ -31,7 +31,8 @@
       "Bash(docker-compose -f docker-compose.local.yml build modelcraft-agent)",
       "Bash(pip3 index *)",
       "Bash(pip3 show *)",
-      "Bash(docker restart modelcraft-backend *)"
+      "Bash(docker restart modelcraft-backend *)",
+      "mcp__ide__getDiagnostics"
     ]
   }
 }
