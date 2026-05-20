@@ -121,6 +121,9 @@ routes:
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
               end
               core.request.set_header(ctx, "X-User-Type", "end_user")
+              if payload.org_name then
+                core.request.set_header(ctx, "X-Org-Name", payload.org_name)
+              end
             end
 
   - id: graphql-all
@@ -171,12 +174,15 @@ routes:
               end
 
               -- graphql-all is tenant-only: inject X-User-ID (required by ChiJWTAuthMiddleware),
-              -- X-Tenant-User-Id (used by GraphQL resolvers), and X-User-Type
+              -- X-Tenant-User-Id (used by GraphQL resolvers), X-User-Type, and X-Org-Name
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
                 core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
               end
               core.request.set_header(ctx, "X-User-Type", "tenant")
+              if payload.org_name then
+                core.request.set_header(ctx, "X-Org-Name", payload.org_name)
+              end
             end
 
   - id: api-user
@@ -227,11 +233,14 @@ routes:
               end
 
               -- api-user is tenant-only; inject X-User-ID (required by ChiJWTAuthMiddleware),
-              -- X-Tenant-User-Id (used by user handler), and X-User-Type
+              -- X-Tenant-User-Id (used by user handler), X-User-Type, and X-Org-Name
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
                 core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
                 core.request.set_header(ctx, "X-User-Type", "tenant")
+              end
+              if payload.org_name then
+                core.request.set_header(ctx, "X-Org-Name", payload.org_name)
               end
             end
 
@@ -249,6 +258,48 @@ routes:
       request-id:
         header_name: X-Request-Id
         include_in_response: true
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - |
+            return function(conf, ctx)
+              local core = require("apisix.core")
+              local jwt = require("resty.jwt")
+
+              local PUB_KEY = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEw1SV3/9qLTugs2eF1dw963KpTNtk\ntbdCtuciyI3OJ01MclvPTFE/Thqti3TegWLdaxidmpPQ5pemawUXIqu6Yg==\n-----END PUBLIC KEY-----"
+
+              local auth_header = core.request.header(ctx, "Authorization")
+              if not auth_header then
+                core.response.exit(401, {message = "Authorization header required"})
+                return
+              end
+
+              local token = auth_header:match("Bearer%s+(.+)")
+              if not token then
+                core.response.exit(401, {message = "Bearer token required"})
+                return
+              end
+
+              local jwt_obj = jwt:verify(PUB_KEY, token)
+              if not jwt_obj or not jwt_obj.verified then
+                core.response.exit(401, {message = "Invalid or expired token"})
+                return
+              end
+
+              local payload = jwt_obj.payload
+              if not payload then
+                core.response.exit(401, {message = "Invalid token payload"})
+                return
+              end
+
+              -- Inject org identity from trusted JWT claims
+              if payload.org_name then
+                core.request.set_header(ctx, "X-Org-Name", payload.org_name)
+              end
+              if payload.user_id then
+                core.request.set_header(ctx, "X-User-ID", payload.user_id)
+              end
+            end
 
   - id: agent-enduser
     uri: /copilotkit/enduser
@@ -263,6 +314,48 @@ routes:
       request-id:
         header_name: X-Request-Id
         include_in_response: true
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - |
+            return function(conf, ctx)
+              local core = require("apisix.core")
+              local jwt = require("resty.jwt")
+
+              local PUB_KEY = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEw1SV3/9qLTugs2eF1dw963KpTNtk\ntbdCtuciyI3OJ01MclvPTFE/Thqti3TegWLdaxidmpPQ5pemawUXIqu6Yg==\n-----END PUBLIC KEY-----"
+
+              local auth_header = core.request.header(ctx, "Authorization")
+              if not auth_header then
+                core.response.exit(401, {message = "Authorization header required"})
+                return
+              end
+
+              local token = auth_header:match("Bearer%s+(.+)")
+              if not token then
+                core.response.exit(401, {message = "Bearer token required"})
+                return
+              end
+
+              local jwt_obj = jwt:verify(PUB_KEY, token)
+              if not jwt_obj or not jwt_obj.verified then
+                core.response.exit(401, {message = "Invalid or expired token"})
+                return
+              end
+
+              local payload = jwt_obj.payload
+              if not payload then
+                core.response.exit(401, {message = "Invalid token payload"})
+                return
+              end
+
+              -- Inject org identity from trusted JWT claims
+              if payload.org_name then
+                core.request.set_header(ctx, "X-Org-Name", payload.org_name)
+              end
+              if payload.user_id then
+                core.request.set_header(ctx, "X-User-ID", payload.user_id)
+              end
+            end
 
 upstreams:
   - id: backend

@@ -50,11 +50,12 @@ def _build_admin_graph() -> Any:
                 "highlight_project、list_projects、nl2filter、show_toast。\n"
                 "注意：不可直接调用 list_models、query_model 等 project 级工具。\n"
                 "如需操作项目数据，先调用 navigate_to_project(slug) 跳转到对应项目。"
+                + (f"\n当前会话项目上下文：**{project}**（用户未明确指定时默认使用此项目）。" if project else "")
             )
         elif layer == "project":
             model_ctx = f"，当前模型：{current_model}（数据库：{current_db}）" if current_model else ""
             context = (
-                f"当前在 Project 页面（组织：{org}，项目：{project}{model_ctx}）。\n"
+                f"当前在 Project 页面（组织：{org}，项目：**{project}**{model_ctx}）。\n"
                 "可用工具：navigate_to_org、navigate_to_model、navigate_to_data、"
                 "open_create_model、open_create_record、open_edit_record、highlight_records、"
                 "navigate_to_enums、navigate_to_cluster、navigate_to_rbac、navigate_to_end_users、"
@@ -64,8 +65,9 @@ def _build_admin_graph() -> Any:
                 "操作前先用 get_model_fields 确认字段名，避免预填错误字段。"
             )
         else:
+            project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
             context = (
-                f"当前组织：{org}{'，项目：' + project if project else ''}。\n"
+                f"当前组织：{org}。{project_ctx}\n"
                 "可用工具取决于当前页面，请先询问用户当前在哪个页面。"
             )
 
@@ -75,11 +77,15 @@ def _build_admin_graph() -> Any:
                 "你是 ModelCraft AI 助手（管理员版），帮助租户管理员通过对话完成所有操作。\n\n"
                 f"{context}\n\n"
                 "通用原则：\n"
-                "- 操作数据前先用 list_models 和 get_model_fields 确认模型和字段存在\n"
-                "- 删除操作禁止自动执行，必须引导用户在界面手动确认\n"
-                "- 如果用户说筛选或过滤，先用 nl2filter 生成 filter JSON，再告知前端已应用\n"
-                "- 完成操作后用 show_toast 通知用户结果"
-            ),
+                "- 调用任何 project 级工具（list_models、get_model_fields、query_model 等）时，\n"
+                "  回复中必须明确说明「在项目 **{project}** 中...」，防止用户误会操作了错误的项目。\n"
+                "- 如需 project 级操作但当前无项目上下文，先调用 list_projects 展示列表，\n"
+                "  让用户选择后再继续，不得自行假设项目。\n"
+                "- 操作数据前先用 list_models 和 get_model_fields 确认模型和字段存在。\n"
+                "- 删除操作禁止自动执行，必须引导用户在界面手动确认。\n"
+                "- 如果用户说筛选或过滤，先用 nl2filter 生成 filter JSON，再告知前端已应用。\n"
+                "- 完成操作后用 show_toast 通知用户结果。"
+            ).replace("{project}", project or "（未知项目）"),
         }
         messages = [system_msg] + state["messages"]
         response = await llm.ainvoke(messages)

@@ -18,6 +18,19 @@ import config
 from logging_setup import get_logger
 
 _FIELD_NAME_RE = re.compile(r'^[_A-Za-z][_0-9A-Za-z]*$')
+_OP_RE = re.compile(r'\b(query|mutation|subscription)\s+(\w+)', re.IGNORECASE)
+
+
+def _parse_gql_operation(query: str) -> tuple[str, str]:
+    """Extract (op_type, op_name) from a GraphQL query string.
+
+    e.g. 'query ListProjects { ... }' → ('query', 'ListProjects')
+    Returns ('', '') when no named operation is found (anonymous queries).
+    """
+    m = _OP_RE.search(query)
+    if m:
+        return m.group(1).lower(), m.group(2)
+    return "", ""
 
 
 class GraphQLClient:
@@ -51,11 +64,21 @@ class GraphQLClient:
     # ------------------------------------------------------------------
 
     async def _execute(self, url: str, query: str, variables: dict | None = None, operation: str = "query") -> dict[str, Any]:
+        op_type, op_name = _parse_gql_operation(query)
+
         headers = {
             "Content-Type": "application/json",
             "Authorization": self._authorization,
         }
+        # Backend's ChiGraphQLActionMiddleware requires X-Action: "{type}:{operationName}"
+        # and a matching operationName in the request body for org/project endpoints.
+        # Runtime endpoints skip this middleware — the header is harmless there.
+        if op_name:
+            headers["X-Action"] = f"{op_type}:{op_name}"
+
         payload: dict[str, Any] = {"query": query}
+        if op_name:
+            payload["operationName"] = op_name
         if variables:
             payload["variables"] = variables
 

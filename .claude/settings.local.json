@@ -32,7 +32,14 @@
       "Bash(pip3 index *)",
       "Bash(pip3 show *)",
       "Bash(docker restart modelcraft-backend *)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml build modelcraft-agent)",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml up -d modelcraft-agent)",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml restart apisix)",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml ps)",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml logs --tail=50 modelcraft-agent)",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml logs --tail=30 modelcraft-agent)",
+      "Bash(docker-compose -f deploy/compose/docker-compose.local.yml logs --tail=100 modelcraft-agent)"
     ]
   }
 }
