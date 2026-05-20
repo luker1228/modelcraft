@@ -27,7 +27,16 @@ ADMIN_TOOLS = [
     nl2filter,
 ]
 
-_ADMIN_TOOL_NODE = ToolNode(ADMIN_TOOLS)
+_ADMIN_TOOL_NODE = ToolNode(
+    ADMIN_TOOLS,
+    # Catch ALL exceptions (not just ToolInvocationError) and convert them to
+    # ToolMessages.  This guarantees MemorySaver always stores a complete
+    # AIMessage(tool_calls) + ToolMessage pair, preventing broken message
+    # sequences that cause DeepSeek 400 errors on subsequent requests.
+    # Default (_default_handle_tool_errors) only catches ToolInvocationError;
+    # handle_tool_errors=True uses handled_types=(Exception,) — catches everything.
+    handle_tool_errors=True,
+)
 
 
 def _build_admin_graph() -> Any:

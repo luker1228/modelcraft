@@ -23,7 +23,7 @@ ENDUSER_TOOLS = [
     nl2filter,
 ]
 
-_ENDUSER_TOOL_NODE = ToolNode(ENDUSER_TOOLS)
+_ENDUSER_TOOL_NODE = ToolNode(ENDUSER_TOOLS, handle_tool_errors=True)
 
 
 def _build_enduser_graph() -> Any:
