@@ -22,5 +22,6 @@ graphify-out/cache/
 .superpowers/
 
 # Python cache
-modelcraft-agent/__pycache__/
+__pycache__/
+*.py[cod]
 modelcraft-agent/.env

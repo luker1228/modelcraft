@@ -14,10 +14,11 @@ import httpx
 import pytest
 import respx
 
+import config
 from logging_setup import setup_logging
 from tests.conftest import capture_logs_with_context
 
-MOCK_URL_PREFIX = "http://gateway:8090"
+MOCK_URL_PREFIX = config.GATEWAY_URL
 ORG_URL = f"{MOCK_URL_PREFIX}/graphql/org/lukeco"
 
 # ---------------------------------------------------------------------------
@@ -68,7 +69,7 @@ async def test_list_projects_tool_returns_json_array():
         )
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     result = await list_projects.ainvoke({"state": _make_state()})
 
@@ -88,7 +89,7 @@ async def test_list_projects_tool_empty_project_list():
         return_value=httpx.Response(200, json={"data": {"projects": []}})
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     result = await list_projects.ainvoke({"state": _make_state()})
 
@@ -110,7 +111,7 @@ async def test_list_projects_tool_returns_error_string_on_graphql_error():
         )
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     result = await list_projects.ainvoke({"state": _make_state(authorization="Bearer bad-token")})
 
@@ -131,7 +132,7 @@ async def test_list_projects_tool_raises_on_http_401():
         return_value=httpx.Response(401, text="Unauthorized")
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     with pytest.raises(httpx.HTTPStatusError):
         await list_projects.ainvoke({"state": _make_state(authorization="Bearer expired-token")})
@@ -145,7 +146,7 @@ async def test_list_projects_tool_raises_on_http_500():
         return_value=httpx.Response(500, text="Internal Server Error")
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     with pytest.raises(httpx.HTTPStatusError):
         await list_projects.ainvoke({"state": _make_state()})
@@ -163,7 +164,7 @@ async def test_list_projects_tool_logs_start_and_end_on_success():
         return_value=httpx.Response(200, json={"data": {"projects": []}})
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     with capture_logs_with_context() as cap:
         await list_projects.ainvoke({"state": _make_state()})
@@ -190,7 +191,7 @@ async def test_list_projects_tool_logs_failure_on_http_error():
         return_value=httpx.Response(401, text="Unauthorized")
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     with capture_logs_with_context() as cap:
         with pytest.raises(httpx.HTTPStatusError):
@@ -219,7 +220,7 @@ async def test_list_projects_tool_duplicate_bearer_token_raises():
         return_value=httpx.Response(401, text="Unauthorized")
     )
 
-    from agent import list_projects
+    from agents.tools import list_projects
 
     duplicate_auth = "Bearer eyJtoken1..., Bearer eyJtoken1..."  # 前端 bug 复现
     with pytest.raises(httpx.HTTPStatusError) as exc_info:

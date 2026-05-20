@@ -3,11 +3,12 @@ import pytest
 import httpx
 import respx
 
+import config
 from logging_setup import setup_logging
 from tests.conftest import capture_logs_with_context
 from client.graphql_client import GraphQLClient
 
-MOCK_URL_PREFIX = "http://gateway:8090"
+MOCK_URL_PREFIX = config.GATEWAY_URL
 ORG_URL = f"{MOCK_URL_PREFIX}/graphql/org/lukeco"
 
 

@@ -235,10 +235,44 @@ routes:
               end
             end
 
+  # ── Agent routes: CopilotKit AI agent endpoints ─────────────────────────────
+  - id: agent-admin
+    uri: /copilotkit/admin
+    upstream_id: agent
+    plugins:
+      cors:
+        allow_origins: "http://localhost:3000"
+        allow_methods: "POST,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,Accept"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+
+  - id: agent-enduser
+    uri: /copilotkit/enduser
+    upstream_id: agent
+    plugins:
+      cors:
+        allow_origins: "http://localhost:3000"
+        allow_methods: "POST,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,X-Client-Request-Id,Accept"
+        expose_headers: "X-Request-Id"
+        allow_credential: true
+      request-id:
+        header_name: X-Request-Id
+        include_in_response: true
+
 upstreams:
   - id: backend
     type: roundrobin
     nodes:
       "backend:8080": 1
+
+  - id: agent
+    type: roundrobin
+    nodes:
+      "modelcraft-agent:8000": 1
 
 #END
