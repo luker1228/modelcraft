@@ -15,6 +15,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse
 from ag_ui_langgraph.endpoint import RunAgentInput, EventEncoder
 from copilotkit import LangGraphAGUIAgent
+from structlog.contextvars import bind_contextvars
 
 import config
 from agents.admin_agent import admin_graph
@@ -95,6 +96,17 @@ def _inject_state(input_data: RunAgentInput, request: Request) -> RunAgentInput:
 
 def _make_handler(agent: LangGraphAGUIAgent):
     async def handler(input_data: RunAgentInput, request: Request):
+        # Expose thread_id/run_id on request.state so ObservabilityMiddleware
+        # can include them in request.end without re-parsing the body.
+        request.state.thread_id = input_data.thread_id or ""
+        request.state.run_id    = input_data.run_id    or ""
+
+        # Also bind to structlog contextvars so tool/graphql log lines
+        # emitted inside the async generator carry these IDs automatically.
+        bind_contextvars(
+            thread_id=request.state.thread_id,
+            run_id=request.state.run_id,
+        )
         accept_header = request.headers.get("accept")
         encoder = EventEncoder(accept=accept_header)
         input_data = _inject_state(input_data, request)

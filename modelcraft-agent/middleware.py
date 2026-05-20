@@ -46,12 +46,18 @@ class ObservabilityMiddleware(BaseHTTPMiddleware):
         finally:
             duration_ms = round((time.perf_counter() - start) * 1000, 2)
             status_code = response.status_code if response is not None else 500
+            # thread_id / run_id are set by the agent handler on request.state
+            # after parsing the RunAgentInput body.
+            thread_id = getattr(request.state, "thread_id", "")
+            run_id    = getattr(request.state, "run_id",    "")
             log.info(
                 "request.end",
                 method=request.method,
                 path=request.url.path,
                 status_code=status_code,
                 duration_ms=duration_ms,
+                thread_id=thread_id,
+                run_id=run_id,
             )
 
         return response
