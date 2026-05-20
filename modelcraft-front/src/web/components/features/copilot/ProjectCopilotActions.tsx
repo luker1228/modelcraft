@@ -127,5 +127,56 @@ export function ProjectCopilotActions({ orgName, projectSlug, workspaceAiRef }: 
     },
   })
 
+  useCopilotAction({
+    name: 'navigate_to_enums',
+    description: '跳转到枚举管理页',
+    parameters: [
+      { name: 'db', type: 'string', description: '数据库名称（可选）', required: false },
+    ],
+    handler: async ({ db }: { db?: string }) => {
+      const query = db ? `?db=${db}` : ''
+      router.push(`/org/${orgName}/project/${projectSlug}/enums${query}`)
+      return '已跳转到枚举管理页'
+    },
+  })
+
+  useCopilotAction({
+    name: 'navigate_to_cluster',
+    description: '跳转到数据库集群配置页',
+    parameters: [],
+    handler: async () => {
+      router.push(`/org/${orgName}/project/${projectSlug}/settings`)
+      return '已跳转到集群配置页'
+    },
+  })
+
+  useCopilotAction({
+    name: 'navigate_to_rbac',
+    description: '跳转到 RBAC 权限管理页',
+    parameters: [
+      {
+        name: 'section',
+        type: 'string',
+        description: 'roles | users | bundles | permissions（默认 roles）',
+        required: false,
+      },
+    ],
+    handler: async ({ section }: { section?: string }) => {
+      const sub = section ?? 'roles'
+      router.push(`/org/${orgName}/project/${projectSlug}/rbac/${sub}`)
+      return `已跳转到 RBAC ${sub} 页`
+    },
+  })
+
+  useCopilotAction({
+    name: 'navigate_to_end_users',
+    description: '跳转到 end-user 管理页',
+    parameters: [],
+    handler: async () => {
+      router.push(`/org/${orgName}/project/${projectSlug}/end-users`)
+      return '已跳转到 end-user 管理页'
+    },
+  })
+
   return null
 }
