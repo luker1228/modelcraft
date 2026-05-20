@@ -7,7 +7,7 @@ import { useOrganizationStore } from "@shared/stores/organization";
 import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 import { OnboardingProvider } from "@shared/onboarding/OnboardingContext";
 import { OnboardingPanel } from "@shared/onboarding/OnboardingPanel";
-import { AIAssistantButton, CopilotWrapper } from "@web/components/features/copilot/CopilotProvider";
+import { CopilotWrapper } from "@web/components/features/copilot/CopilotProvider";
 import { useCopilotReadable } from '@copilotkit/react-core'
 import { OrgCopilotActions } from '@web/components/features/copilot/OrgCopilotActions'
 import "@copilotkit/react-ui/styles.css"
@@ -41,7 +41,6 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const { isLoading: authLoading, user } = useRequireAuth()
 
   const [isVerifying, setIsVerifying] = useState(true);
-  const [showCopilot, setShowCopilot] = useState(false);
   const { setCurrentOrg, loadMemberships } = useOrganizationStore();
 
   useEffect(() => {
@@ -112,22 +111,14 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const content = (
     <OnboardingProvider orgName={orgName}>
       {children}
-      {/* AI 按钮在右下角；OnboardingPanel 上移 bottom-20 避免重叠 */}
-      {!showCopilot && (
-        <AIAssistantButton onClick={() => setShowCopilot(true)} />
-      )}
       <OnboardingPanel orgName={orgName} className="bottom-20 right-6" />
     </OnboardingProvider>
   );
 
-  if (showCopilot) {
-    return (
-      <CopilotWrapper selectedProject={null} orgName={orgName}>
-        <OrgAIContext orgName={orgName} />
-        {content}
-      </CopilotWrapper>
-    );
-  }
-
-  return content;
+  return (
+    <CopilotWrapper selectedProject={null} orgName={orgName}>
+      <OrgAIContext orgName={orgName} />
+      {content}
+    </CopilotWrapper>
+  );
 }

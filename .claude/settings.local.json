@@ -30,7 +30,8 @@
       "mcp__playwright__browser_evaluate",
       "Bash(docker-compose -f docker-compose.local.yml build modelcraft-agent)",
       "Bash(pip3 index *)",
-      "Bash(pip3 show *)"
+      "Bash(pip3 show *)",
+      "Bash(docker restart modelcraft-backend *)"
     ]
   }
 }

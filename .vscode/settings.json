@@ -1,0 +1,11 @@
+{
+  "go.inferGopath": false,
+  "go.gopath": "${env:HOME}/go/1.25.1",
+  "go.toolsEnvVars": {
+    "GOPATH": "${env:HOME}/go/1.25.1",
+    "GOMODCACHE": "${env:HOME}/go/1.25.1/pkg/mod",
+    "GOCACHE": "${env:HOME}/.cache/go-build"
+  },
+  "go.goroot": "${env:HOME}/.goenv/versions/1.25.1",
+  "go.useLanguageServer": true
+}

@@ -1,10 +1,10 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { LoadingScreen } from '@web/components/common/LoadingScreen'
-import { CopilotWrapper, AIAssistantButton } from '@web/components/features/copilot/CopilotProvider'
+import { CopilotWrapper } from '@web/components/features/copilot/CopilotProvider'
 import { RouteValidator } from '@web/components/common/RouteValidator'
 import { useAppStore } from '@web/stores/app'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
@@ -90,9 +90,6 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   const setSelectedProject = useAppStore((state) => state.setSelectedProject)
   
   // Lazy-load CopilotKit only when user requests it
-  const [showCopilot, setShowCopilot] = useState(false)
-
-  // Ref for AI actions to access the workspace
   const workspaceAiRef = useRef<DevelopRecordWorkspaceAIRef | null>(null)
 
   // Sync URL path to store when project changes
@@ -127,33 +124,20 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
     <RouteValidator orgName={orgName} projectSlug={projectSlug}>
       <AppLayout showProjectNav>
         {children}
-        {/* AI Assistant button - only show when CopilotKit not loaded */}
-        {!showCopilot && (
-          <AIAssistantButton onClick={() => setShowCopilot(true)} />
-        )}
       </AppLayout>
     </RouteValidator>
   )
 
-  // Conditionally wrap with CopilotKit when user activates it
-  if (showCopilot) {
-    return (
-      <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
-        <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
-          <ProjectAIContext
-            orgName={orgName}
-            projectSlug={projectSlug}
-            workspaceAiRef={workspaceAiRef}
-          />
-          {mainContent}
-        </CopilotWrapper>
-      </WorkspaceAIRefContext.Provider>
-    )
-  }
-
   return (
     <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
-      {mainContent}
+      <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
+        <ProjectAIContext
+          orgName={orgName}
+          projectSlug={projectSlug}
+          workspaceAiRef={workspaceAiRef}
+        />
+        {mainContent}
+      </CopilotWrapper>
     </WorkspaceAIRefContext.Provider>
   )
 }

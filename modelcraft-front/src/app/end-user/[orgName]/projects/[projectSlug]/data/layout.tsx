@@ -4,6 +4,7 @@ import React from 'react'
 import { useParams } from 'next/navigation'
 import { EndUserAuthGuard } from '@web/components/features/end-user-auth/EndUserAuthGuard'
 import { EndUserCopilotWrapper } from '@web/components/features/copilot/CopilotProvider'
+import "@copilotkit/react-ui/styles.css"
 
 interface EndUserDataLayoutProps {
   children: React.ReactNode

@@ -1306,13 +1306,8 @@ func (m *graphqlModelResolver) executeCreateOne(p graphql.ResolveParams) (interf
 	// accidentally clobbering a user-defined field named "owner" on models
 	// that do not use the END_USER_REF system field).
 	// When no owner identity is available: use payload value as-is.
-	if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
-		for _, field := range m.model.Fields {
-			if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-				input.Data[field.Name] = ownerID
-				break
-			}
-		}
+	if err := enforceOwnerOnCreate(rctx, m.model.Fields, input.Data); err != nil {
+		return nil, err
 	}
 
 	input.Id = cast.ToString(input.Data[FieldID])
@@ -1554,13 +1549,8 @@ func (m *graphqlModelResolver) executeCreateMany(p graphql.ResolveParams) (inter
 		}
 		// Inject owner from end-user identity (end-user JWT or tenant admin's end-user-admin claim).
 		// Only applies if the model has an END_USER_REF field and an owner identity is available.
-		if ownerID := rctx.resolveEndUserOwnerID(); ownerID != "" {
-			for _, field := range m.model.Fields {
-				if field.Type != nil && field.Type.Format == modeldesign.FormatEndUserRef {
-					dataItem[field.Name] = ownerID
-					break
-				}
-			}
+		if err := enforceOwnerOnCreate(rctx, m.model.Fields, dataItem); err != nil {
+			return nil, err
 		}
 	}
 	result, err := rctx.ClientRepo.CreateMany(p.Context, input)

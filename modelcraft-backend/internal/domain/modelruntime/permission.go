@@ -80,7 +80,40 @@ type EndUserPermissionService interface {
 	Resolve(ctx context.Context, orgName, projectSlug, endUserID, modelID string) (*ResolvedModelPermissions, error)
 }
 
-// FindEndUserRefFieldName 在 RuntimeModel Fields 中找到 FormatEndUserRef 类型字段的名称。
+// enforceOwnerOnCreate injects the current end-user ID into the END_USER_REF field
+// of the create payload. When Insert.IsSelf=true (SELF-scoped permission), it also
+// validates that the caller has not supplied a different end-user's ID as the owner;
+// if they have, it returns PermissionDenied immediately.
+//
+// Caller: executeCreateOne / executeCreateMany.
+func enforceOwnerOnCreate(
+	rctx *graphqlRequestContext,
+	fields map[string]*RuntimeField,
+	data map[string]any,
+) error {
+	ownerID := rctx.resolveEndUserOwnerID()
+	if ownerID == "" {
+		return nil // tenant admin without admin-claim: use payload as-is
+	}
+	for _, field := range fields {
+		if field.Type == nil || field.Type.Format != modeldesign.FormatEndUserRef {
+			continue
+		}
+		provided := data[field.Name]
+		if provided != nil && provided != "" && provided != ownerID {
+			if rctx.EndUserPerms.Get(ActionInsert).IsSelf {
+				return bizerrors.NewError(
+					bizerrors.PermissionDenied,
+					"insert: owner must match current user",
+				)
+			}
+		}
+		data[field.Name] = ownerID
+		return nil
+	}
+	return nil
+}
+
 // 若无此字段，返回空字符串（SELF scope 降级为 ALL，不注入 WHERE）。
 func FindEndUserRefFieldName(fields map[string]*RuntimeField) string {
 	for _, f := range fields {

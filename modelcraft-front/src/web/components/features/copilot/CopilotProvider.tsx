@@ -15,7 +15,6 @@ const CopilotSidebar = dynamic(
   () => import("@copilotkit/react-ui").then(mod => mod.CopilotSidebar),
   { ssr: false }
 )
-
 interface CopilotProviderProps {
   children: React.ReactNode
   selectedProject: Project | null
@@ -67,7 +66,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
           title: "ModelCraft AI 助手",
           initial: initialMessage,
         }}
-        defaultOpen={true}
+        defaultOpen={false}
         clickOutsideToClose={true}
       />
     </CopilotKit>
@@ -139,12 +138,8 @@ CopilotWrapper.displayName = 'CopilotWrapper'
 /**
  * Lightweight CopilotKit wrapper for End-User routes.
  *
- * Provides CopilotKit context (agent, runtimeUrl, properties) so that
- * AI-powered components like AiQueryTab can use useCopilotChat / useCopilotReadable,
- * but does NOT render the CopilotSidebar chat UI.
- *
- * Sets CopilotAvailableContext to true so that useCopilotKitAvailable() returns
- * true and the "✨ AI 查询" tab becomes visible in FilterPanel.
+ * Provides CopilotKit context and the same CopilotSidebar as the tenant-admin
+ * routes, so both surfaces share a consistent AI assistant experience.
  */
 interface EndUserCopilotWrapperProps {
   children: React.ReactNode
@@ -162,21 +157,32 @@ export const EndUserCopilotWrapper = memo(({
     projectSlug,
   }), [orgName, projectSlug])
 
+  const initialMessage = useMemo(() => `你好！我是 ModelCraft AI 助手，当前项目：${projectSlug}。
+
+我可以帮助你：
+
+• 查询和筛选数据
+• 分析数据记录
+
+请问有什么可以帮助你的？`, [projectSlug])
+
   return (
     <CopilotAvailableContext.Provider value={true}>
       <Suspense fallback={children}>
         <CopilotKit
           runtimeUrl="/api/copilotkit"
           agent="modelcraft_agent"
-          // NOTE: agent= must be set. Without it, CopilotKit v1.54+ internally calls
-          // useAgent("default") after the runtime /info sync and throws "Agent not found"
-          // because the runtime only knows "modelcraft_agent". The /info call itself does
-          // NOT reach the Python agent service, so this is safe even when the agent is
-          // offline — offline failures surface only when AiQueryTab.handleGenerate fires,
-          // which already shows a user-facing error message.
           properties={copilotContext}
         >
           {children}
+          <CopilotSidebar
+            agentId="modelcraft_agent"
+            labels={{
+              title: "ModelCraft AI 助手",
+              initial: initialMessage,
+            }}
+            defaultOpen={false}
+          />
         </CopilotKit>
       </Suspense>
     </CopilotAvailableContext.Provider>
