@@ -9,6 +9,13 @@
  *
  * Architecture:
  *   Browser → /api/copilotkit (CopilotRuntime) → AGENT_SERVICE_URL/copilotkit (LangGraph AG-UI)
+ *
+ * NOTE: Do NOT pass Authorization in LangGraphHttpAgent.headers.
+ * CopilotKit's handle-run handler already calls extractForwardableHeaders()
+ * which forwards the browser's `authorization` header automatically.
+ * Adding it here as well results in two separate header keys (Authorization vs
+ * authorization — different JS object keys, same HTTP header name) being sent
+ * to the Python agent, which FastAPI joins as "Bearer token, Bearer token".
  */
 import {
   CopilotRuntime,
@@ -25,15 +32,11 @@ const AGENT_SERVICE_URL = process.env.AGENT_SERVICE_URL ?? "http://localhost:800
 const serviceAdapter = new ExperimentalEmptyAdapter()
 
 export const POST = async (req: NextRequest) => {
-  // Forward the browser's Authorization header to the agent so it can
-  // authenticate its GraphQL calls through the gateway.
-  const authorization = req.headers.get("Authorization") ?? ""
-
   const runtime = new CopilotRuntime({
     agents: {
       modelcraft_agent: new LangGraphHttpAgent({
         url: `${AGENT_SERVICE_URL}/copilotkit`,
-        headers: authorization ? { Authorization: authorization } : {},
+        // No headers here — CopilotKit's handle-run forwards Authorization automatically.
       }),
     },
   })
