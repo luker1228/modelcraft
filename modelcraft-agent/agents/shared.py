@@ -22,50 +22,58 @@ class AgentState(TypedDict):
 
 
 def sanitize_messages(messages: list) -> list:
-    """Remove orphaned AI tool_call messages that have no corresponding ToolMessage.
+    """Remove orphaned tool_call / ToolMessage pairs that would cause LLM API 400 errors.
 
-    MemorySaver can store incomplete sequences when a tool execution fails mid-run
-    (e.g. network error that terminates the graph before the ToolMessage is written).
-    DeepSeek (and OpenAI-compatible APIs) reject message sequences where an AI
-    message with tool_calls is not immediately followed by tool result messages for
-    every tool call ID.
+    Two classes of invalid sequences that DeepSeek (and OpenAI-compatible APIs) reject:
+      A) AIMessage(tool_calls=[x]) with no matching ToolMessage(tool_call_id=x) following it
+         → "insufficient tool messages following tool_calls message"
+      B) ToolMessage(tool_call_id=x) with no preceding AIMessage(tool_calls=[x])
+         → "Messages with role 'tool' must be a response to a preceding message with 'tool_calls'"
 
-    This function removes any such orphaned AI tool_call messages (and any partial
-    ToolMessages that follow them) to produce a sequence the LLM will accept.
+    This can happen when MemorySaver stores incomplete sequences from failed runs.
+
+    Two-pass algorithm:
+      Pass 1 — identify which tool_call_ids form complete valid pairs.
+      Pass 2 — drop any AIMessage/ToolMessage whose IDs are not in the valid set.
     """
     if not messages:
         return messages
 
-    result: list = []
+    # Pass 1: find tool_call_ids that have BOTH a tool_calls AI message AND tool result(s)
+    valid_tool_call_ids: set = set()
     i = 0
     while i < len(messages):
         msg = messages[i]
         if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
-            expected_ids = {tc["id"] for tc in msg.tool_calls if isinstance(tc, dict) and tc.get("id")}
-            # Collect consecutive ToolMessages that follow
+            expected = {tc["id"] for tc in msg.tool_calls if isinstance(tc, dict) and tc.get("id")}
             j = i + 1
-            found_ids: set = set()
+            found: set = set()
             while j < len(messages) and isinstance(messages[j], ToolMessage):
                 if hasattr(messages[j], "tool_call_id"):
-                    found_ids.add(messages[j].tool_call_id)
+                    found.add(messages[j].tool_call_id)
                 j += 1
+            if expected and expected.issubset(found):
+                valid_tool_call_ids.update(expected)
+        i += 1
 
-            if expected_ids and expected_ids.issubset(found_ids):
-                # All tool calls have corresponding results — keep the whole group
-                result.extend(messages[i:j])
-                i = j
+    # Pass 2: rebuild message list, dropping anything that isn't in a valid pair
+    log = get_logger()
+    result: list = []
+    for msg in messages:
+        if isinstance(msg, AIMessage) and getattr(msg, "tool_calls", None):
+            ids = {tc["id"] for tc in msg.tool_calls if isinstance(tc, dict) and tc.get("id")}
+            if ids and ids.issubset(valid_tool_call_ids):
+                result.append(msg)
             else:
-                # Orphaned tool_call — drop the AI message and any partial ToolMessages
-                log = get_logger()
-                log.warning(
-                    "sanitize_messages.orphan_removed",
-                    missing_ids=list(expected_ids - found_ids),
-                    message_id=getattr(msg, "id", None),
-                )
-                i = j  # skip the AI message and any partial tool results
+                log.warning("sanitize_messages.orphan_ai_removed", missing_ids=list(ids - valid_tool_call_ids))
+        elif isinstance(msg, ToolMessage):
+            tid = getattr(msg, "tool_call_id", None)
+            if tid and tid in valid_tool_call_ids:
+                result.append(msg)
+            else:
+                log.warning("sanitize_messages.orphan_tool_removed", tool_call_id=tid)
         else:
             result.append(msg)
-            i += 1
 
     return result
 
