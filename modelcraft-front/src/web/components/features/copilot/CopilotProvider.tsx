@@ -6,15 +6,18 @@ import type { Project } from '@/types'
 import { CopilotAvailableContext } from '@web/components/features/end-user-data/FilterCopilotActions'
 import { useAuthStore } from '@shared/stores/auth-store'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { SharedCopilotActions } from './SharedCopilotActions'
+import { AdminCopilotKnowledge } from './AdminCopilotKnowledge'
+import { EndUserCopilotActions } from './EndUserCopilotActions'
+import { EndUserCopilotKnowledge } from './EndUserCopilotKnowledge'
 
-// Lazy load CopilotKit components to reduce initial bundle size
 const CopilotKit = dynamic(
-  () => import("@copilotkit/react-core").then(mod => mod.CopilotKit),
+  () => import('@copilotkit/react-core').then(mod => mod.CopilotKit),
   { ssr: false }
 )
 
 const CopilotSidebar = dynamic(
-  () => import("@copilotkit/react-ui").then(mod => mod.CopilotSidebar),
+  () => import('@copilotkit/react-ui').then(mod => mod.CopilotSidebar),
   { ssr: false }
 )
 
@@ -25,10 +28,8 @@ interface CopilotProviderProps {
 }
 
 /**
- * CopilotKit Provider component
- *
- * Wraps children with CopilotKit context and provides AI assistant sidebar.
- * Forwards the tenant access token so the agent can authenticate GraphQL calls.
+ * Inner provider for the admin (tenant) surface.
+ * Mounts SharedCopilotActions + AdminCopilotKnowledge inside CopilotKit context.
  */
 const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotProviderProps) => {
   const accessToken = useAuthStore((s) => s.accessToken)
@@ -36,7 +37,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
   const copilotContext = useMemo(() => ({
     projectId: selectedProject?.id || 'default',
     projectSlug: selectedProject?.slug || 'Default Project',
-    orgName: orgName,
+    orgName,
   }), [selectedProject?.id, selectedProject?.slug, orgName])
 
   const headers = useMemo<Record<string, string> | undefined>(
@@ -61,14 +62,16 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
   return (
     <CopilotKit
       runtimeUrl="/api/copilotkit"
-      agent="modelcraft_agent"
+      agent="modelcraft_admin_agent"
       headers={headers}
       properties={copilotContext}
     >
+      <SharedCopilotActions />
+      <AdminCopilotKnowledge />
       {children}
       <CopilotSidebar
         labels={{
-          title: "ModelCraft AI 助手",
+          title: 'ModelCraft AI 助手',
           initial: initialMessage,
         }}
         defaultOpen={false}
@@ -81,7 +84,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
 CopilotProvider.displayName = 'CopilotProvider'
 
 /**
- * Wrapper component for lazy-loaded CopilotKit (tenant-admin routes)
+ * Wrapper for admin (tenant) routes — org/* and project/* layouts.
  */
 export const CopilotWrapper = memo(({
   children,
@@ -101,17 +104,15 @@ export const CopilotWrapper = memo(({
 
 CopilotWrapper.displayName = 'CopilotWrapper'
 
-/**
- * CopilotKit wrapper for End-User routes.
- *
- * Forwards the end-user access token so the agent can authenticate GraphQL calls.
- */
 interface EndUserCopilotWrapperProps {
   children: React.ReactNode
   orgName: string
   projectSlug: string
 }
 
+/**
+ * Wrapper for end-user routes — mounts enduser-specific tools, knowledge, and sidebar.
+ */
 export const EndUserCopilotWrapper = memo(({
   children,
   orgName,
@@ -143,14 +144,17 @@ export const EndUserCopilotWrapper = memo(({
       <Suspense fallback={children}>
         <CopilotKit
           runtimeUrl="/api/copilotkit"
-          agent="modelcraft_agent"
+          agent="modelcraft_enduser_agent"
           headers={headers}
           properties={copilotContext}
         >
+          <SharedCopilotActions />
+          <EndUserCopilotKnowledge />
+          <EndUserCopilotActions orgName={orgName} projectSlug={projectSlug} />
           {children}
           <CopilotSidebar
             labels={{
-              title: "ModelCraft AI 助手",
+              title: 'ModelCraft AI 助手',
               initial: initialMessage,
             }}
             defaultOpen={false}
