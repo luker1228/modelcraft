@@ -8,7 +8,7 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
 import config
-from agents.shared import AgentState
+from agents.shared import AgentState, sanitize_messages
 from agents.tools import (
     get_model_fields,
     list_models,
@@ -59,7 +59,7 @@ def _build_enduser_graph() -> Any:
                 "- 遇到权限问题时提示用户联系管理员"
             ),
         }
-        messages = [system_msg] + state["messages"]
+        messages = [system_msg] + sanitize_messages(state["messages"])
         response = await llm.ainvoke(messages)
         return {"messages": [response]}
 

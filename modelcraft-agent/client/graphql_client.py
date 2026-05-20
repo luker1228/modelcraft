@@ -129,6 +129,25 @@ query ListProjects {
     # Project-level operations
     # ------------------------------------------------------------------
 
+    async def list_databases(self, org_name: str, project_slug: str, search: str = "", limit: int = 50) -> dict[str, Any]:
+        """List databases available in the project's cluster. Returns {data: {listDatabases: {edges: [{node: {name}}], totalCount}}}"""
+        query = """
+query ListDatabases($input: ListDatabasesInput!) {
+  listDatabases(input: $input) {
+    edges {
+      node {
+        name
+      }
+    }
+    totalCount
+  }
+}
+"""
+        variables: dict[str, Any] = {"input": {"limit": limit, "offset": 0}}
+        if search:
+            variables["input"]["search"] = search
+        return await self._execute(self._project_url(org_name, project_slug), query, variables, operation="listDatabases")
+
     async def list_models(self, org_name: str, project_slug: str, database_name: str, page_index: int = 1, page_size: int = 50) -> dict[str, Any]:
         """List models in a project database. Returns {data: {models: {items: [...], hasNextPage}}}"""
         query = """

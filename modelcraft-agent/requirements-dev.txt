@@ -1,0 +1,5 @@
+# Dev / debug dependencies (not needed in production)
+-r requirements.txt
+jupyter
+ipykernel
+python-dotenv

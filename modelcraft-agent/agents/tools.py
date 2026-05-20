@@ -47,6 +47,35 @@ async def list_projects(
 
 
 @tool
+async def list_databases(
+    state: Annotated[AgentState, InjectedState()],
+) -> str:
+    """
+    List all databases available in the current project's cluster.
+    Call this before list_models to know which database names exist.
+
+    Returns:
+        JSON array of database names, e.g. ["maindb", "analyticsdb"].
+    """
+    log, start = log_tool_start("list_databases", f"project={state['project_slug']}")
+    try:
+        result = await make_client(state).list_databases(
+            org_name=state["org_name"],
+            project_slug=state["project_slug"],
+        )
+        if "errors" in result and result["errors"]:
+            return f"GraphQL error: {result['errors']}"
+        edges = result.get("data", {}).get("listDatabases", {}).get("edges", [])
+        names = [e["node"]["name"] for e in edges]
+        log_tool_end(log, "list_databases", start, True)
+        return json.dumps(names, ensure_ascii=False)
+    except Exception:
+        log.exception("error", tool_name="list_databases")
+        log_tool_end(log, "list_databases", start, False)
+        raise
+
+
+@tool
 async def list_models(
     database_name: str,
     state: Annotated[AgentState, InjectedState()],

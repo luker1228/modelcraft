@@ -8,9 +8,10 @@ from langgraph.graph import END, StateGraph
 from langgraph.prebuilt import ToolNode
 
 import config
-from agents.shared import AgentState
+from agents.shared import AgentState, sanitize_messages
 from agents.tools import (
     get_model_fields,
+    list_databases,
     list_models,
     list_projects,
     nl2filter,
@@ -19,6 +20,7 @@ from agents.tools import (
 
 ADMIN_TOOLS = [
     list_projects,
+    list_databases,
     list_models,
     get_model_fields,
     query_model,
@@ -59,8 +61,9 @@ def _build_admin_graph() -> Any:
                 "可用工具：navigate_to_org、navigate_to_model、navigate_to_data、"
                 "open_create_model、open_create_record、open_edit_record、highlight_records、"
                 "navigate_to_enums、navigate_to_cluster、navigate_to_rbac、navigate_to_end_users、"
-                "set_filter、clear_filter、list_models、get_model_fields、query_model、"
+                "set_filter、clear_filter、list_databases、list_models、get_model_fields、query_model、"
                 "nl2filter、show_toast。\n"
+                "数据操作顺序：先 list_databases → 再 list_models(database_name) → 再 get_model_fields(model_id)。\n"
                 "写操作规则：open_create_record 和 open_edit_record 只预填表单，用户点 Save 才真正保存。\n"
                 "操作前先用 get_model_fields 确认字段名，避免预填错误字段。"
             )
@@ -87,7 +90,7 @@ def _build_admin_graph() -> Any:
                 "- 完成操作后用 show_toast 通知用户结果。"
             ).replace("{project}", project or "（未知项目）"),
         }
-        messages = [system_msg] + state["messages"]
+        messages = [system_msg] + sanitize_messages(state["messages"])
         response = await llm.ainvoke(messages)
         return {"messages": [response]}
 
