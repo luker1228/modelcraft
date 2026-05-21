@@ -44,6 +44,13 @@ describe('createCapabilityStore', () => {
     const store = createCapabilityStore()
     expect(store.getRef('nonexistent')).toBeUndefined()
   })
+
+  it('stores and returns type field', () => {
+    const store = createCapabilityStore()
+    const ref = { current: document.createElement('div') }
+    store.register({ id: 'my-section', label: '测试区域', ref, type: 'section' })
+    expect(store.getAll()[0].type).toBe('section')
+  })
 })
 
 // Regression: "useAICapabilityContext must be used inside AICapabilityProvider"

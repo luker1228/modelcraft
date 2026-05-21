@@ -20,6 +20,7 @@ export type AICapability = {
   label: string
   ref: RefObject<HTMLElement>
   description?: string
+  type?: 'field' | 'button' | 'section' | 'tableRow' | 'tab' | 'menu'
 }
 
 export interface AICapabilityStore {
