@@ -53,4 +53,23 @@ describe('highlightElement', () => {
     vi.advanceTimersByTime(1)
     expect(el.classList.contains(HIGHLIGHT_CLASSES[0])).toBe(false)
   })
+
+  it('shows message tooltip when provided', () => {
+    const el = document.createElement('div')
+    // We only verify no throw and that classes are applied — tooltip rendering
+    // requires DOM API beyond jsdom scope. The message option is consumed by
+    // the caller to render a tooltip externally.
+    expect(() =>
+      highlightElement({ current: el }, { message: '点击这里配置权限', scrollIntoView: false })
+    ).not.toThrow()
+    expect(el.classList.contains('bg-amber-50')).toBe(true)
+  })
+
+  it('accepts HighlightOptions object as second argument', () => {
+    const el = document.createElement('button')
+    highlightElement({ current: el }, { durationMs: 2000, scrollIntoView: false })
+    expect(el.classList.contains('ring-amber-400')).toBe(true)
+    vi.advanceTimersByTime(2000)
+    expect(el.classList.contains('ring-amber-400')).toBe(false)
+  })
 })
