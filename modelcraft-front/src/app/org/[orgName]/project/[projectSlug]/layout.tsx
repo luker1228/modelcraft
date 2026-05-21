@@ -11,6 +11,7 @@ import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { useCopilotReadable } from '@copilotkit/react-core'
 import { ProjectCopilotActions } from '@web/components/features/copilot/ProjectCopilotActions'
 import { WorkspaceAIRefContext } from '@web/contexts/workspace-ai-ref-context'
+import { AICapabilityProvider } from '@web/contexts/ai-capability-context'
 import type { DevelopRecordWorkspaceAIRef } from '@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'
 import "@copilotkit/react-ui/styles.css"
 
@@ -132,15 +133,17 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   )
 
   return (
-    <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
-      <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
-        <ProjectAIContext
-          orgName={orgName}
-          projectSlug={projectSlug}
-          workspaceAiRef={workspaceAiRef}
-        />
-        {mainContent}
-      </CopilotWrapper>
-    </WorkspaceAIRefContext.Provider>
+    <AICapabilityProvider>
+      <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
+        <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
+          <ProjectAIContext
+            orgName={orgName}
+            projectSlug={projectSlug}
+            workspaceAiRef={workspaceAiRef}
+          />
+          {mainContent}
+        </CopilotWrapper>
+      </WorkspaceAIRefContext.Provider>
+    </AICapabilityProvider>
   )
 }
