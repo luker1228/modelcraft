@@ -155,6 +155,7 @@ export const EndUserCopilotWrapper = memo(({
           <SharedCopilotActions />
           <EndUserCopilotKnowledge />
           <EndUserCopilotActions orgName={orgName} projectSlug={projectSlug} />
+          {/* AICapabilityReadable intentionally omitted: end-user surface is read-only (data query/view), no page-action capability registration */}
           {children}
           <CopilotSidebar
             labels={{
