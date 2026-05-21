@@ -10,6 +10,8 @@ import { SharedCopilotActions } from './SharedCopilotActions'
 import { AdminCopilotKnowledge } from './AdminCopilotKnowledge'
 import { EndUserCopilotActions } from './EndUserCopilotActions'
 import { EndUserCopilotKnowledge } from './EndUserCopilotKnowledge'
+import { AICapabilityReadable } from './AICapabilityReadable'
+import { AIChipMessage } from './AIChipMessage'
 
 const CopilotKit = dynamic(
   () => import('@copilotkit/react-core').then(mod => mod.CopilotKit),
@@ -68,6 +70,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
     >
       <SharedCopilotActions />
       <AdminCopilotKnowledge />
+      <AICapabilityReadable />
       {children}
       <CopilotSidebar
         labels={{
@@ -76,6 +79,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
         }}
         defaultOpen={false}
         clickOutsideToClose={true}
+        AssistantMessage={AIChipMessage}
       />
     </CopilotKit>
   )
@@ -158,6 +162,7 @@ export const EndUserCopilotWrapper = memo(({
               initial: initialMessage,
             }}
             defaultOpen={false}
+            AssistantMessage={AIChipMessage}
           />
         </CopilotKit>
       </Suspense>
