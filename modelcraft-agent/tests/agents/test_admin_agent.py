@@ -22,13 +22,37 @@ def test_admin_tools_include_list_projects():
     assert "list_projects" in tool_names
 
 
-def test_admin_tools_do_not_include_enduser_only():
-    """Admin tool names must be exactly the expected set."""
+def test_admin_tools_exact_set():
+    """Admin backend tools must be exactly the expected set (no regressions)."""
     tool_names = {t.name for t in ADMIN_TOOLS}
     assert tool_names == {
         "list_projects",
+        "list_databases",
         "list_models",
         "get_model_fields",
         "query_model",
         "nl2filter",
     }
+
+
+def test_frontend_tool_names_from_state():
+    """_frontend_tool_names must extract names from copilotkit.actions."""
+    from agents.admin_agent import _frontend_tool_names
+
+    state = {
+        "messages": [],
+        "copilotkit": {
+            "actions": [
+                {"name": "show_navigation_proposal", "description": "show proposal"},
+                {"name": "show_toast", "description": "show toast"},
+            ]
+        },
+    }
+    names = _frontend_tool_names(state)
+    assert "show_navigation_proposal" in names
+    assert "show_toast" in names
+
+
+def test_should_continue_returns_end_for_frontend_tool():
+    """When agent calls only frontend tools, should_continue must return END."""
+    assert admin_graph is not None

@@ -64,8 +64,6 @@ def _build_admin_graph() -> Any:
         current_model = state.get("current_model", "")
         current_db = state.get("current_db", "")
         current_route = state.get("current_route", "")
-        page_ui_actions: list = state.get("page_ui_actions", [])
-
         # Merge frontend tools (registered by useCopilotAction) into the LLM for this turn.
         # CopilotKit puts them in state["copilotkit"]["actions"] as plain dicts.
         frontend_actions = state.get("copilotkit", {}).get("actions", [])  # type: ignore[union-attr]
@@ -95,76 +93,49 @@ def _build_admin_graph() -> Any:
         if layer == "org":
             context = (
                 f"当前在 Org 页面（组织：{org}）。\n"
-                "可用工具：navigate_to_project、navigate_to_settings、open_create_project、"
-                "highlight_project、list_projects、nl2filter、show_toast。\n"
-                "注意：不可直接调用 list_models、query_model 等 project 级工具。\n"
-                "如需操作项目数据，先调用 navigate_to_project(slug) 跳转到对应项目。"
+                "UI 导航工具（只用 show_navigation_proposal）：\n"
+                "  routeCatalog 和 aiTargets 已通过上下文注入，选取对应条目生成 candidates。\n"
                 + (f"\n当前会话项目上下文：**{project}**（用户未明确指定时默认使用此项目）。" if project else "")
             )
         elif layer == "project":
             model_ctx = f"，当前模型：{current_model}（数据库：{current_db}）" if current_model else ""
             context = (
                 f"当前在 Project 页面（组织：{org}，项目：**{project}**{model_ctx}）。\n"
-                "可用工具：\n"
-                "  导航：navigate_to_org、navigate_to_model、navigate_to_data、navigate_to_enums、\n"
-                "         navigate_to_cluster、navigate_to_rbac、navigate_to_end_users\n"
-                "  操作：open_create_model、open_create_record、open_edit_record\n"
-                "  引导（高亮 UI 元素）：guide_select_database、guide_create_model\n"
-                "  数据：list_databases、list_models、get_model_fields、query_model、nl2filter\n"
-                "  其他：highlight_records、set_filter、clear_filter、show_toast\n\n"
-                "新建模型引导流程：\n"
-                "  1. list_databases → 查询可用数据库\n"
-                "  2. guide_select_database → 高亮数据库选择器，等用户选择\n"
-                "  3. guide_create_model → 高亮新建模型按钮，引导用户点击\n"
-                "数据操作顺序：list_databases → list_models(database_name) → get_model_fields(model_id)。\n"
-                "写操作规则：open_create_record 和 open_edit_record 只预填表单，用户点 Save 才真正保存。\n"
-                "引导工具说明：guide_select_database / guide_create_model 只是高亮 UI 元素，\n"
-                "  不替代用户点击——高亮后必须用文字告知用户需要执行什么操作。"
+                "UI 导航工具（只用 show_navigation_proposal）：\n"
+                "  routeCatalog 和 aiTargets 已通过上下文注入，选取对应条目生成 candidates。\n\n"
+                "数据查询工具：\n"
+                "  list_databases、list_models、get_model_fields、query_model、nl2filter\n\n"
+                "通知工具：show_toast"
             )
         else:
             project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
             context = (
                 f"当前组织：{org}。{project_ctx}\n"
-                "可用工具取决于当前页面，请先询问用户当前在哪个页面。"
+                "UI 导航工具（只用 show_navigation_proposal）：\n"
+                "  routeCatalog 和 aiTargets 已通过上下文注入。"
             )
-
-        # Build UI action chip section — injected into every system prompt when actions are registered.
-        if page_ui_actions:
-            chip_ids = " ".join(f"[ACTION:{a['id']}]" for a in page_ui_actions)
-            chip_list = "\n".join(
-                f"  - [ACTION:{a['id']}] → {a.get('label','')}（{a.get('description','')}）"
-                for a in page_ui_actions
-            )
-            chip_section = (
-                f"\n\n【当前页面已注册 UI 操作 — 必须在回复中使用】\n"
-                f"{chip_list}\n"
-                f"规则：\n"
-                f"  1. 每次回复都必须在末尾附一行：「本页可用操作：{chip_ids}」\n"
-                f"  2. 介绍某功能时，同步在句中嵌入对应 [ACTION:id]，"
-                f"例如：「点击 [ACTION:create_model] 打开新建模型表单」\n"
-                f"  3. 不得用文字代替 chip，必须用 [ACTION:id] 标记"
-            )
-        else:
-            chip_section = ""
 
         system_msg = {
             "role": "system",
             "content": (
                 "你是 ModelCraft AI 助手（管理员版），帮助租户管理员通过对话完成所有操作。\n\n"
-                f"{context}"
-                f"{chip_section}\n\n"
-                "工具调用原则：\n"
-                "- 列出的所有工具都可以直接调用，包括 navigate_*、open_*、highlight_*、show_toast 等前端工具。\n"
-                "- 前端工具（navigate_to_project、highlight_project、show_toast 等）会直接触发界面操作，\n"
-                "  必须通过 function call 调用，不能只在文字中描述'正在高亮'或'已跳转'。\n"
-                "- 调用任何 project 级工具（list_models、get_model_fields、query_model 等）时，\n"
-                "  回复中必须明确说明「在项目 **{project}** 中...」，防止用户误会操作了错误的项目。\n"
-                "- 如需 project 级操作但当前无项目上下文，先调用 list_projects 展示列表，\n"
-                "  让用户选择后再继续，不得自行假设项目。\n"
-                "- 操作数据前先用 list_models 和 get_model_fields 确认模型和字段存在。\n"
-                "- 删除操作禁止自动执行，必须引导用户在界面手动确认。\n"
-                "- 如果用户说筛选或过滤，先用 nl2filter 生成 filter JSON，再告知前端已应用。\n"
-                "- 完成操作后用 show_toast 通知用户结果。"
+                f"{context}\n\n"
+                "【核心规则：UI 导航必须通过 show_navigation_proposal】\n"
+                "当用户询问'去哪里'、'在哪里配置'、'怎么操作'、'帮我跳转'时，\n"
+                "必须调用 show_navigation_proposal 工具，不能只在文字里描述操作步骤。\n\n"
+                "show_navigation_proposal 使用规范：\n"
+                "1. response.candidates 每项必须有 type 字段：\n"
+                "   - 'action_candidate'：能确定跳转目标时使用，actions 包含 ui.navigate 和/或 ui.highlight\n"
+                "   - 'clarification_candidate'：意图不明确时使用，payload 描述用户意图\n"
+                "2. ui.navigate 的 route 必须从注入的 routeCatalog 中选取，替换 :orgName/:projectSlug 为实际值\n"
+                "3. ui.highlight 的 targetId 必须从注入的 aiTargets 中选取\n"
+                "4. 即使只有一个候选项也要包装成 candidates 数组返回，不得直接执行\n\n"
+                "数据查询工具调用规则：\n"
+                "- 调用任何 project 级工具时，回复中必须明确说明「在项目 **{project}** 中...」\n"
+                "- 如需 project 级操作但当前无项目上下文，先调用 list_projects 展示列表\n"
+                "- 操作数据前先用 list_models 和 get_model_fields 确认模型和字段存在\n"
+                "- 删除操作禁止自动执行，必须引导用户在界面手动确认\n"
+                "- 完成操作后用 show_toast 通知用户结果"
             ).replace("{project}", project or "（未知项目）"),
         }
         messages = [system_msg] + sanitize_messages(state["messages"])
