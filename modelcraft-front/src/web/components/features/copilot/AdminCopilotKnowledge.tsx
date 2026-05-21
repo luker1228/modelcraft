@@ -5,69 +5,42 @@ import { useCopilotReadable } from '@copilotkit/react-core'
 import { useCopilotChatSuggestions } from '@copilotkit/react-ui'
 
 const ADMIN_ONBOARDING = `
-新手引导共 5 步：
+ModelCraft 新手引导（AI 导航助手）：
 
-Step 1 [创建项目]
-  目标：创建第一个项目
-  工具：open_create_project(slug, title)
-  验证：调用 list_projects，确认项目出现
+AI 助手通过 show_navigation_proposal 帮助你导航到正确页面并高亮目标区域。
+你可以直接用自然语言描述想做的事，AI 会给你一个或多个候选方案，点击后自动跳转。
 
-Step 2 [配置数据库集群]
-  目标：连接一个数据库
-  工具：navigate_to_cluster，引导用户在页面上手动填写连接信息
-  提示：集群配置需要用户提供数据库连接信息，agent 无法代替操作
+常见操作引导：
+- 创建数据模型 → AI 带你到"数据模型编辑器"，高亮新建模型入口
+- 配置权限 → AI 带你到"RBAC 角色管理"，高亮相关配置区域
+- 添加数据库连接 → AI 带你到"项目设置"，高亮集群配置区域
+- 管理终端用户 → AI 带你到"终端用户管理"页面
 
-Step 3 [创建数据模型]
-  目标：在项目下创建第一个模型
-  引导流程（必须按顺序执行）：
-    1. 调用 list_databases 查询可用数据库列表
-    2. 调用 guide_select_database("请先选择要在哪个数据库中创建模型") — 高亮数据库选择器
-    3. 在文字中告诉用户："数据库选择器已高亮（左侧金色边框），请点击选择一个数据库，然后告诉我数据库名称"
-    4. 等待用户回复选择的数据库名 OR 用户已明确指定数据库时直接进入第 5 步
-    5. 调用 guide_create_model("请点击新建模型按钮") — 高亮新建模型按钮
-    6. 在文字中告诉用户："新建模型按钮已高亮（左侧金色边框），请点击它，填写模型名称后保存"
-  验证：调用 list_models 确认模型存在
-
-Step 4 [添加字段]
-  目标：给模型添加字段
-  工具：navigate_to_model(db, model)
-  提示：字段编辑在右侧面板，由用户手动操作
-
-Step 5 [查看数据]
-  目标：进入数据视图，确认配置完成
-  工具：navigate_to_data(db, model)
+数据查询（不需要导航）：
+- 直接询问数据，AI 会调用后端工具查询并在对话中返回结果
 `.trim()
 
 const ADMIN_TROUBLESHOOTING = `
-常见问题排查：
+常见问题：
 
 问题：数据库连接失败
-  → show_toast("正在带你去检查集群配置", "info")
-  → navigate_to_cluster，引导检查 host/port/credentials
+  → 告诉 AI "帮我检查集群配置"，AI 会导航到项目设置并高亮集群配置区域
 
 问题：找不到模型或字段
-  → 调用 list_models(db) 确认模型名是否正确
-  → list_models 返回空则模型未创建，建议执行新手引导 Step 3
+  → 告诉 AI 模型名称，AI 可以调用 list_models / get_model_fields 查询
 
-问题：权限被拒绝
-  → navigate_to_rbac(section="users")，检查用户角色分配
-
-问题：字段显示异常
-  → navigate_to_model(db, model)，检查字段类型和配置
+问题：权限配置在哪里
+  → 告诉 AI "帮我配置权限"，AI 会导航到 RBAC 相关页面
 `.trim()
 
 const ADMIN_SUGGESTIONS = [
-  { title: '新手引导：带我完成初始配置', message: '我是新用户，请帮我按步骤完成初始配置' },
-  { title: '帮我创建第一个数据模型', message: '帮我创建第一个数据模型' },
-  { title: '数据库连不上，帮我排查', message: '数据库连接有问题，请帮我排查' },
+  { title: '帮我创建第一个数据模型', message: '帮我创建第一个数据模型，带我到对应页面' },
+  { title: '权限配置在哪里？', message: '我想配置数据权限，带我去对应页面' },
   { title: '我有哪些项目？', message: '列出我所有的项目' },
-  { title: '解释当前页面的功能', message: '请解释当前页面有哪些功能' },
+  { title: '帮我导航到模型管理', message: '帮我去数据模型管理页面' },
+  { title: '数据库连不上，帮我排查', message: '数据库连接有问题，带我去检查配置' },
 ]
 
-/**
- * Injects admin knowledge base and sidebar suggestions into CopilotKit context.
- * Must be mounted inside a CopilotKit provider tree.
- */
 export const AdminCopilotKnowledge = memo(function AdminCopilotKnowledge() {
   useCopilotReadable({
     description: 'ModelCraft 新手引导操作手册（管理员）',
