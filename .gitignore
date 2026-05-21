@@ -25,3 +25,5 @@ graphify-out/cache/
 __pycache__/
 *.py[cod]
 modelcraft-agent/.env
+agent.log
+modelcraft-agent/logs/agent.log
