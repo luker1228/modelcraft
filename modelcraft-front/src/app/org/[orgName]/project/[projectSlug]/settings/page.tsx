@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
+import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capability'
 import { useQuery, useMutation } from '@apollo/client'
 import { useParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
@@ -132,6 +133,10 @@ export default function SettingsPage() {
 
   const [activeNav, setActiveNav] = useState('cluster')
   const [cluster, setCluster] = useState<Cluster | null>(null)
+
+  // AI capability ref for chip highlighting
+  const connectDbBtnRef = useRef<HTMLButtonElement>(null)
+  useRegisterAICapability('connect_db', '连接数据库', connectDbBtnRef, '点击配置数据库集群连接')
   const [testingConnection, setTestingConnection] = useState(false)
   const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
@@ -467,6 +472,7 @@ export default function SettingsPage() {
                         取消
                       </Button>
                       <Button
+                        ref={connectDbBtnRef}
                         size="sm"
                         onClick={handleSaveConnection}
                         disabled={!formData.host || !testResult?.success}

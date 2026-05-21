@@ -1,5 +1,7 @@
 'use client'
 
+import { useRef } from 'react'
+import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capability'
 import {
   X,
   Loader2,
@@ -66,6 +68,10 @@ export function ModelDetailPanel({
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
   const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
+
+  // AI capability ref for chip highlighting
+  const createFieldBtnRef = useRef<HTMLButtonElement>(null)
+  useRegisterAICapability('create_field', '新建字段', createFieldBtnRef, '点击打开新建字段表单')
 
   return (
     <Drawer open={state.editModelOpen} onOpenChange={crud.handleCloseEditModel} direction="right">
@@ -269,6 +275,7 @@ export function ModelDetailPanel({
                     </span>
                   </div>
                   <button
+                    ref={createFieldBtnRef}
                     type="button"
                     title={isManagedReadOnlyModel ? '托管模型仅支持查看' : '新增字段'}
                     className="rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
