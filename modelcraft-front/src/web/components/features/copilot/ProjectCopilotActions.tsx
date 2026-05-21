@@ -2,6 +2,7 @@
 
 import { useCopilotAction } from '@copilotkit/react-core'
 import { useRouter } from 'next/navigation'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import type { DevelopRecordWorkspaceAIRef } from '@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'
 
 interface ProjectCopilotActionsProps {
@@ -13,6 +14,7 @@ interface ProjectCopilotActionsProps {
 
 export function ProjectCopilotActions({ orgName, projectSlug, workspaceAiRef }: ProjectCopilotActionsProps) {
   const router = useRouter()
+  const { setPendingAction } = useOnboarding()
 
   useCopilotAction({
     name: 'navigate_to_org',
@@ -175,6 +177,46 @@ export function ProjectCopilotActions({ orgName, projectSlug, workspaceAiRef }: 
     handler: async () => {
       router.push(`/org/${orgName}/project/${projectSlug}/end-users`)
       return '已跳转到 end-user 管理页'
+    },
+  })
+
+  // ── 引导工具：通过高亮 UI 元素指引用户操作 ────────────────────────────────
+
+  useCopilotAction({
+    name: 'guide_select_database',
+    description: '高亮左侧数据库选择器，引导用户先选择一个数据库。适用于需要用户先选 DB 才能继续的步骤（如新建模型）。',
+    parameters: [
+      {
+        name: 'reason',
+        type: 'string',
+        description: '为什么需要选择数据库，会以 toast 形式提示用户',
+        required: false,
+      },
+    ],
+    handler: async ({ reason }: { reason?: string }) => {
+      setPendingAction('select_database')
+      return reason
+        ? `已高亮数据库选择器：${reason}`
+        : '已高亮数据库选择器，请在左侧点击选择一个数据库'
+    },
+  })
+
+  useCopilotAction({
+    name: 'guide_create_model',
+    description: '高亮左侧"新建模型"按钮，引导用户点击创建。必须在用户已选好数据库之后调用。',
+    parameters: [
+      {
+        name: 'reason',
+        type: 'string',
+        description: '引导说明',
+        required: false,
+      },
+    ],
+    handler: async ({ reason }: { reason?: string }) => {
+      setPendingAction('nav_create_model')
+      return reason
+        ? `已高亮新建模型按钮：${reason}`
+        : '已高亮新建模型按钮，请点击它开始创建'
     },
   })
 

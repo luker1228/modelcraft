@@ -129,9 +129,10 @@ def _inject_state(input_data: RunAgentInput, request: Request) -> RunAgentInput:
     current_state["authorization"] = authorization
     current_state["org_name"] = org_name  # always overwrite with trusted value
 
-    # Parse CopilotKit context for layer and projectSlug hint.
+    # Parse CopilotKit context for layer, projectSlug, and availableActions.
     layer: str = ""
     project_slug_hint: str = ""
+    available_actions: list = []
     for ctx_item in (input_data.context or []):
         desc = ctx_item.get("description", "") if isinstance(ctx_item, dict) else getattr(ctx_item, "description", "")
         val  = ctx_item.get("value", "")      if isinstance(ctx_item, dict) else getattr(ctx_item, "value", "")
@@ -140,11 +141,15 @@ def _inject_state(input_data: RunAgentInput, request: Request) -> RunAgentInput:
                 parsed = json.loads(val)
                 layer = parsed.get("layer", "")
                 project_slug_hint = parsed.get("projectSlug", "")
+                available_actions = parsed.get("availableActions", [])
             except Exception:
                 pass
 
     # layer always reflects current UI page.
     current_state["layer"] = layer
+
+    # available_actions tells the agent which tools are registered on the current page.
+    current_state["available_actions"] = available_actions
 
     # project_slug is sticky: keep existing session value, only use hint as fallback.
     if not current_state.get("project_slug"):

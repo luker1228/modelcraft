@@ -9,6 +9,7 @@ from langgraph.prebuilt import ToolNode
 
 import config
 from agents.shared import AgentState, sanitize_messages
+from agents.admin_agent import _frontend_tool_names
 from agents.tools import (
     get_model_fields,
     list_models,
@@ -27,7 +28,7 @@ _ENDUSER_TOOL_NODE = ToolNode(ENDUSER_TOOLS, handle_tool_errors=True)
 
 
 def _build_enduser_graph() -> Any:
-    llm = ChatOpenAI(
+    _base_llm = ChatOpenAI(
         model=config.LLM_MODEL,
         api_key=config.LLM_API_KEY,
         base_url=config.LLM_BASE_URL if config.LLM_BASE_URL else None,
@@ -35,6 +36,27 @@ def _build_enduser_graph() -> Any:
     ).bind_tools(ENDUSER_TOOLS)
 
     async def agent_node(state: AgentState):
+        org = state.get("org_name", "")
+        project = state.get("project_slug", "")
+
+        frontend_actions = state.get("copilotkit", {}).get("actions", [])  # type: ignore[union-attr]
+        if frontend_actions:
+            extra = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": t["name"],
+                        "description": t.get("description", ""),
+                        "parameters": t.get("parameters", {"type": "object", "properties": {}}),
+                    },
+                }
+                for t in frontend_actions
+                if isinstance(t, dict) and t.get("name")
+            ]
+            existing = _base_llm.kwargs.get("tools", []) or []
+            llm = _base_llm.bind(tools=[*existing, *extra])
+        else:
+            llm = _base_llm
         org = state.get("org_name", "")
         project = state.get("project_slug", "")
 
@@ -65,9 +87,11 @@ def _build_enduser_graph() -> Any:
 
     def should_continue(state: AgentState):
         last = state["messages"][-1]
-        if hasattr(last, "tool_calls") and last.tool_calls:
-            return "tools"
-        return END
+        if not (hasattr(last, "tool_calls") and last.tool_calls):
+            return END
+        frontend = _frontend_tool_names(state)
+        backend_calls = [tc for tc in last.tool_calls if tc.get("name") not in frontend]
+        return "tools" if backend_calls else END
 
     graph = StateGraph(AgentState)
     graph.add_node("agent", agent_node)
