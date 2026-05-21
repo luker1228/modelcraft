@@ -117,7 +117,13 @@ def _build_admin_graph() -> Any:
                 "数据操作顺序：list_databases → list_models(database_name) → get_model_fields(model_id)。\n"
                 "写操作规则：open_create_record 和 open_edit_record 只预填表单，用户点 Save 才真正保存。\n"
                 "引导工具说明：guide_select_database / guide_create_model 只是高亮 UI 元素，\n"
-                "  不替代用户点击——高亮后必须用文字告知用户需要执行什么操作。"
+                "  不替代用户点击——高亮后必须用文字告知用户需要执行什么操作。\n\n"
+                "UI 操作 Chip 规则（[ACTION:id] 标记）：\n"
+                "  当你需要引导用户使用页面上的某个功能时，可以在回复文本中插入 [ACTION:action_id] 标记。\n"
+                "  前端会把它渲染成可点击的按钮，用户点击后自动高亮对应 UI 元素。\n"
+                "  只使用系统上下文「当前页面可用的 UI 操作」列表里的 action_id，不要编造。\n"
+                "  示例：「点击 [ACTION:create_model] 即可打开新建模型表单。」\n"
+                "  如果当前页面没有相关 action_id，正常用文字回答，不使用此标记。"
             )
         else:
             project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
