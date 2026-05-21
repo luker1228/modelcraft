@@ -144,13 +144,37 @@ useCopilotAction({
     <AiProposalCard
       message={args.response.message}
       candidates={args.response.candidates}
-      onSelect={(candidate) => executeActions(candidate.actions)}
+      onSelect={(candidate) => handleCandidateClick(args.response.proposalId, candidate)}
     />
   ),
 })
 ```
 
-### 4.2 `executeActions` — 前端受控执行函数
+### 4.2 `handleCandidateClick` — 前端点击分发
+
+用户点击候选项后，先判断类型再决定如何处理：
+
+```ts
+async function handleCandidateClick(proposalId: string, candidate: ProposalCandidate) {
+  if (candidate.type === "action_candidate") {
+    // 直接执行导航/高亮动作序列
+    await executeActions(candidate.actions)
+    return
+  }
+
+  if (candidate.type === "clarification_candidate") {
+    // 回传后端，继续推理，后端会返回新的 proposal
+    await sendClarificationToAgent({
+      proposalId,
+      candidateId: candidate.id,
+      payload: candidate.payload,
+    })
+    return
+  }
+}
+```
+
+### 4.3 `executeActions` — 前端受控执行函数
 
 用户点击候选项后，由前端直接调用执行，不经过 CopilotKit 工具调用：
 
@@ -199,23 +223,48 @@ async function executeActions(actions: AiAction[]) {
 
 后端**永远**返回 Proposal，不直接返回立即执行的 Action。
 
+`ProposalCandidate` 分为两种类型：
+
+- **`action_candidate`**：点击后前端执行 navigate / highlight
+- **`clarification_candidate`**：点击后将用户选择回传后端，继续推理
+
 ```ts
 type AgentUiResponse = {
   kind: "proposal"
-  proposalType: "navigation" | "highlight" | "mixed"
+  proposalId: string    // 用于 clarification 回传时关联上下文
+  proposalType: "navigation" | "highlight" | "clarification" | "mixed"
   message: string       // 自然语言解释
   query: string         // 用户原始问题
-  candidates: NavigationCandidate[]
+  candidates: ProposalCandidate[]
 }
 
-type NavigationCandidate = {
+type ProposalCandidate =
+  | ActionCandidate
+  | ClarificationCandidate
+
+// 可执行候选项：点击后前端直接执行 actions
+type ActionCandidate = {
   id: string
+  type: "action_candidate"
   title: string
   description?: string
   category?: "page" | "model" | "table" | "field" | "setting" | "action"
-  confidence?: number   // 0-1，Agent 的置信度
-  isPrimary?: boolean   // 是否为首推方案
-  actions: AiAction[]   // 用户点击后要执行的动作序列
+  confidence?: number
+  isPrimary?: boolean
+  actions: AiAction[]
+}
+
+// 澄清候选项：点击后回传后端，继续推理
+type ClarificationCandidate = {
+  id: string
+  type: "clarification_candidate"
+  title: string
+  description?: string
+  payload: {
+    intent?: string
+    entities?: Record<string, unknown>
+    userMeaning?: string
+  }
 }
 
 type AiAction =
@@ -223,7 +272,7 @@ type AiAction =
       type: "ui.navigate"
       args: {
         route: string
-        params?: Record<string, any>
+        params?: Record<string, unknown>
         reason?: string
       }
     }
@@ -240,17 +289,19 @@ type AiAction =
     }
 ```
 
-### 5.2 精确结果示例（1 个候选）
+### 5.2 精确导航示例（1 个 action_candidate）
 
 ```json
 {
   "kind": "proposal",
+  "proposalId": "proposal_124",
   "proposalType": "navigation",
   "query": "去项目管理",
   "message": "我找到了最可能的位置：",
   "candidates": [
     {
-      "id": "page-project-management",
+      "id": "go-project-management",
+      "type": "action_candidate",
       "title": "项目管理",
       "category": "page",
       "description": "查看、创建和管理项目。",
@@ -259,10 +310,7 @@ type AiAction =
       "actions": [
         {
           "type": "ui.navigate",
-          "args": {
-            "route": "/org/acme/projects",
-            "reason": "用户想进入项目管理页面"
-          }
+          "args": { "route": "/org/acme/projects", "reason": "用户想进入项目管理页面" }
         }
       ]
     }
@@ -270,46 +318,55 @@ type AiAction =
 }
 ```
 
-### 5.3 模糊结果示例（多个候选）
+### 5.3 语义模糊示例（clarification_candidate）
+
+用户意图不明确时，后端返回澄清候选项，**不包含 actions**，由用户点击后回传后端继续推理：
 
 ```json
 {
   "kind": "proposal",
-  "proposalType": "mixed",
+  "proposalId": "proposal_123",
+  "proposalType": "clarification",
   "query": "项目",
-  "message": "你说的"项目"可能指以下几个位置：",
+  "message": "你说的"项目"是想做哪类操作？",
   "candidates": [
     {
-      "id": "page-project-management",
-      "title": "项目管理",
-      "category": "page",
-      "description": "查看、创建和管理项目。",
-      "confidence": 0.78,
-      "isPrimary": true,
-      "actions": [
-        { "type": "ui.navigate", "args": { "route": "/org/acme/projects" } }
-      ]
+      "id": "intent-view-project",
+      "type": "clarification_candidate",
+      "title": "查看项目列表",
+      "description": "我想查看、搜索或管理已有项目",
+      "payload": { "intent": "view_project_list" }
     },
     {
-      "id": "model-project",
-      "title": "项目模型",
-      "category": "model",
-      "description": "配置项目模型的字段、表单和权限。",
-      "confidence": 0.71,
-      "actions": [
-        { "type": "ui.navigate", "args": { "route": "/org/acme/project/main/models" } },
-        {
-          "type": "ui.highlight",
-          "args": {
-            "targetId": "model-project-field-list",
-            "message": "这里可以配置项目模型字段。"
-          }
-        }
-      ]
+      "id": "intent-config-project-model",
+      "type": "clarification_candidate",
+      "title": "配置项目模型",
+      "description": "我想配置项目字段、表单、权限等模型能力",
+      "payload": { "intent": "configure_project_model", "entities": { "model": "project" } }
+    },
+    {
+      "id": "intent-find-project-field",
+      "type": "clarification_candidate",
+      "title": "定位项目字段",
+      "description": "我想知道项目相关字段在哪里设置",
+      "payload": { "intent": "locate_project_field", "entities": { "model": "project" } }
     }
   ]
 }
 ```
+
+用户点击"配置项目模型"后，前端回传：
+
+```json
+{
+  "type": "user_clarification",
+  "proposalId": "proposal_123",
+  "candidateId": "intent-config-project-model",
+  "payload": { "intent": "configure_project_model", "entities": { "model": "project" } }
+}
+```
+
+后端继续推理，返回新的 `action_candidate` proposal（`proposal_124`）。
 
 ---
 
@@ -321,7 +378,7 @@ type AiAction =
 <AiProposalCard
   message={response.message}
   candidates={response.candidates}
-  onSelect={(candidate) => executeActions(candidate.actions)}
+  onSelect={(candidate) => handleCandidateClick(response.proposalId, candidate)}
 />
 ```
 
@@ -329,6 +386,7 @@ type AiAction =
 - 候选项 ≥ 2：显示多个卡片，用户选择
 - 候选项 = 1：也显示一张卡片（不自动执行），`isPrimary: true` 时加"推荐"标签
 - 无候选项：显示"未找到相关页面"提示
+- `clarification_candidate` 与 `action_candidate` 视觉上可以相同，行为由 `type` 字段区分
 
 ### 6.2 完整流程
 
@@ -343,9 +401,14 @@ Agent 解析意图，生成 candidates
   ↓
 用户点击某一候选项
   ↓
-ActionExecutor 串行执行该候选的 actions
-  ├─ ui.navigate → 跳转页面，等待 AiTargets 挂载
-  └─ ui.highlight → 滚动到目标元素并高亮
+  ┌─ action_candidate
+  │   └─ ActionExecutor 串行执行 actions
+  │       ├─ ui.navigate → 跳转页面，等待 AiTargets 挂载
+  │       └─ ui.highlight → 滚动到目标元素并高亮
+  │
+  └─ clarification_candidate
+      └─ sendClarificationToAgent(proposalId, candidateId, payload)
+          └─ 后端继续推理 → 返回新 proposal → 渲染新 AiProposalCard
 ```
 
 ---
@@ -396,6 +459,15 @@ delete / update
 | 维度 | Direct Action | Proposal（本方案）|
 |------|--------------|------------------|
 | 安全性 | AI 可能理解错直接跳转 | 用户点击才执行，不误操作 |
-| 交互一致性 | 需要区分明确/模糊两种响应 | 前端永远只处理一种结构 |
+| 交互一致性 | 需要区分明确/模糊两种响应格式 | 前端永远只处理一种结构 |
 | 用户信任感 | AI "擅自"操作页面 | AI 提建议，用户做决定 |
-| 可扩展性 | 每种新能力要新响应格式 | actions 数组可以持续扩展 |
+| 语义歧义处理 | 前端猜意图或直接跳错 | `clarification_candidate` 回传后端继续推理 |
+| 可扩展性 | 每种新能力要新响应格式 | `actions` 数组持续扩展，结构不变 |
+
+**职责边界**：
+
+```
+LLM / 后端：理解意图、生成候选、在模糊时继续追问
+前端：展示候选、执行明确动作、回传用户选择
+用户：在模糊场景中做最终语义确认
+```
