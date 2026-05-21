@@ -882,3 +882,13 @@ INFO:     172.22.0.2:40586 - "POST /copilotkit/admin HTTP/1.1" 200 OK
 {"service": "modelcraft-agent", "event_type": "STEP_FINISHED", "event": "agent.event", "request_id": "2241d1ba-bdf6-4d79-be93-76730b8e8491", "run_id": "76944e15-fbb2-4078-a4a9-a40e2f45c35f", "client_request_id": "", "thread_id": "88d5f8f0-6ed7-4971-a3c2-7f3a6b5deb9f", "level": "info", "timestamp": "2026-05-21T07:16:30.056853Z"}
 {"service": "modelcraft-agent", "event_type": "STATE_SNAPSHOT", "event": "agent.event", "request_id": "2241d1ba-bdf6-4d79-be93-76730b8e8491", "run_id": "76944e15-fbb2-4078-a4a9-a40e2f45c35f", "client_request_id": "", "thread_id": "88d5f8f0-6ed7-4971-a3c2-7f3a6b5deb9f", "level": "info", "timestamp": "2026-05-21T07:16:30.057349Z"}
 {"service": "modelcraft-agent", "event_type": "RUN_FINISHED", "event": "agent.event", "request_id": "2241d1ba-bdf6-4d79-be93-76730b8e8491", "run_id": "76944e15-fbb2-4078-a4a9-a40e2f45c35f", "client_request_id": "", "thread_id": "88d5f8f0-6ed7-4971-a3c2-7f3a6b5deb9f", "level": "info", "timestamp": "2026-05-21T07:16:30.058058Z"}
+INFO:     Started server process [8]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+{"service": "modelcraft-agent", "method": "GET", "path": "/healthz", "client_ip": "127.0.0.1", "event": "request.start", "client_request_id": "", "request_id": "a279f6d4-316d-4d2e-b1a8-078ea3bb65bd", "level": "info", "timestamp": "2026-05-21T13:43:14.704658Z"}
+{"service": "modelcraft-agent", "method": "GET", "path": "/healthz", "status_code": 200, "duration_ms": 0.28, "thread_id": "", "run_id": "", "event": "request.end", "client_request_id": "", "request_id": "a279f6d4-316d-4d2e-b1a8-078ea3bb65bd", "level": "info", "timestamp": "2026-05-21T13:43:14.705047Z"}
+INFO:     127.0.0.1:40594 - "GET /healthz HTTP/1.1" 200 OK
+{"service": "modelcraft-agent", "method": "GET", "path": "/healthz", "client_ip": "127.0.0.1", "event": "request.start", "client_request_id": "", "request_id": "07efddce-4c08-4151-8922-8e44473005e4", "level": "info", "timestamp": "2026-05-21T13:43:44.808699Z"}
+{"service": "modelcraft-agent", "method": "GET", "path": "/healthz", "status_code": 200, "duration_ms": 0.35, "thread_id": "", "run_id": "", "event": "request.end", "client_request_id": "", "request_id": "07efddce-4c08-4151-8922-8e44473005e4", "level": "info", "timestamp": "2026-05-21T13:43:44.809146Z"}
+INFO:     127.0.0.1:40298 - "GET /healthz HTTP/1.1" 200 OK

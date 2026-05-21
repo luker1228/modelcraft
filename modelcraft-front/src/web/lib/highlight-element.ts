@@ -6,9 +6,10 @@ import type { RefObject } from 'react'
  */
 export const HIGHLIGHT_CLASSES = [
   'bg-amber-50',
-  'ring-2',
-  'ring-amber-300',
-  'ring-offset-1',
+  'ring-4',
+  'ring-amber-400',
+  'ring-offset-4',
+  'animate-pulse',
   'transition-all',
 ] as const
 

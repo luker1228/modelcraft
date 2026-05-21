@@ -1,6 +1,19 @@
 'use client'
 
 import { createContext, useContext, useState, useCallback, type RefObject } from 'react'
+import dynamic from 'next/dynamic'
+
+// Loaded only in development builds — zero cost in production
+const AICapabilityDebugPanel =
+  process.env.NODE_ENV === 'development'
+    ? dynamic(
+        () =>
+          import('@web/components/features/copilot/AICapabilityDebugPanel').then(
+            (m) => m.AICapabilityDebugPanel,
+          ),
+        { ssr: false },
+      )
+    : () => null
 
 export type AICapability = {
   id: string
@@ -55,6 +68,7 @@ export function AICapabilityProvider({ children }: { children: React.ReactNode }
       getRef,
     }}>
       {children}
+      <AICapabilityDebugPanel />
     </AICapabilityContext.Provider>
   )
 }

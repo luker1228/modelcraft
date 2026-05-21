@@ -4,12 +4,12 @@ import { useEffect, useMemo, useRef } from 'react'
 import { useParams } from 'next/navigation'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { LoadingScreen } from '@web/components/common/LoadingScreen'
-import { CopilotWrapper } from '@web/components/features/copilot/CopilotProvider'
 import { RouteValidator } from '@web/components/common/RouteValidator'
 import { useAppStore } from '@web/stores/app'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { useCopilotReadable } from '@copilotkit/react-core'
 import { ProjectCopilotActions } from '@web/components/features/copilot/ProjectCopilotActions'
+import { AICapabilityReadable } from '@web/components/features/copilot/AICapabilityReadable'
 import { WorkspaceAIRefContext } from '@web/contexts/workspace-ai-ref-context'
 import { AICapabilityProvider } from '@web/contexts/ai-capability-context'
 import type { DevelopRecordWorkspaceAIRef } from '@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'
@@ -98,14 +98,10 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
 
   // Sync URL path to store when project changes
   useEffect(() => {
-    // Skip if no project slug in URL
     if (!projectSlug) return
-
-    // Skip if project is already selected
     if (selectedProject?.slug === projectSlug) return
 
     // TODO: Replace with actual API call to fetch project details
-    // For now, create a temporary project object
     setSelectedProject({
       id: projectSlug,
       slug: projectSlug,
@@ -117,6 +113,13 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
       updatedAt: new Date().toISOString(),
     })
   }, [projectSlug, orgName, selectedProject?.slug, setSelectedProject])
+
+  // Clear project context when leaving project pages
+  useEffect(() => {
+    return () => {
+      setSelectedProject(null)
+    }
+  }, [setSelectedProject])
 
   // Show loading state while checking authentication
   if (authLoading) {
@@ -135,14 +138,14 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   return (
     <AICapabilityProvider>
       <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
-        <CopilotWrapper selectedProject={selectedProject} orgName={orgName}>
-          <ProjectAIContext
-            orgName={orgName}
-            projectSlug={projectSlug}
-            workspaceAiRef={workspaceAiRef}
-          />
-          {mainContent}
-        </CopilotWrapper>
+        <ProjectAIContext
+          orgName={orgName}
+          projectSlug={projectSlug}
+          workspaceAiRef={workspaceAiRef}
+        />
+        {/* Reads from this layout's AICapabilityProvider, writes to org-level CopilotKit */}
+        <AICapabilityReadable />
+        {mainContent}
       </WorkspaceAIRefContext.Provider>
     </AICapabilityProvider>
   )

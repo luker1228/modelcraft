@@ -2,16 +2,17 @@
 
 import { memo, useMemo, Suspense } from 'react'
 import dynamic from 'next/dynamic'
-import type { Project } from '@/types'
+import { usePathname } from 'next/navigation'
 import { CopilotAvailableContext } from '@web/components/features/end-user-data/FilterCopilotActions'
 import { useAuthStore } from '@shared/stores/auth-store'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { useAppStore } from '@web/stores/app'
 import { SharedCopilotActions } from './SharedCopilotActions'
 import { AdminCopilotKnowledge } from './AdminCopilotKnowledge'
 import { EndUserCopilotActions } from './EndUserCopilotActions'
 import { EndUserCopilotKnowledge } from './EndUserCopilotKnowledge'
-import { AICapabilityReadable } from './AICapabilityReadable'
 import { AIChipMessage } from './AIChipMessage'
+import { RoutePageKnowledge } from './RoutePageKnowledge'
 
 const CopilotKit = dynamic(
   () => import('@copilotkit/react-core').then(mod => mod.CopilotKit),
@@ -25,22 +26,25 @@ const CopilotSidebar = dynamic(
 
 interface CopilotProviderProps {
   children: React.ReactNode
-  selectedProject: Project | null
   orgName: string
 }
 
 /**
  * Inner provider for the admin (tenant) surface.
- * Mounts SharedCopilotActions + AdminCopilotKnowledge inside CopilotKit context.
+ * Reads selectedProject from useAppStore so project layout can update it
+ * without creating a nested CopilotKit instance.
  */
-const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotProviderProps) => {
+const CopilotProvider = memo(({ children, orgName }: CopilotProviderProps) => {
   const accessToken = useAuthStore((s) => s.accessToken)
+  const pathname = usePathname()
+  const selectedProject = useAppStore((s) => s.selectedProject)
 
   const copilotContext = useMemo(() => ({
     projectId: selectedProject?.id || 'default',
     projectSlug: selectedProject?.slug || 'Default Project',
     orgName,
-  }), [selectedProject?.id, selectedProject?.slug, orgName])
+    currentRoute: pathname,
+  }), [selectedProject?.id, selectedProject?.slug, orgName, pathname])
 
   const headers = useMemo<Record<string, string> | undefined>(
     () => accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
@@ -70,7 +74,7 @@ const CopilotProvider = memo(({ children, selectedProject, orgName }: CopilotPro
     >
       <SharedCopilotActions />
       <AdminCopilotKnowledge />
-      <AICapabilityReadable />
+      <RoutePageKnowledge />
       {children}
       <CopilotSidebar
         labels={{
@@ -89,16 +93,16 @@ CopilotProvider.displayName = 'CopilotProvider'
 
 /**
  * Wrapper for admin (tenant) routes — org/* and project/* layouts.
+ * selectedProject is read from useAppStore; no prop needed.
  */
 export const CopilotWrapper = memo(({
   children,
-  selectedProject,
   orgName,
-}: CopilotProviderProps) => {
+}: Omit<CopilotProviderProps, never>) => {
   return (
     <CopilotAvailableContext.Provider value={true}>
       <Suspense fallback={children}>
-        <CopilotProvider selectedProject={selectedProject} orgName={orgName}>
+        <CopilotProvider orgName={orgName}>
           {children}
         </CopilotProvider>
       </Suspense>

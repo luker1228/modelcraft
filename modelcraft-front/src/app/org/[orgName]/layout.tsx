@@ -8,6 +8,8 @@ import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 import { OnboardingProvider } from "@shared/onboarding/OnboardingContext";
 import { OnboardingPanel } from "@shared/onboarding/OnboardingPanel";
 import { CopilotWrapper } from "@web/components/features/copilot/CopilotProvider";
+import { AICapabilityProvider } from "@web/contexts/ai-capability-context";
+import { AICapabilityReadable } from "@web/components/features/copilot/AICapabilityReadable";
 import { useCopilotReadable } from '@copilotkit/react-core'
 import { OrgCopilotActions } from '@web/components/features/copilot/OrgCopilotActions'
 import "@copilotkit/react-ui/styles.css"
@@ -116,9 +118,13 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <CopilotWrapper selectedProject={null} orgName={orgName}>
-      <OrgAIContext orgName={orgName} />
-      {content}
-    </CopilotWrapper>
+    <AICapabilityProvider>
+      <CopilotWrapper orgName={orgName}>
+        <OrgAIContext orgName={orgName} />
+        {/* Reads org-level capabilities (e.g. create_project on workspace page) */}
+        <AICapabilityReadable />
+        {content}
+      </CopilotWrapper>
+    </AICapabilityProvider>
   );
 }

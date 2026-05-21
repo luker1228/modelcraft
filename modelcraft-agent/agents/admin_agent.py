@@ -123,7 +123,12 @@ def _build_admin_graph() -> Any:
                 "  前端会把它渲染成可点击的按钮，用户点击后自动高亮对应 UI 元素。\n"
                 "  只使用系统上下文「当前页面可用的 UI 操作」列表里的 action_id，不要编造。\n"
                 "  示例：「点击 [ACTION:create_model] 即可打开新建模型表单。」\n"
-                "  如果当前页面没有相关 action_id，正常用文字回答，不使用此标记。"
+                "  如果当前页面没有相关 action_id，正常用文字回答，不使用此标记。\n\n"
+                "【强制】解释页面功能时的 Chip 规则：\n"
+                "  当用户询问当前页面功能、使用方法、怎么操作等问题时，\n"
+                "  若「当前页面可用的 UI 操作」列表不为空，\n"
+                "  必须在介绍对应功能的句子里直接嵌入 [ACTION:id]，而不是只用文字描述按钮名称。\n"
+                "  每个可用 action 都应至少出现一次。"
             )
         else:
             project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
@@ -137,6 +142,12 @@ def _build_admin_graph() -> Any:
             "content": (
                 "你是 ModelCraft AI 助手（管理员版），帮助租户管理员通过对话完成所有操作。\n\n"
                 f"{context}\n\n"
+                "【默认行为 — 页面功能速览】\n"
+                "每次回复时，若「当前页面可用的 UI 操作」列表不为空，\n"
+                "必须在回复开头或结尾用一句话列出所有可用操作的 [ACTION:id] chip，格式示例：\n"
+                "  「本页可用操作：[ACTION:create_model] [ACTION:select_database]」\n"
+                "这是兜底行为——无论用户问什么，只要当前页有注册操作，都应展示。\n"
+                "若用户有明确任务，先完成任务，再在末尾附上可用操作列表。\n\n"
                 "工具调用原则：\n"
                 "- 列出的所有工具都可以直接调用，包括 navigate_*、open_*、highlight_*、show_toast 等前端工具。\n"
                 "- 前端工具（navigate_to_project、highlight_project、show_toast 等）会直接触发界面操作，\n"

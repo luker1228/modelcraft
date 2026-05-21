@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { useQuery, useMutation } from "@apollo/client"
 import { Button } from "@web/components/ui/button"
@@ -54,6 +54,7 @@ import type {
 import { getToken } from "@api-client/auth/public"
 import { useOrgScopedContext } from "@api-client/apollo/public"
 import { useOnboarding } from "@shared/onboarding/OnboardingContext"
+import { useRegisterAICapability } from "@web/hooks/ai/use-register-ai-capability"
 
 /** 将后端英文数据库错误信息本地化为中文 */
 function localizeDbError(msg: string): string {
@@ -137,6 +138,10 @@ export default function WorkspacePage() {
   // Onboarding: auto-open create dialog if triggered from panel
   const { pendingAction, setPendingAction, syncProjects } = useOnboarding()
   const [highlightFirstProject, setHighlightFirstProject] = useState(false)
+
+  // AI capability refs for chip highlighting
+  const createProjectBtnRef = useRef<HTMLButtonElement>(null)
+  useRegisterAICapability('create_project', '新建项目', createProjectBtnRef, '点击打开新建项目表单')
 
   useEffect(() => {
     if (pendingAction === 'nav_create_project') {
@@ -419,6 +424,7 @@ export default function WorkspacePage() {
             spacing="compact"
             actions={
               <Button
+                ref={createProjectBtnRef}
                 onClick={handleOpenCreateDialog}
                 size="sm"
               >
