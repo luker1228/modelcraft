@@ -24,6 +24,8 @@ export function useRegisterAICapability(
     register({ id, label, ref, description })
     return () => unregister(id)
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // NOTE: callers MUST pass a stable ref (e.g. from useRef). Passing an unstable
+  // ref identity will silently miss re-registration.
   }, [id, label, description])
   // Note: `ref` identity is stable (useRef), no need to add it to deps.
   // `register`/`unregister` are stable callbacks from useCallback.

@@ -9,7 +9,7 @@ export type AICapability = {
   description?: string
 }
 
-interface AICapabilityStore {
+export interface AICapabilityStore {
   register: (capability: AICapability) => void
   unregister: (id: string) => void
   getAll: () => AICapability[]
@@ -27,12 +27,7 @@ export function createCapabilityStore(): AICapabilityStore {
   }
 }
 
-const AICapabilityContext = createContext<{
-  register: (capability: AICapability) => void
-  unregister: (id: string) => void
-  getAll: () => AICapability[]
-  getRef: (id: string) => RefObject<HTMLElement> | undefined
-} | null>(null)
+const AICapabilityContext = createContext<AICapabilityStore | null>(null)
 
 export function AICapabilityProvider({ children }: { children: React.ReactNode }) {
   // version counter drives re-renders so useCopilotReadable consumers pick up changes
@@ -49,12 +44,15 @@ export function AICapabilityProvider({ children }: { children: React.ReactNode }
     setVersion((v) => v + 1)
   }, [store])
 
+  const getAll = useCallback(() => store.getAll(), [store])
+  const getRef = useCallback((id: string) => store.getRef(id), [store])
+
   return (
     <AICapabilityContext.Provider value={{
       register,
       unregister,
-      getAll: store.getAll,
-      getRef: store.getRef,
+      getAll,
+      getRef,
     }}>
       {children}
     </AICapabilityContext.Provider>
