@@ -14,6 +14,7 @@ import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from ag_ui_langgraph.endpoint import RunAgentInput, EventEncoder
+from ag_ui.core import EventType
 from copilotkit import LangGraphAGUIAgent
 from structlog.contextvars import bind_contextvars
 
@@ -23,18 +24,48 @@ from agents.enduser_agent import enduser_graph
 from logging_setup import get_logger, setup_logging
 from middleware import ObservabilityMiddleware
 
+class ObservableAgent(LangGraphAGUIAgent):
+    """LangGraphAGUIAgent subclass that logs tool errors before make_json_safe
+    converts Exception objects to {}.
+
+    Problem: ag_ui_langgraph's make_json_safe calls vars(exception) which returns {}
+    for standard Python exceptions, losing the error message completely.
+    This subclass intercepts on_tool_error events before serialization and logs
+    the real exception type and message.
+    """
+
+    def __init__(self, *, name: str, graph, description=None, config=None):
+        super().__init__(name=name, graph=graph, description=description, config=config)
+
+    def _dispatch_event(self, event):
+        # Intercept RAW on_tool_error events BEFORE super()._dispatch_event
+        # calls make_json_safe, which would lose the exception message.
+        if getattr(event, "type", None) == EventType.RAW:
+            inner = getattr(event, "event", None)
+            if isinstance(inner, dict) and inner.get("event") == "on_tool_error":
+                err = inner.get("data", {}).get("error")
+                tool_name = inner.get("name", "unknown")
+                get_logger().error(
+                    "tool.error",
+                    tool_name=tool_name,
+                    error_type=type(err).__name__ if err is not None else "unknown",
+                    error_msg=str(err) if err is not None else "no error object",
+                )
+        return super()._dispatch_event(event)
+
+
 app = FastAPI(title="modelcraft-agent", version="0.2.0")
 
 setup_logging()
 app.add_middleware(ObservabilityMiddleware)
 
-_admin_agent = LangGraphAGUIAgent(
+_admin_agent = ObservableAgent(
     name="modelcraft_admin_agent",
     description="ModelCraft AI 助手（管理员版）：项目管理、建模、数据查询",
     graph=admin_graph,
 )
 
-_enduser_agent = LangGraphAGUIAgent(
+_enduser_agent = ObservableAgent(
     name="modelcraft_enduser_agent",
     description="ModelCraft AI 助手（用户版）：数据查询与自然语言筛选",
     graph=enduser_graph,
@@ -149,15 +180,26 @@ def _make_handler(agent: LangGraphAGUIAgent):
         request_agent = agent.clone()
         log = get_logger()
 
+        # Events worth logging — everything else is high-frequency noise.
+        _LOG_EVENT_TYPES = {
+            "RUN_STARTED", "RUN_FINISHED", "RUN_ERROR",
+            "STEP_STARTED", "STEP_FINISHED",
+            "TOOL_CALL_START", "TOOL_CALL_END", "TOOL_CALL_RESULT",
+            "STATE_SNAPSHOT",
+        }
+
         async def event_generator():
             async for event in request_agent.run(input_data):
                 data = _safe_dict(event)
                 event_type = data.get("type", type(event).__name__)
-                log.info("agent.event", event_type=event_type)
+
+                if event_type in _LOG_EVENT_TYPES:
+                    log.info("agent.event", event_type=event_type)
 
                 ai_text = _extract_ai_text(event)
                 if ai_text:
-                    log.info("agent.output", event_type=event_type, content_preview=ai_text[:500])
+                    log.info("agent.output", content_preview=ai_text[:500])
+
                 yield encoder.encode(event)
 
         return StreamingResponse(event_generator(), media_type=encoder.get_content_type())

@@ -1,5 +1,6 @@
 # modelcraft-agent/agents/shared.py
 """Shared AgentState and logging helpers for ModelCraft agents."""
+import functools
 import time
 from typing import Annotated
 
@@ -11,7 +12,7 @@ from client.graphql_client import GraphQLClient
 from logging_setup import get_logger
 
 
-class AgentState(TypedDict):
+class AgentState(TypedDict, total=False):
     messages: Annotated[list, add_messages]
     authorization: str
     org_name: str
@@ -78,7 +79,7 @@ def sanitize_messages(messages: list) -> list:
     return result
 
 
-def make_client(state: AgentState) -> GraphQLClient:
+def make_client(state: "AgentState") -> GraphQLClient:
     """Create a GraphQL client authenticated with the state's token."""
     return GraphQLClient(authorization=state["authorization"])
 
@@ -98,3 +99,55 @@ def log_tool_end(log, name: str, start: float, success: bool) -> None:
         duration_ms=round((time.perf_counter() - start) * 1000, 2),
         success=success,
     )
+
+
+def log_tool_errors(func):
+    """Decorator for async @tool functions: handles start/end timing and error logging.
+
+    Replaces the repetitive try/except pattern in every tool. Usage:
+
+        @tool
+        @log_tool_errors
+        async def my_tool(param: str, state: Annotated[AgentState, InjectedState()]) -> str:
+            result = await do_something(param)
+            return json.dumps(result)
+
+    The decorator automatically:
+    - logs tool.call.start with a summary of non-state args
+    - logs tool.call.end with success/failure and duration
+    - logs tool.error with error_type + error_msg on exception (before re-raising)
+
+    Note: must be applied AFTER @tool so that @tool sees the original signature
+    and InjectedState annotations are preserved via functools.wraps.
+    """
+    @functools.wraps(func)
+    async def wrapper(*args, **kwargs):
+        tool_name = func.__name__
+
+        # Build a short summary from non-state keyword args (state is injected, not LLM-provided)
+        summary_parts = [
+            f"{k}={str(v)[:60]}"
+            for k, v in kwargs.items()
+            if k != "state"
+        ]
+        # Also capture positional args that aren't the InjectedState (dicts)
+        if not summary_parts and args:
+            summary_parts = [str(a)[:60] for a in args if not isinstance(a, dict)]
+        summary = ", ".join(summary_parts)
+
+        log, start = log_tool_start(tool_name, summary)
+        try:
+            result = await func(*args, **kwargs)
+            log_tool_end(log, tool_name, start, True)
+            return result
+        except Exception as exc:
+            log.exception(
+                "tool.error",
+                tool_name=tool_name,
+                error_type=type(exc).__name__,
+                error_msg=str(exc),
+            )
+            log_tool_end(log, tool_name, start, False)
+            raise
+
+    return wrapper
