@@ -39,4 +39,18 @@ describe('highlightElement', () => {
     vi.advanceTimersByTime(1)
     expect(el.classList.contains(HIGHLIGHT_CLASSES[0])).toBe(false)
   })
+
+  it('cancels previous timeout when called again before duration elapses', () => {
+    const el = document.createElement('button')
+    const ref = { current: el }
+    highlightElement(ref, 1000)
+    // Call again before first timeout fires
+    highlightElement(ref, 1000)
+    // Advance past original timeout — classes should still be present (reset)
+    vi.advanceTimersByTime(999)
+    expect(el.classList.contains(HIGHLIGHT_CLASSES[0])).toBe(true)
+    // Advance past the second timeout
+    vi.advanceTimersByTime(1)
+    expect(el.classList.contains(HIGHLIGHT_CLASSES[0])).toBe(false)
+  })
 })
