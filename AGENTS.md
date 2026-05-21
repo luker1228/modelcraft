@@ -67,6 +67,13 @@ Each subproject has its own pre-commit hook:
 - **Backend** (`./modelcraft-backend`): runs `just lint`. If it fails, run `just lint-fix` to auto-fix, then re-verify with `just lint`.
 - **Frontend** (`./modelcraft-front`): runs `npx lint-staged` via Husky. If it fails, fix the reported lint errors manually and re-commit.
 
+## Deployment Directory
+
+- 部署相关操作必须在 `./deploy` 目录下执行，不要在仓库根目录执行 `docker compose` / `docker-compose`。
+- 默认使用的编排文件是 `./deploy/compose/docker-compose.local.yml`。
+- 示例：
+  - `cd ./deploy && docker-compose -f compose/docker-compose.local.yml up -d --build modelcraft-agent`
+
 ## No Absolute Paths
 
 - Do not use absolute paths (e.g., `/root/modelcraft_project/...`). Always use relative paths (e.g., `./modelcraft-backend/...`) when referencing files or directories.

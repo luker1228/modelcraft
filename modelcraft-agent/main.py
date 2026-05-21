@@ -12,7 +12,7 @@ the appropriate graph.
 import json
 import uvicorn
 from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse, StreamingResponse
 from ag_ui_langgraph.endpoint import RunAgentInput, EventEncoder
 from copilotkit import LangGraphAGUIAgent
 from structlog.contextvars import bind_contextvars
@@ -20,7 +20,7 @@ from structlog.contextvars import bind_contextvars
 import config
 from agents.admin_agent import admin_graph
 from agents.enduser_agent import enduser_graph
-from logging_setup import setup_logging
+from logging_setup import get_logger, setup_logging
 from middleware import ObservabilityMiddleware
 
 app = FastAPI(title="modelcraft-agent", version="0.2.0")
@@ -39,6 +39,34 @@ _enduser_agent = LangGraphAGUIAgent(
     description="ModelCraft AI 助手（用户版）：数据查询与自然语言筛选",
     graph=enduser_graph,
 )
+
+
+def _safe_dict(obj) -> dict:
+    if isinstance(obj, dict):
+        return obj
+    if hasattr(obj, "model_dump"):
+        try:
+            return obj.model_dump()
+        except Exception:
+            return {}
+    return {}
+
+
+def _extract_ai_text(event) -> str:
+    data = _safe_dict(event)
+    # Common AG-UI style payload: {type, content}
+    content = data.get("content")
+    if isinstance(content, str) and content.strip():
+        return content.strip()
+
+    # Some events nest data under "message"
+    message = data.get("message")
+    if isinstance(message, dict):
+        text = message.get("content")
+        if isinstance(text, str) and text.strip():
+            return text.strip()
+
+    return ""
 
 
 @app.get("/healthz")
@@ -96,6 +124,14 @@ def _inject_state(input_data: RunAgentInput, request: Request) -> RunAgentInput:
 
 def _make_handler(agent: LangGraphAGUIAgent):
     async def handler(input_data: RunAgentInput, request: Request):
+        authorization = request.headers.get("Authorization", "")
+        if not authorization:
+            get_logger().warning("auth.missing_authorization_header", path=str(request.url.path))
+            return JSONResponse(
+                status_code=401,
+                content={"error": "UNAUTHORIZED", "message": "Missing Authorization header"},
+            )
+
         # Expose thread_id/run_id on request.state so ObservabilityMiddleware
         # can include them in request.end without re-parsing the body.
         request.state.thread_id = input_data.thread_id or ""
@@ -111,9 +147,17 @@ def _make_handler(agent: LangGraphAGUIAgent):
         encoder = EventEncoder(accept=accept_header)
         input_data = _inject_state(input_data, request)
         request_agent = agent.clone()
+        log = get_logger()
 
         async def event_generator():
             async for event in request_agent.run(input_data):
+                data = _safe_dict(event)
+                event_type = data.get("type", type(event).__name__)
+                log.info("agent.event", event_type=event_type)
+
+                ai_text = _extract_ai_text(event)
+                if ai_text:
+                    log.info("agent.output", event_type=event_type, content_preview=ai_text[:500])
                 yield encoder.encode(event)
 
         return StreamingResponse(event_generator(), media_type=encoder.get_content_type())

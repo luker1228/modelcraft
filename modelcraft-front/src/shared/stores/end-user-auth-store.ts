@@ -3,6 +3,7 @@
 // 关键差异：额外 userInfo 字段（username 不在 JWT 中，需从 /me 填充）；clearSession 同时清 token 和 userInfo
 
 import { create } from 'zustand'
+import { persist } from 'zustand/middleware'
 import type { EndUserInfo } from '@/types/end-user-auth'
 
 interface EndUserAuthState {
@@ -20,31 +21,43 @@ interface EndUserAuthState {
   isTokenExpired: () => boolean
 }
 
-export const useEndUserAuthStore = create<EndUserAuthState>((set, get) => ({
-  accessToken: null,
-  expiresAt: null,
-  userInfo: null,
-
-  setAccessToken: (token: string, expiresIn: number) => {
-    set({
-      accessToken: token,
-      expiresAt: Date.now() + expiresIn * 1000,
-    })
-  },
-
-  setUserInfo: (info: EndUserInfo) => set({ userInfo: info }),
-
-  clearSession: () =>
-    set({
+export const useEndUserAuthStore = create<EndUserAuthState>()(
+  persist(
+    (set, get) => ({
       accessToken: null,
       expiresAt: null,
       userInfo: null,
-    }),
 
-  isTokenExpired: () => {
-    const { expiresAt } = get()
-    if (!expiresAt) return true
-    // 提前 5 分钟触发 silent refresh（与开发者策略一致）
-    return Date.now() > expiresAt - 5 * 60 * 1000
-  },
-}))
+      setAccessToken: (token: string, expiresIn: number) => {
+        set({
+          accessToken: token,
+          expiresAt: Date.now() + expiresIn * 1000,
+        })
+      },
+
+      setUserInfo: (info: EndUserInfo) => set({ userInfo: info }),
+
+      clearSession: () =>
+        set({
+          accessToken: null,
+          expiresAt: null,
+          userInfo: null,
+        }),
+
+      isTokenExpired: () => {
+        const { expiresAt } = get()
+        if (!expiresAt) return true
+        // 提前 5 分钟触发 silent refresh（与开发者策略一致）
+        return Date.now() > expiresAt - 5 * 60 * 1000
+      },
+    }),
+    {
+      name: 'modelcraft-end-user-auth-store',
+      partialize: (state) => ({
+        accessToken: state.accessToken,
+        expiresAt: state.expiresAt,
+        userInfo: state.userInfo,
+      }),
+    }
+  )
+)

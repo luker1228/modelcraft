@@ -366,6 +366,6 @@ upstreams:
   - id: agent
     type: roundrobin
     nodes:
-      "modelcraft-agent:8000": 1
+      "host.docker.internal:8000": 1
 
 #END

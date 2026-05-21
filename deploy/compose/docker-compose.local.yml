@@ -34,6 +34,8 @@ services:
     ports:
       - "9080:9080"
       - "9180:9180"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ../../apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ../../apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
@@ -60,6 +62,11 @@ services:
       - ../env/agent.local.env
     ports:
       - "8000:8000"
+    volumes:
+      - ../../modelcraft-agent/logs:/app/logs
+    command: >
+      sh -c "mkdir -p /app/logs &&
+             python -m uvicorn main:app --host 0.0.0.0 --port 8000 2>&1 | tee -a /app/logs/agent.log"
     depends_on:
       apisix:
         condition: service_healthy
