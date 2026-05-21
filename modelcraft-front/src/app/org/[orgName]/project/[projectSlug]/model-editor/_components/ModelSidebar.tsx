@@ -1,5 +1,7 @@
 'use client'
 
+import { useRef } from 'react'
+import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capability'
 import {
   Table2,
   Search,
@@ -53,6 +55,13 @@ export function ModelSidebar({
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
 
+  // AI capability refs for chip highlighting
+  const createModelBtnRef = useRef<HTMLButtonElement>(null)
+  const selectDbBtnRef = useRef<HTMLButtonElement>(null)
+
+  useRegisterAICapability('create_model', '新建模型', createModelBtnRef, '点击打开新建模型表单')
+  useRegisterAICapability('select_database', '选择数据库', selectDbBtnRef, '点击选择要操作的数据库')
+
   const handleModelDetailClick = (modelId: string) => {
     state.setSelectedModelId(modelId)
   }
@@ -86,6 +95,7 @@ export function ModelSidebar({
         <Popover open={state.databaseOpen} onOpenChange={state.setDatabaseOpen}>
           <PopoverTrigger asChild>
             <Button
+              ref={selectDbBtnRef}
               variant="outline"
               size="sm"
               className={cn(
@@ -147,6 +157,7 @@ export function ModelSidebar({
         {/* Action buttons */}
         <div className="flex flex-col gap-1 px-3 py-2.5">
           <Button
+            ref={createModelBtnRef}
             size="sm"
             variant="outline"
             className={cn(
