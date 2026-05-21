@@ -11,18 +11,16 @@ export type MessageSegment =
   | { type: 'text'; content: string }
   | { type: 'action'; id: string }
 
-const ACTION_REGEX = /\[ACTION:([^\]]+)\]/g
-
 /**
  * Parse a message string into text and ACTION marker segments.
  * Pure function — exported for testing.
  */
 export function parseActionMarkers(text: string): MessageSegment[] {
+  const ACTION_REGEX = /\[ACTION:([^\]]+)\]/g
   const segments: MessageSegment[] = []
   let lastIndex = 0
   let match: RegExpExecArray | null
 
-  ACTION_REGEX.lastIndex = 0
   while ((match = ACTION_REGEX.exec(text)) !== null) {
     if (match.index > lastIndex) {
       segments.push({ type: 'text', content: text.slice(lastIndex, match.index) })
@@ -56,7 +54,7 @@ export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessage
   }
 
   const segments = parseActionMarkers(content)
-  const registeredIds = new Set(getAll().map((c) => c.id))
+  const capabilityMap = new Map(getAll().map((c) => [c.id, c]))
 
   // Reconstruct the text-only content for the default renderer (removes ACTION markers)
   const textOnly = segments
@@ -74,18 +72,19 @@ export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessage
   return (
     <div>
       {/* Render text segments through the default AssistantMessage */}
-      <AssistantMessage {...props} message={props.message ? { ...props.message, content: textOnly } : props.message} />
+      {textOnly.trim() && (
+        <AssistantMessage {...props} message={props.message ? { ...props.message, content: textOnly } : props.message} />
+      )}
       {/* Render chip buttons below the text */}
       <div className="mt-2 flex flex-wrap gap-2 px-3 pb-2">
         {segments
           .filter((s): s is { type: 'action'; id: string } => s.type === 'action')
-          .map((seg) => {
-            const known = registeredIds.has(seg.id)
-            const capability = getAll().find((c) => c.id === seg.id)
-            const label = capability?.label ?? seg.id
+          .map((seg, i) => {
+            const known = capabilityMap.has(seg.id)
+            const label = capabilityMap.get(seg.id)?.label ?? seg.id
             return (
               <button
-                key={seg.id}
+                key={`${seg.id}-${i}`}
                 type="button"
                 disabled={!known}
                 onClick={() => handleChipClick(seg.id)}
@@ -93,7 +92,7 @@ export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessage
                 className={
                   known
                     ? 'inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 cursor-pointer'
-                    : 'inline-flex items-center gap-1.5 rounded-full border border-muted bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground cursor-not-allowed'
+                    : 'inline-flex items-center gap-1.5 rounded-full border border-muted bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground cursor-not-allowed pointer-events-none'
                 }
               >
                 {known && <span aria-hidden>✨</span>}
