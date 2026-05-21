@@ -59,8 +59,19 @@ export function AICapabilityProvider({ children }: { children: React.ReactNode }
   )
 }
 
-export function useAICapabilityContext() {
-  const ctx = useContext(AICapabilityContext)
-  if (!ctx) throw new Error('useAICapabilityContext must be used inside AICapabilityProvider')
-  return ctx
+/**
+ * No-op context returned when AICapabilityProvider is absent (e.g. org-level
+ * or end-user layouts that don't support action chips).
+ * AIChipMessage will render no chips; useRegisterAICapability will silently
+ * skip registration — graceful degradation rather than a runtime crash.
+ */
+export const NULL_CAPABILITY_CONTEXT: AICapabilityStore = {
+  register: () => {},
+  unregister: () => {},
+  getAll: () => [],
+  getRef: () => undefined,
+}
+
+export function useAICapabilityContext(): AICapabilityStore {
+  return useContext(AICapabilityContext) ?? NULL_CAPABILITY_CONTEXT
 }
