@@ -20,6 +20,9 @@ class AgentState(TypedDict, total=False):
     layer: str          # "org" | "project" | ""
     current_model: str  # current model name from route
     current_db: str     # current database name from route
+    current_route: str  # full pathname, e.g. /org/x/project/y/model-editor
+    page_ui_actions: list  # UI elements registered for [ACTION:id] chip highlighting
+    available_actions: list  # tool names available on current page
     # ag-ui / CopilotKit protocol fields — must be declared so LangGraph
     # persists them across node transitions (undeclared keys are dropped).
     tools: list         # raw frontend tool schemas from RunAgentInput.tools

@@ -129,10 +129,12 @@ def _inject_state(input_data: RunAgentInput, request: Request) -> RunAgentInput:
     current_state["authorization"] = authorization
     current_state["org_name"] = org_name  # always overwrite with trusted value
 
-    # Parse CopilotKit context for layer, projectSlug, and availableActions.
+    # Parse CopilotKit context for layer, projectSlug, availableActions, and page UI actions.
     layer: str = ""
     project_slug_hint: str = ""
     available_actions: list = []
+    page_ui_actions: list = []
+    current_route: str = ""
     for ctx_item in (input_data.context or []):
         desc = ctx_item.get("description", "") if isinstance(ctx_item, dict) else getattr(ctx_item, "description", "")
         val  = ctx_item.get("value", "")      if isinstance(ctx_item, dict) else getattr(ctx_item, "value", "")
@@ -144,12 +146,35 @@ def _inject_state(input_data: RunAgentInput, request: Request) -> RunAgentInput:
                 available_actions = parsed.get("availableActions", [])
             except Exception:
                 pass
+        elif desc == "当前页面可用的 UI 操作（点击 [ACTION:id] chip 可高亮对应元素）" and val:
+            try:
+                page_ui_actions = json.loads(val)
+            except Exception:
+                pass
+        elif desc == "当前页面信息" and val:
+            try:
+                parsed = json.loads(val)
+                current_route = parsed.get("route", "")
+            except Exception:
+                pass
+
+    # Also try forwardedProps for currentRoute
+    if not current_route:
+        props = getattr(input_data, "forwardedProps", None) or {}
+        if isinstance(props, dict):
+            current_route = props.get("currentRoute", "")
 
     # layer always reflects current UI page.
     current_state["layer"] = layer
 
     # available_actions tells the agent which tools are registered on the current page.
     current_state["available_actions"] = available_actions
+
+    # page_ui_actions: UI elements registered for [ACTION:id] chip highlighting.
+    current_state["page_ui_actions"] = page_ui_actions
+
+    # current_route for page-aware context.
+    current_state["current_route"] = current_route
 
     # project_slug is sticky: keep existing session value, only use hint as fallback.
     if not current_state.get("project_slug"):

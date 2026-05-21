@@ -63,6 +63,8 @@ def _build_admin_graph() -> Any:
         layer = state.get("layer", "")
         current_model = state.get("current_model", "")
         current_db = state.get("current_db", "")
+        current_route = state.get("current_route", "")
+        page_ui_actions: list = state.get("page_ui_actions", [])
 
         # Merge frontend tools (registered by useCopilotAction) into the LLM for this turn.
         # CopilotKit puts them in state["copilotkit"]["actions"] as plain dicts.
@@ -117,18 +119,7 @@ def _build_admin_graph() -> Any:
                 "数据操作顺序：list_databases → list_models(database_name) → get_model_fields(model_id)。\n"
                 "写操作规则：open_create_record 和 open_edit_record 只预填表单，用户点 Save 才真正保存。\n"
                 "引导工具说明：guide_select_database / guide_create_model 只是高亮 UI 元素，\n"
-                "  不替代用户点击——高亮后必须用文字告知用户需要执行什么操作。\n\n"
-                "UI 操作 Chip 规则（[ACTION:id] 标记）：\n"
-                "  当你需要引导用户使用页面上的某个功能时，可以在回复文本中插入 [ACTION:action_id] 标记。\n"
-                "  前端会把它渲染成可点击的按钮，用户点击后自动高亮对应 UI 元素。\n"
-                "  只使用系统上下文「当前页面可用的 UI 操作」列表里的 action_id，不要编造。\n"
-                "  示例：「点击 [ACTION:create_model] 即可打开新建模型表单。」\n"
-                "  如果当前页面没有相关 action_id，正常用文字回答，不使用此标记。\n\n"
-                "【强制】解释页面功能时的 Chip 规则：\n"
-                "  当用户询问当前页面功能、使用方法、怎么操作等问题时，\n"
-                "  若「当前页面可用的 UI 操作」列表不为空，\n"
-                "  必须在介绍对应功能的句子里直接嵌入 [ACTION:id]，而不是只用文字描述按钮名称。\n"
-                "  每个可用 action 都应至少出现一次。"
+                "  不替代用户点击——高亮后必须用文字告知用户需要执行什么操作。"
             )
         else:
             project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
@@ -137,17 +128,31 @@ def _build_admin_graph() -> Any:
                 "可用工具取决于当前页面，请先询问用户当前在哪个页面。"
             )
 
+        # Build UI action chip section — injected into every system prompt when actions are registered.
+        if page_ui_actions:
+            chip_ids = " ".join(f"[ACTION:{a['id']}]" for a in page_ui_actions)
+            chip_list = "\n".join(
+                f"  - [ACTION:{a['id']}] → {a.get('label','')}（{a.get('description','')}）"
+                for a in page_ui_actions
+            )
+            chip_section = (
+                f"\n\n【当前页面已注册 UI 操作 — 必须在回复中使用】\n"
+                f"{chip_list}\n"
+                f"规则：\n"
+                f"  1. 每次回复都必须在末尾附一行：「本页可用操作：{chip_ids}」\n"
+                f"  2. 介绍某功能时，同步在句中嵌入对应 [ACTION:id]，"
+                f"例如：「点击 [ACTION:create_model] 打开新建模型表单」\n"
+                f"  3. 不得用文字代替 chip，必须用 [ACTION:id] 标记"
+            )
+        else:
+            chip_section = ""
+
         system_msg = {
             "role": "system",
             "content": (
                 "你是 ModelCraft AI 助手（管理员版），帮助租户管理员通过对话完成所有操作。\n\n"
-                f"{context}\n\n"
-                "【默认行为 — 页面功能速览】\n"
-                "每次回复时，若「当前页面可用的 UI 操作」列表不为空，\n"
-                "必须在回复开头或结尾用一句话列出所有可用操作的 [ACTION:id] chip，格式示例：\n"
-                "  「本页可用操作：[ACTION:create_model] [ACTION:select_database]」\n"
-                "这是兜底行为——无论用户问什么，只要当前页有注册操作，都应展示。\n"
-                "若用户有明确任务，先完成任务，再在末尾附上可用操作列表。\n\n"
+                f"{context}"
+                f"{chip_section}\n\n"
                 "工具调用原则：\n"
                 "- 列出的所有工具都可以直接调用，包括 navigate_*、open_*、highlight_*、show_toast 等前端工具。\n"
                 "- 前端工具（navigate_to_project、highlight_project、show_toast 等）会直接触发界面操作，\n"
