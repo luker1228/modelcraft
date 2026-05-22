@@ -58,6 +58,9 @@ export const SharedCopilotActions = memo(function SharedCopilotActions() {
         required: true,
       },
     ],
+    // handler is required by CopilotKit to classify this as a valid "frontend" action.
+    // The actual interaction is handled by the render function below.
+    handler: async () => {},
     render: (props) => {
       const response = props.args.response as AgentUiResponse | undefined
       if (!response?.candidates) {
