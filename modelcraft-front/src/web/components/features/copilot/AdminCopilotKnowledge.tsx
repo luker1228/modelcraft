@@ -7,7 +7,7 @@ import { useCopilotChatSuggestions } from '@copilotkit/react-ui'
 const ADMIN_ONBOARDING = `
 ModelCraft 新手引导（AI 导航助手）：
 
-AI 助手通过 show_navigation_proposal 帮助你导航到正确页面并高亮目标区域。
+AI 助手通过 ui_present_proposal 帮助你导航到正确页面并高亮目标区域。
 你可以直接用自然语言描述想做的事，AI 会给你一个或多个候选方案，点击后自动跳转。
 
 常见操作引导：

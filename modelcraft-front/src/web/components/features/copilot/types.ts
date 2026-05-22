@@ -15,9 +15,18 @@ export type AiHighlightArgs = {
   scrollIntoView?: boolean
 }
 
+export type AiGuideArgs = {
+  route?: string
+  targetId?: string
+  message?: string
+  durationMs?: number
+  scrollIntoView?: boolean
+}
+
 export type AiAction =
   | { type: 'ui.navigate'; args: AiNavigateArgs }
   | { type: 'ui.highlight'; args: AiHighlightArgs }
+  | { type: 'ui.guide'; args: AiGuideArgs }
 
 export type ActionCandidate = {
   id: string

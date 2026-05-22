@@ -37,15 +37,17 @@ export function useNavigationProposal() {
 
   const executeActions = useCallback(
     async (actions: AiAction[]) => {
-      for (const action of actions) {
+      for (let i = 0; i < actions.length; i += 1) {
+        const action = actions[i]
+
         if (action.type === 'ui.navigate') {
           router.push(action.args.route)
 
-          // If the next action is a highlight, wait for its target to mount
-          const nextAction = actions[actions.indexOf(action) + 1]
-          if (nextAction?.type === 'ui.highlight') {
+          const nextAction = actions[i + 1]
+          if (nextAction && (nextAction.type === 'ui.highlight' || nextAction.type === 'ui.guide') && nextAction.args.targetId) {
             await waitForTarget(getRef, nextAction.args.targetId)
           }
+          continue
         }
 
         if (action.type === 'ui.highlight') {
@@ -53,8 +55,32 @@ export function useNavigationProposal() {
           const el = ref?.current
           if (!el) {
             console.warn(`[AI] targetId "${action.args.targetId}" not in registry`)
-            return
+            continue
           }
+          highlightHTMLElement(el, {
+            message: action.args.message,
+            durationMs: action.args.durationMs ?? 5000,
+            scrollIntoView: action.args.scrollIntoView ?? true,
+          })
+          continue
+        }
+
+        if (action.type === 'ui.guide') {
+          if (action.args.route) {
+            router.push(action.args.route)
+          }
+
+          if (!action.args.targetId) {
+            continue
+          }
+
+          const ref = getRef(action.args.targetId)
+          const el = ref?.current
+          if (!el) {
+            console.warn(`[AI] targetId "${action.args.targetId}" not in registry`)
+            continue
+          }
+
           highlightHTMLElement(el, {
             message: action.args.message,
             durationMs: action.args.durationMs ?? 5000,
@@ -67,13 +93,11 @@ export function useNavigationProposal() {
   )
 
   const sendClarificationToAgent = useCallback(
-    (candidateTitle: string) => {
-      // appendMessage expects a DeprecatedGqlMessage (Message class instance),
-      // not a plain object — use TextMessage constructor from runtime-client-gql.
+    (candidate: Extract<ProposalCandidate, { type: 'clarification_candidate' }>) => {
       appendMessage(
         new TextMessage({
           role: MessageRole.User,
-          content: candidateTitle,
+          content: `我选择了：${candidate.title}\nclarification_payload: ${JSON.stringify(candidate.payload ?? {})}`,
         }),
       )
     },
@@ -88,8 +112,7 @@ export function useNavigationProposal() {
       }
 
       if (candidate.type === 'clarification_candidate') {
-        sendClarificationToAgent(candidate.title)
-        return
+        sendClarificationToAgent(candidate)
       }
     },
     [executeActions, sendClarificationToAgent],

@@ -19,7 +19,7 @@ export const AICapabilityReadable = memo(function AICapabilityReadable() {
   useCopilotReadable({
     description:
       '当前页面已注册的 AI 高亮目标（AiTarget）。' +
-      '调用 show_navigation_proposal 时，ui.highlight 的 targetId 必须从这个列表中选取。',
+      '调用 ui_present_proposal 时，ui.highlight 的 targetId 必须从这个列表中选取。',
     value: targets.map((c) => ({
       id: c.id,
       label: c.label,
@@ -31,7 +31,7 @@ export const AICapabilityReadable = memo(function AICapabilityReadable() {
   useCopilotReadable({
     description:
       '系统所有可导航页面目录（routeCatalog）。' +
-      '调用 show_navigation_proposal 时，ui.navigate 的 route 字段必须从 routeTemplate 派生，' +
+      '调用 ui_present_proposal 时，ui.navigate 的 route 字段必须从 routeTemplate 派生，' +
       '将 :orgName、:projectSlug 等参数替换为当前会话的实际值。',
     value: ROUTE_CATALOG,
   })

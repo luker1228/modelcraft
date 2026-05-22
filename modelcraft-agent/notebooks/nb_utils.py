@@ -80,8 +80,27 @@ def make_payload(
     project_slug: str = "",
     tools: list[dict] | None = None,
     thread_id: str | None = None,
+    extra_context: list[dict] | None = None,
 ) -> dict[str, Any]:
-    """构造 RunAgentInput payload。"""
+    """构造 RunAgentInput payload。
+
+    Args:
+        extra_context: 额外注入的 context 列表（如 routeCatalog、aiTargets）。
+                       会追加在默认「当前 AI 上下文」之后。
+    """
+    context = [
+        {
+            "description": "当前 AI 上下文",
+            "value": json.dumps({
+                "layer":       layer,
+                "orgName":     org,
+                "projectSlug": project_slug,
+            }),
+        }
+    ]
+    if extra_context:
+        context.extend(extra_context)
+
     return {
         "threadId":  thread_id or str(uuid.uuid4()),
         "runId":     str(uuid.uuid4()),
@@ -89,17 +108,147 @@ def make_payload(
         "messages":  [{"id": str(uuid.uuid4()), "role": "user", "content": msg}],
         "tools":     tools or [],
         "forwardedProps": {"orgName": org, "projectSlug": project_slug},
-        "context": [
-            {
-                "description": "当前 AI 上下文",
-                "value": json.dumps({
-                    "layer":       layer,
-                    "orgName":     org,
-                    "projectSlug": project_slug,
-                }),
-            }
-        ],
+        "context":   context,
     }
+
+
+# ── 5. 导航提案工具定义 ────────────────────────────────────────────────────────
+
+NAV_TOOLS: list[dict] = [
+    {
+        "name": "show_toast",
+        "description": "向用户显示一条临时通知消息（不需要用户在聊天框内查看）",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "message": {"type": "string", "description": "通知内容"},
+                "type":    {"type": "string", "description": "success | error | info | warning"},
+            },
+            "required": ["message"],
+        },
+    },
+    {
+        "name": "ui_present_proposal",
+        "description": "向用户展示 AI 导航提案卡片，用户可点击候选项执行页面跳转、元素高亮或发送澄清消息",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "response": {"type": "object", "properties": {}},
+            },
+            "required": ["response"],
+        },
+    },
+]
+
+ROUTE_CATALOG_CONTEXT: dict = {
+    "description": (
+        "系统所有可导航页面目录（routeCatalog）。"
+        "调用 ui_present_proposal 时，ui.navigate 的 route 字段必须从 routeTemplate 派生，"
+        "将 :orgName、:projectSlug 等参数替换为当前会话的实际值。"
+    ),
+    "value": json.dumps([
+        {"routeTemplate": "/org/:orgName/workspace",                              "title": "项目列表",      "keywords": ["项目列表", "所有项目"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/model-editor",      "title": "数据模型编辑器", "keywords": ["模型", "字段", "数据模型"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/enums",             "title": "枚举管理",      "keywords": ["枚举", "enum"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/rbac/roles",        "title": "RBAC 角色管理", "keywords": ["权限", "RBAC", "角色"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/rbac/users",        "title": "RBAC 用户授权", "keywords": ["用户权限", "授权"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/rbac/bundles",      "title": "权限包管理",    "keywords": ["权限包", "bundle"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/end-users",         "title": "终端用户管理",  "keywords": ["终端用户", "end user"]},
+        {"routeTemplate": "/org/:orgName/project/:projectSlug/settings",          "title": "项目设置",      "keywords": ["项目设置", "集群配置", "数据库连接"]},
+        {"routeTemplate": "/org/:orgName/developers",                             "title": "成员管理",      "keywords": ["成员", "开发者"]},
+        {"routeTemplate": "/org/:orgName/end-users",                              "title": "终端用户（Org）","keywords": ["终端用户", "org 级用户"]},
+        {"routeTemplate": "/org/:orgName/settings",                               "title": "组织设置",      "keywords": ["组织设置"]},
+    ], ensure_ascii=False),
+}
+
+
+def make_nav_payload(
+    msg: str,
+    *,
+    org: str,
+    layer: str = "org",
+    project_slug: str = "",
+    ai_targets: list[dict] | None = None,
+    thread_id: str | None = None,
+) -> dict[str, Any]:
+    """构造包含前端导航工具 + routeCatalog 的 payload（用于测试 ui_present_proposal）。
+
+    Args:
+        ai_targets: 当前页面的 AiTarget 列表，默认空列表。
+    """
+    targets = ai_targets or []
+    extra = [
+        ROUTE_CATALOG_CONTEXT,
+        {
+            "description": "当前页面已注册的 AI 高亮目标（AiTarget）。调用 ui_present_proposal 时，ui.highlight 的 targetId 必须从这个列表中选取。",
+            "value": json.dumps(targets, ensure_ascii=False),
+        },
+    ]
+    return make_payload(
+        msg,
+        org=org,
+        layer=layer,
+        project_slug=project_slug,
+        tools=NAV_TOOLS,
+        thread_id=thread_id,
+        extra_context=extra,
+    )
+
+
+# ── 6. 解析导航提案 ────────────────────────────────────────────────────────────
+
+def parse_nav_proposal(events: list[dict]) -> dict | None:
+    """从 SSE 事件流中提取 ui_present_proposal 的完整 response 对象。"""
+    args_buf: dict[str, list[str]] = {}
+
+    for ev in events:
+        t = ev.get("type", "")
+        if "TOOL_CALL_START" in t and ev.get("toolCallName") == "ui_present_proposal":
+            call_id = ev.get("toolCallId", "__default__")
+            args_buf[call_id] = []
+            continue
+
+        # 新旧事件格式兼容：
+        # - 旧：TOOL_CALL_ARGS_DELTA（通常带 toolCallName）
+        # - 新：TOOL_CALL_ARGS（toolCallName 可能为 null，仅携带 toolCallId + delta）
+        if "TOOL_CALL_ARGS_DELTA" in t or "TOOL_CALL_ARGS" in t:
+            call_id = ev.get("toolCallId", "__default__")
+            tool_name = ev.get("toolCallName")
+            if call_id in args_buf or tool_name == "ui_present_proposal":
+                args_buf.setdefault(call_id, []).append(ev.get("delta", "") or "")
+
+    for call_id, parts in args_buf.items():
+        raw = "".join(parts)
+        try:
+            args = json.loads(raw)
+            resp = args.get("response", {})
+            if isinstance(resp, str):
+                resp = json.loads(resp)
+            return resp
+        except Exception:
+            pass
+    return None
+
+
+def print_nav_proposal(events: list[dict]) -> None:
+    """打印导航提案候选项（人类可读）。"""
+    proposal = parse_nav_proposal(events)
+    if not proposal:
+        print("  ⚠️  未找到 ui_present_proposal 调用")
+        return
+    print(f"  🧭 ui_present_proposal")
+    print(f"     message     : {proposal.get('message', '')}")
+    print(f"     proposalType: {proposal.get('proposalType', '')}")
+    candidates = proposal.get("candidates", [])
+    print(f"     candidates  : {len(candidates)} 项")
+    for c in candidates:
+        ctype = c.get("type", "?")
+        icon = "✅" if ctype == "action_candidate" else "❓"
+        print(f"       {icon} [{ctype}] {c.get('title', '')}")
+        for a in c.get("actions", []):
+            atype = a.get("type", "")
+            args  = a.get("args", {})
+            print(f"            {atype} → {json.dumps(args, ensure_ascii=False)}")
 
 
 async def run_agent(

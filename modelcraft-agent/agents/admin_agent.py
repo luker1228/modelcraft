@@ -2,6 +2,7 @@
 """Admin agent — serves tenant administrators."""
 from typing import Any
 
+from langchain_core.messages import SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
@@ -48,6 +49,131 @@ def _frontend_tool_names(state: AgentState) -> set[str]:
     }
 
 
+def _copilotkit_context_messages(state: AgentState) -> list[SystemMessage]:
+    """Convert state['copilotkit']['context'] entries to SystemMessages.
+
+    CopilotKit stores useCopilotReadable data (routeCatalog, aiTargets, page info…)
+    in state['copilotkit']['context'] as [{'description': ..., 'value': ...}, …].
+    Without this conversion the LLM never sees the injected context.
+    """
+    entries = state.get("copilotkit", {}).get("context", [])  # type: ignore[union-attr]
+    msgs = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        desc  = entry.get("description", "")
+        value = entry.get("value", "")
+        if desc or value:
+            msgs.append(SystemMessage(content=f"{desc}\n{value}" if desc else value))
+    return msgs
+
+
+_NAV_INTENT_HINTS = (
+    "帮我去",
+    "带我去",
+    "跳转",
+    "导航",
+    "怎么进入",
+    "在哪里",
+    "在哪",
+    "打开",
+    "进入",
+    "配置权限",
+    "模型管理页面",
+    "数据模型管理",
+)
+
+_LIST_NAV_INTENT_HINTS = (
+    "当前有哪些项目",
+    "有哪些项目",
+    "列出项目",
+    "项目列表",
+    "有哪些模型",
+    "列出模型",
+)
+
+
+def _message_text(message: Any) -> str:
+    """Best-effort extraction of textual content from dict/LC message."""
+    content: Any = ""
+    if isinstance(message, dict):
+        content = message.get("content", "")
+    else:
+        content = getattr(message, "content", "")
+
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for item in content:
+            if isinstance(item, dict):
+                text = item.get("text")
+                if isinstance(text, str):
+                    parts.append(text)
+        return "".join(parts)
+    return ""
+
+
+def _latest_user_text(state: AgentState) -> str:
+    """Return latest user/human message text from state messages."""
+    for msg in reversed(state.get("messages", [])):
+        if isinstance(msg, dict):
+            role = str(msg.get("role", "")).lower()
+            if role == "user":
+                return _message_text(msg)
+            continue
+
+        msg_type = str(getattr(msg, "type", "")).lower()
+        role = str(getattr(msg, "role", "")).lower()
+        if msg_type == "human" or role == "user":
+            return _message_text(msg)
+    return ""
+
+
+def _has_tool_call(message: Any, tool_name: str) -> bool:
+    """Return whether message.tool_calls contains the given tool name."""
+    tool_calls = message.get("tool_calls") if isinstance(message, dict) else getattr(message, "tool_calls", None)
+    if not tool_calls:
+        return False
+    for tc in tool_calls:
+        if isinstance(tc, dict) and tc.get("name") == tool_name:
+            return True
+    return False
+
+
+def _history_has_tool_call(state: AgentState, tool_names: set[str]) -> bool:
+    """Return whether any historical message contains tool calls in tool_names."""
+    for msg in state.get("messages", []):
+        tool_calls = msg.get("tool_calls") if isinstance(msg, dict) else getattr(msg, "tool_calls", None)
+        if not tool_calls:
+            continue
+        for tc in tool_calls:
+            if isinstance(tc, dict) and tc.get("name") in tool_names:
+                return True
+    return False
+
+
+def _is_direct_navigation_intent(user_text: str) -> bool:
+    return any(k in user_text for k in _NAV_INTENT_HINTS)
+
+
+def _is_list_navigation_intent(user_text: str) -> bool:
+    return any(k in user_text for k in _LIST_NAV_INTENT_HINTS)
+
+
+def _should_force_proposal_on_turn(
+    *,
+    proposal_available: bool,
+    is_direct_nav_intent: bool,
+    is_list_nav_intent: bool,
+    history_has_list_tools: bool,
+) -> bool:
+    """Return whether this turn must force a ui_present_proposal tool call."""
+    return proposal_available and (
+        is_direct_nav_intent or (is_list_nav_intent and history_has_list_tools)
+    )
+
+
 def _build_admin_graph() -> Any:
     # Base LLM — backend tools only. Frontend tools are added per-request in agent_node.
     _base_llm = ChatOpenAI(
@@ -64,14 +190,39 @@ def _build_admin_graph() -> Any:
         current_model = state.get("current_model", "")
         current_db = state.get("current_db", "")
         current_route = state.get("current_route", "")
+        latest_user_text = _latest_user_text(state)
+        is_direct_nav_intent = _is_direct_navigation_intent(latest_user_text)
+        is_list_nav_intent = _is_list_navigation_intent(latest_user_text)
+
         # Merge frontend tools (registered by useCopilotAction) into the LLM for this turn.
         # CopilotKit puts them in state["copilotkit"]["actions"] as plain dicts.
         frontend_actions = state.get("copilotkit", {}).get("actions", [])  # type: ignore[union-attr]
+        frontend_tool_names = {
+            t.get("name", "")
+            for t in frontend_actions
+            if isinstance(t, dict) and t.get("name")
+        }
+        proposal_available = "ui_present_proposal" in frontend_tool_names
+        history_has_list_tools = _history_has_tool_call(state, {"list_projects", "list_models"})
+        force_proposal_on_this_turn = _should_force_proposal_on_turn(
+            proposal_available=proposal_available,
+            is_direct_nav_intent=is_direct_nav_intent,
+            is_list_nav_intent=is_list_nav_intent,
+            history_has_list_tools=history_has_list_tools,
+        )
+
         from logging_setup import get_logger as _gl
         _gl().info("agent_node.debug",
                    copilotkit_keys=list((state.get("copilotkit") or {}).keys()),
                    frontend_action_count=len(frontend_actions),
-                   frontend_action_names=[t.get("name") for t in frontend_actions if isinstance(t, dict)])
+                   frontend_action_names=[t.get("name") for t in frontend_actions if isinstance(t, dict)],
+                   latest_user_text=latest_user_text[:120],
+                   is_direct_nav_intent=is_direct_nav_intent,
+                   is_list_nav_intent=is_list_nav_intent,
+                   history_has_list_tools=history_has_list_tools,
+                   force_proposal_on_this_turn=force_proposal_on_this_turn)
+
+        forced_proposal_llm = None
         if frontend_actions:
             extra = [
                 {
@@ -86,14 +237,29 @@ def _build_admin_graph() -> Any:
                 if isinstance(t, dict) and t.get("name")
             ]
             existing = _base_llm.kwargs.get("tools", []) or []
-            llm = _base_llm.bind(tools=[*existing, *extra])
+
+            proposal_tools = [
+                tool
+                for tool in extra
+                if tool.get("function", {}).get("name") == "ui_present_proposal"
+            ]
+            if proposal_tools:
+                forced_proposal_llm = _base_llm.bind(
+                    tools=proposal_tools,
+                    tool_choice={"type": "function", "function": {"name": "ui_present_proposal"}},
+                )
+
+            if force_proposal_on_this_turn and forced_proposal_llm is not None:
+                llm = forced_proposal_llm
+            else:
+                llm = _base_llm.bind(tools=[*existing, *extra])
         else:
             llm = _base_llm
 
         if layer == "org":
             context = (
                 f"当前在 Org 页面（组织：{org}）。\n"
-                "UI 导航工具（只用 show_navigation_proposal）：\n"
+                "UI 导航工具（只用 ui_present_proposal）：\n"
                 "  routeCatalog 和 aiTargets 已通过上下文注入，选取对应条目生成 candidates。\n"
                 + (f"\n当前会话项目上下文：**{project}**（用户未明确指定时默认使用此项目）。" if project else "")
             )
@@ -101,7 +267,7 @@ def _build_admin_graph() -> Any:
             model_ctx = f"，当前模型：{current_model}（数据库：{current_db}）" if current_model else ""
             context = (
                 f"当前在 Project 页面（组织：{org}，项目：**{project}**{model_ctx}）。\n"
-                "UI 导航工具（只用 show_navigation_proposal）：\n"
+                "UI 导航工具（只用 ui_present_proposal）：\n"
                 "  routeCatalog 和 aiTargets 已通过上下文注入，选取对应条目生成 candidates。\n\n"
                 "数据查询工具：\n"
                 "  list_databases、list_models、get_model_fields、query_model、nl2filter\n\n"
@@ -111,7 +277,7 @@ def _build_admin_graph() -> Any:
             project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
             context = (
                 f"当前组织：{org}。{project_ctx}\n"
-                "UI 导航工具（只用 show_navigation_proposal）：\n"
+                "UI 导航工具（只用 ui_present_proposal）：\n"
                 "  routeCatalog 和 aiTargets 已通过上下文注入。"
             )
 
@@ -120,26 +286,82 @@ def _build_admin_graph() -> Any:
             "content": (
                 "你是 ModelCraft AI 助手（管理员版），帮助租户管理员通过对话完成所有操作。\n\n"
                 f"{context}\n\n"
-                "【核心规则：UI 导航必须通过 show_navigation_proposal】\n"
-                "当用户询问'去哪里'、'在哪里配置'、'怎么操作'、'帮我跳转'时，\n"
-                "必须调用 show_navigation_proposal 工具，不能只在文字里描述操作步骤。\n\n"
-                "show_navigation_proposal 使用规范：\n"
-                "1. response.candidates 每项必须有 type 字段：\n"
-                "   - 'action_candidate'：能确定跳转目标时使用，actions 包含 ui.navigate 和/或 ui.highlight\n"
-                "   - 'clarification_candidate'：意图不明确时使用，payload 描述用户意图\n"
-                "2. ui.navigate 的 route 必须从注入的 routeCatalog 中选取，替换 :orgName/:projectSlug 为实际值\n"
-                "3. ui.highlight 的 targetId 必须从注入的 aiTargets 中选取\n"
-                "4. 即使只有一个候选项也要包装成 candidates 数组返回，不得直接执行\n\n"
-                "数据查询工具调用规则：\n"
-                "- 调用任何 project 级工具时，回复中必须明确说明「在项目 **{project}** 中...」\n"
-                "- 如需 project 级操作但当前无项目上下文，先调用 list_projects 展示列表\n"
-                "- 操作数据前先用 list_models 和 get_model_fields 确认模型和字段存在\n"
+                "═══════════════════════════════════════\n"
+                "【第一步：判断用户意图类型，再决定调用什么工具】\n"
+                "═══════════════════════════════════════\n\n"
+                "▌ 类型 A — 纯导航意图\n"
+                "  触发词：去哪里 / 怎么进入 / 帮我跳转 / 在哪里配置 / 找到 X 页面 / 怎么操作 X\n"
+                "  ✅ 正确做法：直接调用 ui_present_proposal，candidates 从 routeCatalog 选取\n"
+                "  ❌ 禁止：先调用任何后端工具（list_databases、list_models 等）再导航\n\n"
+                "▌ 类型 B — 列举可导航资源（项目/模型）\n"
+                "  触发词：有哪些项目 / 列出项目 / 当前项目 / 有哪些模型\n"
+                "  ✅ 正确做法：先调 list_projects / list_models 获取列表，\n"
+                "              再调 ui_present_proposal，每个资源对应一个 action_candidate，\n"
+                "              点击跳转到该资源（项目→model-editor，模型→model-editor#modelName）\n"
+                "  ❌ 禁止：只用文字列出，不调 ui_present_proposal\n\n"
+                "▌ 类型 C — 纯数据查询（字段值、记录内容）\n"
+                "  触发词：查询 / 显示数据 / X 字段的值 / 有多少条记录\n"
+                "  ✅ 正确做法：调后端工具查询，直接在对话中返回结果，不需要导航\n\n"
+                "═══════════════════════════════════════\n"
+                "【Layer Skills 强约束】\n"
+                "═══════════════════════════════════════\n"
+                "ORG_SKILL / PROJECT_SKILL：\n"
+                "1) 任何导航意图必须调用 ui_present_proposal，禁止只输出文字指路\n"
+                "2) 问“有哪些项目/模型”时，若调用了 list_projects/list_models，后续必须再调用 ui_present_proposal 返回可点击候选\n"
+                "3) ui.navigate/ui.highlight/ui.guide 只能由前端在用户点击后执行，Agent 不直接执行页面动作\n\n"
+                "═══════════════════════════════════════\n"
+                "【ui_present_proposal 调用规范】\n"
+                "═══════════════════════════════════════\n"
+                "⚠️  response 参数必须是 JSON 对象，不能是字符串。结构：\n"
+                "{\n"
+                "  \"kind\": \"proposal\",\n"
+                "  \"proposalId\": \"nav-001\",\n"
+                "  \"proposalType\": \"navigation\",\n"
+                "  \"message\": \"找到以下页面：\",\n"
+                "  \"candidates\": [\n"
+                "    {\n"
+                "      \"id\": \"c1\",\n"
+                "      \"type\": \"action_candidate\",\n"
+                "      \"title\": \"项目名称或页面名称\",\n"
+                "      \"isPrimary\": true,\n"
+                "      \"actions\": [{\"type\": \"ui.navigate\", \"args\": {\"route\": \"/org/ORGNAME/project/SLUG/model-editor\"}}]\n"
+                "    }\n"
+                "  ]\n"
+                "}\n"
+                "规则：\n"
+                "1. ui.navigate 的 route 从 routeCatalog 的 routeTemplate 派生，\n"
+                "   将 :orgName/:projectSlug 替换为实际值\n"
+                "2. ui.highlight 的 targetId 必须从 aiTargets 中选取已注册的 id\n"
+                "3. 即使只有一个候选项也要包装成 candidates 数组\n\n"
+                "═══════════════════════════════════════\n"
+                "【其他规则】\n"
+                "═══════════════════════════════════════\n"
                 "- 删除操作禁止自动执行，必须引导用户在界面手动确认\n"
                 "- 完成操作后用 show_toast 通知用户结果"
             ).replace("{project}", project or "（未知项目）"),
         }
-        messages = [system_msg] + sanitize_messages(state["messages"])
+        messages = [system_msg] + _copilotkit_context_messages(state) + sanitize_messages(state["messages"])
         response = await llm.ainvoke(messages)
+
+        # Hard guard: retry once with stricter forcing if proposal tool was not called.
+        has_ui_proposal_call = _has_tool_call(response, "ui_present_proposal")
+        should_retry_for_direct_nav = proposal_available and is_direct_nav_intent and not has_ui_proposal_call
+        should_retry_for_list_nav = (
+            proposal_available
+            and is_list_nav_intent
+            and history_has_list_tools
+            and not has_ui_proposal_call
+        )
+
+        if should_retry_for_direct_nav or should_retry_for_list_nav:
+            retry_hint = SystemMessage(content=(
+                "【SKILL_GUARD_RETRY】你刚才没有按强约束调用 ui_present_proposal。\n"
+                "现在必须改为调用 ui_present_proposal 并返回结构化 candidates。\n"
+                "禁止仅返回文字解释。"
+            ))
+            retry_llm = forced_proposal_llm if forced_proposal_llm is not None else llm
+            response = await retry_llm.ainvoke([*messages, retry_hint])
+
         return {"messages": [response]}
 
     def should_continue(state: AgentState):

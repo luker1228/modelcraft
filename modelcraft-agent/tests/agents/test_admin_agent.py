@@ -43,16 +43,52 @@ def test_frontend_tool_names_from_state():
         "messages": [],
         "copilotkit": {
             "actions": [
-                {"name": "show_navigation_proposal", "description": "show proposal"},
+                {"name": "ui_present_proposal", "description": "show proposal"},
                 {"name": "show_toast", "description": "show toast"},
             ]
         },
     }
     names = _frontend_tool_names(state)
-    assert "show_navigation_proposal" in names
+    assert "ui_present_proposal" in names
     assert "show_toast" in names
 
 
 def test_should_continue_returns_end_for_frontend_tool():
     """When agent calls only frontend tools, should_continue must return END."""
     assert admin_graph is not None
+
+
+def test_should_force_proposal_on_turn_for_direct_navigation():
+    """Direct navigation intent must force ui_present_proposal when available."""
+    from agents.admin_agent import _should_force_proposal_on_turn
+
+    assert _should_force_proposal_on_turn(
+        proposal_available=True,
+        is_direct_nav_intent=True,
+        is_list_nav_intent=False,
+        history_has_list_tools=False,
+    ) is True
+
+
+def test_should_force_proposal_on_turn_for_list_navigation_after_listing():
+    """List-navigation intent must force proposal after list tool has been called."""
+    from agents.admin_agent import _should_force_proposal_on_turn
+
+    assert _should_force_proposal_on_turn(
+        proposal_available=True,
+        is_direct_nav_intent=False,
+        is_list_nav_intent=True,
+        history_has_list_tools=True,
+    ) is True
+
+
+def test_should_not_force_proposal_on_first_list_turn_without_history():
+    """First list-navigation turn should not force proposal before list tool phase."""
+    from agents.admin_agent import _should_force_proposal_on_turn
+
+    assert _should_force_proposal_on_turn(
+        proposal_available=True,
+        is_direct_nav_intent=False,
+        is_list_nav_intent=True,
+        history_has_list_tools=False,
+    ) is False
