@@ -28,7 +28,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
-import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -96,8 +95,6 @@ export function AppLayout({
 
   const orgName = params.orgName as string
   const projectSlug = params.projectSlug as string
-
-  const { completedCount, totalCount, isComplete, openPanel } = useOnboarding()
 
   useEffect(() => {
     setStoredUserName(localStorage.getItem('defaultUserName') || '')
@@ -491,28 +488,6 @@ export function AppLayout({
 
           {/* Sidebar footer */}
           <div className="flex-shrink-0 border-t border-border">
-            {/* Quick start entry — shown when onboarding is incomplete */}
-            {!isComplete && (
-              <button
-                onClick={openPanel}
-                className={cn(
-                  'flex w-full items-center gap-2 px-3 py-2 text-left transition-colors',
-                  sidebarCollapsed ? 'justify-center' : '',
-                  'text-muted-foreground hover:bg-accent hover:text-foreground'
-                )}
-                title="快速开始"
-              >
-                <Image src="/icons/icon-model-graphql.svg" alt="快速开始" width={16} height={16} className="flex-shrink-0" />
-                {!sidebarCollapsed && (
-                  <>
-                    <span className="flex-1 text-[12px] font-medium">快速开始</span>
-                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                      {completedCount}/{totalCount}
-                    </span>
-                  </>
-                )}
-              </button>
-            )}
             {/* Collapse toggle */}
             <div className="flex h-11 items-center px-2">
               <button

@@ -744,3 +744,29 @@ A/B/C 回归中，虽然前端工具已注入且提示词声明“必须调用 u
 - See Also: LRN-20260522-005
 
 ---
+
+## [LRN-20260524-001] best_practice
+
+**Logged**: 2026-05-24T16:06:18Z
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+CLI GitHub Release 流程要直接使用完整 tag（`cli-vX.Y.Z`）注入 `main.version`，避免版本显示与发布标签不一致。
+
+### Details
+`modelcraft-cli/main.go` 的版本信息默认值是 `version=dev/commit=none/buildTime=unknown`，需要通过 workflow 的 `-ldflags` 覆盖。如果在 workflow 里把 tag 做前缀裁剪（例如去掉 `cli-`），会导致 `mc version` 输出和 release tag 不一致，文档命令与实际产物也更容易混淆。
+
+### Suggested Action
+在 `.github/workflows/release-cli.yml` 里统一用完整 `RELEASE_TAG`（并校验正则 `^cli-v\d+\.\d+\.\d+$`）驱动：
+1) `main.version` 注入值
+2) GitHub `tag_name`
+3) Release 标题展示
+
+### Metadata
+- Source: investigation
+- Related Files: .github/workflows/release-cli.yml; modelcraft-cli/main.go
+- Tags: github-actions, cli-release, ldflags, versioning
+
+---

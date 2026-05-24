@@ -6,7 +6,6 @@ import { useRequireAuth } from "@web/hooks/auth/use-auth";
 import { useOrganizationStore } from "@shared/stores/organization";
 import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 import { OnboardingProvider } from "@shared/onboarding/OnboardingContext";
-import { OnboardingPanel } from "@shared/onboarding/OnboardingPanel";
 import { CopilotWrapper } from "@web/components/features/copilot/CopilotProvider";
 import { AICapabilityProvider } from "@web/contexts/ai-capability-context";
 import { AICapabilityReadable } from "@web/components/features/copilot/AICapabilityReadable";
@@ -113,7 +112,6 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   const content = (
     <OnboardingProvider orgName={orgName}>
       {children}
-      <OnboardingPanel orgName={orgName} className="bottom-20 right-6" />
     </OnboardingProvider>
   );
 

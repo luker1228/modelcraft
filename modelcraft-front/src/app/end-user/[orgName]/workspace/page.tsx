@@ -50,6 +50,7 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
       {/* Tab 导航 */}
       <nav className="flex border-b bg-background px-6">
         <button
+          onClick={() => router.push(`/end-user/${orgName}/workspace`)}
           className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
             activeTab === 'projects'
               ? 'border-primary text-primary'
@@ -59,11 +60,10 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
           Projects
         </button>
         <button
-          className="cursor-not-allowed border-b-2 border-transparent px-4 py-3 text-sm text-muted-foreground/50"
-          disabled
-          title="即将推出"
+          onClick={() => router.push(`/end-user/${orgName}/workspace/cli`)}
+          className="border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
-          （待定）
+          CLI 使用
         </button>
       </nav>
 
