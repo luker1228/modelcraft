@@ -43,6 +43,7 @@ interface ModelSidebarProps {
   databasesLoading: boolean
   filteredModels: EditorModel[]
   modelsLoading: boolean
+  viewMode: 'schema' | 'data'
 }
 
 export function ModelSidebar({
@@ -52,6 +53,7 @@ export function ModelSidebar({
   databasesLoading,
   filteredModels,
   modelsLoading,
+  viewMode,
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
 
@@ -155,6 +157,7 @@ export function ModelSidebar({
       <div className="flex flex-1 flex-col overflow-hidden">
 
         {/* Action buttons */}
+        {viewMode === 'schema' && (
         <div className="flex flex-col gap-1 px-3 py-2.5">
           <Button
             ref={createModelBtnRef}
@@ -185,6 +188,7 @@ export function ModelSidebar({
             导入模型
           </Button>
         </div>
+        )}
 
         {/* Search */}
         <div className="px-3 pb-2">
