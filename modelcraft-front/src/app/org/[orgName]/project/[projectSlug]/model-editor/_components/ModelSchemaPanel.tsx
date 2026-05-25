@@ -179,14 +179,6 @@ export function ModelSchemaPanel({
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-xs text-muted-foreground">数据库</label>
-                  <Input
-                    value={state.editModelData.databaseName}
-                    disabled
-                    className="h-8 bg-muted/30 font-mono text-xs"
-                  />
-                </div>
-                <div className="space-y-1">
                   <label className="text-xs text-muted-foreground">描述</label>
                   <Input
                     value={state.metaDescription}
