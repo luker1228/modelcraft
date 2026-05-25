@@ -15,7 +15,7 @@ permissions:
   contents: write
 
 jobs:
-  build-macos-arm64:
+  build-cli-binaries:
     runs-on: ubuntu-latest
     env:
       RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
@@ -50,8 +50,20 @@ jobs:
             -ldflags "-s -w -X main.version=${{ steps.meta.outputs.version }} -X main.commit=${{ steps.meta.outputs.commit }} -X main.buildTime=${{ steps.meta.outputs.build_time }}" \
             -o mc-darwin-arm64 .
 
-      - name: Generate checksum
-        run: sha256sum mc-darwin-arm64 > mc-darwin-arm64.sha256
+      - name: Build Linux amd64 binary
+        env:
+          CGO_ENABLED: '0'
+          GOOS: linux
+          GOARCH: amd64
+        run: |
+          go build -trimpath \
+            -ldflags "-s -w -X main.version=${{ steps.meta.outputs.version }} -X main.commit=${{ steps.meta.outputs.commit }} -X main.buildTime=${{ steps.meta.outputs.build_time }}" \
+            -o mc-linux-amd64 .
+
+      - name: Generate checksums
+        run: |
+          sha256sum mc-darwin-arm64 > mc-darwin-arm64.sha256
+          sha256sum mc-linux-amd64 > mc-linux-amd64.sha256
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -62,3 +74,5 @@ jobs:
           files: |
             modelcraft-cli/mc-darwin-arm64
             modelcraft-cli/mc-darwin-arm64.sha256
+            modelcraft-cli/mc-linux-amd64
+            modelcraft-cli/mc-linux-amd64.sha256
