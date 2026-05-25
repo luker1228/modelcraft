@@ -27,8 +27,7 @@ const CLI_STEPS: StepCardProps[] = [
     description:
       '从 GitHub Release 下载 macOS arm64 预编译二进制并安装到 /usr/local/bin。当前仅支持 macOS Apple Silicon。',
     command: [
-      'export MC_VERSION=cli-v0.1.0',
-      'curl -fL "https://github.com/patientCat/modelcraft/releases/download/${MC_VERSION}/mc-darwin-arm64" -o mc',
+      'curl -fL "https://github.com/patientCat/modelcraft/releases/latest/download/mc-darwin-arm64" -o mc',
       'chmod +x mc',
       'sudo mv mc /usr/local/bin/mc',
       'mc version',
@@ -231,7 +230,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
               <div className="space-y-2 p-4">
                 <dt className="text-sm font-semibold text-foreground">404 Not Found</dt>
                 <dd className="text-sm leading-6 text-muted-foreground">
-                  检查版本号是否正确。访问{' '}
+                  访问{' '}
                   <a
                     href="https://github.com/patientCat/modelcraft/releases"
                     target="_blank"
@@ -240,7 +239,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
                   >
                     Releases 页面
                   </a>{' '}
-                  确认 cli-vX.Y.Z 标签已发布。
+                  确认 latest 版本下存在 `mc-darwin-arm64` 资产。
                 </dd>
               </div>
               <div className="space-y-2 p-4">
