@@ -8,6 +8,11 @@
 # for asymmetric algorithms, but we only have the public key here.
 #
 
+global_rules:
+  - id: observability-tracing
+    plugins:
+      opentelemetry: {}
+
 routes:
   # ── Public routes: auth endpoints, no JWT required ──────────────────────────
   - id: tenant-auth

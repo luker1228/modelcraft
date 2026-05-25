@@ -26,6 +26,18 @@ async function handler(
   const cookieHeader = req.headers.get('cookie')
   if (cookieHeader) headers.set('Cookie', cookieHeader)
 
+  const xRequestId = req.headers.get('X-Request-Id')
+  if (xRequestId) headers.set('X-Request-Id', xRequestId)
+
+  const xClientRequestId = req.headers.get('X-Client-Request-Id')
+  if (xClientRequestId) headers.set('X-Client-Request-Id', xClientRequestId)
+
+  const traceparent = req.headers.get('traceparent')
+  if (traceparent) headers.set('traceparent', traceparent)
+
+  const tracestate = req.headers.get('tracestate')
+  if (tracestate) headers.set('tracestate', tracestate)
+
   const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined
 
   let upstreamRes: Response

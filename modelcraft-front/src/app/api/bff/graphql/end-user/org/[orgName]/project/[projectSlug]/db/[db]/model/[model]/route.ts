@@ -24,6 +24,18 @@ async function handler(
   const authHeader = req.headers.get('Authorization')
   if (authHeader) headers.set('Authorization', authHeader)
 
+  const xRequestId = req.headers.get('X-Request-Id')
+  if (xRequestId) headers.set('X-Request-Id', xRequestId)
+
+  const xClientRequestId = req.headers.get('X-Client-Request-Id')
+  if (xClientRequestId) headers.set('X-Client-Request-Id', xClientRequestId)
+
+  const traceparent = req.headers.get('traceparent')
+  if (traceparent) headers.set('traceparent', traceparent)
+
+  const tracestate = req.headers.get('tracestate')
+  if (tracestate) headers.set('tracestate', tracestate)
+
   const xAction = req.headers.get('X-Action')
   if (xAction) headers.set('X-Action', xAction)
 

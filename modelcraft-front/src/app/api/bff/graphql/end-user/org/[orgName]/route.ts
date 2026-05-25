@@ -18,9 +18,27 @@ async function handler(req: NextRequest, { params }: { params: Promise<Params> }
   const authHeader = req.headers.get('Authorization')
   if (authHeader) headers.set('Authorization', authHeader)
 
+  const xRequestId = req.headers.get('X-Request-Id')
+  if (xRequestId) headers.set('X-Request-Id', xRequestId)
+
+  const xClientRequestId = req.headers.get('X-Client-Request-Id')
+  if (xClientRequestId) headers.set('X-Client-Request-Id', xClientRequestId)
+
+  const traceparent = req.headers.get('traceparent')
+  if (traceparent) headers.set('traceparent', traceparent)
+
+  const tracestate = req.headers.get('tracestate')
+  if (tracestate) headers.set('tracestate', tracestate)
+
   const xAction = req.headers.get('X-Action')
   if (xAction) headers.set('X-Action', xAction)
-  console.log('[BFF] end-user/org forwarding headers', { 'X-Action': xAction, hasAuth: !!authHeader })
+  console.log('[BFF] end-user/org forwarding headers', {
+    'X-Action': xAction,
+    hasAuth: !!authHeader,
+    xRequestId,
+    xClientRequestId,
+    traceparent,
+  })
 
   const body = req.method !== 'GET' && req.method !== 'HEAD' ? await req.text() : undefined
 

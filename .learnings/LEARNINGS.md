@@ -770,3 +770,102 @@ CLI GitHub Release 流程要直接使用完整 tag（`cli-vX.Y.Z`）注入 `main
 - Tags: github-actions, cli-release, ldflags, versioning
 
 ---
+
+## [LRN-20260524-002] best_practice
+
+**Logged**: 2026-05-24T16:30:24Z
+**Priority**: high
+**Status**: pending
+**Area**: infra
+
+### Summary
+APISIX 自定义 access_log_format 不能直接使用未注册变量（如 `$route_id`、`$opentelemetry_trace_id`），否则网关会启动失败并反复重启。
+
+### Details
+在 `apisix/config.yaml` 增加日志关联字段时，首次使用 `$route_id` 与 `$opentelemetry_trace_id`，容器出现 `nginx: [emerg] unknown "..." variable`，导致 `modelcraft-apisix` 进入 Restarting。改为稳定可用变量后恢复：`$uri`、`$http_x_request_id`、`$http_x_client_request_id`、`$http_traceparent`、`$http_tracestate`。
+
+### Suggested Action
+给 APISIX 增加日志字段时，先用一组“HTTP 头/基础 Nginx 变量”做最小可行版本，再重启验证；不要假设 APISIX 运行时变量在 Nginx 启动阶段一定可见。
+
+### Metadata
+- Source: error
+- Related Files: apisix/config.yaml; deploy/compose/docker-compose.local.yml
+- Tags: apisix, nginx-variable, access-log, restart-loop, observability
+
+---
+
+## [LRN-20260524-003] best_practice
+
+**Logged**: 2026-05-24T16:40:57Z
+**Priority**: high
+**Status**: pending
+**Area**: frontend
+
+### Summary
+BFF 代理路由若手动新建 `Headers()`，必须显式透传观测头（`X-Client-Request-Id`、`X-Request-Id`、`traceparent`、`tracestate`），否则 APISIX/Backend 链路关联会丢失。
+
+### Details
+`/api/bff/graphql/**` 路由此前只透传了 `Content-Type/Authorization/X-Action`，导致 APISIX access log 出现 `client_request_id:""`，并破坏前后端日志串联。修复是在 6 个 BFF GraphQL route 里统一增加观测头透传。
+
+### Suggested Action
+将“观测头透传”作为 BFF 代理模板的固定项，后续新增 route 时默认包含：
+1) `X-Request-Id`
+2) `X-Client-Request-Id`
+3) `traceparent`
+4) `tracestate`
+
+### Metadata
+- Source: investigation
+- Related Files: modelcraft-front/src/app/api/bff/graphql/org/[orgName]/route.ts; modelcraft-front/src/app/api/bff/graphql/org/[orgName]/project/[projectSlug]/route.ts; modelcraft-front/src/app/api/bff/graphql/org/[orgName]/project/[projectSlug]/db/[db]/model/[model]/route.ts; modelcraft-front/src/app/api/bff/graphql/end-user/org/[orgName]/route.ts; modelcraft-front/src/app/api/bff/graphql/end-user/org/[orgName]/project/[projectSlug]/route.ts; modelcraft-front/src/app/api/bff/graphql/end-user/org/[orgName]/project/[projectSlug]/db/[db]/model/[model]/route.ts
+- Tags: bff-proxy, request-id, traceparent, observability
+
+---
+
+## [LRN-20260524-004] best_practice
+
+**Logged**: 2026-05-24T16:49:20Z
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+在 HTTP 接口层如果已通过 `ChiLoggerMiddleware` 注入 request-scoped logger，就不要在 handler struct 内持有独立 logger；应统一使用 `logfacade.GetLogger(ctx)` 记录日志以携带 request_id。
+
+### Details
+`auth/handler.go` 中 `h.logger.Error(...)` 生成的错误日志缺少 `request_id`，而同请求的 middleware 日志带有 `request_id/trace_id/span_id`。原因是 request-scoped logger 已放入 context（`logfacade.WithLogger`），但 handler 使用了结构体成员 logger，绕过了上下文字段。
+
+### Suggested Action
+接口层日志统一改为 `logfacade.GetLogger(r.Context()).<Level>(...)`；并移除 handler 中无用的 `logger` 字段与构造参数，避免后续再次误用。
+
+### Metadata
+- Source: user_feedback
+- Related Files: modelcraft-backend/internal/interfaces/http/handlers/auth/handler.go; modelcraft-backend/internal/interfaces/http/routes.go; modelcraft-backend/internal/middleware/chi_logger.go
+- Tags: request-scoped-logger, request-id, auth-handler, interfaces-layer
+
+---
+
+## [LRN-20260524-005] best_practice
+
+**Logged**: 2026-05-24T16:57:54Z
+**Priority**: medium
+**Status**: pending
+**Area**: config
+
+### Summary
+该仓库启用写后 lint hook，文件写入后可能被自动改写，后续 Edit 前必须重新 Read 最新内容。
+
+### Details
+在调整 `workspace/cli/page.tsx` 时，首次 `Write` 后继续 `Edit` 出现 `File has been modified since read`。原因是仓库 hook 会在写入后自动执行 lint/格式化，并可能直接改动刚写入文件（包括文本内容与 class 排序）。如果继续基于旧快照执行替换，Edit 会失败或误改。
+
+### Suggested Action
+对本仓库执行“写入后再编辑”流程时固定采用：
+1) `Write` 或首轮 `Edit` 后立刻 `Read` 目标文件刷新快照
+2) 再做下一次 `Edit`
+3) 最后跑目标文件 lint 验证
+
+### Metadata
+- Source: error
+- Related Files: modelcraft-front/src/app/end-user/[orgName]/workspace/cli/page.tsx; .agents/hooks
+- Tags: write-hook, auto-lint, stale-snapshot, edit-workflow
+
+---

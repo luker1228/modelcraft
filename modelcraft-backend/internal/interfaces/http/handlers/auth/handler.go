@@ -16,15 +16,13 @@ import (
 type Handler struct {
 	tokenService *appAuth.TokenService
 	cookieCfg    config.CookieConfig
-	logger       logfacade.Logger
 }
 
 // NewHandler creates a new auth Handler.
-func NewHandler(tokenService *appAuth.TokenService, cookieCfg config.CookieConfig, logger logfacade.Logger) *Handler {
+func NewHandler(tokenService *appAuth.TokenService, cookieCfg config.CookieConfig) *Handler {
 	return &Handler{
 		tokenService: tokenService,
 		cookieCfg:    cookieCfg,
-		logger:       logger,
 	}
 }
 
@@ -68,7 +66,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 
 	var req generated.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn(r.Context(), "Invalid register request body", logfacade.Err(err))
+		logfacade.GetLogger(r.Context()).Warn(r.Context(), "Invalid register request body", logfacade.Err(err))
 		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
 		return
 	}
@@ -104,7 +102,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	var req generated.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.logger.Warn(r.Context(), "Invalid login request body", logfacade.Err(err))
+		logfacade.GetLogger(r.Context()).Warn(r.Context(), "Invalid login request body", logfacade.Err(err))
 		writeAuthError(w, http.StatusBadRequest, requestID, "PARAM_INVALID.AUTH", "Invalid request body")
 		return
 	}
@@ -216,13 +214,13 @@ func (h *Handler) handleBusinessError(
 	bizErr, ok := err.(*bizerrors.BusinessError)
 	if !ok {
 		// Not a BusinessError — unexpected system error
-		h.logger.Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
+		logfacade.GetLogger(r.Context()).Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
 		writeAuthError(w, http.StatusInternalServerError, requestID, "SYSTEM_ERROR", "Internal server error")
 		return
 	}
 
 	// Log with stack at the Interfaces layer error conversion point
-	h.logger.Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
+	logfacade.GetLogger(r.Context()).Error(r.Context(), logMsg, logfacade.Err(err), logfacade.Stack(err))
 
 	statusCode := bizErr.GetHTTPStatusCode()
 	code := bizErr.Info().GetCode()
