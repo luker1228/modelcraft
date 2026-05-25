@@ -126,16 +126,16 @@ export function ModelSchemaPanel({
             <div className="px-6">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-sm font-semibold text-foreground">元信息</span>
-                {!state.metaEditMode && (
+                {!state.metaEditMode && !isManagedReadOnlyModel && (
                   <Button
                     type="button"
-                    variant="outline"
+                    variant="ghost"
                     size="sm"
-                    className="h-7 text-xs"
+                    className="h-7 text-xs text-muted-foreground hover:text-foreground"
                     onClick={() => state.setMetaEditMode(true)}
-                    disabled={isManagedReadOnlyModel}
                   >
-                    设置展示字段
+                    <Edit className="mr-1.5 size-3" />
+                    编辑
                   </Button>
                 )}
               </div>
@@ -153,7 +153,7 @@ export function ModelSchemaPanel({
                         onClick={() => state.setMetaEditMode(true)}
                         disabled={isManagedReadOnlyModel}
                       >
-                        去设置
+                        编辑
                       </Button>
                     )}
                   </AlertDescription>
