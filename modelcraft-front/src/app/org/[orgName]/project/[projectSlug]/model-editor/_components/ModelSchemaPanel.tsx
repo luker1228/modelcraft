@@ -64,7 +64,7 @@ export function ModelSchemaPanel({
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
   const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
 
-  if (!state.editModelData && !state.editModelLoading) {
+  if (!state.editModelData) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center text-muted-foreground">
         <Table2 className="mb-3 size-10 opacity-20" />
@@ -91,7 +91,7 @@ export function ModelSchemaPanel({
       />
 
       {/* Header */}
-      <div className="flex shrink-0 items-start justify-between border-b border-border px-6 py-4">
+      <div className="flex shrink-0 items-start border-b border-border px-6 py-4">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-foreground">
             {state.editModelData?.title || state.editModelData?.name || '模型详情'}
