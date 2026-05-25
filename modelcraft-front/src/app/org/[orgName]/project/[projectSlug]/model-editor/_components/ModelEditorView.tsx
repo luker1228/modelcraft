@@ -1,7 +1,7 @@
 'use client'
 
 import { Suspense, lazy, useState, useCallback, useEffect } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
@@ -17,6 +17,7 @@ import { ImportModelDialog } from '@web/components/features/model-editor/ImportM
 import { useModelEditorState, useModelCRUD, useFieldOperations, useForeignKeys } from '../_hooks'
 import { ModelSidebar } from './ModelSidebar'
 import { ModelDetailPanel } from './ModelDetailPanel'
+import { ModelSchemaPanel } from './ModelSchemaPanel'
 import { CreateModelDialog } from './CreateModelDialog'
 import { DeleteModelDialog } from './DeleteModelDialog'
 import { FieldEditSheet } from './FieldEditSheet'
@@ -36,6 +37,8 @@ export function ModelEditorView() {
   const projectSlug = params?.projectSlug as string
 
   const state = useModelEditorState()
+  const searchParams = useSearchParams()
+  const viewMode = (searchParams.get('view') === 'data' ? 'data' : 'schema') as 'schema' | 'data'
   const [schemaRefreshToken, setSchemaRefreshToken] = useState(0)
   const [openedTabs, setOpenedTabs] = useState<DataWorkspaceTab[]>([])
   const handleFieldAdded = useCallback(() => {
@@ -73,6 +76,23 @@ export function ModelEditorView() {
   useEffect(() => {
     setOpenedTabs([])
   }, [state.selectedDatabase])
+
+  // Reset schema-view overlays when switching to data view
+  useEffect(() => {
+    if (viewMode === 'data') {
+      state.setEditModelOpen(false)
+      state.setInsertFieldOpen(false)
+      state.setEditFieldOpen(false)
+      state.setFkFormOpen(false)
+    }
+  }, [viewMode]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Auto-load model detail when entering schema view with a selected model
+  useEffect(() => {
+    if (viewMode === 'schema' && state.selectedModelId && !state.editModelData) {
+      void crud.handleEditModel(state.selectedModelId)
+    }
+  }, [viewMode, state.selectedModelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCloseTab = (tabId: string) => {
     setOpenedTabs((prev) => {
@@ -162,39 +182,52 @@ export function ModelEditorView() {
         databasesLoading={crud.databasesLoading}
         filteredModels={crud.filteredModels}
         modelsLoading={crud.modelsLoading}
+        viewMode={viewMode}
       />
 
       {/* Right Content Area */}
       <main className="flex min-w-0 flex-1 flex-col bg-background p-4">
         <section className="flex h-full min-h-0 flex-col gap-3">
-          <DataWorkspacePanel
-            tabs={openedTabs}
-            activeTabId={state.selectedModelId ?? ''}
-            onTabChange={(tabId) => state.setSelectedModelId(tabId)}
-            onTabClose={handleCloseTab}
-            emptyText="从左侧选择模型以打开数据表"
-            className="h-full min-h-0"
-            renderContent={(activeTab) => (
-              <Suspense
-                fallback={
-                  <div className="flex flex-1 items-center justify-center">
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground">
-                      <Loader2 className="size-6 animate-spin" />
-                      <span className="text-sm">加载中...</span>
+          {viewMode === 'schema' ? (
+            <ModelSchemaPanel
+              state={state}
+              crud={crud}
+              fieldOps={fieldOps}
+              fkOps={fkOps}
+              orgName={orgName}
+              projectSlug={projectSlug}
+              onFieldAdded={handleFieldAdded}
+            />
+          ) : (
+            <DataWorkspacePanel
+              tabs={openedTabs}
+              activeTabId={state.selectedModelId ?? ''}
+              onTabChange={(tabId) => state.setSelectedModelId(tabId)}
+              onTabClose={handleCloseTab}
+              emptyText="从左侧选择模型以打开数据表"
+              className="h-full min-h-0"
+              renderContent={(activeTab) => (
+                <Suspense
+                  fallback={
+                    <div className="flex flex-1 items-center justify-center">
+                      <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                        <Loader2 className="size-6 animate-spin" />
+                        <span className="text-sm">加载中...</span>
+                      </div>
                     </div>
-                  </div>
-                }
-              >
-                <DevelopRecordWorkspace
-                  key={`${activeTab.id}-${schemaRefreshToken}`}
-                  modelId={activeTab.id}
-                  projectSlug={projectSlug}
-                  orgName={orgName}
-                  refreshToken={schemaRefreshToken}
-                />
-              </Suspense>
-            )}
-          />
+                  }
+                >
+                  <DevelopRecordWorkspace
+                    key={`${activeTab.id}-${schemaRefreshToken}`}
+                    modelId={activeTab.id}
+                    projectSlug={projectSlug}
+                    orgName={orgName}
+                    refreshToken={schemaRefreshToken}
+                  />
+                </Suspense>
+              )}
+            />
+          )}
         </section>
       </main>
 
