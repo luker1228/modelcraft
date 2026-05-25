@@ -269,6 +269,37 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     }
   }
 
+  // Load model detail for schema view without opening the drawer
+  const loadModelDetailForSchemaView = async (modelId: string) => {
+    state.setEditModelId(modelId)
+    state.setEditModelLoading(true)
+    state.setEditModelData(null)
+
+    try {
+      const { data } = await fetchModelDetail({
+        variables: { id: modelId, withActualSchema: true },
+      })
+
+      if (data?.model?.model) {
+        state.setEditModelData(data.model.model as EditorModelDetail)
+        state.setMetaTitle(data.model.model.title || '')
+        state.setMetaDescription(data.model.model.description || '')
+        state.setMetaDisplayField(data.model.model.displayField || '')
+        state.setFkList([])
+        state.setFkFormOpen(false)
+        state.setFkMappings([{ sourceField: '', targetField: '' }])
+        state.setFkRefModelId('')
+      } else if (data?.model?.error) {
+        toast.error(data.model.error.message || '获取模型详情失败')
+      }
+    } catch (error) {
+      console.error('获取模型详情失败:', error)
+      toast.error(getApolloErrorMessage(error, '获取模型详情失败'))
+    } finally {
+      state.setEditModelLoading(false)
+    }
+  }
+
   // Edit model - open drawer
   const handleEditModel = async (modelId: string) => {
     state.setEditModelId(modelId)
@@ -422,6 +453,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     handleDeleteModel,
     handleSaveMeta,
     refreshModelDetail,
+    loadModelDetailForSchemaView,
   }
 }
 

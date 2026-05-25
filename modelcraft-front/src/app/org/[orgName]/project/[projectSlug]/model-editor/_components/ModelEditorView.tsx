@@ -90,7 +90,7 @@ export function ModelEditorView() {
   // Auto-load model detail when entering schema view with a selected model
   useEffect(() => {
     if (viewMode === 'schema' && state.selectedModelId && !state.editModelData) {
-      void crud.handleEditModel(state.selectedModelId)
+      void crud.loadModelDetailForSchemaView(state.selectedModelId)
     }
   }, [viewMode, state.selectedModelId, state.editModelData]) // eslint-disable-line react-hooks/exhaustive-deps
 
