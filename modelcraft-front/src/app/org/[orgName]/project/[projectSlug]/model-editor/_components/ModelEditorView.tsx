@@ -92,7 +92,7 @@ export function ModelEditorView() {
     if (viewMode === 'schema' && state.selectedModelId && !state.editModelData) {
       void crud.handleEditModel(state.selectedModelId)
     }
-  }, [viewMode, state.selectedModelId]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewMode, state.selectedModelId, state.editModelData]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCloseTab = (tabId: string) => {
     setOpenedTabs((prev) => {
