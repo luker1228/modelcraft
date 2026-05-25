@@ -2,7 +2,7 @@
 
 import { Suspense, lazy, useState, useCallback, useEffect } from 'react'
 import { useParams, useRouter, useSearchParams } from 'next/navigation'
-import { Loader2, AlertTriangle, ExternalLink } from 'lucide-react'
+import { Loader2, AlertTriangle, ExternalLink, LayoutGrid } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { toast } from 'sonner'
 import {
@@ -223,6 +223,19 @@ export function ModelEditorView() {
                     projectSlug={projectSlug}
                     orgName={orgName}
                     refreshToken={schemaRefreshToken}
+                    quickNav={
+                      <div className="flex items-center gap-2 border-b border-border bg-card px-3 py-1.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+                          onClick={() => router.push(`/org/${orgName}/project/${projectSlug}/model-editor`)}
+                        >
+                          <LayoutGrid className="mr-1.5 size-3.5" />
+                          查看模型结构
+                        </Button>
+                      </div>
+                    }
                   />
                 </Suspense>
               )}
