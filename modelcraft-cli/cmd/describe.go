@@ -17,6 +17,8 @@ func newDescribeCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "describe <path>",
 		Short: "Describe a runtime model via GraphQL introspection",
+		Example: "  mc describe sales.crm.users\n" +
+			"  mc describe crm.users --project sales",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx, modelPath, creds, err := resolveRuntimeContext(cmd, credentialsPath, project, args[0])

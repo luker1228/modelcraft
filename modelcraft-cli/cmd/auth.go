@@ -15,7 +15,15 @@ import (
 )
 
 func newAuthCommand() *cobra.Command {
-	authCmd := &cobra.Command{Use: "auth", Short: "Manage end-user authentication"}
+	authCmd := &cobra.Command{
+		Use:   "auth",
+		Short: "Manage end-user authentication",
+		Example: "  mc auth login --server https://gateway.example.com --org acme --username alice --password '***'\n" +
+			"  mc auth status\n" +
+			"  mc auth switch-project sales\n" +
+			"  mc auth refresh\n" +
+			"  mc auth logout",
+	}
 	authCmd.AddCommand(newAuthLoginCommand())
 	authCmd.AddCommand(newAuthLogoutCommand())
 	authCmd.AddCommand(newAuthRefreshCommand())
@@ -30,6 +38,8 @@ func newAuthLoginCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "login",
 		Short: "Login with end-user credentials",
+		Example: "  mc auth login --server https://gateway.example.com --org acme --username alice --password '***'\n" +
+			"  mc auth login --server http://localhost:18080 --org demo --username test --password test123",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			authClient := client.AuthClient{HTTPClient: http.DefaultClient}
@@ -68,6 +78,8 @@ func newAuthLogoutCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "logout",
 		Short: "Logout and clear local credentials",
+		Example: "  mc auth logout\n" +
+			"  mc auth logout --credentials /tmp/mc-credentials.json",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := config.Load(credentialsPath)
@@ -100,6 +112,8 @@ func newAuthRefreshCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "refresh",
 		Short: "Refresh access token using local refresh token",
+		Example: "  mc auth refresh\n" +
+			"  mc auth refresh --credentials /tmp/mc-credentials.json",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := config.Load(credentialsPath)
@@ -139,6 +153,8 @@ func newAuthStatusCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "status",
 		Short: "Show current authentication status",
+		Example: "  mc auth status\n" +
+			"  mc auth status --credentials /tmp/mc-credentials.json",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := config.Load(credentialsPath)
@@ -174,6 +190,8 @@ func newAuthSwitchProjectCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "switch-project <slug>",
 		Short: "Set local default project context",
+		Example: "  mc auth switch-project sales\n" +
+			"  mc auth switch-project analytics --credentials /tmp/mc-credentials.json",
 		Args:  cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			slug := args[0]

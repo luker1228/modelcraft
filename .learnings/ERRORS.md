@@ -37,3 +37,34 @@ unknown shorthand flag: 'f' in -f
 - **Notes**: 根目录 `justfile` 已加入 compose 命令探测与回退逻辑。
 
 ---
+
+## [ERR-20260525-001] action-status-check
+
+**Logged**: 2026-05-25T00:00:00Z
+**Priority**: low
+**Status**: pending
+**Area**: infra
+
+### Summary
+本地环境无 `gh` CLI 且 GitHub REST API 匿名请求触发 rate limit，导致无法直接用 API 拉取 workflow run。
+
+### Error
+```
+/bin/bash: line 1: gh: command not found
+
+{"message":"API rate limit exceeded ..."}
+```
+
+### Context
+- Command attempted: `gh run list --repo patientCat/modelcraft --workflow "Release CLI" --limit 5`
+- Fallback API: `https://api.github.com/repos/patientCat/modelcraft/actions/runs?event=push&per_page=20`
+- Both unavailable paths blocked run status check in this environment.
+
+### Suggested Fix
+优先使用 Web 页面抓取（`/actions/workflows/release-cli.yml`）确认 run，再用 release 下载 URL 的 HEAD 请求验证资产可访问。
+
+### Metadata
+- Reproducible: unknown
+- Related Files: .github/workflows/release-cli.yml
+
+---

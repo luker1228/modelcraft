@@ -869,3 +869,28 @@ BFF 代理路由若手动新建 `Headers()`，必须显式透传观测头（`X-C
 - Tags: write-hook, auto-lint, stale-snapshot, edit-workflow
 
 ---
+
+## [LRN-20260525-002] knowledge_gap
+
+**Logged**: 2026-05-25T00:00:00Z
+**Priority**: medium
+**Status**: pending
+**Area**: infra
+
+### Summary
+CLI release 当前仅产出 macOS arm64（Mach-O）二进制；Linux x86_64 环境下载后会触发 `Exec format error`。
+
+### Details
+用户在 Linux x86_64 机器执行 `./mc version` 报错。排查结果：`file ./mc` 显示 `Mach-O 64-bit arm64 executable`，与本机 `uname -s/-m => Linux x86_64` 不兼容。发布流程中 `release-cli.yml` 仅设置 `GOOS=darwin`、`GOARCH=arm64`，未生成 Linux 资产，且 `cli-v0.1.1` 下 `mc-linux-amd64` 返回 404。
+
+### Suggested Action
+1) 发布流水线增加 `linux/amd64`（必要时再加 `linux/arm64`）产物；
+2) CLI 指南按平台给下载命令，或在 Linux 场景改为 `go build` 安装路径；
+3) 保留“当前仅支持 macOS arm64”提示直到 Linux 产物上线。
+
+### Metadata
+- Source: conversation
+- Related Files: .github/workflows/release-cli.yml; modelcraft-front/src/app/end-user/[orgName]/workspace/cli/page.tsx
+- Tags: cli-release, binary-format, linux, macos-arm64, exec-format-error
+
+---

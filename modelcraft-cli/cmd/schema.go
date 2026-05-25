@@ -8,7 +8,11 @@ import (
 )
 
 func newSchemaCommand() *cobra.Command {
-	cmd := &cobra.Command{Use: "schema", Short: "Export local CLI schema"}
+	cmd := &cobra.Command{
+		Use:     "schema",
+		Short:   "Export local CLI schema",
+		Example: "  mc schema commands",
+	}
 	cmd.AddCommand(newSchemaCommandsCommand())
 	return cmd
 }
@@ -17,6 +21,8 @@ func newSchemaCommandsCommand() *cobra.Command {
 	return &cobra.Command{
 		Use:   "commands",
 		Short: "Export command and flag schema",
+		Example: "  mc schema commands\n" +
+			"  mc schema commands | jq .",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			doc := schema.BuildCommandSchema()

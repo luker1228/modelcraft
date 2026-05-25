@@ -15,7 +15,13 @@ import (
 )
 
 func newCatalogCommand() *cobra.Command {
-	cmd := &cobra.Command{Use: "catalog", Short: "Discover accessible projects, databases, and models"}
+	cmd := &cobra.Command{
+		Use:   "catalog",
+		Short: "Discover accessible projects, databases, and models",
+		Example: "  mc catalog projects\n" +
+			"  mc catalog databases --project sales\n" +
+			"  mc catalog models --project sales --database crm",
+	}
 	cmd.AddCommand(newCatalogProjectsCommand())
 	cmd.AddCommand(newCatalogDatabasesCommand())
 	cmd.AddCommand(newCatalogModelsCommand())
@@ -27,6 +33,8 @@ func newCatalogProjectsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "projects",
 		Short: "List accessible projects",
+		Example: "  mc catalog projects\n" +
+			"  mc catalog projects --credentials /tmp/mc-credentials.json",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := loadCredentials(credentialsPath)
@@ -49,6 +57,8 @@ func newCatalogDatabasesCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "databases",
 		Short: "List databases in a project",
+		Example: "  mc catalog databases --project sales\n" +
+			"  mc catalog databases",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := loadFreshCredentials(cmd, credentialsPath)
@@ -87,6 +97,8 @@ func newCatalogModelsCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "models",
 		Short: "List models in a database",
+		Example: "  mc catalog models --database crm --project sales\n" +
+			"  mc catalog models --database crm",
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := loadFreshCredentials(cmd, credentialsPath)
