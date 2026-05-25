@@ -87,12 +87,12 @@ export function ModelEditorView() {
     }
   }, [viewMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Auto-load model detail when entering schema view with a selected model
+  // Auto-load model detail when in schema view and selected model changes
   useEffect(() => {
-    if (viewMode === 'schema' && state.selectedModelId && !state.editModelData) {
+    if (viewMode === 'schema' && state.selectedModelId) {
       void crud.loadModelDetailForSchemaView(state.selectedModelId)
     }
-  }, [viewMode, state.selectedModelId, state.editModelData]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [viewMode, state.selectedModelId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleCloseTab = (tabId: string) => {
     setOpenedTabs((prev) => {
