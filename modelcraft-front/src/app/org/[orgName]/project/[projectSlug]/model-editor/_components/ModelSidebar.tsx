@@ -191,7 +191,7 @@ export function ModelSidebar({
         )}
 
         {/* Search */}
-        <div className="px-3 pb-2">
+        <div className="px-2 pb-2">
           <div className="relative">
             <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -215,7 +215,7 @@ export function ModelSidebar({
 
         {/* Model List */}
         <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
-          <div className="space-y-px">
+          <div className="space-y-0.5">
             {modelsLoading && (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <Loader2 className="mb-3 size-6 animate-spin" />
@@ -231,7 +231,7 @@ export function ModelSidebar({
                   onClick={() => handleModelDetailClick(model.id)}
                   onKeyDown={(e) => e.key === 'Enter' && handleModelDetailClick(model.id)}
                   className={cn(
-                    'group flex items-center gap-2 h-7 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
+                    'group flex items-center gap-1.5 h-8 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
                     state.selectedModelId === model.id
                       ? 'bg-primary/[0.08] text-primary border-l-primary'
                       : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground border-l-transparent'
