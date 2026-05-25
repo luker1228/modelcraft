@@ -204,7 +204,6 @@ export default function DevelopRecordWorkspace({
   const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
 
   // develop workspace 始终拥有字段生命周期能力（托管模型除外）
-  const canInsertField = !isManagedReadOnlyModel
   const canManageFieldLifecycle = !isManagedReadOnlyModel
   const canCreateRecord = !isManagedReadOnlyModel
   const canEditRecord = !isManagedReadOnlyModel
@@ -750,21 +749,11 @@ export default function DevelopRecordWorkspace({
 
             <div className="h-5 w-px bg-border" />
 
-            {/* develop-only：插入菜单（含插入列） */}
+            {/* 插入数据 */}
             <div className="flex items-center gap-2">
               <ModelRecordInsertMenu
                 onCreateRecord={handleCreate}
-                modelId={modelId}
-                modelName={model?.name}
-                projectSlug={projectSlug}
-                orgName={orgName}
-                existingFieldNames={Object.keys((jsonSchema?.properties as Record<string, unknown>) ?? {})}
-                canInsertField={canInsertField}
                 canCreateRecord={canCreateRecord}
-                onInsertFieldSuccess={() => {
-                  void refetch()
-                  void refetchModel()
-                }}
               />
             </div>
           </div>
