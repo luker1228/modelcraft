@@ -242,7 +242,7 @@ export function ModelRecordTable({
           <Table
             ref={tableRef}
             className="table-fixed"
-            style={{ width: tableWidth, minWidth: tableWidth }}
+            style={{ width: '100%', minWidth: tableWidth }}
           >
             <TableHeader className="sticky top-0 z-10 bg-card">
               <TableRow className="border-b border-border hover:bg-transparent">
