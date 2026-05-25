@@ -198,6 +198,8 @@ export function AppLayout({
       const currentVal = new URLSearchParams(window.location.search).get(paramKey ?? '')
       // Default tab (roles) is active when no tab param or tab=roles
       if (paramVal === 'roles') return !currentVal || currentVal === 'roles'
+      // Default view (schema) is active when no view param or view=schema
+      if (paramVal === 'schema') return !currentVal || currentVal === 'schema'
       return currentVal === paramVal
     },
     [pathname]
@@ -211,6 +213,14 @@ export function AppLayout({
     const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
     if (isNavActive(rolesHref)) {
       setExpandedItems((prev) => new Set([...prev, rolesHref]))
+    }
+  }, [pathname, orgName, projectSlug, isNavActive])
+
+  // Auto-expand the "数据模型" item when its route is active
+  useEffect(() => {
+    const modelEditorHref = `/org/${orgName}/project/${projectSlug}/model-editor`
+    if (isNavActive(modelEditorHref)) {
+      setExpandedItems((prev) => new Set([...prev, modelEditorHref]))
     }
   }, [pathname, orgName, projectSlug, isNavActive])
 
@@ -237,7 +247,10 @@ export function AppLayout({
     {
       header: '数据建模',
       items: [
-        { label: '数据模型', icon: '/icons/icon-table2.svg', href: `/org/${orgName}/project/${projectSlug}/model-editor` },
+        { label: '数据模型', icon: '/icons/icon-table2.svg', href: `/org/${orgName}/project/${projectSlug}/model-editor`, children: [
+          { label: '模型管理', href: `/org/${orgName}/project/${projectSlug}/model-editor`, tabParam: 'view=schema' },
+          { label: '数据管理', href: `/org/${orgName}/project/${projectSlug}/model-editor?view=data`, tabParam: 'view=data' },
+        ]},
         { label: '枚举管理', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/enums` },
       ],
     },
