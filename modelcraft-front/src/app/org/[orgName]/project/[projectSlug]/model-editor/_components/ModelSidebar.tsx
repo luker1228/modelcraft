@@ -12,7 +12,6 @@ import {
   X,
   Loader2,
   Database,
-  Edit,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
@@ -266,25 +265,6 @@ export function ModelSidebar({
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-40 border border-border shadow-lg">
-                    <DropdownMenuItem
-                      className={cn(
-                        'text-xs focus:bg-accent',
-                        model.createdVia === 'IMPORTED'
-                          ? 'cursor-not-allowed text-muted-foreground/50 focus:text-muted-foreground/50'
-                          : 'cursor-pointer text-foreground focus:text-foreground'
-                      )}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (model.createdVia === 'IMPORTED') {
-                          return
-                        }
-                        crud.handleEditModel(model.id)
-                      }}
-                      disabled={model.createdVia === 'IMPORTED'}
-                    >
-                      <Edit className="mr-2 size-3.5" />
-                      编辑模型
-                    </DropdownMenuItem>
                     <DropdownMenuItem
                       className="cursor-pointer text-xs focus:bg-accent focus:text-foreground"
                       onClick={async (e) => {
