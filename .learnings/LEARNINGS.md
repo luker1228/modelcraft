@@ -909,7 +909,7 @@ CopilotKit 前端工具触发的自动 rerun 应按“latest user message 之后
 场景 E 中第 1 轮已调用 `ui_present_proposal`，但 CopilotKit/ag-ui 渲染前端工具后会用同一 thread 触发新一轮 run；此时 `_latest_user_text` 仍是原始导航文本。仅检查全历史或仅移除工具不够：orphan frontend tool call 会被 `sanitize_messages` 从发给 LLM 的上下文中移除，而系统提示仍强约束“导航必须调用 proposal”，可能再次产生工具调用或其它工具调用。更稳的做法是：只要 latest user message 之后已经出现 `ui_present_proposal`，该自动 rerun 直接返回无 tool_calls 的终态消息；若用户之后又发新消息，则允许重新 proposal。
 
 ### Suggested Action
-导航 proposal 类工具都使用 `tool_call_since_latest_user` 模式做回环保护；回归测试应覆盖：1) proposal 后自动 rerun 不再调用任何工具，2) proposal 后有新 HumanMessage 时不被旧 proposal 抑制。
+导航 proposal 类工具都使用 `tool_call_since_latest_user` 模式做回环保护；回归测试应覆盖：1) proposal 后自动 rerun 不再调用任何工具，2) proposal 后有新 HumanMessage 时不被旧 proposal 抑制。Notebook 场景还必须让 `reset_graph()` 同时 `importlib.reload(agents.admin_agent)` 并刷新 `globals()["admin_graph"]`，否则 `from agents.admin_agent import admin_graph` 会继续持有旧 LazyGraph 实例，导致误判修复未生效。
 
 ### Metadata
 - Source: investigation

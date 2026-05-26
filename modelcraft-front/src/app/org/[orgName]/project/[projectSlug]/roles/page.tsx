@@ -35,7 +35,7 @@ import {
   TableRow,
 } from '@web/components/ui/table'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { useRoleList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/roles/_hooks/useRoleList'
+import { useRoleList } from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/useRoleList'
 import {
   BundlesTab,
   PermissionsTab,

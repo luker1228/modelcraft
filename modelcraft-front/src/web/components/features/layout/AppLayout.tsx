@@ -258,7 +258,7 @@ export function AppLayout({
       header: '权限管理',
       items: [
         { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/roles`, children: [
-          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/roles`, tabParam: 'tab=roles' },
+          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/roles?tab=roles`, tabParam: 'tab=roles' },
           { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`, tabParam: 'tab=bundles' },
           { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`, tabParam: 'tab=permissions' },
         ]},

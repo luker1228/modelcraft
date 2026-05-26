@@ -23,9 +23,15 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
   },
   {
     routeTemplate: '/org/:orgName/project/:projectSlug/model-editor',
-    title: '数据模型编辑器',
-    description: '创建和管理数据模型、字段结构，查看模型数据记录',
-    keywords: ['模型', '字段', '数据模型', '模型编辑器', '新建模型', '字段管理'],
+    title: '模型管理',
+    description: '创建和管理数据模型、字段结构、模型字段与模型配置',
+    keywords: ['模型', '字段', '数据模型', '模型编辑器', '新建模型', '字段管理', '模型管理'],
+  },
+  {
+    routeTemplate: '/org/:orgName/project/:projectSlug/model-editor?view=data',
+    title: '数据管理',
+    description: '查看、查询和管理模型数据记录',
+    keywords: ['数据管理', '数据记录', '记录管理', '查看数据', '查询数据', '模型数据'],
   },
   {
     routeTemplate: '/org/:orgName/project/:projectSlug/enums',
@@ -34,16 +40,22 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
     keywords: ['枚举', 'enum', '枚举值', '枚举类型'],
   },
   {
-    routeTemplate: '/org/:orgName/project/:projectSlug/rbac/roles',
+    routeTemplate: '/org/:orgName/project/:projectSlug/roles?tab=roles',
     title: 'RBAC 角色管理',
     description: '管理项目内的角色与权限包，控制用户对数据的增删改查权限',
     keywords: ['权限', 'RBAC', '角色', '权限管理', '角色配置'],
   },
   {
-    routeTemplate: '/org/:orgName/project/:projectSlug/rbac/bundles',
+    routeTemplate: '/org/:orgName/project/:projectSlug/roles?tab=bundles',
     title: '权限包管理',
     description: '管理权限包版本，配置细粒度操作权限',
     keywords: ['权限包', 'bundle', '权限版本', '权限快照'],
+  },
+  {
+    routeTemplate: '/org/:orgName/project/:projectSlug/roles?tab=permissions',
+    title: '权限点管理',
+    description: '查看和管理项目内的权限点定义',
+    keywords: ['权限点', '权限项', 'permission', 'permissions', '操作权限', '权限定义'],
   },
   {
     routeTemplate: '/org/:orgName/project/:projectSlug/end-users',

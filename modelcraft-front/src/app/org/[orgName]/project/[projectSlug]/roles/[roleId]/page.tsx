@@ -46,8 +46,8 @@ import {
 } from '@web/components/ui/alert-dialog'
 import { PageLayout } from '@web/components/features/layout'
 
-import { useRoleEdit } from '@/app/org/[orgName]/project/[projectSlug]/rbac/roles/[roleId]/_hooks/useRoleEdit'
-import { useRoleList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/roles/_hooks/useRoleList'
+import { useRoleEdit } from '@/app/org/[orgName]/project/[projectSlug]/roles/[roleId]/_hooks/useRoleEdit'
+import { useRoleList } from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/useRoleList'
 import { useProjectScopedClient } from '@api-client/apollo/public'
 import { LIST_END_USERS } from '@/api-client/end-user'
 import {
@@ -484,7 +484,7 @@ export default function RoleDetailPage() {
   const rawTab = searchParams.get('tab')
   const activeTab = rawTab === 'users' ? 'users' : 'bundles'
 
-  const backHref = `/org/${orgName}/project/${projectSlug}/roles`
+  const backHref = `/org/${orgName}/project/${projectSlug}/roles?tab=roles`
 
   const { role, loading } = useRoleEdit({ orgName, projectSlug, roleId })
   const { deleteRole } = useRoleList({ orgName, projectSlug })

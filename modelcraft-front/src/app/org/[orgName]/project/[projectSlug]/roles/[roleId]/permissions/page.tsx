@@ -312,7 +312,7 @@ export default function RolePermissionsPage() {
     <div className="mx-auto max-w-4xl space-y-6 p-6">
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <button
-          onClick={() => router.push(`/org/${orgName}/project/${projectSlug}/roles`)}
+          onClick={() => router.push(`/org/${orgName}/project/${projectSlug}/roles?tab=roles`)}
           className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 transition-colors hover:bg-slate-100 hover:text-foreground"
         >
           <ArrowLeft className="size-4" strokeWidth={1.5} />

@@ -62,8 +62,8 @@ import { Badge } from '@web/components/ui/badge'
 import { Skeleton } from '@web/components/ui/skeleton'
 import { ScrollArea } from '@web/components/ui/scroll-area'
 
-import { useBundleList } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleList'
-import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
+import { useBundleList } from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/useBundleList'
+import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/useBundleManage'
 import type { EndUserPermission, EndUserPermissionBundle, EndUserPermissionAction, EndUserRowScope } from '@/types'
 
 // ── Props ────────────────────────────────────────────────────────────────────

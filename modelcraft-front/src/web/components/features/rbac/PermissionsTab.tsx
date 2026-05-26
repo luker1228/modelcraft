@@ -51,7 +51,7 @@ import {
   TableRow,
 } from '@web/components/ui/table'
 
-import { usePermissionsView, type ModelWithPermissions } from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/_hooks/usePermissionsView'
+import { usePermissionsView, type ModelWithPermissions } from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/usePermissionsView'
 import type {
   EndUserPermission,
   EndUserPermissionAction,

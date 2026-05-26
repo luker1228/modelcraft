@@ -53,7 +53,7 @@ import { useProjectScopedClient } from '@api-client/apollo/public'
 import { GET_VIRTUAL_PRESETS_BY_MODEL } from '@/api-client/rbac'
 import { GET_MODELS_BY_DATABASE } from '@/api-client/model'
 import { DATABASE_CATALOG } from '@/api-client/cluster'
-import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/rbac/bundles/_hooks/useBundleManage'
+import { useBundleManage } from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/useBundleManage'
 import type {
   EndUserBundleDataPermissionItem,
   EndUserPermission,

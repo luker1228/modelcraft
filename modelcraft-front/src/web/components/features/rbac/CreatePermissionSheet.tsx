@@ -28,7 +28,7 @@ import { RowScopeSelector, ColumnPolicyEditor } from '@web/components/features/r
 import {
   useCreatePermissionWizard,
   type WizardStep,
-} from '@/app/org/[orgName]/project/[projectSlug]/rbac/permissions/new/_hooks/useCreatePermissionWizard'
+} from '@/app/org/[orgName]/project/[projectSlug]/roles/_hooks/useCreatePermissionWizard'
 import type { EndUserPermissionAction } from '@/types'
 import { cn } from '@/shared/utils'
 

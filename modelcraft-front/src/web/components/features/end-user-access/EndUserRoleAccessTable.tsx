@@ -287,7 +287,7 @@ function AssignRoleDialog({
                 <>
                   当前项目尚无可用角色。请先前往{' '}
                   <Link
-                    href={`/org/${orgName}/project/${projectSlug}/roles`}
+                    href={`/org/${orgName}/project/${projectSlug}/roles?tab=roles`}
                     className="font-medium underline underline-offset-2 hover:text-amber-900"
                     onClick={onClose}
                   >
