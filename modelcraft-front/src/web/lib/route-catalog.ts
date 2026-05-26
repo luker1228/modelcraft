@@ -40,12 +40,6 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
     keywords: ['权限', 'RBAC', '角色', '权限管理', '角色配置'],
   },
   {
-    routeTemplate: '/org/:orgName/project/:projectSlug/rbac/users',
-    title: 'RBAC 用户授权',
-    description: '为终端用户分配角色和访问权限',
-    keywords: ['用户权限', '授权', '角色分配', 'RBAC 用户'],
-  },
-  {
     routeTemplate: '/org/:orgName/project/:projectSlug/rbac/bundles',
     title: '权限包管理',
     description: '管理权限包版本，配置细粒度操作权限',

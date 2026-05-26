@@ -11,7 +11,6 @@ import { useCopilotReadable } from '@copilotkit/react-core'
 import { ProjectCopilotActions } from '@web/components/features/copilot/ProjectCopilotActions'
 import { AICapabilityReadable } from '@web/components/features/copilot/AICapabilityReadable'
 import { WorkspaceAIRefContext } from '@web/contexts/workspace-ai-ref-context'
-import { AICapabilityProvider } from '@web/contexts/ai-capability-context'
 import type { DevelopRecordWorkspaceAIRef } from '@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'
 import "@copilotkit/react-ui/styles.css"
 
@@ -136,17 +135,15 @@ export default function ProjectLayout({ children }: ProjectLayoutProps) {
   )
 
   return (
-    <AICapabilityProvider>
-      <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
-        <ProjectAIContext
-          orgName={orgName}
-          projectSlug={projectSlug}
-          workspaceAiRef={workspaceAiRef}
-        />
-        {/* Reads from this layout's AICapabilityProvider, writes to org-level CopilotKit */}
-        <AICapabilityReadable />
-        {mainContent}
-      </WorkspaceAIRefContext.Provider>
-    </AICapabilityProvider>
+    <WorkspaceAIRefContext.Provider value={workspaceAiRef}>
+      <ProjectAIContext
+        orgName={orgName}
+        projectSlug={projectSlug}
+        workspaceAiRef={workspaceAiRef}
+      />
+      {/* Reads from org layout's AICapabilityProvider and writes to org-level CopilotKit */}
+      <AICapabilityReadable />
+      {mainContent}
+    </WorkspaceAIRefContext.Provider>
   )
 }

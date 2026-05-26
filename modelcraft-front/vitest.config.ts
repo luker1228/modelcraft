@@ -19,7 +19,8 @@ function tsxTransformPlugin(): Plugin {
         sourcemap: true,
         sourcefile: id,
       })
-      return { code: result.code, map: result.map }
+      const map = result.map ? (JSON.parse(result.map) as NonNullable<TransformResult['map']>) : null
+      return { code: result.code, map }
     },
   }
 }

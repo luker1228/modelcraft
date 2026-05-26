@@ -2,7 +2,7 @@
 """Admin agent — serves tenant administrators."""
 from typing import Any
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import AIMessage, SystemMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, StateGraph
@@ -114,18 +114,20 @@ def _message_text(message: Any) -> str:
     return ""
 
 
+def _is_user_message(message: Any) -> bool:
+    """Return whether a message is a user/human message."""
+    if isinstance(message, dict):
+        return str(message.get("role", "")).lower() == "user"
+
+    msg_type = str(getattr(message, "type", "")).lower()
+    role = str(getattr(message, "role", "")).lower()
+    return msg_type == "human" or role == "user"
+
+
 def _latest_user_text(state: AgentState) -> str:
     """Return latest user/human message text from state messages."""
     for msg in reversed(state.get("messages", [])):
-        if isinstance(msg, dict):
-            role = str(msg.get("role", "")).lower()
-            if role == "user":
-                return _message_text(msg)
-            continue
-
-        msg_type = str(getattr(msg, "type", "")).lower()
-        role = str(getattr(msg, "role", "")).lower()
-        if msg_type == "human" or role == "user":
+        if _is_user_message(msg):
             return _message_text(msg)
     return ""
 
@@ -153,6 +155,21 @@ def _history_has_tool_call(state: AgentState, tool_names: set[str]) -> bool:
     return False
 
 
+def _history_has_tool_call_since_latest_user(state: AgentState, tool_names: set[str]) -> bool:
+    """Return whether a tool call exists after the latest user message."""
+    for msg in reversed(state.get("messages", [])):
+        if _is_user_message(msg):
+            return False
+
+        tool_calls = msg.get("tool_calls") if isinstance(msg, dict) else getattr(msg, "tool_calls", None)
+        if not tool_calls:
+            continue
+        for tc in tool_calls:
+            if isinstance(tc, dict) and tc.get("name") in tool_names:
+                return True
+    return False
+
+
 def _is_direct_navigation_intent(user_text: str) -> bool:
     return any(k in user_text for k in _NAV_INTENT_HINTS)
 
@@ -167,8 +184,17 @@ def _should_force_proposal_on_turn(
     is_direct_nav_intent: bool,
     is_list_nav_intent: bool,
     history_has_list_tools: bool,
+    history_has_proposal: bool,
 ) -> bool:
-    """Return whether this turn must force a ui_present_proposal tool call."""
+    """Return whether this turn must force a ui_present_proposal tool call.
+
+    Prevents re-forcing when a proposal has already been presented in the
+    conversation — this avoids the infinite loop where the graph re-invokes
+    agent_node after frontend tool results and the latest user text still
+    matches navigation intent keywords.
+    """
+    if history_has_proposal:
+        return False
     return proposal_available and (
         is_direct_nav_intent or (is_list_nav_intent and history_has_list_tools)
     )
@@ -204,11 +230,13 @@ def _build_admin_graph() -> Any:
         }
         proposal_available = "ui_present_proposal" in frontend_tool_names
         history_has_list_tools = _history_has_tool_call(state, {"list_projects", "list_models"})
+        history_has_proposal = _history_has_tool_call_since_latest_user(state, {"ui_present_proposal"})
         force_proposal_on_this_turn = _should_force_proposal_on_turn(
             proposal_available=proposal_available,
             is_direct_nav_intent=is_direct_nav_intent,
             is_list_nav_intent=is_list_nav_intent,
             history_has_list_tools=history_has_list_tools,
+            history_has_proposal=history_has_proposal,
         )
 
         from logging_setup import get_logger as _gl
@@ -220,7 +248,11 @@ def _build_admin_graph() -> Any:
                    is_direct_nav_intent=is_direct_nav_intent,
                    is_list_nav_intent=is_list_nav_intent,
                    history_has_list_tools=history_has_list_tools,
+                   history_has_proposal=history_has_proposal,
                    force_proposal_on_this_turn=force_proposal_on_this_turn)
+
+        if history_has_proposal:
+            return {"messages": [AIMessage(content="已展示导航候选卡片，请在卡片中选择目标页面。")]}
 
         forced_proposal_llm = None
         if frontend_actions:
@@ -236,6 +268,7 @@ def _build_admin_graph() -> Any:
                 for t in frontend_actions
                 if isinstance(t, dict) and t.get("name")
             ]
+
             existing = _base_llm.kwargs.get("tools", []) or []
 
             proposal_tools = [
@@ -341,16 +374,18 @@ def _build_admin_graph() -> Any:
             ).replace("{project}", project or "（未知项目）"),
         }
         messages = [system_msg] + _copilotkit_context_messages(state) + sanitize_messages(state["messages"])
+
         response = await llm.ainvoke(messages)
 
         # Hard guard: retry once with stricter forcing if proposal tool was not called.
         has_ui_proposal_call = _has_tool_call(response, "ui_present_proposal")
-        should_retry_for_direct_nav = proposal_available and is_direct_nav_intent and not has_ui_proposal_call
+        should_retry_for_direct_nav = proposal_available and is_direct_nav_intent and not has_ui_proposal_call and not history_has_proposal
         should_retry_for_list_nav = (
             proposal_available
             and is_list_nav_intent
             and history_has_list_tools
             and not has_ui_proposal_call
+            and not history_has_proposal
         )
 
         if should_retry_for_direct_nav or should_retry_for_list_nav:

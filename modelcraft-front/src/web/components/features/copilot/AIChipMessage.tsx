@@ -36,6 +36,18 @@ export function parseActionMarkers(text: string): MessageSegment[] {
   return segments
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null
+}
+
+function getMessageContent(message: unknown): string {
+  if (!isRecord(message)) {
+    return ''
+  }
+  const content = message.content
+  return typeof content === 'string' ? content : ''
+}
+
 /**
  * Drop-in replacement for CopilotKit's AssistantMessage.
  * Renders [ACTION:id] markers as clickable amber chip buttons.
@@ -46,7 +58,7 @@ export function parseActionMarkers(text: string): MessageSegment[] {
  */
 export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessageProps) {
   const { getRef, getAll } = useAICapabilityContext()
-  const content: string = props.message?.content ?? ''
+  const content = getMessageContent(props.message)
 
   // Only process messages that contain ACTION markers
   if (!content.includes('[ACTION:')) {
@@ -71,9 +83,9 @@ export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessage
 
   return (
     <div>
-      {/* Render text segments through the default AssistantMessage */}
+      {/* Render text segments directly (ACTION markers removed). */}
       {textOnly.trim() && (
-        <AssistantMessage {...props} message={props.message ? { ...props.message, content: textOnly } : props.message} />
+        <div className="px-3 py-2 text-sm leading-6 whitespace-pre-wrap">{textOnly}</div>
       )}
       {/* Render chip buttons below the text */}
       <div className="mt-2 flex flex-wrap gap-2 px-3 pb-2">

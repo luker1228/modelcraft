@@ -104,10 +104,23 @@ export function useNavigationProposal() {
     [appendMessage],
   )
 
+  const sendActionSelectionToAgent = useCallback(
+    (candidate: Extract<ProposalCandidate, { type: 'action_candidate' }>) => {
+      appendMessage(
+        new TextMessage({
+          role: MessageRole.User,
+          content: `我选择并执行了：${candidate.title}\naction_candidate_id: ${candidate.id}\naction_count: ${candidate.actions.length}`,
+        }),
+      )
+    },
+    [appendMessage],
+  )
+
   const handleCandidateClick = useCallback(
     async (candidate: ProposalCandidate) => {
       if (candidate.type === 'action_candidate') {
         await executeActions(candidate.actions)
+        sendActionSelectionToAgent(candidate)
         return
       }
 
@@ -115,8 +128,8 @@ export function useNavigationProposal() {
         sendClarificationToAgent(candidate)
       }
     },
-    [executeActions, sendClarificationToAgent],
+    [executeActions, sendActionSelectionToAgent, sendClarificationToAgent],
   )
 
-  return { handleCandidateClick, executeActions, sendClarificationToAgent }
+  return { handleCandidateClick, executeActions, sendActionSelectionToAgent, sendClarificationToAgent }
 }
