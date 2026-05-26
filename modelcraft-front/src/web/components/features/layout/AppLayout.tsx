@@ -210,7 +210,7 @@ export function AppLayout({
 
   // Auto-expand the "访问控制" item when its route is active
   useEffect(() => {
-    const rolesHref = `/org/${orgName}/project/${projectSlug}/roles`
+    const rolesHref = `/org/${orgName}/project/${projectSlug}/access-control`
     if (isNavActive(rolesHref)) {
       setExpandedItems((prev) => new Set([...prev, rolesHref]))
     }
@@ -257,10 +257,10 @@ export function AppLayout({
     {
       header: '权限管理',
       items: [
-        { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/roles`, children: [
-          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/roles?tab=roles`, tabParam: 'tab=roles' },
-          { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/roles?tab=bundles`, tabParam: 'tab=bundles' },
-          { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/roles?tab=permissions`, tabParam: 'tab=permissions' },
+        { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/access-control`, children: [
+          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=roles`, tabParam: 'tab=roles' },
+          { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=bundles`, tabParam: 'tab=bundles' },
+          { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=permissions`, tabParam: 'tab=permissions' },
         ]},
         { label: '用户授权', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
       ],

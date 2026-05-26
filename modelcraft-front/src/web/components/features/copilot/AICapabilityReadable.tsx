@@ -10,7 +10,7 @@ import { ROUTE_CATALOG } from '@web/lib/route-catalog'
  *
  * Injects two pieces of knowledge into the Agent context on every render:
  *   1. aiTargets  — current page's registered AiTarget elements (id, label, description, type)
- *   2. routeCatalog — all navigable pages (routeTemplate, title, description, keywords)
+ *   2. routeCatalog — all navigable pages (routeTemplate, title, description, keywords, requiresProject)
  */
 export const AICapabilityReadable = memo(function AICapabilityReadable() {
   const { getAll } = useAICapabilityContext()
@@ -32,7 +32,8 @@ export const AICapabilityReadable = memo(function AICapabilityReadable() {
     description:
       '系统所有可导航页面目录（routeCatalog）。' +
       '调用 ui_present_proposal 时，ui.navigate 的 route 字段必须从 routeTemplate 派生，' +
-      '将 :orgName、:projectSlug 等参数替换为当前会话的实际值。',
+      '将 :orgName、:projectSlug 等参数替换为当前会话的实际值。' +
+      'requiresProject=true 表示该页面需要项目上下文（projectSlug / projectName）。',
     value: ROUTE_CATALOG,
   })
 
