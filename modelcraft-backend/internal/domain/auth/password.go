@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"fmt"
+	"unicode"
 )
 
 const minPasswordLength = 8
@@ -12,6 +13,25 @@ func ValidatePasswordStrength(password string) error {
 	if len(password) < minPasswordLength {
 		return fmt.Errorf("password must be at least %d characters", minPasswordLength)
 	}
+
+	hasLetter := false
+	hasDigit := false
+	for _, char := range password {
+		if unicode.IsLetter(char) {
+			hasLetter = true
+		}
+		if unicode.IsDigit(char) {
+			hasDigit = true
+		}
+	}
+
+	if !hasLetter {
+		return fmt.Errorf("password must contain at least one letter")
+	}
+	if !hasDigit {
+		return fmt.Errorf("password must contain at least one digit")
+	}
+
 	return nil
 }
 

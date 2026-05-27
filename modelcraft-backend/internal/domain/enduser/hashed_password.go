@@ -2,8 +2,8 @@ package enduser
 
 import (
 	"fmt"
+	domainauth "modelcraft/internal/domain/auth"
 	"regexp"
-	"unicode"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -11,9 +11,6 @@ import (
 const (
 	// bcryptCost is the bcrypt cost factor (12 is production recommended).
 	bcryptCost = 12
-
-	// minPasswordLength is the minimum password length.
-	minPasswordLength = 8
 )
 
 // HashedPassword is a value object that encapsulates a bcrypt-hashed password.
@@ -58,29 +55,7 @@ func (p HashedPassword) Verify(plain string) bool {
 // - Contains at least one letter
 // - Contains at least one digit
 func ValidatePasswordStrength(plain string) error {
-	if len(plain) < minPasswordLength {
-		return fmt.Errorf("password must be at least %d characters", minPasswordLength)
-	}
-
-	hasLetter := false
-	hasDigit := false
-	for _, r := range plain {
-		if unicode.IsLetter(r) {
-			hasLetter = true
-		}
-		if unicode.IsDigit(r) {
-			hasDigit = true
-		}
-	}
-
-	if !hasLetter {
-		return fmt.Errorf("password must contain at least one letter")
-	}
-	if !hasDigit {
-		return fmt.Errorf("password must contain at least one digit")
-	}
-
-	return nil
+	return domainauth.ValidatePasswordStrength(plain)
 }
 
 // usernameRegex matches valid usernames: 3-64 characters, alphanumeric with underscore and hyphen.

@@ -86,8 +86,15 @@ export default function RegisterPage() {
               <FormItem>
                 <FormLabel>密码</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="至少 8 位密码" autoComplete="new-password" {...field} />
+                  <PasswordInput
+                    placeholder="至少 8 位，需包含字母和数字"
+                    autoComplete="new-password"
+                    {...field}
+                  />
                 </FormControl>
+                <FormDescription className="text-xs">
+                  密码至少 8 位，且必须包含至少一个字母和一个数字
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}

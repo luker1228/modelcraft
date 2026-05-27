@@ -37,6 +37,14 @@ type OrgCreationService interface {
 	) (*organization.CreateOrganizationOutput, error)
 }
 
+type TxOrgCreationService interface {
+	ExecuteWithQuerier(
+		ctx context.Context,
+		q dbgen.Querier,
+		input *organization.CreateOrganizationInput,
+	) (*organization.CreateOrganizationOutput, error)
+}
+
 // TokenService 处理认证令牌操作：注册、登录、刷新、登出。
 // 使用有状态的 DB 存储 Refresh Token（opaque token），支持轮换和盗用检测。
 type TokenService struct {
@@ -150,14 +158,6 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create profile entity")
 	}
 
-	// 10. 同事务持久化 user + profile
-	if err := s.createUserAndProfile(ctx, u, initialProfile, phone.Masked()); err != nil {
-		return nil, err
-	}
-
-	logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
-		u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
-
 	result := &RegisterResult{
 		UserID: u.ID,
 		Profile: RegisterProfileSnapshot{
@@ -169,26 +169,68 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		},
 	}
 
-	// 11. 创建个人组织并返回 orgName
+	orgInput := &organization.CreateOrganizationInput{
+		DisplayName:          cmd.UserName,
+		OrganizationName:     "",
+		OwnerUserID:          u.ID,
+		EndUserAdminPassword: cmd.Password,
+	}
+
+	if s.txManager != nil {
+		if txOrgService, ok := s.createOrgService.(TxOrgCreationService); ok {
+			err = s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+				userRepo := repository.NewSqlUserRepository(q)
+				profileRepo := repository.NewSqlProfileRepository(q)
+				if txErr := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); txErr != nil {
+					return txErr
+				}
+
+				if s.createOrgService == nil {
+					result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
+					return nil
+				}
+
+				orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
+				if txErr != nil {
+					return bizerrors.WrapError(txErr, bizerrors.SystemError, "create personal organization")
+				}
+				result.OrgName = orgOutput.OrganizationName
+				return nil
+			})
+			if err != nil {
+				if _, ok := err.(*bizerrors.BusinessError); ok {
+					return nil, err
+				}
+				return nil, bizerrors.WrapError(err, bizerrors.SystemError, "register transaction")
+			}
+
+			logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
+				u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
+			if s.createOrgService != nil {
+				logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
+			}
+			return result, nil
+		}
+	}
+
+	// Fallback path: keep previous behavior when tx-aware org service is not available.
+	if err := s.createUserAndProfile(ctx, u, initialProfile, phone.Masked()); err != nil {
+		return nil, err
+	}
+	logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
+		u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
+
 	if s.createOrgService == nil {
-		// 兜底：测试环境可不注入组织服务，仍返回稳定 slug
 		result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
 		return result, nil
 	}
 
-	orgOutput, err := s.createOrgService.Execute(ctx, &organization.CreateOrganizationInput{
-		DisplayName:          cmd.UserName,
-		OrganizationName:     "", // 由组织服务根据 displayName 生成 slug
-		OwnerUserID:          u.ID,
-		EndUserAdminPassword: cmd.Password, // builtin admin 密码与注册密码保持一致
-	})
+	orgOutput, err := s.createOrgService.Execute(ctx, orgInput)
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create personal organization")
 	}
-
 	result.OrgName = orgOutput.OrganizationName
 	logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
-
 	return result, nil
 }
 
@@ -199,19 +241,8 @@ func (s *TokenService) createUserAndProfile(
 	maskedPhone string,
 ) error {
 	persist := func(
-		ctx context.Context,
-		userRepo domainUser.UserRepository,
-		profileRepo domainProfile.Repository,
-	) error {
-		if err := userRepo.Create(ctx, u); err != nil {
-			return s.classifyCreateUserError(ctx, userRepo, u, maskedPhone, err)
-		}
-
-		if err := profileRepo.CreateInitialProfile(ctx, p); err != nil {
-			return bizerrors.ConvertRepositoryError(ctx, err)
-		}
-		return nil
-	}
+		ctx context.Context, userRepo domainUser.UserRepository, profileRepo domainProfile.Repository,
+	) error { return s.persistUserAndProfile(ctx, userRepo, profileRepo, u, p, maskedPhone) }
 
 	if s.txManager == nil {
 		if s.profileRepo == nil {
@@ -232,6 +263,24 @@ func (s *TokenService) createUserAndProfile(
 		return bizerrors.WrapError(err, bizerrors.SystemError, "register transaction")
 	}
 
+	return nil
+}
+
+func (s *TokenService) persistUserAndProfile(
+	ctx context.Context,
+	userRepo domainUser.UserRepository,
+	profileRepo domainProfile.Repository,
+	u *domainUser.User,
+	p *domainProfile.Profile,
+	maskedPhone string,
+) error {
+	if err := userRepo.Create(ctx, u); err != nil {
+		return s.classifyCreateUserError(ctx, userRepo, u, maskedPhone, err)
+	}
+
+	if err := profileRepo.CreateInitialProfile(ctx, p); err != nil {
+		return bizerrors.ConvertRepositoryError(ctx, err)
+	}
 	return nil
 }
 

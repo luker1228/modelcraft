@@ -7,8 +7,12 @@ export const phoneNumberSchema = z
   .string()
   .regex(/^1[3-9]\d{9}$/, '请输入有效的 11 位手机号')
 
-/** 密码：最少 8 位 */
-export const passwordSchema = z.string().min(8, '密码至少需要 8 位')
+/** 密码：最少 8 位，且必须包含字母和数字 */
+export const passwordSchema = z
+  .string()
+  .min(8, '密码至少需要 8 位')
+  .regex(/[A-Za-z]/, '密码必须至少包含一个字母')
+  .regex(/\d/, '密码必须至少包含一个数字')
 
 /**
  * 用户名规则：
