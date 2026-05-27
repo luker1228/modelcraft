@@ -11,13 +11,6 @@
   }
 }
 
-@layer utilities {
-  /* Serif font for section labels - matching prototype */
-  .font-label {
-    font-family: 'Times New Roman', Times, serif;
-  }
-}
-
 /**
  * Tailwind Base CSS
  * 包含项目的设计系统 CSS 变量，与 src/app/globals.css 保持同步

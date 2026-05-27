@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "@apollo/client"
 import { Button } from "@web/components/ui/button"
 import { SearchInput } from "@web/components/ui/search-input"
 import { Badge } from "@web/components/ui/badge"
+import { Skeleton } from "@web/components/ui/skeleton"
 import { ViewToggle, type ViewMode } from "@web/components/ui/view-toggle"
 import {
   DropdownMenu,
@@ -443,11 +444,22 @@ export default function WorkspacePage() {
 
             {/* Projects Grid/List */}
             {loading && projectsToDisplay.length === 0 ? (
-              <div className="flex items-center justify-center py-16">
-                <div className="text-center">
-                  <div className="mx-auto mb-3 size-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-                  <p className="text-sm text-muted-foreground">加载项目...</p>
-                </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="rounded-lg border border-border bg-card p-5">
+                    <div className="mb-3 flex items-start justify-between">
+                      <Skeleton className="h-5 w-2/5" />
+                      <Skeleton className="size-5 rounded-md" />
+                    </div>
+                    <Skeleton className="mb-2 h-3.5 w-1/3" />
+                    <Skeleton className="h-3.5 w-full" />
+                    <Skeleton className="mt-1.5 h-3.5 w-4/5" />
+                    <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
+                      <Skeleton className="h-5 w-12 rounded-full" />
+                      <Skeleton className="h-3.5 w-20" />
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : viewMode === 'grid' ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -541,10 +553,27 @@ export default function WorkspacePage() {
               </div>
             )}
 
-            {/* Empty State */}
+            {/* Empty State — no projects exist yet */}
+            {filteredProjects.length === 0 && !loading && !searchTerm && (
+              <div className="flex flex-col items-center justify-center py-24 text-center">
+                <div className="mb-5 flex size-16 items-center justify-center rounded-2xl border border-border bg-card shadow-sm">
+                  <FolderOpen className="size-7 text-muted-foreground/50" strokeWidth={1.5} />
+                </div>
+                <p className="text-[15px] font-semibold text-foreground">还没有项目</p>
+                <p className="mt-1.5 max-w-xs text-[13px] leading-relaxed text-muted-foreground">
+                  创建第一个项目，开始配置数据模型、权限策略和接口发布。
+                </p>
+                <Button className="mt-6" onClick={handleOpenCreateDialog}>
+                  <Plus className="mr-1.5 size-4" />
+                  新建项目
+                </Button>
+              </div>
+            )}
+
+            {/* Empty State — search found nothing */}
             {filteredProjects.length === 0 && !loading && searchTerm && (
-              <div className="flex flex-col items-center justify-center py-20">
-                <FolderOpen className="mb-4 size-10 text-muted-foreground/30" strokeWidth={1.5} />
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <FolderOpen className="mb-4 size-9 text-muted-foreground/30" strokeWidth={1.5} />
                 <p className="text-[14px] font-medium text-foreground">未找到匹配的项目</p>
                 <p className="mt-1 text-[13px] text-muted-foreground">尝试调整搜索条件</p>
               </div>

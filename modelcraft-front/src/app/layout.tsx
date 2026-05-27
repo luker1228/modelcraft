@@ -33,7 +33,7 @@ export const metadata: Metadata = {
   title: 'ModelCraft - Headless CMS Platform',
   description: 'Build data models visually. A modern headless CMS for developers.',
   icons: {
-    icon: '/favicon.ico',
+    icon: '/favicon.svg',
   },
 }
 

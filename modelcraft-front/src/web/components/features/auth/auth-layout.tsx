@@ -25,7 +25,7 @@ const features = [
     iconAlt: '权限管理',
     title: '访问策略',
     desc: '基于角色和组织范围的授权控制',
-    bgColor: 'bg-emerald-600',
+    bgColor: 'bg-primary',
   },
   {
     iconName: 'globe',
@@ -33,48 +33,15 @@ const features = [
     iconAlt: 'GraphQL API',
     title: '运行时接口',
     desc: '统一输出可治理的 GraphQL 能力',
-    bgColor: 'bg-amber-600',
+    bgColor: 'bg-primary',
   },
 ]
 
 export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
   return (
-    <div className="relative flex min-h-screen overflow-hidden bg-muted/40">
+    <div className="flex min-h-screen bg-muted/40">
       {/* Left brand panel — hidden on mobile */}
-      <div className="relative z-10 hidden lg:flex lg:w-1/2">
-        {/* Texture layers */}
-        <div
-          className="pointer-events-none absolute inset-0 opacity-60"
-          style={{
-            backgroundImage: `
-              radial-gradient(circle at 18% 22%, rgba(79,70,229,0.12), transparent 38%),
-              radial-gradient(circle at 78% 72%, rgba(8,145,178,0.1), transparent 42%),
-              linear-gradient(to bottom right, rgba(15,23,42,0.03), transparent 48%)
-            `
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-25"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px)
-            `,
-            backgroundSize: '24px 24px'
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-20 mix-blend-multiply"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(
-                -35deg,
-                rgba(15,23,42,0.045) 0 2px,
-                transparent 2px 10px
-              )
-            `
-          }}
-        />
+      <div className="hidden lg:flex lg:w-1/2">
         <div className="mx-auto flex w-full max-w-2xl flex-col justify-between p-12">
           {/* Logo */}
           <div className="flex items-center gap-3">
@@ -105,9 +72,7 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
             </div>
 
             {/* Cover visual */}
-            <div className="relative overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm">
-              <div className="pointer-events-none absolute -left-14 -top-14 size-36 rounded-full bg-indigo-200/30 blur-2xl" />
-              <div className="pointer-events-none absolute -bottom-16 right-8 size-44 rounded-full bg-cyan-200/25 blur-2xl" />
+            <div className="overflow-hidden rounded-xl border border-border bg-card p-5 shadow-sm">
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold text-foreground">运行链路总览</p>
                 <span className="rounded bg-primary/10 px-2 py-1 text-[11px] font-medium text-primary">
@@ -190,40 +155,8 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       </div>
 
       {/* Right form panel */}
-      <div className="relative z-10 flex flex-1 items-center justify-center p-6">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-40"
-          style={{
-            backgroundImage: `
-              radial-gradient(circle at 82% 18%, rgba(16,185,129,0.08), transparent 34%),
-              radial-gradient(circle at 24% 78%, rgba(245,158,11,0.08), transparent 36%),
-              linear-gradient(to top left, rgba(15,23,42,0.02), transparent 52%)
-            `
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-20"
-          style={{
-            backgroundImage: `
-              linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px)
-            `,
-            backgroundSize: '24px 24px'
-          }}
-        />
-        <div
-          className="pointer-events-none absolute inset-0 opacity-10 mix-blend-multiply"
-          style={{
-            backgroundImage: `
-              repeating-linear-gradient(
-                -35deg,
-                rgba(15,23,42,0.04) 0 2px,
-                transparent 2px 12px
-              )
-            `
-          }}
-        />
-        <Card className="relative z-10 w-full max-w-md rounded-lg border border-border bg-background shadow-sm">
+      <div className="flex flex-1 items-center justify-center p-6">
+        <Card className="w-full max-w-md rounded-lg border border-border bg-background shadow-sm">
           {/* Mobile logo */}
           <div className="flex items-center justify-center gap-3 px-8 pt-8 lg:hidden">
             <div className="flex size-10 items-center justify-center rounded-lg bg-primary">

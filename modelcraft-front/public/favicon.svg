@@ -1,0 +1,21 @@
+<svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!--
+    Hexagram on Indigo bg, center (16,16), circumradius = 12
+    Up triangle:   top(16, 4)   bottom-right(26.39, 22)  bottom-left(5.61, 22)
+    Down triangle: bottom(16,28) top-right(26.39, 10)    top-left(5.61, 10)
+  -->
+  <rect width="32" height="32" rx="7" fill="#4F46E5"/>
+  <path d="M16 4L26.39 22H5.61Z"
+        stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="none" opacity="0.95"/>
+  <path d="M16 28L5.61 10H26.39Z"
+        stroke="white" stroke-width="1.5" stroke-linejoin="round" fill="none" opacity="0.95"/>
+  <!-- Vertex nodes -->
+  <circle cx="16"    cy="4"  r="1.5" fill="white"/>
+  <circle cx="26.39" cy="22" r="1.5" fill="white"/>
+  <circle cx="5.61"  cy="22" r="1.5" fill="white"/>
+  <circle cx="16"    cy="28" r="1.5" fill="white"/>
+  <circle cx="26.39" cy="10" r="1.5" fill="white"/>
+  <circle cx="5.61"  cy="10" r="1.5" fill="white"/>
+  <!-- Center node -->
+  <circle cx="16" cy="16" r="1.8" fill="white" opacity="0.9"/>
+</svg>
