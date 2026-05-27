@@ -1,0 +1,51 @@
+set shell := ["bash", "-cu"]
+
+COMPOSE_FILE := "compose/docker-compose.local.yml"
+COMPOSE := `if docker compose version >/dev/null 2>&1; then echo "docker compose"; else echo "docker-compose"; fi`
+
+_default:
+    @just --list
+
+# Build and start all local deploy services
+deploy:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build
+
+# Start all local deploy services without rebuilding
+up:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d
+
+# Stop and remove local deploy containers
+down:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} down
+
+# Show local deploy service status
+ps:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} ps
+
+# Follow logs for all local deploy services
+logs:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} logs -f
+
+# Restart all local deploy services
+restart:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} restart
+
+# Stop containers and remove volumes. This clears MySQL data.
+clean:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} down -v
+
+# Build and restart backend service
+backend:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build backend
+
+# Build and restart frontend service
+frontend:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build frontend
+
+# Build and restart agent service
+agent:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build modelcraft-agent
+
+# Start tools profile services
+tools:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} --profile tools up -d
