@@ -3,7 +3,7 @@
 import { memo } from 'react'
 import { useCopilotReadable } from '@copilotkit/react-core'
 import { useAICapabilityContext } from '@web/contexts/ai-capability-context'
-import { ROUTE_CATALOG } from '@web/lib/route-catalog'
+import { PROJECT_REQUIRED_ROUTE_POLICY, ROUTE_CATALOG } from '@web/lib/route-catalog'
 
 /**
  * Must be mounted INSIDE a <CopilotKit> provider tree.
@@ -35,6 +35,14 @@ export const AICapabilityReadable = memo(function AICapabilityReadable() {
       '将 :orgName、:projectSlug 等参数替换为当前会话的实际值。' +
       'requiresProject=true 表示该页面需要项目上下文（projectSlug / projectName）。',
     value: ROUTE_CATALOG,
+  })
+
+  useCopilotReadable({
+    description:
+      '项目依赖页面/工具的前置策略。' +
+      '对于 requiresProject=true 的 route 或项目级工具，必须先 list_projects；' +
+      '有项目则让用户选择项目，无项目则推荐先创建项目。',
+    value: PROJECT_REQUIRED_ROUTE_POLICY,
   })
 
   return null

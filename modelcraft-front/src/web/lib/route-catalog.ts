@@ -11,6 +11,14 @@ export type RouteCatalogEntry = {
   requiresProject: boolean
 }
 
+export const PROJECT_REQUIRED_ROUTE_POLICY = {
+  appliesTo: 'routeCatalog 中 requiresProject=true 的页面，以及 list_databases/list_models/get_model_fields/query_model 等项目级工具',
+  beforeAction: '每次执行前先调用 list_projects，不依赖历史会话中的 projectSlug',
+  whenProjectsExist: '用 ui_present_proposal 让用户选择项目，再基于所选项目生成目标 route',
+  whenNoProjects: '不要调用项目级工具；推荐用户先到项目列表创建项目',
+  createProjectRouteTemplate: '/org/:orgName/workspace',
+} as const
+
 /**
  * All navigable pages in ModelCraft.
  * Agent reads this via useCopilotReadable to decide which page to navigate to.

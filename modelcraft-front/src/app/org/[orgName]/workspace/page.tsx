@@ -415,21 +415,11 @@ export default function WorkspacePage() {
           <PageHeader
             title="所有项目"
             spacing="compact"
-            actions={
-              <Button
-                ref={createProjectBtnRef}
-                onClick={handleOpenCreateDialog}
-                size="sm"
-              >
-                <Plus className="mr-1.5 size-3.5" />
-                新建项目
-              </Button>
-            }
           />
 
             {/* Toolbar */}
-            <div className="mb-6 flex items-center gap-3">
-              <div className="max-w-xs flex-1">
+            <div className="mb-6 flex items-start gap-3">
+              <div className="max-w-xs flex-1 space-y-2">
                 <SearchInput
                   placeholder="搜索项目..."
                   value={searchTerm}
@@ -437,6 +427,16 @@ export default function WorkspacePage() {
                   onClear={() => setSearchTerm('')}
                   clearable
                 />
+                <div className="shrink-0">
+                  <Button
+                    ref={createProjectBtnRef}
+                    onClick={handleOpenCreateDialog}
+                    size="sm"
+                  >
+                    <Plus className="mr-1.5 size-3.5" />
+                    新建项目
+                  </Button>
+                </div>
               </div>
               <ViewToggle value={viewMode} onValueChange={setViewMode} />
             </div>

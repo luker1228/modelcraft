@@ -40,8 +40,8 @@ const CopilotProvider = memo(({ children, orgName }: CopilotProviderProps) => {
   const selectedProject = useAppStore((s) => s.selectedProject)
 
   const copilotContext = useMemo(() => ({
-    projectId: selectedProject?.id || 'default',
-    projectSlug: selectedProject?.slug || 'Default Project',
+    projectId: selectedProject?.id || '',
+    projectSlug: selectedProject?.slug || '',
     orgName,
     currentRoute: pathname,
   }), [selectedProject?.id, selectedProject?.slug, orgName, pathname])
@@ -52,8 +52,8 @@ const CopilotProvider = memo(({ children, orgName }: CopilotProviderProps) => {
   )
 
   const initialMessage = useMemo(() => {
-    const projectSlug = selectedProject?.slug || 'Default Project'
-    return `你好！我是 ModelCraft AI 助手，当前项目：${projectSlug}。
+    const projectText = selectedProject?.slug ? `当前项目：${selectedProject.slug}` : '当前未选择项目'
+    return `你好！我是 ModelCraft AI 助手，${projectText}。
 
 我可以帮助你：
 

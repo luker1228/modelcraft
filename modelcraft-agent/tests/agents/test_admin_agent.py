@@ -110,7 +110,39 @@ def test_should_force_proposal_on_turn_for_direct_navigation():
         proposal_available=True,
         is_direct_nav_intent=True,
         is_list_nav_intent=False,
+        is_project_required_intent=False,
         history_has_list_tools=False,
+        history_has_project_list=False,
+        history_has_proposal=False,
+    ) is True
+
+
+def test_should_not_force_project_required_navigation_before_project_list():
+    """Project-required navigation must list projects before showing route candidates."""
+    from agents.admin_agent import _should_force_proposal_on_turn
+
+    assert _should_force_proposal_on_turn(
+        proposal_available=True,
+        is_direct_nav_intent=True,
+        is_list_nav_intent=False,
+        is_project_required_intent=True,
+        history_has_list_tools=False,
+        history_has_project_list=False,
+        history_has_proposal=False,
+    ) is False
+
+
+def test_should_force_project_required_navigation_after_project_list():
+    """After list_projects runs in the current turn, project-required navigation can present candidates."""
+    from agents.admin_agent import _should_force_proposal_on_turn
+
+    assert _should_force_proposal_on_turn(
+        proposal_available=True,
+        is_direct_nav_intent=True,
+        is_list_nav_intent=False,
+        is_project_required_intent=True,
+        history_has_list_tools=False,
+        history_has_project_list=True,
         history_has_proposal=False,
     ) is True
 
@@ -123,7 +155,9 @@ def test_should_force_proposal_on_turn_for_list_navigation_after_listing():
         proposal_available=True,
         is_direct_nav_intent=False,
         is_list_nav_intent=True,
+        is_project_required_intent=False,
         history_has_list_tools=True,
+        history_has_project_list=False,
         history_has_proposal=False,
     ) is True
 
@@ -136,7 +170,9 @@ def test_should_not_force_proposal_on_first_list_turn_without_history():
         proposal_available=True,
         is_direct_nav_intent=False,
         is_list_nav_intent=True,
+        is_project_required_intent=False,
         history_has_list_tools=False,
+        history_has_project_list=False,
         history_has_proposal=False,
     ) is False
 
@@ -149,7 +185,9 @@ def test_should_not_force_proposal_when_proposal_already_presented():
         proposal_available=True,
         is_direct_nav_intent=True,
         is_list_nav_intent=False,
+        is_project_required_intent=False,
         history_has_list_tools=False,
+        history_has_project_list=False,
         history_has_proposal=True,
     ) is False
 

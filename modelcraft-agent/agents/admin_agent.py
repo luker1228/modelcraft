@@ -92,6 +92,24 @@ _LIST_NAV_INTENT_HINTS = (
     "列出模型",
 )
 
+_PROJECT_REQUIRED_INTENT_HINTS = (
+    "模型",
+    "字段",
+    "数据管理",
+    "数据记录",
+    "记录",
+    "枚举",
+    "enum",
+    "RBAC",
+    "权限",
+    "角色",
+    "权限包",
+    "权限点",
+    "项目设置",
+    "数据库",
+    "集群",
+)
+
 
 def _message_text(message: Any) -> str:
     """Best-effort extraction of textual content from dict/LC message."""
@@ -178,12 +196,18 @@ def _is_list_navigation_intent(user_text: str) -> bool:
     return any(k in user_text for k in _LIST_NAV_INTENT_HINTS)
 
 
+def _is_project_required_intent(user_text: str) -> bool:
+    return any(k in user_text for k in _PROJECT_REQUIRED_INTENT_HINTS)
+
+
 def _should_force_proposal_on_turn(
     *,
     proposal_available: bool,
     is_direct_nav_intent: bool,
     is_list_nav_intent: bool,
+    is_project_required_intent: bool,
     history_has_list_tools: bool,
+    history_has_project_list: bool,
     history_has_proposal: bool,
 ) -> bool:
     """Return whether this turn must force a ui_present_proposal tool call.
@@ -193,11 +217,11 @@ def _should_force_proposal_on_turn(
     agent_node after frontend tool results and the latest user text still
     matches navigation intent keywords.
     """
-    if history_has_proposal:
+    if history_has_proposal or not proposal_available:
         return False
-    return proposal_available and (
-        is_direct_nav_intent or (is_list_nav_intent and history_has_list_tools)
-    )
+    if is_project_required_intent:
+        return history_has_project_list
+    return is_direct_nav_intent or (is_list_nav_intent and history_has_list_tools)
 
 
 def _build_admin_graph() -> Any:
@@ -219,6 +243,7 @@ def _build_admin_graph() -> Any:
         latest_user_text = _latest_user_text(state)
         is_direct_nav_intent = _is_direct_navigation_intent(latest_user_text)
         is_list_nav_intent = _is_list_navigation_intent(latest_user_text)
+        is_project_required_intent = _is_project_required_intent(latest_user_text)
 
         # Merge frontend tools (registered by useCopilotAction) into the LLM for this turn.
         # CopilotKit puts them in state["copilotkit"]["actions"] as plain dicts.
@@ -229,13 +254,16 @@ def _build_admin_graph() -> Any:
             if isinstance(t, dict) and t.get("name")
         }
         proposal_available = "ui_present_proposal" in frontend_tool_names
-        history_has_list_tools = _history_has_tool_call(state, {"list_projects", "list_models"})
+        history_has_list_tools = _history_has_tool_call_since_latest_user(state, {"list_projects", "list_models"})
+        history_has_project_list = _history_has_tool_call_since_latest_user(state, {"list_projects"})
         history_has_proposal = _history_has_tool_call_since_latest_user(state, {"ui_present_proposal"})
         force_proposal_on_this_turn = _should_force_proposal_on_turn(
             proposal_available=proposal_available,
             is_direct_nav_intent=is_direct_nav_intent,
             is_list_nav_intent=is_list_nav_intent,
+            is_project_required_intent=is_project_required_intent,
             history_has_list_tools=history_has_list_tools,
+            history_has_project_list=history_has_project_list,
             history_has_proposal=history_has_proposal,
         )
 
@@ -247,7 +275,9 @@ def _build_admin_graph() -> Any:
                    latest_user_text=latest_user_text[:120],
                    is_direct_nav_intent=is_direct_nav_intent,
                    is_list_nav_intent=is_list_nav_intent,
+                   is_project_required_intent=is_project_required_intent,
                    history_has_list_tools=history_has_list_tools,
+                   history_has_project_list=history_has_project_list,
                    history_has_proposal=history_has_proposal,
                    force_proposal_on_this_turn=force_proposal_on_this_turn)
 
@@ -324,13 +354,15 @@ def _build_admin_graph() -> Any:
                 "═══════════════════════════════════════\n\n"
                 "▌ 类型 A — 纯导航意图\n"
                 "  触发词：去哪里 / 怎么进入 / 帮我跳转 / 在哪里配置 / 找到 X 页面 / 怎么操作 X\n"
-                "  ✅ 正确做法：直接调用 ui_present_proposal，candidates 从 routeCatalog 选取\n"
-                "  ❌ 禁止：先调用任何后端工具（list_databases、list_models 等）再导航\n\n"
+                "  ✅ 正确做法：若目标 routeCatalog.requiresProject=false，直接调用 ui_present_proposal\n"
+                "  ✅ 若目标 routeCatalog.requiresProject=true，必须先调用 list_projects：\n"
+                "     - 有项目：用 ui_present_proposal 让用户选择项目，再跳到该项目下目标页面\n"
+                "     - 无项目：用 ui_present_proposal 推荐先去 /org/{org}/workspace 创建项目\n"
+                "  ❌ 禁止：没有 list_projects 结果时直接推荐或进入 requiresProject=true 的页面\n\n"
                 "▌ 类型 B — 列举可导航资源（项目/模型）\n"
                 "  触发词：有哪些项目 / 列出项目 / 当前项目 / 有哪些模型\n"
-                "  ✅ 正确做法：先调 list_projects / list_models 获取列表，\n"
-                "              再调 ui_present_proposal，每个资源对应一个 action_candidate，\n"
-                "              点击跳转到该资源（项目→model-editor，模型→model-editor#modelName）\n"
+                "  ✅ 问项目：先调 list_projects，再调 ui_present_proposal，每个项目一个 action_candidate\n"
+                "  ✅ 问模型/字段/数据等 project 资源：先调 list_projects，让用户选择项目；选中项目后再查 list_models\n"
                 "  ❌ 禁止：只用文字列出，不调 ui_present_proposal\n\n"
                 "▌ 类型 C — 纯数据查询（字段值、记录内容）\n"
                 "  触发词：查询 / 显示数据 / X 字段的值 / 有多少条记录\n"
@@ -340,8 +372,11 @@ def _build_admin_graph() -> Any:
                 "═══════════════════════════════════════\n"
                 "ORG_SKILL / PROJECT_SKILL：\n"
                 "1) 任何导航意图必须调用 ui_present_proposal，禁止只输出文字指路\n"
-                "2) 问“有哪些项目/模型”时，若调用了 list_projects/list_models，后续必须再调用 ui_present_proposal 返回可点击候选\n"
-                "3) ui.navigate/ui.highlight/ui.guide 只能由前端在用户点击后执行，Agent 不直接执行页面动作\n\n"
+                "2) routeCatalog.requiresProject=true 或后端工具 list_databases/list_models/get_model_fields/query_model 都依赖项目存在\n"
+                "3) 执行上述 project 依赖动作前，本轮必须先调用 list_projects；不能依赖历史 sticky projectSlug\n"
+                "4) list_projects 为空时，不调用 project 依赖工具；改为推荐用户先创建项目\n"
+                "5) 问“有哪些项目/模型”时，若调用了 list_projects/list_models，后续必须再调用 ui_present_proposal 返回可点击候选\n"
+                "6) ui.navigate/ui.highlight/ui.guide 只能由前端在用户点击后执行，Agent 不直接执行页面动作\n\n"
                 "═══════════════════════════════════════\n"
                 "【ui_present_proposal 调用规范】\n"
                 "═══════════════════════════════════════\n"
@@ -379,7 +414,20 @@ def _build_admin_graph() -> Any:
 
         # Hard guard: retry once with stricter forcing if proposal tool was not called.
         has_ui_proposal_call = _has_tool_call(response, "ui_present_proposal")
-        should_retry_for_direct_nav = proposal_available and is_direct_nav_intent and not has_ui_proposal_call and not history_has_proposal
+        should_retry_for_direct_nav = (
+            proposal_available
+            and is_direct_nav_intent
+            and not is_project_required_intent
+            and not has_ui_proposal_call
+            and not history_has_proposal
+        )
+        should_retry_for_project_required_nav = (
+            proposal_available
+            and is_project_required_intent
+            and history_has_project_list
+            and not has_ui_proposal_call
+            and not history_has_proposal
+        )
         should_retry_for_list_nav = (
             proposal_available
             and is_list_nav_intent
@@ -388,7 +436,7 @@ def _build_admin_graph() -> Any:
             and not history_has_proposal
         )
 
-        if should_retry_for_direct_nav or should_retry_for_list_nav:
+        if should_retry_for_direct_nav or should_retry_for_project_required_nav or should_retry_for_list_nav:
             retry_hint = SystemMessage(content=(
                 "【SKILL_GUARD_RETRY】你刚才没有按强约束调用 ui_present_proposal。\n"
                 "现在必须改为调用 ui_present_proposal 并返回结构化 candidates。\n"
