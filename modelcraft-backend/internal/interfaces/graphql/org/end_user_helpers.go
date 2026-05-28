@@ -104,3 +104,21 @@ func convertOrgResetEndUserPasswordError(err *bizerrors.BusinessError) generated
 		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
+
+func convertOrgCreateUserError(err *bizerrors.BusinessError) generated.CreateUserError {
+	if err == nil {
+		return nil
+	}
+	switch err.Info().GetCode() {
+	case bizerrors.EndUserConflict.GetCode(), bizerrors.Conflict.GetCode():
+		return &generated.EndUserAlreadyExists{Message: err.Msg()}
+	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
+		if strings.Contains(strings.ToLower(err.Msg()), "password") {
+			suggestion := "Use at least 8 characters containing letters and digits"
+			return &generated.EndUserPasswordTooWeak{Message: err.Msg(), Suggestion: &suggestion}
+		}
+		return &generated.InvalidInput{Message: err.Msg()}
+	default:
+		return &generated.InvalidInput{Message: err.Msg()}
+	}
+}

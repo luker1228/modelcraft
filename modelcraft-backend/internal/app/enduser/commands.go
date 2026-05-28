@@ -214,3 +214,21 @@ type MetaUserFindManyResult struct {
 	NextCursor string // 下一页 cursor（Base64 编码）；空字符串表示无更多数据
 	HasMore    bool
 }
+
+// CreateUserCommand 创建统一用户（管理员或普通用户）。
+type CreateUserCommand struct {
+	OrgName  string
+	Username string
+	Password string
+	IsAdmin  bool
+}
+
+// CreateUserResult 创建用户的返回结果。
+type CreateUserResult struct {
+	ID          string
+	Username    string
+	IsAdmin     bool
+	IsForbidden bool
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}

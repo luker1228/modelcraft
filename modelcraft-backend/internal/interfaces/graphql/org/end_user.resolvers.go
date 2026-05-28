@@ -244,6 +244,62 @@ func (r *mutationResolver) ResetEndUserPassword(ctx context.Context, input gener
 	return &generated.ResetEndUserPasswordPayload{Success: true}, nil
 }
 
+// CreateUser is the resolver for the createUser field.
+func (r *mutationResolver) CreateUser(ctx context.Context, input generated.CreateUserInput) (*generated.CreateUserPayload, error) {
+	if strings.TrimSpace(input.Username) == "" {
+		return &generated.CreateUserPayload{
+			Error: &generated.InvalidInput{Message: "username is required"},
+		}, nil
+	}
+	if strings.TrimSpace(input.Password) == "" {
+		return &generated.CreateUserPayload{
+			Error: &generated.InvalidInput{Message: "password is required"},
+		}, nil
+	}
+
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		return &generated.CreateUserPayload{
+			Error: &generated.InvalidInput{Message: "user management service not initialized"},
+		}, nil
+	}
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.CreateUserPayload{
+			Error: &generated.InvalidInput{Message: "orgName not found in context"},
+		}, nil
+	}
+
+	result, err := service.CreateUser(ctx, appEnduser.CreateUserCommand{
+		OrgName:  orgName,
+		Username: input.Username,
+		Password: input.Password,
+		IsAdmin:  input.IsAdmin,
+	})
+	if err != nil {
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			logfacade.GetLogger(ctx).Error(ctx, "failed to create user",
+				logfacade.Err(bizErr), logfacade.Stack(bizErr))
+			return &generated.CreateUserPayload{Error: convertOrgCreateUserError(bizErr)}, nil
+		}
+		return nil, err
+	}
+
+	return &generated.CreateUserPayload{
+		User: &generated.EndUser{
+			ID:          result.ID,
+			Username:    result.Username,
+			IsForbidden: result.IsForbidden,
+			IsBuiltin:   false,
+			CreatedBy:   nil,
+			CreatedAt:   result.CreatedAt,
+			UpdatedAt:   result.UpdatedAt,
+		},
+	}, nil
+}
+
 // ListEndUsers is the resolver for the listEndUsers field.
 func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListEndUsersInput) (*generated.ListEndUsersPayload, error) {
 	service := r.EndUserMgmtAppService
@@ -386,6 +442,53 @@ func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWher
 
 // EndUserProjects is the resolver for the endUserProjects field.
 func (r *queryResolver) EndUserProjects(ctx context.Context) ([]*generated.Project, error) {
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")
+	}
+
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "user context required")
+	}
+
+	service := r.EndUserMgmtAppService
+	if service == nil {
+		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "end-user service not initialized")
+	}
+
+	projects, err := service.ListAccessibleProjects(ctx, orgName, userID)
+	if err != nil {
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			return nil, newGQLError(bizErr.Msg(), bizErr.Info().GetCode())
+		}
+		return nil, err
+	}
+
+	result := make([]*generated.Project, 0, len(projects))
+	for _, p := range projects {
+		status := generated.ProjectStatusActive
+		if p.Status == "archived" {
+			status = generated.ProjectStatusArchived
+		}
+		result = append(result, &generated.Project{
+			ID:          p.Slug,
+			Slug:        p.Slug,
+			Title:       p.Title,
+			Description: p.Description,
+			Status:      status,
+			OrgName:     orgName,
+			AuthSchema:  &generated.ProjectAuthSchema{Variables: []*generated.AuthVariable{}},
+			CreatedAt:   p.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			UpdatedAt:   p.UpdatedAt.Format("2006-01-02T15:04:05Z07:00"),
+		})
+	}
+	return result, nil
+}
+
+// MyProjects is the resolver for the myProjects field.
+func (r *queryResolver) MyProjects(ctx context.Context) ([]*generated.Project, error) {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "organization context required")

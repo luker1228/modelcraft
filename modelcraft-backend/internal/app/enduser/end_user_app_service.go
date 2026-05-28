@@ -268,6 +268,59 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 	}
 }
 
+// CreateUser 创建统一用户（管理员或普通用户）。
+// 与 CreateEndUser 不同：支持 isAdmin，同时更新 user_orgs.is_admin。
+func (s *EndUserManagementAppService) CreateUser(
+	ctx context.Context,
+	cmd CreateUserCommand,
+) (*CreateUserResult, error) {
+	if err := domainenduser.ValidatePasswordStrength(cmd.Password); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
+	}
+	if err := domainenduser.ValidateUsername(cmd.Username); err != nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
+	}
+
+	hashedPwd, err := domainenduser.NewHashedPasswordFromPlain(cmd.Password)
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "failed to hash password")
+	}
+
+	userID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "failed to generate user id")
+	}
+
+	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, hashedPwd)
+	if err != nil {
+		return nil, bizerrors.Wrapf(err, "failed to create user entity")
+	}
+
+	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
+	if err := repo.Save(ctx, user); err != nil {
+		if shared.IsRepoError(err, shared.ErrTypeDuplicatedKey) || shared.IsDuplicateKeyError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserConflict, cmd.Username)
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	if cmd.IsAdmin {
+		const updateIsAdmin = `UPDATE user_orgs SET is_admin = 1, updated_at = NOW(3) WHERE user_id = ? AND org_name = ? AND deleted_at = 0`
+		if _, execErr := s.db.ExecContext(ctx, updateIsAdmin, user.ID, cmd.OrgName); execErr != nil {
+			return nil, bizerrors.Wrapf(execErr, "failed to set user as admin")
+		}
+	}
+
+	return &CreateUserResult{
+		ID:          user.ID,
+		Username:    user.Username,
+		IsAdmin:     cmd.IsAdmin,
+		IsForbidden: user.IsForbidden,
+		CreatedAt:   user.CreatedAt,
+		UpdatedAt:   user.UpdatedAt,
+	}, nil
+}
+
 func (s *EndUserManagementAppService) convertRepoError(ctx context.Context, err error, username string) error {
 	if shared.IsRepoError(err, shared.ErrTypeDuplicatedKey) || shared.IsDuplicateKeyError(err) {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserConflict, username)
