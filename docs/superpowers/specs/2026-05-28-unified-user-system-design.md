@@ -200,8 +200,36 @@ revokeProjectRole(userId: ID!, projectSlug: String!, roleName: String!): ...
 
 ---
 
-## 遗留问题 / 后续决策
+## 授权模型
 
-- [ ] `builtin` end-user（每个 Org 自动创建的内置账号）迁移策略待确认
-- [ ] refresh token 存储：原有两个 cookie（`mc_refresh_token` / `mc_enduser_refresh_token`）合并为一个
-- [ ] 用户名冲突的迁移脚本需要人工审核
+### 默认：所有接口仅 admin 可调用
+
+Org Schema 的所有 mutation/query，默认只有 `is_admin=true` 的用户可以调用。
+
+**例外**：显式标记 `allowEndUser` 的接口才允许普通用户访问，例如：
+- `myProjects` — 普通用户查自己的项目列表
+- `me` — 查当前用户信息
+
+授权检查在 **resolver 层**做（不在中间件层），从 context 中读取 `IsAdmin`，不通过直接返回 Unauthorized 错误。
+
+### Gateway Header 注入
+
+Gateway 从统一 ES256 token claims 中读取并注入以下 header，Backend 无条件信任：
+
+```
+X-User-ID:   <user_id>
+X-Org-Name:  <org_name>
+X-Is-Admin:  true | false
+```
+
+### accounts 表
+
+私有 DB 的 `accounts` 表（存 refresh token）`user_id` FK 改为指向统一 `users` 表。破坏性更新，直接清表重建，不保留旧数据。
+
+---
+
+## 已决策事项
+
+- **builtin end-user**：直接废弃，不迁移。本质是 tenant-user 在 end-user 侧的镜像实体，合并后无需保留。
+- **refresh token cookie**：原 `mc_refresh_token` + `mc_enduser_refresh_token` 合并为一个 cookie。
+- **数据迁移**：破坏性更新，不保留旧数据，不写迁移脚本。
