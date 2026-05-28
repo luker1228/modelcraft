@@ -11,7 +11,6 @@ import (
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
-	"time"
 
 	bizerrors "modelcraft/pkg/bizerrors"
 )
@@ -66,33 +65,14 @@ func UserToDomain(row dbgen.User) *user.User {
 	}
 }
 
-// MembershipToDomain converts a dbgen.UserOrganization row to a domain Membership entity.
-func MembershipToDomain(row dbgen.UserOrganization) *membership.Membership {
-	var invitedBy string
-	if row.InvitedBy.Valid {
-		invitedBy = row.InvitedBy.String
-	}
-
-	var invitedAt *time.Time
-	if row.InvitedAt.Valid {
-		t := row.InvitedAt.Time
-		invitedAt = &t
-	}
-
-	var joinedAt *time.Time
-	if row.JoinedAt.Valid {
-		t := row.JoinedAt.Time
-		joinedAt = &t
-	}
-
+// MembershipToDomain converts a dbgen.UserOrg row to a domain Membership entity.
+func MembershipToDomain(row dbgen.UserOrg) *membership.Membership {
 	return &membership.Membership{
 		ID:        row.ID,
 		UserID:    row.UserID,
 		OrgName:   row.OrgName,
+		IsAdmin:   row.IsAdmin,
 		Status:    membership.MembershipStatus(row.Status),
-		InvitedBy: invitedBy,
-		InvitedAt: invitedAt,
-		JoinedAt:  joinedAt,
 		CreatedAt: row.CreatedAt,
 		UpdatedAt: row.UpdatedAt,
 	}
@@ -361,13 +341,10 @@ func NewSqlMembershipRepository(q dbgen.Querier) membership.MembershipRepository
 // Create persists a new membership to the database.
 func (r *SqlMembershipRepository) Create(ctx context.Context, m *membership.Membership) error {
 	params := dbgen.CreateMembershipParams{
-		ID:        m.ID,
-		UserID:    m.UserID,
-		OrgName:   m.OrgName,
-		Status:    string(m.Status),
-		InvitedBy: StrToNullStr(m.InvitedBy),
-		InvitedAt: sqlerr.PtrToNullTime(m.InvitedAt),
-		JoinedAt:  sqlerr.PtrToNullTime(m.JoinedAt),
+		ID:      m.ID,
+		UserID:  m.UserID,
+		OrgName: m.OrgName,
+		Status:  string(m.Status),
 	}
 
 	return r.q.CreateMembership(ctx, params)
@@ -433,15 +410,12 @@ func (r *SqlMembershipRepository) ListByOrgWithUserName(
 
 	result := make([]*membership.MembershipWithUserName, len(rows))
 	for i, row := range rows {
-		// Reconstruct the canonical UserOrganization row from the joined result fields.
-		uOrg := dbgen.UserOrganization{
+		// Reconstruct the canonical UserOrg row from the joined result fields.
+		uOrg := dbgen.UserOrg{
 			ID:        row.ID,
 			UserID:    row.UserID,
 			OrgName:   row.OrgName,
 			Status:    row.Status,
-			InvitedBy: row.InvitedBy,
-			InvitedAt: row.InvitedAt,
-			JoinedAt:  row.JoinedAt,
 			CreatedAt: row.CreatedAt,
 			UpdatedAt: row.UpdatedAt,
 		}
@@ -506,10 +480,7 @@ func (r *SqlMembershipRepository) ListByUserWithDetails(
 			displayName = row.OrgDisplayName.String
 		}
 
-		var joinedAt time.Time
-		if row.JoinedAt.Valid {
-			joinedAt = row.JoinedAt.Time
-		}
+		joinedAt := row.CreatedAt
 
 		details[i] = &membership.MembershipWithDetails{
 			OrgName:     row.OrgName,
@@ -522,14 +493,11 @@ func (r *SqlMembershipRepository) ListByUserWithDetails(
 	return details, nil
 }
 
-// Update persists changes to an existing membership: status, invited_by, invited_at, joined_at.
+// Update persists changes to an existing membership: status.
 func (r *SqlMembershipRepository) Update(ctx context.Context, m *membership.Membership) error {
 	params := dbgen.UpdateMembershipParams{
-		Status:    string(m.Status),
-		InvitedBy: StrToNullStr(m.InvitedBy),
-		InvitedAt: sqlerr.PtrToNullTime(m.InvitedAt),
-		JoinedAt:  sqlerr.PtrToNullTime(m.JoinedAt),
-		ID:        m.ID,
+		Status: string(m.Status),
+		ID:     m.ID,
 	}
 
 	return r.q.UpdateMembership(ctx, params)

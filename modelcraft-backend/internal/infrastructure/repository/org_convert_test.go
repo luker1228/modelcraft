@@ -100,20 +100,18 @@ func TestUserToDomain(t *testing.T) {
 	})
 }
 
-// TestMembershipToDomain verifies that dbgen.UserOrganization rows are correctly converted
-// to domain Membership entities, covering all field mappings and nullable time handling.
+// TestMembershipToDomain verifies that dbgen.UserOrg rows are correctly converted
+// to domain Membership entities, covering all field mappings including IsAdmin.
 func TestMembershipToDomain(t *testing.T) {
 	now := time.Now().Truncate(time.Millisecond)
 
-	t.Run("all fields set", func(t *testing.T) {
-		row := dbgen.UserOrganization{
+	t.Run("all fields set with IsAdmin true", func(t *testing.T) {
+		row := dbgen.UserOrg{
 			ID:        "mem-1",
 			UserID:    "user-1",
 			OrgName:   "my-org",
+			IsAdmin:   true,
 			Status:    "active",
-			InvitedBy: sql.NullString{String: "admin-user", Valid: true},
-			InvitedAt: sql.NullTime{Time: now, Valid: true},
-			JoinedAt:  sql.NullTime{Time: now, Valid: true},
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
@@ -123,31 +121,26 @@ func TestMembershipToDomain(t *testing.T) {
 		assert.Equal(t, "mem-1", entity.ID)
 		assert.Equal(t, "user-1", entity.UserID)
 		assert.Equal(t, "my-org", entity.OrgName)
+		assert.True(t, entity.IsAdmin)
 		assert.Equal(t, membership.MembershipStatusActive, entity.Status)
-		assert.Equal(t, "admin-user", entity.InvitedBy)
-		assert.NotNil(t, entity.InvitedAt)
-		assert.Equal(t, now, *entity.InvitedAt)
-		assert.NotNil(t, entity.JoinedAt)
-		assert.Equal(t, now, *entity.JoinedAt)
 		assert.Equal(t, now, entity.CreatedAt)
 		assert.Equal(t, now, entity.UpdatedAt)
 	})
 
-	t.Run("nullable fields NULL", func(t *testing.T) {
-		row := dbgen.UserOrganization{
+	t.Run("IsAdmin false, status suspended", func(t *testing.T) {
+		row := dbgen.UserOrg{
 			ID:        "mem-2",
 			UserID:    "user-2",
 			OrgName:   "other-org",
-			Status:    "invited",
+			IsAdmin:   false,
+			Status:    "suspended",
 			CreatedAt: now,
 			UpdatedAt: now,
 		}
 
 		entity := repository.MembershipToDomain(row)
 
-		assert.Equal(t, "", entity.InvitedBy)
-		assert.Nil(t, entity.InvitedAt)
-		assert.Nil(t, entity.JoinedAt)
-		assert.Equal(t, membership.MembershipStatusInvited, entity.Status)
+		assert.False(t, entity.IsAdmin)
+		assert.Equal(t, membership.MembershipStatusSuspended, entity.Status)
 	})
 }

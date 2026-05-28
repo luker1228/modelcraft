@@ -175,12 +175,6 @@ func (r *queryResolver) OrganizationMembers(ctx context.Context) ([]*generated.O
 
 	result := make([]*generated.OrganizationMember, len(members))
 	for i, m := range members {
-		var joinedAt *string
-		if m.Membership.JoinedAt != nil {
-			s := m.Membership.JoinedAt.Format("2006-01-02T15:04:05Z07:00")
-			joinedAt = &s
-		}
-
 		result[i] = &generated.OrganizationMember{
 			ID:        m.Membership.ID,
 			UserID:    m.Membership.UserID,
@@ -188,7 +182,7 @@ func (r *queryResolver) OrganizationMembers(ctx context.Context) ([]*generated.O
 			OrgID:     m.Membership.OrgName,
 			Role:      adapter.UserManagementMapperInstance.ConvertCasbinRoleToGraphQL(m.Role),
 			Status:    generated.MembershipStatus(m.Membership.Status),
-			JoinedAt:  joinedAt,
+			JoinedAt:  nil,
 			CreatedAt: m.Membership.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
