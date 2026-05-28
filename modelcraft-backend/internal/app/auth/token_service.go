@@ -242,7 +242,9 @@ func (s *TokenService) createUserAndProfile(
 ) error {
 	persist := func(
 		ctx context.Context, userRepo domainUser.UserRepository, profileRepo domainProfile.Repository,
-	) error { return s.persistUserAndProfile(ctx, userRepo, profileRepo, u, p, maskedPhone) }
+	) error {
+		return s.persistUserAndProfile(ctx, userRepo, profileRepo, u, p, maskedPhone)
+	}
 
 	if s.txManager == nil {
 		if s.profileRepo == nil {

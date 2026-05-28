@@ -86,6 +86,9 @@ func (s *ModelDatabaseAppService) Register(ctx context.Context, cmd RegisterComm
 	}
 	cluster, err := s.clusterRepo.GetByProjectKey(ctx, orgName, projectSlug)
 	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewError(bizerrors.NotFound, "此项目未配置数据库集群，请先在项目设置中配置集群")
+		}
 		return nil, err
 	}
 	_, dupErr := s.dbRepo.GetByName(ctx, orgName, projectSlug, cmd.Name)

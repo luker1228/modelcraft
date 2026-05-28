@@ -19,6 +19,16 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@web/components/ui/alert-dialog'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
 import {
   useModelDatabases,
@@ -35,6 +45,7 @@ export default function DatabasesPage() {
 
   const [registerOpen, setRegisterOpen] = useState(false)
   const [editTarget, setEditTarget] = useState<ModelDatabase | null>(null)
+  const [unregisterTarget, setUnregisterTarget] = useState<ModelDatabase | null>(null)
 
   return (
     <PageLayout maxWidth="7xl" padding="default">
@@ -129,7 +140,7 @@ export default function DatabasesPage() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 className="text-destructive focus:text-destructive"
-                                onClick={() => unregister(db.id)}
+                                onClick={() => setUnregisterTarget(db)}
                               >
                                 <Trash2 className="mr-2 size-3.5" />
                                 取消接管
@@ -149,6 +160,34 @@ export default function DatabasesPage() {
 
       <RegisterDatabaseDialog open={registerOpen} onOpenChange={setRegisterOpen} />
       <EditDatabaseSheet database={editTarget} onClose={() => setEditTarget(null)} />
+
+      <AlertDialog
+        open={unregisterTarget !== null}
+        onOpenChange={(open) => { if (!open) setUnregisterTarget(null) }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确定取消接管？</AlertDialogTitle>
+            <AlertDialogDescription>
+              确定取消接管 {unregisterTarget?.title} 吗？已关联的模型将无法通过此入口访问数据库。
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (unregisterTarget) {
+                  void unregister(unregisterTarget.id)
+                  setUnregisterTarget(null)
+                }
+              }}
+            >
+              确认取消接管
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </PageLayout>
   )
 }

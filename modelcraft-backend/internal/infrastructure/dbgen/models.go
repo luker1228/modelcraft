@@ -639,7 +639,7 @@ type ModelDatabase struct {
 	// 用户设置的友好名称，默认等于 name
 	Title string
 	// 可选描述
-	Description sql.NullString
+	Description string
 	// self_hosted=可读写; managed=只读
 	Mode ModelDatabaseMode
 	// 软删除时间戳，0 表示活跃

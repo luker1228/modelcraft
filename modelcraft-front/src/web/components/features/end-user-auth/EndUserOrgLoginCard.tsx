@@ -61,9 +61,9 @@ function PasswordInput<T extends FieldValues>({
         onClick={() => setShowPassword(!showPassword)}
       >
         {showPassword ? (
-          <EyeOff className="size-4" strokeWidth={1.5} />
-        ) : (
           <Eye className="size-4" strokeWidth={1.5} />
+        ) : (
+          <EyeOff className="size-4" strokeWidth={1.5} />
         )}
       </button>
     </div>
