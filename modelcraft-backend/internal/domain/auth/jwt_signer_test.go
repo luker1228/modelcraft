@@ -146,3 +146,38 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		}
 	})
 }
+
+func TestIssueAccessTokenIsAdmin(t *testing.T) {
+	signer, err := GenerateDevSigner()
+	if err != nil {
+		t.Fatalf("GenerateDevSigner: %v", err)
+	}
+
+	t.Run("admin flag is true", func(t *testing.T) {
+		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudienceTenant}, true)
+		if err != nil {
+			t.Fatalf("IssueAccessToken: %v", err)
+		}
+		claims, err := signer.ParsePlatformClaims(token)
+		if err != nil {
+			t.Fatalf("ParsePlatformClaims: %v", err)
+		}
+		if !claims.IsAdmin {
+			t.Error("expected IsAdmin=true")
+		}
+	})
+
+	t.Run("admin flag is false", func(t *testing.T) {
+		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudienceTenant}, false)
+		if err != nil {
+			t.Fatalf("IssueAccessToken: %v", err)
+		}
+		claims, err := signer.ParsePlatformClaims(token)
+		if err != nil {
+			t.Fatalf("ParsePlatformClaims: %v", err)
+		}
+		if claims.IsAdmin {
+			t.Error("expected IsAdmin=false")
+		}
+	})
+}

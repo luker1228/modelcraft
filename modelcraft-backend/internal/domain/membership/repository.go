@@ -10,6 +10,7 @@ type MembershipWithDetails struct {
 	OrgName     string    // 组织名称（唯一标识符）
 	DisplayName string    // 组织显示名称
 	RoleName    string    // 角色名称
+	IsAdmin     bool      // 是否为管理员
 	JoinedAt    time.Time // 加入时间
 }
 

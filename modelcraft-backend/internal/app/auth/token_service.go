@@ -387,18 +387,22 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// Fetch user's primary organization (first one)
+	// Fetch user's primary organization and admin status (single Org per user)
 	var orgName string
+	var isAdmin bool
 	if s.membershipRepo != nil {
 		memberships, listErr := s.membershipRepo.ListByUserWithDetails(ctx, u.ID, 1)
 		if listErr == nil && len(memberships) > 0 {
 			orgName = memberships[0].OrgName
+			isAdmin = memberships[0].IsAdmin
 		}
 	}
 
 	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
 
-	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, orgName, jwt.ClaimStrings{domainauth.AudienceTenant}, false)
+	accessToken, err := s.jwtSigner.IssueAccessToken(
+		u.ID, orgName, jwt.ClaimStrings{domainauth.AudienceTenant}, isAdmin,
+	)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}
@@ -531,17 +535,19 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 
 	logger.Infof(ctx, "Token refreshed: user_id=%s", token.UserID)
 
-	// 查询用户的主 org（与 Login 路径一致，取第一个 membership 的 OrgName）
+	// 查询用户的主 org（与 Login 路径一致，取第一个 membership 的 OrgName 和 IsAdmin）
 	var refreshOrgName string
+	var refreshIsAdmin bool
 	if s.membershipRepo != nil {
 		memberships, listErr := s.membershipRepo.ListByUserWithDetails(ctx, token.UserID, 1)
 		if listErr == nil && len(memberships) > 0 {
 			refreshOrgName = memberships[0].OrgName
+			refreshIsAdmin = memberships[0].IsAdmin
 		}
 	}
 
 	accessToken, err := s.jwtSigner.IssueAccessToken(
-		token.UserID, refreshOrgName, jwt.ClaimStrings{domainauth.AudienceTenant}, false,
+		token.UserID, refreshOrgName, jwt.ClaimStrings{domainauth.AudienceTenant}, refreshIsAdmin,
 	)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")

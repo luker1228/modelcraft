@@ -384,7 +384,7 @@ func (q *Queries) ListMembershipsByUser(ctx context.Context, userID string) ([]U
 }
 
 const listMembershipsWithOrgDetails = `-- name: ListMembershipsWithOrgDetails :many
-SELECT m.id, m.user_id, m.org_name, m.status, m.created_at, m.updated_at,
+SELECT m.id, m.user_id, m.org_name, m.is_admin, m.status, m.created_at, m.updated_at,
        o.display_name AS org_display_name
 FROM user_orgs m
 INNER JOIN organizations o ON m.org_name = o.name
@@ -401,6 +401,7 @@ type ListMembershipsWithOrgDetailsRow struct {
 	ID             string
 	UserID         string
 	OrgName        string
+	IsAdmin        bool
 	Status         string
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
@@ -420,6 +421,7 @@ func (q *Queries) ListMembershipsWithOrgDetails(ctx context.Context, arg ListMem
 			&i.ID,
 			&i.UserID,
 			&i.OrgName,
+			&i.IsAdmin,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,

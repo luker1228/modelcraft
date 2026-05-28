@@ -67,7 +67,7 @@ ORDER BY created_at DESC;
 SELECT COUNT(*) FROM user_orgs WHERE user_id = ? AND `user_orgs`.`deleted_at` = 0;
 
 -- name: ListMembershipsWithOrgDetails :many
-SELECT m.id, m.user_id, m.org_name, m.status, m.created_at, m.updated_at,
+SELECT m.id, m.user_id, m.org_name, m.is_admin, m.status, m.created_at, m.updated_at,
        o.display_name AS org_display_name
 FROM user_orgs m
 INNER JOIN organizations o ON m.org_name = o.name

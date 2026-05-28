@@ -486,6 +486,7 @@ func (r *SqlMembershipRepository) ListByUserWithDetails(
 			OrgName:     row.OrgName,
 			DisplayName: displayName,
 			RoleName:    "",
+			IsAdmin:     row.IsAdmin,
 			JoinedAt:    joinedAt,
 		}
 	}
