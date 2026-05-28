@@ -16,7 +16,7 @@ import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, getEndUserLoginPath } from '@s
  *  - All /end-user/* routes are handled separately before developer auth.
  *  - Public end-user paths (login) are allowed through.
  *  - Protected end-user paths (/end-user/[orgName]/workspace, /end-user/[orgName]/[projectSlug]/*)
- *    require the mc_enduser_refresh_token HttpOnly cookie.
+ *    require the mc_refresh_token HttpOnly cookie.
  *    If missing, redirect to /end-user/[orgName]/login.
  */
 
@@ -29,7 +29,7 @@ const DEV_REFRESH_COOKIE = 'mc_refresh_token'
 // ============================================
 // 终端用户认证配置
 // ============================================
-export const END_USER_REFRESH_COOKIE = 'mc_enduser_refresh_token'
+export const END_USER_REFRESH_COOKIE = 'mc_refresh_token'
 
 /**
  * 终端用户公开路径（仅这两类）：

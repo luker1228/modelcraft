@@ -64,6 +64,20 @@ function getErrorMessage(code?: string, fallback?: string): string {
 }
 
 // ============================================================================
+// JWT Utilities
+// ============================================================================
+
+/** 解析 JWT payload（不验签，仅读取字段） */
+function parseJwtPayload(token: string): Record<string, unknown> {
+  try {
+    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')
+    return JSON.parse(atob(base64)) as Record<string, unknown>
+  } catch {
+    return {}
+  }
+}
+
+// ============================================================================
 // Hook Implementation
 // ============================================================================
 
@@ -123,6 +137,13 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
           // 同时写入 sessionStorage，防止客户端导航后 Zustand store 内存被重置
           sessionStorage.setItem(`eu_token_${orgName}`, data.accessToken)
           sessionStorage.setItem(`eu_token_expires_at_${orgName}`, String(Date.now() + expiresIn * 1000))
+
+          // 管理员从 end-user 入口登录 → 跳转管理后台
+          const payload = parseJwtPayload(data.accessToken)
+          if (payload.is_admin === true) {
+            router.push(`/org/${orgName}/projects`)
+            return
+          }
         } else {
           // 无 accessToken = 登录成功但当前账号没有任何项目访问权限
           // 跳转到"暂无权限"引导页，而不是 workspace
