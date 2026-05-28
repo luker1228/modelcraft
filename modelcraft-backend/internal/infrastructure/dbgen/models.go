@@ -288,23 +288,6 @@ type DatabaseCluster struct {
 	DeleteToken uint64
 }
 
-// 终端用户会话表（Org 级隔离）
-type EndUserAccount struct {
-	// 会话 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 终端用户 ID
-	UserID string
-	// 刷新令牌哈希
-	RefreshTokenHash string
-	// 过期时间
-	ExpiresAt time.Time
-	// 是否已撤销
-	Revoked   bool
-	CreatedAt time.Time
-}
-
 // Bundle 数据权限 Item：bundle 在某模型上的唯一数据权限配置
 type EndUserBundleDataPermissionItem struct {
 	// Item UUID
@@ -395,30 +378,6 @@ type EndUserPermissionBundleSnapshot struct {
 	RestoredFrom sql.NullInt32
 }
 
-// 终端用户角色表（Project 级隔离）
-type EndUserRole struct {
-	// 角色 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 所属项目
-	ProjectSlug string
-	// Project 内唯一角色名
-	Name string
-	// 角色描述
-	Description sql.NullString
-	// 内置隐式角色标志：0=显式角色（用户手动分配），1=隐式角色（系统自动注入）
-	IsImplicit bool
-	CreatedAt  time.Time
-	UpdatedAt  time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-	// 受保护角色：不可删除、不可改名、不可修改权限包关联
-	IsProtected bool
-}
-
 // 角色-权限包 关联：角色持有哪些权限包
 type EndUserRoleBundle struct {
 	// UUID
@@ -427,49 +386,12 @@ type EndUserRoleBundle struct {
 	OrgName string
 	// 所属项目（冗余，快速查询）
 	ProjectSlug string
-	// 角色 ID，FK → end_user_roles.id
+	// 角色 ID，FK → project_roles.id
 	RoleID string
 	// 权限包 ID，FK → end_user_permission_bundles.id
 	BundleID string
 	// 授权时间
 	GrantedAt time.Time
-}
-
-// 终端用户角色-用户关联表（Org 级隔离）
-type EndUserRoleUser struct {
-	// 关联 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// 角色 ID
-	RoleID string
-	// 终端用户 ID
-	UserID    string
-	CreatedAt time.Time
-}
-
-// 终端用户账号表（Org 级隔离）
-type EndUserUser struct {
-	// 终端用户 ID (UUID)
-	ID string
-	// 所属 Org
-	OrgName string
-	// Org 内唯一用户名
-	Username string
-	// bcrypt 密码哈希
-	Password string
-	// 是否禁用
-	IsForbidden bool
-	// 是否为平台内置账号（每个 Org 唯一，不可删除/禁用）
-	IsBuiltin bool
-	// 创建者（平台用户 ID）
-	CreatedBy sql.NullString
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
 }
 
 // 用户直接授权-权限包：绕过角色直接给用户授予权限包
@@ -480,7 +402,7 @@ type EndUserUserBundle struct {
 	OrgName string
 	// 所属项目
 	ProjectSlug string
-	// 用户 ID（复合 FK 的 id 部分）
+	// 用户 ID，FK → users.id
 	UserID string
 	// 权限包 ID，FK → end_user_permission_bundles.id
 	BundleID string
@@ -639,7 +561,7 @@ type ModelDatabase struct {
 	// 用户设置的友好名称，默认等于 name
 	Title string
 	// 可选描述
-	Description string
+	Description sql.NullString
 	// self_hosted=可读写; managed=只读
 	Mode ModelDatabaseMode
 	// 软删除时间戳，0 表示活跃
@@ -838,6 +760,46 @@ type ProjectAuthSchema struct {
 	UpdatedAt time.Time
 }
 
+// Project 级数据角色表
+type ProjectRole struct {
+	// 角色 ID (UUID)
+	ID string
+	// 所属 Org
+	OrgName string
+	// 所属项目
+	ProjectSlug string
+	// Project 内唯一角色名
+	Name string
+	// 角色描述
+	Description sql.NullString
+	// 内置隐式角色标志
+	IsImplicit bool
+	// 创建时间
+	CreatedAt time.Time
+	// 更新时间
+	UpdatedAt time.Time
+	// 软删除时间戳
+	DeletedAt uint64
+	// 唯一键避让位
+	DeleteToken uint64
+	// 受保护角色：不可删除、不可改名、不可修改权限包关联
+	IsProtected bool
+}
+
+// Project 级角色-用户关联表（纯关联，不可修改，删除重建）
+type ProjectRoleUser struct {
+	// 关联 ID (UUID)
+	ID string
+	// 所属 Org
+	OrgName string
+	// 角色 ID（引用 project_roles.id）
+	RoleID string
+	// 用户 ID（引用 users.id）
+	UserID string
+	// 创建时间
+	CreatedAt time.Time
+}
+
 type RefreshToken struct {
 	ID     string
 	UserID string
@@ -921,26 +883,26 @@ type User struct {
 	DeleteToken uint64
 }
 
-// 用户-组织关联表
-type UserOrganization struct {
+// 用户-组织绑定表（每人只属于一个 Org）
+type UserOrg struct {
 	// UUID
 	ID string
 	// 用户 ID（引用 users.id）
 	UserID string
 	// 组织名称（引用 organizations.name）
 	OrgName string
-	// 状态：active、suspended、invited
+	// 是否为管理员
+	IsAdmin bool
+	// 状态：active | suspended
 	Status string
-	// 邀请人（用户引用）
-	InvitedBy sql.NullString
-	// 邀请发送时间
-	InvitedAt sql.NullTime
-	// 接受邀请时间
-	JoinedAt sql.NullTime
 	// 创建时间
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
+	// 软删除时间戳
+	DeletedAt uint64
+	// 唯一键避让位
+	DeleteToken uint64
 }
 
 // 用户角色绑定表（支持多租户）

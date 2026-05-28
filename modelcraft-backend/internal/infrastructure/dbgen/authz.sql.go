@@ -12,7 +12,7 @@ import (
 
 const getBundleIDsByImplicitRoles = `-- name: GetBundleIDsByImplicitRoles :many
 SELECT DISTINCT rb.bundle_id
-FROM end_user_roles r
+FROM project_roles r
   JOIN end_user_role_bundles rb
     ON r.id = rb.role_id
    AND r.org_name = rb.org_name
@@ -90,7 +90,7 @@ func (q *Queries) GetBundleIDsByUserDirect(ctx context.Context, arg GetBundleIDs
 
 const getBundleIDsByUserExplicitRoles = `-- name: GetBundleIDsByUserExplicitRoles :many
 SELECT DISTINCT rb.bundle_id
-FROM end_user_role_users ur
+FROM project_role_users ur
   JOIN end_user_role_bundles rb
     ON ur.role_id = rb.role_id
    AND ur.org_name = rb.org_name

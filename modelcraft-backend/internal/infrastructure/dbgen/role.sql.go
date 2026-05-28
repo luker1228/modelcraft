@@ -41,16 +41,15 @@ func (q *Queries) AssignBundleToRole(ctx context.Context, arg AssignBundleToRole
 }
 
 const createEndUserRole = `-- name: CreateEndUserRole :exec
-INSERT INTO end_user_roles (
+INSERT INTO project_roles (
   id,
   org_name,
   project_slug,
   name,
   description,
-  is_implicit,
-  is_protected
+  is_implicit
 )
-VALUES (?, ?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserRoleParams struct {
@@ -60,7 +59,6 @@ type CreateEndUserRoleParams struct {
 	Name        string
 	Description sql.NullString
 	IsImplicit  bool
-	IsProtected bool
 }
 
 func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRoleParams) error {
@@ -71,16 +69,14 @@ func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRolePa
 		arg.Name,
 		arg.Description,
 		arg.IsImplicit,
-		arg.IsProtected,
 	)
 	return err
 }
 
 const deleteEndUserRole = `-- name: DeleteEndUserRole :execresult
-UPDATE end_user_roles SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?
+UPDATE project_roles SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE (id = ?
   AND org_name = ?
-  AND is_implicit = FALSE
-  AND is_protected = FALSE) AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND is_implicit = FALSE) AND ` + "`" + `project_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type DeleteEndUserRoleParams struct {
@@ -94,9 +90,9 @@ func (q *Queries) DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRolePa
 
 const getEndUserRoleByID = `-- name: GetEndUserRoleByID :one
 SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token, is_protected
-FROM end_user_roles
+FROM project_roles
 WHERE id = ?
-  AND org_name = ? AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND org_name = ? AND ` + "`" + `project_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type GetEndUserRoleByIDParams struct {
@@ -104,9 +100,9 @@ type GetEndUserRoleByIDParams struct {
 	OrgName string
 }
 
-func (q *Queries) GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByIDParams) (EndUserRole, error) {
+func (q *Queries) GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByIDParams) (ProjectRole, error) {
 	row := q.db.QueryRowContext(ctx, getEndUserRoleByID, arg.ID, arg.OrgName)
-	var i EndUserRole
+	var i ProjectRole
 	err := row.Scan(
 		&i.ID,
 		&i.OrgName,
@@ -166,9 +162,9 @@ func (q *Queries) ListBundlesByRole(ctx context.Context, roleID string) ([]EndUs
 
 const listEndUserRolesByProject = `-- name: ListEndUserRolesByProject :many
 SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token, is_protected
-FROM end_user_roles
+FROM project_roles
 WHERE org_name = ?
-  AND (project_slug = ? OR is_implicit = TRUE) AND ` + "`" + `end_user_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY is_implicit DESC, name
+  AND (project_slug = ? OR is_implicit = TRUE) AND ` + "`" + `project_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY is_implicit DESC, name
 `
 
 type ListEndUserRolesByProjectParams struct {
@@ -176,15 +172,15 @@ type ListEndUserRolesByProjectParams struct {
 	ProjectSlug string
 }
 
-func (q *Queries) ListEndUserRolesByProject(ctx context.Context, arg ListEndUserRolesByProjectParams) ([]EndUserRole, error) {
+func (q *Queries) ListEndUserRolesByProject(ctx context.Context, arg ListEndUserRolesByProjectParams) ([]ProjectRole, error) {
 	rows, err := q.db.QueryContext(ctx, listEndUserRolesByProject, arg.OrgName, arg.ProjectSlug)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []EndUserRole
+	var items []ProjectRole
 	for rows.Next() {
-		var i EndUserRole
+		var i ProjectRole
 		if err := rows.Scan(
 			&i.ID,
 			&i.OrgName,
@@ -227,14 +223,13 @@ func (q *Queries) RevokeBundleFromRole(ctx context.Context, arg RevokeBundleFrom
 }
 
 const updateEndUserRole = `-- name: UpdateEndUserRole :execresult
-UPDATE end_user_roles
+UPDATE project_roles
 SET name = ?,
     description = ?,
     updated_at = NOW(3)
 WHERE id = ?
   AND org_name = ?
   AND is_implicit = FALSE
-  AND is_protected = FALSE
 `
 
 type UpdateEndUserRoleParams struct {
@@ -244,7 +239,7 @@ type UpdateEndUserRoleParams struct {
 	OrgName     string
 }
 
-// 注意：is_implicit=TRUE 或 is_protected=TRUE 的角色由业务层阻断，不走 SQL 层约束
+// 注意：is_implicit=TRUE 的角色由业务层阻断，不走 SQL 层约束
 func (q *Queries) UpdateEndUserRole(ctx context.Context, arg UpdateEndUserRoleParams) (sql.Result, error) {
 	return q.db.ExecContext(ctx, updateEndUserRole,
 		arg.Name,

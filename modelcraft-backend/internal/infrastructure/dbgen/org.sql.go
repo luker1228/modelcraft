@@ -12,7 +12,7 @@ import (
 )
 
 const countMembershipsByUser = `-- name: CountMembershipsByUser :one
-SELECT COUNT(*) FROM user_organizations WHERE user_id = ?
+SELECT COUNT(*) FROM user_orgs WHERE user_id = ? AND ` + "`" + `user_orgs` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) CountMembershipsByUser(ctx context.Context, userID string) (int64, error) {
@@ -23,18 +23,15 @@ func (q *Queries) CountMembershipsByUser(ctx context.Context, userID string) (in
 }
 
 const createMembership = `-- name: CreateMembership :exec
-INSERT INTO user_organizations (id, user_id, org_name, status, invited_by, invited_at, joined_at, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO user_orgs (id, user_id, org_name, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateMembershipParams struct {
-	ID        string
-	UserID    string
-	OrgName   string
-	Status    string
-	InvitedBy sql.NullString
-	InvitedAt sql.NullTime
-	JoinedAt  sql.NullTime
+	ID      string
+	UserID  string
+	OrgName string
+	Status  string
 }
 
 func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipParams) error {
@@ -43,9 +40,6 @@ func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipPara
 		arg.UserID,
 		arg.OrgName,
 		arg.Status,
-		arg.InvitedBy,
-		arg.InvitedAt,
-		arg.JoinedAt,
 	)
 	return err
 }
@@ -98,8 +92,30 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 	return err
 }
 
+const createUserOrg = `-- name: CreateUserOrg :exec
+INSERT INTO user_orgs (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
+VALUES (?, ?, ?, ?, 'active', 0, 0, NOW(3), NOW(3))
+`
+
+type CreateUserOrgParams struct {
+	ID      string
+	UserID  string
+	OrgName string
+	IsAdmin bool
+}
+
+func (q *Queries) CreateUserOrg(ctx context.Context, arg CreateUserOrgParams) error {
+	_, err := q.db.ExecContext(ctx, createUserOrg,
+		arg.ID,
+		arg.UserID,
+		arg.OrgName,
+		arg.IsAdmin,
+	)
+	return err
+}
+
 const deleteMembership = `-- name: DeleteMembership :exec
-DELETE FROM user_organizations WHERE id = ?
+UPDATE user_orgs SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), ` + "`" + `delete_token` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE id = ? AND ` + "`" + `user_orgs` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) DeleteMembership(ctx context.Context, id string) error {
@@ -141,29 +157,29 @@ func (q *Queries) FindIDByExternalID(ctx context.Context, externalID sql.NullStr
 }
 
 const getMembershipByID = `-- name: GetMembershipByID :one
-SELECT id, user_id, org_name, status, invited_by, invited_at, joined_at, created_at, updated_at FROM user_organizations WHERE id = ? LIMIT 1
+SELECT id, user_id, org_name, is_admin, status, created_at, updated_at, deleted_at, delete_token FROM user_orgs WHERE id = ? AND ` + "`" + `user_orgs` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
-func (q *Queries) GetMembershipByID(ctx context.Context, id string) (UserOrganization, error) {
+func (q *Queries) GetMembershipByID(ctx context.Context, id string) (UserOrg, error) {
 	row := q.db.QueryRowContext(ctx, getMembershipByID, id)
-	var i UserOrganization
+	var i UserOrg
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.OrgName,
+		&i.IsAdmin,
 		&i.Status,
-		&i.InvitedBy,
-		&i.InvitedAt,
-		&i.JoinedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
 
 const getMembershipByUserAndOrg = `-- name: GetMembershipByUserAndOrg :one
-SELECT id, user_id, org_name, status, invited_by, invited_at, joined_at, created_at, updated_at FROM user_organizations
-WHERE user_id = ? AND org_name = ?
+SELECT id, user_id, org_name, is_admin, status, created_at, updated_at, deleted_at, delete_token FROM user_orgs
+WHERE user_id = ? AND org_name = ? AND ` + "`" + `user_orgs` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 LIMIT 1
 `
 
@@ -172,19 +188,19 @@ type GetMembershipByUserAndOrgParams struct {
 	OrgName string
 }
 
-func (q *Queries) GetMembershipByUserAndOrg(ctx context.Context, arg GetMembershipByUserAndOrgParams) (UserOrganization, error) {
+func (q *Queries) GetMembershipByUserAndOrg(ctx context.Context, arg GetMembershipByUserAndOrgParams) (UserOrg, error) {
 	row := q.db.QueryRowContext(ctx, getMembershipByUserAndOrg, arg.UserID, arg.OrgName)
-	var i UserOrganization
+	var i UserOrg
 	err := row.Scan(
 		&i.ID,
 		&i.UserID,
 		&i.OrgName,
+		&i.IsAdmin,
 		&i.Status,
-		&i.InvitedBy,
-		&i.InvitedAt,
-		&i.JoinedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
 	)
 	return i, err
 }
@@ -253,31 +269,67 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 	return i, err
 }
 
+const getUserOrgByUserID = `-- name: GetUserOrgByUserID :one
+SELECT id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at
+FROM user_orgs
+WHERE user_id = ? AND deleted_at = 0
+LIMIT 1
+`
+
+type GetUserOrgByUserIDRow struct {
+	ID          string
+	UserID      string
+	OrgName     string
+	IsAdmin     bool
+	Status      string
+	DeletedAt   uint64
+	DeleteToken uint64
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
+}
+
+func (q *Queries) GetUserOrgByUserID(ctx context.Context, userID string) (GetUserOrgByUserIDRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserOrgByUserID, userID)
+	var i GetUserOrgByUserIDRow
+	err := row.Scan(
+		&i.ID,
+		&i.UserID,
+		&i.OrgName,
+		&i.IsAdmin,
+		&i.Status,
+		&i.DeletedAt,
+		&i.DeleteToken,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
 const listMembershipsByOrg = `-- name: ListMembershipsByOrg :many
-SELECT id, user_id, org_name, status, invited_by, invited_at, joined_at, created_at, updated_at FROM user_organizations
-WHERE org_name = ?
+SELECT id, user_id, org_name, is_admin, status, created_at, updated_at, deleted_at, delete_token FROM user_orgs
+WHERE org_name = ? AND ` + "`" + `user_orgs` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListMembershipsByOrg(ctx context.Context, orgName string) ([]UserOrganization, error) {
+func (q *Queries) ListMembershipsByOrg(ctx context.Context, orgName string) ([]UserOrg, error) {
 	rows, err := q.db.QueryContext(ctx, listMembershipsByOrg, orgName)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UserOrganization
+	var items []UserOrg
 	for rows.Next() {
-		var i UserOrganization
+		var i UserOrg
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.OrgName,
+			&i.IsAdmin,
 			&i.Status,
-			&i.InvitedBy,
-			&i.InvitedAt,
-			&i.JoinedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -293,30 +345,30 @@ func (q *Queries) ListMembershipsByOrg(ctx context.Context, orgName string) ([]U
 }
 
 const listMembershipsByUser = `-- name: ListMembershipsByUser :many
-SELECT id, user_id, org_name, status, invited_by, invited_at, joined_at, created_at, updated_at FROM user_organizations
-WHERE user_id = ?
+SELECT id, user_id, org_name, is_admin, status, created_at, updated_at, deleted_at, delete_token FROM user_orgs
+WHERE user_id = ? AND ` + "`" + `user_orgs` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 ORDER BY created_at DESC
 `
 
-func (q *Queries) ListMembershipsByUser(ctx context.Context, userID string) ([]UserOrganization, error) {
+func (q *Queries) ListMembershipsByUser(ctx context.Context, userID string) ([]UserOrg, error) {
 	rows, err := q.db.QueryContext(ctx, listMembershipsByUser, userID)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []UserOrganization
+	var items []UserOrg
 	for rows.Next() {
-		var i UserOrganization
+		var i UserOrg
 		if err := rows.Scan(
 			&i.ID,
 			&i.UserID,
 			&i.OrgName,
+			&i.IsAdmin,
 			&i.Status,
-			&i.InvitedBy,
-			&i.InvitedAt,
-			&i.JoinedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
+			&i.DeletedAt,
+			&i.DeleteToken,
 		); err != nil {
 			return nil, err
 		}
@@ -332,11 +384,11 @@ func (q *Queries) ListMembershipsByUser(ctx context.Context, userID string) ([]U
 }
 
 const listMembershipsWithOrgDetails = `-- name: ListMembershipsWithOrgDetails :many
-SELECT m.id, m.user_id, m.org_name, m.status, m.invited_by, m.invited_at, m.joined_at, m.created_at, m.updated_at,
+SELECT m.id, m.user_id, m.org_name, m.status, m.created_at, m.updated_at,
        o.display_name AS org_display_name
-FROM user_organizations m
+FROM user_orgs m
 INNER JOIN organizations o ON m.org_name = o.name
-WHERE m.user_id = ? AND m.status = 'active' AND ` + "`" + `o` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY m.joined_at DESC
+WHERE m.user_id = ? AND m.status = 'active' AND ` + "`" + `o` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 AND ` + "`" + `m` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY m.created_at DESC
 LIMIT ?
 `
 
@@ -350,9 +402,6 @@ type ListMembershipsWithOrgDetailsRow struct {
 	UserID         string
 	OrgName        string
 	Status         string
-	InvitedBy      sql.NullString
-	InvitedAt      sql.NullTime
-	JoinedAt       sql.NullTime
 	CreatedAt      time.Time
 	UpdatedAt      time.Time
 	OrgDisplayName sql.NullString
@@ -372,9 +421,6 @@ func (q *Queries) ListMembershipsWithOrgDetails(ctx context.Context, arg ListMem
 			&i.UserID,
 			&i.OrgName,
 			&i.Status,
-			&i.InvitedBy,
-			&i.InvitedAt,
-			&i.JoinedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.OrgDisplayName,
@@ -393,11 +439,11 @@ func (q *Queries) ListMembershipsWithOrgDetails(ctx context.Context, arg ListMem
 }
 
 const listMembershipsWithUserName = `-- name: ListMembershipsWithUserName :many
-SELECT m.id, m.user_id, m.org_name, m.status, m.invited_by, m.invited_at, m.joined_at, m.created_at, m.updated_at,
+SELECT m.id, m.user_id, m.org_name, m.status, m.created_at, m.updated_at,
        COALESCE(u.name, '') AS user_name
-FROM user_organizations m
+FROM user_orgs m
 LEFT JOIN users u ON m.user_id = u.id
-WHERE m.org_name = ? AND ` + "`" + `u` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY m.created_at DESC
+WHERE m.org_name = ? AND ` + "`" + `m` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 AND ` + "`" + `u` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY m.created_at DESC
 `
 
 type ListMembershipsWithUserNameRow struct {
@@ -405,9 +451,6 @@ type ListMembershipsWithUserNameRow struct {
 	UserID    string
 	OrgName   string
 	Status    string
-	InvitedBy sql.NullString
-	InvitedAt sql.NullTime
-	JoinedAt  sql.NullTime
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	UserName  string
@@ -427,9 +470,6 @@ func (q *Queries) ListMembershipsWithUserName(ctx context.Context, orgName strin
 			&i.UserID,
 			&i.OrgName,
 			&i.Status,
-			&i.InvitedBy,
-			&i.InvitedAt,
-			&i.JoinedAt,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.UserName,
@@ -449,7 +489,7 @@ func (q *Queries) ListMembershipsWithUserName(ctx context.Context, orgName strin
 
 const listOrganizationsByUser = `-- name: ListOrganizationsByUser :many
 SELECT o.name, o.display_name, o.owner_id, o.status, o.created_at, o.updated_at, o.deleted_at, o.delete_token FROM organizations o
-INNER JOIN user_organizations m ON o.name = m.org_name
+INNER JOIN user_orgs m ON o.name = m.org_name
 WHERE m.user_id = ? AND m.status = 'active' AND ` + "`" + `o` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY o.created_at DESC
 `
 
@@ -486,27 +526,18 @@ func (q *Queries) ListOrganizationsByUser(ctx context.Context, userID string) ([
 }
 
 const updateMembership = `-- name: UpdateMembership :exec
-UPDATE user_organizations
-SET status = ?, invited_by = ?, invited_at = ?, joined_at = ?, updated_at = NOW(3)
+UPDATE user_orgs
+SET status = ?, updated_at = NOW(3)
 WHERE id = ?
 `
 
 type UpdateMembershipParams struct {
-	Status    string
-	InvitedBy sql.NullString
-	InvitedAt sql.NullTime
-	JoinedAt  sql.NullTime
-	ID        string
+	Status string
+	ID     string
 }
 
 func (q *Queries) UpdateMembership(ctx context.Context, arg UpdateMembershipParams) error {
-	_, err := q.db.ExecContext(ctx, updateMembership,
-		arg.Status,
-		arg.InvitedBy,
-		arg.InvitedAt,
-		arg.JoinedAt,
-		arg.ID,
-	)
+	_, err := q.db.ExecContext(ctx, updateMembership, arg.Status, arg.ID)
 	return err
 }
 
@@ -524,5 +555,22 @@ type UpdateOrganizationParams struct {
 
 func (q *Queries) UpdateOrganization(ctx context.Context, arg UpdateOrganizationParams) error {
 	_, err := q.db.ExecContext(ctx, updateOrganization, arg.DisplayName, arg.Status, arg.Name)
+	return err
+}
+
+const updateUserOrgAdmin = `-- name: UpdateUserOrgAdmin :exec
+UPDATE user_orgs
+SET is_admin = ?, updated_at = CURRENT_TIMESTAMP(3)
+WHERE user_id = ? AND org_name = ? AND deleted_at = 0
+`
+
+type UpdateUserOrgAdminParams struct {
+	IsAdmin bool
+	UserID  string
+	OrgName string
+}
+
+func (q *Queries) UpdateUserOrgAdmin(ctx context.Context, arg UpdateUserOrgAdminParams) error {
+	_, err := q.db.ExecContext(ctx, updateUserOrgAdmin, arg.IsAdmin, arg.UserID, arg.OrgName)
 	return err
 }

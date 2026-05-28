@@ -12,7 +12,7 @@ import (
 )
 
 const assignRoleToUser = `-- name: AssignRoleToUser :exec
-INSERT INTO end_user_role_users (
+INSERT INTO project_role_users (
   id,
   user_id,
   role_id,
@@ -38,54 +38,13 @@ func (q *Queries) AssignRoleToUser(ctx context.Context, arg AssignRoleToUserPara
 	return err
 }
 
-const getBuiltinEndUserByOrg = `-- name: GetBuiltinEndUserByOrg :one
-SELECT id
-FROM end_user_users
-WHERE org_name = ?
-  AND is_builtin = 1
-  AND deleted_at = 0
-LIMIT 1
-`
-
-// 查询 Org 内置 admin 用户（is_builtin=true），用于 Project 创建时自动分配 admin 角色
-func (q *Queries) GetBuiltinEndUserByOrg(ctx context.Context, orgName string) (string, error) {
-	row := q.db.QueryRowContext(ctx, getBuiltinEndUserByOrg, orgName)
-	var id string
-	err := row.Scan(&id)
-	return id, err
-}
-
-const isEndUserBuiltin = `-- name: IsEndUserBuiltin :one
-SELECT is_builtin
-FROM end_user_users
-WHERE id = ?
-  AND org_name = ?
-  AND deleted_at = 0
-LIMIT 1
-`
-
-type IsEndUserBuiltinParams struct {
-	ID      string
-	OrgName string
-}
-
-// 检查指定用户是否为 Org 内置 admin（is_builtin=true）
-func (q *Queries) IsEndUserBuiltin(ctx context.Context, arg IsEndUserBuiltinParams) (bool, error) {
-	row := q.db.QueryRowContext(ctx, isEndUserBuiltin, arg.ID, arg.OrgName)
-	var is_builtin bool
-	err := row.Scan(&is_builtin)
-	return is_builtin, err
-}
-
 const listProjectEndUserRoleUsers = `-- name: ListProjectEndUserRoleUsers :many
 SELECT
   ur.id,
   ur.org_name,
   ur.created_at,
   u.id        AS user_id,
-  u.username,
-  u.is_forbidden,
-  u.created_by,
+  u.name,
   u.created_at AS user_created_at,
   u.updated_at AS user_updated_at,
   r.id        AS role_id,
@@ -96,16 +55,15 @@ SELECT
   r.is_implicit,
   r.created_at AS role_created_at,
   r.updated_at AS role_updated_at
-FROM end_user_role_users ur
-JOIN end_user_roles r
+FROM project_role_users ur
+JOIN project_roles r
   ON r.id = ur.role_id
   AND r.org_name = ur.org_name
-JOIN end_user_users u
+JOIN users u
   ON u.id = ur.user_id
-  AND u.org_name = ur.org_name
 WHERE r.org_name = ?
   AND r.project_slug = ?
-  AND (? = '' OR u.username LIKE CONCAT('%', ?, '%'))
+  AND (? = '' OR u.name LIKE CONCAT('%', ?, '%'))
   AND (? = '' OR ur.role_id = ?)
   AND (? = '' OR ur.id > ?) AND ` + "`" + `r` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY ur.id ASC
 LIMIT ?
@@ -128,9 +86,7 @@ type ListProjectEndUserRoleUsersRow struct {
 	OrgName         string
 	CreatedAt       time.Time
 	UserID          string
-	Username        string
-	IsForbidden     bool
-	CreatedBy       sql.NullString
+	Name            string
 	UserCreatedAt   time.Time
 	UserUpdatedAt   time.Time
 	RoleID          string
@@ -168,9 +124,7 @@ func (q *Queries) ListProjectEndUserRoleUsers(ctx context.Context, arg ListProje
 			&i.OrgName,
 			&i.CreatedAt,
 			&i.UserID,
-			&i.Username,
-			&i.IsForbidden,
-			&i.CreatedBy,
+			&i.Name,
 			&i.UserCreatedAt,
 			&i.UserUpdatedAt,
 			&i.RoleID,
@@ -197,16 +151,15 @@ func (q *Queries) ListProjectEndUserRoleUsers(ctx context.Context, arg ListProje
 
 const listProjectEndUserRoleUsersCount = `-- name: ListProjectEndUserRoleUsersCount :one
 SELECT COUNT(1)
-FROM end_user_role_users ur
-JOIN end_user_roles r
+FROM project_role_users ur
+JOIN project_roles r
   ON r.id = ur.role_id
   AND r.org_name = ur.org_name
-JOIN end_user_users u
+JOIN users u
   ON u.id = ur.user_id
-  AND u.org_name = ur.org_name
 WHERE r.org_name = ?
   AND r.project_slug = ?
-  AND (? = '' OR u.username LIKE CONCAT('%', ?, '%'))
+  AND (? = '' OR u.name LIKE CONCAT('%', ?, '%'))
   AND (? = '' OR ur.role_id = ?) AND ` + "`" + `r` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
@@ -236,7 +189,7 @@ func (q *Queries) ListProjectEndUserRoleUsersCount(ctx context.Context, arg List
 
 const listRolesByUser = `-- name: ListRolesByUser :many
 SELECT role_id
-FROM end_user_role_users
+FROM project_role_users
 WHERE user_id = ?
   AND org_name = ?
 `
@@ -270,7 +223,7 @@ func (q *Queries) ListRolesByUser(ctx context.Context, arg ListRolesByUserParams
 }
 
 const revokeRoleFromUser = `-- name: RevokeRoleFromUser :execresult
-DELETE FROM end_user_role_users
+DELETE FROM project_role_users
 WHERE user_id = ?
   AND role_id = ?
   AND org_name = ?

@@ -7,6 +7,7 @@ package dbgen
 
 import (
 	"context"
+	"database/sql"
 )
 
 const createModelDatabase = `-- name: CreateModelDatabase :exec
@@ -21,7 +22,7 @@ type CreateModelDatabaseParams struct {
 	ClusterID   string
 	Name        string
 	Title       string
-	Description string
+	Description sql.NullString
 	Mode        ModelDatabaseMode
 }
 
@@ -176,7 +177,7 @@ WHERE id = ? AND org_name = ? AND project_slug = ? AND ` + "`" + `model_database
 
 type UpdateModelDatabaseParams struct {
 	Title       string
-	Description string
+	Description sql.NullString
 	Mode        ModelDatabaseMode
 	ID          string
 	OrgName     string

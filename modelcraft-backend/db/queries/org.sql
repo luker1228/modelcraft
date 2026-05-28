@@ -35,52 +35,52 @@ SELECT COUNT(*) FROM users WHERE external_id = ? AND `users`.`deleted_at` = 0 ;
 SELECT id FROM users WHERE external_id = ? AND `users`.`deleted_at` = 0 LIMIT 1;
 
 -- name: CreateMembership :exec
-INSERT INTO user_orgs (id, user_id, org_name, status, invited_by, invited_at, joined_at, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO user_orgs (id, user_id, org_name, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetMembershipByID :one
-SELECT * FROM user_orgs WHERE id = ? LIMIT 1;
+SELECT * FROM user_orgs WHERE id = ? AND `user_orgs`.`deleted_at` = 0 LIMIT 1;
 
 -- name: GetMembershipByUserAndOrg :one
 SELECT * FROM user_orgs
-WHERE user_id = ? AND org_name = ?
+WHERE user_id = ? AND org_name = ? AND `user_orgs`.`deleted_at` = 0
 LIMIT 1;
 
 -- name: ListMembershipsByOrg :many
 SELECT * FROM user_orgs
-WHERE org_name = ?
+WHERE org_name = ? AND `user_orgs`.`deleted_at` = 0
 ORDER BY created_at DESC;
 
 -- name: ListMembershipsWithUserName :many
-SELECT m.id, m.user_id, m.org_name, m.status, m.invited_by, m.invited_at, m.joined_at, m.created_at, m.updated_at,
+SELECT m.id, m.user_id, m.org_name, m.status, m.created_at, m.updated_at,
        COALESCE(u.name, '') AS user_name
 FROM user_orgs m
 LEFT JOIN users u ON m.user_id = u.id
-WHERE m.org_name = ? AND `u`.`deleted_at` = 0 ORDER BY m.created_at DESC;
+WHERE m.org_name = ? AND `m`.`deleted_at` = 0 AND `u`.`deleted_at` = 0 ORDER BY m.created_at DESC;
 
 -- name: ListMembershipsByUser :many
 SELECT * FROM user_orgs
-WHERE user_id = ?
+WHERE user_id = ? AND `user_orgs`.`deleted_at` = 0
 ORDER BY created_at DESC;
 
 -- name: CountMembershipsByUser :one
-SELECT COUNT(*) FROM user_orgs WHERE user_id = ?;
+SELECT COUNT(*) FROM user_orgs WHERE user_id = ? AND `user_orgs`.`deleted_at` = 0;
 
 -- name: ListMembershipsWithOrgDetails :many
-SELECT m.id, m.user_id, m.org_name, m.status, m.invited_by, m.invited_at, m.joined_at, m.created_at, m.updated_at,
+SELECT m.id, m.user_id, m.org_name, m.status, m.created_at, m.updated_at,
        o.display_name AS org_display_name
 FROM user_orgs m
 INNER JOIN organizations o ON m.org_name = o.name
-WHERE m.user_id = ? AND m.status = 'active' AND `o`.`deleted_at` = 0 ORDER BY m.joined_at DESC
+WHERE m.user_id = ? AND m.status = 'active' AND `o`.`deleted_at` = 0 AND `m`.`deleted_at` = 0 ORDER BY m.created_at DESC
 LIMIT ?;
 
 -- name: UpdateMembership :exec
 UPDATE user_orgs
-SET status = ?, invited_by = ?, invited_at = ?, joined_at = ?, updated_at = NOW(3)
+SET status = ?, updated_at = NOW(3)
 WHERE id = ?;
 
 -- name: DeleteMembership :exec
-DELETE FROM user_orgs WHERE id = ?;
+UPDATE user_orgs SET `deleted_at` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED), `delete_token` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED) WHERE id = ? AND `user_orgs`.`deleted_at` = 0;
 
 -- name: GetUserOrgByUserID :one
 SELECT id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at
