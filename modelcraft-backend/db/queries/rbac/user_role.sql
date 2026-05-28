@@ -1,12 +1,3 @@
--- name: GetBuiltinEndUserByOrg :one
--- 查询 Org 内置 admin 用户（is_builtin=true），用于 Project 创建时自动分配 admin 角色
-SELECT id
-FROM end_user_users
-WHERE org_name = ?
-  AND is_builtin = 1
-  AND deleted_at = 0
-LIMIT 1;
-
 -- name: AssignRoleToUser :exec
 INSERT INTO project_role_users (
   id,
@@ -21,15 +12,6 @@ DELETE FROM project_role_users
 WHERE user_id = ?
   AND role_id = ?
   AND org_name = ?;
-
--- name: IsEndUserBuiltin :one
--- 检查指定用户是否为 Org 内置 admin（is_builtin=true）
-SELECT is_builtin
-FROM end_user_users
-WHERE id = ?
-  AND org_name = ?
-  AND deleted_at = 0
-LIMIT 1;
 
 -- name: ListRolesByUser :many
 SELECT role_id
