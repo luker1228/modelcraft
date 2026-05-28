@@ -14,7 +14,9 @@
     "test:rbac": "cucumber-js features/rbac",
     "test:org": "cucumber-js features/org",
     "test:smoke": "cucumber-js --tags @smoke",
-    "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html"
+    "test:database": "cucumber-js features/database",
+    "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html",
+    "get-token": "tsx support/get-token.ts"
   },
   "dependencies": {
     "@cucumber/cucumber": "^11.0.0",

@@ -23,11 +23,20 @@ npm install
 
 ### 2. 获取测试 Token
 
-在 `modelcraft-backend/` 目录执行：
+使用内置的 `get-token` 工具，通过账号密码登录获取 access_token 并自动写入 `.env.test`：
 
 ```bash
-just test-user-setup
+# 手机号登录，自动写入 .env.test
+npm run get-token -- --phone 13800138000 --password yourpassword --write
+
+# 用户名登录
+npm run get-token -- --username myuser --password yourpassword --write
+
+# 只打印 token（不写入文件）
+npm run get-token -- --phone 13800138000 --password yourpassword
 ```
+
+token 写入后即可直接运行测试，无需手动编辑 `.env.test`。
 
 复制输出的 Access Token。
 
