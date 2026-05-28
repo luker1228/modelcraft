@@ -23,7 +23,7 @@ import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, getEndUserLoginPath } from '@s
 // ============================================
 // 开发者认证配置
 // ============================================
-const DEV_PUBLIC_PATHS = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH]
+const DEV_PUBLIC_PATHS = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, '/tenant/login']
 const DEV_REFRESH_COOKIE = 'mc_refresh_token'
 
 // ============================================
