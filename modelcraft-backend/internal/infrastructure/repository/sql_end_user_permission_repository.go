@@ -763,7 +763,7 @@ func (r *SqlEndUserDataPermissionRepository) GetBundleSnapshotByVersion(
 // Roles
 // =========================
 
-func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
+func toDomainRole(row dbgen.ProjectRole) *rbac.EndUserRole {
 	var description *string
 	if row.Description.Valid {
 		d := row.Description.String
@@ -783,18 +783,12 @@ func toDomainRole(row dbgen.EndUserRole) *rbac.EndUserRole {
 
 // toEndUserDomain 从 ListProjectEndUserRoleUsersRow 构建 enduser.EndUser
 func toEndUserDomain(row dbgen.ListProjectEndUserRoleUsersRow) *enduserdomain.EndUser {
-	createdBy := ""
-	if row.CreatedBy.Valid {
-		createdBy = row.CreatedBy.String
-	}
 	return &enduserdomain.EndUser{
-		ID:          row.UserID,
-		OrgName:     row.OrgName,
-		Username:    row.Username,
-		IsForbidden: row.IsForbidden,
-		CreatedBy:   createdBy,
-		CreatedAt:   row.UserCreatedAt,
-		UpdatedAt:   row.UserUpdatedAt,
+		ID:        row.UserID,
+		OrgName:   row.OrgName,
+		Username:  row.Name,
+		CreatedAt: row.UserCreatedAt,
+		UpdatedAt: row.UserUpdatedAt,
 	}
 }
 
@@ -1000,20 +994,11 @@ func (r *SqlEndUserDataPermissionRepository) RevokeRoleFromUser(
 }
 
 func (r *SqlEndUserDataPermissionRepository) IsUserBuiltin(
-	ctx context.Context,
-	orgName, userID string,
+	_ context.Context,
+	_, _ string,
 ) (bool, error) {
-	isBuiltin, err := r.q.IsEndUserBuiltin(ctx, dbgen.IsEndUserBuiltinParams{
-		ID:      userID,
-		OrgName: orgName,
-	})
-	if err != nil {
-		if sqlerr.IsNotFoundError(err) {
-			return false, nil
-		}
-		return false, sqlerr.WrapSQLError(err)
-	}
-	return isBuiltin, nil
+	// builtin end-user concept abolished; always return false
+	return false, nil
 }
 
 func (r *SqlEndUserDataPermissionRepository) GetBundleIDsByUserDirect(

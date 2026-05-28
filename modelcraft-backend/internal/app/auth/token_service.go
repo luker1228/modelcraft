@@ -170,10 +170,9 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 	}
 
 	orgInput := &organization.CreateOrganizationInput{
-		DisplayName:          cmd.UserName,
-		OrganizationName:     "",
-		OwnerUserID:          u.ID,
-		EndUserAdminPassword: cmd.Password,
+		DisplayName:      cmd.UserName,
+		OrganizationName: "",
+		OwnerUserID:      u.ID,
 	}
 
 	if s.txManager != nil {

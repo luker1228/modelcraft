@@ -550,7 +550,7 @@ func createTestServiceWithOrgSpy(t *testing.T) (*TokenService, *spyOrgCreationSe
 }
 
 // TestTokenService_Register_PassesPasswordToOrgCreation 验证注册时
-// EndUserAdminPassword 与注册密码保持一致。
+// org creation service 被调用一次。
 func TestTokenService_Register_PassesPasswordToOrgCreation(t *testing.T) {
 	svc, spy := createTestServiceWithOrgSpy(t)
 	ctx := context.Background()
@@ -564,8 +564,6 @@ func TestTokenService_Register_PassesPasswordToOrgCreation(t *testing.T) {
 	require.NoError(t, err)
 
 	require.Len(t, spy.calls, 1, "createOrgService.Execute should be called once")
-	assert.Equal(t, password, spy.calls[0].EndUserAdminPassword,
-		"EndUserAdminPassword must equal the registration password")
 }
 
 // TestTokenService_Register_OrgCreationCalledWithOwnerID 验证 Execute 收到正确的 OwnerUserID。

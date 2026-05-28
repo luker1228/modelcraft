@@ -14,7 +14,7 @@ type adminWildcardQuerierStub struct {
 	dbgen.Querier
 
 	roleIDs      []string
-	roleByID     map[string]dbgen.EndUserRole
+	roleByID     map[string]dbgen.ProjectRole
 	explicitIDs  []string
 	directIDs    []string
 	explicitCall bool
@@ -31,11 +31,11 @@ func (s *adminWildcardQuerierStub) ListRolesByUser(
 func (s *adminWildcardQuerierStub) GetEndUserRoleByID(
 	_ context.Context,
 	arg dbgen.GetEndUserRoleByIDParams,
-) (dbgen.EndUserRole, error) {
+) (dbgen.ProjectRole, error) {
 	if role, ok := s.roleByID[arg.ID]; ok {
 		return role, nil
 	}
-	return dbgen.EndUserRole{}, sql.ErrNoRows
+	return dbgen.ProjectRole{}, sql.ErrNoRows
 }
 
 func (s *adminWildcardQuerierStub) GetBundleIDsByUserExplicitRoles(
@@ -57,7 +57,7 @@ func (s *adminWildcardQuerierStub) GetBundleIDsByUserDirect(
 func TestFindPermissionsByEndUserAndModel_AdminRoleReturnsWildcard(t *testing.T) {
 	stub := &adminWildcardQuerierStub{
 		roleIDs: []string{"role-admin"},
-		roleByID: map[string]dbgen.EndUserRole{
+		roleByID: map[string]dbgen.ProjectRole{
 			"role-admin": {
 				ID:          "role-admin",
 				OrgName:     "org-1",
@@ -89,7 +89,7 @@ func TestFindPermissionsByEndUserAndModel_AdminRoleReturnsWildcard(t *testing.T)
 func TestFindPermissionsByEndUserAndModel_NonAdminFallsBackToBundleLookup(t *testing.T) {
 	stub := &adminWildcardQuerierStub{
 		roleIDs: []string{"role-editor"},
-		roleByID: map[string]dbgen.EndUserRole{
+		roleByID: map[string]dbgen.ProjectRole{
 			"role-editor": {
 				ID:          "role-editor",
 				OrgName:     "org-1",

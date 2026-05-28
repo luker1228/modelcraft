@@ -191,29 +191,11 @@ func (s *ProjectAppService) provisionAdminRole(
 		ProjectSlug: projectSlug,
 		Name:        adminRoleName,
 		IsImplicit:  false,
-		IsProtected: true,
 	}); err != nil {
 		return bizerrors.Wrapf(err, "failed to create admin role")
 	}
 
-	builtinUserID, err := q.GetBuiltinEndUserByOrg(ctx, orgName)
-	if err != nil {
-		logger.Warnf(ctx, "no builtin end-user for org %s, skipping admin role assignment", orgName)
-		return nil
-	}
-
-	assignID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return bizerrors.Wrapf(err, "failed to generate role assignment ID")
-	}
-	if err := q.AssignRoleToUser(ctx, dbgen.AssignRoleToUserParams{
-		ID:      assignID,
-		UserID:  builtinUserID,
-		RoleID:  adminRoleID,
-		OrgName: orgName,
-	}); err != nil {
-		return bizerrors.Wrapf(err, "failed to assign admin role to builtin user")
-	}
+	// builtin end-user concept abolished; skip admin role assignment
 	return nil
 }
 

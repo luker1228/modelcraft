@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -29,7 +30,7 @@ func (r *SqlModelDatabaseRepository) Create(ctx context.Context, db *modeldataba
 		ClusterID:   db.ClusterID,
 		Name:        db.Name,
 		Title:       db.Title,
-		Description: db.Description,
+		Description: sql.NullString{String: db.Description, Valid: db.Description != ""},
 		Mode:        dbgen.ModelDatabaseMode(db.Mode),
 	})
 }
@@ -97,7 +98,7 @@ func (r *SqlModelDatabaseRepository) Update(
 ) error {
 	return r.q.UpdateModelDatabase(ctx, dbgen.UpdateModelDatabaseParams{
 		Title:       db.Title,
-		Description: db.Description,
+		Description: sql.NullString{String: db.Description, Valid: db.Description != ""},
 		Mode:        dbgen.ModelDatabaseMode(db.Mode),
 		ID:          db.ID,
 		OrgName:     orgName,
@@ -130,7 +131,7 @@ func modelDatabaseToDomain(row dbgen.ModelDatabase) *modeldatabase.ModelDatabase
 		ClusterID:   row.ClusterID,
 		Name:        row.Name,
 		Title:       row.Title,
-		Description: row.Description,
+		Description: row.Description.String,
 		Mode:        modeldatabase.DatabaseMode(row.Mode),
 		CreatedAt:   row.CreatedAt,
 		UpdatedAt:   row.UpdatedAt,
