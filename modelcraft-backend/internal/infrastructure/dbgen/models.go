@@ -140,6 +140,48 @@ func (ns NullLogicalForeignKeysDirection) Value() (driver.Value, error) {
 	return string(ns.LogicalForeignKeysDirection), nil
 }
 
+type ModelDatabaseMode string
+
+const (
+	ModelDatabaseModeSelfHosted ModelDatabaseMode = "self_hosted"
+	ModelDatabaseModeManaged    ModelDatabaseMode = "managed"
+)
+
+func (e *ModelDatabaseMode) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelDatabaseMode(s)
+	case string:
+		*e = ModelDatabaseMode(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelDatabaseMode: %T", src)
+	}
+	return nil
+}
+
+type NullModelDatabaseMode struct {
+	ModelDatabaseMode ModelDatabaseMode
+	Valid             bool // Valid is true if ModelDatabaseMode is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelDatabaseMode) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelDatabaseMode, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelDatabaseMode.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelDatabaseMode) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelDatabaseMode), nil
+}
+
 type ModelsCreatedVia string
 
 const (
@@ -580,6 +622,32 @@ type Model struct {
 	DeleteToken uint64
 	// 模型创建来源：NEW=新建，IMPORTED=导入
 	CreatedVia ModelsCreatedVia
+}
+
+// Project 已接管的 MySQL database 注册表
+type ModelDatabase struct {
+	// 数据库唯一标识符 (UUID)
+	ID string
+	// 所属组织名称
+	OrgName string
+	// 所属项目标识符
+	ProjectSlug string
+	// 所属数据库集群 ID
+	ClusterID string
+	// MySQL database 原始名，来自 SHOW DATABASES，注册后不可修改
+	Name string
+	// 用户设置的友好名称，默认等于 name
+	Title string
+	// 可选描述
+	Description sql.NullString
+	// self_hosted=可读写; managed=只读
+	Mode ModelDatabaseMode
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
+	CreatedAt   time.Time
+	UpdatedAt   time.Time
 }
 
 // 模型枚举定义表

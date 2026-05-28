@@ -30,6 +30,7 @@ type Querier interface {
 	CreateLogicalForeignKey(ctx context.Context, arg CreateLogicalForeignKeyParams) error
 	CreateMembership(ctx context.Context, arg CreateMembershipParams) error
 	CreateModel(ctx context.Context, arg CreateModelParams) error
+	CreateModelDatabase(ctx context.Context, arg CreateModelDatabaseParams) error
 	CreateModelGroup(ctx context.Context, arg CreateModelGroupParams) error
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) error
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
@@ -50,6 +51,7 @@ type Querier interface {
 	DeleteLogicalForeignKeyByPairID(ctx context.Context, arg DeleteLogicalForeignKeyByPairIDParams) error
 	DeleteMembership(ctx context.Context, id string) error
 	DeleteModel(ctx context.Context, id string) error
+	DeleteModelDatabase(ctx context.Context, arg DeleteModelDatabaseParams) error
 	DeleteModelGroup(ctx context.Context, id string) error
 	DeleteModelRLSPolicy(ctx context.Context, modelID string) error
 	DeleteOldBundleSnapshots(ctx context.Context, arg DeleteOldBundleSnapshotsParams) error
@@ -112,6 +114,8 @@ type Querier interface {
 	GetMembershipByUserAndOrg(ctx context.Context, arg GetMembershipByUserAndOrgParams) (UserOrganization, error)
 	GetModelByID(ctx context.Context, id string) (Model, error)
 	GetModelByName(ctx context.Context, arg GetModelByNameParams) (Model, error)
+	GetModelDatabaseByID(ctx context.Context, arg GetModelDatabaseByIDParams) (ModelDatabase, error)
+	GetModelDatabaseByName(ctx context.Context, arg GetModelDatabaseByNameParams) (ModelDatabase, error)
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
 	GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error)
@@ -166,6 +170,7 @@ type Querier interface {
 	ListMembershipsWithOrgDetails(ctx context.Context, arg ListMembershipsWithOrgDetailsParams) ([]ListMembershipsWithOrgDetailsRow, error)
 	ListMembershipsWithUserName(ctx context.Context, orgName string) ([]ListMembershipsWithUserNameRow, error)
 	ListModelDatabases(ctx context.Context, arg ListModelDatabasesParams) ([]string, error)
+	ListModelDatabasesByProject(ctx context.Context, arg ListModelDatabasesByProjectParams) ([]ModelDatabase, error)
 	ListModelGroupsByProject(ctx context.Context, arg ListModelGroupsByProjectParams) ([]ModelGroup, error)
 	ListModels(ctx context.Context, arg ListModelsParams) ([]Model, error)
 	ListOrganizationsByUser(ctx context.Context, userID string) ([]Organization, error)
@@ -200,6 +205,7 @@ type Querier interface {
 	UpdateFieldsStatus(ctx context.Context, arg UpdateFieldsStatusParams) error
 	UpdateMembership(ctx context.Context, arg UpdateMembershipParams) error
 	UpdateModel(ctx context.Context, arg UpdateModelParams) (sql.Result, error)
+	UpdateModelDatabase(ctx context.Context, arg UpdateModelDatabaseParams) error
 	UpdateModelDeploymentStatus(ctx context.Context, arg UpdateModelDeploymentStatusParams) error
 	UpdateModelGroup(ctx context.Context, arg UpdateModelGroupParams) error
 	UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)
