@@ -51,7 +51,7 @@ func (s *EndUserManagementAppService) CreateEndUser(
 		return nil, bizerrors.Wrapf(err, "failed to generate end user id")
 	}
 
-	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, cmd.CreatedBy, hashedPwd)
+	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, hashedPwd)
 	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to create end user entity")
 	}
@@ -65,7 +65,6 @@ func (s *EndUserManagementAppService) CreateEndUser(
 		ID:          user.ID,
 		Username:    user.Username,
 		IsForbidden: user.IsForbidden,
-		CreatedBy:   user.CreatedBy,
 		CreatedAt:   user.CreatedAt,
 		UpdatedAt:   user.UpdatedAt,
 	}, nil
@@ -144,10 +143,6 @@ func (s *EndUserManagementAppService) UpdateEndUserStatus(
 	if user == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
 	}
-	if cmd.IsForbidden && user.IsBuiltin {
-		return nil, bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDisabled)
-	}
-
 	if cmd.IsForbidden {
 		user.Disable()
 	} else {
@@ -181,9 +176,6 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 	}
 	if user == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
-	}
-	if user.IsBuiltin {
-		return bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDeleted)
 	}
 
 	err = s.txManager.WithTx(ctx, s.db, func(ctx context.Context, txDB SQLDBTX) error {
@@ -224,9 +216,6 @@ func (s *EndUserManagementAppService) ResetEndUserPassword(
 	}
 	if user == nil {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserNotFound, cmd.UserID)
-	}
-	if user.IsBuiltin {
-		return bizerrors.NewErrorFromContext(ctx, ErrBuiltinUserCannotBeDisabled)
 	}
 
 	hashedPwd, err := domainenduser.NewHashedPasswordFromPlain(cmd.NewPassword)
@@ -274,8 +263,6 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 		ID:          entity.ID,
 		Username:    entity.Username,
 		IsForbidden: entity.IsForbidden,
-		IsBuiltin:   entity.IsBuiltin,
-		CreatedBy:   entity.CreatedBy,
 		CreatedAt:   entity.CreatedAt,
 		UpdatedAt:   entity.UpdatedAt,
 	}
@@ -313,9 +300,6 @@ func (s *EndUserManagementAppServiceWithRepoImpl) DeleteEndUserDirect(
 	if user == nil {
 		return bizerrors.NewError(bizerrors.NotFound, userID)
 	}
-	if user.IsBuiltin {
-		return bizerrors.NewError(ErrBuiltinUserCannotBeDeleted)
-	}
 	return s.repo.Delete(ctx, orgName, userID)
 }
 
@@ -329,9 +313,6 @@ func (s *EndUserManagementAppServiceWithRepoImpl) UpdateEndUserStatusDirect(
 	}
 	if user == nil {
 		return bizerrors.NewError(bizerrors.NotFound, userID)
-	}
-	if isForbidden && user.IsBuiltin {
-		return bizerrors.NewError(ErrBuiltinUserCannotBeDisabled)
 	}
 	return s.repo.UpdateStatus(ctx, orgName, userID, isForbidden)
 }

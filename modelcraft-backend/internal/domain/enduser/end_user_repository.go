@@ -27,10 +27,6 @@ type EndUserRepository interface {
 	// GetByUsername retrieves a user by username under org scope (returns (nil, nil) when not found).
 	GetByUsername(ctx context.Context, orgName, username string) (*EndUser, error)
 
-	// GetBuiltinByOrg retrieves the builtin admin EndUser for an org.
-	// Returns (nil, nil) when not found (e.g. org was created before this feature).
-	GetBuiltinByOrg(ctx context.Context, orgName string) (*EndUser, error)
-
 	// UpdateStatus updates the is_forbidden field under org scope.
 	UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error
 

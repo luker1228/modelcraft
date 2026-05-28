@@ -870,7 +870,6 @@ func (r *queryResolver) ListProjectEndUserRoleUsers(ctx context.Context, input *
 			ID:          item.EndUser.ID,
 			Username:    item.EndUser.Username,
 			IsForbidden: item.EndUser.IsForbidden,
-			CreatedBy:   item.EndUser.CreatedBy,
 			CreatedAt:   item.EndUser.CreatedAt,
 			UpdatedAt:   item.EndUser.UpdatedAt,
 		}

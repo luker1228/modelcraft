@@ -41,9 +41,9 @@ func NewSqlEndUserRepository(db endUserDBTX, orgName, _ string) enduser.EndUserR
 func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) error {
 	const query = `
 		INSERT INTO end_user_users (
-			id, org_name, username, password, is_forbidden, is_builtin, created_by, created_at, updated_at
+			id, org_name, username, password, is_forbidden, created_at, updated_at
 		)
-		VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+		VALUES (?, ?, ?, ?, ?, NOW(), NOW())
 	`
 
 	orgName := user.OrgName
@@ -59,8 +59,6 @@ func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) 
 		user.Username,
 		user.Password.Hash,
 		boolToTinyInt(user.IsForbidden),
-		boolToTinyInt(user.IsBuiltin),
-		nullableCreatedBy(user.CreatedBy),
 	)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
@@ -73,7 +71,7 @@ func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) 
 // Returns (nil, nil) when not found.
 func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) (*enduser.EndUser, error) {
 	const query = `
-		SELECT id, username, password, is_forbidden, is_builtin, created_by, created_at, updated_at
+		SELECT id, username, password, is_forbidden, created_at, updated_at
 		FROM end_user_users
 		WHERE id = ? AND org_name = ? AND deleted_at = 0
 	`
@@ -90,7 +88,7 @@ func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) 
 // Returns (nil, nil) when not found.
 func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, username string) (*enduser.EndUser, error) {
 	const query = `
-		SELECT id, username, password, is_forbidden, is_builtin, created_by, created_at, updated_at
+		SELECT id, username, password, is_forbidden, created_at, updated_at
 		FROM end_user_users
 		WHERE username = ? AND org_name = ? AND deleted_at = 0
 	`
@@ -109,8 +107,6 @@ func scanEndUser(row *sql.Row, orgName string) (*enduser.EndUser, error) {
 		username    string
 		password    string
 		isForbidden int
-		isBuiltin   int
-		createdBy   sql.NullString
 		createdAt   time.Time
 		updatedAt   time.Time
 	)
@@ -120,8 +116,6 @@ func scanEndUser(row *sql.Row, orgName string) (*enduser.EndUser, error) {
 		&username,
 		&password,
 		&isForbidden,
-		&isBuiltin,
-		&createdBy,
 		&createdAt,
 		&updatedAt,
 	)
@@ -138,18 +132,9 @@ func scanEndUser(row *sql.Row, orgName string) (*enduser.EndUser, error) {
 		Username:    username,
 		Password:    enduser.NewHashedPasswordFromHash(password),
 		IsForbidden: isForbidden == 1,
-		IsBuiltin:   isBuiltin == 1,
-		CreatedBy:   createdBy.String,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}, nil
-}
-
-func nullableCreatedBy(createdBy string) any {
-	if createdBy == "" {
-		return nil
-	}
-	return createdBy
 }
 
 // UpdatePassword updates the password hash for a user under org scope.
@@ -264,7 +249,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 
 	// List with search + cursor
 	listSQL := `
-		SELECT id, username, password, is_forbidden, is_builtin, created_by, created_at, updated_at
+		SELECT id, username, password, is_forbidden, created_at, updated_at
 		FROM end_user_users
 		WHERE org_name = ?
 		  AND deleted_at = 0
@@ -296,8 +281,6 @@ func (r *SqlEndUserRepository) ListWithTotal(
 			username    string
 			password    string
 			isForbidden int
-			isBuiltin   int
-			createdBy   sql.NullString
 			createdAt   time.Time
 			updatedAt   time.Time
 		)
@@ -307,8 +290,6 @@ func (r *SqlEndUserRepository) ListWithTotal(
 			&username,
 			&password,
 			&isForbidden,
-			&isBuiltin,
-			&createdBy,
 			&createdAt,
 			&updatedAt,
 		); scanErr != nil {
@@ -321,8 +302,6 @@ func (r *SqlEndUserRepository) ListWithTotal(
 			Username:    username,
 			Password:    enduser.NewHashedPasswordFromHash(password),
 			IsForbidden: isForbidden == 1,
-			IsBuiltin:   isBuiltin == 1,
-			CreatedBy:   createdBy.String,
 			CreatedAt:   createdAt,
 			UpdatedAt:   updatedAt,
 		})
@@ -430,22 +409,6 @@ func (r *SqlEndUserRepository) HasProjectAccessByRole(
 		return false, sqlerr.WrapSQLError(err)
 	}
 	return count > 0, nil
-}
-
-// GetBuiltinByOrg retrieves the builtin admin EndUser for an org.
-// Returns (nil, nil) when not found.
-func (r *SqlEndUserRepository) GetBuiltinByOrg(ctx context.Context, orgName string) (*enduser.EndUser, error) {
-	const query = `
-		SELECT id, username, password, is_forbidden, is_builtin, created_by, created_at, updated_at
-		FROM end_user_users
-		WHERE org_name = ? AND is_builtin = 1
-		LIMIT 1
-	`
-	if orgName == "" {
-		orgName = r.orgName
-	}
-	row := r.db.QueryRowContext(ctx, query, orgName)
-	return scanEndUser(row, orgName)
 }
 
 // Compile-time interface satisfaction check.

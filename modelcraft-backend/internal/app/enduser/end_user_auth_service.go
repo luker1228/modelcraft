@@ -110,7 +110,7 @@ func (s *EndUserAuthAppService) RegisterEndUser(ctx context.Context, cmd Registe
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
 	}
 
-	user, err := enduser.NewEndUser(userID, cmd.OrgName, cmd.Username, "", hashedPwd)
+	user, err := enduser.NewEndUser(userID, cmd.OrgName, cmd.Username, hashedPwd)
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
 	}

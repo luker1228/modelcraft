@@ -104,11 +104,3 @@ func convertOrgResetEndUserPasswordError(err *bizerrors.BusinessError) generated
 		return &generated.InvalidInput{Message: err.Msg()}
 	}
 }
-
-func toOrgOptionalString(value string) *string {
-	if strings.TrimSpace(value) == "" {
-		return nil
-	}
-	v := value
-	return &v
-}

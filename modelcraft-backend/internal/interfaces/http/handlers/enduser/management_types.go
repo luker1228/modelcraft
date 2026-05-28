@@ -16,7 +16,6 @@ type EndUserJSON struct {
 	ID          string  `json:"id"`
 	Username    string  `json:"username"`
 	IsForbidden bool    `json:"isForbidden"`
-	CreatedBy   string  `json:"createdBy"`
 	CreatedAt   *string `json:"createdAt,omitempty"`
 	UpdatedAt   *string `json:"updatedAt,omitempty"`
 }

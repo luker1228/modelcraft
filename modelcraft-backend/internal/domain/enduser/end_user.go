@@ -13,15 +13,13 @@ type EndUser struct {
 	Username    string         // 3-64 chars, ^[a-zA-Z0-9_-]+$, unique within org
 	Password    HashedPassword // bcrypt hashed
 	IsForbidden bool           // whether the account is disabled
-	IsBuiltin   bool           // platform-managed builtin account; cannot be deleted or disabled
-	CreatedBy   string         // developer user_id from mc_meta (empty for self-registration)
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }
 
 // NewEndUser creates a new EndUser with validation.
 // The password must already be hashed.
-func NewEndUser(id, orgName, username, createdBy string, hashedPwd HashedPassword) (*EndUser, error) {
+func NewEndUser(id, orgName, username string, hashedPwd HashedPassword) (*EndUser, error) {
 	if id == "" {
 		return nil, fmt.Errorf("user ID is required")
 	}
@@ -40,33 +38,6 @@ func NewEndUser(id, orgName, username, createdBy string, hashedPwd HashedPasswor
 		Username:    username,
 		Password:    hashedPwd,
 		IsForbidden: false,
-		CreatedBy:   createdBy,
-		CreatedAt:   now,
-		UpdatedAt:   now,
-	}, nil
-}
-
-// BuiltinAdminUsername is the reserved username for the per-org builtin admin EndUser.
-const BuiltinAdminUsername = "admin"
-
-// NewBuiltinEndUser creates the per-org builtin admin EndUser.
-// Username is always "admin" and IsBuiltin is always true.
-func NewBuiltinEndUser(id, orgName, createdBy string, hashedPwd HashedPassword) (*EndUser, error) {
-	if id == "" {
-		return nil, fmt.Errorf("user ID is required")
-	}
-	if orgName == "" {
-		return nil, fmt.Errorf("org name is required")
-	}
-	now := time.Now()
-	return &EndUser{
-		ID:          id,
-		OrgName:     orgName,
-		Username:    BuiltinAdminUsername,
-		Password:    hashedPwd,
-		IsForbidden: false,
-		IsBuiltin:   true,
-		CreatedBy:   createdBy,
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}, nil

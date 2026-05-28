@@ -32,15 +32,6 @@ func (f *fakeEndUserRepo) GetByUsername(_ context.Context, _, username string) (
 	return nil, nil
 }
 
-func (f *fakeEndUserRepo) GetBuiltinByOrg(_ context.Context, _ string) (*domainenduser.EndUser, error) {
-	for _, u := range f.users {
-		if u.IsBuiltin {
-			return u, nil
-		}
-	}
-	return nil, nil
-}
-
 func (f *fakeEndUserRepo) UpdateStatus(_ context.Context, _, id string, isForbidden bool) error {
 	if u, ok := f.users[id]; ok {
 		u.IsForbidden = isForbidden
@@ -73,47 +64,34 @@ func (f *fakeEndUserRepo) UpdatePassword(_ context.Context, _, _ string, _ domai
 	return nil
 }
 
-func makeBuiltinUser() *domainenduser.EndUser {
+func makeNormalUser() *domainenduser.EndUser {
 	pwd, _ := domainenduser.NewHashedPasswordFromPlain("Password1")
-	u, _ := domainenduser.NewBuiltinEndUser("builtin-id", "myorg", "creator", pwd)
+	u, _ := domainenduser.NewEndUser("user-id", "myorg", "normaluser", pwd)
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
 	return u
 }
 
-func TestDeleteBuiltinEndUser_ReturnsError(t *testing.T) {
+func TestDeleteEndUser_Allowed(t *testing.T) {
 	repo := &fakeEndUserRepo{users: map[string]*domainenduser.EndUser{
-		"builtin-id": makeBuiltinUser(),
+		"user-id": makeNormalUser(),
 	}}
 	svc := appenduser.NewEndUserManagementAppServiceWithRepo(repo)
 
-	err := svc.DeleteEndUserDirect(context.Background(), "myorg", "builtin-id")
-	if err == nil {
-		t.Fatal("expected error when deleting builtin user, got nil")
-	}
-}
-
-func TestDisableBuiltinEndUser_ReturnsError(t *testing.T) {
-	repo := &fakeEndUserRepo{users: map[string]*domainenduser.EndUser{
-		"builtin-id": makeBuiltinUser(),
-	}}
-	svc := appenduser.NewEndUserManagementAppServiceWithRepo(repo)
-
-	err := svc.UpdateEndUserStatusDirect(context.Background(), "myorg", "builtin-id", true)
-	if err == nil {
-		t.Fatal("expected error when disabling builtin user, got nil")
-	}
-}
-
-func TestEnableBuiltinEndUser_Allowed(t *testing.T) {
-	repo := &fakeEndUserRepo{users: map[string]*domainenduser.EndUser{
-		"builtin-id": makeBuiltinUser(),
-	}}
-	svc := appenduser.NewEndUserManagementAppServiceWithRepo(repo)
-
-	// Enabling (isForbidden=false) should be allowed even for builtin
-	err := svc.UpdateEndUserStatusDirect(context.Background(), "myorg", "builtin-id", false)
+	err := svc.DeleteEndUserDirect(context.Background(), "myorg", "user-id")
 	if err != nil {
-		t.Fatalf("expected no error when enabling builtin user, got: %v", err)
+		t.Fatalf("expected no error when deleting normal user, got: %v", err)
+	}
+}
+
+func TestUpdateEndUserStatus_Allowed(t *testing.T) {
+	repo := &fakeEndUserRepo{users: map[string]*domainenduser.EndUser{
+		"user-id": makeNormalUser(),
+	}}
+	svc := appenduser.NewEndUserManagementAppServiceWithRepo(repo)
+
+	err := svc.UpdateEndUserStatusDirect(context.Background(), "myorg", "user-id", true)
+	if err != nil {
+		t.Fatalf("expected no error when disabling normal user, got: %v", err)
 	}
 }

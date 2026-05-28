@@ -75,7 +75,6 @@ func (h *ManagementHandler) Create(w http.ResponseWriter, r *http.Request) {
 			ID:          result.ID,
 			Username:    result.Username,
 			IsForbidden: result.IsForbidden,
-			CreatedBy:   result.CreatedBy,
 			CreatedAt:   &createdAt,
 			UpdatedAt:   &updatedAt,
 		},
@@ -129,7 +128,6 @@ func (h *ManagementHandler) List(w http.ResponseWriter, r *http.Request) {
 			ID:          u.ID,
 			Username:    u.Username,
 			IsForbidden: u.IsForbidden,
-			CreatedBy:   u.CreatedBy,
 			CreatedAt:   &createdAt,
 			UpdatedAt:   &updatedAt,
 		})
@@ -201,7 +199,6 @@ func (h *ManagementHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 			ID:          result.ID,
 			Username:    result.Username,
 			IsForbidden: result.IsForbidden,
-			CreatedBy:   result.CreatedBy,
 			CreatedAt:   &createdAt,
 			UpdatedAt:   &updatedAt,
 		},

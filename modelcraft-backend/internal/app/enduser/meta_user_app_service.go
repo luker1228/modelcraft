@@ -45,7 +45,7 @@ func (s *MetaUserAppService) GetMe(ctx context.Context) (*MetaUserDTO, error) {
 	if !user.IsActive() {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
-	return metaUserToDTO(user.ID, user.Username, user.IsBuiltin, user.CreatedAt), nil
+	return metaUserToDTO(user.ID, user.Username, user.CreatedAt), nil
 }
 
 // FindOne 按唯一条件（id 或 username）查询单个用户。
@@ -67,7 +67,7 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 		if user == nil {
 			return nil, nil //nolint:nilnil // per contract: not found returns (nil, nil) at repo layer
 		}
-		return metaUserToDTO(user.ID, user.Username, user.IsBuiltin, user.CreatedAt), nil
+		return metaUserToDTO(user.ID, user.Username, user.CreatedAt), nil
 	}
 
 	user, err := repo.GetByUsername(ctx, cmd.OrgName, cmd.Username)
@@ -77,7 +77,7 @@ func (s *MetaUserAppService) FindOne(ctx context.Context, cmd MetaUserFindOneCom
 	if user == nil {
 		return nil, nil //nolint:nilnil // per contract: not found returns (nil, nil) at repo layer
 	}
-	return metaUserToDTO(user.ID, user.Username, user.IsBuiltin, user.CreatedAt), nil
+	return metaUserToDTO(user.ID, user.Username, user.CreatedAt), nil
 }
 
 // FindMany 执行受限列表查询（cursor 分页）。
@@ -159,7 +159,7 @@ func (s *MetaUserAppService) runFindMany(
 	}
 
 	//nolint:gosec // conditions 仅由白名单字段拼接，无用户输入直接进入 SQL 结构
-	query := "SELECT id, username, is_builtin, created_at FROM end_user_users WHERE " +
+	query := "SELECT id, username, created_at FROM end_user_users WHERE " +
 		strings.Join(conditions, " AND ") +
 		" ORDER BY created_at DESC, id DESC LIMIT ?"
 
@@ -176,13 +176,12 @@ func (s *MetaUserAppService) runFindMany(
 		var (
 			id        string
 			username  string
-			isBuiltin bool
 			createdAt time.Time
 		)
-		if err := rows.Scan(&id, &username, &isBuiltin, &createdAt); err != nil {
+		if err := rows.Scan(&id, &username, &createdAt); err != nil {
 			return nil, err
 		}
-		dtos = append(dtos, metaUserToDTO(id, username, isBuiltin, createdAt))
+		dtos = append(dtos, metaUserToDTO(id, username, createdAt))
 	}
 	if err := rows.Err(); err != nil {
 		return nil, err
@@ -263,11 +262,10 @@ func decodeCursor(cursor string) (time.Time, string, error) {
 	return t, parts[1], nil
 }
 
-func metaUserToDTO(id, username string, isBuiltin bool, createdAt time.Time) *MetaUserDTO {
+func metaUserToDTO(id, username string, createdAt time.Time) *MetaUserDTO {
 	return &MetaUserDTO{
 		ID:        id,
 		Username:  username,
-		IsBuiltin: isBuiltin,
 		CreatedAt: createdAt,
 	}
 }

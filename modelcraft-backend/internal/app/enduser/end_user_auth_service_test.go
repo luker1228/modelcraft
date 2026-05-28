@@ -232,12 +232,7 @@ func (r *inMemoryEndUserRepo) HasProjectAccessByRole(
 	return false, nil
 }
 
-func (r *inMemoryEndUserRepo) GetBuiltinByOrg(_ context.Context, orgName string) (*domainenduser.EndUser, error) {
-	for _, u := range r.usersByID {
-		if u.OrgName == orgName && u.IsBuiltin {
-			return u, nil
-		}
-	}
+func (r *inMemoryEndUserRepo) GetBuiltinByOrg(_ context.Context, _ string) (*domainenduser.EndUser, error) {
 	return nil, nil //nolint:nilnil
 }
 
@@ -356,7 +351,7 @@ func seedEndUser(
 	hashed, err := domainenduser.NewHashedPasswordFromPlain(plainPassword)
 	require.NoError(t, err)
 
-	user, err := domainenduser.NewEndUser(userID, orgName, username, "", hashed)
+	user, err := domainenduser.NewEndUser(userID, orgName, username, hashed)
 	require.NoError(t, err)
 	if disabled {
 		user.Disable()

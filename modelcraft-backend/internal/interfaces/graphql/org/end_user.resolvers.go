@@ -73,8 +73,8 @@ func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.Cr
 			ID:          result.ID,
 			Username:    result.Username,
 			IsForbidden: result.IsForbidden,
-			IsBuiltin:   result.IsBuiltin,
-			CreatedBy:   toOrgOptionalString(result.CreatedBy),
+			IsBuiltin:   false,
+			CreatedBy:   nil,
 			CreatedAt:   result.CreatedAt,
 			UpdatedAt:   result.UpdatedAt,
 		},
@@ -132,8 +132,8 @@ func (r *mutationResolver) UpdateEndUserStatus(ctx context.Context, input genera
 			ID:          result.ID,
 			Username:    result.Username,
 			IsForbidden: result.IsForbidden,
-			IsBuiltin:   result.IsBuiltin,
-			CreatedBy:   toOrgOptionalString(result.CreatedBy),
+			IsBuiltin:   false,
+			CreatedBy:   nil,
 			CreatedAt:   result.CreatedAt,
 			UpdatedAt:   result.UpdatedAt,
 		},
@@ -303,8 +303,8 @@ func (r *queryResolver) ListEndUsers(ctx context.Context, input *generated.ListE
 			ID:          item.ID,
 			Username:    item.Username,
 			IsForbidden: item.IsForbidden,
-			IsBuiltin:   item.IsBuiltin,
-			CreatedBy:   toOrgOptionalString(item.CreatedBy),
+			IsBuiltin:   false,
+			CreatedBy:   nil,
 			CreatedAt:   item.CreatedAt,
 			UpdatedAt:   item.UpdatedAt,
 		})
@@ -366,7 +366,7 @@ func (r *queryResolver) FindUsers(ctx context.Context, where *generated.UserWher
 		items = append(items, &generated.EndUserPublic{
 			ID:        dto.ID,
 			Username:  dto.Username,
-			IsBuiltin: dto.IsBuiltin,
+			IsBuiltin: false,
 			CreatedAt: dto.CreatedAt,
 		})
 	}
