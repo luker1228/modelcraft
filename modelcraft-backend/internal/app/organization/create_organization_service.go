@@ -248,7 +248,7 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 	logger.Infof(ctx, "Organization created: orgName=%s", orgSlug)
 
 	membershipID := uuid.New().String()
-	ms, txErr := membership.NewMembership(membershipID, existingUser.ID, orgSlug)
+	ms, txErr := membership.NewMembership(membershipID, existingUser.ID, orgSlug, true)
 	if txErr != nil {
 		logger.Error(ctx, "Invalid membership data", logfacade.Err(txErr))
 		return nil, bizerrors.Wrap(txErr, "Invalid membership data")
@@ -485,7 +485,7 @@ func (s *CreateOrganizationService) createOrganizationInTransaction(
 
 		// Create membership
 		membershipID := uuid.New().String()
-		ms, txErr := membership.NewMembership(membershipID, userID, orgSlug)
+		ms, txErr := membership.NewMembership(membershipID, userID, orgSlug, true)
 		if txErr != nil {
 			logger.Error(ctx, "Invalid membership data", logfacade.Err(txErr))
 			return bizerrors.Wrap(txErr, "Invalid membership data")
