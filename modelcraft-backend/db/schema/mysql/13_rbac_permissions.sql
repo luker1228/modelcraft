@@ -1,7 +1,8 @@
 -- =============================================================
 -- 13_rbac_permissions.sql
 -- RBAC 行列级权限系统（item-centric 模型）
--- 依赖: 12_end_user_auth.sql（end_user_roles / end_user_users / end_user_role_users）
+-- 依赖: 12_end_user_auth.sql（project_roles / project_role_users）
+--       06_users.sql（users）
 -- =============================================================
 
 -- -------------------------------------------------------------
@@ -142,7 +143,7 @@ CREATE TABLE `end_user_role_bundles` (
   `id`            VARCHAR(36)  NOT NULL                    COMMENT 'UUID',
   `org_name`      VARCHAR(64)  NOT NULL                    COMMENT '所属组织（冗余，快速查询）',
   `project_slug`  VARCHAR(64)  NOT NULL                    COMMENT '所属项目（冗余，快速查询）',
-  `role_id`       VARCHAR(36)  NOT NULL                    COMMENT '角色 ID，FK → end_user_roles.id',
+  `role_id`       VARCHAR(36)  NOT NULL                    COMMENT '角色 ID，FK → project_roles.id',
   `bundle_id`     VARCHAR(36)  NOT NULL                    COMMENT '权限包 ID，FK → end_user_permission_bundles.id',
   `granted_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '授权时间',
 
@@ -153,7 +154,7 @@ CREATE TABLE `end_user_role_bundles` (
   INDEX `idx_role_bundles_org_project` (`org_name`, `project_slug`),
   INDEX `idx_role_bundles_bundle_id` (`bundle_id`),
   CONSTRAINT `fk_role_bundles_role`
-    FOREIGN KEY (`role_id`) REFERENCES `end_user_roles` (`id`)
+    FOREIGN KEY (`role_id`) REFERENCES `project_roles` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_role_bundles_bundle`
     FOREIGN KEY (`bundle_id`) REFERENCES `end_user_permission_bundles` (`id`)
@@ -168,7 +169,7 @@ CREATE TABLE `end_user_user_bundles` (
   `id`            VARCHAR(36)  NOT NULL                    COMMENT 'UUID',
   `org_name`      VARCHAR(64)  NOT NULL                    COMMENT '所属组织',
   `project_slug`  VARCHAR(64)  NOT NULL                    COMMENT '所属项目',
-  `user_id`       VARCHAR(36)  NOT NULL                    COMMENT '用户 ID（复合 FK 的 id 部分）',
+  `user_id`       VARCHAR(36)  NOT NULL                    COMMENT '用户 ID，FK → users.id',
   `bundle_id`     VARCHAR(36)  NOT NULL                    COMMENT '权限包 ID，FK → end_user_permission_bundles.id',
   `granted_at`    DATETIME     NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '授权时间',
 
@@ -177,10 +178,10 @@ CREATE TABLE `end_user_user_bundles` (
   UNIQUE KEY `uq_user_bundles_org_project_user_bundle`
     (`org_name`, `project_slug`, `user_id`, `bundle_id`),
   INDEX `idx_user_bundles_bundle_id` (`bundle_id`),
-  -- FK → end_user_users(org_name, id)
+  -- FK → users(id)
   CONSTRAINT `fk_user_bundles_user`
-    FOREIGN KEY (`org_name`, `user_id`)
-    REFERENCES `end_user_users` (`org_name`, `id`)
+    FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE,
   CONSTRAINT `fk_user_bundles_bundle`
     FOREIGN KEY (`bundle_id`) REFERENCES `end_user_permission_bundles` (`id`)
