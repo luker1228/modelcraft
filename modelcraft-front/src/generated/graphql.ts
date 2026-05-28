@@ -3096,6 +3096,22 @@ export type EndUserProjectsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type EndUserProjectsQuery = { __typename?: 'Query', endUserProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
 
+export type MyProjectsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyProjectsQuery = { __typename?: 'Query', myProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
+
+export type CreateUserMutationVariables = Exact<{
+  input: CreateUserInput;
+}>;
+
+
+export type CreateUserMutation = { __typename?: 'Mutation', createUser: { __typename?: 'CreateUserPayload', user?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdAt: any, updatedAt: any } | null, error?:
+      | { __typename: 'EndUserAlreadyExists', message: string }
+      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+     | null } };
+
 export type CreateEndUserMutationVariables = Exact<{
   input: CreateEndUserInput;
 }>;

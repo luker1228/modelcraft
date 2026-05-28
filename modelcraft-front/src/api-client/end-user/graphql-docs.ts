@@ -75,7 +75,59 @@ export const END_USER_PROJECTS = gql`
   }
 `
 
+/**
+ * MY_PROJECTS — end-user 접근 가능한 프로젝트 목록 (myProjects = endUserProjects 신 이름).
+ * Endpoint: /graphql/org/{orgName}/ (end-user token 필요)
+ */
+export const MY_PROJECTS = gql`
+  query MyProjects {
+    myProjects {
+      id
+      slug
+      title
+      description
+      status
+      orgName
+      createdAt
+      updatedAt
+    }
+  }
+`
+
 // ── Mutations ──────────────────────────────────────────────────────────────────
+
+/**
+ * CREATE_USER — 통합 사용자 생성 (관리자 또는 일반 사용자).
+ * isAdmin: true → 관리자, false → 일반 사용자.
+ * 기존 CREATE_END_USER와 병존 (향후 CREATE_END_USER 대체 예정).
+ */
+export const CREATE_USER = gql`
+  mutation CreateUser($input: CreateUserInput!) {
+    createUser(input: $input) {
+      user {
+        id
+        username
+        isForbidden
+        createdAt
+        updatedAt
+      }
+      error {
+        __typename
+        ... on EndUserAlreadyExists {
+          message
+        }
+        ... on EndUserPasswordTooWeak {
+          message
+          suggestion
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
 
 export const CREATE_END_USER = gql`
   mutation CreateEndUser($input: CreateEndUserInput!) {

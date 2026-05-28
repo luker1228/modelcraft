@@ -3122,6 +3122,22 @@ export type EndUserProjectsQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type EndUserProjectsQuery = { __typename?: 'Query', endUserProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
 
+export type MyProjectsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type MyProjectsQuery = { __typename?: 'Query', myProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
+
+export type CreateUserMutationVariables = Exact<{
+  input: CreateUserInput;
+}>;
+
+
+export type CreateUserMutation = { __typename?: 'Mutation', createUser: { __typename?: 'CreateUserPayload', user?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdAt: any, updatedAt: any } | null, error?:
+      | { __typename: 'EndUserAlreadyExists', message: string }
+      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+     | null } };
+
 export type CreateEndUserMutationVariables = Exact<{
   input: CreateEndUserInput;
 }>;
@@ -4119,6 +4135,49 @@ export const mockListEndUsersQuery = (resolver: GraphQLResponseResolver<ListEndU
 export const mockEndUserProjectsQuery = (resolver: GraphQLResponseResolver<EndUserProjectsQuery, EndUserProjectsQueryVariables>, options?: RequestHandlerOptions) =>
   graphql.query<EndUserProjectsQuery, EndUserProjectsQueryVariables>(
     'EndUserProjects',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockMyProjectsQuery(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { myProjects }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockMyProjectsQuery = (resolver: GraphQLResponseResolver<MyProjectsQuery, MyProjectsQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<MyProjectsQuery, MyProjectsQueryVariables>(
+    'MyProjects',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateUserMutation(
+ *   ({ query, variables }) => {
+ *     const { input } = variables;
+ *     return HttpResponse.json({
+ *       data: { createUser }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockCreateUserMutation = (resolver: GraphQLResponseResolver<CreateUserMutation, CreateUserMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateUserMutation, CreateUserMutationVariables>(
+    'CreateUser',
     resolver,
     options
   )
