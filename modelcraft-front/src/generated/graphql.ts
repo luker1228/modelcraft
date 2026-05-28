@@ -212,6 +212,16 @@ export type BindPresetItemToBundlePayload = {
   error?: Maybe<BindPresetItemToBundleError>;
 };
 
+export type BuiltinUserCannotBeDeleted = Error & {
+  __typename?: 'BuiltinUserCannotBeDeleted';
+  message: Scalars['String']['output'];
+};
+
+export type BuiltinUserCannotBeDisabled = Error & {
+  __typename?: 'BuiltinUserCannotBeDisabled';
+  message: Scalars['String']['output'];
+};
+
 export type CannotDeleteDefaultProject = Error & {
   __typename?: 'CannotDeleteDefaultProject';
   message: Scalars['String']['output'];
@@ -461,6 +471,20 @@ export type CreateRolePayload = {
   role?: Maybe<Role>;
 };
 
+export type CreateUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput;
+
+export type CreateUserInput = {
+  isAdmin: Scalars['Boolean']['input'];
+  password: Scalars['String']['input'];
+  username: Scalars['String']['input'];
+};
+
+export type CreateUserPayload = {
+  __typename?: 'CreateUserPayload';
+  error?: Maybe<CreateUserError>;
+  user?: Maybe<EndUser>;
+};
+
 export type CurrentUser = {
   __typename?: 'CurrentUser';
   email: Scalars['String']['output'];
@@ -543,6 +567,16 @@ export type DatabaseLite = {
   name: Scalars['String']['output'];
 };
 
+export type DatabaseMode =
+  | 'MANAGED'
+  | 'SELF_HOSTED';
+
+export type DateTimeFilter = {
+  eq?: InputMaybe<Scalars['String']['input']>;
+  gte?: InputMaybe<Scalars['String']['input']>;
+  lte?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type DbColumnInfo = {
   __typename?: 'DbColumnInfo';
   columnLength?: Maybe<Scalars['Int64']['output']>;
@@ -569,7 +603,7 @@ export type DeleteClusterPayload = {
   success: Scalars['Boolean']['output'];
 };
 
-export type DeleteEndUserError = ResourceNotFound;
+export type DeleteEndUserError = BuiltinUserCannotBeDeleted | ResourceNotFound;
 
 export type DeleteEndUserInput = {
   userId: Scalars['ID']['input'];
@@ -692,6 +726,7 @@ export type EndUser = Node & {
   createdAt: Scalars['Time']['output'];
   createdBy: Scalars['String']['output'];
   id: Scalars['ID']['output'];
+  isBuiltin: Scalars['Boolean']['output'];
   isForbidden: Scalars['Boolean']['output'];
   updatedAt: Scalars['Time']['output'];
   username: Scalars['String']['output'];
@@ -900,6 +935,14 @@ export type EndUserPermissionSnapshotItemEntry = {
   modelId: Scalars['ID']['output'];
   preset?: Maybe<EndUserPermissionPreset>;
   sortOrder: Scalars['Int']['output'];
+};
+
+export type EndUserPublic = {
+  __typename?: 'EndUserPublic';
+  createdAt: Scalars['Time']['output'];
+  id: Scalars['ID']['output'];
+  isBuiltin: Scalars['Boolean']['output'];
+  username: Scalars['String']['output'];
 };
 
 export type EndUserRefAlreadyExists = Error & {
@@ -1171,6 +1214,11 @@ export type HealthStatus =
   | 'HEALTHY'
   | 'NEEDS_REPAIR';
 
+export type IdFilter = {
+  eq?: InputMaybe<Scalars['ID']['input']>;
+  in?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
 export type ImportModelInput = {
   databaseName: Scalars['String']['input'];
   tableName: Scalars['String']['input'];
@@ -1278,20 +1326,6 @@ export type ListProjectEndUserRoleUsersPayload = {
   error?: Maybe<ListProjectEndUserRoleUsersError>;
 };
 
-export type ListProjectEndUsersError = ResourceNotFound;
-
-export type ListProjectEndUsersInput = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  search?: InputMaybe<Scalars['String']['input']>;
-};
-
-export type ListProjectEndUsersPayload = {
-  __typename?: 'ListProjectEndUsersPayload';
-  connection?: Maybe<EndUserConnection>;
-  error?: Maybe<ListProjectEndUsersError>;
-};
-
 export type ListProjectsInput = {
   status?: InputMaybe<ProjectStatus>;
 };
@@ -1349,11 +1383,15 @@ export type ModelAlreadyExists = Error & {
   suggestion?: Maybe<Scalars['String']['output']>;
 };
 
-export type ModelConnection = {
-  __typename?: 'ModelConnection';
-  edges: Array<ModelEdge>;
-  pageInfo: PageInfo;
-  totalCount: Scalars['Int']['output'];
+export type ModelDatabase = {
+  __typename?: 'ModelDatabase';
+  createdAt: Scalars['Time']['output'];
+  description: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  mode: DatabaseMode;
+  name: Scalars['String']['output'];
+  title: Scalars['String']['output'];
+  updatedAt: Scalars['Time']['output'];
 };
 
 export type ModelDatabaseCatalogError = InvalidInput | ResourceNotFound;
@@ -1370,12 +1408,6 @@ export type ModelDatabaseCatalogPayload = {
   page: Scalars['Int']['output'];
   pageSize: Scalars['Int']['output'];
   totalCount: Scalars['Int']['output'];
-};
-
-export type ModelEdge = {
-  __typename?: 'ModelEdge';
-  cursor: Scalars['String']['output'];
-  node: Model;
 };
 
 export type ModelGroup = {
@@ -1400,10 +1432,16 @@ export type ModelJsonSchema = {
   schema: Scalars['String']['output'];
 };
 
+export type ModelListResult = {
+  __typename?: 'ModelListResult';
+  hasNextPage: Scalars['Boolean']['output'];
+  items: Array<Model>;
+};
+
 export type ModelQueryInput = {
   databaseName: Scalars['String']['input'];
-  limit?: InputMaybe<Scalars['Int']['input']>;
-  offset?: InputMaybe<Scalars['Int']['input']>;
+  pageIndex?: InputMaybe<Scalars['Int']['input']>;
+  pageSize?: InputMaybe<Scalars['Int']['input']>;
   search?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -1479,6 +1517,7 @@ export type Mutation = {
   createModelFromSchema: CreateModelFromSchemaPayload;
   createProject: CreateProjectPayload;
   createRole: CreateRolePayload;
+  createUser: CreateUserPayload;
   deleteEndUser: DeleteEndUserPayload;
   deleteEndUserPermission: DeleteEndUserPermissionPayload;
   deleteEndUserPermissionBundle: DeleteEndUserPermissionBundlePayload;
@@ -1500,6 +1539,7 @@ export type Mutation = {
   importModel: ImportModelPayload;
   moveModelToGroup: MoveModelToGroupPayload;
   pong: Scalars['String']['output'];
+  registerModelDatabase: RegisterModelDatabaseResult;
   /** 从 bundle 中移除指定模型的 data permission item */
   removeDataPermissionItemFromBundle: RemoveDataPermissionItemFromBundlePayload;
   removeEndUserPermissionFromBundle: RemoveEndUserPermissionFromBundlePayload;
@@ -1508,6 +1548,7 @@ export type Mutation = {
   renameGroup: RenameGroupPayload;
   reorderGroup: ReorderGroupPayload;
   repairModel: RepairModelPayload;
+  resetEndUserPassword: ResetEndUserPasswordPayload;
   /** 将权限包回滚到指定历史版本快照。回滚操作本身会生成新版本号。 */
   restoreEndUserPermissionBundle: RestoreEndUserPermissionBundlePayload;
   revokeBundleFromEndUser: RevokeBundleFromEndUserPayload;
@@ -1529,12 +1570,14 @@ export type Mutation = {
    * 状态转换：DEPRECATED → ACTIVE
    */
   undeprecateField?: Maybe<Model>;
+  unregisterModelDatabase: Scalars['Boolean']['output'];
   updateEndUserPermission: UpdateEndUserPermissionPayload;
   updateEndUserPermissionBundle: UpdateEndUserPermissionBundlePayload;
   updateEndUserRole: UpdateEndUserRolePayload;
   updateEndUserStatus: UpdateEndUserStatusPayload;
   updateEnum: UpdateEnumPayload;
   updateField: UpdateFieldPayload;
+  updateModelDatabase: ModelDatabase;
   updateModelMeta: UpdateModelMetaPayload;
   updateMyProfile: UpdateMyProfilePayload;
   updateOrganization: UpdateOrganizationPayload;
@@ -1669,6 +1712,11 @@ export type MutationCreateRoleArgs = {
 };
 
 
+export type MutationCreateUserArgs = {
+  input: CreateUserInput;
+};
+
+
 export type MutationDeleteEndUserArgs = {
   input: DeleteEndUserInput;
 };
@@ -1741,6 +1789,11 @@ export type MutationMoveModelToGroupArgs = {
 };
 
 
+export type MutationRegisterModelDatabaseArgs = {
+  input: RegisterModelDatabaseInput;
+};
+
+
 export type MutationRemoveDataPermissionItemFromBundleArgs = {
   input: RemoveDataPermissionItemFromBundleInput;
 };
@@ -1776,6 +1829,11 @@ export type MutationReorderGroupArgs = {
 
 export type MutationRepairModelArgs = {
   input: RepairModelInput;
+};
+
+
+export type MutationResetEndUserPasswordArgs = {
+  input: ResetEndUserPasswordInput;
 };
 
 
@@ -1832,6 +1890,11 @@ export type MutationUndeprecateFieldArgs = {
 };
 
 
+export type MutationUnregisterModelDatabaseArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationUpdateEndUserPermissionArgs = {
   id: Scalars['ID']['input'];
   input: UpdateEndUserPermissionInput;
@@ -1865,6 +1928,12 @@ export type MutationUpdateFieldArgs = {
   fieldName: Scalars['String']['input'];
   input: UpdateFieldInput;
   modelID: Scalars['ID']['input'];
+};
+
+
+export type MutationUpdateModelDatabaseArgs = {
+  id: Scalars['ID']['input'];
+  input: UpdateModelDatabaseInput;
 };
 
 
@@ -2064,6 +2133,7 @@ export type ProjectStatus =
 
 export type Query = {
   __typename?: 'Query';
+  clusterRawDatabases: Array<RawDatabase>;
   databaseCluster: GetClusterPayload;
   effectivePermissions: GetEffectivePermissionsPayload;
   endUserBundleAssignments: Array<EndUserBundleAssignment>;
@@ -2072,6 +2142,7 @@ export type Query = {
   endUserPermissionBundleBySlug?: Maybe<EndUserPermissionBundle>;
   endUserPermissionBundles: EndUserPermissionBundleConnection;
   endUserPermissions: EndUserPermissionConnection;
+  endUserProjects: Array<Project>;
   endUserRole?: Maybe<EndUserRole>;
   endUserRoleAssignments: Array<EndUserRoleAssignment>;
   endUserRoles: EndUserRoleConnection;
@@ -2079,24 +2150,26 @@ export type Query = {
   enumReferences: Array<Scalars['String']['output']>;
   enums: Array<EnumDefinition>;
   fields: Array<Field>;
+  findUsers: UserFindManyResult;
   hello: Scalars['String']['output'];
   listDatabases: DatabaseConnection;
   listEndUsers: ListEndUsersPayload;
   /** 新增：列出当前 Project 下所有有角色分配的用户 */
   listProjectEndUserRoleUsers: ListProjectEndUserRoleUsersPayload;
-  listProjectEndUsers: ListProjectEndUsersPayload;
   listTables: TableListConnection;
   logicalForeignKeys: Array<LogicalForeignKey>;
   me: CurrentUser;
   model: GetModelPayload;
   modelByName: GetModelPayload;
   modelDatabaseCatalog: GetModelDatabaseCatalogPayload;
+  modelDatabases: Array<ModelDatabase>;
   modelGroups: Array<ModelGroup>;
   modelJsonSchema?: Maybe<ModelJsonSchema>;
   /** 获取 Model RLS 策略配置 */
   modelRLSPolicy?: Maybe<ModelRlsPolicy>;
-  models: ModelConnection;
+  models: ModelListResult;
   myOrganizations: Array<Organization>;
+  myProjects: Array<Project>;
   myUserProfile: GetMyUserProfilePayload;
   node?: Maybe<Node>;
   organizationMembers: Array<OrganizationMember>;
@@ -2185,6 +2258,13 @@ export type QueryFieldsArgs = {
 };
 
 
+export type QueryFindUsersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  where?: InputMaybe<UserWhereInput>;
+};
+
+
 export type QueryListDatabasesArgs = {
   input: ListDatabasesInput;
 };
@@ -2197,11 +2277,6 @@ export type QueryListEndUsersArgs = {
 
 export type QueryListProjectEndUserRoleUsersArgs = {
   input?: InputMaybe<ListProjectEndUserRoleUsersInput>;
-};
-
-
-export type QueryListProjectEndUsersArgs = {
-  input?: InputMaybe<ListProjectEndUsersInput>;
 };
 
 
@@ -2328,6 +2403,12 @@ export type RlsPreset =
    */
   | 'READ_WRITE_OWNER';
 
+export type RawDatabase = {
+  __typename?: 'RawDatabase';
+  isRegistered: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+};
+
 /** 数据操作动作：终端用户对数据表可执行的操作类型 */
 export type RbacAction =
   | 'DELETE'
@@ -2335,6 +2416,15 @@ export type RbacAction =
   | 'INSERT'
   | 'SELECT'
   | 'UPDATE';
+
+export type RegisterModelDatabaseInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  mode: DatabaseMode;
+  name: Scalars['String']['input'];
+  title: Scalars['String']['input'];
+};
+
+export type RegisterModelDatabaseResult = InvalidInput | ModelDatabase | ResourceNotFound;
 
 export type RemoveDataPermissionItemFromBundleError = ResourceNotFound;
 
@@ -2425,6 +2515,19 @@ export type RepairModelPayload = {
   model?: Maybe<Model>;
 };
 
+export type ResetEndUserPasswordError = BuiltinUserCannotBeDisabled | EndUserPasswordTooWeak | InvalidInput | ResourceNotFound;
+
+export type ResetEndUserPasswordInput = {
+  newPassword: Scalars['String']['input'];
+  userId: Scalars['ID']['input'];
+};
+
+export type ResetEndUserPasswordPayload = {
+  __typename?: 'ResetEndUserPasswordPayload';
+  error?: Maybe<ResetEndUserPasswordError>;
+  success: Scalars['Boolean']['output'];
+};
+
 export type ResourceNotFound = Error & {
   __typename?: 'ResourceNotFound';
   message: Scalars['String']['output'];
@@ -2448,6 +2551,7 @@ export type ResourceType =
   | 'PROFILE'
   | 'PROJECT'
   | 'ROLE'
+  | 'UNKNOWN'
   | 'USER';
 
 export type RestoreEndUserPermissionBundleError = ResourceNotFound;
@@ -2615,6 +2719,13 @@ export type SetProjectAuthSchemaPayload = {
   error?: Maybe<SetProjectAuthSchemaError>;
 };
 
+export type StringFilter = {
+  contains?: InputMaybe<Scalars['String']['input']>;
+  eq?: InputMaybe<Scalars['String']['input']>;
+  in?: InputMaybe<Array<Scalars['String']['input']>>;
+  startsWith?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type SyncModelSchemaInput = {
   deleteExtraFields?: InputMaybe<Scalars['Boolean']['input']>;
   id: Scalars['ID']['input'];
@@ -2670,7 +2781,7 @@ export type UpdateClusterPayload = {
   error?: Maybe<UpdateClusterError>;
 };
 
-export type UpdateEndUserError = InvalidInput | ResourceNotFound;
+export type UpdateEndUserError = BuiltinUserCannotBeDisabled | InvalidInput | ResourceNotFound;
 
 export type UpdateEndUserPermissionBundleError = EndUserPermissionBundleAlreadyExists | InvalidInput | ResourceNotFound;
 
@@ -2749,6 +2860,12 @@ export type UpdateFieldPayload = {
   __typename?: 'UpdateFieldPayload';
   error?: Maybe<UpdateFieldError>;
   model?: Maybe<Model>;
+};
+
+export type UpdateModelDatabaseInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  mode?: InputMaybe<DatabaseMode>;
+  title?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type UpdateModelError = InvalidInput | ResourceNotFound;
@@ -2833,6 +2950,20 @@ export type UserBundleAlreadyAssigned = Error & {
   message: Scalars['String']['output'];
 };
 
+export type UserFindManyResult = {
+  __typename?: 'UserFindManyResult';
+  hasMore: Scalars['Boolean']['output'];
+  items: Array<EndUserPublic>;
+  nextCursor?: Maybe<Scalars['String']['output']>;
+  reqId: Scalars['String']['output'];
+};
+
+export type UserFindOneResult = {
+  __typename?: 'UserFindOneResult';
+  item?: Maybe<EndUserPublic>;
+  reqId: Scalars['String']['output'];
+};
+
 export type UserRoleAlreadyAssigned = Error & {
   __typename?: 'UserRoleAlreadyAssigned';
   message: Scalars['String']['output'];
@@ -2851,6 +2982,12 @@ export type UserStatus =
   | 'ACTIVE'
   | 'REGISTERED'
   | 'SUSPENDED';
+
+export type UserWhereInput = {
+  createdAt?: InputMaybe<DateTimeFilter>;
+  id?: InputMaybe<IdFilter>;
+  username?: InputMaybe<StringFilter>;
+};
 
 export type ValidateRlsExprError = InvalidAuthVariable | InvalidRlsExpression | ResourceNotFound;
 
@@ -2938,19 +3075,33 @@ export type TestClusterConnectionMutation = { __typename?: 'Mutation', testDatab
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
 
+export type FindUsersQueryVariables = Exact<{
+  where?: InputMaybe<UserWhereInput>;
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type FindUsersQuery = { __typename?: 'Query', findUsers: { __typename?: 'UserFindManyResult', nextCursor?: string | null, hasMore: boolean, reqId: string, items: Array<{ __typename?: 'EndUserPublic', id: string, username: string, isBuiltin: boolean, createdAt: any }> } };
+
 export type ListEndUsersQueryVariables = Exact<{
   input?: InputMaybe<ListEndUsersInput>;
 }>;
 
 
-export type ListEndUsersQuery = { __typename?: 'Query', listEndUsers: { __typename?: 'ListEndUsersPayload', connection?: { __typename?: 'EndUserConnection', totalCount: number, nodes: Array<{ __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdBy: string, createdAt: any, updatedAt: any }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } | null, error?: { __typename: 'InvalidInput', message: string, suggestion?: string | null } | null } };
+export type ListEndUsersQuery = { __typename?: 'Query', listEndUsers: { __typename?: 'ListEndUsersPayload', connection?: { __typename?: 'EndUserConnection', totalCount: number, nodes: Array<{ __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, isBuiltin: boolean, createdBy: string, createdAt: any, updatedAt: any }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, endCursor?: string | null } } | null, error?: { __typename: 'InvalidInput', message: string, suggestion?: string | null } | null } };
+
+export type EndUserProjectsQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type EndUserProjectsQuery = { __typename?: 'Query', endUserProjects: Array<{ __typename?: 'Project', id: string, slug: string, title: string, description: string, status: ProjectStatus, orgName: string, createdAt: string, updatedAt: string }> };
 
 export type CreateEndUserMutationVariables = Exact<{
   input: CreateEndUserInput;
 }>;
 
 
-export type CreateEndUserMutation = { __typename?: 'Mutation', createEndUser: { __typename?: 'CreateEndUserPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, createdBy: string, createdAt: any, updatedAt: any } | null, error?:
+export type CreateEndUserMutation = { __typename?: 'Mutation', createEndUser: { __typename?: 'CreateEndUserPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, isBuiltin: boolean, createdBy: string, createdAt: any, updatedAt: any } | null, error?:
       | { __typename: 'EndUserAlreadyExists', message: string }
       | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
@@ -2963,6 +3114,19 @@ export type UpdateEndUserStatusMutationVariables = Exact<{
 
 
 export type UpdateEndUserStatusMutation = { __typename?: 'Mutation', updateEndUserStatus: { __typename?: 'UpdateEndUserStatusPayload', endUser?: { __typename?: 'EndUser', id: string, username: string, isForbidden: boolean, updatedAt: any } | null, error?:
+      | { __typename: 'BuiltinUserCannotBeDisabled' }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+      | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
+     | null } };
+
+export type ResetEndUserPasswordMutationVariables = Exact<{
+  input: ResetEndUserPasswordInput;
+}>;
+
+
+export type ResetEndUserPasswordMutation = { __typename?: 'Mutation', resetEndUserPassword: { __typename?: 'ResetEndUserPasswordPayload', success: boolean, error?:
+      | { __typename: 'BuiltinUserCannotBeDisabled', message: string }
+      | { __typename: 'EndUserPasswordTooWeak', message: string, suggestion?: string | null }
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
@@ -2972,7 +3136,10 @@ export type DeleteEndUserMutationVariables = Exact<{
 }>;
 
 
-export type DeleteEndUserMutation = { __typename?: 'Mutation', deleteEndUser: { __typename?: 'DeleteEndUserPayload', success: boolean, error?: { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType } | null } };
+export type DeleteEndUserMutation = { __typename?: 'Mutation', deleteEndUser: { __typename?: 'DeleteEndUserPayload', success: boolean, error?:
+      | { __typename: 'BuiltinUserCannotBeDeleted' }
+      | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
+     | null } };
 
 export type GetEnumsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -3033,19 +3200,46 @@ export type GetModelEnumSourceFieldsQueryVariables = Exact<{
 
 export type GetModelEnumSourceFieldsQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, enum?: { __typename?: 'EnumDefinition', name: string } | null }> } | null } };
 
+export type ModelDatabaseCatalogEndUserQueryVariables = Exact<{
+  input?: InputMaybe<ModelDatabaseCatalogInput>;
+}>;
+
+
+export type ModelDatabaseCatalogEndUserQuery = { __typename?: 'Query', modelDatabaseCatalog: { __typename?: 'GetModelDatabaseCatalogPayload', data?: { __typename?: 'ModelDatabaseCatalogPayload', totalCount: number, page: number, pageSize: number, databases: Array<{ __typename?: 'DatabaseLite', name: string }> } | null, error?:
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ResourceNotFound', message: string }
+     | null } };
+
+export type ModelCatalogEndUserQueryVariables = Exact<{
+  input: ModelQueryInput;
+}>;
+
+
+export type ModelCatalogEndUserQuery = { __typename?: 'Query', models: { __typename?: 'ModelListResult', hasNextPage: boolean, items: Array<{ __typename?: 'Model', id: string, name: string, title: string, databaseName: string }> } };
+
+export type GetModelRecordWorkspaceEndUserQueryVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type GetModelRecordWorkspaceEndUserQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ResourceNotFound', message: string }
+     | null } };
+
 export type GetModelsQueryVariables = Exact<{
   input?: InputMaybe<ModelQueryInput>;
 }>;
 
 
-export type GetModelsQuery = { __typename?: 'Query', models: { __typename?: 'ModelConnection', totalCount: number, edges: Array<{ __typename?: 'ModelEdge', cursor: string, node: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } }>, pageInfo: { __typename?: 'PageInfo', hasNextPage: boolean, hasPreviousPage: boolean, startCursor?: string | null, endCursor?: string | null } } };
+export type GetModelsQuery = { __typename?: 'Query', models: { __typename?: 'ModelListResult', hasNextPage: boolean, items: Array<{ __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } }> } };
 
 export type GetModelsByDatabaseQueryVariables = Exact<{
   input?: InputMaybe<ModelQueryInput>;
 }>;
 
 
-export type GetModelsByDatabaseQuery = { __typename?: 'Query', models: { __typename?: 'ModelConnection', edges: Array<{ __typename?: 'ModelEdge', node: { __typename?: 'Model', id: string, name: string, title: string, databaseName: string } }> } };
+export type GetModelsByDatabaseQuery = { __typename?: 'Query', models: { __typename?: 'ModelListResult', items: Array<{ __typename?: 'Model', id: string, name: string, title: string, databaseName: string }> } };
 
 export type GetModelQueryVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -3354,6 +3548,44 @@ export type TestDatabaseConnectionMutation = { __typename?: 'Mutation', testData
       | { __typename: 'DatabaseConnectionFailed', message: string, suggestion?: string | null }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
+
+export type ModelDatabaseFieldsFragment = { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any };
+
+export type ListModelDatabasesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ListModelDatabasesQuery = { __typename?: 'Query', modelDatabases: Array<{ __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }> };
+
+export type ListClusterRawDatabasesQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type ListClusterRawDatabasesQuery = { __typename?: 'Query', clusterRawDatabases: Array<{ __typename?: 'RawDatabase', name: string, isRegistered: boolean }> };
+
+export type RegisterModelDatabaseMutationVariables = Exact<{
+  input: RegisterModelDatabaseInput;
+}>;
+
+
+export type RegisterModelDatabaseMutation = { __typename?: 'Mutation', registerModelDatabase:
+    | { __typename?: 'InvalidInput', message: string }
+    | { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }
+    | { __typename?: 'ResourceNotFound', message: string, resourceType: ResourceType }
+   };
+
+export type UpdateModelDatabaseMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+  input: UpdateModelDatabaseInput;
+}>;
+
+
+export type UpdateModelDatabaseMutation = { __typename?: 'Mutation', updateModelDatabase: { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any } };
+
+export type UnregisterModelDatabaseMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type UnregisterModelDatabaseMutation = { __typename?: 'Mutation', unregisterModelDatabase: boolean };
 
 export type GetEndUserPermissionsQueryVariables = Exact<{ [key: string]: never; }>;
 

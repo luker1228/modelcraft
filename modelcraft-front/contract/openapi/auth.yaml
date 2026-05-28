@@ -155,7 +155,7 @@ schemas:
           code:
             type: string
             enum:
-              - CONFLICT.USER
+              - CONFLICT.PHONE_ALREADY_EXISTS
           message:
             type: string
 
@@ -176,7 +176,7 @@ schemas:
           code:
             type: string
             enum:
-              - CONFLICT.USER
+              - CONFLICT.USER_ALREADY_EXISTS
           message:
             type: string
 

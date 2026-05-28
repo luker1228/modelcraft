@@ -138,50 +138,6 @@ paths:
               schema:
                 $ref: "common.yaml#/schemas/SystemError"
 
-  /api/end-user/auth/select-project:
-    post:
-      operationId: endUserSelectProject
-      summary: Select a project context for the end-user session
-      tags: [EndUserAuth]
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "end-user-auth.yaml#/schemas/EndUserSelectProjectRequest"
-      responses:
-        "200":
-          description: Project selected successfully
-          content:
-            application/json:
-              schema:
-                $ref: "end-user-auth.yaml#/schemas/EndUserSelectProjectResponse"
-        "400":
-          description: Invalid parameters
-          content:
-            application/json:
-              schema:
-                $ref: "common.yaml#/schemas/SystemError"
-        "401":
-          description: Invalid or expired refresh token
-          content:
-            application/json:
-              schema:
-                $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
-        "403":
-          description: No access to requested project
-          content:
-            application/json:
-              schema:
-                $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "common.yaml#/schemas/SystemError"
-
   /api/end-user/auth/me:
     get:
       operationId: endUserMe
@@ -276,22 +232,6 @@ schemas:
         description: Required to locate the correct tenant DB for session lookup
         example: my-org
 
-  EndUserSelectProjectRequest:
-    type: object
-    required:
-      - orgName
-      - projectSlug
-    properties:
-      orgName:
-        type: string
-        example: my-org
-      projectSlug:
-        type: string
-        example: my-project
-      refreshToken:
-        type: string
-        description: Refresh token (gateway reads from httpOnly cookie; direct callers may pass inline)
-
   # ---- Response types ----
 
   EndUserAccessibleProject:
@@ -334,17 +274,6 @@ schemas:
   EndUserLoginResponse:
     allOf:
       - $ref: "end-user-auth.yaml#/schemas/EndUserTokenResponse"
-
-  EndUserSelectProjectResponse:
-    allOf:
-      - $ref: "common.yaml#/schemas/BaseResponse"
-      - type: object
-        required:
-          - selectedProject
-        properties:
-          selectedProject:
-            type: string
-            description: The selected project slug
 
   EndUserMeResponse:
     allOf:
