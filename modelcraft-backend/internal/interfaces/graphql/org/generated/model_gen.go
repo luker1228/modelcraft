@@ -30,6 +30,10 @@ type CreateRoleError interface {
 	IsCreateRoleError()
 }
 
+type CreateUserError interface {
+	IsCreateUserError()
+}
+
 type DeleteClusterError interface {
 	IsDeleteClusterError()
 }
@@ -259,6 +263,17 @@ type CreateRolePayload struct {
 	Error CreateRoleError `json:"error,omitempty"`
 }
 
+type CreateUserInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+	IsAdmin  bool   `json:"isAdmin"`
+}
+
+type CreateUserPayload struct {
+	User  *EndUser        `json:"user,omitempty"`
+	Error CreateUserError `json:"error,omitempty"`
+}
+
 type CurrentUser struct {
 	ID           string        `json:"id"`
 	ExternalID   string        `json:"externalID"`
@@ -372,6 +387,8 @@ func (this EndUserAlreadyExists) GetMessage() string { return this.Message }
 
 func (EndUserAlreadyExists) IsCreateEndUserError() {}
 
+func (EndUserAlreadyExists) IsCreateUserError() {}
+
 type EndUserConnection struct {
 	Nodes      []*EndUser `json:"nodes"`
 	PageInfo   *PageInfo  `json:"pageInfo"`
@@ -389,6 +406,8 @@ func (this EndUserPasswordTooWeak) GetMessage() string { return this.Message }
 func (EndUserPasswordTooWeak) IsCreateEndUserError() {}
 
 func (EndUserPasswordTooWeak) IsResetEndUserPasswordError() {}
+
+func (EndUserPasswordTooWeak) IsCreateUserError() {}
 
 type EndUserPublic struct {
 	ID        string    `json:"id"`
@@ -437,6 +456,8 @@ func (InvalidInput) IsUpdateEndUserError() {}
 func (InvalidInput) IsListEndUsersError() {}
 
 func (InvalidInput) IsResetEndUserPasswordError() {}
+
+func (InvalidInput) IsCreateUserError() {}
 
 func (InvalidInput) IsCreateCustomRoleError() {}
 

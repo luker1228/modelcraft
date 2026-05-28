@@ -191,3 +191,31 @@ type UserFindOneResult {
   item: EndUserPublic
   reqId: String!
 }
+
+# ============================================
+# 统一用户管理 API（Unified User Management）
+# 与旧 createEndUser 并存，不破坏现有 API。
+# ============================================
+
+union CreateUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
+
+type CreateUserPayload {
+  user: EndUser
+  error: CreateUserError
+}
+
+input CreateUserInput {
+  username: String!
+  password: String!
+  isAdmin: Boolean!
+}
+
+extend type Mutation {
+  # createUser: 创建统一用户（管理员或普通用户），仅管理员可调用。
+  createUser(input: CreateUserInput!): CreateUserPayload! @hasPermission(action: "end-user:create")
+}
+
+extend type Query {
+  # myProjects: endUserProjects 的新名称，行为完全相同。
+  myProjects: [Project!]! @hasPermission(action: "end-user:read", allowEndUser: true)
+}

@@ -109,6 +109,11 @@ type ComplexityRoot struct {
 		Role  func(childComplexity int) int
 	}
 
+	CreateUserPayload struct {
+		Error func(childComplexity int) int
+		User  func(childComplexity int) int
+	}
+
 	CurrentUser struct {
 		Email        func(childComplexity int) int
 		ExternalID   func(childComplexity int) int
@@ -239,6 +244,7 @@ type ComplexityRoot struct {
 		CreateEndUser            func(childComplexity int, input CreateEndUserInput) int
 		CreateProject            func(childComplexity int, input CreateProjectInput) int
 		CreateRole               func(childComplexity int, input CreateRoleInput) int
+		CreateUser               func(childComplexity int, input CreateUserInput) int
 		DeleteEndUser            func(childComplexity int, input DeleteEndUserInput) int
 		DeletePermissionRole     func(childComplexity int, roleID int32) int
 		DeleteProject            func(childComplexity int, slug string) int
@@ -360,6 +366,7 @@ type ComplexityRoot struct {
 		ListEndUsers        func(childComplexity int, input *ListEndUsersInput) int
 		Me                  func(childComplexity int) int
 		MyOrganizations     func(childComplexity int) int
+		MyProjects          func(childComplexity int) int
 		MyUserProfile       func(childComplexity int) int
 		Node                func(childComplexity int, id string) int
 		OrganizationMembers func(childComplexity int) int
@@ -485,6 +492,7 @@ type MutationResolver interface {
 	UpdateEndUserStatus(ctx context.Context, input UpdateEndUserStatusInput) (*UpdateEndUserStatusPayload, error)
 	DeleteEndUser(ctx context.Context, input DeleteEndUserInput) (*DeleteEndUserPayload, error)
 	ResetEndUserPassword(ctx context.Context, input ResetEndUserPasswordInput) (*ResetEndUserPasswordPayload, error)
+	CreateUser(ctx context.Context, input CreateUserInput) (*CreateUserPayload, error)
 	CreateCustomRole(ctx context.Context, input CreateCustomRoleInput) (*CreateCustomRolePayload, error)
 	UpdatePermissionRole(ctx context.Context, roleID int32, input UpdateRoleInput) (*UpdatePermissionRolePayload, error)
 	DeletePermissionRole(ctx context.Context, roleID int32) (*DeletePermissionRolePayload, error)
@@ -510,6 +518,7 @@ type QueryResolver interface {
 	ListEndUsers(ctx context.Context, input *ListEndUsersInput) (*ListEndUsersPayload, error)
 	FindUsers(ctx context.Context, where *UserWhereInput, after *string, first *int32) (*UserFindManyResult, error)
 	EndUserProjects(ctx context.Context) ([]*Project, error)
+	MyProjects(ctx context.Context) ([]*Project, error)
 	PermissionRoles(ctx context.Context, orgName string, includeSystem *bool) ([]*PermissionRole, error)
 	PermissionRole(ctx context.Context, id int32) (*PermissionRole, error)
 	UserRoleAssignments(ctx context.Context, userID string, orgName string) ([]*UserRoleAssignment, error)
@@ -693,6 +702,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.CreateRolePayload.Role(childComplexity), true
+
+	case "CreateUserPayload.error":
+		if e.complexity.CreateUserPayload.Error == nil {
+			break
+		}
+
+		return e.complexity.CreateUserPayload.Error(childComplexity), true
+	case "CreateUserPayload.user":
+		if e.complexity.CreateUserPayload.User == nil {
+			break
+		}
+
+		return e.complexity.CreateUserPayload.User(childComplexity), true
 
 	case "CurrentUser.email":
 		if e.complexity.CurrentUser.Email == nil {
@@ -1158,6 +1180,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.CreateRole(childComplexity, args["input"].(CreateRoleInput)), true
+	case "Mutation.createUser":
+		if e.complexity.Mutation.CreateUser == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createUser_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateUser(childComplexity, args["input"].(CreateUserInput)), true
 	case "Mutation.deleteEndUser":
 		if e.complexity.Mutation.DeleteEndUser == nil {
 			break
@@ -1736,6 +1769,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.MyOrganizations(childComplexity), true
+	case "Query.myProjects":
+		if e.complexity.Query.MyProjects == nil {
+			break
+		}
+
+		return e.complexity.Query.MyProjects(childComplexity), true
 	case "Query.myUserProfile":
 		if e.complexity.Query.MyUserProfile == nil {
 			break
@@ -2176,6 +2215,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputCreateEndUserInput,
 		ec.unmarshalInputCreateProjectInput,
 		ec.unmarshalInputCreateRoleInput,
+		ec.unmarshalInputCreateUserInput,
 		ec.unmarshalInputDatabaseConnectionInput,
 		ec.unmarshalInputDateTimeFilter,
 		ec.unmarshalInputDeleteEndUserInput,
@@ -2546,6 +2586,34 @@ type UserFindManyResult {
 type UserFindOneResult {
   item: EndUserPublic
   reqId: String!
+}
+
+# ============================================
+# 统一用户管理 API（Unified User Management）
+# 与旧 createEndUser 并存，不破坏现有 API。
+# ============================================
+
+union CreateUserError = EndUserAlreadyExists | EndUserPasswordTooWeak | InvalidInput
+
+type CreateUserPayload {
+  user: EndUser
+  error: CreateUserError
+}
+
+input CreateUserInput {
+  username: String!
+  password: String!
+  isAdmin: Boolean!
+}
+
+extend type Mutation {
+  # createUser: 创建统一用户（管理员或普通用户），仅管理员可调用。
+  createUser(input: CreateUserInput!): CreateUserPayload! @hasPermission(action: "end-user:create")
+}
+
+extend type Query {
+  # myProjects: endUserProjects 的新名称，行为完全相同。
+  myProjects: [Project!]! @hasPermission(action: "end-user:read", allowEndUser: true)
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/org/schema/permission.graphql", Input: `# Permission Management Types
@@ -3382,6 +3450,17 @@ func (ec *executionContext) field_Mutation_createRole_args(ctx context.Context, 
 	var err error
 	args := map[string]any{}
 	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateRoleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateRoleInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createUser_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNCreateUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserInput)
 	if err != nil {
 		return nil, err
 	}
@@ -4519,6 +4598,80 @@ func (ec *executionContext) fieldContext_CreateRolePayload_error(_ context.Conte
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type CreateRoleError does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateUserPayload_user(ctx context.Context, field graphql.CollectedField, obj *CreateUserPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CreateUserPayload_user,
+		func(ctx context.Context) (any, error) {
+			return obj.User, nil
+		},
+		nil,
+		ec.marshalOEndUser2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐEndUser,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CreateUserPayload_user(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateUserPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_EndUser_id(ctx, field)
+			case "username":
+				return ec.fieldContext_EndUser_username(ctx, field)
+			case "isForbidden":
+				return ec.fieldContext_EndUser_isForbidden(ctx, field)
+			case "isBuiltin":
+				return ec.fieldContext_EndUser_isBuiltin(ctx, field)
+			case "createdBy":
+				return ec.fieldContext_EndUser_createdBy(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_EndUser_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_EndUser_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type EndUser", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CreateUserPayload_error(ctx context.Context, field graphql.CollectedField, obj *CreateUserPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_CreateUserPayload_error,
+		func(ctx context.Context) (any, error) {
+			return obj.Error, nil
+		},
+		nil,
+		ec.marshalOCreateUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserError,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_CreateUserPayload_error(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CreateUserPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type CreateUserError does not have child fields")
 		},
 	}
 	return fc, nil
@@ -6806,6 +6959,76 @@ func (ec *executionContext) fieldContext_Mutation_resetEndUserPassword(ctx conte
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_resetEndUserPassword_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_createUser(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_createUser,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().CreateUser(ctx, fc.Args["input"].(CreateUserInput))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:create")
+				if err != nil {
+					var zeroVal *CreateUserPayload
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, false)
+				if err != nil {
+					var zeroVal *CreateUserPayload
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal *CreateUserPayload
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNCreateUserPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_createUser(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "user":
+				return ec.fieldContext_CreateUserPayload_user(ctx, field)
+			case "error":
+				return ec.fieldContext_CreateUserPayload_error(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CreateUserPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_createUser_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -9975,6 +10198,78 @@ func (ec *executionContext) _Query_endUserProjects(ctx context.Context, field gr
 }
 
 func (ec *executionContext) fieldContext_Query_endUserProjects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Project_id(ctx, field)
+			case "slug":
+				return ec.fieldContext_Project_slug(ctx, field)
+			case "title":
+				return ec.fieldContext_Project_title(ctx, field)
+			case "description":
+				return ec.fieldContext_Project_description(ctx, field)
+			case "status":
+				return ec.fieldContext_Project_status(ctx, field)
+			case "orgName":
+				return ec.fieldContext_Project_orgName(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Project_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Project_updatedAt(ctx, field)
+			case "authSchema":
+				return ec.fieldContext_Project_authSchema(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Project", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_myProjects(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_myProjects,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().MyProjects(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				action, err := ec.unmarshalNString2string(ctx, "end-user:read")
+				if err != nil {
+					var zeroVal []*Project
+					return zeroVal, err
+				}
+				allowEndUser, err := ec.unmarshalNBoolean2bool(ctx, true)
+				if err != nil {
+					var zeroVal []*Project
+					return zeroVal, err
+				}
+				if ec.directives.HasPermission == nil {
+					var zeroVal []*Project
+					return zeroVal, errors.New("directive hasPermission is not implemented")
+				}
+				return ec.directives.HasPermission(ctx, nil, directive0, action, allowEndUser)
+			}
+
+			next = directive1
+			return next
+		},
+		ec.marshalNProject2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐProjectᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_myProjects(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Query",
 		Field:      field,
@@ -14257,6 +14552,47 @@ func (ec *executionContext) unmarshalInputCreateRoleInput(ctx context.Context, o
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputCreateUserInput(ctx context.Context, obj any) (CreateUserInput, error) {
+	var it CreateUserInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"username", "password", "isAdmin"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "username":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("username"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Username = data
+		case "password":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("password"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Password = data
+		case "isAdmin":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("isAdmin"))
+			data, err := ec.unmarshalNBoolean2bool(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.IsAdmin = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputDatabaseConnectionInput(ctx context.Context, obj any) (DatabaseConnectionInput, error) {
 	var it DatabaseConnectionInput
 	asMap := map[string]any{}
@@ -15026,6 +15362,36 @@ func (ec *executionContext) _CreateRoleError(ctx context.Context, sel ast.Select
 			return graphql.Null
 		}
 		return ec._InvalidInput(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _CreateUserError(ctx context.Context, sel ast.SelectionSet, obj CreateUserError) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case EndUserPasswordTooWeak:
+		return ec._EndUserPasswordTooWeak(ctx, sel, &obj)
+	case *EndUserPasswordTooWeak:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserPasswordTooWeak(ctx, sel, obj)
+	case EndUserAlreadyExists:
+		return ec._EndUserAlreadyExists(ctx, sel, &obj)
+	case *EndUserAlreadyExists:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._EndUserAlreadyExists(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -16180,6 +16546,44 @@ func (ec *executionContext) _CreateRolePayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var createUserPayloadImplementors = []string{"CreateUserPayload"}
+
+func (ec *executionContext) _CreateUserPayload(ctx context.Context, sel ast.SelectionSet, obj *CreateUserPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createUserPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CreateUserPayload")
+		case "user":
+			out.Values[i] = ec._CreateUserPayload_user(ctx, field, obj)
+		case "error":
+			out.Values[i] = ec._CreateUserPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var currentUserImplementors = []string{"CurrentUser"}
 
 func (ec *executionContext) _CurrentUser(ctx context.Context, sel ast.SelectionSet, obj *CurrentUser) graphql.Marshaler {
@@ -16695,7 +17099,7 @@ func (ec *executionContext) _EndUser(ctx context.Context, sel ast.SelectionSet, 
 	return out
 }
 
-var endUserAlreadyExistsImplementors = []string{"EndUserAlreadyExists", "Error", "CreateEndUserError"}
+var endUserAlreadyExistsImplementors = []string{"EndUserAlreadyExists", "Error", "CreateEndUserError", "CreateUserError"}
 
 func (ec *executionContext) _EndUserAlreadyExists(ctx context.Context, sel ast.SelectionSet, obj *EndUserAlreadyExists) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserAlreadyExistsImplementors)
@@ -16783,7 +17187,7 @@ func (ec *executionContext) _EndUserConnection(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError", "ResetEndUserPasswordError"}
+var endUserPasswordTooWeakImplementors = []string{"EndUserPasswordTooWeak", "Error", "CreateEndUserError", "ResetEndUserPasswordError", "CreateUserError"}
 
 func (ec *executionContext) _EndUserPasswordTooWeak(ctx context.Context, sel ast.SelectionSet, obj *EndUserPasswordTooWeak) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, endUserPasswordTooWeakImplementors)
@@ -17030,7 +17434,7 @@ func (ec *executionContext) _GetProjectPayload(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "Error", "CreateEndUserError", "UpdateEndUserError", "ListEndUsersError", "ResetEndUserPasswordError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
+var invalidInputImplementors = []string{"InvalidInput", "Error", "CreateEndUserError", "UpdateEndUserError", "ListEndUsersError", "ResetEndUserPasswordError", "CreateUserError", "CreateCustomRoleError", "UpdatePermissionRoleError", "RolePermissionError", "AssignRoleError", "UpdateMyProfileError", "CreateProjectError", "UpdateProjectError", "UpdateClusterError", "SetProjectAuthSchemaError", "CreateRoleError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -17159,6 +17563,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "resetEndUserPassword":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_resetEndUserPassword(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createUser":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_createUser(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -18133,6 +18544,28 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_endUserProjects(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "myProjects":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_myProjects(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -19792,6 +20225,25 @@ func (ec *executionContext) marshalNCreateRolePayload2ᚖmodelcraftᚋinternal�
 	return ec._CreateRolePayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNCreateUserInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserInput(ctx context.Context, v any) (CreateUserInput, error) {
+	res, err := ec.unmarshalInputCreateUserInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNCreateUserPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserPayload(ctx context.Context, sel ast.SelectionSet, v CreateUserPayload) graphql.Marshaler {
+	return ec._CreateUserPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCreateUserPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserPayload(ctx context.Context, sel ast.SelectionSet, v *CreateUserPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CreateUserPayload(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNCurrentUser2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCurrentUser(ctx context.Context, sel ast.SelectionSet, v CurrentUser) graphql.Marshaler {
 	return ec._CurrentUser(ctx, sel, &v)
 }
@@ -21197,6 +21649,13 @@ func (ec *executionContext) marshalOCreateRoleError2modelcraftᚋinternalᚋinte
 		return graphql.Null
 	}
 	return ec._CreateRoleError(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOCreateUserError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐCreateUserError(ctx context.Context, sel ast.SelectionSet, v CreateUserError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._CreateUserError(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalODatabaseCluster2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋorgᚋgeneratedᚐDatabaseCluster(ctx context.Context, sel ast.SelectionSet, v *DatabaseCluster) graphql.Marshaler {
