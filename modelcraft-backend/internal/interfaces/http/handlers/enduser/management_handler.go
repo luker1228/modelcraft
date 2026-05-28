@@ -19,6 +19,8 @@ type ManagementHandler struct {
 	logger     logfacade.Logger
 }
 
+const errMsgOrgProjectRequired = "X-Org-Name and X-Project-Slug headers are required"
+
 // NewManagementHandler 创建管理 Handler
 func NewManagementHandler(
 	appService *appEnduser.EndUserManagementAppService,
@@ -49,7 +51,7 @@ func (h *ManagementHandler) Create(w http.ResponseWriter, r *http.Request) {
 	createdBy := r.Header.Get("X-User-Id") // 开发者 ID
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
 		return
 	}
 
@@ -91,7 +93,7 @@ func (h *ManagementHandler) List(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
 		return
 	}
 
@@ -174,7 +176,7 @@ func (h *ManagementHandler) UpdateStatus(w http.ResponseWriter, r *http.Request)
 	projectSlug := r.Header.Get("X-Project-Slug")
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
 		return
 	}
 
@@ -222,7 +224,7 @@ func (h *ManagementHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	projectSlug := r.Header.Get("X-Project-Slug")
 
 	if orgName == "" || projectSlug == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "X-Org-Name and X-Project-Slug headers are required")
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", errMsgOrgProjectRequired)
 		return
 	}
 

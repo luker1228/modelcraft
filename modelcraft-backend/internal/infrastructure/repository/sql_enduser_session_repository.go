@@ -2,153 +2,79 @@ package repository
 
 import (
 	"context"
-	"database/sql"
-	"fmt"
 	"modelcraft/internal/domain/enduser"
-	"modelcraft/internal/domain/shared"
+	"modelcraft/internal/infrastructure/dbgen"
+	"modelcraft/internal/infrastructure/dbgenwrap"
 	"modelcraft/internal/infrastructure/sqlerr"
-	"time"
 )
 
-// SqlEndUserSessionRepository is the MySQL implementation of enduser.EndUserSessionRepository.
-//
-// Note:
-// - It operates on end_user_accounts in mc_meta.
-// - Tenant isolation is enforced by org_name.
-// - not found -> (nil, nil)
-// - update by id checks RowsAffected.
-type endUserSessionDBTX interface {
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
-}
-
+// SqlEndUserSessionRepository 将 end-user refresh token 存储在统一的 refresh_tokens 表。
+// 统一用户体系后，end_user_accounts 表已废弃。
 type SqlEndUserSessionRepository struct {
-	db      endUserSessionDBTX
-	orgName string
+	q dbgen.Querier
 }
 
 // NewSqlEndUserSessionRepository creates a SqlEndUserSessionRepository.
-func NewSqlEndUserSessionRepository(
-	db endUserSessionDBTX,
-	orgName, _ string,
-) enduser.EndUserSessionRepository {
-	return &SqlEndUserSessionRepository{
-		db:      db,
-		orgName: orgName,
-	}
+// orgName and projectSlug are retained in the signature for call-site compatibility but are unused.
+func NewSqlEndUserSessionRepository(db endUserDBTX, _, _ string) enduser.EndUserSessionRepository {
+	return &SqlEndUserSessionRepository{q: dbgenwrap.NewSafeQuerier(dbgen.New(db))}
 }
 
-// Save creates a new session record.
+// Save inserts a new refresh token into the unified refresh_tokens table.
 func (r *SqlEndUserSessionRepository) Save(ctx context.Context, session *enduser.EndUserSession) error {
-	const query = `
-		INSERT INTO end_user_accounts (
-			id, org_name, user_id, refresh_token_hash, expires_at, revoked, created_at
-		)
-		VALUES (?, ?, ?, ?, ?, 0, NOW())
-	`
-
-	_, err := r.db.ExecContext(ctx, query,
-		session.ID,
-		r.orgName,
-		session.UserID,
-		session.RefreshTokenHash,
-		session.ExpiresAt,
-	)
+	err := r.q.InsertRefreshToken(ctx, dbgen.InsertRefreshTokenParams{
+		ID:        session.ID,
+		UserID:    session.UserID,
+		TokenHash: session.RefreshTokenHash,
+		ExpiresAt: session.ExpiresAt,
+	})
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
-
 	return nil
 }
 
-// GetByTokenHash retrieves a session by token hash.
+// GetByTokenHash retrieves a session by its token hash.
 // Returns (nil, nil) when not found.
 func (r *SqlEndUserSessionRepository) GetByTokenHash(
 	ctx context.Context,
 	tokenHash string,
 ) (*enduser.EndUserSession, error) {
-	const query = `
-		SELECT id, user_id, refresh_token_hash, expires_at, revoked, created_at
-		FROM end_user_accounts
-		WHERE refresh_token_hash = ? AND org_name = ?
-	`
-
-	row := r.db.QueryRowContext(ctx, query, tokenHash, r.orgName)
-
-	var (
-		sessionID        string
-		userID           string
-		refreshTokenHash string
-		expiresAt        time.Time
-		revoked          int
-		createdAt        time.Time
-	)
-
-	err := row.Scan(
-		&sessionID,
-		&userID,
-		&refreshTokenHash,
-		&expiresAt,
-		&revoked,
-		&createdAt,
-	)
+	row, err := r.q.GetRefreshTokenByHash(ctx, tokenHash)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if sqlerr.IsNotFoundError(err) {
 			return nil, nil //nolint:nilnil // per contract: not found is expected in repo layer
 		}
 		return nil, sqlerr.WrapSQLError(err)
 	}
 
 	return &enduser.EndUserSession{
-		ID:               sessionID,
-		UserID:           userID,
-		RefreshTokenHash: refreshTokenHash,
-		ExpiresAt:        expiresAt,
-		Revoked:          revoked == 1,
-		CreatedAt:        createdAt,
+		ID:               row.ID,
+		UserID:           row.UserID,
+		RefreshTokenHash: row.TokenHash,
+		ExpiresAt:        row.ExpiresAt,
+		Revoked:          row.RevokedAt.Valid,
+		CreatedAt:        row.CreatedAt,
 	}, nil
 }
 
-// RevokeByID marks a session as revoked.
-// Returns NO_ROWS_AFFECTED when session does not exist.
+// RevokeByID marks a session as revoked by setting revoked_at.
 func (r *SqlEndUserSessionRepository) RevokeByID(ctx context.Context, id string) error {
-	const query = `
-		UPDATE end_user_accounts
-		SET revoked = 1
-		WHERE id = ? AND org_name = ?
-	`
-
-	result, err := r.db.ExecContext(ctx, query, id, r.orgName)
+	err := r.q.RevokeRefreshToken(ctx, id)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
-
-	rows, _ := result.RowsAffected()
-	if rows == 0 {
-		return shared.NewRepositoryError(
-			shared.ErrTypeNoRowsAffected,
-			fmt.Sprintf("end-user session not found: %s", id),
-		)
-	}
-
 	return nil
 }
 
-// RevokeAllByUserID marks all sessions for the user as revoked.
+// RevokeAllByUserID revokes all active sessions for a user.
 func (r *SqlEndUserSessionRepository) RevokeAllByUserID(ctx context.Context, userID string) error {
-	const query = `
-		UPDATE end_user_accounts
-		SET revoked = 1
-		WHERE user_id = ? AND org_name = ?
-	`
-
-	_, err := r.db.ExecContext(ctx, query, userID, r.orgName)
+	err := r.q.RevokeAllRefreshTokensByUserID(ctx, userID)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
-
 	return nil
 }
 
-// Compile-time interface satisfaction check.
+// Compile-time interface check.
 var _ enduser.EndUserSessionRepository = (*SqlEndUserSessionRepository)(nil)

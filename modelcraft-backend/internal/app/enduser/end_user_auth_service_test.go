@@ -76,6 +76,13 @@ type noopResult struct{}
 func (noopResult) LastInsertId() (int64, error) { return 0, nil }
 func (noopResult) RowsAffected() (int64, error) { return 0, nil }
 
+func (noopSQLDBTX) PrepareContext(
+	_ context.Context,
+	_ string,
+) (*sql.Stmt, error) {
+	panic("PrepareContext not implemented in noopSQLDBTX")
+}
+
 func (noopSQLDBTX) ExecContext(
 	_ context.Context,
 	_ string,

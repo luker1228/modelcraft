@@ -177,38 +177,7 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 
 	if s.txManager != nil {
 		if txOrgService, ok := s.createOrgService.(TxOrgCreationService); ok {
-			err = s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
-				userRepo := repository.NewSqlUserRepository(q)
-				profileRepo := repository.NewSqlProfileRepository(q)
-				if txErr := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); txErr != nil {
-					return txErr
-				}
-
-				if s.createOrgService == nil {
-					result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
-					return nil
-				}
-
-				orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
-				if txErr != nil {
-					return bizerrors.WrapError(txErr, bizerrors.SystemError, "create personal organization")
-				}
-				result.OrgName = orgOutput.OrganizationName
-				return nil
-			})
-			if err != nil {
-				if _, ok := err.(*bizerrors.BusinessError); ok {
-					return nil, err
-				}
-				return nil, bizerrors.WrapError(err, bizerrors.SystemError, "register transaction")
-			}
-
-			logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
-				u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
-			if s.createOrgService != nil {
-				logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
-			}
-			return result, nil
+			return s.registerWithTxOrgService(ctx, cmd, u, initialProfile, phone, result, orgInput, txOrgService)
 		}
 	}
 
@@ -230,6 +199,50 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 	}
 	result.OrgName = orgOutput.OrganizationName
 	logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
+	return result, nil
+}
+
+func (s *TokenService) registerWithTxOrgService(
+	ctx context.Context,
+	cmd RegisterCommand,
+	u *domainUser.User,
+	initialProfile *domainProfile.Profile,
+	phone domainUser.PhoneNumber,
+	result *RegisterResult,
+	orgInput *organization.CreateOrganizationInput,
+	txOrgService TxOrgCreationService,
+) (*RegisterResult, error) {
+	logger := logfacade.GetLogger(ctx)
+	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+		userRepo := repository.NewSqlUserRepository(q)
+		profileRepo := repository.NewSqlProfileRepository(q)
+		if txErr := s.persistUserAndProfile(
+			ctx, userRepo, profileRepo, u, initialProfile, phone.Masked(),
+		); txErr != nil {
+			return txErr
+		}
+		if s.createOrgService == nil {
+			result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
+			return nil
+		}
+		orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
+		if txErr != nil {
+			return bizerrors.WrapError(txErr, bizerrors.SystemError, "create personal organization")
+		}
+		result.OrgName = orgOutput.OrganizationName
+		return nil
+	})
+	if err != nil {
+		if _, ok := err.(*bizerrors.BusinessError); ok {
+			return nil, err
+		}
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "register transaction")
+	}
+	logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
+		u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
+	if s.createOrgService != nil {
+		logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
+	}
 	return result, nil
 }
 

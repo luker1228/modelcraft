@@ -1,11 +1,11 @@
 package membership_test
 
 import (
+	"modelcraft/internal/domain/membership"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"modelcraft/internal/domain/membership"
 )
 
 func TestNewMembership(t *testing.T) {

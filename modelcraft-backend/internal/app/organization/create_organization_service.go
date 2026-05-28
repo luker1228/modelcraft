@@ -141,42 +141,14 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 	orgRepo := repository.NewSqlOrganizationRepository(q)
 	membershipRepo := repository.NewSqlMembershipRepository(q)
 
-	existingUser, err := userRepo.GetByID(ctx, input.OwnerUserID)
+	existingUser, alreadyExisted, err := s.resolveUserAndCheckOrg(
+		ctx, userRepo, orgRepo, membershipRepo, input.OwnerUserID,
+	)
 	if err != nil {
-		if shared.IsNotFoundError(err) {
-			logger.Warnf(ctx, "User not found: userID=%s", input.OwnerUserID)
-			return nil, bizerrors.NewError(bizerrors.UserNotFound, input.OwnerUserID)
-		}
-		logger.Error(ctx, "Failed to look up user", logfacade.Err(err))
-		return nil, bizerrors.Wrap(err, "Failed to look up user")
+		return nil, err
 	}
-	if existingUser == nil {
-		logger.Warnf(ctx, "User not found: userID=%s", input.OwnerUserID)
-		return nil, bizerrors.NewError(bizerrors.UserNotFound, input.OwnerUserID)
-	}
-	logger.Infof(ctx, "User validated: userID=%s", existingUser.ID)
-
-	orgCount, err := membershipRepo.CountByUser(ctx, existingUser.ID)
-	if err != nil {
-		logger.Error(ctx, "Failed to count user organizations", logfacade.Err(err))
-		return nil, bizerrors.Wrap(err, "Failed to count user organizations")
-	}
-	if orgCount > 0 {
-		existingOrgs, listErr := orgRepo.ListByUser(ctx, existingUser.ID)
-		if listErr != nil {
-			logger.Error(ctx, "Failed to list existing user organizations", logfacade.Err(listErr))
-			return nil, bizerrors.Wrap(listErr, "Failed to list existing user organizations")
-		}
-		if len(existingOrgs) > 0 {
-			org := existingOrgs[0]
-			return &CreateOrganizationOutput{
-				OrganizationID:   org.Name,
-				OrganizationName: org.Name,
-				DisplayName:      org.DisplayName,
-				OwnerUserID:      existingUser.ID,
-				AlreadyExisted:   true,
-			}, nil
-		}
+	if alreadyExisted != nil {
+		return alreadyExisted, nil
 	}
 
 	orgExists, err := orgRepo.ExistsByName(ctx, orgSlug)
@@ -190,30 +162,9 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 	}
 	logger.Infof(ctx, "Organization name available: orgName=%s", orgSlug)
 
-	var ownerRole *domainPermission.Role
-	for _, roleName := range domainPermission.SystemRoles {
-		role, roleErr := s.roleRepo.GetRoleByNameAndOrg(ctx, roleName, domainPermission.SystemOrgName)
-		if roleErr != nil {
-			if !shared.IsNotFoundError(roleErr) {
-				logger.Error(ctx, "Failed to get system role", logfacade.Err(roleErr))
-				return nil, bizerrors.Wrapf(roleErr, "failed to get system role: %s", roleName)
-			}
-			role = nil
-		}
-		if role == nil {
-			role = &domainPermission.Role{
-				Name:     roleName,
-				IsSystem: true,
-				OrgName:  domainPermission.SystemOrgName,
-			}
-			if createErr := s.roleRepo.CreateRole(ctx, role); createErr != nil {
-				logger.Error(ctx, "Failed to recreate system role", logfacade.Err(createErr))
-				return nil, bizerrors.Wrapf(createErr, "failed to recreate system role: %s", roleName)
-			}
-		}
-		if roleName == domainPermission.RoleOwner {
-			ownerRole = role
-		}
+	ownerRole, err := s.ensureSystemRoles(ctx)
+	if err != nil {
+		return nil, err
 	}
 	logger.Infof(ctx, "Owner role ready: roleID=%d", ownerRole.ID)
 
@@ -259,6 +210,86 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 		OwnerUserID:      existingUser.ID,
 		RoleID:           int64(ownerRole.ID),
 	}, nil
+}
+
+// resolveUserAndCheckOrg looks up the user and returns an early-exit result if they already have an org.
+func (s *CreateOrganizationService) resolveUserAndCheckOrg(
+	ctx context.Context,
+	userRepo user.UserRepository,
+	orgRepo organization.OrganizationRepository,
+	membershipRepo membership.MembershipRepository,
+	ownerUserID string,
+) (*user.User, *CreateOrganizationOutput, error) {
+	logger := logfacade.GetLogger(ctx)
+	existingUser, err := userRepo.GetByID(ctx, ownerUserID)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			logger.Warnf(ctx, "User not found: userID=%s", ownerUserID)
+			return nil, nil, bizerrors.NewError(bizerrors.UserNotFound, ownerUserID)
+		}
+		logger.Error(ctx, "Failed to look up user", logfacade.Err(err))
+		return nil, nil, bizerrors.Wrap(err, "Failed to look up user")
+	}
+	if existingUser == nil {
+		logger.Warnf(ctx, "User not found: userID=%s", ownerUserID)
+		return nil, nil, bizerrors.NewError(bizerrors.UserNotFound, ownerUserID)
+	}
+	logger.Infof(ctx, "User validated: userID=%s", existingUser.ID)
+
+	orgCount, err := membershipRepo.CountByUser(ctx, existingUser.ID)
+	if err != nil {
+		logger.Error(ctx, "Failed to count user organizations", logfacade.Err(err))
+		return nil, nil, bizerrors.Wrap(err, "Failed to count user organizations")
+	}
+	if orgCount > 0 {
+		existingOrgs, listErr := orgRepo.ListByUser(ctx, existingUser.ID)
+		if listErr != nil {
+			logger.Error(ctx, "Failed to list existing user organizations", logfacade.Err(listErr))
+			return nil, nil, bizerrors.Wrap(listErr, "Failed to list existing user organizations")
+		}
+		if len(existingOrgs) > 0 {
+			org := existingOrgs[0]
+			return existingUser, &CreateOrganizationOutput{
+				OrganizationID:   org.Name,
+				OrganizationName: org.Name,
+				DisplayName:      org.DisplayName,
+				OwnerUserID:      existingUser.ID,
+				AlreadyExisted:   true,
+			}, nil
+		}
+	}
+	return existingUser, nil, nil
+}
+
+// ensureSystemRoles ensures all system roles exist and returns the owner role.
+func (s *CreateOrganizationService) ensureSystemRoles(ctx context.Context) (*domainPermission.Role, error) {
+	logger := logfacade.GetLogger(ctx)
+	var ownerRole *domainPermission.Role
+	for _, roleName := range domainPermission.SystemRoles {
+		role, roleErr := s.roleRepo.GetRoleByNameAndOrg(ctx, roleName, domainPermission.SystemOrgName)
+		if roleErr != nil {
+			if !shared.IsNotFoundError(roleErr) {
+				logger.Error(ctx, "Failed to get system role", logfacade.Err(roleErr))
+				return nil, bizerrors.Wrapf(roleErr, "failed to get system role: %s", roleName)
+			}
+			role = nil
+		}
+		if role == nil {
+			role = &domainPermission.Role{
+				Name:     roleName,
+				IsSystem: true,
+				OrgName:  domainPermission.SystemOrgName,
+			}
+			if createErr := s.roleRepo.CreateRole(ctx, role); createErr != nil {
+				logger.Error(ctx, "Failed to recreate system role", logfacade.Err(createErr))
+				return nil, bizerrors.Wrapf(createErr, "failed to recreate system role: %s", roleName)
+			}
+		}
+		if roleName == domainPermission.RoleOwner {
+			ownerRole = role
+		}
+	}
+	return ownerRole, nil
 }
 
 // resolveOrgSlugAndDisplayName resolves and validates orgSlug and displayName
