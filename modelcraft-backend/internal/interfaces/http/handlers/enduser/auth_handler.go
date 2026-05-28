@@ -6,7 +6,6 @@ import (
 	"encoding/pem"
 	"fmt"
 	"modelcraft/pkg/bizerrors"
-	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
@@ -18,66 +17,33 @@ import (
 	domainAuth "modelcraft/internal/domain/auth"
 
 	appEnduser "modelcraft/internal/app/enduser"
+	authhandler "modelcraft/internal/interfaces/http/handlers/auth"
 )
 
-const endUserRefreshCookieName = "mc_enduser_refresh_token"
-
 // AuthHandler handles end-user authentication HTTP requests.
-// All endpoints are registered via the OpenAPI-generated ServerInterface;
-// no separate internal routes are needed.
+// Cookie operations are delegated to the shared auth handler so that the
+// refresh token cookie name is unified to mc_refresh_token.
 type AuthHandler struct {
 	authService *appEnduser.EndUserAuthAppService
 	jwtSigner   *domainAuth.JWTSigner
-	cookieCfg   config.CookieConfig
+	shared      *authhandler.Handler // cookie set/clear delegated here
 	logger      logfacade.Logger
 }
 
 // NewAuthHandler creates an AuthHandler.
-// jwtSigner is the ES256 signer used to verify end-user Bearer tokens in /me.
+// shared is the unified auth handler used only for cookie management.
 func NewAuthHandler(
 	authService *appEnduser.EndUserAuthAppService,
 	jwtSigner *domainAuth.JWTSigner,
-	cookieCfg config.CookieConfig,
+	shared *authhandler.Handler,
 	logger logfacade.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
 		jwtSigner:   jwtSigner,
-		cookieCfg:   cookieCfg,
+		shared:      shared,
 		logger:      logger,
 	}
-}
-
-func (h *AuthHandler) setEndUserRefreshCookie(w http.ResponseWriter, token string) {
-	sameSite := http.SameSiteStrictMode
-	switch h.cookieCfg.SameSite {
-	case "lax":
-		sameSite = http.SameSiteLaxMode
-	case "none":
-		sameSite = http.SameSiteNoneMode
-	}
-	http.SetCookie(w, &http.Cookie{
-		Name:     endUserRefreshCookieName,
-		Value:    token,
-		Path:     "/",
-		Domain:   h.cookieCfg.Domain,
-		HttpOnly: true,
-		Secure:   h.cookieCfg.Secure,
-		SameSite: sameSite,
-		MaxAge:   30 * 24 * 60 * 60,
-	})
-}
-
-func (h *AuthHandler) clearEndUserRefreshCookie(w http.ResponseWriter) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     endUserRefreshCookieName,
-		Value:    "",
-		Path:     "/",
-		Domain:   h.cookieCfg.Domain,
-		HttpOnly: true,
-		Secure:   h.cookieCfg.Secure,
-		MaxAge:   -1,
-	})
 }
 
 // ============================================================
@@ -113,7 +79,7 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.setEndUserRefreshCookie(w, result.RefreshToken)
+	h.shared.SetRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
 		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
 		toProjectList(result.Projects), ""))
@@ -148,7 +114,7 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.setEndUserRefreshCookie(w, result.RefreshToken)
+	h.shared.SetRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
 		"", "" /* stored in httpOnly cookie */, result.ExpiresAt, nil, ""))
 }
@@ -157,7 +123,7 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 func (h *AuthHandler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 
-	cookie, _ := r.Cookie(endUserRefreshCookieName)
+	cookie, _ := r.Cookie(authhandler.RefreshCookieName)
 	if cookie != nil && cookie.Value != "" {
 		var req struct {
 			OrgName string `json:"orgName"`
@@ -169,7 +135,7 @@ func (h *AuthHandler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	h.clearEndUserRefreshCookie(w)
+	h.shared.ClearRefreshCookie(w)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -178,7 +144,7 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 	ctx := r.Context()
 	requestID := ctxutils.GetRequestID(ctx)
 
-	cookie, err := r.Cookie(endUserRefreshCookieName)
+	cookie, err := r.Cookie(authhandler.RefreshCookieName)
 	if err != nil || cookie.Value == "" {
 		h.writeError(w, http.StatusUnauthorized, requestID, "REFRESH_MISSING", "refresh token not found")
 		return
@@ -201,12 +167,12 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 		RefreshToken: cookie.Value,
 	})
 	if err != nil {
-		h.clearEndUserRefreshCookie(w)
+		h.shared.ClearRefreshCookie(w)
 		h.handleBizError(w, r, requestID, err, "end-user refresh failed")
 		return
 	}
 
-	h.setEndUserRefreshCookie(w, result.RefreshToken)
+	h.shared.SetRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
 		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
 		toProjectList(result.Projects), ""))
@@ -256,7 +222,7 @@ func (h *AuthHandler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 // JWT helper
 // ============================================================
 
-// parseEndUserJWT 使用 ES256 公钥验证端用户 Bearer token，解析为 PlatformClaims。
+// parseEndUserJWT uses the ES256 public key to verify an end-user Bearer token and parse PlatformClaims.
 func (h *AuthHandler) parseEndUserJWT(tokenStr string) (*domainAuth.PlatformClaims, error) {
 	pubKeyPEM, err := h.jwtSigner.PublicKeyPEM()
 	if err != nil {

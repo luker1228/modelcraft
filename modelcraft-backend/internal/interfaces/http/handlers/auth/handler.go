@@ -26,7 +26,23 @@ func NewHandler(tokenService *appAuth.TokenService, cookieCfg config.CookieConfi
 	}
 }
 
-const tenantRefreshCookieName = "mc_refresh_token"
+// RefreshCookieName is the unified httpOnly cookie name for refresh tokens.
+// Both tenant and end-user auth share this cookie so the browser stores only one.
+const RefreshCookieName = "mc_refresh_token"
+
+const tenantRefreshCookieName = RefreshCookieName
+
+// SetRefreshCookie writes the mc_refresh_token httpOnly cookie.
+// Exported so that other handlers (e.g. enduser) can share the same cookie name and settings.
+func (h *Handler) SetRefreshCookie(w http.ResponseWriter, token string) {
+	h.setRefreshCookie(w, token)
+}
+
+// ClearRefreshCookie clears the mc_refresh_token httpOnly cookie.
+// Exported so that other handlers (e.g. enduser) can share the same cookie name and settings.
+func (h *Handler) ClearRefreshCookie(w http.ResponseWriter) {
+	h.clearRefreshCookie(w)
+}
 
 func (h *Handler) setRefreshCookie(w http.ResponseWriter, token string) {
 	sameSite := http.SameSiteStrictMode

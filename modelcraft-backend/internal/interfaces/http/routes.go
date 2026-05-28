@@ -367,7 +367,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		repoFactory.SqlDB,
 		endUserTxMgr,
 	)
-	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, cfg.Auth.Cookie, logger)
+	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, authHandler, logger)
 
 	return &DesignHandlers{
 		AuthHandler:               authHandler,
