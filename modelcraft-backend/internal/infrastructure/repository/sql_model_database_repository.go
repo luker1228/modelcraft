@@ -107,9 +107,14 @@ func (r *SqlModelDatabaseRepository) Update(
 }
 
 // Delete soft-deletes a model database registration by ID.
+// It first calls GetByID to verify the record exists (DeleteModelDatabase is :exec and
+// cannot return RowsAffected), then performs the soft-delete.
 func (r *SqlModelDatabaseRepository) Delete(
 	ctx context.Context, orgName, projectSlug, id string,
 ) error {
+	if _, err := r.GetByID(ctx, orgName, projectSlug, id); err != nil {
+		return err
+	}
 	return r.q.DeleteModelDatabase(ctx, dbgen.DeleteModelDatabaseParams{
 		ID:          id,
 		OrgName:     orgName,

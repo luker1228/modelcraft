@@ -2,14 +2,14 @@ package modeldatabase
 
 import (
 	"context"
-
-	domaincluster "modelcraft/internal/domain/cluster"
-	domaindb "modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
+
+	domaincluster "modelcraft/internal/domain/cluster"
+	domaindb "modelcraft/internal/domain/modeldatabase"
 )
 
 // ModelDatabaseAppService 管理项目数据库注册的应用服务
@@ -53,7 +53,7 @@ func (s *ModelDatabaseAppService) ListRaw(ctx context.Context) ([]*RawDatabase, 
 	}
 	conn, err := s.connManager.GetConnection(ctx, orgName, projectSlug)
 	if err != nil {
-		return nil, bizerrors.NewError(bizerrors.SystemError, "cluster connection not available")
+		return nil, bizerrors.NewError(bizerrors.DatabaseConnectionFailed, "cluster connection not available")
 	}
 	rawNames, err := listMySQLDatabases(ctx, conn)
 	if err != nil {

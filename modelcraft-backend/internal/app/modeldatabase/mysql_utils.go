@@ -18,17 +18,21 @@ func listMySQLDatabases(ctx context.Context, db *sql.DB) ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
 
 	var names []string
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
+			rows.Close() //nolint:errcheck
 			return nil, err
 		}
 		if !systemDatabases[name] {
 			names = append(names, name)
 		}
 	}
-	return names, rows.Err()
+	rows.Close() //nolint:errcheck
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return names, nil
 }
