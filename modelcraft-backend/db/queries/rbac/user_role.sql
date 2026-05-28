@@ -8,7 +8,7 @@ WHERE org_name = ?
 LIMIT 1;
 
 -- name: AssignRoleToUser :exec
-INSERT INTO end_user_role_users (
+INSERT INTO project_role_users (
   id,
   user_id,
   role_id,
@@ -17,7 +17,7 @@ INSERT INTO end_user_role_users (
 VALUES (?, ?, ?, ?);
 
 -- name: RevokeRoleFromUser :execresult
-DELETE FROM end_user_role_users
+DELETE FROM project_role_users
 WHERE user_id = ?
   AND role_id = ?
   AND org_name = ?;
@@ -33,23 +33,22 @@ LIMIT 1;
 
 -- name: ListRolesByUser :many
 SELECT role_id
-FROM end_user_role_users
+FROM project_role_users
 WHERE user_id = ?
   AND org_name = ?;
 
 -- name: ListProjectEndUserRoleUsersCount :one
 -- 统计 Project 下有角色分配的用户总数（支持用户名搜索和角色过滤）
 SELECT COUNT(1)
-FROM end_user_role_users ur
-JOIN end_user_roles r
+FROM project_role_users ur
+JOIN project_roles r
   ON r.id = ur.role_id
   AND r.org_name = ur.org_name
-JOIN end_user_users u
+JOIN users u
   ON u.id = ur.user_id
-  AND u.org_name = ur.org_name
 WHERE r.org_name = ?
   AND r.project_slug = ?
-  AND (sqlc.arg(search_filter) = '' OR u.username LIKE CONCAT('%', sqlc.arg(search), '%'))
+  AND (sqlc.arg(search_filter) = '' OR u.name LIKE CONCAT('%', sqlc.arg(search), '%'))
   AND (sqlc.arg(role_id_filter) = '' OR ur.role_id = sqlc.arg(role_id)) AND `r`.`deleted_at` = 0 ;
 
 -- name: ListProjectEndUserRoleUsers :many
@@ -59,9 +58,7 @@ SELECT
   ur.org_name,
   ur.created_at,
   u.id        AS user_id,
-  u.username,
-  u.is_forbidden,
-  u.created_by,
+  u.name,
   u.created_at AS user_created_at,
   u.updated_at AS user_updated_at,
   r.id        AS role_id,
@@ -72,16 +69,15 @@ SELECT
   r.is_implicit,
   r.created_at AS role_created_at,
   r.updated_at AS role_updated_at
-FROM end_user_role_users ur
-JOIN end_user_roles r
+FROM project_role_users ur
+JOIN project_roles r
   ON r.id = ur.role_id
   AND r.org_name = ur.org_name
-JOIN end_user_users u
+JOIN users u
   ON u.id = ur.user_id
-  AND u.org_name = ur.org_name
 WHERE r.org_name = ?
   AND r.project_slug = ?
-  AND (sqlc.arg(search_filter) = '' OR u.username LIKE CONCAT('%', sqlc.arg(search), '%'))
+  AND (sqlc.arg(search_filter) = '' OR u.name LIKE CONCAT('%', sqlc.arg(search), '%'))
   AND (sqlc.arg(role_id_filter) = '' OR ur.role_id = sqlc.arg(role_id))
   AND (sqlc.arg(after_filter) = '' OR ur.id > sqlc.arg(after)) AND `r`.`deleted_at` = 0 ORDER BY ur.id ASC
 LIMIT ?;

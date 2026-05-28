@@ -9,7 +9,7 @@ WHERE user_id = ?
 -- name: GetBundleIDsByUserExplicitRoles :many
 -- ⚡ 鉴权链 Step 2: 通过显式角色关联的权限包 ID 列表（单次 JOIN 查询，避免 N+1）
 SELECT DISTINCT rb.bundle_id
-FROM end_user_role_users ur
+FROM project_role_users ur
   JOIN end_user_role_bundles rb
     ON ur.role_id = rb.role_id
    AND ur.org_name = rb.org_name
@@ -20,7 +20,7 @@ WHERE ur.user_id = ?
 -- name: GetBundleIDsByImplicitRoles :many
 -- ⚡ 鉴权链 Step 3: 隐式角色关联的权限包 ID 列表（对所有认证用户执行，无需 user_id）
 SELECT DISTINCT rb.bundle_id
-FROM end_user_roles r
+FROM project_roles r
   JOIN end_user_role_bundles rb
     ON r.id = rb.role_id
    AND r.org_name = rb.org_name
