@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS `model_database` (
   `cluster_id`   VARCHAR(36)   NOT NULL COMMENT '所属数据库集群 ID',
   `name`         VARCHAR(64)   NOT NULL COMMENT 'MySQL database 原始名，来自 SHOW DATABASES，注册后不可修改',
   `title`        VARCHAR(128)  NOT NULL COMMENT '用户设置的友好名称，默认等于 name',
-  `description`  TEXT          NULL     COMMENT '可选描述',
+  `description`  TEXT          NULL             COMMENT '可选描述',
   `mode`         ENUM('self_hosted','managed') NOT NULL COMMENT 'self_hosted=可读写; managed=只读',
   `deleted_at`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
   `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
