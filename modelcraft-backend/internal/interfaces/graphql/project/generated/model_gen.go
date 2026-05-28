@@ -156,6 +156,10 @@ type Node interface {
 	GetID() string
 }
 
+type RegisterModelDatabaseResult interface {
+	IsRegisterModelDatabaseResult()
+}
+
 type RemoveDataPermissionItemFromBundleError interface {
 	IsRemoveDataPermissionItemFromBundleError()
 }
@@ -1196,6 +1200,8 @@ func (InvalidInput) IsUpdateClusterError() {}
 
 func (InvalidInput) IsModelDatabaseCatalogError() {}
 
+func (InvalidInput) IsRegisterModelDatabaseResult() {}
+
 func (InvalidInput) IsCreateEndUserError() {}
 
 func (InvalidInput) IsUpdateEndUserError() {}
@@ -1348,6 +1354,18 @@ func (ModelAlreadyExists) IsError()                {}
 func (this ModelAlreadyExists) GetMessage() string { return this.Message }
 
 func (ModelAlreadyExists) IsCreateModelError() {}
+
+type ModelDatabase struct {
+	ID          string       `json:"id"`
+	Name        string       `json:"name"`
+	Title       string       `json:"title"`
+	Description string       `json:"description"`
+	Mode        DatabaseMode `json:"mode"`
+	CreatedAt   time.Time    `json:"createdAt"`
+	UpdatedAt   time.Time    `json:"updatedAt"`
+}
+
+func (ModelDatabase) IsRegisterModelDatabaseResult() {}
 
 type ModelDatabaseCatalogInput struct {
 	Search   *string `json:"search,omitempty"`
@@ -1504,6 +1522,18 @@ type RLSCheckViolation struct {
 func (RLSCheckViolation) IsError()                {}
 func (this RLSCheckViolation) GetMessage() string { return this.Message }
 
+type RawDatabase struct {
+	Name         string `json:"name"`
+	IsRegistered bool   `json:"isRegistered"`
+}
+
+type RegisterModelDatabaseInput struct {
+	Name        string       `json:"name"`
+	Title       string       `json:"title"`
+	Description *string      `json:"description,omitempty"`
+	Mode        DatabaseMode `json:"mode"`
+}
+
 type RemoveDataPermissionItemFromBundleInput struct {
 	BundleID string `json:"bundleId"`
 	ModelID  string `json:"modelId"`
@@ -1583,6 +1613,8 @@ func (ResourceNotFound) IsDeleteClusterError() {}
 func (ResourceNotFound) IsTestConnectionError() {}
 
 func (ResourceNotFound) IsModelDatabaseCatalogError() {}
+
+func (ResourceNotFound) IsRegisterModelDatabaseResult() {}
 
 func (ResourceNotFound) IsCreateEndUserError() {}
 
@@ -1872,6 +1904,12 @@ type UpdateFieldInput struct {
 type UpdateFieldPayload struct {
 	Model *Model           `json:"model,omitempty"`
 	Error UpdateFieldError `json:"error,omitempty"`
+}
+
+type UpdateModelDatabaseInput struct {
+	Title       *string       `json:"title,omitempty"`
+	Description *string       `json:"description,omitempty"`
+	Mode        *DatabaseMode `json:"mode,omitempty"`
 }
 
 type UpdateModelMetaInput struct {
@@ -2232,6 +2270,61 @@ func (e *DataPermissionGrantType) UnmarshalJSON(b []byte) error {
 }
 
 func (e DataPermissionGrantType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type DatabaseMode string
+
+const (
+	DatabaseModeSelfHosted DatabaseMode = "SELF_HOSTED"
+	DatabaseModeManaged    DatabaseMode = "MANAGED"
+)
+
+var AllDatabaseMode = []DatabaseMode{
+	DatabaseModeSelfHosted,
+	DatabaseModeManaged,
+}
+
+func (e DatabaseMode) IsValid() bool {
+	switch e {
+	case DatabaseModeSelfHosted, DatabaseModeManaged:
+		return true
+	}
+	return false
+}
+
+func (e DatabaseMode) String() string {
+	return string(e)
+}
+
+func (e *DatabaseMode) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = DatabaseMode(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid DatabaseMode", str)
+	}
+	return nil
+}
+
+func (e DatabaseMode) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *DatabaseMode) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e DatabaseMode) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

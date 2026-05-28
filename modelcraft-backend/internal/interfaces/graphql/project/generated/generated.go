@@ -702,6 +702,16 @@ type ComplexityRoot struct {
 		Suggestion func(childComplexity int) int
 	}
 
+	ModelDatabase struct {
+		CreatedAt   func(childComplexity int) int
+		Description func(childComplexity int) int
+		ID          func(childComplexity int) int
+		Mode        func(childComplexity int) int
+		Name        func(childComplexity int) int
+		Title       func(childComplexity int) int
+		UpdatedAt   func(childComplexity int) int
+	}
+
 	ModelDatabaseCatalogPayload struct {
 		Databases  func(childComplexity int) int
 		Page       func(childComplexity int) int
@@ -784,6 +794,7 @@ type ComplexityRoot struct {
 		ImportModel                        func(childComplexity int, input ImportModelInput) int
 		MoveModelToGroup                   func(childComplexity int, input MoveModelToGroupInput) int
 		Pong                               func(childComplexity int) int
+		RegisterModelDatabase              func(childComplexity int, input RegisterModelDatabaseInput) int
 		RemoveDataPermissionItemFromBundle func(childComplexity int, input RemoveDataPermissionItemFromBundleInput) int
 		RemoveEndUserPermissionFromBundle  func(childComplexity int, input RemoveEndUserPermissionFromBundleInput) int
 		RemoveField                        func(childComplexity int, modelID string, fieldName string) int
@@ -799,11 +810,13 @@ type ComplexityRoot struct {
 		SyncModelSchema                    func(childComplexity int, input SyncModelSchemaInput) int
 		TestDatabaseConnection             func(childComplexity int, input TestDatabaseConnectionInput) int
 		UndeprecateField                   func(childComplexity int, modelID string, fieldName string) int
+		UnregisterModelDatabase            func(childComplexity int, id string) int
 		UpdateEndUserPermission            func(childComplexity int, id string, input UpdateEndUserPermissionInput) int
 		UpdateEndUserPermissionBundle      func(childComplexity int, id string, input UpdateEndUserPermissionBundleInput) int
 		UpdateEndUserRole                  func(childComplexity int, id string, input UpdateEndUserRoleInput) int
 		UpdateEnum                         func(childComplexity int, name string, input UpdateEnumInput) int
 		UpdateField                        func(childComplexity int, modelID string, fieldName string, input UpdateFieldInput) int
+		UpdateModelDatabase                func(childComplexity int, id string, input UpdateModelDatabaseInput) int
 		UpdateModelMeta                    func(childComplexity int, id string, input UpdateModelMetaInput) int
 		UpdateProjectCluster               func(childComplexity int, input UpdateClusterConnectionInput) int
 		ValidateRLSExpr                    func(childComplexity int, input ValidateRLSExprInput) int
@@ -844,6 +857,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		ClusterRawDatabases           func(childComplexity int) int
 		DatabaseCluster               func(childComplexity int) int
 		EffectivePermissions          func(childComplexity int, input GetEffectivePermissionsInput) int
 		EndUserBundleAssignments      func(childComplexity int, endUserID string) int
@@ -867,6 +881,7 @@ type ComplexityRoot struct {
 		Model                         func(childComplexity int, id string, withActualSchema *bool) int
 		ModelByName                   func(childComplexity int, name string, databaseName string) int
 		ModelDatabaseCatalog          func(childComplexity int, input *ModelDatabaseCatalogInput) int
+		ModelDatabases                func(childComplexity int) int
 		ModelGroups                   func(childComplexity int) int
 		ModelJSONSchema               func(childComplexity int, id string) int
 		ModelRLSPolicy                func(childComplexity int, modelID string) int
@@ -880,6 +895,11 @@ type ComplexityRoot struct {
 	RLSCheckViolation struct {
 		Message   func(childComplexity int) int
 		Operation func(childComplexity int) int
+	}
+
+	RawDatabase struct {
+		IsRegistered func(childComplexity int) int
+		Name         func(childComplexity int) int
 	}
 
 	RemoveDataPermissionItemFromBundlePayload struct {
@@ -1070,6 +1090,9 @@ type MutationResolver interface {
 	Pong(ctx context.Context) (string, error)
 	UpdateProjectCluster(ctx context.Context, input UpdateClusterConnectionInput) (*UpdateClusterPayload, error)
 	TestDatabaseConnection(ctx context.Context, input TestDatabaseConnectionInput) (*TestConnectionPayload, error)
+	RegisterModelDatabase(ctx context.Context, input RegisterModelDatabaseInput) (RegisterModelDatabaseResult, error)
+	UpdateModelDatabase(ctx context.Context, id string, input UpdateModelDatabaseInput) (*ModelDatabase, error)
+	UnregisterModelDatabase(ctx context.Context, id string) (bool, error)
 	CreateEnum(ctx context.Context, input CreateEnumInput) (*CreateEnumPayload, error)
 	UpdateEnum(ctx context.Context, name string, input UpdateEnumInput) (*UpdateEnumPayload, error)
 	DeleteEnum(ctx context.Context, name string) (*DeleteEnumPayload, error)
@@ -1127,6 +1150,8 @@ type QueryResolver interface {
 	DatabaseCluster(ctx context.Context) (*GetClusterPayload, error)
 	ListDatabases(ctx context.Context, input ListDatabasesInput) (*DatabaseConnection, error)
 	ListTables(ctx context.Context, input ListTablesInput) (*TableListConnection, error)
+	ModelDatabases(ctx context.Context) ([]*ModelDatabase, error)
+	ClusterRawDatabases(ctx context.Context) ([]*RawDatabase, error)
 	Enum(ctx context.Context, name string) (*GetEnumPayload, error)
 	Enums(ctx context.Context) ([]*EnumDefinition, error)
 	EnumReferences(ctx context.Context, name string) ([]string, error)
@@ -3300,6 +3325,49 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ModelAlreadyExists.Suggestion(childComplexity), true
 
+	case "ModelDatabase.createdAt":
+		if e.complexity.ModelDatabase.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.CreatedAt(childComplexity), true
+	case "ModelDatabase.description":
+		if e.complexity.ModelDatabase.Description == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.Description(childComplexity), true
+	case "ModelDatabase.id":
+		if e.complexity.ModelDatabase.ID == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.ID(childComplexity), true
+	case "ModelDatabase.mode":
+		if e.complexity.ModelDatabase.Mode == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.Mode(childComplexity), true
+	case "ModelDatabase.name":
+		if e.complexity.ModelDatabase.Name == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.Name(childComplexity), true
+	case "ModelDatabase.title":
+		if e.complexity.ModelDatabase.Title == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.Title(childComplexity), true
+	case "ModelDatabase.updatedAt":
+		if e.complexity.ModelDatabase.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabase.UpdatedAt(childComplexity), true
+
 	case "ModelDatabaseCatalogPayload.databases":
 		if e.complexity.ModelDatabaseCatalogPayload.Databases == nil {
 			break
@@ -3785,6 +3853,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.Pong(childComplexity), true
+	case "Mutation.registerModelDatabase":
+		if e.complexity.Mutation.RegisterModelDatabase == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_registerModelDatabase_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.RegisterModelDatabase(childComplexity, args["input"].(RegisterModelDatabaseInput)), true
 	case "Mutation.removeDataPermissionItemFromBundle":
 		if e.complexity.Mutation.RemoveDataPermissionItemFromBundle == nil {
 			break
@@ -3950,6 +4029,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UndeprecateField(childComplexity, args["modelID"].(string), args["fieldName"].(string)), true
+	case "Mutation.unregisterModelDatabase":
+		if e.complexity.Mutation.UnregisterModelDatabase == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_unregisterModelDatabase_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UnregisterModelDatabase(childComplexity, args["id"].(string)), true
 	case "Mutation.updateEndUserPermission":
 		if e.complexity.Mutation.UpdateEndUserPermission == nil {
 			break
@@ -4005,6 +4095,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.UpdateField(childComplexity, args["modelID"].(string), args["fieldName"].(string), args["input"].(UpdateFieldInput)), true
+	case "Mutation.updateModelDatabase":
+		if e.complexity.Mutation.UpdateModelDatabase == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateModelDatabase_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateModelDatabase(childComplexity, args["id"].(string), args["input"].(UpdateModelDatabaseInput)), true
 	case "Mutation.updateModelMeta":
 		if e.complexity.Mutation.UpdateModelMeta == nil {
 			break
@@ -4141,6 +4242,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ProjectEndUserRoleUserConnection.TotalCount(childComplexity), true
 
+	case "Query.clusterRawDatabases":
+		if e.complexity.Query.ClusterRawDatabases == nil {
+			break
+		}
+
+		return e.complexity.Query.ClusterRawDatabases(childComplexity), true
 	case "Query.databaseCluster":
 		if e.complexity.Query.DatabaseCluster == nil {
 			break
@@ -4379,6 +4486,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ModelDatabaseCatalog(childComplexity, args["input"].(*ModelDatabaseCatalogInput)), true
+	case "Query.modelDatabases":
+		if e.complexity.Query.ModelDatabases == nil {
+			break
+		}
+
+		return e.complexity.Query.ModelDatabases(childComplexity), true
 	case "Query.modelGroups":
 		if e.complexity.Query.ModelGroups == nil {
 			break
@@ -4465,6 +4578,19 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.RLSCheckViolation.Operation(childComplexity), true
+
+	case "RawDatabase.isRegistered":
+		if e.complexity.RawDatabase.IsRegistered == nil {
+			break
+		}
+
+		return e.complexity.RawDatabase.IsRegistered(childComplexity), true
+	case "RawDatabase.name":
+		if e.complexity.RawDatabase.Name == nil {
+			break
+		}
+
+		return e.complexity.RawDatabase.Name(childComplexity), true
 
 	case "RemoveDataPermissionItemFromBundlePayload.bundle":
 		if e.complexity.RemoveDataPermissionItemFromBundlePayload.Bundle == nil {
@@ -5047,6 +5173,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputModelDatabaseCatalogInput,
 		ec.unmarshalInputModelQueryInput,
 		ec.unmarshalInputMoveModelToGroupInput,
+		ec.unmarshalInputRegisterModelDatabaseInput,
 		ec.unmarshalInputRemoveDataPermissionItemFromBundleInput,
 		ec.unmarshalInputRemoveEndUserPermissionFromBundleInput,
 		ec.unmarshalInputRenameGroupInput,
@@ -5067,6 +5194,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputUpdateEndUserStatusInput,
 		ec.unmarshalInputUpdateEnumInput,
 		ec.unmarshalInputUpdateFieldInput,
+		ec.unmarshalInputUpdateModelDatabaseInput,
 		ec.unmarshalInputUpdateModelMetaInput,
 		ec.unmarshalInputValidateRLSExprInput,
 		ec.unmarshalInputValidationConfigInput,
@@ -5450,6 +5578,79 @@ extend type Query {
 extend type Mutation {
   updateProjectCluster(input: UpdateClusterConnectionInput!): UpdateClusterPayload! @hasPermission(action: "project:update")
   testDatabaseConnection(input: TestDatabaseConnectionInput!): TestConnectionPayload! @hasPermission(action: "project:read")
+}
+`, BuiltIn: false},
+	{Name: "../../../../../api/graph/project/schema/database.graphql", Input: `# Database management types, inputs, queries and mutations
+# Note: InvalidInput is defined in field.graphql, ResourceNotFound in base.graphql
+
+# ============================================
+# Enums
+# ============================================
+
+enum DatabaseMode {
+  SELF_HOSTED
+  MANAGED
+}
+
+# ============================================
+# Types
+# ============================================
+
+type ModelDatabase {
+  id: ID!
+  name: String!
+  title: String!
+  description: String!
+  mode: DatabaseMode!
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type RawDatabase {
+  name: String!
+  isRegistered: Boolean!
+}
+
+# ============================================
+# Input Types
+# ============================================
+
+input RegisterModelDatabaseInput {
+  name: String!
+  title: String!
+  description: String
+  mode: DatabaseMode!
+}
+
+input UpdateModelDatabaseInput {
+  title: String
+  description: String
+  mode: DatabaseMode
+}
+
+# ============================================
+# Result / Error Unions
+# ============================================
+
+union RegisterModelDatabaseResult = ModelDatabase | InvalidInput | ResourceNotFound
+
+# ============================================
+# Queries
+# ============================================
+
+extend type Query {
+  modelDatabases: [ModelDatabase!]!
+  clusterRawDatabases: [RawDatabase!]!
+}
+
+# ============================================
+# Mutations
+# ============================================
+
+extend type Mutation {
+  registerModelDatabase(input: RegisterModelDatabaseInput!): RegisterModelDatabaseResult!
+  updateModelDatabase(id: ID!, input: UpdateModelDatabaseInput!): ModelDatabase!
+  unregisterModelDatabase(id: ID!): Boolean!
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/end_user.graphql", Input: `# End-User related types, inputs and mutations
@@ -7781,6 +7982,17 @@ func (ec *executionContext) field_Mutation_moveModelToGroup_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_registerModelDatabase_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNRegisterModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_removeDataPermissionItemFromBundle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -7956,6 +8168,17 @@ func (ec *executionContext) field_Mutation_undeprecateField_args(ctx context.Con
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_unregisterModelDatabase_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_updateEndUserPermissionBundle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -8038,6 +8261,22 @@ func (ec *executionContext) field_Mutation_updateField_args(ctx context.Context,
 		return nil, err
 	}
 	args["input"] = arg2
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateModelDatabase_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNUpdateModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateModelDatabaseInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -19316,6 +19555,209 @@ func (ec *executionContext) fieldContext_ModelAlreadyExists_suggestion(_ context
 	return fc, nil
 }
 
+func (ec *executionContext) _ModelDatabase_id(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabase_name(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabase_title(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_title,
+		func(ctx context.Context) (any, error) {
+			return obj.Title, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_title(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabase_description(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_description,
+		func(ctx context.Context) (any, error) {
+			return obj.Description, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_description(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabase_mode(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_mode,
+		func(ctx context.Context) (any, error) {
+			return obj.Mode, nil
+		},
+		nil,
+		ec.marshalNDatabaseMode2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_mode(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type DatabaseMode does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabase_createdAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabase_updatedAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabase_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabase_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ModelDatabaseCatalogPayload_databases(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseCatalogPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -20394,6 +20836,145 @@ func (ec *executionContext) fieldContext_Mutation_testDatabaseConnection(ctx con
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_testDatabaseConnection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_registerModelDatabase(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_registerModelDatabase,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().RegisterModelDatabase(ctx, fc.Args["input"].(RegisterModelDatabaseInput))
+		},
+		nil,
+		ec.marshalNRegisterModelDatabaseResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_registerModelDatabase(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type RegisterModelDatabaseResult does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_registerModelDatabase_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_updateModelDatabase(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_updateModelDatabase,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UpdateModelDatabase(ctx, fc.Args["id"].(string), fc.Args["input"].(UpdateModelDatabaseInput))
+		},
+		nil,
+		ec.marshalNModelDatabase2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabase,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_updateModelDatabase(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ModelDatabase_id(ctx, field)
+			case "name":
+				return ec.fieldContext_ModelDatabase_name(ctx, field)
+			case "title":
+				return ec.fieldContext_ModelDatabase_title(ctx, field)
+			case "description":
+				return ec.fieldContext_ModelDatabase_description(ctx, field)
+			case "mode":
+				return ec.fieldContext_ModelDatabase_mode(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ModelDatabase_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ModelDatabase_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabase", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_updateModelDatabase_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_unregisterModelDatabase(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_unregisterModelDatabase,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().UnregisterModelDatabase(ctx, fc.Args["id"].(string))
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_unregisterModelDatabase(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_unregisterModelDatabase_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -24731,6 +25312,86 @@ func (ec *executionContext) fieldContext_Query_listTables(ctx context.Context, f
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_modelDatabases(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_modelDatabases,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ModelDatabases(ctx)
+		},
+		nil,
+		ec.marshalNModelDatabase2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_modelDatabases(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ModelDatabase_id(ctx, field)
+			case "name":
+				return ec.fieldContext_ModelDatabase_name(ctx, field)
+			case "title":
+				return ec.fieldContext_ModelDatabase_title(ctx, field)
+			case "description":
+				return ec.fieldContext_ModelDatabase_description(ctx, field)
+			case "mode":
+				return ec.fieldContext_ModelDatabase_mode(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ModelDatabase_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ModelDatabase_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabase", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_clusterRawDatabases(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_clusterRawDatabases,
+		func(ctx context.Context) (any, error) {
+			return ec.resolvers.Query().ClusterRawDatabases(ctx)
+		},
+		nil,
+		ec.marshalNRawDatabase2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRawDatabaseᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_clusterRawDatabases(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_RawDatabase_name(ctx, field)
+			case "isRegistered":
+				return ec.fieldContext_RawDatabase_isRegistered(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type RawDatabase", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_enum(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -26686,6 +27347,64 @@ func (ec *executionContext) fieldContext_RLSCheckViolation_operation(_ context.C
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RawDatabase_name(ctx context.Context, field graphql.CollectedField, obj *RawDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RawDatabase_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RawDatabase_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RawDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _RawDatabase_isRegistered(ctx context.Context, field graphql.CollectedField, obj *RawDatabase) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_RawDatabase_isRegistered,
+		func(ctx context.Context) (any, error) {
+			return obj.IsRegistered, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_RawDatabase_isRegistered(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "RawDatabase",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -32610,6 +33329,54 @@ func (ec *executionContext) unmarshalInputMoveModelToGroupInput(ctx context.Cont
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputRegisterModelDatabaseInput(ctx context.Context, obj any) (RegisterModelDatabaseInput, error) {
+	var it RegisterModelDatabaseInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"name", "title", "description", "mode"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "name":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Name = data
+		case "title":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "mode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mode"))
+			data, err := ec.unmarshalNDatabaseMode2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Mode = data
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputRemoveDataPermissionItemFromBundleInput(ctx context.Context, obj any) (RemoveDataPermissionItemFromBundleInput, error) {
 	var it RemoveDataPermissionItemFromBundleInput
 	asMap := map[string]any{}
@@ -33351,6 +34118,47 @@ func (ec *executionContext) unmarshalInputUpdateFieldInput(ctx context.Context, 
 				return it, err
 			}
 			it.ValidationConfig = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputUpdateModelDatabaseInput(ctx context.Context, obj any) (UpdateModelDatabaseInput, error) {
+	var it UpdateModelDatabaseInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"title", "description", "mode"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "title":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("title"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Title = data
+		case "description":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Description = data
+		case "mode":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("mode"))
+			data, err := ec.unmarshalODatabaseMode2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Mode = data
 		}
 	}
 
@@ -34615,6 +35423,36 @@ func (ec *executionContext) _Node(ctx context.Context, sel ast.SelectionSet, obj
 			return graphql.Null
 		}
 		return ec._DatabaseCluster(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _RegisterModelDatabaseResult(ctx context.Context, sel ast.SelectionSet, obj RegisterModelDatabaseResult) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case ResourceNotFound:
+		return ec._ResourceNotFound(ctx, sel, &obj)
+	case *ResourceNotFound:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ResourceNotFound(ctx, sel, obj)
+	case InvalidInput:
+		return ec._InvalidInput(ctx, sel, &obj)
+	case *InvalidInput:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._InvalidInput(ctx, sel, obj)
+	case ModelDatabase:
+		return ec._ModelDatabase(ctx, sel, &obj)
+	case *ModelDatabase:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._ModelDatabase(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -39716,7 +40554,7 @@ func (ec *executionContext) _InvalidGroupName(ctx context.Context, sel ast.Selec
 	return out
 }
 
-var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError"}
+var invalidInputImplementors = []string{"InvalidInput", "UpdateClusterError", "ModelDatabaseCatalogError", "RegisterModelDatabaseResult", "CreateEndUserError", "UpdateEndUserError", "CreateEnumError", "UpdateEnumError", "Error", "AddFieldsError", "UpdateFieldError", "RemoveFieldError", "GetModelError", "CreateModelError", "UpdateModelError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError"}
 
 func (ec *executionContext) _InvalidInput(ctx context.Context, sel ast.SelectionSet, obj *InvalidInput) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, invalidInputImplementors)
@@ -40042,6 +40880,75 @@ func (ec *executionContext) _ModelAlreadyExists(ctx context.Context, sel ast.Sel
 			}
 		case "suggestion":
 			out.Values[i] = ec._ModelAlreadyExists_suggestion(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var modelDatabaseImplementors = []string{"ModelDatabase", "RegisterModelDatabaseResult"}
+
+func (ec *executionContext) _ModelDatabase(ctx context.Context, sel ast.SelectionSet, obj *ModelDatabase) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, modelDatabaseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModelDatabase")
+		case "id":
+			out.Values[i] = ec._ModelDatabase_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "name":
+			out.Values[i] = ec._ModelDatabase_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "title":
+			out.Values[i] = ec._ModelDatabase_title(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "description":
+			out.Values[i] = ec._ModelDatabase_description(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "mode":
+			out.Values[i] = ec._ModelDatabase_mode(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdAt":
+			out.Values[i] = ec._ModelDatabase_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._ModelDatabase_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -40506,6 +41413,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "testDatabaseConnection":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_testDatabaseConnection(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "registerModelDatabase":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_registerModelDatabase(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updateModelDatabase":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_updateModelDatabase(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "unregisterModelDatabase":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_unregisterModelDatabase(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -41305,6 +42233,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "modelDatabases":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_modelDatabases(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "clusterRawDatabases":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_clusterRawDatabases(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
 		case "enum":
 			field := field
 
@@ -41887,6 +42859,50 @@ func (ec *executionContext) _RLSCheckViolation(ctx context.Context, sel ast.Sele
 	return out
 }
 
+var rawDatabaseImplementors = []string{"RawDatabase"}
+
+func (ec *executionContext) _RawDatabase(ctx context.Context, sel ast.SelectionSet, obj *RawDatabase) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, rawDatabaseImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("RawDatabase")
+		case "name":
+			out.Values[i] = ec._RawDatabase_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isRegistered":
+			out.Values[i] = ec._RawDatabase_isRegistered(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var removeDataPermissionItemFromBundlePayloadImplementors = []string{"RemoveDataPermissionItemFromBundlePayload"}
 
 func (ec *executionContext) _RemoveDataPermissionItemFromBundlePayload(ctx context.Context, sel ast.SelectionSet, obj *RemoveDataPermissionItemFromBundlePayload) graphql.Marshaler {
@@ -42151,7 +43167,7 @@ func (ec *executionContext) _RepairModelPayload(ctx context.Context, sel ast.Sel
 	return out
 }
 
-var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
+var resourceNotFoundImplementors = []string{"ResourceNotFound", "Error", "GetClusterError", "UpdateClusterError", "DeleteClusterError", "TestConnectionError", "ModelDatabaseCatalogError", "RegisterModelDatabaseResult", "CreateEndUserError", "UpdateEndUserError", "DeleteEndUserError", "InitPrivateDBPayloadError", "GetEnumError", "CreateEnumError", "UpdateEnumError", "DeleteEnumError", "GetModelError", "CreateModelError", "UpdateModelError", "DeleteModelError", "RenameGroupError", "DeleteGroupError", "ReorderGroupError", "MoveModelToGroupError", "CreateEndUserPermissionError", "UpdateEndUserPermissionError", "DeleteEndUserPermissionError", "ApplyEndUserPresetPolicyError", "CreateEndUserPermissionBundleError", "UpdateEndUserPermissionBundleError", "DeleteEndUserPermissionBundleError", "AddEndUserPermissionToBundleError", "AddEndUserPresetToBundleError", "RemoveEndUserPermissionFromBundleError", "BindPresetItemToBundleError", "BindCustomItemToBundleError", "RemoveDataPermissionItemFromBundleError", "RestoreEndUserPermissionBundleError", "CreateEndUserRoleError", "UpdateEndUserRoleError", "DeleteEndUserRoleError", "AssignBundleToEndUserRoleError", "RevokeBundleFromEndUserRoleError", "AssignBundleToEndUserError", "RevokeBundleFromEndUserError", "AssignEndUserRoleError", "RevokeEndUserRoleError", "GetEffectivePermissionsError", "ListProjectEndUserRoleUsersError", "SetProjectAuthSchemaError", "SetModelRLSPolicyError", "ValidateRLSExprError"}
 
 func (ec *executionContext) _ResourceNotFound(ctx context.Context, sel ast.SelectionSet, obj *ResourceNotFound) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, resourceNotFoundImplementors)
@@ -44454,6 +45470,16 @@ func (ec *executionContext) marshalNDatabaseLite2ᚖmodelcraftᚋinternalᚋinte
 	return ec._DatabaseLite(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNDatabaseMode2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode(ctx context.Context, v any) (DatabaseMode, error) {
+	var res DatabaseMode
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNDatabaseMode2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode(ctx context.Context, sel ast.SelectionSet, v DatabaseMode) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNDeleteEndUserPermissionBundlePayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDeleteEndUserPermissionBundlePayload(ctx context.Context, sel ast.SelectionSet, v DeleteEndUserPermissionBundlePayload) graphql.Marshaler {
 	return ec._DeleteEndUserPermissionBundlePayload(ctx, sel, &v)
 }
@@ -46063,6 +47089,64 @@ func (ec *executionContext) marshalNModel2ᚖmodelcraftᚋinternalᚋinterfaces�
 	return ec._Model(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNModelDatabase2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabase(ctx context.Context, sel ast.SelectionSet, v ModelDatabase) graphql.Marshaler {
+	return ec._ModelDatabase(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNModelDatabase2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelDatabase) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNModelDatabase2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabase(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNModelDatabase2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabase(ctx context.Context, sel ast.SelectionSet, v *ModelDatabase) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModelDatabase(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNModelGroup2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelGroup) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -46238,6 +47322,60 @@ func (ec *executionContext) marshalNRLSExprType2modelcraftᚋinternalᚋinterfac
 	return v
 }
 
+func (ec *executionContext) marshalNRawDatabase2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRawDatabaseᚄ(ctx context.Context, sel ast.SelectionSet, v []*RawDatabase) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNRawDatabase2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRawDatabase(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNRawDatabase2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRawDatabase(ctx context.Context, sel ast.SelectionSet, v *RawDatabase) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RawDatabase(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNRbacAction2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRbacAction(ctx context.Context, v any) (RbacAction, error) {
 	var res RbacAction
 	err := res.UnmarshalGQL(v)
@@ -46246,6 +47384,21 @@ func (ec *executionContext) unmarshalNRbacAction2modelcraftᚋinternalᚋinterfa
 
 func (ec *executionContext) marshalNRbacAction2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRbacAction(ctx context.Context, sel ast.SelectionSet, v RbacAction) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) unmarshalNRegisterModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInput(ctx context.Context, v any) (RegisterModelDatabaseInput, error) {
+	res, err := ec.unmarshalInputRegisterModelDatabaseInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRegisterModelDatabaseResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseResult(ctx context.Context, sel ast.SelectionSet, v RegisterModelDatabaseResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._RegisterModelDatabaseResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNRemoveDataPermissionItemFromBundleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRemoveDataPermissionItemFromBundleInput(ctx context.Context, v any) (RemoveDataPermissionItemFromBundleInput, error) {
@@ -46857,6 +48010,11 @@ func (ec *executionContext) marshalNUpdateFieldPayload2ᚖmodelcraftᚋinternal�
 	return ec._UpdateFieldPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) unmarshalNUpdateModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateModelDatabaseInput(ctx context.Context, v any) (UpdateModelDatabaseInput, error) {
+	res, err := ec.unmarshalInputUpdateModelDatabaseInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
 func (ec *executionContext) unmarshalNUpdateModelMetaInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateModelMetaInput(ctx context.Context, v any) (UpdateModelMetaInput, error) {
 	res, err := ec.unmarshalInputUpdateModelMetaInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -47338,6 +48496,22 @@ func (ec *executionContext) unmarshalODatabaseConnectionInput2ᚖmodelcraftᚋin
 	}
 	res, err := ec.unmarshalInputDatabaseConnectionInput(ctx, v)
 	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalODatabaseMode2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode(ctx context.Context, v any) (*DatabaseMode, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(DatabaseMode)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalODatabaseMode2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDatabaseMode(ctx context.Context, sel ast.SelectionSet, v *DatabaseMode) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalODbColumnInfo2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐDbColumnInfo(ctx context.Context, sel ast.SelectionSet, v *DbColumnInfo) graphql.Marshaler {
