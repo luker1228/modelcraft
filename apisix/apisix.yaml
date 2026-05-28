@@ -129,6 +129,11 @@ routes:
               if payload.org_name then
                 core.request.set_header(ctx, "X-Org-Name", payload.org_name)
               end
+              if payload.is_admin then
+                core.request.set_header(ctx, "X-Is-Admin", "true")
+              else
+                core.request.set_header(ctx, "X-Is-Admin", "false")
+              end
             end
 
   - id: graphql-all
@@ -374,6 +379,11 @@ routes:
               end
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
+              end
+              if payload.is_admin then
+                core.request.set_header(ctx, "X-Is-Admin", "true")
+              else
+                core.request.set_header(ctx, "X-Is-Admin", "false")
               end
             end
 
