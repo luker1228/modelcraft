@@ -38,17 +38,16 @@ CREATE TABLE IF NOT EXISTS `user_orgs` (
   `org_name`     VARCHAR(36)     NOT NULL COMMENT '组织名称（引用 organizations.name）',
   `is_admin`     TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '是否为管理员',
   `status`       VARCHAR(20)     NOT NULL DEFAULT 'active' COMMENT '状态：active | suspended',
-  `created_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-  `updated_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `created_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
+  `updated_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
   `deleted_at`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳',
   `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位',
 
   CONSTRAINT `fk_user_orgs_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_user_orgs_org`  FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON DELETE CASCADE,
+  CONSTRAINT `fk_user_orgs_org`  FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON DELETE CASCADE ON UPDATE CASCADE,
   UNIQUE KEY `uk_user_orgs_user` (`user_id`, `delete_token`) COMMENT '每个用户只能属于一个 Org',
-  UNIQUE KEY `uk_user_orgs_user_org` (`user_id`, `org_name`, `delete_token`),
-  INDEX `idx_user_orgs_org` (`org_name`),
-  INDEX `idx_user_orgs_status` (`status`)
+  UNIQUE KEY `uk_user_orgs_user_org` (`user_id`, `org_name`, `delete_token`) COMMENT '用户在同一 Org 中不能重复绑定',
+  INDEX `idx_user_orgs_org_status` (`org_name`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户-组织绑定表（每人只属于一个 Org）';
 
 -- -----------------------------------------------------------------------------
