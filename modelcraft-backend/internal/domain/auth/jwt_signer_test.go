@@ -13,7 +13,7 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 	}
 
 	t.Run("valid tenant token", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant})
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -54,14 +54,14 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 	})
 
 	t.Run("empty orgName returns error", func(t *testing.T) {
-		_, err := signer.IssueAccessToken("user-1", "", jwt.ClaimStrings{AudienceTenant})
+		_, err := signer.IssueAccessToken("user-1", "", jwt.ClaimStrings{AudienceTenant}, false)
 		if err == nil {
 			t.Error("expected error for empty orgName")
 		}
 	})
 
 	t.Run("end_user audience token", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser})
+		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken for end_user: %v", err)
 		}
@@ -90,7 +90,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	}
 
 	t.Run("valid tenant token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant})
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -113,7 +113,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	})
 
 	t.Run("valid end_user token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser})
+		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -134,7 +134,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	})
 
 	t.Run("tampered token returns error", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant})
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
