@@ -6,31 +6,140 @@ package projectgraphql
 
 import (
 	"context"
-	"fmt"
+
+	appmodeldatabase "modelcraft/internal/app/modeldatabase"
+	domainmodeldatabase "modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/interfaces/graphql/project/generated"
+	"modelcraft/pkg/bizerrors"
+	"modelcraft/pkg/logfacade"
 )
 
 // RegisterModelDatabase is the resolver for the registerModelDatabase field.
 func (r *mutationResolver) RegisterModelDatabase(ctx context.Context, input generated.RegisterModelDatabaseInput) (generated.RegisterModelDatabaseResult, error) {
-	panic(fmt.Errorf("not implemented: RegisterModelDatabase - registerModelDatabase"))
+	logger := logfacade.GetLogger(ctx)
+	cmd := appmodeldatabase.RegisterCommand{
+		Name:        input.Name,
+		Title:       input.Title,
+		Description: derefStringOrEmpty(input.Description),
+		Mode:        gqlDatabaseModeToDomain(input.Mode),
+	}
+	db, err := r.ModelDatabaseAppService.Register(ctx, cmd)
+	if err != nil {
+		if bizErr, ok := err.(*bizerrors.BusinessError); ok {
+			logger.Error(ctx, "RegisterModelDatabase failed",
+				logfacade.Err(bizErr),
+				logfacade.Stack(bizErr),
+			)
+			switch bizErr.Info().GetCode() {
+			case bizerrors.Conflict.GetCode(), bizerrors.ParamInvalid.GetCode():
+				return &generated.InvalidInput{Message: bizErr.Msg()}, nil
+			case bizerrors.NotFound.GetCode():
+				return &generated.ResourceNotFound{
+					Message:      bizErr.Msg(),
+					ResourceType: generated.ResourceTypeUnknown,
+				}, nil
+			}
+		}
+		return nil, err
+	}
+	return modelDatabaseToGQL(db), nil
 }
 
 // UpdateModelDatabase is the resolver for the updateModelDatabase field.
 func (r *mutationResolver) UpdateModelDatabase(ctx context.Context, id string, input generated.UpdateModelDatabaseInput) (*generated.ModelDatabase, error) {
-	panic(fmt.Errorf("not implemented: UpdateModelDatabase - updateModelDatabase"))
+	cmd := appmodeldatabase.UpdateCommand{
+		ID:          id,
+		Title:       input.Title,
+		Description: input.Description,
+		Mode:        domainDatabaseModeFromGQLPtr(input.Mode),
+	}
+	db, err := r.ModelDatabaseAppService.Update(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+	return modelDatabaseToGQL(db), nil
 }
 
 // UnregisterModelDatabase is the resolver for the unregisterModelDatabase field.
 func (r *mutationResolver) UnregisterModelDatabase(ctx context.Context, id string) (bool, error) {
-	panic(fmt.Errorf("not implemented: UnregisterModelDatabase - unregisterModelDatabase"))
+	err := r.ModelDatabaseAppService.Unregister(ctx, id)
+	if err != nil {
+		return false, err
+	}
+	return true, nil
 }
 
 // ModelDatabases is the resolver for the modelDatabases field.
 func (r *queryResolver) ModelDatabases(ctx context.Context) ([]*generated.ModelDatabase, error) {
-	panic(fmt.Errorf("not implemented: ModelDatabases - modelDatabases"))
+	items, err := r.ModelDatabaseAppService.ListRegistered(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*generated.ModelDatabase, 0, len(items))
+	for _, item := range items {
+		result = append(result, modelDatabaseToGQL(item))
+	}
+	return result, nil
 }
 
 // ClusterRawDatabases is the resolver for the clusterRawDatabases field.
 func (r *queryResolver) ClusterRawDatabases(ctx context.Context) ([]*generated.RawDatabase, error) {
-	panic(fmt.Errorf("not implemented: ClusterRawDatabases - clusterRawDatabases"))
+	items, err := r.ModelDatabaseAppService.ListRaw(ctx)
+	if err != nil {
+		return nil, err
+	}
+	result := make([]*generated.RawDatabase, 0, len(items))
+	for _, item := range items {
+		result = append(result, &generated.RawDatabase{
+			Name:         item.Name,
+			IsRegistered: item.IsRegistered,
+		})
+	}
+	return result, nil
+}
+
+// modelDatabaseToGQL converts a domain ModelDatabase to the GQL type.
+func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelDatabase {
+	return &generated.ModelDatabase{
+		ID:          db.ID,
+		Name:        db.Name,
+		Title:       db.Title,
+		Description: db.Description,
+		Mode:        domainDatabaseModeToGQL(db.Mode),
+		CreatedAt:   db.CreatedAt,
+		UpdatedAt:   db.UpdatedAt,
+	}
+}
+
+// domainDatabaseModeToGQL converts a domain DatabaseMode to the GQL enum.
+func domainDatabaseModeToGQL(m domainmodeldatabase.DatabaseMode) generated.DatabaseMode {
+	if m == domainmodeldatabase.DatabaseModeManaged {
+		return generated.DatabaseModeManaged
+	}
+	return generated.DatabaseModeSelfHosted
+}
+
+// gqlDatabaseModeToDomain converts a GQL DatabaseMode to the domain type.
+func gqlDatabaseModeToDomain(m generated.DatabaseMode) domainmodeldatabase.DatabaseMode {
+	if m == generated.DatabaseModeManaged {
+		return domainmodeldatabase.DatabaseModeManaged
+	}
+	return domainmodeldatabase.DatabaseModeSelfHosted
+}
+
+// domainDatabaseModeFromGQLPtr converts an optional GQL DatabaseMode pointer to domain type pointer.
+func domainDatabaseModeFromGQLPtr(m *generated.DatabaseMode) *domainmodeldatabase.DatabaseMode {
+	if m == nil {
+		return nil
+	}
+	mode := gqlDatabaseModeToDomain(*m)
+	return &mode
+}
+
+// derefStringOrEmpty dereferences a string pointer; returns "" when nil.
+func derefStringOrEmpty(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

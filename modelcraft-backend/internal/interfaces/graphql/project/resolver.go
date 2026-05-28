@@ -3,6 +3,7 @@ package projectgraphql
 import (
 	"modelcraft/internal/app/cluster"
 	appEnduser "modelcraft/internal/app/enduser"
+	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/permission"
 	apprbac "modelcraft/internal/app/rbac"
@@ -43,4 +44,7 @@ type Resolver struct {
 	RBACBundleSvc     *apprbac.EndUserBundleAppService
 	RBACRoleSvc       *apprbac.EndUserRoleAppService
 	RBACAuthzSvc      *apprbac.EndUserAuthzService
+
+	// Database management
+	ModelDatabaseAppService *appmodeldatabase.ModelDatabaseAppService
 }
