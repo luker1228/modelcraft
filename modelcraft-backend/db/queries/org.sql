@@ -83,14 +83,14 @@ WHERE id = ?;
 DELETE FROM user_orgs WHERE id = ?;
 
 -- name: GetUserOrgByUserID :one
-SELECT id, user_id, org_name, is_admin, status, created_at, updated_at
+SELECT id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at
 FROM user_orgs
 WHERE user_id = ? AND deleted_at = 0
 LIMIT 1;
 
 -- name: CreateUserOrg :exec
-INSERT INTO user_orgs (id, user_id, org_name, is_admin, status)
-VALUES (?, ?, ?, ?, 'active');
+INSERT INTO user_orgs (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
+VALUES (?, ?, ?, ?, 'active', 0, 0, NOW(3), NOW(3));
 
 -- name: UpdateUserOrgAdmin :exec
 UPDATE user_orgs
