@@ -179,7 +179,7 @@ routes:
               end
 
               -- graphql-all is tenant-only: inject X-User-ID (required by ChiJWTAuthMiddleware),
-              -- X-Tenant-User-Id (used by GraphQL resolvers), X-User-Type, and X-Org-Name
+              -- X-Tenant-User-Id (used by GraphQL resolvers), X-User-Type, X-Org-Name, and X-Is-Admin
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
                 core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
@@ -187,6 +187,11 @@ routes:
               core.request.set_header(ctx, "X-User-Type", "tenant")
               if payload.org_name then
                 core.request.set_header(ctx, "X-Org-Name", payload.org_name)
+              end
+              if payload.is_admin then
+                core.request.set_header(ctx, "X-Is-Admin", "true")
+              else
+                core.request.set_header(ctx, "X-Is-Admin", "false")
               end
             end
 
@@ -238,7 +243,7 @@ routes:
               end
 
               -- api-user is tenant-only; inject X-User-ID (required by ChiJWTAuthMiddleware),
-              -- X-Tenant-User-Id (used by user handler), X-User-Type, and X-Org-Name
+              -- X-Tenant-User-Id (used by user handler), X-User-Type, X-Org-Name, and X-Is-Admin
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
                 core.request.set_header(ctx, "X-Tenant-User-Id", payload.user_id)
@@ -246,6 +251,11 @@ routes:
               end
               if payload.org_name then
                 core.request.set_header(ctx, "X-Org-Name", payload.org_name)
+              end
+              if payload.is_admin then
+                core.request.set_header(ctx, "X-Is-Admin", "true")
+              else
+                core.request.set_header(ctx, "X-Is-Admin", "false")
               end
             end
 
@@ -303,6 +313,11 @@ routes:
               end
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
+              end
+              if payload.is_admin then
+                core.request.set_header(ctx, "X-Is-Admin", "true")
+              else
+                core.request.set_header(ctx, "X-Is-Admin", "false")
               end
             end
 
