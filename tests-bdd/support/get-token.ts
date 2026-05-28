@@ -9,6 +9,12 @@
  *   npx tsx support/get-token.ts --username myuser --password yourpassword
  *   npx tsx support/get-token.ts --phone 13800138000 --password yourpassword --write
  *
+ * 本项目测试账号：
+ *   --phone 18592061228 --password jmx931228
+ *
+ * 示例（写入 .env.test）：
+ *   npm run get-token -- --phone 18592061228 --password jmx931228 --write
+ *
  * 选项：
  *   --phone      手机号（与 --username 二选一）
  *   --username   用户名（与 --phone 二选一）
@@ -45,8 +51,6 @@ function parseArgs(): {
   const password = get('--password')
   const write = args.includes('--write')
   const urlArg = get('--url')
-
-  // 读取 .env.test 中的 API_BASE_URL
   const envUrl = process.env.API_BASE_URL
 
   if (!phone && !username) {
@@ -61,7 +65,7 @@ function parseArgs(): {
   return {
     phone,
     username,
-    password,
+    password: password!,
     write,
     url: urlArg ?? envUrl ?? 'http://localhost:8080',
   }
@@ -87,7 +91,7 @@ async function login(opts: {
   const body = (await res.json()) as Record<string, unknown>
 
   if (!res.ok) {
-    // 兼容旧版 phone 字段
+    // 兼容旧版 phone 字段格式
     if (opts.phone && res.status === 400) {
       const legacyRes = await fetch(`${opts.url}/api/tenant/auth/login`, {
         method: 'POST',
@@ -125,10 +129,8 @@ function updateEnvFile(token: string): void {
   let content = fs.readFileSync(ENV_FILE, 'utf-8')
 
   if (content.includes('TEST_ACCESS_TOKEN=')) {
-    // 替换已有行
     content = content.replace(/^TEST_ACCESS_TOKEN=.*$/m, `TEST_ACCESS_TOKEN=${token}`)
   } else {
-    // 追加新行
     content = content.trimEnd() + `\nTEST_ACCESS_TOKEN=${token}\n`
   }
 
@@ -159,9 +161,7 @@ async function main(): Promise<void> {
   const opts = parseArgs()
 
   console.log(`🔐 正在登录 ${opts.url} ...`)
-  const identifier = opts.phone
-    ? `手机号 ${opts.phone}`
-    : `用户名 ${opts.username}`
+  const identifier = opts.phone ? `手机号 ${opts.phone}` : `用户名 ${opts.username}`
   console.log(`   ${identifier}`)
 
   const result = await login(opts)
@@ -178,11 +178,18 @@ async function main(): Promise<void> {
     console.log(`   npm test -- features/database/`)
   } else {
     console.log(`💡 提示：加 --write 参数可自动写入 .env.test`)
-    console.log(`   npx tsx support/get-token.ts ... --write`)
+    console.log(`   npm run get-token -- --phone 18592061228 --password jmx931228 --write`)
   }
 }
 
-main().catch((err: unknown) => {
-  console.error('❌', err instanceof Error ? err.message : err)
-  process.exit(1)
-})
+// 仅在直接执行时运行 main，Cucumber require 时跳过
+const isDirectRun =
+  process.argv[1]?.endsWith('get-token.ts') ||
+  process.argv[1]?.endsWith('get-token.js')
+
+if (isDirectRun) {
+  main().catch((err: unknown) => {
+    console.error('❌', err instanceof Error ? err.message : err)
+    process.exit(1)
+  })
+}

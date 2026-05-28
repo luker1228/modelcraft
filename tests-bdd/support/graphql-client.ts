@@ -24,12 +24,24 @@ class BaseGraphQLClient {
   }
 
   async query<T>(document: string, variables?: Record<string, unknown>): Promise<T> {
-    return this.client.request<T>(document, variables)
+    const action = extractAction(document)
+    return this.client.request<T>({ document, variables, requestHeaders: action ? { 'X-Action': action } : {} })
   }
 
   async mutate<T>(document: string, variables?: Record<string, unknown>): Promise<T> {
-    return this.client.request<T>(document, variables)
+    const action = extractAction(document)
+    return this.client.request<T>({ document, variables, requestHeaders: action ? { 'X-Action': action } : {} })
   }
+}
+
+/**
+ * 从 GraphQL document 字符串中提取 X-Action 值（格式："{type}:{operationName}"）。
+ * 例如：`query ListModelDatabases { ... }` → `"query:ListModelDatabases"`
+ */
+function extractAction(document: string): string | null {
+  const match = /^\s*(query|mutation|subscription)\s+(\w+)/m.exec(document)
+  if (!match) return null
+  return `${match[1]}:${match[2]}`
 }
 
 export class GraphQLClient extends BaseGraphQLClient {
