@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
+	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/modelruntime"
 	"modelcraft/internal/app/project"
@@ -100,6 +101,9 @@ type DesignHandlers struct {
 	RBACBundleSvc     *appRbac.EndUserBundleAppService
 	RBACRoleSvc       *appRbac.EndUserRoleAppService
 	RBACAuthzSvc      *appRbac.EndUserAuthzService
+
+	// Database management
+	ModelDatabaseAppService *appmodeldatabase.ModelDatabaseAppService
 
 	// SystemDB is the system main database connection (stores end_user_users etc.)
 	SystemDB *sql.DB
@@ -196,6 +200,14 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	// Create database cluster related services
 	clusterRepository := repository.NewSqlDatabaseClusterRepository(dbgen.New(loggingDB))
 	clusterAppService := cluster.NewDatabaseClusterAppService(clusterRepository, clusterManager)
+
+	// Create model database management service
+	modelDatabaseRepo := repository.NewSqlModelDatabaseRepository(dbgen.New(loggingDB))
+	modelDatabaseAppService := appmodeldatabase.NewModelDatabaseAppService(
+		modelDatabaseRepo,
+		clusterRepository,
+		clusterManager,
+	)
 
 	// Create model related services
 	txManager := repository.NewSqlTxManager(repoFactory.SqlDB)
@@ -398,6 +410,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		RBACRoleSvc:               rbacRoleSvc,
 		RBACAuthzSvc:              rbacAuthzSvc,
 		CreateOrgService:          createOrgService,
+		ModelDatabaseAppService:   modelDatabaseAppService,
 	}, nil
 }
 
@@ -475,6 +488,7 @@ func SetupProjectGraphQLRoutesOnChi(
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,
 		RBACAuthzSvc:             handlers.RBACAuthzSvc,
+		ModelDatabaseAppService:  handlers.ModelDatabaseAppService,
 	}
 
 	// Register project endpoint: /graphql/org/{orgName}/project/{projectSlug}
@@ -561,6 +575,7 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 		RBACBundleSvc:            handlers.RBACBundleSvc,
 		RBACRoleSvc:              handlers.RBACRoleSvc,
 		RBACAuthzSvc:             handlers.RBACAuthzSvc,
+		ModelDatabaseAppService:  handlers.ModelDatabaseAppService,
 	}
 
 	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {
