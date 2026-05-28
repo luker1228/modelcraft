@@ -196,6 +196,32 @@ deleted_at BIGINT UNSIGNED NOT NULL DEFAULT 0
 3. 若无法提供安全默认值，再允许 `NULL`，并在应用层显式处理
 4. 禁止用会误导业务语义的默认值（如真实状态、真实枚举值）
 
+## 强制约束：TEXT / BLOB 类型不支持 DEFAULT
+
+> **硬性规则**：MySQL 的 `TEXT`、`BLOB`（及其变体 `TINYTEXT`、`MEDIUMTEXT`、`LONGTEXT` 等）**不支持 `DEFAULT` 值**。写入会报错或被静默忽略，取决于 MySQL 版本和 sql_mode。
+
+```sql
+-- ❌ 错误示例：TEXT 字段设置 DEFAULT ''（MySQL 报错或忽略）
+`description` TEXT NOT NULL DEFAULT ''
+
+-- ✅ 正确方案一：改用 VARCHAR，长度按业务需求选择
+`description` VARCHAR(2000) NOT NULL DEFAULT ''
+
+-- ✅ 正确方案二：允许 NULL（应用层保证非空）
+`description` TEXT NULL
+```
+
+**选择依据**：
+- 描述性短文本（≤ 2000 字符）→ 用 `VARCHAR(N) NOT NULL DEFAULT ''`，语义清晰，支持默认值
+- 任意长文本（文章内容、日志等）→ 用 `TEXT NULL`，应用层判空处理
+
+评审清单：
+1. 新增 TEXT / BLOB 字段时，不要写 `DEFAULT ''` 或任何 DEFAULT 值
+2. 若需要默认空字符串语义，改用 `VARCHAR`
+3. 确保 GraphQL / Repository 层与 DDL 的 NULL 约定一致（`String!` 对应 `NOT NULL`，`String` 对应 `NULL`）
+
+---
+
 ## 强制约束：软删除字段规则（`deleted_at` / `delete_token`）
 
 ### 核心字段定义
