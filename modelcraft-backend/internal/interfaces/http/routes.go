@@ -312,23 +312,12 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	refreshTokenRepo := repository.NewSqlRefreshTokenRepository(dbgen.New(loggingDB))
 	auditLogRepo := repository.NewSqlSecurityAuditLogRepository(dbgen.New(loggingDB))
 
-	// EndUserRepoFactory wires SqlEndUserRepository into the org-creation transaction.
-	// q.(*dbgen.Queries).DB() extracts the underlying DBTX (always *sql.Tx inside WithTx).
-	endUserRepoFactory := appOrg.EndUserRepoFactory(
-		func(q dbgen.Querier, orgName string) domainEndUser.EndUserRepository {
-			queries, ok := q.(*dbgen.Queries)
-			if !ok {
-				panic("EndUserRepoFactory: expected *dbgen.Queries inside WithTx")
-			}
-			return repository.NewSqlEndUserRepository(queries.DB(), orgName, "")
-		})
 	createOrgService := appOrg.NewCreateOrganizationService(
 		txManager,
 		userRepo,
 		orgRepo,
 		casbinRoleRepo,
 		membershipRepo,
-		endUserRepoFactory,
 	)
 
 	passwordHasher := infraAuth.NewBcryptPasswordHasher()

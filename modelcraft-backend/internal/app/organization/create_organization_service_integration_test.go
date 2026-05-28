@@ -246,7 +246,7 @@ func newTestService(
 	roleRepo *mockRoleRepo,
 	membershipRepo *mockMembershipRepo,
 ) *organization.CreateOrganizationService {
-	return organization.NewCreateOrganizationService(txManager, userRepo, orgRepo, roleRepo, membershipRepo, nil)
+	return organization.NewCreateOrganizationService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
 }
 
 func makeOwnerRole() *permission.Role {
