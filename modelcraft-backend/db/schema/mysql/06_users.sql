@@ -29,35 +29,27 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- -----------------------------------------------------------------------------
--- 2. 用户-组织关联表 (User Organizations)
--- 将用户映射到组织，一个用户可属于多个组织
--- 注意：角色信息在 07_roles_permissions.sql 的 user_roles 表中管理
+-- 2. 用户-组织绑定表 (User Orgs)
+-- 每个用户只能属于一个 Org，通过 uk_user_orgs_user 唯一约束保证
 -- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `user_organizations` (
-  `id` VARCHAR(36) NOT NULL PRIMARY KEY COMMENT 'UUID',
-  `user_id` VARCHAR(36) NOT NULL COMMENT '用户 ID（引用 users.id）',
-  `org_name` VARCHAR(36) NOT NULL COMMENT '组织名称（引用 organizations.name）',
-  `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '状态：active、suspended、invited',
-  `invited_by` VARCHAR(36) COMMENT '邀请人（用户引用）',
-  `invited_at` DATETIME(3) COMMENT '邀请发送时间',
-  `joined_at` DATETIME(3) COMMENT '接受邀请时间',
+CREATE TABLE IF NOT EXISTS `user_orgs` (
+  `id`           VARCHAR(36)     NOT NULL PRIMARY KEY COMMENT 'UUID',
+  `user_id`      VARCHAR(36)     NOT NULL COMMENT '用户 ID（引用 users.id）',
+  `org_name`     VARCHAR(36)     NOT NULL COMMENT '组织名称（引用 organizations.name）',
+  `is_admin`     TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '是否为管理员',
+  `status`       VARCHAR(20)     NOT NULL DEFAULT 'active' COMMENT '状态：active | suspended',
+  `created_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updated_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  `deleted_at`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳',
+  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位',
 
-  `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-  `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-
-  -- 外键约束
-  CONSTRAINT `fk_user_org_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_user_org_org` FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON DELETE CASCADE,
-  CONSTRAINT `fk_user_org_invited_by` FOREIGN KEY (`invited_by`) REFERENCES `users`(`id`) ON DELETE SET NULL,
-
-  -- 唯一约束：每个用户在每个组织中只能有一条关联记录
-  UNIQUE KEY `uk_user_org` (`user_id`, `org_name`) COMMENT '防止重复关联',
-
-  -- 索引
-  INDEX `idx_uo_user_id` (`user_id`) COMMENT '查找用户所属的所有组织',
-  INDEX `idx_uo_status` (`status`) COMMENT '按成员状态筛选',
-  INDEX `idx_uo_org_name` (`org_name`) COMMENT '按组织名称查找成员'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户-组织关联表';
+  CONSTRAINT `fk_user_orgs_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
+  CONSTRAINT `fk_user_orgs_org`  FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON DELETE CASCADE,
+  UNIQUE KEY `uk_user_orgs_user` (`user_id`, `delete_token`) COMMENT '每个用户只能属于一个 Org',
+  UNIQUE KEY `uk_user_orgs_user_org` (`user_id`, `org_name`, `delete_token`),
+  INDEX `idx_user_orgs_org` (`org_name`),
+  INDEX `idx_user_orgs_status` (`status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户-组织绑定表（每人只属于一个 Org）';
 
 -- -----------------------------------------------------------------------------
 -- 3. 用户资料表 (Profile)
