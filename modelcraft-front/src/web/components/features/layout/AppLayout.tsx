@@ -251,6 +251,7 @@ export function AppLayout({
           { label: '模型管理', href: `/org/${orgName}/project/${projectSlug}/model-editor`, tabParam: 'view=schema' },
           { label: '数据管理', href: `/org/${orgName}/project/${projectSlug}/model-editor?view=data`, tabParam: 'view=data' },
         ]},
+        { label: '数据库', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/databases` },
         { label: '枚举管理', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/enums` },
       ],
     },

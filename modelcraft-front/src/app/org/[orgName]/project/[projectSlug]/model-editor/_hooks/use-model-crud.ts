@@ -6,7 +6,7 @@ import { useProjectScopedClient, getOrgScopedClient } from '@api-client/apollo/p
 import { TEST_CLUSTER_CONNECTION } from '@/api-client/cluster'
 import { CREATE_MODEL, UPDATE_MODEL, DELETE_MODEL } from '@/api-client/model'
 import { GET_MODEL, GET_MODELS, GET_MODELS_BY_DATABASE } from '@/api-client/model'
-import { useDatabases } from '@web/hooks/database/use-databases'
+import { useModelDatabases } from '@web/hooks/model-database/use-model-databases'
 import { toast } from 'sonner'
 import type { ModelEditorState } from './use-model-editor-state'
 import type {
@@ -89,10 +89,10 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
   }
 
   // Fetch databases (skip when connection checking or failed)
-  const { databases, loading: databasesLoading } = useDatabases(
-    !state.connectionChecking && !state.connectionFailed ? projectSlug : null,
-    { initialLimit: 50 }
+  const { databases: rawModelDatabases, loading: databasesLoading } = useModelDatabases(
+    !state.connectionChecking && !state.connectionFailed ? projectSlug : null
   )
+  const databases = rawModelDatabases.map((db) => ({ name: db.name, mode: db.mode }))
   const relationDatabaseNames = useMemo(
     () => databases.map((db) => db.name).sort(),
     [databases]

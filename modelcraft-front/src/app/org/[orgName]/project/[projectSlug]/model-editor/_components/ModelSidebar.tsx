@@ -33,6 +33,7 @@ import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 
 interface DatabaseOption {
   name: string
+  mode?: string
 }
 
 interface ModelSidebarProps {
@@ -158,34 +159,51 @@ export function ModelSidebar({
         {/* Action buttons */}
         {viewMode === 'schema' && (
         <div className="flex flex-col gap-1 px-3 py-2.5">
-          <Button
-            ref={createModelBtnRef}
-            size="sm"
-            variant="outline"
-            className={cn(
-              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-              !state.selectedDatabase && 'pointer-events-none opacity-40',
-              pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
-            )}
-            onClick={handleCreateModelClick}
-            disabled={!state.selectedDatabase}
-            >
-              <Plus className="mr-1 size-3.5" />
-              新建模型
-            </Button>
-          <Button
-            size="sm"
-            variant="outline"
-            className={cn(
-              'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
-              !state.selectedDatabase && 'pointer-events-none opacity-40'
-            )}
-            onClick={() => state.setImportDialogOpen(true)}
-            disabled={!state.selectedDatabase}
-          >
-            <Download className="mr-1 size-3.5" strokeWidth={1.5} />
-            导入模型
-          </Button>
+          {(() => {
+            const selectedDbMode = databases.find((db) => db.name === state.selectedDatabase)?.mode
+            const canWrite = !selectedDbMode || selectedDbMode === 'SELF_HOSTED'
+            return canWrite ? (
+              <>
+                <Button
+                  ref={createModelBtnRef}
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+                    !state.selectedDatabase && 'pointer-events-none opacity-40',
+                    pendingAction === 'nav_create_model' && state.selectedDatabase && 'ring-2 ring-amber-400 ring-offset-1 animate-pulse border-amber-400'
+                  )}
+                  onClick={handleCreateModelClick}
+                  disabled={!state.selectedDatabase}
+                >
+                  <Plus className="mr-1 size-3.5" />
+                  新建模型
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className={cn(
+                    'h-7 w-full justify-start px-2.5 text-xs font-normal transition-colors',
+                    !state.selectedDatabase && 'pointer-events-none opacity-40'
+                  )}
+                  onClick={() => state.setImportDialogOpen(true)}
+                  disabled={!state.selectedDatabase}
+                >
+                  <Download className="mr-1 size-3.5" strokeWidth={1.5} />
+                  导入模型
+                </Button>
+              </>
+            ) : state.selectedDatabase ? (
+              <Button
+                size="sm"
+                variant="outline"
+                className="h-7 w-full justify-start px-2.5 text-xs font-normal opacity-50"
+                disabled
+              >
+                同步模型（即将推出）
+              </Button>
+            ) : null
+          })()}
         </div>
         )}
 
