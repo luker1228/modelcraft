@@ -16,7 +16,6 @@ interface WorkspacePageProps {
 
 function WorkspaceContent({ orgName }: { orgName: string }) {
   const router = useRouter()
-  const activeTab = 'projects'
   const isAdmin = useEndUserAuthStore((s) => s.isAdmin)
 
   const { data, loading } = useQuery<{ endUserProjects: EndUserAccessibleProject[] }>(
@@ -35,55 +34,58 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
     router.push(`/end-user/${orgName}/login`)
   }
 
+  const orgInitials = orgName
+    .split(/[-_]/)
+    .slice(0, 2)
+    .map((w) => w[0]?.toUpperCase() ?? '')
+    .join('')
+
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      {/* 顶部栏 */}
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-6">
-        <span className="text-base font-semibold text-foreground">{orgName}</span>
+    <div className="flex min-h-dvh flex-col bg-[#FBFBFA]">
+      {/* Topbar */}
+      <header className="sticky top-0 z-20 flex h-12 items-center justify-between border-b border-[#EAEAEA] bg-white px-6">
         <div className="flex items-center gap-3">
+          <span className="text-[13px] font-semibold tracking-tight text-[#111111]">ModelCraft</span>
+          <span className="text-[#D8DDE5]">/</span>
+          <div className="flex items-center gap-1.5">
+            <div className="flex h-5 w-5 items-center justify-center rounded bg-[#F0EFF9] text-[9px] font-semibold text-[#4F46E5]">
+              {orgInitials || orgName[0]?.toUpperCase()}
+            </div>
+            <span className="text-[13px] font-medium text-[#111111]">{orgName}</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
           {isAdmin === true && (
             <button
               onClick={() => router.push(`/org/${orgName}/dashboard`)}
-              className="text-sm text-primary hover:underline"
+              className="inline-flex h-7 items-center rounded border border-[#EAEAEA] bg-white px-3 text-xs font-medium text-[#787774] transition-colors hover:border-[#D0CECC] hover:text-[#111111]"
             >
               管理端
             </button>
           )}
           <button
             onClick={() => void handleLogout()}
-            className="text-sm text-destructive hover:underline"
+            className="inline-flex h-7 items-center rounded px-3 text-xs font-medium text-[#787774] transition-colors hover:text-[#111111]"
           >
             登出
           </button>
         </div>
       </header>
 
-      {/* Tab 导航 */}
-      <nav className="flex border-b bg-background px-6">
-        <button
-          onClick={() => router.push(`/end-user/${orgName}/dashboard`)}
-          className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
-            activeTab === 'projects'
-              ? 'border-primary text-primary'
-              : 'border-transparent text-muted-foreground hover:text-foreground'
-          }`}
-        >
-          Projects
-        </button>
-        <button
-          onClick={() => router.push(`/end-user/${orgName}/dashboard/cli`)}
-          className="border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          CLI 使用
-        </button>
-      </nav>
+      {/* Page shell */}
+      <div className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
+        {/* Page header */}
+        <div className="mb-10">
+          <h1 className="text-[20px] font-semibold leading-tight tracking-[-0.02em] text-[#111111]">
+            工作台
+          </h1>
+          <p className="mt-1.5 text-[13px] text-[#787774]">选择一个项目开始数据操作</p>
+        </div>
 
-      {/* 主内容 */}
-      <main className="flex-1 p-6">
-        {activeTab === 'projects' && (
-          <WorkspaceProjectsTab orgName={orgName} projects={projects} loading={loading} />
-        )}
-      </main>
+        {/* Projects */}
+        <WorkspaceProjectsTab orgName={orgName} projects={projects} loading={loading} />
+      </div>
     </div>
   )
 }
@@ -103,7 +105,6 @@ function useEndUserTokenReady(orgName: string): boolean {
   const setAccessToken = useEndUserAuthStore((s) => s.setAccessToken)
   const router = useRouter()
 
-  // 用 getState() 同步读，避免 hook 订阅延迟导致初始值错误
   const [ready, setReady] = useState(() => {
     const storeState = useEndUserAuthStore.getState()
     if (storeState.accessToken && !storeState.isTokenExpired()) return true
@@ -127,7 +128,6 @@ function useEndUserTokenReady(orgName: string): boolean {
       return
     }
 
-    // token 缺失或已过期，尝试 silent refresh
     void (async () => {
       try {
         const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/refresh`, {
@@ -165,15 +165,12 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { orgName } = params
   const ready = useEndUserTokenReady(orgName)
 
-  const client = useMemo(
-    () => createEndUserOrgScopedClient(orgName),
-    [orgName]
-  )
+  const client = useMemo(() => createEndUserOrgScopedClient(orgName), [orgName])
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">加载中...</p>
+      <div className="flex min-h-dvh items-center justify-center bg-[#FBFBFA]">
+        <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#EAEAEA] border-t-[#111111]" />
       </div>
     )
   }
