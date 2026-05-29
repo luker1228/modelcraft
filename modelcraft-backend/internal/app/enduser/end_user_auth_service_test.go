@@ -176,6 +176,14 @@ func (r *inMemoryEndUserRepo) GetByUsername(
 	return user, nil
 }
 
+func (r *inMemoryEndUserRepo) GetByPhone(
+	_ context.Context,
+	_ string,
+	_ string,
+) (*domainenduser.EndUser, error) {
+	return nil, nil //nolint:nilnil
+}
+
 func (r *inMemoryEndUserRepo) GetByUsernameGlobal(
 	_ context.Context,
 	username string,

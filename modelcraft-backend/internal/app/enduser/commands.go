@@ -28,9 +28,11 @@ type AccessibleProject struct {
 
 // LoginCommand represents a login request from an end-user.
 type LoginCommand struct {
-	OrgName  string
-	Username string
-	Password string
+	OrgName        string
+	Username       string // 保留向后兼容
+	Identifier     string // 登录标识符（手机号或用户名），优先于 Username
+	IdentifierType string // "USERNAME" 或 "PHONE"，默认 USERNAME
+	Password       string
 }
 
 // LoginResult represents the result of a successful login.

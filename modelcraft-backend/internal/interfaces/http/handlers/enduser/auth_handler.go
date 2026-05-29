@@ -56,18 +56,22 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(ctx)
 
 	var req struct {
-		OrgName  string `json:"orgName"`
-		Username string `json:"username"`
-		Password string `json:"password"`
+		OrgName        string `json:"orgName"`
+		Username       string `json:"username"`       // 保留向后兼容
+		Identifier     string `json:"identifier"`     // 新增：手机号或用户名
+		IdentifierType string `json:"identifierType"` // 新增：USERNAME | PHONE
+		Password       string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
 		return
 	}
 	result, err := h.authService.LoginEndUser(ctx, appEnduser.LoginCommand{
-		OrgName:  req.OrgName,
-		Username: req.Username,
-		Password: req.Password,
+		OrgName:        req.OrgName,
+		Username:       req.Username,
+		Identifier:     req.Identifier,
+		IdentifierType: req.IdentifierType,
+		Password:       req.Password,
 	})
 	if err != nil {
 		h.handleBizError(w, r, requestID, err, "end-user login failed")

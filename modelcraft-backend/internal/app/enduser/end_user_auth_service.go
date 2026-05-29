@@ -156,12 +156,34 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 	userRepo := s.repoFactory.NewEndUserRepository(s.db, cmd.OrgName, "")
 
 	resolvedOrgName := cmd.OrgName
+
+	// 解析 identifier：优先使用 Identifier 字段，否则退化到 Username
+	identifier := cmd.Username
+	idType := "USERNAME"
+	if cmd.Identifier != "" {
+		identifier = cmd.Identifier
+		idType = cmd.IdentifierType
+		if idType == "" {
+			idType = "USERNAME"
+		}
+	}
+
 	var user *enduser.EndUser
 	var err error
-	if resolvedOrgName != "" {
-		user, err = userRepo.GetByUsername(ctx, resolvedOrgName, cmd.Username)
-	} else {
-		user, err = userRepo.GetByUsernameGlobal(ctx, cmd.Username)
+	switch idType {
+	case "PHONE":
+		if resolvedOrgName == "" {
+			return nil, bizerrors.NewErrorFromContext(
+				ctx, bizerrors.EndUserParamInvalid, "orgName is required for phone login",
+			)
+		}
+		user, err = userRepo.GetByPhone(ctx, resolvedOrgName, identifier)
+	default:
+		if resolvedOrgName != "" {
+			user, err = userRepo.GetByUsername(ctx, resolvedOrgName, identifier)
+		} else {
+			user, err = userRepo.GetByUsernameGlobal(ctx, identifier)
+		}
 	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -222,9 +244,9 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 
 	s.logger.Infof(
 		ctx,
-		"EndUser login: id=%s, username=%s, org=%s, projects=%d",
+		"EndUser login: id=%s, identifier=%s, org=%s, projects=%d",
 		user.ID,
-		cmd.Username,
+		identifier,
 		resolvedOrgName,
 		len(accessibleProjects),
 	)

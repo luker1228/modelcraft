@@ -27,6 +27,9 @@ type EndUserRepository interface {
 	// GetByUsername retrieves a user by username under org scope (returns (nil, nil) when not found).
 	GetByUsername(ctx context.Context, orgName, username string) (*EndUser, error)
 
+	// GetByPhone retrieves a user by phone number under org scope (returns (nil, nil) when not found).
+	GetByPhone(ctx context.Context, orgName, phone string) (*EndUser, error)
+
 	// GetByUsernameGlobal retrieves a user by username without requiring org input.
 	// The returned entity carries its orgName and relies on the single-org-per-user invariant.
 	GetByUsernameGlobal(ctx context.Context, username string) (*EndUser, error)

@@ -41,6 +41,10 @@ func (f *fakeEndUserRepo) GetByUsernameGlobal(_ context.Context, username string
 	return nil, nil
 }
 
+func (f *fakeEndUserRepo) GetByPhone(_ context.Context, _, _ string) (*domainenduser.EndUser, error) {
+	return nil, nil //nolint:nilnil
+}
+
 func (f *fakeEndUserRepo) UpdateStatus(_ context.Context, _, id string, isForbidden bool) error {
 	if u, ok := f.users[id]; ok {
 		u.IsForbidden = isForbidden

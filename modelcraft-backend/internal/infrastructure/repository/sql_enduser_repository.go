@@ -89,6 +89,21 @@ func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, usern
 	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, username))
 }
 
+// GetByPhone retrieves an end-user by phone number under org scope.
+// Returns (nil, nil) when not found.
+func (r *SqlEndUserRepository) GetByPhone(ctx context.Context, orgName, phone string) (*enduser.EndUser, error) {
+	if orgName == "" {
+		orgName = r.orgName
+	}
+	const q = `
+		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
+		FROM users u
+		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
+		WHERE u.phone = ? AND u.deleted_at = 0
+	`
+	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, phone))
+}
+
 // GetByUsernameGlobal retrieves an end-user by username without an org filter.
 // The single-org-per-user invariant ensures the returned row carries the owning org.
 func (r *SqlEndUserRepository) GetByUsernameGlobal(ctx context.Context, username string) (*enduser.EndUser, error) {
