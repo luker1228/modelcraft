@@ -108,7 +108,7 @@ export function AppLayout({
     refreshEndUserAccessToken({ orgName }).then((token) => {
       if (token) setHasEndUserSession(true)
     }).catch(() => { /* ignore */ })
-  }, [orgName])
+  }, [orgName, hasEndUserSession])
 
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
