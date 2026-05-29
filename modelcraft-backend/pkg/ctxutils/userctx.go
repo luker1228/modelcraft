@@ -28,6 +28,10 @@ const (
 	// ContextKeyUserType distinguishes "end_user" from "tenant" (developer) callers.
 	ContextKeyUserType contextKey = "user_type"
 
+	// ContextKeyIsAdmin stores whether the end-user is an org admin, derived from the
+	// is_admin JWT claim injected by APISIX as X-Is-Admin header.
+	ContextKeyIsAdmin contextKey = "is_admin"
+
 	// ContextKeyTenantUserID stores the tenant admin's user ID.
 	// Set from X-Tenant-User-Id header (injected by APISIX for tenant tokens).
 	ContextKeyTenantUserID contextKey = "tenant_user_id"
@@ -153,6 +157,19 @@ func GetPermissionsFromContext(ctx context.Context) ([]string, error) {
 // SetUserType stores the user type ("end_user" or "tenant") in context.
 func SetUserType(ctx context.Context, userType string) context.Context {
 	return context.WithValue(ctx, ContextKeyUserType, userType)
+}
+
+// SetIsAdmin stores the end-user admin flag in context.
+// This is populated from the X-Is-Admin header injected by APISIX.
+func SetIsAdmin(ctx context.Context, isAdmin bool) context.Context {
+	return context.WithValue(ctx, ContextKeyIsAdmin, isAdmin)
+}
+
+// GetIsAdminFromContext returns whether the current end-user is an org admin.
+// Returns false if the flag is not set in context.
+func GetIsAdminFromContext(ctx context.Context) bool {
+	val, _ := ctx.Value(ContextKeyIsAdmin).(bool)
+	return val
 }
 
 // IsEndUser returns true if the request is from an EndUser caller.

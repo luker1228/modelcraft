@@ -238,9 +238,9 @@ export function DatabaseConfigFields<T extends FieldValues = FieldValues>({
                           onClick={() => setShowPassword(!showPassword)}
                         >
                           {showPassword ? (
-                            <EyeOff className="size-4" />
-                          ) : (
                             <Eye className="size-4" />
+                          ) : (
+                            <EyeOff className="size-4" />
                           )}
                         </button>
                       )}

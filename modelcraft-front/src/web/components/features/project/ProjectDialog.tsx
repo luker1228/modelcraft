@@ -16,7 +16,6 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -25,7 +24,6 @@ import {
 import { Button } from "@web/components/ui/button"
 import { Input } from "@web/components/ui/input"
 import { Textarea } from "@web/components/ui/textarea"
-import { Separator } from "@web/components/ui/separator"
 import { DatabaseConfigFields } from "@web/components/features/database/DatabaseConfigFields"
 import { CheckCircle, Loader2, XCircle } from "lucide-react"
 import type { Project } from "@/types"
@@ -121,7 +119,6 @@ const CONNECTION_TEST_FIELDS: FieldPath<ProjectFormValues>[] = [
 const CREATE_STEPS = [
   { index: 1 as const, title: "项目信息", description: "填写项目的基础信息" },
   { index: 2 as const, title: "数据库集群", description: "配置项目默认数据库连接" },
-  { index: 3 as const, title: "确认创建", description: "确认信息后创建项目" },
 ]
 
 function generateProjectSlug(title: string): string {
@@ -153,7 +150,7 @@ export function ProjectDialog({
   loading = false,
 }: ProjectDialogProps) {
   const isEditing = !!project
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1)
+  const [currentStep, setCurrentStep] = useState<1 | 2>(1)
   const [testingConnection, setTestingConnection] = useState(false)
   const [testResult, setTestResult] = useState<ProjectConnectionTestResult | null>(null)
 
@@ -168,7 +165,7 @@ export function ProjectDialog({
   const canProceedStep2 = testResult?.success === true
 
   const handleNextStep = async () => {
-    if (!isCreateMode || currentStep >= 3) return
+    if (!isCreateMode || currentStep >= 2) return
 
     const fields = currentStep === 1 ? CREATE_STEP_1_FIELDS : CREATE_STEP_2_FIELDS
     const passed = await form.trigger(fields, { shouldFocus: true })
@@ -181,12 +178,12 @@ export function ProjectDialog({
       return
     }
 
-    setCurrentStep((currentStep + 1) as 1 | 2 | 3)
+    setCurrentStep((currentStep + 1) as 1 | 2)
   }
 
   const handlePrevStep = () => {
     if (!isCreateMode || currentStep <= 1) return
-    setCurrentStep((currentStep - 1) as 1 | 2 | 3)
+    setCurrentStep((currentStep - 1) as 1 | 2)
   }
 
   const handleTestConnection = async () => {
@@ -261,11 +258,11 @@ export function ProjectDialog({
             {isCreateMode && (
               <div className="space-y-3 rounded-md border border-border bg-muted/30 p-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">步骤 {currentStep}/3</p>
+                  <p className="text-xs text-muted-foreground">步骤 {currentStep}/2</p>
                   <p className="text-xs text-muted-foreground">{currentStepConfig.title}</p>
                 </div>
                 <p className="text-sm font-medium text-foreground">{currentStepConfig.description}</p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-2 gap-2">
                   {CREATE_STEPS.map((step) => {
                     const isActive = currentStep === step.index
                     const isDone = currentStep > step.index
@@ -321,11 +318,6 @@ export function ProjectDialog({
                           {...field}
                         />
                       </FormControl>
-                      {!isEditing && (
-                        <FormDescription>
-                          已根据项目名称自动生成，可手动修改。用于 URL、API 和私有库名 `mc_private_&lt;slug&gt;`，创建后不可修改
-                        </FormDescription>
-                      )}
                       <FormMessage />
                     </FormItem>
                   )}
@@ -428,47 +420,6 @@ export function ProjectDialog({
               </>
             )}
 
-            {!isEditing && currentStep === 3 && (
-              <div className="space-y-3">
-                <p className="text-sm font-semibold text-foreground">请确认以下信息</p>
-
-                <div className="space-y-3 rounded-md border border-border bg-muted/20 p-4 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground">项目名称</p>
-                    <p className="font-medium text-foreground">{createValues.title || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">项目标识</p>
-                    <p className="font-mono text-foreground">{createValues.slug || "-"}</p>
-                  </div>
-                  <Separator />
-
-                  <div>
-                    <p className="text-xs text-muted-foreground">集群名称</p>
-                    <p className="font-medium text-foreground">{createValues.clusterInput?.title || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">主机地址</p>
-                    <p className="text-foreground">{createValues.clusterInput?.connectionInfo.host || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">端口</p>
-                    <p className="font-mono text-foreground">{createValues.clusterInput?.connectionInfo.port || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">用户名</p>
-                    <p className="font-mono text-foreground">{createValues.clusterInput?.connectionInfo.username || "-"}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-muted-foreground">密码</p>
-                    <p className="font-mono text-foreground">
-                      {createValues.clusterInput?.connectionInfo.password ? "••••••••" : "未填写"}
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {isEditing ? (
               <DialogFooter className="pt-2">
                 <Button
@@ -505,7 +456,7 @@ export function ProjectDialog({
                   </Button>
                 )}
 
-                {currentStep < 3 ? (
+                {currentStep < 2 ? (
                   <Button
                     type="button"
                     onClick={handleNextStep}
@@ -515,7 +466,7 @@ export function ProjectDialog({
                   </Button>
                 ) : (
                   <Button type="submit" disabled={loading}>
-                    {loading ? "保存中..." : "创建项目"}
+                    {loading ? "创建中..." : "创建项目"}
                   </Button>
                 )}
               </DialogFooter>

@@ -7,6 +7,7 @@ import (
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+	"modelcraft/pkg/ctxutils"
 
 	domainenduser "modelcraft/internal/domain/enduser"
 
@@ -232,12 +233,23 @@ func (s *EndUserManagementAppService) ResetEndUserPassword(
 }
 
 // ListAccessibleProjects 获取指定终端用户在当前 Org 下可访问的项目列表。
+// Admin 用户（由 JWT is_admin claim 经 APISIX 注入 X-Is-Admin → context 携带）可访问
+// Org 下所有项目，无需额外数据库查询；普通用户仅返回通过角色分配的项目。
 func (s *EndUserManagementAppService) ListAccessibleProjects(
 	ctx context.Context,
 	orgName, userID string,
 ) ([]AccessibleProjectItem, error) {
 	repo := infrrepo.NewSqlEndUserRepository(s.db, orgName, "")
-	projects, err := repo.ListAccessibleProjectsByRoleAssignment(ctx, orgName, userID)
+
+	var (
+		projects []domainenduser.AccessibleProject
+		err      error
+	)
+	if ctxutils.GetIsAdminFromContext(ctx) {
+		projects, err = repo.ListAllProjectsByOrg(ctx, orgName)
+	} else {
+		projects, err = repo.ListAccessibleProjectsByRoleAssignment(ctx, orgName, userID)
+	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
