@@ -307,92 +307,12 @@ func (s *EndUserAuthAppService) LogoutEndUser(ctx context.Context, cmd LogoutCom
 // RefreshEndUserToken handles token refresh with rotation (transactional).
 func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd RefreshCommand) (*RefreshResult, error) {
 	tokenHash := hashToken(cmd.RefreshToken)
-	refreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(s.db)
-	token, err := refreshTokenRepo.FindByHash(ctx, tokenHash)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if token == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
-	}
-	if !token.IsValid() {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
-	}
-
-	userRepo := s.repoFactory.NewEndUserRepository(s.db, cmd.OrgName, "")
-	user, err := userRepo.GetByID(ctx, cmd.OrgName, token.UserID)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if user == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
-	}
-	if !user.IsActive() {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
-	}
-
-	var accessibleProjects []enduser.AccessibleProject
-	if user.IsAdmin {
-		accessibleProjects, err = userRepo.ListAllProjectsByOrg(ctx, cmd.OrgName)
-	} else {
-		accessibleProjects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, token.UserID)
-	}
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	accessToken := ""
-	if user.IsAdmin || len(accessibleProjects) > 0 {
-		projectSlugs := make([]string, 0, len(accessibleProjects))
-		for _, item := range accessibleProjects {
-			projectSlugs = append(projectSlugs, item.ProjectSlug)
-		}
-
-		tokenResult, issueErr := s.issueAccessToken(ctx, token.UserID, cmd.OrgName, projectSlugs, user.IsAdmin)
-		if issueErr != nil {
-			return nil, issueErr
-		}
-		accessToken = tokenResult.AccessToken
-	}
 
 	var result *RefreshResult
-	err = s.txManager.WithTx(ctx, s.db, func(ctx context.Context, txDB SQLDBTX) error {
-		txRefreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(txDB)
-
-		if err := txRefreshTokenRepo.Revoke(ctx, token.ID); err != nil {
-			return bizerrors.ConvertRepositoryError(ctx, err)
-		}
-
-		newPlaintext, newTokenHash, err := generateRefreshToken()
-		if err != nil {
-			return bizerrors.WrapError(err, bizerrors.SystemError, "generate new refresh token")
-		}
-
-		newTokenID, err := bizutils.GenerateUUIDV7()
-		if err != nil {
-			return bizerrors.WrapError(err, bizerrors.SystemError, "generate token id")
-		}
-		expiresAt := time.Now().Add(s.refreshTTL)
-		newToken := &domainAuth.RefreshToken{
-			ID:        newTokenID,
-			UserID:    token.UserID,
-			TokenHash: newTokenHash,
-			ExpiresAt: expiresAt,
-			CreatedAt: time.Now(),
-		}
-
-		if err := txRefreshTokenRepo.Save(ctx, newToken); err != nil {
-			return bizerrors.ConvertRepositoryError(ctx, err)
-		}
-
-		result = &RefreshResult{
-			UserID:       token.UserID,
-			AccessToken:  accessToken,
-			Projects:     toAppAccessibleProjects(accessibleProjects),
-			RefreshToken: newPlaintext,
-			ExpiresAt:    expiresAt,
-		}
-		return nil
+	err := s.txManager.WithTx(ctx, s.db, func(ctx context.Context, txDB SQLDBTX) error {
+		var txErr error
+		result, txErr = s.doRefreshInTx(ctx, txDB, tokenHash, cmd.OrgName)
+		return txErr
 	})
 	if err != nil {
 		if _, ok := err.(*bizerrors.BusinessError); ok {
@@ -401,8 +321,123 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "refresh token transaction")
 	}
 
-	s.logger.Infof(ctx, "EndUser token refreshed: user_id=%s", token.UserID)
+	s.logger.Infof(ctx, "EndUser token refreshed: user_id=%s", result.UserID)
 	return result, nil
+}
+
+// doRefreshInTx performs the token lookup, validity checks, user fetch, rotation, and new token
+// issuance all within the caller's transaction. FindByHash is intentionally inside the tx to
+// prevent a TOCTOU race between the validity check and the revocation.
+func (s *EndUserAuthAppService) doRefreshInTx(
+	ctx context.Context,
+	txDB SQLDBTX,
+	tokenHash, orgName string,
+) (*RefreshResult, error) {
+	txRefreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(txDB)
+
+	token, err := txRefreshTokenRepo.FindByHash(ctx, tokenHash)
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if token == nil || !token.IsValid() {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
+	}
+
+	// User lookups are read-only; the non-tx DB connection is sufficient.
+	user, accessibleProjects, err := s.loadUserAndProjects(ctx, orgName, token.UserID)
+	if err != nil {
+		return nil, err
+	}
+
+	accessToken, err := s.buildAccessToken(ctx, token.UserID, orgName, user, accessibleProjects)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := txRefreshTokenRepo.Revoke(ctx, token.ID); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	newPlaintext, newTokenHash, err := generateRefreshToken()
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate new refresh token")
+	}
+
+	newTokenID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate token id")
+	}
+	expiresAt := time.Now().Add(s.refreshTTL)
+	newToken := &domainAuth.RefreshToken{
+		ID:        newTokenID,
+		UserID:    token.UserID,
+		TokenHash: newTokenHash,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
+
+	if err := txRefreshTokenRepo.Save(ctx, newToken); err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+
+	return &RefreshResult{
+		UserID:       token.UserID,
+		AccessToken:  accessToken,
+		Projects:     toAppAccessibleProjects(accessibleProjects),
+		RefreshToken: newPlaintext,
+		ExpiresAt:    expiresAt,
+	}, nil
+}
+
+// loadUserAndProjects fetches the user and their accessible projects using the non-tx DB.
+func (s *EndUserAuthAppService) loadUserAndProjects(
+	ctx context.Context,
+	orgName, userID string,
+) (*enduser.EndUser, []enduser.AccessibleProject, error) {
+	userRepo := s.repoFactory.NewEndUserRepository(s.db, orgName, "")
+
+	user, err := userRepo.GetByID(ctx, orgName, userID)
+	if err != nil {
+		return nil, nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if user == nil {
+		return nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
+	}
+	if !user.IsActive() {
+		return nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
+	}
+
+	var projects []enduser.AccessibleProject
+	if user.IsAdmin {
+		projects, err = userRepo.ListAllProjectsByOrg(ctx, orgName)
+	} else {
+		projects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, orgName, userID)
+	}
+	if err != nil {
+		return nil, nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	return user, projects, nil
+}
+
+// buildAccessToken issues an access token when the user has project access, otherwise returns "".
+func (s *EndUserAuthAppService) buildAccessToken(
+	ctx context.Context,
+	userID, orgName string,
+	user *enduser.EndUser,
+	accessibleProjects []enduser.AccessibleProject,
+) (string, error) {
+	if !user.IsAdmin && len(accessibleProjects) == 0 {
+		return "", nil
+	}
+	projectSlugs := make([]string, 0, len(accessibleProjects))
+	for _, item := range accessibleProjects {
+		projectSlugs = append(projectSlugs, item.ProjectSlug)
+	}
+	tokenResult, err := s.issueAccessToken(ctx, userID, orgName, projectSlugs, user.IsAdmin)
+	if err != nil {
+		return "", err
+	}
+	return tokenResult.AccessToken, nil
 }
 
 // GetEndUserMe retrieves the current end-user's profile.

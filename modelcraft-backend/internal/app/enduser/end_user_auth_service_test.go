@@ -581,6 +581,38 @@ func TestEndUserAuthAppService_RefreshEndUserToken_DisabledAccount(t *testing.T)
 	requireBusinessErrorCode(t, err, bizerrors.EndUserAccountDisabled.GetCode())
 }
 
+func TestEndUserAuthAppService_RefreshEndUserToken_RevokedTokenReuse(t *testing.T) {
+	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "A"},
+	}
+
+	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:  "org-a",
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+
+	oldToken := loginResult.RefreshToken
+
+	// First refresh: old token → new token (rotation).
+	_, err = svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+		OrgName:      "org-a",
+		RefreshToken: oldToken,
+	})
+	require.NoError(t, err)
+
+	// Second refresh: reusing the now-revoked old token must fail.
+	_, err = svc.RefreshEndUserToken(context.Background(), RefreshCommand{
+		OrgName:      "org-a",
+		RefreshToken: oldToken,
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserInvalidRefreshToken.GetCode())
+}
+
 func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T) {
 	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
