@@ -35,8 +35,8 @@ SELECT COUNT(*) FROM users WHERE external_id = ? AND `users`.`deleted_at` = 0 ;
 SELECT id FROM users WHERE external_id = ? AND `users`.`deleted_at` = 0 LIMIT 1;
 
 -- name: CreateMembership :exec
-INSERT INTO user_orgs (id, user_id, org_name, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO user_orgs (id, user_id, org_name, is_admin, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetMembershipByID :one
 SELECT * FROM user_orgs WHERE id = ? AND `user_orgs`.`deleted_at` = 0 LIMIT 1;

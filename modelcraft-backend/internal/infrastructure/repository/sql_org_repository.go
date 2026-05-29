@@ -344,6 +344,7 @@ func (r *SqlMembershipRepository) Create(ctx context.Context, m *membership.Memb
 		ID:      m.ID,
 		UserID:  m.UserID,
 		OrgName: m.OrgName,
+		IsAdmin: m.IsAdmin,
 		Status:  string(m.Status),
 	}
 

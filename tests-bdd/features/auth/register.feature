@@ -12,6 +12,14 @@ Feature: 用户注册
     When 我用手机号 "13900139000" 和密码 "password123" 登录
     Then 登录应该成功
 
+  # 回归：注册用户应拥有管理员身份（user_orgs.is_admin = 1）
+  # 修复 bug：CreateMembership SQL 漏写 is_admin 字段，导致注册用户 is_admin = 0
+  Scenario: 注册后登录的 JWT 包含管理员身份
+    Given 已注册手机号 "13800138001" 密码 "password123"
+    When 我用手机号 "13800138001" 和密码 "password123" 登录
+    Then 登录应该成功
+    And 登录 JWT 中 is_admin 应为 true
+
   Scenario: 手机号已注册时报错
     Given 已注册手机号 "13700137000" 密码 "password123"
     When 我用手机号 "13700137000" 和密码 "newpassword1" 注册

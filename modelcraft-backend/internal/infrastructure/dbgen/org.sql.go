@@ -23,14 +23,15 @@ func (q *Queries) CountMembershipsByUser(ctx context.Context, userID string) (in
 }
 
 const createMembership = `-- name: CreateMembership :exec
-INSERT INTO user_orgs (id, user_id, org_name, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO user_orgs (id, user_id, org_name, is_admin, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateMembershipParams struct {
 	ID      string
 	UserID  string
 	OrgName string
+	IsAdmin bool
 	Status  string
 }
 
@@ -39,6 +40,7 @@ func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipPara
 		arg.ID,
 		arg.UserID,
 		arg.OrgName,
+		arg.IsAdmin,
 		arg.Status,
 	)
 	return err

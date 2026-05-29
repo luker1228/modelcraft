@@ -259,6 +259,16 @@ Then('登录应该成功', function (this: ModelCraftWorld) {
   expect(result.data).toBeDefined()
 })
 
+Then('登录 JWT 中 is_admin 应为 true', function (this: ModelCraftWorld) {
+  const result = this.lastRestResult as RestResult<LoginResponse>
+  expect(result.data?.accessToken).toBeDefined()
+  const token = result.data!.accessToken
+  // JWT payload 是 base64url 编码的第二段
+  const payloadB64 = token.split('.')[1]
+  const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString('utf-8')) as Record<string, unknown>
+  expect(payload.is_admin).toBe(true)
+})
+
 // ──────────────── Then: 刷新断言 ────────────────
 
 Then('刷新应该成功', function (this: ModelCraftWorld) {
