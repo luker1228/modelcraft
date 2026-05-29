@@ -103,24 +103,6 @@ routes:
                 return
               end
 
-              -- end-user route: only accept end_user tokens
-              local user_type = "tenant"
-              if payload.aud then
-                local aud = payload.aud
-                if type(aud) == "table" then
-                  for _, v in ipairs(aud) do
-                    if v == "end_user" then user_type = "end_user" break end
-                  end
-                elseif aud == "end_user" then
-                  user_type = "end_user"
-                end
-              end
-
-              if user_type ~= "end_user" then
-                core.response.exit(403, {message = "end-user token required for this endpoint"})
-                return
-              end
-
               -- Inject end-user identity
               if payload.user_id then
                 core.request.set_header(ctx, "X-User-ID", payload.user_id)
