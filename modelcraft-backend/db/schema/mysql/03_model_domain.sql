@@ -132,10 +132,9 @@ CREATE TABLE IF NOT EXISTS `logical_foreign_keys` (
   PRIMARY KEY (`id`),
 
   -- 索引
-  KEY `idx_logical_fk_pair` (`pair_id`) COMMENT '外键对查询索引',
-  KEY `idx_logical_fk_model` (`model_id`) COMMENT '模型查询索引',
-  KEY `idx_logical_fk_org_model` (`org_name`, `model_id`) COMMENT '组织+模型查询索引',
-  KEY `idx_logical_fk_live_org` (`org_name`, `deleted_at`) COMMENT '组织活跃逻辑外键查询索引',
+  KEY `idx_logical_fk_pair_live` (`pair_id`, `org_name`, `deleted_at`) COMMENT '外键对活跃记录查询索引',
+  KEY `idx_logical_fk_model_live` (`model_id`, `org_name`, `deleted_at`) COMMENT '模型活跃逻辑外键查询索引',
+  KEY `idx_logical_fk_ref_model_live` (`ref_model_id`, `org_name`, `deleted_at`) COMMENT '引用模型活跃逻辑外键查询索引',
 
   -- 外键约束
   CONSTRAINT `fk_logical_fk_model` FOREIGN KEY (`model_id`) REFERENCES `models` (`id`) ON DELETE CASCADE,

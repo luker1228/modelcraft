@@ -2,6 +2,7 @@
 
 import { useSearchParams } from 'next/navigation'
 import { Loader2 } from 'lucide-react'
+import { clearEndUserSessionArtifacts } from '@shared/auth/clear-end-user-session'
 import { Form } from '@web/components/ui/form'
 import {
   FormControl,
@@ -25,7 +26,15 @@ export default function EndUserLoginPage() {
     <AuthLayout
       title="欢迎回来"
       subtitle="输入用户名和密码后自动进入所属组织"
-      backLink={{ href: '/', label: '返回登录选择' }}
+      backLink={{
+        href: '/',
+        label: '返回登录选择',
+        onClick: () => {
+          if (redirectTo) {
+            clearEndUserSessionArtifacts()
+          }
+        },
+      }}
     >
       <Form {...form}>
         <form onSubmit={onSubmit} className="flex flex-col gap-5">

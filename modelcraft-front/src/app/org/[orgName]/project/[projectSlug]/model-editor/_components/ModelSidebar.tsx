@@ -1,6 +1,8 @@
 'use client'
 
 import { useRef } from 'react'
+import Link from 'next/link'
+import { useParams } from 'next/navigation'
 import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capability'
 import {
   Table2,
@@ -30,6 +32,7 @@ import {
 import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 import { useOnboarding } from '@shared/onboarding/OnboardingContext'
+import { buildDatabaseManagementPath } from './database-management-path'
 
 interface DatabaseOption {
   name: string
@@ -56,6 +59,9 @@ export function ModelSidebar({
   viewMode,
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
+  const params = useParams<{ orgName: string; projectSlug: string }>()
+  const hasDatabases = databases.length > 0
+  const databaseManagementPath = buildDatabaseManagementPath(params.orgName, params.projectSlug)
 
   // AI capability refs for chip highlighting
   const createModelBtnRef = useRef<HTMLButtonElement>(null)
@@ -115,6 +121,8 @@ export function ModelSidebar({
                   <><Loader2 className="size-3 shrink-0 animate-spin" /><span className="text-muted-foreground">加载中...</span></>
                 ) : state.selectedDatabase ? (
                   <span className="truncate font-medium text-foreground">{state.selectedDatabase}</span>
+                ) : !hasDatabases ? (
+                  <span>接管数据库</span>
                 ) : (
                   <span>选择数据库</span>
                 )}
@@ -123,9 +131,18 @@ export function ModelSidebar({
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-[228px] border border-border p-1 shadow-lg" align="start">
-            {databases.length === 0 ? (
-              <div className="px-2.5 py-3 text-center text-sm text-muted-foreground">
-                No databases found
+            {!hasDatabases ? (
+              <div className="p-3">
+                <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-4 text-center">
+                  <Database className="mx-auto mb-2 size-4 text-muted-foreground" />
+                  <p className="text-sm font-medium text-foreground">暂无已接管数据库</p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    先去数据库管理页接管数据库，再回来创建和管理模型。
+                  </p>
+                  <Button asChild size="sm" className="mt-3 h-8 w-full">
+                    <Link href={databaseManagementPath}>去接管数据库</Link>
+                  </Button>
+                </div>
               </div>
             ) : (
               databases.map((db) => (
@@ -327,7 +344,20 @@ export function ModelSidebar({
               </div>
             )}
 
-            {!state.selectedDatabase && !databasesLoading && (
+            {!state.selectedDatabase && !databasesLoading && !hasDatabases && (
+              <div className="flex flex-col items-center justify-center px-4 py-16 text-center text-muted-foreground">
+                <Database className="mb-3 size-8 opacity-20" />
+                <p className="text-sm font-medium text-foreground">当前项目还没有可用数据库</p>
+                <p className="mt-1 max-w-[180px] text-xs leading-5 text-muted-foreground">
+                  先完成数据库接管，模型编辑器才会出现可选择的数据库。
+                </p>
+                <Button asChild size="sm" className="mt-4">
+                  <Link href={databaseManagementPath}>去接管数据库</Link>
+                </Button>
+              </div>
+            )}
+
+            {!state.selectedDatabase && !databasesLoading && hasDatabases && (
               <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                 <Database className="mb-3 size-8 opacity-20" />
                 <p className="text-sm">请先选择数据库</p>

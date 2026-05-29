@@ -44,7 +44,7 @@ let _isRefreshing = false
 let _refreshPromise: Promise<string | null> | null = null
 
 /**
- * 使用 mc_enduser_refresh_token HttpOnly cookie 做 silent refresh。
+ * 使用统一的 mc_refresh_token HttpOnly cookie 做 silent refresh。
  * 并发调用共享同一个请求。BFF refresh route 负责从 cookie 读取 refreshToken 并轮换。
  * @returns 新的 access token 或 null（刷新失败）
  */

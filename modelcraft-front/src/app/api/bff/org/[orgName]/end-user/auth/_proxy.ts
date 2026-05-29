@@ -5,7 +5,7 @@
  * /api/end-user/auth/*。
  *
  * Cookie 策略：
- * - 后端通过 Set-Cookie header 直接设置 mc_enduser_refresh_token（HttpOnly）
+ * - 后端通过 Set-Cookie header 直接设置统一的 mc_refresh_token（HttpOnly）
  * - BFF 将上游 Set-Cookie header 原样透传给浏览器
  * - logout 路径：追加 Set-Cookie header 清除 cookie
  */
@@ -20,7 +20,7 @@ const CLEAR_COOKIE_PATHS = new Set(['logout'])
 
 /**
  * 将请求转发到 gateway end-user auth 端点。
- * 透传上游 Set-Cookie header（含 mc_enduser_refresh_token）。
+ * 透传上游 Set-Cookie header（含统一的 refresh cookie）。
  * 对 logout 路径：额外写入清除 cookie 的 Set-Cookie header。
  *
  * @param req    - 原始 Next.js 请求

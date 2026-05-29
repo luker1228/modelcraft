@@ -14,6 +14,7 @@ interface AuthLayoutProps {
   backLink?: {
     href: string
     label: string
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>
   }
 }
 
@@ -126,6 +127,7 @@ export function AuthLayout({
           {backLink && (
             <NextLink
               href={backLink.href}
+              onClick={backLink.onClick}
               className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               <ArrowLeft className="size-3.5" />

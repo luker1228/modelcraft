@@ -1,7 +1,7 @@
 // src/app/api/bff/org/[orgName]/end-user/auth/refresh/route.ts
 // BFF: POST /api/bff/org/[orgName]/end-user/auth/refresh
 //
-// 从 mc_enduser_refresh_token HttpOnly cookie 读取 refreshToken，
+// 从统一的 mc_refresh_token HttpOnly cookie 读取 refreshToken，
 // 注入到请求 body 后转发到后端（后端只从 body 读 refreshToken）。
 
 import { NextRequest, NextResponse } from 'next/server'
