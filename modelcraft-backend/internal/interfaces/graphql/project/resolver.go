@@ -46,5 +46,6 @@ type Resolver struct {
 	RBACAuthzSvc      *apprbac.EndUserAuthzService
 
 	// Database management
-	ModelDatabaseAppService *appmodeldatabase.ModelDatabaseAppService
+	ModelDatabaseAppService     *appmodeldatabase.ModelDatabaseAppService
+	ModelDatabaseSyncAppService *appmodeldatabase.ModelDatabaseSyncAppService
 }

@@ -12,7 +12,6 @@ import {
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
-import { Textarea } from '@web/components/ui/textarea'
 import {
   Select,
   SelectContent,
@@ -20,138 +19,201 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@web/components/ui/select'
-import { RadioGroup, RadioGroupItem } from '@web/components/ui/radio-group'
-import { Loader2 } from 'lucide-react'
+import { Loader2, Plus, Trash2 } from 'lucide-react'
 import {
   useClusterRawDatabases,
-  useRegisterModelDatabase,
+  useBatchRegisterModelDatabase,
   type DatabaseMode,
+  type RegisterModelDatabaseInput,
 } from '@web/hooks/model-database/use-model-databases'
+
+interface DbRow {
+  id: string
+  name: string
+  title: string
+  description: string
+  mode: DatabaseMode
+  error?: string
+}
 
 interface RegisterDatabaseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
 }
 
+interface DbRowFormProps {
+  row: DbRow
+  options: { name: string }[]
+  onUpdate: (patch: Partial<DbRow>) => void
+  onRemove: () => void
+}
+
+function DbRowForm({ row, options, onUpdate, onRemove }: DbRowFormProps) {
+  return (
+    <div className="flex flex-col gap-2 rounded-md border border-border p-3">
+      <div className="flex items-start gap-2">
+        <Select
+          value={row.name}
+          onValueChange={(name) => {
+            onUpdate({ name, title: row.title || name })
+          }}
+        >
+          <SelectTrigger className="w-44 shrink-0">
+            <SelectValue placeholder="选择数据库" />
+          </SelectTrigger>
+          <SelectContent>
+            {options.map((db) => (
+              <SelectItem key={db.name} value={db.name}>
+                {db.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Input
+          value={row.title}
+          onChange={(e) => onUpdate({ title: e.target.value })}
+          placeholder="友好名称"
+          className="flex-1"
+        />
+        <Input
+          value={row.description}
+          onChange={(e) => onUpdate({ description: e.target.value })}
+          placeholder="描述（可选）"
+          className="flex-1"
+        />
+        <Select
+          value={row.mode}
+          onValueChange={(v) => onUpdate({ mode: v as DatabaseMode })}
+        >
+          <SelectTrigger className="w-24 shrink-0">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="SELF_HOSTED">自建</SelectItem>
+            <SelectItem value="MANAGED">托管</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onRemove}
+          className="shrink-0 text-muted-foreground hover:text-destructive"
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+      {row.error && <p className="text-sm text-destructive">{row.error}</p>}
+    </div>
+  )
+}
+
 export function RegisterDatabaseDialog({ open, onOpenChange }: RegisterDatabaseDialogProps) {
   const params = useParams<{ orgName: string; projectSlug: string }>()
   const { rawDatabases, loading: rawLoading } = useClusterRawDatabases(params.projectSlug, !open)
-  const { register, loading: registering } = useRegisterModelDatabase(params.projectSlug)
+  const { batchRegister, loading: submitting } = useBatchRegisterModelDatabase(params.projectSlug)
 
   const unregistered = rawDatabases.filter((db) => !db.isRegistered)
 
-  const [selectedName, setSelectedName] = useState('')
-  const [title, setTitle] = useState('')
-  const [description, setDescription] = useState('')
-  const [mode, setMode] = useState<DatabaseMode>('SELF_HOSTED')
-  const [error, setError] = useState('')
+  const [rows, setRows] = useState<DbRow[]>([])
 
-  const handleNameChange = (name: string) => {
-    setSelectedName(name)
-    if (!title || title === selectedName) {
-      setTitle(name)
-    }
+  const takenNames = new Set(rows.map((r) => r.name).filter(Boolean))
+  const availableFor = (row: DbRow) =>
+    unregistered.filter((db) => db.name === row.name || !takenNames.has(db.name))
+
+  const addRow = () => {
+    setRows((prev) => [
+      ...prev,
+      { id: crypto.randomUUID(), name: '', title: '', description: '', mode: 'SELF_HOSTED' },
+    ])
   }
 
+  const removeRow = (id: string) => setRows((prev) => prev.filter((r) => r.id !== id))
+
+  const updateRow = (id: string, patch: Partial<DbRow>) =>
+    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)))
+
+  const handleOpenChange = (v: boolean) => {
+    if (!v) setRows([])
+    onOpenChange(v)
+  }
+
+  const canSubmit = rows.length > 0 && rows.every((r) => r.name && r.title) && !submitting
+  const allTaken =
+    unregistered.length > 0 && takenNames.size >= unregistered.length
+
   const handleSubmit = async () => {
-    if (!selectedName || !title) return
-    setError('')
-    try {
-      await register({ name: selectedName, title, description: description || undefined, mode })
-      onOpenChange(false)
-      setSelectedName('')
-      setTitle('')
-      setDescription('')
-      setMode('SELF_HOSTED')
-    } catch (e) {
-      setError(e instanceof Error ? e.message : '接管失败')
+    setRows((prev) => prev.map((r) => ({ ...r, error: undefined })))
+    const inputs: RegisterModelDatabaseInput[] = rows.map((r) => ({
+      name: r.name,
+      title: r.title,
+      description: r.description || undefined,
+      mode: r.mode,
+    }))
+    const result = await batchRegister(inputs)
+    const successNames = new Set(result.succeeded.map((d) => d.name))
+    const failMap = new Map(result.failed.map((f) => [f.name, f.message]))
+    setRows((prev) => {
+      const remaining = prev
+        .filter((r) => !successNames.has(r.name))
+        .map((r) => ({ ...r, error: failMap.get(r.name) }))
+      return remaining
+    })
+    if (result.failed.length === 0) {
+      handleOpenChange(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-md">
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
-          <DialogTitle>接管数据库</DialogTitle>
+          <DialogTitle>批量接管数据库</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-4 py-2">
-          <div className="flex flex-col gap-2">
-            <Label>选择数据库</Label>
-            {rawLoading ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="size-4 animate-spin" /> 加载中...
+        <div className="flex flex-col gap-3 py-2">
+          {rawLoading ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> 加载数据库列表...
+            </div>
+          ) : (
+            <>
+              {rows.length === 0 && (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  点击下方按钮添加要接管的数据库
+                </p>
+              )}
+              <div className="flex max-h-96 flex-col gap-2 overflow-y-auto">
+                {rows.map((row) => (
+                  <DbRowForm
+                    key={row.id}
+                    row={row}
+                    options={availableFor(row)}
+                    onUpdate={(patch) => updateRow(row.id, patch)}
+                    onRemove={() => removeRow(row.id)}
+                  />
+                ))}
               </div>
-            ) : (
-              <Select value={selectedName} onValueChange={handleNameChange}>
-                <SelectTrigger>
-                  <SelectValue placeholder="选择要接管的数据库" />
-                </SelectTrigger>
-                <SelectContent>
-                  {unregistered.length === 0 ? (
-                    <div className="px-2 py-3 text-center text-sm text-muted-foreground">
-                      所有数据库已接管
-                    </div>
-                  ) : (
-                    unregistered.map((db) => (
-                      <SelectItem key={db.name} value={db.name}>
-                        {db.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="db-title">友好名称</Label>
-            <Input
-              id="db-title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="数据库显示名称"
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="db-description">描述（可选）</Label>
-            <Textarea
-              id="db-description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="简要描述此数据库的用途"
-              rows={2}
-            />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label>访问模式</Label>
-            <RadioGroup value={mode} onValueChange={(v) => setMode(v as DatabaseMode)}>
-              <div className="flex items-start gap-3 rounded-md border border-border p-3">
-                <RadioGroupItem value="SELF_HOSTED" id="mode-self" className="mt-0.5" />
-                <div>
-                  <label htmlFor="mode-self" className="cursor-pointer text-sm font-medium">
-                    自建
-                  </label>
-                  <p className="text-xs text-muted-foreground">可读写，支持新建和导入模型</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3 rounded-md border border-border p-3">
-                <RadioGroupItem value="MANAGED" id="mode-managed" className="mt-0.5" />
-                <div>
-                  <label htmlFor="mode-managed" className="cursor-pointer text-sm font-medium">
-                    托管
-                  </label>
-                  <p className="text-xs text-muted-foreground">只读，仅支持同步模型</p>
-                </div>
-              </div>
-            </RadioGroup>
-          </div>
-          {error && <p className="text-sm text-destructive">{error}</p>}
+              {unregistered.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground">所有数据库已接管</p>
+              ) : (
+                <Button
+                  variant="outline"
+                  onClick={addRow}
+                  disabled={allTaken}
+                  className="gap-1.5"
+                >
+                  <Plus className="size-4" />
+                  添加数据库
+                </Button>
+              )}
+            </>
+          )}
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={registering}>
+          <Button variant="outline" onClick={() => handleOpenChange(false)} disabled={submitting}>
             取消
           </Button>
-          <Button onClick={handleSubmit} disabled={!selectedName || !title || registering}>
-            {registering && <Loader2 className="mr-2 size-4 animate-spin" />}
+          <Button onClick={handleSubmit} disabled={!canSubmit}>
+            {submitting && <Loader2 className="mr-2 size-4 animate-spin" />}
             确认接管
           </Button>
         </DialogFooter>

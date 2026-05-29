@@ -147,6 +147,41 @@ func (s *ModelDatabaseAppService) Update(ctx context.Context, cmd UpdateCommand)
 	return db, nil
 }
 
+// BatchRegisterResult is the result of a batch register operation.
+type BatchRegisterResult struct {
+	Succeeded []*domaindb.ModelDatabase
+	Failed    []BatchRegisterErrorItem
+}
+
+// BatchRegisterErrorItem represents a single failure in a batch register operation.
+type BatchRegisterErrorItem struct {
+	Name    string
+	Message string
+}
+
+// BatchRegister registers multiple databases under the project cluster.
+// It uses partial-success semantics: individual failures do not roll back successful registrations.
+func (s *ModelDatabaseAppService) BatchRegister(
+	ctx context.Context, cmds []RegisterCommand,
+) (*BatchRegisterResult, error) {
+	result := &BatchRegisterResult{
+		Succeeded: make([]*domaindb.ModelDatabase, 0, len(cmds)),
+		Failed:    make([]BatchRegisterErrorItem, 0),
+	}
+	for _, cmd := range cmds {
+		db, err := s.Register(ctx, cmd)
+		if err != nil {
+			result.Failed = append(result.Failed, BatchRegisterErrorItem{
+				Name:    cmd.Name,
+				Message: err.Error(),
+			})
+		} else {
+			result.Succeeded = append(result.Succeeded, db)
+		}
+	}
+	return result, nil
+}
+
 // Unregister removes a model database registration (soft delete).
 func (s *ModelDatabaseAppService) Unregister(ctx context.Context, id string) error {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)

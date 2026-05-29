@@ -17,3 +17,13 @@ type ModelDatabaseRepository interface {
 	// Delete 软删除数据库注册记录
 	Delete(ctx context.Context, orgName, projectSlug, id string) error
 }
+
+type ModelDatabaseSyncJobRepository interface {
+	Create(ctx context.Context, job *ModelDatabaseSyncJob) error
+	GetByID(ctx context.Context, orgName, projectSlug, jobID string) (*ModelDatabaseSyncJob, error)
+	GetActiveByDatabase(
+		ctx context.Context,
+		orgName, projectSlug, databaseID string,
+	) (*ModelDatabaseSyncJob, error)
+	Update(ctx context.Context, job *ModelDatabaseSyncJob) error
+}

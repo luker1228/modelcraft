@@ -2,7 +2,15 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronDown, Database, Loader2, Search, Table2 } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronsUpDown,
+  Database,
+  Loader2,
+  Search,
+  Table2,
+  X,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
@@ -17,12 +25,10 @@ import {
   AlertDialogTitle,
 } from '@web/components/ui/alert-dialog'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@web/components/ui/select'
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@web/components/ui/popover'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,6 +37,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
+import { cn } from '@/shared/utils'
 import { getEndUserToken } from '@api-client/end-user/public'
 import { createEndUserScopedClient } from '@api-client/apollo/clients'
 import {
@@ -83,6 +90,7 @@ export default function EndUserDataPage() {
   const { user, logout } = useEndUser()
 
   const [selectedDatabase, setSelectedDatabase] = useState('')
+  const [databaseOpen, setDatabaseOpen] = useState(false)
   const [modelFilter, setModelFilter] = useState('')
   const [openedTabs, setOpenedTabs] = useState<DataModel[]>([])
   const [activeModelId, setActiveModelId] = useState('')
@@ -279,142 +287,231 @@ export default function EndUserDataPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f6f7fb]">
-      <div className="border-b border-border bg-background px-6 py-4">
-        <div className="mx-auto flex w-full max-w-[1440px] items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-foreground">数据管理</h1>
-            {accessibleProjects.length > 1 ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <button className="mt-1 flex items-center gap-1 text-sm text-muted-foreground transition-colors hover:text-foreground">
-                    <span>{orgName} / {projectSlug}</span>
-                    <ChevronDown className="size-3.5" />
-                  </button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="min-w-[200px]">
-                  <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                    切换项目
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  {accessibleProjects.map((p) => (
-                    <DropdownMenuItem
-                      key={p.slug}
-                      onSelect={() => {
-                        if (p.slug !== projectSlug) {
-                          sessionStorage.setItem(`eu_selected_project_${orgName}`, p.slug)
-                          router.push(`/end-user/${orgName}/projects/${p.slug}/data`)
-                        }
-                      }}
-                      className={p.slug === projectSlug ? 'bg-muted font-medium' : ''}
-                    >
-                      <span className="flex-1">{p.title || p.slug}</span>
-                      {p.slug === projectSlug && (
-                        <span className="ml-2 text-xs text-muted-foreground">当前</span>
-                      )}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <p className="mt-1 text-sm text-muted-foreground">
-                {orgName} / {projectSlug}
-              </p>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            <span className="rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-              当前用户：{user?.username || user?.id || '已登录'}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => void logout()}>
-              退出登录
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      <div className="mx-auto flex w-full max-w-[1440px] gap-4 p-4">
-        <aside className="w-[280px] rounded-xl border border-border bg-background p-3 shadow-sm">
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Database className="size-4" />
-            数据库
-          </div>
-          <Select value={selectedDatabase} onValueChange={setSelectedDatabase}>
-            <SelectTrigger className="h-9 text-sm">
-              <SelectValue placeholder={databasesLoading ? '加载数据库中...' : '选择数据库'} />
-            </SelectTrigger>
-            <SelectContent>
-              {databases.map((db) => (
-                <SelectItem key={db} value={db} className="font-mono text-xs">
-                  {db}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          <div className="my-4 border-t border-border" />
-
-          <div className="mb-3 flex items-center gap-2 text-sm font-semibold text-foreground">
-            <Table2 className="size-4" />
-            模型
-          </div>
-          <div className="relative mb-2">
-            <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-            <Input
-              value={modelFilter}
-              onChange={(e) => setModelFilter(e.target.value)}
-              placeholder="筛选模型"
-              className="h-9 pl-8"
-            />
-          </div>
-
-          {modelsLoading ? (
-            <div className="flex items-center gap-2 rounded-md border border-dashed border-border px-2.5 py-3 text-xs text-muted-foreground">
-              <Loader2 className="size-3.5 animate-spin" />
-              加载模型中...
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {filteredModels.map((model) => {
-                const isActive = activeModelId === model.id
-                return (
-                  <button
-                    key={model.id}
-                    onClick={() => handleOpenModelTab(model)}
-                    className={`w-full rounded-md border px-2.5 py-2 text-left transition-colors ${
-                      isActive
-                        ? 'border-blue-200 bg-blue-50'
-                        : 'border-border bg-background hover:bg-muted/50'
-                    }`}
+    <div className="flex size-full flex-col overflow-hidden">
+      {/* Top Header */}
+      <header className="flex h-[48px] shrink-0 items-center justify-between border-b border-border bg-background px-4">
+        <div className="flex items-center gap-2">
+          {accessibleProjects.length > 1 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent">
+                  <span>{projectSlug}</span>
+                  <ChevronDown className="size-3.5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="min-w-[200px]">
+                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
+                  切换项目
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {accessibleProjects.map((p) => (
+                  <DropdownMenuItem
+                    key={p.slug}
+                    onSelect={() => {
+                      if (p.slug !== projectSlug) {
+                        sessionStorage.setItem(`eu_selected_project_${orgName}`, p.slug)
+                        router.push(`/end-user/${orgName}/projects/${p.slug}/data`)
+                      }
+                    }}
+                    className={p.slug === projectSlug ? 'bg-muted font-medium' : ''}
                   >
-                    <div className="text-sm font-medium text-foreground">{model.title || model.name}</div>
-                    <div className="text-xs text-muted-foreground">{model.name}</div>
-                  </button>
-                )
-              })}
-              {filteredModels.length === 0 && (
-                <div className="rounded-md border border-dashed border-border px-2.5 py-3 text-xs text-muted-foreground">
-                  没有匹配的模型
-                </div>
-              )}
-            </div>
+                    <span className="flex-1">{p.title || p.slug}</span>
+                    {p.slug === projectSlug && (
+                      <span className="ml-2 text-xs text-muted-foreground">当前</span>
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <span className="text-sm font-medium text-foreground">{projectSlug}</span>
           )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-muted-foreground">
+            {user?.username || user?.id || '已登录'}
+          </span>
+          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => void logout()}>
+            退出登录
+          </Button>
+        </div>
+      </header>
+
+      {/* Body: Sidebar + Content */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        {/* Left Sidebar */}
+        <aside className="flex w-[260px] shrink-0 flex-col border-r border-border bg-sidebar">
+
+          {/* Zone 1: Database */}
+          <div className="p-3">
+            <Popover open={databaseOpen} onOpenChange={setDatabaseOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    'h-9 w-full justify-between px-3 text-sm font-medium transition-colors',
+                    selectedDatabase
+                      ? 'border-primary/40 bg-primary/5 text-foreground hover:border-primary/60 hover:bg-primary/10'
+                      : 'border-dashed border-muted-foreground/40 bg-background text-muted-foreground hover:border-primary/40 hover:bg-primary/5 hover:text-foreground'
+                  )}
+                  disabled={databasesLoading}
+                >
+                  <span className="flex min-w-0 items-center gap-2">
+                    <Database className={cn('size-3.5 shrink-0', selectedDatabase ? 'text-primary' : 'text-muted-foreground')} />
+                    {databasesLoading ? (
+                      <>
+                        <Loader2 className="size-3 shrink-0 animate-spin" />
+                        <span className="text-muted-foreground">加载中...</span>
+                      </>
+                    ) : selectedDatabase ? (
+                      <span className="truncate font-medium text-foreground">{selectedDatabase}</span>
+                    ) : (
+                      <span>选择数据库</span>
+                    )}
+                  </span>
+                  <ChevronsUpDown className="ml-2 size-3.5 shrink-0 text-muted-foreground" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[228px] border border-border p-1 shadow-lg" align="start">
+                {databases.length === 0 ? (
+                  <div className="px-2.5 py-3 text-center text-sm text-muted-foreground">
+                    暂无数据库
+                  </div>
+                ) : (
+                  databases.map((db) => (
+                    <button
+                      key={db}
+                      type="button"
+                      className={cn(
+                        'w-full text-left px-2.5 py-1.5 text-sm rounded-sm transition-colors cursor-pointer',
+                        selectedDatabase === db
+                          ? 'bg-accent text-foreground'
+                          : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+                      )}
+                      onClick={() => {
+                        setSelectedDatabase(db)
+                        setDatabaseOpen(false)
+                        setOpenedTabs([])
+                        setActiveModelId('')
+                      }}
+                    >
+                      {db}
+                    </button>
+                  ))
+                )}
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t border-border" />
+
+          {/* Zone 2: Models */}
+          <div className="flex flex-1 flex-col overflow-hidden">
+
+            {/* Search */}
+            <div className="px-2 pb-2 pt-2.5">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="查询模型..."
+                  value={modelFilter}
+                  onChange={(e) => setModelFilter(e.target.value)}
+                  className="h-7 bg-foreground/[.026] px-8 text-xs"
+                />
+                {modelFilter && (
+                  <button
+                    type="button"
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    onClick={() => setModelFilter('')}
+                  >
+                    <X className="size-3.5" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Model List */}
+            <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
+              <div className="space-y-0.5">
+                {modelsLoading && (
+                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                    <Loader2 className="mb-3 size-6 animate-spin" />
+                    <p className="text-sm">加载模型中...</p>
+                  </div>
+                )}
+
+                {!modelsLoading && filteredModels.map((model) => (
+                  <div
+                    key={model.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleOpenModelTab(model)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleOpenModelTab(model)}
+                    className={cn(
+                      'group flex items-center gap-1.5 h-8 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
+                      activeModelId === model.id
+                        ? 'bg-primary/[0.08] text-primary border-l-primary'
+                        : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground border-l-transparent'
+                    )}
+                  >
+                    <Table2 className={cn(
+                      'size-[15px] shrink-0 transition-colors',
+                      activeModelId === model.id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
+                    )} />
+
+                    <span className="min-w-0 flex-1 truncate text-xs">
+                      {model.name}
+                    </span>
+
+                    {model.title && model.title !== model.name && (
+                      <span className="max-w-[56px] shrink-0 truncate text-xs text-muted-foreground/60" title={model.title}>
+                        {model.title}
+                      </span>
+                    )}
+                  </div>
+                ))}
+
+                {!modelsLoading && filteredModels.length === 0 && selectedDatabase && (
+                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                    <Table2 className="mb-3 size-10 opacity-20" />
+                    <p className="text-sm">暂无模型</p>
+                  </div>
+                )}
+
+                {!selectedDatabase && !databasesLoading && (
+                  <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                    <Database className="mb-3 size-8 opacity-20" />
+                    <p className="text-sm">请先选择数据库</p>
+                  </div>
+                )}
+              </div>
+            </nav>
+          </div>
         </aside>
 
-        <DataWorkspacePanel
-          tabs={openedTabs}
-          activeTabId={activeModelId}
-          onTabChange={setActiveModelId}
-          onTabClose={handleCloseTab}
-          renderContent={(activeTab) => (
-            <EndUserRecordWorkspace
-              key={activeTab.id}
-              modelId={activeTab.id}
-              projectSlug={projectSlug}
-              orgName={orgName}
-            />
-          )}
-        />
+        {/* Right Content */}
+        <main className="flex min-w-0 flex-1 flex-col bg-background p-4">
+          <DataWorkspacePanel
+            tabs={openedTabs}
+            activeTabId={activeModelId}
+            onTabChange={setActiveModelId}
+            onTabClose={handleCloseTab}
+            emptyText="从左侧选择模型以打开数据表"
+            className="h-full min-h-0"
+            renderContent={(activeTab) => (
+              <EndUserRecordWorkspace
+                key={activeTab.id}
+                modelId={activeTab.id}
+                projectSlug={projectSlug}
+                orgName={orgName}
+              />
+            )}
+          />
+        </main>
       </div>
 
       <AlertDialog open={privateDbInitDialogOpen} onOpenChange={setPrivateDbInitDialogOpen}>
@@ -433,6 +530,6 @@ export default function EndUserDataPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </main>
+    </div>
   )
 }

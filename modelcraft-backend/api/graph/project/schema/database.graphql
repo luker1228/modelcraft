@@ -10,6 +10,14 @@ enum DatabaseMode {
   MANAGED
 }
 
+enum ModelDatabaseSyncJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL_SUCCESS
+  FAILED
+}
+
 # ============================================
 # Types
 # ============================================
@@ -29,6 +37,31 @@ type RawDatabase {
   isRegistered: Boolean!
 }
 
+type ModelDatabaseSyncFailedTable {
+  tableName: String!
+  message: String!
+}
+
+type ModelDatabaseSyncJob {
+  id: ID!
+  databaseId: ID!
+  status: ModelDatabaseSyncJobStatus!
+  totalTables: Int!
+  processedTables: Int!
+  createdModels: Int!
+  syncedModels: Int!
+  failedCount: Int!
+  failedTables: [ModelDatabaseSyncFailedTable!]!
+  startedAt: Time
+  finishedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type StartModelDatabaseSyncPayload {
+  job: ModelDatabaseSyncJob!
+}
+
 # ============================================
 # Input Types
 # ============================================
@@ -46,11 +79,25 @@ input UpdateModelDatabaseInput {
   mode: DatabaseMode
 }
 
+input BatchRegisterModelDatabaseInput {
+  databases: [RegisterModelDatabaseInput!]!
+}
+
 # ============================================
 # Result / Error Unions
 # ============================================
 
 union RegisterModelDatabaseResult = ModelDatabase | InvalidInput | ResourceNotFound
+
+type BatchRegisterModelDatabaseResult {
+  succeeded: [ModelDatabase!]!
+  failed: [BatchRegisterError!]!
+}
+
+type BatchRegisterError {
+  name: String!
+  message: String!
+}
 
 # ============================================
 # Queries
@@ -59,6 +106,7 @@ union RegisterModelDatabaseResult = ModelDatabase | InvalidInput | ResourceNotFo
 extend type Query {
   modelDatabases: [ModelDatabase!]!
   clusterRawDatabases: [RawDatabase!]!
+  modelDatabaseSyncJob(jobId: ID!): ModelDatabaseSyncJob
 }
 
 # ============================================
@@ -67,6 +115,8 @@ extend type Query {
 
 extend type Mutation {
   registerModelDatabase(input: RegisterModelDatabaseInput!): RegisterModelDatabaseResult!
+  batchRegisterModelDatabases(input: BatchRegisterModelDatabaseInput!): BatchRegisterModelDatabaseResult!
   updateModelDatabase(id: ID!, input: UpdateModelDatabaseInput!): ModelDatabase!
   unregisterModelDatabase(id: ID!): Boolean!
+  startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload!
 }

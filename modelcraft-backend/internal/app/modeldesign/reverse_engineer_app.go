@@ -54,6 +54,11 @@ type ImportModelResult struct {
 	SkippedFields []SkippedFieldInfo
 }
 
+type TableSchemaBuildResult struct {
+	ModelName  string
+	SchemaJSON string
+}
+
 // ImportModel 导入模型
 func (s *ReverseEngineerAppService) ImportModel(
 	ctx context.Context,
@@ -110,6 +115,36 @@ func (s *ReverseEngineerAppService) ImportModel(
 		ModelName:     createdModel.ModelLocator.ModelName,
 		FieldsCount:   len(createdModel.Fields),
 		SkippedFields: buildResult.SkippedFields,
+	}, nil
+}
+
+func (s *ReverseEngineerAppService) BuildSchemaForTable(
+	ctx context.Context,
+	cmd ImportModelCommand,
+) (*TableSchemaBuildResult, error) {
+	if err := s.validateCommand(cmd); err != nil {
+		return nil, err
+	}
+
+	tableDef, err := s.getTableDefinition(ctx, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	buildResult, err := s.buildModelFromTable(tableDef, cmd)
+	if err != nil {
+		return nil, err
+	}
+
+	generator := modeldesign.NewJSONSchemaGenerator()
+	schemaJSON, err := generator.GenerateSchema(buildResult.Model)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TableSchemaBuildResult{
+		ModelName:  buildResult.Model.ModelName,
+		SchemaJSON: schemaJSON,
 	}, nil
 }
 

@@ -103,6 +103,16 @@ type ComplexityRoot struct {
 		Type   func(childComplexity int) int
 	}
 
+	BatchRegisterError struct {
+		Message func(childComplexity int) int
+		Name    func(childComplexity int) int
+	}
+
+	BatchRegisterModelDatabaseResult struct {
+		Failed    func(childComplexity int) int
+		Succeeded func(childComplexity int) int
+	}
+
 	BindCustomItemToBundlePayload struct {
 		Bundle func(childComplexity int) int
 		Error  func(childComplexity int) int
@@ -719,6 +729,27 @@ type ComplexityRoot struct {
 		TotalCount func(childComplexity int) int
 	}
 
+	ModelDatabaseSyncFailedTable struct {
+		Message   func(childComplexity int) int
+		TableName func(childComplexity int) int
+	}
+
+	ModelDatabaseSyncJob struct {
+		CreatedAt       func(childComplexity int) int
+		CreatedModels   func(childComplexity int) int
+		DatabaseID      func(childComplexity int) int
+		FailedCount     func(childComplexity int) int
+		FailedTables    func(childComplexity int) int
+		FinishedAt      func(childComplexity int) int
+		ID              func(childComplexity int) int
+		ProcessedTables func(childComplexity int) int
+		StartedAt       func(childComplexity int) int
+		Status          func(childComplexity int) int
+		SyncedModels    func(childComplexity int) int
+		TotalTables     func(childComplexity int) int
+		UpdatedAt       func(childComplexity int) int
+	}
+
 	ModelGroup struct {
 		DisplayOrder func(childComplexity int) int
 		ID           func(childComplexity int) int
@@ -773,6 +804,7 @@ type ComplexityRoot struct {
 		AssignBundleToEndUser              func(childComplexity int, input AssignBundleToEndUserInput) int
 		AssignBundleToEndUserRole          func(childComplexity int, input AssignBundleToEndUserRoleInput) int
 		AssignEndUserRole                  func(childComplexity int, input AssignEndUserRoleInput) int
+		BatchRegisterModelDatabases        func(childComplexity int, input BatchRegisterModelDatabaseInput) int
 		BindCustomItemToBundle             func(childComplexity int, input BindCustomItemToBundleInput) int
 		BindPresetItemToBundle             func(childComplexity int, input BindPresetItemToBundleInput) int
 		CreateEndUserPermission            func(childComplexity int, input CreateEndUserPermissionInput) int
@@ -807,6 +839,7 @@ type ComplexityRoot struct {
 		RevokeEndUserRole                  func(childComplexity int, input RevokeEndUserRoleInput) int
 		SetModelRLSPolicy                  func(childComplexity int, input SetModelRLSPolicyInput) int
 		SetProjectAuthSchema               func(childComplexity int, input SetProjectAuthSchemaInput) int
+		StartModelDatabaseSync             func(childComplexity int, databaseID string) int
 		SyncModelSchema                    func(childComplexity int, input SyncModelSchemaInput) int
 		TestDatabaseConnection             func(childComplexity int, input TestDatabaseConnectionInput) int
 		UndeprecateField                   func(childComplexity int, modelID string, fieldName string) int
@@ -881,6 +914,7 @@ type ComplexityRoot struct {
 		Model                         func(childComplexity int, id string, withActualSchema *bool) int
 		ModelByName                   func(childComplexity int, name string, databaseName string) int
 		ModelDatabaseCatalog          func(childComplexity int, input *ModelDatabaseCatalogInput) int
+		ModelDatabaseSyncJob          func(childComplexity int, jobID string) int
 		ModelDatabases                func(childComplexity int) int
 		ModelGroups                   func(childComplexity int) int
 		ModelJSONSchema               func(childComplexity int, id string) int
@@ -989,6 +1023,10 @@ type ComplexityRoot struct {
 		Error      func(childComplexity int) int
 	}
 
+	StartModelDatabaseSyncPayload struct {
+		Job func(childComplexity int) int
+	}
+
 	SyncModelSchemaPayload struct {
 		DeletedFields func(childComplexity int) int
 		FieldsAdded   func(childComplexity int) int
@@ -1091,8 +1129,10 @@ type MutationResolver interface {
 	UpdateProjectCluster(ctx context.Context, input UpdateClusterConnectionInput) (*UpdateClusterPayload, error)
 	TestDatabaseConnection(ctx context.Context, input TestDatabaseConnectionInput) (*TestConnectionPayload, error)
 	RegisterModelDatabase(ctx context.Context, input RegisterModelDatabaseInput) (RegisterModelDatabaseResult, error)
+	BatchRegisterModelDatabases(ctx context.Context, input BatchRegisterModelDatabaseInput) (*BatchRegisterModelDatabaseResult, error)
 	UpdateModelDatabase(ctx context.Context, id string, input UpdateModelDatabaseInput) (*ModelDatabase, error)
 	UnregisterModelDatabase(ctx context.Context, id string) (bool, error)
+	StartModelDatabaseSync(ctx context.Context, databaseID string) (*StartModelDatabaseSyncPayload, error)
 	CreateEnum(ctx context.Context, input CreateEnumInput) (*CreateEnumPayload, error)
 	UpdateEnum(ctx context.Context, name string, input UpdateEnumInput) (*UpdateEnumPayload, error)
 	DeleteEnum(ctx context.Context, name string) (*DeleteEnumPayload, error)
@@ -1152,6 +1192,7 @@ type QueryResolver interface {
 	ListTables(ctx context.Context, input ListTablesInput) (*TableListConnection, error)
 	ModelDatabases(ctx context.Context) ([]*ModelDatabase, error)
 	ClusterRawDatabases(ctx context.Context) ([]*RawDatabase, error)
+	ModelDatabaseSyncJob(ctx context.Context, jobID string) (*ModelDatabaseSyncJob, error)
 	Enum(ctx context.Context, name string) (*GetEnumPayload, error)
 	Enums(ctx context.Context) ([]*EnumDefinition, error)
 	EnumReferences(ctx context.Context, name string) ([]string, error)
@@ -1362,6 +1403,32 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.AuthVariable.Type(childComplexity), true
+
+	case "BatchRegisterError.message":
+		if e.complexity.BatchRegisterError.Message == nil {
+			break
+		}
+
+		return e.complexity.BatchRegisterError.Message(childComplexity), true
+	case "BatchRegisterError.name":
+		if e.complexity.BatchRegisterError.Name == nil {
+			break
+		}
+
+		return e.complexity.BatchRegisterError.Name(childComplexity), true
+
+	case "BatchRegisterModelDatabaseResult.failed":
+		if e.complexity.BatchRegisterModelDatabaseResult.Failed == nil {
+			break
+		}
+
+		return e.complexity.BatchRegisterModelDatabaseResult.Failed(childComplexity), true
+	case "BatchRegisterModelDatabaseResult.succeeded":
+		if e.complexity.BatchRegisterModelDatabaseResult.Succeeded == nil {
+			break
+		}
+
+		return e.complexity.BatchRegisterModelDatabaseResult.Succeeded(childComplexity), true
 
 	case "BindCustomItemToBundlePayload.bundle":
 		if e.complexity.BindCustomItemToBundlePayload.Bundle == nil {
@@ -3393,6 +3460,98 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.ModelDatabaseCatalogPayload.TotalCount(childComplexity), true
 
+	case "ModelDatabaseSyncFailedTable.message":
+		if e.complexity.ModelDatabaseSyncFailedTable.Message == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncFailedTable.Message(childComplexity), true
+	case "ModelDatabaseSyncFailedTable.tableName":
+		if e.complexity.ModelDatabaseSyncFailedTable.TableName == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncFailedTable.TableName(childComplexity), true
+
+	case "ModelDatabaseSyncJob.createdAt":
+		if e.complexity.ModelDatabaseSyncJob.CreatedAt == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.CreatedAt(childComplexity), true
+	case "ModelDatabaseSyncJob.createdModels":
+		if e.complexity.ModelDatabaseSyncJob.CreatedModels == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.CreatedModels(childComplexity), true
+	case "ModelDatabaseSyncJob.databaseId":
+		if e.complexity.ModelDatabaseSyncJob.DatabaseID == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.DatabaseID(childComplexity), true
+	case "ModelDatabaseSyncJob.failedCount":
+		if e.complexity.ModelDatabaseSyncJob.FailedCount == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.FailedCount(childComplexity), true
+	case "ModelDatabaseSyncJob.failedTables":
+		if e.complexity.ModelDatabaseSyncJob.FailedTables == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.FailedTables(childComplexity), true
+	case "ModelDatabaseSyncJob.finishedAt":
+		if e.complexity.ModelDatabaseSyncJob.FinishedAt == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.FinishedAt(childComplexity), true
+	case "ModelDatabaseSyncJob.id":
+		if e.complexity.ModelDatabaseSyncJob.ID == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.ID(childComplexity), true
+	case "ModelDatabaseSyncJob.processedTables":
+		if e.complexity.ModelDatabaseSyncJob.ProcessedTables == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.ProcessedTables(childComplexity), true
+	case "ModelDatabaseSyncJob.startedAt":
+		if e.complexity.ModelDatabaseSyncJob.StartedAt == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.StartedAt(childComplexity), true
+	case "ModelDatabaseSyncJob.status":
+		if e.complexity.ModelDatabaseSyncJob.Status == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.Status(childComplexity), true
+	case "ModelDatabaseSyncJob.syncedModels":
+		if e.complexity.ModelDatabaseSyncJob.SyncedModels == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.SyncedModels(childComplexity), true
+	case "ModelDatabaseSyncJob.totalTables":
+		if e.complexity.ModelDatabaseSyncJob.TotalTables == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.TotalTables(childComplexity), true
+	case "ModelDatabaseSyncJob.updatedAt":
+		if e.complexity.ModelDatabaseSyncJob.UpdatedAt == nil {
+			break
+		}
+
+		return e.complexity.ModelDatabaseSyncJob.UpdatedAt(childComplexity), true
+
 	case "ModelGroup.displayOrder":
 		if e.complexity.ModelGroup.DisplayOrder == nil {
 			break
@@ -3627,6 +3786,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.AssignEndUserRole(childComplexity, args["input"].(AssignEndUserRoleInput)), true
+	case "Mutation.batchRegisterModelDatabases":
+		if e.complexity.Mutation.BatchRegisterModelDatabases == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_batchRegisterModelDatabases_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.BatchRegisterModelDatabases(childComplexity, args["input"].(BatchRegisterModelDatabaseInput)), true
 	case "Mutation.bindCustomItemToBundle":
 		if e.complexity.Mutation.BindCustomItemToBundle == nil {
 			break
@@ -3996,6 +4166,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Mutation.SetProjectAuthSchema(childComplexity, args["input"].(SetProjectAuthSchemaInput)), true
+	case "Mutation.startModelDatabaseSync":
+		if e.complexity.Mutation.StartModelDatabaseSync == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_startModelDatabaseSync_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.StartModelDatabaseSync(childComplexity, args["databaseId"].(string)), true
 	case "Mutation.syncModelSchema":
 		if e.complexity.Mutation.SyncModelSchema == nil {
 			break
@@ -4486,6 +4667,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Query.ModelDatabaseCatalog(childComplexity, args["input"].(*ModelDatabaseCatalogInput)), true
+	case "Query.modelDatabaseSyncJob":
+		if e.complexity.Query.ModelDatabaseSyncJob == nil {
+			break
+		}
+
+		args, err := ec.field_Query_modelDatabaseSyncJob_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.ModelDatabaseSyncJob(childComplexity, args["jobId"].(string)), true
 	case "Query.modelDatabases":
 		if e.complexity.Query.ModelDatabases == nil {
 			break
@@ -4859,6 +5051,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.complexity.SetProjectAuthSchemaPayload.Error(childComplexity), true
 
+	case "StartModelDatabaseSyncPayload.job":
+		if e.complexity.StartModelDatabaseSyncPayload.Job == nil {
+			break
+		}
+
+		return e.complexity.StartModelDatabaseSyncPayload.Job(childComplexity), true
+
 	case "SyncModelSchemaPayload.deletedFields":
 		if e.complexity.SyncModelSchemaPayload.DeletedFields == nil {
 			break
@@ -5145,6 +5344,7 @@ func (e *executableSchema) Exec(ctx context.Context) graphql.ResponseHandler {
 		ec.unmarshalInputAssignBundleToEndUserRoleInput,
 		ec.unmarshalInputAssignEndUserRoleInput,
 		ec.unmarshalInputAuthVariableInput,
+		ec.unmarshalInputBatchRegisterModelDatabaseInput,
 		ec.unmarshalInputBindCustomItemToBundleInput,
 		ec.unmarshalInputBindPresetItemToBundleInput,
 		ec.unmarshalInputClusterConnectionInput,
@@ -5592,6 +5792,14 @@ enum DatabaseMode {
   MANAGED
 }
 
+enum ModelDatabaseSyncJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  PARTIAL_SUCCESS
+  FAILED
+}
+
 # ============================================
 # Types
 # ============================================
@@ -5611,6 +5819,31 @@ type RawDatabase {
   isRegistered: Boolean!
 }
 
+type ModelDatabaseSyncFailedTable {
+  tableName: String!
+  message: String!
+}
+
+type ModelDatabaseSyncJob {
+  id: ID!
+  databaseId: ID!
+  status: ModelDatabaseSyncJobStatus!
+  totalTables: Int!
+  processedTables: Int!
+  createdModels: Int!
+  syncedModels: Int!
+  failedCount: Int!
+  failedTables: [ModelDatabaseSyncFailedTable!]!
+  startedAt: Time
+  finishedAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type StartModelDatabaseSyncPayload {
+  job: ModelDatabaseSyncJob!
+}
+
 # ============================================
 # Input Types
 # ============================================
@@ -5628,11 +5861,25 @@ input UpdateModelDatabaseInput {
   mode: DatabaseMode
 }
 
+input BatchRegisterModelDatabaseInput {
+  databases: [RegisterModelDatabaseInput!]!
+}
+
 # ============================================
 # Result / Error Unions
 # ============================================
 
 union RegisterModelDatabaseResult = ModelDatabase | InvalidInput | ResourceNotFound
+
+type BatchRegisterModelDatabaseResult {
+  succeeded: [ModelDatabase!]!
+  failed: [BatchRegisterError!]!
+}
+
+type BatchRegisterError {
+  name: String!
+  message: String!
+}
 
 # ============================================
 # Queries
@@ -5641,6 +5888,7 @@ union RegisterModelDatabaseResult = ModelDatabase | InvalidInput | ResourceNotFo
 extend type Query {
   modelDatabases: [ModelDatabase!]!
   clusterRawDatabases: [RawDatabase!]!
+  modelDatabaseSyncJob(jobId: ID!): ModelDatabaseSyncJob
 }
 
 # ============================================
@@ -5649,8 +5897,10 @@ extend type Query {
 
 extend type Mutation {
   registerModelDatabase(input: RegisterModelDatabaseInput!): RegisterModelDatabaseResult!
+  batchRegisterModelDatabases(input: BatchRegisterModelDatabaseInput!): BatchRegisterModelDatabaseResult!
   updateModelDatabase(id: ID!, input: UpdateModelDatabaseInput!): ModelDatabase!
   unregisterModelDatabase(id: ID!): Boolean!
+  startModelDatabaseSync(databaseId: ID!): StartModelDatabaseSyncPayload!
 }
 `, BuiltIn: false},
 	{Name: "../../../../../api/graph/project/schema/end_user.graphql", Input: `# End-User related types, inputs and mutations
@@ -7752,6 +8002,17 @@ func (ec *executionContext) field_Mutation_assignEndUserRole_args(ctx context.Co
 	return args, nil
 }
 
+func (ec *executionContext) field_Mutation_batchRegisterModelDatabases_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "input", ec.unmarshalNBatchRegisterModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterModelDatabaseInput)
+	if err != nil {
+		return nil, err
+	}
+	args["input"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_bindCustomItemToBundle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -8127,6 +8388,17 @@ func (ec *executionContext) field_Mutation_setProjectAuthSchema_args(ctx context
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_startModelDatabaseSync_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "databaseId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["databaseId"] = arg0
 	return args, nil
 }
 
@@ -8540,6 +8812,17 @@ func (ec *executionContext) field_Query_modelDatabaseCatalog_args(ctx context.Co
 		return nil, err
 	}
 	args["input"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_modelDatabaseSyncJob_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "jobId", ec.unmarshalNID2string)
+	if err != nil {
+		return nil, err
+	}
+	args["jobId"] = arg0
 	return args, nil
 }
 
@@ -9581,6 +9864,144 @@ func (ec *executionContext) fieldContext_AuthVariable_type(_ context.Context, fi
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type AuthVariableType does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BatchRegisterError_name(ctx context.Context, field graphql.CollectedField, obj *BatchRegisterError) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BatchRegisterError_name,
+		func(ctx context.Context) (any, error) {
+			return obj.Name, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BatchRegisterError_name(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BatchRegisterError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BatchRegisterError_message(ctx context.Context, field graphql.CollectedField, obj *BatchRegisterError) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BatchRegisterError_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BatchRegisterError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BatchRegisterError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BatchRegisterModelDatabaseResult_succeeded(ctx context.Context, field graphql.CollectedField, obj *BatchRegisterModelDatabaseResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BatchRegisterModelDatabaseResult_succeeded,
+		func(ctx context.Context) (any, error) {
+			return obj.Succeeded, nil
+		},
+		nil,
+		ec.marshalNModelDatabase2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BatchRegisterModelDatabaseResult_succeeded(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BatchRegisterModelDatabaseResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ModelDatabase_id(ctx, field)
+			case "name":
+				return ec.fieldContext_ModelDatabase_name(ctx, field)
+			case "title":
+				return ec.fieldContext_ModelDatabase_title(ctx, field)
+			case "description":
+				return ec.fieldContext_ModelDatabase_description(ctx, field)
+			case "mode":
+				return ec.fieldContext_ModelDatabase_mode(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ModelDatabase_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ModelDatabase_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabase", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BatchRegisterModelDatabaseResult_failed(ctx context.Context, field graphql.CollectedField, obj *BatchRegisterModelDatabaseResult) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_BatchRegisterModelDatabaseResult_failed,
+		func(ctx context.Context) (any, error) {
+			return obj.Failed, nil
+		},
+		nil,
+		ec.marshalNBatchRegisterError2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterErrorᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_BatchRegisterModelDatabaseResult_failed(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BatchRegisterModelDatabaseResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "name":
+				return ec.fieldContext_BatchRegisterError_name(ctx, field)
+			case "message":
+				return ec.fieldContext_BatchRegisterError_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BatchRegisterError", field.Name)
 		},
 	}
 	return fc, nil
@@ -19878,6 +20299,447 @@ func (ec *executionContext) fieldContext_ModelDatabaseCatalogPayload_pageSize(_ 
 	return fc, nil
 }
 
+func (ec *executionContext) _ModelDatabaseSyncFailedTable_tableName(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncFailedTable) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncFailedTable_tableName,
+		func(ctx context.Context) (any, error) {
+			return obj.TableName, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncFailedTable_tableName(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncFailedTable",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncFailedTable_message(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncFailedTable) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncFailedTable_message,
+		func(ctx context.Context) (any, error) {
+			return obj.Message, nil
+		},
+		nil,
+		ec.marshalNString2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncFailedTable_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncFailedTable",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_id(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_id,
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_databaseId(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_databaseId,
+		func(ctx context.Context) (any, error) {
+			return obj.DatabaseID, nil
+		},
+		nil,
+		ec.marshalNID2string,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_databaseId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ID does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_status(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_status,
+		func(ctx context.Context) (any, error) {
+			return obj.Status, nil
+		},
+		nil,
+		ec.marshalNModelDatabaseSyncJobStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJobStatus,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_status(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type ModelDatabaseSyncJobStatus does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_totalTables(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_totalTables,
+		func(ctx context.Context) (any, error) {
+			return obj.TotalTables, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_totalTables(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_processedTables(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_processedTables,
+		func(ctx context.Context) (any, error) {
+			return obj.ProcessedTables, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_processedTables(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_createdModels(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_createdModels,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedModels, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_createdModels(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_syncedModels(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_syncedModels,
+		func(ctx context.Context) (any, error) {
+			return obj.SyncedModels, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_syncedModels(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_failedCount(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_failedCount,
+		func(ctx context.Context) (any, error) {
+			return obj.FailedCount, nil
+		},
+		nil,
+		ec.marshalNInt2int32,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_failedCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_failedTables(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_failedTables,
+		func(ctx context.Context) (any, error) {
+			return obj.FailedTables, nil
+		},
+		nil,
+		ec.marshalNModelDatabaseSyncFailedTable2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncFailedTableᚄ,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_failedTables(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "tableName":
+				return ec.fieldContext_ModelDatabaseSyncFailedTable_tableName(ctx, field)
+			case "message":
+				return ec.fieldContext_ModelDatabaseSyncFailedTable_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabaseSyncFailedTable", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_startedAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_startedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.StartedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_startedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_finishedAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_finishedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.FinishedAt, nil
+		},
+		nil,
+		ec.marshalOTime2ᚖtimeᚐTime,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_finishedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_createdAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_createdAt,
+		func(ctx context.Context) (any, error) {
+			return obj.CreatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_createdAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ModelDatabaseSyncJob_updatedAt(ctx context.Context, field graphql.CollectedField, obj *ModelDatabaseSyncJob) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_ModelDatabaseSyncJob_updatedAt,
+		func(ctx context.Context) (any, error) {
+			return obj.UpdatedAt, nil
+		},
+		nil,
+		ec.marshalNTime2timeᚐTime,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_ModelDatabaseSyncJob_updatedAt(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ModelDatabaseSyncJob",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Time does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ModelGroup_id(ctx context.Context, field graphql.CollectedField, obj *ModelGroup) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -20883,6 +21745,53 @@ func (ec *executionContext) fieldContext_Mutation_registerModelDatabase(ctx cont
 	return fc, nil
 }
 
+func (ec *executionContext) _Mutation_batchRegisterModelDatabases(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_batchRegisterModelDatabases,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().BatchRegisterModelDatabases(ctx, fc.Args["input"].(BatchRegisterModelDatabaseInput))
+		},
+		nil,
+		ec.marshalNBatchRegisterModelDatabaseResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterModelDatabaseResult,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_batchRegisterModelDatabases(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "succeeded":
+				return ec.fieldContext_BatchRegisterModelDatabaseResult_succeeded(ctx, field)
+			case "failed":
+				return ec.fieldContext_BatchRegisterModelDatabaseResult_failed(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BatchRegisterModelDatabaseResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_batchRegisterModelDatabases_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Mutation_updateModelDatabase(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -20975,6 +21884,51 @@ func (ec *executionContext) fieldContext_Mutation_unregisterModelDatabase(ctx co
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_unregisterModelDatabase_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_startModelDatabaseSync(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Mutation_startModelDatabaseSync,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Mutation().StartModelDatabaseSync(ctx, fc.Args["databaseId"].(string))
+		},
+		nil,
+		ec.marshalNStartModelDatabaseSyncPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐStartModelDatabaseSyncPayload,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Mutation_startModelDatabaseSync(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "job":
+				return ec.fieldContext_StartModelDatabaseSyncPayload_job(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type StartModelDatabaseSyncPayload", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_startModelDatabaseSync_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -25392,6 +26346,75 @@ func (ec *executionContext) fieldContext_Query_clusterRawDatabases(_ context.Con
 	return fc, nil
 }
 
+func (ec *executionContext) _Query_modelDatabaseSyncJob(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Query_modelDatabaseSyncJob,
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.resolvers.Query().ModelDatabaseSyncJob(ctx, fc.Args["jobId"].(string))
+		},
+		nil,
+		ec.marshalOModelDatabaseSyncJob2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJob,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Query_modelDatabaseSyncJob(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ModelDatabaseSyncJob_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_ModelDatabaseSyncJob_databaseId(ctx, field)
+			case "status":
+				return ec.fieldContext_ModelDatabaseSyncJob_status(ctx, field)
+			case "totalTables":
+				return ec.fieldContext_ModelDatabaseSyncJob_totalTables(ctx, field)
+			case "processedTables":
+				return ec.fieldContext_ModelDatabaseSyncJob_processedTables(ctx, field)
+			case "createdModels":
+				return ec.fieldContext_ModelDatabaseSyncJob_createdModels(ctx, field)
+			case "syncedModels":
+				return ec.fieldContext_ModelDatabaseSyncJob_syncedModels(ctx, field)
+			case "failedCount":
+				return ec.fieldContext_ModelDatabaseSyncJob_failedCount(ctx, field)
+			case "failedTables":
+				return ec.fieldContext_ModelDatabaseSyncJob_failedTables(ctx, field)
+			case "startedAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_startedAt(ctx, field)
+			case "finishedAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_finishedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabaseSyncJob", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_modelDatabaseSyncJob_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_enum(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -28826,6 +29849,63 @@ func (ec *executionContext) fieldContext_SetProjectAuthSchemaPayload_error(_ con
 	return fc, nil
 }
 
+func (ec *executionContext) _StartModelDatabaseSyncPayload_job(ctx context.Context, field graphql.CollectedField, obj *StartModelDatabaseSyncPayload) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_StartModelDatabaseSyncPayload_job,
+		func(ctx context.Context) (any, error) {
+			return obj.Job, nil
+		},
+		nil,
+		ec.marshalNModelDatabaseSyncJob2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJob,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_StartModelDatabaseSyncPayload_job(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "StartModelDatabaseSyncPayload",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_ModelDatabaseSyncJob_id(ctx, field)
+			case "databaseId":
+				return ec.fieldContext_ModelDatabaseSyncJob_databaseId(ctx, field)
+			case "status":
+				return ec.fieldContext_ModelDatabaseSyncJob_status(ctx, field)
+			case "totalTables":
+				return ec.fieldContext_ModelDatabaseSyncJob_totalTables(ctx, field)
+			case "processedTables":
+				return ec.fieldContext_ModelDatabaseSyncJob_processedTables(ctx, field)
+			case "createdModels":
+				return ec.fieldContext_ModelDatabaseSyncJob_createdModels(ctx, field)
+			case "syncedModels":
+				return ec.fieldContext_ModelDatabaseSyncJob_syncedModels(ctx, field)
+			case "failedCount":
+				return ec.fieldContext_ModelDatabaseSyncJob_failedCount(ctx, field)
+			case "failedTables":
+				return ec.fieldContext_ModelDatabaseSyncJob_failedTables(ctx, field)
+			case "startedAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_startedAt(ctx, field)
+			case "finishedAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_finishedAt(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_ModelDatabaseSyncJob_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ModelDatabaseSyncJob", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _SyncModelSchemaPayload_model(ctx context.Context, field graphql.CollectedField, obj *SyncModelSchemaPayload) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -32111,6 +33191,33 @@ func (ec *executionContext) unmarshalInputAuthVariableInput(ctx context.Context,
 				return it, err
 			}
 			it.Type = data
+		}
+	}
+
+	return it, nil
+}
+
+func (ec *executionContext) unmarshalInputBatchRegisterModelDatabaseInput(ctx context.Context, obj any) (BatchRegisterModelDatabaseInput, error) {
+	var it BatchRegisterModelDatabaseInput
+	asMap := map[string]any{}
+	for k, v := range obj.(map[string]any) {
+		asMap[k] = v
+	}
+
+	fieldsInOrder := [...]string{"databases"}
+	for _, k := range fieldsInOrder {
+		v, ok := asMap[k]
+		if !ok {
+			continue
+		}
+		switch k {
+		case "databases":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("databases"))
+			data, err := ec.unmarshalNRegisterModelDatabaseInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInputᚄ(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Databases = data
 		}
 	}
 
@@ -36361,6 +37468,94 @@ func (ec *executionContext) _AuthVariable(ctx context.Context, sel ast.Selection
 			}
 		case "type":
 			out.Values[i] = ec._AuthVariable_type(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var batchRegisterErrorImplementors = []string{"BatchRegisterError"}
+
+func (ec *executionContext) _BatchRegisterError(ctx context.Context, sel ast.SelectionSet, obj *BatchRegisterError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, batchRegisterErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BatchRegisterError")
+		case "name":
+			out.Values[i] = ec._BatchRegisterError_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._BatchRegisterError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var batchRegisterModelDatabaseResultImplementors = []string{"BatchRegisterModelDatabaseResult"}
+
+func (ec *executionContext) _BatchRegisterModelDatabaseResult(ctx context.Context, sel ast.SelectionSet, obj *BatchRegisterModelDatabaseResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, batchRegisterModelDatabaseResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BatchRegisterModelDatabaseResult")
+		case "succeeded":
+			out.Values[i] = ec._BatchRegisterModelDatabaseResult_succeeded(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "failed":
+			out.Values[i] = ec._BatchRegisterModelDatabaseResult_failed(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
@@ -41026,6 +42221,143 @@ func (ec *executionContext) _ModelDatabaseCatalogPayload(ctx context.Context, se
 	return out
 }
 
+var modelDatabaseSyncFailedTableImplementors = []string{"ModelDatabaseSyncFailedTable"}
+
+func (ec *executionContext) _ModelDatabaseSyncFailedTable(ctx context.Context, sel ast.SelectionSet, obj *ModelDatabaseSyncFailedTable) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, modelDatabaseSyncFailedTableImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModelDatabaseSyncFailedTable")
+		case "tableName":
+			out.Values[i] = ec._ModelDatabaseSyncFailedTable_tableName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._ModelDatabaseSyncFailedTable_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var modelDatabaseSyncJobImplementors = []string{"ModelDatabaseSyncJob"}
+
+func (ec *executionContext) _ModelDatabaseSyncJob(ctx context.Context, sel ast.SelectionSet, obj *ModelDatabaseSyncJob) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, modelDatabaseSyncJobImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ModelDatabaseSyncJob")
+		case "id":
+			out.Values[i] = ec._ModelDatabaseSyncJob_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "databaseId":
+			out.Values[i] = ec._ModelDatabaseSyncJob_databaseId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "status":
+			out.Values[i] = ec._ModelDatabaseSyncJob_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "totalTables":
+			out.Values[i] = ec._ModelDatabaseSyncJob_totalTables(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "processedTables":
+			out.Values[i] = ec._ModelDatabaseSyncJob_processedTables(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "createdModels":
+			out.Values[i] = ec._ModelDatabaseSyncJob_createdModels(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "syncedModels":
+			out.Values[i] = ec._ModelDatabaseSyncJob_syncedModels(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "failedCount":
+			out.Values[i] = ec._ModelDatabaseSyncJob_failedCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "failedTables":
+			out.Values[i] = ec._ModelDatabaseSyncJob_failedTables(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startedAt":
+			out.Values[i] = ec._ModelDatabaseSyncJob_startedAt(ctx, field, obj)
+		case "finishedAt":
+			out.Values[i] = ec._ModelDatabaseSyncJob_finishedAt(ctx, field, obj)
+		case "createdAt":
+			out.Values[i] = ec._ModelDatabaseSyncJob_createdAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "updatedAt":
+			out.Values[i] = ec._ModelDatabaseSyncJob_updatedAt(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var modelGroupImplementors = []string{"ModelGroup"}
 
 func (ec *executionContext) _ModelGroup(ctx context.Context, sel ast.SelectionSet, obj *ModelGroup) graphql.Marshaler {
@@ -41424,6 +42756,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "batchRegisterModelDatabases":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_batchRegisterModelDatabases(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "updateModelDatabase":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_updateModelDatabase(ctx, field)
@@ -41434,6 +42773,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "unregisterModelDatabase":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_unregisterModelDatabase(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "startModelDatabaseSync":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_startModelDatabaseSync(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -42268,6 +43614,25 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "modelDatabaseSyncJob":
+			field := field
+
+			innerFunc := func(ctx context.Context, _ *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_modelDatabaseSyncJob(ctx, field)
 				return res
 			}
 
@@ -43531,6 +44896,45 @@ func (ec *executionContext) _SetProjectAuthSchemaPayload(ctx context.Context, se
 			out.Values[i] = ec._SetProjectAuthSchemaPayload_authSchema(ctx, field, obj)
 		case "error":
 			out.Values[i] = ec._SetProjectAuthSchemaPayload_error(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var startModelDatabaseSyncPayloadImplementors = []string{"StartModelDatabaseSyncPayload"}
+
+func (ec *executionContext) _StartModelDatabaseSyncPayload(ctx context.Context, sel ast.SelectionSet, obj *StartModelDatabaseSyncPayload) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, startModelDatabaseSyncPayloadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("StartModelDatabaseSyncPayload")
+		case "job":
+			out.Values[i] = ec._StartModelDatabaseSyncPayload_job(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -44986,6 +46390,79 @@ func (ec *executionContext) unmarshalNAuthVariableType2modelcraftᚋinternalᚋi
 
 func (ec *executionContext) marshalNAuthVariableType2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐAuthVariableType(ctx context.Context, sel ast.SelectionSet, v AuthVariableType) graphql.Marshaler {
 	return v
+}
+
+func (ec *executionContext) marshalNBatchRegisterError2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterErrorᚄ(ctx context.Context, sel ast.SelectionSet, v []*BatchRegisterError) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNBatchRegisterError2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterError(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBatchRegisterError2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterError(ctx context.Context, sel ast.SelectionSet, v *BatchRegisterError) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BatchRegisterError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBatchRegisterModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterModelDatabaseInput(ctx context.Context, v any) (BatchRegisterModelDatabaseInput, error) {
+	res, err := ec.unmarshalInputBatchRegisterModelDatabaseInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBatchRegisterModelDatabaseResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterModelDatabaseResult(ctx context.Context, sel ast.SelectionSet, v BatchRegisterModelDatabaseResult) graphql.Marshaler {
+	return ec._BatchRegisterModelDatabaseResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBatchRegisterModelDatabaseResult2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBatchRegisterModelDatabaseResult(ctx context.Context, sel ast.SelectionSet, v *BatchRegisterModelDatabaseResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BatchRegisterModelDatabaseResult(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNBindCustomItemToBundleInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐBindCustomItemToBundleInput(ctx context.Context, v any) (BindCustomItemToBundleInput, error) {
@@ -47147,6 +48624,80 @@ func (ec *executionContext) marshalNModelDatabase2ᚖmodelcraftᚋinternalᚋint
 	return ec._ModelDatabase(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNModelDatabaseSyncFailedTable2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncFailedTableᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelDatabaseSyncFailedTable) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNModelDatabaseSyncFailedTable2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncFailedTable(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNModelDatabaseSyncFailedTable2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncFailedTable(ctx context.Context, sel ast.SelectionSet, v *ModelDatabaseSyncFailedTable) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModelDatabaseSyncFailedTable(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNModelDatabaseSyncJob2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJob(ctx context.Context, sel ast.SelectionSet, v *ModelDatabaseSyncJob) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ModelDatabaseSyncJob(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNModelDatabaseSyncJobStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJobStatus(ctx context.Context, v any) (ModelDatabaseSyncJobStatus, error) {
+	var res ModelDatabaseSyncJobStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNModelDatabaseSyncJobStatus2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJobStatus(ctx context.Context, sel ast.SelectionSet, v ModelDatabaseSyncJobStatus) graphql.Marshaler {
+	return v
+}
+
 func (ec *executionContext) marshalNModelGroup2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelGroupᚄ(ctx context.Context, sel ast.SelectionSet, v []*ModelGroup) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -47389,6 +48940,26 @@ func (ec *executionContext) marshalNRbacAction2modelcraftᚋinternalᚋinterface
 func (ec *executionContext) unmarshalNRegisterModelDatabaseInput2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInput(ctx context.Context, v any) (RegisterModelDatabaseInput, error) {
 	res, err := ec.unmarshalInputRegisterModelDatabaseInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) unmarshalNRegisterModelDatabaseInput2ᚕᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInputᚄ(ctx context.Context, v any) ([]*RegisterModelDatabaseInput, error) {
+	var vSlice []any
+	vSlice = graphql.CoerceList(v)
+	var err error
+	res := make([]*RegisterModelDatabaseInput, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNRegisterModelDatabaseInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInput(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) unmarshalNRegisterModelDatabaseInput2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseInput(ctx context.Context, v any) (*RegisterModelDatabaseInput, error) {
+	res, err := ec.unmarshalInputRegisterModelDatabaseInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalNRegisterModelDatabaseResult2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐRegisterModelDatabaseResult(ctx context.Context, sel ast.SelectionSet, v RegisterModelDatabaseResult) graphql.Marshaler {
@@ -47726,6 +49297,20 @@ func (ec *executionContext) marshalNSetProjectAuthSchemaPayload2ᚖmodelcraftᚋ
 		return graphql.Null
 	}
 	return ec._SetProjectAuthSchemaPayload(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNStartModelDatabaseSyncPayload2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐStartModelDatabaseSyncPayload(ctx context.Context, sel ast.SelectionSet, v StartModelDatabaseSyncPayload) graphql.Marshaler {
+	return ec._StartModelDatabaseSyncPayload(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNStartModelDatabaseSyncPayload2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐStartModelDatabaseSyncPayload(ctx context.Context, sel ast.SelectionSet, v *StartModelDatabaseSyncPayload) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._StartModelDatabaseSyncPayload(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {
@@ -48859,6 +50444,13 @@ func (ec *executionContext) marshalOModelDatabaseCatalogPayload2ᚖmodelcraftᚋ
 	return ec._ModelDatabaseCatalogPayload(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOModelDatabaseSyncJob2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelDatabaseSyncJob(ctx context.Context, sel ast.SelectionSet, v *ModelDatabaseSyncJob) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ModelDatabaseSyncJob(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalOModelGroup2ᚖmodelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐModelGroup(ctx context.Context, sel ast.SelectionSet, v *ModelGroup) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -49048,6 +50640,24 @@ func (ec *executionContext) marshalOTestConnectionError2modelcraftᚋinternalᚋ
 		return graphql.Null
 	}
 	return ec._TestConnectionError(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
+	return res
 }
 
 func (ec *executionContext) marshalOUpdateClusterError2modelcraftᚋinternalᚋinterfacesᚋgraphqlᚋprojectᚋgeneratedᚐUpdateClusterError(ctx context.Context, sel ast.SelectionSet, v UpdateClusterError) graphql.Marshaler {

@@ -7,7 +7,6 @@ package projectgraphql
 import (
 	"context"
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
-	domainmodeldatabase "modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
@@ -44,6 +43,38 @@ func (r *mutationResolver) RegisterModelDatabase(ctx context.Context, input gene
 	return modelDatabaseToGQL(db), nil
 }
 
+// BatchRegisterModelDatabases is the resolver for the batchRegisterModelDatabases field.
+func (r *mutationResolver) BatchRegisterModelDatabases(ctx context.Context, input generated.BatchRegisterModelDatabaseInput) (*generated.BatchRegisterModelDatabaseResult, error) {
+	cmds := make([]appmodeldatabase.RegisterCommand, 0, len(input.Databases))
+	for _, db := range input.Databases {
+		cmds = append(cmds, appmodeldatabase.RegisterCommand{
+			Name:        db.Name,
+			Title:       db.Title,
+			Description: derefStringOrEmpty(db.Description),
+			Mode:        gqlDatabaseModeToDomain(db.Mode),
+		})
+	}
+	batchResult, err := r.ModelDatabaseAppService.BatchRegister(ctx, cmds)
+	if err != nil {
+		return nil, err
+	}
+	succeeded := make([]*generated.ModelDatabase, 0, len(batchResult.Succeeded))
+	for _, db := range batchResult.Succeeded {
+		succeeded = append(succeeded, modelDatabaseToGQL(db))
+	}
+	failed := make([]*generated.BatchRegisterError, 0, len(batchResult.Failed))
+	for _, f := range batchResult.Failed {
+		failed = append(failed, &generated.BatchRegisterError{
+			Name:    f.Name,
+			Message: f.Message,
+		})
+	}
+	return &generated.BatchRegisterModelDatabaseResult{
+		Succeeded: succeeded,
+		Failed:    failed,
+	}, nil
+}
+
 // UpdateModelDatabase is the resolver for the updateModelDatabase field.
 func (r *mutationResolver) UpdateModelDatabase(ctx context.Context, id string, input generated.UpdateModelDatabaseInput) (*generated.ModelDatabase, error) {
 	cmd := appmodeldatabase.UpdateCommand{
@@ -66,6 +97,15 @@ func (r *mutationResolver) UnregisterModelDatabase(ctx context.Context, id strin
 		return false, err
 	}
 	return true, nil
+}
+
+// StartModelDatabaseSync is the resolver for the startModelDatabaseSync field.
+func (r *mutationResolver) StartModelDatabaseSync(ctx context.Context, databaseID string) (*generated.StartModelDatabaseSyncPayload, error) {
+	job, err := r.ModelDatabaseSyncAppService.StartSync(ctx, databaseID)
+	if err != nil {
+		return nil, err
+	}
+	return &generated.StartModelDatabaseSyncPayload{Job: modelDatabaseSyncJobToGQL(job)}, nil
 }
 
 // ModelDatabases is the resolver for the modelDatabases field.
@@ -97,43 +137,11 @@ func (r *queryResolver) ClusterRawDatabases(ctx context.Context) ([]*generated.R
 	return result, nil
 }
 
-func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelDatabase {
-	return &generated.ModelDatabase{
-		ID:          db.ID,
-		Name:        db.Name,
-		Title:       db.Title,
-		Description: db.Description,
-		Mode:        domainDatabaseModeToGQL(db.Mode),
-		CreatedAt:   db.CreatedAt,
-		UpdatedAt:   db.UpdatedAt,
+// ModelDatabaseSyncJob is the resolver for the modelDatabaseSyncJob field.
+func (r *queryResolver) ModelDatabaseSyncJob(ctx context.Context, jobID string) (*generated.ModelDatabaseSyncJob, error) {
+	job, err := r.ModelDatabaseSyncAppService.GetJob(ctx, jobID)
+	if err != nil || job == nil {
+		return nil, err
 	}
-}
-
-func domainDatabaseModeToGQL(m domainmodeldatabase.DatabaseMode) generated.DatabaseMode {
-	if m == domainmodeldatabase.DatabaseModeManaged {
-		return generated.DatabaseModeManaged
-	}
-	return generated.DatabaseModeSelfHosted
-}
-
-func gqlDatabaseModeToDomain(m generated.DatabaseMode) domainmodeldatabase.DatabaseMode {
-	if m == generated.DatabaseModeManaged {
-		return domainmodeldatabase.DatabaseModeManaged
-	}
-	return domainmodeldatabase.DatabaseModeSelfHosted
-}
-
-func domainDatabaseModeFromGQLPtr(m *generated.DatabaseMode) *domainmodeldatabase.DatabaseMode {
-	if m == nil {
-		return nil
-	}
-	mode := gqlDatabaseModeToDomain(*m)
-	return &mode
-}
-
-func derefStringOrEmpty(s *string) string {
-	if s == nil {
-		return ""
-	}
-	return *s
+	return modelDatabaseSyncJobToGQL(job), nil
 }

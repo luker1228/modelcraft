@@ -31,6 +31,7 @@ type Querier interface {
 	CreateMembership(ctx context.Context, arg CreateMembershipParams) error
 	CreateModel(ctx context.Context, arg CreateModelParams) error
 	CreateModelDatabase(ctx context.Context, arg CreateModelDatabaseParams) error
+	CreateModelDatabaseSyncJob(ctx context.Context, arg CreateModelDatabaseSyncJobParams) error
 	CreateModelGroup(ctx context.Context, arg CreateModelGroupParams) error
 	CreateOrganization(ctx context.Context, arg CreateOrganizationParams) error
 	CreatePermission(ctx context.Context, arg CreatePermissionParams) error
@@ -78,6 +79,7 @@ type Querier interface {
 	FindLogicalForeignKeysByPairID(ctx context.Context, arg FindLogicalForeignKeysByPairIDParams) ([]FindLogicalForeignKeysByPairIDRow, error)
 	FindLogicalForeignKeysByRefModelID(ctx context.Context, arg FindLogicalForeignKeysByRefModelIDParams) ([]FindLogicalForeignKeysByRefModelIDRow, error)
 	FindModelsByDeploymentStatus(ctx context.Context, statuses []sql.NullString) ([]Model, error)
+	GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, arg GetActiveModelDatabaseSyncJobByDatabaseParams) (ModelDatabaseSyncJob, error)
 	GetAllModels(ctx context.Context) ([]Model, error)
 	GetBundleCurrentVersion(ctx context.Context, bundleID string) (interface{}, error)
 	GetBundleDataPermissionItemByBundleAndModel(ctx context.Context, arg GetBundleDataPermissionItemByBundleAndModelParams) (EndUserBundleDataPermissionItem, error)
@@ -115,6 +117,7 @@ type Querier interface {
 	GetModelByName(ctx context.Context, arg GetModelByNameParams) (Model, error)
 	GetModelDatabaseByID(ctx context.Context, arg GetModelDatabaseByIDParams) (ModelDatabase, error)
 	GetModelDatabaseByName(ctx context.Context, arg GetModelDatabaseByNameParams) (ModelDatabase, error)
+	GetModelDatabaseSyncJobByID(ctx context.Context, arg GetModelDatabaseSyncJobByIDParams) (ModelDatabaseSyncJob, error)
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
 	GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error)
@@ -204,6 +207,7 @@ type Querier interface {
 	UpdateMembership(ctx context.Context, arg UpdateMembershipParams) error
 	UpdateModel(ctx context.Context, arg UpdateModelParams) (sql.Result, error)
 	UpdateModelDatabase(ctx context.Context, arg UpdateModelDatabaseParams) error
+	UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateModelDatabaseSyncJobParams) error
 	UpdateModelDeploymentStatus(ctx context.Context, arg UpdateModelDeploymentStatusParams) error
 	UpdateModelGroup(ctx context.Context, arg UpdateModelGroupParams) error
 	UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)

@@ -362,6 +362,20 @@ type AuthVariableInput struct {
 	Type AuthVariableType `json:"type"`
 }
 
+type BatchRegisterError struct {
+	Name    string `json:"name"`
+	Message string `json:"message"`
+}
+
+type BatchRegisterModelDatabaseInput struct {
+	Databases []*RegisterModelDatabaseInput `json:"databases"`
+}
+
+type BatchRegisterModelDatabaseResult struct {
+	Succeeded []*ModelDatabase      `json:"succeeded"`
+	Failed    []*BatchRegisterError `json:"failed"`
+}
+
 type BindCustomItemToBundleInput struct {
 	BundleID           string `json:"bundleId"`
 	ModelID            string `json:"modelId"`
@@ -1380,6 +1394,27 @@ type ModelDatabaseCatalogPayload struct {
 	PageSize   int32           `json:"pageSize"`
 }
 
+type ModelDatabaseSyncFailedTable struct {
+	TableName string `json:"tableName"`
+	Message   string `json:"message"`
+}
+
+type ModelDatabaseSyncJob struct {
+	ID              string                          `json:"id"`
+	DatabaseID      string                          `json:"databaseId"`
+	Status          ModelDatabaseSyncJobStatus      `json:"status"`
+	TotalTables     int32                           `json:"totalTables"`
+	ProcessedTables int32                           `json:"processedTables"`
+	CreatedModels   int32                           `json:"createdModels"`
+	SyncedModels    int32                           `json:"syncedModels"`
+	FailedCount     int32                           `json:"failedCount"`
+	FailedTables    []*ModelDatabaseSyncFailedTable `json:"failedTables"`
+	StartedAt       *time.Time                      `json:"startedAt,omitempty"`
+	FinishedAt      *time.Time                      `json:"finishedAt,omitempty"`
+	CreatedAt       time.Time                       `json:"createdAt"`
+	UpdatedAt       time.Time                       `json:"updatedAt"`
+}
+
 type ModelGroup struct {
 	ID           string   `json:"id"`
 	Name         string   `json:"name"`
@@ -1796,6 +1831,10 @@ type SetProjectAuthSchemaInput struct {
 type SetProjectAuthSchemaPayload struct {
 	AuthSchema *ProjectAuthSchema        `json:"authSchema,omitempty"`
 	Error      SetProjectAuthSchemaError `json:"error,omitempty"`
+}
+
+type StartModelDatabaseSyncPayload struct {
+	Job *ModelDatabaseSyncJob `json:"job"`
 }
 
 type SyncModelSchemaInput struct {
@@ -2760,6 +2799,67 @@ func (e *HealthStatus) UnmarshalJSON(b []byte) error {
 }
 
 func (e HealthStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type ModelDatabaseSyncJobStatus string
+
+const (
+	ModelDatabaseSyncJobStatusPending        ModelDatabaseSyncJobStatus = "PENDING"
+	ModelDatabaseSyncJobStatusRunning        ModelDatabaseSyncJobStatus = "RUNNING"
+	ModelDatabaseSyncJobStatusSucceeded      ModelDatabaseSyncJobStatus = "SUCCEEDED"
+	ModelDatabaseSyncJobStatusPartialSuccess ModelDatabaseSyncJobStatus = "PARTIAL_SUCCESS"
+	ModelDatabaseSyncJobStatusFailed         ModelDatabaseSyncJobStatus = "FAILED"
+)
+
+var AllModelDatabaseSyncJobStatus = []ModelDatabaseSyncJobStatus{
+	ModelDatabaseSyncJobStatusPending,
+	ModelDatabaseSyncJobStatusRunning,
+	ModelDatabaseSyncJobStatusSucceeded,
+	ModelDatabaseSyncJobStatusPartialSuccess,
+	ModelDatabaseSyncJobStatusFailed,
+}
+
+func (e ModelDatabaseSyncJobStatus) IsValid() bool {
+	switch e {
+	case ModelDatabaseSyncJobStatusPending, ModelDatabaseSyncJobStatusRunning, ModelDatabaseSyncJobStatusSucceeded, ModelDatabaseSyncJobStatusPartialSuccess, ModelDatabaseSyncJobStatusFailed:
+		return true
+	}
+	return false
+}
+
+func (e ModelDatabaseSyncJobStatus) String() string {
+	return string(e)
+}
+
+func (e *ModelDatabaseSyncJobStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ModelDatabaseSyncJobStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ModelDatabaseSyncJobStatus", str)
+	}
+	return nil
+}
+
+func (e ModelDatabaseSyncJobStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *ModelDatabaseSyncJobStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e ModelDatabaseSyncJobStatus) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

@@ -8,6 +8,7 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 )
 
 const createModelDatabase = `-- name: CreateModelDatabase :exec
@@ -40,6 +41,64 @@ func (q *Queries) CreateModelDatabase(ctx context.Context, arg CreateModelDataba
 	return err
 }
 
+const createModelDatabaseSyncJob = `-- name: CreateModelDatabaseSyncJob :exec
+INSERT INTO model_database_sync_job (
+  id,
+  org_name,
+  project_slug,
+  database_id,
+  status,
+  total_tables,
+  processed_tables,
+  created_models,
+  synced_models,
+  failed_count,
+  failed_tables,
+  deleted_at,
+  delete_token,
+  started_at,
+  finished_at,
+  created_at,
+  updated_at
+)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, NOW(3), NOW(3))
+`
+
+type CreateModelDatabaseSyncJobParams struct {
+	ID              string
+	OrgName         string
+	ProjectSlug     string
+	DatabaseID      string
+	Status          ModelDatabaseSyncJobStatus
+	TotalTables     int32
+	ProcessedTables int32
+	CreatedModels   int32
+	SyncedModels    int32
+	FailedCount     int32
+	FailedTables    json.RawMessage
+	StartedAt       sql.NullTime
+	FinishedAt      sql.NullTime
+}
+
+func (q *Queries) CreateModelDatabaseSyncJob(ctx context.Context, arg CreateModelDatabaseSyncJobParams) error {
+	_, err := q.db.ExecContext(ctx, createModelDatabaseSyncJob,
+		arg.ID,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.DatabaseID,
+		arg.Status,
+		arg.TotalTables,
+		arg.ProcessedTables,
+		arg.CreatedModels,
+		arg.SyncedModels,
+		arg.FailedCount,
+		arg.FailedTables,
+		arg.StartedAt,
+		arg.FinishedAt,
+	)
+	return err
+}
+
 const deleteModelDatabase = `-- name: DeleteModelDatabase :exec
 UPDATE model_database
 SET ` + "`" + `deleted_at` + "`" + ` = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED),
@@ -56,6 +115,48 @@ type DeleteModelDatabaseParams struct {
 func (q *Queries) DeleteModelDatabase(ctx context.Context, arg DeleteModelDatabaseParams) error {
 	_, err := q.db.ExecContext(ctx, deleteModelDatabase, arg.ID, arg.OrgName, arg.ProjectSlug)
 	return err
+}
+
+const getActiveModelDatabaseSyncJobByDatabase = `-- name: GetActiveModelDatabaseSyncJobByDatabase :one
+SELECT id, org_name, project_slug, database_id, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, deleted_at, delete_token, started_at, finished_at, created_at, updated_at FROM model_database_sync_job
+WHERE org_name = ?
+  AND project_slug = ?
+  AND database_id = ?
+  AND ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND status IN ('pending', 'running')
+ORDER BY created_at DESC
+LIMIT 1
+`
+
+type GetActiveModelDatabaseSyncJobByDatabaseParams struct {
+	OrgName     string
+	ProjectSlug string
+	DatabaseID  string
+}
+
+func (q *Queries) GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, arg GetActiveModelDatabaseSyncJobByDatabaseParams) (ModelDatabaseSyncJob, error) {
+	row := q.db.QueryRowContext(ctx, getActiveModelDatabaseSyncJobByDatabase, arg.OrgName, arg.ProjectSlug, arg.DatabaseID)
+	var i ModelDatabaseSyncJob
+	err := row.Scan(
+		&i.ID,
+		&i.OrgName,
+		&i.ProjectSlug,
+		&i.DatabaseID,
+		&i.Status,
+		&i.TotalTables,
+		&i.ProcessedTables,
+		&i.CreatedModels,
+		&i.SyncedModels,
+		&i.FailedCount,
+		&i.FailedTables,
+		&i.DeletedAt,
+		&i.DeleteToken,
+		&i.StartedAt,
+		&i.FinishedAt,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
 }
 
 const getModelDatabaseByID = `-- name: GetModelDatabaseByID :one
@@ -116,6 +217,43 @@ func (q *Queries) GetModelDatabaseByName(ctx context.Context, arg GetModelDataba
 		&i.Mode,
 		&i.DeletedAt,
 		&i.DeleteToken,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+	)
+	return i, err
+}
+
+const getModelDatabaseSyncJobByID = `-- name: GetModelDatabaseSyncJobByID :one
+SELECT id, org_name, project_slug, database_id, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, deleted_at, delete_token, started_at, finished_at, created_at, updated_at FROM model_database_sync_job
+WHERE id = ? AND org_name = ? AND project_slug = ? AND ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+LIMIT 1
+`
+
+type GetModelDatabaseSyncJobByIDParams struct {
+	ID          string
+	OrgName     string
+	ProjectSlug string
+}
+
+func (q *Queries) GetModelDatabaseSyncJobByID(ctx context.Context, arg GetModelDatabaseSyncJobByIDParams) (ModelDatabaseSyncJob, error) {
+	row := q.db.QueryRowContext(ctx, getModelDatabaseSyncJobByID, arg.ID, arg.OrgName, arg.ProjectSlug)
+	var i ModelDatabaseSyncJob
+	err := row.Scan(
+		&i.ID,
+		&i.OrgName,
+		&i.ProjectSlug,
+		&i.DatabaseID,
+		&i.Status,
+		&i.TotalTables,
+		&i.ProcessedTables,
+		&i.CreatedModels,
+		&i.SyncedModels,
+		&i.FailedCount,
+		&i.FailedTables,
+		&i.DeletedAt,
+		&i.DeleteToken,
+		&i.StartedAt,
+		&i.FinishedAt,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -192,6 +330,50 @@ func (q *Queries) UpdateModelDatabase(ctx context.Context, arg UpdateModelDataba
 		arg.ID,
 		arg.OrgName,
 		arg.ProjectSlug,
+	)
+	return err
+}
+
+const updateModelDatabaseSyncJob = `-- name: UpdateModelDatabaseSyncJob :exec
+UPDATE model_database_sync_job
+SET status = ?,
+    total_tables = ?,
+    processed_tables = ?,
+    created_models = ?,
+    synced_models = ?,
+    failed_count = ?,
+    failed_tables = ?,
+    started_at = ?,
+    finished_at = ?,
+    updated_at = NOW(3)
+WHERE id = ? AND ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+`
+
+type UpdateModelDatabaseSyncJobParams struct {
+	Status          ModelDatabaseSyncJobStatus
+	TotalTables     int32
+	ProcessedTables int32
+	CreatedModels   int32
+	SyncedModels    int32
+	FailedCount     int32
+	FailedTables    json.RawMessage
+	StartedAt       sql.NullTime
+	FinishedAt      sql.NullTime
+	ID              string
+}
+
+func (q *Queries) UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateModelDatabaseSyncJobParams) error {
+	_, err := q.db.ExecContext(ctx, updateModelDatabaseSyncJob,
+		arg.Status,
+		arg.TotalTables,
+		arg.ProcessedTables,
+		arg.CreatedModels,
+		arg.SyncedModels,
+		arg.FailedCount,
+		arg.FailedTables,
+		arg.StartedAt,
+		arg.FinishedAt,
+		arg.ID,
 	)
 	return err
 }

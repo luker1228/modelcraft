@@ -23,7 +23,7 @@ func NewSqlModelDatabaseRepository(q dbgen.Querier) modeldatabase.ModelDatabaseR
 
 // Create persists a new model database registration.
 func (r *SqlModelDatabaseRepository) Create(ctx context.Context, db *modeldatabase.ModelDatabase) error {
-	return r.q.CreateModelDatabase(ctx, dbgen.CreateModelDatabaseParams{
+	if err := r.q.CreateModelDatabase(ctx, dbgen.CreateModelDatabaseParams{
 		ID:          db.ID,
 		OrgName:     db.OrgName,
 		ProjectSlug: db.ProjectSlug,
@@ -32,7 +32,17 @@ func (r *SqlModelDatabaseRepository) Create(ctx context.Context, db *modeldataba
 		Title:       db.Title,
 		Description: sql.NullString{String: db.Description, Valid: db.Description != ""},
 		Mode:        dbgen.ModelDatabaseMode(db.Mode),
-	})
+	}); err != nil {
+		return err
+	}
+
+	created, err := r.GetByID(ctx, db.OrgName, db.ProjectSlug, db.ID)
+	if err != nil {
+		return err
+	}
+
+	*db = *created
+	return nil
 }
 
 // GetByID retrieves a model database by primary key, scoped to org and project.

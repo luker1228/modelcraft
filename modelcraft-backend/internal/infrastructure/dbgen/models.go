@@ -182,6 +182,51 @@ func (ns NullModelDatabaseMode) Value() (driver.Value, error) {
 	return string(ns.ModelDatabaseMode), nil
 }
 
+type ModelDatabaseSyncJobStatus string
+
+const (
+	ModelDatabaseSyncJobStatusPending        ModelDatabaseSyncJobStatus = "pending"
+	ModelDatabaseSyncJobStatusRunning        ModelDatabaseSyncJobStatus = "running"
+	ModelDatabaseSyncJobStatusSucceeded      ModelDatabaseSyncJobStatus = "succeeded"
+	ModelDatabaseSyncJobStatusPartialSuccess ModelDatabaseSyncJobStatus = "partial_success"
+	ModelDatabaseSyncJobStatusFailed         ModelDatabaseSyncJobStatus = "failed"
+)
+
+func (e *ModelDatabaseSyncJobStatus) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelDatabaseSyncJobStatus(s)
+	case string:
+		*e = ModelDatabaseSyncJobStatus(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelDatabaseSyncJobStatus: %T", src)
+	}
+	return nil
+}
+
+type NullModelDatabaseSyncJobStatus struct {
+	ModelDatabaseSyncJobStatus ModelDatabaseSyncJobStatus
+	Valid                      bool // Valid is true if ModelDatabaseSyncJobStatus is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelDatabaseSyncJobStatus) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelDatabaseSyncJobStatus, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelDatabaseSyncJobStatus.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelDatabaseSyncJobStatus) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelDatabaseSyncJobStatus), nil
+}
+
 type ModelsCreatedVia string
 
 const (
@@ -570,6 +615,42 @@ type ModelDatabase struct {
 	DeleteToken uint64
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
+}
+
+// 数据库同步为模型的异步任务表
+type ModelDatabaseSyncJob struct {
+	// 同步任务唯一标识符 (UUID)
+	ID string
+	// 所属组织名称
+	OrgName string
+	// 所属项目标识符
+	ProjectSlug string
+	// 关联的已接管数据库 ID
+	DatabaseID string
+	// 任务状态
+	Status ModelDatabaseSyncJobStatus
+	// 扫描到的表总数
+	TotalTables int32
+	// 已处理表数
+	ProcessedTables int32
+	// 新导入模型数
+	CreatedModels int32
+	// 已同步 schema 的模型数
+	SyncedModels int32
+	// 失败表数
+	FailedCount int32
+	// 失败表详情 [{tableName,message}]
+	FailedTables json.RawMessage
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
+	// 任务开始时间
+	StartedAt sql.NullTime
+	// 任务结束时间
+	FinishedAt sql.NullTime
+	CreatedAt  time.Time
+	UpdatedAt  time.Time
 }
 
 // 模型枚举定义表

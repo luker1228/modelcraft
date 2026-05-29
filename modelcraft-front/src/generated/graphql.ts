@@ -182,6 +182,22 @@ export type AuthVariableType =
   | 'STRING'
   | 'UUID';
 
+export type BatchRegisterError = {
+  __typename?: 'BatchRegisterError';
+  message: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
+export type BatchRegisterModelDatabaseInput = {
+  databases: Array<RegisterModelDatabaseInput>;
+};
+
+export type BatchRegisterModelDatabaseResult = {
+  __typename?: 'BatchRegisterModelDatabaseResult';
+  failed: Array<BatchRegisterError>;
+  succeeded: Array<ModelDatabase>;
+};
+
 export type BindCustomItemToBundleError = InvalidInput | ResourceNotFound;
 
 export type BindCustomItemToBundleInput = {
@@ -1410,6 +1426,36 @@ export type ModelDatabaseCatalogPayload = {
   totalCount: Scalars['Int']['output'];
 };
 
+export type ModelDatabaseSyncFailedTable = {
+  __typename?: 'ModelDatabaseSyncFailedTable';
+  message: Scalars['String']['output'];
+  tableName: Scalars['String']['output'];
+};
+
+export type ModelDatabaseSyncJob = {
+  __typename?: 'ModelDatabaseSyncJob';
+  createdAt: Scalars['Time']['output'];
+  createdModels: Scalars['Int']['output'];
+  databaseId: Scalars['ID']['output'];
+  failedCount: Scalars['Int']['output'];
+  failedTables: Array<ModelDatabaseSyncFailedTable>;
+  finishedAt?: Maybe<Scalars['Time']['output']>;
+  id: Scalars['ID']['output'];
+  processedTables: Scalars['Int']['output'];
+  startedAt?: Maybe<Scalars['Time']['output']>;
+  status: ModelDatabaseSyncJobStatus;
+  syncedModels: Scalars['Int']['output'];
+  totalTables: Scalars['Int']['output'];
+  updatedAt: Scalars['Time']['output'];
+};
+
+export type ModelDatabaseSyncJobStatus =
+  | 'FAILED'
+  | 'PARTIAL_SUCCESS'
+  | 'PENDING'
+  | 'RUNNING'
+  | 'SUCCEEDED';
+
 export type ModelGroup = {
   __typename?: 'ModelGroup';
   displayOrder: Scalars['String']['output'];
@@ -1501,6 +1547,7 @@ export type Mutation = {
   assignBundleToEndUserRole: AssignBundleToEndUserRolePayload;
   assignEndUserRole: AssignEndUserRolePayload;
   assignRoleToUser: AssignRolePayload;
+  batchRegisterModelDatabases: BatchRegisterModelDatabaseResult;
   /** 绑定自定义权限 item 到 bundle（replace 语义：同模型只保留一个 item） */
   bindCustomItemToBundle: BindCustomItemToBundlePayload;
   /** 绑定预设模板 item 到 bundle（replace 语义：同模型只保留一个 item） */
@@ -1562,6 +1609,7 @@ export type Mutation = {
   setModelRLSPolicy: SetModelRlsPolicyPayload;
   /** 设置当前项目 auth_schema */
   setProjectAuthSchema: SetProjectAuthSchemaPayload;
+  startModelDatabaseSync: StartModelDatabaseSyncPayload;
   syncModelSchema: SyncModelSchemaPayload;
   testDatabaseConnection: TestConnectionPayload;
   /**
@@ -1639,6 +1687,11 @@ export type MutationAssignRoleToUserArgs = {
   orgName: Scalars['String']['input'];
   roleId: Scalars['Int']['input'];
   userId: Scalars['String']['input'];
+};
+
+
+export type MutationBatchRegisterModelDatabasesArgs = {
+  input: BatchRegisterModelDatabaseInput;
 };
 
 
@@ -1871,6 +1924,11 @@ export type MutationSetModelRlsPolicyArgs = {
 
 export type MutationSetProjectAuthSchemaArgs = {
   input: SetProjectAuthSchemaInput;
+};
+
+
+export type MutationStartModelDatabaseSyncArgs = {
+  databaseId: Scalars['ID']['input'];
 };
 
 
@@ -2162,6 +2220,7 @@ export type Query = {
   model: GetModelPayload;
   modelByName: GetModelPayload;
   modelDatabaseCatalog: GetModelDatabaseCatalogPayload;
+  modelDatabaseSyncJob?: Maybe<ModelDatabaseSyncJob>;
   modelDatabases: Array<ModelDatabase>;
   modelGroups: Array<ModelGroup>;
   modelJsonSchema?: Maybe<ModelJsonSchema>;
@@ -2304,6 +2363,11 @@ export type QueryModelByNameArgs = {
 
 export type QueryModelDatabaseCatalogArgs = {
   input?: InputMaybe<ModelDatabaseCatalogInput>;
+};
+
+
+export type QueryModelDatabaseSyncJobArgs = {
+  jobId: Scalars['ID']['input'];
 };
 
 
@@ -2717,6 +2781,11 @@ export type SetProjectAuthSchemaPayload = {
   __typename?: 'SetProjectAuthSchemaPayload';
   authSchema?: Maybe<ProjectAuthSchema>;
   error?: Maybe<SetProjectAuthSchemaError>;
+};
+
+export type StartModelDatabaseSyncPayload = {
+  __typename?: 'StartModelDatabaseSyncPayload';
+  job: ModelDatabaseSyncJob;
 };
 
 export type StringFilter = {
@@ -3567,6 +3636,8 @@ export type TestDatabaseConnectionMutation = { __typename?: 'Mutation', testData
 
 export type ModelDatabaseFieldsFragment = { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any };
 
+export type ModelDatabaseSyncJobFieldsFragment = { __typename?: 'ModelDatabaseSyncJob', id: string, databaseId: string, status: ModelDatabaseSyncJobStatus, totalTables: number, processedTables: number, createdModels: number, syncedModels: number, failedCount: number, startedAt?: any | null, finishedAt?: any | null, createdAt: any, updatedAt: any, failedTables: Array<{ __typename?: 'ModelDatabaseSyncFailedTable', tableName: string, message: string }> };
+
 export type ListModelDatabasesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -3576,6 +3647,13 @@ export type ListClusterRawDatabasesQueryVariables = Exact<{ [key: string]: never
 
 
 export type ListClusterRawDatabasesQuery = { __typename?: 'Query', clusterRawDatabases: Array<{ __typename?: 'RawDatabase', name: string, isRegistered: boolean }> };
+
+export type GetModelDatabaseSyncJobQueryVariables = Exact<{
+  jobId: Scalars['ID']['input'];
+}>;
+
+
+export type GetModelDatabaseSyncJobQuery = { __typename?: 'Query', modelDatabaseSyncJob?: { __typename?: 'ModelDatabaseSyncJob', id: string, databaseId: string, status: ModelDatabaseSyncJobStatus, totalTables: number, processedTables: number, createdModels: number, syncedModels: number, failedCount: number, startedAt?: any | null, finishedAt?: any | null, createdAt: any, updatedAt: any, failedTables: Array<{ __typename?: 'ModelDatabaseSyncFailedTable', tableName: string, message: string }> } | null };
 
 export type RegisterModelDatabaseMutationVariables = Exact<{
   input: RegisterModelDatabaseInput;
@@ -3587,6 +3665,13 @@ export type RegisterModelDatabaseMutation = { __typename?: 'Mutation', registerM
     | { __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }
     | { __typename?: 'ResourceNotFound', message: string, resourceType: ResourceType }
    };
+
+export type BatchRegisterModelDatabasesMutationVariables = Exact<{
+  input: BatchRegisterModelDatabaseInput;
+}>;
+
+
+export type BatchRegisterModelDatabasesMutation = { __typename?: 'Mutation', batchRegisterModelDatabases: { __typename?: 'BatchRegisterModelDatabaseResult', succeeded: Array<{ __typename?: 'ModelDatabase', id: string, name: string, title: string, description: string, mode: DatabaseMode, createdAt: any, updatedAt: any }>, failed: Array<{ __typename?: 'BatchRegisterError', name: string, message: string }> } };
 
 export type UpdateModelDatabaseMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -3602,6 +3687,13 @@ export type UnregisterModelDatabaseMutationVariables = Exact<{
 
 
 export type UnregisterModelDatabaseMutation = { __typename?: 'Mutation', unregisterModelDatabase: boolean };
+
+export type StartModelDatabaseSyncMutationVariables = Exact<{
+  databaseId: Scalars['ID']['input'];
+}>;
+
+
+export type StartModelDatabaseSyncMutation = { __typename?: 'Mutation', startModelDatabaseSync: { __typename?: 'StartModelDatabaseSyncPayload', job: { __typename?: 'ModelDatabaseSyncJob', id: string, databaseId: string, status: ModelDatabaseSyncJobStatus, totalTables: number, processedTables: number, createdModels: number, syncedModels: number, failedCount: number, startedAt?: any | null, finishedAt?: any | null, createdAt: any, updatedAt: any, failedTables: Array<{ __typename?: 'ModelDatabaseSyncFailedTable', tableName: string, message: string }> } } };
 
 export type GetEndUserPermissionsQueryVariables = Exact<{ [key: string]: never; }>;
 

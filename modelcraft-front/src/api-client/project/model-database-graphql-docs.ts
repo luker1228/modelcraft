@@ -14,6 +14,27 @@ export const MODEL_DATABASE_FRAGMENT = gql`
   }
 `
 
+export const MODEL_DATABASE_SYNC_JOB_FRAGMENT = gql`
+  fragment ModelDatabaseSyncJobFields on ModelDatabaseSyncJob {
+    id
+    databaseId
+    status
+    totalTables
+    processedTables
+    createdModels
+    syncedModels
+    failedCount
+    failedTables {
+      tableName
+      message
+    }
+    startedAt
+    finishedAt
+    createdAt
+    updatedAt
+  }
+`
+
 // ── Queries ─────────────────────────────────────────────────────────────────────
 
 export const LIST_MODEL_DATABASES = gql`
@@ -30,6 +51,15 @@ export const LIST_CLUSTER_RAW_DATABASES = gql`
     clusterRawDatabases {
       name
       isRegistered
+    }
+  }
+`
+
+export const GET_MODEL_DATABASE_SYNC_JOB = gql`
+  ${MODEL_DATABASE_SYNC_JOB_FRAGMENT}
+  query GetModelDatabaseSyncJob($jobId: ID!) {
+    modelDatabaseSyncJob(jobId: $jobId) {
+      ...ModelDatabaseSyncJobFields
     }
   }
 `
@@ -54,6 +84,21 @@ export const REGISTER_MODEL_DATABASE = gql`
   }
 `
 
+export const BATCH_REGISTER_MODEL_DATABASES = gql`
+  ${MODEL_DATABASE_FRAGMENT}
+  mutation BatchRegisterModelDatabases($input: BatchRegisterModelDatabaseInput!) {
+    batchRegisterModelDatabases(input: $input) {
+      succeeded {
+        ...ModelDatabaseFields
+      }
+      failed {
+        name
+        message
+      }
+    }
+  }
+`
+
 export const UPDATE_MODEL_DATABASE = gql`
   ${MODEL_DATABASE_FRAGMENT}
   mutation UpdateModelDatabase($id: ID!, $input: UpdateModelDatabaseInput!) {
@@ -66,5 +111,16 @@ export const UPDATE_MODEL_DATABASE = gql`
 export const UNREGISTER_MODEL_DATABASE = gql`
   mutation UnregisterModelDatabase($id: ID!) {
     unregisterModelDatabase(id: $id)
+  }
+`
+
+export const START_MODEL_DATABASE_SYNC = gql`
+  ${MODEL_DATABASE_SYNC_JOB_FRAGMENT}
+  mutation StartModelDatabaseSync($databaseId: ID!) {
+    startModelDatabaseSync(databaseId: $databaseId) {
+      job {
+        ...ModelDatabaseSyncJobFields
+      }
+    }
   }
 `
