@@ -6,10 +6,20 @@ import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import type { EndUserInfo } from '@/types/end-user-auth'
 
+function parseIsAdmin(token: string): boolean | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.is_admin === true
+  } catch {
+    return null
+  }
+}
+
 interface EndUserAuthState {
   // Token 状态
   accessToken: string | null
   expiresAt: number | null // Unix timestamp（毫秒）
+  isAdmin: boolean | null
 
   // 用户信息（login 后从 /me 接口获取，可延迟填充）
   userInfo: EndUserInfo | null
@@ -26,12 +36,14 @@ export const useEndUserAuthStore = create<EndUserAuthState>()(
     (set, get) => ({
       accessToken: null,
       expiresAt: null,
+      isAdmin: null,
       userInfo: null,
 
       setAccessToken: (token: string, expiresIn: number) => {
         set({
           accessToken: token,
           expiresAt: Date.now() + expiresIn * 1000,
+          isAdmin: parseIsAdmin(token),
         })
       },
 
@@ -41,6 +53,7 @@ export const useEndUserAuthStore = create<EndUserAuthState>()(
         set({
           accessToken: null,
           expiresAt: null,
+          isAdmin: null,
           userInfo: null,
         }),
 
@@ -56,6 +69,7 @@ export const useEndUserAuthStore = create<EndUserAuthState>()(
       partialize: (state) => ({
         accessToken: state.accessToken,
         expiresAt: state.expiresAt,
+        isAdmin: state.isAdmin,
         userInfo: state.userInfo,
       }),
     }

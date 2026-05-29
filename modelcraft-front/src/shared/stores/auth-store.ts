@@ -1,9 +1,19 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
+function parseIsAdmin(token: string): boolean | null {
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    return payload.is_admin === true
+  } catch {
+    return null
+  }
+}
+
 interface AuthState {
   accessToken: string | null
   expiresAt: number | null // Unix timestamp (milliseconds)
+  isAdmin: boolean | null
   setAccessToken: (token: string, expiresIn: number) => void
   clearAccessToken: () => void
   isTokenExpired: () => boolean
@@ -14,15 +24,17 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       accessToken: null,
       expiresAt: null,
+      isAdmin: null,
 
       setAccessToken: (token: string, expiresIn: number) => {
         set({
           accessToken: token,
           expiresAt: Date.now() + expiresIn * 1000,
+          isAdmin: parseIsAdmin(token),
         })
       },
 
-      clearAccessToken: () => set({ accessToken: null, expiresAt: null }),
+      clearAccessToken: () => set({ accessToken: null, expiresAt: null, isAdmin: null }),
 
       isTokenExpired: () => {
         const { expiresAt } = get()
@@ -36,6 +48,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         accessToken: state.accessToken,
         expiresAt: state.expiresAt,
+        isAdmin: state.isAdmin,
       }),
     }
   )
