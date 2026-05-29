@@ -179,13 +179,13 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
 
       <nav className="flex border-b bg-background px-6">
         <button
-          onClick={() => router.push(`/end-user/${orgName}/workspace`)}
+          onClick={() => router.push(`/end-user/${orgName}/dashboard`)}
           className="border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           Projects
         </button>
         <button
-          onClick={() => router.push(`/end-user/${orgName}/workspace/cli`)}
+          onClick={() => router.push(`/end-user/${orgName}/dashboard/cli`)}
           className="border-b-2 border-primary px-4 py-3 text-sm font-medium text-primary"
         >
           CLI 使用

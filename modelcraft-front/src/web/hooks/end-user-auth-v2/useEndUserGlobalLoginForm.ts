@@ -120,7 +120,7 @@ export function useEndUserGlobalLoginForm(
           const safeRedirect =
             redirectTo && redirectTo.startsWith(`/end-user/${orgName}/`)
               ? redirectTo
-              : `/end-user/${orgName}/workspace`
+              : `/end-user/${orgName}/dashboard`
 
           router.push(safeRedirect)
         } catch {

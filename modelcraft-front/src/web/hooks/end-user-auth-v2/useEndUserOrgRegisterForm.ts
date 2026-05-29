@@ -97,9 +97,9 @@ export function useEndUserOrgRegisterForm(orgName: string): UseEndUserOrgRegiste
 
         const projects: EndUserAccessibleProject[] = data.projects ?? []
 
-        // 无论 0/1/N 个 Project，均跳转 workspace
+        // 无论 0/1/N 个 Project，均跳转 dashboard
         sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
-        router.push(`/end-user/${orgName}/workspace`)
+        router.push(`/end-user/${orgName}/dashboard`)
       } catch {
         setError('网络错误，请检查连接后重试')
       } finally {

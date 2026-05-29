@@ -100,7 +100,7 @@ export function EndUserOrgLoginCard({ orgName }: EndUserOrgLoginCardProps) {
       if (cancelled) return
 
       if (token) {
-        router.replace(`/end-user/${orgName}/workspace`)
+        router.replace(`/end-user/${orgName}/dashboard`)
         return
       }
 

@@ -390,11 +390,11 @@ export function AppLayout({
               onClick={() => {
                 const s = useEndUserAuthStore.getState()
                 if (s.accessToken && !s.isTokenExpired()) {
-                  router.push(`/end-user/${orgName}/workspace`)
+                  router.push(`/end-user/${orgName}/dashboard`)
                   return
                 }
                 void refreshEndUserAccessToken({ orgName }).then((token) => {
-                  router.push(token ? `/end-user/${orgName}/workspace` : `/end-user/login`)
+                  router.push(token ? `/end-user/${orgName}/dashboard` : `/end-user/login`)
                 })
               }}
             >

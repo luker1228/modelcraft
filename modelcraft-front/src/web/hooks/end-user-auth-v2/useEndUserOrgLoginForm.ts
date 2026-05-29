@@ -153,9 +153,9 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
 
         const projects: EndUserAccessibleProject[] = data.projects ?? []
 
-        // 写入可访问项目列表，跳转 workspace
+        // 写入可访问项目列表，跳转 dashboard
         sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
-        router.push(`/end-user/${orgName}/workspace`)
+        router.push(`/end-user/${orgName}/dashboard`)
       } catch {
         setError('网络错误，请检查连接后重试')
       } finally {

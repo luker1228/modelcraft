@@ -61,7 +61,7 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
       {/* Tab 导航 */}
       <nav className="flex border-b bg-background px-6">
         <button
-          onClick={() => router.push(`/end-user/${orgName}/workspace`)}
+          onClick={() => router.push(`/end-user/${orgName}/dashboard`)}
           className={`border-b-2 px-4 py-3 text-sm font-medium transition-colors ${
             activeTab === 'projects'
               ? 'border-primary text-primary'
@@ -71,7 +71,7 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
           Projects
         </button>
         <button
-          onClick={() => router.push(`/end-user/${orgName}/workspace/cli`)}
+          onClick={() => router.push(`/end-user/${orgName}/dashboard/cli`)}
           className="border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
         >
           CLI 使用

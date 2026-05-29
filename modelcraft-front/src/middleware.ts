@@ -15,7 +15,7 @@ import { END_USER_LOGIN_PATH, TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@s
  * End-User Auth:
  *  - All /end-user/* routes are handled separately before developer auth.
  *  - Public end-user paths (login) are allowed through.
- *  - Protected end-user paths (/end-user/[orgName]/workspace, /end-user/[orgName]/[projectSlug]/*)
+ *  - Protected end-user paths (/end-user/[orgName]/dashboard, /end-user/[orgName]/[projectSlug]/*)
  *    require the mc_refresh_token HttpOnly cookie.
  *    If missing, redirect to /end-user/[orgName]/login.
  */
@@ -40,10 +40,10 @@ const END_USER_PUBLIC_PATH_RE = /^\/end-user(?:\/login|\/[^/]+\/(login|no-projec
 
 /**
  * 终端用户受保护路径（仅真实业务路由）：
- *   /end-user/{orgName}/workspace
+ *   /end-user/{orgName}/dashboard
  *   /end-user/{orgName}/projects/{projectSlug}/...
  */
-const END_USER_WORKSPACE_RE = /^\/end-user\/([^/]+)\/workspace\/?$/
+const END_USER_WORKSPACE_RE = /^\/end-user\/([^/]+)\/dashboard\/?$/
 const END_USER_PROJECT_RE = /^\/end-user\/([^/]+)\/projects\/[^/]+(\/.*)?$/
 
 export function middleware(request: NextRequest) {

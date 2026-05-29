@@ -75,7 +75,7 @@ export default function Home() {
       if (hasBoth) {
         // Show selection page with "enter" buttons instead of auto-redirecting
         setAdminDest(`/org/${resolvedDevOrgName}/dashboard`)
-        setEndUserDest(`/end-user/${resolvedEndUserOrgName}/workspace`)
+        setEndUserDest(`/end-user/${resolvedEndUserOrgName}/dashboard`)
         setIsCheckingSession(false)
         return
       }
@@ -86,7 +86,7 @@ export default function Home() {
       }
 
       if (resolvedEndUserOrgName) {
-        router.replace(`/end-user/${resolvedEndUserOrgName}/workspace`)
+        router.replace(`/end-user/${resolvedEndUserOrgName}/dashboard`)
         return
       }
 
