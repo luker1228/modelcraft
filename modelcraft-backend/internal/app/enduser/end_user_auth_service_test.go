@@ -254,6 +254,13 @@ func (r *inMemoryEndUserRepo) HasProjectAccessByRole(
 	return false, nil
 }
 
+func (r *inMemoryEndUserRepo) ListAllProjectsByOrg(
+	_ context.Context,
+	_ string,
+) ([]domainenduser.AccessibleProject, error) {
+	return []domainenduser.AccessibleProject{}, nil
+}
+
 func (r *inMemoryEndUserRepo) GetBuiltinByOrg(_ context.Context, _ string) (*domainenduser.EndUser, error) {
 	return nil, nil //nolint:nilnil
 }

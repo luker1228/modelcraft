@@ -48,6 +48,9 @@ type EndUserRepository interface {
 	// 用户在该 Org 下可访问的 Project 列表（替代旧的 end_user_project_access 路径）。
 	ListAccessibleProjectsByRoleAssignment(ctx context.Context, orgName, endUserID string) ([]AccessibleProject, error)
 
+	// ListAllProjectsByOrg 返回 org 下所有未删除的 project（供 org admin 使用）。
+	ListAllProjectsByOrg(ctx context.Context, orgName string) ([]AccessibleProject, error)
+
 	// HasProjectAccessByRole 检查用户在指定 org+project 下是否有任意 Role 分配
 	HasProjectAccessByRole(ctx context.Context, orgName, endUserID, projectSlug string) (bool, error)
 }

@@ -34,6 +34,7 @@ type EndUserTokenIssueInput struct {
 	UserID       string
 	OrgName      string
 	ProjectSlugs []string
+	IsAdmin      bool
 }
 
 // EndUserTokenIssueResult is the issued end-user access token payload.
@@ -178,19 +179,24 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	accessibleProjects, err := userRepo.ListAccessibleProjectsByRoleAssignment(ctx, resolvedOrgName, user.ID)
+	var accessibleProjects []enduser.AccessibleProject
+	if user.IsAdmin {
+		accessibleProjects, err = userRepo.ListAllProjectsByOrg(ctx, resolvedOrgName)
+	} else {
+		accessibleProjects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, resolvedOrgName, user.ID)
+	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
 	accessToken := ""
-	if len(accessibleProjects) > 0 {
+	if user.IsAdmin || len(accessibleProjects) > 0 {
 		projectSlugs := make([]string, 0, len(accessibleProjects))
 		for _, item := range accessibleProjects {
 			projectSlugs = append(projectSlugs, item.ProjectSlug)
 		}
 
-		tokenResult, issueErr := s.issueAccessToken(ctx, user.ID, resolvedOrgName, projectSlugs)
+		tokenResult, issueErr := s.issueAccessToken(ctx, user.ID, resolvedOrgName, projectSlugs, user.IsAdmin)
 		if issueErr != nil {
 			return nil, issueErr
 		}
@@ -281,19 +287,24 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	accessibleProjects, err := userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, session.UserID)
+	var accessibleProjects []enduser.AccessibleProject
+	if user.IsAdmin {
+		accessibleProjects, err = userRepo.ListAllProjectsByOrg(ctx, cmd.OrgName)
+	} else {
+		accessibleProjects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, session.UserID)
+	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
 	accessToken := ""
-	if len(accessibleProjects) > 0 {
+	if user.IsAdmin || len(accessibleProjects) > 0 {
 		projectSlugs := make([]string, 0, len(accessibleProjects))
 		for _, item := range accessibleProjects {
 			projectSlugs = append(projectSlugs, item.ProjectSlug)
 		}
 
-		tokenResult, issueErr := s.issueAccessToken(ctx, session.UserID, cmd.OrgName, projectSlugs)
+		tokenResult, issueErr := s.issueAccessToken(ctx, session.UserID, cmd.OrgName, projectSlugs, user.IsAdmin)
 		if issueErr != nil {
 			return nil, issueErr
 		}
@@ -367,6 +378,7 @@ func (s *EndUserAuthAppService) issueAccessToken(
 	ctx context.Context,
 	userID, orgName string,
 	projectSlugs []string,
+	isAdmin bool,
 ) (*EndUserTokenIssueResult, error) {
 	if s.tokenIssuer == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "end-user token issuer not configured")
@@ -376,6 +388,7 @@ func (s *EndUserAuthAppService) issueAccessToken(
 		UserID:       userID,
 		OrgName:      orgName,
 		ProjectSlugs: projectSlugs,
+		IsAdmin:      isAdmin,
 	})
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "issue end-user access token")

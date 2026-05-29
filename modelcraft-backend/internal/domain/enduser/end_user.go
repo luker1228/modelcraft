@@ -13,6 +13,7 @@ type EndUser struct {
 	Username    string         // 3-64 chars, ^[a-zA-Z0-9_-]+$, unique within org
 	Password    HashedPassword // bcrypt hashed
 	IsForbidden bool           // whether the account is disabled
+	IsAdmin     bool           // whether the user is an org admin (user_orgs.is_admin = 1)
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

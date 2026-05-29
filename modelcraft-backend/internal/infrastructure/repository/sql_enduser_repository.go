@@ -66,7 +66,7 @@ func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) 
 		orgName = r.orgName
 	}
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, u.created_at, u.updated_at, uo.org_name
+		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
 		FROM users u
 		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
 		WHERE u.id = ? AND u.deleted_at = 0
@@ -81,7 +81,7 @@ func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, usern
 		orgName = r.orgName
 	}
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, u.created_at, u.updated_at, uo.org_name
+		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
 		FROM users u
 		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
 		WHERE u.name = ? AND u.deleted_at = 0
@@ -93,7 +93,7 @@ func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, usern
 // The single-org-per-user invariant ensures the returned row carries the owning org.
 func (r *SqlEndUserRepository) GetByUsernameGlobal(ctx context.Context, username string) (*enduser.EndUser, error) {
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, u.created_at, u.updated_at, uo.org_name
+		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
 		FROM users u
 		JOIN user_orgs uo ON uo.user_id = u.id AND uo.deleted_at = 0
 		WHERE u.name = ? AND u.deleted_at = 0
@@ -108,11 +108,12 @@ func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
 		username     string
 		passwordHash string
 		status       string
+		isAdmin      bool
 		createdAt    time.Time
 		updatedAt    time.Time
 		orgName      string
 	)
-	if err := row.Scan(&id, &username, &passwordHash, &status, &createdAt, &updatedAt, &orgName); err != nil {
+	if err := row.Scan(&id, &username, &passwordHash, &status, &isAdmin, &createdAt, &updatedAt, &orgName); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil //nolint:nilnil
 		}
@@ -124,6 +125,7 @@ func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
 		Username:    username,
 		Password:    enduser.NewHashedPasswordFromHash(passwordHash),
 		IsForbidden: status != endUserStatusActive,
+		IsAdmin:     isAdmin,
 		CreatedAt:   createdAt,
 		UpdatedAt:   updatedAt,
 	}, nil
@@ -347,6 +349,51 @@ func (r *SqlEndUserRepository) HasProjectAccessByRole(
 		return false, sqlerr.WrapSQLError(err)
 	}
 	return count > 0, nil
+}
+
+// ListAllProjectsByOrg 返回 org 下所有未删除的 project（供 org admin 使用）。
+func (r *SqlEndUserRepository) ListAllProjectsByOrg(
+	ctx context.Context, orgName string,
+) ([]enduser.AccessibleProject, error) {
+	const q = `
+		SELECT slug,
+		       COALESCE(title, slug)       AS project_title,
+		       COALESCE(description, '')   AS project_description,
+		       COALESCE(status, 'active')  AS project_status,
+		       created_at,
+		       updated_at
+		FROM projects
+		WHERE org_name = ? AND deleted_at = 0
+		ORDER BY slug ASC
+	`
+	rows, err := r.db.QueryContext(ctx, q, orgName)
+	if err != nil {
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	defer rows.Close()
+
+	projects := make([]enduser.AccessibleProject, 0)
+	for rows.Next() {
+		var p enduser.AccessibleProject
+		var createdAt, updatedAt *time.Time
+		if err := rows.Scan(
+			&p.ProjectSlug, &p.ProjectTitle, &p.ProjectDescription,
+			&p.ProjectStatus, &createdAt, &updatedAt,
+		); err != nil {
+			return nil, sqlerr.WrapSQLError(err)
+		}
+		if createdAt != nil {
+			p.ProjectCreatedAt = *createdAt
+		}
+		if updatedAt != nil {
+			p.ProjectUpdatedAt = *updatedAt
+		}
+		projects = append(projects, p)
+	}
+	if err = rows.Err(); err != nil {
+		return nil, sqlerr.WrapSQLError(err)
+	}
+	return projects, nil
 }
 
 // Compile-time interface check.
