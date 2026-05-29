@@ -18,7 +18,11 @@ import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
-import { refreshEndUserAccessToken } from '@api-client/end-user/end-user-auth-client'
+import {
+  getEndUserToken,
+  refreshEndUserAccessToken,
+} from '@api-client/end-user/end-user-auth-client'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import {
   Search,
   HelpCircle,
@@ -90,6 +94,7 @@ export function AppLayout({
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
+  const [hasEndUserSession, setHasEndUserSession] = useState(false)
 
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
@@ -120,6 +125,20 @@ export function AppLayout({
       console.error('[AppLayout] Failed to fetch memberships:', error)
     })
   }, [memberships.length, loadMembershipsStore])
+
+  // Check whether a valid end-user session exists so we can show the switch button
+  useEffect(() => {
+    const endUserStore = useEndUserAuthStore.getState()
+    const endUserToken = getEndUserToken()
+    if (endUserToken && !endUserStore.isTokenExpired()) {
+      setHasEndUserSession(true)
+      return
+    }
+    // Attempt silent refresh — fire-and-forget, no redirect
+    refreshEndUserAccessToken({ orgName }).then((token) => {
+      if (token) setHasEndUserSession(true)
+    }).catch(() => { /* ignore */ })
+  }, [orgName])
 
   const storeProjects = useProjectStore((state) => state.projects)
   const selectedProject = useProjectStore((state) => state.selectedProject)
@@ -366,25 +385,23 @@ export function AppLayout({
 
         {/* Right actions: Help + User only */}
         <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3 text-xs"
-            onClick={async () => {
-              console.log('[用户页] 点击，orgName:', orgName)
-              const token = await refreshEndUserAccessToken({ orgName })
-              console.log('[用户页] refreshEndUserAccessToken 结果:', token ? `token(${token.slice(0, 20)}...)` : 'null')
-              if (token) {
-                console.log('[用户页] → workspace')
-                router.push(`/end-user/${orgName}/workspace`)
-              } else {
-                console.log('[用户页] → login（无有效 session）')
-                router.push(`/end-user/login`)
-              }
-            }}
-          >
-            用户页
-          </Button>
+          {hasEndUserSession && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 px-3 text-xs"
+              onClick={async () => {
+                const token = await refreshEndUserAccessToken({ orgName })
+                if (token) {
+                  router.push(`/end-user/${orgName}/workspace`)
+                } else {
+                  router.push(`/end-user/login`)
+                }
+              }}
+            >
+              用户端
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"

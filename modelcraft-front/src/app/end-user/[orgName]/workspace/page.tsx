@@ -17,6 +17,7 @@ interface WorkspacePageProps {
 function WorkspaceContent({ orgName }: { orgName: string }) {
   const router = useRouter()
   const activeTab = 'projects'
+  const isAdmin = useEndUserAuthStore((s) => s.isAdmin)
 
   const { data, loading } = useQuery<{ endUserProjects: EndUserAccessibleProject[] }>(
     END_USER_PROJECTS
@@ -39,12 +40,22 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
       {/* 顶部栏 */}
       <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-6">
         <span className="text-base font-semibold text-foreground">{orgName}</span>
-        <button
-          onClick={() => void handleLogout()}
-          className="text-sm text-destructive hover:underline"
-        >
-          登出
-        </button>
+        <div className="flex items-center gap-3">
+          {isAdmin && (
+            <button
+              onClick={() => router.push(`/org/${orgName}/dashboard`)}
+              className="text-sm text-primary hover:underline"
+            >
+              管理端
+            </button>
+          )}
+          <button
+            onClick={() => void handleLogout()}
+            className="text-sm text-destructive hover:underline"
+          >
+            登出
+          </button>
+        </div>
       </header>
 
       {/* Tab 导航 */}
