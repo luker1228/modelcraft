@@ -34,13 +34,13 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         kind: 'nav',
         id: 'goto_project',
         label: '前往项目列表',
-        route: ({ orgName }) => `/org/${orgName}/workspace`,
+        route: ({ orgName }) => `/org/${orgName}/dashboard`,
       },
       {
         kind: 'nav',
         id: 'nav_create_project',
         label: '新建项目',
-        route: ({ orgName }) => `/org/${orgName}/workspace`,
+        route: ({ orgName }) => `/org/${orgName}/dashboard`,
       },
       {
         kind: 'tracked',
@@ -62,7 +62,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
+            : `/org/${orgName}/dashboard`,
       },
       {
         kind: 'nav',
@@ -71,7 +71,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
+            : `/org/${orgName}/dashboard`,
       },
       {
         kind: 'nav',
@@ -80,7 +80,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/model-editor`
-            : `/org/${orgName}/workspace`,
+            : `/org/${orgName}/dashboard`,
       },
       {
         kind: 'tracked',
@@ -127,7 +127,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/end-user-access`
-            : `/org/${orgName}/workspace`,
+            : `/org/${orgName}/dashboard`,
       },
       {
         kind: 'nav',
@@ -136,7 +136,7 @@ export const ONBOARDING_GROUPS: OnboardingGroup[] = [
         route: ({ orgName, projectSlug }) =>
           projectSlug
             ? `/org/${orgName}/project/${projectSlug}/end-user-access`
-            : `/org/${orgName}/workspace`,
+            : `/org/${orgName}/dashboard`,
       },
       {
         kind: 'tracked',

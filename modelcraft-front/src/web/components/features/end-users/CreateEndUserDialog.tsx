@@ -75,7 +75,7 @@ export function CreateEndUserDialog({ open, onClose, onCreate, orgName }: Create
 
   const handleGoToProjectAuth = () => {
     handleClose()
-    router.push(`/org/${orgName}/workspace`)
+    router.push(`/org/${orgName}/dashboard`)
   }
 
   return (

@@ -275,7 +275,7 @@ export default function WorkspacePage() {
     setCurrentOrgInfo(org)
     localStorage.setItem('lastSelectedOrgId', org.orgId)
     localStorage.setItem('defaultOrgName', org.orgName)
-    router.push(`/org/${org.orgName}/workspace`)
+    router.push(`/org/${org.orgName}/dashboard`)
   }, [router])
 
   if (authLoading) {

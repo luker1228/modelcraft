@@ -34,7 +34,11 @@ export default function RegisterPage() {
   })
 
   return (
-    <AuthLayout title="创建账号" subtitle="注册新账号">
+    <AuthLayout
+      title="创建账号"
+      subtitle="注册新账号"
+      backLink={{ href: '/', label: '返回登录选择' }}
+    >
       <Form {...form}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {/* Server error banner */}

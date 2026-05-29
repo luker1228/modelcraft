@@ -5,5 +5,5 @@ interface Props {
 }
 
 export default function OrgPage({ params }: Props) {
-  redirect(`/org/${params.orgName}/workspace`);
+  redirect(`/org/${params.orgName}/dashboard`);
 }

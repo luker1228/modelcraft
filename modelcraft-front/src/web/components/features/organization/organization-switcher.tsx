@@ -62,7 +62,7 @@ export function OrganizationSwitcher() {
       }
     }
 
-    router.push(`/org/${newOrg}/workspace`)
+    router.push(`/org/${newOrg}/dashboard`)
   }
 
   return (

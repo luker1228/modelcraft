@@ -33,20 +33,20 @@ export function getSmartRedirectUrl(
   // 单个组织 - 直接进入该组织的工作空间
   if (memberships.length === 1) {
     const org = memberships[0]
-    return `/org/${org.orgName}/workspace`
+    return `/org/${org.orgName}/dashboard`
   }
 
   // 多个组织 - 检查是否有上次选择的组织
   if (lastSelectedOrgId) {
     const lastOrg = memberships.find(m => m.orgId === lastSelectedOrgId)
     if (lastOrg) {
-      return `/org/${lastOrg.orgName}/workspace`
+      return `/org/${lastOrg.orgName}/dashboard`
     }
   }
 
   // 多个组织且没有历史记录 - 默认进入第一个组织
   const firstOrg = memberships[0]
-  return `/org/${firstOrg.orgName}/workspace`
+  return `/org/${firstOrg.orgName}/dashboard`
 }
 
 /**
@@ -59,7 +59,7 @@ export function getOrgRedirectUrl(
   lastSelectedProjectSlug?: string
 ): string {
   // 所有情况都显示工作空间，让用户自己选择项目
-  return `/org/${orgName}/workspace`
+  return `/org/${orgName}/dashboard`
 }
 
 /**

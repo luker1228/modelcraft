@@ -75,7 +75,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
               `[OrgLayout] Access denied to "${orgName}", redirecting to fallback org "${fallbackOrgName}"`
             );
             localStorage.setItem("defaultOrgName", fallbackOrgName);
-            router.push(`/org/${fallbackOrgName}/workspace`);
+            router.push(`/org/${fallbackOrgName}/dashboard`);
             return;
           }
 

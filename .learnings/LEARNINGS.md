@@ -986,3 +986,26 @@ CopilotKit 前端工具触发的自动 rerun 应按“latest user message 之后
 - Tags: login-route, tenant-login, redirect, auth-entry
 
 ---
+
+## [LRN-20260529-A1C] insight
+
+**Logged**: 2026-05-29T00:00:00Z
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+租户登录返回 `failed to issue access token` 时，先检查 membership 查询是否失败导致 `orgName` 为空，而不只是盯着 JWT 签发本身。
+
+### Details
+本次 `/api/tenant/auth/login` 的 requestId 日志显示，用户查询与 refresh token 落库都成功，真正异常来自 `ListMembershipsWithOrgDetails` 查询 `user_orgs` 表时报 `Table 'modelcraft.user_orgs' doesn't exist`。`TokenService.Login` 当前会吞掉 membership 查询错误，仅在成功时填充 `orgName`；随后 `JWTSigner.IssueAccessToken` 要求 `orgName` 非空，因此最终对外只暴露通用错误 `failed to issue access token`。这会把根因伪装成 JWT 问题，但实际是组织绑定表缺失/查询失败。
+
+### Suggested Action
+排查该错误时优先按 requestId 查看同请求前序 SQL 日志，重点看 `ListMembershipsWithOrgDetails` 是否成功；若失败，先修数据库 schema/数据源（尤其是 `user_orgs` 表）或改进日志/错误传播，不要先怀疑签名密钥。
+
+### Metadata
+- Source: investigation
+- Related Files: modelcraft-backend/internal/app/auth/token_service.go; modelcraft-backend/internal/domain/auth/jwt_signer.go; modelcraft-backend/internal/infrastructure/repository/sql_org_repository.go; modelcraft-backend/db/schema/mysql/06_users.sql
+- Tags: tenant-login, jwt, membership, user_orgs, requestid-debug
+
+---

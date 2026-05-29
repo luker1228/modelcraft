@@ -14,7 +14,7 @@ describe('buildAppLayoutBreadcrumbs', () => {
     expect(breadcrumbs).toEqual([
       {
         label: 'ACME Org',
-        href: '/org/acme/workspace',
+        href: '/org/acme/dashboard',
         isCurrent: false,
       },
       {
@@ -34,7 +34,7 @@ describe('buildAppLayoutBreadcrumbs', () => {
     expect(breadcrumbs).toEqual([
       {
         label: 'acme',
-        href: '/org/acme/workspace',
+        href: '/org/acme/dashboard',
         isCurrent: false,
       },
       {

@@ -16,7 +16,7 @@ export const PROJECT_REQUIRED_ROUTE_POLICY = {
   beforeAction: '每次执行前先调用 list_projects，不依赖历史会话中的 projectSlug',
   whenProjectsExist: '用 ui_present_proposal 让用户选择项目，再基于所选项目生成目标 route',
   whenNoProjects: '不要调用项目级工具；推荐用户先到项目列表创建项目',
-  createProjectRouteTemplate: '/org/:orgName/workspace',
+  createProjectRouteTemplate: '/org/:orgName/dashboard',
 } as const
 
 /**
@@ -26,7 +26,7 @@ export const PROJECT_REQUIRED_ROUTE_POLICY = {
  */
 export const ROUTE_CATALOG: RouteCatalogEntry[] = [
   {
-    routeTemplate: '/org/:orgName/workspace',
+    routeTemplate: '/org/:orgName/dashboard',
     title: '项目列表',
     description: '查看、搜索、创建和管理组织下的所有项目',
     keywords: ['项目列表', '所有项目', 'workspace', '项目管理'],

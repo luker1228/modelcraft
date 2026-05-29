@@ -5,7 +5,7 @@ import { END_USER_LOGIN_PATH, TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@s
  * Next.js Middleware — Single auth gate for all protected routes.
  *
  * Strategy:
- *  - Public routes (/tenant/login, /register, /api/*) are allowed through unconditionally.
+ *  - Public routes (/tenant/login, /tenant/register, /api/*) are allowed through unconditionally.
  *  - All other routes require the `mc_refresh_token` httpOnly cookie to be present.
  *    If missing, redirect to /tenant/login with the original URL as `redirect`.
  *  - We do NOT validate the token here (that would require calling the backend on every

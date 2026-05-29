@@ -39,7 +39,7 @@ export function buildAppLayoutBreadcrumbs({
   return [
     {
       label: orgDisplayName || orgName,
-      href: `/org/${orgName}/workspace`,
+      href: `/org/${orgName}/dashboard`,
       isCurrent: false,
     },
     {

@@ -27,7 +27,7 @@ export default function Home() {
       const defaultOrgName = localStorage.getItem('defaultOrgName')
       const devToken = getToken()
       if (devToken && defaultOrgName) {
-        router.replace(`/org/${defaultOrgName}/workspace`)
+        router.replace(`/org/${defaultOrgName}/dashboard`)
         return
       }
 
@@ -55,7 +55,7 @@ export default function Home() {
         if (refreshedToken) {
           const refreshedOrgName = localStorage.getItem('defaultOrgName')
           if (refreshedOrgName) {
-            router.replace(`/org/${refreshedOrgName}/workspace`)
+            router.replace(`/org/${refreshedOrgName}/dashboard`)
             return
           }
         }

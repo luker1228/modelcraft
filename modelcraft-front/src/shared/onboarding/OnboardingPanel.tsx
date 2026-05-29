@@ -233,7 +233,7 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
                             className="flex w-full items-center justify-center gap-1.5 rounded-md bg-amber-500 px-2 py-1.5 text-[11px] font-semibold text-white transition-colors hover:bg-amber-600"
                             onClick={() => {
                               setPendingAction('highlight_first_project')
-                              router.push(`/org/${orgName}/workspace`)
+                              router.push(`/org/${orgName}/dashboard`)
                             }}
                           >
                             选择项目 →
@@ -266,7 +266,7 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
                                 hasProjects
                               if (alwaysHighlight || needsProjectSelect) {
                                 setPendingAction('highlight_first_project')
-                                router.push(`/org/${orgName}/workspace`)
+                                router.push(`/org/${orgName}/dashboard`)
                                 return
                               }
                               // Action nav steps: set pendingAction to highlight target button

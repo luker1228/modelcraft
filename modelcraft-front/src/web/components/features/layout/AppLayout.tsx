@@ -168,7 +168,7 @@ export function AppLayout({
     (org: MembershipInfo) => {
       setOrgSearchQuery('')
       localStorage.setItem('defaultOrgName', org.orgName)
-      router.push(`/org/${org.orgName}/workspace`)
+      router.push(`/org/${org.orgName}/dashboard`)
     },
     [router]
   )
@@ -230,7 +230,7 @@ export function AppLayout({
     {
       header: '工作区',
       items: [
-        { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/org/${orgName}/workspace` },
+        { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/org/${orgName}/dashboard` },
         { label: '开发者', icon: '/icons/icon-users.svg', href: `/org/${orgName}/developers` },
         { label: '终端用户', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/end-users` },
       ],
@@ -365,6 +365,14 @@ export function AppLayout({
 
         {/* Right actions: Help + User only */}
         <div className="flex items-center gap-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 text-xs"
+            onClick={() => router.push(`/end-user/${orgName}/login`)}
+          >
+            用户页
+          </Button>
           <Button
             variant="ghost"
             size="sm"

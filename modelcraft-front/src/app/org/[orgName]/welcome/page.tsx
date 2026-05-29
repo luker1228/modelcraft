@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 
 /**
- * 重定向页面：/org/[orgName]/welcome -> /org/[orgName]/workspace
+ * 重定向页面：/org/[orgName]/welcome -> /org/[orgName]/dashboard
  */
 export default function WelcomeRedirect() {
   const router = useRouter()
@@ -13,7 +13,7 @@ export default function WelcomeRedirect() {
 
   useEffect(() => {
     if (orgName) {
-      router.replace(`/org/${orgName}/workspace`)
+      router.replace(`/org/${orgName}/dashboard`)
     }
   }, [orgName, router])
 

@@ -67,7 +67,7 @@ export function useLogin(): UseLoginReturn {
       // 记录默认组织和昵称并跳转到 workspace
       localStorage.setItem('defaultOrgName', orgName)
       localStorage.setItem('defaultUserName', userName)
-      router.push(`/org/${orgName}/workspace`)
+      router.push(`/org/${orgName}/dashboard`)
     } catch {
       setError('网络错误，请检查网络连接')
     } finally {
@@ -162,7 +162,7 @@ export function useRegister(): UseRegisterReturn {
 
       localStorage.setItem('defaultOrgName', orgName)
       localStorage.setItem('defaultUserName', userName)
-      router.push(`/org/${orgName}/workspace`)
+      router.push(`/org/${orgName}/dashboard`)
     } catch {
       setError('网络错误，请检查网络连接')
     } finally {

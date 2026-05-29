@@ -6,6 +6,7 @@
 
 import React from 'react'
 import { AlertCircle, Loader2, Eye, EyeOff, Database } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@web/components/ui/card'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -20,6 +21,7 @@ import {
   type EndUserOrgRegisterFormValues,
 } from '@web/hooks/end-user-auth-v2/useEndUserOrgRegisterForm'
 import type { Path, UseFormReturn, FieldValues } from 'react-hook-form'
+import { refreshEndUserAccessToken } from '@api-client/end-user/end-user-auth-client'
 
 // ============================================================================
 // Sub Components
@@ -154,12 +156,47 @@ function EndUserOrgRegisterFormContent({ orgName }: EndUserOrgLoginCardProps) {
  * - 0 个可访问 Project → 跳转待授权页
  */
 export function EndUserOrgLoginCard({ orgName }: EndUserOrgLoginCardProps) {
+  const router = useRouter()
   const [mode, setMode] = React.useState<'login' | 'register'>('login')
+  const [checkingSession, setCheckingSession] = React.useState(true)
   const { form, onSubmit, isLoading, error } = useEndUserOrgLoginForm(orgName)
   const {
     register,
     formState: { errors },
   } = form
+
+  React.useEffect(() => {
+    let cancelled = false
+
+    void (async () => {
+      const token = await refreshEndUserAccessToken({ orgName })
+      if (cancelled) return
+
+      if (token) {
+        router.replace(`/end-user/${orgName}/workspace`)
+        return
+      }
+
+      setCheckingSession(false)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [orgName, router])
+
+  if (checkingSession) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
+        <Card className="w-full max-w-md border bg-background shadow-sm">
+          <CardContent className="flex items-center justify-center px-8 py-10 text-sm text-muted-foreground">
+            <Loader2 className="mr-2 size-4 animate-spin" />
+            正在恢复会话...
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-muted/40 p-4">
