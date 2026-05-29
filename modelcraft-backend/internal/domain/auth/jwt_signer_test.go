@@ -13,7 +13,7 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 	}
 
 	t.Run("valid platform token", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudiencePlatform}, false)
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -54,7 +54,7 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 	})
 
 	t.Run("empty orgName returns error", func(t *testing.T) {
-		_, err := signer.IssueAccessToken("user-1", "", jwt.ClaimStrings{AudiencePlatform}, false)
+		_, err := signer.IssueAccessToken("user-1", "", false)
 		if err == nil {
 			t.Error("expected error for empty orgName")
 		}
@@ -80,7 +80,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	}
 
 	t.Run("valid platform token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudiencePlatform}, false)
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -110,7 +110,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	})
 
 	t.Run("tampered token returns error", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudiencePlatform}, false)
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -130,7 +130,7 @@ func TestIssueAccessTokenIsAdmin(t *testing.T) {
 	}
 
 	t.Run("admin flag is true", func(t *testing.T) {
-		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudiencePlatform}, true)
+		token, err := signer.IssueAccessToken("user-1", "my-org", true)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -144,7 +144,7 @@ func TestIssueAccessTokenIsAdmin(t *testing.T) {
 	})
 
 	t.Run("admin flag is false", func(t *testing.T) {
-		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudiencePlatform}, false)
+		token, err := signer.IssueAccessToken("user-1", "my-org", false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}

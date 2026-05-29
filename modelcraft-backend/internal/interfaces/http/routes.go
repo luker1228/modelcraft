@@ -51,7 +51,6 @@ import (
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/golang-jwt/jwt/v5"
 )
 
 // DesignHandlers holds all handlers and services needed for the design-time API.
@@ -139,7 +138,7 @@ func (i *endUserJWTIssuer) IssueEndUserToken(
 	}
 	now := time.Now().UTC()
 	accessToken, err := i.signer.IssueAccessToken(
-		input.UserID, input.OrgName, jwt.ClaimStrings{domainAuth.AudiencePlatform}, input.IsAdmin,
+		input.UserID, input.OrgName, input.IsAdmin,
 	)
 	if err != nil {
 		return nil, err

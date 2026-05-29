@@ -105,11 +105,9 @@ func GenerateDevSigner() (*JWTSigner, error) {
 }
 
 // IssueAccessToken 为指定用户签发短效 ES256 JWT（PlatformClaims 格式）。
-// orgName 不能为空。aud 字段用于标识受众类型（tenant / end_user），由调用方传入。
-// isAdmin 注入到 PlatformClaims.IsAdmin，用于网关层鉴权。
+// orgName 不能为空。aud 通常为 AudiencePlatform；isAdmin 区分管理员与普通用户。
 func (s *JWTSigner) IssueAccessToken(
 	userID, orgName string,
-	aud jwt.ClaimStrings,
 	isAdmin bool,
 ) (string, error) {
 	if orgName == "" {
@@ -124,7 +122,7 @@ func (s *JWTSigner) IssueAccessToken(
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    string(IssuerPlatform),
 			Subject:   userID,
-			Audience:  aud,
+			Audience:  jwt.ClaimStrings{AudiencePlatform},
 			IssuedAt:  jwt.NewNumericDate(now),
 			ExpiresAt: jwt.NewNumericDate(now.Add(s.ttl)),
 		},

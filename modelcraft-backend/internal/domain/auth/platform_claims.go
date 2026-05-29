@@ -9,7 +9,7 @@ import (
 )
 
 // PlatformClaims 是统一 JWT 的 payload 结构，适用于所有用户类型（tenant / end-user）。
-// 通过标准 aud 字段区分 token 的受众类型（tenant / end_user）。
+// aud 始终为 AudiencePlatform；is_admin 字段区分管理员与普通用户。
 // is_admin 由 Gateway 注入 X-Is-Admin header，供后端鉴权使用。
 type PlatformClaims struct {
 	UserID  string `json:"user_id"`
