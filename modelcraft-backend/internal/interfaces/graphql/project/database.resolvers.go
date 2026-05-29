@@ -6,9 +6,7 @@ package projectgraphql
 
 import (
 	"context"
-
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
-	domainmodeldatabase "modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/interfaces/graphql/project/generated"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
@@ -98,8 +96,14 @@ func (r *queryResolver) ClusterRawDatabases(ctx context.Context) ([]*generated.R
 	return result, nil
 }
 
-// modelDatabaseToGQL converts a domain ModelDatabase to the GQL type.
-func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelDatabase {
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelDatabase {
 	return &generated.ModelDatabase{
 		ID:          db.ID,
 		Name:        db.Name,
@@ -110,24 +114,18 @@ func modelDatabaseToGQL(db *domainmodeldatabase.ModelDatabase) *generated.ModelD
 		UpdatedAt:   db.UpdatedAt,
 	}
 }
-
-// domainDatabaseModeToGQL converts a domain DatabaseMode to the GQL enum.
 func domainDatabaseModeToGQL(m domainmodeldatabase.DatabaseMode) generated.DatabaseMode {
 	if m == domainmodeldatabase.DatabaseModeManaged {
 		return generated.DatabaseModeManaged
 	}
 	return generated.DatabaseModeSelfHosted
 }
-
-// gqlDatabaseModeToDomain converts a GQL DatabaseMode to the domain type.
 func gqlDatabaseModeToDomain(m generated.DatabaseMode) domainmodeldatabase.DatabaseMode {
 	if m == generated.DatabaseModeManaged {
 		return domainmodeldatabase.DatabaseModeManaged
 	}
 	return domainmodeldatabase.DatabaseModeSelfHosted
 }
-
-// domainDatabaseModeFromGQLPtr converts an optional GQL DatabaseMode pointer to domain type pointer.
 func domainDatabaseModeFromGQLPtr(m *generated.DatabaseMode) *domainmodeldatabase.DatabaseMode {
 	if m == nil {
 		return nil
@@ -135,11 +133,10 @@ func domainDatabaseModeFromGQLPtr(m *generated.DatabaseMode) *domainmodeldatabas
 	mode := gqlDatabaseModeToDomain(*m)
 	return &mode
 }
-
-// derefStringOrEmpty dereferences a string pointer; returns "" when nil.
 func derefStringOrEmpty(s *string) string {
 	if s == nil {
 		return ""
 	}
 	return *s
 }
+*/
