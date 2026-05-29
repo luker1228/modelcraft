@@ -41,7 +41,7 @@ function WorkspaceContent({ orgName }: { orgName: string }) {
       <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-6">
         <span className="text-base font-semibold text-foreground">{orgName}</span>
         <div className="flex items-center gap-3">
-          {isAdmin && (
+          {isAdmin === true && (
             <button
               onClick={() => router.push(`/org/${orgName}/dashboard`)}
               className="text-sm text-primary hover:underline"

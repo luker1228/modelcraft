@@ -19,7 +19,6 @@ import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
 import {
-  getEndUserToken,
   refreshEndUserAccessToken,
 } from '@api-client/end-user/end-user-auth-client'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
@@ -87,6 +86,9 @@ export function AppLayout({
   const params = useParams()
   const pathname = usePathname()
 
+  const orgName = params.orgName as string
+  const projectSlug = params.projectSlug as string
+
   const token = getToken()
   const userInfo = getUserInfoFromToken(token || '')
   const [storedUserName, setStoredUserName] = useState('')
@@ -94,13 +96,22 @@ export function AppLayout({
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
-  const [hasEndUserSession, setHasEndUserSession] = useState(false)
+  const [hasEndUserSession, setHasEndUserSession] = useState(() => {
+    const s = useEndUserAuthStore.getState()
+    return !!s.accessToken && !s.isTokenExpired()
+  })
+
+  // Attempt silent refresh only when no valid session was found synchronously
+  useEffect(() => {
+    if (hasEndUserSession) return
+    // Attempt silent refresh — fire-and-forget, no redirect
+    refreshEndUserAccessToken({ orgName }).then((token) => {
+      if (token) setHasEndUserSession(true)
+    }).catch(() => { /* ignore */ })
+  }, [orgName])
 
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
-
-  const orgName = params.orgName as string
-  const projectSlug = params.projectSlug as string
 
   useEffect(() => {
     setStoredUserName(localStorage.getItem('defaultUserName') || '')
@@ -125,20 +136,6 @@ export function AppLayout({
       console.error('[AppLayout] Failed to fetch memberships:', error)
     })
   }, [memberships.length, loadMembershipsStore])
-
-  // Check whether a valid end-user session exists so we can show the switch button
-  useEffect(() => {
-    const endUserStore = useEndUserAuthStore.getState()
-    const endUserToken = getEndUserToken()
-    if (endUserToken && !endUserStore.isTokenExpired()) {
-      setHasEndUserSession(true)
-      return
-    }
-    // Attempt silent refresh — fire-and-forget, no redirect
-    refreshEndUserAccessToken({ orgName }).then((token) => {
-      if (token) setHasEndUserSession(true)
-    }).catch(() => { /* ignore */ })
-  }, [orgName])
 
   const storeProjects = useProjectStore((state) => state.projects)
   const selectedProject = useProjectStore((state) => state.selectedProject)
@@ -390,13 +387,15 @@ export function AppLayout({
               variant="outline"
               size="sm"
               className="h-8 px-3 text-xs"
-              onClick={async () => {
-                const token = await refreshEndUserAccessToken({ orgName })
-                if (token) {
+              onClick={() => {
+                const s = useEndUserAuthStore.getState()
+                if (s.accessToken && !s.isTokenExpired()) {
                   router.push(`/end-user/${orgName}/workspace`)
-                } else {
-                  router.push(`/end-user/login`)
+                  return
                 }
+                void refreshEndUserAccessToken({ orgName }).then((token) => {
+                  router.push(token ? `/end-user/${orgName}/workspace` : `/end-user/login`)
+                })
               }}
             >
               用户端

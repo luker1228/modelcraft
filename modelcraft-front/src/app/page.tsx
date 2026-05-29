@@ -43,7 +43,9 @@ export default function Home() {
       // --- Resolve dev/admin session ---
       if (devToken && defaultOrgName) {
         resolvedDevOrgName = defaultOrgName
-      } else if (!devToken) {
+      }
+      // If resolvedDevOrgName is still null (token missing OR org name missing), attempt refresh
+      if (!resolvedDevOrgName) {
         const refreshedToken = await refreshAccessToken()
         if (refreshedToken) {
           const refreshedOrgName = localStorage.getItem('defaultOrgName')
@@ -109,7 +111,7 @@ export default function Home() {
   const hasBothSessions = adminDest && endUserDest
 
   return (
-    <AuthLayout title="统一登录入口" subtitle="请选择适合您的登录方式" showCliPromo>
+    <AuthLayout title="统一登录入口" subtitle={hasBothSessions ? "请选择要进入的工作区" : "请选择适合您的登录方式"} showCliPromo>
       <div className="flex flex-col gap-4">
         <section className="rounded-xl border border-border bg-muted/20 p-4">
           <div className="mb-3">
@@ -122,7 +124,7 @@ export default function Home() {
           <div className="flex flex-col gap-2">
             {hasBothSessions ? (
               <Button asChild className="w-full">
-                <NextLink href={adminDest!}>进入管理端</NextLink>
+                <NextLink href={adminDest}>进入管理端</NextLink>
               </Button>
             ) : (
               <>
@@ -148,7 +150,7 @@ export default function Home() {
           </div>
 
           <Button asChild className="w-full">
-            <NextLink href={hasBothSessions ? endUserDest! : END_USER_LOGIN_PATH}>
+            <NextLink href={hasBothSessions ? endUserDest : END_USER_LOGIN_PATH}>
               {hasBothSessions ? '进入用户端' : '用户登录'}
             </NextLink>
           </Button>
