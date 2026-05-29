@@ -70,7 +70,7 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 		OrgName:        req.OrgName,
 		Username:       req.Username,
 		Identifier:     req.Identifier,
-		IdentifierType: req.IdentifierType,
+		IdentifierType: appEnduser.IdentifierType(req.IdentifierType),
 		Password:       req.Password,
 	})
 	if err != nil {

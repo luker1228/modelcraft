@@ -6,6 +6,7 @@ import (
 	"database/sql/driver"
 	"errors"
 	"fmt"
+	domainAuth "modelcraft/internal/domain/auth"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/logfacade"
 	"testing"
@@ -41,8 +42,8 @@ func (i *fakeTokenIssuer) IssueEndUserToken(
 }
 
 type fakeRepoFactory struct {
-	userRepo    *inMemoryEndUserRepo
-	sessionRepo *inMemoryEndUserSessionRepo
+	userRepo         *inMemoryEndUserRepo
+	refreshTokenRepo *inMemoryRefreshTokenRepo
 }
 
 func (f *fakeRepoFactory) NewEndUserRepository(
@@ -52,11 +53,10 @@ func (f *fakeRepoFactory) NewEndUserRepository(
 	return f.userRepo
 }
 
-func (f *fakeRepoFactory) NewEndUserSessionRepository(
+func (f *fakeRepoFactory) NewRefreshTokenRepository(
 	_ SQLDBTX,
-	_, _ string,
-) domainenduser.EndUserSessionRepository {
-	return f.sessionRepo
+) domainAuth.RefreshTokenRepository {
+	return f.refreshTokenRepo
 }
 
 type fakeTxManager struct{}
@@ -110,6 +110,7 @@ func (noopSQLDBTX) QueryRowContext(
 type inMemoryEndUserRepo struct {
 	usersByID          map[string]*domainenduser.EndUser
 	usersByOrgName     map[string]map[string]*domainenduser.EndUser
+	usersByPhone       map[string]map[string]*domainenduser.EndUser // orgName → phone → user
 	forceSaveErr       error
 	forceLookupErr     error
 	forceDeleteErr     error
@@ -123,6 +124,7 @@ func newInMemoryEndUserRepo() *inMemoryEndUserRepo {
 	return &inMemoryEndUserRepo{
 		usersByID:          make(map[string]*domainenduser.EndUser),
 		usersByOrgName:     make(map[string]map[string]*domainenduser.EndUser),
+		usersByPhone:       make(map[string]map[string]*domainenduser.EndUser),
 		accessibleProjects: make(map[string][]domainenduser.AccessibleProject),
 	}
 }
@@ -178,10 +180,21 @@ func (r *inMemoryEndUserRepo) GetByUsername(
 
 func (r *inMemoryEndUserRepo) GetByPhone(
 	_ context.Context,
-	_ string,
-	_ string,
+	orgName string,
+	phone string,
 ) (*domainenduser.EndUser, error) {
-	return nil, nil //nolint:nilnil
+	if r.forceLookupErr != nil {
+		return nil, r.forceLookupErr
+	}
+	usersInOrg, ok := r.usersByPhone[orgName]
+	if !ok {
+		return nil, nil //nolint:nilnil
+	}
+	user, ok := usersInOrg[phone]
+	if !ok {
+		return nil, nil //nolint:nilnil
+	}
+	return user, nil
 }
 
 func (r *inMemoryEndUserRepo) GetByUsernameGlobal(
@@ -284,94 +297,101 @@ func (r *inMemoryEndUserRepo) UpdatePassword(
 	return nil
 }
 
-type inMemoryEndUserSessionRepo struct {
-	sessionsByID   map[string]*domainenduser.EndUserSession
-	sessionsByHash map[string]*domainenduser.EndUserSession
+// inMemoryRefreshTokenRepo implements domainAuth.RefreshTokenRepository for tests.
+type inMemoryRefreshTokenRepo struct {
+	tokensByID     map[string]*domainAuth.RefreshToken
+	tokensByHash   map[string]*domainAuth.RefreshToken
 	forceSaveErr   error
 	forceFindErr   error
 	forceRevokeErr error
 }
 
-func newInMemoryEndUserSessionRepo() *inMemoryEndUserSessionRepo {
-	return &inMemoryEndUserSessionRepo{
-		sessionsByID:   make(map[string]*domainenduser.EndUserSession),
-		sessionsByHash: make(map[string]*domainenduser.EndUserSession),
+func newInMemoryRefreshTokenRepo() *inMemoryRefreshTokenRepo {
+	return &inMemoryRefreshTokenRepo{
+		tokensByID:   make(map[string]*domainAuth.RefreshToken),
+		tokensByHash: make(map[string]*domainAuth.RefreshToken),
 	}
 }
 
-func (r *inMemoryEndUserSessionRepo) Save(
+func (r *inMemoryRefreshTokenRepo) Save(
 	_ context.Context,
-	session *domainenduser.EndUserSession,
+	token *domainAuth.RefreshToken,
 ) error {
 	if r.forceSaveErr != nil {
 		return r.forceSaveErr
 	}
-	s := *session
-	r.sessionsByID[s.ID] = &s
-	r.sessionsByHash[s.RefreshTokenHash] = &s
+	t := *token
+	r.tokensByID[t.ID] = &t
+	r.tokensByHash[t.TokenHash] = &t
 	return nil
 }
 
-func (r *inMemoryEndUserSessionRepo) GetByTokenHash(
+func (r *inMemoryRefreshTokenRepo) FindByHash(
 	_ context.Context,
-	tokenHash string,
-) (*domainenduser.EndUserSession, error) {
+	hash string,
+) (*domainAuth.RefreshToken, error) {
 	if r.forceFindErr != nil {
 		return nil, r.forceFindErr
 	}
-	session, ok := r.sessionsByHash[tokenHash]
+	token, ok := r.tokensByHash[hash]
 	if !ok {
-		return nil, nil
+		return nil, nil //nolint:nilnil
 	}
-	return session, nil
+	return token, nil
 }
 
-func (r *inMemoryEndUserSessionRepo) RevokeByID(
+func (r *inMemoryRefreshTokenRepo) Revoke(
 	_ context.Context,
 	id string,
 ) error {
 	if r.forceRevokeErr != nil {
 		return r.forceRevokeErr
 	}
-	session, ok := r.sessionsByID[id]
+	token, ok := r.tokensByID[id]
 	if !ok {
 		return nil
 	}
-	session.Revoked = true
+	now := time.Now()
+	token.RevokedAt = &now
 	return nil
 }
 
-func (r *inMemoryEndUserSessionRepo) RevokeAllByUserID(
+func (r *inMemoryRefreshTokenRepo) RevokeAllByUserID(
 	_ context.Context,
 	userID string,
 ) error {
-	for _, session := range r.sessionsByID {
-		if session.UserID == userID {
-			session.Revoked = true
+	now := time.Now()
+	for _, token := range r.tokensByID {
+		if token.UserID == userID {
+			token.RevokedAt = &now
 		}
 	}
+	return nil
+}
+
+func (r *inMemoryRefreshTokenRepo) DeleteExpired(_ context.Context) error {
 	return nil
 }
 
 func createEndUserAuthServiceForTest(t *testing.T) (
 	*EndUserAuthAppService,
 	*inMemoryEndUserRepo,
-	*inMemoryEndUserSessionRepo,
+	*inMemoryRefreshTokenRepo,
 ) {
 	t.Helper()
 
 	userRepo := newInMemoryEndUserRepo()
-	sessionRepo := newInMemoryEndUserSessionRepo()
+	refreshTokenRepo := newInMemoryRefreshTokenRepo()
 
 	svc := NewEndUserAuthAppService(
 		&sql.DB{},
-		&fakeRepoFactory{userRepo: userRepo, sessionRepo: sessionRepo},
+		&fakeRepoFactory{userRepo: userRepo, refreshTokenRepo: refreshTokenRepo},
 		&fakeTxManager{},
 		&fakeTokenIssuer{},
 		logfacade.GetLogger(context.Background()),
 	)
 
-	return svc, userRepo, sessionRepo
+	return svc, userRepo, refreshTokenRepo
 }
 
 func seedEndUser(
@@ -404,7 +424,7 @@ func requireBusinessErrorCode(t *testing.T, err error, code string) {
 }
 
 func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
-	svc, userRepo, sessionRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, refreshTokenRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
 	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
@@ -422,7 +442,7 @@ func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 	assert.NotEmpty(t, result.AccessToken)
 	assert.Len(t, result.Projects, 2)
 	assert.NotEmpty(t, result.RefreshToken)
-	assert.Len(t, sessionRepo.sessionsByID, 1)
+	assert.Len(t, refreshTokenRepo.tokensByID, 1)
 
 	issuer, ok := svc.tokenIssuer.(*fakeTokenIssuer)
 	require.True(t, ok)
@@ -433,7 +453,7 @@ func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_LoginEndUser_ResolveOrgFromUsername(t *testing.T) {
-	svc, userRepo, sessionRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, refreshTokenRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
 	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
@@ -449,7 +469,7 @@ func TestEndUserAuthAppService_LoginEndUser_ResolveOrgFromUsername(t *testing.T)
 	assert.Equal(t, "user-1", result.UserID)
 	assert.NotEmpty(t, result.AccessToken)
 	assert.NotEmpty(t, result.RefreshToken)
-	assert.Len(t, sessionRepo.sessionsByID, 1)
+	assert.Len(t, refreshTokenRepo.tokensByID, 1)
 
 	issuer, ok := svc.tokenIssuer.(*fakeTokenIssuer)
 	require.True(t, ok)
@@ -491,7 +511,7 @@ func TestEndUserAuthAppService_LoginEndUser_DisabledAccount(t *testing.T) {
 }
 
 func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
-	svc, userRepo, sessionRepo := createEndUserAuthServiceForTest(t)
+	svc, userRepo, refreshTokenRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
 	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
 		{ProjectSlug: "project-a", ProjectTitle: "A"},
@@ -517,9 +537,9 @@ func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
 	assert.Len(t, refreshResult.Projects, 1)
 
 	oldHash := hashToken(loginResult.RefreshToken)
-	oldSession := sessionRepo.sessionsByHash[oldHash]
-	require.NotNil(t, oldSession)
-	assert.True(t, oldSession.Revoked)
+	oldToken := refreshTokenRepo.tokensByHash[oldHash]
+	require.NotNil(t, oldToken)
+	assert.True(t, oldToken.IsRevoked())
 }
 
 func TestEndUserAuthAppService_RefreshEndUserToken_InvalidToken(t *testing.T) {
@@ -589,9 +609,94 @@ func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T)
 	assert.NotEmpty(t, refreshResult.RefreshToken)
 }
 
+func seedEndUserByPhone(
+	t *testing.T,
+	repo *inMemoryEndUserRepo,
+	orgName,
+	userID,
+	username,
+	phone,
+	plainPassword string,
+) {
+	t.Helper()
+
+	hashed, err := domainenduser.NewHashedPasswordFromPlain(plainPassword)
+	require.NoError(t, err)
+
+	user, err := domainenduser.NewEndUser(userID, orgName, username, hashed)
+	require.NoError(t, err)
+	require.NoError(t, repo.Save(context.Background(), user))
+
+	if _, ok := repo.usersByPhone[orgName]; !ok {
+		repo.usersByPhone[orgName] = make(map[string]*domainenduser.EndUser)
+	}
+	repo.usersByPhone[orgName][phone] = user
+}
+
+func TestEndUserAuthAppService_LoginEndUser_Phone_Success(t *testing.T) {
+	svc, userRepo, refreshTokenRepo := createEndUserAuthServiceForTest(t)
+	seedEndUserByPhone(t, userRepo, "org-a", "user-1", "alice", "+8613812345678", "Password123")
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
+	}
+
+	result, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:        "org-a",
+		Identifier:     "+8613812345678",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "Password123",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "user-1", result.UserID)
+	assert.Equal(t, "org-a", result.OrgName)
+	assert.NotEmpty(t, result.AccessToken)
+	assert.NotEmpty(t, result.RefreshToken)
+	assert.Len(t, refreshTokenRepo.tokensByID, 1)
+}
+
+func TestEndUserAuthAppService_LoginEndUser_Phone_EmptyOrgName(t *testing.T) {
+	svc, _, _ := createEndUserAuthServiceForTest(t)
+
+	_, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:        "",
+		Identifier:     "+8613812345678",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "Password123",
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserParamInvalid.GetCode())
+}
+
+func TestEndUserAuthAppService_LoginEndUser_Phone_EmptyIdentifier(t *testing.T) {
+	svc, _, _ := createEndUserAuthServiceForTest(t)
+
+	_, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:        "org-a",
+		Identifier:     "",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "Password123",
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserParamInvalid.GetCode())
+}
+
+func TestEndUserAuthAppService_LoginEndUser_Phone_UserNotFound(t *testing.T) {
+	svc, _, _ := createEndUserAuthServiceForTest(t)
+
+	_, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		OrgName:        "org-a",
+		Identifier:     "+8613800000000",
+		IdentifierType: IdentifierTypePhone,
+		Password:       "Password123",
+	})
+	require.Error(t, err)
+	requireBusinessErrorCode(t, err, bizerrors.EndUserInvalidCredentials.GetCode())
+}
+
 var (
-	_ driver.Result                          = noopResult{}
-	_ SQLDBTX                                = noopSQLDBTX{}
-	_ domainenduser.EndUserRepository        = (*inMemoryEndUserRepo)(nil)
-	_ domainenduser.EndUserSessionRepository = (*inMemoryEndUserSessionRepo)(nil)
+	_ driver.Result                     = noopResult{}
+	_ SQLDBTX                           = noopSQLDBTX{}
+	_ domainenduser.EndUserRepository   = (*inMemoryEndUserRepo)(nil)
+	_ domainAuth.RefreshTokenRepository = (*inMemoryRefreshTokenRepo)(nil)
 )

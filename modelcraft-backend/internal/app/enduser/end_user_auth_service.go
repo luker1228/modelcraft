@@ -7,6 +7,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"fmt"
+	domainAuth "modelcraft/internal/domain/auth"
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
@@ -53,8 +54,8 @@ type EndUserTokenIssuer interface {
 type RepositoryFactory interface {
 	// NewEndUserRepository creates an EndUserRepository from a DB/TX connection.
 	NewEndUserRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserRepository
-	// NewEndUserSessionRepository creates an EndUserSessionRepository from a DB/TX connection.
-	NewEndUserSessionRepository(db SQLDBTX, orgName, projectSlug string) enduser.EndUserSessionRepository
+	// NewRefreshTokenRepository creates a RefreshTokenRepository from a DB/TX connection.
+	NewRefreshTokenRepository(db SQLDBTX) domainAuth.RefreshTokenRepository
 }
 
 // TxManager manages database transactions for private databases.
@@ -135,10 +136,16 @@ func (s *EndUserAuthAppService) RegisterEndUser(ctx context.Context, cmd Registe
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate session id")
 	}
 	expiresAt := time.Now().Add(s.refreshTTL)
-	session := enduser.NewEndUserSession(sessionID, user.ID, tokenHash, expiresAt)
+	token := &domainAuth.RefreshToken{
+		ID:        sessionID,
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
 
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, cmd.OrgName, "")
-	if err := sessionRepo.Save(ctx, session); err != nil {
+	refreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(s.db)
+	if err := refreshTokenRepo.Save(ctx, token); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
@@ -157,33 +164,42 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 
 	resolvedOrgName := cmd.OrgName
 
-	// 解析 identifier：优先使用 Identifier 字段，否则退化到 Username
+	// 解析 identifier：优先使用 Identifier 字段，否则退化到 Username。
+	// 若客户端显式指定了 IdentifierType，无论 Identifier 是否为空都使用该类型。
 	identifier := cmd.Username
-	idType := "USERNAME"
-	if cmd.Identifier != "" {
+	idType := IdentifierTypeUsername
+	if cmd.IdentifierType != "" {
+		// Explicit type provided: always use it together with Identifier.
 		identifier = cmd.Identifier
 		idType = cmd.IdentifierType
-		if idType == "" {
-			idType = "USERNAME"
-		}
+	} else if cmd.Identifier != "" {
+		// No explicit type but Identifier is present: infer USERNAME.
+		identifier = cmd.Identifier
 	}
 
 	var user *enduser.EndUser
 	var err error
 	switch idType {
-	case "PHONE":
+	case IdentifierTypePhone:
 		if resolvedOrgName == "" {
 			return nil, bizerrors.NewErrorFromContext(
 				ctx, bizerrors.EndUserParamInvalid, "orgName is required for phone login",
 			)
 		}
+		if identifier == "" {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "phone is required")
+		}
 		user, err = userRepo.GetByPhone(ctx, resolvedOrgName, identifier)
-	default:
+	case IdentifierTypeUsername:
 		if resolvedOrgName != "" {
 			user, err = userRepo.GetByUsername(ctx, resolvedOrgName, identifier)
 		} else {
 			user, err = userRepo.GetByUsernameGlobal(ctx, identifier)
 		}
+	default:
+		return nil, bizerrors.NewErrorFromContext(
+			ctx, bizerrors.EndUserParamInvalid, "unsupported identifier type: "+string(idType),
+		)
 	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -235,10 +251,16 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate session id")
 	}
 	expiresAt := time.Now().Add(s.refreshTTL)
-	session := enduser.NewEndUserSession(sessionID, user.ID, tokenHash, expiresAt)
+	token := &domainAuth.RefreshToken{
+		ID:        sessionID,
+		UserID:    user.ID,
+		TokenHash: tokenHash,
+		ExpiresAt: expiresAt,
+		CreatedAt: time.Now(),
+	}
 
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, resolvedOrgName, "")
-	if err := sessionRepo.Save(ctx, session); err != nil {
+	refreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(s.db)
+	if err := refreshTokenRepo.Save(ctx, token); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
@@ -264,41 +286,41 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 // LogoutEndUser handles end-user logout (idempotent).
 func (s *EndUserAuthAppService) LogoutEndUser(ctx context.Context, cmd LogoutCommand) error {
 	tokenHash := hashToken(cmd.RefreshToken)
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, cmd.OrgName, "")
-	session, err := sessionRepo.GetByTokenHash(ctx, tokenHash)
+	refreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(s.db)
+	token, err := refreshTokenRepo.FindByHash(ctx, tokenHash)
 	if err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	if session == nil {
+	if token == nil {
 		return nil
 	}
 
-	if err := sessionRepo.RevokeByID(ctx, session.ID); err != nil {
+	if err := refreshTokenRepo.Revoke(ctx, token.ID); err != nil {
 		return bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	s.logger.Infof(ctx, "EndUser logout: session_id=%s", session.ID)
+	s.logger.Infof(ctx, "EndUser logout: token_id=%s", token.ID)
 	return nil
 }
 
 // RefreshEndUserToken handles token refresh with rotation (transactional).
 func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd RefreshCommand) (*RefreshResult, error) {
 	tokenHash := hashToken(cmd.RefreshToken)
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, cmd.OrgName, "")
-	session, err := sessionRepo.GetByTokenHash(ctx, tokenHash)
+	refreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(s.db)
+	token, err := refreshTokenRepo.FindByHash(ctx, tokenHash)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if session == nil {
+	if token == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
 	}
-	if !session.IsValid() {
+	if !token.IsValid() {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
 	}
 
 	userRepo := s.repoFactory.NewEndUserRepository(s.db, cmd.OrgName, "")
-	user, err := userRepo.GetByID(ctx, cmd.OrgName, session.UserID)
+	user, err := userRepo.GetByID(ctx, cmd.OrgName, token.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -313,7 +335,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 	if user.IsAdmin {
 		accessibleProjects, err = userRepo.ListAllProjectsByOrg(ctx, cmd.OrgName)
 	} else {
-		accessibleProjects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, session.UserID)
+		accessibleProjects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, token.UserID)
 	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
@@ -326,7 +348,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 			projectSlugs = append(projectSlugs, item.ProjectSlug)
 		}
 
-		tokenResult, issueErr := s.issueAccessToken(ctx, session.UserID, cmd.OrgName, projectSlugs, user.IsAdmin)
+		tokenResult, issueErr := s.issueAccessToken(ctx, token.UserID, cmd.OrgName, projectSlugs, user.IsAdmin)
 		if issueErr != nil {
 			return nil, issueErr
 		}
@@ -335,9 +357,9 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 
 	var result *RefreshResult
 	err = s.txManager.WithTx(ctx, s.db, func(ctx context.Context, txDB SQLDBTX) error {
-		txSessionRepo := s.repoFactory.NewEndUserSessionRepository(txDB, cmd.OrgName, "")
+		txRefreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(txDB)
 
-		if err := txSessionRepo.RevokeByID(ctx, session.ID); err != nil {
+		if err := txRefreshTokenRepo.Revoke(ctx, token.ID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
 
@@ -346,19 +368,25 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 			return bizerrors.WrapError(err, bizerrors.SystemError, "generate new refresh token")
 		}
 
-		newSessionID, err := bizutils.GenerateUUIDV7()
+		newTokenID, err := bizutils.GenerateUUIDV7()
 		if err != nil {
-			return bizerrors.WrapError(err, bizerrors.SystemError, "generate session id")
+			return bizerrors.WrapError(err, bizerrors.SystemError, "generate token id")
 		}
 		expiresAt := time.Now().Add(s.refreshTTL)
-		newSession := enduser.NewEndUserSession(newSessionID, session.UserID, newTokenHash, expiresAt)
+		newToken := &domainAuth.RefreshToken{
+			ID:        newTokenID,
+			UserID:    token.UserID,
+			TokenHash: newTokenHash,
+			ExpiresAt: expiresAt,
+			CreatedAt: time.Now(),
+		}
 
-		if err := txSessionRepo.Save(ctx, newSession); err != nil {
+		if err := txRefreshTokenRepo.Save(ctx, newToken); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
 
 		result = &RefreshResult{
-			UserID:       session.UserID,
+			UserID:       token.UserID,
 			AccessToken:  accessToken,
 			Projects:     toAppAccessibleProjects(accessibleProjects),
 			RefreshToken: newPlaintext,
@@ -373,7 +401,7 @@ func (s *EndUserAuthAppService) RefreshEndUserToken(ctx context.Context, cmd Ref
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "refresh token transaction")
 	}
 
-	s.logger.Infof(ctx, "EndUser token refreshed: user_id=%s", session.UserID)
+	s.logger.Infof(ctx, "EndUser token refreshed: user_id=%s", token.UserID)
 	return result, nil
 }
 

@@ -118,11 +118,10 @@ func (f *endUserAuthRepositoryFactory) NewEndUserRepository(
 	return repository.NewSqlEndUserRepository(db, orgName, projectSlug)
 }
 
-func (f *endUserAuthRepositoryFactory) NewEndUserSessionRepository(
+func (f *endUserAuthRepositoryFactory) NewRefreshTokenRepository(
 	db appEnduser.SQLDBTX,
-	orgName, projectSlug string,
-) domainEndUser.EndUserSessionRepository {
-	return repository.NewSqlEndUserSessionRepository(db, orgName, projectSlug)
+) domainAuth.RefreshTokenRepository {
+	return repository.NewSqlRefreshTokenRepository(dbgen.New(db))
 }
 
 type endUserJWTIssuer struct {

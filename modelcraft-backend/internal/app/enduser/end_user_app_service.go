@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"modelcraft/internal/domain/shared"
+	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 
@@ -180,9 +181,9 @@ func (s *EndUserManagementAppService) DeleteEndUser(
 
 	err = s.txManager.WithTx(ctx, s.db, func(ctx context.Context, txDB SQLDBTX) error {
 		txUserRepo := infrrepo.NewSqlEndUserRepository(txDB, cmd.OrgName, "")
-		txSessionRepo := infrrepo.NewSqlEndUserSessionRepository(txDB, cmd.OrgName, "")
+		txRefreshTokenRepo := infrrepo.NewSqlRefreshTokenRepository(dbgen.New(txDB))
 
-		if err := txSessionRepo.RevokeAllByUserID(ctx, cmd.UserID); err != nil {
+		if err := txRefreshTokenRepo.RevokeAllByUserID(ctx, cmd.UserID); err != nil {
 			return bizerrors.ConvertRepositoryError(ctx, err)
 		}
 		if err := txUserRepo.Delete(ctx, cmd.OrgName, cmd.UserID); err != nil {

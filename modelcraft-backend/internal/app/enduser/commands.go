@@ -26,12 +26,22 @@ type AccessibleProject struct {
 	Title string
 }
 
+// IdentifierType indicates which field is used to identify the end-user on login.
+type IdentifierType string
+
+const (
+	// IdentifierTypeUsername identifies the user by username (default).
+	IdentifierTypeUsername IdentifierType = "USERNAME"
+	// IdentifierTypePhone identifies the user by phone number.
+	IdentifierTypePhone IdentifierType = "PHONE"
+)
+
 // LoginCommand represents a login request from an end-user.
 type LoginCommand struct {
 	OrgName        string
-	Username       string // 保留向后兼容
-	Identifier     string // 登录标识符（手机号或用户名），优先于 Username
-	IdentifierType string // "USERNAME" 或 "PHONE"，默认 USERNAME
+	Username       string         // 保留向后兼容
+	Identifier     string         // 登录标识符（手机号或用户名），优先于 Username
+	IdentifierType IdentifierType // "USERNAME" 或 "PHONE"，默认 USERNAME
 	Password       string
 }
 
