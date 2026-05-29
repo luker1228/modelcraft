@@ -917,3 +917,26 @@ CopilotKit 前端工具触发的自动 rerun 应按“latest user message 之后
 - Tags: copilotkit, ag-ui, proposal-loop, latest-user-message, regression
 
 ---
+
+## [LRN-20260529-001] best_practice
+
+**Logged**: 2026-05-29T00:00:00Z
+**Priority**: medium
+**Status**: pending
+**Area**: backend
+
+### Summary
+`gqlgen` 重新生成 resolver 后，文件尾部的 helper 可能被挪进 WARNING 注释块，若仍被当前 resolver 引用会直接触发 undefined 编译错误。
+
+### Details
+本次 `modelcraft-backend/internal/interfaces/graphql/project/database.resolvers.go` 编译失败，表面上是 `derefStringOrEmpty`、`gqlDatabaseModeToDomain`、`modelDatabaseToGQL`、`domainDatabaseModeFromGQLPtr` 未定义。根因不是 schema 或 service 逻辑缺失，而是 gqlgen 在更新 resolver 时把这些辅助函数移动到了文件尾部的 `// !!! WARNING !!!` 注释保留区，导致源码中实际没有可编译定义。
+
+### Suggested Action
+遇到 gqlgen 生成后的 resolver `undefined` 错误时，先检查目标文件末尾是否存在 WARNING 注释块；若缺失符号就在其中，优先把 helper 恢复为正常函数或迁移到独立 helpers 文件，再补齐所需 import，而不是先去改 schema 或 app/domain 层。
+
+### Metadata
+- Source: investigation
+- Related Files: modelcraft-backend/internal/interfaces/graphql/project/database.resolvers.go
+- Tags: gqlgen, resolver, compile-error, helper-functions
+
+---

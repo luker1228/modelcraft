@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+const minimumStrengthHint = "Use at least 8 characters containing letters and digits"
+
 // convertUserWhereInput maps GraphQL UserWhereInput to app-layer filter.
 func convertUserWhereInput(w *generated.UserWhereInput) *appEnduser.MetaUserFindManyFilter {
 	if w == nil {
@@ -45,7 +47,7 @@ func convertOrgCreateEndUserError(err *bizerrors.BusinessError) generated.Create
 		return &generated.EndUserAlreadyExists{Message: err.Msg()}
 	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
 		if strings.Contains(strings.ToLower(err.Msg()), "password") {
-			suggestion := "Use at least 8 characters containing letters and digits"
+			suggestion := minimumStrengthHint
 			return &generated.EndUserPasswordTooWeak{Message: err.Msg(), Suggestion: &suggestion}
 		}
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -98,7 +100,7 @@ func convertOrgResetEndUserPasswordError(err *bizerrors.BusinessError) generated
 	case appEnduser.ErrBuiltinUserCannotBeDisabled.GetCode():
 		return &generated.BuiltinUserCannotBeDisabled{Message: err.Msg()}
 	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
-		suggestion := "Use at least 8 characters containing letters and digits"
+		suggestion := minimumStrengthHint
 		return &generated.EndUserPasswordTooWeak{Message: err.Msg(), Suggestion: &suggestion}
 	default:
 		return &generated.InvalidInput{Message: err.Msg()}
@@ -114,7 +116,7 @@ func convertOrgCreateUserError(err *bizerrors.BusinessError) generated.CreateUse
 		return &generated.EndUserAlreadyExists{Message: err.Msg()}
 	case bizerrors.EndUserParamInvalid.GetCode(), bizerrors.ParamInvalid.GetCode():
 		if strings.Contains(strings.ToLower(err.Msg()), "password") {
-			suggestion := "Use at least 8 characters containing letters and digits"
+			suggestion := minimumStrengthHint
 			return &generated.EndUserPasswordTooWeak{Message: err.Msg(), Suggestion: &suggestion}
 		}
 		return &generated.InvalidInput{Message: err.Msg()}

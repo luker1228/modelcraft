@@ -20,5 +20,10 @@
       "WebFetch(domain:docs.sqlc.dev)",
       "WebFetch(domain:9.135.32.8)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "codegraph"
+  ],
+  "disabledMcpjsonServers": []
 }
