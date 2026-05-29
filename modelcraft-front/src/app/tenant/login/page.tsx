@@ -43,7 +43,11 @@ export default function TenantLoginPage() {
   })
 
   return (
-    <AuthLayout title="管理员登录" subtitle="登录管理控制台">
+    <AuthLayout
+      title="欢迎回来，管理员"
+      subtitle="登录管理控制台"
+      backLink={{ href: '/', label: '返回登录选择' }}
+    >
       <Form {...form}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">
           {/* Server error banner */}

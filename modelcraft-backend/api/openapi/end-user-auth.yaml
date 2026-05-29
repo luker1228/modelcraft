@@ -177,13 +177,12 @@ schemas:
   EndUserLoginRequest:
     type: object
     required:
-      - orgName
       - username
       - password
     properties:
       orgName:
         type: string
-        description: Organization slug
+        description: Optional organization slug. When omitted, the backend resolves it from the username.
         example: my-org
       projectSlug:
         type: string
@@ -265,6 +264,9 @@ schemas:
           expiresAt:
             type: string
             format: date-time
+          orgName:
+            type: string
+            description: Resolved organization slug for the authenticated end-user
           projects:
             type: array
             items:

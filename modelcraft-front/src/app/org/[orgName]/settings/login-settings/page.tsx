@@ -1,7 +1,6 @@
 'use client'
 
-import { useMemo, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useState } from 'react'
 import { Save } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
@@ -10,18 +9,13 @@ import { Switch } from '@web/components/ui/switch'
 import { toast } from 'sonner'
 
 export default function OrgLoginSettingsPage() {
-  const params = useParams()
-  const orgName = params.orgName as string
-
   const [enabled, setEnabled] = useState(true)
   const [allowSignup, setAllowSignup] = useState(false)
   const [sessionTTL, setSessionTTL] = useState('60')
   const [issuer, setIssuer] = useState('modelcraft')
   const [saving, setSaving] = useState(false)
 
-  const endUserLoginPath = useMemo(() => {
-    return `/end-user/${orgName}/login`
-  }, [orgName])
+  const endUserLoginPath = '/end-user/login'
 
   const handleSave = () => {
     // TODO: connect org login settings API

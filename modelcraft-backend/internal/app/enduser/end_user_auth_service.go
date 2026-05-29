@@ -153,12 +153,23 @@ func (s *EndUserAuthAppService) RegisterEndUser(ctx context.Context, cmd Registe
 // LoginEndUser handles end-user login.
 func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
 	userRepo := s.repoFactory.NewEndUserRepository(s.db, cmd.OrgName, "")
-	user, err := userRepo.GetByUsername(ctx, cmd.OrgName, cmd.Username)
+
+	resolvedOrgName := cmd.OrgName
+	var user *enduser.EndUser
+	var err error
+	if resolvedOrgName != "" {
+		user, err = userRepo.GetByUsername(ctx, resolvedOrgName, cmd.Username)
+	} else {
+		user, err = userRepo.GetByUsernameGlobal(ctx, cmd.Username)
+	}
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 	if user == nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidCredentials)
+	}
+	if resolvedOrgName == "" {
+		resolvedOrgName = user.OrgName
 	}
 	if !user.VerifyPassword(cmd.Password) {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidCredentials)
@@ -167,7 +178,7 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	accessibleProjects, err := userRepo.ListAccessibleProjectsByRoleAssignment(ctx, cmd.OrgName, user.ID)
+	accessibleProjects, err := userRepo.ListAccessibleProjectsByRoleAssignment(ctx, resolvedOrgName, user.ID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
@@ -179,7 +190,7 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 			projectSlugs = append(projectSlugs, item.ProjectSlug)
 		}
 
-		tokenResult, issueErr := s.issueAccessToken(ctx, user.ID, cmd.OrgName, projectSlugs)
+		tokenResult, issueErr := s.issueAccessToken(ctx, user.ID, resolvedOrgName, projectSlugs)
 		if issueErr != nil {
 			return nil, issueErr
 		}
@@ -198,21 +209,23 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 	expiresAt := time.Now().Add(s.refreshTTL)
 	session := enduser.NewEndUserSession(sessionID, user.ID, tokenHash, expiresAt)
 
-	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, cmd.OrgName, "")
+	sessionRepo := s.repoFactory.NewEndUserSessionRepository(s.db, resolvedOrgName, "")
 	if err := sessionRepo.Save(ctx, session); err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
 	s.logger.Infof(
 		ctx,
-		"EndUser login: id=%s, username=%s, projects=%d",
+		"EndUser login: id=%s, username=%s, org=%s, projects=%d",
 		user.ID,
 		cmd.Username,
+		resolvedOrgName,
 		len(accessibleProjects),
 	)
 
 	return &LoginResult{
 		UserID:       user.ID,
+		OrgName:      resolvedOrgName,
 		AccessToken:  accessToken,
 		Projects:     toAppAccessibleProjects(accessibleProjects),
 		RefreshToken: plaintext,

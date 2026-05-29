@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, getEndUserLoginPath } from '@shared/constants/routes'
+import { END_USER_LOGIN_PATH, TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@shared/constants/routes'
 
 /**
  * Next.js Middleware — Single auth gate for all protected routes.
@@ -23,7 +23,7 @@ import { TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, getEndUserLoginPath } from '@s
 // ============================================
 // 开发者认证配置
 // ============================================
-const DEV_PUBLIC_PATHS = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, '/tenant/login']
+const DEV_PUBLIC_PATHS = [TENANT_LOGIN_PATH, TENANT_REGISTER_PATH, '/login']
 const DEV_REFRESH_COOKIE = 'mc_refresh_token'
 
 // ============================================
@@ -36,7 +36,7 @@ export const END_USER_REFRESH_COOKIE = 'mc_refresh_token'
  *   /end-user/{orgName}/login
  *   /end-user/{orgName}/no-project-access
  */
-const END_USER_PUBLIC_PATH_RE = /^\/end-user\/[^/]+\/(login|no-project-access)\/?$/
+const END_USER_PUBLIC_PATH_RE = /^\/end-user(?:\/login|\/[^/]+\/(login|no-project-access))\/?$/
 
 /**
  * 终端用户受保护路径（仅真实业务路由）：
@@ -69,7 +69,7 @@ export function middleware(request: NextRequest) {
     if (protectedOrgName) {
       const hasToken = request.cookies.has(END_USER_REFRESH_COOKIE)
       if (!hasToken) {
-        const loginUrl = new URL(getEndUserLoginPath(protectedOrgName), request.url)
+        const loginUrl = new URL(END_USER_LOGIN_PATH, request.url)
         loginUrl.searchParams.set('redirect', pathname)
         return NextResponse.redirect(loginUrl)
       }
@@ -82,7 +82,18 @@ export function middleware(request: NextRequest) {
 
   // ===== DEVELOPER AUTH =====
 
-  if (DEV_PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  if (pathname === '/login') {
+    const tenantLoginUrl = new URL(TENANT_LOGIN_PATH, request.url)
+    request.nextUrl.searchParams.forEach((value, key) => {
+      tenantLoginUrl.searchParams.set(key, value)
+    })
+    return NextResponse.redirect(tenantLoginUrl)
+  }
+
+  if (
+    pathname === '/' ||
+    DEV_PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(`${p}/`))
+  ) {
     return NextResponse.next()
   }
 

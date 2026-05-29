@@ -32,6 +32,15 @@ func (f *fakeEndUserRepo) GetByUsername(_ context.Context, _, username string) (
 	return nil, nil
 }
 
+func (f *fakeEndUserRepo) GetByUsernameGlobal(_ context.Context, username string) (*domainenduser.EndUser, error) {
+	for _, u := range f.users {
+		if u.Username == username {
+			return u, nil
+		}
+	}
+	return nil, nil
+}
+
 func (f *fakeEndUserRepo) UpdateStatus(_ context.Context, _, id string, isForbidden bool) error {
 	if u, ok := f.users[id]; ok {
 		u.IsForbidden = isForbidden

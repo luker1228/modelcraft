@@ -46,6 +46,10 @@ frontend:
 agent:
     {{COMPOSE}} -f {{COMPOSE_FILE}} up -d --build modelcraft-agent
 
+# Restart APISIX service
+apisix:
+    {{COMPOSE}} -f {{COMPOSE_FILE}} restart apisix
+
 # Start tools profile services
 tools:
     {{COMPOSE}} -f {{COMPOSE_FILE}} --profile tools up -d

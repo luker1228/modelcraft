@@ -65,6 +65,14 @@ function resolveMeScenario(request: Request): EndUserMeScenario {
 // ============================================================================
 
 export const endUserAuthHandlers = [
+  // POST /api/bff/end-user/auth/login
+  http.post('/api/bff/end-user/auth/login', async ({ request }) => {
+    const scenario = resolveLoginScenario(request)
+    const { status, body } = createMockLoginPayload(scenario)
+
+    return HttpResponse.json(body, { status })
+  }),
+
   // POST /api/bff/org/:orgName/end-user/auth/login
   http.post('/api/bff/org/:orgName/end-user/auth/login', async ({ request }) => {
     const scenario = resolveLoginScenario(request)

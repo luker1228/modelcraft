@@ -64,11 +64,6 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
 		return
 	}
-	if req.OrgName == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
-		return
-	}
-
 	result, err := h.authService.LoginEndUser(ctx, appEnduser.LoginCommand{
 		OrgName:  req.OrgName,
 		Username: req.Username,
@@ -80,7 +75,7 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
+	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, result.OrgName,
 		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
 		toProjectList(result.Projects), ""))
 }
@@ -115,7 +110,7 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
+	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, req.OrgName,
 		"", "" /* stored in httpOnly cookie */, result.ExpiresAt, nil, ""))
 }
 
@@ -173,7 +168,7 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 	}
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID,
+	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, req.OrgName,
 		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
 		toProjectList(result.Projects), ""))
 }
@@ -278,7 +273,7 @@ func toProjectList(items []appEnduser.AccessibleProject) []projectItem {
 }
 
 func buildTokenResponse(
-	requestID, userID, accessToken, refreshToken string,
+	requestID, userID, orgName, accessToken, refreshToken string,
 	expiresAt time.Time,
 	projects []projectItem,
 	selectedProject string,
@@ -286,6 +281,9 @@ func buildTokenResponse(
 	m := map[string]any{
 		"requestId": requestID,
 		"userId":    userID,
+	}
+	if orgName != "" {
+		m["orgName"] = orgName
 	}
 	if accessToken != "" {
 		m["accessToken"] = accessToken

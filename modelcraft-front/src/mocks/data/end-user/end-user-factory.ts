@@ -96,6 +96,7 @@ export function createMockLoginPayload(
         body: {
           accessToken: createMockAccessToken(),
           expiresIn: 3600,
+          orgName: 'test',
         },
       }
   }
@@ -130,6 +131,7 @@ export function createMockRegisterPayload(
         body: {
           accessToken: createMockAccessToken(),
           expiresIn: 3600,
+          orgName: 'test',
         },
       }
   }
@@ -159,6 +161,7 @@ export function createMockRefreshPayload(
         body: {
           accessToken: createMockAccessToken(),
           expiresIn: 3600,
+          orgName: 'test',
         },
       }
   }

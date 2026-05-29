@@ -68,3 +68,33 @@ unknown shorthand flag: 'f' in -f
 - Related Files: .github/workflows/release-cli.yml
 
 ---
+
+## [ERR-20260529-001] brainstorming-visual-server
+
+**Logged**: 2026-05-29T05:33:21Z
+**Priority**: medium
+**Status**: pending
+**Area**: docs
+
+### Summary
+visual companion 的 `start-server.sh` 在当前仓库中用相对 `--project-dir .` 启动会失败，因为脚本内部会切换到脚本目录后再写 session 文件。
+
+### Error
+```
+.../start-server.sh: line 119: ./.superpowers/brainstorm/.../state/server.log: No such file or directory
+{"error": "Server failed to start within 5 seconds"}
+```
+
+### Context
+- Command attempted: `start-server.sh --project-dir .`
+- Root cause: 脚本在解析参数后 `cd "$SCRIPT_DIR"`，导致相对 `PROJECT_DIR` 不再指向仓库根目录。
+- Successful workaround: 改为传入绝对路径形式 `--project-dir "$PWD"`。
+
+### Suggested Fix
+以后在这个 visual companion 脚本中一律传绝对 `--project-dir`，或在脚本中提前把 `PROJECT_DIR` 规范化为绝对路径。
+
+### Metadata
+- Reproducible: yes
+- Related Files: .codebuddy/plugins/marketplaces/superpowers-marketplace/plugins/superpowers/skills/brainstorming/scripts/start-server.sh
+
+---

@@ -7,8 +7,8 @@
 
 /** BFF 终端用户登录请求 */
 export interface EndUserLoginRequest {
-  orgName: string
-  projectSlug: string
+  orgName?: string
+  projectSlug?: string
   username: string
   password: string
 }
@@ -27,6 +27,7 @@ export interface EndUserAuthResponse {
   refreshToken?: string
   expiresAt?: string // ISO 8601（Go 后端返回）
   expiresIn?: number // 兼容旧 BFF 签发字段
+  orgName?: string
   projects?: EndUserAccessibleProject[]
   userId?: string
   requestId?: string

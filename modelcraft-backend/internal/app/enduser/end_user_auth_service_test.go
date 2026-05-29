@@ -176,6 +176,21 @@ func (r *inMemoryEndUserRepo) GetByUsername(
 	return user, nil
 }
 
+func (r *inMemoryEndUserRepo) GetByUsernameGlobal(
+	_ context.Context,
+	username string,
+) (*domainenduser.EndUser, error) {
+	if r.forceLookupErr != nil {
+		return nil, r.forceLookupErr
+	}
+	for _, user := range r.usersByID {
+		if user.Username == username {
+			return user, nil
+		}
+	}
+	return nil, nil
+}
+
 func (r *inMemoryEndUserRepo) UpdateStatus(
 	_ context.Context,
 	orgName,
@@ -400,6 +415,31 @@ func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 	assert.Equal(t, "user-1", issuer.issuedInputs[0].UserID)
 	assert.Equal(t, "org-a", issuer.issuedInputs[0].OrgName)
 	assert.Equal(t, []string{"project-a", "project-b"}, issuer.issuedInputs[0].ProjectSlugs)
+}
+
+func TestEndUserAuthAppService_LoginEndUser_ResolveOrgFromUsername(t *testing.T) {
+	svc, userRepo, sessionRepo := createEndUserAuthServiceForTest(t)
+	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
+	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
+		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
+	}
+
+	result, err := svc.LoginEndUser(context.Background(), LoginCommand{
+		Username: "alice",
+		Password: "Password123",
+	})
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	assert.Equal(t, "org-a", result.OrgName)
+	assert.Equal(t, "user-1", result.UserID)
+	assert.NotEmpty(t, result.AccessToken)
+	assert.NotEmpty(t, result.RefreshToken)
+	assert.Len(t, sessionRepo.sessionsByID, 1)
+
+	issuer, ok := svc.tokenIssuer.(*fakeTokenIssuer)
+	require.True(t, ok)
+	require.Len(t, issuer.issuedInputs, 1)
+	assert.Equal(t, "org-a", issuer.issuedInputs[0].OrgName)
 }
 
 func TestEndUserAuthAppService_LoginEndUser_NoProjectAccess(t *testing.T) {

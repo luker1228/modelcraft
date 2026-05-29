@@ -36,6 +36,7 @@ type LoginCommand struct {
 // LoginResult represents the result of a successful login.
 type LoginResult struct {
 	UserID       string
+	OrgName      string
 	AccessToken  string
 	Projects     []AccessibleProject
 	RefreshToken string // opaque token plaintext (returned only once)

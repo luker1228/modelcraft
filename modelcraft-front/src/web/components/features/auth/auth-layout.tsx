@@ -1,6 +1,8 @@
 'use client'
 
+import { ArrowLeft } from 'lucide-react'
 import Image from 'next/image'
+import NextLink from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@web/components/ui/card'
 import { NeuralCanvas } from './neural-canvas'
 
@@ -8,9 +10,20 @@ interface AuthLayoutProps {
   children: React.ReactNode
   title: string
   subtitle: string
+  showCliPromo?: boolean
+  backLink?: {
+    href: string
+    label: string
+  }
 }
 
-export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
+export function AuthLayout({
+  children,
+  title,
+  subtitle,
+  showCliPromo = false,
+  backLink,
+}: AuthLayoutProps) {
   return (
     <div className="flex min-h-[100dvh] bg-background">
       {/* Left brand panel — hidden on mobile */}
@@ -81,6 +94,22 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
                   </p>
                 </div>
               </div>
+              {showCliPromo && (
+                <div className="group/item cursor-default">
+                  <div className="flex items-center gap-3 py-2">
+                    <span
+                      className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
+                      style={{ background: 'rgba(139,130,255,0.25)', color: '#EDE7FF' }}
+                    >CLI</span>
+                    <span className="text-sm font-medium text-white">支持 CLI 使用</span>
+                  </div>
+                  <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-hover/item:grid-rows-[1fr]">
+                    <p className="overflow-hidden pl-8 text-xs leading-relaxed" style={{ color: '#697386' }}>
+                      详见文档，AI Agent 可通过命令行直接查询和操作数据。
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -92,32 +121,44 @@ export function AuthLayout({ children, title, subtitle }: AuthLayoutProps) {
       </div>
 
       {/* Right form panel */}
-      <div className="flex flex-1 items-center justify-center p-6">
-        <Card className="w-full max-w-sm rounded-xl border border-border bg-background shadow-sm">
-          {/* Mobile logo */}
-          <div className="flex items-center justify-center gap-2.5 px-8 pt-8 lg:hidden">
-            <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
-              <Image src="/icons/icon-model-graphql.svg" alt="ModelCraft" width={16} height={16} />
+      <div className="flex flex-1 items-center justify-center px-6 py-8">
+        <div className="flex w-full max-w-[420px] flex-col items-start">
+          {backLink && (
+            <NextLink
+              href={backLink.href}
+              className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="size-3.5" />
+              <span>{backLink.label}</span>
+            </NextLink>
+          )}
+
+          <Card className="w-full rounded-xl border border-border bg-background shadow-sm">
+            {/* Mobile logo */}
+            <div className="flex items-center justify-center gap-2.5 px-8 pt-8 lg:hidden">
+              <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+                <Image src="/icons/icon-model-graphql.svg" alt="ModelCraft" width={16} height={16} />
+              </div>
+              <span className="text-base font-semibold text-foreground">ModelCraft</span>
             </div>
-            <span className="text-base font-semibold text-foreground">ModelCraft</span>
-          </div>
 
-          <CardHeader className="px-8 pt-8 pb-0">
-            <CardTitle className="text-2xl">{title}</CardTitle>
-            <CardDescription>{subtitle}</CardDescription>
-          </CardHeader>
+            <CardHeader className="px-8 pb-2 pt-8">
+              <CardTitle className="text-2xl">{title}</CardTitle>
+              <CardDescription>{subtitle}</CardDescription>
+            </CardHeader>
 
-          <CardContent className="px-8 pt-6 pb-8">
-            {children}
+            <CardContent className="px-8 pb-8 pt-4">
+              {children}
 
-            <p className="mt-6 text-center text-xs text-muted-foreground">
-              登录即表示您同意我们的{' '}
-              <a href="#" className="text-primary hover:underline">服务条款</a>
-              {' '}和{' '}
-              <a href="#" className="text-primary hover:underline">隐私政策</a>
-            </p>
-          </CardContent>
-        </Card>
+              <p className="mt-6 text-center text-xs text-muted-foreground">
+                登录即表示您同意我们的{' '}
+                <a href="#" className="text-primary hover:underline">服务条款</a>
+                {' '}和{' '}
+                <a href="#" className="text-primary hover:underline">隐私政策</a>
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

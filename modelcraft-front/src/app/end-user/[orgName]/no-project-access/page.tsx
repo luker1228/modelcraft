@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { ShieldAlert } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@web/components/ui/card'
 import { Button } from '@web/components/ui/button'
+import { END_USER_LOGIN_PATH } from '@shared/constants/routes'
 
 export const metadata: Metadata = {
   title: '待授权',
@@ -44,10 +45,10 @@ export default async function NoProjectAccessPage({ params }: NoProjectAccessPag
 
           <div className="flex flex-col gap-2">
             <Button asChild>
-              <Link href={`/end-user/${orgName}/login`}>我已申请，重新登录</Link>
+              <Link href={END_USER_LOGIN_PATH}>我已申请，重新登录</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`/end-user/${orgName}/login`}>返回登录页</Link>
+              <Link href={END_USER_LOGIN_PATH}>返回登录页</Link>
             </Button>
           </div>
         </CardContent>
