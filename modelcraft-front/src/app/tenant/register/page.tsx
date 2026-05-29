@@ -1,9 +1,10 @@
 'use client'
 
 import NextLink from 'next/link'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2 } from 'lucide-react'
+import { Loader2, RefreshCw } from 'lucide-react'
 import { registerFormSchema, type RegisterFormValues } from '@/shared/validation/auth'
 import { useRegister } from '@/web/hooks/auth/use-auth-form'
 import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
@@ -21,13 +22,39 @@ import {
   FormDescription,
 } from '@web/components/ui/form'
 
+function generateOrgSlug(userName: string): string {
+  const base = userName.toLowerCase().replace(/[^a-z0-9_]/g, '')
+  const safeBase = /^[a-z]/.test(base) ? base : 'org_' + base
+  const trimmed = safeBase.slice(0, 18)
+  const suffix = Math.random().toString(36).slice(2, 6)
+  const candidate = trimmed.length >= 4 ? trimmed + '_' + suffix : 'org_' + suffix
+  return candidate.slice(0, 24)
+}
+
 export default function RegisterPage() {
   const { register, isLoading, error } = useRegister()
+  const [userEditedOrgName, setUserEditedOrgName] = useState(false)
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
-    defaultValues: { phone: '', userName: '', password: '', confirmPassword: '' },
+    defaultValues: { phone: '', userName: '', orgName: '', password: '', confirmPassword: '' },
   })
+
+  const watchedUserName = form.watch('userName')
+  const prevUserNameRef = useRef('')
+
+  useEffect(() => {
+    if (prevUserNameRef.current === watchedUserName) return
+    prevUserNameRef.current = watchedUserName
+    if (!userEditedOrgName && watchedUserName.length >= 1) {
+      form.setValue('orgName', generateOrgSlug(watchedUserName), { shouldValidate: false })
+    }
+  }, [watchedUserName, userEditedOrgName, form])
+
+  const handleRefreshOrgSlug = () => {
+    const currentUserName = form.getValues('userName')
+    form.setValue('orgName', generateOrgSlug(currentUserName || 'org'), { shouldValidate: true })
+  }
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await register(values)
@@ -77,6 +104,42 @@ export default function RegisterPage() {
                 </FormControl>
                 <FormDescription className="text-xs">
                   3-32 位，注册后不可修改，将作为登录凭证
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="orgName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>组织名</FormLabel>
+                <FormControl>
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="my_org"
+                      autoComplete="off"
+                      {...field}
+                      onChange={(e) => {
+                        setUserEditedOrgName(true)
+                        field.onChange(e)
+                      }}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="icon"
+                      onClick={handleRefreshOrgSlug}
+                      title="换一个"
+                    >
+                      <RefreshCw className="size-4" />
+                    </Button>
+                  </div>
+                </FormControl>
+                <FormDescription className="text-xs">
+                  6-24 位，小写字母/数字/下划线，以字母开头，注册后可修改
                 </FormDescription>
                 <FormMessage />
               </FormItem>

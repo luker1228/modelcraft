@@ -68,12 +68,16 @@ export async function refreshEndUserAccessToken(
         credentials: 'include',
       })
 
+      console.log('[refreshEndUserAccessToken] status:', res.status, 'orgName:', orgName)
+
       if (!res.ok) {
+        console.log('[refreshEndUserAccessToken] 失败，清除 session')
         useEndUserAuthStore.getState().clearSession()
         return null
       }
 
       const data = (await res.json()) as EndUserAuthResponse
+      console.log('[refreshEndUserAccessToken] 响应 data:', { hasAccessToken: !!data.accessToken, expiresAt: data.expiresAt })
 
       if (data.accessToken) {
         // 优先用 expiresAt（Go 后端返回 ISO 8601），退回到 expiresIn，再退回到默认 1h

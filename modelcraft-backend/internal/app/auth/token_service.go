@@ -171,7 +171,7 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 
 	orgInput := &organization.CreateOrganizationInput{
 		DisplayName:      cmd.UserName,
-		OrganizationName: "",
+		OrganizationName: cmd.OrganizationName,
 		OwnerUserID:      u.ID,
 	}
 

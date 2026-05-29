@@ -226,6 +226,13 @@ schemas:
         minLength: 3
         maxLength: 32
         example: "john_doe"
+      organizationName:
+        type: string
+        description: "Optional organization name (slug). Auto-generated from userName if omitted. 6-24 chars, lowercase letters/digits/underscores, must start with a letter."
+        pattern: "^[a-z][a-z0-9_]{5,23}$"
+        minLength: 6
+        maxLength: 24
+        example: "my_company"
 
   LoginRequest:
     type: object

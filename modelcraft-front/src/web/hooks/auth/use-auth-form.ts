@@ -117,6 +117,7 @@ export function useRegister(): UseRegisterReturn {
           phone: values.phone,
           userName: values.userName,
           password: values.password,
+          organizationName: values.orgName,
         }),
       })
 

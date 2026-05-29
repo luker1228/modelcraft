@@ -88,9 +88,10 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.tokenService.Register(r.Context(), appAuth.RegisterCommand{
-		Phone:    req.Phone,
-		Password: req.Password,
-		UserName: req.UserName,
+		Phone:            req.Phone,
+		Password:         req.Password,
+		UserName:         req.UserName,
+		OrganizationName: derefString(req.OrganizationName),
 	})
 	if err != nil {
 		h.handleBusinessError(w, r, requestID, err, "Register failed")
@@ -263,4 +264,12 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 	_ = json.NewEncoder(w).Encode(v)
+}
+
+// derefString dereferences a string pointer, returning "" if nil.
+func derefString(s *string) string {
+	if s == nil {
+		return ""
+	}
+	return *s
 }

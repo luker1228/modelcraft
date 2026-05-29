@@ -18,6 +18,7 @@ import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
+import { refreshEndUserAccessToken } from '@api-client/end-user/end-user-auth-client'
 import {
   Search,
   HelpCircle,
@@ -369,7 +370,18 @@ export function AppLayout({
             variant="outline"
             size="sm"
             className="h-8 px-3 text-xs"
-            onClick={() => router.push(`/end-user/${orgName}/login`)}
+            onClick={async () => {
+              console.log('[用户页] 点击，orgName:', orgName)
+              const token = await refreshEndUserAccessToken({ orgName })
+              console.log('[用户页] refreshEndUserAccessToken 结果:', token ? `token(${token.slice(0, 20)}...)` : 'null')
+              if (token) {
+                console.log('[用户页] → workspace')
+                router.push(`/end-user/${orgName}/workspace`)
+              } else {
+                console.log('[用户页] → login（无有效 session）')
+                router.push(`/end-user/login`)
+              }
+            }}
           >
             用户页
           </Button>

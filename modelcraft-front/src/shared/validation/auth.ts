@@ -36,6 +36,13 @@ export const userNameSchema = z
 /** 登录标识符 schema（支持手机号或用户名） */
 export const identifierSchema = z.string().min(1, '请输入手机号或用户名')
 
+/** 组织名 slug：6–24 位，小写字母/数字/下划线，且必须以字母开头 */
+export const orgNameSchema = z
+  .string()
+  .min(6, '组织名至少 6 个字符')
+  .max(24, '组织名最多 24 个字符')
+  .regex(/^[a-z][a-z0-9_]*$/, '只能包含小写字母、数字和下划线，且必须以字母开头')
+
 /** 登录表单 */
 export const loginFormSchema = z
   .object({
@@ -59,6 +66,7 @@ export const registerFormSchema = z
   .object({
     phone: phoneNumberSchema,
     userName: userNameSchema,
+    orgName: orgNameSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, '请确认密码'),
   })

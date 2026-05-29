@@ -12,9 +12,10 @@ const (
 
 // RegisterCommand 手机号+密码注册
 type RegisterCommand struct {
-	Phone    string
-	Password string
-	UserName string // 用户名（3-32字符，以字母/下划线/连字符开头）
+	Phone            string
+	Password         string
+	UserName         string // 用户名（3-32字符，以字母/下划线/连字符开头）
+	OrganizationName string // 可选，组织名 slug（6-24字符，小写字母/数字/下划线），为空时自动生成
 }
 
 // RegisterProfileSnapshot 注册成功后返回的 profile 快照。

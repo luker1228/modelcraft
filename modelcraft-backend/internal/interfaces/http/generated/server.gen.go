@@ -353,6 +353,9 @@ type RegisterRequest struct {
 	// Phone 11-digit mainland China phone number
 	Phone string `json:"phone"`
 
+	// OrganizationName Optional organization name (slug). Auto-generated from userName if omitted.
+	OrganizationName *string `json:"organizationName,omitempty"`
+
 	// UserName User name (3-32 chars, start with letter/underscore/hyphen, then alphanumeric/underscore/hyphen)
 	UserName string `json:"userName"`
 }
