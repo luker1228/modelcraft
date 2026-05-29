@@ -13,10 +13,18 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 )
 
+// AudiencePlatform is the unified aud value for all platform tokens (both tenant and end-user).
+// All logins now issue aud=["platform"]; user type is distinguished via the is_admin claim.
+const AudiencePlatform = "platform"
+
 // AudienceTenant is the aud value for tenant (developer/admin) tokens.
+//
+// Deprecated: Use AudiencePlatform instead. All logins now issue aud=["platform"].
 const AudienceTenant = "tenant"
 
 // AudienceEndUser is the aud value for end-user tokens.
+//
+// Deprecated: Use AudiencePlatform instead. All logins now issue aud=["platform"].
 const AudienceEndUser = "end_user"
 
 // ApisixConsumerKey is the APISIX jwt-auth Consumer key embedded in every

@@ -12,8 +12,8 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 		t.Fatalf("GenerateDevSigner: %v", err)
 	}
 
-	t.Run("valid tenant token", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant}, false)
+	t.Run("valid platform token", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudiencePlatform}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -34,7 +34,7 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 		claims := &PlatformClaims{}
 		_, err = jwt.ParseWithClaims(tokenStr, claims, func(_ *jwt.Token) (interface{}, error) {
 			return pubKey, nil
-		}, jwt.WithAudience(AudienceTenant))
+		}, jwt.WithAudience(AudiencePlatform))
 		if err != nil {
 			t.Fatalf("ParseWithClaims: %v", err)
 		}
@@ -45,8 +45,8 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 		if claims.OrgName != "acme" {
 			t.Errorf("OrgName = %q, want %q", claims.OrgName, "acme")
 		}
-		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceTenant {
-			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceTenant)
+		if len(claims.Audience) == 0 || claims.Audience[0] != AudiencePlatform {
+			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudiencePlatform)
 		}
 		if claims.Issuer != string(IssuerPlatform) {
 			t.Errorf("Issuer = %q, want %q", claims.Issuer, IssuerPlatform)
@@ -54,19 +54,9 @@ func TestJWTSigner_IssueAccessToken(t *testing.T) {
 	})
 
 	t.Run("empty orgName returns error", func(t *testing.T) {
-		_, err := signer.IssueAccessToken("user-1", "", jwt.ClaimStrings{AudienceTenant}, false)
+		_, err := signer.IssueAccessToken("user-1", "", jwt.ClaimStrings{AudiencePlatform}, false)
 		if err == nil {
 			t.Error("expected error for empty orgName")
-		}
-	})
-
-	t.Run("end_user audience token", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser}, false)
-		if err != nil {
-			t.Fatalf("IssueAccessToken for end_user: %v", err)
-		}
-		if tokenStr == "" {
-			t.Error("expected non-empty token for end_user audience")
 		}
 	})
 }
@@ -89,8 +79,8 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		t.Fatalf("GenerateDevSigner: %v", err)
 	}
 
-	t.Run("valid tenant token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant}, false)
+	t.Run("valid platform token roundtrip", func(t *testing.T) {
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudiencePlatform}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -104,25 +94,11 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 		if claims.OrgName != "acme" {
 			t.Errorf("OrgName = %q, want %q", claims.OrgName, "acme")
 		}
-		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceTenant {
-			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceTenant)
+		if len(claims.Audience) == 0 || claims.Audience[0] != AudiencePlatform {
+			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudiencePlatform)
 		}
 		if claims.Key != ApisixConsumerKey {
 			t.Errorf("Key = %q, want %q", claims.Key, ApisixConsumerKey)
-		}
-	})
-
-	t.Run("valid end_user token roundtrip", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-2", "acme", jwt.ClaimStrings{AudienceEndUser}, false)
-		if err != nil {
-			t.Fatalf("IssueAccessToken: %v", err)
-		}
-		claims, err := signer.ParsePlatformClaims(tokenStr)
-		if err != nil {
-			t.Fatalf("ParsePlatformClaims: %v", err)
-		}
-		if len(claims.Audience) == 0 || claims.Audience[0] != AudienceEndUser {
-			t.Errorf("Audience = %v, want [%q]", claims.Audience, AudienceEndUser)
 		}
 	})
 
@@ -134,7 +110,7 @@ func TestJWTSigner_ParsePlatformClaims(t *testing.T) {
 	})
 
 	t.Run("tampered token returns error", func(t *testing.T) {
-		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudienceTenant}, false)
+		tokenStr, err := signer.IssueAccessToken("user-1", "acme", jwt.ClaimStrings{AudiencePlatform}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -154,7 +130,7 @@ func TestIssueAccessTokenIsAdmin(t *testing.T) {
 	}
 
 	t.Run("admin flag is true", func(t *testing.T) {
-		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudienceTenant}, true)
+		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudiencePlatform}, true)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}
@@ -168,7 +144,7 @@ func TestIssueAccessTokenIsAdmin(t *testing.T) {
 	})
 
 	t.Run("admin flag is false", func(t *testing.T) {
-		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudienceTenant}, false)
+		token, err := signer.IssueAccessToken("user-1", "my-org", jwt.ClaimStrings{AudiencePlatform}, false)
 		if err != nil {
 			t.Fatalf("IssueAccessToken: %v", err)
 		}

@@ -90,6 +90,9 @@ func TestPlatformClaims_Validate(t *testing.T) {
 	})
 
 	t.Run("audience constants", func(t *testing.T) {
+		if AudiencePlatform != "platform" {
+			t.Errorf("AudiencePlatform = %q, want %q", AudiencePlatform, "platform")
+		}
 		if AudienceTenant != "tenant" {
 			t.Errorf("AudienceTenant = %q, want %q", AudienceTenant, "tenant")
 		}
@@ -99,18 +102,18 @@ func TestPlatformClaims_Validate(t *testing.T) {
 	})
 }
 
-func TestPlatformClaims_EndUserToken(t *testing.T) {
+func TestPlatformClaims_PlatformToken(t *testing.T) {
 	future := time.Now().Add(time.Hour)
 	c := &PlatformClaims{
 		UserID:  "user-1",
 		OrgName: "acme",
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    string(IssuerPlatform),
-			Audience:  jwt.ClaimStrings{AudienceEndUser},
+			Audience:  jwt.ClaimStrings{AudiencePlatform},
 			ExpiresAt: jwt.NewNumericDate(future),
 		},
 	}
 	if err := c.Validate(); err != nil {
-		t.Errorf("expected nil for end_user token, got %v", err)
+		t.Errorf("expected nil for platform token, got %v", err)
 	}
 }
