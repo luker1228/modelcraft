@@ -1,11 +1,12 @@
 # End-User Auth Domain - paths + schemas
-# 终端用户认证：登录、注册、登出、刷新、选择项目、查询自身信息
+# 终端用户认证：登录、登出、刷新、查询自身信息
 # 对称 auth.yaml（开发者认证），路径前缀 /api/end-user/auth
 #
 # 设计原则：
 #   - orgName 不在路径中，从请求 body 或 Bearer JWT 的 org_name 字段读取
 #   - /me 纯 Bearer Token 路由：后端验签 JWT，从 sub/org_name 字段提取身份
 #   - gateway 对所有端点做简单透传，不持有 end-user JWT secret
+#   - 注册功能已移除：EndUser 账号仅由管理员创建
 
 paths:
   /api/end-user/auth/login:
@@ -35,50 +36,6 @@ paths:
                 $ref: "common.yaml#/schemas/SystemError"
         "401":
           description: Invalid credentials or account disabled
-          content:
-            application/json:
-              schema:
-                $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
-        "500":
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: "common.yaml#/schemas/SystemError"
-
-  /api/end-user/auth/register:
-    post:
-      operationId: endUserRegister
-      summary: End-user self-registration
-      tags: [EndUserAuth]
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "end-user-auth.yaml#/schemas/EndUserRegisterRequest"
-      responses:
-        "200":
-          description: Registration successful
-          content:
-            application/json:
-              schema:
-                $ref: "end-user-auth.yaml#/schemas/EndUserTokenResponse"
-        "400":
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                $ref: "common.yaml#/schemas/SystemError"
-        "401":
-          description: Registration not allowed (cluster not configured)
-          content:
-            application/json:
-              schema:
-                $ref: "end-user-auth.yaml#/schemas/EndUserAuthError"
-        "409":
-          description: Username already exists
           content:
             application/json:
               schema:
@@ -187,27 +144,6 @@ schemas:
       projectSlug:
         type: string
         description: Optional project slug for single-project login flow
-        example: my-project
-      username:
-        type: string
-        example: alice
-      password:
-        type: string
-        example: s3cr3t
-
-  EndUserRegisterRequest:
-    type: object
-    required:
-      - orgName
-      - projectSlug
-      - username
-      - password
-    properties:
-      orgName:
-        type: string
-        example: my-org
-      projectSlug:
-        type: string
         example: my-project
       username:
         type: string

@@ -1,6 +1,6 @@
 // src/api-client/end-user/end-user-go-client.ts
 // 终端用户 Go Backend Client（客户端侧，对称 bff/end-user/end-user-go-client.ts）
-// 包含 Project 级认证（auth/login, register, refresh, logout, me, data）
+// 包含 Project 级认证（auth/login, refresh, logout, me, data）
 // 以及 Org 级账号管理 + Project 访问控制（EndUser v1）
 
 import type { GoEndUserError } from '@/types/end-user-auth'
@@ -21,12 +21,6 @@ function shouldUseEndUserV2Mock(): boolean {
 // ============================================================================
 
 export interface EndUserLoginResult {
-  userId: string
-  refreshToken: string
-  expiresAt: string
-}
-
-export interface EndUserRegisterResult {
   userId: string
   refreshToken: string
   expiresAt: string
@@ -405,55 +399,6 @@ export async function callGoEndUserLogin(params: {
   }
 
   return res.json() as Promise<EndUserLoginResult>
-}
-
-/**
- * 调用 Go Backend /internal/v1/end-user/auth/register
- */
-export async function callGoEndUserRegister(params: {
-  orgName: string
-  projectSlug: string
-  username: string
-  password: string
-}): Promise<EndUserRegisterResult> {
-  if (USE_MOCK) {
-    if (MOCK_USERS[params.username]) {
-      throw new EndUserConflictError()
-    }
-
-    if (params.username === 'weak' || params.password.length < 6) {
-      throw new EndUserParamInvalidError('密码强度不足')
-    }
-
-    const newUserId = `mock-user-${Date.now()}`
-    MOCK_USERS[params.username] = {
-      userId: newUserId,
-      password: params.password,
-      username: params.username,
-      isForbidden: false,
-      createdAt: new Date().toISOString(),
-    }
-    MOCK_REFRESH_TOKENS[`mock-refresh-token-${params.username}`] = newUserId
-
-    return {
-      userId: newUserId,
-      refreshToken: `mock-refresh-token-${params.username}`,
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-    }
-  }
-
-  const { headers, requestId } = createInternalHeaders(params.orgName, params.projectSlug)
-  const res = await fetch(`${GATEWAY_URL}/internal/v1/end-user/auth/register`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(params),
-  })
-
-  if (!res.ok) {
-    throw await parseGoError(res, requestId)
-  }
-
-  return res.json() as Promise<EndUserRegisterResult>
 }
 
 /**

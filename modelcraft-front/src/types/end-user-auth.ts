@@ -13,14 +13,6 @@ export interface EndUserLoginRequest {
   password: string
 }
 
-/** BFF 终端用户注册请求 */
-export interface EndUserRegisterRequest {
-  orgName: string
-  projectSlug: string
-  username: string
-  password: string
-}
-
 /** BFF 登录/注册/refresh 统一响应格式（透传自 Go 后端） */
 export interface EndUserAuthResponse {
   accessToken?: string

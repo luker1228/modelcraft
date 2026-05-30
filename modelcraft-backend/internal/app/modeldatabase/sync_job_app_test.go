@@ -28,12 +28,15 @@ func (f *fakeModelDatabaseRepo) GetByID(_ context.Context, orgName, projectSlug,
 	}
 	return db, nil
 }
+
 func (f *fakeModelDatabaseRepo) GetByName(context.Context, string, string, string) (*domaindb.ModelDatabase, error) {
 	return nil, shared.NewNotFoundError("not found")
 }
+
 func (f *fakeModelDatabaseRepo) List(context.Context, string, string) ([]*domaindb.ModelDatabase, error) {
 	return nil, nil
 }
+
 func (f *fakeModelDatabaseRepo) Update(context.Context, string, string, *domaindb.ModelDatabase) error {
 	return nil
 }
@@ -155,7 +158,7 @@ type fakeModelRepository struct {
 }
 
 func (f *fakeModelRepository) Save(context.Context, string, *domainmodel.DataModel) error { return nil }
-func (f *fakeModelRepository) Update(context.Context, *domainmodel.DataModel) error { return nil }
+func (f *fakeModelRepository) Update(context.Context, *domainmodel.DataModel) error       { return nil }
 func (f *fakeModelRepository) UpdateWithVersion(context.Context, *domainmodel.DataModel, int64) (int64, error) {
 	return 0, nil
 }
@@ -163,6 +166,7 @@ func (f *fakeModelRepository) Delete(context.Context, string) error { return nil
 func (f *fakeModelRepository) GetByID(context.Context, string, ...*domainmodel.ModelQueryOptions) (*domainmodel.DataModel, error) {
 	return nil, shared.NewNotFoundError("not found")
 }
+
 func (f *fakeModelRepository) GetByName(
 	ctx context.Context,
 	orgName, databaseName, name, projectID string,
@@ -175,33 +179,51 @@ func (f *fakeModelRepository) GetByName(
 	}
 	return model, nil
 }
+
 func (f *fakeModelRepository) FindByDeploymentStatus(context.Context, ...domainmodel.DeploymentStatus) ([]domainmodel.DataModel, error) {
 	return nil, nil
 }
+
 func (f *fakeModelRepository) GetMetaByIDs(context.Context, string, string, []string) ([]*domainmodel.DataModel, error) {
 	return nil, nil
 }
+
 func (f *fakeModelRepository) Query(context.Context, domainmodel.ModelQuery) ([]domainmodel.DataModel, int, error) {
 	return nil, 0, nil
 }
+
 func (f *fakeModelRepository) ListDatabaseCatalog(context.Context, string, string, string, int, int) ([]string, int, error) {
 	return nil, 0, nil
 }
-func (f *fakeModelRepository) AddFields(context.Context, string, []*domainmodel.FieldDefinition) error { return nil }
+
+func (f *fakeModelRepository) AddFields(context.Context, string, []*domainmodel.FieldDefinition) error {
+	return nil
+}
+
 func (f *fakeModelRepository) AddRelationField(context.Context, string, *domainmodel.FieldDefinition) error {
 	return nil
 }
+
 func (f *fakeModelRepository) GetFieldByModelID(context.Context, string, string) (*domainmodel.FieldDefinition, error) {
 	return nil, nil
 }
+
 func (f *fakeModelRepository) GetFieldsByModelID(context.Context, string) ([]*domainmodel.FieldDefinition, error) {
 	return nil, nil
 }
-func (f *fakeModelRepository) GetTailFieldDisplayOrder(context.Context, string) (string, error) { return "", nil }
-func (f *fakeModelRepository) UpdateField(context.Context, *domainmodel.FieldDefinition) error  { return nil }
+
+func (f *fakeModelRepository) GetTailFieldDisplayOrder(context.Context, string) (string, error) {
+	return "", nil
+}
+
+func (f *fakeModelRepository) UpdateField(context.Context, *domainmodel.FieldDefinition) error {
+	return nil
+}
+
 func (f *fakeModelRepository) BulkUpdateFields(context.Context, []*domainmodel.FieldDefinition) error {
 	return nil
 }
+
 func (f *fakeModelRepository) UpdateFieldsStatus(context.Context, ...domainmodel.UpdateFieldsStatusRequest) error {
 	return nil
 }

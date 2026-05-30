@@ -19,12 +19,6 @@ export type EndUserLoginScenario =
   | 'accountDisabled'
   | 'clusterNotConfigured'
 
-export type EndUserRegisterScenario =
-  | 'success'
-  | 'conflict'
-  | 'paramInvalid'
-  | 'clusterNotConfigured'
-
 export type EndUserRefreshScenario =
   | 'success'
   | 'invalidToken'
@@ -83,41 +77,6 @@ export function createMockLoginPayload(
       return {
         status: 403,
         body: createMockErrorPayload('ACCOUNT_DISABLED', '该账号已被禁用'),
-      }
-    case 'clusterNotConfigured':
-      return {
-        status: 503,
-        body: createMockErrorPayload('CLUSTER_NOT_CONFIGURED', '服务暂时不可用'),
-      }
-    case 'success':
-    default:
-      return {
-        status: 200,
-        body: {
-          accessToken: createMockAccessToken(),
-          expiresIn: 3600,
-          orgName: 'test',
-        },
-      }
-  }
-}
-
-/**
- * 创建 Mock 注册响应
- */
-export function createMockRegisterPayload(
-  scenario: EndUserRegisterScenario
-): { status: number; body: EndUserAuthResponse | EndUserBffError } {
-  switch (scenario) {
-    case 'conflict':
-      return {
-        status: 409,
-        body: createMockErrorPayload('CONFLICT', '该用户名已被使用'),
-      }
-    case 'paramInvalid':
-      return {
-        status: 400,
-        body: createMockErrorPayload('PARAM_INVALID', '密码强度不足'),
       }
     case 'clusterNotConfigured':
       return {

@@ -166,50 +166,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SystemError'
-  /api/end-user/auth/register:
-    post:
-      operationId: endUserRegister
-      summary: End-user self-registration
-      tags:
-        - EndUserAuth
-      security: []
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/EndUserRegisterRequest'
-      responses:
-        '200':
-          description: Registration successful
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EndUserTokenResponse'
-        '400':
-          description: Invalid request parameters
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SystemError'
-        '401':
-          description: Registration not allowed (cluster not configured)
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EndUserAuthError'
-        '409':
-          description: Username already exists
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/EndUserAuthError'
-        '500':
-          description: Server error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SystemError'
   /api/end-user/auth/logout:
     post:
       operationId: endUserLogout
@@ -480,6 +436,13 @@ components:
           minLength: 3
           maxLength: 32
           example: john_doe
+        organizationName:
+          type: string
+          description: Optional organization name (slug). Auto-generated from userName if omitted. 6-24 chars, lowercase letters/digits/underscores, must start with a letter.
+          pattern: ^[a-z][a-z0-9_]{5,23}$
+          minLength: 6
+          maxLength: 24
+          example: my_company
     RegisterResponse:
       allOf:
         - $ref: '#/components/schemas/BaseResponse'
@@ -564,37 +527,16 @@ components:
     EndUserLoginRequest:
       type: object
       required:
-        - orgName
         - username
         - password
       properties:
         orgName:
           type: string
-          description: Organization slug
+          description: Optional organization slug. When omitted, the backend resolves it from the username.
           example: my-org
         projectSlug:
           type: string
           description: Optional project slug for single-project login flow
-          example: my-project
-        username:
-          type: string
-          example: alice
-        password:
-          type: string
-          example: s3cr3t
-    EndUserRegisterRequest:
-      type: object
-      required:
-        - orgName
-        - projectSlug
-        - username
-        - password
-      properties:
-        orgName:
-          type: string
-          example: my-org
-        projectSlug:
-          type: string
           example: my-project
         username:
           type: string
@@ -635,6 +577,9 @@ components:
             expiresAt:
               type: string
               format: date-time
+            orgName:
+              type: string
+              description: Resolved organization slug for the authenticated end-user
             projects:
               type: array
               items:

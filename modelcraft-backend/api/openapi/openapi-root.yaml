@@ -34,8 +34,6 @@ paths:
   # ========================
   /api/end-user/auth/login:
     $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1login"
-  /api/end-user/auth/register:
-    $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1register"
   /api/end-user/auth/logout:
     $ref: "end-user-auth.yaml#/paths/~1api~1end-user~1auth~1logout"
   /api/end-user/auth/refresh:
@@ -87,8 +85,6 @@ components:
     # -- End-User Auth --
     EndUserLoginRequest:
       $ref: "end-user-auth.yaml#/schemas/EndUserLoginRequest"
-    EndUserRegisterRequest:
-      $ref: "end-user-auth.yaml#/schemas/EndUserRegisterRequest"
     EndUserLogoutRequest:
       $ref: "end-user-auth.yaml#/schemas/EndUserLogoutRequest"
     EndUserRefreshRequest:

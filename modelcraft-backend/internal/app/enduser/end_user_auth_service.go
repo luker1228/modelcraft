@@ -9,7 +9,6 @@ import (
 	"fmt"
 	domainAuth "modelcraft/internal/domain/auth"
 	"modelcraft/internal/domain/enduser"
-	"modelcraft/internal/domain/shared"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/logfacade"
@@ -94,71 +93,6 @@ func NewEndUserAuthAppService(
 		logger:       logger,
 		auditLogRepo: auditLogRepo,
 	}
-}
-
-// RegisterEndUser handles self-registration for end-users.
-func (s *EndUserAuthAppService) RegisterEndUser(ctx context.Context, cmd RegisterCommand) (*RegisterResult, error) {
-	if err := enduser.ValidatePasswordStrength(cmd.Password); err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
-	}
-
-	if err := enduser.ValidateUsername(cmd.Username); err != nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
-	}
-
-	hashedPwd, err := enduser.NewHashedPasswordFromPlain(cmd.Password)
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "hash password")
-	}
-
-	userID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
-	}
-
-	user, err := enduser.NewEndUser(userID, cmd.OrgName, cmd.Username, hashedPwd)
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
-	}
-
-	userRepo := s.repoFactory.NewEndUserRepository(s.db, cmd.OrgName, "")
-	if err := userRepo.Save(ctx, user); err != nil {
-		if shared.IsDuplicateKeyError(err) {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserConflict, cmd.Username)
-		}
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	plaintext, tokenHash, err := generateRefreshToken()
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate refresh token")
-	}
-
-	sessionID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate session id")
-	}
-	expiresAt := time.Now().Add(s.refreshTTL)
-	token := &domainAuth.RefreshToken{
-		ID:        sessionID,
-		UserID:    user.ID,
-		TokenHash: tokenHash,
-		ExpiresAt: expiresAt,
-		CreatedAt: time.Now(),
-	}
-
-	refreshTokenRepo := s.repoFactory.NewRefreshTokenRepository(s.db)
-	if err := refreshTokenRepo.Save(ctx, token); err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	s.logger.Infof(ctx, "EndUser registered: id=%s, username=%s", user.ID, cmd.Username)
-
-	return &RegisterResult{
-		UserID:       user.ID,
-		RefreshToken: plaintext,
-		ExpiresAt:    expiresAt,
-	}, nil
 }
 
 // LoginEndUser handles end-user login.

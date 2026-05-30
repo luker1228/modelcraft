@@ -6,20 +6,6 @@ import (
 
 // --- Authentication Commands ---
 
-// RegisterCommand represents a self-registration request from an end-user.
-type RegisterCommand struct {
-	OrgName  string
-	Username string
-	Password string
-}
-
-// RegisterResult represents the result of a successful registration.
-type RegisterResult struct {
-	UserID       string
-	RefreshToken string // opaque token plaintext (returned only once)
-	ExpiresAt    time.Time
-}
-
 // IdentifierType indicates which field is used to identify the end-user on login.
 type IdentifierType string
 

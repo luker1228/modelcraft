@@ -151,11 +151,10 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 		"/api/tenant/auth/logout":   true,
 		"/api/tenant/auth/refresh":  true,
 		// End-user auth: all routes use their own in-handler JWT validation
-		"/api/end-user/auth/login":    true,
-		"/api/end-user/auth/register": true,
-		"/api/end-user/auth/refresh":  true,
-		"/api/end-user/auth/logout":   true,
-		"/api/end-user/auth/me":       true,
+		"/api/end-user/auth/login":   true,
+		"/api/end-user/auth/refresh": true,
+		"/api/end-user/auth/logout":  true,
+		"/api/end-user/auth/me":      true,
 	}
 
 	return func(next http.Handler) http.Handler {
