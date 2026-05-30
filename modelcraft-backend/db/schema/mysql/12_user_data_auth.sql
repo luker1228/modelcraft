@@ -1,4 +1,4 @@
--- Project 级角色表（原 end_user_roles）
+-- Project 级角色表
 CREATE TABLE IF NOT EXISTS `project_roles` (
   `id`           VARCHAR(36)     NOT NULL COMMENT '角色 ID (UUID)',
   `org_name`     VARCHAR(36)     NOT NULL COMMENT '所属 Org',
@@ -20,7 +20,7 @@ CREATE TABLE IF NOT EXISTS `project_roles` (
   KEY `idx_project_roles_live`         (`org_name`, `project_slug`, `deleted_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Project 级数据角色表';
 
--- Project 级角色-用户关联表（原 end_user_role_users，FK 改指向 users）
+-- Project 级角色-用户关联表（FK 改指向 users）
 CREATE TABLE IF NOT EXISTS `project_role_users` (
   `id`           VARCHAR(36) NOT NULL COMMENT '关联 ID (UUID)',
   `org_name`     VARCHAR(36) NOT NULL COMMENT '所属 Org',
