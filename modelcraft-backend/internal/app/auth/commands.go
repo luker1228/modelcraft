@@ -1,5 +1,7 @@
 package auth
 
+import "time"
+
 // IdentifierType 登录标识符类型
 type IdentifierType string
 
@@ -79,4 +81,43 @@ type RefreshResult struct {
 // LogoutCommand Gateway 登出时传入
 type LogoutCommand struct {
 	RefreshToken string // 明文（从 cookie 中取出）
+}
+
+// LoginEndUserCommand EndUser 登录命令，支持 username 或 phone，需携带 orgName 做 scope。
+type LoginEndUserCommand struct {
+	OrgName        string
+	Identifier     string         // 登录标识符（用户名或手机号），优先于 Username
+	IdentifierType IdentifierType // "USERNAME" 或 "PHONE"，默认 USERNAME
+	Username       string         // 向后兼容，等同于 Identifier
+	Password       string
+}
+
+// LoginEndUserResult EndUser 登录成功后返回。
+type LoginEndUserResult struct {
+	UserID       string
+	OrgName      string
+	AccessToken  string
+	RefreshToken string // 明文，由 handler 写入 httpOnly Cookie
+	ExpiresAt    time.Time
+}
+
+// RefreshEndUserCommand EndUser 刷新 token 命令。
+type RefreshEndUserCommand struct {
+	OrgName      string // 用于查找 tenant DB（用户隔离）
+	RefreshToken string // 明文（从 cookie 中取出）
+}
+
+// RefreshEndUserResult EndUser 刷新 token 成功后返回。
+type RefreshEndUserResult struct {
+	UserID       string
+	OrgName      string
+	AccessToken  string
+	RefreshToken string // 新明文 token
+	ExpiresAt    time.Time
+}
+
+// GetEndUserMeCommand 获取当前 EndUser 信息命令（身份从 Bearer JWT 解析）。
+type GetEndUserMeCommand struct {
+	OrgName string
+	UserID  string
 }

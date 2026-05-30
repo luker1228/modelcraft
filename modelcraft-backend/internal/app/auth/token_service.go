@@ -2,7 +2,9 @@ package auth
 
 import (
 	"context"
+	"database/sql"
 	"modelcraft/internal/app/organization"
+	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -18,6 +20,22 @@ import (
 
 	domainUser "modelcraft/internal/domain/user"
 )
+
+// EndUserRepositoryFactory creates end-user repositories from a DB connection.
+// Abstracted as an interface to avoid a direct import cycle between auth and enduser packages.
+type EndUserRepositoryFactory interface {
+	// NewEndUserRepository creates an EndUserRepository scoped to an org.
+	NewEndUserRepository(db SQLDBTX, orgName string) enduser.EndUserRepository
+}
+
+// SQLDBTX is the minimal database interface accepted by repository factories.
+// Both *sql.DB and *sql.Tx satisfy this interface.
+type SQLDBTX interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+	PrepareContext(ctx context.Context, query string) (*sql.Stmt, error)
+	QueryContext(ctx context.Context, query string, args ...any) (*sql.Rows, error)
+	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
+}
 
 // MembershipOrgProvider 是 TokenService 用于获取用户主 Org 信息的最小接口。
 // 仅在签发 Token 时需要，不依赖完整的 MembershipRepository。
@@ -45,17 +63,20 @@ type TxOrgCreationService interface {
 
 // TokenService 处理认证令牌操作：注册、登录、刷新、登出。
 // 使用有状态的 DB 存储 Refresh Token（opaque token），支持轮换和盗用检测。
+// 同时处理 EndUser（终端用户）的 login/refresh/logout/me，统一两套认证路径。
 type TokenService struct {
-	refreshTokenRepo domainauth.RefreshTokenRepository
-	userRepo         domainUser.UserRepository
-	profileRepo      domainProfile.Repository
-	membershipRepo   MembershipOrgProvider
-	auditLogRepo     domainauth.SecurityAuditLogRepository
-	passwordHasher   domainauth.PasswordHasher
-	refreshTTL       time.Duration
-	createOrgService OrgCreationService
-	txManager        repository.TxManager
-	jwtSigner        *domainauth.JWTSigner
+	refreshTokenRepo   domainauth.RefreshTokenRepository
+	userRepo           domainUser.UserRepository
+	profileRepo        domainProfile.Repository
+	membershipRepo     MembershipOrgProvider
+	auditLogRepo       domainauth.SecurityAuditLogRepository
+	passwordHasher     domainauth.PasswordHasher
+	refreshTTL         time.Duration
+	createOrgService   OrgCreationService
+	txManager          repository.TxManager
+	jwtSigner          *domainauth.JWTSigner
+	endUserRepoFactory EndUserRepositoryFactory
+	systemDB           *sql.DB
 }
 
 // NewTokenService 创建新的 TokenService。
@@ -86,6 +107,14 @@ func NewTokenService(
 		txManager:        txManager,
 		jwtSigner:        jwtSigner,
 	}
+}
+
+// WithEndUserSupport attaches the end-user repository factory and system DB so that
+// LoginEndUser / RefreshEndUserToken / GetEndUserMe can be called on this service.
+func (s *TokenService) WithEndUserSupport(factory EndUserRepositoryFactory, systemDB *sql.DB) *TokenService {
+	s.endUserRepoFactory = factory
+	s.systemDB = systemDB
+	return s
 }
 
 // Register 手机号+密码注册新用户。

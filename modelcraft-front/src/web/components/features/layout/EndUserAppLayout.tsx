@@ -8,6 +8,7 @@ import { FolderOpen, ChevronRight } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { UserMenu } from '@web/components/features/layout/UserMenu'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { clearEndUserSessionArtifacts } from '@shared/auth/clear-end-user-session'
 import { createEndUserOrgScopedClient } from '@api-client/apollo/clients'
 import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
 import { cn } from '@/shared/utils'
@@ -80,7 +81,7 @@ function EndUserAppLayoutInner({
       method: 'POST',
       credentials: 'same-origin',
     })
-    useEndUserAuthStore.getState().clearSession()
+    clearEndUserSessionArtifacts()
     router.push(`/end-user/${orgName}/login`)
   }, [orgName, router])
 

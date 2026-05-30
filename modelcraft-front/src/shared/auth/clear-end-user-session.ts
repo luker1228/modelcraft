@@ -4,6 +4,7 @@ const END_USER_SESSION_PREFIXES = [
   'eu_token_',
   'eu_token_expires_at_',
   'eu_accessible_projects_',
+  'eu_selected_project_',
 ]
 
 export function clearEndUserSessionArtifacts(): void {

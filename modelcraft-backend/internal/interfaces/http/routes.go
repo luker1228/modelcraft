@@ -46,6 +46,7 @@ import (
 	domainUser "modelcraft/internal/domain/user"
 	infraAuth "modelcraft/internal/infrastructure/auth"
 
+	appAuth "modelcraft/internal/app/auth"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	enduserHandlers "modelcraft/internal/interfaces/http/handlers/enduser"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
@@ -88,9 +89,8 @@ type DesignHandlers struct {
 	ClusterManager  *repository.ClusterConnectionManager
 
 	// End-User Services
-	EndUserAuthAppService *appEnduser.EndUserAuthAppService
-	EndUserAppService     *appEnduser.EndUserManagementAppService
-	EndUserAuthHandler    *enduserHandlers.AuthHandler
+	EndUserAppService  *appEnduser.EndUserManagementAppService
+	EndUserAuthHandler *enduserHandlers.AuthHandler
 
 	// Org Creation Service
 	CreateOrgService *appOrg.CreateOrganizationService
@@ -125,31 +125,29 @@ func (f *endUserAuthRepositoryFactory) NewRefreshTokenRepository(
 	return repository.NewSqlRefreshTokenRepository(dbgen.New(db))
 }
 
-type endUserJWTIssuer struct {
-	signer *domainAuth.JWTSigner
+// NewEndUserRepositoryForAuth satisfies appAuth.EndUserRepositoryFactory.
+// projectSlug is not needed for auth operations, so it is passed as empty string.
+func (f *endUserAuthRepositoryFactory) NewEndUserRepositoryForAuth(
+	db appAuth.SQLDBTX,
+	orgName string,
+) domainEndUser.EndUserRepository {
+	return repository.NewSqlEndUserRepository(db, orgName, "")
 }
 
-func (i *endUserJWTIssuer) IssueEndUserToken(
-	_ context.Context,
-	input appEnduser.EndUserTokenIssueInput,
-) (*appEnduser.EndUserTokenIssueResult, error) {
-	if i.signer == nil {
-		return nil, fmt.Errorf("end-user jwt signer is nil")
-	}
-	now := time.Now().UTC()
-	accessToken, err := i.signer.IssueAccessToken(
-		input.UserID, input.OrgName, input.IsAdmin,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &appEnduser.EndUserTokenIssueResult{
-		AccessToken: accessToken,
-		ExpiresAt:   now.Add(time.Duration(i.signer.TTLSeconds()) * time.Second),
-	}, nil
+// authEndUserRepoFactoryAdapter wraps endUserAuthRepositoryFactory to satisfy appAuth.EndUserRepositoryFactory.
+type authEndUserRepoFactoryAdapter struct {
+	inner *endUserAuthRepositoryFactory
 }
 
-// endUserTxManager provides real SQL transaction support on private DBs.
+func (a *authEndUserRepoFactoryAdapter) NewEndUserRepository(
+	db appAuth.SQLDBTX,
+	orgName string,
+) domainEndUser.EndUserRepository {
+	return repository.NewSqlEndUserRepository(db, orgName, "")
+}
+
+// endUserTxManager provides SQL transaction support for end-user management services.
+// It satisfies appEnduser.TxManager by wrapping a *sql.DB with a direct transaction.
 type endUserTxManager struct{}
 
 func (m *endUserTxManager) WithTx(
@@ -159,27 +157,23 @@ func (m *endUserTxManager) WithTx(
 ) error {
 	tx, err := db.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("begin private transaction: %w", err)
+		return fmt.Errorf("begin transaction: %w", err)
 	}
-
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
 			panic(p)
 		}
 	}()
-
 	if err := fn(ctx, tx); err != nil {
 		if rbErr := tx.Rollback(); rbErr != nil {
-			return fmt.Errorf("rollback private transaction failed: %v (original error: %w)", rbErr, err)
+			return fmt.Errorf("rollback failed: %v (original: %w)", rbErr, err)
 		}
 		return err
 	}
-
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit private transaction: %w", err)
+		return fmt.Errorf("commit transaction: %w", err)
 	}
-
 	return nil
 }
 
@@ -365,21 +359,16 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	// Create auth handler with token service
 	authHandler := authHandlers.NewHandler(tokenService, cfg.Auth.Cookie)
 
-	// Create end-user services and handlers
+	// Attach end-user repository support to TokenService (unified auth service).
 	endUserTxMgr := &endUserTxManager{}
-	endUserAuthAppService := appEnduser.NewEndUserAuthAppService(
-		repoFactory.SqlDB,
-		&endUserAuthRepositoryFactory{},
-		endUserTxMgr,
-		&endUserJWTIssuer{signer: jwtSigner},
-		logger,
-		auditLogRepo,
-	)
+	euRepoAdapter := &authEndUserRepoFactoryAdapter{inner: &endUserAuthRepositoryFactory{}}
+	tokenService.WithEndUserSupport(euRepoAdapter, repoFactory.SqlDB)
+
 	endUserAppService := appEnduser.NewEndUserManagementAppService(
 		repoFactory.SqlDB,
 		endUserTxMgr,
 	)
-	endUserAuthHandler := enduserHandlers.NewAuthHandler(endUserAuthAppService, jwtSigner, authHandler, logger)
+	endUserAuthHandler := enduserHandlers.NewAuthHandler(tokenService, jwtSigner, authHandler, logger)
 
 	return &DesignHandlers{
 		AuthHandler:                 authHandler,
@@ -403,7 +392,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		LogicalFKAppService:         logicalFKAppService,
 		RLSPolicyAppService:         rlsPolicyAppService,
 		AuthSchemaAppService:        authSchemaAppService,
-		EndUserAuthAppService:       endUserAuthAppService,
 		EndUserAppService:           endUserAppService,
 		EndUserAuthHandler:          endUserAuthHandler,
 		RBACPermissionSvc:           rbacPermSvc,

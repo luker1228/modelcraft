@@ -4,63 +4,6 @@ import (
 	"time"
 )
 
-// --- Authentication Commands ---
-
-// IdentifierType indicates which field is used to identify the end-user on login.
-type IdentifierType string
-
-const (
-	// IdentifierTypeUsername identifies the user by username (default).
-	IdentifierTypeUsername IdentifierType = "USERNAME"
-	// IdentifierTypePhone identifies the user by phone number.
-	IdentifierTypePhone IdentifierType = "PHONE"
-)
-
-// LoginCommand represents a login request from an end-user.
-type LoginCommand struct {
-	OrgName        string
-	Username       string         // 保留向后兼容
-	Identifier     string         // 登录标识符（手机号或用户名），优先于 Username
-	IdentifierType IdentifierType // "USERNAME" 或 "PHONE"，默认 USERNAME
-	Password       string
-}
-
-// LoginResult represents the result of a successful login.
-type LoginResult struct {
-	UserID       string
-	OrgName      string
-	AccessToken  string
-	RefreshToken string // opaque token plaintext (returned only once)
-	ExpiresAt    time.Time
-}
-
-// LogoutCommand represents a logout request from an end-user.
-type LogoutCommand struct {
-	OrgName      string
-	RefreshToken string // opaque token plaintext
-}
-
-// RefreshCommand represents a token refresh request from an end-user.
-type RefreshCommand struct {
-	OrgName      string
-	RefreshToken string // opaque token plaintext
-}
-
-// RefreshResult represents the result of a successful token refresh.
-type RefreshResult struct {
-	UserID       string
-	AccessToken  string
-	RefreshToken string
-	ExpiresAt    time.Time
-}
-
-// GetMeCommand represents a request to get the current end-user's profile.
-// orgName and userID are resolved from the Bearer JWT by the handler layer.
-type GetMeCommand struct {
-	OrgName string
-	UserID  string
-}
-
 // --- User Management Commands (by developers) ---
 
 // CreateEndUserCommand represents a request from a developer to create an end-user.

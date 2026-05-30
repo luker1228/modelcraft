@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS `project_roles` (
   `name`         VARCHAR(64)     NOT NULL COMMENT 'Project 内唯一角色名',
   `description`  VARCHAR(255)    NULL     COMMENT '角色描述',
   `is_implicit`  TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '内置隐式角色标志',
+  `is_protected` TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '受保护角色：不可删除、不可改名、不可修改权限包关联',
   `created_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
   `deleted_at`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳',

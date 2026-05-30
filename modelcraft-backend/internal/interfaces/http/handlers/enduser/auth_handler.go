@@ -16,15 +16,14 @@ import (
 
 	domainAuth "modelcraft/internal/domain/auth"
 
-	appEnduser "modelcraft/internal/app/enduser"
+	appAuth "modelcraft/internal/app/auth"
 	authhandler "modelcraft/internal/interfaces/http/handlers/auth"
 )
 
 // AuthHandler handles end-user authentication HTTP requests.
-// Cookie operations are delegated to the shared auth handler so that the
-// refresh token cookie name is unified to mc_refresh_token.
+// Delegates all business logic to the unified TokenService (appAuth.TokenService).
 type AuthHandler struct {
-	authService *appEnduser.EndUserAuthAppService
+	authService *appAuth.TokenService
 	jwtSigner   *domainAuth.JWTSigner
 	shared      *authhandler.Handler // cookie set/clear delegated here
 	logger      logfacade.Logger
@@ -33,7 +32,7 @@ type AuthHandler struct {
 // NewAuthHandler creates an AuthHandler.
 // shared is the unified auth handler used only for cookie management.
 func NewAuthHandler(
-	authService *appEnduser.EndUserAuthAppService,
+	authService *appAuth.TokenService,
 	jwtSigner *domainAuth.JWTSigner,
 	shared *authhandler.Handler,
 	logger logfacade.Logger,
@@ -66,11 +65,11 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
 		return
 	}
-	result, err := h.authService.LoginEndUser(ctx, appEnduser.LoginCommand{
+	result, err := h.authService.LoginEndUser(ctx, appAuth.LoginEndUserCommand{
 		OrgName:        req.OrgName,
 		Username:       req.Username,
 		Identifier:     req.Identifier,
-		IdentifierType: appEnduser.IdentifierType(req.IdentifierType),
+		IdentifierType: appAuth.IdentifierType(req.IdentifierType),
 		Password:       req.Password,
 	})
 	if err != nil {
@@ -94,13 +93,8 @@ func (h *AuthHandler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 
 	cookie, _ := r.Cookie(authhandler.RefreshCookieName)
 	if cookie != nil && cookie.Value != "" {
-		var req struct {
-			OrgName string `json:"orgName"`
-		}
-		_ = json.NewDecoder(r.Body).Decode(&req)
-		_ = h.authService.LogoutEndUser(ctx, appEnduser.LogoutCommand{
+		_ = h.authService.Logout(ctx, appAuth.LogoutCommand{
 			RefreshToken: cookie.Value,
-			OrgName:      req.OrgName,
 		})
 	}
 
@@ -131,7 +125,7 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	result, err := h.authService.RefreshEndUserToken(ctx, appEnduser.RefreshCommand{
+	result, err := h.authService.RefreshEndUserToken(ctx, appAuth.RefreshEndUserCommand{
 		OrgName:      req.OrgName,
 		RefreshToken: cookie.Value,
 	})
@@ -145,7 +139,7 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 	h.writeJSON(w, http.StatusOK, map[string]any{
 		"requestId":   requestID,
 		"userId":      result.UserID,
-		"orgName":     req.OrgName,
+		"orgName":     result.OrgName,
 		"accessToken": result.AccessToken,
 		"expiresAt":   result.ExpiresAt.UTC().Format(time.RFC3339),
 	})
@@ -153,7 +147,6 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 
 // EndUserMe handles GET /api/end-user/auth/me.
 // Identity is resolved entirely from the Bearer JWT (ES256-verified).
-// No external headers required — orgName and userID come from token claims.
 func (h *AuthHandler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	requestID := ctxutils.GetRequestID(ctx)
@@ -170,7 +163,7 @@ func (h *AuthHandler) EndUserMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := h.authService.GetEndUserMe(ctx, appEnduser.GetMeCommand{
+	user, err := h.authService.GetEndUserMe(ctx, appAuth.GetEndUserMeCommand{
 		OrgName: claims.OrgName,
 		UserID:  claims.Subject,
 	})
