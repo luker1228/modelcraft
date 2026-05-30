@@ -79,8 +79,13 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, result.OrgName,
-		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt, ""))
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":   requestID,
+		"userId":      result.UserID,
+		"orgName":     result.OrgName,
+		"accessToken": result.AccessToken,
+		"expiresAt":   result.ExpiresAt.UTC().Format(time.RFC3339),
+	})
 }
 
 // EndUserRegister handles POST /api/end-user/auth/register.
@@ -113,8 +118,12 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 	}
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, req.OrgName,
-		"", "" /* stored in httpOnly cookie */, result.ExpiresAt, ""))
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId": requestID,
+		"userId":    result.UserID,
+		"orgName":   req.OrgName,
+		"expiresAt": result.ExpiresAt.UTC().Format(time.RFC3339),
+	})
 }
 
 // EndUserLogout handles POST /api/end-user/auth/logout.
@@ -171,8 +180,13 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 	}
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, req.OrgName,
-		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt, ""))
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":   requestID,
+		"userId":      result.UserID,
+		"orgName":     req.OrgName,
+		"accessToken": result.AccessToken,
+		"expiresAt":   result.ExpiresAt.UTC().Format(time.RFC3339),
+	})
 }
 
 // EndUserMe handles GET /api/end-user/auth/me.
@@ -255,37 +269,6 @@ func extractBearer(r *http.Request) string {
 		return strings.TrimPrefix(v, "Bearer ")
 	}
 	return ""
-}
-
-// ============================================================
-// Response builders
-// ============================================================
-
-func buildTokenResponse(
-	requestID, userID, orgName, accessToken, refreshToken string,
-	expiresAt time.Time,
-	selectedProject string,
-) map[string]any {
-	m := map[string]any{
-		"requestId": requestID,
-		"userId":    userID,
-	}
-	if orgName != "" {
-		m["orgName"] = orgName
-	}
-	if accessToken != "" {
-		m["accessToken"] = accessToken
-	}
-	if refreshToken != "" {
-		m["refreshToken"] = refreshToken
-	}
-	if !expiresAt.IsZero() {
-		m["expiresAt"] = expiresAt.UTC().Format(time.RFC3339)
-	}
-	if selectedProject != "" {
-		m["selectedProject"] = selectedProject
-	}
-	return m
 }
 
 // ============================================================
