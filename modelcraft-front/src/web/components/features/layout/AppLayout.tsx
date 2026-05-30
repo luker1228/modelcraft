@@ -382,25 +382,23 @@ export function AppLayout({
 
         {/* Right actions: Help + User only */}
         <div className="flex items-center gap-1">
-          {hasEndUserSession && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-3 text-xs"
-              onClick={() => {
-                const s = useEndUserAuthStore.getState()
-                if (s.accessToken && !s.isTokenExpired()) {
-                  router.push(`/end-user/${orgName}/dashboard`)
-                  return
-                }
-                void refreshEndUserAccessToken({ orgName }).then((token) => {
-                  router.push(token ? `/end-user/${orgName}/dashboard` : `/end-user/login`)
-                })
-              }}
-            >
-              用户端
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 px-3 text-xs"
+            onClick={() => {
+              const s = useEndUserAuthStore.getState()
+              if (s.accessToken && !s.isTokenExpired()) {
+                router.push(`/end-user/${orgName}/dashboard`)
+                return
+              }
+              void refreshEndUserAccessToken({ orgName }).then((token) => {
+                router.push(token ? `/end-user/${orgName}/dashboard` : `/end-user/${orgName}/login`)
+              })
+            }}
+          >
+            切换到用户视图
+          </Button>
           <Button
             variant="ghost"
             size="sm"

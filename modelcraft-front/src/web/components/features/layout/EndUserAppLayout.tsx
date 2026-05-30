@@ -119,7 +119,7 @@ function EndUserAppLayoutInner({
               className="h-8 px-3 text-xs"
               onClick={() => router.push(`/org/${orgName}/dashboard`)}
             >
-              管理端
+              切换到管理视图
             </Button>
           )}
           <UserMenu
