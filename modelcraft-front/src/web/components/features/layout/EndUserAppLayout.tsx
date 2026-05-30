@@ -77,12 +77,16 @@ function EndUserAppLayoutInner({
     .join('')
 
   const handleLogout = useCallback(async () => {
-    await fetch(`/api/bff/org/${orgName}/end-user/auth/logout`, {
-      method: 'POST',
-      credentials: 'same-origin',
-    })
+    try {
+      await fetch(`/api/bff/org/${orgName}/end-user/auth/logout`, {
+        method: 'POST',
+        credentials: 'same-origin',
+      })
+    } catch {
+      // ignore errors, always clear session and redirect
+    }
     clearEndUserSessionArtifacts()
-    router.push(`/end-user/${orgName}/login`)
+    router.push('/')
   }, [orgName, router])
 
   return (

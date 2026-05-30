@@ -11,7 +11,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { END_USER_REFRESH_COOKIE } from '@/middleware'
+import { END_USER_REFRESH_COOKIE } from '@/shared/constants/routes'
 
 const BACKEND_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
 
@@ -79,7 +79,9 @@ export async function proxyEndUserAuth(
   }
 
   // 构造响应（不在构造函数里传 headers，避免 Next.js 内部去重）
-  const response = new NextResponse(resBodyBuf, {
+  // 204 No Content 不能携带 body，否则 Response 构造器会抛 TypeError
+  const hasBody = upstreamRes.status !== 204 && upstreamRes.status !== 304
+  const response = new NextResponse(hasBody ? resBodyBuf : null, {
     status: upstreamRes.status,
     statusText: upstreamRes.statusText,
   })

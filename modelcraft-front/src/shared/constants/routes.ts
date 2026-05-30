@@ -1,3 +1,5 @@
+export const END_USER_REFRESH_COOKIE = 'mc_refresh_token'
+
 export const TENANT_LOGIN_PATH = '/tenant/login'
 export const TENANT_REGISTER_PATH = '/tenant/register'
 export const END_USER_LOGIN_PATH = '/end-user/login'

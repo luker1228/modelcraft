@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { END_USER_LOGIN_PATH, TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@shared/constants/routes'
+import { END_USER_LOGIN_PATH, END_USER_REFRESH_COOKIE, TENANT_LOGIN_PATH, TENANT_REGISTER_PATH } from '@shared/constants/routes'
 
 /**
  * Next.js Middleware — Single auth gate for all protected routes.
@@ -29,7 +29,6 @@ const DEV_REFRESH_COOKIE = 'mc_refresh_token'
 // ============================================
 // 终端用户认证配置
 // ============================================
-export const END_USER_REFRESH_COOKIE = 'mc_refresh_token'
 
 /**
  * 终端用户公开路径（仅这两类）：

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { proxyEndUserAuth } from '../_proxy'
-import { END_USER_REFRESH_COOKIE } from '@/middleware'
+import { END_USER_REFRESH_COOKIE } from '@/shared/constants/routes'
 
 type RouteParams = { params: Promise<{ orgName: string }> }
 
