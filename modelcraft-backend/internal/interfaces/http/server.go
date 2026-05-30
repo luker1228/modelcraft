@@ -71,10 +71,6 @@ func (s *Server) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 	s.endUserAuthHandler.EndUserLogin(w, r)
 }
 
-func (s *Server) EndUserRegister(w http.ResponseWriter, r *http.Request) {
-	s.endUserAuthHandler.EndUserRegister(w, r)
-}
-
 func (s *Server) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 	s.endUserAuthHandler.EndUserLogout(w, r)
 }

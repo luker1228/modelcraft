@@ -67,12 +67,13 @@ type TxManager interface {
 
 // EndUserAuthAppService handles end-user authentication use cases.
 type EndUserAuthAppService struct {
-	db          *sql.DB
-	repoFactory RepositoryFactory
-	txManager   TxManager
-	tokenIssuer EndUserTokenIssuer
-	refreshTTL  time.Duration
-	logger      logfacade.Logger
+	db           *sql.DB
+	repoFactory  RepositoryFactory
+	txManager    TxManager
+	tokenIssuer  EndUserTokenIssuer
+	refreshTTL   time.Duration
+	logger       logfacade.Logger
+	auditLogRepo domainAuth.SecurityAuditLogRepository
 }
 
 // NewEndUserAuthAppService creates a new EndUserAuthAppService.
@@ -82,14 +83,16 @@ func NewEndUserAuthAppService(
 	txManager TxManager,
 	tokenIssuer EndUserTokenIssuer,
 	logger logfacade.Logger,
+	auditLogRepo domainAuth.SecurityAuditLogRepository,
 ) *EndUserAuthAppService {
 	return &EndUserAuthAppService{
-		db:          db,
-		repoFactory: repoFactory,
-		txManager:   txManager,
-		tokenIssuer: tokenIssuer,
-		refreshTTL:  defaultRefreshTTL,
-		logger:      logger,
+		db:           db,
+		repoFactory:  repoFactory,
+		txManager:    txManager,
+		tokenIssuer:  tokenIssuer,
+		refreshTTL:   defaultRefreshTTL,
+		logger:       logger,
+		auditLogRepo: auditLogRepo,
 	}
 }
 
@@ -312,7 +315,30 @@ func (s *EndUserAuthAppService) doRefreshInTx(
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if token == nil || !token.IsValid() {
+
+	// token not found → 401
+	if token == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
+	}
+
+	// Reuse detection: token already revoked means potential stolen-token replay.
+	// Revoke all sessions for the user as a precaution and log the security event.
+	if token.IsRevoked() {
+		_ = txRefreshTokenRepo.RevokeAllByUserID(ctx, token.UserID)
+		if s.auditLogRepo != nil {
+			_ = s.auditLogRepo.Insert(ctx, &domainAuth.SecurityAuditLog{
+				ID:     generateAuditLogID(),
+				UserID: token.UserID,
+				Event:  domainAuth.EventReuseDetected,
+				Detail: map[string]any{"token_id": token.ID},
+			})
+		}
+		s.logger.Warnf(ctx, "EndUser token reuse detected: user_id=%s, token_id=%s", token.UserID, token.ID)
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
+	}
+
+	// token expired → 401
+	if !token.IsValid() {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
 	}
 
@@ -425,4 +451,11 @@ func generateRefreshToken() (plaintext, hash string, err error) {
 func hashToken(token string) string {
 	sum := sha256.Sum256([]byte(token))
 	return hex.EncodeToString(sum[:])
+}
+
+// generateAuditLogID generates a UUID v7 for audit log records.
+// Errors are silently ignored — audit IDs are non-critical.
+func generateAuditLogID() string {
+	id, _ := bizutils.GenerateUUIDV7()
+	return id
 }

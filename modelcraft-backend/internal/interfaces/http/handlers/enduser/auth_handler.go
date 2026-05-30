@@ -88,44 +88,6 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// EndUserRegister handles POST /api/end-user/auth/register.
-func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	requestID := ctxutils.GetRequestID(ctx)
-
-	var req struct {
-		OrgName  string `json:"orgName"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
-		return
-	}
-	if req.OrgName == "" {
-		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
-		return
-	}
-
-	result, err := h.authService.RegisterEndUser(ctx, appEnduser.RegisterCommand{
-		OrgName:  req.OrgName,
-		Username: req.Username,
-		Password: req.Password,
-	})
-	if err != nil {
-		h.handleBizError(w, r, requestID, err, "end-user register failed")
-		return
-	}
-
-	h.shared.SetRefreshCookie(w, result.RefreshToken)
-	h.writeJSON(w, http.StatusOK, map[string]any{
-		"requestId": requestID,
-		"userId":    result.UserID,
-		"orgName":   req.OrgName,
-		"expiresAt": result.ExpiresAt.UTC().Format(time.RFC3339),
-	})
-}
-
 // EndUserLogout handles POST /api/end-user/auth/logout.
 func (h *AuthHandler) EndUserLogout(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()

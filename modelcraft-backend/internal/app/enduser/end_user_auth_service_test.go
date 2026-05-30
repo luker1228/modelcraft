@@ -389,6 +389,7 @@ func createEndUserAuthServiceForTest(t *testing.T) (
 		&fakeTxManager{},
 		&fakeTokenIssuer{},
 		logfacade.GetLogger(context.Background()),
+		nil, // auditLogRepo — optional, not needed in unit tests
 	)
 
 	return svc, userRepo, refreshTokenRepo
