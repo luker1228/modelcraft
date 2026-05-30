@@ -23,6 +23,7 @@ import { Loader2, Plus, Trash2 } from 'lucide-react'
 import {
   useClusterRawDatabases,
   useBatchRegisterModelDatabase,
+  type ModelDatabase,
   type DatabaseMode,
   type RegisterModelDatabaseInput,
 } from '@web/hooks/model-database/use-model-databases'
@@ -39,6 +40,7 @@ interface DbRow {
 interface RegisterDatabaseDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  onRegistered?: (databases: ModelDatabase[]) => void
 }
 
 interface DbRowFormProps {
@@ -107,7 +109,11 @@ function DbRowForm({ row, options, onUpdate, onRemove }: DbRowFormProps) {
   )
 }
 
-export function RegisterDatabaseDialog({ open, onOpenChange }: RegisterDatabaseDialogProps) {
+export function RegisterDatabaseDialog({
+  open,
+  onOpenChange,
+  onRegistered,
+}: RegisterDatabaseDialogProps) {
   const params = useParams<{ orgName: string; projectSlug: string }>()
   const { rawDatabases, loading: rawLoading } = useClusterRawDatabases(params.projectSlug, !open)
   const { batchRegister, loading: submitting } = useBatchRegisterModelDatabase(params.projectSlug)
@@ -152,6 +158,9 @@ export function RegisterDatabaseDialog({ open, onOpenChange }: RegisterDatabaseD
     const result = await batchRegister(inputs)
     const successNames = new Set(result.succeeded.map((d) => d.name))
     const failMap = new Map(result.failed.map((f) => [f.name, f.message]))
+    if (result.succeeded.length > 0) {
+      onRegistered?.(result.succeeded)
+    }
     setRows((prev) => {
       const remaining = prev
         .filter((r) => !successNames.has(r.name))

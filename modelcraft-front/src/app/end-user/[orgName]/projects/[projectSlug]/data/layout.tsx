@@ -18,7 +18,7 @@ export default function EndUserDataLayout({ children }: EndUserDataLayoutProps) 
   return (
     <EndUserAuthGuard loadingMessage="正在加载数据管理界面...">
       <EndUserCopilotWrapper orgName={orgName} projectSlug={projectSlug}>
-        <div className="flex h-screen flex-col overflow-hidden">{children}</div>
+        <div className="h-screen overflow-hidden">{children}</div>
       </EndUserCopilotWrapper>
     </EndUserAuthGuard>
   )

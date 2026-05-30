@@ -47,6 +47,11 @@ import {
 } from '@web/hooks/model-database/use-model-databases'
 import { RegisterDatabaseDialog } from './_components/RegisterDatabaseDialog'
 import { EditDatabaseSheet } from './_components/EditDatabaseSheet'
+import { startSyncForRegisteredDatabases } from './_components/batch-register-sync'
+import {
+  buildDisplayedDatabases,
+  createOptimisticPendingSyncJob,
+} from './database-list-state'
 import { toast } from 'sonner'
 
 function isTerminalJobStatus(status: ModelDatabaseSyncJob['status']) {
@@ -65,8 +70,18 @@ export default function DatabasesPage() {
   const [unregisterTarget, setUnregisterTarget] = useState<ModelDatabase | null>(null)
   const [syncTarget, setSyncTarget] = useState<ModelDatabase | null>(null)
   const [resultTarget, setResultTarget] = useState<ModelDatabase | null>(null)
+  const [optimisticDatabases, setOptimisticDatabases] = useState<ModelDatabase[]>([])
   const [jobsByDatabaseId, setJobsByDatabaseId] = useState<Record<string, ModelDatabaseSyncJob>>({})
   const pollersRef = useRef<Record<string, ReturnType<typeof setInterval>>>({})
+
+  useEffect(() => {
+    if (optimisticDatabases.length === 0) {
+      return
+    }
+
+    const fetchedIds = new Set(databases.map((database) => database.id))
+    setOptimisticDatabases((prev) => prev.filter((database) => !fetchedIds.has(database.id)))
+  }, [databases, optimisticDatabases.length])
 
   useEffect(() => {
     return () => {
@@ -121,12 +136,42 @@ export default function DatabasesPage() {
     }
   }
 
+  const handleDatabasesRegistered = async (registeredDatabases: ModelDatabase[]) => {
+    setOptimisticDatabases((prev) => buildDisplayedDatabases(prev, registeredDatabases))
+    setJobsByDatabaseId((prev) => {
+      const next = { ...prev }
+      registeredDatabases.forEach((database) => {
+        if (!next[database.id]) {
+          next[database.id] = createOptimisticPendingSyncJob(database.id)
+        }
+      })
+      return next
+    })
+
+    try {
+      const startedCount = await startSyncForRegisteredDatabases(
+        registeredDatabases,
+        startSync,
+        upsertJob,
+        startPolling
+      )
+
+      if (startedCount > 0) {
+        toast.success(`已为 ${startedCount} 个数据库创建同步任务`)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '自动创建同步任务失败')
+    }
+  }
+
+  const displayedDatabases = buildDisplayedDatabases(databases, optimisticDatabases)
+
   const renderJobStatus = (job?: ModelDatabaseSyncJob) => {
     if (!job) return null
 
     switch (job.status) {
       case 'PENDING':
-        return <span className="text-xs text-muted-foreground">排队中</span>
+        return <span className="text-xs text-muted-foreground">同步中</span>
       case 'RUNNING':
         return (
           <span className="text-xs text-muted-foreground">
@@ -176,21 +221,22 @@ export default function DatabasesPage() {
                   <TableHead>名称</TableHead>
                   <TableHead>描述</TableHead>
                   <TableHead>模式</TableHead>
+                  <TableHead>状态</TableHead>
                   <TableHead className="w-16" />
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {databases.length === 0 ? (
+                {displayedDatabases.length === 0 ? (
                   <TableRow>
                     <TableCell
-                      colSpan={4}
+                      colSpan={5}
                       className="py-12 text-center text-sm text-muted-foreground"
                     >
                       暂无已接管的数据库，点击右上角"接管数据库"开始
                     </TableCell>
                   </TableRow>
                 ) : (
-                  databases.map((db) => (
+                  displayedDatabases.map((db) => (
                     <TableRow key={db.id}>
                       <TableCell>
                         <div className="flex flex-col">
@@ -204,24 +250,26 @@ export default function DatabasesPage() {
                         {db.description || '—'}
                       </TableCell>
                       <TableCell>
-                        <div className="flex flex-col gap-1">
-                          {db.mode === 'SELF_HOSTED' ? (
-                            <Badge
-                              variant="outline"
-                              className="w-fit border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
-                            >
-                              自建
-                            </Badge>
-                          ) : (
-                            <Badge
-                              variant="outline"
-                              className="w-fit border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400"
-                            >
-                              托管
-                            </Badge>
-                          )}
-                          {renderJobStatus(jobsByDatabaseId[db.id])}
-                        </div>
+                        {db.mode === 'SELF_HOSTED' ? (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-green-500/30 bg-green-500/10 text-green-700 dark:text-green-400"
+                          >
+                            自建
+                          </Badge>
+                        ) : (
+                          <Badge
+                            variant="outline"
+                            className="w-fit border-blue-500/30 bg-blue-500/10 text-blue-700 dark:text-blue-400"
+                          >
+                            托管
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {renderJobStatus(jobsByDatabaseId[db.id]) ?? (
+                          <span className="text-xs text-muted-foreground">待同步</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
@@ -269,7 +317,13 @@ export default function DatabasesPage() {
         )}
       </div>
 
-      <RegisterDatabaseDialog open={registerOpen} onOpenChange={setRegisterOpen} />
+      <RegisterDatabaseDialog
+        open={registerOpen}
+        onOpenChange={setRegisterOpen}
+        onRegistered={(registeredDatabases) => {
+          void handleDatabasesRegistered(registeredDatabases)
+        }}
+      />
       <EditDatabaseSheet database={editTarget} onClose={() => setEditTarget(null)} />
 
       <AlertDialog open={syncTarget !== null} onOpenChange={(open) => { if (!open) setSyncTarget(null) }}>

@@ -1,9 +1,8 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
+import { useParams } from 'next/navigation'
 import {
-  ChevronDown,
   ChevronsUpDown,
   Database,
   Loader2,
@@ -29,14 +28,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@web/components/ui/popover'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@web/components/ui/dropdown-menu'
 import { cn } from '@/shared/utils'
 import { getEndUserToken } from '@api-client/end-user/public'
 import { createEndUserScopedClient } from '@api-client/apollo/clients'
@@ -47,7 +38,7 @@ import {
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
 import { EndUserRecordWorkspace } from '@web/components/features/end-user-data'
 import { DataWorkspacePanel } from '@web/components/shared/data-workspace/DataWorkspacePanel'
-import type { EndUserAccessibleProject } from '@/types/end-user-auth'
+import { EndUserAppLayout } from '@web/components/features/layout'
 
 type DataModel = {
   id: string
@@ -84,10 +75,9 @@ const MAX_MODEL_TABS = 8
 
 export default function EndUserDataPage() {
   const params = useParams<{ orgName: string; projectSlug: string }>()
-  const router = useRouter()
   const orgName = params.orgName
   const projectSlug = params.projectSlug
-  const { user, logout } = useEndUser()
+  const { user } = useEndUser()
 
   const [selectedDatabase, setSelectedDatabase] = useState('')
   const [databaseOpen, setDatabaseOpen] = useState(false)
@@ -100,33 +90,6 @@ export default function EndUserDataPage() {
   const [modelsLoading, setModelsLoading] = useState(false)
   const [privateDbInitDialogOpen, setPrivateDbInitDialogOpen] = useState(false)
   const [initPrivateDbLoading, setInitPrivateDbLoading] = useState(false)
-
-  // 从 sessionStorage 读取可访问项目列表（登录时已缓存）
-  const [accessibleProjects, setAccessibleProjects] = useState<EndUserAccessibleProject[]>([])
-
-  useEffect(() => {
-    if (!orgName) return
-    const raw = sessionStorage.getItem(`eu_accessible_projects_${orgName}`)
-    if (raw) {
-      try {
-        setAccessibleProjects(JSON.parse(raw) as EndUserAccessibleProject[])
-      } catch {
-        setAccessibleProjects([])
-      }
-    }
-  }, [orgName])
-
-  useEffect(() => {
-    if (!orgName || !projectSlug) return
-
-    const selectedProject = sessionStorage.getItem(`eu_selected_project_${orgName}`)
-    if (selectedProject && selectedProject !== projectSlug) {
-      router.replace(`/end-user/${orgName}/projects/${selectedProject}/data`)
-      return
-    }
-
-    sessionStorage.setItem(`eu_selected_project_${orgName}`, projectSlug)
-  }, [orgName, projectSlug, router])
 
   const loadDatabaseCatalog = async (): Promise<void> => {
     if (!orgName || !projectSlug) return
@@ -186,7 +149,6 @@ export default function EndUserDataPage() {
         setModels([])
         return
       }
-
       if (!orgName || !projectSlug) return
 
       setModelsLoading(true)
@@ -200,12 +162,10 @@ export default function EndUserDataPage() {
 
         const payload = data?.models
         if (cancelled) return
-
         setModels(
-          (payload?.items ?? [])
-            .filter(
-              (model) => Boolean(model?.id && model?.name && model?.databaseName)
-            )
+          (payload?.items ?? []).filter(
+            (model) => Boolean(model?.id && model?.name && model?.databaseName)
+          )
         )
       } catch (err) {
         if (cancelled) return
@@ -218,17 +178,15 @@ export default function EndUserDataPage() {
     }
 
     void loadModelCatalog()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [selectedDatabase, orgName, projectSlug, user?.id])
 
   const filteredModels = useMemo(() => {
     const keyword = modelFilter.trim().toLowerCase()
     if (!keyword) return models
-
     return models.filter((model) =>
-      (model.title ?? '').toLowerCase().includes(keyword) || model.name.toLowerCase().includes(keyword)
+      (model.title ?? '').toLowerCase().includes(keyword) ||
+      model.name.toLowerCase().includes(keyword)
     )
   }, [models, modelFilter])
 
@@ -241,9 +199,7 @@ export default function EndUserDataPage() {
       const res = await fetch(`/internal/end-user/data/init-private-db`, {
         method: 'POST',
         credentials: 'same-origin',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
+        headers: { Authorization: `Bearer ${accessToken}` },
       })
 
       type InitResp = { success?: boolean; error?: { code?: string; message?: string } }
@@ -287,63 +243,14 @@ export default function EndUserDataPage() {
   }
 
   return (
-    <div className="flex size-full flex-col overflow-hidden">
-      {/* Top Header */}
-      <header className="flex h-[48px] shrink-0 items-center justify-between border-b border-border bg-background px-4">
-        <div className="flex items-center gap-2">
-          {accessibleProjects.length > 1 ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1.5 rounded-md px-2 py-1 text-sm font-medium text-foreground transition-colors hover:bg-accent">
-                  <span>{projectSlug}</span>
-                  <ChevronDown className="size-3.5 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="start" className="min-w-[200px]">
-                <DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
-                  切换项目
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                {accessibleProjects.map((p) => (
-                  <DropdownMenuItem
-                    key={p.slug}
-                    onSelect={() => {
-                      if (p.slug !== projectSlug) {
-                        sessionStorage.setItem(`eu_selected_project_${orgName}`, p.slug)
-                        router.push(`/end-user/${orgName}/projects/${p.slug}/data`)
-                      }
-                    }}
-                    className={p.slug === projectSlug ? 'bg-muted font-medium' : ''}
-                  >
-                    <span className="flex-1">{p.title || p.slug}</span>
-                    {p.slug === projectSlug && (
-                      <span className="ml-2 text-xs text-muted-foreground">当前</span>
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          ) : (
-            <span className="text-sm font-medium text-foreground">{projectSlug}</span>
-          )}
-        </div>
+    <EndUserAppLayout orgName={orgName} projectSlug={projectSlug}>
+      {/* Inner layout: model sidebar + workspace panel */}
+      <div className="flex h-full overflow-hidden">
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {user?.username || user?.id || '已登录'}
-          </span>
-          <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => void logout()}>
-            退出登录
-          </Button>
-        </div>
-      </header>
+        {/* Model sidebar — database selector + model list */}
+        <aside className="flex w-[240px] flex-shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar">
 
-      {/* Body: Sidebar + Content */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        {/* Left Sidebar */}
-        <aside className="flex w-[260px] shrink-0 flex-col border-r border-border bg-sidebar">
-
-          {/* Zone 1: Database */}
+          {/* Zone 1: Database selector */}
           <div className="p-3">
             <Popover open={databaseOpen} onOpenChange={setDatabaseOpen}>
               <PopoverTrigger asChild>
@@ -374,7 +281,7 @@ export default function EndUserDataPage() {
                   <ChevronsUpDown className="ml-2 size-3.5 shrink-0 text-muted-foreground" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[228px] border border-border p-1 shadow-lg" align="start">
+              <PopoverContent className="w-[208px] border border-border p-1 shadow-lg" align="start">
                 {databases.length === 0 ? (
                   <div className="px-2.5 py-3 text-center text-sm text-muted-foreground">
                     暂无数据库
@@ -385,7 +292,7 @@ export default function EndUserDataPage() {
                       key={db}
                       type="button"
                       className={cn(
-                        'w-full text-left px-2.5 py-1.5 text-sm rounded-sm transition-colors cursor-pointer',
+                        'w-full cursor-pointer rounded-sm px-2.5 py-1.5 text-left text-sm transition-colors',
                         selectedDatabase === db
                           ? 'bg-accent text-foreground'
                           : 'text-muted-foreground hover:bg-accent hover:text-foreground'
@@ -408,9 +315,8 @@ export default function EndUserDataPage() {
           {/* Divider */}
           <div className="border-t border-border" />
 
-          {/* Zone 2: Models */}
+          {/* Zone 2: Model list */}
           <div className="flex flex-1 flex-col overflow-hidden">
-
             {/* Search */}
             <div className="px-2 pb-2 pt-2.5">
               <div className="relative">
@@ -434,7 +340,7 @@ export default function EndUserDataPage() {
               </div>
             </div>
 
-            {/* Model List */}
+            {/* Model items */}
             <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-4">
               <div className="space-y-0.5">
                 {modelsLoading && (
@@ -452,21 +358,17 @@ export default function EndUserDataPage() {
                     onClick={() => handleOpenModelTab(model)}
                     onKeyDown={(e) => e.key === 'Enter' && handleOpenModelTab(model)}
                     className={cn(
-                      'group flex items-center gap-1.5 h-8 pl-2 pr-1 rounded-md cursor-pointer transition-colors select-none border-l-[3px]',
+                      'group flex h-8 cursor-pointer select-none items-center gap-1.5 rounded-md border-l-[3px] pl-2 pr-1 transition-colors',
                       activeModelId === model.id
-                        ? 'bg-primary/[0.08] text-primary border-l-primary'
-                        : 'text-muted-foreground hover:bg-accent/60 hover:text-foreground border-l-transparent'
+                        ? 'border-l-primary bg-primary/[0.08] text-primary'
+                        : 'border-l-transparent text-muted-foreground hover:bg-accent/60 hover:text-foreground'
                     )}
                   >
                     <Table2 className={cn(
                       'size-[15px] shrink-0 transition-colors',
                       activeModelId === model.id ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'
                     )} />
-
-                    <span className="min-w-0 flex-1 truncate text-xs">
-                      {model.name}
-                    </span>
-
+                    <span className="min-w-0 flex-1 truncate text-xs">{model.name}</span>
                     {model.title && model.title !== model.name && (
                       <span className="max-w-[56px] shrink-0 truncate text-xs text-muted-foreground/60" title={model.title}>
                         {model.title}
@@ -493,8 +395,8 @@ export default function EndUserDataPage() {
           </div>
         </aside>
 
-        {/* Right Content */}
-        <main className="flex min-w-0 flex-1 flex-col bg-background p-4">
+        {/* Workspace panel */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background p-4">
           <DataWorkspacePanel
             tabs={openedTabs}
             activeTabId={activeModelId}
@@ -511,7 +413,7 @@ export default function EndUserDataPage() {
               />
             )}
           />
-        </main>
+        </div>
       </div>
 
       <AlertDialog open={privateDbInitDialogOpen} onOpenChange={setPrivateDbInitDialogOpen}>
@@ -530,6 +432,6 @@ export default function EndUserDataPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </EndUserAppLayout>
   )
 }
