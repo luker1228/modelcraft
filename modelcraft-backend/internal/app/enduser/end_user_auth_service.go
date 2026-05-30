@@ -316,8 +316,7 @@ func (s *EndUserAuthAppService) doRefreshInTx(
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
 	}
 
-	// Only fetch user, no projects
-	userRepo := s.repoFactory.NewEndUserRepository(s.db, orgName, "")
+	userRepo := s.repoFactory.NewEndUserRepository(txDB, orgName, "")
 	user, err := userRepo.GetByID(ctx, orgName, token.UserID)
 	if err != nil {
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
