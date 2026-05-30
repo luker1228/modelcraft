@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Loader2 } from 'lucide-react'
@@ -21,6 +22,10 @@ import {
 import type { IdentifierType } from '@/types/auth'
 
 export default function TenantLoginPage() {
+  const searchParams = useSearchParams()
+  const redirect = searchParams.get('redirect')
+  const backHref = redirect ? `/?redirect=${encodeURIComponent(redirect)}` : '/'
+
   const { login, isLoading, error, identifierType, setIdentifierType } =
     useLogin()
 
@@ -46,7 +51,7 @@ export default function TenantLoginPage() {
     <AuthLayout
       title="欢迎回来，管理员"
       subtitle="登录管理控制台"
-      backLink={{ href: '/', label: '返回登录选择' }}
+      backLink={{ href: backHref, label: '返回登录选择' }}
     >
       <Form {...form}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-5">

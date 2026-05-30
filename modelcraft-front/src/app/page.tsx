@@ -2,12 +2,13 @@
 
 import NextLink from 'next/link'
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { getToken, refreshAccessToken } from '@api-client/auth/public'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { getToken, refreshAccessToken, removeToken } from '@api-client/auth/public'
 import {
   getEndUserInfoFromToken,
   getEndUserToken,
   refreshEndUserAccessToken,
+  removeEndUserSession,
 } from '@api-client/end-user/end-user-auth-client'
 import { AuthLayout } from '@/web/components/features/auth/auth-layout'
 import { Button } from '@web/components/ui/button'
@@ -20,6 +21,7 @@ import {
 
 export default function Home() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isCheckingSession, setIsCheckingSession] = useState(true)
   // When both sessions are valid, store the destinations so UI can show "enter" buttons
   const [adminDest, setAdminDest] = useState<string | null>(null)
@@ -27,6 +29,15 @@ export default function Home() {
 
   useEffect(() => {
     async function init() {
+      // 带 redirect 参数说明用户是从登录页"返回"的，清除 session 并还原干净首页
+      if (searchParams.get('redirect')) {
+        removeToken()
+        removeEndUserSession()
+        localStorage.removeItem('defaultOrgName')
+        router.replace('/')
+        return
+      }
+
       const defaultOrgName = localStorage.getItem('defaultOrgName')
       const devToken = getToken()
 
