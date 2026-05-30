@@ -10,7 +10,6 @@ import { useRouter } from 'next/navigation'
 import { useForm, type UseFormReturn } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 
 // ============================================================================
@@ -21,7 +20,6 @@ interface EndUserOrgLoginBffResponse {
   error?: { code?: string; message?: string }
   accessToken?: string
   expiresAt?: string
-  projects?: EndUserAccessibleProject[]
   refreshToken?: string
 }
 
@@ -86,8 +84,8 @@ function parseJwtPayload(token: string): Record<string, unknown> {
  *
  * 登录分支：
  * - 登录失败（4xx）  → 显示错误信息（error 字段）
- * - 登录成功 + 有项目权限 → 写入 store/sessionStorage，跳转 workspace
- * - 登录成功 + 无项目权限 → 后端不返回 accessToken，跳转 no-project-access 引导页
+ * - 登录成功 + isAdmin → 跳转管理后台 dashboard
+ * - 登录成功 + 普通用户 → 跳转 end-user dashboard
  * - 网络异常          → 显示网络错误提示
  */
 export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormReturn {
@@ -137,25 +135,19 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
           // 同时写入 sessionStorage，防止客户端导航后 Zustand store 内存被重置
           sessionStorage.setItem(`eu_token_${orgName}`, data.accessToken)
           sessionStorage.setItem(`eu_token_expires_at_${orgName}`, String(Date.now() + expiresIn * 1000))
-
-          // 管理员从 end-user 入口登录 → 跳转管理后台
-          const payload = parseJwtPayload(data.accessToken)
-          if (payload.is_admin === true) {
-            router.push(`/org/${orgName}/projects`)
-            return
-          }
-        } else {
-          // 无 accessToken = 登录成功但当前账号没有任何项目访问权限
-          // 跳转到"暂无权限"引导页，而不是 workspace
-          router.push(`/end-user/${orgName}/no-project-access`)
-          return
         }
 
-        const projects: EndUserAccessibleProject[] = data.projects ?? []
+        // 根据 isAdmin 决定跳转目标
+        const payload = data.accessToken ? parseJwtPayload(data.accessToken) : {}
+        const isAdmin = payload?.is_admin === true
 
-        // 写入可访问项目列表，跳转 dashboard
-        sessionStorage.setItem(`eu_accessible_projects_${orgName}`, JSON.stringify(projects))
-        router.push(`/end-user/${orgName}/dashboard`)
+        if (isAdmin) {
+          // 管理员用户 → 跳转管理后台
+          router.push(`/org/${orgName}/dashboard`)
+        } else {
+          // 普通终端用户 → 跳转 end-user dashboard
+          router.push(`/end-user/${orgName}/dashboard`)
+        }
       } catch {
         setError('网络错误，请检查连接后重试')
       } finally {
