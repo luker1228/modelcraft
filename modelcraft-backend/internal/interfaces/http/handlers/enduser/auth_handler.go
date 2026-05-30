@@ -80,8 +80,7 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, result.OrgName,
-		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
-		toProjectList(result.Projects), ""))
+		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt, ""))
 }
 
 // EndUserRegister handles POST /api/end-user/auth/register.
@@ -115,7 +114,7 @@ func (h *AuthHandler) EndUserRegister(w http.ResponseWriter, r *http.Request) {
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, req.OrgName,
-		"", "" /* stored in httpOnly cookie */, result.ExpiresAt, nil, ""))
+		"", "" /* stored in httpOnly cookie */, result.ExpiresAt, ""))
 }
 
 // EndUserLogout handles POST /api/end-user/auth/logout.
@@ -173,8 +172,7 @@ func (h *AuthHandler) EndUserRefreshToken(w http.ResponseWriter, r *http.Request
 
 	h.shared.SetRefreshCookie(w, result.RefreshToken)
 	h.writeJSON(w, http.StatusOK, buildTokenResponse(requestID, result.UserID, req.OrgName,
-		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt,
-		toProjectList(result.Projects), ""))
+		result.AccessToken, "" /* stored in httpOnly cookie */, result.ExpiresAt, ""))
 }
 
 // EndUserMe handles GET /api/end-user/auth/me.
@@ -263,23 +261,9 @@ func extractBearer(r *http.Request) string {
 // Response builders
 // ============================================================
 
-type projectItem struct {
-	Slug  string `json:"slug"`
-	Title string `json:"title"`
-}
-
-func toProjectList(items []appEnduser.AccessibleProject) []projectItem {
-	out := make([]projectItem, 0, len(items))
-	for _, p := range items {
-		out = append(out, projectItem{Slug: p.Slug, Title: p.Title})
-	}
-	return out
-}
-
 func buildTokenResponse(
 	requestID, userID, orgName, accessToken, refreshToken string,
 	expiresAt time.Time,
-	projects []projectItem,
 	selectedProject string,
 ) map[string]any {
 	m := map[string]any{
@@ -297,9 +281,6 @@ func buildTokenResponse(
 	}
 	if !expiresAt.IsZero() {
 		m["expiresAt"] = expiresAt.UTC().Format(time.RFC3339)
-	}
-	if len(projects) > 0 {
-		m["projects"] = projects
 	}
 	if selectedProject != "" {
 		m["selectedProject"] = selectedProject

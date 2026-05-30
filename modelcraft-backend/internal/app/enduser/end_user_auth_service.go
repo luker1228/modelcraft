@@ -217,28 +217,9 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	var accessibleProjects []enduser.AccessibleProject
-	if user.IsAdmin {
-		accessibleProjects, err = userRepo.ListAllProjectsByOrg(ctx, resolvedOrgName)
-	} else {
-		accessibleProjects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, resolvedOrgName, user.ID)
-	}
+	tokenResult, err := s.issueAccessToken(ctx, user.ID, resolvedOrgName, nil, user.IsAdmin)
 	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	accessToken := ""
-	if user.IsAdmin || len(accessibleProjects) > 0 {
-		projectSlugs := make([]string, 0, len(accessibleProjects))
-		for _, item := range accessibleProjects {
-			projectSlugs = append(projectSlugs, item.ProjectSlug)
-		}
-
-		tokenResult, issueErr := s.issueAccessToken(ctx, user.ID, resolvedOrgName, projectSlugs, user.IsAdmin)
-		if issueErr != nil {
-			return nil, issueErr
-		}
-		accessToken = tokenResult.AccessToken
+		return nil, err
 	}
 
 	plaintext, tokenHash, err := generateRefreshToken()
@@ -264,20 +245,12 @@ func (s *EndUserAuthAppService) LoginEndUser(ctx context.Context, cmd LoginComma
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	s.logger.Infof(
-		ctx,
-		"EndUser login: id=%s, identifier=%s, org=%s, projects=%d",
-		user.ID,
-		identifier,
-		resolvedOrgName,
-		len(accessibleProjects),
-	)
+	s.logger.Infof(ctx, "EndUser login: id=%s, identifier=%s, org=%s", user.ID, identifier, resolvedOrgName)
 
 	return &LoginResult{
 		UserID:       user.ID,
 		OrgName:      resolvedOrgName,
-		AccessToken:  accessToken,
-		Projects:     toAppAccessibleProjects(accessibleProjects),
+		AccessToken:  tokenResult.AccessToken,
 		RefreshToken: plaintext,
 		ExpiresAt:    expiresAt,
 	}, nil
@@ -343,13 +316,20 @@ func (s *EndUserAuthAppService) doRefreshInTx(
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
 	}
 
-	// User lookups are read-only; the non-tx DB connection is sufficient.
-	user, accessibleProjects, err := s.loadUserAndProjects(ctx, orgName, token.UserID)
+	// Only fetch user, no projects
+	userRepo := s.repoFactory.NewEndUserRepository(s.db, orgName, "")
+	user, err := userRepo.GetByID(ctx, orgName, token.UserID)
 	if err != nil {
-		return nil, err
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if user == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
+	}
+	if !user.IsActive() {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
 	}
 
-	accessToken, err := s.buildAccessToken(ctx, token.UserID, orgName, user, accessibleProjects)
+	tokenResult, err := s.issueAccessToken(ctx, token.UserID, orgName, nil, user.IsAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -382,62 +362,10 @@ func (s *EndUserAuthAppService) doRefreshInTx(
 
 	return &RefreshResult{
 		UserID:       token.UserID,
-		AccessToken:  accessToken,
-		Projects:     toAppAccessibleProjects(accessibleProjects),
+		AccessToken:  tokenResult.AccessToken,
 		RefreshToken: newPlaintext,
 		ExpiresAt:    expiresAt,
 	}, nil
-}
-
-// loadUserAndProjects fetches the user and their accessible projects using the non-tx DB.
-func (s *EndUserAuthAppService) loadUserAndProjects(
-	ctx context.Context,
-	orgName, userID string,
-) (*enduser.EndUser, []enduser.AccessibleProject, error) {
-	userRepo := s.repoFactory.NewEndUserRepository(s.db, orgName, "")
-
-	user, err := userRepo.GetByID(ctx, orgName, userID)
-	if err != nil {
-		return nil, nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if user == nil {
-		return nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserInvalidRefreshToken)
-	}
-	if !user.IsActive() {
-		return nil, nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserAccountDisabled)
-	}
-
-	var projects []enduser.AccessibleProject
-	if user.IsAdmin {
-		projects, err = userRepo.ListAllProjectsByOrg(ctx, orgName)
-	} else {
-		projects, err = userRepo.ListAccessibleProjectsByRoleAssignment(ctx, orgName, userID)
-	}
-	if err != nil {
-		return nil, nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	return user, projects, nil
-}
-
-// buildAccessToken issues an access token when the user has project access, otherwise returns "".
-func (s *EndUserAuthAppService) buildAccessToken(
-	ctx context.Context,
-	userID, orgName string,
-	user *enduser.EndUser,
-	accessibleProjects []enduser.AccessibleProject,
-) (string, error) {
-	if !user.IsAdmin && len(accessibleProjects) == 0 {
-		return "", nil
-	}
-	projectSlugs := make([]string, 0, len(accessibleProjects))
-	for _, item := range accessibleProjects {
-		projectSlugs = append(projectSlugs, item.ProjectSlug)
-	}
-	tokenResult, err := s.issueAccessToken(ctx, userID, orgName, projectSlugs, user.IsAdmin)
-	if err != nil {
-		return "", err
-	}
-	return tokenResult.AccessToken, nil
 }
 
 // GetEndUserMe retrieves the current end-user's profile.
@@ -479,14 +407,6 @@ func (s *EndUserAuthAppService) issueAccessToken(
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "issue end-user access token")
 	}
 	return result, nil
-}
-
-func toAppAccessibleProjects(items []enduser.AccessibleProject) []AccessibleProject {
-	projects := make([]AccessibleProject, 0, len(items))
-	for _, item := range items {
-		projects = append(projects, AccessibleProject{Slug: item.ProjectSlug, Title: item.ProjectTitle})
-	}
-	return projects
 }
 
 // generateRefreshToken generates a 32-byte CSPRNG → 64-char hex string.

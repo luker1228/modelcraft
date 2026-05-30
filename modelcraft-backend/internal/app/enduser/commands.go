@@ -20,12 +20,6 @@ type RegisterResult struct {
 	ExpiresAt    time.Time
 }
 
-// AccessibleProject represents one project that the end-user can access.
-type AccessibleProject struct {
-	Slug  string
-	Title string
-}
-
 // IdentifierType indicates which field is used to identify the end-user on login.
 type IdentifierType string
 
@@ -50,7 +44,6 @@ type LoginResult struct {
 	UserID       string
 	OrgName      string
 	AccessToken  string
-	Projects     []AccessibleProject
 	RefreshToken string // opaque token plaintext (returned only once)
 	ExpiresAt    time.Time
 }
@@ -71,7 +64,6 @@ type RefreshCommand struct {
 type RefreshResult struct {
 	UserID       string
 	AccessToken  string
-	Projects     []AccessibleProject
 	RefreshToken string
 	ExpiresAt    time.Time
 }

@@ -426,10 +426,6 @@ func requireBusinessErrorCode(t *testing.T, err error, code string) {
 func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 	svc, userRepo, refreshTokenRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
-		{ProjectSlug: "project-a", ProjectTitle: "Project A"},
-		{ProjectSlug: "project-b", ProjectTitle: "Project B"},
-	}
 
 	result, err := svc.LoginEndUser(context.Background(), LoginCommand{
 		OrgName:  "org-a",
@@ -440,7 +436,6 @@ func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 	require.NotNil(t, result)
 	assert.Equal(t, "user-1", result.UserID)
 	assert.NotEmpty(t, result.AccessToken)
-	assert.Len(t, result.Projects, 2)
 	assert.NotEmpty(t, result.RefreshToken)
 	assert.Len(t, refreshTokenRepo.tokensByID, 1)
 
@@ -449,7 +444,7 @@ func TestEndUserAuthAppService_LoginEndUser_Success(t *testing.T) {
 	require.Len(t, issuer.issuedInputs, 1)
 	assert.Equal(t, "user-1", issuer.issuedInputs[0].UserID)
 	assert.Equal(t, "org-a", issuer.issuedInputs[0].OrgName)
-	assert.Equal(t, []string{"project-a", "project-b"}, issuer.issuedInputs[0].ProjectSlugs)
+	assert.Nil(t, issuer.issuedInputs[0].ProjectSlugs)
 }
 
 func TestEndUserAuthAppService_LoginEndUser_ResolveOrgFromUsername(t *testing.T) {
@@ -489,8 +484,7 @@ func TestEndUserAuthAppService_LoginEndUser_NoProjectAccess(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, result)
 	assert.Equal(t, "user-1", result.UserID)
-	assert.Empty(t, result.AccessToken)
-	assert.Empty(t, result.Projects)
+	assert.NotEmpty(t, result.AccessToken)
 	assert.NotEmpty(t, result.RefreshToken)
 }
 
@@ -513,9 +507,6 @@ func TestEndUserAuthAppService_LoginEndUser_DisabledAccount(t *testing.T) {
 func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
 	svc, userRepo, refreshTokenRepo := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
-		{ProjectSlug: "project-a", ProjectTitle: "A"},
-	}
 
 	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
 		OrgName:  "org-a",
@@ -534,7 +525,6 @@ func TestEndUserAuthAppService_RefreshEndUserToken_Rotation(t *testing.T) {
 	assert.NotEqual(t, loginResult.RefreshToken, refreshResult.RefreshToken)
 	assert.Equal(t, "user-1", refreshResult.UserID)
 	assert.NotEmpty(t, refreshResult.AccessToken)
-	assert.Len(t, refreshResult.Projects, 1)
 
 	oldHash := hashToken(loginResult.RefreshToken)
 	oldToken := refreshTokenRepo.tokensByHash[oldHash]
@@ -616,9 +606,6 @@ func TestEndUserAuthAppService_RefreshEndUserToken_RevokedTokenReuse(t *testing.
 func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T) {
 	svc, userRepo, _ := createEndUserAuthServiceForTest(t)
 	seedEndUser(t, userRepo, "org-a", "user-1", "alice", "Password123", false)
-	userRepo.accessibleProjects["user-1"] = []domainenduser.AccessibleProject{
-		{ProjectSlug: "project-a", ProjectTitle: "A"},
-	}
 
 	loginResult, err := svc.LoginEndUser(context.Background(), LoginCommand{
 		OrgName:  "org-a",
@@ -627,8 +614,6 @@ func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T)
 	})
 	require.NoError(t, err)
 
-	userRepo.accessibleProjects["user-1"] = nil
-
 	refreshResult, err := svc.RefreshEndUserToken(context.Background(), RefreshCommand{
 		OrgName:      "org-a",
 		RefreshToken: loginResult.RefreshToken,
@@ -636,8 +621,7 @@ func TestEndUserAuthAppService_RefreshEndUserToken_NoProjectAccess(t *testing.T)
 	require.NoError(t, err)
 	require.NotNil(t, refreshResult)
 	assert.Equal(t, "user-1", refreshResult.UserID)
-	assert.Empty(t, refreshResult.AccessToken)
-	assert.Empty(t, refreshResult.Projects)
+	assert.NotEmpty(t, refreshResult.AccessToken)
 	assert.NotEmpty(t, refreshResult.RefreshToken)
 }
 
