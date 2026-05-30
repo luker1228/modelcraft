@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useRequireAuth } from "@web/hooks/auth/use-auth";
 import { useOrganizationStore } from "@shared/stores/organization";
+import { useAuthStore } from "@shared/stores/auth-store";
 import { TENANT_LOGIN_PATH } from "@shared/constants/routes";
 import { OnboardingProvider } from "@shared/onboarding/OnboardingContext";
 import { CopilotWrapper } from "@web/components/features/copilot/CopilotProvider";
@@ -41,6 +42,8 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
   // Restore access token if page was refreshed (middleware already checked cookie)
   const { isLoading: authLoading, user } = useRequireAuth()
 
+  const isAdmin = useAuthStore((s) => s.isAdmin)
+
   const [isVerifying, setIsVerifying] = useState(true);
   const { setCurrentOrg, loadMemberships } = useOrganizationStore();
 
@@ -57,6 +60,14 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
           // Should not happen — middleware guards this, but be safe
           console.warn("[OrgLayout] No token after auth restore")
           router.push(TENANT_LOGIN_PATH)
+          return
+        }
+
+        // isAdmin guard: non-admin users must not access the admin (tenant) UI
+        const adminFlag = useAuthStore.getState().isAdmin
+        if (adminFlag === false) {
+          console.warn("[OrgLayout] Non-admin user, redirecting to end-user dashboard")
+          router.replace(`/end-user/${orgName}/dashboard`)
           return
         }
 
@@ -99,7 +110,7 @@ export default function OrgLayout({ children }: { children: React.ReactNode }) {
     }
 
     verifyOrgAccess();
-  }, [authLoading, orgName, router, setCurrentOrg, loadMemberships, user?.id]);
+  }, [authLoading, isAdmin, orgName, router, setCurrentOrg, loadMemberships, user?.id]);
 
   if (authLoading || isVerifying) {
     return (
