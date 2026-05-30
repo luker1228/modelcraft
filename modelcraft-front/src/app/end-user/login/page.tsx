@@ -25,7 +25,7 @@ export default function EndUserLoginPage() {
   return (
     <AuthLayout
       title="欢迎回来"
-      subtitle="输入用户名和密码后自动进入所属组织"
+      
       backLink={{
         href: '/',
         label: '返回登录选择',
@@ -81,10 +81,6 @@ export default function EndUserLoginPage() {
               </FormItem>
             )}
           />
-
-          <p className="text-sm text-muted-foreground">
-            无需预先选择组织，登录成功后系统会自动跳转到您的工作区。
-          </p>
 
           <Button type="submit" className="w-full" disabled={isLoading}>
             {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}

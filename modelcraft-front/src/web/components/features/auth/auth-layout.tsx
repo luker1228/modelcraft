@@ -9,7 +9,7 @@ import { NeuralCanvas } from './neural-canvas'
 interface AuthLayoutProps {
   children: React.ReactNode
   title: string
-  subtitle: string
+  subtitle?: string
   showCliPromo?: boolean
   backLink?: {
     href: string
@@ -146,7 +146,7 @@ export function AuthLayout({
 
             <CardHeader className="px-8 pb-2 pt-8">
               <CardTitle className="text-2xl">{title}</CardTitle>
-              <CardDescription>{subtitle}</CardDescription>
+              {subtitle && <CardDescription>{subtitle}</CardDescription>}
             </CardHeader>
 
             <CardContent className="px-8 pb-8 pt-4">
