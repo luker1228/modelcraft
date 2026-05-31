@@ -62,11 +62,13 @@ func (r *SqlModelDatabaseSyncJobRepository) GetByID(
 func (r *SqlModelDatabaseSyncJobRepository) GetActiveByDatabase(
 	ctx context.Context,
 	orgName, projectSlug, databaseID string,
+	staleBefore time.Time,
 ) (*domaindb.ModelDatabaseSyncJob, error) {
 	row, err := r.q.GetActiveModelDatabaseSyncJobByDatabase(ctx, dbgen.GetActiveModelDatabaseSyncJobByDatabaseParams{
-		OrgName:     orgName,
-		ProjectSlug: projectSlug,
-		DatabaseID:  databaseID,
+		OrgName:      orgName,
+		ProjectSlug:  projectSlug,
+		DatabaseID:   databaseID,
+		UpdatedAfter: staleBefore,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
@@ -75,6 +77,13 @@ func (r *SqlModelDatabaseSyncJobRepository) GetActiveByDatabase(
 		return nil, err
 	}
 	return modelDatabaseSyncJobToDomain(row)
+}
+
+func (r *SqlModelDatabaseSyncJobRepository) FailStalePendingJobs(
+	ctx context.Context,
+	staleBefore time.Time,
+) error {
+	return r.q.FailStaleSyncJobs(ctx, staleBefore)
 }
 
 func (r *SqlModelDatabaseSyncJobRepository) Update(ctx context.Context, job *domaindb.ModelDatabaseSyncJob) error {

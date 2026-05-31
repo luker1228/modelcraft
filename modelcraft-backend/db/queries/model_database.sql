@@ -62,8 +62,18 @@ WHERE org_name = ?
   AND database_id = ?
   AND `model_database_sync_job`.`deleted_at` = 0
   AND status IN ('pending', 'running')
+  AND updated_at > ?
 ORDER BY created_at DESC
 LIMIT 1;
+
+-- name: FailStaleSyncJobs :exec
+UPDATE model_database_sync_job
+SET status = 'failed',
+    finished_at = NOW(3),
+    updated_at = NOW(3)
+WHERE `model_database_sync_job`.`deleted_at` = 0
+  AND status IN ('pending', 'running')
+  AND updated_at <= ?;
 
 -- name: UpdateModelDatabaseSyncJob :exec
 UPDATE model_database_sync_job

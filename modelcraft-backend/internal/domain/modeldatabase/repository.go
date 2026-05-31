@@ -1,6 +1,9 @@
 package modeldatabase
 
-import "context"
+import (
+	"context"
+	"time"
+)
 
 // ModelDatabaseRepository 项目数据库注册仓储接口
 type ModelDatabaseRepository interface {
@@ -21,9 +24,13 @@ type ModelDatabaseRepository interface {
 type ModelDatabaseSyncJobRepository interface {
 	Create(ctx context.Context, job *ModelDatabaseSyncJob) error
 	GetByID(ctx context.Context, orgName, projectSlug, jobID string) (*ModelDatabaseSyncJob, error)
+	// GetActiveByDatabase 返回指定数据库的活跃 job（pending/running），仅返回 staleBefore 之后有心跳的。
 	GetActiveByDatabase(
 		ctx context.Context,
 		orgName, projectSlug, databaseID string,
+		staleBefore time.Time,
 	) (*ModelDatabaseSyncJob, error)
+	// FailStalePendingJobs 将所有 updated_at <= staleBefore 的 pending/running job 标记为 failed。
+	FailStalePendingJobs(ctx context.Context, staleBefore time.Time) error
 	Update(ctx context.Context, job *ModelDatabaseSyncJob) error
 }

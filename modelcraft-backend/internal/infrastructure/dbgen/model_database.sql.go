@@ -9,6 +9,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"time"
 )
 
 const createModelDatabase = `-- name: CreateModelDatabase :exec
@@ -124,18 +125,20 @@ WHERE org_name = ?
   AND database_id = ?
   AND ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
   AND status IN ('pending', 'running')
+  AND updated_at > ?
 ORDER BY created_at DESC
 LIMIT 1
 `
 
 type GetActiveModelDatabaseSyncJobByDatabaseParams struct {
-	OrgName     string
-	ProjectSlug string
-	DatabaseID  string
+	OrgName      string
+	ProjectSlug  string
+	DatabaseID   string
+	UpdatedAfter time.Time
 }
 
 func (q *Queries) GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, arg GetActiveModelDatabaseSyncJobByDatabaseParams) (ModelDatabaseSyncJob, error) {
-	row := q.db.QueryRowContext(ctx, getActiveModelDatabaseSyncJobByDatabase, arg.OrgName, arg.ProjectSlug, arg.DatabaseID)
+	row := q.db.QueryRowContext(ctx, getActiveModelDatabaseSyncJobByDatabase, arg.OrgName, arg.ProjectSlug, arg.DatabaseID, arg.UpdatedAfter)
 	var i ModelDatabaseSyncJob
 	err := row.Scan(
 		&i.ID,
@@ -375,5 +378,20 @@ func (q *Queries) UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateMode
 		arg.FinishedAt,
 		arg.ID,
 	)
+	return err
+}
+
+const failStaleSyncJobs = `-- name: FailStaleSyncJobs :exec
+UPDATE model_database_sync_job
+SET status = 'failed',
+    finished_at = NOW(3),
+    updated_at = NOW(3)
+WHERE ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND status IN ('pending', 'running')
+  AND updated_at <= ?
+`
+
+func (q *Queries) FailStaleSyncJobs(ctx context.Context, updatedBefore time.Time) error {
+	_, err := q.db.ExecContext(ctx, failStaleSyncJobs, updatedBefore)
 	return err
 }

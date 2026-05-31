@@ -7,6 +7,7 @@ package dbgen
 import (
 	"context"
 	"database/sql"
+	"time"
 )
 
 type Querier interface {
@@ -208,6 +209,7 @@ type Querier interface {
 	UpdateModel(ctx context.Context, arg UpdateModelParams) (sql.Result, error)
 	UpdateModelDatabase(ctx context.Context, arg UpdateModelDatabaseParams) error
 	UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateModelDatabaseSyncJobParams) error
+	FailStaleSyncJobs(ctx context.Context, updatedBefore time.Time) error
 	UpdateModelDeploymentStatus(ctx context.Context, arg UpdateModelDeploymentStatusParams) error
 	UpdateModelGroup(ctx context.Context, arg UpdateModelGroupParams) error
 	UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)

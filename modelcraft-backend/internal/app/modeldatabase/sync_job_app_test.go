@@ -75,13 +75,21 @@ func (f *fakeSyncJobRepo) GetByID(ctx context.Context, orgName, projectSlug, job
 	return &cloned, nil
 }
 
-func (f *fakeSyncJobRepo) GetActiveByDatabase(ctx context.Context, orgName, projectSlug, databaseID string) (*domaindb.ModelDatabaseSyncJob, error) {
+func (f *fakeSyncJobRepo) GetActiveByDatabase(
+	ctx context.Context,
+	orgName, projectSlug, databaseID string,
+	staleBefore time.Time,
+) (*domaindb.ModelDatabaseSyncJob, error) {
 	job := f.runningByDB[databaseID]
 	if job == nil || job.OrgName != orgName || job.ProjectSlug != projectSlug {
 		return nil, nil
 	}
 	cloned := *job
 	return &cloned, nil
+}
+
+func (f *fakeSyncJobRepo) FailStalePendingJobs(_ context.Context, _ time.Time) error {
+	return nil
 }
 
 func (f *fakeSyncJobRepo) Update(ctx context.Context, job *domaindb.ModelDatabaseSyncJob) error {

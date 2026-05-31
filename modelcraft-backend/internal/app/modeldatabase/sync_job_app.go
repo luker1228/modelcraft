@@ -14,7 +14,10 @@ import (
 	"github.com/google/uuid"
 )
 
-const importGroupName = "数据库导入"
+const (
+	importGroupName    = "数据库导入"
+	defaultStalePeriod = 30 * time.Minute
+)
 
 type modelDatabaseSyncRunner interface {
 	Go(ctx context.Context, fn func(context.Context))
@@ -109,7 +112,7 @@ func (s *ModelDatabaseSyncAppService) StartSync(ctx context.Context, databaseID 
 	if _, err := s.modelDatabaseRepo.GetByID(ctx, orgName, projectSlug, databaseID); err != nil {
 		return nil, err
 	}
-	active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, databaseID)
+	active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, databaseID, s.now().Add(-defaultStalePeriod))
 	if err != nil {
 		return nil, err
 	}
@@ -134,6 +137,13 @@ func (s *ModelDatabaseSyncAppService) StartSync(ctx context.Context, databaseID 
 		_ = s.RunSyncJob(runCtx, job.ID)
 	})
 	return job, nil
+}
+
+// RecoverStaleJobs 将超过 stalePeriod 未更新的 pending/running job 全部标记为 failed。
+// 通常在服务启动时调用，清理因进程崩溃遗留的僵尸 job。
+func (s *ModelDatabaseSyncAppService) RecoverStaleJobs(ctx context.Context) error {
+	staleBefore := s.now().Add(-defaultStalePeriod)
+	return s.syncJobRepo.FailStalePendingJobs(ctx, staleBefore)
 }
 
 func (s *ModelDatabaseSyncAppService) GetJob(ctx context.Context, jobID string) (*domaindb.ModelDatabaseSyncJob, error) {

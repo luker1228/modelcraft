@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"modelcraft/internal/infrastructure/dbgen"
 	_sourceDbgen "modelcraft/internal/infrastructure/dbgen"
+	"time"
 )
 
 type SafeQuerier struct {
@@ -917,6 +918,11 @@ func (s *SafeQuerier) UpdateModelDatabase(ctx context.Context, arg _sourceDbgen.
 }
 func (s *SafeQuerier) UpdateModelDatabaseSyncJob(ctx context.Context, arg _sourceDbgen.UpdateModelDatabaseSyncJobParams) (err error) {
 	err = s.delegate.UpdateModelDatabaseSyncJob(ctx, arg)
+	WrapSQLErrorInPlace(&err)
+	return
+}
+func (s *SafeQuerier) FailStaleSyncJobs(ctx context.Context, updatedBefore time.Time) (err error) {
+	err = s.delegate.FailStaleSyncJobs(ctx, updatedBefore)
 	WrapSQLErrorInPlace(&err)
 	return
 }
