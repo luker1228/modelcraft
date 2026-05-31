@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { EndUserAppLayout } from '@web/components/features/layout'
 
 interface CliGuidePageProps {
   params: { orgName: string }
@@ -64,7 +65,7 @@ const CLI_STEPS: StepCardProps[] = [
 
 function StepCard({ step, title, description, command }: StepCardProps) {
   return (
-    <section className="rounded-lg border bg-background p-5 sm:p-6">
+    <section className="rounded-lg border bg-card p-5 sm:p-6">
       <div className="flex items-start gap-4">
         <span className="inline-flex h-7 min-w-7 items-center justify-center rounded-md border bg-muted px-2 text-xs font-semibold text-foreground">
           {step}
@@ -147,54 +148,21 @@ function useEndUserTokenReady(orgName: string): boolean {
 
 export default function CliGuidePage({ params }: CliGuidePageProps) {
   const { orgName } = params
-  const router = useRouter()
   const ready = useEndUserTokenReady(orgName)
-
-  const handleLogout = async () => {
-    if (!orgName) return
-    await fetch(`/api/bff/org/${orgName}/end-user/auth/logout`, {
-      method: 'POST',
-      credentials: 'same-origin',
-    })
-    useEndUserAuthStore.getState().clearSession()
-    router.push(`/end-user/${orgName}/login`)
-  }
 
   if (!ready) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-sm text-muted-foreground">加载中...</p>
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="size-5 animate-spin rounded-full border-2 border-border border-t-foreground" />
       </div>
     )
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-muted/30">
-      <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b bg-background px-6">
-        <span className="text-base font-semibold text-foreground">{orgName}</span>
-        <button onClick={() => void handleLogout()} className="text-sm text-destructive hover:underline">
-          登出
-        </button>
-      </header>
-
-      <nav className="flex border-b bg-background px-6">
-        <button
-          onClick={() => router.push(`/end-user/${orgName}/dashboard`)}
-          className="border-b-2 border-transparent px-4 py-3 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Projects
-        </button>
-        <button
-          onClick={() => router.push(`/end-user/${orgName}/dashboard/cli`)}
-          className="border-b-2 border-primary px-4 py-3 text-sm font-medium text-primary"
-        >
-          CLI 使用
-        </button>
-      </nav>
-
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
-        <div className="space-y-6">
-          <section className="rounded-lg border bg-background p-6">
+    <div className="h-screen overflow-hidden">
+      <EndUserAppLayout orgName={orgName} activePage="cli">
+        <div className="p-6 space-y-6">
+          <section className="rounded-lg border bg-card p-6">
             <p className="text-xs font-medium tracking-[0.08em] text-muted-foreground">CLI 快速上手</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">ModelCraft CLI 从下载到使用</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
@@ -202,7 +170,9 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-md border bg-muted px-2 py-1">当前支持 macOS arm64</span>
-              <span className="rounded-md border bg-muted px-2 py-1">默认凭证路径 ~/.config/modelcraft/credentials.json</span>
+              <span className="rounded-md border bg-muted px-2 py-1">
+                默认凭证路径 ~/.config/modelcraft/credentials.json
+              </span>
             </div>
           </section>
 
@@ -223,7 +193,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
             </div>
           </section>
 
-          <section className="rounded-lg border bg-background p-6">
+          <section className="rounded-lg border bg-card p-6">
             <h3 className="text-base font-semibold text-foreground">常见问题排查</h3>
             <p className="mt-2 text-sm text-muted-foreground">遇到安装或执行异常时，可优先按以下顺序检查。</p>
             <dl className="mt-4 divide-y rounded-md border bg-muted/20">
@@ -276,7 +246,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
             </dl>
           </section>
         </div>
-      </main>
+      </EndUserAppLayout>
     </div>
   )
 }

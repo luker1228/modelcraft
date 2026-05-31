@@ -38,7 +38,7 @@ import {
 import { useEndUser } from '@web/hooks/end-user-auth/useRequireEndUserAuth'
 import { EndUserRecordWorkspace } from '@web/components/features/end-user-data'
 import { DataWorkspacePanel } from '@web/components/shared/data-workspace/DataWorkspacePanel'
-import { EndUserAppLayout } from '@web/components/features/layout'
+import { EndUserAppLayout } from '@web/components/features/layout/EndUserAppLayout'
 
 type DataModel = {
   id: string
@@ -243,9 +243,8 @@ export default function EndUserDataPage() {
   }
 
   return (
-    <EndUserAppLayout orgName={orgName} projectSlug={projectSlug}>
-      {/* Inner layout: model sidebar + workspace panel */}
-      <div className="flex h-full overflow-hidden">
+    <EndUserAppLayout orgName={orgName} activePage="projects">
+      <div className="flex h-full overflow-hidden bg-background">
 
         {/* Model sidebar — database selector + model list */}
         <aside className="flex w-[240px] flex-shrink-0 flex-col overflow-hidden border-r border-border bg-sidebar">

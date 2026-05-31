@@ -624,7 +624,12 @@ export default function EndUserRecordWorkspace({
 
             <Button
               size="sm"
-              className="h-[26px] border-0 bg-primary px-2.5 text-xs font-normal text-white transition-colors duration-200 hover:bg-primary/90"
+              className={cn(
+                'h-[26px] border-0 px-2.5 text-xs font-normal transition-colors duration-200',
+                canCreateRecord
+                  ? 'bg-primary text-white hover:bg-primary/90'
+                  : 'cursor-not-allowed bg-muted text-muted-foreground'
+              )}
               onClick={handleCreate}
               disabled={!canCreateRecord}
             >

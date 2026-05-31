@@ -541,7 +541,7 @@ export function ModelRecordTable({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/40"
                             onClick={() => onManageRelations?.(rowId)}
                             title={canEditRecord ? '关联管理' : '托管模型仅支持查看'}
                             disabled={!canEditRecord}
@@ -551,7 +551,7 @@ export function ModelRecordTable({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:text-muted-foreground/40"
                             onClick={() => onEdit(rowId)}
                             title={canEditRecord ? '编辑' : '托管模型仅支持查看'}
                             disabled={!canEditRecord}
@@ -561,7 +561,7 @@ export function ModelRecordTable({
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:opacity-50"
+                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive disabled:cursor-not-allowed disabled:text-muted-foreground/40"
                             onClick={() => onDelete(rowId)}
                             title={canDeleteRecord ? '删除' : '托管模型仅支持查看'}
                             disabled={!canDeleteRecord}

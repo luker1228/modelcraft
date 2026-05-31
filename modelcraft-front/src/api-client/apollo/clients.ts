@@ -3,6 +3,7 @@
 
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
+import { onError } from '@apollo/client/link/error'
 
 import { useContext, createContext, useMemo } from 'react'
 import { useOrganizationStore } from '@shared/stores/organization'
@@ -169,6 +170,31 @@ function createEndUserAuthLink(orgName: string) {
 }
 
 /**
+ * Error link for end-user clients.
+ * Catches 401 / UNAUTHENTICATED responses (e.g. "Invalid or expired token") and
+ * redirects to the end-user login page after clearing the local session.
+ */
+function createEndUserErrorLink(orgName: string) {
+  return onError(({ graphQLErrors, networkError }) => {
+    if (typeof window === 'undefined') return
+
+    const is401 =
+      networkError && 'statusCode' in networkError && (networkError as { statusCode?: number }).statusCode === 401
+
+    const isAuthError = graphQLErrors?.some((e) => {
+      const code = e.extensions?.code as string | undefined
+      return code === 'UNAUTHENTICATED' || code === 'AUTH_INVALID_TOKEN' || code === 'AUTH_MISSING_TOKEN'
+    })
+
+    if (is401 || isAuthError) {
+      useEndUserAuthStore.getState().clearSession()
+      const loginPath = orgName ? `/end-user/${orgName}/login` : '/end-user/login'
+      window.location.href = loginPath
+    }
+  })
+}
+
+/**
  * End-User Scoped Apollo Client factory
  * Endpoint: /api/bff/graphql/end-user/org/{orgName}/project/{projectSlug}
  * Uses the End-User Bearer token (not the design-time admin token).
@@ -181,7 +207,7 @@ export function createEndUserScopedClient(
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   return new ApolloClient({
-    link: createEndUserAuthLink(orgName).concat(httpLink),
+    link: createEndUserErrorLink(orgName).concat(createEndUserAuthLink(orgName).concat(httpLink)),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },
@@ -203,7 +229,7 @@ export function createEndUserOrgScopedClient(
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   return new ApolloClient({
-    link: createEndUserAuthLink(orgName).concat(httpLink),
+    link: createEndUserErrorLink(orgName).concat(createEndUserAuthLink(orgName).concat(httpLink)),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },
@@ -249,7 +275,7 @@ export function createEndUserModelRuntimeClient(
   const httpLink = createHttpLink({ uri, credentials: 'include' })
 
   return new ApolloClient({
-    link: createEndUserAuthLink(orgName).concat(httpLink),
+    link: createEndUserErrorLink(orgName).concat(createEndUserAuthLink(orgName).concat(httpLink)),
     cache: new InMemoryCache(),
     defaultOptions: {
       watchQuery: { errorPolicy: 'all' },

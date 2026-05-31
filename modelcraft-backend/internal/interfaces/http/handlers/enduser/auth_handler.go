@@ -17,6 +17,7 @@ import (
 	domainAuth "modelcraft/internal/domain/auth"
 
 	appAuth "modelcraft/internal/app/auth"
+	appEnduser "modelcraft/internal/app/enduser"
 	authhandler "modelcraft/internal/interfaces/http/handlers/auth"
 )
 
@@ -24,6 +25,7 @@ import (
 // Delegates all business logic to the unified TokenService (appAuth.TokenService).
 type AuthHandler struct {
 	authService *appAuth.TokenService
+	endUserSvc  *appEnduser.EndUserManagementAppService
 	jwtSigner   *domainAuth.JWTSigner
 	shared      *authhandler.Handler // cookie set/clear delegated here
 	logger      logfacade.Logger
@@ -33,12 +35,14 @@ type AuthHandler struct {
 // shared is the unified auth handler used only for cookie management.
 func NewAuthHandler(
 	authService *appAuth.TokenService,
+	endUserSvc *appEnduser.EndUserManagementAppService,
 	jwtSigner *domainAuth.JWTSigner,
 	shared *authhandler.Handler,
 	logger logfacade.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
 		authService: authService,
+		endUserSvc:  endUserSvc,
 		jwtSigner:   jwtSigner,
 		shared:      shared,
 		logger:      logger,
@@ -227,7 +231,125 @@ func extractBearer(r *http.Request) string {
 }
 
 // ============================================================
-// Error / JSON helpers
+// CLI-specific handlers (no httpOnly cookie — token in body)
+// ============================================================
+
+// CLILogin handles POST /api/cli/end-user/auth/login.
+// Unlike the browser login endpoint, this returns refreshToken in the JSON body
+// (no httpOnly cookie) so that the CLI can persist it locally.
+// It also returns the list of accessible projects.
+func (h *AuthHandler) CLILogin(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req struct {
+		OrgName  string `json:"orgName"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
+		return
+	}
+
+	result, err := h.authService.LoginEndUser(ctx, appAuth.LoginEndUserCommand{
+		OrgName:  req.OrgName,
+		Username: req.Username,
+		Password: req.Password,
+	})
+	if err != nil {
+		h.handleBizError(w, r, requestID, err, "cli end-user login failed")
+		return
+	}
+
+	// Fetch accessible projects so the CLI can display them after login.
+	var projects []map[string]any
+	if h.endUserSvc != nil {
+		items, projErr := h.endUserSvc.ListAccessibleProjects(ctx, result.OrgName, result.UserID)
+		if projErr == nil {
+			for _, p := range items {
+				projects = append(projects, map[string]any{
+					"slug":  p.Slug,
+					"title": p.Title,
+				})
+			}
+		}
+	}
+	if projects == nil {
+		projects = []map[string]any{}
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":    requestID,
+		"userId":       result.UserID,
+		"orgName":      result.OrgName,
+		"accessToken":  result.AccessToken,
+		"refreshToken": result.RefreshToken,
+		"expiresAt":    result.ExpiresAt.UTC().Format(time.RFC3339),
+		"projects":     projects,
+	})
+}
+
+// CLIRefresh handles POST /api/cli/end-user/auth/refresh.
+// Reads the refresh token from the request body instead of an httpOnly cookie.
+func (h *AuthHandler) CLIRefresh(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	var req struct {
+		OrgName      string `json:"orgName"`
+		RefreshToken string `json:"refreshToken"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
+		return
+	}
+	if req.OrgName == "" {
+		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "orgName is required")
+		return
+	}
+	if req.RefreshToken == "" {
+		h.writeError(w, http.StatusUnauthorized, requestID, "REFRESH_MISSING", "refreshToken is required")
+		return
+	}
+
+	result, err := h.authService.RefreshEndUserToken(ctx, appAuth.RefreshEndUserCommand{
+		OrgName:      req.OrgName,
+		RefreshToken: req.RefreshToken,
+	})
+	if err != nil {
+		h.handleBizError(w, r, requestID, err, "cli end-user refresh failed")
+		return
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId":    requestID,
+		"userId":       result.UserID,
+		"orgName":      result.OrgName,
+		"accessToken":  result.AccessToken,
+		"refreshToken": result.RefreshToken,
+		"expiresAt":    result.ExpiresAt.UTC().Format(time.RFC3339),
+	})
+}
+
+// CLILogout handles POST /api/cli/end-user/auth/logout.
+// Reads the refresh token from the request body instead of an httpOnly cookie.
+func (h *AuthHandler) CLILogout(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req struct {
+		OrgName      string `json:"orgName"`
+		RefreshToken string `json:"refreshToken"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err == nil && req.RefreshToken != "" {
+		_ = h.authService.Logout(ctx, appAuth.LogoutCommand{
+			RefreshToken: req.RefreshToken,
+		})
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
 // ============================================================
 
 func (h *AuthHandler) handleBizError(

@@ -107,6 +107,16 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	}
 
 	// ============================================================
+	// CLI Auth Routes (no httpOnly cookie — token in body)
+	// ============================================================
+	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil {
+		h := cfg.DesignHandlers.EndUserAuthHandler
+		r.Post("/api/cli/end-user/auth/login", h.CLILogin)
+		r.Post("/api/cli/end-user/auth/refresh", h.CLIRefresh)
+		r.Post("/api/cli/end-user/auth/logout", h.CLILogout)
+	}
+
+	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler
 	// ============================================================
 
