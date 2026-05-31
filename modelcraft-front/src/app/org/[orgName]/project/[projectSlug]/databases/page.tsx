@@ -137,10 +137,12 @@ export default function DatabasesPage() {
   }
 
   const handleDatabasesRegistered = async (registeredDatabases: ModelDatabase[]) => {
+    const syncableDatabases = registeredDatabases.filter((db) => db.mode !== 'SELF_HOSTED')
+
     setOptimisticDatabases((prev) => buildDisplayedDatabases(prev, registeredDatabases))
     setJobsByDatabaseId((prev) => {
       const next = { ...prev }
-      registeredDatabases.forEach((database) => {
+      syncableDatabases.forEach((database) => {
         if (!next[database.id]) {
           next[database.id] = createOptimisticPendingSyncJob(database.id)
         }
@@ -150,7 +152,7 @@ export default function DatabasesPage() {
 
     try {
       const startedCount = await startSyncForRegisteredDatabases(
-        registeredDatabases,
+        syncableDatabases,
         startSync,
         upsertJob,
         startPolling
@@ -267,8 +269,10 @@ export default function DatabasesPage() {
                         )}
                       </TableCell>
                       <TableCell>
-                        {renderJobStatus(jobsByDatabaseId[db.id]) ?? (
-                          <span className="text-xs text-muted-foreground">待同步</span>
+                        {db.mode !== 'SELF_HOSTED' && (
+                          renderJobStatus(jobsByDatabaseId[db.id]) ?? (
+                            <span className="text-xs text-muted-foreground">待同步</span>
+                          )
                         )}
                       </TableCell>
                       <TableCell>
@@ -288,11 +292,13 @@ export default function DatabasesPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => setSyncTarget(db)}>
-                                <RefreshCw className="mr-2 size-3.5" />
-                                同步数据库
-                              </DropdownMenuItem>
-                              {jobsByDatabaseId[db.id] && (
+                              {db.mode !== 'SELF_HOSTED' && (
+                                <DropdownMenuItem onClick={() => setSyncTarget(db)}>
+                                  <RefreshCw className="mr-2 size-3.5" />
+                                  同步数据库
+                                </DropdownMenuItem>
+                              )}
+                              {db.mode !== 'SELF_HOSTED' && jobsByDatabaseId[db.id] && (
                                 <DropdownMenuItem onClick={() => setResultTarget(db)}>
                                   查看同步结果
                                 </DropdownMenuItem>

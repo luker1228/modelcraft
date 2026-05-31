@@ -3,8 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { KeyRound } from 'lucide-react'
+import { useQuery } from '@apollo/client'
 import { EndUserAppLayout } from '@web/components/features/layout'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { WorkspaceProjectsTab } from './_components/WorkspaceProjectsTab'
+import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
+import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface WorkspacePageProps {
   params: { orgName: string }
@@ -38,13 +42,21 @@ function TokenManagementPlaceholder() {
   )
 }
 
-// ─── 默认欢迎内容 ────────────────────────────────────────────────────────────
+// ─── 项目列表内容（主页） ────────────────────────────────────────────────────
 
-function WelcomeContent() {
+function ProjectsContent({ orgName }: { orgName: string }) {
+  const { data, loading } = useQuery<{ endUserProjects: EndUserAccessibleProject[] }>(
+    END_USER_PROJECTS
+  )
+  const projects = data?.endUserProjects ?? []
+
   return (
-    <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-      <p className="text-[14px] font-medium text-foreground">从左侧选择项目进入数据管理</p>
-      <p className="mt-1 text-[13px] text-muted-foreground">或点击 Token 管理配置访问凭证</p>
+    <div className="flex flex-col p-6">
+      <div className="mb-6">
+        <h2 className="text-[18px] font-semibold text-foreground">项目</h2>
+        <p className="mt-1 text-[13px] text-muted-foreground">选择项目进入数据管理</p>
+      </div>
+      <WorkspaceProjectsTab orgName={orgName} projects={projects} loading={loading} />
     </div>
   )
 }
@@ -142,7 +154,7 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
         {activeSection === 'tokens' ? (
           <TokenManagementPlaceholder />
         ) : (
-          <WelcomeContent />
+          <ProjectsContent orgName={orgName} />
         )}
       </EndUserAppLayout>
     </div>

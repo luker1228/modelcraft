@@ -18,10 +18,10 @@ function gatewayUrl(): string {
 // Only tenant (developer/admin) tokens may call these endpoints.
 
 export const tenantOrgGraphQL = (orgName: string) =>
-  `${gatewayUrl()}/graphql/org/${orgName}`
+  `${gatewayUrl()}/graphql/org/${orgName}/`
 
 export const tenantProjectGraphQL = (orgName: string, projectSlug: string) =>
-  `${gatewayUrl()}/graphql/org/${orgName}/project/${projectSlug}`
+  `${gatewayUrl()}/graphql/org/${orgName}/project/${projectSlug}/`
 
 export const tenantRuntimeGraphQL = (
   orgName: string,
@@ -35,10 +35,10 @@ export const tenantRuntimeGraphQL = (
 // APISIX route: enduser-graphql → enforces aud=end_user, injects X-User-ID + X-User-Type:end_user
 
 export const endUserOrgGraphQL = (orgName: string) =>
-  `${gatewayUrl()}/end-user/graphql/org/${orgName}`
+  `${gatewayUrl()}/end-user/graphql/org/${orgName}/`
 
 export const endUserProjectGraphQL = (orgName: string, projectSlug: string) =>
-  `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}`
+  `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}/`
 
 export const endUserRuntimeGraphQL = (
   orgName: string,

@@ -4,6 +4,7 @@ import (
 	"context"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/project"
+	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
@@ -44,7 +45,7 @@ func (s *ModelGroupAppService) CreateGroup(
 	}
 
 	existing, err := s.groupRepo.FindByName(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.Name)
-	if err != nil {
+	if err != nil && !shared.IsNotFoundError(err) {
 		return nil, err
 	}
 	if existing != nil {
@@ -96,7 +97,7 @@ func (s *ModelGroupAppService) RenameGroup(
 	}
 
 	conflict, err := s.groupRepo.FindByName(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.NewName)
-	if err != nil {
+	if err != nil && !shared.IsNotFoundError(err) {
 		return nil, err
 	}
 	if conflict != nil && conflict.ID != cmd.GroupID {

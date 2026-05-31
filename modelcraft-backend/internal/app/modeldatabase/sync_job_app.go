@@ -9,13 +9,14 @@ import (
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 const (
-	importGroupName    = "数据库导入"
+	importGroupName    = "db_import"
 	defaultStalePeriod = 30 * time.Minute
 )
 
@@ -54,7 +55,11 @@ type modelDatabaseGroupService interface {
 type backgroundRunner struct{}
 
 func (backgroundRunner) Go(ctx context.Context, fn func(context.Context)) {
-	bizutils.GoWithCtx(ctx, fn)
+	// Detach from the request context so the job survives after the HTTP
+	// handler returns and its context is cancelled, while still carrying
+	// the request-scoped values (org, project, logger, etc.).
+	detached := context.WithoutCancel(ctx)
+	bizutils.GoWithCtx(detached, fn)
 }
 
 type ModelDatabaseSyncAppServiceDeps struct {
@@ -134,7 +139,12 @@ func (s *ModelDatabaseSyncAppService) StartSync(ctx context.Context, databaseID 
 		return nil, err
 	}
 	s.runner.Go(ctx, func(runCtx context.Context) {
-		_ = s.RunSyncJob(runCtx, job.ID)
+		if err := s.RunSyncJob(runCtx, job.ID); err != nil {
+			logfacade.GetLogger(runCtx).Error(runCtx, "sync job failed",
+				logfacade.String("job_id", job.ID),
+				logfacade.Err(err),
+			)
+		}
 	})
 	return job, nil
 }
@@ -171,8 +181,11 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 	if err != nil {
 		return err
 	}
+	logger := logfacade.GetLogger(ctx)
+
 	db, err := s.modelDatabaseRepo.GetByID(ctx, orgName, projectSlug, job.DatabaseID)
 	if err != nil {
+		logger.Error(ctx, "sync job: failed to get database", logfacade.String("job_id", jobID), logfacade.Err(err))
 		return s.failJob(ctx, job, err)
 	}
 
@@ -186,6 +199,8 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	tableResult, err := s.reverseEngineer.ListTables(ctx, orgName, projectSlug, db.Name, false, 0, 0)
 	if err != nil {
+		logger.Error(ctx, "sync job: ListTables failed",
+			logfacade.String("job_id", jobID), logfacade.String("database", db.Name), logfacade.Err(err))
 		return s.failJob(ctx, job, err)
 	}
 	job.TotalTables = tableResult.TotalCount
@@ -196,11 +211,15 @@ func (s *ModelDatabaseSyncAppService) RunSyncJob(ctx context.Context, jobID stri
 
 	group, err := s.groupService.EnsureImportGroup(ctx, orgName, projectSlug)
 	if err != nil {
+		logger.Error(ctx, "sync job: EnsureImportGroup failed",
+			logfacade.String("job_id", jobID), logfacade.Err(err))
 		return s.failJob(ctx, job, err)
 	}
 
 	for _, tableName := range tableResult.Tables {
 		if err := s.processTable(ctx, job, db, group, tableName); err != nil {
+			logger.Error(ctx, "sync job: processTable failed",
+				logfacade.String("job_id", jobID), logfacade.String("table", tableName), logfacade.Err(err))
 			return err
 		}
 	}
@@ -296,6 +315,11 @@ func (s *ModelDatabaseSyncAppService) failJob(
 	job *domaindb.ModelDatabaseSyncJob,
 	err error,
 ) error {
+	logfacade.GetLogger(ctx).Error(ctx, "sync job failed",
+		logfacade.String("job_id", job.ID),
+		logfacade.String("database_id", job.DatabaseID),
+		logfacade.Err(err),
+	)
 	now := s.now()
 	job.Status = domaindb.ModelDatabaseSyncJobStatusFailed
 	job.FinishedAt = &now

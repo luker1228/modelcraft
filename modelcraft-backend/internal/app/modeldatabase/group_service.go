@@ -4,6 +4,7 @@ import (
 	"context"
 	appmodeldesign "modelcraft/internal/app/modeldesign"
 	domainmodel "modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/shared"
 )
 
 type ImportGroupService struct {
@@ -23,7 +24,7 @@ func (s *ImportGroupService) EnsureImportGroup(
 	orgName, projectSlug string,
 ) (*domainmodel.ModelGroup, error) {
 	group, err := s.groupRepo.FindByName(ctx, orgName, projectSlug, importGroupName)
-	if err != nil {
+	if err != nil && !shared.IsNotFoundError(err) {
 		return nil, err
 	}
 	if group != nil {
