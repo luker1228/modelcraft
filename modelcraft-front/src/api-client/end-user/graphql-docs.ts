@@ -223,3 +223,59 @@ export const DELETE_END_USER = gql`
     }
   }
 `
+
+// === API Token (PAT) ===
+
+export const END_USER_API_TOKENS = gql`
+  query EndUserAPITokens {
+    endUserAPITokens {
+      id
+      name
+      createdAt
+      expiresAt
+      lastUsedAt
+    }
+  }
+`
+
+export const CREATE_END_USER_API_TOKEN = gql`
+  mutation CreateEndUserAPIToken($name: String!, $expiresAt: Time) {
+    createEndUserAPIToken(name: $name, expiresAt: $expiresAt) {
+      token {
+        id
+        name
+        createdAt
+        expiresAt
+      }
+      plaintext
+      error {
+        ... on InvalidInput {
+          message
+        }
+        ... on APITokenNameConflict {
+          message
+        }
+        ... on APITokenLimitReached {
+          message
+          limit
+        }
+      }
+    }
+  }
+`
+
+export const REVOKE_END_USER_API_TOKEN = gql`
+  mutation RevokeEndUserAPIToken($id: ID!) {
+    revokeEndUserAPIToken(id: $id) {
+      success
+      error {
+        ... on APITokenNotFound {
+          message
+        }
+        ... on InvalidInput {
+          message
+        }
+      }
+    }
+  }
+`
