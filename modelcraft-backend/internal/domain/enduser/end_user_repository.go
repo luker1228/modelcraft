@@ -65,3 +65,20 @@ type ListEndUsersQuery struct {
 	First   int    // page size, default 20, max 100
 	After   string // cursor (ID of the last item from previous page, optional)
 }
+
+// APITokenRepository 定义 EndUser PAT 的持久化操作。
+// 所有写操作都在系统 DB（非 tenant DB）上执行。
+type APITokenRepository interface {
+	// Save 插入新 token 记录（id 已由调用方生成）。
+	Save(ctx context.Context, token *APIToken) error
+	// FindByHash 通过 SHA-256 hash 查找活跃 token（未软删除）。
+	// 未找到时返回 (nil, nil)。
+	FindByHash(ctx context.Context, hash string) (*APIToken, error)
+	// ListByUser 返回指定用户的全部活跃 token 列表（按 created_at DESC）。
+	ListByUser(ctx context.Context, orgName, endUserID string) ([]*APIToken, error)
+	// SoftDelete 软删除指定 token（设置 deleted_at + delete_token）。
+	// 若 token 不属于该用户则返回 error。
+	SoftDelete(ctx context.Context, id, orgName, endUserID string) error
+	// UpdateLastUsed 异步更新 last_used_at，验证成功后调用。
+	UpdateLastUsed(ctx context.Context, id string, at time.Time) error
+}
