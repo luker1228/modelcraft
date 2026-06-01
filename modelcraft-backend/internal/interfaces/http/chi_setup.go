@@ -14,6 +14,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	chimw "github.com/go-chi/chi/v5/middleware"
 
+	appEnduser "modelcraft/internal/app/enduser"
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
 )
@@ -36,6 +37,9 @@ type ChiRouterConfig struct {
 
 	// JWT configuration for protected routes
 	JWTConfig *middleware.JWTAuthConfig
+
+	// APITokenService for PAT Bearer token validation (nil = disabled)
+	APITokenService *appEnduser.APITokenService
 }
 
 // SetupChiRouter creates and configures the main Chi router as the primary HTTP mux.
@@ -114,6 +118,13 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 		r.Post("/api/cli/end-user/auth/login", h.CLILogin)
 		r.Post("/api/cli/end-user/auth/refresh", h.CLIRefresh)
 		r.Post("/api/cli/end-user/auth/logout", h.CLILogout)
+	}
+
+	// ============================================================
+	// PAT Auth Middleware
+	// ============================================================
+	if cfg.APITokenService != nil {
+		r.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
 	}
 
 	// ============================================================
