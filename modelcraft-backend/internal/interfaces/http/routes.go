@@ -89,8 +89,9 @@ type DesignHandlers struct {
 	ClusterManager  *repository.ClusterConnectionManager
 
 	// End-User Services
-	EndUserAppService  *appEnduser.EndUserManagementAppService
-	EndUserAuthHandler *enduserHandlers.AuthHandler
+	EndUserAppService      *appEnduser.EndUserManagementAppService
+	EndUserAuthHandler     *enduserHandlers.AuthHandler
+	EndUserAPITokenService *appEnduser.APITokenService
 
 	// Org Creation Service
 	CreateOrgService *appOrg.CreateOrganizationService
@@ -372,6 +373,9 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		tokenService, endUserAppService, jwtSigner, authHandler, logger,
 	)
 
+	apiTokenRepo := repository.NewSqlAPITokenRepository(repoFactory.SqlDB)
+	apiTokenService := appEnduser.NewAPITokenService(apiTokenRepo)
+
 	return &DesignHandlers{
 		AuthHandler:                 authHandler,
 		UserHandler:                 userHandlers.NewHandler(membershipRepo, logger),
@@ -396,6 +400,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		AuthSchemaAppService:        authSchemaAppService,
 		EndUserAppService:           endUserAppService,
 		EndUserAuthHandler:          endUserAuthHandler,
+		EndUserAPITokenService:      apiTokenService,
 		RBACPermissionSvc:           rbacPermSvc,
 		RBACBundleSvc:               rbacBundleSvc,
 		RBACRoleSvc:                 rbacRoleSvc,
@@ -428,6 +433,7 @@ func SetupOrgGraphQLRoutesOnChi(
 		UserRoleService:        handlers.PermUserRoleService,
 		EndUserMgmtAppService:  handlers.EndUserAppService,
 		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
+		APITokenService:        handlers.EndUserAPITokenService,
 	}
 
 	router.Route("/graphql/org/{orgName}", func(r chi.Router) {
@@ -517,6 +523,7 @@ func SetupEndUserOrgGraphQLRoutesOnChi(
 		UserRoleService:        handlers.PermUserRoleService,
 		EndUserMgmtAppService:  handlers.EndUserAppService,
 		MetaUserAppService:     appEnduser.NewMetaUserAppService(handlers.SystemDB),
+		APITokenService:        handlers.EndUserAPITokenService,
 	}
 
 	router.Route("/end-user/graphql/org/{orgName}", func(r chi.Router) {
