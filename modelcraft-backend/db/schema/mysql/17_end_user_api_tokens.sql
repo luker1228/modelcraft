@@ -15,8 +15,8 @@ CREATE TABLE IF NOT EXISTS `end_user_api_tokens` (
   `expires_at`    DATETIME      NULL     COMMENT 'NULL 表示永不过期',
   `last_used_at`  DATETIME      NULL     COMMENT '最近使用时间，异步更新',
   `created_at`    DATETIME      NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `deleted_at`    DATETIME      NULL     COMMENT '软删除时间，NULL 表示活跃',
-  `delete_token`  VARCHAR(36)   NOT NULL DEFAULT '' COMMENT '软删除唯一标记，活跃时为空字符串',
+  `deleted_at`    BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
+  `delete_token`  BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
   PRIMARY KEY (`id`),
   UNIQUE KEY `uq_token_hash` (`token_hash`),
