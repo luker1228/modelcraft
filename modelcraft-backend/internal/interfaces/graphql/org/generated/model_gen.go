@@ -14,6 +14,10 @@ type AssignRoleError interface {
 	IsAssignRoleError()
 }
 
+type CreateAPITokenError interface {
+	IsCreateAPITokenError()
+}
+
 type CreateCustomRoleError interface {
 	IsCreateCustomRoleError()
 }
@@ -94,6 +98,10 @@ type ResetEndUserPasswordError interface {
 	IsResetEndUserPasswordError()
 }
 
+type RevokeAPITokenError interface {
+	IsRevokeAPITokenError()
+}
+
 type RevokeRoleError interface {
 	IsRevokeRoleError()
 }
@@ -129,6 +137,34 @@ type UpdatePermissionRoleError interface {
 type UpdateProjectError interface {
 	IsUpdateProjectError()
 }
+
+type APITokenLimitReached struct {
+	Message string `json:"message"`
+	Limit   int32  `json:"limit"`
+}
+
+func (APITokenLimitReached) IsError()                {}
+func (this APITokenLimitReached) GetMessage() string { return this.Message }
+
+func (APITokenLimitReached) IsCreateAPITokenError() {}
+
+type APITokenNameConflict struct {
+	Message string `json:"message"`
+}
+
+func (APITokenNameConflict) IsError()                {}
+func (this APITokenNameConflict) GetMessage() string { return this.Message }
+
+func (APITokenNameConflict) IsCreateAPITokenError() {}
+
+type APITokenNotFound struct {
+	Message string `json:"message"`
+}
+
+func (APITokenNotFound) IsError()                {}
+func (this APITokenNotFound) GetMessage() string { return this.Message }
+
+func (APITokenNotFound) IsRevokeAPITokenError() {}
 
 type AddRolePermissionPayload struct {
 	Success bool                `json:"success"`
@@ -216,6 +252,12 @@ type ClusterConnectionInput struct {
 	Title          string                   `json:"title"`
 	Description    *string                  `json:"description,omitempty"`
 	ConnectionInfo *DatabaseConnectionInput `json:"connectionInfo"`
+}
+
+type CreateAPITokenPayload struct {
+	Token     *EndUserAPIToken    `json:"token,omitempty"`
+	Plaintext *string             `json:"plaintext,omitempty"`
+	Error     CreateAPITokenError `json:"error,omitempty"`
 }
 
 type CreateCustomRoleInput struct {
@@ -378,6 +420,14 @@ type EndUser struct {
 func (EndUser) IsNode()            {}
 func (this EndUser) GetID() string { return this.ID }
 
+type EndUserAPIToken struct {
+	ID         string     `json:"id"`
+	Name       string     `json:"name"`
+	CreatedAt  time.Time  `json:"createdAt"`
+	ExpiresAt  *time.Time `json:"expiresAt,omitempty"`
+	LastUsedAt *time.Time `json:"lastUsedAt,omitempty"`
+}
+
 type EndUserAlreadyExists struct {
 	Message string `json:"message"`
 }
@@ -458,6 +508,10 @@ func (InvalidInput) IsListEndUsersError() {}
 func (InvalidInput) IsResetEndUserPasswordError() {}
 
 func (InvalidInput) IsCreateUserError() {}
+
+func (InvalidInput) IsCreateAPITokenError() {}
+
+func (InvalidInput) IsRevokeAPITokenError() {}
 
 func (InvalidInput) IsCreateCustomRoleError() {}
 
@@ -688,6 +742,11 @@ func (ResourceNotFound) IsSetProjectAuthSchemaError() {}
 func (ResourceNotFound) IsGetOrganizationError() {}
 
 func (ResourceNotFound) IsDeleteRoleError() {}
+
+type RevokeAPITokenPayload struct {
+	Success *bool               `json:"success,omitempty"`
+	Error   RevokeAPITokenError `json:"error,omitempty"`
+}
 
 type RevokeRolePayload struct {
 	Success bool            `json:"success"`

@@ -33,4 +33,7 @@ type Resolver struct {
 	// EndUser management
 	EndUserMgmtAppService *appEnduser.EndUserManagementAppService
 	MetaUserAppService    *appEnduser.MetaUserAppService
+
+	// EndUser PAT management
+	APITokenService *appEnduser.APITokenService
 }

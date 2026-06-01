@@ -243,7 +243,7 @@ export default function EndUserDataPage() {
   }
 
   return (
-    <EndUserAppLayout orgName={orgName} activePage="projects">
+    <EndUserAppLayout orgName={orgName} activePage="projects" projectSlug={projectSlug}>
       <div className="flex h-full overflow-hidden bg-background">
 
         {/* Model sidebar — database selector + model list */}
