@@ -9,6 +9,7 @@ export const GET_MODEL_RECORD_WORKSPACE_END_USER = gql`
         title
         description
         databaseName
+        createdVia
         jsonSchema
         fields {
           name

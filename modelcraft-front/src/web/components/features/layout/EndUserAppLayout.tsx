@@ -218,7 +218,7 @@ function EndUserAppLayoutInner({
             {
               header: '工作区',
               items: [
-                { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/end-user/${orgName}/dashboard` },
+                { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/end-user/${orgName}/dashboard`, exact: true },
                 { label: 'CLI 下载', icon: Terminal, href: `/end-user/${orgName}/dashboard/cli` },
               ],
             },

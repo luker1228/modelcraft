@@ -85,7 +85,7 @@ export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessage
     <div>
       {/* Render text segments directly (ACTION markers removed). */}
       {textOnly.trim() && (
-        <div className="px-3 py-2 text-sm leading-6 whitespace-pre-wrap">{textOnly}</div>
+        <div className="whitespace-pre-wrap px-3 py-2 text-sm leading-6">{textOnly}</div>
       )}
       {/* Render chip buttons below the text */}
       <div className="mt-2 flex flex-wrap gap-2 px-3 pb-2">
@@ -103,8 +103,8 @@ export const AIChipMessage = memo(function AIChipMessage(props: AssistantMessage
                 title={known ? `高亮 ${label}` : '该操作当前不可用'}
                 className={
                   known
-                    ? 'inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100 cursor-pointer'
-                    : 'inline-flex items-center gap-1.5 rounded-full border border-muted bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground cursor-not-allowed pointer-events-none'
+                    ? 'inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-medium text-amber-900 transition-colors hover:bg-amber-100'
+                    : 'pointer-events-none inline-flex cursor-not-allowed items-center gap-1.5 rounded-full border border-muted bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground'
                 }
               >
                 {known && <span aria-hidden>✨</span>}

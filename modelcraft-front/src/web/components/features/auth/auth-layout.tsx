@@ -26,10 +26,10 @@ export function AuthLayout({
   backLink,
 }: AuthLayoutProps) {
   return (
-    <div className="flex min-h-[100dvh] bg-background">
+    <div className="flex min-h-dvh bg-background">
       {/* Left brand panel — hidden on mobile */}
       <div
-        className="relative hidden overflow-hidden lg:flex lg:w-5/12 xl:w-1/2 min-h-[100dvh]"
+        className="relative hidden min-h-dvh overflow-hidden lg:flex lg:w-5/12 xl:w-1/2"
         style={{ background: '#0E0E11' }}
       >
         {/* Animated audit network background */}
@@ -44,7 +44,7 @@ export function AuthLayout({
         />
 
         {/* Logo — pinned to top */}
-        <div className="absolute left-0 right-0 top-0 flex items-center gap-3 px-12 py-8">
+        <div className="absolute inset-x-0 top-0 flex items-center gap-3 px-12 py-8">
           <div
             className="flex size-9 items-center justify-center rounded-lg"
             style={{ background: 'linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%)' }}
@@ -116,7 +116,7 @@ export function AuthLayout({
         </div>
 
         {/* Copyright — pinned to bottom */}
-        <p className="absolute bottom-6 left-0 right-0 text-center text-xs" style={{ color: '#697386' }}>
+        <p className="absolute inset-x-0 bottom-6 text-center text-xs" style={{ color: '#697386' }}>
           &copy; {new Date().getFullYear()} ModelCraft. 保留所有权利
         </p>
       </div>

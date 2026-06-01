@@ -26,9 +26,14 @@ const CLI_STEPS: StepCardProps[] = [
     step: '01',
     title: '下载并安装 CLI',
     description:
-      '从 GitHub Release 下载 macOS arm64 预编译二进制并安装到 /usr/local/bin。当前仅支持 macOS Apple Silicon。',
+      '从 GitHub Release 下载对应平台的预编译二进制并安装到 /usr/local/bin。支持 macOS Apple Silicon（arm64）和 Linux x86_64（amd64）。',
     command: [
+      '# macOS Apple Silicon (arm64)',
       'curl -fL "https://github.com/patientCat/modelcraft/releases/latest/download/mc-darwin-arm64" -o mc',
+      '',
+      '# Linux x86_64 (amd64)',
+      '# curl -fL "https://github.com/patientCat/modelcraft/releases/latest/download/mc-linux-amd64" -o mc',
+      '',
       'chmod +x mc',
       'sudo mv mc /usr/local/bin/mc',
       'mc version',
@@ -159,9 +164,9 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
   }
 
   return (
-    <div className="h-screen overflow-hidden">
-      <EndUserAppLayout orgName={orgName} activePage="cli">
-        <div className="p-6 space-y-6">
+    <EndUserAppLayout orgName={orgName} activePage="cli">
+      <div className="h-full overflow-y-auto">
+        <div className="space-y-6 p-6">
           <section className="rounded-lg border bg-card p-6">
             <p className="text-xs font-medium tracking-[0.08em] text-muted-foreground">CLI 快速上手</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">ModelCraft CLI 从下载到使用</h2>
@@ -169,7 +174,8 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
               下面这份流程覆盖从安装、登录到查询数据的最小闭环。按顺序执行可快速完成首次可用配置。
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
-              <span className="rounded-md border bg-muted px-2 py-1">当前支持 macOS arm64</span>
+              <span className="rounded-md border bg-muted px-2 py-1">macOS arm64 (Apple Silicon)</span>
+              <span className="rounded-md border bg-muted px-2 py-1">Linux amd64 (x86_64)</span>
               <span className="rounded-md border bg-muted px-2 py-1">
                 默认凭证路径 ~/.config/modelcraft/credentials.json
               </span>
@@ -209,7 +215,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
                   >
                     Releases 页面
                   </a>{' '}
-                  确认 latest 版本下存在 `mc-darwin-arm64` 资产。
+                  确认 latest 版本下存在对应平台的资产（如 `mc-darwin-arm64`、`mc-linux-amd64`）。
                 </dd>
               </div>
               <div className="space-y-2 p-4">
@@ -233,7 +239,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
               <div className="space-y-2 p-4">
                 <dt className="text-sm font-semibold text-foreground">架构不匹配 (exec format error)</dt>
                 <dd className="text-sm leading-6 text-muted-foreground">
-                  当前仅提供 macOS arm64 版本（Apple Silicon）。请使用 M 系列芯片设备安装。
+                  请确认下载了正确平台的二进制：macOS Apple Silicon 使用 <code className="rounded bg-muted px-1 font-mono text-xs">mc-darwin-arm64</code>，Linux x86_64 使用 <code className="rounded bg-muted px-1 font-mono text-xs">mc-linux-amd64</code>。
                 </dd>
               </div>
               <div className="space-y-2 p-4">
@@ -246,7 +252,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
             </dl>
           </section>
         </div>
-      </EndUserAppLayout>
-    </div>
+      </div>
+    </EndUserAppLayout>
   )
 }

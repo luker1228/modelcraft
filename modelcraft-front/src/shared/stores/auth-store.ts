@@ -3,8 +3,11 @@ import { persist } from 'zustand/middleware'
 
 function parseIsAdmin(token: string): boolean | null {
   try {
-    const payload = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return payload.is_admin === true
+    const payload: unknown = JSON.parse(atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/')))
+    if (typeof payload === 'object' && payload !== null && 'is_admin' in payload) {
+      return (payload as { is_admin: unknown }).is_admin === true
+    }
+    return null
   } catch {
     return null
   }

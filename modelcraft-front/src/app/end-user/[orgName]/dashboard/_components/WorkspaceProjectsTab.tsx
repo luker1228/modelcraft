@@ -12,7 +12,7 @@ interface WorkspaceProjectsTabProps {
 function SkeletonCard() {
   return (
     <div className="animate-pulse rounded-lg border border-[#EAEAEA] bg-white p-6">
-      <div className="mb-4 h-8 w-8 rounded bg-[#F0EFF0]" />
+      <div className="mb-4 size-8 rounded bg-[#F0EFF0]" />
       <div className="mb-2 h-3.5 w-1/2 rounded bg-[#F0EFF0]" />
       <div className="h-3 w-1/3 rounded bg-[#F0EFF0]" />
     </div>
@@ -43,7 +43,7 @@ function ProjectCard({
       style={{ animationDelay: `${index * 60}ms` }}
     >
       {/* Project icon */}
-      <div className="mb-5 flex h-8 w-8 items-center justify-center rounded bg-[#F0EFF9] text-xs font-semibold text-[#4F46E5]">
+      <div className="mb-5 flex size-8 items-center justify-center rounded bg-[#F0EFF9] text-xs font-semibold text-[#4F46E5]">
         {initials || '?'}
       </div>
 
@@ -55,8 +55,8 @@ function ProjectCard({
 
       {/* Arrow — visible on hover */}
       <div className="mt-5 flex items-center justify-between">
-        <span className="inline-flex items-center gap-1.5 text-[12px] text-[#787774]">
-          <span className="h-1.5 w-1.5 rounded-full bg-[#059669]" />
+          <span className="inline-flex items-center gap-1.5 text-[12px] text-[#787774]">
+          <span className="size-1.5 rounded-full bg-[#059669]" />
           可用
         </span>
         <span className="text-[12px] font-medium text-[#4F46E5] opacity-0 transition-opacity duration-150 group-hover:opacity-100">

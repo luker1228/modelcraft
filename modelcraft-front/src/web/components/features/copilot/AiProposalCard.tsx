@@ -25,7 +25,7 @@ export function AiProposalCard({ message, candidates, onSelect }: AiProposalCard
   return (
     <div className="mt-2 flex flex-col gap-2">
       {message && (
-        <p className="text-xs text-muted-foreground px-1">{message}</p>
+        <p className="px-1 text-xs text-muted-foreground">{message}</p>
       )}
       {candidates.map((candidate) => (
         <button
@@ -35,9 +35,9 @@ export function AiProposalCard({ message, candidates, onSelect }: AiProposalCard
           className="group w-full rounded-lg border border-border bg-background px-3 py-2.5 text-left transition-colors hover:border-amber-400 hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400"
         >
           <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="flex items-center gap-1.5">
-                <span className="text-sm font-medium text-foreground truncate">
+                <span className="truncate text-sm font-medium text-foreground">
                   {candidate.title}
                 </span>
                 {candidate.type === 'action_candidate' && candidate.isPrimary && (
@@ -52,12 +52,12 @@ export function AiProposalCard({ message, candidates, onSelect }: AiProposalCard
                 )}
               </div>
               {candidate.description && (
-                <p className="mt-0.5 text-xs text-muted-foreground line-clamp-2">
+                <p className="mt-0.5 line-clamp-2 text-xs text-muted-foreground">
                   {candidate.description}
                 </p>
               )}
             </div>
-            <span className="shrink-0 text-muted-foreground transition-colors group-hover:text-amber-600 mt-0.5">
+            <span className="mt-0.5 shrink-0 text-muted-foreground transition-colors group-hover:text-amber-600">
               {candidate.type === 'clarification_candidate' ? '→' : '↗'}
             </span>
           </div>

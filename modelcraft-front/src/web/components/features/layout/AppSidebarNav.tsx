@@ -20,6 +20,8 @@ export interface NavItem {
   /** LucideIcon component or path string to a custom SVG (e.g. "/icons/icon-foo.svg") */
   icon: LucideIcon | string
   href: string
+  /** If true, only exact pathname match activates this item (no prefix matching) */
+  exact?: boolean
   /** Optional sub-items rendered as expandable children when sidebar is expanded */
   children?: NavSubItem[]
 }
@@ -60,7 +62,8 @@ export function AppSidebarNav({
   const [expandedItems, setExpandedItems] = useState<Set<string>>(new Set())
 
   const isNavActive = useCallback(
-    (href: string) => {
+    (href: string, exact?: boolean) => {
+      if (exact) return pathname === href
       if (pathname === href || pathname?.startsWith(href + '/')) return true
       return false
     },
@@ -122,7 +125,7 @@ export function AppSidebarNav({
             )}
             <nav className="flex flex-col gap-0.5">
               {section.items.map((item) => {
-                const active = isNavActive(item.href)
+                const active = isNavActive(item.href, item.exact)
                 const hasChildren = !collapsed && item.children && item.children.length > 0
                 const expanded = expandedItems.has(item.href)
 
