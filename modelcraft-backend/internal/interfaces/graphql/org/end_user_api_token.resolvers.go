@@ -6,22 +6,135 @@ package orggraphql
 
 import (
 	"context"
-	"fmt"
-	"modelcraft/internal/interfaces/graphql/org/generated"
+	"strings"
 	"time"
+
+	appEnduser "modelcraft/internal/app/enduser"
+	domainenduser "modelcraft/internal/domain/enduser"
+	"modelcraft/internal/interfaces/graphql/org/generated"
+	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 )
 
 // CreateEndUserAPIToken is the resolver for the createEndUserAPIToken field.
 func (r *mutationResolver) CreateEndUserAPIToken(ctx context.Context, name string, expiresAt *time.Time) (*generated.CreateAPITokenPayload, error) {
-	panic(fmt.Errorf("not implemented: CreateEndUserAPIToken - createEndUserAPIToken"))
+	if strings.TrimSpace(name) == "" {
+		return &generated.CreateAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "name is required"},
+		}, nil
+	}
+
+	svc := r.APITokenService
+	if svc == nil {
+		return &generated.CreateAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "API token service not initialized"},
+		}, nil
+	}
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.CreateAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "orgName not found in context"},
+		}, nil
+	}
+
+	endUserID, err := ctxutils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return &generated.CreateAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "user ID not found in context"},
+		}, nil
+	}
+
+	result, err := svc.CreateAPIToken(ctx, appEnduser.CreateAPITokenCommand{
+		OrgName:   orgName,
+		EndUserID: endUserID,
+		Name:      name,
+		ExpiresAt: expiresAt,
+	})
+	if err != nil {
+		logger := logfacade.GetLogger(ctx)
+		logger.Error(ctx, "failed to create API token", logfacade.Err(err))
+		return nil, err
+	}
+
+	plaintext := result.Plaintext
+	return &generated.CreateAPITokenPayload{
+		Token:     toGQLAPIToken(result.Token),
+		Plaintext: &plaintext,
+	}, nil
 }
 
 // RevokeEndUserAPIToken is the resolver for the revokeEndUserAPIToken field.
 func (r *mutationResolver) RevokeEndUserAPIToken(ctx context.Context, id string) (*generated.RevokeAPITokenPayload, error) {
-	panic(fmt.Errorf("not implemented: RevokeEndUserAPIToken - revokeEndUserAPIToken"))
+	svc := r.APITokenService
+	if svc == nil {
+		return &generated.RevokeAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "API token service not initialized"},
+		}, nil
+	}
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return &generated.RevokeAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "orgName not found in context"},
+		}, nil
+	}
+
+	endUserID, err := ctxutils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return &generated.RevokeAPITokenPayload{
+			Error: &generated.InvalidInput{Message: "user ID not found in context"},
+		}, nil
+	}
+
+	if err := svc.RevokeAPIToken(ctx, id, orgName, endUserID); err != nil {
+		logger := logfacade.GetLogger(ctx)
+		logger.Error(ctx, "failed to revoke API token", logfacade.Err(err))
+		return nil, err
+	}
+
+	success := true
+	return &generated.RevokeAPITokenPayload{Success: &success}, nil
 }
 
 // EndUserAPITokens is the resolver for the endUserAPITokens field.
 func (r *queryResolver) EndUserAPITokens(ctx context.Context) ([]*generated.EndUserAPIToken, error) {
-	panic(fmt.Errorf("not implemented: EndUserAPITokens - endUserAPITokens"))
+	svc := r.APITokenService
+	if svc == nil {
+		return nil, nil
+	}
+
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	endUserID, err := ctxutils.GetUserIDFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	tokens, err := svc.ListAPITokens(ctx, orgName, endUserID)
+	if err != nil {
+		logger := logfacade.GetLogger(ctx)
+		logger.Error(ctx, "failed to list API tokens", logfacade.Err(err))
+		return nil, err
+	}
+
+	result := make([]*generated.EndUserAPIToken, 0, len(tokens))
+	for _, t := range tokens {
+		result = append(result, toGQLAPIToken(t))
+	}
+	return result, nil
+}
+
+// toGQLAPIToken converts a domain APIToken to the GraphQL generated type.
+func toGQLAPIToken(t *domainenduser.APIToken) *generated.EndUserAPIToken {
+	return &generated.EndUserAPIToken{
+		ID:         t.ID,
+		Name:       t.Name,
+		CreatedAt:  t.CreatedAt,
+		ExpiresAt:  t.ExpiresAt,
+		LastUsedAt: t.LastUsedAt,
+	}
 }
