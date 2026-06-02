@@ -19,7 +19,7 @@ import { createEndUserOrgScopedClient } from '@api-client/apollo/clients'
 import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
 import { cn } from '@/shared/utils'
 
-type ActivePage = 'projects' | 'cli'
+type ActivePage = 'projects' | 'cli' | 'token'
 
 interface EndUserAppLayoutProps {
   children: ReactNode
@@ -219,7 +219,8 @@ function EndUserAppLayoutInner({
               header: '工作区',
               items: [
                 { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/end-user/${orgName}/dashboard`, exact: true },
-                { label: 'CLI 下载', icon: Terminal, href: `/end-user/${orgName}/dashboard/cli` },
+                { label: 'CLI 下载', icon: Terminal, href: `/end-user/${orgName}/dashboard/cli`, exact: true },
+                { label: 'API Token', icon: KeyRound, href: `/end-user/${orgName}/dashboard/token`, exact: true },
               ],
             },
           ]}
