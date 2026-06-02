@@ -18,7 +18,7 @@ func newAuthCommand() *cobra.Command {
 	authCmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Manage end-user authentication",
-		Example: "  mc auth login --server https://gateway.example.com --org acme --username alice --password '***'\n" +
+		Example: "  mc auth login --username alice --password '***'\n" +
 			"  mc auth status\n" +
 			"  mc auth switch-project sales\n" +
 			"  mc auth refresh\n" +
@@ -32,18 +32,31 @@ func newAuthCommand() *cobra.Command {
 	return authCmd
 }
 
+const defaultServer = "https://lukemxjia.devcloud.woa.com"
+
 func newAuthLoginCommand() *cobra.Command {
-	var server, org, username, password, credentialsPath string
+	var server, org, username, password, token, credentialsPath string
 
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Login with end-user credentials",
-		Example: "  mc auth login --server https://gateway.example.com --org acme --username alice --password '***'\n" +
-			"  mc auth login --server http://localhost:18080 --org demo --username test --password test123",
-		Args:  cobra.NoArgs,
+		Short: "Login with end-user credentials or a PAT token",
+		Example: "  mc auth login --token mc_pat_xxx\n" +
+			"  mc auth login --username alice --password '***'\n" +
+			"  mc auth login --username alice --password '***' --server https://gateway.example.com",
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			authClient := client.AuthClient{HTTPClient: http.DefaultClient}
-			creds, err := authClient.Login(cmd.Context(), server, org, username, password)
+
+			var creds *config.Credentials
+			var err error
+
+			if token != "" {
+				// PAT-based login: call whoami to resolve identity and projects.
+				creds, err = authClient.Whoami(cmd.Context(), server, token)
+			} else {
+				// Username/password login.
+				creds, err = authClient.Login(cmd.Context(), server, org, username, password)
+			}
 			if err != nil {
 				return err
 			}
@@ -60,15 +73,12 @@ func newAuthLoginCommand() *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&server, "server", "", "Gateway base URL")
-	cmd.Flags().StringVar(&org, "org", "", "Organization slug")
+	cmd.Flags().StringVar(&server, "server", defaultServer, "Gateway base URL")
+	cmd.Flags().StringVar(&token, "token", "", "Personal Access Token (mc_pat_xxx) — skips username/password")
+	cmd.Flags().StringVar(&org, "org", "", "Organization slug (optional, auto-resolved by username)")
 	cmd.Flags().StringVar(&username, "username", "", "End-user username")
 	cmd.Flags().StringVar(&password, "password", "", "End-user password")
 	cmd.Flags().StringVar(&credentialsPath, "credentials", config.DefaultPath(), "Credential file path")
-	_ = cmd.MarkFlagRequired("server")
-	_ = cmd.MarkFlagRequired("org")
-	_ = cmd.MarkFlagRequired("username")
-	_ = cmd.MarkFlagRequired("password")
 	return cmd
 }
 

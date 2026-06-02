@@ -26,10 +26,17 @@ go build -o ./bin/mc .
 ## 2. 快速开始
 
 ```bash
-# 1) 登录
+# 1a) 用 PAT Token 登录（推荐，从控制台 Token 管理页获取）
+mc auth login --token 'mc_pat_xxx'
+
+# 1b) 用用户名/密码登录（server 默认为 lukemxjia.devcloud.woa.com）
+mc auth login \
+  --username alice \
+  --password '***'
+
+# 或指定自定义 server
 mc auth login \
   --server https://gateway.example.com \
-  --org acme \
   --username alice \
   --password '***'
 

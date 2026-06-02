@@ -290,6 +290,50 @@ func (h *AuthHandler) CLILogin(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+// CLIWhoami handles GET /api/cli/end-user/auth/whoami.
+// This endpoint sits after the PAT middleware, which injects UserID and OrgName
+// into context when a valid mc_pat_xxx Bearer token is present.
+// It returns the identity and accessible projects — allowing the CLI to perform
+// PAT-based login without a username/password exchange.
+func (h *AuthHandler) CLIWhoami(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	requestID := ctxutils.GetRequestID(ctx)
+
+	userID, err := ctxutils.GetUserIDFromContext(ctx)
+	if err != nil || userID == "" {
+		h.writeError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
+		return
+	}
+	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
+	if err != nil || orgName == "" {
+		h.writeError(w, http.StatusUnauthorized, requestID, "UNAUTHENTICATED", "valid PAT token required")
+		return
+	}
+
+	var projects []map[string]any
+	if h.endUserSvc != nil {
+		items, projErr := h.endUserSvc.ListAccessibleProjects(ctx, orgName, userID)
+		if projErr == nil {
+			for _, p := range items {
+				projects = append(projects, map[string]any{
+					"slug":  p.Slug,
+					"title": p.Title,
+				})
+			}
+		}
+	}
+	if projects == nil {
+		projects = []map[string]any{}
+	}
+
+	h.writeJSON(w, http.StatusOK, map[string]any{
+		"requestId": requestID,
+		"userId":    userID,
+		"orgName":   orgName,
+		"projects":  projects,
+	})
+}
+
 // CLIRefresh handles POST /api/cli/end-user/auth/refresh.
 // Reads the refresh token from the request body instead of an httpOnly cookie.
 func (h *AuthHandler) CLIRefresh(w http.ResponseWriter, r *http.Request) {

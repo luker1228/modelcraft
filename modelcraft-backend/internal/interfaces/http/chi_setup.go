@@ -128,6 +128,14 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	}
 
 	// ============================================================
+	// CLI PAT-authenticated Routes (require PAT middleware above)
+	// ============================================================
+	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil {
+		h := cfg.DesignHandlers.EndUserAuthHandler
+		r.Get("/api/cli/end-user/auth/whoami", h.CLIWhoami)
+	}
+
+	// ============================================================
 	// OpenAPI Routes via Generated Chi Handler
 	// ============================================================
 

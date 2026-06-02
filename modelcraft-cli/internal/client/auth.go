@@ -87,6 +87,46 @@ func (c AuthClient) SelectProject(ctx context.Context, server, orgName, projectS
 	}, nil)
 }
 
+type whoamiResponse struct {
+	UserID   string              `json:"userId"`
+	OrgName  string              `json:"orgName"`
+	Projects []config.AccessibleProject `json:"projects"`
+}
+
+// Whoami calls GET /api/cli/end-user/auth/whoami with a PAT token (mc_pat_xxx)
+// and returns the resolved credentials. The PAT is stored as AccessToken; there
+// is no refresh token for PAT-based sessions.
+func (c AuthClient) Whoami(ctx context.Context, server, pat string) (*config.Credentials, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, joinURL(server, "/api/cli/end-user/auth/whoami"), nil)
+	if err != nil {
+		return nil, output.NewCLIError("INVALID_ARGUMENT", "Failed to build request.", false, "Verify command arguments and retry.", nil)
+	}
+	req.Header.Set("Authorization", "Bearer "+pat)
+
+	resp, err := c.client().Do(req)
+	if err != nil {
+		return nil, output.NewCLIError("SERVICE_UNAVAILABLE", "Gateway is unreachable.", true, "Check network connectivity and retry.", nil)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		return nil, decodeUpstreamError(resp)
+	}
+
+	var payload whoamiResponse
+	if err := json.NewDecoder(resp.Body).Decode(&payload); err != nil {
+		return nil, output.NewCLIError("INVALID_UPSTREAM", "Gateway returned invalid JSON.", false, "Inspect the upstream service output.", nil)
+	}
+
+	return &config.Credentials{
+		Server:      server,
+		OrgName:     payload.OrgName,
+		UserID:      payload.UserID,
+		AccessToken: pat,
+		Projects:    payload.Projects,
+	}, nil
+}
+
 func (c AuthClient) Me(ctx context.Context, server, accessToken string) (map[string]any, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, joinURL(server, "/api/cli/end-user/auth/me"), nil)
 	if err != nil {
