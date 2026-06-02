@@ -276,6 +276,7 @@ func (s *EndUserManagementAppService) toDTO(entity *domainenduser.EndUser) *EndU
 		ID:          entity.ID,
 		Username:    entity.Username,
 		IsForbidden: entity.IsForbidden,
+		IsAdmin:     entity.IsAdmin,
 		CreatedAt:   entity.CreatedAt,
 		UpdatedAt:   entity.UpdatedAt,
 	}

@@ -310,9 +310,24 @@ func (h *AuthHandler) CLIWhoami(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Resolve isAdmin: check user_orgs.is_admin so APISIX can set X-Is-Admin correctly.
+	// Admins (org owners / admins) can see all projects; regular end-users see only
+	// explicitly granted projects.
+	isAdmin := false
+	if h.endUserSvc != nil {
+		if u, uErr := h.endUserSvc.GetEndUser(ctx, appEnduser.GetEndUserCommand{
+			OrgName: orgName,
+			UserID:  userID,
+		}); uErr == nil && u != nil {
+			isAdmin = u.IsAdmin
+		}
+	}
+
 	var projects []map[string]any
 	if h.endUserSvc != nil {
-		items, projErr := h.endUserSvc.ListAccessibleProjects(ctx, orgName, userID)
+		// Inject isAdmin into context so ListAccessibleProjects can use the fast path.
+		adminCtx := ctxutils.SetIsAdmin(ctx, isAdmin)
+		items, projErr := h.endUserSvc.ListAccessibleProjects(adminCtx, orgName, userID)
 		if projErr == nil {
 			for _, p := range items {
 				projects = append(projects, map[string]any{
@@ -330,6 +345,7 @@ func (h *AuthHandler) CLIWhoami(w http.ResponseWriter, r *http.Request) {
 		"requestId": requestID,
 		"userId":    userID,
 		"orgName":   orgName,
+		"isAdmin":   isAdmin,
 		"projects":  projects,
 	})
 }

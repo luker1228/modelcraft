@@ -80,6 +80,7 @@ type EndUserDTO struct {
 	ID          string
 	Username    string
 	IsForbidden bool
+	IsAdmin     bool
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
 }

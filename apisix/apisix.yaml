@@ -113,7 +113,11 @@ routes:
                 end
                 core.request.set_header(ctx, "X-User-ID",   payload.userId)
                 core.request.set_header(ctx, "X-User-Type", "end_user")
-                core.request.set_header(ctx, "X-Is-Admin",  "false")
+                if payload.isAdmin then
+                  core.request.set_header(ctx, "X-Is-Admin", "true")
+                else
+                  core.request.set_header(ctx, "X-Is-Admin", "false")
+                end
                 if payload.orgName then
                   core.request.set_header(ctx, "X-Org-Name", payload.orgName)
                 end
