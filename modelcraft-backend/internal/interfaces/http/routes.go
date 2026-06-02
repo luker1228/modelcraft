@@ -352,7 +352,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		passwordHasher,
 		7*24*time.Hour, // refresh token TTL
 		createOrgService,
-		membershipRepo, // for fetching user's org on login
 		txManager,
 		jwtSigner,
 	)

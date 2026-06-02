@@ -44,6 +44,9 @@ func (s *GraphqlAppService) GetSchema(ctx context.Context, orgName string, model
 	model, err := s.modelRepo.GetByName(ctx, modelLocator)
 	if err != nil {
 		logger.Errorf(ctx, "get model fail: %v", err)
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
+		}
 		return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
 	}
 	if model == nil {
@@ -104,22 +107,12 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	}
 
 	// 解析 end-user 权限快照。
-	// 仅 end-user 请求需要查权限（endUserID != ""），tenant admin 时 permService 返回 nil。
-	// 需要 model.ID，因此单独加载 model（GetSchema 内部缓存 schema，此处只取 ID）。
+	// 仅 end-user 请求需要查权限（endUserID != ""），tenant admin 时跳过，perms 保持 nil。
 	var endUserPerms *modelruntime.ResolvedModelPermissions
 	if endUserID != "" {
-		model, err := s.modelRepo.GetByName(ctx, modelLocator)
+		endUserPerms, err = s.resolveEndUserPerms(ctx, orgName, projectSlug, endUserID, modelLocator)
 		if err != nil {
-			logger.Errorf(ctx, "get model for permission resolve fail: %v", err)
-			return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
-		}
-		if model == nil {
-			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
-		}
-		endUserPerms, err = s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
-		if err != nil {
-			logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
-			return nil, fmt.Errorf("解析权限失败")
+			return nil, err
 		}
 	}
 
@@ -142,6 +135,34 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	logger.Infof(ctx, "result=%+v", string(marshal))
 
 	return result, nil
+}
+
+// resolveEndUserPerms 获取 end-user 权限快照。
+// 调用方负责在 endUserID 为空时跳过此方法。
+// 需要 model.ID，因此单独加载 model（GetSchema 内部缓存 schema，此处只取 ID）。
+func (s *GraphqlAppService) resolveEndUserPerms(
+	ctx context.Context,
+	orgName, projectSlug, endUserID string,
+	modelLocator *modeldesign.ModelLocator,
+) (*modelruntime.ResolvedModelPermissions, error) {
+	logger := logfacade.GetLogger(ctx)
+	model, err := s.modelRepo.GetByName(ctx, modelLocator)
+	if err != nil {
+		logger.Errorf(ctx, "get model for permission resolve fail: %v", err)
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
+		}
+		return nil, fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
+	}
+	if model == nil {
+		return nil, bizerrors.NewError(bizerrors.ModelNotFound, modelLocator.GetFullPath())
+	}
+	perms, err := s.permService.Resolve(ctx, orgName, projectSlug, endUserID, model.ID)
+	if err != nil {
+		logger.Errorf(ctx, "resolve end-user permissions fail: %v", err)
+		return nil, fmt.Errorf("解析权限失败")
+	}
+	return perms, nil
 }
 
 func (s *GraphqlAppService) denyManagedModelMutation(

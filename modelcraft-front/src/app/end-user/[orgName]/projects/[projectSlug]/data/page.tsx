@@ -14,22 +14,11 @@ import { toast } from 'sonner'
 import { Input } from '@web/components/ui/input'
 import { Button } from '@web/components/ui/button'
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@web/components/ui/alert-dialog'
-import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@web/components/ui/popover'
 import { cn } from '@/shared/utils'
-import { getEndUserToken } from '@api-client/end-user/public'
 import { createEndUserScopedClient } from '@api-client/apollo/clients'
 import {
   MODEL_CATALOG_END_USER,
@@ -88,8 +77,6 @@ export default function EndUserDataPage() {
   const [databasesLoading, setDatabasesLoading] = useState(false)
   const [models, setModels] = useState<DataModel[]>([])
   const [modelsLoading, setModelsLoading] = useState(false)
-  const [privateDbInitDialogOpen, setPrivateDbInitDialogOpen] = useState(false)
-  const [initPrivateDbLoading, setInitPrivateDbLoading] = useState(false)
 
   const loadDatabaseCatalog = async (): Promise<void> => {
     if (!orgName || !projectSlug) return
@@ -105,15 +92,7 @@ export default function EndUserDataPage() {
 
       const payload = data?.modelDatabaseCatalog
       if (payload?.error) {
-        const { __typename: errType, message: errMsg } = payload.error
-        if (errType === 'PRIVATE_DB_NOT_INITIALIZED') {
-          setDatabases([])
-          setSelectedDatabase('')
-          setModels([])
-          setPrivateDbInitDialogOpen(true)
-          return
-        }
-        throw new Error(errMsg ?? '加载数据库目录失败')
+        throw new Error(payload.error.message ?? '加载数据库目录失败')
       }
 
       setDatabases(
@@ -190,36 +169,6 @@ export default function EndUserDataPage() {
     )
   }, [models, modelFilter])
 
-  const handleInitPrivateDB = async () => {
-    const accessToken = getEndUserToken()
-    if (!accessToken || !orgName || !projectSlug) return
-
-    setInitPrivateDbLoading(true)
-    try {
-      const res = await fetch(`/internal/end-user/data/init-private-db`, {
-        method: 'POST',
-        credentials: 'same-origin',
-        headers: { Authorization: `Bearer ${accessToken}` },
-      })
-
-      type InitResp = { success?: boolean; error?: { code?: string; message?: string } }
-      const respData = (await res.json()) as InitResp
-
-      if (!res.ok || !respData.success) {
-        throw new Error(respData.error?.message ?? '初始化私有库失败')
-      }
-
-      setPrivateDbInitDialogOpen(false)
-      toast.success('私有库初始化成功')
-      await loadDatabaseCatalog()
-    } catch (err) {
-      const message = err instanceof Error ? err.message : '初始化私有库失败'
-      toast.error(message)
-    } finally {
-      setInitPrivateDbLoading(false)
-    }
-  }
-
   const handleOpenModelTab = (model: DataModel) => {
     setOpenedTabs((prev) => {
       if (prev.some((item) => item.id === model.id)) return prev
@@ -273,6 +222,8 @@ export default function EndUserDataPage() {
                       </>
                     ) : selectedDatabase ? (
                       <span className="truncate font-medium text-foreground">{selectedDatabase}</span>
+                    ) : databases.length === 0 ? (
+                      <span>联系管理员</span>
                     ) : (
                       <span>选择数据库</span>
                     )}
@@ -282,8 +233,14 @@ export default function EndUserDataPage() {
               </PopoverTrigger>
               <PopoverContent className="w-[208px] border border-border p-1 shadow-lg" align="start">
                 {databases.length === 0 ? (
-                  <div className="px-2.5 py-3 text-center text-sm text-muted-foreground">
-                    暂无数据库
+                  <div className="px-2.5 py-3 text-center">
+                    <div className="rounded-md border border-dashed border-border bg-muted/30 px-3 py-4">
+                      <Database className="mx-auto mb-2 size-4 text-muted-foreground" />
+                      <p className="text-sm font-medium text-foreground">暂无已接管数据库</p>
+                      <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                        请联系管理员先接管数据库，再回来查看项目数据。
+                      </p>
+                    </div>
                   </div>
                 ) : (
                   databases.map((db) => (
@@ -386,7 +343,16 @@ export default function EndUserDataPage() {
                 {!selectedDatabase && !databasesLoading && (
                   <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                     <Database className="mb-3 size-8 opacity-20" />
-                    <p className="text-sm">请先选择数据库</p>
+                    {databases.length === 0 ? (
+                      <div className="text-center">
+                        <p className="text-sm text-foreground">暂无已接管数据库</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          请联系管理员先接管数据库。
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-sm">请先选择数据库</p>
+                    )}
                   </div>
                 )}
               </div>
@@ -414,23 +380,6 @@ export default function EndUserDataPage() {
           />
         </div>
       </div>
-
-      <AlertDialog open={privateDbInitDialogOpen} onOpenChange={setPrivateDbInitDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>私有库未初始化</AlertDialogTitle>
-            <AlertDialogDescription>
-              检测到私有库 mc_private_{projectSlug} 不存在。请确认是否立即初始化后继续访问数据。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={initPrivateDbLoading}>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={() => void handleInitPrivateDB()} disabled={initPrivateDbLoading}>
-              {initPrivateDbLoading ? '初始化中...' : '确认初始化'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </EndUserAppLayout>
   )
 }

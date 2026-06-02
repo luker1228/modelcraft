@@ -6,8 +6,10 @@ package runtime
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"modelcraft/internal/app/modelruntime"
+	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 	"net/http"
@@ -126,11 +128,20 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 
 	result, err := h.graphqlAppService.Execute(ctx, orgName, projectSlug, model, db, cmd)
 	if err != nil {
-		logger.Error(r.Context(), "Runtime GraphQL execution failed", logfacade.Err(err), logfacade.Stack(err))
+		statusCode := http.StatusInternalServerError
+		var bizErr *bizerrors.BusinessError
+		if errors.As(err, &bizErr) {
+			statusCode = bizErr.GetHTTPStatusCode()
+		}
+		if statusCode >= 500 {
+			logger.Error(r.Context(), "Runtime GraphQL execution failed", logfacade.Err(err), logfacade.Stack(err))
+		}
+		requestID := ctxutils.GetRequestID(r.Context())
 		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusInternalServerError)
+		w.WriteHeader(statusCode)
 		_ = json.NewEncoder(w).Encode(map[string]string{
-			"error": err.Error(),
+			"message":   err.Error(),
+			"requestId": requestID,
 		})
 		return
 	}

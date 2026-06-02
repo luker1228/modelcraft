@@ -51,6 +51,7 @@ export default function TenantLoginPage() {
     <AuthLayout
       title="欢迎回来，管理员"
       subtitle="登录管理控制台"
+      showCliPromo
       backLink={{ href: backHref, label: '返回登录选择' }}
     >
       <Form {...form}>

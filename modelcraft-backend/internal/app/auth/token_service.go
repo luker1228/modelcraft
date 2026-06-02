@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"modelcraft/internal/app/organization"
 	"modelcraft/internal/domain/enduser"
-	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/repository"
@@ -37,12 +36,6 @@ type SQLDBTX interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-// MembershipOrgProvider 是 TokenService 用于获取用户主 Org 信息的最小接口。
-// 仅在签发 Token 时需要，不依赖完整的 MembershipRepository。
-type MembershipOrgProvider interface {
-	ListByUserWithDetails(ctx context.Context, userID string, limit int) ([]*membership.MembershipWithDetails, error)
-}
-
 // OrgCreationService 是 TokenService 依赖的组织创建最小接口。
 // 注册时用于自动为新用户创建个人组织（含 builtin admin EndUser）。
 // 抽象为接口以便单测注入 spy。
@@ -68,7 +61,6 @@ type TokenService struct {
 	refreshTokenRepo   domainauth.RefreshTokenRepository
 	userRepo           domainUser.UserRepository
 	profileRepo        domainProfile.Repository
-	membershipRepo     MembershipOrgProvider
 	auditLogRepo       domainauth.SecurityAuditLogRepository
 	passwordHasher     domainauth.PasswordHasher
 	refreshTTL         time.Duration
@@ -88,7 +80,6 @@ func NewTokenService(
 	passwordHasher domainauth.PasswordHasher,
 	refreshTTL time.Duration,
 	createOrgService OrgCreationService,
-	membershipRepo MembershipOrgProvider,
 	txManager repository.TxManager,
 	jwtSigner *domainauth.JWTSigner,
 ) *TokenService {
@@ -99,7 +90,6 @@ func NewTokenService(
 		refreshTokenRepo: refreshTokenRepo,
 		userRepo:         userRepo,
 		profileRepo:      profileRepo,
-		membershipRepo:   membershipRepo,
 		auditLogRepo:     auditLogRepo,
 		passwordHasher:   passwordHasher,
 		refreshTTL:       refreshTTL,
@@ -348,59 +338,58 @@ func (s *TokenService) classifyCreateUserError(
 }
 
 // Login 登录（支持手机号或用户名），生成 Refresh Token 存入 DB，返回明文给 BFF。
+// 统一走 endUserRepoFactory，与 LoginEndUser 共用同一套 users + user_orgs 查询路径。
 func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	// Resolve the effective identifier and type (backward compat: use Phone if Identifier is empty)
+	if s.endUserRepoFactory == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "endUserRepoFactory not configured")
+	}
+	// orgName 为空时走全局查询，登录成功后从 user.OrgName 取
+	userRepo := s.endUserRepoFactory.NewEndUserRepository(s.systemDB, "")
+
+	// Resolve identifier（向后兼容：Phone 字段 → PHONE 类型）
 	identifier := cmd.Identifier
 	idType := cmd.IdentifierType
 	if identifier == "" && cmd.Phone != "" {
 		identifier = cmd.Phone
 		idType = IdentifierTypePhone
 	}
-	// Default to PHONE if not specified
+	// 默认 USERNAME（与 LoginEndUser 一致）
 	if idType == "" {
-		idType = IdentifierTypePhone
+		idType = IdentifierTypeUsername
 	}
 
-	var u *domainUser.User
+	var u *enduser.EndUser
 	var err error
 
 	switch idType {
 	case IdentifierTypePhone:
-		// Validate phone format
-		if _, validateErr := domainUser.NewPhoneNumber(identifier); validateErr != nil {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, validateErr.Error())
+		if identifier == "" {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "phone is required")
 		}
-		// Find user by phone
-		u, err = s.userRepo.GetByPhone(ctx, identifier)
-		if err != nil {
-			if shared.IsNotFoundError(err) {
-				return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "phone number not found")
-			}
-			return nil, bizerrors.ConvertRepositoryError(ctx, err)
-		}
-
+		u, err = userRepo.GetByPhoneGlobal(ctx, identifier)
 	case IdentifierTypeUsername:
-		// Find user by username (name field)
-		u, err = s.userRepo.GetByName(ctx, identifier)
-		if err != nil {
-			if shared.IsNotFoundError(err) {
-				return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "username not found")
-			}
-			return nil, bizerrors.ConvertRepositoryError(ctx, err)
+		if identifier == "" {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "username is required")
 		}
-
+		u, err = userRepo.GetByUsernameGlobal(ctx, identifier)
 	default:
 		return nil, bizerrors.NewErrorFromContext(
-			ctx,
-			bizerrors.AuthParamInvalid,
+			ctx, bizerrors.AuthParamInvalid,
 			"invalid identifier type: "+string(idType),
 		)
 	}
 
-	// Verify password
-	if err := s.passwordHasher.Verify(ctx, cmd.Password, u.PasswordHash); err != nil {
+	if err != nil {
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
+	}
+	if u == nil {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "user not found")
+	}
+
+	// Verify password（EndUser 使用 bcrypt，与 tenant user 相同存储）
+	if !u.VerifyPassword(cmd.Password) {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
 	}
 
@@ -427,29 +416,20 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// Fetch user's primary organization and admin status (single Org per user)
-	var orgName string
-	var isAdmin bool
-	if s.membershipRepo != nil {
-		memberships, listErr := s.membershipRepo.ListByUserWithDetails(ctx, u.ID, 1)
-		if listErr == nil && len(memberships) > 0 {
-			orgName = memberships[0].OrgName
-			isAdmin = memberships[0].IsAdmin
-		}
-	}
+	// orgName 和 isAdmin 直接从 user_orgs JOIN 结果取（由 GetByUsernameGlobal 填充）
+	orgName := u.OrgName
+	isAdmin := u.IsAdmin
 
 	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
 
-	accessToken, err := s.jwtSigner.IssueAccessToken(
-		u.ID, orgName, isAdmin,
-	)
+	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, orgName, isAdmin)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}
 
 	return &LoginResult{
 		UserID:       u.ID,
-		UserName:     u.Name,
+		UserName:     u.Username,
 		OrgName:      orgName,
 		AccessToken:  accessToken,
 		RefreshToken: plaintext,
@@ -575,14 +555,14 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 
 	logger.Infof(ctx, "Token refreshed: user_id=%s", token.UserID)
 
-	// 查询用户的主 org（与 Login 路径一致，取第一个 membership 的 OrgName 和 IsAdmin）
+	// orgName/isAdmin 从 user_orgs 直接取（与 Login 路径一致）
 	var refreshOrgName string
 	var refreshIsAdmin bool
-	if s.membershipRepo != nil {
-		memberships, listErr := s.membershipRepo.ListByUserWithDetails(ctx, token.UserID, 1)
-		if listErr == nil && len(memberships) > 0 {
-			refreshOrgName = memberships[0].OrgName
-			refreshIsAdmin = memberships[0].IsAdmin
+	if s.endUserRepoFactory != nil {
+		userRepo := s.endUserRepoFactory.NewEndUserRepository(s.systemDB, "")
+		if u, uErr := userRepo.GetByID(ctx, "", token.UserID); uErr == nil && u != nil {
+			refreshOrgName = u.OrgName
+			refreshIsAdmin = u.IsAdmin
 		}
 	}
 

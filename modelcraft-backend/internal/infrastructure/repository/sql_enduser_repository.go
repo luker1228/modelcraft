@@ -7,12 +7,13 @@ import (
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/sqlerr"
+	"modelcraft/pkg/bizutils"
 	"time"
 )
 
 const endUserStatusActive = "active"
 
-// SqlEndUserRepository 是 enduser.EndUserRepository 的 MySQL 实现。
+// SqlEndUserOrgRepository 是 enduser.EndUserRepository 的 MySQL 实现。
 // 统一用户体系后，end-user 数据存储在统一的 users + user_orgs 表中。
 // Project 级角色访问控制通过 project_role_users + project_roles 表管理。
 type endUserDBTX interface {
@@ -22,18 +23,25 @@ type endUserDBTX interface {
 	QueryRowContext(ctx context.Context, query string, args ...any) *sql.Row
 }
 
-type SqlEndUserRepository struct {
+type SqlEndUserOrgRepository struct {
 	db      endUserDBTX
 	orgName string
 }
 
-// NewSqlEndUserRepository creates a SqlEndUserRepository.
-func NewSqlEndUserRepository(db endUserDBTX, orgName, _ string) enduser.EndUserRepository {
-	return &SqlEndUserRepository{db: db, orgName: orgName}
+// NewSqlEndUserOrgRepository creates a SqlEndUserOrgRepository.
+func NewSqlEndUserOrgRepository(db endUserDBTX, orgName, _ string) enduser.EndUserRepository {
+	return &SqlEndUserOrgRepository{db: db, orgName: orgName}
+}
+
+// NewSqlEndUserRepository is an alias kept for backward compatibility.
+//
+// Deprecated: use NewSqlEndUserOrgRepository directly.
+func NewSqlEndUserRepository(db endUserDBTX, orgName, projectSlug string) enduser.EndUserRepository {
+	return NewSqlEndUserOrgRepository(db, orgName, projectSlug)
 }
 
 // Save creates a new end-user in users + user_orgs (is_admin=false).
-func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) error {
+func (r *SqlEndUserOrgRepository) Save(ctx context.Context, user *enduser.EndUser) error {
 	orgName := user.OrgName
 	if orgName == "" {
 		orgName = r.orgName
@@ -52,7 +60,10 @@ func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) 
 		  (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
 		VALUES (?, ?, ?, 0, 'active', 0, 0, NOW(3), NOW(3))
 	`
-	userOrgID := user.ID + "-org"
+	userOrgID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate user_orgs id: %w", err)
+	}
 	if _, err := r.db.ExecContext(ctx, insertUserOrg, userOrgID, user.ID, orgName); err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -61,7 +72,7 @@ func (r *SqlEndUserRepository) Save(ctx context.Context, user *enduser.EndUser) 
 
 // GetByID retrieves an end-user by ID under org scope.
 // Returns (nil, nil) when not found.
-func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) (*enduser.EndUser, error) {
+func (r *SqlEndUserOrgRepository) GetByID(ctx context.Context, orgName, id string) (*enduser.EndUser, error) {
 	if orgName == "" {
 		orgName = r.orgName
 	}
@@ -76,7 +87,9 @@ func (r *SqlEndUserRepository) GetByID(ctx context.Context, orgName, id string) 
 
 // GetByUsername retrieves an end-user by username under org scope.
 // Returns (nil, nil) when not found.
-func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, username string) (*enduser.EndUser, error) {
+func (r *SqlEndUserOrgRepository) GetByUsername(
+	ctx context.Context, orgName, username string,
+) (*enduser.EndUser, error) {
 	if orgName == "" {
 		orgName = r.orgName
 	}
@@ -91,7 +104,7 @@ func (r *SqlEndUserRepository) GetByUsername(ctx context.Context, orgName, usern
 
 // GetByPhone retrieves an end-user by phone number under org scope.
 // Returns (nil, nil) when not found.
-func (r *SqlEndUserRepository) GetByPhone(ctx context.Context, orgName, phone string) (*enduser.EndUser, error) {
+func (r *SqlEndUserOrgRepository) GetByPhone(ctx context.Context, orgName, phone string) (*enduser.EndUser, error) {
 	if orgName == "" {
 		orgName = r.orgName
 	}
@@ -104,9 +117,22 @@ func (r *SqlEndUserRepository) GetByPhone(ctx context.Context, orgName, phone st
 	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, phone))
 }
 
+// GetByPhoneGlobal retrieves an end-user by phone without an org filter.
+// Phone numbers are globally unique (uk_phone), so no org scope is needed.
+func (r *SqlEndUserOrgRepository) GetByPhoneGlobal(ctx context.Context, phone string) (*enduser.EndUser, error) {
+	const q = `
+		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
+		FROM users u
+		JOIN user_orgs uo ON uo.user_id = u.id AND uo.deleted_at = 0
+		WHERE u.phone = ? AND u.deleted_at = 0
+		LIMIT 1
+	`
+	return scanEndUser(r.db.QueryRowContext(ctx, q, phone))
+}
+
 // GetByUsernameGlobal retrieves an end-user by username without an org filter.
 // The single-org-per-user invariant ensures the returned row carries the owning org.
-func (r *SqlEndUserRepository) GetByUsernameGlobal(ctx context.Context, username string) (*enduser.EndUser, error) {
+func (r *SqlEndUserOrgRepository) GetByUsernameGlobal(ctx context.Context, username string) (*enduser.EndUser, error) {
 	const q = `
 		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
 		FROM users u
@@ -147,7 +173,7 @@ func scanEndUser(row *sql.Row) (*enduser.EndUser, error) {
 }
 
 // UpdatePassword updates the password hash.
-func (r *SqlEndUserRepository) UpdatePassword(
+func (r *SqlEndUserOrgRepository) UpdatePassword(
 	ctx context.Context, orgName, id string, hashedPassword enduser.HashedPassword,
 ) error {
 	const q = `UPDATE users SET password_hash = ?, updated_at = NOW(3) WHERE id = ? AND deleted_at = 0`
@@ -162,7 +188,7 @@ func (r *SqlEndUserRepository) UpdatePassword(
 }
 
 // UpdateStatus updates user status via user_orgs.status.
-func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error {
+func (r *SqlEndUserOrgRepository) UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error {
 	if orgName == "" {
 		orgName = r.orgName
 	}
@@ -186,7 +212,7 @@ func (r *SqlEndUserRepository) UpdateStatus(ctx context.Context, orgName, id str
 }
 
 // Delete soft-deletes the user from users + user_orgs.
-func (r *SqlEndUserRepository) Delete(ctx context.Context, orgName, id string) error {
+func (r *SqlEndUserOrgRepository) Delete(ctx context.Context, orgName, id string) error {
 	if orgName == "" {
 		orgName = r.orgName
 	}
@@ -218,7 +244,7 @@ func (r *SqlEndUserRepository) Delete(ctx context.Context, orgName, id string) e
 }
 
 // ListWithTotal 带游标分页列出用户。
-func (r *SqlEndUserRepository) ListWithTotal(
+func (r *SqlEndUserOrgRepository) ListWithTotal(
 	ctx context.Context,
 	q enduser.ListEndUsersQuery,
 ) ([]*enduser.EndUser, int64, error) {
@@ -294,7 +320,7 @@ func (r *SqlEndUserRepository) ListWithTotal(
 }
 
 // ListAccessibleProjectsByRoleAssignment 通过 project_role_users + project_roles 查询用户可访问的项目。
-func (r *SqlEndUserRepository) ListAccessibleProjectsByRoleAssignment(
+func (r *SqlEndUserOrgRepository) ListAccessibleProjectsByRoleAssignment(
 	ctx context.Context, orgName, endUserID string,
 ) ([]enduser.AccessibleProject, error) {
 	const q = `
@@ -350,7 +376,7 @@ func (r *SqlEndUserRepository) ListAccessibleProjectsByRoleAssignment(
 }
 
 // HasProjectAccessByRole 检查用户在指定 project 下是否有任意 Role 分配。
-func (r *SqlEndUserRepository) HasProjectAccessByRole(
+func (r *SqlEndUserOrgRepository) HasProjectAccessByRole(
 	ctx context.Context, orgName, endUserID, projectSlug string,
 ) (bool, error) {
 	const q = `
@@ -367,7 +393,7 @@ func (r *SqlEndUserRepository) HasProjectAccessByRole(
 }
 
 // ListAllProjectsByOrg 返回 org 下所有未删除的 project（供 org admin 使用）。
-func (r *SqlEndUserRepository) ListAllProjectsByOrg(
+func (r *SqlEndUserOrgRepository) ListAllProjectsByOrg(
 	ctx context.Context, orgName string,
 ) ([]enduser.AccessibleProject, error) {
 	const q = `
@@ -412,4 +438,4 @@ func (r *SqlEndUserRepository) ListAllProjectsByOrg(
 }
 
 // Compile-time interface check.
-var _ enduser.EndUserRepository = (*SqlEndUserRepository)(nil)
+var _ enduser.EndUserRepository = (*SqlEndUserOrgRepository)(nil)

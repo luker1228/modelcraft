@@ -27,61 +27,35 @@ func newDescribeCommand() *cobra.Command {
 			}
 
 			endpoint := clientModelEndpoint(creds.Server, creds.OrgName, modelPath.Project, modelPath.Database, modelPath.Model)
-			query := `query DescribeModel($typeName: String!) { __type(name: $typeName) { name fields { name type { kind name ofType { kind name ofType { kind name } } } } } }`
+			query := `{ __schema { types { name kind fields { name type { kind name ofType { kind name ofType { kind name ofType { kind name } } } } args { name type { kind name ofType { kind name ofType { kind name } } } } } inputFields { name type { kind name ofType { kind name ofType { kind name } } } } } } }`
 
-			var payload struct {
-				Type *struct {
-					Name   string `json:"name"`
-					Fields []struct {
-						Name string `json:"name"`
-						Type struct {
-							Kind   string `json:"kind"`
-							Name   *string `json:"name"`
-							OfType *struct {
-								Kind   string `json:"kind"`
-								Name   *string `json:"name"`
-								OfType *struct {
-									Kind string  `json:"kind"`
-									Name *string `json:"name"`
-								} `json:"ofType"`
-							} `json:"ofType"`
-						} `json:"type"`
-					} `json:"fields"`
-				} `json:"__type"`
+			var raw struct {
+				Schema struct {
+					Types []map[string]any `json:"types"`
+				} `json:"__schema"`
 			}
-			// Runtime schema prefixes model type names with "T" (e.g. "test005" → "Ttest005")
 			err = (client.GraphQLClient{HTTPClient: http.DefaultClient}).Execute(
 				cmd.Context(),
 				endpoint,
 				creds.AccessToken,
 				query,
-				map[string]any{"typeName": "Query"},
-				&payload,
+				nil,
+				&raw,
 			)
 			if err != nil {
 				return err
 			}
-			if payload.Type == nil {
-				return output.NewCLIError("MODEL_NOT_FOUND", "Model type was not found by introspection.", false, "Check the model path and retry.", map[string]any{"model": modelPath.Model})
+
+			// 过滤掉 GraphQL 内置元类型（以 __ 开头）
+			types := make([]map[string]any, 0, len(raw.Schema.Types))
+			for _, t := range raw.Schema.Types {
+				name, _ := t["name"].(string)
+				if !strings.HasPrefix(name, "__") {
+					types = append(types, t)
+				}
 			}
 
-			fields := make([]map[string]any, 0, len(payload.Type.Fields))
-			for _, f := range payload.Type.Fields {
-				kind, typeName, required, isList := flattenGraphQLType(f.Type)
-				fields = append(fields, map[string]any{
-					"name":     f.Name,
-					"kind":     kind,
-					"type":     typeName,
-					"required": required,
-					"isList":   isList,
-				})
-			}
-
-			data := map[string]any{
-				"model":  modelPath.Model,
-				"fields": fields,
-			}
-			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, data, ctx)
+			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, map[string]any{"types": types}, ctx)
 		},
 	}
 
@@ -90,49 +64,8 @@ func newDescribeCommand() *cobra.Command {
 }
 
 func clientModelEndpoint(server, org, project, db, model string) string {
-	return fmt.Sprintf("%s/end-user/graphql/org/%s/project/%s/db/%s/model/%s", strings.TrimRight(server, "/"), org, project, db, model)
-}
-
-func flattenGraphQLType(t struct {
-	Kind   string `json:"kind"`
-	Name   *string `json:"name"`
-	OfType *struct {
-		Kind   string `json:"kind"`
-		Name   *string `json:"name"`
-		OfType *struct {
-			Kind string  `json:"kind"`
-			Name *string `json:"name"`
-		} `json:"ofType"`
-	} `json:"ofType"`
-}) (kind, typeName string, required, isList bool) {
-	kind = t.Kind
-	if t.Name != nil {
-		typeName = *t.Name
-	}
-
-	if t.Kind == "NON_NULL" {
-		required = true
-		if t.OfType != nil {
-			kind = t.OfType.Kind
-			if t.OfType.Name != nil {
-				typeName = *t.OfType.Name
-			}
-			if t.OfType.Kind == "LIST" {
-				isList = true
-				if t.OfType.OfType != nil && t.OfType.OfType.Name != nil {
-					typeName = *t.OfType.OfType.Name
-				}
-			}
-		}
-		return kind, typeName, required, isList
-	}
-
-	if t.Kind == "LIST" {
-		isList = true
-		if t.OfType != nil && t.OfType.Name != nil {
-			typeName = *t.OfType.Name
-		}
-	}
-
-	return kind, typeName, required, isList
+	return fmt.Sprintf(
+		"%s/end-user/graphql/org/%s/project/%s/db/%s/model/%s",
+		strings.TrimRight(server, "/"), org, project, db, model,
+	)
 }
