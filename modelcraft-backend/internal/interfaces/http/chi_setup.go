@@ -123,16 +123,15 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// ============================================================
 	// PAT Auth Middleware
 	// ============================================================
-	if cfg.APITokenService != nil {
-		r.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
-	}
-
 	// ============================================================
 	// CLI PAT-authenticated Routes (require PAT middleware above)
 	// ============================================================
-	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil {
+	if cfg.DesignHandlers != nil && cfg.DesignHandlers.EndUserAuthHandler != nil && cfg.APITokenService != nil {
 		h := cfg.DesignHandlers.EndUserAuthHandler
-		r.Get("/api/cli/end-user/auth/whoami", h.CLIWhoami)
+		r.Group(func(gr chi.Router) {
+			gr.Use(middleware.ChiPATAuthMiddleware(cfg.APITokenService, cfg.Logger))
+			gr.Get("/api/cli/end-user/auth/whoami", h.CLIWhoami)
+		})
 	}
 
 	// ============================================================

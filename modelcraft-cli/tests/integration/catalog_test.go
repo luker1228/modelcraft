@@ -51,9 +51,11 @@ func TestCatalogProjects_Unauthenticated(t *testing.T) {
 func TestCatalogDatabases_Success(t *testing.T) {
 	gqlData := map[string]any{
 		"modelDatabaseCatalog": map[string]any{
-			"items": []any{
-				map[string]any{"name": "maindb"},
-				map[string]any{"name": "analyticsdb"},
+			"data": map[string]any{
+				"databases": []any{
+					map[string]any{"name": "maindb"},
+					map[string]any{"name": "analyticsdb"},
+				},
 			},
 		},
 	}
@@ -98,7 +100,9 @@ func TestCatalogDatabases_NoProjectContext(t *testing.T) {
 func TestCatalogDatabases_ProjectOverrideFlag(t *testing.T) {
 	gqlData := map[string]any{
 		"modelDatabaseCatalog": map[string]any{
-			"items": []any{map[string]any{"name": "maindb"}},
+			"data": map[string]any{
+				"databases": []any{map[string]any{"name": "maindb"}},
+			},
 		},
 	}
 	srv := newGraphQLServer(t, gqlData)
@@ -134,7 +138,7 @@ func TestCatalogDatabases_ProjectOverrideFlag(t *testing.T) {
 
 func TestCatalogModels_Success(t *testing.T) {
 	gqlData := map[string]any{
-		"modelCatalog": map[string]any{
+		"models": map[string]any{
 			"items": []any{
 				map[string]any{"name": "User"},
 				map[string]any{"name": "Order"},

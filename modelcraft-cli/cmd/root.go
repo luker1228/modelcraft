@@ -30,6 +30,7 @@ func NewRootCommand(info BuildInfo) *cobra.Command {
 	root.AddCommand(newVersionCommand(info))
 	root.AddCommand(newAuthCommand())
 	root.AddCommand(newCatalogCommand())
+	root.AddCommand(newQueryCommand())
 	root.AddCommand(newRunCommand())
 	root.AddCommand(newSchemaCommand())
 	root.AddCommand(newDescribeCommand())

@@ -13,7 +13,7 @@ func TestRunBuildsModelScopedEndpointAndPassesQueryThrough(t *testing.T) {
 	const gqlBody = `{ findMany(take: 3) { id name } }`
 
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/graphql/end-user/org/acme/project/sales/db/maindb/model/users" {
+		if r.URL.Path != "/end-user/graphql/org/acme/project/sales/db/maindb/model/users" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		body, _ := io.ReadAll(r.Body)

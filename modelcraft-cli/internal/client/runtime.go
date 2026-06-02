@@ -21,5 +21,5 @@ func (c GraphQLClient) Run(ctx context.Context, server, org, project, db, model,
 
 // modelEndpoint builds the model-scoped runtime GraphQL endpoint URL.
 func modelEndpoint(server, org, project, db, model string) string {
-	return fmt.Sprintf("%s/graphql/end-user/org/%s/project/%s/db/%s/model/%s", strings.TrimRight(server, "/"), org, project, db, model)
+	return fmt.Sprintf("%s/end-user/graphql/org/%s/project/%s/db/%s/model/%s", strings.TrimRight(server, "/"), org, project, db, model)
 }

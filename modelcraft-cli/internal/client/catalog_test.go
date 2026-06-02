@@ -9,7 +9,7 @@ import (
 
 func TestCatalogDatabasesUsesProjectEndpoint(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/graphql/end-user/org/acme/project/sales" {
+		if r.URL.Path != "/end-user/graphql/org/acme/project/sales" {
 			t.Fatalf("path = %s, want project catalog endpoint", r.URL.Path)
 		}
 		_, _ = w.Write([]byte(`{"data":{"modelDatabaseCatalog":{"data":{"databases":[{"name":"maindb"}]}}}}`))

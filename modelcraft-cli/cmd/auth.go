@@ -54,7 +54,17 @@ func newAuthLoginCommand() *cobra.Command {
 				// PAT-based login: call whoami to resolve identity and projects.
 				creds, err = authClient.Whoami(cmd.Context(), server, token)
 			} else {
-				// Username/password login.
+				// Username/password login — validate required flags before network call.
+				if username == "" {
+					return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true,
+						"Run 'mc auth login --help' to inspect required flags.",
+						map[string]any{"flag": "username"})
+				}
+				if password == "" {
+					return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true,
+						"Run 'mc auth login --help' to inspect required flags.",
+						map[string]any{"flag": "password"})
+				}
 				creds, err = authClient.Login(cmd.Context(), server, org, username, password)
 			}
 			if err != nil {

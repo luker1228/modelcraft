@@ -17,7 +17,7 @@ func (c GraphQLClient) CatalogProjects(_ context.Context, creds config.Credentia
 }
 
 func (c GraphQLClient) CatalogDatabases(ctx context.Context, server, org, project, token string) ([]string, error) {
-	endpoint := fmt.Sprintf("%s/graphql/end-user/org/%s/project/%s", strings.TrimRight(server, "/"), org, project)
+	endpoint := fmt.Sprintf("%s/end-user/graphql/org/%s/project/%s", strings.TrimRight(server, "/"), org, project)
 	query := `query CatalogDatabases { modelDatabaseCatalog(input: {}) { data { databases { name } } } }`
 
 	var data struct {
@@ -41,7 +41,7 @@ func (c GraphQLClient) CatalogDatabases(ctx context.Context, server, org, projec
 }
 
 func (c GraphQLClient) CatalogModels(ctx context.Context, server, org, project, database, token string) ([]CatalogModel, error) {
-	endpoint := fmt.Sprintf("%s/graphql/end-user/org/%s/project/%s", strings.TrimRight(server, "/"), org, project)
+	endpoint := fmt.Sprintf("%s/end-user/graphql/org/%s/project/%s", strings.TrimRight(server, "/"), org, project)
 	query := `query CatalogModels($database: String!) { models(input: {databaseName: $database}) { items { name } } }`
 
 	var data struct {
