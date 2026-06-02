@@ -35,9 +35,9 @@ func newQueryCommand() *cobra.Command {
 				return err
 			}
 
-			// 3. Build a simple findMany query. The body is intentionally minimal; callers
-			//    that need full control over the query shape should use `mc run` instead.
-			gqlBody := "{ findMany { id } }"
+			// Default query: fetch the first page of items.
+			// Runtime schema: findMany → { items { __typename } totalCount }
+			gqlBody := "{ findMany { items { __typename } totalCount } }"
 
 			// 4. Execute against the runtime endpoint.
 			result, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).Run(

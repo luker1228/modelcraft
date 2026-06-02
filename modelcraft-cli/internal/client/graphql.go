@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"regexp"
 	"strings"
 
 	"modelcraft-cli/internal/output"
@@ -16,8 +17,9 @@ type GraphQLClient struct {
 }
 
 type graphQLRequest struct {
-	Query     string         `json:"query"`
-	Variables map[string]any `json:"variables,omitempty"`
+	Query         string         `json:"query"`
+	Variables     map[string]any `json:"variables,omitempty"`
+	OperationName string         `json:"operationName,omitempty"`
 }
 
 type graphQLResponse struct {
@@ -29,8 +31,27 @@ type graphQLResponse struct {
 	} `json:"errors"`
 }
 
+// extractOperation parses the query string and returns the operation type
+// ("query", "mutation", "subscription") and the named operation name.
+// Returns ("", "") for anonymous operations.
+func extractOperation(query string) (opType, opName string) {
+	re := regexp.MustCompile(`(?i)(query|mutation|subscription)\s+(\w+)`)
+	m := re.FindStringSubmatch(query)
+	if len(m) >= 3 {
+		return strings.ToLower(m[1]), m[2]
+	}
+	return "", ""
+}
+
 func (c GraphQLClient) Execute(ctx context.Context, endpoint, token, query string, variables map[string]any, out any) error {
-	body, err := json.Marshal(graphQLRequest{Query: query, Variables: variables})
+	opType, opName := extractOperation(query)
+
+	reqBody := graphQLRequest{Query: query, Variables: variables}
+	if opName != "" {
+		reqBody.OperationName = opName
+	}
+
+	body, err := json.Marshal(reqBody)
 	if err != nil {
 		return output.NewCLIError("INVALID_ARGUMENT", "Failed to serialize GraphQL request.", false, "Check command arguments and retry.", nil)
 	}
@@ -42,6 +63,11 @@ func (c GraphQLClient) Execute(ctx context.Context, endpoint, token, query strin
 	req.Header.Set("Content-Type", "application/json")
 	if token != "" {
 		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	// Set X-Action header when the query has a named operation — required by the
+	// backend's ChiGraphQLActionMiddleware on project-level GraphQL routes.
+	if opType != "" && opName != "" {
+		req.Header.Set("X-Action", opType+":"+opName)
 	}
 
 	resp, err := c.client().Do(req)
@@ -88,3 +114,4 @@ func (c GraphQLClient) client() *http.Client {
 	}
 	return http.DefaultClient
 }
+

@@ -75,7 +75,8 @@ routes:
           - |
             return function(conf, ctx)
               local core = require("apisix.core")
-              local jwt = require("resty.jwt")
+              local jwt  = require("resty.jwt")
+              local http = require("resty.http")
 
               local PUB_KEY = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEw1SV3/9qLTugs2eF1dw963KpTNtk\ntbdCtuciyI3OJ01MclvPTFE/Thqti3TegWLdaxidmpPQ5pemawUXIqu6Yg==\n-----END PUBLIC KEY-----"
 
@@ -91,6 +92,35 @@ routes:
                 return
               end
 
+              -- PAT token: mc_pat_* → validate via backend whoami, then inject identity
+              if token:sub(1, 7) == "mc_pat_" then
+                local httpc = http.new()
+                httpc:set_timeout(3000)
+                local res, err = httpc:request_uri("http://backend:8080/api/cli/end-user/auth/whoami", {
+                  method  = "GET",
+                  headers = { ["Authorization"] = auth_header },
+                  keepalive = false,
+                })
+                if err or not res or res.status ~= 200 then
+                  core.response.exit(401, {message = "Invalid or expired PAT token"})
+                  return
+                end
+                local cjson = require("cjson")
+                local ok, payload = pcall(cjson.decode, res.body)
+                if not ok or not payload or not payload.userId then
+                  core.response.exit(401, {message = "PAT validation failed"})
+                  return
+                end
+                core.request.set_header(ctx, "X-User-ID",   payload.userId)
+                core.request.set_header(ctx, "X-User-Type", "end_user")
+                core.request.set_header(ctx, "X-Is-Admin",  "false")
+                if payload.orgName then
+                  core.request.set_header(ctx, "X-Org-Name", payload.orgName)
+                end
+                return
+              end
+
+              -- JWT token: verify signature and inject identity
               local jwt_obj = jwt:verify(PUB_KEY, token)
               if not jwt_obj or not jwt_obj.verified then
                 core.response.exit(401, {message = "Invalid or expired token"})

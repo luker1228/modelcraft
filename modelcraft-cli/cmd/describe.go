@@ -90,7 +90,7 @@ func newDescribeCommand() *cobra.Command {
 }
 
 func clientModelEndpoint(server, org, project, db, model string) string {
-	return fmt.Sprintf("%s/graphql/end-user/org/%s/project/%s/db/%s/model/%s", strings.TrimRight(server, "/"), org, project, db, model)
+	return fmt.Sprintf("%s/end-user/graphql/org/%s/project/%s/db/%s/model/%s", strings.TrimRight(server, "/"), org, project, db, model)
 }
 
 func flattenGraphQLType(t struct {

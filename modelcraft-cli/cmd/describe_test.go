@@ -13,7 +13,7 @@ func TestDescribeModelUsesRuntimeIntrospection(t *testing.T) {
 	oldClient := http.DefaultClient
 	http.DefaultClient = &http.Client{
 		Transport: roundTripFunc(func(req *http.Request) (*http.Response, error) {
-			if req.URL.Path != "/graphql/end-user/org/acme/project/sales/db/maindb/model/users" {
+			if req.URL.Path != "/end-user/graphql/org/acme/project/sales/db/maindb/model/users" {
 				t.Fatalf("path = %s", req.URL.Path)
 			}
 			body, _ := io.ReadAll(req.Body)
