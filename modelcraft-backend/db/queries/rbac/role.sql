@@ -5,9 +5,10 @@ INSERT INTO project_roles (
   project_slug,
   name,
   description,
-  is_implicit
+  is_implicit,
+  is_protected
 )
-VALUES (?, ?, ?, ?, ?, ?);
+VALUES (?, ?, ?, ?, ?, ?, ?);
 
 -- name: GetEndUserRoleByID :one
 SELECT *

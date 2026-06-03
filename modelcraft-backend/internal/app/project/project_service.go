@@ -191,6 +191,7 @@ func (s *ProjectAppService) provisionAdminRole(
 		ProjectSlug: projectSlug,
 		Name:        adminRoleName,
 		IsImplicit:  false,
+		IsProtected: true,
 	}); err != nil {
 		return bizerrors.Wrapf(err, "failed to create admin role")
 	}

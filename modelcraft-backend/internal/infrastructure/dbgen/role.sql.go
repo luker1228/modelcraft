@@ -47,9 +47,10 @@ INSERT INTO project_roles (
   project_slug,
   name,
   description,
-  is_implicit
+  is_implicit,
+  is_protected
 )
-VALUES (?, ?, ?, ?, ?, ?)
+VALUES (?, ?, ?, ?, ?, ?, ?)
 `
 
 type CreateEndUserRoleParams struct {
@@ -59,6 +60,7 @@ type CreateEndUserRoleParams struct {
 	Name        string
 	Description sql.NullString
 	IsImplicit  bool
+	IsProtected bool
 }
 
 func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRoleParams) error {
@@ -69,6 +71,7 @@ func (q *Queries) CreateEndUserRole(ctx context.Context, arg CreateEndUserRolePa
 		arg.Name,
 		arg.Description,
 		arg.IsImplicit,
+		arg.IsProtected,
 	)
 	return err
 }
