@@ -9,6 +9,18 @@ import (
 	"testing"
 )
 
+func TestAuthLoginUsesDevcloudDefaultServer(t *testing.T) {
+	cmd := newAuthLoginCommand()
+
+	flag := cmd.Flags().Lookup("server")
+	if flag == nil {
+		t.Fatal("server flag must exist")
+	}
+	if got, want := flag.DefValue, "http://lukemxjia.devcloud.woa.com:9080"; got != want {
+		t.Fatalf("server default = %q, want %q", got, want)
+	}
+}
+
 func TestAuthLoginPersistsSingleProfileWithoutSelectingProject(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, _ = w.Write([]byte(`{"requestId":"r1","userId":"u1","accessToken":"a1","refreshToken":"rt1","expiresAt":"2026-05-10T12:00:00Z","projects":[{"slug":"sales","title":"Sales"}]}`))

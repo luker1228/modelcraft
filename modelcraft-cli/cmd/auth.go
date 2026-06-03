@@ -32,7 +32,7 @@ func newAuthCommand() *cobra.Command {
 	return authCmd
 }
 
-const defaultServer = "https://lukemxjia.devcloud.woa.com"
+const defaultServer = "http://lukemxjia.devcloud.woa.com:9080"
 
 func newAuthLoginCommand() *cobra.Command {
 	var server, org, username, password, token, credentialsPath string
@@ -42,7 +42,7 @@ func newAuthLoginCommand() *cobra.Command {
 		Short: "Login with end-user credentials or a PAT token",
 		Example: "  mc auth login --token mc_pat_xxx\n" +
 			"  mc auth login --username alice --password '***'\n" +
-			"  mc auth login --username alice --password '***' --server https://gateway.example.com",
+			"  mc auth login --username alice --password '***' --server http://lukemxjia.devcloud.woa.com:9080",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			authClient := client.AuthClient{HTTPClient: http.DefaultClient}

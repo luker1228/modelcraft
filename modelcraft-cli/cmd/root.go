@@ -20,7 +20,7 @@ func NewRootCommand(info BuildInfo) *cobra.Command {
 		Use:   "mc",
 		Short: "ModelCraft end-user CLI",
 		Long:  "ModelCraft CLI for authentication, runtime model discovery, introspection, and GraphQL execution.",
-		Example: "  mc auth login --server https://gateway.example.com --org acme --username alice --password '***'\n" +
+		Example: "  mc auth login --org acme --username alice --password '***'\n" +
 			"  mc catalog projects\n" +
 			"  mc describe sales.crm.users\n" +
 			"  mc run sales.crm.users '{ findMany(take: 5) { id name } }'",
