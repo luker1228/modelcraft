@@ -13,7 +13,7 @@ import {
   REVOKE_END_USER_ROLE_FROM_USER,
   GET_END_USER_ROLES,
 } from '@/api-client/rbac'
-import { LIST_END_USERS } from '@api-client/end-user/graphql-docs'
+import { LIST_END_USERS, CREATE_END_USER } from '@api-client/end-user/graphql-docs'
 import { getOrgScopedClient } from '@api-client/apollo/public'
 import type { EndUserRole } from '@/types'
 
@@ -42,6 +42,18 @@ export interface OrgEndUserOption {
 
 interface MutationResult {
   success: boolean
+  errorMessage?: string
+}
+
+export interface CreateOrgEndUserPayload {
+  username: string
+  password: string
+  phone: string
+}
+
+interface CreateOrgEndUserResult {
+  success: boolean
+  endUser?: { id: string; username: string }
   errorMessage?: string
 }
 
@@ -76,6 +88,13 @@ interface GetEndUserRolesData {
     edges?: Array<{
       node: EndUserRole
     }>
+  }
+}
+
+interface CreateEndUserMutationData {
+  createEndUser: {
+    endUser?: { id: string; username: string; isForbidden: boolean; createdAt: string; updatedAt: string }
+    error?: { __typename?: string; message?: string; suggestion?: string }
   }
 }
 
@@ -196,6 +215,29 @@ export function useProjectEndUserRoleUsers(orgName: string, projectSlug: string)
     [revokeRoleMutation, refetchRoleUsers]
   )
 
+  const createOrgEndUser = useCallback(
+    async (payload: CreateOrgEndUserPayload): Promise<CreateOrgEndUserResult> => {
+      try {
+        const { data } = await orgClient.mutate<CreateEndUserMutationData>({
+          mutation: CREATE_END_USER,
+          variables: { input: { username: payload.username, password: payload.password, phone: payload.phone } },
+        })
+        const err = data?.createEndUser?.error
+        if (err) {
+          return { success: false, errorMessage: err.message ?? '创建用户失败' }
+        }
+        const created = data?.createEndUser?.endUser
+        if (!created) {
+          return { success: false, errorMessage: '创建用户失败' }
+        }
+        return { success: true, endUser: { id: created.id, username: created.username } }
+      } catch (e) {
+        return { success: false, errorMessage: e instanceof Error ? e.message : '创建用户失败' }
+      }
+    },
+    [orgClient]
+  )
+
   return {
     entries,
     loading: roleUsersLoading,
@@ -205,5 +247,6 @@ export function useProjectEndUserRoleUsers(orgName: string, projectSlug: string)
     availableRoles,
     assignRole,
     revokeRole,
+    createOrgEndUser,
   }
 }

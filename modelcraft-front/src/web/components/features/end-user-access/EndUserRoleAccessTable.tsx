@@ -6,15 +6,21 @@
 // 操作：assignEndUserRole / revokeEndUserRole
 // 展示：一行 = 一个用户，角色列展示多个 Badge，可单独撤销
 
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import Link from 'next/link'
-import { Plus, RefreshCw, Users, X } from 'lucide-react'
+import { Plus, RefreshCw, Users, X, UserPlus, ChevronLeft, Loader2, Eye, EyeOff } from 'lucide-react'
 import { toast } from 'sonner'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import { cn } from '@/shared/utils'
 import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Skeleton } from '@web/components/ui/skeleton'
+import { Input } from '@web/components/ui/input'
+import { Label } from '@web/components/ui/label'
+import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
   Table,
   TableBody,
@@ -57,11 +63,11 @@ import { ScrollArea } from '@web/components/ui/scroll-area'
 import {
   useProjectEndUserRoleUsers,
   type ProjectRoleUserEntry,
+  type CreateOrgEndUserPayload,
 } from '@web/hooks/end-user-access/useProjectEndUserRoleUsers'
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-/** 角色列最多内联展示的 Badge 数量，超出部分折叠为 "+N" */
 const ROLES_INLINE_LIMIT = 3
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -124,8 +130,6 @@ function groupEntries(entries: ProjectRoleUserEntry[]): GroupedRoleEntry[] {
 }
 
 // ── RoleBadgeList ─────────────────────────────────────────────────────────────
-// 内联展示前 N 个角色 Badge，超出部分通过 Popover 展开。
-// 每个 Badge 右侧有 × 可单独撤销。
 
 interface RoleBadgeListProps {
   roles: RoleItem[]
@@ -157,7 +161,6 @@ function RoleBadgeList({ roles, onRevoke }: RoleBadgeListProps) {
       {inline.map((role) => (
         <RoleBadge key={role.id} role={role} onRevoke={onRevoke} />
       ))}
-
       {overflow.length > 0 && (
         <Popover>
           <PopoverTrigger asChild>
@@ -170,17 +173,12 @@ function RoleBadgeList({ roles, onRevoke }: RoleBadgeListProps) {
           </PopoverTrigger>
           <PopoverContent className="w-64 p-0" align="start">
             <div className="border-b px-3 py-2">
-              <p className="text-xs font-semibold text-muted-foreground">
-                全部角色（{roles.length}）
-              </p>
+              <p className="text-xs font-semibold text-muted-foreground">全部角色（{roles.length}）</p>
             </div>
             <ScrollArea className="max-h-64">
               <div className="space-y-px p-1">
                 {roles.map((role) => (
-                  <div
-                    key={role.id}
-                    className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted"
-                  >
+                  <div key={role.id} className="flex items-center justify-between rounded-md px-2 py-1.5 text-sm hover:bg-muted">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium text-foreground">{role.name}</p>
                       {role.description && (
@@ -206,394 +204,285 @@ function RoleBadgeList({ roles, onRevoke }: RoleBadgeListProps) {
   )
 }
 
-// ── Assign Role Dialog ─────────────────────────────────────────────────────────
-// 用于"添加用户"（新用户）和"添加角色"（已有用户追加角色）两种场景
+// ── CreateAndAssignDialog ──────────────────────────────────────────────────────
+// 两步弹窗：
+//   Step 1 — 选择已有用户 OR 新建用户
+//   Step 2 — 选角色并确认授权
+//
+// preselectedUser: 追加角色场景，锁定用户跳过 Step 1
 
-interface AssignRoleDialogProps {
+const createUserSchema = z.object({
+  username: z.string().min(1, '请输入用户名').max(64),
+  phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入有效的 11 位手机号'),
+  password: z.string().min(8, '密码至少 8 位').max(128),
+  confirmPassword: z.string().min(1, '请再次输入密码'),
+}).refine((d) => d.password === d.confirmPassword, {
+  message: '两次输入的密码不一致',
+  path: ['confirmPassword'],
+})
+type CreateUserFormValues = z.infer<typeof createUserSchema>
+
+type DialogMode = 'select' | 'create'
+
+interface CreateAndAssignDialogProps {
   open: boolean
   onClose: () => void
   orgUsers: Array<{ id: string; username: string; isForbidden: boolean }>
   availableRoles: Array<{ id: string; name: string; description?: string | null }>
   onConfirm: (endUserId: string, roleId: string) => Promise<void>
-  // 若已有预选用户（追加角色场景），锁定用户选择器
-  preselectedUser?: { id: string; username: string }
-  // 该用户已拥有的角色 id，从可选角色中过滤掉
-  assignedRoleIds?: string[]
-  // 用于构造 RBAC 跳转链接
+  onCreateUser: (payload: CreateOrgEndUserPayload) => Promise<{ success: boolean; endUser?: { id: string; username: string }; errorMessage?: string }>
+  preselectedUser?: { id: string; username: string; assignedRoleIds: string[] }
   orgName: string
   projectSlug: string
 }
 
-function AssignRoleDialog({
+function CreateAndAssignDialog({
   open,
   onClose,
   orgUsers,
   availableRoles,
   onConfirm,
+  onCreateUser,
   preselectedUser,
-  assignedRoleIds = [],
   orgName,
   projectSlug,
-}: AssignRoleDialogProps) {
+}: CreateAndAssignDialogProps) {
+  // Step 1 state
+  const [mode, setMode] = useState<DialogMode>('select')
   const [selectedUserId, setSelectedUserId] = useState(preselectedUser?.id ?? '')
-  const [selectedRoleId, setSelectedRoleId] = useState('')
-  const [loading, setLoading] = useState(false)
+  const [createError, setCreateError] = useState<string | null>(null)
+  const [creatingUser, setCreatingUser] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
-  const handleOpenChange = (o: boolean) => {
-    if (!o) {
-      setSelectedUserId(preselectedUser?.id ?? '')
-      setSelectedRoleId('')
-      onClose()
+  // Step 2 state
+  const [step, setStep] = useState<1 | 2>(1)
+  const [resolvedUser, setResolvedUser] = useState<{ id: string; username: string } | null>(
+    preselectedUser ? { id: preselectedUser.id, username: preselectedUser.username } : null
+  )
+  const [selectedRoleId, setSelectedRoleId] = useState('')
+  const [assigning, setAssigning] = useState(false)
+
+  const { register, handleSubmit, reset, formState: { errors } } = useForm<CreateUserFormValues>({
+    resolver: zodResolver(createUserSchema),
+  })
+
+  // 追加角色场景：直接进入 Step 2
+  useEffect(() => {
+    if (open && preselectedUser) {
+      setStep(2)
+      setResolvedUser({ id: preselectedUser.id, username: preselectedUser.username })
+    }
+  }, [open, preselectedUser])
+
+  const handleClose = () => {
+    setMode('select')
+    setStep(1)
+    setSelectedUserId(preselectedUser?.id ?? '')
+    setResolvedUser(preselectedUser ? { id: preselectedUser.id, username: preselectedUser.username } : null)
+    setSelectedRoleId('')
+    setCreateError(null)
+    setCreatingUser(false)
+    setAssigning(false)
+    setShowPassword(false)
+    setShowConfirmPassword(false)
+    reset()
+    onClose()
+  }
+
+  // Step 1 → Step 2（选已有用户）
+  const handleSelectExistingNext = () => {
+    if (!selectedUserId) return
+    const found = orgUsers.find((u) => u.id === selectedUserId)
+    if (!found) return
+    setResolvedUser({ id: found.id, username: found.username })
+    setStep(2)
+  }
+
+  // Step 1 → Step 2（新建用户）
+  const handleCreateUserSubmit = handleSubmit(async (values) => {
+    setCreatingUser(true)
+    setCreateError(null)
+    try {
+      const result = await onCreateUser({ username: values.username, phone: values.phone, password: values.password })
+      if (!result.success || !result.endUser) {
+        setCreateError(result.errorMessage ?? '创建失败，请重试')
+        return
+      }
+      setResolvedUser(result.endUser)
+      reset()
+      setStep(2)
+    } finally {
+      setCreatingUser(false)
+    }
+  })
+
+  // Step 2 → 授权
+  const handleAssign = async () => {
+    if (!resolvedUser || !selectedRoleId) return
+    setAssigning(true)
+    try {
+      await onConfirm(resolvedUser.id, selectedRoleId)
+      handleClose()
+    } finally {
+      setAssigning(false)
     }
   }
 
-  // 每次打开时同步预选用户
+  const assignedRoleIds = preselectedUser?.assignedRoleIds ?? []
   const filteredRoles = availableRoles.filter((r) => !assignedRoleIds.includes(r.id))
   const activeUsers = orgUsers.filter((u) => !u.isForbidden)
-  const isAddingRole = !!preselectedUser
   const noRoles = filteredRoles.length === 0
 
-  const handleConfirm = async () => {
-    const userId = preselectedUser?.id ?? selectedUserId
-    if (!userId || !selectedRoleId) return
-    setLoading(true)
-    try {
-      await onConfirm(userId, selectedRoleId)
-      setSelectedUserId(preselectedUser?.id ?? '')
-      setSelectedRoleId('')
-      onClose()
-    } finally {
-      setLoading(false)
-    }
-  }
+  // ── 标题 ─────────────────────────────────────────────────────────────────────
+  const title = preselectedUser
+    ? '追加角色'
+    : step === 1
+      ? '授权用户访问'
+      : `为 ${resolvedUser?.username ?? ''} 分配角色`
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={(o) => !o && handleClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{isAddingRole ? '追加角色' : '授权用户访问'}</DialogTitle>
-          <DialogDescription>
-            {isAddingRole
-              ? `为 ${preselectedUser.username} 追加一个角色。`
-              : '为 Org 用户分配本项目角色，授权后即可访问。'}
-          </DialogDescription>
+          <DialogTitle className="flex items-center gap-2">
+            {step === 2 && !preselectedUser && (
+              <button
+                type="button"
+                onClick={() => { setStep(1); setResolvedUser(null); setSelectedRoleId('') }}
+                className="rounded-sm p-0.5 text-muted-foreground hover:text-foreground"
+                aria-label="返回上一步"
+              >
+                <ChevronLeft className="size-4" />
+              </button>
+            )}
+            {title}
+          </DialogTitle>
+          {step === 1 && (
+            <DialogDescription>
+              选择已有用户，或新建一个用户后立即授权。
+            </DialogDescription>
+          )}
         </DialogHeader>
 
-        {noRoles ? (
-          <div className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            {isAddingRole
-              ? '该用户已拥有全部可用角色。'
-              : (
-                <>
-                  当前项目尚无可用角色。请先前往{' '}
-                  <Link
-                    href={`/org/${orgName}/project/${projectSlug}/access-control?tab=roles`}
-                    className="font-medium underline underline-offset-2 hover:text-amber-900"
-                    onClick={onClose}
-                  >
-                    RBAC 角色设置
-                  </Link>
-                  {' '}创建角色后再授权用户。
-                </>
-              )}
-          </div>
-        ) : (
-          <div className="space-y-4 py-2">
-            {/* 用户选择：追加角色场景锁定显示 */}
-            {isAddingRole ? (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">用户名</label>
-                <div className="flex h-9 items-center rounded-md border bg-muted px-3 text-sm text-muted-foreground">
-                  {preselectedUser.username}
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">用户名</label>
-                <Select value={selectedUserId} onValueChange={setSelectedUserId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="请选择用户..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {activeUsers.length === 0 && (
-                      <div className="px-3 py-2 text-sm text-muted-foreground">暂无可用用户</div>
-                    )}
-                    {activeUsers.map((u) => (
-                      <SelectItem key={u.id} value={u.id}>{u.username}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">角色</label>
-              <Select value={selectedRoleId} onValueChange={setSelectedRoleId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="请选择角色..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {filteredRoles.map((r) => (
-                    <SelectItem key={r.id} value={r.id}>
-                      <div>
-                        <span>{r.name}</span>
-                        {r.description && (
-                          <span className="ml-1.5 text-xs text-muted-foreground">{r.description}</span>
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        )}
-
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>取消</Button>
-          <Button
-            disabled={noRoles || !(preselectedUser?.id ?? selectedUserId) || !selectedRoleId || loading}
-            onClick={handleConfirm}
-          >
-            {loading ? '添加中...' : '确认'}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  )
+        {/* ── Step 1：选择用户 ─────────────────────────────────────────────── */}
+        {step === 1 && (
+          <div className="flex flex-col gap-4">
+            {/* 模式切换 Tab */}
+            <div className="flex rounded-md border border-border bg-muted/40 p-0.5">
+              <button
+                type="button"
+                className={cn(
+                  'flex-1 rounded-sm px-3 py-1.5 text-sm font-medium transition-colors',
+                  mode === 'select'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+    // ... 984 lines omitted
 }
-
-// ── Main Table Component ──────────────────────────────────────────────────────
-
+    // ... 983 lines omitted
 interface EndUserRoleAccessTableProps {
-  orgName: string
-  projectSlug: string
+    // ... 982 lines omitted
 }
-
-export function EndUserRoleAccessTable({ orgName, projectSlug }: EndUserRoleAccessTableProps) {
-  const {
-    entries,
-    loading,
-    error,
-    reload,
-    orgUsers,
-    availableRoles,
-    assignRole,
-    revokeRole,
-  } = useProjectEndUserRoleUsers(orgName, projectSlug)
-
-  const { pendingAction, setPendingAction } = useOnboarding()
-  const highlightAssign = pendingAction === 'nav_assign_role'
-
-  // 按用户聚合
-  const groupedEntries = useMemo(() => groupEntries(entries), [entries])
-
-  // 添加用户 / 添加角色 dialog
-  const [addDialogOpen, setAddDialogOpen] = useState(false)
-  const [addRoleForUser, setAddRoleForUser] = useState<{ id: string; username: string; assignedRoleIds: string[] } | null>(null)
-
-  // 撤销单条角色 confirm
-  const [revokeTarget, setRevokeTarget] = useState<RevokeTarget | null>(null)
-  const [revoking, setRevoking] = useState(false)
-
-  const handleAssignRole = useCallback(
-    async (endUserId: string, roleId: string) => {
-      const r = await assignRole(endUserId, roleId)
-      if (r.success) {
-        toast.success('角色已分配')
-      } else {
-        toast.error(r.errorMessage ?? '分配失败')
-        throw new Error(r.errorMessage)
+    // ... 981 lines omitted
+export function EndUserRoleAccessTable({ orgName, projectSlug, autoAssign }: EndUserRoleAccessTableProps) {
+    // ... 980 lines omitted
       }
-    },
-    [assignRole]
-  )
-
-  const handleRevoke = useCallback(async () => {
-    if (!revokeTarget) return
-    setRevoking(true)
-    try {
-      const r = await revokeRole(revokeTarget.endUser.id, revokeTarget.role.id)
-      if (r.success) {
-        toast.success('已撤销角色')
-      } else {
-        toast.error(r.errorMessage ?? '撤销失败')
+    // ... 979 lines omitted
       }
-    } finally {
-      setRevoking(false)
-      setRevokeTarget(null)
+    // ... 978 lines omitted
     }
-  }, [revokeTarget, revokeRole])
-
-  return (
-    <div className="space-y-3">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm text-muted-foreground">
-          {!loading && groupedEntries.length > 0 && (
-            <span>共 {groupedEntries.length} 位用户</span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          <Button size="sm" variant="outline" onClick={() => reload()} disabled={loading}>
-            <RefreshCw className={`mr-1.5 size-4 ${loading ? 'animate-spin' : ''}`} />
-            刷新
-          </Button>
-          <Button
-            size="sm"
-            className={cn(
-              'bg-primary text-primary-foreground hover:bg-primary/90',
-              highlightAssign && 'border-amber-400 bg-amber-50 text-amber-900 ring-2 ring-amber-400 ring-offset-1 animate-pulse hover:border-amber-500 hover:bg-amber-100'
-            )}
-            onClick={() => {
-              if (highlightAssign) setPendingAction(null)
-              setAddDialogOpen(true)
-            }}
-          >
-            <Plus className="mr-1.5 size-4" />
-            授权用户
-          </Button>
-        </div>
-      </div>
-
-      {/* Error state */}
-      {error && !loading && (
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <Users className="mb-3 size-10 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">{error}</p>
-        </div>
-      )}
-
-      {/* Table */}
-      {!error && (
-        <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">用户名</TableHead>
-                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">角色</TableHead>
-                <TableHead className="px-3 text-sm font-semibold text-muted-foreground">首次授权</TableHead>
-                <TableHead className="w-[120px] px-3 text-right text-sm font-semibold text-muted-foreground">操作</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading && Array.from({ length: 3 }).map((_, i) => (
-                <TableRow key={i}>
-                  {Array.from({ length: 4 }).map((__, j) => (
-                    <TableCell key={j} className="px-3 py-2">
-                      <Skeleton className="h-4 w-24" />
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))}
-
-              {!loading && groupedEntries.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={4}>
-                    <div className="flex flex-col items-center justify-center py-14 text-center">
-                      <Users className="mb-3 size-9 text-muted-foreground/30" strokeWidth={1.5} />
-                      <p className="text-sm font-semibold text-foreground">暂无授权记录</p>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        点击「授权用户」为 Org 用户分配角色，授权后用户即可访问本项目
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-
-              {!loading && groupedEntries.map((group) => (
-                <TableRow key={group.endUser.id} className="group">
-                  {/* 用户名 */}
-                  <TableCell className="px-3 py-2">
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium text-foreground">{group.endUser.username}</span>
-                      {group.endUser.isForbidden && (
-                        <Badge variant="destructive" className="text-xs">已禁用</Badge>
-                      )}
-                    </div>
-                  </TableCell>
-
-                  {/* 角色列：最多内联 ROLES_INLINE_LIMIT 个，超出折叠为 "+N" Popover */}
-                  <TableCell className="px-3 py-2">
-                    <RoleBadgeList
-                      roles={group.roles}
-                      onRevoke={(role) => setRevokeTarget({ endUser: group.endUser, role })}
-                    />
-                  </TableCell>
-
-                  {/* 首次授权时间 */}
-                  <TableCell className="px-3 py-2 text-sm text-muted-foreground">
-                    {fmtDate(group.earliestAssignedAt)}
-                  </TableCell>
-
-                  {/* 操作：追加角色 */}
-                  <TableCell className="px-3 py-2 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-3 text-xs"
-                      onClick={() =>
-                        setAddRoleForUser({
-                          id: group.endUser.id,
-                          username: group.endUser.username,
-                          assignedRoleIds: group.roles.map((r) => r.id),
-                        })
+    // ... 977 lines omitted
+}
+    // ... 976 lines omitted
+import { useState, useCallback, useMemo, useEffect } from 'react'
+import Link from 'next/link'
+import { Plus, RefreshCw, Users, X } from 'lucide-react'
+import { toast } from 'sonner'
+import { cn } from '@/shared/utils'
+import { useOnboarding } from '@shared/onboarding/OnboardingContext'
+import { Button } from '@web/components/ui/button'
+import { Badge } from '@web/components/ui/badge'
+import { Skeleton } from '@web/components/ui/skeleton'
+import {
+    // ... 966 lines omitted
+import {
+    // ... 965 lines omitted
+import {
+    // ... 964 lines omitted
+import {
+    // ... 963 lines omitted
+import {
+    // ... 962 lines omitted
+import { ScrollArea } from '@web/components/ui/scroll-area'
+import {
+    // ... 960 lines omitted
+  type ProjectRoleUserEntry,
+    // ... 959 lines omitted
+interface RoleItem {
+    // ... 958 lines omitted
+}
+    // ... 957 lines omitted
+interface GroupedRoleEntry {
+    // ... 956 lines omitted
+}
+    // ... 955 lines omitted
+interface RevokeTarget {
+    // ... 954 lines omitted
+}
+    // ... 953 lines omitted
+function fmtDate(iso: string) {
+    // ... 952 lines omitted
+}
+    // ... 951 lines omitted
+function groupEntries(entries: ProjectRoleUserEntry[]): GroupedRoleEntry[] {
+    // ... 950 lines omitted
+      }
+    // ... 949 lines omitted
+    }
+  }
+    // ... 947 lines omitted
+}
+    // ... 946 lines omitted
+interface RoleBadgeListProps {
+    // ... 945 lines omitted
+}
+    // ... 944 lines omitted
+function RoleBadge({ role, onRevoke }: { role: RoleItem; onRevoke: (role: RoleItem) => void }) {
+    // ... 943 lines omitted
+}
+    // ... 942 lines omitted
+function RoleBadgeList({ roles, onRevoke }: RoleBadgeListProps) {
+    // ... 941 lines omitted
+}
+    // ... 940 lines omitted
+interface AssignRoleDialogProps {
+    // ... 939 lines omitted
+}
+    // ... 938 lines omitted
+function AssignRoleDialog({
+    // ... 937 lines omitted
+    }
+  }
+    // ... 935 lines omitted
+    }
+  }
+    // ... 933 lines omitted
+}
+    // ... 932 lines omitted
+interface EndUserRoleAccessTableProps {
+    // ... 931 lines omitted
+}
+    // ... 930 lines omitted
+export function EndUserRoleAccessTable({ orgName, projectSlug, autoAssign }: EndUserRoleAccessTableProps) {
+    // ... 929 lines omitted
+    }
+    // ... 928 lines omitted
+      }
+    // ... 927 lines omitted
+      }
+    // ... 926 lines omitted
+    }
+    // ... 925 lines omitted
                       }
-                    >
-                      <Plus className="mr-1 size-3" />
-                      追加角色
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
-
-      {/* 添加用户 dialog（新增用户场景） */}
-      <AssignRoleDialog
-        open={addDialogOpen}
-        onClose={() => setAddDialogOpen(false)}
-        orgUsers={orgUsers}
-        availableRoles={availableRoles}
-        onConfirm={handleAssignRole}
-        orgName={orgName}
-        projectSlug={projectSlug}
-      />
-
-      {/* 追加角色 dialog（已有用户追加场景） */}
-      <AssignRoleDialog
-        open={!!addRoleForUser}
-        onClose={() => setAddRoleForUser(null)}
-        orgUsers={orgUsers}
-        availableRoles={availableRoles}
-        onConfirm={handleAssignRole}
-        preselectedUser={addRoleForUser ?? undefined}
-        assignedRoleIds={addRoleForUser?.assignedRoleIds}
-        orgName={orgName}
-        projectSlug={projectSlug}
-      />
-
-      {/* 撤销角色确认 */}
-      <AlertDialog open={!!revokeTarget} onOpenChange={(o) => { if (!o) setRevokeTarget(null) }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>确认撤销角色</AlertDialogTitle>
-            <AlertDialogDescription>
-              确认撤销 <strong>{revokeTarget?.endUser.username}</strong> 的
-              「<strong>{revokeTarget?.role.name}</strong>」角色？
-              撤销后若该用户在本项目无其他角色，将无法访问本项目。
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>取消</AlertDialogCancel>
-            <AlertDialogAction onClick={handleRevoke} disabled={revoking}>
-              {revoking ? '撤销中...' : '确认撤销'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </div>
-  )
+    // ... 924 lines omitted
 }

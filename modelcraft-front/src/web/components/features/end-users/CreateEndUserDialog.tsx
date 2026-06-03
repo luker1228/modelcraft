@@ -40,9 +40,11 @@ interface CreateEndUserDialogProps {
   onCreate: (payload: CreateEndUserPayload) => Promise<void>
   /** 所属组织，用于生成项目授权跳转链接 */
   orgName: string
+  /** 创建成功后的回跳地址（如用户授权页），不传则引导前往项目列表 */
+  returnTo?: string
 }
 
-export function CreateEndUserDialog({ open, onClose, onCreate, orgName }: CreateEndUserDialogProps) {
+export function CreateEndUserDialog({ open, onClose, onCreate, orgName, returnTo }: CreateEndUserDialogProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,7 +86,13 @@ export function CreateEndUserDialog({ open, onClose, onCreate, orgName }: Create
 
   const handleGoToProjectAuth = () => {
     handleClose()
-    router.push(`/org/${orgName}/dashboard`)
+    if (returnTo) {
+      // 带 autoAssign=true 回跳，目标页自动打开授权弹窗
+      const separator = returnTo.includes('?') ? '&' : '?'
+      router.push(`${returnTo}${separator}autoAssign=true`)
+    } else {
+      router.push(`/org/${orgName}/dashboard`)
+    }
   }
 
   return (
@@ -109,21 +117,23 @@ export function CreateEndUserDialog({ open, onClose, onCreate, orgName }: Create
               </div>
             </div>
 
-            <div className="rounded-lg border border-border bg-muted/30 p-4">
-              <p className="mb-3 text-sm font-medium text-foreground">下一步：分配项目权限</p>
-              <ol className="space-y-1.5 text-sm text-muted-foreground">
-                <li className="flex gap-2"><span className="font-medium text-foreground">1.</span> 进入目标项目</li>
-                <li className="flex gap-2"><span className="font-medium text-foreground">2.</span> 左侧菜单 → 「用户授权」</li>
-                <li className="flex gap-2"><span className="font-medium text-foreground">3.</span> 搜索 <span className="font-mono font-medium text-foreground">@{createdUsername}</span>，分配角色</li>
-              </ol>
-            </div>
+            {!returnTo && (
+              <div className="rounded-lg border border-border bg-muted/30 p-4">
+                <p className="mb-3 text-sm font-medium text-foreground">下一步：分配项目权限</p>
+                <ol className="space-y-1.5 text-sm text-muted-foreground">
+                  <li className="flex gap-2"><span className="font-medium text-foreground">1.</span> 进入目标项目</li>
+                  <li className="flex gap-2"><span className="font-medium text-foreground">2.</span> 左侧菜单 → 「用户授权」</li>
+                  <li className="flex gap-2"><span className="font-medium text-foreground">3.</span> 搜索 <span className="font-mono font-medium text-foreground">@{createdUsername}</span>，分配角色</li>
+                </ol>
+              </div>
+            )}
 
             <DialogFooter className="flex-col gap-2 sm:flex-row">
               <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                 稍后处理
               </Button>
               <Button onClick={handleGoToProjectAuth} className="w-full sm:w-auto">
-                前往项目列表
+                {returnTo ? '返回授权' : '前往项目列表'}
                 <ArrowRight className="ml-1.5 size-4" />
               </Button>
             </DialogFooter>

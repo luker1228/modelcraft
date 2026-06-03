@@ -3,7 +3,7 @@
 // src/web/components/features/end-users/EndUsersManagementTable.tsx
 // Org 级终端用户管理表格（EndUser v2）
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Plus, MoreHorizontal, RefreshCw, Users, Search, ExternalLink } from 'lucide-react'
@@ -41,9 +41,10 @@ function formatDate(dateStr: string): string {
 
 interface EndUsersManagementTableProps {
   orgName: string
+  autoCreate?: boolean
 }
 
-export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProps) {
+export function EndUsersManagementTable({ orgName, autoCreate }: EndUsersManagementTableProps) {
   const router = useRouter()
   const { pendingAction, setPendingAction } = useOnboarding()
   const highlightAddUser = pendingAction === 'nav_add_end_user'
@@ -52,6 +53,13 @@ export function EndUsersManagementTable({ orgName }: EndUsersManagementTableProp
   const [createOpen, setCreateOpen] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [resetTarget, setResetTarget] = useState<OrgEndUser | null>(null)
+
+  // 支持通过 URL ?create=true 自动打开新建弹窗
+  useEffect(() => {
+    if (autoCreate) {
+      setCreateOpen(true)
+    }
+  }, [autoCreate])
 
   const handleDelete = async (userId: string) => {
     if (!confirm('确认删除此用户？此操作不可恢复。')) return
