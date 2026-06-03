@@ -15,16 +15,17 @@
 
 1. [前提条件](#前提条件)
 2. [部署后端服务](#部署后端服务)
-3. [构建 CLI](#构建-cli)
-4. [快速开始](#快速开始)
-5. [命令参考](#命令参考)
-6. [路径格式](#路径格式)
-7. [典型工作流](#典型工作流)
-8. [认证架构](#认证架构)
-9. [输出格式与退出码](#输出格式与退出码)
-10. [全局参数与环境变量](#全局参数与环境变量)
-11. [常见错误](#常见错误)
-12. [运行测试](#运行测试)
+3. [初始化控制台](#初始化控制台)
+4. [构建 CLI](#构建-cli)
+5. [快速开始](#快速开始)
+6. [命令参考](#命令参考)
+7. [路径格式](#路径格式)
+8. [典型工作流](#典型工作流)
+9. [认证架构](#认证架构)
+10. [输出格式与退出码](#输出格式与退出码)
+11. [全局参数与环境变量](#全局参数与环境变量)
+12. [常见错误](#常见错误)
+13. [运行测试](#运行测试)
 
 ---
 
@@ -64,12 +65,9 @@ cp agent.local.env.example    agent.local.env
 ### 2. 启动所有服务
 
 ```bash
-# 进入部署目录（必须在此目录下执行）
-cd deploy
-
-# 构建镜像并后台启动所有服务
-just deploy
-# 等价于: docker compose -f compose/docker-compose.local.yml up -d --build
+# 构建镜像并后台启动所有服务（在项目根目录执行）
+just deploy/deploy
+# 等价于: cd deploy && docker compose -f compose/docker-compose.local.yml up -d --build
 ```
 
 ### 3. 初始化数据库 Schema
@@ -77,16 +75,14 @@ just deploy
 服务首次启动后，需要应用 Schema：
 
 ```bash
-cd deploy
-just db-up
+just deploy/db-up
 ```
 
 ### 4. 验证服务状态
 
 ```bash
-cd deploy
-just ps          # 查看各容器状态
-just logs        # 跟踪所有服务日志
+just deploy/ps          # 查看各容器状态
+just deploy/logs        # 跟踪所有服务日志
 ```
 
 | 服务 | 地址 | 说明 |
@@ -99,17 +95,62 @@ just logs        # 跟踪所有服务日志
 
 ### 5. 常用运维命令
 
-```bash
-cd deploy
+在项目根目录直接运行（无需 `cd deploy`）：
 
-just up          # 启动（不重新构建）
-just down        # 停止并移除容器
-just restart     # 重启所有服务
-just clean       # 停止并清除所有数据卷（慎用，会清空 MySQL）
-just backend     # 单独重新构建并重启后端
-just frontend    # 单独重新构建并重启前端
-just db-reset    # 重建数据库（慎用）
+```bash
+just deploy/up          # 启动（不重新构建）
+just deploy/down        # 停止并移除容器
+just deploy/restart     # 重启所有服务
+just deploy/clean       # 停止并清除所有数据卷（慎用，会清空 MySQL）
+just deploy/backend     # 单独重新构建并重启后端
+just deploy/frontend    # 单独重新构建并重启前端
+just deploy/db-reset    # 重建数据库（慎用）
 ```
+
+---
+
+## 初始化控制台
+
+服务启动后，CLI 能正常使用前，还需要在管理控制台（`http://localhost:3100`）完成以下初始化。
+
+### 场景一：自用（管理员即用户本身）
+
+1. **注册并登录管理控制台**  
+   访问 `http://localhost:3100`，使用租户管理员账号注册并登录。
+
+2. **新建项目（Project）**  
+   进入「项目管理」，创建一个 Project（例如 `sales`）。
+
+3. **托管数据库**  
+   在项目内进入「数据库集群」，添加要查询的数据库连接，ModelCraft 会自动发现其中的表作为 Model。
+
+4. **创建 End User 账号（即自己）**  
+   进入「用户管理 → End User」，为自己创建一个 End User 账号（用户名/密码）。  
+   > End User 是 CLI 的登录身份，与管理控制台的租户账号相互独立。
+
+5. **创建 PAT**  
+   以 End User 身份登录用户端（`http://localhost:3100/end-user/<org-slug>/login`），进入「身份认证 → API Token 管理」，创建一个 PAT，复制明文备用。
+
+6. **完成**，可以开始使用 CLI：
+   ```bash
+   mc auth login --server http://localhost:9080 --token 'mc_pat_xxx'
+   ```
+
+---
+
+### 场景二：分享给其他人使用
+
+在场景一的基础上，额外完成以下步骤：
+
+1. **为其他人创建 End User 账号**  
+   在「用户管理 → End User」中为每个使用者创建账号，并通知其修改密码或自行登录后创建 PAT。
+
+2. **分配项目访问权限**  
+   在项目的「访问控制」中，将目标 End User 与该 Project 关联，使其能发现并查询该项目下的数据库和模型。
+
+3. **配置 RBAC（可选，精细化权限）**  
+   如需限制用户只能查询特定资源，在「权限管理 → 角色」中为该 End User 分配对应角色或权限包。  
+   未配置 RBAC 时，有项目访问权限的 End User 默认拥有该项目下的全部只读能力。
 
 ---
 

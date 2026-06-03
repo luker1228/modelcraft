@@ -41,10 +41,19 @@ const CLI_STEPS: StepCardProps[] = [
   },
   {
     step: '02',
-    title: '登录获取本地凭证',
-    description: '登录后会写入凭证文件（默认 ~/.config/modelcraft/credentials.json）。',
-    command:
-      "mc auth login \\\n  --server 'https://<gateway-host>' \\\n  --org '<org-slug>' \\\n  --username '<username>' \\\n  --password '<password>'",
+    title: '创建 PAT 并登录',
+    description:
+      '先前往控制台「身份认证 → API Token 管理」页面创建一个 Personal Access Token，复制明文（仅显示一次）；再使用 --token 参数完成登录，凭证写入 ~/.config/modelcraft/credentials.json。',
+    command: [
+      '# 1. 在浏览器控制台创建 PAT',
+      '# 路径：Dashboard → 身份认证 → API Token 管理 → 创建 Token',
+      '',
+      '# 2. 使用 PAT 登录',
+      "mc auth login \\",
+      "  --server 'https://<gateway-host>' \\",
+      "  --org '<org-slug>' \\",
+      "  --token '<your-pat-token>'",
+    ].join('\n'),
   },
   {
     step: '03',
@@ -171,7 +180,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
             <p className="text-xs font-medium tracking-[0.08em] text-muted-foreground">CLI 快速上手</p>
             <h2 className="mt-2 text-xl font-semibold text-foreground">ModelCraft CLI 从下载到使用</h2>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
-              下面这份流程覆盖从安装、登录到查询数据的最小闭环。按顺序执行可快速完成首次可用配置。
+              下面这份流程覆盖从安装、PAT 登录到查询数据的最小闭环。按顺序执行可快速完成首次可用配置。
             </p>
             <div className="mt-4 flex flex-wrap gap-2 text-xs text-muted-foreground">
               <span className="rounded-md border bg-muted px-2 py-1">macOS arm64 (Apple Silicon)</span>
