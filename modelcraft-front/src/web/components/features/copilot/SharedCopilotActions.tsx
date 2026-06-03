@@ -3,7 +3,6 @@
 
 import { memo } from 'react'
 import { useCopilotAction } from '@copilotkit/react-core'
-import { toast } from 'sonner'
 import { AiProposalCard } from './AiProposalCard'
 import { useNavigationProposal } from '@web/hooks/ai/use-navigation-proposal'
 import type { AgentUiResponse } from './types'
@@ -13,38 +12,10 @@ import type { AgentUiResponse } from './types'
  * Mount inside any CopilotKit context tree.
  *
  * Registers:
- *   show_toast               — agent sends a one-line notification to the user
  *   ui_present_proposal — agent sends a proposal card with candidate actions
  */
 export const SharedCopilotActions = memo(function SharedCopilotActions() {
   const { handleCandidateClick } = useNavigationProposal()
-
-  useCopilotAction({
-    name: 'show_toast',
-    description: '向用户显示一条临时通知消息（不需要用户在聊天框内查看）',
-    parameters: [
-      {
-        name: 'message',
-        type: 'string',
-        description: '通知内容',
-        required: true,
-      },
-      {
-        name: 'type',
-        type: 'string',
-        description: 'success | error | info | warning（默认 info）',
-        required: false,
-      },
-    ],
-    handler: async ({ message, type }: { message: string; type?: string }) => {
-      const fn = (type === 'success' ? toast.success
-        : type === 'error' ? toast.error
-        : type === 'warning' ? toast.warning
-        : toast.info)
-      fn(message)
-      return 'toast displayed'
-    },
-  })
 
   useCopilotAction({
     name: 'ui_present_proposal',

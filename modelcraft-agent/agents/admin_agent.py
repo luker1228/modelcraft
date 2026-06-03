@@ -12,6 +12,7 @@ import config
 from agents.shared import AgentState, sanitize_messages
 from agents.tools import (
     get_model_fields,
+    get_page_knowledge,
     list_databases,
     list_models,
     list_projects,
@@ -26,6 +27,7 @@ ADMIN_TOOLS = [
     get_model_fields,
     query_model,
     nl2filter,
+    get_page_knowledge,
 ]
 
 _ADMIN_TOOL_NODE = ToolNode(
@@ -334,14 +336,23 @@ def _build_admin_graph() -> Any:
                 "  routeCatalog 和 aiTargets 已通过上下文注入，选取对应条目生成 candidates。\n\n"
                 "数据查询工具：\n"
                 "  list_databases、list_models、get_model_fields、query_model、nl2filter\n\n"
-                "通知工具：show_toast"
+                "页面知识工具：\n"
+                "  get_page_knowledge(page) — 按需获取页面操作指南\n"
+                f"  可用索引：model-editor, databases, enums, roles, end-user-access,\n"
+                f"            identity-settings, settings, workspace, end-users, developers, cluster\n"
+                f"  当前路由：{current_route or '（未知）'}"
             )
         else:
             project_ctx = f"当前会话项目上下文：**{project}**。" if project else "当前无项目上下文。"
             context = (
                 f"当前组织：{org}。{project_ctx}\n"
                 "UI 导航工具（只用 ui_present_proposal）：\n"
-                "  routeCatalog 和 aiTargets 已通过上下文注入。"
+                "  routeCatalog 和 aiTargets 已通过上下文注入。\n\n"
+                "页面知识工具：\n"
+                "  get_page_knowledge(page) — 按需获取页面操作指南\n"
+                f"  可用索引：model-editor, databases, enums, roles, end-user-access,\n"
+                f"            identity-settings, settings, workspace, end-users, developers, cluster\n"
+                f"  当前路由：{current_route or '（未知）'}"
             )
 
         system_msg = {

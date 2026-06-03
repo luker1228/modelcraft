@@ -198,6 +198,7 @@ ai-metadata/
 | [front/development/known-issues.md](./front/development/known-issues.md) | 已知问题与临时解决方案 |
 | [front/development/react-best-practices.md](./front/development/react-best-practices.md) | React 组件设计、State 管理、性能优化 |
 | [front/development/workspace-mode-boundary.md](./front/development/workspace-mode-boundary.md) | ⭐ Workspace 复用组件的 Design/End User 能力边界 |
+| [front/development/copilot-architecture.md](./front/development/copilot-architecture.md) | ⭐ Copilot AI 助手架构（CopilotKit Provider 体系、知识注入、前端工具、AiTarget 高亮导航） |
 | [front/development/typescript-guide.md](./front/development/typescript-guide.md) | TypeScript 严格模式、组件类型、Hooks 类型 |
 
 ### 设计系统

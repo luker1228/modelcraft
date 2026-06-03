@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Plus, Pencil, MoreHorizontal, RefreshCw, Trash2 } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
@@ -60,6 +60,7 @@ function isTerminalJobStatus(status: ModelDatabaseSyncJob['status']) {
 
 export default function DatabasesPage() {
   const params = useParams<{ orgName: string; projectSlug: string }>()
+  const router = useRouter()
   const { databases, loading } = useModelDatabases(params.projectSlug)
   const { unregister } = useUnregisterModelDatabase(params.projectSlug)
   const { startSync, loading: syncStarting } = useStartModelDatabaseSync(params.projectSlug)
@@ -242,7 +243,16 @@ export default function DatabasesPage() {
                     <TableRow key={db.id}>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-medium">{db.title}</span>
+                          <button
+                            className="w-fit text-left font-medium text-foreground hover:text-primary hover:underline"
+                            onClick={() =>
+                              router.push(
+                                `/org/${params.orgName}/project/${params.projectSlug}/model-editor?db=${encodeURIComponent(db.name)}`,
+                              )
+                            }
+                          >
+                            {db.title}
+                          </button>
                           {db.title !== db.name && (
                             <span className="text-xs text-muted-foreground">{db.name}</span>
                           )}

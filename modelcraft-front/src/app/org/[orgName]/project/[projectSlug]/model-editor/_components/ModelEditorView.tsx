@@ -39,6 +39,14 @@ export function ModelEditorView() {
   const state = useModelEditorState()
   const searchParams = useSearchParams()
   const viewMode = (searchParams.get('view') === 'data' ? 'data' : 'schema') as 'schema' | 'data'
+
+  // If navigated from the databases page, pre-select the target database
+  useEffect(() => {
+    const dbParam = searchParams.get('db')
+    if (dbParam) {
+      state.setSelectedDatabase(dbParam)
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   const [schemaRefreshToken, setSchemaRefreshToken] = useState(0)
   const [openedTabs, setOpenedTabs] = useState<DataWorkspaceTab[]>([])
   const handleFieldAdded = useCallback(() => {

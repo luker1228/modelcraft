@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { generateUUID } from '@/shared/utils/uuid'
 import {
   Dialog,
   DialogContent,
@@ -152,7 +153,7 @@ export function RegisterDatabaseDialog({
   const addRow = () => {
     setRows((prev) => [
       ...prev,
-      { id: crypto.randomUUID(), name: '', title: '', description: '', mode: 'MANAGED' },
+      { id: generateUUID(), name: '', title: '', description: '', mode: 'MANAGED' },
     ])
   }
 
