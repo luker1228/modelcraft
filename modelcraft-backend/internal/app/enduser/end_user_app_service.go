@@ -9,6 +9,7 @@ import (
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"strings"
 
 	domainenduser "modelcraft/internal/domain/enduser"
 
@@ -348,6 +349,10 @@ func (s *EndUserManagementAppService) CreateUser(
 
 func (s *EndUserManagementAppService) convertRepoError(ctx context.Context, err error, username string) error {
 	if shared.IsRepoError(err, shared.ErrTypeDuplicatedKey) || shared.IsDuplicateKeyError(err) {
+		// 区分 phone 冲突和 username 冲突，给出准确的错误提示
+		if strings.Contains(err.Error(), "uk_phone") {
+			return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "手机号已被其他用户注册")
+		}
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserConflict, username)
 	}
 	return bizerrors.ConvertRepositoryError(ctx, err)
