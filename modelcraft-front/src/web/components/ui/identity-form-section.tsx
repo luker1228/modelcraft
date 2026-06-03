@@ -1,6 +1,7 @@
 import * as React from "react"
 import { Copy, RefreshCw, Loader2, Check } from "lucide-react"
 import { cn } from "@/shared/utils"
+import { copyToClipboard } from "@/shared/utils/clipboard"
 import { Label } from "@web/components/ui/label"
 import { Input } from "@web/components/ui/input"
 import { Button } from "@web/components/ui/button"
@@ -185,7 +186,7 @@ function CopyBtn({ value, label }: { value: string; label: string }) {
   const [done, setDone] = React.useState(false)
 
   const copy = () => {
-    navigator.clipboard.writeText(value)
+    copyToClipboard(value)
     toast.success(`${label} 已复制到剪贴板`)
     setDone(true)
     setTimeout(() => setDone(false), 1500)

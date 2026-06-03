@@ -16,6 +16,7 @@ import {
   Database,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
+import { copyToClipboard } from '@/shared/utils/clipboard'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import {
@@ -304,11 +305,7 @@ export function ModelSidebar({
                       className="cursor-pointer text-xs focus:bg-accent focus:text-foreground"
                       onClick={async (e) => {
                         e.stopPropagation()
-                        try {
-                          await navigator.clipboard.writeText(model.name)
-                        } catch (err) {
-                          console.error('复制失败:', err)
-                        }
+                        copyToClipboard(model.name)
                       }}
                     >
                       复制名称

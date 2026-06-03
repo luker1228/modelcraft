@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { ApolloProvider, useQuery, useMutation } from '@apollo/client'
 import { KeyRound, Plus, Trash2, Copy, Check, Eye, EyeOff, Terminal } from 'lucide-react'
+import { copyToClipboardWithCallback } from '@/shared/utils/clipboard'
 import { toast } from 'sonner'
 import { Button } from '@web/components/ui/button'
 import {
@@ -101,7 +102,7 @@ function expiresInToDate(value: string): string | undefined {
 function CopyButton({ value }: { value: string }) {
   const [copied, setCopied] = useState(false)
   const handleCopy = () => {
-    void navigator.clipboard.writeText(value).then(() => {
+    copyToClipboardWithCallback(value, () => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     })

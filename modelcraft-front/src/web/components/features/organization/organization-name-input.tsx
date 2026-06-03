@@ -4,6 +4,7 @@ import * as React from "react"
 import { Copy, Check, RefreshCw } from "lucide-react"
 
 import { cn } from "@/shared/utils"
+import { copyToClipboardWithCallback } from "@/shared/utils/clipboard"
 import { Button } from "@web/components/ui/button"
 import { Input } from "@web/components/ui/input"
 import { Label } from "@web/components/ui/label"
@@ -102,14 +103,11 @@ export function OrganizationNameInput({
     }
   }
 
-  const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(value)
+  const handleCopy = () => {
+    copyToClipboardWithCallback(value, () => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
-    } catch (err) {
-      console.error('Failed to copy:', err)
-    }
+    })
   }
 
   // Validate final name

@@ -16,6 +16,7 @@ import { History, Trash2, Eye, Copy } from "lucide-react"
 import { useErrorStore } from '@web/stores/error'
 import type { GraphQLErrorInfo, GraphQLErrorContext } from '@web/components/common/GraphQLErrorDialog'
 import { toast } from "sonner"
+import { copyToClipboard } from "@/shared/utils/clipboard"
 
 interface ErrorHistoryDialogProps {
   open: boolean
@@ -40,7 +41,7 @@ export function ErrorHistoryDialog({
       copiedAt: new Date().toISOString(),
     }
     
-    navigator.clipboard.writeText(JSON.stringify(errorInfo, null, 2))
+    copyToClipboard(JSON.stringify(errorInfo, null, 2))
     toast.success("错误信息已复制到剪贴板")
   }
 
