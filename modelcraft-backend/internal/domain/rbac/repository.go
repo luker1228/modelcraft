@@ -165,6 +165,10 @@ type EndUserPermissionRepository interface {
 
 	// ─── 鉴权核心查询（3 条链式，对应 Step 1~3） ─────────────────
 
+	// HasProtectedAdminRole 检查用户是否持有 is_protected=true 且 name="admin" 的角色。
+	// admin 是通配角色，持有者对 Project 内所有 model 拥有全量权限，无需绑定 bundle。
+	HasProtectedAdminRole(ctx context.Context, orgName, projectSlug, userID string) (bool, error)
+
 	// GetBundleIDsByUserDirect 获取用户直接关联的权限包 ID 列表（鉴权 Step 1）
 	// 空列表（无授权）为合法状态，不返回错误
 	GetBundleIDsByUserDirect(ctx context.Context, userID, orgName, projectSlug string) ([]string, error)

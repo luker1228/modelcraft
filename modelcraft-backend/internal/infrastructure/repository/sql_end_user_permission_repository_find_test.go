@@ -181,6 +181,10 @@ func (s *stubPermRepo) GetPermissionsByBundleIDs(
 	return nil, nil
 }
 
+func (s *stubPermRepo) HasProtectedAdminRole(_ context.Context, _, _, _ string) (bool, error) {
+	return false, nil
+}
+
 func (s *stubPermRepo) IsUserBuiltin(_ context.Context, _, _ string) (bool, error) {
 	return false, nil
 }

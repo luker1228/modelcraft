@@ -291,6 +291,10 @@ func (s *stubRBACRepo) ListProjectEndUserRoleUsers(
 	return nil, 0, nil
 }
 
+func (s *stubRBACRepo) HasProtectedAdminRole(_ context.Context, _, _, _ string) (bool, error) {
+	return false, nil
+}
+
 func (s *stubRBACRepo) IsUserBuiltin(_ context.Context, _, _ string) (bool, error) {
 	return false, nil
 }

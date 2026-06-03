@@ -1175,7 +1175,7 @@ func (r *SqlEndUserDataPermissionRepository) FindPermissionsByEndUserAndModel(
 	}
 
 	// 内置受保护 admin 角色等价于通配权限：无需绑定 bundle。
-	isAdminWildcard, err := r.hasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)
+	isAdminWildcard, err := r.HasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)
 	if err != nil {
 		return nil, err
 	}
@@ -1225,7 +1225,7 @@ func (r *SqlEndUserDataPermissionRepository) FindPermissionsByEndUserAndModel(
 	return result, nil
 }
 
-func (r *SqlEndUserDataPermissionRepository) hasProtectedAdminRole(
+func (r *SqlEndUserDataPermissionRepository) HasProtectedAdminRole(
 	ctx context.Context,
 	orgName, projectSlug, endUserID string,
 ) (bool, error) {

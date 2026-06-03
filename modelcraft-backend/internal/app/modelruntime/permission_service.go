@@ -14,6 +14,7 @@ import (
 // 依赖 rbacapp.EndUserAuthzService，支持 CUSTOM 和 PRESET 两种 grant_type。
 type endUserPermissionServiceImpl struct {
 	authzSvc *rbacapp.EndUserAuthzService
+	rbacRepo rbac.EndUserPermissionRepository
 }
 
 // NewEndUserPermissionService 创建 EndUserPermissionService 实例。
@@ -24,16 +25,25 @@ func NewEndUserPermissionService(
 	modelRepo modeldesign.ModelRepository,
 ) modelruntime.EndUserPermissionService {
 	svc := rbacapp.NewEndUserAuthzService(rbacRepo, modelRepo)
-	return &endUserPermissionServiceImpl{authzSvc: svc}
+	return &endUserPermissionServiceImpl{authzSvc: svc, rbacRepo: rbacRepo}
 }
 
 // Resolve 查询 end-user 在指定 model 上的有效权限，返回权限快照。
 // endUserID 为空时（tenant admin）直接返回 nil, nil。
+// is_protected=true 且 name="admin" 的角色为通配角色，无需绑定 bundle，直接返回全量权限。
 func (s *endUserPermissionServiceImpl) Resolve(
 	ctx context.Context, orgName, projectSlug, endUserID, modelID string,
 ) (*modelruntime.ResolvedModelPermissions, error) {
 	if endUserID == "" {
 		return nil, nil //nolint:nilnil // nil ResolvedModelPermissions is the tenant-admin sentinel (skip all checks)
+	}
+
+	isAdmin, err := s.rbacRepo.HasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)
+	if err != nil {
+		return nil, err
+	}
+	if isAdmin {
+		return adminWildcardPermissions(), nil
 	}
 
 	eps, err := s.authzSvc.GetEffectivePermissions(ctx, rbacapp.GetEffectivePermissionsQuery{
@@ -69,5 +79,17 @@ func toActionPermission(ep *rbac.EffectivePermission) modelruntime.ActionPermiss
 	return modelruntime.ActionPermission{
 		Allowed: true,
 		IsSelf:  ep.RowScope == rbac.RowScopeSelf,
+	}
+}
+
+// adminWildcardPermissions 返回通配 admin 角色的全量权限快照。
+// is_protected=true && name="admin" 的角色无需绑定 bundle，对所有 model 拥有全部操作权限。
+func adminWildcardPermissions() *modelruntime.ResolvedModelPermissions {
+	all := modelruntime.ActionPermission{Allowed: true, IsSelf: false}
+	return &modelruntime.ResolvedModelPermissions{
+		Select: all,
+		Insert: all,
+		Update: all,
+		Delete: all,
 	}
 }
