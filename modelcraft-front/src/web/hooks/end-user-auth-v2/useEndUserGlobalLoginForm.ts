@@ -69,7 +69,7 @@ export function useEndUserGlobalLoginForm(
             headers: { 'Content-Type': 'application/json' },
             credentials: 'same-origin',
             body: JSON.stringify({
-              username: values.username,
+              identifier: values.username,
               password: values.password,
             }),
           })

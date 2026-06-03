@@ -111,7 +111,7 @@ export function useEndUserOrgLoginForm(orgName: string): UseEndUserOrgLoginFormR
           credentials: 'same-origin',
           body: JSON.stringify({
             orgName,
-            username: values.username,
+            identifier: values.username,
             password: values.password,
           }),
         })
