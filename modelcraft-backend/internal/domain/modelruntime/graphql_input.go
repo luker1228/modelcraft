@@ -49,8 +49,14 @@ type FindManyInput struct {
 	TableName string
 	Selection *Selection
 	Where     map[string]any
+	OrderBy   []OrderBy
 	Limit     uint
 	Offset    uint
+}
+
+type OrderBy struct {
+	Field     string
+	Direction string
 }
 
 // FindManyInInput 通过 IN 条件批量查找关联记录的输入参数，用于解决 N+1 问题。
@@ -69,10 +75,68 @@ func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyI
 	if err != nil {
 		return nil, err
 	}
+	takeRaw, ok := param.Args[FieldTake]
+	if !ok {
+		takeRaw = 10
+	}
+	take, err := cast.ToUintE(takeRaw)
+	if err != nil {
+		return nil, bizerrors.Errorf("take must be an integer, val = %v type = %T", takeRaw, takeRaw)
+	}
+	skipRaw, ok := param.Args[FieldSkip]
+	if !ok {
+		skipRaw = 0
+	}
+	skip, err := cast.ToUintE(skipRaw)
+	if err != nil {
+		return nil, bizerrors.Errorf("skip must be an integer, val = %v type = %T", skipRaw, skipRaw)
+	}
+	orderBy, err := getOrderBy(param.Args)
+	if err != nil {
+		return nil, err
+	}
 	return &FindManyInput{
 		TableName: tableName,
 		Where:     where,
+		OrderBy:   orderBy,
+		Limit:     take,
+		Offset:    skip,
 	}, nil
+}
+
+func getOrderBy(param map[string]any) ([]OrderBy, error) {
+	raw, ok := param[FieldOrderBy]
+	if !ok || raw == nil {
+		return nil, nil
+	}
+
+	items, ok := raw.([]any)
+	if !ok {
+		return nil, bizerrors.Errorf("orderBy must be []any")
+	}
+
+	result := make([]OrderBy, 0, len(items))
+	for _, item := range items {
+		entry, ok := item.(map[string]any)
+		if !ok {
+			return nil, bizerrors.Errorf("orderBy item must be map[string]any")
+		}
+		for field, directionVal := range entry {
+			direction, err := cast.ToStringE(directionVal)
+			if err != nil {
+				return nil, bizerrors.Errorf("orderBy direction must be string, val = %v type = %T", directionVal, directionVal)
+			}
+			if direction != OrderByAsc && direction != OrderByDesc {
+				return nil, bizerrors.Errorf("orderBy direction must be %q or %q, got %q", OrderByAsc, OrderByDesc, direction)
+			}
+			result = append(result, OrderBy{
+				Field:     field,
+				Direction: direction,
+			})
+		}
+	}
+
+	return result, nil
 }
 
 // FindFirstInput 查找第一个匹配记录的输入参数

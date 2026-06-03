@@ -7,6 +7,7 @@ import (
 	"modelcraft/pkg/bizerrors"
 
 	"github.com/doug-martin/goqu/v9"
+	"github.com/doug-martin/goqu/v9/exp"
 )
 
 // convertWhereToExpression 将where条件转换为goqu表达式
@@ -118,9 +119,17 @@ func convertFindManyInputToSQL(
 		}
 		selectStep = dialectWrapper.Select(fieldNames...)
 	}
+	ds := selectStep.From(input.TableName)
+	if len(input.OrderBy) > 0 {
+		orderExprs, err := convertOrderByToExpressions(input.OrderBy)
+		if err != nil {
+			return "", nil, err
+		}
+		ds = ds.Order(orderExprs...)
+	}
 	if len(input.Where) == 0 {
 		// 如果没有where条件，返回不带where的查询
-		ds := selectStep.From(input.TableName).Limit(input.Limit).Offset(input.Offset)
+		ds = ds.Limit(input.Limit).Offset(input.Offset)
 		sql, args, err = ds.Prepared(true).ToSQL()
 		return
 	}
@@ -131,9 +140,24 @@ func convertFindManyInputToSQL(
 		return "", nil, bizerrors.Errorf("failed to convert where condition: %w", err)
 	}
 
-	ds := selectStep.From(input.TableName).Where(whereExpr).Limit(input.Limit).Offset(input.Offset)
+	ds = ds.Where(whereExpr).Limit(input.Limit).Offset(input.Offset)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
+}
+
+func convertOrderByToExpressions(orderBy []modelruntime.OrderBy) ([]exp.OrderedExpression, error) {
+	result := make([]exp.OrderedExpression, 0, len(orderBy))
+	for _, item := range orderBy {
+		switch item.Direction {
+		case modelruntime.OrderByAsc:
+			result = append(result, goqu.C(item.Field).Asc())
+		case modelruntime.OrderByDesc:
+			result = append(result, goqu.C(item.Field).Desc())
+		default:
+			return nil, bizerrors.Errorf("unsupported orderBy direction: %s", item.Direction)
+		}
+	}
+	return result, nil
 }
 
 func convertFindManyInInputToSQL(

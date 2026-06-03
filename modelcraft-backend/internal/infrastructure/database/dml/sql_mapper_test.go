@@ -461,6 +461,30 @@ func TestConvertFindManyInputToSQL(t *testing.T) {
 				assert.Equal(t, 3, len(args)) // status + limit + offset
 			},
 		},
+		{
+			name: "带 orderBy 条件",
+			input: &modelruntime.FindManyInput{
+				TableName: "users",
+				Where: map[string]any{
+					"status": "active",
+				},
+				Limit:  10,
+				Offset: 5,
+				OrderBy: []modelruntime.OrderBy{
+					{Field: "created_at", Direction: modelruntime.OrderByDesc},
+					{Field: "id", Direction: modelruntime.OrderByAsc},
+				},
+			},
+			expectErr: false,
+			checkSQL: func(t *testing.T, sql string, args []any) {
+				assert.Contains(t, sql, "ORDER BY")
+				assert.Contains(t, sql, "`created_at` DESC")
+				assert.Contains(t, sql, "`id` ASC")
+				assert.Contains(t, sql, "LIMIT")
+				assert.Contains(t, sql, "OFFSET")
+				assert.Equal(t, 3, len(args))
+			},
+		},
 	}
 
 	for _, tt := range tests {

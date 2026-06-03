@@ -151,26 +151,50 @@ func TestNewFindUniqueInput(t *testing.T) {
 // TestNewFindManyInput 测试 newFindManyInput 函数
 func TestNewFindManyInput(t *testing.T) {
 	tests := []struct {
-		name      string
-		tableName string
-		args      map[string]any
-		wantErr   bool
+		name        string
+		tableName   string
+		args        map[string]any
+		wantLimit   uint
+		wantOffset  uint
+		wantOrderBy []OrderBy
+		wantErr     bool
 	}{
 		{
-			name:      "valid input with where",
+			name:      "valid input with where and pagination",
 			tableName: "users",
 			args: map[string]any{
 				"where": map[string]any{
 					"age": 25,
 				},
+				"take": 8,
+				"skip": 2,
+				"orderBy": []any{
+					map[string]any{
+						"created_at": OrderByDesc,
+					},
+					map[string]any{
+						"id": OrderByAsc,
+					},
+				},
+			},
+			wantLimit:  8,
+			wantOffset: 2,
+			wantOrderBy: []OrderBy{
+				{Field: "created_at", Direction: OrderByDesc},
+				{Field: "id", Direction: OrderByAsc},
 			},
 			wantErr: false,
 		},
 		{
-			name:      "valid input without where",
+			name:      "valid input without where uses defaults",
 			tableName: "users",
-			args:      map[string]any{},
-			wantErr:   false,
+			args: map[string]any{
+				"take": 10,
+				"skip": 0,
+			},
+			wantLimit:  10,
+			wantOffset: 0,
+			wantErr:    false,
 		},
 	}
 
@@ -185,6 +209,20 @@ func TestNewFindManyInput(t *testing.T) {
 			if !tt.wantErr {
 				if got.TableName != tt.tableName {
 					t.Errorf("newFindManyInput() TableName = %v, want %v", got.TableName, tt.tableName)
+				}
+				if got.Limit != tt.wantLimit {
+					t.Errorf("newFindManyInput() Limit = %v, want %v", got.Limit, tt.wantLimit)
+				}
+				if got.Offset != tt.wantOffset {
+					t.Errorf("newFindManyInput() Offset = %v, want %v", got.Offset, tt.wantOffset)
+				}
+				if len(got.OrderBy) != len(tt.wantOrderBy) {
+					t.Fatalf("newFindManyInput() OrderBy len = %v, want %v", len(got.OrderBy), len(tt.wantOrderBy))
+				}
+				for i := range tt.wantOrderBy {
+					if got.OrderBy[i] != tt.wantOrderBy[i] {
+						t.Errorf("newFindManyInput() OrderBy[%d] = %+v, want %+v", i, got.OrderBy[i], tt.wantOrderBy[i])
+					}
 				}
 			}
 		})
