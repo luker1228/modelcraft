@@ -26,6 +26,7 @@
 11. [全局参数与环境变量](#全局参数与环境变量)
 12. [常见错误](#常见错误)
 13. [运行测试](#运行测试)
+14. [发布新版本](#发布新版本)
 
 ---
 
@@ -415,19 +416,28 @@ CLI (mc_pat_xxx / JWT)
 ## 运行测试
 
 ```bash
-cd modelcraft-cli
-
 # 单元测试
-just test
-# 等价于: go test ./cmd/... ./internal/...
+just cli/test
 
 # 集成测试（需要先编译二进制）
-just test-integration
-# 等价于: go test ./tests/integration/... -v -timeout 60s
+just cli/test-integration
 
 # 全部测试
-just test-all
+just cli/test-all
 
 # 过滤特定测试
-go test ./... -v -run TestAuth
+go test ./modelcraft-cli/... -v -run TestAuth
 ```
+
+---
+
+## 发布新版本
+
+CLI 通过 GitHub Actions 自动构建发布（`release-cli.yml`），触发条件为推送 `cli-vX.Y.Z` 格式的 tag。
+
+```bash
+# 打 tag 并推送，触发自动构建（darwin-arm64 + linux-amd64）
+just cli/release v0.2.2
+```
+
+构建产物会作为 GitHub Release Assets 发布，页面 Dashboard 的 CLI 下载链接指向 latest release。

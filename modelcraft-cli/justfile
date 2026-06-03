@@ -18,3 +18,17 @@ fmt:
 
 tidy:
 	go mod tidy
+
+# Tag and push a CLI release. Usage: just cli/release v0.2.2
+# Triggers the release-cli GitHub Actions workflow (builds darwin-arm64 + linux-amd64).
+release version:
+	#!/usr/bin/env bash
+	set -euo pipefail
+	TAG="cli-{{version}}"
+	if [[ ! "$TAG" =~ ^cli-v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+	    echo "错误：版本格式应为 vX.Y.Z，例如: just cli/release v0.2.2"
+	    exit 1
+	fi
+	git tag "$TAG"
+	git push origin "$TAG"
+	echo "✓ 已推送 $TAG，GitHub Actions 将自动构建并发布 Release"
