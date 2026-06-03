@@ -5,11 +5,10 @@ import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { cn } from '@/shared/utils'
-import { Settings2, LogIn } from 'lucide-react'
+import { Settings2 } from 'lucide-react'
 
 const tabs = [
   { id: 'general', label: '通用', icon: Settings2 },
-  { id: 'login-settings', label: '登录配置', icon: LogIn },
 ]
 
 export default function SettingsLayout({

@@ -110,37 +110,11 @@ type DesignHandlers struct {
 	SystemDB *sql.DB
 }
 
-// endUserAuthRepositoryFactory creates end-user repositories from a DB connection.
-type endUserAuthRepositoryFactory struct{}
+// authEndUserRepoFactory satisfies appAuth.EndUserRepositoryFactory.
+// projectSlug is not needed for auth operations.
+type authEndUserRepoFactory struct{}
 
-func (f *endUserAuthRepositoryFactory) NewEndUserRepository(
-	db appEnduser.SQLDBTX,
-	orgName, projectSlug string,
-) domainEndUser.EndUserRepository {
-	return repository.NewSqlEndUserRepository(db, orgName, projectSlug)
-}
-
-func (f *endUserAuthRepositoryFactory) NewRefreshTokenRepository(
-	db appEnduser.SQLDBTX,
-) domainAuth.RefreshTokenRepository {
-	return repository.NewSqlRefreshTokenRepository(dbgen.New(db))
-}
-
-// NewEndUserRepositoryForAuth satisfies appAuth.EndUserRepositoryFactory.
-// projectSlug is not needed for auth operations, so it is passed as empty string.
-func (f *endUserAuthRepositoryFactory) NewEndUserRepositoryForAuth(
-	db appAuth.SQLDBTX,
-	orgName string,
-) domainEndUser.EndUserRepository {
-	return repository.NewSqlEndUserRepository(db, orgName, "")
-}
-
-// authEndUserRepoFactoryAdapter wraps endUserAuthRepositoryFactory to satisfy appAuth.EndUserRepositoryFactory.
-type authEndUserRepoFactoryAdapter struct {
-	inner *endUserAuthRepositoryFactory
-}
-
-func (a *authEndUserRepoFactoryAdapter) NewEndUserRepository(
+func (a *authEndUserRepoFactory) NewEndUserRepository(
 	db appAuth.SQLDBTX,
 	orgName string,
 ) domainEndUser.EndUserRepository {
@@ -361,8 +335,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	// Attach end-user repository support to TokenService (unified auth service).
 	endUserTxMgr := &endUserTxManager{}
-	euRepoAdapter := &authEndUserRepoFactoryAdapter{inner: &endUserAuthRepositoryFactory{}}
-	tokenService.WithEndUserSupport(euRepoAdapter, repoFactory.SqlDB)
+	tokenService.WithEndUserSupport(&authEndUserRepoFactory{}, repoFactory.SqlDB)
 
 	endUserAppService := appEnduser.NewEndUserManagementAppService(
 		repoFactory.SqlDB,

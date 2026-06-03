@@ -41,30 +41,90 @@ func NewSqlEndUserRepository(db endUserDBTX, orgName, projectSlug string) enduse
 }
 
 // Save creates a new end-user in users + user_orgs (is_admin=false).
+// Both INSERTs are wrapped in a transaction to prevent orphaned users records.
 func (r *SqlEndUserOrgRepository) Save(ctx context.Context, user *enduser.EndUser) error {
 	orgName := user.OrgName
 	if orgName == "" {
 		orgName = r.orgName
 	}
 
+	userOrgID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return fmt.Errorf("failed to generate user_orgs id: %w", err)
+	}
+
+	// Use a transaction so that a failure on user_orgs INSERT rolls back the users INSERT,
+	// preventing orphaned users rows (no corresponding user_orgs record).
+	db, ok := r.db.(*sql.DB)
+	if !ok {
+		// Already inside a transaction (sql.Tx) — execute directly without wrapping.
+		return r.saveExec(ctx, user.ID, user.Username, user.Password.Hash, userOrgID, orgName)
+	}
+
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("begin transaction: %w", err)
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			panic(p)
+		}
+	}()
+	if err := r.saveExecTx(ctx, tx, user.ID, user.Username, user.Password.Hash, userOrgID, orgName); err != nil {
+		_ = tx.Rollback()
+		return err
+	}
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("commit transaction: %w", err)
+	}
+	return nil
+}
+
+func (r *SqlEndUserOrgRepository) saveExec(
+	ctx context.Context,
+	userID, username, passwordHash, userOrgID, orgName string,
+) error {
 	const insertUser = `
 		INSERT INTO users (id, name, phone, password_hash, deleted_at, delete_token, created_at, updated_at)
 		VALUES (?, ?, '', ?, 0, 0, NOW(3), NOW(3))
 	`
-	if _, err := r.db.ExecContext(ctx, insertUser, user.ID, user.Username, user.Password.Hash); err != nil {
+	if _, err := r.db.ExecContext(ctx, insertUser, userID, username, passwordHash); err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
-
 	const insertUserOrg = `
 		INSERT INTO user_orgs
 		  (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
 		VALUES (?, ?, ?, 0, 'active', 0, 0, NOW(3), NOW(3))
 	`
-	userOrgID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return fmt.Errorf("failed to generate user_orgs id: %w", err)
+	if _, err := r.db.ExecContext(ctx, insertUserOrg, userOrgID, userID, orgName); err != nil {
+		return sqlerr.WrapSQLError(err)
 	}
-	if _, err := r.db.ExecContext(ctx, insertUserOrg, userOrgID, user.ID, orgName); err != nil {
+	return nil
+}
+
+type txExecer interface {
+	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
+}
+
+func (r *SqlEndUserOrgRepository) saveExecTx(
+	ctx context.Context,
+	tx txExecer,
+	userID, username, passwordHash, userOrgID, orgName string,
+) error {
+	const insertUser = `
+		INSERT INTO users (id, name, phone, password_hash, deleted_at, delete_token, created_at, updated_at)
+		VALUES (?, ?, '', ?, 0, 0, NOW(3), NOW(3))
+	`
+	if _, err := tx.ExecContext(ctx, insertUser, userID, username, passwordHash); err != nil {
+		return sqlerr.WrapSQLError(err)
+	}
+	const insertUserOrg = `
+		INSERT INTO user_orgs
+		  (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
+		VALUES (?, ?, ?, 0, 'active', 0, 0, NOW(3), NOW(3))
+	`
+	if _, err := tx.ExecContext(ctx, insertUserOrg, userOrgID, userID, orgName); err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
 	return nil

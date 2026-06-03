@@ -1,0 +1,99 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║                 LOGIN/LOGINENDUSER MERGER - QUICK REFERENCE                ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+A. LOGIN TESTS (3 total - ALL with IdentifierType explicit)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ TestTokenService_Login_Success (line 344)
+    - Identifier: "13800138000" + IdentifierType: PHONE
+  ✓ TestTokenService_Login_PhoneNotFound (line 364)
+    - Non-existent phone
+  ✓ TestTokenService_Login_WrongPassword (line 377)
+    - Correct phone, wrong password
+
+❌ NOT TESTED:
+  - Login with USERNAME identifier
+  - Deprecated Phone field fallback
+  - LoginEndUser with any scope (ZERO TESTS)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+B. DEPRECATED FIELDS IN USE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  📍 server.gen.go (OpenAPI):        LoginRequest.Phone (line 263)
+  📍 commands.go:                    LoginCommand.Phone (line 48)
+  📍 commands.go:                    LoginEndUserCommand.Username (line 91)
+  📍 handler.go (backward compat):   Lines 145-148
+
+  All marked as deprecated, but only used in fallback paths.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+C. WHEN IDENTIFIERTYPE IS NIL (Handler line 142)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Default behavior: IdentifierTypePhone
+  Then checks: if identifier empty AND phone provided → use phone (backward compat)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+D. LOGINENDUSER USAGE PATHS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  🔴 EndUserLogin handler:     /api/end-user/auth/login (line 57)
+  🔴 CLILogin handler:          /api/cli/end-user/auth/login (line 241)
+  ⚫ CLIWhoami handler:         /api/cli/end-user/auth/whoami (no login)
+
+  All call: h.authService.LoginEndUser(ctx, cmd)
+  ❌ ZERO INTEGRATION TESTS for these routes
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+E. CODE DUPLICATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Login():         97 lines (token_service.go:342-438)
+  LoginEndUser():  93 lines (token_service_enduser.go:22-115)
+  
+  Duplicate logic:
+    - Identifier resolution ✓
+    - Password verification ✓
+    - Refresh token generation ✓
+    - JWT issuance ✓
+  
+  Unique to LoginEndUser:
+    - OrgName scoping
+    - Account active status check
+
+  📊 Potential savings: ~80 lines
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+F. TEST HELPER FUNCTIONS AVAILABLE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  ✓ newMockUserRepo()           [has GetByPhone, GetByName methods]
+  ✓ newMockRefreshTokenRepo()
+  ✓ newMockProfileRepo()
+  ✓ mockPasswordHasher
+  ✓ createTestService()         [full service with all mocks]
+  ✓ registerTestUser()          [register + return result]
+  ✓ createTestServiceWithOrgSpy()
+
+  ❌ MISSING: EndUser repository mock for LoginEndUser tests
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+G. BREAKING CHANGES RISK
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  Existing Login tests:           ✅ NO RISK (all pass explicitly)
+  Register tests:                 ✅ NO RISK (independent)
+  Refresh/Logout tests:           ✅ NO RISK (independent)
+  Handler backward compat:        ✅ SAFEGUARDED (if kept unchanged)
+  
+  Overall Risk Level:             🟢 LOW
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+RECOMMENDATION: ✅ SAFE TO MERGE IF:
+
+1. Add LoginEndUser test suite BEFORE merge (currently 0 tests)
+2. Add Login USERNAME identifier test
+3. Verify handler backward-compat logic stays intact
+4. Post-merge: test all combinations (PHONE|USERNAME × global|scoped)
+
+EFFORT ESTIMATE:
+  Pre-merge tests:   4-6 new tests
+  Merge:             50-100 lines consolidated
+  Post-merge tests:  0 (all in pre-merge phase)
+

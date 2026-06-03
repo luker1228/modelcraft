@@ -60,9 +60,8 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 
 	var req struct {
 		OrgName        string `json:"orgName"`
-		Username       string `json:"username"`       // 保留向后兼容
-		Identifier     string `json:"identifier"`     // 新增：手机号或用户名
-		IdentifierType string `json:"identifierType"` // 新增：USERNAME | PHONE
+		Identifier     string `json:"identifier"`
+		IdentifierType string `json:"identifierType"` // USERNAME | PHONE，默认 USERNAME
 		Password       string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -71,7 +70,6 @@ func (h *AuthHandler) EndUserLogin(w http.ResponseWriter, r *http.Request) {
 	}
 	result, err := h.authService.LoginEndUser(ctx, appAuth.LoginEndUserCommand{
 		OrgName:        req.OrgName,
-		Username:       req.Username,
 		Identifier:     req.Identifier,
 		IdentifierType: appAuth.IdentifierType(req.IdentifierType),
 		Password:       req.Password,
@@ -243,9 +241,9 @@ func (h *AuthHandler) CLILogin(w http.ResponseWriter, r *http.Request) {
 	requestID := ctxutils.GetRequestID(ctx)
 
 	var req struct {
-		OrgName  string `json:"orgName"`
-		Username string `json:"username"`
-		Password string `json:"password"`
+		OrgName    string `json:"orgName"`
+		Identifier string `json:"identifier"` // username or phone
+		Password   string `json:"password"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, requestID, "PARAM_INVALID", "invalid request body")
@@ -253,9 +251,9 @@ func (h *AuthHandler) CLILogin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result, err := h.authService.LoginEndUser(ctx, appAuth.LoginEndUserCommand{
-		OrgName:  req.OrgName,
-		Username: req.Username,
-		Password: req.Password,
+		OrgName:    req.OrgName,
+		Identifier: req.Identifier,
+		Password:   req.Password,
 	})
 	if err != nil {
 		h.handleBizError(w, r, requestID, err, "cli end-user login failed")

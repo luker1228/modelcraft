@@ -123,8 +123,8 @@ ai-metadata/
 | [backend/design/core-principles.md](./backend/design/core-principles.md) | 项目定位与重大技术抉择 |
 | [backend/design/roadmap.md](./backend/design/roadmap.md) | 里程碑与功能规划 |
 | [backend/design/domain-model/README.md](./backend/design/domain-model/README.md) | 领域模型总览 |
-| [backend/design/domain-model/1-auth.md](./backend/design/domain-model/1-auth.md) | 认证域领域模型 |
-| [backend/design/domain-model/2-tenant.md](./backend/design/domain-model/2-tenant.md) | 租户域领域模型 |
+| [backend/design/domain-model/1-auth.md](./backend/design/domain-model/1-auth.md) | 登录与认证域领域模型（统一用户体系、双视角、Token 设计） |
+| [backend/design/domain-model/2-tenant.md](./backend/design/domain-model/2-tenant.md) | 租户域领域模型（Org 生命周期、用户与 Org 关系）|
 | [backend/design/domain-model/3-project.md](./backend/design/domain-model/3-project.md) | 项目域领域模型 |
 | [backend/design/domain-model/4-rbac.md](./backend/design/domain-model/4-rbac.md) | RBAC 权限域领域模型 |
 | [backend/design/domain-model/5-model/README.md](./backend/design/domain-model/5-model/README.md) | 模型域领域模型总览 |

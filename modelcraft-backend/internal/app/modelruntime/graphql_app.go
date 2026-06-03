@@ -97,17 +97,18 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 
 	// 提取 endUserID。
 	// Runtime 只认 ctxutils 注入的身份上下文：
-	// - end-user: X-User-Type=end_user + X-User-ID
-	// - tenant: 无 end-user 身份（endUserID 为空）
+	// - end-user（非管理员）: X-User-Type=end_user + X-Is-Admin=false → 走权限检查
+	// - end-user（管理员）:   X-User-Type=end_user + X-Is-Admin=true  → 跳过权限检查（与 tenant admin 等同）
+	// - tenant admin: 无 end-user 身份（endUserID 为空）
 	endUserID := ""
-	if ctxutils.IsEndUser(ctx) {
+	if ctxutils.IsEndUser(ctx) && !ctxutils.GetIsAdminFromContext(ctx) {
 		if uid, err := ctxutils.GetUserIDFromContext(ctx); err == nil {
 			endUserID = uid
 		}
 	}
 
 	// 解析 end-user 权限快照。
-	// 仅 end-user 请求需要查权限（endUserID != ""），tenant admin 时跳过，perms 保持 nil。
+	// 仅普通 end-user 请求需要查权限（endUserID != ""），管理员和 tenant admin 跳过，perms 保持 nil。
 	var endUserPerms *modelruntime.ResolvedModelPermissions
 	if endUserID != "" {
 		endUserPerms, err = s.resolveEndUserPerms(ctx, orgName, projectSlug, endUserID, modelLocator)

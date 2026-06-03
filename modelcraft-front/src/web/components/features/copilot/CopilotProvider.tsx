@@ -71,6 +71,7 @@ const CopilotProvider = memo(({ children, orgName }: CopilotProviderProps) => {
       agent="modelcraft_admin_agent"
       headers={headers}
       properties={copilotContext}
+      showDevConsole={false}
     >
       <SharedCopilotActions />
       <AdminCopilotKnowledge />
@@ -155,6 +156,7 @@ export const EndUserCopilotWrapper = memo(({
           agent="modelcraft_enduser_agent"
           headers={headers}
           properties={copilotContext}
+          showDevConsole={false}
         >
           <SharedCopilotActions />
           <EndUserCopilotKnowledge />

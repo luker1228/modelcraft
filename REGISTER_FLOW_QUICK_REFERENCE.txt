@@ -1,0 +1,203 @@
+╔════════════════════════════════════════════════════════════════════════════╗
+║           REGISTER FLOW ANALYSIS - QUICK REFERENCE CARD                    ║
+║                         2026-06-02                                         ║
+╚════════════════════════════════════════════════════════════════════════════╝
+
+📖 DOCUMENT QUICK LINKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+START HERE           REGISTER_FLOW_README.md
+                     → Navigation guide
+                     → Document overview
+                     → Quick Q&A index
+
+EXECUTIVE SUMMARY    REGISTER_FLOW_SUMMARY.md
+                     → Two architectures explained
+                     → 7 merge decisions
+                     → Proposed merged struct
+                     → Implementation roadmap
+
+DETAILED ANALYSIS    REGISTER_FLOW_ANALYSIS.md
+                     → Answers to all 7 questions A-G
+                     → Field-by-field comparison
+                     → Validation rule differences
+                     → Password hashing patterns
+
+IMPLEMENTATION       REGISTER_FLOW_CHECKLIST.md
+                     → Migration steps (A-G sections)
+                     → Method merge table (H section)
+                     → Database schema changes
+                     → Risk assessment
+                     → Validation checklist
+
+
+❓ QUICK ANSWER INDEX
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Q: Are the database INSERTs the same?
+A: NO. Register = 1 INSERT (users), EndUser = 2 INSERTs (users + user_orgs).
+   Phone field differs critically: Register populated, EndUser empty string.
+   See: ANALYSIS.A
+
+Q: What's the biggest conflict?
+A: THREE major conflicts:
+   1. Phone: Register requires it, EndUser discards it
+   2. Username: Register 3-32 strict, EndUser 3-64 permissive
+   3. Password: Register string hash, EndUser VO pattern
+   See: SUMMARY "Critical Merge Decisions"
+
+Q: What validations must I understand?
+A: Five key validators:
+   1. ValidateUserName (3-32, start [a-zA-Z_-], reserved) - user domain
+   2. ValidateUsername (3-64, any start, no reserved) - enduser domain
+   3. NewPhoneNumber (11-digit China format) - user domain only
+   4. ValidatePasswordStrength (8+ chars, letter, digit) - both domains
+   5. Merged validator: adopt stricter (user's) rules
+   See: ANALYSIS.B, C, D, E
+
+Q: What fields am I adding?
+A: FOUR fields being added to merged User:
+   1. OrgName (string) - tenant scope key
+   2. IsForbidden (bool) - account disable flag
+   3. IsAdmin (bool) - org admin flag
+   4. Password (HashedPassword VO) - replaces PasswordHash string
+   See: CHECKLIST.G
+
+Q: What can I delete?
+A: FOUR items can be removed from domain/user:
+   1. registerNameAdjectives (marked unused)
+   2. registerNameNouns (marked unused)
+   3. generateRegisterDisplayName() (unused)
+   4. NewOAuthUser() (consider deprecating)
+   See: SUMMARY "Cleanup Opportunities"
+
+Q: What methods must I add?
+A: FOUR methods from EndUser → merged User:
+   1. Enable() - set IsForbidden=false
+   2. Disable() - set IsForbidden=true
+   3. IsActive() - return !IsForbidden
+   4. VerifyPassword() - delegate to Password.Verify()
+   See: CHECKLIST.H
+
+Q: How many phases of work?
+A: FIVE phases:
+   Phase 1: Schema (add 3 columns)
+   Phase 2: Domain (merge struct, add methods)
+   Phase 3: Validation (unify rules)
+   Phase 4: Repository (update Create)
+   Phase 5: Cleanup (remove unused code)
+   See: SUMMARY "Implementation Priority"
+
+Q: What's the new User struct look like?
+A: 10 fields (was 7, EndUser had 8):
+   ID, ExternalID, OrgName, Name, Phone, Password, IsForbidden, IsAdmin,
+   CreatedAt, UpdatedAt
+   See: CHECKLIST.G for full struct
+
+
+🎯 KEY DECISIONS YOU MUST MAKE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] Phone: Keep required for all, or optional for tenant users?
+    RECOMMENDATION: Required for Register, optional for tenant-only
+
+[ ] Username length: Stay 3-32 (user's strict), or 3-64 (enduser's permissive)?
+    RECOMMENDATION: Keep 3-32 for stricter security
+
+[ ] Reserved words: Block admin/root/system (user's 13 words), or allow (enduser)?
+    RECOMMENDATION: Block reserved words for security
+
+[ ] Org name: Make required for all merged users, or optional for legacy?
+    RECOMMENDATION: Required - makes tenant scope explicit
+
+[ ] Password VO: Adopt EndUser's HashedPassword VO pattern?
+    RECOMMENDATION: YES - better type safety and algorithm tracking
+
+[ ] Profile creation: Keep in Register flow (same as today)?
+    RECOMMENDATION: YES - users need profiles
+
+[ ] Migration: Keep user_orgs table or deprecate after merge?
+    RECOMMENDATION: Keep for transition period
+
+
+⚠️  CRITICAL RISKS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+RISK 1: Stricter username validation breaks existing EndUsers
+  SEVERITY: MEDIUM
+  MITIGATION: Pre-migration audit of all existing usernames
+  See: CHECKLIST "Risk Assessment"
+
+RISK 2: Phone field handling ambiguous for tenant-only users
+  SEVERITY: HIGH
+  MITIGATION: Clear rules: required for phone-based register, empty for tenant
+  See: CHECKLIST "Risk Assessment"
+
+RISK 3: Password VO migration requires rewriting all login code
+  SEVERITY: MEDIUM
+  MITIGATION: HashedPassword.NewHashedPasswordFromHash() = no re-hashing needed
+  See: ANALYSIS.E
+
+RISK 4: user_orgs table becomes redundant, data sync issues
+  SEVERITY: LOW
+  MITIGATION: Keep user_orgs temporarily, gradual deprecation
+  See: CHECKLIST "Risk Assessment"
+
+
+📊 FIELD MAPPING AT A GLANCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Current User       Action          Merged User      Action      EndUser
+────────────────────────────────────────────────────────────────────────────
+ID                 ✓ KEEP          ID               ↑ SAME      ID
+ExternalID         ✓ KEEP          ExternalID       ↑ SAME      (none)
+Name               ✓ KEEP          Name             ↑ SAME      Username
+Phone              ✓ KEEP          Phone            ↑ SAME      (empty!)
+PasswordHash       ❌ REMOVE        Password (VO)    ↓ NEW       Password
+(none)             ❌ ADD           OrgName          ↓ NEW       OrgName
+(none)             ❌ ADD           IsForbidden      ↓ NEW       (flag)
+(none)             ❌ ADD           IsAdmin          ↓ NEW       IsAdmin
+CreatedAt          ✓ KEEP          CreatedAt        ↑ SAME      CreatedAt
+UpdatedAt          ✓ KEEP          UpdatedAt        ↑ SAME      UpdatedAt
+
+
+🔧 DATABASE MIGRATION SQL
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+ALTER TABLE users ADD COLUMN org_name VARCHAR(255) NULL;
+ALTER TABLE users ADD COLUMN is_forbidden BOOLEAN DEFAULT FALSE;
+ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE;
+
+Then: sqlc generate (to create new CreateUserParams)
+
+
+✅ PRE-IMPLEMENTATION CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] Audit existing EndUser usernames against stricter rules
+[ ] Document phone field semantics (required vs optional)
+[ ] Verify password VO migration approach
+[ ] Backup user_orgs table before merge
+[ ] Plan OAuth flow compatibility
+[ ] Review Register flow end-to-end
+[ ] Identify all callers of ValidateUserName (need to update)
+[ ] Identify all callers of NewOAuthUser (deprecation plan)
+[ ] Set up test cases for all validation rules
+[ ] Plan gradual user_orgs deprecation
+
+
+📚 FILES TO REVIEW
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+modelcraft-backend/internal/domain/user/user.go (7 fields)
+modelcraft-backend/internal/domain/user/phone_number.go (11-digit validation)
+modelcraft-backend/internal/domain/enduser/end_user.go (8 fields)
+modelcraft-backend/internal/domain/enduser/hashed_password.go (VO)
+modelcraft-backend/internal/app/auth/token_service.go (Register, lines 110-264)
+modelcraft-backend/internal/interfaces/http/handlers/auth/handler.go
+modelcraft-backend/internal/infrastructure/repository/sql_org_repository.go
+modelcraft-backend/internal/infrastructure/repository/sql_enduser_repository.go
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+For more details, see: REGISTER_FLOW_README.md (navigation guide)

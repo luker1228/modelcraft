@@ -348,14 +348,10 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 	// orgName 为空时走全局查询，登录成功后从 user.OrgName 取
 	userRepo := s.endUserRepoFactory.NewEndUserRepository(s.systemDB, "")
 
-	// Resolve identifier（向后兼容：Phone 字段 → PHONE 类型）
+	// Resolve identifier
 	identifier := cmd.Identifier
 	idType := cmd.IdentifierType
-	if identifier == "" && cmd.Phone != "" {
-		identifier = cmd.Phone
-		idType = IdentifierTypePhone
-	}
-	// 默认 USERNAME（与 LoginEndUser 一致）
+	// 默认 USERNAME
 	if idType == "" {
 		idType = IdentifierTypeUsername
 	}
@@ -432,61 +428,6 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		UserName:     u.Username,
 		OrgName:      orgName,
 		AccessToken:  accessToken,
-		RefreshToken: plaintext,
-		ExpiresIn:    s.jwtSigner.TTLSeconds(),
-	}, nil
-}
-
-// OAuthLogin 通过外部认证提供者（OAuth）登录。
-// Deprecated: 保留向后兼容，新流程使用 Login。
-func (s *TokenService) OAuthLogin(ctx context.Context, cmd OAuthLoginCommand) (*LoginResult, error) {
-	logger := logfacade.GetLogger(ctx)
-
-	// 查找用户，不存在则创建
-	u, err := s.userRepo.GetByExternalID(ctx, cmd.ExternalID)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if u == nil {
-		id, err := bizutils.GenerateUUIDV7()
-		if err != nil {
-			return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
-		}
-		u, err = domainUser.NewOAuthUser(id, cmd.ExternalID, cmd.Name, "")
-		if err != nil {
-			return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
-		}
-		if err := s.userRepo.Create(ctx, u); err != nil {
-			return nil, bizerrors.ConvertRepositoryError(ctx, err)
-		}
-		logger.Infof(ctx, "Created new OAuth user: id=%s, external_id=%s", u.ID, cmd.ExternalID)
-	}
-
-	plaintext, hash, err := GenerateRefreshToken()
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate refresh token")
-	}
-
-	tokenID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate token id")
-	}
-
-	expiresAt := time.Now().Add(s.refreshTTL)
-	token := &domainauth.RefreshToken{
-		ID:        tokenID,
-		UserID:    u.ID,
-		TokenHash: hash,
-		ExpiresAt: expiresAt,
-		CreatedAt: time.Now(),
-	}
-	if err := s.refreshTokenRepo.Save(ctx, token); err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-
-	logger.Infof(ctx, "OAuth login success: user_id=%s", u.ID)
-	return &LoginResult{
-		UserID:       u.ID,
 		RefreshToken: plaintext,
 		ExpiresIn:    s.jwtSigner.TTLSeconds(),
 	}, nil

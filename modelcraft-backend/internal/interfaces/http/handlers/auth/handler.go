@@ -124,27 +124,22 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Build LoginCommand with new identifier-based fields
+	// Build LoginCommand
 	cmd := appAuth.LoginCommand{
 		Identifier: req.Identifier,
 		Password:   req.Password,
 	}
 
-	// Map identifierType from generated enum to app enum
+	// Map identifierType from generated enum to app enum; default USERNAME
 	if req.IdentifierType != nil {
 		switch *req.IdentifierType {
-		case generated.USERNAME:
-			cmd.IdentifierType = appAuth.IdentifierTypeUsername
-		default:
+		case generated.PHONE:
 			cmd.IdentifierType = appAuth.IdentifierTypePhone
+		default:
+			cmd.IdentifierType = appAuth.IdentifierTypeUsername
 		}
 	} else {
-		cmd.IdentifierType = appAuth.IdentifierTypePhone
-	}
-
-	// Backward compat: if identifier is empty but phone is provided, use phone
-	if cmd.Identifier == "" && req.Phone != nil {
-		cmd.Phone = *req.Phone
+		cmd.IdentifierType = appAuth.IdentifierTypeUsername
 	}
 
 	result, err := h.tokenService.Login(r.Context(), cmd)

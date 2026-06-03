@@ -40,12 +40,10 @@ type RegisterResult struct {
 type LoginCommand struct {
 	// Identifier 登录标识符（手机号或用户名）
 	Identifier string
-	// IdentifierType 标识符类型：PHONE 或 USERNAME，默认为 PHONE
+	// IdentifierType 标识符类型：PHONE 或 USERNAME，默认为 USERNAME
 	IdentifierType IdentifierType
 	// Password 密码
 	Password string
-	// Deprecated: Phone 保留用于向后兼容，新代码应使用 Identifier + IdentifierType
-	Phone string
 }
 
 // LoginResult 登录成功后返回给 Gateway
@@ -56,14 +54,6 @@ type LoginResult struct {
 	AccessToken  string // JWT access token
 	RefreshToken string // 明文，Gateway 存入 httpOnly Cookie
 	ExpiresIn    int    // access token TTL（秒）
-}
-
-// OAuthLoginCommand BFF 通过 OAuth 登录时传入的用户信息（来自 AuthProvider token）
-// Deprecated: 保留兼容，新流程使用 LoginCommand
-type OAuthLoginCommand struct {
-	ExternalID string
-	Email      string
-	Name       string
 }
 
 // RefreshCommand Gateway 刷新时传入
@@ -83,12 +73,11 @@ type LogoutCommand struct {
 	RefreshToken string // 明文（从 cookie 中取出）
 }
 
-// LoginEndUserCommand EndUser 登录命令，支持 username 或 phone，需携带 orgName 做 scope。
+// LoginEndUserCommand EndUser 登录命令，支持 username 或 phone。
 type LoginEndUserCommand struct {
 	OrgName        string
-	Identifier     string         // 登录标识符（用户名或手机号），优先于 Username
+	Identifier     string         // 登录标识符（用户名或手机号）
 	IdentifierType IdentifierType // "USERNAME" 或 "PHONE"，默认 USERNAME
-	Username       string         // 向后兼容，等同于 Identifier
 	Password       string
 }
 

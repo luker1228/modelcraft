@@ -9,7 +9,7 @@ export default function SettingsRolesRedirect() {
   const orgName = params.orgName as string
 
   useEffect(() => {
-    router.replace(`/org/${orgName}/developers/roles`)
+    router.replace(`/org/${orgName}/dashboard`)
   }, [router, orgName])
 
   return null

@@ -179,7 +179,6 @@ export function AppLayout({
       header: '工作区',
       items: [
         { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/org/${orgName}/dashboard` },
-        { label: '开发者', icon: '/icons/icon-users.svg', href: `/org/${orgName}/developers` },
         { label: '终端用户', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/end-users` },
       ],
     },

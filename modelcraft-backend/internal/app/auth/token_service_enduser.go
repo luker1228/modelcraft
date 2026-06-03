@@ -27,14 +27,11 @@ func (s *TokenService) LoginEndUser(ctx context.Context, cmd LoginEndUserCommand
 	userRepo := s.endUserRepoFactory.NewEndUserRepository(s.systemDB, cmd.OrgName)
 	resolvedOrgName := cmd.OrgName
 
-	// Resolve identifier: explicit Identifier takes priority over legacy Username.
-	identifier := cmd.Username
-	idType := IdentifierTypeUsername
-	if cmd.IdentifierType != "" {
-		identifier = cmd.Identifier
-		idType = cmd.IdentifierType
-	} else if cmd.Identifier != "" {
-		identifier = cmd.Identifier
+	// Resolve identifier
+	identifier := cmd.Identifier
+	idType := cmd.IdentifierType
+	if idType == "" {
+		idType = IdentifierTypeUsername
 	}
 
 	var user *enduser.EndUser
@@ -42,15 +39,11 @@ func (s *TokenService) LoginEndUser(ctx context.Context, cmd LoginEndUserCommand
 
 	switch idType {
 	case IdentifierTypePhone:
-		if resolvedOrgName == "" {
-			return nil, bizerrors.NewErrorFromContext(
-				ctx, bizerrors.EndUserParamInvalid, "orgName is required for phone login",
-			)
-		}
 		if identifier == "" {
 			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, "phone is required")
 		}
-		user, err = userRepo.GetByPhone(ctx, resolvedOrgName, identifier)
+		// 手机号全局唯一，无需 orgName scope
+		user, err = userRepo.GetByPhoneGlobal(ctx, identifier)
 	default: // IdentifierTypeUsername
 		if resolvedOrgName != "" {
 			user, err = userRepo.GetByUsername(ctx, resolvedOrgName, identifier)
