@@ -12,6 +12,7 @@ type CreateEndUserCommand struct {
 	ProjectSlug string
 	Username    string
 	Password    string
+	Phone       string // 手机号（必填）
 	CreatedBy   string // developer user_id from mc_meta
 }
 
@@ -155,6 +156,7 @@ type CreateUserCommand struct {
 	OrgName  string
 	Username string
 	Password string
+	Phone    string
 	IsAdmin  bool
 }
 

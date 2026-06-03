@@ -6,14 +6,12 @@ package orggraphql
 
 import (
 	"context"
-	"strings"
-	"time"
-
 	appEnduser "modelcraft/internal/app/enduser"
-	domainenduser "modelcraft/internal/domain/enduser"
 	"modelcraft/internal/interfaces/graphql/org/generated"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"strings"
+	"time"
 )
 
 // CreateEndUserAPIToken is the resolver for the createEndUserAPIToken field.
@@ -126,15 +124,4 @@ func (r *queryResolver) EndUserAPITokens(ctx context.Context) ([]*generated.EndU
 		result = append(result, toGQLAPIToken(t))
 	}
 	return result, nil
-}
-
-// toGQLAPIToken converts a domain APIToken to the GraphQL generated type.
-func toGQLAPIToken(t *domainenduser.APIToken) *generated.EndUserAPIToken {
-	return &generated.EndUserAPIToken{
-		ID:         t.ID,
-		Name:       t.Name,
-		CreatedAt:  t.CreatedAt,
-		ExpiresAt:  t.ExpiresAt,
-		LastUsedAt: t.LastUsedAt,
-	}
 }

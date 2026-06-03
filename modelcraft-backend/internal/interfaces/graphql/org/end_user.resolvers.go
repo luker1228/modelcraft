@@ -53,6 +53,7 @@ func (r *mutationResolver) CreateEndUser(ctx context.Context, input generated.Cr
 		ProjectSlug: projectSlug,
 		Username:    input.Username,
 		Password:    input.Password,
+		Phone:       input.Phone,
 		CreatedBy:   createdBy,
 	})
 	if err != nil {

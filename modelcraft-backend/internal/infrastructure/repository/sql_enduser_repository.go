@@ -58,7 +58,7 @@ func (r *SqlEndUserOrgRepository) Save(ctx context.Context, user *enduser.EndUse
 	db, ok := r.db.(*sql.DB)
 	if !ok {
 		// Already inside a transaction (sql.Tx) — execute directly without wrapping.
-		return r.saveExec(ctx, user.ID, user.Username, user.Password.Hash, userOrgID, orgName)
+		return r.saveExec(ctx, user.ID, user.Username, user.Phone, user.Password.Hash, userOrgID, orgName)
 	}
 
 	tx, err := db.BeginTx(ctx, nil)
@@ -71,7 +71,9 @@ func (r *SqlEndUserOrgRepository) Save(ctx context.Context, user *enduser.EndUse
 			panic(p)
 		}
 	}()
-	if err := r.saveExecTx(ctx, tx, user.ID, user.Username, user.Password.Hash, userOrgID, orgName); err != nil {
+	if err := r.saveExecTx(
+		ctx, tx, user.ID, user.Username, user.Phone, user.Password.Hash, userOrgID, orgName,
+	); err != nil {
 		_ = tx.Rollback()
 		return err
 	}
@@ -83,13 +85,13 @@ func (r *SqlEndUserOrgRepository) Save(ctx context.Context, user *enduser.EndUse
 
 func (r *SqlEndUserOrgRepository) saveExec(
 	ctx context.Context,
-	userID, username, passwordHash, userOrgID, orgName string,
+	userID, username, phone, passwordHash, userOrgID, orgName string,
 ) error {
 	const insertUser = `
 		INSERT INTO users (id, name, phone, password_hash, deleted_at, delete_token, created_at, updated_at)
-		VALUES (?, ?, '', ?, 0, 0, NOW(3), NOW(3))
+		VALUES (?, ?, ?, ?, 0, 0, NOW(3), NOW(3))
 	`
-	if _, err := r.db.ExecContext(ctx, insertUser, userID, username, passwordHash); err != nil {
+	if _, err := r.db.ExecContext(ctx, insertUser, userID, username, phone, passwordHash); err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
 	const insertUserOrg = `
@@ -110,13 +112,13 @@ type txExecer interface {
 func (r *SqlEndUserOrgRepository) saveExecTx(
 	ctx context.Context,
 	tx txExecer,
-	userID, username, passwordHash, userOrgID, orgName string,
+	userID, username, phone, passwordHash, userOrgID, orgName string,
 ) error {
 	const insertUser = `
 		INSERT INTO users (id, name, phone, password_hash, deleted_at, delete_token, created_at, updated_at)
-		VALUES (?, ?, '', ?, 0, 0, NOW(3), NOW(3))
+		VALUES (?, ?, ?, ?, 0, 0, NOW(3), NOW(3))
 	`
-	if _, err := tx.ExecContext(ctx, insertUser, userID, username, passwordHash); err != nil {
+	if _, err := tx.ExecContext(ctx, insertUser, userID, username, phone, passwordHash); err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
 	const insertUserOrg = `

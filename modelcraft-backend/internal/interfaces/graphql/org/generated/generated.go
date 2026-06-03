@@ -2642,6 +2642,7 @@ type ListEndUsersPayload {
 input CreateEndUserInput {
   username: String! # 3–64 chars, ^[a-zA-Z0-9_-]+$
   password: String! # at least 8 chars, must contain letter + digit
+  phone: String!    # 11-digit mainland China mobile number
 }
 
 input UpdateEndUserStatusInput {
@@ -15233,7 +15234,7 @@ func (ec *executionContext) unmarshalInputCreateEndUserInput(ctx context.Context
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"username", "password"}
+	fieldsInOrder := [...]string{"username", "password", "phone"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -15254,6 +15255,13 @@ func (ec *executionContext) unmarshalInputCreateEndUserInput(ctx context.Context
 				return it, err
 			}
 			it.Password = data
+		case "phone":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("phone"))
+			data, err := ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.Phone = data
 		}
 	}
 

@@ -24,6 +24,7 @@ import type { CreateEndUserPayload } from '@web/hooks/end-users/useOrgEndUsers'
 
 const schema = z.object({
   username: z.string().min(1, '请输入用户名').max(64),
+  phone: z.string().regex(/^1[3-9]\d{9}$/, '请输入有效的 11 位手机号'),
   password: z.string().min(8, '密码至少 8 位').max(128),
   confirmPassword: z.string().min(1, '请再次输入密码'),
 }).refine((data) => data.password === data.confirmPassword, {
@@ -60,7 +61,7 @@ export function CreateEndUserDialog({ open, onClose, onCreate, orgName }: Create
     setIsLoading(true)
     setError(null)
     try {
-      await onCreate({ username: values.username, password: values.password })
+      await onCreate({ username: values.username, phone: values.phone, password: values.password })
       // 创建成功 → 进入引导状态而非直接关闭
       setCreatedUsername(values.username)
       reset()
@@ -140,6 +141,20 @@ export function CreateEndUserDialog({ open, onClose, onCreate, orgName }: Create
               <Input id="eu-username" disabled={isLoading} autoComplete="username" {...register('username')} />
               {errors.username && (
                 <p className="text-xs text-destructive">{errors.username.message}</p>
+              )}
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <Label htmlFor="eu-phone">手机号</Label>
+              <Input
+                id="eu-phone"
+                type="tel"
+                placeholder="请输入 11 位手机号"
+                disabled={isLoading}
+                autoComplete="tel"
+                {...register('phone')}
+              />
+              {errors.phone && (
+                <p className="text-xs text-destructive">{errors.phone.message}</p>
               )}
             </div>
             <div className="flex flex-col gap-1.5">

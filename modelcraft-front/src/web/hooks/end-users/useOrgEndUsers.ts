@@ -29,6 +29,7 @@ export interface OrgEndUser {
 export interface CreateEndUserPayload {
   username: string
   password: string
+  phone: string
 }
 
 interface UseOrgEndUsersReturn {
@@ -154,7 +155,7 @@ export function useOrgEndUsers(_orgName: string): UseOrgEndUsersReturn {
     const client = getOrgScopedClient()
     const { data } = await client.mutate<CreateEndUserData>({
       mutation: CREATE_END_USER,
-      variables: { input: { username: payload.username, password: payload.password } },
+      variables: { input: { username: payload.username, password: payload.password, phone: payload.phone } },
     })
     const err = data?.createEndUser?.error
     if (err) {

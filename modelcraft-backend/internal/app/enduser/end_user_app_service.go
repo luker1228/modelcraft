@@ -8,6 +8,7 @@ import (
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
 	"modelcraft/pkg/ctxutils"
+	"modelcraft/pkg/logfacade"
 
 	domainenduser "modelcraft/internal/domain/enduser"
 
@@ -36,10 +37,15 @@ func (s *EndUserManagementAppService) CreateEndUser(
 	ctx context.Context,
 	cmd CreateEndUserCommand,
 ) (*CreateEndUserResult, error) {
+	logger := logfacade.GetLogger(ctx)
+	logger.Infof(ctx, "CreateEndUser: username=%s orgName=%s", cmd.Username, cmd.OrgName)
+
 	if err := domainenduser.ValidatePasswordStrength(cmd.Password); err != nil {
+		logger.Infof(ctx, "CreateEndUser: password validation failed: %v", err)
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
 	}
 	if err := domainenduser.ValidateUsername(cmd.Username); err != nil {
+		logger.Infof(ctx, "CreateEndUser: username validation failed: %v", err)
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.EndUserParamInvalid, err.Error())
 	}
 
@@ -53,16 +59,20 @@ func (s *EndUserManagementAppService) CreateEndUser(
 		return nil, bizerrors.Wrapf(err, "failed to generate end user id")
 	}
 
-	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, hashedPwd)
+	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, cmd.Phone, hashedPwd)
 	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to create end user entity")
 	}
 
+	logger.Infof(ctx, "CreateEndUser: calling repo.Save username=%s orgName=%s userID=%s",
+		cmd.Username, cmd.OrgName, userID)
 	repo := infrrepo.NewSqlEndUserRepository(s.db, cmd.OrgName, "")
 	if err := repo.Save(ctx, user); err != nil {
+		logger.Infof(ctx, "CreateEndUser: repo.Save failed: %v", err)
 		return nil, s.convertRepoError(ctx, err, cmd.Username)
 	}
 
+	logger.Infof(ctx, "CreateEndUser: success username=%s userID=%s", cmd.Username, userID)
 	return &CreateEndUserResult{
 		ID:          user.ID,
 		Username:    user.Username,
@@ -305,7 +315,7 @@ func (s *EndUserManagementAppService) CreateUser(
 		return nil, bizerrors.Wrapf(err, "failed to generate user id")
 	}
 
-	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, hashedPwd)
+	user, err := domainenduser.NewEndUser(userID, cmd.OrgName, cmd.Username, cmd.Phone, hashedPwd)
 	if err != nil {
 		return nil, bizerrors.Wrapf(err, "failed to create user entity")
 	}

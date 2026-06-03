@@ -11,6 +11,7 @@ type EndUser struct {
 	ID          string         // UUID, primary key
 	OrgName     string         // org scope key
 	Username    string         // 3-64 chars, ^[a-zA-Z0-9_-]+$, unique within org
+	Phone       string         // 11-digit mainland China mobile number
 	Password    HashedPassword // bcrypt hashed
 	IsForbidden bool           // whether the account is disabled
 	IsAdmin     bool           // whether the user is an org admin (user_orgs.is_admin = 1)
@@ -20,7 +21,7 @@ type EndUser struct {
 
 // NewEndUser creates a new EndUser with validation.
 // The password must already be hashed.
-func NewEndUser(id, orgName, username string, hashedPwd HashedPassword) (*EndUser, error) {
+func NewEndUser(id, orgName, username, phone string, hashedPwd HashedPassword) (*EndUser, error) {
 	if id == "" {
 		return nil, fmt.Errorf("user ID is required")
 	}
@@ -32,11 +33,16 @@ func NewEndUser(id, orgName, username string, hashedPwd HashedPassword) (*EndUse
 		return nil, err
 	}
 
+	if phone == "" {
+		return nil, fmt.Errorf("phone is required")
+	}
+
 	now := time.Now()
 	return &EndUser{
 		ID:          id,
 		OrgName:     orgName,
 		Username:    username,
+		Phone:       phone,
 		Password:    hashedPwd,
 		IsForbidden: false,
 		CreatedAt:   now,

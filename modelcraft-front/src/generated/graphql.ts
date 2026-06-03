@@ -17,6 +17,22 @@ export type Scalars = {
   Time: { input: any; output: any; }
 };
 
+export type ApiTokenLimitReached = Error & {
+  __typename?: 'APITokenLimitReached';
+  limit: Scalars['Int']['output'];
+  message: Scalars['String']['output'];
+};
+
+export type ApiTokenNameConflict = Error & {
+  __typename?: 'APITokenNameConflict';
+  message: Scalars['String']['output'];
+};
+
+export type ApiTokenNotFound = Error & {
+  __typename?: 'APITokenNotFound';
+  message: Scalars['String']['output'];
+};
+
 export type ActualConstraintType =
   | 'NOT_NULL'
   | 'UNIQUE';
@@ -317,6 +333,15 @@ export type ColumnRuleInput = {
   mode: ColumnAccessMode;
 };
 
+export type CreateApiTokenError = ApiTokenLimitReached | ApiTokenNameConflict | InvalidInput;
+
+export type CreateApiTokenPayload = {
+  __typename?: 'CreateAPITokenPayload';
+  error?: Maybe<CreateApiTokenError>;
+  plaintext?: Maybe<Scalars['String']['output']>;
+  token?: Maybe<EndUserApiToken>;
+};
+
 export type CreateCustomRoleError = InvalidInput | PermissionRoleAlreadyExists;
 
 export type CreateCustomRoleInput = {
@@ -335,6 +360,7 @@ export type CreateEndUserError = EndUserAlreadyExists | EndUserPasswordTooWeak |
 
 export type CreateEndUserInput = {
   password: Scalars['String']['input'];
+  phone: Scalars['String']['input'];
   username: Scalars['String']['input'];
 };
 
@@ -746,6 +772,15 @@ export type EndUser = Node & {
   isForbidden: Scalars['Boolean']['output'];
   updatedAt: Scalars['Time']['output'];
   username: Scalars['String']['output'];
+};
+
+export type EndUserApiToken = {
+  __typename?: 'EndUserAPIToken';
+  createdAt: Scalars['Time']['output'];
+  expiresAt?: Maybe<Scalars['Time']['output']>;
+  id: Scalars['ID']['output'];
+  lastUsedAt?: Maybe<Scalars['Time']['output']>;
+  name: Scalars['String']['output'];
 };
 
 export type EndUserAlreadyExists = Error & {
@@ -1554,6 +1589,7 @@ export type Mutation = {
   bindPresetItemToBundle: BindPresetItemToBundlePayload;
   createCustomRole: CreateCustomRolePayload;
   createEndUser: CreateEndUserPayload;
+  createEndUserAPIToken: CreateApiTokenPayload;
   createEndUserPermission: CreateEndUserPermissionPayload;
   createEndUserPermissionBundle: CreateEndUserPermissionBundlePayload;
   createEndUserRole: CreateEndUserRolePayload;
@@ -1600,6 +1636,7 @@ export type Mutation = {
   restoreEndUserPermissionBundle: RestoreEndUserPermissionBundlePayload;
   revokeBundleFromEndUser: RevokeBundleFromEndUserPayload;
   revokeBundleFromEndUserRole: RevokeBundleFromEndUserRolePayload;
+  revokeEndUserAPIToken: RevokeApiTokenPayload;
   revokeEndUserRole: RevokeEndUserRolePayload;
   revokeRoleFromUser: RevokeRolePayload;
   /**
@@ -1712,6 +1749,12 @@ export type MutationCreateCustomRoleArgs = {
 
 export type MutationCreateEndUserArgs = {
   input: CreateEndUserInput;
+};
+
+
+export type MutationCreateEndUserApiTokenArgs = {
+  expiresAt?: InputMaybe<Scalars['Time']['input']>;
+  name: Scalars['String']['input'];
 };
 
 
@@ -1902,6 +1945,11 @@ export type MutationRevokeBundleFromEndUserArgs = {
 
 export type MutationRevokeBundleFromEndUserRoleArgs = {
   input: RevokeBundleFromEndUserRoleInput;
+};
+
+
+export type MutationRevokeEndUserApiTokenArgs = {
+  id: Scalars['ID']['input'];
 };
 
 
@@ -2194,6 +2242,7 @@ export type Query = {
   clusterRawDatabases: Array<RawDatabase>;
   databaseCluster: GetClusterPayload;
   effectivePermissions: GetEffectivePermissionsPayload;
+  endUserAPITokens: Array<EndUserApiToken>;
   endUserBundleAssignments: Array<EndUserBundleAssignment>;
   endUserPermission?: Maybe<EndUserPermission>;
   endUserPermissionBundle?: Maybe<EndUserPermissionBundle>;
@@ -2631,6 +2680,14 @@ export type RestoreEndUserPermissionBundlePayload = {
   error?: Maybe<RestoreEndUserPermissionBundleError>;
   /** 回滚后生成的新版本号 */
   newVersion: Scalars['Int']['output'];
+};
+
+export type RevokeApiTokenError = ApiTokenNotFound | InvalidInput;
+
+export type RevokeApiTokenPayload = {
+  __typename?: 'RevokeAPITokenPayload';
+  error?: Maybe<RevokeApiTokenError>;
+  success?: Maybe<Scalars['Boolean']['output']>;
 };
 
 export type RevokeBundleFromEndUserError = ResourceNotFound;
@@ -3226,6 +3283,33 @@ export type DeleteEndUserMutation = { __typename?: 'Mutation', deleteEndUser: { 
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
 
+export type EndUserApiTokensQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type EndUserApiTokensQuery = { __typename?: 'Query', endUserAPITokens: Array<{ __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null }> };
+
+export type CreateEndUserApiTokenMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  expiresAt?: InputMaybe<Scalars['Time']['input']>;
+}>;
+
+
+export type CreateEndUserApiTokenMutation = { __typename?: 'Mutation', createEndUserAPIToken: { __typename?: 'CreateAPITokenPayload', plaintext?: string | null, token?: { __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null } | null, error?:
+      | { __typename?: 'APITokenLimitReached', message: string, limit: number }
+      | { __typename?: 'APITokenNameConflict', message: string }
+      | { __typename?: 'InvalidInput', message: string }
+     | null } };
+
+export type RevokeEndUserApiTokenMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type RevokeEndUserApiTokenMutation = { __typename?: 'Mutation', revokeEndUserAPIToken: { __typename?: 'RevokeAPITokenPayload', success?: boolean | null, error?:
+      | { __typename?: 'APITokenNotFound', message: string }
+      | { __typename?: 'InvalidInput', message: string }
+     | null } };
+
 export type GetEnumsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -3307,7 +3391,7 @@ export type GetModelRecordWorkspaceEndUserQueryVariables = Exact<{
 }>;
 
 
-export type GetModelRecordWorkspaceEndUserQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
+export type GetModelRecordWorkspaceEndUserQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
       | { __typename: 'InvalidInput', message: string }
       | { __typename: 'ResourceNotFound', message: string }
      | null } };

@@ -87,7 +87,7 @@ func (f *fakeEndUserRepo) UpdatePassword(_ context.Context, _, _ string, _ domai
 
 func makeNormalUser() *domainenduser.EndUser {
 	pwd, _ := domainenduser.NewHashedPasswordFromPlain("Password1")
-	u, _ := domainenduser.NewEndUser("user-id", "myorg", "normaluser", pwd)
+	u, _ := domainenduser.NewEndUser("user-id", "myorg", "normaluser", "13800138000", pwd)
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
 	return u
