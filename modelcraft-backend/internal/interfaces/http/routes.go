@@ -50,6 +50,7 @@ import (
 	authHandlers "modelcraft/internal/interfaces/http/handlers/auth"
 	enduserHandlers "modelcraft/internal/interfaces/http/handlers/enduser"
 	userHandlers "modelcraft/internal/interfaces/http/handlers/user"
+	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -704,7 +705,7 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	// End-user runtime: PAT Token takes priority, JWT is fallback
 	var patMW func(http.Handler) http.Handler
 	if apiTokenSvc != nil {
-		patMW = middleware.ChiPATAuthMiddleware(apiTokenSvc, logger)
+		patMW = httpmiddleware.ChiRuntimePATMiddleware(apiTokenSvc, logger)
 	} else {
 		patMW = func(next http.Handler) http.Handler { return next }
 	}
