@@ -143,7 +143,7 @@ func TestChiRuntimePATMiddleware(t *testing.T) {
 				w.WriteHeader(http.StatusOK)
 			})
 
-			handler := ChiRuntimePATMiddleware(svc, nil)(next)
+			handler := ChiRuntimePATMiddleware(svc, nil, nil)(next)
 
 			req := httptest.NewRequest(
 				http.MethodPost,

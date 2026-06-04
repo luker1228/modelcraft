@@ -169,6 +169,10 @@ type EndUserPermissionRepository interface {
 	// admin 是通配角色，持有者对 Project 内所有 model 拥有全量权限，无需绑定 bundle。
 	HasProtectedAdminRole(ctx context.Context, orgName, projectSlug, userID string) (bool, error)
 
+	// IsOrgAdmin 检查用户在 user_orgs 中是否为 org 管理员（is_admin=true）。
+	// org admin 对 org 下所有 project 的所有 model 拥有全量权限，优先级高于 project 级角色。
+	IsOrgAdmin(ctx context.Context, orgName, userID string) (bool, error)
+
 	// GetBundleIDsByUserDirect 获取用户直接关联的权限包 ID 列表（鉴权 Step 1）
 	// 空列表（无授权）为合法状态，不返回错误
 	GetBundleIDsByUserDirect(ctx context.Context, userID, orgName, projectSlug string) ([]string, error)

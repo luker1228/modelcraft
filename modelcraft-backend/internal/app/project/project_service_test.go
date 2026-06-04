@@ -3,11 +3,10 @@ package project
 import (
 	"context"
 	"database/sql"
-	"testing"
-
 	"modelcraft/internal/domain/project"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/pkg/bizerrors"
+	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"

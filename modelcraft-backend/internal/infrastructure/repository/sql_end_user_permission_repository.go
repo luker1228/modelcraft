@@ -1249,6 +1249,25 @@ func (r *SqlEndUserDataPermissionRepository) HasProtectedAdminRole(
 	return false, nil
 }
 
+// IsOrgAdmin checks whether the user has is_admin=true in user_orgs for the given org.
+// Org admins have full wildcard permissions on all projects and models within the org.
+func (r *SqlEndUserDataPermissionRepository) IsOrgAdmin(
+	ctx context.Context,
+	orgName, userID string,
+) (bool, error) {
+	row, err := r.q.GetMembershipByUserAndOrg(ctx, dbgen.GetMembershipByUserAndOrgParams{
+		UserID:  userID,
+		OrgName: orgName,
+	})
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return false, nil
+		}
+		return false, err
+	}
+	return row.IsAdmin, nil
+}
+
 func newAdminWildcardPermission(orgName, projectSlug, modelID string) *rbac.EndUserPermission {
 	rowPolicy := &rbac.RowPolicy{
 		Select: rbac.SelectPolicy{Allowed: true, Scope: rbac.ScopeAll},

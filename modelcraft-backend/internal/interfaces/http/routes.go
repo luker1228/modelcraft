@@ -109,6 +109,11 @@ type DesignHandlers struct {
 
 	// SystemDB is the system main database connection (stores end_user_users etc.)
 	SystemDB *sql.DB
+
+	// IsOrgAdminFn checks whether an end-user has org-admin status (user_orgs.is_admin=true).
+	// Used by the runtime PAT middleware to inject the IsAdmin context flag, mirroring
+	// the APISIX X-Is-Admin header path for JWT callers.
+	IsOrgAdminFn httpmiddleware.IsOrgAdminFn
 }
 
 // authEndUserRepoFactory satisfies appAuth.EndUserRepositoryFactory.
@@ -381,6 +386,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		CreateOrgService:            createOrgService,
 		ModelDatabaseAppService:     modelDatabaseAppService,
 		ModelDatabaseSyncAppService: modelDatabaseSyncAppService,
+		IsOrgAdminFn:                rbacRepo.IsOrgAdmin,
 	}, nil
 }
 
@@ -681,6 +687,7 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	handlers *RuntimeHandlers,
 	cfg *config.Config,
 	apiTokenSvc *appEnduser.APITokenService,
+	isOrgAdminFn httpmiddleware.IsOrgAdminFn,
 ) {
 	jwtConfig := &middleware.JWTAuthConfig{
 		SkipValidation: !cfg.Auth.Runtime.Enabled,
@@ -705,7 +712,7 @@ func SetupRuntimeGraphQLRoutesOnChi(
 	// End-user runtime: PAT Token takes priority, JWT is fallback
 	var patMW func(http.Handler) http.Handler
 	if apiTokenSvc != nil {
-		patMW = httpmiddleware.ChiRuntimePATMiddleware(apiTokenSvc, logger)
+		patMW = httpmiddleware.ChiRuntimePATMiddleware(apiTokenSvc, logger, isOrgAdminFn)
 	} else {
 		patMW = func(next http.Handler) http.Handler { return next }
 	}

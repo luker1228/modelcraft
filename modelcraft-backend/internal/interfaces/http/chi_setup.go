@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"modelcraft/internal/interfaces/http/generated"
+	httpmiddleware "modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/logfacade"
@@ -107,7 +108,11 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// GraphQL Routes - Runtime API
 	// ============================================================
 	if cfg.RuntimeHandlers != nil {
-		SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService)
+		var isOrgAdminFn httpmiddleware.IsOrgAdminFn
+		if cfg.DesignHandlers != nil {
+			isOrgAdminFn = cfg.DesignHandlers.IsOrgAdminFn
+		}
+		SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService, isOrgAdminFn)
 	}
 
 	// ============================================================

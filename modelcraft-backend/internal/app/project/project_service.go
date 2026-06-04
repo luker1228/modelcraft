@@ -7,6 +7,7 @@ import (
 	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/bizutils"
+	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
 
 	clusterApp "modelcraft/internal/app/cluster"
@@ -173,8 +174,9 @@ func (s *ProjectAppService) CreateProject(
 }
 
 // provisionAdminRole creates the protected admin role for a project and assigns
-// the Org's builtin admin user to it — all within the caller's transaction.
-// If no builtin user exists yet, the role is still created but the assignment is skipped.
+// the calling user (project creator) to it — all within the caller's transaction.
+// If the caller's user ID is not available in context, the role is still created
+// but the assignment is skipped with a warning.
 func (s *ProjectAppService) provisionAdminRole(
 	ctx context.Context,
 	q dbgen.Querier,
@@ -196,7 +198,35 @@ func (s *ProjectAppService) provisionAdminRole(
 		return bizerrors.Wrapf(err, "failed to create admin role")
 	}
 
-	// builtin end-user concept abolished; skip admin role assignment
+	// Assign the project creator to the admin role so they can immediately query data.
+	// Try tenant user ID first (design-time creator), then end-user ID (runtime creator).
+	creatorID, idErr := ctxutils.GetTenantUserIDFromContext(ctx)
+	if idErr != nil || creatorID == "" {
+		creatorID, idErr = ctxutils.GetUserIDFromContext(ctx)
+	}
+	if idErr != nil || creatorID == "" {
+		logger.Error(ctx, "provisionAdminRole: no user ID in context, rolling back project creation",
+			logfacade.String("org", orgName),
+			logfacade.String("project", projectSlug),
+		)
+		return bizerrors.NewError(bizerrors.ParamInvalid, "creator user ID is required to provision admin role")
+	}
+
+	assignmentID, err := bizutils.GenerateUUIDV7()
+	if err != nil {
+		return bizerrors.Wrapf(err, "failed to generate admin role assignment ID")
+	}
+	if err := q.AssignRoleToUser(ctx, dbgen.AssignRoleToUserParams{
+		ID:      assignmentID,
+		UserID:  creatorID,
+		RoleID:  adminRoleID,
+		OrgName: orgName,
+	}); err != nil {
+		return bizerrors.Wrapf(err, "failed to assign admin role to project creator")
+	}
+
+	logger.Infof(ctx, "admin role assigned to project creator: user=%s org=%s project=%s",
+		creatorID, orgName, projectSlug)
 	return nil
 }
 

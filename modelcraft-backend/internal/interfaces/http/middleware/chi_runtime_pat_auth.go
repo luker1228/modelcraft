@@ -17,15 +17,23 @@ func writeRuntimeJSONError(w http.ResponseWriter, status int, errMsg, _ string) 
 	_, _ = w.Write([]byte(`{"error":"` + errMsg + `"}`))
 }
 
+// IsOrgAdminFn is a function that checks whether a user has org-admin status.
+// Injected into ChiRuntimePATMiddleware so it can set the IsAdmin context flag
+// without importing the full repository package.
+type IsOrgAdminFn func(ctx context.Context, orgName, userID string) (bool, error)
+
 // ChiRuntimePATMiddleware handles mc_pat_* Bearer tokens for /end-user/ runtime routes.
 // On success it injects:
 //   - EndUserIdentity into context (read by rls_resolver.go via GetEndUserIdentity)
 //   - ctxutils user fields (UserID, OrgName, UserType) so the JWT middleware short-circuits
+//   - ctxutils IsAdmin flag when the user's user_orgs.is_admin=true, mirroring the
+//     APISIX/JWT path so graphql_app.go can skip permission checks for org admins
 //
 // Non-PAT requests pass through unchanged (JWT middleware handles them).
 func ChiRuntimePATMiddleware(
 	svc *appEnduser.APITokenService,
 	logger logfacade.Logger,
+	isOrgAdminFn IsOrgAdminFn,
 ) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -65,6 +73,14 @@ func ChiRuntimePATMiddleware(
 			ctx = ctxutils.SetUserID(ctx, token.EndUserID)
 			ctx = ctxutils.SetOrgName(ctx, token.OrgName)
 			ctx = ctxutils.SetUserType(ctx, ctxutils.UserTypeEndUser)
+
+			// Check org-admin status and inject IsAdmin flag, mirroring the
+			// APISIX X-Is-Admin header path for JWT callers.
+			if isOrgAdminFn != nil {
+				if admin, adminErr := isOrgAdminFn(ctx, token.OrgName, token.EndUserID); adminErr == nil && admin {
+					ctx = ctxutils.SetIsAdmin(ctx, true)
+				}
+			}
 
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})

@@ -30,12 +30,23 @@ func NewEndUserPermissionService(
 
 // Resolve 查询 end-user 在指定 model 上的有效权限，返回权限快照。
 // endUserID 为空时（tenant admin）直接返回 nil, nil。
-// is_protected=true 且 name="admin" 的角色为通配角色，无需绑定 bundle，直接返回全量权限。
+// 以下情况返回全量通配权限，无需绑定 bundle：
+//  1. user_orgs.is_admin=true：org 级别管理员，对 org 下所有 project/model 拥有全量权限。
+//  2. is_protected=true && name="admin" 的 project 角色：project 级别通配角色。
 func (s *endUserPermissionServiceImpl) Resolve(
 	ctx context.Context, orgName, projectSlug, endUserID, modelID string,
 ) (*modelruntime.ResolvedModelPermissions, error) {
 	if endUserID == "" {
 		return nil, nil //nolint:nilnil // nil ResolvedModelPermissions is the tenant-admin sentinel (skip all checks)
+	}
+
+	// Check org-level admin first (user_orgs.is_admin=true) — broadest privilege.
+	orgAdmin, err := s.rbacRepo.IsOrgAdmin(ctx, orgName, endUserID)
+	if err != nil {
+		return nil, err
+	}
+	if orgAdmin {
+		return adminWildcardPermissions(), nil
 	}
 
 	isAdmin, err := s.rbacRepo.HasProtectedAdminRole(ctx, orgName, projectSlug, endUserID)

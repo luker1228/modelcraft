@@ -295,6 +295,10 @@ func (s *stubRBACRepo) HasProtectedAdminRole(_ context.Context, _, _, _ string) 
 	return false, nil
 }
 
+func (s *stubRBACRepo) IsOrgAdmin(_ context.Context, _, _ string) (bool, error) {
+	return false, nil
+}
+
 func (s *stubRBACRepo) IsUserBuiltin(_ context.Context, _, _ string) (bool, error) {
 	return false, nil
 }
