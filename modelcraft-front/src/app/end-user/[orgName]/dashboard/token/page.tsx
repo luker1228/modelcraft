@@ -41,6 +41,7 @@ import {
   CREATE_END_USER_API_TOKEN,
   REVOKE_END_USER_API_TOKEN,
 } from '@api-client/end-user/graphql-docs'
+import { ApiUsageDialog } from './_components/ApiUsageDialog'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -360,6 +361,7 @@ function TokenPageContent({ orgName }: { orgName: string }) {
   const [createOpen, setCreateOpen] = useState(false)
   const [plaintextToken, setPlaintextToken] = useState<string | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<APIToken | null>(null)
+  const [usageTarget, setUsageTarget] = useState<APIToken | null>(null)
 
   const { data, loading, refetch } = useQuery<EndUserAPITokensData>(END_USER_API_TOKENS, {
     fetchPolicy: 'network-only',
@@ -488,15 +490,27 @@ function TokenPageContent({ orgName }: { orgName: string }) {
                           )}
                         </td>
                         <td className="px-4 py-3 text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                            title="撤销 Token"
-                            onClick={() => setRevokeTarget(token)}
-                          >
-                            <Trash2 className="size-3.5" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 gap-1 px-2 text-xs text-muted-foreground transition-colors hover:bg-muted"
+                              title="使用示例"
+                              onClick={() => setUsageTarget(token)}
+                            >
+                              <Terminal className="size-3.5" />
+                              示例
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                              title="撤销 Token"
+                              onClick={() => setRevokeTarget(token)}
+                            >
+                              <Trash2 className="size-3.5" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )
@@ -549,6 +563,12 @@ function TokenPageContent({ orgName }: { orgName: string }) {
         token={revokeTarget}
         onClose={() => setRevokeTarget(null)}
         onRevoked={() => void refetch()}
+      />
+      <ApiUsageDialog
+        open={!!usageTarget}
+        onOpenChange={(o) => { if (!o) setUsageTarget(null) }}
+        orgName={orgName}
+        tokenName={usageTarget?.name ?? ''}
       />
     </EndUserAppLayout>
   )
