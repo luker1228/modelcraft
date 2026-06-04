@@ -91,13 +91,34 @@ function DbRowForm({ row, options, onUpdate, onRemove }: DbRowFormProps) {
           className="flex-1"
         />
         <div className="flex shrink-0 items-center gap-1">
+          {/* TODO: 自建模式暂未开放，后续按需启用
+          <Select
+            value={row.mode}
+            onValueChange={(v) => onUpdate({ mode: v as DatabaseMode })}
+          >
+            <SelectTrigger className="w-24">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="MANAGED">托管</SelectItem>
+              <SelectItem value="SELF_HOSTED">自建</SelectItem>
+            </SelectContent>
+          </Select>
+          */}
           <TooltipProvider delayDuration={200}>
             <Tooltip>
               <TooltipTrigger asChild>
                 <HelpCircle className="size-4 shrink-0 cursor-default text-muted-foreground" />
               </TooltipTrigger>
               <TooltipContent side="top" className="max-w-56 text-center leading-relaxed">
-                <p>由 ModelCraft 托管，自动处理连接与凭据。</p>
+                <p>
+                  <span className="font-medium">托管</span>：由 ModelCraft 托管，自动处理连接与凭据。
+                </p>
+                {/* TODO: 自建模式暂未开放
+                <p className="mt-1">
+                  <span className="font-medium">自建</span>：你自己部署的数据库，需手动配置连接信息。
+                </p>
+                */}
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

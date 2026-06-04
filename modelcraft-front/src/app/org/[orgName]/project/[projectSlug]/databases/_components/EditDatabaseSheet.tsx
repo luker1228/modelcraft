@@ -14,6 +14,8 @@ import { Input } from '@web/components/ui/input'
 import { Label } from '@web/components/ui/label'
 import { Textarea } from '@web/components/ui/textarea'
 import { Loader2 } from 'lucide-react'
+// TODO: 自建模式暂未开放，后续按需启用
+// import { RadioGroup, RadioGroupItem } from '@web/components/ui/radio-group'
 import {
   useUpdateModelDatabase,
   type ModelDatabase,
@@ -31,6 +33,7 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
 
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
+  const [mode, setMode] = useState<DatabaseMode>('MANAGED')
   const [mode, setMode] = useState<DatabaseMode>('MANAGED')
 
   useEffect(() => {
@@ -77,6 +80,28 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
           </div>
           <div className="flex flex-col gap-2">
             <Label>访问模式</Label>
+            {/* TODO: 自建模式暂未开放，后续按需启用
+            <RadioGroup value={mode} onValueChange={(v) => setMode(v as DatabaseMode)}>
+              <div className="flex items-start gap-3 rounded-md border border-border p-3">
+                <RadioGroupItem value="SELF_HOSTED" id="edit-mode-self" className="mt-0.5" />
+                <div>
+                  <label htmlFor="edit-mode-self" className="cursor-pointer text-sm font-medium">
+                    自建
+                  </label>
+                  <p className="text-xs text-muted-foreground">可读写，支持新建和导入模型</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3 rounded-md border border-border p-3">
+                <RadioGroupItem value="MANAGED" id="edit-mode-managed" className="mt-0.5" />
+                <div>
+                  <label htmlFor="edit-mode-managed" className="cursor-pointer text-sm font-medium">
+                    托管
+                  </label>
+                  <p className="text-xs text-muted-foreground">只读，仅支持同步模型</p>
+                </div>
+              </div>
+            </RadioGroup>
+            */}
             <div className="flex items-start gap-3 rounded-md border border-border bg-muted/30 p-3">
               <div>
                 <p className="text-sm font-medium">托管</p>
