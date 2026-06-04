@@ -46,6 +46,13 @@ func ChiJWTAuthMiddleware(config *JWTAuthConfig) func(http.Handler) http.Handler
 				return
 			}
 
+			// Short-circuit: PAT middleware already authenticated this request
+			// (UserID set in context by ChiRuntimePATMiddleware).
+			if uid, err := ctxutils.GetUserIDFromContext(r.Context()); err == nil && uid != "" {
+				next.ServeHTTP(w, r)
+				return
+			}
+
 			// Gateway-trusted identity: the gateway validates the bearer token,
 			// strips the Authorization header, and injects:
 			// - X-User-ID: end-user ID (for end_user tokens, or admin end-user ID for tenant tokens)
