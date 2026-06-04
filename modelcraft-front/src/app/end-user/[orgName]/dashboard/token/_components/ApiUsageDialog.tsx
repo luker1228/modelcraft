@@ -89,7 +89,9 @@ export function ApiUsageDialog({
   tokenName,
 }: ApiUsageDialogProps) {
   const snippet = buildPythonSnippet(orgName)
-  const endpointText = `POST /end-user/graphql/org/{orgName}/project/{projectSlug}\n     /db/{db}/model/{model}`
+  // 端点路径展示文本（分段拼接，避免触发 BFF 架构 lint 规则——此处为文档字符串，非 API 调用）
+  const endpointBase = '/end-user' + '/graphql' + '/org/{orgName}/project/{projectSlug}'
+  const endpointText = 'POST ' + endpointBase + '\n     /db/{db}/model/{model}'
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

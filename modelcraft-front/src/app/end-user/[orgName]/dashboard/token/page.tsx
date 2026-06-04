@@ -349,7 +349,7 @@ function TokenRowSkeleton() {
         <div className="h-3 w-16 animate-pulse rounded bg-muted" />
       </td>
       <td className="px-4 py-3 text-right">
-        <div className="ml-auto h-7 w-7 animate-pulse rounded bg-muted" />
+        <div className="ml-auto size-7 animate-pulse rounded bg-muted" />
       </td>
     </tr>
   )
@@ -372,7 +372,7 @@ function TokenPageContent({ orgName }: { orgName: string }) {
   return (
     <EndUserAppLayout orgName={orgName} activePage="token">
       <div className="h-full overflow-y-auto">
-        <div className="mx-auto max-w-4xl space-y-6 px-6 py-6">
+        <div className="mx-auto max-w-4xl space-y-6 p-6">
 
           {/* Page header */}
           <div className="flex items-start justify-between gap-4">
