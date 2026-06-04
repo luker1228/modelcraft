@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-04  
 **Status:** Approved  
-**Scope:** Backend only (`modelcraft-backend`)
+**Scope:** Backend (`modelcraft-backend`) + Frontend (`modelcraft-front`)
 
 ---
 
@@ -197,5 +197,95 @@ Table-driven，3 个核心 case：
 ## 不在本次范围内
 
 - API Token 的 scope 限制（如只允许调用特定 model）— 留待后续迭代
-- 前端 Dashboard UI 变更 — API Token 管理页已存在，无需改动
 - OpenAPI YAML 文档更新 — runtime 端点目前未在 openapi.yaml 中描述
+
+---
+
+## 前端：Token 行内「使用示例」弹窗
+
+### 位置
+
+Token 管理页（`/end-user/[orgName]/dashboard/token`）每行 Token 新增「使用示例」按钮，点击弹出 Dialog/Sheet。
+
+已有文件：`src/app/end-user/[orgName]/dashboard/token/page.tsx`
+
+### 弹窗内容
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  使用此 Token 调用 Runtime API                         ✕  │
+├──────────────────────────────────────────────────────────┤
+│  端点                                                      │
+│  POST /end-user/graphql/org/{orgName}/project/{projectSlug}│
+│       /db/{db}/model/{model}                              │
+│                                                            │
+│  认证方式                                                  │
+│  Authorization: Bearer <your-token>                        │
+│                                                            │
+│  Python 示例                          [复制代码]           │
+│  ┌────────────────────────────────────────────────────┐   │
+│  │ import os                                          │   │
+│  │ import requests                                    │   │
+│  │                                                    │   │
+│  │ TOKEN = os.environ["MC_API_TOKEN"]                 │   │
+│  │ # 替换为你的实际参数                                │   │
+│  │ ORG   = "{orgName}"                                │   │
+│  │ ...                                                │   │
+│  └────────────────────────────────────────────────────┘   │
+└──────────────────────────────────────────────────────────┘
+```
+
+### Python 示例代码（完整可运行）
+
+弹窗中展示以下代码，`{orgName}` 为页面 URL 中已知参数，其余占位符用注释提示用户填写：
+
+```python
+import os
+import requests
+
+# 从环境变量读取 API Token（避免硬编码）
+TOKEN = os.environ["MC_API_TOKEN"]
+
+# 替换为你的实际参数
+ORG_NAME     = "{orgName}"   # 已自动填入
+PROJECT_SLUG = "your-project"
+DB_NAME      = "your-db"
+MODEL_NAME   = "your-model"
+
+ENDPOINT = (
+    f"http://localhost:8080/end-user/graphql"
+    f"/org/{ORG_NAME}/project/{PROJECT_SLUG}"
+    f"/db/{DB_NAME}/model/{MODEL_NAME}"
+)
+
+# GraphQL 查询示例：查询前 10 条记录
+query = """
+query {
+  list(limit: 10) {
+    id
+  }
+}
+"""
+
+resp = requests.post(
+    ENDPOINT,
+    json={"query": query},
+    headers={"Authorization": f"Bearer {TOKEN}"},
+)
+resp.raise_for_status()
+print(resp.json())
+```
+
+### 实现要点
+
+- 使用已有 `Dialog`（shadcn/ui）或 `Sheet` 组件，无需新增基础组件
+- 代码块使用 `<pre>` + 一键「复制代码」按钮（`navigator.clipboard.writeText`）
+- `orgName` 从页面 URL params 中读取，自动填入示例代码，其余参数保留占位符
+- 弹窗为纯展示，无表单提交，无网络请求
+
+### 改动文件
+
+| 文件 | 类型 |
+|------|------|
+| `src/app/end-user/[orgName]/dashboard/token/page.tsx` | 微改（Token 行新增按钮 + 引入弹窗组件） |
+| `src/app/end-user/[orgName]/dashboard/token/_components/ApiUsageDialog.tsx` | 新增 |
