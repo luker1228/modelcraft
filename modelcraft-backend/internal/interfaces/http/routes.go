@@ -675,30 +675,49 @@ func CreateRuntimeHandlers(loggingDB dbgen.Querier) *RuntimeHandlers {
 //	POST /graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model} → GraphQL query execution
 //
 // JWT authentication is enforced when cfg.Auth.Runtime.Enabled is true.
-func SetupRuntimeGraphQLRoutesOnChi(router chi.Router, handlers *RuntimeHandlers, cfg *config.Config) {
+func SetupRuntimeGraphQLRoutesOnChi(
+	router chi.Router,
+	handlers *RuntimeHandlers,
+	cfg *config.Config,
+	apiTokenSvc *appEnduser.APITokenService,
+) {
 	jwtConfig := &middleware.JWTAuthConfig{
 		SkipValidation: !cfg.Auth.Runtime.Enabled,
 	}
 
+	logger := logfacade.GetLogger(context.Background())
+
+	orgMW := middleware.ChiGraphQLOrgMiddleware()
+	jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
+	cacheMW := func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+			useCache := req.URL.Query().Get("useCache") != "false"
+			next.ServeHTTP(w, req.WithContext(ctxutils.SetUseCache(req.Context(), useCache)))
+		})
+	}
+
+	// Design-time tenant runtime: JWT only (same as before)
 	runtimeMW := func(next http.Handler) http.Handler {
-		orgMW := middleware.ChiGraphQLOrgMiddleware()
-		jwtMW := middleware.ChiJWTAuthMiddleware(jwtConfig)
-		cacheMW := func(next http.Handler) http.Handler {
-			return http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
-				useCache := req.URL.Query().Get("useCache") != "false"
-				next.ServeHTTP(w, req.WithContext(ctxutils.SetUseCache(req.Context(), useCache)))
-			})
-		}
 		return requestIDInjectorMiddleware(jwtMW(orgMW(cacheMW(next))))
+	}
+
+	// End-user runtime: PAT Token takes priority, JWT is fallback
+	var patMW func(http.Handler) http.Handler
+	if apiTokenSvc != nil {
+		patMW = middleware.ChiPATAuthMiddleware(apiTokenSvc, logger)
+	} else {
+		patMW = func(next http.Handler) http.Handler { return next }
+	}
+	endUserRuntimeMW := func(next http.Handler) http.Handler {
+		return requestIDInjectorMiddleware(patMW(jwtMW(orgMW(cacheMW(next)))))
 	}
 
 	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
 	router.With(runtimeMW).Get(runtimePath, handlers.ModelRuntimeHandler.HandlePlayground)
 	router.With(runtimeMW).Post(runtimePath, handlers.ModelRuntimeHandler.HandleQuery)
 
-	// End-user runtime routes — same handler, end-user JWT identity injected by APISIX.
-	// No X-Action middleware: runtime queries are schema-driven and don't need operation validation.
+	// End-user runtime routes — PAT Bearer token or gateway-injected JWT.
 	endUserRuntimePath := "/end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
-	router.With(runtimeMW).Get(endUserRuntimePath, handlers.ModelRuntimeHandler.HandlePlayground)
-	router.With(runtimeMW).Post(endUserRuntimePath, handlers.ModelRuntimeHandler.HandleQuery)
+	router.With(endUserRuntimeMW).Get(endUserRuntimePath, handlers.ModelRuntimeHandler.HandlePlayground)
+	router.With(endUserRuntimeMW).Post(endUserRuntimePath, handlers.ModelRuntimeHandler.HandleQuery)
 }

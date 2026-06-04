@@ -107,7 +107,7 @@ func SetupChiRouter(cfg *ChiRouterConfig) chi.Router {
 	// GraphQL Routes - Runtime API
 	// ============================================================
 	if cfg.RuntimeHandlers != nil {
-		SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config)
+		SetupRuntimeGraphQLRoutesOnChi(r, cfg.RuntimeHandlers, cfg.Config, cfg.APITokenService)
 	}
 
 	// ============================================================
