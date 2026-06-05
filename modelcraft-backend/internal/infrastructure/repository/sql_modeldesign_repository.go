@@ -37,19 +37,20 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 				ModelName:    row.Name,
 				DatabaseName: row.DatabaseName,
 			},
-			Title:            row.Title,
-			Description:      row.Description.String,
-			StorageType:      row.StorageType,
-			DisplayField:     sqlerr.NullStrToPtr(row.DisplayField),
-			Version:          row.Version.Int64,
-			Status:           row.Status.String,
-			GroupID:          sqlerr.NullStrToPtr(row.GroupID),
-			DeploymentStatus: modeldesign.DeploymentStatus(row.DeploymentStatus.String),
-			LastSyncAt:       sqlerr.NullTimeToPtr(row.LastSyncAt),
-			SyncError:        row.SyncError.String,
-			CreatedAt:        createdAt,
-			CreatedVia:       modeldesign.ModelCreationSource(row.CreatedVia),
-			UpdatedAt:        updatedAt,
+			Title:               row.Title,
+			Description:         row.Description.String,
+			StorageType:         row.StorageType,
+			DisplayField:        sqlerr.NullStrToPtr(row.DisplayField),
+			InsertionOrderField: sqlerr.NullStrToPtr(row.InsertionOrderField),
+			Version:             row.Version.Int64,
+			Status:              row.Status.String,
+			GroupID:             sqlerr.NullStrToPtr(row.GroupID),
+			DeploymentStatus:    modeldesign.DeploymentStatus(row.DeploymentStatus.String),
+			LastSyncAt:          sqlerr.NullTimeToPtr(row.LastSyncAt),
+			SyncError:           row.SyncError.String,
+			CreatedAt:           createdAt,
+			CreatedVia:          modeldesign.ModelCreationSource(row.CreatedVia),
+			UpdatedAt:           updatedAt,
 		},
 	}
 }
@@ -368,6 +369,13 @@ func (r *SqlModelDesignRepository) Update(ctx context.Context, model *modeldesig
 	rows, _ := result.RowsAffected()
 	if rows == 0 {
 		return shared.NewRepositoryError(shared.ErrTypeNoRowsAffected, "Model not found or not updated")
+	}
+
+	if err := r.q.UpdateInsertionOrderField(ctx, dbgen.UpdateInsertionOrderFieldParams{
+		ID:                  model.ID,
+		InsertionOrderField: sqlerr.PtrToNullStr(model.InsertionOrderField),
+	}); err != nil {
+		return bizerrors.Wrapf(err, "UpdateInsertionOrderField")
 	}
 
 	return nil

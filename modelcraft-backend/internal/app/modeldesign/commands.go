@@ -19,11 +19,12 @@ type CreateModelCommand struct {
 
 // UpdateModelMetaCommand 更新模型元数据命令
 type UpdateModelMetaCommand struct {
-	OrgName      string // 组织名称（从 URL 路径或 JWT 中提取）
-	ProjectSlug  string // 项目标识符
-	Title        *string
-	Description  *string
-	DisplayField *string // 用于 runtime _label 解析的字段名（nil 表示不更新）
+	OrgName             string // 组织名称（从 URL 路径或 JWT 中提取）
+	ProjectSlug         string // 项目标识符
+	Title               *string
+	Description         *string
+	DisplayField        *string // 用于 runtime _label 解析的字段名（nil 表示不更新）
+	InsertionOrderField *string // 用于 listPage cursor 的插入序字段名（nil 表示不更新，空字符串表示清除）
 }
 
 // ModelQueryCommand 模型查询命令

@@ -198,6 +198,14 @@ func (s *ModelDesignAppService) UpdateModelMeta(ctx context.Context, id string, 
 		model.UpdateDisplayField(cmd.DisplayField)
 	}
 
+	// 更新 insertionOrderField（如果传入非 nil 则更新）
+	if cmd.InsertionOrderField != nil {
+		model.UpdateInsertionOrderField(cmd.InsertionOrderField)
+		if err := model.ValidateInsertionOrderField(); err != nil {
+			return bizerrors.NewError(bizerrors.ParamInvalid, err.Error())
+		}
+	}
+
 	// 验证元数据
 	if err := model.ValidateMeta(); err != nil {
 		return err
