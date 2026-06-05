@@ -105,7 +105,9 @@ func NewModelDatabaseSyncAppService(deps ModelDatabaseSyncAppServiceDeps) *Model
 	}
 }
 
-func (s *ModelDatabaseSyncAppService) StartSync(ctx context.Context, databaseID string) (*domaindb.ModelDatabaseSyncJob, error) {
+func (s *ModelDatabaseSyncAppService) StartSync(
+	ctx context.Context, databaseID string,
+) (*domaindb.ModelDatabaseSyncJob, error) {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "orgName required")
@@ -117,7 +119,8 @@ func (s *ModelDatabaseSyncAppService) StartSync(ctx context.Context, databaseID 
 	if _, err := s.modelDatabaseRepo.GetByID(ctx, orgName, projectSlug, databaseID); err != nil {
 		return nil, err
 	}
-	active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, databaseID, s.now().Add(-defaultStalePeriod))
+	staleBefore := s.now().Add(-defaultStalePeriod)
+	active, err := s.syncJobRepo.GetActiveByDatabase(ctx, orgName, projectSlug, databaseID, staleBefore)
 	if err != nil {
 		return nil, err
 	}
@@ -156,7 +159,9 @@ func (s *ModelDatabaseSyncAppService) RecoverStaleJobs(ctx context.Context) erro
 	return s.syncJobRepo.FailStalePendingJobs(ctx, staleBefore)
 }
 
-func (s *ModelDatabaseSyncAppService) GetJob(ctx context.Context, jobID string) (*domaindb.ModelDatabaseSyncJob, error) {
+func (s *ModelDatabaseSyncAppService) GetJob(
+	ctx context.Context, jobID string,
+) (*domaindb.ModelDatabaseSyncJob, error) {
 	orgName, err := ctxutils.GetOrgNameFromContext(ctx)
 	if err != nil {
 		return nil, bizerrors.NewError(bizerrors.ParamInvalid, "orgName required")
@@ -266,28 +271,33 @@ func (s *ModelDatabaseSyncAppService) processTable(
 		return s.recordTableFailure(ctx, job, tableName, err)
 	}
 
-	if existingModel == nil {
-		importResult, importErr := s.reverseEngineer.ImportModel(ctx, modeldesign.ImportModelCommand{
-			OrgName:      job.OrgName,
-			ProjectSlug:  job.ProjectSlug,
-			DatabaseName: db.Name,
-			TableName:    tableName,
-		})
-		if importErr != nil {
-			return s.recordTableFailure(ctx, job, tableName, importErr)
-		}
-		if group != nil {
-			if err := s.groupService.MoveModelToGroup(ctx, importResult.ModelID, &group.ID); err != nil {
-				return s.recordTableFailure(ctx, job, tableName, err)
-			}
-		}
-		job.CreatedModels++
-	} else {
-		if _, err := s.schemaSync.SyncModelSchemaFromJSON(ctx, existingModel.ID, buildResult.SchemaJSON, false); err != nil {
+	if existingModel != nil {
+		if _, err := s.schemaSync.SyncModelSchemaFromJSON(
+			ctx, existingModel.ID, buildResult.SchemaJSON, false,
+		); err != nil {
 			return s.recordTableFailure(ctx, job, tableName, err)
 		}
 		job.SyncedModels++
+		job.ProcessedTables++
+		job.UpdatedAt = s.now()
+		return s.syncJobRepo.Update(ctx, job)
 	}
+
+	importResult, importErr := s.reverseEngineer.ImportModel(ctx, modeldesign.ImportModelCommand{
+		OrgName:      job.OrgName,
+		ProjectSlug:  job.ProjectSlug,
+		DatabaseName: db.Name,
+		TableName:    tableName,
+	})
+	if importErr != nil {
+		return s.recordTableFailure(ctx, job, tableName, importErr)
+	}
+	if group != nil {
+		if err := s.groupService.MoveModelToGroup(ctx, importResult.ModelID, &group.ID); err != nil {
+			return s.recordTableFailure(ctx, job, tableName, err)
+		}
+	}
+	job.CreatedModels++
 
 	job.ProcessedTables++
 	job.UpdatedAt = s.now()

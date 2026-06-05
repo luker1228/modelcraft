@@ -21,7 +21,9 @@ type fakeModelDatabaseRepo struct {
 }
 
 func (f *fakeModelDatabaseRepo) Create(context.Context, *domaindb.ModelDatabase) error { return nil }
-func (f *fakeModelDatabaseRepo) GetByID(_ context.Context, orgName, projectSlug, id string) (*domaindb.ModelDatabase, error) {
+func (f *fakeModelDatabaseRepo) GetByID(
+	_ context.Context, orgName, projectSlug, id string,
+) (*domaindb.ModelDatabase, error) {
 	db := f.byID[id]
 	if db == nil || db.OrgName != orgName || db.ProjectSlug != projectSlug {
 		return nil, shared.NewNotFoundError("model database not found")
@@ -60,13 +62,17 @@ func (f *fakeSyncJobRepo) Create(ctx context.Context, job *domaindb.ModelDatabas
 	cloned := *job
 	f.jobs[job.ID] = &cloned
 	f.created = append(f.created, &cloned)
-	if job.Status == domaindb.ModelDatabaseSyncJobStatusPending || job.Status == domaindb.ModelDatabaseSyncJobStatusRunning {
+	pending := domaindb.ModelDatabaseSyncJobStatusPending
+	running := domaindb.ModelDatabaseSyncJobStatusRunning
+	if job.Status == pending || job.Status == running {
 		f.runningByDB[job.DatabaseID] = &cloned
 	}
 	return nil
 }
 
-func (f *fakeSyncJobRepo) GetByID(ctx context.Context, orgName, projectSlug, jobID string) (*domaindb.ModelDatabaseSyncJob, error) {
+func (f *fakeSyncJobRepo) GetByID(
+	ctx context.Context, orgName, projectSlug, jobID string,
+) (*domaindb.ModelDatabaseSyncJob, error) {
 	job := f.jobs[jobID]
 	if job == nil || job.OrgName != orgName || job.ProjectSlug != projectSlug {
 		return nil, shared.NewNotFoundError("sync job not found")
@@ -95,7 +101,9 @@ func (f *fakeSyncJobRepo) FailStalePendingJobs(_ context.Context, _ time.Time) e
 func (f *fakeSyncJobRepo) Update(ctx context.Context, job *domaindb.ModelDatabaseSyncJob) error {
 	cloned := *job
 	f.jobs[job.ID] = &cloned
-	if job.Status == domaindb.ModelDatabaseSyncJobStatusPending || job.Status == domaindb.ModelDatabaseSyncJobStatusRunning {
+	pending2 := domaindb.ModelDatabaseSyncJobStatusPending
+	running2 := domaindb.ModelDatabaseSyncJobStatusRunning
+	if job.Status == pending2 || job.Status == running2 {
 		f.runningByDB[job.DatabaseID] = &cloned
 	} else {
 		delete(f.runningByDB, job.DatabaseID)
@@ -140,7 +148,9 @@ func (f *fakeReverseEngineerService) ListTables(
 	return &modeldesign.ListTablesResult{Tables: f.tables, TotalCount: len(f.tables)}, nil
 }
 
-func (f *fakeReverseEngineerService) ImportModel(ctx context.Context, cmd modeldesign.ImportModelCommand) (*modeldesign.ImportModelResult, error) {
+func (f *fakeReverseEngineerService) ImportModel(
+	ctx context.Context, cmd modeldesign.ImportModelCommand,
+) (*modeldesign.ImportModelResult, error) {
 	if err := f.importErrs[cmd.TableName]; err != nil {
 		return nil, err
 	}
@@ -171,7 +181,9 @@ func (f *fakeModelRepository) UpdateWithVersion(context.Context, *domainmodel.Da
 	return 0, nil
 }
 func (f *fakeModelRepository) Delete(context.Context, string) error { return nil }
-func (f *fakeModelRepository) GetByID(context.Context, string, ...*domainmodel.ModelQueryOptions) (*domainmodel.DataModel, error) {
+func (f *fakeModelRepository) GetByID(
+	context.Context, string, ...*domainmodel.ModelQueryOptions,
+) (*domainmodel.DataModel, error) {
 	return nil, shared.NewNotFoundError("not found")
 }
 
@@ -188,11 +200,15 @@ func (f *fakeModelRepository) GetByName(
 	return model, nil
 }
 
-func (f *fakeModelRepository) FindByDeploymentStatus(context.Context, ...domainmodel.DeploymentStatus) ([]domainmodel.DataModel, error) {
+func (f *fakeModelRepository) FindByDeploymentStatus(
+	context.Context, ...domainmodel.DeploymentStatus,
+) ([]domainmodel.DataModel, error) {
 	return nil, nil
 }
 
-func (f *fakeModelRepository) GetMetaByIDs(context.Context, string, string, []string) ([]*domainmodel.DataModel, error) {
+func (f *fakeModelRepository) GetMetaByIDs(
+	context.Context, string, string, []string,
+) ([]*domainmodel.DataModel, error) {
 	return nil, nil
 }
 
@@ -200,7 +216,9 @@ func (f *fakeModelRepository) Query(context.Context, domainmodel.ModelQuery) ([]
 	return nil, 0, nil
 }
 
-func (f *fakeModelRepository) ListDatabaseCatalog(context.Context, string, string, string, int, int) ([]string, int, error) {
+func (f *fakeModelRepository) ListDatabaseCatalog(
+	context.Context, string, string, string, int, int,
+) ([]string, int, error) {
 	return nil, 0, nil
 }
 
@@ -266,7 +284,9 @@ type fakeGroupService struct {
 	ensureCall int
 }
 
-func (f *fakeGroupService) EnsureImportGroup(ctx context.Context, orgName, projectSlug string) (*domainmodel.ModelGroup, error) {
+func (f *fakeGroupService) EnsureImportGroup(
+	ctx context.Context, orgName, projectSlug string,
+) (*domainmodel.ModelGroup, error) {
 	f.ensureCall++
 	if f.ensureErr != nil {
 		return nil, f.ensureErr

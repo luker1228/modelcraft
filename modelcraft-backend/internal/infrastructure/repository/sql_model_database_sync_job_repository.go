@@ -52,7 +52,7 @@ func (r *SqlModelDatabaseSyncJobRepository) GetByID(
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
-			return nil, nil
+			return nil, nil //nolint:nilnil // nil is the canonical "not found" sentinel for this repository method
 		}
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (r *SqlModelDatabaseSyncJobRepository) GetActiveByDatabase(
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
-			return nil, nil
+			return nil, nil //nolint:nilnil // nil is the canonical "not found" sentinel for this repository method
 		}
 		return nil, err
 	}

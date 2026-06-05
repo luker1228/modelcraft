@@ -206,23 +206,24 @@ func TestNewFindManyInput(t *testing.T) {
 				t.Errorf("newFindManyInput() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
-			if !tt.wantErr {
-				if got.TableName != tt.tableName {
-					t.Errorf("newFindManyInput() TableName = %v, want %v", got.TableName, tt.tableName)
-				}
-				if got.Limit != tt.wantLimit {
-					t.Errorf("newFindManyInput() Limit = %v, want %v", got.Limit, tt.wantLimit)
-				}
-				if got.Offset != tt.wantOffset {
-					t.Errorf("newFindManyInput() Offset = %v, want %v", got.Offset, tt.wantOffset)
-				}
-				if len(got.OrderBy) != len(tt.wantOrderBy) {
-					t.Fatalf("newFindManyInput() OrderBy len = %v, want %v", len(got.OrderBy), len(tt.wantOrderBy))
-				}
-				for i := range tt.wantOrderBy {
-					if got.OrderBy[i] != tt.wantOrderBy[i] {
-						t.Errorf("newFindManyInput() OrderBy[%d] = %+v, want %+v", i, got.OrderBy[i], tt.wantOrderBy[i])
-					}
+			if tt.wantErr {
+				return
+			}
+			if got.TableName != tt.tableName {
+				t.Errorf("newFindManyInput() TableName = %v, want %v", got.TableName, tt.tableName)
+			}
+			if got.Limit != tt.wantLimit {
+				t.Errorf("newFindManyInput() Limit = %v, want %v", got.Limit, tt.wantLimit)
+			}
+			if got.Offset != tt.wantOffset {
+				t.Errorf("newFindManyInput() Offset = %v, want %v", got.Offset, tt.wantOffset)
+			}
+			if len(got.OrderBy) != len(tt.wantOrderBy) {
+				t.Fatalf("newFindManyInput() OrderBy len = %v, want %v", len(got.OrderBy), len(tt.wantOrderBy))
+			}
+			for i := range tt.wantOrderBy {
+				if got.OrderBy[i] != tt.wantOrderBy[i] {
+					t.Errorf("newFindManyInput() OrderBy[%d] = %+v, want %+v", i, got.OrderBy[i], tt.wantOrderBy[i])
 				}
 			}
 		})

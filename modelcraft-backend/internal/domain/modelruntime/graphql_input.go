@@ -129,10 +129,16 @@ func getOrderBy(param map[string]any) ([]OrderBy, error) {
 		for field, directionVal := range entry {
 			direction, err := cast.ToStringE(directionVal)
 			if err != nil {
-				return nil, bizerrors.Errorf("orderBy direction must be string, val = %v type = %T", directionVal, directionVal)
+				return nil, bizerrors.Errorf(
+					"orderBy direction must be string, val = %v type = %T",
+					directionVal, directionVal,
+				)
 			}
 			if direction != OrderByAsc && direction != OrderByDesc {
-				return nil, bizerrors.Errorf("orderBy direction must be %q or %q, got %q", OrderByAsc, OrderByDesc, direction)
+				return nil, bizerrors.Errorf(
+					"orderBy direction must be %q or %q, got %q",
+					OrderByAsc, OrderByDesc, direction,
+				)
 			}
 			result = append(result, OrderBy{
 				Field:     field,

@@ -3,11 +3,11 @@ package enduser
 import (
 	"context"
 	"fmt"
+	"modelcraft/internal/app/auth"
+	"modelcraft/pkg/bizutils"
 	"time"
 
-	"modelcraft/internal/app/auth"
 	domainenduser "modelcraft/internal/domain/enduser"
-	"modelcraft/pkg/bizutils"
 )
 
 const maxTokensPerUser = 20

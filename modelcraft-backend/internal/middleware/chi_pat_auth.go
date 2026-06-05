@@ -1,13 +1,12 @@
 package middleware
 
 import (
-	"net/http"
-	"strings"
-	"time"
-
 	"modelcraft/internal/app/enduser"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"net/http"
+	"strings"
+	"time"
 )
 
 const patPrefix = "mc_pat_"

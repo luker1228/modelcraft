@@ -72,7 +72,9 @@ func modelDatabaseSyncJobToGQL(job *domainmodeldatabase.ModelDatabaseSyncJob) *g
 	}
 }
 
-func domainSyncJobStatusToGQL(status domainmodeldatabase.ModelDatabaseSyncJobStatus) generated.ModelDatabaseSyncJobStatus {
+func domainSyncJobStatusToGQL(
+	status domainmodeldatabase.ModelDatabaseSyncJobStatus,
+) generated.ModelDatabaseSyncJobStatus {
 	switch status {
 	case domainmodeldatabase.ModelDatabaseSyncJobStatusPending:
 		return generated.ModelDatabaseSyncJobStatusPending
