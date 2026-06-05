@@ -34,7 +34,6 @@ export function EditDatabaseSheet({ database, onClose }: EditDatabaseSheetProps)
   const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [mode, setMode] = useState<DatabaseMode>('MANAGED')
-  const [mode, setMode] = useState<DatabaseMode>('MANAGED')
 
   useEffect(() => {
     if (database) {
