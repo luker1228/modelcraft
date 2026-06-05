@@ -64,6 +64,16 @@ const (
 	FieldReqId = "reqId"
 	// FieldTotalCount 总记录数字段名 (findMany, 可选)
 	FieldTotalCount = "totalCount"
+	// FieldAfter listPage: opaque cursor from the previous page
+	FieldAfter = "after"
+	// FieldNextCursor listPage: opaque cursor pointing to the next page (nil = last page)
+	FieldNextCursor = "nextCursor"
+	// FieldHasNextPage listPage: whether more results exist
+	FieldHasNextPage = "hasNextPage"
+	// FieldSortField listPage: field to sort by (required)
+	FieldSortField = "sortField"
+	// FieldSortDirection listPage: sort direction "asc" or "desc" (required)
+	FieldSortDirection = "sortDirection"
 
 	// 排序方向
 	// OrderByAsc 升序排序
@@ -116,6 +126,8 @@ const (
 	OperationAggregate = "aggregate"
 	// OperationCount 计数查询操作
 	OperationCount = "count"
+	// OperationListPage cursor-based stable pagination operation
+	OperationListPage = "listPage"
 )
 
 // GraphQL 顶级类型名常量

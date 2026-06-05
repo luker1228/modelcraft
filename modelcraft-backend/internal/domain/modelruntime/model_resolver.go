@@ -173,6 +173,10 @@ func (m *graphqlModelResolver) createRootQuery(ctx context.Context, modelType gr
 	if err != nil {
 		return nil, err
 	}
+	listPageField, err := m.createListPageField(modelType)
+	if err != nil {
+		return nil, err
+	}
 	rootQuery := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Query",
 		Fields: graphql.Fields{
@@ -181,6 +185,7 @@ func (m *graphqlModelResolver) createRootQuery(ctx context.Context, modelType gr
 			OperationFindMany:   findManyFields,
 			OperationAggregate:  aggregateField,
 			OperationCount:      countField,
+			OperationListPage:   listPageField,
 		},
 	})
 	return rootQuery, nil
@@ -1267,7 +1272,145 @@ func (r *graphqlModelResolver) createFindManyResultType(modelType graphql.Type) 
 	})
 }
 
-// 变更操作相关方法
+// createListPageResultType creates the GraphQL result type for listPage.
+func (r *graphqlModelResolver) createListPageResultType(modelType graphql.Type) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: gqlTypeName(r.model.Name) + "ListPageResult",
+		Fields: graphql.Fields{
+			FieldItems: &graphql.Field{
+				Type:        graphql.NewList(graphql.NewNonNull(modelType)),
+				Description: "Current page records",
+			},
+			FieldNextCursor: &graphql.Field{
+				Type:        graphql.String,
+				Description: "Cursor to the next page (nil = last page)",
+			},
+			FieldHasNextPage: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.Boolean),
+				Description: "Whether more results exist",
+			},
+			FieldTimeCost: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.Int),
+				Description: "Query execution time in milliseconds",
+			},
+			FieldReqId: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.String),
+				Description: "Request tracking ID",
+			},
+		},
+		Description: "Result wrapper for listPage cursor pagination",
+	})
+}
+
+func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[string]any, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
+	startTime := time.Now()
+
+	// Parse arguments
+	sortField, _ := p.Args[FieldSortField].(string)
+	sortDirection, _ := p.Args[FieldSortDirection].(string)
+	if sortDirection != OrderByAsc && sortDirection != OrderByDesc {
+		sortDirection = OrderByAsc
+	}
+	limitRaw, _ := p.Args[FieldLimit].(int)
+	if limitRaw <= 0 {
+		limitRaw = 20
+	}
+	limit := uint(limitRaw)
+
+	// Parse after cursor
+	var after *CursorData
+	if afterStr, ok := p.Args[FieldAfter].(string); ok && afterStr != "" {
+		decoded, err := decodeCursor(afterStr)
+		if err != nil {
+			return nil, bizerrors.Errorf("invalid after cursor: %w", err)
+		}
+		after = &decoded
+	}
+
+	// Insertion-order field from model config
+	insertionOrderField := ""
+	if m.model.InsertionOrderField != nil {
+		insertionOrderField = *m.model.InsertionOrderField
+	}
+
+	input := &ListPageInput{
+		TableName:           m.model.Name,
+		SortField:           sortField,
+		SortDirection:       sortDirection,
+		InsertionOrderField: insertionOrderField,
+		After:               after,
+		Limit:               limit,
+		Where:               make(map[string]any),
+	}
+
+	// Inject RLS row filter
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(input.Where, rf)
+	}
+
+	// Fetch limit+1 rows to detect hasNextPage
+	rows, err := rctx.ClientRepo.ListPage(p.Context, input)
+	if err != nil {
+		return nil, err
+	}
+
+	hasNextPage := len(rows) > int(limit)
+	if hasNextPage {
+		rows = rows[:limit]
+	}
+
+	// Build nextCursor from last record
+	var nextCursorStr *string
+	if hasNextPage && len(rows) > 0 {
+		last := rows[len(rows)-1]
+		sv := fmt.Sprintf("%v", last[sortField])
+		cd := CursorData{SortField: sortField, SortValue: sv}
+		if insertionOrderField != "" {
+			cd.IOField = insertionOrderField
+			cd.IOValue = fmt.Sprintf("%v", last[insertionOrderField])
+		}
+		encoded := encodeCursor(cd)
+		nextCursorStr = &encoded
+	}
+
+	metadata := requestcontext.GetMetadata(p.Context)
+	reqId := ""
+	if metadata != nil {
+		reqId = metadata.ReqID
+	}
+
+	return map[string]any{
+		FieldItems:       rows,
+		FieldNextCursor:  nextCursorStr,
+		FieldHasNextPage: hasNextPage,
+		FieldTimeCost:    int(time.Since(startTime).Milliseconds()),
+		FieldReqId:       reqId,
+	}, nil
+}
+
+func (m *graphqlModelResolver) createListPageField(modelType graphql.Type) (*graphql.Field, error) {
+	args := m.inputTypeGenerator.GenerateListPageArgs(m.model)
+	resultType := m.createListPageResultType(modelType)
+
+	return &graphql.Field{
+		Type: resultType,
+		Args: args,
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			result, err := m.executeListPage(p)
+			if err != nil {
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeListPage fail", logfacade.Err(err))
+				return nil, err
+			}
+			return result, err
+		},
+	}, nil
+}
 
 func (m *graphqlModelResolver) createRootMutation(modelType graphql.Type) (*graphql.Object, error) {
 	createOneField, err := m.createCreateOneField(modelType)

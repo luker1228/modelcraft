@@ -528,6 +528,30 @@ func (g *inputTypeGenerator) GenerateAggregateArgs(model *RuntimeModel) graphql.
 	return args
 }
 
+// GenerateListPageArgs builds GraphQL argument config for the listPage operation.
+func (g *inputTypeGenerator) GenerateListPageArgs(_ *RuntimeModel) graphql.FieldConfigArgument {
+	return graphql.FieldConfigArgument{
+		FieldSortField: &graphql.ArgumentConfig{
+			Type:        graphql.NewNonNull(graphql.String),
+			Description: "Field to sort by (required)",
+		},
+		FieldSortDirection: &graphql.ArgumentConfig{
+			Type:         graphql.NewNonNull(graphql.String),
+			Description:  "Sort direction: asc or desc (required)",
+			DefaultValue: OrderByAsc,
+		},
+		FieldLimit: &graphql.ArgumentConfig{
+			Type:         graphql.Int,
+			DefaultValue: 20,
+			Description:  "Page size (default 20)",
+		},
+		FieldAfter: &graphql.ArgumentConfig{
+			Type:        graphql.String,
+			Description: "Opaque cursor from previous page (omit for first page)",
+		},
+	}
+}
+
 // GenerateCountArgs 为count查询生成参数配置
 // count 支持 where 参数进行过滤，以及 select 参数用于字段级计数
 func (g *inputTypeGenerator) GenerateCountArgs(model *RuntimeModel) graphql.FieldConfigArgument {
