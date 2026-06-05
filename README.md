@@ -2,7 +2,7 @@
 
 `mc` 是 ModelCraft 的终端工具，面向 end-user 场景，支持：
 
-- PAT Token / 用户名密码两种登录方式
+- PAT Token 登录
 - 项目 / 数据库 / 模型目录发现（catalog）
 - 模型字段 introspection（describe）
 - 运行时 GraphQL 查询执行（run）
@@ -187,28 +187,13 @@ export PATH="$PWD/bin:$PATH"
 
 ## 快速开始
 
-### 方式一：PAT Token 登录（推荐）
-
 在管理控制台（`http://localhost:3100`）中为 End User 创建 PAT，然后：
 
 ```bash
 mc auth login --server http://localhost:9080 --token 'mc_pat_xxx'
 ```
 
-PAT 会话无过期时间，无需 refresh，适合 CI / Agent 使用。
-
-### 方式二：用户名/密码登录
-
-```bash
-mc auth login \
-  --server http://localhost:9080 \
-  --username alice \
-  --password 'your-password'
-```
-
-> `--server` 默认指向 `https://lukemxjia.devcloud.woa.com`，本地部署时需显式指定。
-
-登录成功后凭证保存至 `~/.config/modelcraft/credentials.json`，后续命令无需重复指定 `--server`。
+PAT 无过期时间，适合 CI / Agent 使用。登录成功后凭证保存至 `~/.config/modelcraft/credentials.json`，后续命令无需重复指定 `--server`。
 
 ---
 
@@ -217,10 +202,9 @@ mc auth login \
 ### auth — 身份认证
 
 ```bash
-mc auth login           # 登录（PAT 或用户名/密码）
+mc auth login           # 登录（PAT Token）
 mc auth status          # 查看当前登录状态
-mc auth logout          # 登出并清除本地凭证
-mc auth refresh         # 刷新 access token（仅密码登录有效）
+mc auth logout          # 清除本地凭证
 mc auth switch-project  # 设置默认 project 上下文
 ```
 
@@ -228,11 +212,8 @@ mc auth switch-project  # 设置默认 project 上下文
 
 | 参数 | 说明 | 默认值 |
 |------|------|--------|
-| `--server` | Gateway 地址 | `https://lukemxjia.devcloud.woa.com` |
-| `--token` | PAT（`mc_pat_xxx`），指定后跳过用户名/密码 | — |
-| `--username` | End User 用户名 | — |
-| `--password` | End User 密码 | — |
-| `--org` | Org slug（可选，通常由用户名自动解析） | — |
+| `--server` | Gateway 地址 | `http://lukemxjia.devcloud.woa.com:9080` |
+| `--token` | PAT（`mc_pat_xxx`） | — |
 | `--credentials` | 凭证文件路径 | `~/.config/modelcraft/credentials.json` |
 
 #### `mc auth switch-project <slug>`
@@ -359,8 +340,7 @@ CLI (mc_pat_xxx / JWT)
 
 | 登录方式 | 本地存储 | 过期策略 |
 |---------|---------|---------|
-| PAT (`--token`) | PAT 原文作为 access_token，无 refresh_token | 永不过期，由管理员手动吊销 |
-| 用户名/密码 | JWT access_token + refresh_token | access_token 过期时自动 `refresh` |
+| PAT (`--token`) | PAT 原文作为 access_token | 永不过期，由管理员手动吊销 |
 
 ---
 
@@ -405,7 +385,7 @@ CLI (mc_pat_xxx / JWT)
 
 | 错误码 | 原因 | 解决方案 |
 |--------|------|----------|
-| `UNAUTHENTICATED` | 未登录或 token 过期 | `mc auth login` |
+| `UNAUTHENTICATED` | 未登录或 PAT 已被吊销 | `mc auth login --token mc_pat_xxx` |
 | `NO_PROJECT_CONTEXT` | 未设置默认 project | `--project <slug>` 或 `mc auth switch-project <slug>` |
 | `MISSING_REQUIRED_FLAG` | 缺少必填参数 | `mc <command> --help` |
 | `PROJECT_NOT_FOUND` | project slug 不在授权列表 | `mc catalog projects` 查看可访问列表 |

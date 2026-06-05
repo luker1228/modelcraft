@@ -55,60 +55,25 @@ ai-metadata/
 │   │   ├── justfile-guide.md
 │   │   └── tools-installation.md
 │   └── common-mistakes.md            # ⚠️ 错题本（真实 Bug Checklist）
-├── front/                            # 前端知识库
-│   ├── development/
-│   │   ├── README.md                 # 前端开发规范总览
-│   │   ├── architecture.md
-│   │   ├── api-client-design.md
-│   │   ├── code-conventions.md
-│   │   ├── eslint-rules.md
-│   │   ├── known-issues.md
-│   │   ├── react-best-practices.md
-│   │   ├── workspace-mode-boundary.md
-│   │   └── typescript-guide.md
-│   └── style/
-│       ├── STYLE.md
-│       ├── color-system.md
-│       ├── design-system-demo-v2.html
-│       ├── quick-start.md
-│       └── tailwind-usage-policy.md
-└── prd/                              # 产品需求文档
-    ├── auth/
-    │   ├── 00-auth.md
-    │   ├── auth-api-design.md
-    │   ├── auth-domain.puml
-    │   ├── 01-auth-login.md
-    │   └── 02-auth-register.md
-    ├── model-enum/
-    │   ├── 00-model-enum.md
-    │   ├── 01-field-create-enum-binding.md
-    │   ├── 02-field-edit-format-immutable.md
-    │   ├── 03-backend-design.md
-    │   ├── 04-frontend-subpage-design.md
-    │   └── model-enum-domain.puml
-    ├── rbac/                             # ⭐ 权限模型（RBAC）
-    │   ├── 00-rbac-overview.md           # 总览：三层定位、核心原则
-    │   ├── 01-permission-model.md        # 权限点、权限包、授权对象
-    │   ├── 02-implicit-roles.md          # 内置隐式角色
-    │   ├── 03-auth-flow.md               # 鉴权流程与判定规则
-    │   ├── 04-department-scope.md        # 部门与数据范围
-    │   └── 05-bundle-versioning.md       # 权限包版本快照（只读快照、最多5版本、回滚）
-    ├── enduser-v2/                       # ⭐ EndUser 身份系统 v2（Org 级账号）
-    │   ├── 10-redesign-overview.md       # 总览：问题、目标、核心设计决策
-    │   ├── 11-domain-model-changes.md    # 领域模型变更（实体/关系图）
-    │   ├── 12-graphql-api-design.md      # GraphQL API 设计（Org/Project Schema）
-    │   ├── 13-database-schema.md         # 数据库 Schema 变更（Atlas 迁移）
-    │   ├── 14-frontend-design.md         # 前端页面/路由/BFF 变更
-    │   └── 15-bdd-scenarios.md           # BDD 验收场景
-    ├── cli/                              # ⭐ ModelCraft CLI（Agent-First）
-    │   ├── 00-cli-overview.md            # 总览：设计目标、命令树、v1 范围
-    │   ├── 01-auth-flow.md               # 认证流程与 Token 管理
-    │   ├── 02-data-commands.md           # 数据命令（query/get/create/update/delete）
-    │   ├── 03-discovery-and-introspection.md  # 资源发现与 Agent 自省
-    │   ├── 04-error-handling.md          # 错误处理与 Limit 机制
-    │   └── 05-architecture.md            # CLI 架构与后端变更需求
-    └── dual-ui-architecture/             # ⭐ 前端双 UI 架构（租户端 vs 用户端）
-        └── 00-overview.md                # 总览：路由边界、功能矩阵、认证体系差异
+├── cli/                              # ⭐ ModelCraft CLI 使用指南
+│   └── README.md                     # 命令参考、认证、输出格式、退出码
+└── front/                            # 前端知识库
+    ├── development/
+    │   ├── README.md                 # 前端开发规范总览
+    │   ├── architecture.md
+    │   ├── api-client-design.md
+    │   ├── code-conventions.md
+    │   ├── eslint-rules.md
+    │   ├── known-issues.md
+    │   ├── react-best-practices.md
+    │   ├── workspace-mode-boundary.md
+    │   └── typescript-guide.md
+    └── style/
+        ├── STYLE.md
+        ├── color-system.md
+        ├── design-system-demo-v2.html
+        ├── quick-start.md
+        └── tailwind-usage-policy.md
 ```
 
 ---
@@ -184,6 +149,14 @@ ai-metadata/
 
 ---
 
+## CLI 文档索引
+
+| 路径 | 说明 |
+|------|------|
+| [cli/README.md](./cli/README.md) | ⭐ CLI 设计指南（PAT 登录、凭证文件结构、`describe` 获取 schema、`run` 执行查询、AI Agent 工作流） |
+
+---
+
 ## Frontend 文档索引
 
 ### 开发规范
@@ -214,88 +187,3 @@ ai-metadata/
 | [front/style/icons.md](./front/style/icons.md) | ⭐ 图标体系文档 — 62 个图标的语义分类、使用位置、渲染上下文及 AI Prompt |
 | [front/style/icon-prompts.md](./front/style/icon-prompts.md) | 图标 AI 生成 Prompt 清单（P0–P2，15 个）— 含批量 sprite sheet 生成指令和切图命令 |
 | [front/style/design-system-demo-v2.html](./front/style/design-system-demo-v2.html) | 设计系统可视化 Demo |
-
----
-
-## PRD 文档索引
-
-### 认证模块
-
-| 路径 | 说明 |
-|------|------|
-| [prd/auth/00-auth.md](./prd/auth/00-auth.md) | 认证模块需求总览 |
-| [prd/auth/auth-api-design.md](./prd/auth/auth-api-design.md) | 认证 API 设计 |
-| [prd/auth/auth-domain.puml](./prd/auth/auth-domain.puml) | 认证域 PlantUML 类图 |
-| [prd/auth/01-auth-login.md](./prd/auth/01-auth-login.md) | 登录流程需求 |
-| [prd/auth/02-auth-register.md](./prd/auth/02-auth-register.md) | 注册流程需求 |
-
-### 字段展示协议
-
-| 路径 | 说明 |
-|------|------|
-| [prd/field/00-field-label-field.md](./prd/field/00-field-label-field.md) | 关系字段统一展示协议（`__label` + 模型级 `displayField`） |
-| [prd/field/plan.md](./prd/field/plan.md) | 后端实现逻辑计划（直接切换、无 fallback） |
-
-### 枚举字段关联（Model Enum）
-
-| 路径 | 说明 |
-|------|------|
-| [prd/model-enum/00-model-enum.md](./prd/model-enum/00-model-enum.md) | 总览：规则边界、单一真相与子页索引 |
-| [prd/model-enum/01-field-create-enum-binding.md](./prd/model-enum/01-field-create-enum-binding.md) | 前端子页：创建 ENUM 字段交互设计 |
-| [prd/model-enum/02-field-edit-format-immutable.md](./prd/model-enum/02-field-edit-format-immutable.md) | 前端子页：字段编辑页（format 不可变） |
-| [prd/model-enum/03-backend-design.md](./prd/model-enum/03-backend-design.md) | 后端方案：无迁移、含 BDD 场景设计 |
-| [prd/model-enum/04-frontend-subpage-design.md](./prd/model-enum/04-frontend-subpage-design.md) | 前端合并交互方案（基于 01/02） |
-| [prd/model-enum/model-enum-domain.puml](./prd/model-enum/model-enum-domain.puml) | 领域模型：Field / Enum / FieldEnumRelation 关系图 |
-
-### 运行时（Runtime）
-
-| 路径 | 说明 |
-|------|------|
-| [prd/runtime/field-relation-selector.md](./prd/runtime/field-relation-selector.md) | 多对一外键字段升级为下拉选择器，依赖 → [jsonschema-contract](./backend/design/domain-model/8-runtime/jsonschema-contract.md) |
-
-### 权限模型（RBAC）
-
-> 与 `end-user-auth/`（认证层）和 `rls/`（数据隔离层）协同，负责业务鉴权。
-
-| 路径 | 说明 |
-|------|------|
-| [prd/rbac/00-rbac-overview.md](./prd/rbac/00-rbac-overview.md) | ⭐ 总览：三层定位关系、核心设计原则、子页索引 |
-| [prd/rbac/01-permission-model.md](./prd/rbac/01-permission-model.md) | 权限点、权限包、授权对象完整数据模型 |
-| [prd/rbac/02-implicit-roles.md](./prd/rbac/02-implicit-roles.md) | 内置隐式角色：落库定义、关系隐式、运行时自动注入 |
-| [prd/rbac/03-auth-flow.md](./prd/rbac/03-auth-flow.md) | 鉴权流程：三通道权限来源合并 → 展开 → 判定 |
-| [prd/rbac/04-department-scope.md](./prd/rbac/04-department-scope.md) | 部门职责定位：数据范围计算上下文，非授权载体 |
-| [prd/rbac/05-bundle-versioning.md](./prd/rbac/05-bundle-versioning.md) | 权限包版本快照：只读快照、最多 5 个版本、回滚机制、DB Schema、GraphQL API、前端 UI、BDD 场景 |
-
-### EndUser 身份系统 v2（Org 级账号）
-
-> EndUser 账号从 Project 级上移到 Org 级，建立 EndUser ↔ Project 多对多授权关系。
-
-| 路径 | 说明 |
-|------|------|
-| [prd/enduser-v2/10-redesign-overview.md](./prd/enduser-v2/10-redesign-overview.md) | ⭐ 总览：问题陈述、目标、核心原则（Org 管人 Project 管权）、登录流程 |
-| [prd/enduser-v2/11-domain-model-changes.md](./prd/enduser-v2/11-domain-model-changes.md) | 领域模型变更：EndUser 实体、新增 EndUserProjectAccess、Repository 接口更新 |
-| [prd/enduser-v2/12-graphql-api-design.md](./prd/enduser-v2/12-graphql-api-design.md) | GraphQL API 设计：Org Schema 新接口、Project Schema access 接口、BFF 路由变更 |
-| [prd/enduser-v2/13-database-schema.md](./prd/enduser-v2/13-database-schema.md) | 数据库 Schema 变更：DDL 对比、迁移策略、Atlas 操作指南 |
-| [prd/enduser-v2/14-frontend-design.md](./prd/enduser-v2/14-frontend-design.md) | 前端设计：路由变更、新增页面、BFF 接口、登录流程时序 |
-| [prd/enduser-v2/15-bdd-scenarios.md](./prd/enduser-v2/15-bdd-scenarios.md) | BDD 验收场景：账号管理、访问控制、登录流程、数据隔离、兼容性 |
-
-### ModelCraft CLI（Agent-First 命令行工具）
-
-> EndUser 通过 CLI 登录、查询和操作数据。第一版本面向 AI Agent，输出结构化 JSON。
-
-| 路径 | 说明 |
-|------|------|
-| [prd/cli/00-cli-overview.md](./prd/cli/00-cli-overview.md) | ⭐ 总览：设计目标、资源路径约定、命令树、v1 范围 |
-| [prd/cli/01-auth-flow.md](./prd/cli/01-auth-flow.md) | 认证流程：公共端点设计、登录时序、Token 管理 |
-| [prd/cli/02-data-commands.md](./prd/cli/02-data-commands.md) | 数据命令：query/get/create/update/delete/count/aggregate |
-| [prd/cli/03-discovery-and-introspection.md](./prd/cli/03-discovery-and-introspection.md) | 资源发现与 Agent 自省：catalog/describe/schema |
-| [prd/cli/04-error-handling.md](./prd/cli/04-error-handling.md) | 错误处理：统一格式、退出码、Agent 自修正、Limit 机制 |
-| [prd/cli/05-architecture.md](./prd/cli/05-architecture.md) | CLI 内部架构与后端变更需求 |
-
-### 前端双 UI 架构（租户端 vs 用户端）
-
-> 核心架构决策：两套独立 UI，路由前缀隔离，仅共享 Design System。
-
-| 路径 | 说明 |
-|------|------|
-| [prd/dual-ui-architecture/00-overview.md](./prd/dual-ui-architecture/00-overview.md) | ⭐ 总览：背景、功能边界矩阵、路由结构、认证体系差异、成功指标 |
