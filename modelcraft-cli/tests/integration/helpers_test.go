@@ -129,25 +129,33 @@ func writeValidCreds(t *testing.T, path, serverURL, project string) {
 }
 
 // newAuthServer returns an httptest.Server whose handler:
-//   - POST /api/cli/end-user/auth/login   → loginResp
+//   - GET  /api/cli/end-user/auth/whoami  → whoamiResp with projects
 //   - POST /api/cli/end-user/auth/logout  → 204
-//   - POST /api/cli/end-user/auth/refresh → refreshResp (same as login)
+//   - POST /api/cli/end-user/auth/refresh → refreshResp
 //   - all other paths                     → graphqlHandler (if non-nil)
 func newAuthServer(t *testing.T, projects []map[string]any, graphqlHandler http.HandlerFunc) *httptest.Server {
 	t.Helper()
-	session := map[string]any{
+	whoami := map[string]any{
+		"userId":   "u1",
+		"orgName":  "acme",
+		"isAdmin":  false,
+		"projects": projects,
+	}
+	refresh := map[string]any{
 		"userId":       "u1",
-		"accessToken":  "at1",
-		"refreshToken": "rt1",
+		"orgName":      "acme",
+		"accessToken":  "at-refreshed",
+		"refreshToken": "rt-refreshed",
 		"expiresAt":    futureExpiry(),
-		"projects":     projects,
 	}
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		switch r.URL.Path {
-		case "/api/cli/end-user/auth/login", "/api/cli/end-user/auth/refresh":
-			_ = json.NewEncoder(w).Encode(session)
-		case "/api/cli/end-user/auth/logout":
+		switch {
+		case r.Method == http.MethodGet && r.URL.Path == "/api/cli/end-user/auth/whoami":
+			_ = json.NewEncoder(w).Encode(whoami)
+		case r.Method == http.MethodPost && r.URL.Path == "/api/cli/end-user/auth/refresh":
+			_ = json.NewEncoder(w).Encode(refresh)
+		case r.Method == http.MethodPost && r.URL.Path == "/api/cli/end-user/auth/logout":
 			w.WriteHeader(http.StatusNoContent)
 		default:
 			if graphqlHandler != nil {

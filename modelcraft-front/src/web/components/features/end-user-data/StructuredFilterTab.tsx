@@ -345,21 +345,17 @@ export function StructuredFilterTab({
       const newRow: FilterRow = { ...draft, id: nextId() }
       const updated = [...rows, newRow]
       onRowsChange(updated)
-      // Auto-apply when a new condition is confirmed
-      if (inline) {
-        // defer so state is flushed first
-        setTimeout(() => onApply(), 0)
-      }
+      // Do not auto-apply in inline mode — user clicks 查询 to trigger
     },
-    [rows, onRowsChange, onApply, inline]
+    [rows, onRowsChange]
   )
 
   const removeRow = useCallback(
     (id: string) => {
       onRowsChange(rows.filter((r) => r.id !== id))
-      if (inline) setTimeout(() => onApply(), 0)
+      // Do not auto-apply in inline mode
     },
-    [rows, onRowsChange, onApply, inline]
+    [rows, onRowsChange]
   )
 
   const updateRow = useCallback(

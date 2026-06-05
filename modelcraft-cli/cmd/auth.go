@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"modelcraft-cli/internal/app"
-	authsession "modelcraft-cli/internal/auth"
 	"modelcraft-cli/internal/client"
 	"modelcraft-cli/internal/config"
 	"modelcraft-cli/internal/output"
@@ -18,15 +17,13 @@ func newAuthCommand() *cobra.Command {
 	authCmd := &cobra.Command{
 		Use:   "auth",
 		Short: "Manage end-user authentication",
-		Example: "  mc auth login --username alice --password '***'\n" +
+		Example: "  mc auth login --token mc_pat_xxx\n" +
 			"  mc auth status\n" +
 			"  mc auth switch-project sales\n" +
-			"  mc auth refresh\n" +
 			"  mc auth logout",
 	}
 	authCmd.AddCommand(newAuthLoginCommand())
 	authCmd.AddCommand(newAuthLogoutCommand())
-	authCmd.AddCommand(newAuthRefreshCommand())
 	authCmd.AddCommand(newAuthStatusCommand())
 	authCmd.AddCommand(newAuthSwitchProjectCommand())
 	return authCmd
@@ -35,44 +32,25 @@ func newAuthCommand() *cobra.Command {
 const defaultServer = "http://lukemxjia.devcloud.woa.com:9080"
 
 func newAuthLoginCommand() *cobra.Command {
-	var server, org, username, password, token, credentialsPath string
+	var server, token, credentialsPath string
 
 	cmd := &cobra.Command{
 		Use:   "login",
-		Short: "Login with end-user credentials or a PAT token",
+		Short: "Login with a Personal Access Token (PAT)",
 		Example: "  mc auth login --token mc_pat_xxx\n" +
-			"  mc auth login --username alice --password '***'\n" +
-			"  mc auth login --username alice --password '***' --server http://lukemxjia.devcloud.woa.com:9080",
+			"  mc auth login --token mc_pat_xxx --server http://gateway:9080",
 		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			authClient := client.AuthClient{HTTPClient: http.DefaultClient}
-
-			var creds *config.Credentials
-			var err error
-
-			if token != "" {
-				// PAT-based login: call whoami to resolve identity and projects.
-				creds, err = authClient.Whoami(cmd.Context(), server, token)
-			} else {				// Username/password login — validate required flags before network call.
-				if username == "" {
-					return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true,
-						"Run 'mc auth login --help' to inspect required flags.",
-						map[string]any{"flag": "username"})
-				}
-				if password == "" {
-					return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true,
-						"Run 'mc auth login --help' to inspect required flags.",
-						map[string]any{"flag": "password"})
-				}
-				creds, err = authClient.Login(cmd.Context(), server, org, username, password)
+			if token == "" {
+				return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true,
+					"Run 'mc auth login --help' to inspect required flags.",
+					map[string]any{"flag": "token"})
 			}
+
+			authClient := client.AuthClient{HTTPClient: http.DefaultClient}
+			creds, err := authClient.Whoami(cmd.Context(), server, token)
 			if err != nil {
 				return err
-			}
-			// Auto-select the default project when there is exactly one option,
-			// so users don't need a manual 'mc auth switch-project' after login.
-			if creds.CurrentProject == "" && len(creds.Projects) == 1 {
-				creds.CurrentProject = creds.Projects[0].Slug
 			}
 			if err := config.Save(credentialsPath, *creds); err != nil {
 				return output.NewCLIError("IO_ERROR", "Failed to persist credentials.", false, "Check filesystem permissions and retry.", map[string]any{"path": credentialsPath})
@@ -83,16 +61,12 @@ func newAuthLoginCommand() *cobra.Command {
 				"orgName":        creds.OrgName,
 				"userId":         creds.UserID,
 				"currentProject": creds.CurrentProject,
-				"projects":       creds.Projects,
 			}, nil)
 		},
 	}
 
 	cmd.Flags().StringVar(&server, "server", defaultServer, "Gateway base URL")
-	cmd.Flags().StringVar(&token, "token", "", "Personal Access Token (mc_pat_xxx) — skips username/password")
-	cmd.Flags().StringVar(&org, "org", "", "Organization slug (optional, auto-resolved by username)")
-	cmd.Flags().StringVar(&username, "username", "", "End-user username")
-	cmd.Flags().StringVar(&password, "password", "", "End-user password")
+	cmd.Flags().StringVar(&token, "token", "", "Personal Access Token (mc_pat_xxx)")
 	cmd.Flags().StringVar(&credentialsPath, "credentials", config.DefaultPath(), "Credential file path")
 	return cmd
 }
@@ -102,70 +76,18 @@ func newAuthLogoutCommand() *cobra.Command {
 
 	cmd := &cobra.Command{
 		Use:   "logout",
-		Short: "Logout and clear local credentials",
+		Short: "Clear local credentials",
 		Example: "  mc auth logout\n" +
 			"  mc auth logout --credentials /tmp/mc-credentials.json",
-		Args:  cobra.NoArgs,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := config.Load(credentialsPath)
-			if err != nil {
+			if err := os.Remove(credentialsPath); err != nil {
 				if errors.Is(err, os.ErrNotExist) {
 					return output.NewCLIError("UNAUTHENTICATED", "No local session found.", true, "Run 'mc auth login'.", nil)
 				}
-				return err
-			}
-
-			authClient := client.AuthClient{HTTPClient: http.DefaultClient}
-			if err := authClient.Logout(cmd.Context(), creds.Server, creds.OrgName, creds.RefreshToken); err != nil {
-				return err
-			}
-			if err := os.Remove(credentialsPath); err != nil && !errors.Is(err, os.ErrNotExist) {
 				return output.NewCLIError("IO_ERROR", "Failed to remove credential file.", false, "Check filesystem permissions and retry.", map[string]any{"path": credentialsPath})
 			}
-
 			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, map[string]any{"loggedOut": true}, nil)
-		},
-	}
-
-	cmd.Flags().StringVar(&credentialsPath, "credentials", config.DefaultPath(), "Credential file path")
-	return cmd
-}
-
-func newAuthRefreshCommand() *cobra.Command {
-	var credentialsPath string
-
-	cmd := &cobra.Command{
-		Use:   "refresh",
-		Short: "Refresh access token using local refresh token",
-		Example: "  mc auth refresh\n" +
-			"  mc auth refresh --credentials /tmp/mc-credentials.json",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			creds, err := config.Load(credentialsPath)
-			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					return output.NewCLIError("UNAUTHENTICATED", "No local session found.", true, "Run 'mc auth login'.", nil)
-				}
-				return err
-			}
-
-			authClient := client.AuthClient{HTTPClient: http.DefaultClient}
-			mgr := authsession.Manager{}
-			fresh, err := mgr.EnsureFresh(cmd.Context(), creds, authClient)
-			if err != nil {
-				return err
-			}
-			if err := config.Save(credentialsPath, fresh); err != nil {
-				return output.NewCLIError("IO_ERROR", "Failed to persist credentials.", false, "Check filesystem permissions and retry.", map[string]any{"path": credentialsPath})
-			}
-
-			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, map[string]any{
-				"server":         fresh.Server,
-				"orgName":        fresh.OrgName,
-				"userId":         fresh.UserID,
-				"currentProject": fresh.CurrentProject,
-				"projects":       fresh.Projects,
-			}, nil)
 		},
 	}
 
@@ -181,7 +103,7 @@ func newAuthStatusCommand() *cobra.Command {
 		Short: "Show current authentication status",
 		Example: "  mc auth status\n" +
 			"  mc auth status --credentials /tmp/mc-credentials.json",
-		Args:  cobra.NoArgs,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, err := config.Load(credentialsPath)
 			if err != nil {
@@ -201,7 +123,6 @@ func newAuthStatusCommand() *cobra.Command {
 				"orgName":        resolved.OrgName,
 				"userId":         resolved.UserID,
 				"currentProject": resolved.CurrentProject,
-				"projects":       resolved.Projects,
 			}, nil)
 		},
 	}
@@ -218,27 +139,48 @@ func newAuthSwitchProjectCommand() *cobra.Command {
 		Short: "Set local default project context",
 		Example: "  mc auth switch-project sales\n" +
 			"  mc auth switch-project analytics --credentials /tmp/mc-credentials.json",
-		Args:  cobra.ExactArgs(1),
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			slug := args[0]
-			creds, err := config.Load(credentialsPath)
+			creds, err := loadCredentials(credentialsPath)
 			if err != nil {
-				if errors.Is(err, os.ErrNotExist) {
-					return output.NewCLIError("UNAUTHENTICATED", "No local session found.", true, "Run 'mc auth login'.", nil)
-				}
 				return err
 			}
 
-			updated, err := authsession.SwitchProject(creds, slug)
+			// Validate by fetching accessible projects from backend in real-time.
+			projects, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogProjects(
+				cmd.Context(),
+				creds.Server,
+				creds.OrgName,
+				creds.AccessToken,
+			)
 			if err != nil {
 				return err
 			}
-			if err := config.Save(credentialsPath, updated); err != nil {
+			found := false
+			for _, p := range projects {
+				if p.Slug == slug {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return output.NewCLIError(
+					"PROJECT_NOT_FOUND",
+					"Project is not accessible for the current user.",
+					false,
+					"Run 'mc catalog projects' to inspect available projects.",
+					map[string]any{"project": slug},
+				)
+			}
+
+			creds.CurrentProject = slug
+			if err := config.Save(credentialsPath, creds); err != nil {
 				return output.NewCLIError("IO_ERROR", "Failed to persist credentials.", false, "Check filesystem permissions and retry.", map[string]any{"path": credentialsPath})
 			}
 
 			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, map[string]any{
-				"currentProject": updated.CurrentProject,
+				"currentProject": slug,
 			}, nil)
 		},
 	}

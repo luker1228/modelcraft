@@ -2,11 +2,13 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestAuthLoginUsesDevcloudDefaultServer(t *testing.T) {
@@ -22,8 +24,9 @@ func TestAuthLoginUsesDevcloudDefaultServer(t *testing.T) {
 }
 
 func TestAuthLoginPersistsSingleProfileWithoutSelectingProject(t *testing.T) {
+	// Login via PAT (whoami endpoint). Server returns one project — must NOT auto-select.
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(`{"requestId":"r1","userId":"u1","accessToken":"a1","refreshToken":"rt1","expiresAt":"2026-05-10T12:00:00Z","projects":[{"slug":"sales","title":"Sales"}]}`))
+		_, _ = w.Write([]byte(`{"userId":"u1","orgName":"acme","projects":[{"slug":"sales","title":"Sales"}]}`))
 	}))
 	defer srv.Close()
 
@@ -34,7 +37,7 @@ func TestAuthLoginPersistsSingleProfileWithoutSelectingProject(t *testing.T) {
 	buf := new(bytes.Buffer)
 	cmd.SetOut(buf)
 	cmd.SetErr(buf)
-	cmd.SetArgs([]string{"auth", "login", "--server", srv.URL, "--org", "acme", "--username", "alice", "--password", "secret", "--credentials", credPath})
+	cmd.SetArgs([]string{"auth", "login", "--server", srv.URL, "--token", "mc_pat_test", "--credentials", credPath})
 
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("Execute() error = %v", err)
@@ -50,9 +53,29 @@ func TestAuthLoginPersistsSingleProfileWithoutSelectingProject(t *testing.T) {
 }
 
 func TestAuthSwitchProjectRejectsUnknownProject(t *testing.T) {
+	// switch-project validates via backend myProjects query.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"myProjects": []map[string]any{
+					{"slug": "sales", "title": "Sales"},
+				},
+			},
+		})
+	}))
+	defer srv.Close()
+
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "credentials.json")
-	_ = os.WriteFile(credPath, []byte(`{"server":"https://gateway.example.com","orgName":"acme","projects":[{"slug":"sales","title":"Sales"}]}`), 0o600)
+	creds := map[string]any{
+		"server":      srv.URL,
+		"orgName":     "acme",
+		"accessToken": "at-valid",
+		"expiresAt":   time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+	}
+	b, _ := json.Marshal(creds)
+	_ = os.WriteFile(credPath, b, 0o600)
 
 	cmd := NewRootCommand(BuildInfo{})
 	buf := new(bytes.Buffer)
@@ -62,6 +85,7 @@ func TestAuthSwitchProjectRejectsUnknownProject(t *testing.T) {
 
 	err := cmd.Execute()
 	if err == nil {
-		t.Fatalf("expected switch-project error")
+		t.Fatalf("expected switch-project error for unknown project")
 	}
 }
+

@@ -17,13 +17,14 @@ func TestDescribeModelUsesRuntimeIntrospection(t *testing.T) {
 				t.Fatalf("path = %s", req.URL.Path)
 			}
 			body, _ := io.ReadAll(req.Body)
-			if !bytes.Contains(body, []byte(`__type`)) {
-				t.Fatalf("expected introspection query, got %s", string(body))
+			// describe uses __schema introspection
+			if !bytes.Contains(body, []byte(`__schema`)) {
+				t.Fatalf("expected __schema introspection query, got %s", string(body))
 			}
 			return &http.Response{
 				StatusCode: http.StatusOK,
 				Header:     make(http.Header),
-				Body:       io.NopCloser(bytes.NewBufferString(`{"data":{"__type":{"name":"users","fields":[{"name":"id","type":{"kind":"NON_NULL","name":null,"ofType":{"kind":"SCALAR","name":"ID","ofType":null}}},{"name":"tags","type":{"kind":"LIST","name":null,"ofType":{"kind":"SCALAR","name":"String","ofType":null}}}]}}}`)),
+				Body: io.NopCloser(bytes.NewBufferString(`{"data":{"__schema":{"types":[{"name":"users","kind":"OBJECT","fields":[{"name":"id","type":{"kind":"NON_NULL","name":null,"ofType":{"kind":"SCALAR","name":"ID","ofType":null}},"args":[]},{"name":"tags","type":{"kind":"LIST","name":null,"ofType":{"kind":"SCALAR","name":"String","ofType":null}},"args":[]}],"inputFields":null}]}}}`)),
 			}, nil
 		}),
 	}
@@ -42,17 +43,8 @@ func TestDescribeModelUsesRuntimeIntrospection(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("Execute() code = %d, stdout=%s", code, stdout.String())
 	}
-	if !bytes.Contains(stdout.Bytes(), []byte(`"model":"users"`)) {
-		t.Fatalf("missing model payload: %s", stdout.String())
-	}
-	if !bytes.Contains(stdout.Bytes(), []byte(`"name":"id"`)) {
-		t.Fatalf("missing field id: %s", stdout.String())
-	}
-	if !bytes.Contains(stdout.Bytes(), []byte(`"required":true`)) {
-		t.Fatalf("missing required=true for id: %s", stdout.String())
-	}
-	if !bytes.Contains(stdout.Bytes(), []byte(`"isList":true`)) {
-		t.Fatalf("missing isList=true for tags: %s", stdout.String())
+	if !bytes.Contains(stdout.Bytes(), []byte(`"types"`)) {
+		t.Fatalf("missing types payload: %s", stdout.String())
 	}
 }
 

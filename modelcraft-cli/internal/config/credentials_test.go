@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
-	"time"
 )
 
 func TestSaveAndLoadCredentials(t *testing.T) {
@@ -13,13 +12,10 @@ func TestSaveAndLoadCredentials(t *testing.T) {
 	path := filepath.Join(dir, "credentials.json")
 
 	creds := Credentials{
-		Server:       "https://gateway.example.com",
-		OrgName:      "acme",
-		UserID:       "user-1",
-		AccessToken:  "access",
-		RefreshToken: "refresh",
-		ExpiresAt:    time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
-		Projects:     []AccessibleProject{{Slug: "sales", Title: "Sales"}},
+		Server:      "https://gateway.example.com",
+		OrgName:     "acme",
+		UserID:      "user-1",
+		AccessToken: "access",
 	}
 
 	if err := Save(path, creds); err != nil {

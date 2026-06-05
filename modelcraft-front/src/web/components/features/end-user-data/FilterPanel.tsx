@@ -1,19 +1,11 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { Sparkles } from 'lucide-react'
-import { cn } from '@/shared/utils'
+import { Search, X } from 'lucide-react'
 import type { FieldDefinition } from '@api-client/cms/public'
 import type { FilterRow } from './filter-utils'
 import { filterRowsToWhereJson } from './filter-utils'
 import { StructuredFilterTab } from './StructuredFilterTab'
-import { useCopilotKitAvailable } from './FilterCopilotActions'
-import { AiQueryTab } from './AiQueryTab'
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from '@web/components/ui/popover'
 
 export interface FilterBarProps {
   /** Field definitions from the current model's jsonSchema. */
@@ -33,12 +25,10 @@ export interface FilterBarProps {
  * FilterBar — inline chip-bar style filter, replacing the old collapsible panel.
  *
  * Structured filter chips are always visible in the bar.
- * AI query lives in a Popover triggered by the ✨ button (only when CopilotKit available).
+ * A "查询" button explicitly triggers the filter, a "清除筛选" button resets it.
  */
 export function FilterBar({ fields, onApply, onClear, children }: FilterBarProps) {
-  const hasCopilot = useCopilotKitAvailable()
   const [rows, setRows] = useState<FilterRow[]>([])
-  const [aiOpen, setAiOpen] = useState(false)
 
   const handleApply = useCallback(() => {
     const normalizedRows = rows.map((row) => {
@@ -59,9 +49,11 @@ export function FilterBar({ fields, onApply, onClear, children }: FilterBarProps
     onClear()
   }, [onClear])
 
+  const hasRows = rows.length > 0
+
   return (
     <div className="flex min-h-[44px] flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2">
-      {/* Structured filter chip bar — always visible */}
+      {/* Structured filter chip bar — always visible, no auto-apply */}
       <StructuredFilterTab
         fields={fields}
         rows={rows}
@@ -71,33 +63,27 @@ export function FilterBar({ fields, onApply, onClear, children }: FilterBarProps
         inline
       />
 
-      {/* AI query popover button */}
-      {hasCopilot && (
-        <Popover open={aiOpen} onOpenChange={setAiOpen}>
-          <PopoverTrigger asChild>
-            <button
-              type="button"
-              className={cn(
-                'flex h-[26px] shrink-0 items-center gap-1 rounded-sm border px-2 text-xs transition-colors',
-                aiOpen
-                  ? 'border-primary bg-primary/10 text-primary'
-                  : 'border-border text-muted-foreground hover:border-primary/50 hover:text-foreground'
-              )}
-              title="AI 自然语言查询"
-            >
-              <Sparkles size={11} strokeWidth={1.5} />
-              <span>AI 查询</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent
-            side="bottom"
-            align="start"
-            className="w-[420px] p-0"
-            onOpenAutoFocus={(e) => e.preventDefault()}
-          >
-            <AiQueryTab fields={fields} />
-          </PopoverContent>
-        </Popover>
+      {/* 查询 button — always visible, triggers filter */}
+      <button
+        type="button"
+        onClick={handleApply}
+        className="flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-primary/60 bg-primary/5 px-2 text-xs text-primary transition-colors hover:border-primary hover:bg-primary/10"
+      >
+        <Search size={11} strokeWidth={1.5} />
+        <span>查询</span>
+      </button>
+
+      {/* Clear all filters button — only shown when filters are active */}
+      {hasRows && (
+        <button
+          type="button"
+          onClick={handleClear}
+          className="flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-border/60 px-2 text-xs text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
+          title="清除所有筛选"
+        >
+          <X size={11} strokeWidth={1.5} />
+          <span>清除筛选</span>
+        </button>
       )}
 
       {/* Slot for search input / record count etc. */}

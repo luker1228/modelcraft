@@ -9,16 +9,18 @@ import (
 // ---------------------------------------------------------------------------
 
 func TestCatalogProjects_ListsFromCredentials(t *testing.T) {
-	// CatalogProjects reads from local credentials — no HTTP call needed.
-	cp := credPath(t)
-	writeCredJSON(t, cp, map[string]any{
-		"server":  "http://localhost",
-		"orgName": "acme",
-		"projects": []map[string]any{
+	// catalog projects calls backend myProjects query.
+	gqlData := map[string]any{
+		"myProjects": []map[string]any{
 			{"slug": "sales", "title": "Sales"},
 			{"slug": "hr", "title": "HR"},
 		},
-	})
+	}
+	srv := newGraphQLServer(t, gqlData)
+	defer srv.Close()
+
+	cp := credPath(t)
+	writeValidCreds(t, cp, srv.URL, "sales")
 
 	stdout, _, code := mc(t, "catalog", "projects", "--credentials", cp)
 	if code != 0 {

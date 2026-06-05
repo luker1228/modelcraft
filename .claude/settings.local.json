@@ -43,7 +43,9 @@
       "Bash(docker-compose -f deploy/compose/docker-compose.local.yml ps modelcraft-agent)",
       "Bash(docker-compose -f /data/home/lukemxjia/modelcraft/deploy/compose/docker-compose.local.yml ps modelcraft-agent)",
       "Bash(docker-compose -f deploy/compose/docker-compose.local.yml logs --tail=60 modelcraft-agent)",
-      "mcp__codegraph__codegraph_files"
+      "mcp__codegraph__codegraph_files",
+      "mcp__codegraph__codegraph_context",
+      "mcp__codegraph__codegraph_search"
     ]
   }
 }

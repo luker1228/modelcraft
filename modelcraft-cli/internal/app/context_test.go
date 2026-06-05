@@ -2,7 +2,6 @@ package app
 
 import (
 	"testing"
-	"time"
 
 	"modelcraft-cli/internal/config"
 )
@@ -14,12 +13,9 @@ func TestResolveContextAppliesEnvironmentOverrides(t *testing.T) {
 	t.Setenv("MC_PROJECT", "sales")
 
 	creds := config.Credentials{
-		Server:       "https://gateway.example.com",
-		OrgName:      "acme",
-		AccessToken:  "access",
-		RefreshToken: "refresh",
-		ExpiresAt:    time.Date(2026, 5, 9, 12, 0, 0, 0, time.UTC),
-		Projects:     []config.AccessibleProject{{Slug: "sales", Title: "Sales"}},
+		Server:      "https://gateway.example.com",
+		OrgName:     "acme",
+		AccessToken: "access",
 	}
 
 	got, err := ResolveContext(creds, "")
@@ -34,9 +30,6 @@ func TestResolveContextAppliesEnvironmentOverrides(t *testing.T) {
 	}
 	if got.AccessToken != "override-token" {
 		t.Fatalf("AccessToken = %q, want override", got.AccessToken)
-	}
-	if got.RefreshToken != "" {
-		t.Fatalf("RefreshToken = %q, want empty for caller-managed token", got.RefreshToken)
 	}
 	if got.CurrentProject != "sales" {
 		t.Fatalf("CurrentProject = %q, want sales", got.CurrentProject)

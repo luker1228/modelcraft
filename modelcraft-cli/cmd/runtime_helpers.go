@@ -17,8 +17,8 @@ type runtimeCreds struct {
 	AccessToken string
 }
 
-func resolveRuntimeContext(cmd *cobra.Command, credentialsPath, project, rawPath string) (map[string]any, resource.ModelPath, runtimeCreds, error) {
-	creds, err := loadFreshCredentials(cmd, credentialsPath)
+func resolveRuntimeContext(_ *cobra.Command, credentialsPath, project, rawPath string) (map[string]any, resource.ModelPath, runtimeCreds, error) {
+	creds, err := loadCredentials(credentialsPath)
 	if err != nil {
 		return nil, resource.ModelPath{}, runtimeCreds{}, err
 	}

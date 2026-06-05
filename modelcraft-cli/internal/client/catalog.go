@@ -4,16 +4,28 @@ import (
 	"context"
 	"fmt"
 	"strings"
-
-	"modelcraft-cli/internal/config"
 )
+
+type CatalogProject struct {
+	Slug  string `json:"slug"`
+	Title string `json:"title"`
+}
 
 type CatalogModel struct {
 	Name string `json:"name"`
 }
 
-func (c GraphQLClient) CatalogProjects(_ context.Context, creds config.Credentials) ([]config.AccessibleProject, error) {
-	return creds.Projects, nil
+func (c GraphQLClient) CatalogProjects(ctx context.Context, server, org, token string) ([]CatalogProject, error) {
+	endpoint := fmt.Sprintf("%s/end-user/graphql/org/%s", strings.TrimRight(server, "/"), org)
+	query := `query CatalogProjects { myProjects { slug title } }`
+
+	var data struct {
+		MyProjects []CatalogProject `json:"myProjects"`
+	}
+	if err := c.Execute(ctx, endpoint, token, query, nil, &data); err != nil {
+		return nil, err
+	}
+	return data.MyProjects, nil
 }
 
 func (c GraphQLClient) CatalogDatabases(ctx context.Context, server, org, project, token string) ([]string, error) {

@@ -66,7 +66,7 @@ func TestExitCode_InvalidArgumentIs2(t *testing.T) {
 	cp := credPath(t)
 	writeValidCreds(t, cp, "http://localhost", "dev")
 	_, _, code := mc(t,
-		"query", "dev.maindb.User",
+		"run", "dev.maindb.User",
 		"--where", "not-json",
 		"--credentials", cp,
 	)
@@ -83,7 +83,7 @@ func TestExitCode_NoProjectContextIs5(t *testing.T) {
 		"accessToken": "at1",
 		"expiresAt":   futureExpiry(),
 	})
-	_, _, code := mc(t, "query", "maindb.User", "--credentials", cp)
+	_, _, code := mc(t, "run", "maindb.User", "{ findMany { id } }", "--credentials", cp)
 	if code != 5 {
 		t.Errorf("exit code = %d, want 5 (NO_PROJECT_CONTEXT)", code)
 	}
@@ -97,7 +97,6 @@ func TestUpstreamError_401_MapsToUnauthenticated(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/cli/end-user/auth/refresh":
-			// Return 401 during token refresh
 			w.WriteHeader(http.StatusUnauthorized)
 			_, _ = w.Write([]byte(`{"code":"UNAUTHORIZED","message":"token expired"}`))
 		default:
@@ -110,16 +109,15 @@ func TestUpstreamError_401_MapsToUnauthenticated(t *testing.T) {
 	cp := credPath(t)
 	// Use an expired token to force a refresh attempt that will fail.
 	writeCredJSON(t, cp, map[string]any{
-		"server":       srv.URL,
-		"orgName":      "acme",
-		"accessToken":  "expired",
-		"refreshToken": "rt1",
-		"expiresAt":    "2020-01-01T00:00:00Z", // in the past → triggers refresh
+		"server":         srv.URL,
+		"orgName":        "acme",
+		"accessToken":    "expired",
+		"refreshToken":   "rt1",
+		"expiresAt":      "2020-01-01T00:00:00Z", // in the past → triggers refresh
 		"currentProject": "dev",
-		"projects":     []map[string]any{{"slug": "dev", "title": "Dev"}},
 	})
 
-	stdout, _, code := mc(t, "query", "dev.maindb.User", "--credentials", cp)
+	stdout, _, code := mc(t, "run", "dev.maindb.User", "{ findMany { id } }", "--credentials", cp)
 	if code == 0 {
 		t.Fatal("expected non-zero exit code")
 	}
@@ -137,7 +135,7 @@ func TestUpstreamError_404_MapsToNotFound(t *testing.T) {
 	cp := credPath(t)
 	writeValidCreds(t, cp, srv.URL, "dev")
 
-	stdout, _, code := mc(t, "query", "dev.maindb.User", "--credentials", cp)
+	stdout, _, code := mc(t, "run", "dev.maindb.User", "{ findMany { id } }", "--credentials", cp)
 	if code == 0 {
 		t.Fatal("expected non-zero exit code")
 	}
@@ -155,7 +153,7 @@ func TestUpstreamError_503_MapsToServiceUnavailable(t *testing.T) {
 	cp := credPath(t)
 	writeValidCreds(t, cp, srv.URL, "dev")
 
-	stdout, _, code := mc(t, "query", "dev.maindb.User", "--credentials", cp)
+	stdout, _, code := mc(t, "run", "dev.maindb.User", "{ findMany { id } }", "--credentials", cp)
 	if code == 0 {
 		t.Fatal("expected non-zero exit code")
 	}

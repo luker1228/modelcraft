@@ -7,6 +7,25 @@ import (
 	"testing"
 )
 
+func TestCatalogProjectsUsesOrgEndpoint(t *testing.T) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/end-user/graphql/org/acme" {
+			t.Fatalf("path = %s, want org catalog endpoint", r.URL.Path)
+		}
+		_, _ = w.Write([]byte(`{"data":{"myProjects":[{"slug":"sales","title":"Sales"}]}}`))
+	}))
+	defer srv.Close()
+
+	c := GraphQLClient{HTTPClient: srv.Client()}
+	items, err := c.CatalogProjects(context.Background(), srv.URL, "acme", "token")
+	if err != nil {
+		t.Fatalf("CatalogProjects() error = %v", err)
+	}
+	if len(items) != 1 || items[0].Slug != "sales" {
+		t.Fatalf("unexpected projects: %+v", items)
+	}
+}
+
 func TestCatalogDatabasesUsesProjectEndpoint(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/end-user/graphql/org/acme/project/sales" {

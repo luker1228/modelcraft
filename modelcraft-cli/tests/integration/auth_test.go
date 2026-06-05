@@ -5,7 +5,7 @@ import (
 )
 
 // ---------------------------------------------------------------------------
-// auth login
+// auth login (PAT only)
 // ---------------------------------------------------------------------------
 
 func TestAuthLogin_Success(t *testing.T) {
@@ -17,9 +17,7 @@ func TestAuthLogin_Success(t *testing.T) {
 	stdout, _, code := mc(t,
 		"auth", "login",
 		"--server", srv.URL,
-		"--org", "acme",
-		"--username", "alice",
-		"--password", "secret",
+		"--token", "mc_pat_test",
 		"--credentials", cp,
 	)
 
@@ -40,12 +38,10 @@ func TestAuthLogin_Success(t *testing.T) {
 
 func TestAuthLogin_MissingRequiredFlags(t *testing.T) {
 	cp := credPath(t)
-	// Omit --password
+	// Omit --token
 	stdout, _, code := mc(t,
 		"auth", "login",
 		"--server", "http://localhost",
-		"--org", "acme",
-		"--username", "alice",
 		"--credentials", cp,
 	)
 
@@ -65,9 +61,7 @@ func TestAuthLogin_DoesNotAutoSelectProject(t *testing.T) {
 	_, _, code := mc(t,
 		"auth", "login",
 		"--server", srv.URL,
-		"--org", "acme",
-		"--username", "alice",
-		"--password", "secret",
+		"--token", "mc_pat_test",
 		"--credentials", cp,
 	)
 	if code != 0 {
@@ -125,16 +119,18 @@ func TestAuthStatus_WithValidCredentials(t *testing.T) {
 // ---------------------------------------------------------------------------
 
 func TestAuthSwitchProject_Success(t *testing.T) {
-	cp := credPath(t)
-	writeCredJSON(t, cp, map[string]any{
-		"server":  "http://localhost",
-		"orgName": "acme",
-		"userId":  "u1",
-		"projects": []map[string]any{
+	// switch-project now validates by calling the backend myProjects query.
+	gqlData := map[string]any{
+		"myProjects": []map[string]any{
 			{"slug": "sales", "title": "Sales"},
 			{"slug": "hr", "title": "HR"},
 		},
-	})
+	}
+	srv := newGraphQLServer(t, gqlData)
+	defer srv.Close()
+
+	cp := credPath(t)
+	writeValidCreds(t, cp, srv.URL, "sales")
 
 	stdout, _, code := mc(t, "auth", "switch-project", "hr", "--credentials", cp)
 	if code != 0 {
@@ -149,14 +145,16 @@ func TestAuthSwitchProject_Success(t *testing.T) {
 }
 
 func TestAuthSwitchProject_UnknownSlugRejected(t *testing.T) {
-	cp := credPath(t)
-	writeCredJSON(t, cp, map[string]any{
-		"server":  "http://localhost",
-		"orgName": "acme",
-		"projects": []map[string]any{
+	gqlData := map[string]any{
+		"myProjects": []map[string]any{
 			{"slug": "sales", "title": "Sales"},
 		},
-	})
+	}
+	srv := newGraphQLServer(t, gqlData)
+	defer srv.Close()
+
+	cp := credPath(t)
+	writeValidCreds(t, cp, srv.URL, "sales")
 
 	stdout, _, code := mc(t, "auth", "switch-project", "nonexistent", "--credentials", cp)
 	if code == 0 {
@@ -198,3 +196,4 @@ func TestAuthLogout_NoSession(t *testing.T) {
 	v := mustJSON(t, stdout)
 	assertErrorCode(t, v, "UNAUTHENTICATED")
 }
+

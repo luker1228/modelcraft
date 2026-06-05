@@ -2,15 +2,40 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestCatalogProjectsDoesNotRequireCurrentProject(t *testing.T) {
+	// catalog projects now calls the backend — spin up a mock GraphQL server.
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"data": map[string]any{
+				"myProjects": []map[string]any{
+					{"slug": "sales", "title": "Sales"},
+				},
+			},
+		})
+	}))
+	defer srv.Close()
+
 	dir := t.TempDir()
 	credPath := filepath.Join(dir, "credentials.json")
-	_ = os.WriteFile(credPath, []byte(`{"server":"https://gateway.example.com","orgName":"acme","projects":[{"slug":"sales","title":"Sales"}]}`), 0o600)
+	creds := map[string]any{
+		"server":      srv.URL,
+		"orgName":     "acme",
+		"accessToken": "at-valid",
+		"expiresAt":   time.Now().Add(24 * time.Hour).UTC().Format(time.RFC3339),
+		// No currentProject required
+	}
+	b, _ := json.Marshal(creds)
+	_ = os.WriteFile(credPath, b, 0o600)
 
 	stdout := new(bytes.Buffer)
 	stderr := new(bytes.Buffer)

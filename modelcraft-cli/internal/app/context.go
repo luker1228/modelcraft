@@ -17,7 +17,6 @@ func ResolveContext(creds config.Credentials, project string) (config.Credential
 	}
 	if accessToken := os.Getenv("MC_ACCESS_TOKEN"); accessToken != "" {
 		resolved.AccessToken = accessToken
-		resolved.RefreshToken = ""
 	}
 
 	targetProject := project

@@ -7,26 +7,29 @@ import (
 	"testing"
 )
 
-func TestAuthClientLoginPopulatesServerAndOrg(t *testing.T) {
+func TestAuthClientWhoamiPopulatesCredentials(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/api/cli/end-user/auth/login" {
+		if r.URL.Path != "/api/cli/end-user/auth/whoami" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		_, _ = w.Write([]byte(`{"requestId":"r1","userId":"u1","accessToken":"a1","refreshToken":"rt1","expiresAt":"2026-05-10T10:00:00Z","projects":[]}`))
+		if r.Header.Get("Authorization") != "Bearer mc_pat_test" {
+			t.Fatalf("unexpected Authorization: %s", r.Header.Get("Authorization"))
+		}
+		_, _ = w.Write([]byte(`{"userId":"u1","orgName":"acme","projects":[{"slug":"sales","title":"Sales"}]}`))
 	}))
 	defer srv.Close()
 
 	c := AuthClient{HTTPClient: srv.Client()}
-	creds, err := c.Login(context.Background(), srv.URL, "acme", "alice", "secret")
+	creds, err := c.Whoami(context.Background(), srv.URL, "mc_pat_test")
 	if err != nil {
-		t.Fatalf("Login() error = %v", err)
+		t.Fatalf("Whoami() error = %v", err)
 	}
-	if creds.Server != srv.URL || creds.OrgName != "acme" {
+	if creds.Server != srv.URL || creds.OrgName != "acme" || creds.UserID != "u1" {
 		t.Fatalf("unexpected creds: %+v", creds)
 	}
 }
 
-func TestAuthClientRefreshReturnsUnauthenticatedOn401(t *testing.T) {
+func TestAuthClientWhoamiReturnsUnauthenticatedOn401(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnauthorized)
 		_, _ = w.Write([]byte(`{"code":"UNAUTHORIZED","message":"invalid token"}`))
@@ -34,8 +37,8 @@ func TestAuthClientRefreshReturnsUnauthenticatedOn401(t *testing.T) {
 	defer srv.Close()
 
 	c := AuthClient{HTTPClient: srv.Client()}
-	_, err := c.Refresh(context.Background(), srv.URL, "acme", "bad-token")
+	_, err := c.Whoami(context.Background(), srv.URL, "bad-token")
 	if err == nil {
-		t.Fatal("Refresh() error = nil, want error")
+		t.Fatal("Whoami() error = nil, want error")
 	}
 }
