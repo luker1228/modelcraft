@@ -67,21 +67,22 @@ func (l *ModelLocator) GetDatabasePath() string {
 
 // ModelMeta 模型元数据
 type ModelMeta struct {
-	ID               string              `json:"id"`
-	ModelLocator                         // 嵌入模型定位器
-	Title            string              `json:"title"`
-	Description      string              `json:"description"`
-	StorageType      string              `json:"storageType"`
-	DisplayField     *string             `json:"displayField"` // 用于 runtime _label 解析的字段名
-	Version          int64               `json:"version"`
-	Status           string              `json:"status"`
-	GroupID          *string             `json:"groupId"`
-	DeploymentStatus DeploymentStatus    `json:"deploymentStatus"`
-	CreatedVia       ModelCreationSource `json:"createdVia"` // 模型创建来源：NEW/IMPORTED
-	LastSyncAt       *time.Time          `json:"lastSyncAt"`
-	SyncError        string              `json:"syncError"`
-	CreatedAt        time.Time           `json:"createdAt"`
-	UpdatedAt        time.Time           `json:"updatedAt"`
+	ID                  string              `json:"id"`
+	ModelLocator                            // 嵌入模型定位器
+	Title               string              `json:"title"`
+	Description         string              `json:"description"`
+	StorageType         string              `json:"storageType"`
+	DisplayField        *string             `json:"displayField"`        // 用于 runtime _label 解析的字段名
+	InsertionOrderField *string             `json:"insertionOrderField"` // 用于 listPage cursor 分页的插入序字段名
+	Version             int64               `json:"version"`
+	Status              string              `json:"status"`
+	GroupID             *string             `json:"groupId"`
+	DeploymentStatus    DeploymentStatus    `json:"deploymentStatus"`
+	CreatedVia          ModelCreationSource `json:"createdVia"` // 模型创建来源：NEW/IMPORTED
+	LastSyncAt          *time.Time          `json:"lastSyncAt"`
+	SyncError           string              `json:"syncError"`
+	CreatedAt           time.Time           `json:"createdAt"`
+	UpdatedAt           time.Time           `json:"updatedAt"`
 }
 
 // DataModel 模型定义实体
@@ -217,6 +218,24 @@ func (m *DataModel) Update(title, description *string) error {
 func (m *DataModel) UpdateDisplayField(displayField *string) {
 	m.DisplayField = displayField
 	m.UpdatedAt = time.Now()
+}
+
+// UpdateInsertionOrderField 更新 insertionOrderField
+func (m *DataModel) UpdateInsertionOrderField(field *string) {
+	m.InsertionOrderField = field
+}
+
+// ValidateInsertionOrderField 验证 insertionOrderField 是否有效（字段名必须存在于模型字段中）
+func (m *DataModel) ValidateInsertionOrderField() error {
+	if m.InsertionOrderField == nil || *m.InsertionOrderField == "" {
+		return nil // nil 表示未配置，允许
+	}
+	for _, f := range m.Fields {
+		if f.Name == *m.InsertionOrderField {
+			return nil
+		}
+	}
+	return bizerrors.Errorf("insertionOrderField %q 不存在于模型字段中", *m.InsertionOrderField)
 }
 
 // ValidateDisplayField 验证 displayField 是否有效

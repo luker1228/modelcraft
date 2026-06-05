@@ -126,16 +126,21 @@ func DbgenModelToRuntimeModel(row dbgen.Model) *modelruntime.RuntimeModel {
 	if row.DisplayField.Valid && row.DisplayField.String != "" {
 		displayField = &row.DisplayField.String
 	}
+	var insertionOrderField *string
+	if row.InsertionOrderField.Valid && row.InsertionOrderField.String != "" {
+		insertionOrderField = &row.InsertionOrderField.String
+	}
 	return &modelruntime.RuntimeModel{
-		ID:           row.ID,
-		OrgName:      row.OrgName,
-		ProjectSlug:  row.ProjectSlug,
-		Name:         row.Name,
-		Title:        row.Title,
-		Description:  row.Description.String,
-		DatabaseName: row.DatabaseName,
-		CreatedVia:   modeldesign.ModelCreationSource(row.CreatedVia),
-		DisplayField: displayField,
+		ID:                  row.ID,
+		OrgName:             row.OrgName,
+		ProjectSlug:         row.ProjectSlug,
+		Name:                row.Name,
+		Title:               row.Title,
+		Description:         row.Description.String,
+		DatabaseName:        row.DatabaseName,
+		CreatedVia:          modeldesign.ModelCreationSource(row.CreatedVia),
+		DisplayField:        displayField,
+		InsertionOrderField: insertionOrderField,
 	}
 }
 
