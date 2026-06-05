@@ -1311,6 +1311,9 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 
 	// Parse arguments
 	sortField, _ := p.Args[FieldSortField].(string)
+	if sortField == "" {
+		return nil, bizerrors.Errorf("sortField is required for listPage")
+	}
 	sortDirection, _ := p.Args[FieldSortDirection].(string)
 	if sortDirection != OrderByAsc && sortDirection != OrderByDesc {
 		sortDirection = OrderByAsc
