@@ -138,7 +138,7 @@ func (q *Queries) DeleteModel(ctx context.Context, id string) error {
 }
 
 const findModelsByDeploymentStatus = `-- name: FindModelsByDeploymentStatus :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE deployment_status IN (/*SLICE:statuses*/?)
   AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
@@ -172,6 +172,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 			&i.StorageType,
 			&i.DatabaseName,
 			&i.DisplayField,
+			&i.InsertionOrderField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -198,7 +199,7 @@ func (q *Queries) FindModelsByDeploymentStatus(ctx context.Context, statuses []s
 }
 
 const getAllModels = `-- name: GetAllModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
@@ -220,6 +221,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 			&i.StorageType,
 			&i.DatabaseName,
 			&i.DisplayField,
+			&i.InsertionOrderField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -246,7 +248,7 @@ func (q *Queries) GetAllModels(ctx context.Context) ([]Model, error) {
 }
 
 const getModelByID = `-- name: GetModelByID :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE id = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models WHERE id = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
@@ -262,6 +264,7 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 		&i.StorageType,
 		&i.DatabaseName,
 		&i.DisplayField,
+		&i.InsertionOrderField,
 		&i.Version,
 		&i.Status,
 		&i.GroupID,
@@ -278,7 +281,7 @@ func (q *Queries) GetModelByID(ctx context.Context, id string) (Model, error) {
 }
 
 const getModelByName = `-- name: GetModelByName :one
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE org_name = ? AND database_name = ? AND name = ? AND project_slug = ? AND ` + "`" + `models` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
@@ -307,6 +310,7 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 		&i.StorageType,
 		&i.DatabaseName,
 		&i.DisplayField,
+		&i.InsertionOrderField,
 		&i.Version,
 		&i.Status,
 		&i.GroupID,
@@ -323,7 +327,7 @@ func (q *Queries) GetModelByName(ctx context.Context, arg GetModelByNameParams) 
 }
 
 const getModelMetaByIDs = `-- name: GetModelMetaByIDs :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND id IN (/*SLICE:ids*/?)
@@ -367,6 +371,7 @@ func (q *Queries) GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsPa
 			&i.StorageType,
 			&i.DatabaseName,
 			&i.DisplayField,
+			&i.InsertionOrderField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -441,7 +446,7 @@ func (q *Queries) ListModelDatabases(ctx context.Context, arg ListModelDatabases
 }
 
 const listModels = `-- name: ListModels :many
-SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
+SELECT id, org_name, project_slug, name, title, description, storage_type, database_name, display_field, insertion_order_field, version, status, group_id, deployment_status, last_sync_at, sync_error, created_at, updated_at, deleted_at, delete_token, created_via FROM models
 WHERE org_name = ?
   AND project_slug = ?
   AND database_name = ?
@@ -501,6 +506,7 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 			&i.StorageType,
 			&i.DatabaseName,
 			&i.DisplayField,
+			&i.InsertionOrderField,
 			&i.Version,
 			&i.Status,
 			&i.GroupID,
@@ -524,6 +530,24 @@ func (q *Queries) ListModels(ctx context.Context, arg ListModelsParams) ([]Model
 		return nil, err
 	}
 	return items, nil
+}
+
+const updateInsertionOrderField = `-- name: UpdateInsertionOrderField :exec
+UPDATE models
+SET insertion_order_field = ?,
+    updated_at = NOW()
+WHERE id = ?
+  AND delete_token = 0
+`
+
+type UpdateInsertionOrderFieldParams struct {
+	InsertionOrderField sql.NullString
+	ID                  string
+}
+
+func (q *Queries) UpdateInsertionOrderField(ctx context.Context, arg UpdateInsertionOrderFieldParams) error {
+	_, err := q.db.ExecContext(ctx, updateInsertionOrderField, arg.InsertionOrderField, arg.ID)
+	return err
 }
 
 const updateModel = `-- name: UpdateModel :execresult

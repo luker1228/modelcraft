@@ -73,6 +73,7 @@ type Querier interface {
 	ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
 	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
+	FailStaleSyncJobs(ctx context.Context, updatedAt time.Time) error
 	FindFieldsByBelongsToFKID(ctx context.Context, arg FindFieldsByBelongsToFKIDParams) ([]FindFieldsByBelongsToFKIDRow, error)
 	FindFieldsByRelateFKID(ctx context.Context, arg FindFieldsByRelateFKIDParams) ([]FindFieldsByRelateFKIDRow, error)
 	FindIDByExternalID(ctx context.Context, externalID sql.NullString) (string, error)
@@ -205,11 +206,11 @@ type Querier interface {
 	UpdateField(ctx context.Context, arg UpdateFieldParams) (sql.Result, error)
 	UpdateFieldDisplayOrder(ctx context.Context, arg UpdateFieldDisplayOrderParams) error
 	UpdateFieldsStatus(ctx context.Context, arg UpdateFieldsStatusParams) error
+	UpdateInsertionOrderField(ctx context.Context, arg UpdateInsertionOrderFieldParams) error
 	UpdateMembership(ctx context.Context, arg UpdateMembershipParams) error
 	UpdateModel(ctx context.Context, arg UpdateModelParams) (sql.Result, error)
 	UpdateModelDatabase(ctx context.Context, arg UpdateModelDatabaseParams) error
 	UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateModelDatabaseSyncJobParams) error
-	FailStaleSyncJobs(ctx context.Context, updatedBefore time.Time) error
 	UpdateModelDeploymentStatus(ctx context.Context, arg UpdateModelDeploymentStatusParams) error
 	UpdateModelGroup(ctx context.Context, arg UpdateModelGroupParams) error
 	UpdateModelWithVersion(ctx context.Context, arg UpdateModelWithVersionParams) (sql.Result, error)

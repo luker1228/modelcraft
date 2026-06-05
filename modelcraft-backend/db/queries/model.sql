@@ -82,3 +82,10 @@ WHERE deployment_status IN (sqlc.slice('statuses'))
 UPDATE models
 SET group_id = ?, updated_at = NOW(3)
 WHERE group_id = ?;
+
+-- name: UpdateInsertionOrderField :exec
+UPDATE models
+SET insertion_order_field = sqlc.narg('insertion_order_field'),
+    updated_at = NOW()
+WHERE id = sqlc.arg('id')
+  AND delete_token = 0;

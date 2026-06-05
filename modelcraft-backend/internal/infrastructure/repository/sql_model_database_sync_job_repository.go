@@ -65,10 +65,10 @@ func (r *SqlModelDatabaseSyncJobRepository) GetActiveByDatabase(
 	staleBefore time.Time,
 ) (*domaindb.ModelDatabaseSyncJob, error) {
 	row, err := r.q.GetActiveModelDatabaseSyncJobByDatabase(ctx, dbgen.GetActiveModelDatabaseSyncJobByDatabaseParams{
-		OrgName:      orgName,
-		ProjectSlug:  projectSlug,
-		DatabaseID:   databaseID,
-		UpdatedAfter: staleBefore,
+		OrgName:     orgName,
+		ProjectSlug: projectSlug,
+		DatabaseID:  databaseID,
+		UpdatedAt:   staleBefore,
 	})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {

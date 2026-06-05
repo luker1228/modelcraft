@@ -333,6 +333,30 @@ type DatabaseCluster struct {
 	DeleteToken uint64
 }
 
+// EndUser Personal Access Token 注册表（PAT）
+type EndUserApiToken struct {
+	// 唯一标识符 (UUID v7)
+	ID string
+	// 所属组织
+	OrgName string
+	// 创建者 EndUser ID
+	EndUserID string
+	// 用户自定义名称
+	Name string
+	// SHA-256(plaintext) hex，用于验证
+	TokenHash string
+	// NULL 表示永不过期
+	ExpiresAt sql.NullTime
+	// 最近使用时间，异步更新
+	LastUsedAt sql.NullTime
+	// 创建时间
+	CreatedAt time.Time
+	// 软删除时间戳，0 表示活跃
+	DeletedAt uint64
+	// 唯一键避让位，0 表示活跃
+	DeleteToken uint64
+}
+
 // Bundle 数据权限 Item：bundle 在某模型上的唯一数据权限配置
 type EndUserBundleDataPermissionItem struct {
 	// Item UUID
@@ -567,6 +591,8 @@ type Model struct {
 	DatabaseName string
 	// 用于 runtime _displayName 解析的字段名（必须是模型中存在且可字符串化的字段）
 	DisplayField sql.NullString
+	// 用于 listPage cursor 分页的插入序字段名（单调递增字段，如 created_at）
+	InsertionOrderField sql.NullString
 	// 数据版本号
 	Version sql.NullInt64
 	// 模型状态：draft/published/archived
@@ -855,6 +881,8 @@ type ProjectRole struct {
 	Description sql.NullString
 	// 内置隐式角色标志
 	IsImplicit bool
+	// 受保护角色：不可删除、不可改名、不可修改权限包关联
+	IsProtected bool
 	// 创建时间
 	CreatedAt time.Time
 	// 更新时间
@@ -863,8 +891,6 @@ type ProjectRole struct {
 	DeletedAt uint64
 	// 唯一键避让位
 	DeleteToken uint64
-	// 受保护角色：不可删除、不可改名、不可修改权限包关联
-	IsProtected bool
 }
 
 // Project 级角色-用户关联表（纯关联，不可修改，删除重建）

@@ -92,7 +92,7 @@ func (q *Queries) DeleteEndUserRole(ctx context.Context, arg DeleteEndUserRolePa
 }
 
 const getEndUserRoleByID = `-- name: GetEndUserRoleByID :one
-SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token, is_protected
+SELECT id, org_name, project_slug, name, description, is_implicit, is_protected, created_at, updated_at, deleted_at, delete_token
 FROM project_roles
 WHERE id = ?
   AND org_name = ? AND ` + "`" + `project_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
@@ -113,11 +113,11 @@ func (q *Queries) GetEndUserRoleByID(ctx context.Context, arg GetEndUserRoleByID
 		&i.Name,
 		&i.Description,
 		&i.IsImplicit,
+		&i.IsProtected,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
 		&i.DeleteToken,
-		&i.IsProtected,
 	)
 	return i, err
 }
@@ -164,7 +164,7 @@ func (q *Queries) ListBundlesByRole(ctx context.Context, roleID string) ([]EndUs
 }
 
 const listEndUserRolesByProject = `-- name: ListEndUserRolesByProject :many
-SELECT id, org_name, project_slug, name, description, is_implicit, created_at, updated_at, deleted_at, delete_token, is_protected
+SELECT id, org_name, project_slug, name, description, is_implicit, is_protected, created_at, updated_at, deleted_at, delete_token
 FROM project_roles
 WHERE org_name = ?
   AND (project_slug = ? OR is_implicit = TRUE) AND ` + "`" + `project_roles` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY is_implicit DESC, name
@@ -191,11 +191,11 @@ func (q *Queries) ListEndUserRolesByProject(ctx context.Context, arg ListEndUser
 			&i.Name,
 			&i.Description,
 			&i.IsImplicit,
+			&i.IsProtected,
 			&i.CreatedAt,
 			&i.UpdatedAt,
 			&i.DeletedAt,
 			&i.DeleteToken,
-			&i.IsProtected,
 		); err != nil {
 			return nil, err
 		}

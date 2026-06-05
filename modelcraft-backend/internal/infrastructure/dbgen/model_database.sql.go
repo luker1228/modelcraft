@@ -118,6 +118,21 @@ func (q *Queries) DeleteModelDatabase(ctx context.Context, arg DeleteModelDataba
 	return err
 }
 
+const failStaleSyncJobs = `-- name: FailStaleSyncJobs :exec
+UPDATE model_database_sync_job
+SET status = 'failed',
+    finished_at = NOW(3),
+    updated_at = NOW(3)
+WHERE ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND status IN ('pending', 'running')
+  AND updated_at <= ?
+`
+
+func (q *Queries) FailStaleSyncJobs(ctx context.Context, updatedAt time.Time) error {
+	_, err := q.db.ExecContext(ctx, failStaleSyncJobs, updatedAt)
+	return err
+}
+
 const getActiveModelDatabaseSyncJobByDatabase = `-- name: GetActiveModelDatabaseSyncJobByDatabase :one
 SELECT id, org_name, project_slug, database_id, status, total_tables, processed_tables, created_models, synced_models, failed_count, failed_tables, deleted_at, delete_token, started_at, finished_at, created_at, updated_at FROM model_database_sync_job
 WHERE org_name = ?
@@ -131,14 +146,19 @@ LIMIT 1
 `
 
 type GetActiveModelDatabaseSyncJobByDatabaseParams struct {
-	OrgName      string
-	ProjectSlug  string
-	DatabaseID   string
-	UpdatedAfter time.Time
+	OrgName     string
+	ProjectSlug string
+	DatabaseID  string
+	UpdatedAt   time.Time
 }
 
 func (q *Queries) GetActiveModelDatabaseSyncJobByDatabase(ctx context.Context, arg GetActiveModelDatabaseSyncJobByDatabaseParams) (ModelDatabaseSyncJob, error) {
-	row := q.db.QueryRowContext(ctx, getActiveModelDatabaseSyncJobByDatabase, arg.OrgName, arg.ProjectSlug, arg.DatabaseID, arg.UpdatedAfter)
+	row := q.db.QueryRowContext(ctx, getActiveModelDatabaseSyncJobByDatabase,
+		arg.OrgName,
+		arg.ProjectSlug,
+		arg.DatabaseID,
+		arg.UpdatedAt,
+	)
 	var i ModelDatabaseSyncJob
 	err := row.Scan(
 		&i.ID,
@@ -378,20 +398,5 @@ func (q *Queries) UpdateModelDatabaseSyncJob(ctx context.Context, arg UpdateMode
 		arg.FinishedAt,
 		arg.ID,
 	)
-	return err
-}
-
-const failStaleSyncJobs = `-- name: FailStaleSyncJobs :exec
-UPDATE model_database_sync_job
-SET status = 'failed',
-    finished_at = NOW(3),
-    updated_at = NOW(3)
-WHERE ` + "`" + `model_database_sync_job` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
-  AND status IN ('pending', 'running')
-  AND updated_at <= ?
-`
-
-func (q *Queries) FailStaleSyncJobs(ctx context.Context, updatedBefore time.Time) error {
-	_, err := q.db.ExecContext(ctx, failStaleSyncJobs, updatedBefore)
 	return err
 }
