@@ -38,19 +38,20 @@ func (m *modelMapper) ConvertToGraphQLModelWithActualSchema(
 	}
 
 	gqlModel := &generated.Model{
-		ID:           modelEntity.ID,
-		ProjectSlug:  modelEntity.ProjectSlug,
-		Name:         modelEntity.ModelName,
-		Title:        modelEntity.Title,
-		Description:  modelEntity.Description,
-		DatabaseName: modelEntity.DatabaseName,
-		StorageType:  modelEntity.StorageType,
-		CreatedVia:   string(modelEntity.CreatedVia),
-		DisplayField: modelEntity.DisplayField,
-		Fields:       graphqlFields,
-		Group:        GroupMapper.GroupPlaceholder(modelEntity.GroupID),
-		CreatedAt:    modelEntity.CreatedAt.Format(time.RFC3339),
-		UpdatedAt:    modelEntity.UpdatedAt.Format(time.RFC3339),
+		ID:                  modelEntity.ID,
+		ProjectSlug:         modelEntity.ProjectSlug,
+		Name:                modelEntity.ModelName,
+		Title:               modelEntity.Title,
+		Description:         modelEntity.Description,
+		DatabaseName:        modelEntity.DatabaseName,
+		StorageType:         modelEntity.StorageType,
+		CreatedVia:          string(modelEntity.CreatedVia),
+		DisplayField:        modelEntity.DisplayField,
+		InsertionOrderField: modelEntity.InsertionOrderField,
+		Fields:              graphqlFields,
+		Group:               GroupMapper.GroupPlaceholder(modelEntity.GroupID),
+		CreatedAt:           modelEntity.CreatedAt.Format(time.RFC3339),
+		UpdatedAt:           modelEntity.UpdatedAt.Format(time.RFC3339),
 	}
 
 	if actualResult != nil {

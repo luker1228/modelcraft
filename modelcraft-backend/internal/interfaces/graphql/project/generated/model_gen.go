@@ -553,11 +553,12 @@ type CreateModelFromSchemaPayload struct {
 }
 
 type CreateModelInput struct {
-	Name         string  `json:"name"`
-	Title        string  `json:"title"`
-	Description  *string `json:"description,omitempty"`
-	DatabaseName string  `json:"databaseName"`
-	DisplayField *string `json:"displayField,omitempty"`
+	Name                string  `json:"name"`
+	Title               string  `json:"title"`
+	Description         *string `json:"description,omitempty"`
+	DatabaseName        string  `json:"databaseName"`
+	DisplayField        *string `json:"displayField,omitempty"`
+	InsertionOrderField *string `json:"insertionOrderField,omitempty"`
 }
 
 type CreateModelPayload struct {
@@ -1337,21 +1338,22 @@ type LogicalForeignKey struct {
 func (LogicalForeignKey) IsCreateLogicalForeignKeyResult() {}
 
 type Model struct {
-	ID           string         `json:"id"`
-	ProjectSlug  string         `json:"projectSlug"`
-	Name         string         `json:"name"`
-	Title        string         `json:"title"`
-	Description  string         `json:"description"`
-	DatabaseName string         `json:"databaseName"`
-	StorageType  string         `json:"storageType"`
-	CreatedVia   string         `json:"createdVia"`
-	DisplayField *string        `json:"displayField,omitempty"`
-	Fields       []*Field       `json:"fields"`
-	Group        *ModelGroup    `json:"group"`
-	DbTable      *DbTableStatus `json:"dbTable,omitempty"`
-	JSONSchema   *string        `json:"jsonSchema,omitempty"`
-	CreatedAt    string         `json:"createdAt"`
-	UpdatedAt    string         `json:"updatedAt"`
+	ID                  string         `json:"id"`
+	ProjectSlug         string         `json:"projectSlug"`
+	Name                string         `json:"name"`
+	Title               string         `json:"title"`
+	Description         string         `json:"description"`
+	DatabaseName        string         `json:"databaseName"`
+	StorageType         string         `json:"storageType"`
+	CreatedVia          string         `json:"createdVia"`
+	DisplayField        *string        `json:"displayField,omitempty"`
+	InsertionOrderField *string        `json:"insertionOrderField,omitempty"`
+	Fields              []*Field       `json:"fields"`
+	Group               *ModelGroup    `json:"group"`
+	DbTable             *DbTableStatus `json:"dbTable,omitempty"`
+	JSONSchema          *string        `json:"jsonSchema,omitempty"`
+	CreatedAt           string         `json:"createdAt"`
+	UpdatedAt           string         `json:"updatedAt"`
 	// RLS 策略配置（无 owner 字段时返回 null）
 	RlsPolicy *ModelRLSPolicy `json:"rlsPolicy,omitempty"`
 }
@@ -1952,9 +1954,10 @@ type UpdateModelDatabaseInput struct {
 }
 
 type UpdateModelMetaInput struct {
-	Title        *string `json:"title,omitempty"`
-	Description  *string `json:"description,omitempty"`
-	DisplayField *string `json:"displayField,omitempty"`
+	Title               *string `json:"title,omitempty"`
+	Description         *string `json:"description,omitempty"`
+	DisplayField        *string `json:"displayField,omitempty"`
+	InsertionOrderField *string `json:"insertionOrderField,omitempty"`
 }
 
 type UpdateModelMetaPayload struct {

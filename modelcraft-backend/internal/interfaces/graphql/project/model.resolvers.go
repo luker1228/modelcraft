@@ -117,9 +117,10 @@ func (r *mutationResolver) UpdateModelMeta(ctx context.Context, id string, input
 
 	// Convert GraphQL input to command
 	cmd := appmodeldesign.UpdateModelMetaCommand{
-		OrgName:      orgName,
-		ProjectSlug:  projectSlug,
-		DisplayField: input.DisplayField,
+		OrgName:             orgName,
+		ProjectSlug:         projectSlug,
+		DisplayField:        input.DisplayField,
+		InsertionOrderField: input.InsertionOrderField,
 	}
 
 	if input.Title != nil {

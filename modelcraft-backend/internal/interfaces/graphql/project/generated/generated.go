@@ -689,22 +689,23 @@ type ComplexityRoot struct {
 	}
 
 	Model struct {
-		CreatedAt    func(childComplexity int) int
-		CreatedVia   func(childComplexity int) int
-		DatabaseName func(childComplexity int) int
-		DbTable      func(childComplexity int) int
-		Description  func(childComplexity int) int
-		DisplayField func(childComplexity int) int
-		Fields       func(childComplexity int) int
-		Group        func(childComplexity int) int
-		ID           func(childComplexity int) int
-		JSONSchema   func(childComplexity int) int
-		Name         func(childComplexity int) int
-		ProjectSlug  func(childComplexity int) int
-		RlsPolicy    func(childComplexity int) int
-		StorageType  func(childComplexity int) int
-		Title        func(childComplexity int) int
-		UpdatedAt    func(childComplexity int) int
+		CreatedAt           func(childComplexity int) int
+		CreatedVia          func(childComplexity int) int
+		DatabaseName        func(childComplexity int) int
+		DbTable             func(childComplexity int) int
+		Description         func(childComplexity int) int
+		DisplayField        func(childComplexity int) int
+		Fields              func(childComplexity int) int
+		Group               func(childComplexity int) int
+		ID                  func(childComplexity int) int
+		InsertionOrderField func(childComplexity int) int
+		JSONSchema          func(childComplexity int) int
+		Name                func(childComplexity int) int
+		ProjectSlug         func(childComplexity int) int
+		RlsPolicy           func(childComplexity int) int
+		StorageType         func(childComplexity int) int
+		Title               func(childComplexity int) int
+		UpdatedAt           func(childComplexity int) int
 	}
 
 	ModelAlreadyExists struct {
@@ -3336,6 +3337,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Model.ID(childComplexity), true
+	case "Model.insertionOrderField":
+		if e.complexity.Model.InsertionOrderField == nil {
+			break
+		}
+
+		return e.complexity.Model.InsertionOrderField(childComplexity), true
 	case "Model.jsonSchema":
 		if e.complexity.Model.JSONSchema == nil {
 			break
@@ -6481,6 +6488,7 @@ type Model implements Node {
   storageType: String!
   createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入(托管)
   displayField: String  # 用于 runtime _label 解析的字段名
+  insertionOrderField: String  # 用于 listPage cursor 分页的插入序字段名（未配置时 listPage 稳定性无法保证）
   fields: [Field!]!
   group: ModelGroup!
   dbTable: DbTableStatus  # 实际表状态（仅当 withActualSchema=true 时填充）
@@ -6521,12 +6529,14 @@ input CreateModelInput {
   description: String
   databaseName: String!
   displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
+  insertionOrderField: String  # 用于 listPage cursor 分页的插入序字段名
 }
 
 input UpdateModelMetaInput {
   title: String
   description: String
   displayField: String  # 用于 runtime _label 解析的字段名（必须是模型中存在且可字符串化的字段）
+  insertionOrderField: String  # 用于 listPage cursor 分页的插入序字段名
 }
 
 input ImportModelInput {
@@ -9325,6 +9335,8 @@ func (ec *executionContext) fieldContext_AddFieldsPayload_model(_ context.Contex
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -11083,6 +11095,8 @@ func (ec *executionContext) fieldContext_CreateModelFromSchemaPayload_model(_ co
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -11146,6 +11160,8 @@ func (ec *executionContext) fieldContext_CreateModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -18421,6 +18437,8 @@ func (ec *executionContext) fieldContext_GetModelPayload_model(_ context.Context
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -19627,6 +19645,35 @@ func (ec *executionContext) _Model_displayField(ctx context.Context, field graph
 }
 
 func (ec *executionContext) fieldContext_Model_displayField(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Model",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Model_insertionOrderField(ctx context.Context, field graphql.CollectedField, obj *Model) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Model_insertionOrderField,
+		func(ctx context.Context) (any, error) {
+			return obj.InsertionOrderField, nil
+		},
+		nil,
+		ec.marshalOString2ᚖstring,
+		true,
+		false,
+	)
+}
+
+func (ec *executionContext) fieldContext_Model_insertionOrderField(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	fc = &graphql.FieldContext{
 		Object:     "Model",
 		Field:      field,
@@ -20898,6 +20945,8 @@ func (ec *executionContext) fieldContext_ModelGroup_models(_ context.Context, fi
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -21106,6 +21155,8 @@ func (ec *executionContext) fieldContext_ModelListResult_items(_ context.Context
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -22423,6 +22474,8 @@ func (ec *executionContext) fieldContext_Mutation_deprecateField(ctx context.Con
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -22521,6 +22574,8 @@ func (ec *executionContext) fieldContext_Mutation_undeprecateField(ctx context.C
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -28635,6 +28690,8 @@ func (ec *executionContext) fieldContext_RemoveFieldPayload_model(_ context.Cont
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -28855,6 +28912,8 @@ func (ec *executionContext) fieldContext_RepairModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -29948,6 +30007,8 @@ func (ec *executionContext) fieldContext_SyncModelSchemaPayload_model(_ context.
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -30777,6 +30838,8 @@ func (ec *executionContext) fieldContext_UpdateFieldPayload_model(_ context.Cont
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -30898,6 +30961,8 @@ func (ec *executionContext) fieldContext_UpdateModelMetaPayload_model(_ context.
 				return ec.fieldContext_Model_createdVia(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
+			case "insertionOrderField":
+				return ec.fieldContext_Model_insertionOrderField(ctx, field)
 			case "fields":
 				return ec.fieldContext_Model_fields(ctx, field)
 			case "group":
@@ -33782,7 +33847,7 @@ func (ec *executionContext) unmarshalInputCreateModelInput(ctx context.Context, 
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"name", "title", "description", "databaseName", "displayField"}
+	fieldsInOrder := [...]string{"name", "title", "description", "databaseName", "displayField", "insertionOrderField"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -33824,6 +33889,13 @@ func (ec *executionContext) unmarshalInputCreateModelInput(ctx context.Context, 
 				return it, err
 			}
 			it.DisplayField = data
+		case "insertionOrderField":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("insertionOrderField"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InsertionOrderField = data
 		}
 	}
 
@@ -35279,7 +35351,7 @@ func (ec *executionContext) unmarshalInputUpdateModelMetaInput(ctx context.Conte
 		asMap[k] = v
 	}
 
-	fieldsInOrder := [...]string{"title", "description", "displayField"}
+	fieldsInOrder := [...]string{"title", "description", "displayField", "insertionOrderField"}
 	for _, k := range fieldsInOrder {
 		v, ok := asMap[k]
 		if !ok {
@@ -35307,6 +35379,13 @@ func (ec *executionContext) unmarshalInputUpdateModelMetaInput(ctx context.Conte
 				return it, err
 			}
 			it.DisplayField = data
+		case "insertionOrderField":
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("insertionOrderField"))
+			data, err := ec.unmarshalOString2ᚖstring(ctx, v)
+			if err != nil {
+				return it, err
+			}
+			it.InsertionOrderField = data
 		}
 	}
 
@@ -42008,6 +42087,8 @@ func (ec *executionContext) _Model(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "displayField":
 			out.Values[i] = ec._Model_displayField(ctx, field, obj)
+		case "insertionOrderField":
+			out.Values[i] = ec._Model_insertionOrderField(ctx, field, obj)
 		case "fields":
 			out.Values[i] = ec._Model_fields(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
