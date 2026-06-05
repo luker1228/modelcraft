@@ -20,6 +20,7 @@ CREATE TABLE IF NOT EXISTS `models` (
 
   -- 运行时配置字段
   `display_field` VARCHAR(64) NULL COMMENT '用于 runtime _displayName 解析的字段名（必须是模型中存在且可字符串化的字段）',
+  `insertion_order_field` VARCHAR(64) NULL COMMENT '用于 listPage cursor 分页的插入序字段名（单调递增字段，如 created_at）',
 
   -- 版本和状态字段
   `version` BIGINT NULL DEFAULT 1 COMMENT '数据版本号',
