@@ -87,6 +87,15 @@ func (p *QueryParser) parseSingleCondition(key string, value interface{}, depth 
 
 // parseLogicalOperator 解析逻辑操作符
 func (p *QueryParser) parseLogicalOperator(operator string, value interface{}, depth int) (QueryNode, error) {
+	// NOT accepts either a single object { NOT: { field: ... } } or an array (Prisma-style).
+	// AND / OR always require an array.
+	// Normalise: if NOT receives a plain map, wrap it in a slice.
+	if operator == string(query.LogicalOperatorNOT) {
+		if valueMap, ok := value.(map[string]interface{}); ok {
+			value = []interface{}{valueMap}
+		}
+	}
+
 	// 逻辑操作符的值必须是数组
 	valueSlice, ok := value.([]interface{})
 	if !ok {

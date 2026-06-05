@@ -16,6 +16,8 @@
     "test:smoke": "cucumber-js --tags @smoke",
     "test:database": "cucumber-js features/database",
     "test:report": "cucumber-js --format @cucumber/html-formatter:reports/test-report.html",
+    "test:cli": "cucumber-js features/cli",
+    "test:cli-smoke": "cucumber-js features/cli --tags @smoke",
     "get-token": "tsx support/get-token.ts"
   },
   "dependencies": {
