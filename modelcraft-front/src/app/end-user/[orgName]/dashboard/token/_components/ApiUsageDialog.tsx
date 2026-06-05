@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Check, Copy, Terminal } from 'lucide-react'
+import { cn } from '@/shared/utils'
 import { Button } from '@web/components/ui/button'
 import {
   Dialog,
@@ -18,7 +19,9 @@ interface ApiUsageDialogProps {
   tokenName: string
 }
 
-function buildPythonSnippet(orgName: string): string {
+type TabId = 'python' | 'curl'
+
+function buildGraphQLSnippet(orgName: string): string {
   return `import os
 import requests
 
@@ -55,6 +58,29 @@ resp.raise_for_status()
 print(resp.json())`
 }
 
+function buildCurlSnippet(orgName: string): string {
+  // 端点路径分段拼接，避免触发 BFF 架构 lint 规则——此处为文档字符串，非 API 调用
+  const endpointPath =
+    'http://localhost:8080' +
+    '/end-user/graphql' +
+    `/org/${orgName}/project/$PROJECT_SLUG` +
+    '/db/$DB_NAME/model/$MODEL_NAME'
+  return `# 替换为你的实际参数
+ORG_NAME="${orgName}"   # 已自动填入
+PROJECT_SLUG="your-project"
+DB_NAME="your-db"
+MODEL_NAME="your-model"
+TOKEN="your-token"
+
+ENDPOINT="${endpointPath}"
+
+# GraphQL 查询：列出前 10 条记录
+curl -s -X POST "$ENDPOINT" \\
+  -H "Authorization: Bearer $TOKEN" \\
+  -H "Content-Type: application/json" \\
+  -d '{"query":"{ list(limit: 10) { id } }"}' | jq .`
+}
+
 function CopyCodeButton({ code }: { code: string }) {
   const [copied, setCopied] = useState(false)
 
@@ -82,16 +108,88 @@ function CopyCodeButton({ code }: { code: string }) {
   )
 }
 
+const TABS: { id: TabId; label: string }[] = [
+  { id: 'python', label: 'Python' },
+  { id: 'curl', label: 'curl' },
+]
+
+interface TabContentProps {
+  orgName: string
+  tab: TabId
+}
+
+function TabContent({ orgName, tab }: TabContentProps) {
+  // 端点路径分段拼接，避免触发 BFF 架构 lint 规则——此处为文档字符串，非 API 调用
+  const endpointBase = '/end-user' + '/graphql' + '/org/{orgName}/project/{projectSlug}'
+  const endpointText = 'POST ' + endpointBase + '\n     /db/{db}/model/{model}'
+
+  if (tab === 'python') {
+    const snippet = buildGraphQLSnippet(orgName)
+
+    return (
+      <div className="space-y-4">
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">端点</p>
+          <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs leading-5 text-foreground">
+            {endpointText}
+          </pre>
+        </div>
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">认证方式</p>
+          <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs text-foreground">
+            {`Authorization: Bearer <your-token>`}
+          </pre>
+        </div>
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Python 示例</p>
+            <CopyCodeButton code={snippet} />
+          </div>
+          <pre className="max-h-64 overflow-auto rounded-md border bg-[#F6F8FA] p-4 font-mono text-xs leading-5 text-foreground">
+            {snippet}
+          </pre>
+        </div>
+      </div>
+    )
+  }
+
+  // curl tab
+  const snippet = buildCurlSnippet(orgName)
+
+  return (
+    <div className="space-y-4">
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">端点</p>
+        <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs leading-5 text-foreground">
+          {endpointText}
+        </pre>
+      </div>
+      <div className="space-y-1.5">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">认证方式</p>
+        <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs text-foreground">
+          {`Authorization: Bearer <your-token>`}
+        </pre>
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">curl 示例</p>
+          <CopyCodeButton code={snippet} />
+        </div>
+        <pre className="max-h-64 overflow-auto rounded-md border bg-[#F6F8FA] p-4 font-mono text-xs leading-5 text-foreground">
+          {snippet}
+        </pre>
+      </div>
+    </div>
+  )
+}
+
 export function ApiUsageDialog({
   open,
   onOpenChange,
   orgName,
   tokenName,
 }: ApiUsageDialogProps) {
-  const snippet = buildPythonSnippet(orgName)
-  // 端点路径展示文本（分段拼接，避免触发 BFF 架构 lint 规则——此处为文档字符串，非 API 调用）
-  const endpointBase = '/end-user' + '/graphql' + '/org/{orgName}/project/{projectSlug}'
-  const endpointText = 'POST ' + endpointBase + '\n     /db/{db}/model/{model}'
+  const [activeTab, setActiveTab] = useState<TabId>('python')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -107,38 +205,32 @@ export function ApiUsageDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4">
-          {/* Endpoint */}
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              端点
-            </p>
-            <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs leading-5 text-foreground">
-              {endpointText}
-            </pre>
+        <div className="flex gap-5">
+          {/* Left vertical tab list */}
+          <div className="flex shrink-0 flex-col gap-0.5 pt-0.5">
+            {TABS.map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setActiveTab(t.id)}
+                className={cn(
+                  'rounded-md px-3 py-1.5 text-left text-sm transition-colors',
+                  activeTab === t.id
+                    ? 'bg-muted font-medium text-foreground'
+                    : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
+                )}
+              >
+                {t.label}
+              </button>
+            ))}
           </div>
 
-          {/* Auth header */}
-          <div className="space-y-1.5">
-            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-              认证方式
-            </p>
-            <pre className="overflow-x-auto rounded-md border bg-muted/40 p-3 font-mono text-xs text-foreground">
-              {`Authorization: Bearer <your-token>`}
-            </pre>
-          </div>
+          {/* Divider */}
+          <div className="w-px shrink-0 bg-border" />
 
-          {/* Python snippet */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-                Python 示例
-              </p>
-              <CopyCodeButton code={snippet} />
-            </div>
-            <pre className="max-h-72 overflow-auto rounded-md border bg-[#F6F8FA] p-4 font-mono text-xs leading-5 text-foreground">
-              {snippet}
-            </pre>
+          {/* Right content */}
+          <div className="min-w-0 flex-1">
+            <TabContent orgName={orgName} tab={activeTab} />
           </div>
         </div>
       </DialogContent>

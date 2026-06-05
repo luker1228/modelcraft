@@ -40,12 +40,13 @@ module.exports = {
       // 所有 GraphQL 请求必须经过 BFF 代理（/api/bff/graphql/org/...）
       // 参见 ai-metadata/front/development/bff-design.md
       // 注意：gateway-routes.ts 是唯一例外，它是路径字符串的单一真相源
+      // 例外：/end-user/graphql/org/ 是 Runtime API 合法路径，允许在文档/展示中使用
       {
-        selector: 'Literal[value=/(?<!\\/api\\/bff)\\/graphql\\/org\\//]',
+        selector: 'Literal[value=/(?<!\\/api\\/bff)(?<!\\/end-user)\\/graphql\\/org\\//]',
         message: '禁止直连后端 GraphQL 端点。请使用 BFF 代理路径：/api/bff/graphql/org/... 参见 bff-design.md',
       },
       {
-        selector: 'TemplateLiteral > TemplateElement[value.raw=/(?<!\\/api\\/bff)\\/graphql\\/org\\//]',
+        selector: 'TemplateLiteral > TemplateElement[value.raw=/(?<!\\/api\\/bff)(?<!\\/end-user)\\/graphql\\/org\\//]',
         message: '禁止直连后端 GraphQL 端点。请使用 BFF 代理路径：/api/bff/graphql/org/... 参见 bff-design.md',
       },
       {

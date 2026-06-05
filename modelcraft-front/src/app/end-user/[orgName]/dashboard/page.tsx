@@ -89,7 +89,7 @@ function DashboardContent({ orgName }: { orgName: string }) {
 
   return (
     <EndUserAppLayout orgName={orgName} activePage="projects">
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="h-full overflow-y-auto">
         <WorkspaceProjectsTab orgName={orgName} projects={projects} loading={loading} />
       </div>
     </EndUserAppLayout>

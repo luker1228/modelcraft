@@ -1,6 +1,8 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { FolderOpen } from 'lucide-react'
+import { cn } from '@/shared/utils'
 import type { EndUserAccessibleProject } from '@/types/end-user-auth'
 
 interface WorkspaceProjectsTabProps {
@@ -9,105 +11,109 @@ interface WorkspaceProjectsTabProps {
   loading?: boolean
 }
 
-function SkeletonCard() {
+function SkeletonRow() {
   return (
-    <div className="animate-pulse rounded-lg border border-[#EAEAEA] bg-white p-6">
-      <div className="mb-4 size-8 rounded bg-[#F0EFF0]" />
-      <div className="mb-2 h-3.5 w-1/2 rounded bg-[#F0EFF0]" />
-      <div className="h-3 w-1/3 rounded bg-[#F0EFF0]" />
-    </div>
+    <tr className="border-b border-[#E3E8EE]">
+      <td className="px-5 py-4">
+        <div className="h-3.5 w-36 animate-pulse rounded bg-muted" />
+      </td>
+      <td className="px-5 py-4">
+        <div className="h-3 w-24 animate-pulse rounded bg-muted" />
+      </td>
+      <td className="px-5 py-4">
+        <div className="h-3 w-10 animate-pulse rounded bg-muted" />
+      </td>
+      <td className="w-10 px-5 py-4" />
+    </tr>
   )
 }
 
-function ProjectCard({
+function ProjectRow({
   project,
   orgName,
-  index,
 }: {
   project: EndUserAccessibleProject
   orgName: string
-  index: number
 }) {
   const router = useRouter()
-  const initials = project.title
-    .split(/[\s_-]+/)
-    .slice(0, 2)
-    .map((w) => w[0]?.toUpperCase() ?? '')
-    .join('')
 
   return (
-    <button
-      type="button"
+    <tr
+      className="group cursor-pointer border-b border-[#E3E8EE] transition-colors last:border-0 hover:bg-black/[0.015]"
       onClick={() => router.push(`/end-user/${orgName}/projects/${project.slug}/data`)}
-      className="group flex flex-col rounded-lg border border-[#EAEAEA] bg-white p-6 text-left transition-shadow duration-150 hover:shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
-      style={{ animationDelay: `${index * 60}ms` }}
     >
-      {/* Project icon */}
-      <div className="mb-5 flex size-8 items-center justify-center rounded bg-[#F0EFF9] text-xs font-semibold text-[#4F46E5]">
-        {initials || '?'}
-      </div>
-
-      {/* Title + slug */}
-      <p className="truncate text-[14px] font-semibold leading-snug text-[#111111]">
-        {project.title}
-      </p>
-      <p className="mt-1 truncate font-mono text-[12px] text-[#787774]">{project.slug}</p>
-
-      {/* Arrow — visible on hover */}
-      <div className="mt-5 flex items-center justify-between">
-          <span className="inline-flex items-center gap-1.5 text-[12px] text-[#787774]">
-          <span className="size-1.5 rounded-full bg-[#059669]" />
+      <td className="px-5 py-4">
+        <span className="font-medium text-foreground">{project.title}</span>
+      </td>
+      <td className="px-5 py-4">
+        <code className="font-mono text-xs text-muted-foreground">{project.slug}</code>
+      </td>
+      <td className="px-5 py-4">
+        <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <span className="size-1.5 rounded-full bg-emerald-500" />
           可用
         </span>
-        <span className="text-[12px] font-medium text-[#4F46E5] opacity-0 transition-opacity duration-150 group-hover:opacity-100">
-          进入 →
-        </span>
-      </div>
-    </button>
+      </td>
+      <td className="w-10 px-5 py-4" />
+    </tr>
   )
 }
 
 export function WorkspaceProjectsTab({ orgName, projects, loading }: WorkspaceProjectsTabProps) {
-  if (loading) {
-    return (
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, i) => (
-          <SkeletonCard key={i} />
-        ))}
-      </div>
-    )
-  }
-
-  if (projects.length === 0) {
-    return (
-      <div className="flex flex-col items-center py-24 text-center">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#8792A2"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className="mb-4"
-        >
-          <rect x="3" y="3" width="7" height="7" rx="1" />
-          <rect x="14" y="3" width="7" height="7" rx="1" />
-          <rect x="3" y="14" width="7" height="7" rx="1" />
-          <rect x="14" y="14" width="7" height="7" rx="1" />
-        </svg>
-        <p className="text-[14px] font-medium text-[#111111]">暂无项目访问权限</p>
-        <p className="mt-1 text-[13px] text-[#787774]">请联系管理员授予项目权限</p>
-      </div>
-    )
-  }
-
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {projects.map((project, i) => (
-        <ProjectCard key={project.slug} project={project} orgName={orgName} index={i} />
-      ))}
+    <div className="space-y-8 px-10 py-8">
+
+      {/* Page header */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-semibold text-foreground">项目</h2>
+        {!loading && projects.length > 0 && (
+          <span className="text-sm text-muted-foreground">{projects.length} 个项目</span>
+        )}
+      </div>
+
+      {/* List */}
+      <div className="overflow-hidden rounded-lg border bg-card">
+        {loading ? (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#E3E8EE] bg-white">
+                <th className="px-5 py-3.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">名称</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">标识符</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">状态</th>
+                <th className="w-10 px-5 py-3.5" />
+              </tr>
+            </thead>
+            <tbody>
+              <SkeletonRow />
+              <SkeletonRow />
+              <SkeletonRow />
+            </tbody>
+          </table>
+        ) : projects.length === 0 ? (
+          <div className="px-6 py-16 text-center">
+            <FolderOpen className="mx-auto mb-3 size-8 text-muted-foreground/30" strokeWidth={1.5} />
+            <p className="text-sm font-medium text-muted-foreground">暂无项目访问权限</p>
+            <p className="mt-1 text-xs text-muted-foreground/60">请联系管理员授予项目权限</p>
+          </div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-[#E3E8EE] bg-white">
+                <th className="px-5 py-3.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">名称</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">标识符</th>
+                <th className="px-5 py-3.5 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">状态</th>
+                <th className="w-10 px-5 py-3.5" />
+              </tr>
+            </thead>
+            <tbody>
+              {projects.map((project) => (
+                <ProjectRow key={project.slug} project={project} orgName={orgName} />
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
     </div>
   )
 }

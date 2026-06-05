@@ -4,7 +4,7 @@ import { ReactNode, useMemo, useCallback, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ApolloProvider, useQuery } from '@apollo/client'
-import { ChevronRight, Terminal, ChevronsUpDown, Check, FolderOpen, KeyRound } from 'lucide-react'
+import { ChevronRight, Terminal, ChevronsUpDown, Check, FolderOpen, KeyRound, BookOpen } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { UserMenu } from '@web/components/features/layout/UserMenu'
 import { AppSidebarNav, type NavSection } from '@web/components/features/layout/AppSidebarNav'
@@ -19,7 +19,7 @@ import { createEndUserOrgScopedClient } from '@api-client/apollo/clients'
 import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
 import { cn } from '@/shared/utils'
 
-type ActivePage = 'projects' | 'cli' | 'token'
+type ActivePage = 'projects' | 'cli' | 'token' | 'api-docs'
 
 interface EndUserAppLayoutProps {
   children: ReactNode
@@ -170,7 +170,13 @@ function EndUserAppLayoutInner({
               <div className="flex size-5 items-center justify-center rounded bg-primary/10 text-[9px] font-semibold text-primary">
                 {orgInitials || orgName[0]?.toUpperCase()}
               </div>
-              <span className="font-medium text-foreground">{orgName}</span>
+              <button
+                type="button"
+                onClick={() => router.push(`/end-user/${orgName}/dashboard`)}
+                className={projectSlug ? 'font-medium text-muted-foreground transition-colors hover:text-foreground' : 'font-medium text-foreground'}
+              >
+                {orgName}
+              </button>
             </div>
             {projectSlug && (
               <>
@@ -219,8 +225,14 @@ function EndUserAppLayoutInner({
               header: '工作区',
               items: [
                 { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/end-user/${orgName}/dashboard`, exact: true },
+              ],
+            },
+            {
+              header: '接入',
+              items: [
                 { label: 'CLI 下载', icon: Terminal, href: `/end-user/${orgName}/dashboard/cli`, exact: true },
                 { label: 'API Token', icon: KeyRound, href: `/end-user/${orgName}/dashboard/token`, exact: true },
+                { label: 'API 文档', icon: BookOpen, href: `/end-user/${orgName}/dashboard/api-docs`, exact: true },
               ],
             },
           ]}

@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { ApolloProvider, useQuery, useMutation } from '@apollo/client'
-import { KeyRound, Plus, Trash2, Copy, Check, Eye, EyeOff, Terminal } from 'lucide-react'
+import { KeyRound, Plus, Trash2, Copy, Check, Eye, EyeOff, BookOpen } from 'lucide-react'
 import { copyToClipboardWithCallback } from '@/shared/utils/clipboard'
 import { toast } from 'sonner'
 import { Button } from '@web/components/ui/button'
@@ -41,7 +41,6 @@ import {
   CREATE_END_USER_API_TOKEN,
   REVOKE_END_USER_API_TOKEN,
 } from '@api-client/end-user/graphql-docs'
-import { ApiUsageDialog } from './_components/ApiUsageDialog'
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -87,6 +86,8 @@ function formatDate(iso?: string | null): string {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
@@ -238,7 +239,7 @@ function CreateTokenDialog({
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle>创建 API Token</DialogTitle>
-          <DialogDescription>Token 用于 CLI 认证，请妥善保管。</DialogDescription>
+          <DialogDescription>Token 用于 CLI 及 API 认证，请妥善保管。</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="space-y-1.5">
@@ -336,21 +337,19 @@ function RevokeDialog({
 function TokenRowSkeleton() {
   return (
     <tr className="border-b last:border-0">
-      <td className="px-4 py-3">
+      <td className="px-5 py-4">
         <div className="h-3.5 w-28 animate-pulse rounded bg-muted" />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-5 py-4">
         <div className="h-3 w-20 animate-pulse rounded bg-muted" />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-5 py-4">
         <div className="h-3 w-20 animate-pulse rounded bg-muted" />
       </td>
-      <td className="px-4 py-3">
+      <td className="px-5 py-4">
         <div className="h-3 w-16 animate-pulse rounded bg-muted" />
       </td>
-      <td className="px-4 py-3 text-right">
-        <div className="ml-auto size-7 animate-pulse rounded bg-muted" />
-      </td>
+      <td className="px-5 py-4" />
     </tr>
   )
 }
@@ -361,7 +360,6 @@ function TokenPageContent({ orgName }: { orgName: string }) {
   const [createOpen, setCreateOpen] = useState(false)
   const [plaintextToken, setPlaintextToken] = useState<string | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<APIToken | null>(null)
-  const [usageTarget, setUsageTarget] = useState<APIToken | null>(null)
 
   const { data, loading, refetch } = useQuery<EndUserAPITokensData>(END_USER_API_TOKENS, {
     fetchPolicy: 'network-only',
@@ -372,18 +370,20 @@ function TokenPageContent({ orgName }: { orgName: string }) {
   return (
     <EndUserAppLayout orgName={orgName} activePage="token">
       <div className="h-full overflow-y-auto">
-        <div className="mx-auto max-w-4xl space-y-6 p-6">
+        <div className="space-y-8 px-10 py-8">
 
           {/* Page header */}
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start justify-between gap-4 pb-2">
             <div>
-              <p className="text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
-                身份认证
-              </p>
-              <h2 className="mt-1.5 text-xl font-semibold text-foreground">API Token 管理</h2>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
-                Personal Access Token 用于 CLI 工具认证，等同于密码，请妥善保管，不要分享给他人。
-              </p>
+              <h2 className="text-xl font-semibold text-foreground">API Token 管理</h2>
+              <p className="mt-1.5 text-sm text-muted-foreground">Personal Access Token 用于 CLI 和 API 认证，等同于密码，请勿分享。</p>
+              <a
+                href={`/end-user/${orgName}/dashboard/api-docs`}
+                className="mt-2 inline-flex items-center gap-1.5 text-xs text-primary hover:underline"
+              >
+                <BookOpen className="size-3.5" />
+                查看 API 接入文档
+              </a>
             </div>
             <Button
               size="sm"
@@ -398,7 +398,7 @@ function TokenPageContent({ orgName }: { orgName: string }) {
           {/* Token list */}
           <div className="overflow-hidden rounded-lg border bg-card">
             {/* Table toolbar */}
-            <div className="flex items-center justify-between border-b bg-[#F6F8FA] px-4 py-2.5">
+            <div className="flex items-center justify-between border-b bg-[#F6F8FA] px-5 py-3">
               <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
                 Token 列表
               </span>
@@ -410,12 +410,12 @@ function TokenPageContent({ orgName }: { orgName: string }) {
             {loading ? (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b-2 border-[#E3E8EE] bg-white">
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">名称</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">创建时间</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">过期时间</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">最后使用</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">操作</th>
+                  <tr className="border-b border-[#E3E8EE] bg-white">
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">名称</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">创建时间</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">过期时间</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">最后使用</th>
+                    <th className="w-12 px-5 py-4" />
                   </tr>
                 </thead>
                 <tbody>
@@ -429,7 +429,7 @@ function TokenPageContent({ orgName }: { orgName: string }) {
                 <KeyRound className="mx-auto mb-3 size-8 text-muted-foreground/30" />
                 <p className="text-sm font-medium text-muted-foreground">暂无 Token</p>
                 <p className="mt-1 text-xs text-muted-foreground/70">
-                  创建一个 Token 用于 CLI 认证
+                  创建一个 Token 用于 CLI 或 API 认证
                 </p>
                 <Button size="sm" className="mt-4" onClick={() => setCreateOpen(true)}>
                   <Plus className="mr-1.5 size-3.5" />
@@ -439,12 +439,12 @@ function TokenPageContent({ orgName }: { orgName: string }) {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b-2 border-[#E3E8EE] bg-white">
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">名称</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">创建时间</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">过期时间</th>
-                    <th className="px-4 py-3 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">最后使用</th>
-                    <th className="px-4 py-3 text-right text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">操作</th>
+                  <tr className="border-b border-[#E3E8EE] bg-white">
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">名称</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">创建时间</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">过期时间</th>
+                    <th className="px-5 py-4 text-left text-[11px] font-medium uppercase tracking-[0.06em] text-foreground">最后使用</th>
+                    <th className="w-12 px-5 py-4" />
                   </tr>
                 </thead>
                 <tbody>
@@ -456,11 +456,11 @@ function TokenPageContent({ orgName }: { orgName: string }) {
                       <tr
                         key={token.id}
                         className={[
-                          'transition-colors hover:bg-black/[0.015]',
+                          'group transition-colors hover:bg-black/[0.015]',
                           i < tokens.length - 1 ? 'border-b border-[#E3E8EE]' : '',
                         ].join(' ')}
                       >
-                        <td className="px-4 py-3">
+                        <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
                             <span className="font-medium text-foreground">{token.name}</span>
                             {isExpired && (
@@ -470,10 +470,10 @@ function TokenPageContent({ orgName }: { orgName: string }) {
                             )}
                           </div>
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                        <td className="px-5 py-4 tabular-nums text-muted-foreground">
                           {formatDate(token.createdAt)}
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                        <td className="px-5 py-4 tabular-nums text-muted-foreground">
                           {token.expiresAt ? (
                             <span className={isExpired ? 'text-destructive' : ''}>
                               {formatDate(token.expiresAt)}
@@ -482,35 +482,23 @@ function TokenPageContent({ orgName }: { orgName: string }) {
                             <span className="text-muted-foreground/50">永不过期</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 tabular-nums text-muted-foreground">
+                        <td className="px-5 py-4 tabular-nums text-muted-foreground">
                           {token.lastUsedAt ? (
                             formatDate(token.lastUsedAt)
                           ) : (
                             <span className="text-muted-foreground/50">从未使用</span>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 gap-1 px-2 text-xs text-muted-foreground transition-colors hover:bg-muted"
-                              title="使用示例"
-                              onClick={() => setUsageTarget(token)}
-                            >
-                              <Terminal className="size-3.5" />
-                              示例
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="size-7 p-0 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
-                              title="撤销 Token"
-                              onClick={() => setRevokeTarget(token)}
-                            >
-                              <Trash2 className="size-3.5" />
-                            </Button>
-                          </div>
+                        <td className="px-5 py-4 text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="size-7 p-0 text-muted-foreground/40 opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                            title="撤销 Token"
+                            onClick={() => setRevokeTarget(token)}
+                          >
+                            <Trash2 className="size-3.5" />
+                          </Button>
                         </td>
                       </tr>
                     )
@@ -518,28 +506,6 @@ function TokenPageContent({ orgName }: { orgName: string }) {
                 </tbody>
               </table>
             )}
-          </div>
-
-          {/* CLI usage */}
-          <div className="overflow-hidden rounded-lg border bg-card">
-            <div className="flex items-center gap-2 border-b bg-[#F6F8FA] px-4 py-2.5">
-              <Terminal className="size-3.5 text-muted-foreground" />
-              <span className="text-[11px] font-medium uppercase tracking-[0.07em] text-muted-foreground">
-                CLI 使用方式
-              </span>
-            </div>
-            <div className="p-5">
-              <p className="text-sm text-muted-foreground">
-                在 CLI 登录时通过{' '}
-                <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-foreground">
-                  --token
-                </code>{' '}
-                参数传入：
-              </p>
-              <pre className="mt-3 overflow-x-auto rounded-md border bg-[#F6F8FA] p-4 font-mono text-xs leading-6 text-foreground">
-                {`mc auth login --token '<your-token>'`}
-              </pre>
-            </div>
           </div>
 
         </div>
@@ -563,12 +529,6 @@ function TokenPageContent({ orgName }: { orgName: string }) {
         token={revokeTarget}
         onClose={() => setRevokeTarget(null)}
         onRevoked={() => void refetch()}
-      />
-      <ApiUsageDialog
-        open={!!usageTarget}
-        onOpenChange={(o) => { if (!o) setUsageTarget(null) }}
-        orgName={orgName}
-        tokenName={usageTarget?.name ?? ''}
       />
     </EndUserAppLayout>
   )
