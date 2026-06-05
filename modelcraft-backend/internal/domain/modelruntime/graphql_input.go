@@ -74,6 +74,18 @@ type FindManyInInput struct {
 	Values []any
 }
 
+// ListPageInput holds parameters for cursor-based keyset pagination.
+type ListPageInput struct {
+	TableName           string
+	Selection           *Selection
+	Where               map[string]any // extra WHERE (RLS etc.)
+	SortField           string         // required: field to sort by
+	SortDirection       string         // "asc" or "desc"
+	InsertionOrderField string         // optional: monotonically increasing field name
+	After               *CursorData    // nil = first page
+	Limit               uint
+}
+
 func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyInput, error) {
 	where, err := getWhere(param.Args)
 	if err != nil {

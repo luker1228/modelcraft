@@ -391,6 +391,71 @@ func convertAggregateInputToSQL(
 //  1. 如果 Select 为空：SELECT COUNT(*) as count FROM table
 //  2. 如果 Select 不为空：SELECT COUNT(*) as _count__all, COUNT(field1) as _count_field1, ... FROM table
 //  3. 支持 WHERE 条件过滤
+
+// listPageOrderExprs returns the ORDER BY expressions for keyset pagination.
+func listPageOrderExprs(sortField, ioField, direction string) []exp.OrderedExpression {
+	desc := direction == modelruntime.OrderByDesc
+	if ioField != "" {
+		if desc {
+			return []exp.OrderedExpression{goqu.C(sortField).Desc(), goqu.C(ioField).Desc()}
+		}
+		return []exp.OrderedExpression{goqu.C(sortField).Asc(), goqu.C(ioField).Asc()}
+	}
+	if desc {
+		return []exp.OrderedExpression{goqu.C(sortField).Desc()}
+	}
+	return []exp.OrderedExpression{goqu.C(sortField).Asc()}
+}
+
+// listPageCursorExpr builds the keyset WHERE expression for the given cursor.
+func listPageCursorExpr(sortField, ioField, direction string, after *modelruntime.CursorData) goqu.Expression {
+	desc := direction == modelruntime.OrderByDesc
+	if ioField != "" && after.IOField != "" {
+		// Dual-field: (sortField > sv) OR (sortField = sv AND ioField > iov)
+		if desc {
+			return goqu.Or(
+				goqu.C(sortField).Lt(after.SortValue),
+				goqu.And(goqu.C(sortField).Eq(after.SortValue), goqu.C(after.IOField).Lt(after.IOValue)),
+			)
+		}
+		return goqu.Or(
+			goqu.C(sortField).Gt(after.SortValue),
+			goqu.And(goqu.C(sortField).Eq(after.SortValue), goqu.C(after.IOField).Gt(after.IOValue)),
+		)
+	}
+	// Single-field: sortField > sv (caller is responsible for uniqueness)
+	if desc {
+		return goqu.C(sortField).Lt(after.SortValue)
+	}
+	return goqu.C(sortField).Gt(after.SortValue)
+}
+
+// convertListPageInputToSQL converts a ListPageInput to a keyset cursor pagination SQL query.
+// It fetches limit+1 rows so the caller can detect hasNextPage by checking len(result) > limit.
+func convertListPageInputToSQL(
+	ctx context.Context,
+	input *modelruntime.ListPageInput,
+) (sql string, args []any, err error) {
+	ds := goqu.Dialect("mysql").Select("*").From(input.TableName).
+		Order(listPageOrderExprs(input.SortField, input.InsertionOrderField, input.SortDirection)...).
+		Limit(input.Limit + 1)
+
+	if input.After != nil {
+		ds = ds.Where(listPageCursorExpr(input.SortField, input.InsertionOrderField, input.SortDirection, input.After))
+	}
+
+	if len(input.Where) > 0 {
+		whereExpr, werr := convertWhereToExpression(input.Where)
+		if werr != nil {
+			return "", nil, bizerrors.Errorf("listPage where: %w", werr)
+		}
+		ds = ds.Where(whereExpr)
+	}
+
+	sql, args, err = ds.Prepared(true).ToSQL()
+	return
+}
+
 func convertCountInputToSQL(ctx context.Context, input *modelruntime.CountInput) (sql string, args []any, err error) {
 	dialect := goqu.Dialect("mysql")
 
