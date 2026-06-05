@@ -44,9 +44,9 @@ func ExitCode(err error) int {
 		return 3
 	case "PERMISSION_DENIED":
 		return 4
-	case "NO_PROJECT_CONTEXT", "MODEL_NOT_FOUND", "DATABASE_NOT_FOUND", "NOT_FOUND":
+	case "NO_PROJECT_CONTEXT", "MODEL_NOT_FOUND", "DATABASE_NOT_FOUND", "NOT_FOUND", "PROJECT_NOT_FOUND":
 		return 5
-	case "TAKE_EXCEEDS_LIMIT":
+	case "TAKE_EXCEEDS_LIMIT", "INVALID_RESOURCE_PATH":
 		return 6
 	default:
 		return 7

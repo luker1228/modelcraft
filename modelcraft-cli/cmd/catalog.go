@@ -74,6 +74,11 @@ func newCatalogDatabasesCommand() *cobra.Command {
 				return output.NewCLIError("NO_PROJECT_CONTEXT", "No project context is selected.", true, "Use --project <slug> or run 'mc auth switch-project <slug>'.", nil)
 			}
 
+			// Validate that the requested project is accessible.
+			if err := validateProjectAccess(resolved); err != nil {
+				return err
+			}
+
 			items, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogDatabases(
 				cmd.Context(),
 				resolved.Server,
@@ -117,6 +122,11 @@ func newCatalogModelsCommand() *cobra.Command {
 				return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true, "Run 'mc catalog models --help' to inspect required flags.", map[string]any{"flag": "database"})
 			}
 
+			// Validate that the requested project is accessible.
+			if err := validateProjectAccess(resolved); err != nil {
+				return err
+			}
+
 			items, err := (client.GraphQLClient{HTTPClient: http.DefaultClient}).CatalogModels(
 				cmd.Context(),
 				resolved.Server,
@@ -135,6 +145,27 @@ func newCatalogModelsCommand() *cobra.Command {
 	cmd.Flags().StringVar(&project, "project", "", "Project slug")
 	cmd.Flags().StringVar(&database, "database", "", "Database name")
 	return cmd
+}
+
+// validateProjectAccess checks that resolved.CurrentProject is in the user's accessible project list.
+// Returns PROJECT_NOT_FOUND if the project is not accessible.
+func validateProjectAccess(creds config.Credentials) error {
+	if len(creds.Projects) == 0 {
+		// No project list cached (e.g. username/password login without whoami) — skip check.
+		return nil
+	}
+	for _, p := range creds.Projects {
+		if p.Slug == creds.CurrentProject {
+			return nil
+		}
+	}
+	return output.NewCLIError(
+		"PROJECT_NOT_FOUND",
+		"Project is not accessible for the current user.",
+		false,
+		"Run 'mc catalog projects' to inspect available projects.",
+		map[string]any{"project": creds.CurrentProject},
+	)
 }
 
 func loadCredentials(credentialsPath string) (config.Credentials, error) {

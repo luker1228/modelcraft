@@ -273,6 +273,20 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 		}
 	}
 
+	// Count total matching rows (same WHERE conditions, no LIMIT/OFFSET).
+	var totalCount *int
+	countResult, countErr := rctx.ClientRepo.Count(p.Context, &CountInput{
+		TableName: input.TableName,
+		Where:     input.Where,
+	})
+	if countErr == nil {
+		if v, ok := countResult[FieldCount]; ok {
+			if n, castErr := cast.ToIntE(v); castErr == nil {
+				totalCount = &n
+			}
+		}
+	}
+
 	// Get metadata from context
 	metadata := requestcontext.GetMetadata(p.Context)
 	reqId := ""
@@ -285,7 +299,7 @@ func (m *graphqlModelResolver) executeFindMany(p graphql.ResolveParams) (map[str
 
 	return map[string]any{
 		FieldItems:      result,
-		FieldTotalCount: nil, // Not implemented yet
+		FieldTotalCount: totalCount,
 		FieldTimeCost:   timeCost,
 		FieldReqId:      reqId,
 	}, nil
@@ -465,6 +479,23 @@ func (m *graphqlModelResolver) executeCount(p graphql.ResolveParams) (map[string
 	if err != nil {
 		return nil, err
 	}
+
+	// Conflict check: using `select` switches to per-field counting mode, which
+	// populates `fieldsCount` but NOT `count`. Querying both in one call is
+	// meaningless — `count` will always be null — so we reject it explicitly.
+	//
+	// Fix: use one of the two mutually-exclusive forms:
+	//   (a) { count { count } }                          — simple total
+	//   (b) { count(select: {_all: true}) { fieldsCount { _all } } } — per-field totals
+	if len(input.Select) > 0 && hasSelectedField(p, FieldCount) {
+		return nil, bizerrors.NewError(
+			bizerrors.ParamInvalid,
+			"'count' and 'select' are mutually exclusive: "+
+				"use { count { count } } for a simple total, or "+
+				"{ count(select: {_all: true}) { fieldsCount { _all } } } for per-field counts",
+		)
+	}
+
 	result, err := rctx.ClientRepo.Count(p.Context, input)
 	if err != nil {
 		return nil, err

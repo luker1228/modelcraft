@@ -175,7 +175,7 @@ func (s *GraphqlAppService) denyManagedModelMutation(
 
 	isMutation, err := isMutationOperation(cmd.Query, cmd.OperationName)
 	if err != nil {
-		return bizerrors.Wrapf(err, "invalid graphql operation")
+		return bizerrors.NewError(bizerrors.ParamInvalid, fmt.Sprintf("invalid graphql operation: %v", err))
 	}
 	if !isMutation {
 		return nil

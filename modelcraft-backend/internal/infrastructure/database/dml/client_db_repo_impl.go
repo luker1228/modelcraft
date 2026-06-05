@@ -166,6 +166,10 @@ func (c *ClientDBRepoImpl) FindManyIn(
 //   - []map[string]any: 查找到的记录列表
 //   - error: 错误信息
 func (c *ClientDBRepoImpl) FindMany(ctx context.Context, input *modelruntime.FindManyInput) ([]map[string]any, error) {
+	// Short-circuit: take=0 explicitly requested — return empty result without hitting the DB.
+	if input.ExplicitLimit && input.Limit == 0 {
+		return []map[string]any{}, nil
+	}
 	logger := logfacade.GetLogger(ctx)
 	return execute[*modelruntime.FindManyInput, []map[string]any](
 		ctx, logger, input,

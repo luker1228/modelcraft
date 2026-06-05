@@ -51,7 +51,11 @@ type FindManyInput struct {
 	Where     map[string]any
 	OrderBy   []OrderBy
 	Limit     uint
-	Offset    uint
+	// ExplicitLimit indicates the caller explicitly passed a take value (including 0).
+	// When false and Limit==0, the query uses the default limit.
+	// When true and Limit==0, LIMIT 0 is applied (returns empty result set).
+	ExplicitLimit bool
+	Offset        uint
 }
 
 type OrderBy struct {
@@ -75,8 +79,8 @@ func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyI
 	if err != nil {
 		return nil, err
 	}
-	takeRaw, ok := param.Args[FieldTake]
-	if !ok {
+	takeRaw, takeProvided := param.Args[FieldTake]
+	if !takeProvided {
 		takeRaw = 10
 	}
 	take, err := cast.ToUintE(takeRaw)
@@ -96,11 +100,12 @@ func newFindManyInput(tableName string, param graphql.ResolveParams) (*FindManyI
 		return nil, err
 	}
 	return &FindManyInput{
-		TableName: tableName,
-		Where:     where,
-		OrderBy:   orderBy,
-		Limit:     take,
-		Offset:    skip,
+		TableName:     tableName,
+		Where:         where,
+		OrderBy:       orderBy,
+		Limit:         take,
+		ExplicitLimit: takeProvided,
+		Offset:        skip,
 	}, nil
 }
 

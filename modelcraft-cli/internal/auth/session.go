@@ -56,6 +56,11 @@ func (m Manager) EnsureFresh(ctx context.Context, creds config.Credentials, clie
 	}
 
 	fresh.CurrentProject = creds.CurrentProject
+	// Preserve the project list from the original credentials — the refresh endpoint
+	// only returns new tokens, not the user's accessible projects.
+	if len(fresh.Projects) == 0 {
+		fresh.Projects = creds.Projects
+	}
 	return *fresh, nil
 }
 

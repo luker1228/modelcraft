@@ -53,8 +53,7 @@ func newAuthLoginCommand() *cobra.Command {
 			if token != "" {
 				// PAT-based login: call whoami to resolve identity and projects.
 				creds, err = authClient.Whoami(cmd.Context(), server, token)
-			} else {
-				// Username/password login — validate required flags before network call.
+			} else {				// Username/password login — validate required flags before network call.
 				if username == "" {
 					return output.NewCLIError("MISSING_REQUIRED_FLAG", "Missing required flag.", true,
 						"Run 'mc auth login --help' to inspect required flags.",
@@ -70,15 +69,21 @@ func newAuthLoginCommand() *cobra.Command {
 			if err != nil {
 				return err
 			}
+			// Auto-select the default project when there is exactly one option,
+			// so users don't need a manual 'mc auth switch-project' after login.
+			if creds.CurrentProject == "" && len(creds.Projects) == 1 {
+				creds.CurrentProject = creds.Projects[0].Slug
+			}
 			if err := config.Save(credentialsPath, *creds); err != nil {
 				return output.NewCLIError("IO_ERROR", "Failed to persist credentials.", false, "Check filesystem permissions and retry.", map[string]any{"path": credentialsPath})
 			}
 
 			return output.WriteSuccess(cmd.OutOrStdout(), "json", true, map[string]any{
-				"server":   creds.Server,
-				"orgName":  creds.OrgName,
-				"userId":   creds.UserID,
-				"projects": creds.Projects,
+				"server":         creds.Server,
+				"orgName":        creds.OrgName,
+				"userId":         creds.UserID,
+				"currentProject": creds.CurrentProject,
+				"projects":       creds.Projects,
 			}, nil)
 		},
 	}
@@ -159,6 +164,7 @@ func newAuthRefreshCommand() *cobra.Command {
 				"orgName":        fresh.OrgName,
 				"userId":         fresh.UserID,
 				"currentProject": fresh.CurrentProject,
+				"projects":       fresh.Projects,
 			}, nil)
 		},
 	}

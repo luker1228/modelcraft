@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"context"
+	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
 	"net/http"
 
@@ -26,12 +27,19 @@ func ChiHttpContextMiddleware() func(http.Handler) http.Handler {
 				requestID = uuid.NewString()
 			}
 
+			// Determine language from Accept-Language header; default to English.
+			lang := bizerrors.ParseLanguage(r.Header.Get("Accept-Language"))
+			if lang == "" {
+				lang = bizerrors.LangEN
+			}
+
 			// Create HttpRequestContext
 			httpReqCtx := &ctxutils.HttpRequestContext{
 				RequestId: requestID,
 				Method:    r.Method,
 				Path:      r.URL.Path,
 				ClientIP:  r.RemoteAddr, // Chi doesn't have ClientIP() like Gin, use RemoteAddr
+				Lang:      lang,
 			}
 
 			// Store in request context

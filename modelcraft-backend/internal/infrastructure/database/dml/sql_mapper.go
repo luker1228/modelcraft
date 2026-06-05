@@ -127,9 +127,16 @@ func convertFindManyInputToSQL(
 		}
 		ds = ds.Order(orderExprs...)
 	}
-	if len(input.Where) == 0 {
-		// 如果没有where条件，返回不带where的查询
+
+	// Apply LIMIT only when a non-zero value is set OR when the caller explicitly
+	// requested take=0 (which should return an empty result, not skip the clause).
+	if input.Limit > 0 || input.ExplicitLimit {
 		ds = ds.Limit(input.Limit).Offset(input.Offset)
+	} else {
+		ds = ds.Offset(input.Offset)
+	}
+
+	if len(input.Where) == 0 {
 		sql, args, err = ds.Prepared(true).ToSQL()
 		return
 	}
@@ -140,7 +147,7 @@ func convertFindManyInputToSQL(
 		return "", nil, bizerrors.Errorf("failed to convert where condition: %w", err)
 	}
 
-	ds = ds.Where(whereExpr).Limit(input.Limit).Offset(input.Offset)
+	ds = ds.Where(whereExpr)
 	sql, args, err = ds.Prepared(true).ToSQL()
 	return
 }

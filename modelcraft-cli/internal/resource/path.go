@@ -18,6 +18,10 @@ type ModelPath struct {
 
 func ParseModelPath(raw string, ctx ParseContext) (ModelPath, error) {
 	parts := strings.Split(strings.TrimSpace(raw), ".")
+	// Trim spaces from each segment so "luke .db.model" is not silently accepted.
+	for i := range parts {
+		parts[i] = strings.TrimSpace(parts[i])
+	}
 	switch len(parts) {
 	case 3:
 		if parts[0] == "" || parts[1] == "" || parts[2] == "" {
