@@ -67,6 +67,10 @@ func (m *mockClientDatabaseRepository) FindManyIn(_ context.Context, _ *FindMany
 	return nil, nil
 }
 
+func (m *mockClientDatabaseRepository) ListPage(_ context.Context, _ *ListPageInput) ([]map[string]any, error) {
+	return nil, nil
+}
+
 // TestCreateModelType 测试 createModelType 方法
 func TestCreateModelType(t *testing.T) {
 	tests := []struct {

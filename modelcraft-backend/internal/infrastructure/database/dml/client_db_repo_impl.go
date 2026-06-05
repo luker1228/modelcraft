@@ -216,6 +216,41 @@ func (c *ClientDBRepoImpl) FindMany(ctx context.Context, input *modelruntime.Fin
 	)
 }
 
+// ListPage executes a keyset cursor pagination query.
+// Returns at most limit+1 rows — the caller checks len(result) > limit to determine hasNextPage.
+func (c *ClientDBRepoImpl) ListPage(ctx context.Context, input *modelruntime.ListPageInput) ([]map[string]any, error) {
+	logger := logfacade.GetLogger(ctx)
+	return execute(ctx, logger, input, func() ([]map[string]any, error) {
+		sql, args, err := convertListPageInputToSQL(ctx, input)
+		if err != nil {
+			return nil, err
+		}
+		logger.Infof(ctx, "sql=%v args=%v", sql, args)
+
+		rows, err := c.stdDB.Queryx(sql, args...)
+		if err != nil {
+			logger.Error(ctx, "listPage query fail", logfacade.Err(err))
+			return nil, err
+		}
+		defer rows.Close()
+
+		results := make([]map[string]any, 0, input.Limit+1)
+		for rows.Next() {
+			record := make(map[string]any)
+			if err := rows.MapScan(record); err != nil {
+				logger.Error(ctx, "listPage map scan fail", logfacade.Err(err))
+				return nil, err
+			}
+			results = append(results, convertBytesToString(record))
+		}
+		if err := rows.Err(); err != nil {
+			logger.Error(ctx, "listPage rows iteration fail", logfacade.Err(err))
+			return nil, err
+		}
+		return results, nil
+	})
+}
+
 // convertBytesToString 将 map 中的 []byte 值转换为 string
 func convertBytesToString(data map[string]any) map[string]any {
 	for key, value := range data {

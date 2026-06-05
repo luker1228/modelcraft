@@ -13,6 +13,9 @@ type ClientDatabaseRepository interface {
 	FindFirst(ctx context.Context, input *FindFirstInput) (map[string]any, error)
 	// FindMany 查找多个匹配的记录。
 	FindMany(ctx context.Context, input *FindManyInput) ([]map[string]any, error)
+	// ListPage executes a keyset cursor pagination query.
+	// Returns at most limit+1 rows — the caller checks len(result) > limit to determine hasNextPage.
+	ListPage(ctx context.Context, input *ListPageInput) ([]map[string]any, error)
 	// FindManyIn 通过 IN 条件批量查找关联记录，用于解决 N+1 问题。
 	// 等价于：SELECT * FROM tableName WHERE referenceKey IN (values...)
 	FindManyIn(ctx context.Context, input *FindManyInInput) ([]map[string]any, error)
