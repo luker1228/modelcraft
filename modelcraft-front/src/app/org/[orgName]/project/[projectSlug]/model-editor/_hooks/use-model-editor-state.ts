@@ -47,6 +47,7 @@ export function useModelEditorState() {
   const [metaTitle, setMetaTitle] = useState('')
   const [metaDescription, setMetaDescription] = useState('')
   const [metaDisplayField, setMetaDisplayField] = useState('')
+  const [metaInsertionOrderField, setMetaInsertionOrderField] = useState('')
   const [metaSaving, setMetaSaving] = useState(false)
   const [metaEditMode, setMetaEditMode] = useState(false)
 
@@ -106,6 +107,7 @@ export function useModelEditorState() {
     metaTitle, setMetaTitle,
     metaDescription, setMetaDescription,
     metaDisplayField, setMetaDisplayField,
+    metaInsertionOrderField, setMetaInsertionOrderField,
     metaSaving, setMetaSaving,
     metaEditMode, setMetaEditMode,
 

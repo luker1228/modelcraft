@@ -285,6 +285,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setMetaTitle(data.model.model.title || '')
         state.setMetaDescription(data.model.model.description || '')
         state.setMetaDisplayField(data.model.model.displayField || '')
+        state.setMetaInsertionOrderField(data.model.model.insertionOrderField || '')
         state.setFkList([])
         state.setFkFormOpen(false)
         state.setFkMappings([{ sourceField: '', targetField: '' }])
@@ -317,6 +318,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setMetaTitle(data.model.model.title || '')
         state.setMetaDescription(data.model.model.description || '')
         state.setMetaDisplayField(data.model.model.displayField || '')
+        state.setMetaInsertionOrderField(data.model.model.insertionOrderField || '')
         state.setFkList([])
         state.setFkFormOpen(false)
         state.setFkMappings([{ sourceField: '', targetField: '' }])
@@ -341,6 +343,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
     state.setEditModelId(null)
     state.setEditModelData(null)
     state.setMetaDisplayField('')
+    state.setMetaInsertionOrderField('')
     state.setMetaEditMode(false)
     state.setFkList([])
     state.setFkFormOpen(false)
@@ -394,6 +397,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
             title: state.metaTitle,
             description: state.metaDescription,
             displayField: state.metaDisplayField || '',
+            insertionOrderField: state.metaInsertionOrderField || null,
           },
         },
       })
@@ -404,6 +408,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
             title: state.metaTitle,
             description: state.metaDescription,
             displayField: state.metaDisplayField,
+            insertionOrderField: state.metaInsertionOrderField || undefined,
           }
           : prev,
         )
@@ -427,6 +432,7 @@ export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams
         state.setMetaTitle(data.model.model.title || '')
         state.setMetaDescription(data.model.model.description || '')
         state.setMetaDisplayField(data.model.model.displayField || '')
+        state.setMetaInsertionOrderField(data.model.model.insertionOrderField || '')
       }
     }
   }

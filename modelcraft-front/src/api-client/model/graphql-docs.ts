@@ -87,6 +87,7 @@ export const GET_MODEL = gql`
         title
         description
         displayField
+        insertionOrderField
         databaseName
         storageType
         fields {
@@ -397,6 +398,8 @@ export const UPDATE_MODEL = gql`
         name
         title
         description
+        displayField
+        insertionOrderField
         databaseName
         storageType
         fields {

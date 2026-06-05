@@ -16,6 +16,7 @@ export interface EditorModel {
   title: string
   description?: string
   displayField?: string
+  insertionOrderField?: string
   databaseName: string
   storageType?: string
   createdVia?: 'NEW' | 'IMPORTED'

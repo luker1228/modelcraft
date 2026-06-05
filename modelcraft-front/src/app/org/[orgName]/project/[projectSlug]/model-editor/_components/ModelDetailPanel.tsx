@@ -65,6 +65,7 @@ export function ModelDetailPanel({
   const displayFieldOptions = (state.editModelData?.fields || []).filter((field) => field.format !== 'RELATION')
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
+  const insertionOrderFieldSelectValue = state.metaInsertionOrderField || '__insertion_order_field_none__'
   const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
 
   return (
@@ -227,6 +228,51 @@ export function ModelDetailPanel({
                       />
                     )}
                   </div>
+                  <div className="space-y-1">
+                    <label className="text-xs text-muted-foreground">插入序字段</label>
+                    {state.metaEditMode && !isManagedReadOnlyModel ? (
+                      <>
+                        <Select
+                          value={insertionOrderFieldSelectValue}
+                          onValueChange={(value) => {
+                            state.setMetaInsertionOrderField(value === '__insertion_order_field_none__' ? '' : value)
+                          }}
+                        >
+                          <SelectTrigger className="h-8 text-sm">
+                            <SelectValue placeholder="未配置" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="__insertion_order_field_none__" className="text-sm">
+                              未配置
+                            </SelectItem>
+                            {displayFieldOptions.map((field) => (
+                              <SelectItem key={field.name} value={field.name} className="font-mono text-xs">
+                                {field.name}
+                                {field.title && field.title !== field.name ? ` (${field.title})` : ''}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {!state.metaInsertionOrderField && (
+                          <p className="flex items-center gap-1 text-xs text-amber-600">
+                            <span className="shrink-0">⚠</span>
+                            未配置，<code className="rounded bg-muted px-1 font-mono">listPage</code> 分页稳定性无法保证。
+                          </p>
+                        )}
+                        {state.metaInsertionOrderField && (
+                          <p className="text-xs text-muted-foreground">
+                            使用 <code className="font-mono">{state.metaInsertionOrderField}</code> 作为 cursor tiebreaker，分页稳定。
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <Input
+                        value={state.metaInsertionOrderField || '未配置'}
+                        disabled
+                        className="h-8 bg-muted/30 text-sm"
+                      />
+                    )}
+                  </div>
                 </div>
                 {state.metaEditMode && !isManagedReadOnlyModel && (
                   <div className="mt-4 flex items-center justify-end gap-2">
@@ -238,6 +284,7 @@ export function ModelDetailPanel({
                         state.setMetaTitle(state.editModelData!.title || '')
                         state.setMetaDescription(state.editModelData!.description || '')
                         state.setMetaDisplayField(state.editModelData!.displayField || '')
+                        state.setMetaInsertionOrderField(state.editModelData!.insertionOrderField || '')
                         state.setMetaEditMode(false)
                       }}
                     >
