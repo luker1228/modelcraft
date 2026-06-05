@@ -220,6 +220,50 @@ export function buildModelQueryOperations(
 }
 
 /**
+ * Build listPage cursor-pagination query for a model.
+ *
+ * Variables:
+ *   $sortField: String!     — field to sort by (required)
+ *   $sortDirection: String! — "asc" or "desc" (required)
+ *   $limit: Int             — page size (default 20 on server)
+ *   $after: String          — opaque cursor from previous page (omit for first page)
+ *
+ * Returns: { items { ...fields }, nextCursor, hasNextPage, timeCost, reqId }
+ */
+export function buildListPageQuery(
+  modelName: string,
+  fields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
+): DocumentNode {
+  const fieldSelection = buildFieldSelections(fields)
+  const operationName = `${modelName}ListPage`
+
+  const { query } = gqlBuilder.query(
+    {
+      operation: 'listPage',
+      variables: {
+        sortField: { type: 'String', required: true },
+        sortDirection: { type: 'String', required: true },
+        limit: { type: 'Int', required: false },
+        after: { type: 'String', required: false },
+      },
+      fields: [
+        {
+          items: fieldSelection,
+        },
+        'nextCursor',
+        'hasNextPage',
+        'timeCost',
+        'reqId',
+      ],
+    },
+    null,
+    { operationName }
+  )
+
+  return gql(query)
+}
+
+/**
  * Helper to capitalize model name (for Pascal case conversion)
  */
 export function capitalizeModelName(name: string): string {

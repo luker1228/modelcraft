@@ -8,6 +8,7 @@ import {
   buildFindFirstQuery,
   buildFindManyQuery,
   buildFindUniqueQuery,
+  buildListPageQuery,
   buildModelQueryOperations,
   buildUpdateMutation,
   extractFieldsFromSchema,
@@ -502,5 +503,43 @@ describe('runtime-query-builder: snapshots', () => {
     expect(printed).toContain('delete(')
     expect(printed).toContain('$where: ArticleUniqueWhereInput!')
     expect(printed).toContain('success')
+  })
+})
+
+// ============================================================================
+// buildListPageQuery
+// ============================================================================
+
+describe('buildListPageQuery', () => {
+  it('builds a valid listPage query with required fields', () => {
+    const query = buildListPageQuery('Product', ['id', 'price', 'name'])
+    const printed = print(query)
+    expect(printed).toContain('listPage')
+    expect(printed).toContain('$sortField')
+    expect(printed).toContain('$sortDirection')
+    expect(printed).toContain('$after')
+    expect(printed).toContain('$limit')
+    expect(printed).toContain('nextCursor')
+    expect(printed).toContain('hasNextPage')
+    expect(printed).toContain('items')
+  })
+
+  it('includes the provided field selections in items', () => {
+    const query = buildListPageQuery('Product', ['id', 'price'])
+    const printed = print(query)
+    expect(printed).toContain('id')
+    expect(printed).toContain('price')
+  })
+
+  it('names the operation correctly', () => {
+    const query = buildListPageQuery('Order', ['id'])
+    const printed = print(query)
+    expect(printed).toContain('OrderListPage')
+  })
+
+  it('returns a valid DocumentNode', () => {
+    const query = buildListPageQuery('User', ['id', 'name'])
+    const printed = print(query)
+    assertValidDocument(printed)
   })
 })
