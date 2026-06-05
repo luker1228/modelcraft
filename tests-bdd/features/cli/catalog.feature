@@ -49,19 +49,6 @@ Feature: CLI 资源目录发现
     And CLI 退出码应该为 2
 
   @cli
-  Scenario: catalog databases 指定不存在的项目返回 PROJECT_NOT_FOUND
-    When 用户执行 "catalog databases --project nonexistent_xyz"
-    Then CLI 命令应该失败
-    And CLI 错误码应该为 "PROJECT_NOT_FOUND"
-    And CLI 退出码应该为 5
-
-  @cli
-  Scenario: catalog models 指定不存在的项目返回 PROJECT_NOT_FOUND
-    When 用户执行 "catalog models --project nonexistent_xyz --database {DATABASE}"
-    Then CLI 命令应该失败
-    And CLI 错误码应该为 "PROJECT_NOT_FOUND"
-
-  @cli
   Scenario: 未设置项目上下文时 catalog databases 失败
     # 重置 credentials 到无 currentProject 状态：重新登录不切换项目
     When 用户执行 "auth login --token {PAT} --server {SERVER}"

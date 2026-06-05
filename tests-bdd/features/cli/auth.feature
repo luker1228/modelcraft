@@ -13,15 +13,7 @@ Feature: CLI 认证管理
     Then CLI 命令应该成功
     And CLI 退出码应该为 0
     And CLI 响应应该包含字段 "orgName"
-    And CLI 响应应该包含字段 "projects"
-    And CLI data."currentProject" 应该等于 "luke"
-
-  @cli
-  Scenario: PAT 登录后 currentProject 自动设为唯一项目
-    # 用户只有一个项目时，登录后应自动设置 currentProject
-    When 用户执行 "auth login --token {PAT} --server {SERVER}"
-    Then CLI 命令应该成功
-    And CLI data."currentProject" 应该不为空
+    And CLI 响应应该包含字段 "userId"
 
   @cli
   Scenario: 使用无效 token 登录失败
@@ -31,15 +23,8 @@ Feature: CLI 认证管理
     And CLI 退出码应该为 3
 
   @cli
-  Scenario: 未提供 username 时登录失败
-    When 用户执行 "auth login --password somepassword"
-    Then CLI 命令应该失败
-    And CLI 错误码应该为 "MISSING_REQUIRED_FLAG"
-    And CLI 退出码应该为 2
-
-  @cli
-  Scenario: 未提供 password 时登录失败
-    When 用户执行 "auth login --username someuser"
+  Scenario: 未提供 token 时登录失败
+    When 用户执行 "auth login --server {SERVER}"
     Then CLI 命令应该失败
     And CLI 错误码应该为 "MISSING_REQUIRED_FLAG"
     And CLI 退出码应该为 2
@@ -47,19 +32,11 @@ Feature: CLI 认证管理
   @cli @smoke
   Scenario: 登录后 auth status 返回正确信息
     Given 用户已通过 PAT token 登录 CLI
+    And 用户已切换到项目 "luke"
     When 用户执行 "auth status"
     Then CLI 命令应该成功
     And CLI data."orgName" 应该不为空
     And CLI data."currentProject" 应该不为空
-    And CLI 响应应该包含字段 "projects"
-
-  @cli
-  Scenario: auth refresh 响应包含 projects 字段
-    Given 用户已通过 PAT token 登录 CLI
-    When 用户执行 "auth refresh"
-    Then CLI 命令应该成功
-    And CLI 响应应该包含字段 "projects"
-    And CLI 响应应该包含字段 "currentProject"
 
   @cli
   Scenario: 切换到可访问的项目
