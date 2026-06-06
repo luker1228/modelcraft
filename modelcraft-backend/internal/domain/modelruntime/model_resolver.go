@@ -173,19 +173,24 @@ func (m *graphqlModelResolver) createRootQuery(ctx context.Context, modelType gr
 	if err != nil {
 		return nil, err
 	}
-	listPageField, err := m.createListPageField(modelType)
+	listByCursorField, err := m.createListByCursorField(modelType)
+	if err != nil {
+		return nil, err
+	}
+	listByPageField, err := m.createListByPageField(modelType)
 	if err != nil {
 		return nil, err
 	}
 	rootQuery := graphql.NewObject(graphql.ObjectConfig{
 		Name: "Query",
 		Fields: graphql.Fields{
-			OperationFindUnique: findUniqueFields,
-			OperationFindFirst:  findFirstFields,
-			OperationFindMany:   findManyFields,
-			OperationAggregate:  aggregateField,
-			OperationCount:      countField,
-			OperationListPage:   listPageField,
+			OperationFindUnique:   findUniqueFields,
+			OperationFindFirst:    findFirstFields,
+			OperationFindMany:     findManyFields,
+			OperationAggregate:    aggregateField,
+			OperationCount:        countField,
+			OperationListByCursor: listByCursorField,
+			OperationListByPage:   listByPageField,
 		},
 	})
 	return rootQuery, nil
@@ -1272,18 +1277,18 @@ func (r *graphqlModelResolver) createFindManyResultType(modelType graphql.Type) 
 	})
 }
 
-// createListPageResultType creates the GraphQL result type for listPage.
-func (r *graphqlModelResolver) createListPageResultType(modelType graphql.Type) *graphql.Object {
+// createListByCursorResultType creates the GraphQL result type for listByCursor.
+func (r *graphqlModelResolver) createListByCursorResultType(modelType graphql.Type) *graphql.Object {
 	return graphql.NewObject(graphql.ObjectConfig{
-		Name: gqlTypeName(r.model.Name) + "ListPageResult",
+		Name: gqlTypeName(r.model.Name) + "ListByCursorResult",
 		Fields: graphql.Fields{
 			FieldItems: &graphql.Field{
 				Type:        graphql.NewList(graphql.NewNonNull(modelType)),
-				Description: "Current page records",
+				Description: "Current cursor page records",
 			},
 			FieldNextCursor: &graphql.Field{
 				Type:        graphql.String,
-				Description: "Cursor to the next page (nil = last page)",
+				Description: "Opaque cursor for the next page (null = last page)",
 			},
 			FieldHasNextPage: &graphql.Field{
 				Type:        graphql.NewNonNull(graphql.Boolean),
@@ -1298,11 +1303,54 @@ func (r *graphqlModelResolver) createListPageResultType(modelType graphql.Type) 
 				Description: "Request tracking ID",
 			},
 		},
-		Description: "Result wrapper for listPage cursor pagination",
+		Description: r.listByCursorFieldDescription(),
 	})
 }
 
-func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[string]any, error) {
+func (r *graphqlModelResolver) createListByPageResultType(modelType graphql.Type) *graphql.Object {
+	return graphql.NewObject(graphql.ObjectConfig{
+		Name: gqlTypeName(r.model.Name) + "ListByPageResult",
+		Fields: graphql.Fields{
+			FieldItems: &graphql.Field{
+				Type:        graphql.NewList(graphql.NewNonNull(modelType)),
+				Description: "Records in the current page",
+			},
+			FieldTotal: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.Int),
+				Description: "Total number of matching records",
+			},
+			FieldPageIndex: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.Int),
+				Description: "Current 1-based page number",
+			},
+			FieldPageSize: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.Int),
+				Description: "Requested page size",
+			},
+			FieldTimeCost: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.Int),
+				Description: "Query execution time in milliseconds",
+			},
+			FieldReqId: &graphql.Field{
+				Type:        graphql.NewNonNull(graphql.String),
+				Description: "Request tracking ID",
+			},
+		},
+		Description: "Result wrapper for listByPage offset pagination. Use explicit orderBy for stable page traversal.",
+	})
+}
+
+func (r *graphqlModelResolver) listByCursorFieldDescription() string {
+	if r.model != nil && r.model.InsertionOrderField != nil && *r.model.InsertionOrderField != "" {
+		return fmt.Sprintf(
+			"Cursor pagination result. The caller must use sortField=%q, which is the model insertionOrderField. Using any other field can cause duplicate or missing rows across pages.",
+			*r.model.InsertionOrderField,
+		)
+	}
+	return "Cursor pagination result. sortField should use a monotonic insertion-order field. Using another field can cause duplicate or missing rows across pages."
+}
+
+func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map[string]any, error) {
 	rctx, _ := getGraphqlRequestContext(p.Context)
 	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
 		return nil, err
@@ -1312,7 +1360,7 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 	// Parse arguments
 	sortField, _ := p.Args[FieldSortField].(string)
 	if sortField == "" {
-		return nil, bizerrors.Errorf("sortField is required for listPage")
+		return nil, bizerrors.Errorf("sortField is required for listByCursor")
 	}
 	sortDirection, _ := p.Args[FieldSortDirection].(string)
 	if sortDirection != OrderByAsc && sortDirection != OrderByDesc {
@@ -1344,7 +1392,7 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 		insertionOrderField = *m.model.InsertionOrderField
 	}
 
-	input := &ListPageInput{
+	input := &ListByCursorInput{
 		TableName:           m.model.Name,
 		SortField:           sortField,
 		SortDirection:       sortDirection,
@@ -1362,7 +1410,7 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 	}
 
 	// Fetch limit+1 rows to detect hasNextPage
-	rows, err := rctx.ClientRepo.ListPage(p.Context, input)
+	rows, err := rctx.ClientRepo.ListByCursor(p.Context, input)
 	if err != nil {
 		return nil, err
 	}
@@ -1401,17 +1449,118 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 	}, nil
 }
 
-func (m *graphqlModelResolver) createListPageField(modelType graphql.Type) (*graphql.Field, error) {
-	args := m.inputTypeGenerator.GenerateListPageArgs(m.model)
-	resultType := m.createListPageResultType(modelType)
+func (m *graphqlModelResolver) executeListByPage(p graphql.ResolveParams) (map[string]any, error) {
+	rctx, _ := getGraphqlRequestContext(p.Context)
+	if err := rctx.EndUserPerms.CheckAction(ActionSelect); err != nil {
+		return nil, err
+	}
+	startTime := time.Now()
+
+	pageIndexRaw, _ := p.Args[FieldPageIndex].(int)
+	if pageIndexRaw <= 0 {
+		pageIndexRaw = 1
+	}
+	pageSizeRaw, _ := p.Args[FieldPageSize].(int)
+	if pageSizeRaw <= 0 {
+		pageSizeRaw = 20
+	}
+
+	where, err := getWhere(p.Args)
+	if err != nil {
+		return nil, err
+	}
+	orderBy, err := getOrderBy(p.Args)
+	if err != nil {
+		return nil, err
+	}
+	if len(orderBy) == 0 {
+		return nil, bizerrors.Errorf("orderBy is required for listByPage")
+	}
+	if len(orderBy) > 3 {
+		return nil, bizerrors.Errorf("listByPage supports at most 3 orderBy fields")
+	}
+
+	findManyInput := &FindManyInput{
+		TableName: m.model.Name,
+		Where:     where,
+		OrderBy:   orderBy,
+		Limit:     uint(pageSizeRaw),
+		Offset:    uint((pageIndexRaw - 1) * pageSizeRaw),
+	}
+	if rf := BuildRowFilter(
+		rctx.EndUserPerms, ActionSelect, m.endUserRefFieldName(), rctx.CurrentEndUserID,
+	); rf != nil {
+		maps.Copy(findManyInput.Where, rf)
+	}
+
+	items, err := rctx.ClientRepo.FindMany(p.Context, findManyInput)
+	if err != nil {
+		if bizerrors.Is(err, sql.ErrNoRows) {
+			items = []map[string]any{}
+		} else {
+			return nil, err
+		}
+	}
+
+	countResult, err := rctx.ClientRepo.Count(p.Context, &CountInput{
+		TableName: findManyInput.TableName,
+		Where:     findManyInput.Where,
+	})
+	if err != nil {
+		return nil, err
+	}
+	total, err := cast.ToIntE(countResult[FieldCount])
+	if err != nil {
+		return nil, bizerrors.Errorf("invalid count result for listByPage: %w", err)
+	}
+
+	metadata := requestcontext.GetMetadata(p.Context)
+	reqID := ""
+	if metadata != nil {
+		reqID = metadata.ReqID
+	}
+
+	return map[string]any{
+		FieldItems:     items,
+		FieldTotal:     total,
+		FieldPageIndex: pageIndexRaw,
+		FieldPageSize:  pageSizeRaw,
+		FieldTimeCost:  int(time.Since(startTime).Milliseconds()),
+		FieldReqId:     reqID,
+	}, nil
+}
+
+func (m *graphqlModelResolver) createListByCursorField(modelType graphql.Type) (*graphql.Field, error) {
+	args := m.inputTypeGenerator.GenerateListByCursorArgs(m.model)
+	resultType := m.createListByCursorResultType(modelType)
 
 	return &graphql.Field{
-		Type: resultType,
-		Args: args,
+		Type:        resultType,
+		Args:        args,
+		Description: m.listByCursorFieldDescription(),
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-			result, err := m.executeListPage(p)
+			result, err := m.executeListByCursor(p)
 			if err != nil {
-				logfacade.GetLogger(p.Context).Error(p.Context, "executeListPage fail", logfacade.Err(err))
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeListByCursor fail", logfacade.Err(err))
+				return nil, err
+			}
+			return result, err
+		},
+	}, nil
+}
+
+func (m *graphqlModelResolver) createListByPageField(modelType graphql.Type) (*graphql.Field, error) {
+	args := m.inputTypeGenerator.GenerateListByPageArgs(m.model)
+	resultType := m.createListByPageResultType(modelType)
+
+	return &graphql.Field{
+		Type:        resultType,
+		Args:        args,
+		Description: "Convenience page-based pagination. Internally this uses findMany + count, and is intended for simple table paging.",
+		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+			result, err := m.executeListByPage(p)
+			if err != nil {
+				logfacade.GetLogger(p.Context).Error(p.Context, "executeListByPage fail", logfacade.Err(err))
 				return nil, err
 			}
 			return result, err

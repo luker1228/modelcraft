@@ -430,11 +430,11 @@ func listPageCursorExpr(sortField, ioField, direction string, after *modelruntim
 	return goqu.C(sortField).Gt(after.SortValue)
 }
 
-// convertListPageInputToSQL converts a ListPageInput to a keyset cursor pagination SQL query.
+// convertListByCursorInputToSQL converts a ListByCursorInput to a keyset cursor pagination SQL query.
 // It fetches limit+1 rows so the caller can detect hasNextPage by checking len(result) > limit.
-func convertListPageInputToSQL(
+func convertListByCursorInputToSQL(
 	ctx context.Context,
-	input *modelruntime.ListPageInput,
+	input *modelruntime.ListByCursorInput,
 ) (sql string, args []any, err error) {
 	ds := goqu.Dialect("mysql").Select("*").From(input.TableName).
 		Order(listPageOrderExprs(input.SortField, input.InsertionOrderField, input.SortDirection)...).
@@ -447,7 +447,7 @@ func convertListPageInputToSQL(
 	if len(input.Where) > 0 {
 		whereExpr, werr := convertWhereToExpression(input.Where)
 		if werr != nil {
-			return "", nil, bizerrors.Errorf("listPage where: %w", werr)
+			return "", nil, bizerrors.Errorf("listByCursor where: %w", werr)
 		}
 		ds = ds.Where(whereExpr)
 	}

@@ -8,14 +8,14 @@ import (
 	"testing"
 )
 
-func TestConvertListPageInputToSQL_FirstPage_NoAfter(t *testing.T) {
-	input := &modelruntime.ListPageInput{
+func TestConvertListByCursorInputToSQL_FirstPage_NoAfter(t *testing.T) {
+	input := &modelruntime.ListByCursorInput{
 		TableName:     "products",
 		SortField:     "price",
 		SortDirection: "asc",
 		Limit:         10,
 	}
-	sql, args, err := convertListPageInputToSQL(context.Background(), input)
+	sql, args, err := convertListByCursorInputToSQL(context.Background(), input)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -44,12 +44,12 @@ func TestConvertListPageInputToSQL_FirstPage_NoAfter(t *testing.T) {
 	t.Logf("SQL: %s | args: %v", sql, args)
 }
 
-func TestConvertListPageInputToSQL_WithAfter_DualField(t *testing.T) {
+func TestConvertListByCursorInputToSQL_WithAfter_DualField(t *testing.T) {
 	after := &modelruntime.CursorData{
 		SortField: "price", SortValue: "100",
 		IOField: "created_at", IOValue: "2026-06-05T10:00:00Z",
 	}
-	input := &modelruntime.ListPageInput{
+	input := &modelruntime.ListByCursorInput{
 		TableName:           "products",
 		SortField:           "price",
 		SortDirection:       "asc",
@@ -57,7 +57,7 @@ func TestConvertListPageInputToSQL_WithAfter_DualField(t *testing.T) {
 		After:               after,
 		Limit:               10,
 	}
-	sql, args, err := convertListPageInputToSQL(context.Background(), input)
+	sql, args, err := convertListByCursorInputToSQL(context.Background(), input)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -72,18 +72,18 @@ func TestConvertListPageInputToSQL_WithAfter_DualField(t *testing.T) {
 	t.Logf("SQL: %s | args: %v", sql, args)
 }
 
-func TestConvertListPageInputToSQL_WithAfter_SingleField(t *testing.T) {
+func TestConvertListByCursorInputToSQL_WithAfter_SingleField(t *testing.T) {
 	after := &modelruntime.CursorData{
 		SortField: "id", SortValue: "abc123",
 	}
-	input := &modelruntime.ListPageInput{
+	input := &modelruntime.ListByCursorInput{
 		TableName:     "products",
 		SortField:     "id",
 		SortDirection: "asc",
 		After:         after,
 		Limit:         5,
 	}
-	sql, args, err := convertListPageInputToSQL(context.Background(), input)
+	sql, args, err := convertListByCursorInputToSQL(context.Background(), input)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

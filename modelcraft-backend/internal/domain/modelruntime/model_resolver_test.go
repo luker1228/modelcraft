@@ -36,7 +36,7 @@ func (m *mockClientDatabaseRepository) Aggregate(_ context.Context, _ *Aggregate
 }
 
 func (m *mockClientDatabaseRepository) Count(_ context.Context, _ *CountInput) (map[string]any, error) {
-	return nil, nil
+	return map[string]any{FieldCount: 0}, nil
 }
 
 func (m *mockClientDatabaseRepository) CreateOne(_ context.Context, _ *CreateOneInput) (string, error) {
@@ -67,7 +67,7 @@ func (m *mockClientDatabaseRepository) FindManyIn(_ context.Context, _ *FindMany
 	return nil, nil
 }
 
-func (m *mockClientDatabaseRepository) ListPage(_ context.Context, _ *ListPageInput) ([]map[string]any, error) {
+func (m *mockClientDatabaseRepository) ListByCursor(_ context.Context, _ *ListByCursorInput) ([]map[string]any, error) {
 	return nil, nil
 }
 
@@ -116,7 +116,7 @@ func TestCreateModelType(t *testing.T) {
 			wantErr: false,
 			checkFunc: func(t *testing.T, obj *graphql.Object) {
 				assert.NotNil(t, obj)
-				assert.Equal(t, "UserQuery", obj.Name())
+				assert.Equal(t, "TUserQuery", obj.Name())
 				assert.Equal(t, "用户模型", obj.Description())
 				// 检查字段
 				fields := obj.Fields()
@@ -202,7 +202,7 @@ func TestCreateModelType(t *testing.T) {
 			wantErr: false,
 			checkFunc: func(t *testing.T, obj *graphql.Object) {
 				assert.NotNil(t, obj)
-				assert.Equal(t, "ProductQuery", obj.Name())
+				assert.Equal(t, "TProductQuery", obj.Name())
 				fields := obj.Fields()
 				assert.Len(t, fields, 8)
 

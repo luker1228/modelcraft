@@ -64,16 +64,22 @@ const (
 	FieldReqId = "reqId"
 	// FieldTotalCount 总记录数字段名 (findMany, 可选)
 	FieldTotalCount = "totalCount"
-	// FieldAfter listPage: opaque cursor from the previous page
+	// FieldAfter listByCursor: opaque cursor from the previous page
 	FieldAfter = "after"
-	// FieldNextCursor listPage: opaque cursor pointing to the next page (nil = last page)
+	// FieldNextCursor listByCursor: opaque cursor pointing to the next page (nil = last page)
 	FieldNextCursor = "nextCursor"
-	// FieldHasNextPage listPage: whether more results exist
+	// FieldHasNextPage listByCursor: whether more results exist
 	FieldHasNextPage = "hasNextPage"
-	// FieldSortField listPage: field to sort by (required)
+	// FieldSortField listByCursor: field to sort by (required)
 	FieldSortField = "sortField"
-	// FieldSortDirection listPage: sort direction "asc" or "desc" (required)
+	// FieldSortDirection listByCursor: sort direction "asc" or "desc" (required)
 	FieldSortDirection = "sortDirection"
+	// FieldPageIndex listByPage: 1-based page number
+	FieldPageIndex = "pageIndex"
+	// FieldPageSize listByPage: page size
+	FieldPageSize = "pageSize"
+	// FieldTotal listByPage: total matching rows
+	FieldTotal = "total"
 
 	// 排序方向
 	// OrderByAsc 升序排序
@@ -126,8 +132,10 @@ const (
 	OperationAggregate = "aggregate"
 	// OperationCount 计数查询操作
 	OperationCount = "count"
-	// OperationListPage cursor-based stable pagination operation
-	OperationListPage = "listPage"
+	// OperationListByCursor cursor-based stable pagination operation
+	OperationListByCursor = "listByCursor"
+	// OperationListByPage offset/page-index based pagination operation
+	OperationListByPage = "listByPage"
 )
 
 // GraphQL 顶级类型名常量

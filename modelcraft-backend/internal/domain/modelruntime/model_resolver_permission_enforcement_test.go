@@ -17,23 +17,25 @@ import (
 // row-filter injection can be verified independently of a real database.
 type fullCapturingRepo struct {
 	mockClientDatabaseRepository
-	capturedFindManyWhere   map[string]any
-	capturedListPageWhere   map[string]any
-	capturedFindUniqueWhere map[string]any
-	capturedFindFirstWhere  map[string]any
-	capturedUpdateOneWhere  map[string]any
-	capturedDeleteOneWhere  map[string]any
-	capturedUpdateManyWhere map[string]any
-	capturedDeleteManyWhere map[string]any
+	capturedFindManyWhere     map[string]any
+	capturedListByCursorWhere map[string]any
+	capturedListByPageWhere   map[string]any
+	capturedFindUniqueWhere   map[string]any
+	capturedFindFirstWhere    map[string]any
+	capturedUpdateOneWhere    map[string]any
+	capturedDeleteOneWhere    map[string]any
+	capturedUpdateManyWhere   map[string]any
+	capturedDeleteManyWhere   map[string]any
 }
 
 func (r *fullCapturingRepo) FindMany(_ context.Context, input *FindManyInput) ([]map[string]any, error) {
 	r.capturedFindManyWhere = input.Where
+	r.capturedListByPageWhere = input.Where
 	return []map[string]any{}, nil
 }
 
-func (r *fullCapturingRepo) ListPage(_ context.Context, input *ListPageInput) ([]map[string]any, error) {
-	r.capturedListPageWhere = input.Where
+func (r *fullCapturingRepo) ListByCursor(_ context.Context, input *ListByCursorInput) ([]map[string]any, error) {
+	r.capturedListByCursorWhere = input.Where
 	return []map[string]any{}, nil
 }
 
@@ -351,17 +353,31 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 			"findMany WHERE must contain owner=%s", endUserID)
 	})
 
-	t.Run("listPage preserves where and injects owner", func(t *testing.T) {
+	t.Run("listByCursor preserves where and injects owner", func(t *testing.T) {
 		repo := &fullCapturingRepo{}
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
-		result := doQuery(schema, ctx, `{ listPage(where: { title: { contains: "foo" } }, sortField: "id", sortDirection: "asc", limit: 20) { items { id } } }`)
+		result := doQuery(schema, ctx, `{ listByCursor(where: { title: { contains: "foo" } }, sortField: "id", sortDirection: "asc", limit: 20) { items { id } } }`)
 		require.Empty(t, result.Errors)
-		assert.Equal(t, endUserID, repo.capturedListPageWhere["owner"],
-			"listPage WHERE must contain owner=%s", endUserID)
-		titleCond, ok := repo.capturedListPageWhere["title"].(map[string]any)
-		require.True(t, ok, "listPage WHERE must preserve user title condition")
+		assert.Equal(t, endUserID, repo.capturedListByCursorWhere["owner"],
+			"listByCursor WHERE must contain owner=%s", endUserID)
+		titleCond, ok := repo.capturedListByCursorWhere["title"].(map[string]any)
+		require.True(t, ok, "listByCursor WHERE must preserve user title condition")
+		assert.Equal(t, "foo", titleCond["contains"])
+	})
+
+	t.Run("listByPage preserves where and injects owner", func(t *testing.T) {
+		repo := &fullCapturingRepo{}
+		ctx := WithGraphqlRequestContext(
+			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
+		)
+		result := doQuery(schema, ctx, `{ listByPage(where: { title: { contains: "foo" } }, orderBy: [{ id: asc }], pageIndex: 1, pageSize: 20) { items { id } total } }`)
+		require.Empty(t, result.Errors)
+		assert.Equal(t, endUserID, repo.capturedListByPageWhere["owner"],
+			"listByPage WHERE must contain owner=%s", endUserID)
+		titleCond, ok := repo.capturedListByPageWhere["title"].(map[string]any)
+		require.True(t, ok, "listByPage WHERE must preserve user title condition")
 		assert.Equal(t, "foo", titleCond["contains"])
 	})
 

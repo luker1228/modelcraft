@@ -6,6 +6,7 @@ import (
 
 	"github.com/graphql-go/graphql"
 	"github.com/graphql-go/graphql/language/ast"
+	"github.com/stretchr/testify/assert"
 )
 
 // 辅助函数：创建模拟的 ResolveParams
@@ -98,7 +99,40 @@ func TestGetWhere(t *testing.T) {
 	}
 }
 
-func TestGenerateListPageArgs_IncludesWhere(t *testing.T) {
+func TestGenerateListByCursorArgs_IncludesWhereAndCursorHint(t *testing.T) {
+	insertionOrderField := "createdAt"
+	model := &RuntimeModel{
+		Name:                "Task",
+		InsertionOrderField: &insertionOrderField,
+		Fields: map[string]*RuntimeField{
+			"id": {
+				Name:      "id",
+				Type:      &modeldesign.FieldType{Format: modeldesign.FormatUUID},
+				IsPrimary: true,
+			},
+			"title": {
+				Name: "title",
+				Type: &modeldesign.FieldType{Format: modeldesign.FormatString},
+			},
+		},
+	}
+
+	generator := newInputTypeGenerator()
+	args := generator.GenerateListByCursorArgs(model)
+
+	if args[FieldWhere] == nil {
+		t.Fatalf("expected listByCursor args to include where")
+	}
+	if args[FieldWhere].Type == nil {
+		t.Fatalf("expected where arg type to be initialized")
+	}
+	if args[FieldSortField] == nil {
+		t.Fatalf("expected listByCursor args to include sortField")
+	}
+	assert.Contains(t, args[FieldSortField].Description, "createdAt")
+}
+
+func TestGenerateListByPageArgs_IncludesWhereAndOrderBy(t *testing.T) {
 	model := &RuntimeModel{
 		Name: "Task",
 		Fields: map[string]*RuntimeField{
@@ -115,14 +149,15 @@ func TestGenerateListPageArgs_IncludesWhere(t *testing.T) {
 	}
 
 	generator := newInputTypeGenerator()
-	args := generator.GenerateListPageArgs(model)
+	args := generator.GenerateListByPageArgs(model)
 
 	if args[FieldWhere] == nil {
-		t.Fatalf("expected listPage args to include where")
+		t.Fatalf("expected listByPage args to include where")
 	}
-	if args[FieldWhere].Type == nil {
-		t.Fatalf("expected where arg type to be initialized")
+	if args[FieldOrderBy] == nil {
+		t.Fatalf("expected listByPage args to include orderBy")
 	}
+	assert.Contains(t, args[FieldOrderBy].Description, "1 to 3")
 }
 
 // TestNewFindUniqueInput 测试 newFindUniqueInput 函数

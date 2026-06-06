@@ -74,8 +74,8 @@ type FindManyInInput struct {
 	Values []any
 }
 
-// ListPageInput holds parameters for cursor-based keyset pagination.
-type ListPageInput struct {
+// ListByCursorInput holds parameters for cursor-based keyset pagination.
+type ListByCursorInput struct {
 	TableName           string
 	Selection           *Selection
 	Where               map[string]any // extra WHERE (RLS etc.)

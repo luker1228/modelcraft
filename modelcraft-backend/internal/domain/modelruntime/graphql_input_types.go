@@ -528,26 +528,34 @@ func (g *inputTypeGenerator) GenerateAggregateArgs(model *RuntimeModel) graphql.
 	return args
 }
 
-// GenerateListPageArgs builds GraphQL argument config for the listPage operation.
-func (g *inputTypeGenerator) GenerateListPageArgs(model *RuntimeModel) graphql.FieldConfigArgument {
+// GenerateListByCursorArgs builds GraphQL argument config for the listByCursor operation.
+func (g *inputTypeGenerator) GenerateListByCursorArgs(model *RuntimeModel) graphql.FieldConfigArgument {
+	sortFieldDescription := "Field to sort by. Must use the model insertionOrderField to keep cursor pagination stable."
+	if model != nil && model.InsertionOrderField != nil && *model.InsertionOrderField != "" {
+		sortFieldDescription = fmt.Sprintf(
+			"Field to sort by. Must be %q (the configured insertionOrderField) to keep cursor pagination stable.",
+			*model.InsertionOrderField,
+		)
+	}
+
 	args := graphql.FieldConfigArgument{
 		FieldSortField: &graphql.ArgumentConfig{
 			Type:        graphql.NewNonNull(graphql.String),
-			Description: "Field to sort by (required)",
+			Description: sortFieldDescription,
 		},
 		FieldSortDirection: &graphql.ArgumentConfig{
 			Type:         graphql.NewNonNull(graphql.String),
-			Description:  "Sort direction: asc or desc (required)",
+			Description:  "Sort direction: asc or desc. Use the same direction consistently when following nextCursor.",
 			DefaultValue: OrderByAsc,
 		},
 		FieldLimit: &graphql.ArgumentConfig{
 			Type:         graphql.Int,
 			DefaultValue: 20,
-			Description:  "Page size (default 20)",
+			Description:  "Page size for cursor pagination (default 20)",
 		},
 		FieldAfter: &graphql.ArgumentConfig{
 			Type:        graphql.String,
-			Description: "Opaque cursor from previous page (omit for first page)",
+			Description: "Opaque cursor from the previous listByCursor response; omit for the first page.",
 		},
 	}
 
@@ -555,7 +563,37 @@ func (g *inputTypeGenerator) GenerateListPageArgs(model *RuntimeModel) graphql.F
 	args[FieldWhere] = &graphql.ArgumentConfig{
 		Type:         whereInput,
 		DefaultValue: nil,
-		Description:  "Cursor pagination filter condition",
+		Description:  "Filter condition for cursor pagination",
+	}
+
+	return args
+}
+
+// GenerateListByPageArgs builds GraphQL argument config for the listByPage operation.
+func (g *inputTypeGenerator) GenerateListByPageArgs(model *RuntimeModel) graphql.FieldConfigArgument {
+	whereInput := g.generateWhereInputType(model)
+	orderByInput := g.generateOrderByInputType(model)
+
+	args := make(map[string]*graphql.ArgumentConfig)
+	args[FieldWhere] = &graphql.ArgumentConfig{
+		Type:         whereInput,
+		DefaultValue: nil,
+		Description:  "Filter condition for page-based pagination",
+	}
+	args[FieldOrderBy] = &graphql.ArgumentConfig{
+		Type:         graphql.NewList(graphql.NewNonNull(orderByInput)),
+		DefaultValue: nil,
+		Description:  "Ordered sort fields for page pagination. Provide 1 to 3 items; include a unique trailing field such as id for stable paging.",
+	}
+	args[FieldPageIndex] = &graphql.ArgumentConfig{
+		Type:         graphql.Int,
+		DefaultValue: 1,
+		Description:  "1-based page number (default 1)",
+	}
+	args[FieldPageSize] = &graphql.ArgumentConfig{
+		Type:         graphql.Int,
+		DefaultValue: 20,
+		Description:  "Page size (default 20)",
 	}
 
 	return args
