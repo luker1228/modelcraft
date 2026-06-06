@@ -338,7 +338,7 @@ export default function CliGuidePage({ params }: CliGuidePageProps) {
                   <h3 className="mt-1 text-sm font-semibold text-foreground">{step.title}</h3>
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">{step.description}</p>
                   {'tabs' in step ? (
-                    <StepCodeTabs tabs={step.tabs} />
+                    <StepCodeTabs tabs={step.tabs!} />
                   ) : (
                     <DarkCode code={step.command} />
                   )}

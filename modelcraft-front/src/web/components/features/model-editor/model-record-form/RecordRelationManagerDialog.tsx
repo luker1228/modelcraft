@@ -138,7 +138,6 @@ function extractOneToManyFields(schema: RJSFSchema | null): OneToManyRelationFie
  *
  * 通过 useRecordAccessAdapter() 获取数据访问能力，不直接依赖 workspaceMode。
  * 在 DevelopRecordWorkspace 内使用时使用 develop adapter；
- * 未来若需在 RuntimeRecordWorkspace 使用，只需替换外层 adapter 即可。
  */
 export function RecordRelationManagerDialog({
   open,

@@ -46,8 +46,6 @@ import {
   SheetTitle,
 } from '@web/components/ui/sheet'
 import {
-  Filter,
-  List,
   Plus,
   Edit,
   Loader2,
@@ -57,7 +55,7 @@ import {
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
 import { useWorkspaceAIRef } from '@web/contexts/workspace-ai-ref-context'
-import { RecordQueryBar } from '@web/components/shared/data-workspace/RecordQueryBar'
+import { FilterBar } from '@web/components/features/end-user-data/FilterPanel'
 import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
 
 export interface DevelopRecordWorkspaceAIRef {
@@ -182,6 +180,9 @@ export default function DevelopRecordWorkspace({
 
   // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('')
+
+  // 结构化筛选
+  const [whereFilter, setWhereFilter] = useState<Record<string, unknown> | null>(null)
 
   // AI 控制状态
   const [createPrefill, setCreatePrefill] = useState<Record<string, unknown>>({})
@@ -412,6 +413,7 @@ export default function DevelopRecordWorkspace({
     variables: {
       take: 50,
       skip: 0,
+      ...(whereFilter ? { where: whereFilter } : {}),
     },
   })
 
@@ -719,45 +721,23 @@ export default function DevelopRecordWorkspace({
           </div>
         )}
 
-        <RecordQueryBar
+        <FilterBar
+          fields={runtimeFields}
+          onApply={(whereJson) => setWhereFilter(JSON.parse(whereJson) as Record<string, unknown>)}
+          onClear={() => setWhereFilter(null)}
           searchValue={searchKeyword}
           onSearchChange={setSearchKeyword}
-          searchPlaceholder={`搜索 ${model.title || model.name} 的记录...`}
+          searchPlaceholder={`搜索 [${model.title || model.name}]...`}
           summaryText={pageCountText}
-          searchInputClassName="h-[26px] w-56 text-xs"
         />
 
         {/* 工具栏 */}
         <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <Filter className="mr-1.5 size-3.5" />
-                <span>筛选</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-[26px] border-transparent px-2.5 text-xs font-normal text-muted-foreground hover:bg-muted hover:text-foreground"
-              >
-                <List className="mr-1.5 size-3.5" />
-                <span>排序</span>
-              </Button>
-            </div>
-
-            <div className="h-5 w-px bg-border" />
-
-            {/* 插入数据 */}
-            <div className="flex items-center gap-2">
-              <ModelRecordInsertMenu
-                onCreateRecord={handleCreate}
-                canCreateRecord={canCreateRecord}
-              />
-            </div>
+          <div className="flex items-center gap-2">
+            <ModelRecordInsertMenu
+              onCreateRecord={handleCreate}
+              canCreateRecord={canCreateRecord}
+            />
           </div>
 
           <div className="flex items-center gap-2">

@@ -6,7 +6,7 @@ import { createContext, useContext } from 'react'
 /**
  * RecordAccessAdapter — workspace 数据访问边界。
  *
- * 由 DevelopRecordWorkspace / RuntimeRecordWorkspace 各自在顶层创建并通过 context 注入。
+ * 由 DevelopRecordWorkspace 各自在顶层创建并通过 context 注入。
  * 共享的子组件（OneToManyRelationManagerSection、RecordRelationManagerDialog）
  * 通过 useRecordAccessAdapter() 获取，不再直接依赖 workspaceMode 或特定 client factory。
  *

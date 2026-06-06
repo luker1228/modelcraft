@@ -1,7 +1,12 @@
 {
   "permissions": {
     "allow": [
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "mcp__codegraph__codegraph_search",
+      "mcp__codegraph__codegraph_callers"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "codegraph"
+  ]
 }
