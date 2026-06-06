@@ -45,7 +45,12 @@
       "Bash(docker-compose -f deploy/compose/docker-compose.local.yml logs --tail=60 modelcraft-agent)",
       "mcp__codegraph__codegraph_files",
       "mcp__codegraph__codegraph_context",
-      "mcp__codegraph__codegraph_search"
+      "mcp__codegraph__codegraph_search",
+      "Bash(paru *)",
+      "Skill(update-config)"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "codegraph"
+  ]
 }

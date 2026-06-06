@@ -501,7 +501,7 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 	var refreshIsAdmin bool
 	if s.endUserRepoFactory != nil {
 		userRepo := s.endUserRepoFactory.NewEndUserRepository(s.systemDB, "")
-		if u, uErr := userRepo.GetByID(ctx, "", token.UserID); uErr == nil && u != nil {
+		if u, uErr := userRepo.GetByIDGlobal(ctx, token.UserID); uErr == nil && u != nil {
 			refreshOrgName = u.OrgName
 			refreshIsAdmin = u.IsAdmin
 		}

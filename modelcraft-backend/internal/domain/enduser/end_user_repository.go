@@ -24,6 +24,10 @@ type EndUserRepository interface {
 	// GetByID retrieves a user by ID under org scope (returns (nil, nil) when not found).
 	GetByID(ctx context.Context, orgName, id string) (*EndUser, error)
 
+	// GetByIDGlobal retrieves a user by ID without an org filter.
+	// The single-org-per-user invariant ensures the returned row carries the owning org.
+	GetByIDGlobal(ctx context.Context, id string) (*EndUser, error)
+
 	// GetByUsername retrieves a user by username under org scope (returns (nil, nil) when not found).
 	GetByUsername(ctx context.Context, orgName, username string) (*EndUser, error)
 

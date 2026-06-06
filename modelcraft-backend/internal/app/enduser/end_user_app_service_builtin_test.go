@@ -23,6 +23,10 @@ func (f *fakeEndUserRepo) GetByID(_ context.Context, _, id string) (*domainendus
 	return f.users[id], nil
 }
 
+func (f *fakeEndUserRepo) GetByIDGlobal(_ context.Context, id string) (*domainenduser.EndUser, error) {
+	return f.users[id], nil
+}
+
 func (f *fakeEndUserRepo) GetByUsername(_ context.Context, _, username string) (*domainenduser.EndUser, error) {
 	for _, u := range f.users {
 		if u.Username == username {

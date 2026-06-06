@@ -147,6 +147,19 @@ func (r *SqlEndUserOrgRepository) GetByID(ctx context.Context, orgName, id strin
 	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, id))
 }
 
+// GetByIDGlobal retrieves an end-user by ID without an org filter.
+// The single-org-per-user invariant ensures the returned row carries the owning org.
+func (r *SqlEndUserOrgRepository) GetByIDGlobal(ctx context.Context, id string) (*enduser.EndUser, error) {
+	const q = `
+		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
+		FROM users u
+		JOIN user_orgs uo ON uo.user_id = u.id AND uo.deleted_at = 0
+		WHERE u.id = ? AND u.deleted_at = 0
+		LIMIT 1
+	`
+	return scanEndUser(r.db.QueryRowContext(ctx, q, id))
+}
+
 // GetByUsername retrieves an end-user by username under org scope.
 // Returns (nil, nil) when not found.
 func (r *SqlEndUserOrgRepository) GetByUsername(
