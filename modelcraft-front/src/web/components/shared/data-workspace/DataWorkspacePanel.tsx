@@ -15,7 +15,7 @@ interface DataWorkspacePanelProps {
   onTabChange: (tabId: string) => void
   onTabClose: (tabId: string) => void
   emptyText?: string
-  maxContentHeightClassName?: string
+  contentClassName?: string
   className?: string
   renderContent: (tab: DataWorkspaceTab) => ReactNode
 }
@@ -26,7 +26,7 @@ export function DataWorkspacePanel({
   onTabChange,
   onTabClose,
   emptyText = '从左侧选择模型以打开数据表',
-  maxContentHeightClassName = 'min-h-[620px]',
+  contentClassName = '',
   className = '',
   renderContent,
 }: DataWorkspacePanelProps) {
@@ -36,7 +36,7 @@ export function DataWorkspacePanel({
   )
 
   return (
-    <section className={`min-w-0 flex-1 overflow-hidden rounded-lg border border-border bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] ${className}`}>
+    <section className={`flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-lg border border-border bg-card shadow-[0_2px_4px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.04),0_1px_1px_rgba(0,0,0,0.02)] ${className}`}>
       {/* Tab bar */}
       <div className="flex items-center gap-0 overflow-x-auto border-b border-border bg-card">
         {tabs.map((tab) => {
@@ -77,11 +77,11 @@ export function DataWorkspacePanel({
       </div>
 
       {!activeTab ? (
-        <div className="flex min-h-[420px] items-center justify-center text-[13px] text-muted-foreground">
+        <div className="flex min-h-0 flex-1 items-center justify-center text-[13px] text-muted-foreground">
           {emptyText}
         </div>
       ) : (
-        <div className={maxContentHeightClassName}>{renderContent(activeTab)}</div>
+        <div className={`flex min-h-0 flex-1 flex-col ${contentClassName}`}>{renderContent(activeTab)}</div>
       )}
     </section>
   )

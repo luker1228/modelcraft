@@ -245,8 +245,8 @@ export function ModelRecordTable({
 
   return (
     <TooltipProvider>
-      <div className="flex flex-1 flex-col overflow-hidden bg-card">
-        <div className="flex-1 overflow-auto">
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card">
+        <div className="min-h-0 flex-1 overflow-auto">
           <Table
             ref={tableRef}
             className="table-fixed"
