@@ -17,7 +17,6 @@ import {
   buildDeleteMutation,
   buildCreateMutation,
   buildUpdateMutation,
-  extractFieldsFromSchema,
   extractWritableFieldNamesFromSchema,
   sanitizeMutationInputData,
 } from '@api-client/cms/public'
@@ -44,18 +43,20 @@ import {
 import {
   Plus,
   Edit,
+  BookOpen,
   Loader2,
   RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { FilterBar } from './FilterPanel'
-import { SortPopover } from './SortPopover'
-import { buildOrderBy, type SortState } from './SortPopover'
+import { SortPopover, buildOrderBy, type SortState } from './SortPopover'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
 import { useCopilotKitAvailable, FilterCopilotActions } from './FilterCopilotActions'
 import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
 import { useRuntimeListByPage } from '@web/components/shared/data-workspace/useRuntimeListByPage'
+import { ModelApiDocsDialog } from './ModelApiDocsDialog'
+import type { ModelApiDocContext } from './model-api-docs'
 
 
 export interface EndUserRecordWorkspaceProps {
@@ -119,6 +120,34 @@ function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
   return configured ?? ''
 }
 
+interface NormalizedSchemaField {
+  name: string
+  prop: Record<string, unknown>
+  labelFieldName: string
+  hasLabelFieldInSchema: boolean
+}
+
+function normalizeSchemaFields(jsonSchema: Record<string, unknown> | null): NormalizedSchemaField[] {
+  if (!jsonSchema?.properties) return []
+
+  const props = jsonSchema.properties as Record<string, unknown>
+  const propEntries = Object.entries(props) as Array<[string, unknown]>
+
+  return propEntries.flatMap(([name, rawProp]) => {
+    if (typeof rawProp !== 'object' || rawProp === null || Array.isArray(rawProp)) return []
+
+    const prop: Record<string, unknown> = rawProp
+    const labelFieldName = resolveEnumLabelFieldName(prop)
+
+    return [{
+      name,
+      prop,
+      labelFieldName,
+      hasLabelFieldInSchema: Object.prototype.hasOwnProperty.call(props, labelFieldName),
+    }]
+  })
+}
+
 /**
  * EndUserRecordWorkspace — 终端用户数据工作区。
  *
@@ -165,6 +194,7 @@ export default function EndUserRecordWorkspace({
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [deleteItemId, setDeleteItemId] = useState<string | null>(null)
+  const [apiDocsOpen, setApiDocsOpen] = useState(false)
 
   const [createDataOpen, setCreateDataOpen] = useState(false)
   const [createSaving, setCreateSaving] = useState(false)
@@ -230,6 +260,18 @@ export default function EndUserRecordWorkspace({
   const modelError = modelData?.model?.error
   const modelName = model?.name
   const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
+  const apiDocContext = useMemo<ModelApiDocContext | null>(() => {
+    if (!model?.databaseName || !model?.name) {
+      return null
+    }
+
+    return {
+      orgName,
+      projectSlug,
+      databaseName: model.databaseName,
+      modelName: model.name,
+    }
+  }, [orgName, projectSlug, model?.databaseName, model?.name])
 
   const canCreateRecord = !isManagedReadOnlyModel
   const canEditRecord = !isManagedReadOnlyModel
@@ -257,15 +299,11 @@ export default function EndUserRecordWorkspace({
     }
   }, [model?.jsonSchema])
 
+  const normalizedSchemaFields = useMemo(() => normalizeSchemaFields(jsonSchema), [jsonSchema])
+
   const runtimeFields = useMemo(() => {
-    if (jsonSchema?.properties) {
-      const props = jsonSchema.properties as Record<string, unknown>
-      const propEntries = Object.entries(props) as Array<[string, unknown]>
-      const schemaFieldDefs: FieldDefinition[] = propEntries.flatMap(([name, rawProp]) => {
-        if (typeof rawProp !== 'object' || rawProp === null || Array.isArray(rawProp)) return []
-        const prop: Record<string, unknown> = rawProp
-        const labelFieldName = resolveEnumLabelFieldName(prop)
-        const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
+    if (normalizedSchemaFields.length > 0) {
+      const schemaFieldDefs: FieldDefinition[] = normalizedSchemaFields.flatMap(({ name, prop, labelFieldName, hasLabelFieldInSchema }) => {
         const rawType = prop['type']
         const rawFormat = prop['format']
         const schemaType = typeof rawType === 'string' ? rawType.toUpperCase() : undefined
@@ -299,7 +337,7 @@ export default function EndUserRecordWorkspace({
 
     if (!jsonSchema) return [{ name: 'id', type: 'string', schemaType: 'STRING' }] as FieldDefinition[]
     return [] as FieldDefinition[]
-  }, [jsonSchema])
+  }, [jsonSchema, normalizedSchemaFields])
 
   const writableFieldNames = useMemo(
     () => extractWritableFieldNamesFromSchema(jsonSchema as { properties?: Record<string, unknown> } | null | undefined),
@@ -307,14 +345,8 @@ export default function EndUserRecordWorkspace({
   )
 
   const tableFieldInfos = useMemo<ModelRecordTableFieldInfo[]>(() => {
-    if (jsonSchema?.properties) {
-      const props = jsonSchema.properties as Record<string, unknown>
-      const propEntries = Object.entries(props) as Array<[string, unknown]>
-      return propEntries.flatMap(([name, rawProp]) => {
-        if (typeof rawProp !== 'object' || rawProp === null || Array.isArray(rawProp)) return []
-        const prop: Record<string, unknown> = rawProp
-        const labelFieldName = resolveEnumLabelFieldName(prop)
-        const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
+    if (normalizedSchemaFields.length > 0) {
+      return normalizedSchemaFields.flatMap(({ name, prop, labelFieldName, hasLabelFieldInSchema }) => {
         const xmc = getXMC(prop)
         const rawTitle = prop['title']
         const rawType = prop['type']
@@ -350,7 +382,7 @@ export default function EndUserRecordWorkspace({
     }
 
     return []
-  }, [jsonSchema])
+  }, [normalizedSchemaFields])
 
   const displayFields = useMemo(() => {
     if (tableFieldInfos.length > 0) {
@@ -489,6 +521,7 @@ export default function EndUserRecordWorkspace({
     }
     if (!runtimeClient || !findUniqueQuery) return
 
+    setEditFormData({})
     setEditItemId(id)
     setEditLoading(true)
     setEditDataOpen(true)
@@ -507,9 +540,12 @@ export default function EndUserRecordWorkspace({
           schemaDrivenData[fieldName] = item[fieldName] ?? ''
         }
         setEditFormData(schemaDrivenData)
+      } else {
+        setEditFormData({})
       }
     } catch (error) {
       console.error('Failed to fetch content:', error)
+      setEditFormData({})
       toast.error('获取数据失败')
       setEditDataOpen(false)
     } finally {
@@ -634,6 +670,16 @@ export default function EndUserRecordWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-[26px] px-2.5 text-xs"
+              onClick={() => setApiDocsOpen(true)}
+              disabled={apiDocContext == null}
+            >
+              <BookOpen className="mr-1.5 size-3.5" />
+              <span>API 文档</span>
+            </Button>
             <Button
               variant="outline"
               size="sm"
@@ -790,6 +836,12 @@ export default function EndUserRecordWorkspace({
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        <ModelApiDocsDialog
+          open={apiDocsOpen}
+          onOpenChange={setApiDocsOpen}
+          context={apiDocContext}
+        />
       </div>
       {/* Mount CopilotKit actions only when context exists — avoids null.subscribe crash */}
       {hasCopilot && (
