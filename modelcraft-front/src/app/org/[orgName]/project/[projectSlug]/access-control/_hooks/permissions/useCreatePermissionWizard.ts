@@ -84,7 +84,7 @@ export function useCreatePermissionWizard(
   /** Called on successful creation. Default: navigate to permissions list. */
   onSuccess?: () => void,
 ): UseCreatePermissionWizardReturn {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
 
   const [state, setState] = useState<WizardState>(INITIAL_STATE)
   const [submitting, setSubmitting] = useState(false)

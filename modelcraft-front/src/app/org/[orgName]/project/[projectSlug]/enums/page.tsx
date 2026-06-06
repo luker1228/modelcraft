@@ -102,7 +102,7 @@ export default function EnumsPage() {
   const [displayNameError, setDisplayNameError] = useState<string | null>(null)
   const [optionErrors, setOptionErrors] = useState<Record<number, { code?: string; label?: string }>>({})
 
-  const projectClient = useProjectScopedClient(projectSlug, orgName)
+  const projectClient = useProjectScopedClient(projectSlug)
 
   const { data, loading, error, refetch } = useQuery<EnumsQueryData>(GET_ENUMS, {
     client: projectClient,

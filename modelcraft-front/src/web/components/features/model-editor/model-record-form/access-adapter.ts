@@ -13,7 +13,7 @@ import { createContext, useContext } from 'react'
  * develop workspace:
  *   - managementClient = project-scoped developer client
  *   - managementContext = project-scoped URI context
- *   - createRuntimeClient = createModelRuntimeClient(databaseName, modelName)
+ *   - createRuntimeClient = createDevelopModelRuntimeClient(databaseName, modelName)
  *
  * runtime workspace:
  *   - managementClient = end-user scoped client

@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import type { WidgetProps, RJSFSchema } from '@rjsf/utils'
 import { useQuery } from '@apollo/client'
-import { createModelRuntimeClient } from '@api-client/apollo/public'
+import { createDevelopModelRuntimeClient } from '@api-client/apollo/public'
 import { buildFindManyQuery } from '@api-client/cms/public'
 import { NOOP_QUERY } from '@/api-client/noop'
 import {
@@ -85,7 +85,7 @@ export function RelationPicker(props: WidgetProps) {
   // Only create the client when we have enough info
   const client = React.useMemo(() => {
     if (!orgName || !projectSlug || !databaseName || !refModelName) return null
-    return createModelRuntimeClient(orgName, projectSlug, databaseName, refModelName)
+    return createDevelopModelRuntimeClient(orgName, projectSlug, databaseName, refModelName)
   }, [orgName, projectSlug, databaseName, refModelName])
 
   const findManyQuery = React.useMemo(() => {

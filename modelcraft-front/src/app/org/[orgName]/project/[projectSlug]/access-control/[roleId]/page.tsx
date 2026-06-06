@@ -314,7 +314,7 @@ type AssignPayload = { assignEndUserRole?: { error?: { message?: string } | null
 type RevokePayload = { revokeEndUserRole?: { error?: { message?: string } | null } }
 
 function UsersTab({ roleId, orgName, projectSlug }: UsersTabProps) {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
   const [search, setSearch] = React.useState('')
   const [assigningId, setAssigningId] = React.useState<string | null>(null)
   const [revokingId, setRevokingId] = React.useState<string | null>(null)
@@ -488,7 +488,7 @@ export default function RoleDetailPage() {
 
   const { role, loading } = useRoleEdit({ orgName, projectSlug, roleId })
   const { deleteRole } = useRoleList({ orgName, projectSlug })
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
 
   const [deleteOpen, setDeleteOpen] = React.useState(false)
   const [deleting, setDeleting] = React.useState(false)

@@ -5,17 +5,16 @@ import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
 import {
   useProjectScopedClient,
-  createModelRuntimeClient,
+  createDevelopModelRuntimeClient,
   useProjectScopedContext,
 } from '@api-client/apollo/public'
 import { ModelRecordForm } from './index'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './ModelRecordTable'
 import { RecordRelationManagerDialog } from './RecordRelationManagerDialog'
-import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
+import type { ModelRecordTableFieldInfo } from './ModelRecordTable'
 import { getFieldProtocols } from './runtime/field-protocol'
 import {
-  buildFindManyQuery,
   buildFindUniqueQuery,
   buildDeleteMutation,
   buildCreateMutation,
@@ -25,7 +24,7 @@ import {
   sanitizeMutationInputData,
 } from '@api-client/cms/public'
 import type { FieldDefinition } from '@api-client/cms/public'
-import { NOOP_MUTATION, NOOP_QUERY } from '@/api-client/noop'
+import { NOOP_MUTATION } from '@/api-client/noop'
 import { DEPRECATE_FIELD, REMOVE_FIELD, UNDEPRECATE_FIELD } from '@/api-client/model'
 import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'
@@ -57,6 +56,7 @@ import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-
 import { useWorkspaceAIRef } from '@web/contexts/workspace-ai-ref-context'
 import { FilterBar } from '@web/components/features/end-user-data/FilterPanel'
 import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
+import { useRuntimeListByPage } from '@web/components/shared/data-workspace/useRuntimeListByPage'
 
 export interface DevelopRecordWorkspaceAIRef {
   openCreate: (prefill: Record<string, unknown>) => void
@@ -75,6 +75,8 @@ export interface DevelopRecordWorkspaceProps {
   refreshToken?: number
   quickNav?: React.ReactNode
 }
+
+const PAGE_SIZE = 20
 
 interface GetModelQueryData {
   model?: {
@@ -138,7 +140,7 @@ function resolveEnumLabelFieldName(prop: Record<string, unknown>): string {
  * - 关系维护（RecordRelationManagerDialog）
  *
  * 使用 developer project-scoped client 作为管理端点，
- * 使用 createModelRuntimeClient 作为数据端点。
+ * 使用 createDevelopModelRuntimeClient 作为数据端点。
  * 不依赖 workspaceMode，不接受 workspaceMode prop。
  */
 export default function DevelopRecordWorkspace({
@@ -157,7 +159,7 @@ export default function DevelopRecordWorkspace({
     managementClient: projectClient,
     managementContext: projectScopedContext ?? { uri: `/api/bff/graphql/org/${orgName}/project/${projectSlug}/` },
     createRuntimeClient: (databaseName: string, modelName: string) =>
-      createModelRuntimeClient(orgName, projectSlug, databaseName, modelName),
+      createDevelopModelRuntimeClient(orgName, projectSlug, databaseName, modelName),
   }), [projectClient, projectScopedContext, orgName, projectSlug])
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -217,7 +219,7 @@ export default function DevelopRecordWorkspace({
   // develop 场景：runtime client 使用 model-specific endpoint
   const runtimeClient = useMemo(() => {
     if (!model?.databaseName || !model?.name) return null
-    return createModelRuntimeClient(orgName, projectSlug, model.databaseName, model.name)
+    return createDevelopModelRuntimeClient(orgName, projectSlug, model.databaseName, model.name)
   }, [orgName, projectSlug, model?.databaseName, model?.name])
 
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {
@@ -398,23 +400,22 @@ export default function DevelopRecordWorkspace({
     }
   }
 
-  const findManyQuery = useMemo(() => {
-    if (!modelName) return null
-    return buildFindManyQuery(modelName, runtimeFields)
-  }, [modelName, runtimeFields])
-
   const {
-    data: contentData,
-    loading: contentLoading,
+    currentPage,
+    setCurrentPage,
+    contentLoading,
+    contentList,
+    totalCount,
+    totalPages,
+    hasNextPage,
     refetch,
-  } = useQuery<Record<string, unknown>>(findManyQuery || NOOP_QUERY, {
-    client: runtimeClient!,
-    skip: !findManyQuery || !runtimeClient,
-    variables: {
-      take: 50,
-      skip: 0,
-      ...(whereFilter ? { where: whereFilter } : {}),
-    },
+  } = useRuntimeListByPage({
+    modelName,
+    runtimeFields,
+    runtimeClient,
+    whereInput: whereFilter ?? undefined,
+    pageSize: PAGE_SIZE,
+    resetDeps: [modelId, whereFilter],
   })
 
   const deleteMutation = useMemo(() => {
@@ -476,12 +477,6 @@ export default function DevelopRecordWorkspace({
     },
   })
 
-  const contentList: ModelRecordTableRow[] = useMemo(
-    () => (Array.isArray((contentData as Record<string, unknown> | undefined)?.findMany && ((contentData as Record<string, unknown>).findMany as Record<string, unknown>)?.items)
-      ? ((contentData as Record<string, unknown>).findMany as Record<string, unknown>).items as ModelRecordTableRow[]
-      : []),
-    [contentData]
-  )
 
   useEffect(() => {
     if (!refreshToken) return
@@ -675,6 +670,17 @@ export default function DevelopRecordWorkspace({
     [contentList.length, filteredContentList.length, searchKeyword]
   )
 
+  const pagination = useMemo(() => ({
+    currentPage,
+    pageSize: PAGE_SIZE,
+    totalCount,
+    totalPages,
+    hasNextPage,
+    onPreviousPage: () => setCurrentPage((p) => Math.max(1, p - 1)),
+    onNextPage: () => setCurrentPage((p) => p + 1),
+    onGoToPage: (page: number) => setCurrentPage(page),
+  }), [currentPage, totalCount, totalPages, hasNextPage, setCurrentPage])
+
   if (modelLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -777,6 +783,7 @@ export default function DevelopRecordWorkspace({
           canDeleteRecord={canDeleteRecord}
           highlightedIds={highlightedIds}
           highlightReasons={highlightReasons}
+          pagination={pagination}
         />
 
         {/* 关系维护对话框 — develop workspace 始终可用 */}

@@ -2,7 +2,7 @@
 export {
   useDesignTimeClient,
   createProjectScopedClient,
-  createModelRuntimeClient,
+  createDevelopModelRuntimeClient,
   createEndUserModelRuntimeClient,
   createEndUserScopedClient,
   createEndUserOrgScopedClient,

@@ -112,7 +112,7 @@ function extractOneToManyFields(schema: RJSFSchema): OneToManyRelationField[] {
  * OneToManyRelationManagerSection — 一对多关联关系管理面板。
  *
  * 通过 useRecordAccessAdapter() 获取数据访问能力，不直接依赖 workspaceMode。
- * develop workspace 注入 projectClient + createModelRuntimeClient；
+ * develop workspace 注入 projectClient + createDevelopModelRuntimeClient；
  * runtime workspace 注入 endUserClient + createEndUserScopedClient。
  */
 export function OneToManyRelationManagerSection({

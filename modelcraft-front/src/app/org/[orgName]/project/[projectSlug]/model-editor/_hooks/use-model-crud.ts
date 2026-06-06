@@ -45,7 +45,7 @@ function getApolloErrorMessage(error: unknown, fallback: string): string {
 
 export function useModelCRUD({ orgName, projectSlug, state }: UseModelCRUDParams) {
   const router = useRouter()
-  const projectClient = useProjectScopedClient(projectSlug, orgName)
+  const projectClient = useProjectScopedClient(projectSlug)
   const orgClient = getOrgScopedClient()
   const [relationModelsCache, setRelationModelsCache] = useState<Record<string, EditorModel[]>>({})
   const [relationModelsLoading, setRelationModelsLoading] = useState<Record<string, boolean>>({})

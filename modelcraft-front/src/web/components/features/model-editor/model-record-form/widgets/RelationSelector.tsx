@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
 import type { ApolloClient } from '@apollo/client'
-import { createModelRuntimeClient } from '@api-client/apollo/public'
+import { createDevelopModelRuntimeClient } from '@api-client/apollo/public'
 import { buildFindManyQuery, buildFindUniqueQuery } from '@api-client/cms/public'
 import {
   Popover,
@@ -41,7 +41,7 @@ interface FindManyQueryData {
 
 /**
  * FormContext 注入的 createRuntimeClient 函数类型。
- * develop workspace 注入 createModelRuntimeClient；
+ * develop workspace 注入 createDevelopModelRuntimeClient；
  * runtime workspace 注入 createEndUserScopedClient（忽略 databaseName/modelName）。
  */
 interface FormContext {
@@ -135,7 +135,7 @@ function useRelationSearch({
       return createRuntimeClientOverride(databaseName, modelName)
     }
     // 降级：使用 develop-specific model runtime client
-    return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
+    return createDevelopModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
   }, [orgName, projectSlug, databaseName, modelName, createRuntimeClientOverride])
 
   // Debounce search input 300ms
@@ -226,7 +226,7 @@ function useCurrentRecord({
     if (createRuntimeClientOverride) {
       return createRuntimeClientOverride(databaseName, modelName)
     }
-    return createModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
+    return createDevelopModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
   }, [orgName, projectSlug, databaseName, modelName, createRuntimeClientOverride])
 
   useEffect(() => {
@@ -303,7 +303,7 @@ function useCurrentRecord({
  *
  * 数据访问边界：
  * - 若 formContext.createRuntimeClient 存在，通过注入的工厂访问（access adapter 模式）
- * - 否则降级为 createModelRuntimeClient（兼容旧调用方）
+ * - 否则降级为 createDevelopModelRuntimeClient（兼容旧调用方）
  */
 export function RelationSelector(props: WidgetProps) {
   const { value, onChange, disabled, required, schema, formContext } = extractProps(props)

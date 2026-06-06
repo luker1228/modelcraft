@@ -60,7 +60,7 @@ export function usePermissionsView({
   /** The currently selected database name; when set, models for that DB are fetched */
   selectedDatabaseName: string
 }): UsePermissionsViewReturn {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
   const skip = !projectSlug || !orgName
 
   // Phase 1: Fetch available databases from the cluster catalog.

@@ -117,8 +117,8 @@ interface GetModelDatabaseSyncJobData {
 
 // ── Hooks ────────────────────────────────────────────────────────────────────────
 
-export function useModelDatabases(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useModelDatabases(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
   const { data, loading, error, refetch } = useQuery<{ modelDatabases: ModelDatabase[] }>(
     LIST_MODEL_DATABASES,
     { client, skip: !projectSlug }
@@ -135,7 +135,7 @@ export function useClusterRawDatabases(
   projectSlug: string | null | undefined,
   skip?: boolean
 ) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+  const client = useProjectScopedClient(projectSlug)
   const { data, loading, error, refetch } = useQuery<{ clusterRawDatabases: RawDatabase[] }>(
     LIST_CLUSTER_RAW_DATABASES,
     { client, skip: !projectSlug || skip }
@@ -148,8 +148,8 @@ export function useClusterRawDatabases(
   }
 }
 
-export function useRegisterModelDatabase(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useRegisterModelDatabase(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
   const [mutate, { loading, error }] = useMutation<RegisterModelDatabaseData>(
     REGISTER_MODEL_DATABASE,
     {
@@ -170,8 +170,8 @@ export function useRegisterModelDatabase(projectSlug: string | null | undefined)
   return { register, loading, error }
 }
 
-export function useUpdateModelDatabase(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useUpdateModelDatabase(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
   const [mutate, { loading, error }] = useMutation<UpdateModelDatabaseData>(
     UPDATE_MODEL_DATABASE,
     {
@@ -188,8 +188,8 @@ export function useUpdateModelDatabase(projectSlug: string | null | undefined) {
   return { update, loading, error }
 }
 
-export function useUnregisterModelDatabase(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useUnregisterModelDatabase(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
   const [mutate, { loading }] = useMutation(UNREGISTER_MODEL_DATABASE, {
     client,
     refetchQueries: [LIST_MODEL_DATABASES],
@@ -202,8 +202,8 @@ export function useUnregisterModelDatabase(projectSlug: string | null | undefine
   return { unregister, loading }
 }
 
-export function useStartModelDatabaseSync(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useStartModelDatabaseSync(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
   const [mutate, { loading, error }] = useMutation<StartModelDatabaseSyncData>(
     START_MODEL_DATABASE_SYNC,
     { client }
@@ -217,8 +217,8 @@ export function useStartModelDatabaseSync(projectSlug: string | null | undefined
   return { startSync, loading, error }
 }
 
-export function useFetchModelDatabaseSyncJob(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useFetchModelDatabaseSyncJob(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
 
   const fetchJob = async (jobId: string) => {
     const result = await client.query<GetModelDatabaseSyncJobData>({
@@ -246,8 +246,8 @@ interface BatchRegisterModelDatabaseData {
   batchRegisterModelDatabases: BatchRegisterResult
 }
 
-export function useBatchRegisterModelDatabase(projectSlug: string | null | undefined) {
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+export function useBatchRegisterModelDatabase(projectSlug: string) {
+  const client = useProjectScopedClient(projectSlug)
   const [mutate, { loading }] = useMutation<BatchRegisterModelDatabaseData>(
     BATCH_REGISTER_MODEL_DATABASES,
     {

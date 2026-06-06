@@ -60,7 +60,7 @@ export function useBundleManage({
   projectSlug,
   bundleId,
 }: UseBundleManageProps): UseBundleManageReturn {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
   const skip = !orgName || !projectSlug || !bundleId
 
   const {

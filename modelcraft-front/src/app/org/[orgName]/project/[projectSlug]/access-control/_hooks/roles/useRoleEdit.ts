@@ -26,7 +26,7 @@ interface UseRoleEditReturn {
 }
 
 export function useRoleEdit({ orgName, projectSlug, roleId }: UseRoleEditProps): UseRoleEditReturn {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
 
   const {
     data: roleData,

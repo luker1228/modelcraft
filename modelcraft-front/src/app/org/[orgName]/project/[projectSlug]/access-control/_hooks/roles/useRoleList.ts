@@ -28,7 +28,7 @@ interface UseRoleListReturn {
 }
 
 export function useRoleList({ orgName, projectSlug }: UseRoleListProps): UseRoleListReturn {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
 
   const { data, loading, error } = useQuery(GET_END_USER_ROLES, {
     client,

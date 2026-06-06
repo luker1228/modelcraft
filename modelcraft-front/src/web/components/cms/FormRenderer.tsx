@@ -14,7 +14,7 @@ import {
   NumberPicker,
   Submit,
 } from '@formily/antd-v5'
-import { useProjectScopedClient, createModelRuntimeClient } from '@api-client/apollo/public'
+import { useProjectScopedClient, createDevelopModelRuntimeClient } from '@api-client/apollo/public'
 import {
   transformToFormilySchema,
   parseAndTransformSchema,
@@ -103,7 +103,7 @@ export function FormRenderer({
 
   // Create Runtime Client with correct endpoint: /graphql/org/:orgName/project/:projectSlug/db/:databaseName/model/:modelName
   const runtimeClient = useMemo(() => {
-    return createModelRuntimeClient(orgName, projectSlug || 'default', databaseName, modelName)
+    return createDevelopModelRuntimeClient(orgName, projectSlug || 'default', databaseName, modelName)
   }, [orgName, projectSlug, databaseName, modelName]) as ApolloClient<object>
 
   // 1. Fetch JSON Schema from Design-Time API

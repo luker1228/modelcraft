@@ -53,7 +53,7 @@ export function useDatabases(
 ): UseDatabasesReturn {
   // Use project-scoped client -- listDatabases lives on the project endpoint
   // /graphql/org/{orgName}/project/{projectSlug}/
-  const client = useProjectScopedClient(projectSlug ?? undefined)
+  const client = useProjectScopedClient(projectSlug)
 
   const { data, loading, error, fetchMore, refetch } = useQuery<ListDatabasesData>(
     LIST_DATABASES,

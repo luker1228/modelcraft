@@ -103,7 +103,7 @@ export default function RolePermissionsPage() {
   const roleIdParam = String(params?.roleId ?? '')
 
   const orgClient = getOrgScopedClient()
-  const projectClient = useProjectScopedClient(projectSlug, orgName)
+  const projectClient = useProjectScopedClient(projectSlug)
 
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
   const [selectedDatabase, setSelectedDatabase] = useState('')

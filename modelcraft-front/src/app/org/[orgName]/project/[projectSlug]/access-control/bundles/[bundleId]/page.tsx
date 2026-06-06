@@ -441,7 +441,7 @@ function AddItemDialog({
   onBindCustom,
   allPermissions,
 }: AddItemDialogProps) {
-  const projectClient = useProjectScopedClient(projectSlug, orgName)
+  const projectClient = useProjectScopedClient(projectSlug)
   const [bindMode, setBindMode] = React.useState<'preset' | 'custom'>('preset')
   const [selectedDatabase, setSelectedDatabase] = React.useState<string | null>(null)
   const [selectedModelId, setSelectedModelId] = React.useState<string | null>(null)

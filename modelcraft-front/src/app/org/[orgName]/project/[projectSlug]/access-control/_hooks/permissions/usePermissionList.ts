@@ -25,7 +25,7 @@ export function usePermissionList({
   orgName,
   projectSlug,
 }: UsePermissionListProps): UsePermissionListReturn {
-  const client = useProjectScopedClient(projectSlug, orgName)
+  const client = useProjectScopedClient(projectSlug)
 
   const { data, loading, error } = useQuery(GET_END_USER_PERMISSIONS, {
     client,

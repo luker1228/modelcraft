@@ -127,7 +127,8 @@ routes:
               -- JWT token: verify signature and inject identity
               local jwt_obj = jwt:verify(PUB_KEY, token)
               if not jwt_obj or not jwt_obj.verified then
-                core.response.exit(401, {message = "Invalid or expired token"})
+                local msg = (jwt_obj and jwt_obj.reason == "jwt expired") and "Token expired" or "Invalid token"
+                core.response.exit(401, {message = msg})
                 return
               end
 
@@ -189,7 +190,8 @@ routes:
 
               local jwt_obj = jwt:verify(PUB_KEY, token)
               if not jwt_obj or not jwt_obj.verified then
-                core.response.exit(401, {message = "Invalid or expired token"})
+                local msg = (jwt_obj and jwt_obj.reason == "jwt expired") and "Token expired" or "Invalid token"
+                core.response.exit(401, {message = msg})
                 return
               end
 
@@ -253,7 +255,8 @@ routes:
 
               local jwt_obj = jwt:verify(PUB_KEY, token)
               if not jwt_obj or not jwt_obj.verified then
-                core.response.exit(401, {message = "Invalid or expired token"})
+                local msg = (jwt_obj and jwt_obj.reason == "jwt expired") and "Token expired" or "Invalid token"
+                core.response.exit(401, {message = msg})
                 return
               end
 
@@ -318,7 +321,8 @@ routes:
 
               local jwt_obj = jwt:verify(PUB_KEY, token)
               if not jwt_obj or not jwt_obj.verified then
-                core.response.exit(401, {message = "Invalid or expired token"})
+                local msg = (jwt_obj and jwt_obj.reason == "jwt expired") and "Token expired" or "Invalid token"
+                core.response.exit(401, {message = msg})
                 return
               end
 
@@ -379,7 +383,8 @@ routes:
 
               local jwt_obj = jwt:verify(PUB_KEY, token)
               if not jwt_obj or not jwt_obj.verified then
-                core.response.exit(401, {message = "Invalid or expired token"})
+                local msg = (jwt_obj and jwt_obj.reason == "jwt expired") and "Token expired" or "Invalid token"
+                core.response.exit(401, {message = msg})
                 return
               end
 

@@ -8,7 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 
-const GATEWAY_URL = process.env.BACKEND_URL ?? 'http://localhost:8080'
+const GATEWAY_URL = process.env.BACKEND_URL ?? 'http://localhost:9080'
 
 async function handler(req: NextRequest, { params }: { params: { path: string[] } }) {
   const pathSegments = (await params).path
