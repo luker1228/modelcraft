@@ -121,6 +121,11 @@ interface EndUserCopilotWrapperProps {
 
 /**
  * Wrapper for end-user routes — mounts enduser-specific tools, knowledge, and sidebar.
+ *
+ * Note: the current end-user data route does not use this wrapper on purpose.
+ * The CopilotSidebar floating entry is more suitable for admin workflows and
+ * currently blocks the end-user table view. Keep this wrapper as the reserved
+ * integration point so end-user Copilot can be turned back on later.
  */
 export const EndUserCopilotWrapper = memo(({
   children,

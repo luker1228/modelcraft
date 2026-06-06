@@ -1,25 +1,20 @@
 'use client'
 
 import React from 'react'
-import { useParams } from 'next/navigation'
 import { EndUserAuthGuard } from '@web/components/features/end-user-auth/EndUserAuthGuard'
-import { EndUserCopilotWrapper } from '@web/components/features/copilot/CopilotProvider'
-import "@copilotkit/react-ui/styles.css"
 
 interface EndUserDataLayoutProps {
   children: React.ReactNode
 }
 
 export default function EndUserDataLayout({ children }: EndUserDataLayoutProps) {
-  const params = useParams<{ orgName: string; projectSlug: string }>()
-  const orgName = params?.orgName ?? ''
-  const projectSlug = params?.projectSlug ?? ''
-
   return (
     <EndUserAuthGuard loadingMessage="正在加载数据管理界面...">
-      <EndUserCopilotWrapper orgName={orgName} projectSlug={projectSlug}>
-        <div className="h-screen overflow-hidden">{children}</div>
-      </EndUserCopilotWrapper>
+      {/* End-user data workspace intentionally does not mount Copilot for now.
+          This page is table-first and the floating trigger is too intrusive.
+          Keep the dedicated wrapper implementation in place so we can re-enable
+          it later without reworking the route structure. */}
+      <div className="h-screen overflow-hidden">{children}</div>
     </EndUserAuthGuard>
   )
 }

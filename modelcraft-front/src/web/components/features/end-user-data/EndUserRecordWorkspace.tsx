@@ -592,6 +592,13 @@ export default function EndUserRecordWorkspace({
     })
   }, [contentList, searchKeyword])
 
+  const pageCountText = useMemo(() => {
+    if (!searchKeyword.trim()) {
+      return `本页 ${contentList.length} 条`
+    }
+    return `页内搜索 ${filteredContentList.length} / 本页 ${contentList.length}`
+  }, [contentList.length, filteredContentList.length, searchKeyword])
+
   if (modelLoading || !managementClient) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -641,7 +648,7 @@ export default function EndUserRecordWorkspace({
               />
             </div>
             <span className="text-xs text-muted-foreground">
-              {filteredContentList.length} / {contentList.length} 条
+              {pageCountText}
             </span>
           </div>
         </FilterBar>
@@ -676,11 +683,6 @@ export default function EndUserRecordWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
-            {!contentLoading && (
-              <span className="text-xs text-muted-foreground">
-                {filteredContentList.length} 条记录
-              </span>
-            )}
             <Button
               variant="outline"
               size="sm"
