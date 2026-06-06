@@ -46,7 +46,7 @@ import type {
   ProjectConnectionTestResult,
 } from "@web/components/features/project/ProjectDialog"
 import { getToken } from "@api-client/auth/public"
-import { useOrgScopedContext } from "@api-client/apollo/public"
+import { useOrgScopedContext } from "@api-client/apollo/context"
 import { useOnboarding } from "@shared/onboarding/OnboardingContext"
 import { useRegisterAICapability } from "@web/hooks/ai/use-register-ai-capability"
 

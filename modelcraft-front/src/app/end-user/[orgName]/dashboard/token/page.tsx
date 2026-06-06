@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { useParams } from 'next/navigation'
 import { ApolloProvider, useQuery, useMutation } from '@apollo/client'
+import { useEndUserTokenReady } from '@web/hooks/end-user/useEndUserTokenReady'
 import { KeyRound, Plus, Trash2, Copy, Check, Eye, EyeOff, BookOpen } from 'lucide-react'
 import { copyToClipboardWithCallback } from '@/shared/utils/clipboard'
 import { toast } from 'sonner'
@@ -537,8 +538,17 @@ function TokenPageContent({ orgName }: { orgName: string }) {
 export default function TokenPage() {
   const params = useParams<{ orgName: string }>()
   const orgName = params.orgName
+  const ready = useEndUserTokenReady(orgName)
 
   const client = useMemo(() => createEndUserOrgScopedClient(orgName), [orgName])
+
+  if (!ready) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="size-5 animate-spin rounded-full border-2 border-border border-t-foreground" />
+      </div>
+    )
+  }
 
   return (
     <ApolloProvider client={client}>

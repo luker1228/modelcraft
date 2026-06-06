@@ -1,18 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
+import { useState } from 'react'
+import { useEndUserTokenReady } from '@web/hooks/end-user/useEndUserTokenReady'
 import { EndUserAppLayout } from '@web/components/features/layout'
 import { cn } from '@/shared/utils'
 
 interface CliGuidePageProps {
   params: { orgName: string }
-}
-
-interface RefreshResponse {
-  accessToken?: string
-  expiresAt?: string
 }
 
 const CLI_STEPS = [
@@ -231,58 +225,6 @@ function CliToc() {
       </div>
     </nav>
   )
-}
-
-function useEndUserTokenReady(orgName: string): boolean {
-  const setAccessToken = useEndUserAuthStore((s) => s.setAccessToken)
-  const router = useRouter()
-
-  const [ready, setReady] = useState(() => {
-    const storeState = useEndUserAuthStore.getState()
-    if (storeState.accessToken && !storeState.isTokenExpired()) return true
-    if (typeof window !== 'undefined') {
-      const savedToken = sessionStorage.getItem(`eu_token_${orgName}`)
-      const savedExpiresAt = Number(sessionStorage.getItem(`eu_token_expires_at_${orgName}`) ?? '0')
-      if (savedToken && Date.now() < savedExpiresAt - 5 * 60 * 1000) {
-        const expiresIn = Math.floor((savedExpiresAt - Date.now()) / 1000)
-        useEndUserAuthStore.getState().setAccessToken(savedToken, expiresIn)
-        return true
-      }
-    }
-    return false
-  })
-
-  useEffect(() => {
-    const storeState = useEndUserAuthStore.getState()
-    if (storeState.accessToken && !storeState.isTokenExpired()) {
-      setReady(true)
-      return
-    }
-    void (async () => {
-      try {
-        const res = await fetch(`/api/bff/org/${orgName}/end-user/auth/refresh`, {
-          method: 'POST',
-          credentials: 'same-origin',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ orgName }),
-        })
-        if (!res.ok) { router.replace(`/end-user/${orgName}/login`); return }
-        const data = (await res.json()) as RefreshResponse
-        if (!data.accessToken) { router.replace(`/end-user/${orgName}/login`); return }
-        let expiresIn = 3600
-        if (data.expiresAt) {
-          const ms = new Date(data.expiresAt).getTime() - Date.now()
-          if (ms > 0) expiresIn = Math.floor(ms / 1000)
-        }
-        setAccessToken(data.accessToken, expiresIn)
-        setReady(true)
-      } catch {
-        router.replace(`/end-user/${orgName}/login`)
-      }
-    })()
-  }, [orgName, router, setAccessToken])
-
-  return ready
 }
 
 export default function CliGuidePage({ params }: CliGuidePageProps) {
