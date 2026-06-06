@@ -29,7 +29,6 @@ import { NOOP_MUTATION, NOOP_QUERY } from '@/api-client/noop'
 import { DEPRECATE_FIELD, REMOVE_FIELD, UNDEPRECATE_FIELD } from '@/api-client/model'
 import { GET_MODEL_RECORD_WORKSPACE } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'
-import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
   Dialog,
@@ -52,13 +51,14 @@ import {
   Plus,
   Edit,
   Loader2,
-  Search,
   TerminalSquare,
   RefreshCw,
 } from 'lucide-react'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
 import { useWorkspaceAIRef } from '@web/contexts/workspace-ai-ref-context'
+import { RecordQueryBar } from '@web/components/shared/data-workspace/RecordQueryBar'
+import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
 
 export interface DevelopRecordWorkspaceAIRef {
   openCreate: (prefill: Record<string, unknown>) => void
@@ -663,6 +663,16 @@ export default function DevelopRecordWorkspace({
     })
   }, [contentList, searchKeyword])
 
+  const pageCountText = useMemo(
+    () =>
+      getRecordPageCountText({
+        pageCount: contentList.length,
+        filteredCount: filteredContentList.length,
+        searchKeyword,
+      }),
+    [contentList.length, filteredContentList.length, searchKeyword]
+  )
+
   if (modelLoading) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -709,21 +719,13 @@ export default function DevelopRecordWorkspace({
           </div>
         )}
 
-        {/* 顶部搜索栏 */}
-        <div className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
-          <div className="flex w-full max-w-xl items-center gap-2">
-            <Search className="size-4 text-muted-foreground" />
-            <Input
-              value={searchKeyword}
-              onChange={(event) => setSearchKeyword(event.target.value)}
-              placeholder={`搜索 ${model.title || model.name} 的记录...`}
-              className="h-8"
-            />
-          </div>
-          <div className="text-xs text-muted-foreground">
-            {filteredContentList.length} / {contentList.length} 条
-          </div>
-        </div>
+        <RecordQueryBar
+          searchValue={searchKeyword}
+          onSearchChange={setSearchKeyword}
+          searchPlaceholder={`搜索 ${model.title || model.name} 的记录...`}
+          summaryText={pageCountText}
+          searchInputClassName="h-[26px] w-56 text-xs"
+        />
 
         {/* 工具栏 */}
         <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">
@@ -759,11 +761,6 @@ export default function DevelopRecordWorkspace({
           </div>
 
           <div className="flex items-center gap-2">
-            {!contentLoading && (
-              <span className="text-xs text-muted-foreground">
-                {filteredContentList.length} 条记录
-              </span>
-            )}
             <Button
               variant="outline"
               size="sm"

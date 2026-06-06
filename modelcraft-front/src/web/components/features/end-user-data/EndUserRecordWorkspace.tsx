@@ -26,7 +26,6 @@ import type { FieldDefinition } from '@api-client/cms/public'
 import { NOOP_MUTATION, NOOP_QUERY } from '@/api-client/noop'
 import { GET_MODEL_RECORD_WORKSPACE_END_USER } from '@/api-client/model/graphql-docs.end-user'
 import { Button } from '@web/components/ui/button'
-import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
   Dialog,
@@ -44,22 +43,19 @@ import {
   SheetTitle,
 } from '@web/components/ui/sheet'
 import {
-
-
   Plus,
   Edit,
   Loader2,
-  Search,
   RefreshCw,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { FilterBar } from './FilterPanel'
-import { getFilterCount } from './filter-utils'
 import { SortPopover } from './SortPopover'
 import type { SortState } from './SortPopover'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
 import { useCopilotKitAvailable, FilterCopilotActions } from './FilterCopilotActions'
+import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
 
 
 export interface EndUserRecordWorkspaceProps {
@@ -592,12 +588,15 @@ export default function EndUserRecordWorkspace({
     })
   }, [contentList, searchKeyword])
 
-  const pageCountText = useMemo(() => {
-    if (!searchKeyword.trim()) {
-      return `本页 ${contentList.length} 条`
-    }
-    return `页内搜索 ${filteredContentList.length} / 本页 ${contentList.length}`
-  }, [contentList.length, filteredContentList.length, searchKeyword])
+  const pageCountText = useMemo(
+    () =>
+      getRecordPageCountText({
+        pageCount: contentList.length,
+        filteredCount: filteredContentList.length,
+        searchKeyword,
+      }),
+    [contentList.length, filteredContentList.length, searchKeyword]
+  )
 
   if (modelLoading || !managementClient) {
     return (
@@ -636,22 +635,11 @@ export default function EndUserRecordWorkspace({
           fields={runtimeFields}
           onApply={handleApplyFilter}
           onClear={handleClearFilter}
-        >
-          <div className="flex items-center gap-2">
-            <div className="flex items-center gap-1.5">
-              <Search className="size-3.5 shrink-0 text-muted-foreground" />
-              <Input
-                value={searchKeyword}
-                onChange={(event) => setSearchKeyword(event.target.value)}
-                placeholder={`搜索 ${model.title || model.name}...`}
-                className="h-[26px] w-40 text-xs"
-              />
-            </div>
-            <span className="text-xs text-muted-foreground">
-              {pageCountText}
-            </span>
-          </div>
-        </FilterBar>
+          searchValue={searchKeyword}
+          onSearchChange={setSearchKeyword}
+          searchPlaceholder={`搜索 ${model.title || model.name}...`}
+          summaryText={pageCountText}
+        />
 
         {/* 工具栏 */}
         <div className="flex h-10 items-center justify-between gap-2 overflow-x-auto border-b border-border bg-card p-1.5">

@@ -3,6 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Search, X } from 'lucide-react'
 import type { FieldDefinition } from '@api-client/cms/public'
+import { RecordQueryBar } from '@web/components/shared/data-workspace/RecordQueryBar'
 import type { FilterRow } from './filter-utils'
 import { filterRowsToWhereJson } from './filter-utils'
 import { StructuredFilterTab } from './StructuredFilterTab'
@@ -17,8 +18,10 @@ export interface FilterBarProps {
   onApply: (whereJson: string) => void
   /** Called to clear the active filter. */
   onClear: () => void
-  /** Extra content (search input etc.) rendered to the right of the chips. */
-  children?: React.ReactNode
+  searchValue: string
+  onSearchChange: (value: string) => void
+  searchPlaceholder: string
+  summaryText?: string
 }
 
 /**
@@ -27,7 +30,15 @@ export interface FilterBarProps {
  * Structured filter chips are always visible in the bar.
  * A "查询" button explicitly triggers the filter, a "清除筛选" button resets it.
  */
-export function FilterBar({ fields, onApply, onClear, children }: FilterBarProps) {
+export function FilterBar({
+  fields,
+  onApply,
+  onClear,
+  searchValue,
+  onSearchChange,
+  searchPlaceholder,
+  summaryText,
+}: FilterBarProps) {
   const [rows, setRows] = useState<FilterRow[]>([])
 
   const handleApply = useCallback(() => {
@@ -52,47 +63,43 @@ export function FilterBar({ fields, onApply, onClear, children }: FilterBarProps
   const hasRows = rows.length > 0
 
   return (
-    <div className="flex min-h-[44px] flex-wrap items-center gap-2 border-b border-border bg-card px-4 py-2">
-      {/* Structured filter chip bar — always visible, no auto-apply */}
-      <StructuredFilterTab
-        fields={fields}
-        rows={rows}
-        onRowsChange={setRows}
-        onApply={handleApply}
-        onClear={handleClear}
-        inline
-      />
-
-      {/* 查询 button — always visible, triggers filter */}
-      <button
-        type="button"
-        onClick={handleApply}
-        className="flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-primary/60 bg-primary/5 px-2 text-xs text-primary transition-colors hover:border-primary hover:bg-primary/10"
-      >
-        <Search size={11} strokeWidth={1.5} />
-        <span>查询</span>
-      </button>
-
-      {/* Clear all filters button — only shown when filters are active */}
-      {hasRows && (
-        <button
-          type="button"
-          onClick={handleClear}
-          className="flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-border/60 px-2 text-xs text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
-          title="清除所有筛选"
-        >
-          <X size={11} strokeWidth={1.5} />
-          <span>清除筛选</span>
-        </button>
-      )}
-
-      {/* Slot for search input / record count etc. */}
-      {children && (
-        <div className="ml-auto flex items-center gap-2">
-          {children}
-        </div>
-      )}
-    </div>
+    <RecordQueryBar
+      leftContent={
+        <>
+          <StructuredFilterTab
+            fields={fields}
+            rows={rows}
+            onRowsChange={setRows}
+            onApply={handleApply}
+            onClear={handleClear}
+            inline
+          />
+          <button
+            type="button"
+            onClick={handleApply}
+            className="flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-primary/60 bg-primary/5 px-2 text-xs text-primary transition-colors hover:border-primary hover:bg-primary/10"
+          >
+            <Search size={11} strokeWidth={1.5} />
+            <span>查询</span>
+          </button>
+          {hasRows && (
+            <button
+              type="button"
+              onClick={handleClear}
+              className="flex h-[26px] shrink-0 items-center gap-1 rounded-sm border border-border/60 px-2 text-xs text-muted-foreground transition-colors hover:border-destructive/50 hover:text-destructive"
+              title="清除所有筛选"
+            >
+              <X size={11} strokeWidth={1.5} />
+              <span>清除筛选</span>
+            </button>
+          )}
+        </>
+      }
+      searchValue={searchValue}
+      onSearchChange={onSearchChange}
+      searchPlaceholder={searchPlaceholder}
+      summaryText={summaryText}
+    />
   )
 }
 
