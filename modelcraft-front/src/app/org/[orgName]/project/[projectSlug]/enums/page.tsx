@@ -18,7 +18,7 @@ import { PageLayout, PageHeader } from '@web/components/features/layout'
 import { Plus, Search, Edit, Trash2, RefreshCw, Eye } from 'lucide-react'
 import { GET_ENUMS } from '@/api-client/enum'
 import { DELETE_ENUM, CREATE_ENUM, UPDATE_ENUM } from '@/api-client/enum'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
 interface EnumDefinition {
   id: string

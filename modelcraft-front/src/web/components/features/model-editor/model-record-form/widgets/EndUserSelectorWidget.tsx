@@ -2,7 +2,8 @@
 
 import React, { useMemo, useState, useEffect } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
-import { createEndUserOrgScopedClient, getOrgScopedClient } from '@api-client/apollo/clients'
+import { createEndUserOrgScopedClient } from '@api-client/apollo/end-user-client'
+import { getOrgScopedClient } from '@api-client/apollo/develop-client'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { FIND_USERS } from '@api-client/end-user/graphql-docs'
 import { useWidgetRouteContext } from '../_hooks/useWidgetRouteContext'

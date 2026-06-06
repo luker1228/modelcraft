@@ -6,7 +6,7 @@
 
 import { useCallback } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import {
   LIST_PROJECT_END_USER_ROLE_USERS,
   ASSIGN_END_USER_ROLE_TO_USER,
@@ -14,7 +14,7 @@ import {
   GET_END_USER_ROLES,
 } from '@/api-client/rbac'
 import { LIST_END_USERS, CREATE_END_USER } from '@api-client/end-user/graphql-docs'
-import { getOrgScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient } from '@api-client/apollo/develop-client'
 import type { EndUserRole } from '@/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────

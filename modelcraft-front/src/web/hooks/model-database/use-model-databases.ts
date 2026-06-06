@@ -9,7 +9,7 @@ import {
   START_MODEL_DATABASE_SYNC,
   GET_MODEL_DATABASE_SYNC_JOB,
 } from '@/api-client/project'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 
 // ── Types ────────────────────────────────────────────────────────────────────────
 

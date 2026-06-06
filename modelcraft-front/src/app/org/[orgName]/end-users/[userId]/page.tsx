@@ -20,7 +20,7 @@ import { Button } from '@web/components/ui/button'
 import { Badge } from '@web/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@web/components/ui/card'
 import { Skeleton } from '@web/components/ui/skeleton'
-import { getOrgScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient } from '@api-client/apollo/develop-client'
 import {
   LIST_END_USERS,
   UPDATE_END_USER_STATUS,

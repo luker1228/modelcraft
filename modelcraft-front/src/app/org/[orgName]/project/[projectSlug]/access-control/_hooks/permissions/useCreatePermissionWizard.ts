@@ -2,7 +2,7 @@
 import { useState, useCallback } from 'react'
 import { useMutation } from '@apollo/client'
 
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import { CREATE_END_USER_PERMISSION, GET_END_USER_PERMISSIONS } from '@/api-client/rbac'
 import type { EndUserPermissionAction, EndUserRowScope, ColumnPolicy } from '@/types'
 

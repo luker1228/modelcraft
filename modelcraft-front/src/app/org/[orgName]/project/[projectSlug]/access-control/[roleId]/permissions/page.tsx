@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import { ArrowLeft, ChevronDown, ChevronRight, KeyRound, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 
-import { getOrgScopedClient, useProjectScopedClient } from '@api-client/apollo/public'
+import { getOrgScopedClient, useProjectScopedClient } from '@api-client/apollo/develop-client'
 import { Badge } from '@web/components/ui/badge'
 import {
   Dialog,

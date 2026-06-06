@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from '@web/components/ui/popover'
 import { cn } from '@/shared/utils'
-import { createEndUserScopedClient } from '@api-client/apollo/clients'
+import { createEndUserScopedClient } from '@api-client/apollo/end-user-client'
 import {
   MODEL_CATALOG_END_USER,
   MODEL_DATABASE_CATALOG_END_USER,

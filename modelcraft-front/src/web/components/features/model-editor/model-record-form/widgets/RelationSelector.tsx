@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import type { WidgetProps } from '@rjsf/utils'
 import type { ApolloClient } from '@apollo/client'
-import { createDevelopModelRuntimeClient } from '@api-client/apollo/public'
+import { createDevelopModelRuntimeClient } from '@api-client/apollo/develop-client'
 import { buildFindManyQuery, buildFindUniqueQuery } from '@api-client/cms/public'
 import {
   Popover,

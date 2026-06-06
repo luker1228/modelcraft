@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import { useMutation, useQuery } from '@apollo/client'
-import { useProjectScopedClient, useProjectScopedContext } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
+import { useProjectScopedContext } from '@api-client/apollo/context'
 import { queryModelEnumContext } from '@api-client/model-enum/public'
 import { ADD_FIELDS, GET_LOGICAL_FOREIGN_KEYS } from '@/api-client/model'
 import { Button } from '@web/components/ui/button'

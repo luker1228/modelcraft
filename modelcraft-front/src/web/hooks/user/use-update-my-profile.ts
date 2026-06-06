@@ -3,7 +3,7 @@ import { useApolloClient, useMutation } from '@apollo/client'
 import { useOrganization } from '@web/hooks/organization/use-organization'
 import { UPDATE_MY_PROFILE } from '@/api-client/profile'
 import { MY_USER_PROFILE } from '@/api-client/profile'
-import { useOrgScopedContext } from '@api-client/apollo/public'
+import { useOrgScopedContext } from '@api-client/apollo/context'
 import type {
   ProfileDomainError,
   UpdateMyProfileFormValues,

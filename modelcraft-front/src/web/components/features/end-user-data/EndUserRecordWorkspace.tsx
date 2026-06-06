@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import {
   createEndUserScopedClient,
   createEndUserModelRuntimeClient,
-} from '@api-client/apollo/public'
+} from '@api-client/apollo/end-user-client'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { ModelRecordForm } from '@web/components/features/model-editor/model-record-form/index'
 import { ModelRecordTable } from '@web/components/shared/data-workspace/ModelRecordTable'

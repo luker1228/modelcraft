@@ -2,7 +2,7 @@ import { useCallback, useMemo } from 'react'
 import { useQuery } from '@apollo/client'
 import { useOrganization } from '@web/hooks/organization/use-organization'
 import { MY_USER_PROFILE } from '@/api-client/profile'
-import { useOrgScopedContext } from '@api-client/apollo/public'
+import { useOrgScopedContext } from '@api-client/apollo/context'
 import type { ProfileDomainError, UserProfileStatus, UserProfileView } from '@/types/profile'
 
 interface ProfilePayloadError {

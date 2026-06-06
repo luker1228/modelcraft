@@ -14,7 +14,7 @@ import { cn } from '@/shared/utils'
 import { IdentityFormSection } from '@web/components/ui/identity-form-section'
 import { DatabaseConfigFields } from '@web/components/features/database/DatabaseConfigFields'
 import { PageHeader } from '@web/components/features/layout'
-import { useOrgScopedContext } from '@api-client/apollo/public'
+import { useOrgScopedContext } from '@api-client/apollo/context'
 import {
   Database,
   CheckCircle,

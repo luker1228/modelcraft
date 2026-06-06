@@ -3,7 +3,7 @@
 import React, { useState } from 'react'
 import type { WidgetProps, RJSFSchema } from '@rjsf/utils'
 import { useQuery } from '@apollo/client'
-import { createDevelopModelRuntimeClient } from '@api-client/apollo/public'
+import { createDevelopModelRuntimeClient } from '@api-client/apollo/develop-client'
 import { buildFindManyQuery } from '@api-client/cms/public'
 import { NOOP_QUERY } from '@/api-client/noop'
 import {

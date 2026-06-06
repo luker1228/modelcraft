@@ -3,11 +3,8 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
-import {
-  useProjectScopedClient,
-  createDevelopModelRuntimeClient,
-  useProjectScopedContext,
-} from '@api-client/apollo/public'
+import { useProjectScopedClient, createDevelopModelRuntimeClient } from '@api-client/apollo/develop-client'
+import { useProjectScopedContext } from '@api-client/apollo/context'
 import { ModelRecordForm } from './index'
 import { ModelRecordInsertMenu } from './ModelRecordInsertMenu'
 import { ModelRecordTable } from './ModelRecordTable'

@@ -35,7 +35,7 @@ import {
   SelectValue,
 } from '@web/components/ui/select'
 import { EndUserAppLayout } from '@web/components/features/layout/EndUserAppLayout'
-import { createEndUserOrgScopedClient } from '@api-client/apollo/clients'
+import { createEndUserOrgScopedClient } from '@api-client/apollo/end-user-client'
 import {
   END_USER_API_TOKENS,
   CREATE_END_USER_API_TOKEN,

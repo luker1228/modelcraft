@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-explicit-any */
 import { useQuery, useMutation } from '@apollo/client'
 import { useCallback } from 'react'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import {
   GET_END_USER_BUNDLES,
   CREATE_END_USER_BUNDLE,

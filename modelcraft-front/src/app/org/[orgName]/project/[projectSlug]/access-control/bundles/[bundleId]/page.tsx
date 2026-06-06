@@ -49,7 +49,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from '@web/components/ui/tabs'
 import { PageLayout } from '@web/components/features/layout'
 
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import { GET_VIRTUAL_PRESETS_BY_MODEL } from '@/api-client/rbac'
 import { GET_MODELS_BY_DATABASE } from '@/api-client/model'
 import { DATABASE_CATALOG } from '@/api-client/cluster'

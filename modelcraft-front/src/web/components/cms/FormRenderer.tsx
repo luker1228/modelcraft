@@ -14,7 +14,7 @@ import {
   NumberPicker,
   Submit,
 } from '@formily/antd-v5'
-import { useProjectScopedClient, createDevelopModelRuntimeClient } from '@api-client/apollo/public'
+import { useProjectScopedClient, createDevelopModelRuntimeClient } from '@api-client/apollo/develop-client'
 import {
   transformToFormilySchema,
   parseAndTransformSchema,

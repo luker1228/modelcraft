@@ -12,7 +12,7 @@ import {
   DELETE_END_USER,
   RESET_END_USER_PASSWORD,
 } from '@api-client/end-user/graphql-docs'
-import { getOrgScopedClient } from '@api-client/apollo/clients'
+import { getOrgScopedClient } from '@api-client/apollo/develop-client'
 
 // ── Types ──────────────────────────────────────────────────────────────────
 

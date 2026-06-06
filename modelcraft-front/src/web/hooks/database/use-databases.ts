@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { useQuery } from '@apollo/client'
 import { LIST_DATABASES } from '@/api-client/cluster'
-import { useProjectScopedClient } from '@api-client/apollo/public'
+import { useProjectScopedClient } from '@api-client/apollo/develop-client'
 import type { ApolloError } from '@apollo/client'
 
 interface Database {
