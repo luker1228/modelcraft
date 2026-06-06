@@ -1,6 +1,7 @@
 package modelruntime
 
 import (
+	"modelcraft/internal/domain/modeldesign"
 	"testing"
 
 	"github.com/graphql-go/graphql"
@@ -94,6 +95,33 @@ func TestGetWhere(t *testing.T) {
 				t.Errorf("getWhere() = %v, want %v", got, tt.wantWhere)
 			}
 		})
+	}
+}
+
+func TestGenerateListPageArgs_IncludesWhere(t *testing.T) {
+	model := &RuntimeModel{
+		Name: "Task",
+		Fields: map[string]*RuntimeField{
+			"id": {
+				Name:      "id",
+				Type:      &modeldesign.FieldType{Format: modeldesign.FormatUUID},
+				IsPrimary: true,
+			},
+			"title": {
+				Name: "title",
+				Type: &modeldesign.FieldType{Format: modeldesign.FormatString},
+			},
+		},
+	}
+
+	generator := newInputTypeGenerator()
+	args := generator.GenerateListPageArgs(model)
+
+	if args[FieldWhere] == nil {
+		t.Fatalf("expected listPage args to include where")
+	}
+	if args[FieldWhere].Type == nil {
+		t.Fatalf("expected where arg type to be initialized")
 	}
 }
 

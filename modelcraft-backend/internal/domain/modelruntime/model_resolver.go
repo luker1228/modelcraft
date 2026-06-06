@@ -1323,6 +1323,10 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 		limitRaw = 20
 	}
 	limit := uint(limitRaw)
+	where, err := getWhere(p.Args)
+	if err != nil {
+		return nil, err
+	}
 
 	// Parse after cursor
 	var after *CursorData
@@ -1347,7 +1351,7 @@ func (m *graphqlModelResolver) executeListPage(p graphql.ResolveParams) (map[str
 		InsertionOrderField: insertionOrderField,
 		After:               after,
 		Limit:               limit,
-		Where:               make(map[string]any),
+		Where:               where,
 	}
 
 	// Inject RLS row filter

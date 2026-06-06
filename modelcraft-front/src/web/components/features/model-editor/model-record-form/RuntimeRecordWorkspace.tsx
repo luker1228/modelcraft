@@ -13,7 +13,7 @@ import { ModelRecordTable } from './ModelRecordTable'
 import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
 import { getFieldProtocols } from './runtime/field-protocol'
 import {
-  buildFindManyQuery,
+  buildListPageQuery,
   buildFindUniqueQuery,
   buildDeleteMutation,
   buildCreateMutation,
@@ -82,6 +82,14 @@ interface GetModelQueryData {
     } | null
   } | null
 }
+
+interface ListPageResult {
+  items?: ModelRecordTableRow[]
+  nextCursor?: string | null
+  hasNextPage?: boolean | null
+}
+
+const PAGE_SIZE = 20
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -177,6 +185,8 @@ export default function RuntimeRecordWorkspace({
 
   // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageCursors, setPageCursors] = useState<Array<string | null>>([null])
 
   // 拉取模型 schema（runtime 用 end-user client + end-user query）
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
@@ -338,21 +348,25 @@ export default function RuntimeRecordWorkspace({
     return fieldInfo.storageHint || fieldInfo.schemaType || ''
   }, [])
 
-  const findManyQuery = useMemo(() => {
+  const listPageQuery = useMemo(() => {
     if (!modelName) return null
-    return buildFindManyQuery(modelName, runtimeFields)
+    return buildListPageQuery(modelName, runtimeFields)
   }, [modelName, runtimeFields])
+
+  const currentCursor = pageCursors[currentPage - 1] ?? null
 
   const {
     data: contentData,
     loading: contentLoading,
     refetch,
-  } = useQuery<Record<string, unknown>>(findManyQuery || NOOP_QUERY, {
+  } = useQuery<Record<string, unknown>>(listPageQuery || NOOP_QUERY, {
     client: runtimeClient!,
-    skip: !findManyQuery || !runtimeClient,
+    skip: !listPageQuery || !runtimeClient,
     variables: {
-      take: 50,
-      skip: 0,
+      limit: PAGE_SIZE,
+      after: currentCursor ?? undefined,
+      sortField: 'id',
+      sortDirection: 'desc',
     },
   })
 
@@ -415,12 +429,20 @@ export default function RuntimeRecordWorkspace({
     },
   })
 
+  const listPageData = useMemo<ListPageResult | null>(() => {
+    const payload = (contentData as Record<string, unknown> | undefined)?.listPage
+    return isRecord(payload) ? payload as ListPageResult : null
+  }, [contentData])
+
   const contentList: ModelRecordTableRow[] = useMemo(
-    () => (Array.isArray((contentData as Record<string, unknown> | undefined)?.findMany && ((contentData as Record<string, unknown>).findMany as Record<string, unknown>)?.items)
-      ? ((contentData as Record<string, unknown>).findMany as Record<string, unknown>).items as ModelRecordTableRow[]
-      : []),
-    [contentData]
+    () => (Array.isArray(listPageData?.items) ? listPageData.items : []),
+    [listPageData]
   )
+
+  useEffect(() => {
+    setCurrentPage(1)
+    setPageCursors([null])
+  }, [modelId])
 
   useEffect(() => {
     if (!refreshToken) return
@@ -634,6 +656,21 @@ export default function RuntimeRecordWorkspace({
           canCreateRecord={canCreateRecord}
           canEditRecord={canEditRecord}
           canDeleteRecord={canDeleteRecord}
+          pagination={{
+            currentPage,
+            pageSize: PAGE_SIZE,
+            hasNextPage: listPageData?.hasNextPage === true,
+            onPreviousPage: () => setCurrentPage((prev) => Math.max(1, prev - 1)),
+            onNextPage: () => {
+              const nextCursor = listPageData?.nextCursor ?? null
+              if (listPageData?.hasNextPage !== true || !nextCursor) return
+              setPageCursors((prev) => {
+                if (prev[currentPage] === nextCursor) return prev
+                return [...prev.slice(0, currentPage), nextCursor]
+              })
+              setCurrentPage((prev) => prev + 1)
+            },
+          }}
         />
 
         {/* 新增数据侧边栏 */}

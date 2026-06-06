@@ -62,6 +62,13 @@ interface ModelRecordTableProps {
   highlightedIds?: string[]
   /** 高亮原因 map，key 为 record id，value 为原因文字 */
   highlightReasons?: Record<string, string>
+  pagination?: {
+    currentPage: number
+    pageSize: number
+    hasNextPage: boolean
+    onPreviousPage: () => void
+    onNextPage: () => void
+  }
 }
 
 type PairRole = 'label' | 'code'
@@ -91,6 +98,7 @@ export function ModelRecordTable({
   canDeleteRecord = true,
   highlightedIds,
   highlightReasons,
+  pagination,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
 
@@ -445,7 +453,7 @@ export function ModelRecordTable({
                         className="py-2 text-xs tabular-nums text-muted-foreground"
                         style={{ width: INDEX_COLUMN_WIDTH }}
                       >
-                        {index + 1}
+                        {(pagination ? (pagination.currentPage - 1) * pagination.pageSize : 0) + index + 1}
                       </TableCell>
                       {visibleFields.map((field) => {
                         const pairMeta = pairMetaByField[field]
@@ -577,6 +585,36 @@ export function ModelRecordTable({
             </TableBody>
           </Table>
         </div>
+        {pagination && !contentLoading && contentList.length > 0 && (
+          <div className="flex items-center justify-between border-t border-border bg-card px-4 py-2">
+            <p className="text-xs text-muted-foreground">
+              第 {pagination.currentPage} 页
+              <span className="ml-1">本页 {contentList.length} 条</span>
+            </p>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2.5 text-xs"
+                disabled={pagination.currentPage <= 1}
+                onClick={pagination.onPreviousPage}
+              >
+                上一页
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="h-7 px-2.5 text-xs"
+                disabled={!pagination.hasNextPage}
+                onClick={pagination.onNextPage}
+              >
+                下一页
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </TooltipProvider>
   )

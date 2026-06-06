@@ -13,7 +13,7 @@ import { ModelRecordTable } from '@web/components/shared/data-workspace/ModelRec
 import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from '@web/components/shared/data-workspace/ModelRecordTable'
 import { getFieldProtocols } from '@web/components/features/model-editor/model-record-form/runtime/field-protocol'
 import {
-  buildFindManyQuery,
+  buildListPageQuery,
   buildFindUniqueQuery,
   buildDeleteMutation,
   buildCreateMutation,
@@ -55,7 +55,7 @@ import {
 import { cn } from '@/shared/utils'
 import { FilterBar } from './FilterPanel'
 import { getFilterCount } from './filter-utils'
-import { SortPopover, buildOrderBy } from './SortPopover'
+import { SortPopover } from './SortPopover'
 import type { SortState } from './SortPopover'
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from '@web/components/features/model-editor/model-record-form/access-adapter'
@@ -88,6 +88,28 @@ interface GetModelQueryData {
       message?: string | null
     } | null
   } | null
+}
+
+interface ListPageResult {
+  items?: ModelRecordTableRow[]
+  nextCursor?: string | null
+  hasNextPage?: boolean | null
+}
+
+const PAGE_SIZE = 20
+
+function resolveListPageSort(sort: SortState): { sortField: string; sortDirection: 'asc' | 'desc' } {
+  if (sort.field) {
+    return {
+      sortField: sort.field,
+      sortDirection: sort.direction,
+    }
+  }
+
+  return {
+    sortField: 'id',
+    sortDirection: 'desc',
+  }
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -207,8 +229,9 @@ export default function EndUserRecordWorkspace({
     direction: 'asc',
     stableSort: true,
   })
-  const orderByInput = useMemo(() => buildOrderBy(sortState), [sortState])
   // --- End filter/sort state ---
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageCursors, setPageCursors] = useState<Array<string | null>>([null])
 
   // ----- CopilotKit Frontend Actions -----
   // Guard: only mount the actions component when CopilotKit context is available.
@@ -375,25 +398,29 @@ export default function EndUserRecordWorkspace({
     return fieldInfo.storageHint || fieldInfo.schemaType || ''
   }, [])
 
-  const findManyQuery = useMemo(() => {
+  const listPageQuery = useMemo(() => {
     if (!modelName) return null
-    return buildFindManyQuery(modelName, runtimeFields)
+    return buildListPageQuery(modelName, runtimeFields)
   }, [modelName, runtimeFields])
+
+  const currentCursor = pageCursors[currentPage - 1] ?? null
+  const listPageSort = useMemo(() => resolveListPageSort(sortState), [sortState])
 
   const {
     data: contentData,
     loading: contentLoading,
     refetch,
-  } = useQuery<Record<string, unknown>>(findManyQuery || NOOP_QUERY, {
-    client: runtimeClient!,
-    skip: !findManyQuery || !runtimeClient,
-    variables: {
-      take: 50,
-      skip: 0,
-      where: whereInput,
-      orderBy: orderByInput,
-    },
-  })
+  } = useQuery<Record<string, unknown>>(listPageQuery || NOOP_QUERY, {
+      client: runtimeClient!,
+      skip: !listPageQuery || !runtimeClient,
+      variables: {
+        where: whereInput,
+        limit: PAGE_SIZE,
+        after: currentCursor ?? undefined,
+        sortField: listPageSort.sortField,
+        sortDirection: listPageSort.sortDirection,
+      },
+    })
 
   const deleteMutation = useMemo(() => {
     if (!modelName) return null
@@ -454,12 +481,22 @@ export default function EndUserRecordWorkspace({
     },
   })
 
+  const listPageData = useMemo<ListPageResult | null>(() => {
+    const payload = (contentData as Record<string, unknown> | undefined)?.listPage
+    return isRecord(payload) ? payload as ListPageResult : null
+  }, [contentData])
+
   const contentList: ModelRecordTableRow[] = useMemo(
-    () => (Array.isArray((contentData as Record<string, unknown> | undefined)?.findMany && ((contentData as Record<string, unknown>).findMany as Record<string, unknown>)?.items)
-      ? ((contentData as Record<string, unknown>).findMany as Record<string, unknown>).items as ModelRecordTableRow[]
-      : []),
-    [contentData]
+    () => (Array.isArray(listPageData?.items) ? listPageData.items : []),
+    [listPageData]
   )
+
+  const hasNextPage = listPageData?.hasNextPage === true
+
+  useEffect(() => {
+    setCurrentPage(1)
+    setPageCursors([null])
+  }, [modelId, whereJsonCommitted, sortState.field, sortState.direction, sortState.stableSort])
 
   useEffect(() => {
     if (!refreshToken) return
@@ -672,6 +709,21 @@ export default function EndUserRecordWorkspace({
           canCreateRecord={canCreateRecord}
           canEditRecord={canEditRecord}
           canDeleteRecord={canDeleteRecord}
+          pagination={{
+            currentPage,
+            pageSize: PAGE_SIZE,
+            hasNextPage,
+            onPreviousPage: () => setCurrentPage((prev) => Math.max(1, prev - 1)),
+            onNextPage: () => {
+              const nextCursor = listPageData?.nextCursor ?? null
+              if (!hasNextPage || !nextCursor) return
+              setPageCursors((prev) => {
+                if (prev[currentPage] === nextCursor) return prev
+                return [...prev.slice(0, currentPage), nextCursor]
+              })
+              setCurrentPage((prev) => prev + 1)
+            },
+          }}
         />
 
         {/* 新增数据侧边栏 */}

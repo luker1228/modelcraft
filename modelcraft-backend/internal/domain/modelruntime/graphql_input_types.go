@@ -529,8 +529,8 @@ func (g *inputTypeGenerator) GenerateAggregateArgs(model *RuntimeModel) graphql.
 }
 
 // GenerateListPageArgs builds GraphQL argument config for the listPage operation.
-func (g *inputTypeGenerator) GenerateListPageArgs(_ *RuntimeModel) graphql.FieldConfigArgument {
-	return graphql.FieldConfigArgument{
+func (g *inputTypeGenerator) GenerateListPageArgs(model *RuntimeModel) graphql.FieldConfigArgument {
+	args := graphql.FieldConfigArgument{
 		FieldSortField: &graphql.ArgumentConfig{
 			Type:        graphql.NewNonNull(graphql.String),
 			Description: "Field to sort by (required)",
@@ -550,6 +550,15 @@ func (g *inputTypeGenerator) GenerateListPageArgs(_ *RuntimeModel) graphql.Field
 			Description: "Opaque cursor from previous page (omit for first page)",
 		},
 	}
+
+	whereInput := g.generateWhereInputType(model)
+	args[FieldWhere] = &graphql.ArgumentConfig{
+		Type:         whereInput,
+		DefaultValue: nil,
+		Description:  "Cursor pagination filter condition",
+	}
+
+	return args
 }
 
 // GenerateCountArgs 为count查询生成参数配置

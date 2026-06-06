@@ -223,6 +223,7 @@ export function buildModelQueryOperations(
  * Build listPage cursor-pagination query for a model.
  *
  * Variables:
+ *   $where: <Model>WhereInput — optional filter condition
  *   $sortField: String!     — field to sort by (required)
  *   $sortDirection: String! — "asc" or "desc" (required)
  *   $limit: Int             — page size (default 20 on server)
@@ -241,6 +242,7 @@ export function buildListPageQuery(
     {
       operation: 'listPage',
       variables: {
+        where: { type: `${gqlTypeName(modelName)}WhereInput`, required: false },
         sortField: { type: 'String', required: true },
         sortDirection: { type: 'String', required: true },
         limit: { type: 'Int', required: false },
