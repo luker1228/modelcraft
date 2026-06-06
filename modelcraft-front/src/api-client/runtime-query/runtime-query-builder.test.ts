@@ -8,7 +8,7 @@ import {
   buildFindFirstQuery,
   buildFindManyQuery,
   buildFindUniqueQuery,
-  buildListPageQuery,
+  buildListByPageQuery,
   buildModelQueryOperations,
   buildUpdateMutation,
   extractFieldsFromSchema,
@@ -438,8 +438,8 @@ describe('runtime-query-builder: snapshots', () => {
 
     // Snapshot: verify key structure
     expect(printed).toContain('findMany')
-    expect(printed).toContain('$where: TaskWhereInput')
-    expect(printed).toContain('$orderBy: [TaskOrderByInput!]')
+    expect(printed).toContain('$where: TTaskWhereInput')
+    expect(printed).toContain('$orderBy: [TTaskOrderByInput!]')
     expect(printed).toContain('$skip: Int')
     expect(printed).toContain('$take: Int')
     expect(printed).toContain('timeCost')
@@ -456,7 +456,7 @@ describe('runtime-query-builder: snapshots', () => {
     const printed = print(doc)
 
     expect(printed).toContain('findUnique')
-    expect(printed).toContain('$where: UserUniqueWhereInput!')
+    expect(printed).toContain('$where: TUserUniqueWhereInput!')
     expect(printed).toContain('item {')
   })
 
@@ -465,7 +465,7 @@ describe('runtime-query-builder: snapshots', () => {
     const printed = print(doc)
 
     expect(printed).toContain('findFirst')
-    expect(printed).toContain('$where: PostWhereInput')
+    expect(printed).toContain('$where: TPostWhereInput')
   })
 
   it('buildCountQuery snapshot', () => {
@@ -473,7 +473,7 @@ describe('runtime-query-builder: snapshots', () => {
     const printed = print(doc)
 
     expect(printed).toContain('count(')
-    expect(printed).toContain('$where: OrderWhereInput')
+    expect(printed).toContain('$where: TOrderWhereInput')
     expect(printed).toContain('count')
   })
 
@@ -482,7 +482,7 @@ describe('runtime-query-builder: snapshots', () => {
     const printed = print(doc)
 
     expect(printed).toContain('create(')
-    expect(printed).toContain('$data: ArticleCreateInput!')
+    expect(printed).toContain('$data: TArticleCreateInput!')
     expect(printed).toContain('id')
   })
 
@@ -491,8 +491,8 @@ describe('runtime-query-builder: snapshots', () => {
     const printed = print(doc)
 
     expect(printed).toContain('update(')
-    expect(printed).toContain('$where: ArticleUniqueWhereInput!')
-    expect(printed).toContain('$data: ArticleUpdateInput!')
+    expect(printed).toContain('$where: TArticleUniqueWhereInput!')
+    expect(printed).toContain('$data: TArticleUpdateInput!')
     expect(printed).toContain('success')
   })
 
@@ -501,46 +501,46 @@ describe('runtime-query-builder: snapshots', () => {
     const printed = print(doc)
 
     expect(printed).toContain('delete(')
-    expect(printed).toContain('$where: ArticleUniqueWhereInput!')
+    expect(printed).toContain('$where: TArticleUniqueWhereInput!')
     expect(printed).toContain('success')
   })
 })
 
 // ============================================================================
-// buildListPageQuery
+// buildListByPageQuery
 // ============================================================================
 
-describe('buildListPageQuery', () => {
-  it('builds a valid listPage query with required fields', () => {
-    const query = buildListPageQuery('Product', ['id', 'price', 'name'])
+describe('buildListByPageQuery', () => {
+  it('builds a valid listByPage query with required fields', () => {
+    const query = buildListByPageQuery('Product', ['id', 'price', 'name'])
     const printed = print(query)
-    expect(printed).toContain('listPage')
+    expect(printed).toContain('listByPage')
     expect(printed).toContain('$where')
-    expect(printed).toContain('$sortField')
-    expect(printed).toContain('$sortDirection')
-    expect(printed).toContain('$after')
-    expect(printed).toContain('$limit')
+    expect(printed).toContain('$orderBy')
+    expect(printed).toContain('$pageIndex')
+    expect(printed).toContain('$pageSize')
     expect(printed).toContain('where: $where')
-    expect(printed).toContain('nextCursor')
-    expect(printed).toContain('hasNextPage')
+    expect(printed).toContain('total')
+    expect(printed).toContain('pageIndex')
+    expect(printed).toContain('pageSize')
     expect(printed).toContain('items')
   })
 
   it('includes the provided field selections in items', () => {
-    const query = buildListPageQuery('Product', ['id', 'price'])
+    const query = buildListByPageQuery('Product', ['id', 'price'])
     const printed = print(query)
     expect(printed).toContain('id')
     expect(printed).toContain('price')
   })
 
   it('names the operation correctly', () => {
-    const query = buildListPageQuery('Order', ['id'])
+    const query = buildListByPageQuery('Order', ['id'])
     const printed = print(query)
-    expect(printed).toContain('OrderListPage')
+    expect(printed).toContain('OrderListByPage')
   })
 
   it('returns a valid DocumentNode', () => {
-    const query = buildListPageQuery('User', ['id', 'name'])
+    const query = buildListByPageQuery('User', ['id', 'name'])
     const printed = print(query)
     assertValidDocument(printed)
   })

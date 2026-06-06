@@ -10,10 +10,9 @@ import {
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { ModelRecordForm } from './index'
 import { ModelRecordTable } from './ModelRecordTable'
-import type { ModelRecordTableFieldInfo, ModelRecordTableRow } from './ModelRecordTable'
+import type { ModelRecordTableFieldInfo } from './ModelRecordTable'
 import { getFieldProtocols } from './runtime/field-protocol'
 import {
-  buildListPageQuery,
   buildFindUniqueQuery,
   buildDeleteMutation,
   buildCreateMutation,
@@ -23,7 +22,7 @@ import {
   sanitizeMutationInputData,
 } from '@api-client/cms/public'
 import type { FieldDefinition } from '@api-client/cms/public'
-import { NOOP_MUTATION, NOOP_QUERY } from '@/api-client/noop'
+import { NOOP_MUTATION } from '@/api-client/noop'
 import { GET_MODEL_RECORD_WORKSPACE_END_USER } from '@/api-client/model/graphql-docs.end-user'
 import { Button } from '@web/components/ui/button'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
@@ -54,6 +53,7 @@ import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
 import { RecordQueryBar } from '@web/components/shared/data-workspace/RecordQueryBar'
 import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
+import { useRuntimeListByPage } from '@web/components/shared/data-workspace/useRuntimeListByPage'
 
 export interface RuntimeRecordWorkspaceProps {
   modelId: string
@@ -83,17 +83,7 @@ interface GetModelQueryData {
   } | null
 }
 
-interface ListPageResult {
-  items?: ModelRecordTableRow[]
-  nextCursor?: string | null
-  hasNextPage?: boolean | null
-}
-
 const PAGE_SIZE = 20
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
 
 function deriveStorageHintFromSchemaProp(prop: Record<string, unknown>): string | null {
   const xmc = getXMC(prop)
@@ -185,8 +175,6 @@ export default function RuntimeRecordWorkspace({
 
   // 搜索关键词
   const [searchKeyword, setSearchKeyword] = useState('')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pageCursors, setPageCursors] = useState<Array<string | null>>([null])
 
   // 拉取模型 schema（runtime 用 end-user client + end-user query）
   const { data: modelData, loading: modelLoading, refetch: refetchModel } = useQuery<GetModelQueryData, { id: string }>(
@@ -236,13 +224,16 @@ export default function RuntimeRecordWorkspace({
   const runtimeFields = useMemo(() => {
     if (jsonSchema?.properties) {
       const props = jsonSchema.properties as Record<string, unknown>
-      const schemaFieldDefs: FieldDefinition[] = Object.entries(props).flatMap(([name, rawProp]) => {
-        if (!isRecord(rawProp)) return []
-        const prop = rawProp
+      const propEntries = Object.entries(props) as Array<[string, unknown]>
+      const schemaFieldDefs: FieldDefinition[] = propEntries.flatMap(([name, rawProp]) => {
+        if (typeof rawProp !== 'object' || rawProp === null || Array.isArray(rawProp)) return []
+        const prop: Record<string, unknown> = rawProp
         const labelFieldName = resolveEnumLabelFieldName(prop)
         const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
-        const schemaType = typeof prop.type === 'string' ? prop.type.toUpperCase() : undefined
-        const format = typeof prop.format === 'string' ? prop.format.toUpperCase() : undefined
+        const rawType = prop['type']
+        const rawFormat = prop['format']
+        const schemaType = typeof rawType === 'string' ? rawType.toUpperCase() : undefined
+        const format = typeof rawFormat === 'string' ? rawFormat.toUpperCase() : undefined
         const baseDef: FieldDefinition = {
           name,
           type: schemaType ?? 'string',
@@ -283,19 +274,22 @@ export default function RuntimeRecordWorkspace({
     if (jsonSchema?.properties) {
       const props = jsonSchema.properties as Record<string, unknown>
       // runtime 不显示废弃状态，字段生命周期由 develop 侧管理
-      return Object.entries(props).flatMap(([name, rawProp]) => {
-        if (!isRecord(rawProp)) return []
-        const prop = rawProp
+      const propEntries = Object.entries(props) as Array<[string, unknown]>
+      return propEntries.flatMap(([name, rawProp]) => {
+        if (typeof rawProp !== 'object' || rawProp === null || Array.isArray(rawProp)) return []
+        const prop: Record<string, unknown> = rawProp
         const labelFieldName = resolveEnumLabelFieldName(prop)
         const hasLabelFieldInSchema = Object.prototype.hasOwnProperty.call(props, labelFieldName)
         const xmc = getXMC(prop)
+        const rawTitle = prop['title']
+        const rawType = prop['type']
         const baseInfo: ModelRecordTableFieldInfo = {
           name,
-          title: typeof prop.title === 'string' ? prop.title : null,
+          title: typeof rawTitle === 'string' ? rawTitle : null,
           isPrimary: xmc?.isPrimary === true,
           isDeprecated: false, // runtime 侧不展示废弃状态
           storageHint: deriveStorageHintFromSchemaProp(prop),
-          schemaType: typeof prop.type === 'string' ? prop.type.toUpperCase() : null,
+          schemaType: typeof rawType === 'string' ? rawType.toUpperCase() : null,
         }
 
         if (!isEnumSchemaProp(prop)) {
@@ -348,26 +342,22 @@ export default function RuntimeRecordWorkspace({
     return fieldInfo.storageHint || fieldInfo.schemaType || ''
   }, [])
 
-  const listPageQuery = useMemo(() => {
-    if (!modelName) return null
-    return buildListPageQuery(modelName, runtimeFields)
-  }, [modelName, runtimeFields])
-
-  const currentCursor = pageCursors[currentPage - 1] ?? null
-
   const {
-    data: contentData,
-    loading: contentLoading,
+    currentPage,
+    setCurrentPage,
+    contentLoading,
+    contentList,
+    totalCount,
+    totalPages,
+    hasNextPage,
     refetch,
-  } = useQuery<Record<string, unknown>>(listPageQuery || NOOP_QUERY, {
-    client: runtimeClient!,
-    skip: !listPageQuery || !runtimeClient,
-    variables: {
-      limit: PAGE_SIZE,
-      after: currentCursor ?? undefined,
-      sortField: 'id',
-      sortDirection: 'desc',
-    },
+  } = useRuntimeListByPage({
+    modelName,
+    runtimeFields,
+    runtimeClient,
+    orderBy: [{ id: 'desc' }],
+    pageSize: PAGE_SIZE,
+    resetDeps: [modelId],
   })
 
   const deleteMutation = useMemo(() => {
@@ -429,21 +419,6 @@ export default function RuntimeRecordWorkspace({
     },
   })
 
-  const listPageData = useMemo<ListPageResult | null>(() => {
-    const payload = (contentData as Record<string, unknown> | undefined)?.listPage
-    return isRecord(payload) ? payload as ListPageResult : null
-  }, [contentData])
-
-  const contentList: ModelRecordTableRow[] = useMemo(
-    () => (Array.isArray(listPageData?.items) ? listPageData.items : []),
-    [listPageData]
-  )
-
-  useEffect(() => {
-    setCurrentPage(1)
-    setPageCursors([null])
-  }, [modelId])
-
   useEffect(() => {
     if (!refreshToken) return
     void refetchModel()
@@ -488,11 +463,11 @@ export default function RuntimeRecordWorkspace({
       })
 
       const item = (data as Record<string, unknown> | undefined)?.findUnique && ((data as Record<string, unknown>).findUnique as Record<string, unknown>)?.item
-      if (isRecord(item)) {
-        const schemaDrivenData = writableFieldNames.reduce<Record<string, unknown>>((formData, fieldName) => {
-          formData[fieldName] = item[fieldName] ?? ''
-          return formData
-        }, {})
+      if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        const schemaDrivenData: Record<string, unknown> = {}
+        for (const fieldName of writableFieldNames) {
+          schemaDrivenData[fieldName] = item[fieldName] ?? ''
+        }
         setEditFormData(schemaDrivenData)
       }
     } catch (error) {
@@ -656,17 +631,12 @@ export default function RuntimeRecordWorkspace({
           pagination={{
             currentPage,
             pageSize: PAGE_SIZE,
-            hasNextPage: listPageData?.hasNextPage === true,
+            totalCount,
+            totalPages,
+            hasNextPage,
             onPreviousPage: () => setCurrentPage((prev) => Math.max(1, prev - 1)),
-            onNextPage: () => {
-              const nextCursor = listPageData?.nextCursor ?? null
-              if (listPageData?.hasNextPage !== true || !nextCursor) return
-              setPageCursors((prev) => {
-                if (prev[currentPage] === nextCursor) return prev
-                return [...prev.slice(0, currentPage), nextCursor]
-              })
-              setCurrentPage((prev) => prev + 1)
-            },
+            onNextPage: () => setCurrentPage((prev) => Math.min(totalPages, prev + 1)),
+            onGoToPage: (page) => setCurrentPage(Math.min(totalPages, Math.max(1, page))),
           }}
         />
 

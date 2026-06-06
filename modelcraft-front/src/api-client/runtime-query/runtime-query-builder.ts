@@ -220,40 +220,39 @@ export function buildModelQueryOperations(
 }
 
 /**
- * Build listPage cursor-pagination query for a model.
+ * Build listByPage page-pagination query for a model.
  *
  * Variables:
  *   $where: <Model>WhereInput — optional filter condition
- *   $sortField: String!     — field to sort by (required)
- *   $sortDirection: String! — "asc" or "desc" (required)
- *   $limit: Int             — page size (default 20 on server)
- *   $after: String          — opaque cursor from previous page (omit for first page)
+ *   $orderBy: [<Model>OrderByInput!] — 1 to 3 ordered sort fields
+ *   $pageIndex: Int — 1-based page number
+ *   $pageSize: Int — page size
  *
- * Returns: { items { ...fields }, nextCursor, hasNextPage, timeCost, reqId }
+ * Returns: { items { ...fields }, total, pageIndex, pageSize, timeCost, reqId }
  */
-export function buildListPageQuery(
+export function buildListByPageQuery(
   modelName: string,
   fields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
 ): DocumentNode {
   const fieldSelection = buildFieldSelections(fields)
-  const operationName = `${modelName}ListPage`
+  const operationName = `${modelName}ListByPage`
 
   const { query } = gqlBuilder.query(
     {
-      operation: 'listPage',
+      operation: 'listByPage',
       variables: {
         where: { type: `${gqlTypeName(modelName)}WhereInput`, required: false },
-        sortField: { type: 'String', required: true },
-        sortDirection: { type: 'String', required: true },
-        limit: { type: 'Int', required: false },
-        after: { type: 'String', required: false },
+        orderBy: { type: `[${gqlTypeName(modelName)}OrderByInput!]`, required: false },
+        pageIndex: { type: 'Int', required: false },
+        pageSize: { type: 'Int', required: false },
       },
       fields: [
         {
           items: fieldSelection,
         },
-        'nextCursor',
-        'hasNextPage',
+        'total',
+        'pageIndex',
+        'pageSize',
         'timeCost',
         'reqId',
       ],

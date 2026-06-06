@@ -256,7 +256,7 @@ export function ModelDetailPanel({
                         {!state.metaInsertionOrderField && (
                           <p className="flex items-center gap-1 text-xs text-amber-600">
                             <span className="shrink-0">⚠</span>
-                            未配置，<code className="rounded bg-muted px-1 font-mono">listPage</code> 分页稳定性无法保证。
+                            未配置，<code className="rounded bg-muted px-1 font-mono">listByCursor</code> 分页稳定性无法保证。
                           </p>
                         )}
                         {state.metaInsertionOrderField && (

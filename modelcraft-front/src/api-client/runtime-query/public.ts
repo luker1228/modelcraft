@@ -6,7 +6,7 @@ export {
   buildDeleteMutation,
   extractFieldsFromSchema,
   buildFindManyQuery,
-  buildListPageQuery,
+  buildListByPageQuery,
   buildFindFirstQuery,
   buildCountQuery,
   extractWritableFieldNamesFromSchema,

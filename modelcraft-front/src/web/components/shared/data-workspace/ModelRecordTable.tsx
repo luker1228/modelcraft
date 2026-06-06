@@ -65,9 +65,12 @@ interface ModelRecordTableProps {
   pagination?: {
     currentPage: number
     pageSize: number
+    totalCount?: number
+    totalPages?: number
     hasNextPage: boolean
     onPreviousPage: () => void
     onNextPage: () => void
+    onGoToPage?: (page: number) => void
   }
 }
 
@@ -101,6 +104,7 @@ export function ModelRecordTable({
   pagination,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
+  const [pageInput, setPageInput] = useState('')
 
   const [columnWidths, setColumnWidths] = useState<Record<string, number>>({})
   const [resizingColumn, setResizingColumn] = useState<string | null>(null)
@@ -242,6 +246,13 @@ export function ModelRecordTable({
     const fieldsWidth = visibleFields.reduce((sum, field) => sum + getColumnWidth(field), 0)
     return INDEX_COLUMN_WIDTH + ACTION_COLUMN_WIDTH + fieldsWidth
   }, [visibleFields, getColumnWidth])
+
+  const paginationCurrentPage = pagination?.currentPage
+
+  useEffect(() => {
+    if (!pagination) return
+    setPageInput(String(pagination.currentPage))
+  }, [pagination, paginationCurrentPage])
 
   return (
     <TooltipProvider>
@@ -589,6 +600,10 @@ export function ModelRecordTable({
           <div className="flex items-center justify-between border-t border-border bg-card px-4 py-2">
             <p className="text-xs text-muted-foreground">
               第 {pagination.currentPage} 页
+              {pagination.totalPages ? <span className="ml-1">/ 共 {pagination.totalPages} 页</span> : null}
+              {typeof pagination.totalCount === 'number' ? (
+                <span className="ml-1">共 {pagination.totalCount} 条</span>
+              ) : null}
               <span className="ml-1">本页 {contentList.length} 条</span>
             </p>
             <div className="flex items-center gap-2">
@@ -612,6 +627,45 @@ export function ModelRecordTable({
               >
                 下一页
               </Button>
+              {pagination.totalPages && pagination.totalPages > 1 && pagination.onGoToPage ? (
+                <div className="flex items-center gap-1.5">
+                  <input
+                    type="number"
+                    min={1}
+                    max={pagination.totalPages}
+                    value={pageInput}
+                    onChange={(e) => setPageInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key !== 'Enter') return
+                      const parsed = Number(pageInput)
+                      if (!Number.isFinite(parsed)) return
+                      const target = Math.min(
+                        pagination.totalPages ?? parsed,
+                        Math.max(1, Math.trunc(parsed))
+                      )
+                      pagination.onGoToPage?.(target)
+                    }}
+                    className="h-7 w-16 rounded-md border border-input bg-background px-2 text-xs"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-7 px-2.5 text-xs"
+                    onClick={() => {
+                      const parsed = Number(pageInput)
+                      if (!Number.isFinite(parsed)) return
+                      const target = Math.min(
+                        pagination.totalPages ?? parsed,
+                        Math.max(1, Math.trunc(parsed))
+                      )
+                      pagination.onGoToPage?.(target)
+                    }}
+                  >
+                    跳转
+                  </Button>
+                </div>
+              ) : null}
             </div>
           </div>
         )}
