@@ -4,7 +4,7 @@ import { ReactNode, useMemo, useCallback, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ApolloProvider, useQuery } from '@apollo/client'
-import { ChevronRight, Terminal, ChevronsUpDown, Check, FolderOpen, KeyRound, BookOpen } from 'lucide-react'
+import { ChevronRight, Terminal, ChevronsUpDown, Check, FolderOpen, KeyRound } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
 import { UserMenu } from '@web/components/features/layout/UserMenu'
 import { AppSidebarNav, type NavSection } from '@web/components/features/layout/AppSidebarNav'
@@ -232,7 +232,6 @@ function EndUserAppLayoutInner({
               items: [
                 { label: 'CLI 下载', icon: Terminal, href: `/end-user/${orgName}/dashboard/cli`, exact: true },
                 { label: 'API Token', icon: KeyRound, href: `/end-user/${orgName}/dashboard/token`, exact: true },
-                { label: 'API 文档', icon: BookOpen, href: `/end-user/${orgName}/dashboard/api-docs`, exact: true },
               ],
             },
           ]}

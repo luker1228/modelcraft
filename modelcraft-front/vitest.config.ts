@@ -32,6 +32,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@web': path.resolve(__dirname, './src/web'),
       '@shared': path.resolve(__dirname, './src/shared'),
+      '@api-client/cms': path.resolve(__dirname, './src/api-client/runtime-query'),
       '@api-client': path.resolve(__dirname, './src/api-client'),
     },
   },

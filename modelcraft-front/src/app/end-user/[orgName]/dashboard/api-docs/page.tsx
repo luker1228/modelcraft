@@ -1,9 +1,10 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Copy } from 'lucide-react'
+import { useState, useCallback } from 'react'
+import { Check, Copy, Play, Loader2, AlertCircle, ChevronRight, Terminal } from 'lucide-react'
 import { EndUserAppLayout } from '@web/components/features/layout'
 import { useEndUserTokenReady } from '@web/hooks/end-user/useEndUserTokenReady'
+import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { cn } from '@/shared/utils'
 
 interface ApiDocsPageProps {
@@ -72,6 +73,7 @@ const TOC = [
   { id: 'auth', label: '认证' },
   { id: 'examples', label: '代码示例' },
   { id: 'reference', label: '查询参考' },
+  { id: 'playground', label: '在线调试' },
 ]
 
 type TabId = 'python' | 'curl'
@@ -158,6 +160,203 @@ function DarkCodeBlock({ code, lang }: { code: string; lang: string }) {
 
 function Divider() {
   return <div className="my-10 border-t border-border" />
+}
+
+// ── GraphQL Playground ─────────────────────────────────────────────────────
+
+const DEFAULT_QUERY = `query {
+  list(limit: 5) {
+    id
+    # 展开字段...
+  }
+}`
+
+function GraphQLPlayground({ orgName }: { orgName: string }) {
+  const [projectSlug, setProjectSlug] = useState('')
+  const [dbName, setDbName] = useState('')
+  const [modelName, setModelName] = useState('')
+  const [queryText, setQueryText] = useState(DEFAULT_QUERY)
+  const [response, setResponse] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const endpoint = projectSlug && dbName && modelName
+    ? `/api/bff/graphql/end-user/org/${orgName}/project/${projectSlug}/db/${dbName}/model/${modelName}`
+    : null
+
+  const handleRun = useCallback(async () => {
+    if (!endpoint || !queryText.trim()) return
+    setLoading(true)
+    setError(null)
+    setResponse(null)
+
+    try {
+      const token = useEndUserAuthStore.getState().accessToken
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ query: queryText }),
+      })
+      const bodyJson: string = await res.text()
+      let parsed: Record<string, unknown> | null = null
+      try { parsed = JSON.parse(bodyJson) as Record<string, unknown> } catch { /* ignore */ }
+      if (!res.ok) {
+        setError(typeof parsed?.message === 'string' ? parsed.message : `HTTP ${res.status}`)
+      } else {
+        setResponse(JSON.stringify(parsed, null, 2))
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : '请求失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [endpoint, queryText])
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault()
+      void handleRun()
+    }
+  }
+
+  return (
+    <div className="overflow-hidden rounded-lg border border-border">
+      {/* Header */}
+      <div className="flex items-center gap-2 border-b border-border bg-card px-4 py-2.5">
+        <Terminal className="size-3.5 text-muted-foreground" />
+        <span className="text-xs font-medium text-foreground">GraphQL Playground</span>
+        <span className="ml-auto text-[10px] text-muted-foreground">
+          {endpoint ? '端点已就绪' : '请填写下方参数'}
+        </span>
+      </div>
+
+      {/* Params row */}
+      <div className="grid grid-cols-3 gap-3 border-b border-border bg-[#F6F8FA] px-4 py-3">
+        <div>
+          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            项目
+          </label>
+          <input
+            value={projectSlug}
+            onChange={(e) => setProjectSlug(e.target.value)}
+            placeholder="my-project"
+            className="h-8 w-full rounded-md border border-border bg-white px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            数据库
+          </label>
+          <input
+            value={dbName}
+            onChange={(e) => setDbName(e.target.value)}
+            placeholder="prod_db"
+            className="h-8 w-full rounded-md border border-border bg-white px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-[10px] font-medium uppercase tracking-wider text-muted-foreground">
+            模型
+          </label>
+          <input
+            value={modelName}
+            onChange={(e) => setModelName(e.target.value)}
+            placeholder="users"
+            className="h-8 w-full rounded-md border border-border bg-white px-2.5 text-xs text-foreground placeholder:text-muted-foreground/50 focus:border-primary focus:outline-none"
+          />
+        </div>
+      </div>
+
+      {/* Endpoint preview */}
+      {endpoint && (
+        <div className="flex items-center gap-2 border-b border-border bg-amber-50/60 px-4 py-2">
+          <ChevronRight className="size-3 shrink-0 text-amber-500" />
+          <code className="truncate font-mono text-[11px] text-amber-700">{endpoint}</code>
+        </div>
+      )}
+
+      {/* Query editor + Run */}
+      <div className="border-b border-border">
+        <div className="flex items-center justify-between bg-[#1e2330] px-4 py-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[#697386]">Query</span>
+          <span className="text-[10px] text-[#697386]">
+            {loading ? '执行中...' : '⌘⏎ 运行'}
+          </span>
+        </div>
+        <textarea
+          value={queryText}
+          onChange={(e) => setQueryText(e.target.value)}
+          onKeyDown={handleKeyDown}
+          className="w-full resize-y bg-[#1e2330] p-4 font-mono text-[12.5px] leading-6 text-[#cdd6f4] placeholder:text-[#4a5268] focus:outline-none"
+          rows={8}
+          spellCheck={false}
+        />
+        <div className="flex items-center justify-between bg-[#1a1f36] px-4 py-2">
+          <div className="flex items-center gap-2">
+            <span className="flex size-5 items-center justify-center rounded bg-[#2a3050] text-[10px] text-[#697386]">
+              G
+            </span>
+            <span className="text-[10px] text-[#697386]">GraphQL</span>
+          </div>
+          <button
+            type="button"
+            onClick={handleRun}
+            disabled={!endpoint || loading || !queryText.trim()}
+            className="flex items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-[11px] font-medium text-white transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            {loading ? (
+              <Loader2 className="size-3 animate-spin" />
+            ) : (
+              <Play className="size-3" />
+            )}
+            {loading ? '执行中' : '运行'}
+          </button>
+        </div>
+      </div>
+
+      {/* Response */}
+      <div className="min-h-[120px] bg-[#1e2330]">
+        <div className="flex items-center gap-2 border-b border-[#2a3050] px-4 py-1.5">
+          <span className="text-[10px] font-medium uppercase tracking-wider text-[#697386]">Response</span>
+          {response && (
+            <span className="ml-auto rounded bg-emerald-900/40 px-1.5 py-0.5 text-[10px] text-emerald-400">
+              200
+            </span>
+          )}
+          {error && (
+            <span className="ml-auto rounded bg-red-900/40 px-1.5 py-0.5 text-[10px] text-red-400">
+              Error
+            </span>
+          )}
+        </div>
+        <div className="overflow-auto p-4">
+          {loading && (
+            <div className="flex items-center gap-2 text-[#697386]">
+              <Loader2 className="size-3 animate-spin" />
+              <span className="text-xs">发送请求中...</span>
+            </div>
+          )}
+          {error && (
+            <div className="flex items-start gap-2 text-red-400">
+              <AlertCircle className="mt-0.5 size-3 shrink-0" />
+              <pre className="font-mono text-[12px] leading-5">{error}</pre>
+            </div>
+          )}
+          {response && (
+            <pre className="font-mono text-[12px] leading-5 text-[#cdd6f4]">{response}</pre>
+          )}
+          {!loading && !response && !error && (
+            <p className="text-xs text-[#4a5268]">
+              填写参数并编写查询语句后点击「运行」查看结果。
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── Main content ───────────────────────────────────────────────────────────
@@ -431,6 +630,19 @@ function ApiDocsContent({ orgName }: { orgName: string }) {
                   </pre>
                 </div>
               ))}
+            </div>
+          </section>
+
+          <Divider />
+
+          {/* ── 在线调试 ──────────────────────────────────────────────────── */}
+          <section id="playground" className="scroll-mt-6 pb-16">
+            <h2 className="text-base font-semibold text-foreground">在线调试</h2>
+            <p className="mt-1.5 text-sm text-muted-foreground">
+              填写项目、数据库和模型名称，编写 GraphQL 查询并实时验证。
+            </p>
+            <div className="mt-5">
+              <GraphQLPlayground orgName={orgName} />
             </div>
           </section>
 
