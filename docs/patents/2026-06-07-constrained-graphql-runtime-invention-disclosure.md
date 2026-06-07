@@ -1,6 +1,6 @@
 # 受约束 GraphQL 运行时发明披露
 
-> Package companions:
+> 配套文件：
 > - `docs/patents/2026-06-07-constrained-graphql-runtime-claims-draft.md`
 > - `docs/patents/2026-06-07-constrained-graphql-runtime-figures.md`
 > - `docs/patents/2026-06-07-constrained-graphql-runtime-modelcraft-evidence-map.md`
