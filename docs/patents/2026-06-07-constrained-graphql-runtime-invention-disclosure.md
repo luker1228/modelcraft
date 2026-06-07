@@ -1,5 +1,10 @@
 # 受约束 GraphQL 运行时发明披露
 
+> Package companions:
+> - `docs/patents/2026-06-07-constrained-graphql-runtime-claims-draft.md`
+> - `docs/patents/2026-06-07-constrained-graphql-runtime-figures.md`
+> - `docs/patents/2026-06-07-constrained-graphql-runtime-modelcraft-evidence-map.md`
+
 **日期：** 2026-06-07
 **来源规格：** `docs/superpowers/specs/2026-06-07-constrained-graphql-runtime-patent-design.md`
 **项目：** ModelCraft
