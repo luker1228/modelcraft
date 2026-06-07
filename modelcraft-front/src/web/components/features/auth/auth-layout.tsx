@@ -58,13 +58,14 @@ export function AuthLayout({
         <div className="relative mx-auto flex w-full max-w-lg flex-col justify-center gap-10 px-12 py-16">
           <div className="space-y-5">
             <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: '#4F46E5' }}>
-              Data Platform
+              AI Data Infrastructure
             </p>
             <h1 className="text-3xl font-semibold leading-snug text-white">
-              模型，即 API
+              让 AI 安全、可控地使用数据库
             </h1>
             <p className="text-sm leading-relaxed" style={{ color: '#697386' }}>
-              AI 时代计算下沉到客户端，存储留在云端。ModelCraft 让数据库开箱即用 GraphQL 接口，配合细粒度 RBAC 权限管控，快速、安全地服务任意 AI 应用。
+              面向 AI 的数据访问底座。ModelCraft 把数据库能力封装成 AI 可调用的 GraphQL 和 CLI 接口，
+              让自然语言驱动的查询与操作都保持安全、可控、可审计。
             </p>
             <div className="flex flex-col gap-2 pt-1">
               <div className="group/item cursor-default">
@@ -77,7 +78,7 @@ export function AuthLayout({
                 </div>
                 <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-hover/item:grid-rows-[1fr]">
                   <p className="overflow-hidden pl-8 text-xs leading-relaxed" style={{ color: '#697386' }}>
-                    自动从数据模型生成查询、变更与订阅，无需手写 API
+                    将数据库能力标准化为可调用接口，方便 AI 和应用统一接入
                   </p>
                 </div>
               </div>
@@ -102,11 +103,11 @@ export function AuthLayout({
                       className="flex size-5 shrink-0 items-center justify-center rounded text-[10px] font-semibold"
                       style={{ background: 'rgba(139,130,255,0.25)', color: '#EDE7FF' }}
                     >CLI</span>
-                    <span className="text-sm font-medium text-white">支持 CLI 使用</span>
+                    <span className="text-sm font-medium text-white">CLI 可编排调用</span>
                   </div>
                   <div className="grid grid-rows-[0fr] transition-all duration-300 ease-out group-hover/item:grid-rows-[1fr]">
                     <p className="overflow-hidden pl-8 text-xs leading-relaxed" style={{ color: '#697386' }}>
-                      详见文档，AI Agent 可通过命令行直接查询和操作数据。
+                      适合 AI Agent 和自动化任务，通过命令行安全地查询和操作数据。
                     </p>
                   </div>
                 </div>

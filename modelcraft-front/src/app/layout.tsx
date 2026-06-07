@@ -30,8 +30,8 @@ const firaCode = Fira_Code({
 })
 
 export const metadata: Metadata = {
-  title: 'ModelCraft - Headless CMS Platform',
-  description: 'Build data models visually. A modern headless CMS for developers.',
+  title: 'ModelCraft - AI Native Data Infrastructure',
+  description: 'ModelCraft is an AI native data access layer with GraphQL and CLI for secure, controllable database usage.',
   icons: {
     icon: '/favicon.svg',
   },

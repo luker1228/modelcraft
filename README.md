@@ -421,3 +421,9 @@ just modelcraft-cli/release v0.2.2
 ```
 
 构建产物会作为 GitHub Release Assets 发布，页面 Dashboard 的 CLI 下载链接指向 latest release。
+
+---
+
+## License
+
+This repository is licensed under the Apache License 2.0. See [LICENSE](./LICENSE).
