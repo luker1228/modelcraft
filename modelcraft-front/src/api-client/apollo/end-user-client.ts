@@ -198,8 +198,8 @@ export function useEndUserOrgScopedClient(): ApolloClient<object> {
  */
 export function useEndUserModelRuntimeClient(
   projectSlug: string,
-  databaseName: string | undefined,
-  modelName: string | undefined
+  databaseName: string | null | undefined,
+  modelName: string | null | undefined
 ): ApolloClient<object> | null {
   const params = useParams()
   const orgName = params?.orgName as string | undefined

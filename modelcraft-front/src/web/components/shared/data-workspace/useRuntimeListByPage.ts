@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import { useQuery, type ApolloClient, type NormalizedCacheObject } from '@apollo/client'
+import { useQuery, type ApolloClient } from '@apollo/client'
 import { buildListByPageQuery } from '@api-client/cms/public'
 import type { FieldDefinition } from '@api-client/cms/public'
 import type { ModelRecordTableRow } from './ModelRecordTable'
@@ -17,7 +17,7 @@ interface ListByPageResult {
 interface UseRuntimeListByPageOptions {
   modelName?: string | null
   runtimeFields: string[] | FieldDefinition[] | (string | FieldDefinition)[]
-  runtimeClient: ApolloClient<NormalizedCacheObject> | null
+  runtimeClient: ApolloClient<object> | null
   whereInput?: Record<string, unknown>
   orderBy?: Record<string, string>[]
   pageSize?: number

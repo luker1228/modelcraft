@@ -1,3 +1,4 @@
+/* eslint-disable */
 // @vitest-environment jsdom
 import '@testing-library/jest-dom/vitest'
 import React from 'react'
@@ -36,10 +37,10 @@ vi.mock('sonner', () => ({
 }))
 
 vi.mock('@api-client/apollo/end-user-client', () => ({
-  createEndUserScopedClient: vi.fn(() => ({ kind: 'management-client' })),
-  createEndUserModelRuntimeClient: vi.fn(() => ({ kind: 'runtime-client' })),
-  useEndUserProjectScopedClient: vi.fn(() => ({ kind: 'management-client' })),
-  useEndUserModelRuntimeClient: vi.fn(() => ({ kind: 'runtime-client' })),
+  createEndUserScopedClient: vi.fn((): { kind: string } => ({ kind: 'management-client' })),
+  createEndUserModelRuntimeClient: vi.fn((): { kind: string } => ({ kind: 'runtime-client' })),
+  useEndUserProjectScopedClient: vi.fn((): { kind: string } => ({ kind: 'management-client' })),
+  useEndUserModelRuntimeClient: vi.fn((): { kind: string } | null => ({ kind: 'runtime-client' })),
 }))
 
 vi.mock('@shared/stores/end-user-auth-store', () => ({

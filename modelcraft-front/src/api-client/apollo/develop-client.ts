@@ -181,7 +181,7 @@ export function getOrgScopedClient(orgName?: string): ApolloClient<object> {
 }
 
 export function useProjectScopedClient(
-  projectSlug: string
+  projectSlug: string | null | undefined
 ): ApolloClient<object> {
   // URL params are the source of truth — they update immediately on navigation.
   // Fall back to the store only when the hook is used outside an org-scoped route.
@@ -190,11 +190,6 @@ export function useProjectScopedClient(
   const orgNameFromStore = useOrganizationStore((s) => s.currentOrg)
   const resolvedOrg = orgNameFromUrl ?? orgNameFromStore
 
-  if (!projectSlug) {
-    throw new Error(
-      `useProjectScopedClient: projectSlug is required and must be non-empty, got "${projectSlug}"`
-    )
-  }
   if (!resolvedOrg) {
     throw new Error(
       'useProjectScopedClient: currentOrg is not set in the organization store'
@@ -202,7 +197,11 @@ export function useProjectScopedClient(
   }
 
   return useMemo(
-    () => createProjectScopedClient(resolvedOrg, projectSlug),
+    // When projectSlug is null the caller is skipping the query (skip: !projectSlug).
+    // Return an org-scoped client as a harmless placeholder so hooks rules are satisfied.
+    () => projectSlug
+      ? createProjectScopedClient(resolvedOrg, projectSlug)
+      : getOrgScopedClient(resolvedOrg),
     [projectSlug, resolvedOrg],
   )
 }

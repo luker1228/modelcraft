@@ -137,7 +137,7 @@ function normalizeSchemaFields(jsonSchema: Record<string, unknown> | null): Norm
   return propEntries.flatMap(([name, rawProp]) => {
     if (typeof rawProp !== 'object' || rawProp === null || Array.isArray(rawProp)) return []
 
-    const prop: Record<string, unknown> = rawProp
+    const prop = rawProp as Record<string, unknown>
     const labelFieldName = resolveEnumLabelFieldName(prop)
 
     return [{

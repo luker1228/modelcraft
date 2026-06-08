@@ -117,7 +117,7 @@ interface GetModelDatabaseSyncJobData {
 
 // ── Hooks ────────────────────────────────────────────────────────────────────────
 
-export function useModelDatabases(projectSlug: string) {
+export function useModelDatabases(projectSlug: string | null | undefined) {
   const client = useProjectScopedClient(projectSlug)
   const { data, loading, error, refetch } = useQuery<{ modelDatabases: ModelDatabase[] }>(
     LIST_MODEL_DATABASES,
