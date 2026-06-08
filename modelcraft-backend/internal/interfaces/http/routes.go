@@ -704,9 +704,10 @@ func SetupRuntimeGraphQLRoutesOnChi(
 		})
 	}
 
-	// Design-time tenant runtime: JWT only (same as before)
+	// NOTE: GraphQL responses already carry requestId in extensions, so we skip
+	// the JSON-body injector here to avoid duplicating requestId at the top level.
 	runtimeMW := func(next http.Handler) http.Handler {
-		return requestIDInjectorMiddleware(jwtMW(orgMW(cacheMW(next))))
+		return jwtMW(orgMW(cacheMW(next)))
 	}
 
 	// End-user runtime: PAT Token takes priority, JWT is fallback
@@ -717,7 +718,7 @@ func SetupRuntimeGraphQLRoutesOnChi(
 		patMW = func(next http.Handler) http.Handler { return next }
 	}
 	endUserRuntimeMW := func(next http.Handler) http.Handler {
-		return requestIDInjectorMiddleware(patMW(jwtMW(orgMW(cacheMW(next)))))
+		return patMW(jwtMW(orgMW(cacheMW(next))))
 	}
 
 	runtimePath := "/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}"
