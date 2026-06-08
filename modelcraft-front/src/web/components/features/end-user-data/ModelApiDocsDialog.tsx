@@ -108,9 +108,9 @@ export function ModelApiDocsDialog({
   onOpenChange,
   context,
 }: ModelApiDocsDialogProps) {
-  const endpoint = context ? buildModelRuntimeEndpoint(context) : null
-  const curlSnippet = context ? buildFindManyCurlSnippet(context) : null
-  const aiPrompt = context ? buildModelApiAiPrompt(context) : null
+  const endpoint = context ? buildModelRuntimeEndpoint(context) : ''
+  const curlSnippet = context ? buildFindManyCurlSnippet(context) : ''
+  const aiPrompt = context ? buildModelApiAiPrompt(context) : ''
   const runtimePathSegments = context
     ? [
         { label: 'org', value: context.orgName, meaning: 'organization，也就是当前所属组织。' },

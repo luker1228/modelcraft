@@ -533,9 +533,10 @@ export default function EndUserRecordWorkspace({
 
       const item = (data as Record<string, unknown> | undefined)?.findUnique && ((data as Record<string, unknown>).findUnique as Record<string, unknown>)?.item
       if (typeof item === 'object' && item !== null && !Array.isArray(item)) {
+        const itemRecord = item as Record<string, unknown>
         const schemaDrivenData: Record<string, unknown> = {}
         for (const fieldName of writableFieldNames) {
-          schemaDrivenData[fieldName] = item[fieldName] ?? ''
+          schemaDrivenData[fieldName] = itemRecord[fieldName] ?? ''
         }
         setEditFormData(schemaDrivenData)
       } else {

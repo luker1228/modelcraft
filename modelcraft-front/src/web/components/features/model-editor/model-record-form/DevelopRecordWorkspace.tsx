@@ -725,7 +725,7 @@ export default function DevelopRecordWorkspace({
         )}
 
         <FilterBar
-          fields={runtimeFields}
+          fields={runtimeFields.filter((f): f is FieldDefinition => typeof f === 'object')}
           onApply={(whereJson) => setWhereFilter(JSON.parse(whereJson) as Record<string, unknown>)}
           onClear={() => setWhereFilter(null)}
           searchValue={searchKeyword}

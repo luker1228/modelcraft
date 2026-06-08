@@ -49,7 +49,7 @@ export function useRuntimeListByPage({
     loading: contentLoading,
     refetch,
   } = useQuery<Record<string, unknown>>(listByPageQuery || NOOP_QUERY, {
-    client: runtimeClient,
+    client: runtimeClient ?? undefined,
     skip: !listByPageQuery || !runtimeClient,
     variables: {
       where: whereInput,
