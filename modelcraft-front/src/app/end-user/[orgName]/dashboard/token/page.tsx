@@ -1,8 +1,8 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { ApolloProvider, useQuery, useMutation } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { useEndUserTokenReady } from '@web/hooks/end-user/useEndUserTokenReady'
 import { KeyRound, Plus, Trash2, Copy, Check, Eye, EyeOff, BookOpen } from 'lucide-react'
 import { copyToClipboardWithCallback } from '@/shared/utils/clipboard'
@@ -36,7 +36,6 @@ import {
   SelectValue,
 } from '@web/components/ui/select'
 import { EndUserAppLayout } from '@web/components/features/layout/EndUserAppLayout'
-import { createEndUserOrgScopedClient } from '@api-client/apollo/end-user-client'
 import {
   END_USER_API_TOKENS,
   CREATE_END_USER_API_TOKEN,
@@ -540,8 +539,6 @@ export default function TokenPage() {
   const orgName = params.orgName
   const ready = useEndUserTokenReady(orgName)
 
-  const client = useMemo(() => createEndUserOrgScopedClient(orgName), [orgName])
-
   if (!ready) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -550,9 +547,5 @@ export default function TokenPage() {
     )
   }
 
-  return (
-    <ApolloProvider client={client}>
-      <TokenPageContent orgName={orgName} />
-    </ApolloProvider>
-  )
+  return <TokenPageContent orgName={orgName} />
 }

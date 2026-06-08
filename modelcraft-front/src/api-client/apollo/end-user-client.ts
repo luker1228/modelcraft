@@ -4,6 +4,8 @@
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client'
 import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
+import { useMemo } from 'react'
+import { useParams } from 'next/navigation'
 
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { refreshEndUserAccessToken } from '@api-client/end-user/end-user-auth-client'
@@ -142,4 +144,68 @@ export function createEndUserModelRuntimeClient(
       mutate: { errorPolicy: 'all' },
     },
   })
+}
+
+// ---------------------------------------------------------------------------
+// Hooks — read orgName from URL params (source of truth), same pattern as
+// useProjectScopedClient in develop-client.ts.
+// ---------------------------------------------------------------------------
+
+/**
+ * Hook that creates an end-user project-scoped Apollo client.
+ * orgName is read from the URL params (/end-user/[orgName]/...) so it always
+ * reflects the current route, even when the URL is changed manually.
+ */
+export function useEndUserProjectScopedClient(
+  projectSlug: string
+): ApolloClient<object> {
+  const params = useParams()
+  const orgName = params?.orgName as string | undefined
+
+  if (!orgName) {
+    throw new Error('useEndUserProjectScopedClient: orgName not found in URL params')
+  }
+  if (!projectSlug) {
+    throw new Error(
+      `useEndUserProjectScopedClient: projectSlug is required, got "${projectSlug}"`
+    )
+  }
+
+  return useMemo(
+    () => createEndUserScopedClient(orgName, projectSlug),
+    [orgName, projectSlug]
+  )
+}
+
+/**
+ * Hook that creates an end-user org-scoped Apollo client.
+ * orgName is read from the URL params.
+ */
+export function useEndUserOrgScopedClient(): ApolloClient<object> {
+  const params = useParams()
+  const orgName = params?.orgName as string | undefined
+
+  if (!orgName) {
+    throw new Error('useEndUserOrgScopedClient: orgName not found in URL params')
+  }
+
+  return useMemo(() => createEndUserOrgScopedClient(orgName), [orgName])
+}
+
+/**
+ * Hook that creates an end-user model runtime Apollo client.
+ * orgName is read from the URL params.
+ */
+export function useEndUserModelRuntimeClient(
+  projectSlug: string,
+  databaseName: string | undefined,
+  modelName: string | undefined
+): ApolloClient<object> | null {
+  const params = useParams()
+  const orgName = params?.orgName as string | undefined
+
+  return useMemo(() => {
+    if (!orgName || !projectSlug || !databaseName || !modelName) return null
+    return createEndUserModelRuntimeClient(orgName, projectSlug, databaseName, modelName)
+  }, [orgName, projectSlug, databaseName, modelName])
 }

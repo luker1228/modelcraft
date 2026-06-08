@@ -6,6 +6,7 @@ import { setContext } from '@apollo/client/link/context'
 import { onError } from '@apollo/client/link/error'
 
 import { useContext, createContext, useMemo } from 'react'
+import { useParams } from 'next/navigation'
 import { useOrganizationStore } from '@shared/stores/organization'
 import { useAuthStore } from '@shared/stores/auth-store'
 import { refreshAccessToken } from '@api-client/auth/public'
@@ -182,7 +183,12 @@ export function getOrgScopedClient(orgName?: string): ApolloClient<object> {
 export function useProjectScopedClient(
   projectSlug: string
 ): ApolloClient<object> {
-  const resolvedOrg = useOrganizationStore((s) => s.currentOrg)
+  // URL params are the source of truth — they update immediately on navigation.
+  // Fall back to the store only when the hook is used outside an org-scoped route.
+  const params = useParams()
+  const orgNameFromUrl = params?.orgName as string | undefined
+  const orgNameFromStore = useOrganizationStore((s) => s.currentOrg)
+  const resolvedOrg = orgNameFromUrl ?? orgNameFromStore
 
   if (!projectSlug) {
     throw new Error(

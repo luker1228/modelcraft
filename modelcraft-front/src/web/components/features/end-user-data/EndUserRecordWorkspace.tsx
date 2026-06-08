@@ -4,8 +4,9 @@ import React, { useState, useCallback, useEffect, useMemo } from 'react'
 import { useQuery, useMutation } from '@apollo/client'
 import { toast } from 'sonner'
 import {
-  createEndUserScopedClient,
   createEndUserModelRuntimeClient,
+  useEndUserProjectScopedClient,
+  useEndUserModelRuntimeClient,
 } from '@api-client/apollo/end-user-client'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { ModelRecordForm } from '@web/components/features/model-editor/model-record-form/index'
@@ -176,10 +177,8 @@ export default function EndUserRecordWorkspace({
 
   const hasEndUserToken = useEndUserAuthStore((s) => !!s.accessToken)
 
-  const managementClient = useMemo(() => {
-    if (!hasEndUserToken) return null
-    return createEndUserScopedClient(orgName, projectSlug)
-  }, [orgName, projectSlug, hasEndUserToken])
+  const managementClientFromHook = useEndUserProjectScopedClient(projectSlug)
+  const managementClient = hasEndUserToken ? managementClientFromHook : null
 
   const accessAdapter = useMemo<RecordAccessAdapter | null>(() => {
     if (!managementClient) return null
@@ -281,13 +280,12 @@ export default function EndUserRecordWorkspace({
     toast.warning('托管模型仅支持查看，不支持写入')
   }, [])
 
-  const runtimeClient = useMemo(() => {
-    if (!hasEndUserToken) return null
-    const dbName = model?.databaseName
-    const mName = model?.name
-    if (!dbName || !mName) return null
-    return createEndUserModelRuntimeClient(orgName, projectSlug, dbName, mName)
-  }, [orgName, projectSlug, hasEndUserToken, model?.databaseName, model?.name])
+  const runtimeClientFromHook = useEndUserModelRuntimeClient(
+    projectSlug,
+    model?.databaseName,
+    model?.name
+  )
+  const runtimeClient = hasEndUserToken ? runtimeClientFromHook : null
 
   const jsonSchema = useMemo<Record<string, unknown> | null>(() => {
     if (!model?.jsonSchema) return null

@@ -1,10 +1,7 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useQuery } from '@apollo/client'
-import { ApolloProvider } from '@apollo/client'
 import { EndUserAppLayout } from '@web/components/features/layout/EndUserAppLayout'
-import { createEndUserOrgScopedClient } from '@api-client/apollo/end-user-client'
 import { WorkspaceProjectsTab } from './_components/WorkspaceProjectsTab'
 import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
 import { useEndUserTokenReady } from '@web/hooks/end-user/useEndUserTokenReady'
@@ -33,8 +30,6 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
   const { orgName } = params
   const ready = useEndUserTokenReady(orgName)
 
-  const client = useMemo(() => createEndUserOrgScopedClient(orgName), [orgName])
-
   if (!ready) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
@@ -43,9 +38,5 @@ export default function WorkspacePage({ params }: WorkspacePageProps) {
     )
   }
 
-  return (
-    <ApolloProvider client={client}>
-      <DashboardContent orgName={orgName} />
-    </ApolloProvider>
-  )
+  return <DashboardContent orgName={orgName} />
 }

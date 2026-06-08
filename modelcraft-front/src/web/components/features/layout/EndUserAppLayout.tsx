@@ -1,6 +1,6 @@
 'use client'
 
-import { ReactNode, useMemo, useCallback, useState } from 'react'
+import { ReactNode, useCallback, useState } from 'react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { ApolloProvider, useQuery } from '@apollo/client'
@@ -15,7 +15,7 @@ import {
 } from '@web/components/ui/popover'
 import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
 import { clearEndUserSessionArtifacts } from '@shared/auth/clear-end-user-session'
-import { createEndUserOrgScopedClient } from '@api-client/apollo/end-user-client'
+import { useEndUserOrgScopedClient } from '@api-client/apollo/end-user-client'
 import { END_USER_PROJECTS } from '@api-client/end-user/graphql-docs'
 import { cn } from '@/shared/utils'
 
@@ -38,10 +38,7 @@ interface EndUserAppLayoutProps {
  * Provides topbar + collapsible sidebar nav for end-user pages.
  */
 export function EndUserAppLayout(props: EndUserAppLayoutProps) {
-  const client = useMemo(
-    () => createEndUserOrgScopedClient(props.orgName),
-    [props.orgName]
-  )
+  const client = useEndUserOrgScopedClient()
 
   return (
     <ApolloProvider client={client}>

@@ -38,6 +38,8 @@ vi.mock('sonner', () => ({
 vi.mock('@api-client/apollo/end-user-client', () => ({
   createEndUserScopedClient: vi.fn(() => ({ kind: 'management-client' })),
   createEndUserModelRuntimeClient: vi.fn(() => ({ kind: 'runtime-client' })),
+  useEndUserProjectScopedClient: vi.fn(() => ({ kind: 'management-client' })),
+  useEndUserModelRuntimeClient: vi.fn(() => ({ kind: 'runtime-client' })),
 }))
 
 vi.mock('@shared/stores/end-user-auth-store', () => ({
