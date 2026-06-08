@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	graphqlutil "modelcraft/internal/interfaces/graphql"
 	"modelcraft/internal/app/modelruntime"
 	"modelcraft/pkg/bizerrors"
 	"modelcraft/pkg/ctxutils"
@@ -147,12 +148,7 @@ func (h *ModelRuntimeHandler) HandleQuery(w http.ResponseWriter, r *http.Request
 	}
 
 	// Inject requestId into response extensions (consistent with design-time GraphQL handlers)
-	if requestID := ctxutils.GetRequestID(r.Context()); requestID != "" {
-		if result.Extensions == nil {
-			result.Extensions = make(map[string]interface{})
-		}
-		result.Extensions["requestId"] = requestID
-	}
+	result.Extensions = graphqlutil.SetRequestIDExtension(r.Context(), result.Extensions)
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)

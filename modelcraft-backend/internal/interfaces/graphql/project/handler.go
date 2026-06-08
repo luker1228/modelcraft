@@ -1,31 +1,16 @@
 package projectgraphql
 
 import (
-	"context"
 	"modelcraft/internal/interfaces/graphql/project/generated"
-	"modelcraft/pkg/ctxutils"
 	"net/http"
 
+	graphqlutil "modelcraft/internal/interfaces/graphql"
 	playgroundpkg "modelcraft/pkg/graphql"
 
-	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/gin-gonic/gin"
 	"github.com/go-chi/chi/v5"
 )
-
-func injectRequestIDMiddleware(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {
-	resp := next(ctx)
-	requestID := ctxutils.GetRequestID(ctx)
-	if requestID == "" {
-		return resp
-	}
-	if resp.Extensions == nil {
-		resp.Extensions = make(map[string]any)
-	}
-	resp.Extensions["requestId"] = requestID
-	return resp
-}
 
 // ProjectGraphQLHandler creates a handler for the project domain GraphQL endpoint.
 func ProjectGraphQLHandler(resolver *Resolver) http.HandlerFunc {
@@ -33,7 +18,7 @@ func ProjectGraphQLHandler(resolver *Resolver) http.HandlerFunc {
 	config := generated.Config{Resolvers: resolver}
 	config.Directives.HasPermission = hasPermissionDirective.HasPermission
 	h := handler.NewDefaultServer(generated.NewExecutableSchema(config))
-	h.AroundResponses(injectRequestIDMiddleware)
+	h.AroundResponses(graphqlutil.InjectRequestIDExtension)
 	return func(w http.ResponseWriter, r *http.Request) {
 		h.ServeHTTP(w, r)
 	}
