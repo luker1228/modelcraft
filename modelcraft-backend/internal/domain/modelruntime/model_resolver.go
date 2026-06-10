@@ -1343,11 +1343,14 @@ func (r *graphqlModelResolver) createListByPageResultType(modelType graphql.Type
 func (r *graphqlModelResolver) listByCursorFieldDescription() string {
 	if r.model != nil && r.model.InsertionOrderField != nil && *r.model.InsertionOrderField != "" {
 		return fmt.Sprintf(
-			"Cursor pagination result. The caller must use sortField=%q, which is the model insertionOrderField. Using any other field can cause duplicate or missing rows across pages.",
+			"Cursor pagination result. The caller must use sortField=%q,"+
+				" which is the model insertionOrderField."+
+				" Using any other field can cause duplicate or missing rows across pages.",
 			*r.model.InsertionOrderField,
 		)
 	}
-	return "Cursor pagination result. sortField should use a monotonic insertion-order field. Using another field can cause duplicate or missing rows across pages."
+	return "Cursor pagination result. sortField should use a monotonic insertion-order field." +
+		" Using another field can cause duplicate or missing rows across pages."
 }
 
 func (m *graphqlModelResolver) executeListByCursor(p graphql.ResolveParams) (map[string]any, error) {
@@ -1552,11 +1555,13 @@ func (m *graphqlModelResolver) createListByCursorField(modelType graphql.Type) (
 func (m *graphqlModelResolver) createListByPageField(modelType graphql.Type) (*graphql.Field, error) {
 	args := m.inputTypeGenerator.GenerateListByPageArgs(m.model)
 	resultType := m.createListByPageResultType(modelType)
+	desc := "Convenience page-based pagination." +
+		" Internally this uses findMany + count, and is intended for simple table paging."
 
 	return &graphql.Field{
 		Type:        resultType,
 		Args:        args,
-		Description: "Convenience page-based pagination. Internally this uses findMany + count, and is intended for simple table paging.",
+		Description: desc,
 		Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 			result, err := m.executeListByPage(p)
 			if err != nil {

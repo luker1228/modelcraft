@@ -358,7 +358,9 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
-		result := doQuery(schema, ctx, `{ listByCursor(where: { title: { contains: "foo" } }, sortField: "id", sortDirection: "asc", limit: 20) { items { id } } }`)
+		q := `{ listByCursor(where: { title: { contains: "foo" } },` +
+			` sortField: "id", sortDirection: "asc", limit: 20) { items { id } } }`
+		result := doQuery(schema, ctx, q)
 		require.Empty(t, result.Errors)
 		assert.Equal(t, endUserID, repo.capturedListByCursorWhere["owner"],
 			"listByCursor WHERE must contain owner=%s", endUserID)
@@ -372,7 +374,9 @@ func TestPermissionEnforcement_RowFilter_SelfScope(t *testing.T) {
 		ctx := WithGraphqlRequestContext(
 			context.Background(), repo, "org-1", "proj-1", endUserID, "", perms,
 		)
-		result := doQuery(schema, ctx, `{ listByPage(where: { title: { contains: "foo" } }, orderBy: [{ id: asc }], pageIndex: 1, pageSize: 20) { items { id } total } }`)
+		q := `{ listByPage(where: { title: { contains: "foo" } },` +
+			` orderBy: [{ id: asc }], pageIndex: 1, pageSize: 20) { items { id } total } }`
+		result := doQuery(schema, ctx, q)
 		require.Empty(t, result.Errors)
 		assert.Equal(t, endUserID, repo.capturedListByPageWhere["owner"],
 			"listByPage WHERE must contain owner=%s", endUserID)

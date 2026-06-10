@@ -378,6 +378,9 @@ func TestTokenService_Register_DuplicatePhone(t *testing.T) {
 }
 
 func TestTokenService_Register_DuplicateUserName(t *testing.T) {
+	// With org-scoped uniqueness, same userName is allowed across different orgs
+	// (different phones → different orgs).
+	// Uniqueness within the same org is enforced by DB constraints, not app layer.
 	svc, _, _, _, _ := createTestService(t)
 	ctx := context.Background()
 
@@ -388,13 +391,13 @@ func TestTokenService_Register_DuplicateUserName(t *testing.T) {
 	})
 	require.NoError(t, err)
 
+	// Different phone (different org) — same userName is now allowed
 	_, err = svc.Register(ctx, RegisterCommand{
 		Phone:    "13900139000",
 		Password: "anotherPassword1",
 		UserName: "john_doe",
 	})
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "CONFLICT.USER_ALREADY_EXISTS")
+	assert.NoError(t, err, "same userName in different orgs should be allowed")
 }
 
 // ========== Login Tests ==========

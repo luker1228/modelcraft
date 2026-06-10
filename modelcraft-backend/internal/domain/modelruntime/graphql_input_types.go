@@ -583,7 +583,8 @@ func (g *inputTypeGenerator) GenerateListByPageArgs(model *RuntimeModel) graphql
 	args[FieldOrderBy] = &graphql.ArgumentConfig{
 		Type:         graphql.NewList(graphql.NewNonNull(orderByInput)),
 		DefaultValue: nil,
-		Description:  "Ordered sort fields for page pagination. Provide 1 to 3 items; include a unique trailing field such as id for stable paging.",
+		Description: "Ordered sort fields for page pagination. Provide 1 to 3 items;" +
+			" include a unique trailing field such as id for stable paging.",
 	}
 	args[FieldPageIndex] = &graphql.ArgumentConfig{
 		Type:         graphql.Int,

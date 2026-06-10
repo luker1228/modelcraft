@@ -218,7 +218,10 @@ func (c *ClientDBRepoImpl) FindMany(ctx context.Context, input *modelruntime.Fin
 
 // ListByCursor executes a keyset cursor pagination query.
 // Returns at most limit+1 rows — the caller checks len(result) > limit to determine hasNextPage.
-func (c *ClientDBRepoImpl) ListByCursor(ctx context.Context, input *modelruntime.ListByCursorInput) ([]map[string]any, error) {
+func (c *ClientDBRepoImpl) ListByCursor(
+	ctx context.Context,
+	input *modelruntime.ListByCursorInput,
+) ([]map[string]any, error) {
 	logger := logfacade.GetLogger(ctx)
 	return execute(ctx, logger, input, func() ([]map[string]any, error) {
 		sql, args, err := convertListByCursorInputToSQL(ctx, input)

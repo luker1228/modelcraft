@@ -13,8 +13,6 @@ import (
 	"modelcraft/pkg/logfacade"
 	"time"
 
-	"golang.org/x/crypto/bcrypt"
-
 	domainauth "modelcraft/internal/domain/auth"
 	domainOrg "modelcraft/internal/domain/organization"
 	domainProfile "modelcraft/internal/domain/profile"
@@ -390,7 +388,10 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 	}
 
 	// Step 3: 验证密码
-	if u.PasswordHash == "" || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(cmd.Password)) != nil {
+	if u.PasswordHash == "" {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
+	}
+	if err := s.passwordHasher.Verify(ctx, cmd.Password, u.PasswordHash); err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
 	}
 
@@ -504,6 +505,12 @@ func (s *TokenService) Refresh(ctx context.Context, cmd RefreshCommand) (*Refres
 		if u, uErr := userRepo.GetByIDGlobal(ctx, token.UserID); uErr == nil && u != nil {
 			refreshOrgName = u.OrgName
 			refreshIsAdmin = u.IsAdmin
+		}
+	}
+	// Fallback: get orgName from userRepo (used in tests and non-enduser flows)
+	if refreshOrgName == "" {
+		if u, uErr := s.userRepo.GetByID(ctx, token.UserID); uErr == nil && u != nil {
+			refreshOrgName = u.OrgName
 		}
 	}
 
