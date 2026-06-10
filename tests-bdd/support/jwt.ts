@@ -9,8 +9,8 @@ function base64url(input: string | Buffer): string {
 }
 
 /**
- * Generate a minimal HMAC-SHA256 JWT compatible with ModelCraft backend middleware.
- * Claims: { user_id, iat, exp }
+ * Generate a minimal test-only HMAC-SHA256 JWT for BDD startup fallback.
+ * This is not the production auth format. Claims: { user_id, iat, exp }
  */
 export function signJWT(userId: string, expiresInSeconds = 3600): string {
   const header = base64url(JSON.stringify({ alg: 'HS256', typ: 'JWT' }))

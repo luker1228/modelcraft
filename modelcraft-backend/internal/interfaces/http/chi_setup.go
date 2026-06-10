@@ -176,8 +176,8 @@ func conditionalAuthMiddleware(jwtConfig *middleware.JWTAuthConfig) func(http.Ha
 
 	// Paths that are public and should NOT require authentication.
 	// All /api/end-user/auth/* routes bypass the design-time JWT middleware because
-	// they carry end-user HMAC JWTs (endUserClaims) which are validated inside each
-	// handler. Applying the design-time ChiJWTAuthMiddleware here would always fail.
+	// they validate their own Bearer JWTs inside each handler. Applying the
+	// design-time ChiJWTAuthMiddleware here would always fail.
 	publicPaths := map[string]bool{
 		"/api/tenant/auth/register": true,
 		"/api/tenant/auth/login":    true,

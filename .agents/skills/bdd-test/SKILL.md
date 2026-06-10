@@ -9,6 +9,8 @@ description: >
   例如："跑后端 BDD 测试"、"执行 backend cucumber"、"后端 auth feature 跑一下"。
   不应触发示例："测试 auth 流程"（未明确后端/BDD）、"跑前端测试"、"跑 e2e"、"跑单元测试"。
   BDD 测试目录位于 tests-bdd/，使用 Cucumber.js v11，测试场景用中文 Gherkin 编写。
+  当前测试认证约定是：优先复用 `TEST_ACCESS_TOKEN`，没有时才由 `tests-bdd/support/hooks.ts` + `tests-bdd/support/jwt.ts` 做测试启动兜底。
+  注意：生产链路使用 ES256 JWT；`tests-bdd/support/jwt.ts` 里的 HMAC-SHA256 只用于 BDD 启动兜底，不代表正式认证架构。
 ---
 
 # BDD 测试 Skill
@@ -203,13 +205,13 @@ tests-bdd/
 2. 后端运行中（`http://localhost:8080`）
 3. `./tests-bdd/.env.test` 存在，至少包含 `TEST_ORG_NAME` 和 `TEST_PROJECT_SLUG`
    - `TEST_ACCESS_TOKEN` 推荐提供（优先级最高）
-   - 若未提供 token，使用 `TEST_LOGIN_PHONE` + `TEST_LOGIN_PASSWORD` 登录后签发 JWT
-   - 默认不应通过“注册新用户”作为 BDD 启动前置
+   - 若未提供 token，当前 BDD 会先用 `TEST_LOGIN_PHONE` + `TEST_LOGIN_PASSWORD` 登录；必要时由 `tests-bdd/support/jwt.ts` 生成测试用 token
+   - 默认不应把“注册新用户”当作所有 BDD 场景的通用前置；只有测试注册链路本身时才依赖注册流程
 
 ## 架构要点
 
 - **World 对象**（`support/world.ts`）：Scenario 级隔离，存储 token/response/tracking
-- **JWT 自动签发**（`support/jwt.ts`）：BeforeAll 通过已有 token 或登录拿到 userId 后签发 HMAC-SHA256 JWT（需 `iss: "modelcraft"`）
+- **JWT 测试兜底**（`support/jwt.ts`）：这是 BDD 专用辅助文件，只负责在测试启动时生成最小可用 token；生产链路使用 ES256，这里的 HMAC-SHA256 只是测试兜底，不代表正式认证架构
 - **双客户端**：GraphQL（项目领域）+ REST（auth 接口）
 - **自动清理**：After hook 删 model/enum；`@smoke` 跳过清理
 - **唯一命名**：`uniqueName("User")` → `"Usera3f2b1c0"` 防冲突
