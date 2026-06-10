@@ -6,14 +6,12 @@ import { useAuthStore } from '@shared/stores/auth-store'
 import { invalidateMembershipsCache } from '@shared/cache/memberships-cache'
 import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import type { LoginFormValues, RegisterFormValues } from '@/shared/validation/auth'
-import type { LoginResponse, RegisterResponse, IdentifierType } from '@/types/auth'
+import type { LoginResponse, RegisterResponse } from '@/types/auth'
 
 interface UseLoginReturn {
   login: (values: LoginFormValues) => Promise<void>
   isLoading: boolean
   error: string | null
-  identifierType: IdentifierType
-  setIdentifierType: (type: IdentifierType) => void
 }
 
 interface UseRegisterReturn {
@@ -26,7 +24,6 @@ export function useLogin(): UseLoginReturn {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [identifierType, setIdentifierType] = useState<IdentifierType>('PHONE')
 
   const login = async (values: LoginFormValues) => {
     setIsLoading(true)
@@ -38,8 +35,7 @@ export function useLogin(): UseLoginReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          identifier: values.identifier,
-          identifierType: values.identifierType,
+          phone: values.phone,
           password: values.password,
         }),
       })
@@ -75,7 +71,7 @@ export function useLogin(): UseLoginReturn {
     }
   }
 
-  return { login, isLoading, error, identifierType, setIdentifierType }
+  return { login, isLoading, error }
 }
 
 /** 从 API 响应中提取错误消息字符串，兼容 string、{message} 、{code, message} 等格式 */
