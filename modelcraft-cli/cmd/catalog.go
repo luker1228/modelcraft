@@ -145,7 +145,13 @@ func loadCredentials(credentialsPath string) (config.Credentials, error) {
 	creds, err := config.Load(credentialsPath)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return config.Credentials{}, output.NewCLIError("UNAUTHENTICATED", "No local session found.", true, "Run 'mc auth login'.", nil)
+			return config.Credentials{}, output.NewCLIError(
+				"UNAUTHENTICATED",
+				"No local session found.",
+				true,
+				"Login first: mc auth login --server https://your-domain.com --token mc_pat_xxx",
+				nil,
+			)
 		}
 		return config.Credentials{}, err
 	}

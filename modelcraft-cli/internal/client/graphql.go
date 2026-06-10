@@ -72,7 +72,9 @@ func (c GraphQLClient) Execute(ctx context.Context, endpoint, token, query strin
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return output.NewCLIError("SERVICE_UNAVAILABLE", "Gateway is unreachable.", true, "Check network connectivity and retry.", nil)
+		return output.NewCLIError("SERVICE_UNAVAILABLE", fmt.Sprintf("Cannot connect to %s.", endpoint), true,
+			"Set the correct deployment address with --server, e.g.: mc auth login --server https://your-domain.com --token mc_pat_xxx",
+			map[string]any{"endpoint": endpoint})
 	}
 	defer resp.Body.Close()
 

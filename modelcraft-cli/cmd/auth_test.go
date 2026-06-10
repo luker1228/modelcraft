@@ -11,14 +11,14 @@ import (
 	"time"
 )
 
-func TestAuthLoginUsesDevcloudDefaultServer(t *testing.T) {
+func TestAuthLoginUsesLocalhostDefaultServer(t *testing.T) {
 	cmd := newAuthLoginCommand()
 
 	flag := cmd.Flags().Lookup("server")
 	if flag == nil {
 		t.Fatal("server flag must exist")
 	}
-	if got, want := flag.DefValue, "http://lukemxjia.devcloud.woa.com:9080"; got != want {
+	if got, want := flag.DefValue, "http://localhost:9080"; got != want {
 		t.Fatalf("server default = %q, want %q", got, want)
 	}
 }

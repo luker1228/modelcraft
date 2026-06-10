@@ -29,7 +29,7 @@ func newAuthCommand() *cobra.Command {
 	return authCmd
 }
 
-const defaultServer = "http://lukemxjia.devcloud.woa.com:9080"
+const defaultServer = "http://localhost:9080"
 
 func newAuthLoginCommand() *cobra.Command {
 	var server, token, credentialsPath string

@@ -31,7 +31,9 @@ func (c AuthClient) Whoami(ctx context.Context, server, pat string) (*config.Cre
 
 	resp, err := c.client().Do(req)
 	if err != nil {
-		return nil, output.NewCLIError("SERVICE_UNAVAILABLE", "Gateway is unreachable.", true, "Check network connectivity and retry.", nil)
+		return nil, output.NewCLIError("SERVICE_UNAVAILABLE", fmt.Sprintf("Cannot connect to %s.", server), true,
+			"Set the correct deployment address with --server, e.g.: mc auth login --server https://your-domain.com --token mc_pat_xxx",
+			map[string]any{"server": server})
 	}
 	defer resp.Body.Close()
 
