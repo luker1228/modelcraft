@@ -91,6 +91,7 @@ func (h *Handler) HandleRegister(w http.ResponseWriter, r *http.Request) {
 		Phone:            req.Phone,
 		Password:         req.Password,
 		UserName:         req.UserName,
+		OrgDisplayName:   req.OrgDisplayName,
 		OrganizationName: derefString(req.OrganizationName),
 	})
 	if err != nil {
@@ -126,7 +127,7 @@ func (h *Handler) HandleLogin(w http.ResponseWriter, r *http.Request) {
 
 	// Build LoginCommand — phone only
 	cmd := appAuth.LoginCommand{
-		Phone:    derefString(req.Phone),
+		Phone:    req.Phone,
 		Password: req.Password,
 	}
 
