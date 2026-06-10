@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"modelcraft/internal/app/permission"
-	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/organization"
 	"modelcraft/internal/domain/user"
 	"modelcraft/pkg/bizerrors"
@@ -16,7 +15,6 @@ import (
 type OrganizationAppService struct {
 	orgRepo         organization.OrganizationRepository
 	userRepo        user.UserRepository
-	membershipRepo  membership.MembershipRepository
 	roleRepo        domainPermission.RoleRepository
 	userRoleService *permission.UserRoleService
 }
@@ -25,14 +23,12 @@ type OrganizationAppService struct {
 func NewOrganizationAppService(
 	orgRepo organization.OrganizationRepository,
 	userRepo user.UserRepository,
-	membershipRepo membership.MembershipRepository,
 	roleRepo domainPermission.RoleRepository,
 	userRoleService *permission.UserRoleService,
 ) *OrganizationAppService {
 	return &OrganizationAppService{
 		orgRepo:         orgRepo,
 		userRepo:        userRepo,
-		membershipRepo:  membershipRepo,
 		roleRepo:        roleRepo,
 		userRoleService: userRoleService,
 	}
@@ -96,11 +92,11 @@ func (s *OrganizationAppService) UpdateOrganizationDisplayName(
 	return org, nil
 }
 
-// ListMembers returns all members of an organization with their roles.
+// OrgMember holds a user and their role within an organization.
 type OrgMember struct {
-	Membership *membership.Membership
-	Role       *domainPermission.Role
-	UserName   string
+	User     *user.User
+	Role     *domainPermission.Role
+	UserName string
 }
 
 // ListMembers lists all members in an organization with their roles.
@@ -113,20 +109,18 @@ func (s *OrganizationAppService) ListMembers(ctx context.Context, orgName string
 		return nil, bizerrors.NewError(bizerrors.NotFound, "organization '%s' not found", orgName)
 	}
 
-	memberships, err := s.membershipRepo.ListByOrgWithUserName(ctx, orgName)
+	users, err := s.userRepo.ListByOrg(ctx, orgName)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list memberships: %w", err)
+		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 
-	result := make([]*OrgMember, 0, len(memberships))
-	for _, ms := range memberships {
-		// Query user roles from user_roles table
-		userRoles, err := s.userRoleService.ListUserRoles(ctx, ms.Membership.UserID, orgName)
+	result := make([]*OrgMember, 0, len(users))
+	for _, u := range users {
+		userRoles, err := s.userRoleService.ListUserRoles(ctx, u.ID, orgName)
 		if err != nil {
-			return nil, fmt.Errorf("failed to list user roles for userID=%s: %w", ms.Membership.UserID, err)
+			return nil, fmt.Errorf("failed to list user roles for userID=%s: %w", u.ID, err)
 		}
 
-		// Get the first role (users typically have one primary role per org)
 		var role *domainPermission.Role
 		if len(userRoles) > 0 {
 			role, err = s.roleRepo.GetRoleByID(ctx, userRoles[0].RoleID)
@@ -136,9 +130,9 @@ func (s *OrganizationAppService) ListMembers(ctx context.Context, orgName string
 		}
 
 		result = append(result, &OrgMember{
-			Membership: ms.Membership,
-			Role:       role,
-			UserName:   ms.UserName,
+			User:     u,
+			Role:     role,
+			UserName: u.Name,
 		})
 	}
 

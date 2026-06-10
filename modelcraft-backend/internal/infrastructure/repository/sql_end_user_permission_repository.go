@@ -1249,21 +1249,21 @@ func (r *SqlEndUserDataPermissionRepository) HasProtectedAdminRole(
 	return false, nil
 }
 
-// IsOrgAdmin checks whether the user has is_admin=true in user_orgs for the given org.
+// IsOrgAdmin checks whether the user has is_admin=true in users for the given org.
 // Org admins have full wildcard permissions on all projects and models within the org.
 func (r *SqlEndUserDataPermissionRepository) IsOrgAdmin(
 	ctx context.Context,
 	orgName, userID string,
 ) (bool, error) {
-	row, err := r.q.GetMembershipByUserAndOrg(ctx, dbgen.GetMembershipByUserAndOrgParams{
-		UserID:  userID,
-		OrgName: orgName,
-	})
+	row, err := r.q.GetUserByID(ctx, userID)
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
 			return false, nil
 		}
 		return false, err
+	}
+	if row.OrgName != orgName {
+		return false, nil
 	}
 	return row.IsAdmin, nil
 }

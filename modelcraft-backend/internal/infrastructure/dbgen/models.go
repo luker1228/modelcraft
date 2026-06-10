@@ -984,24 +984,6 @@ type User struct {
 	DisplayName sql.NullString
 	// 所属 Org，创建时绑定（引用 organizations.name）
 	OrgName string
-	// 创建时间
-	CreatedAt time.Time
-	// 更新时间
-	UpdatedAt time.Time
-	// 软删除时间戳，0 表示活跃
-	DeletedAt uint64
-	// 唯一键避让位，0 表示活跃
-	DeleteToken uint64
-}
-
-// 用户-组织绑定表（每人只属于一个 Org）
-type UserOrg struct {
-	// UUID
-	ID string
-	// 用户 ID（引用 users.id）
-	UserID string
-	// 组织名称（引用 organizations.name）
-	OrgName string
 	// 是否为管理员
 	IsAdmin bool
 	// 状态：active | suspended
@@ -1010,9 +992,9 @@ type UserOrg struct {
 	CreatedAt time.Time
 	// 更新时间
 	UpdatedAt time.Time
-	// 软删除时间戳
+	// 软删除时间戳，0 表示活跃
 	DeletedAt uint64
-	// 唯一键避让位
+	// 唯一键避让位，0 表示活跃
 	DeleteToken uint64
 }
 

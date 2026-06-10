@@ -169,6 +169,7 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		OrganizationName: cmd.OrganizationName,
 		OwnerUserID:      userID,
 		Phone:            cmd.Phone,
+		IsNewUser:        true, // user not yet persisted at this point; skip DB lookup in ExecuteWithQuerier
 	}
 
 	if s.txManager != nil {

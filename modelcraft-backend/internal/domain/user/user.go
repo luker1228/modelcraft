@@ -16,6 +16,8 @@ type User struct {
 	Phone        PhoneNumber // 用户手机号（值对象）
 	PasswordHash string      // 密码哈希（仅手机号+密码注册的用户有值）
 	OrgName      string      // 所属 Org，创建时绑定
+	IsAdmin      bool        // 是否为管理员（原 user_orgs.is_admin）
+	Status       string      // 状态：active | suspended（原 user_orgs.status）
 	CreatedAt    time.Time   // 创建时间
 	UpdatedAt    time.Time   // 更新时间
 }
@@ -97,6 +99,8 @@ func NewUser(id, userName string, phone PhoneNumber, passwordHash, orgName strin
 		Phone:        phone,
 		PasswordHash: passwordHash,
 		OrgName:      orgName,
+		IsAdmin:      true, // 通过 Register 创建的用户都是管理员
+		Status:       "active",
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
@@ -140,6 +144,8 @@ func NewOAuthUser(id, externalID, name, phone string) (*User, error) {
 		ExternalID: externalID,
 		Name:       name,
 		Phone:      phoneVO,
+		IsAdmin:    false,
+		Status:     "active",
 		CreatedAt:  now,
 		UpdatedAt:  now,
 	}

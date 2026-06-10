@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"modelcraft/internal/app/organization"
-	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/permission"
 	"modelcraft/internal/domain/user"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -21,9 +20,6 @@ import (
 
 // --- Mock TxManager ---
 
-// mockTxManager is a mock TxManager that returns a controlled error without
-// executing the transaction function. Transaction correctness is covered by
-// integration tests (task auto-test).
 type mockTxManager struct {
 	mock.Mock
 }
@@ -91,6 +87,14 @@ func (m *mockUserRepo) ExistsByPhone(ctx context.Context, orgName, phone string)
 func (m *mockUserRepo) ExistsByName(ctx context.Context, orgName, name string) (bool, error) {
 	args := m.Called(ctx, orgName, name)
 	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockUserRepo) ListByOrg(ctx context.Context, orgName string) ([]*user.User, error) {
+	args := m.Called(ctx, orgName)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).([]*user.User), args.Error(1)
 }
 
 type mockOrgRepo struct{ mock.Mock }
@@ -177,79 +181,6 @@ func (m *mockRoleRepo) DeleteRole(ctx context.Context, id int) error {
 	return m.Called(ctx, id).Error(0)
 }
 
-type mockMembershipRepo struct{ mock.Mock }
-
-func (m *mockMembershipRepo) Create(ctx context.Context, ms *membership.Membership) error {
-	return m.Called(ctx, ms).Error(0)
-}
-
-func (m *mockMembershipRepo) GetByID(ctx context.Context, id string) (*membership.Membership, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*membership.Membership), args.Error(1)
-}
-
-func (m *mockMembershipRepo) GetByUserAndOrg(
-	ctx context.Context, userID, orgID string,
-) (*membership.Membership, error) {
-	args := m.Called(ctx, userID, orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*membership.Membership), args.Error(1)
-}
-
-func (m *mockMembershipRepo) ListByOrg(ctx context.Context, orgID string) ([]*membership.Membership, error) {
-	args := m.Called(ctx, orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*membership.Membership), args.Error(1)
-}
-
-func (m *mockMembershipRepo) ListByOrgWithUserName(
-	ctx context.Context, orgID string,
-) ([]*membership.MembershipWithUserName, error) {
-	args := m.Called(ctx, orgID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*membership.MembershipWithUserName), args.Error(1)
-}
-
-func (m *mockMembershipRepo) ListByUser(ctx context.Context, userID string) ([]*membership.Membership, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*membership.Membership), args.Error(1)
-}
-
-func (m *mockMembershipRepo) ListByUserWithDetails(
-	ctx context.Context, userID string, limit int,
-) ([]*membership.MembershipWithDetails, error) {
-	args := m.Called(ctx, userID, limit)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*membership.MembershipWithDetails), args.Error(1)
-}
-
-func (m *mockMembershipRepo) CountByUser(ctx context.Context, userID string) (int64, error) {
-	args := m.Called(ctx, userID)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *mockMembershipRepo) Update(ctx context.Context, ms *membership.Membership) error {
-	return m.Called(ctx, ms).Error(0)
-}
-
-func (m *mockMembershipRepo) Delete(ctx context.Context, id string) error {
-	return m.Called(ctx, id).Error(0)
-}
-
 // --- Helpers ---
 
 func newTestService(
@@ -257,9 +188,8 @@ func newTestService(
 	userRepo *mockUserRepo,
 	orgRepo *mockOrgRepo,
 	roleRepo *mockRoleRepo,
-	membershipRepo *mockMembershipRepo,
 ) *organization.CreateOrganizationService {
-	return organization.NewCreateOrganizationService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	return organization.NewCreateOrganizationService(txManager, userRepo, orgRepo, roleRepo)
 }
 
 func makeOwnerRole() *permission.Role {
@@ -286,10 +216,9 @@ func TestCreateOrganizationService_Execute_Success(t *testing.T) {
 	userRepo := &mockUserRepo{}
 	orgRepo := &mockOrgRepo{}
 	roleRepo := &mockRoleRepo{}
-	membershipRepo := &mockMembershipRepo{}
 
 	userRepo.On("GetByID", ctx, userID).Return(makeTestUser(userID), nil)
-	membershipRepo.On("CountByUser", ctx, userID).Return(int64(0), nil)
+	orgRepo.On("ListByUser", ctx, userID).Return([]*domainOrg.Organization{}, nil)
 	orgRepo.On("ExistsByName", ctx, "testorg").Return(false, nil)
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "owner", "__SYSTEM__").Return(makeOwnerRole(), nil)
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "admin", "__SYSTEM__").
@@ -298,10 +227,9 @@ func TestCreateOrganizationService_Execute_Success(t *testing.T) {
 		Return(&permission.Role{ID: 3, Name: "editor", OrgName: "__SYSTEM__", IsSystem: true}, nil)
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "viewer", "__SYSTEM__").
 		Return(&permission.Role{ID: 4, Name: "viewer", OrgName: "__SYSTEM__", IsSystem: true}, nil)
-	// Transaction succeeds — actual repo calls inside the tx are covered by auto-test
 	txManager.On("WithTx", ctx).Return(nil)
 
-	svc := newTestService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	svc := newTestService(txManager, userRepo, orgRepo, roleRepo)
 
 	input := &organization.CreateOrganizationInput{
 		DisplayName:      "Test Organization",
@@ -311,8 +239,6 @@ func TestCreateOrganizationService_Execute_Success(t *testing.T) {
 
 	_, err := svc.Execute(ctx, input)
 
-	// The outer flow (validation, idempotency check, owner-role lookup) succeeded;
-	// the transaction itself was mocked as a no-op.
 	assert.NoError(t, err)
 	txManager.AssertExpectations(t)
 	roleRepo.AssertExpectations(t)
@@ -325,11 +251,10 @@ func TestCreateOrganizationService_Execute_UserNotFound(t *testing.T) {
 	userRepo := &mockUserRepo{}
 	orgRepo := &mockOrgRepo{}
 	roleRepo := &mockRoleRepo{}
-	membershipRepo := &mockMembershipRepo{}
 
 	userRepo.On("GetByID", ctx, "non-existent-user").Return(nil, nil)
 
-	svc := newTestService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	svc := newTestService(txManager, userRepo, orgRepo, roleRepo)
 
 	input := &organization.CreateOrganizationInput{
 		DisplayName:      "Test Organization",
@@ -355,13 +280,12 @@ func TestCreateOrganizationService_Execute_OrganizationAlreadyExists(t *testing.
 	userRepo := &mockUserRepo{}
 	orgRepo := &mockOrgRepo{}
 	roleRepo := &mockRoleRepo{}
-	membershipRepo := &mockMembershipRepo{}
 
 	userRepo.On("GetByID", ctx, userID).Return(makeTestUser(userID), nil)
-	membershipRepo.On("CountByUser", ctx, userID).Return(int64(0), nil)
+	orgRepo.On("ListByUser", ctx, userID).Return([]*domainOrg.Organization{}, nil)
 	orgRepo.On("ExistsByName", ctx, "testorg").Return(true, nil)
 
-	svc := newTestService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	svc := newTestService(txManager, userRepo, orgRepo, roleRepo)
 
 	input := &organization.CreateOrganizationInput{
 		DisplayName:      "Test Organization",
@@ -387,7 +311,6 @@ func TestCreateOrganizationService_Execute_UserAlreadyHasOrganization(t *testing
 	userRepo := &mockUserRepo{}
 	orgRepo := &mockOrgRepo{}
 	roleRepo := &mockRoleRepo{}
-	membershipRepo := &mockMembershipRepo{}
 
 	existingOrg := &domainOrg.Organization{
 		Name:        "firstorg",
@@ -397,10 +320,9 @@ func TestCreateOrganizationService_Execute_UserAlreadyHasOrganization(t *testing
 	}
 
 	userRepo.On("GetByID", ctx, userID).Return(makeTestUser(userID), nil)
-	membershipRepo.On("CountByUser", ctx, userID).Return(int64(1), nil)
 	orgRepo.On("ListByUser", ctx, userID).Return([]*domainOrg.Organization{existingOrg}, nil)
 
-	svc := newTestService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	svc := newTestService(txManager, userRepo, orgRepo, roleRepo)
 
 	input := &organization.CreateOrganizationInput{
 		DisplayName:      "Second Organization",
@@ -425,16 +347,14 @@ func TestCreateOrganizationService_Execute_RoleNotFound(t *testing.T) {
 	userRepo := &mockUserRepo{}
 	orgRepo := &mockOrgRepo{}
 	roleRepo := &mockRoleRepo{}
-	membershipRepo := &mockMembershipRepo{}
 
 	userRepo.On("GetByID", ctx, userID).Return(makeTestUser(userID), nil)
-	membershipRepo.On("CountByUser", ctx, userID).Return(int64(0), nil)
+	orgRepo.On("ListByUser", ctx, userID).Return([]*domainOrg.Organization{}, nil)
 	orgRepo.On("ExistsByName", ctx, "testorg").Return(false, nil)
-	// Simulate owner role missing from DB — service will attempt recreation but DB is down
 	roleRepo.On("GetRoleByNameAndOrg", ctx, "owner", "__SYSTEM__").Return(nil, nil)
 	roleRepo.On("CreateRole", ctx, mock.AnythingOfType("*permission.Role")).Return(fmt.Errorf("db error"))
 
-	svc := newTestService(txManager, userRepo, orgRepo, roleRepo, membershipRepo)
+	svc := newTestService(txManager, userRepo, orgRepo, roleRepo)
 
 	input := &organization.CreateOrganizationInput{
 		DisplayName:      "Test Organization",

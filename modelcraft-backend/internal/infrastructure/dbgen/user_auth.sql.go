@@ -44,7 +44,7 @@ func (q *Queries) ExistsByUserNameInOrg(ctx context.Context, arg ExistsByUserNam
 }
 
 const getUserByNameInOrg = `-- name: GetUserByNameInOrg :one
-SELECT id, phone, password_hash, name, external_id, org_name, created_at, updated_at
+SELECT id, phone, password_hash, name, external_id, org_name, is_admin, status, created_at, updated_at
 FROM users
 WHERE org_name = ? AND name = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
@@ -61,6 +61,8 @@ type GetUserByNameInOrgRow struct {
 	Name         string
 	ExternalID   sql.NullString
 	OrgName      string
+	IsAdmin      bool
+	Status       string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -75,6 +77,8 @@ func (q *Queries) GetUserByNameInOrg(ctx context.Context, arg GetUserByNameInOrg
 		&i.Name,
 		&i.ExternalID,
 		&i.OrgName,
+		&i.IsAdmin,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
@@ -82,7 +86,7 @@ func (q *Queries) GetUserByNameInOrg(ctx context.Context, arg GetUserByNameInOrg
 }
 
 const getUserByPhoneInOrg = `-- name: GetUserByPhoneInOrg :one
-SELECT id, phone, password_hash, name, external_id, org_name, created_at, updated_at
+SELECT id, phone, password_hash, name, external_id, org_name, is_admin, status, created_at, updated_at
 FROM users
 WHERE org_name = ? AND phone = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
@@ -99,6 +103,8 @@ type GetUserByPhoneInOrgRow struct {
 	Name         string
 	ExternalID   sql.NullString
 	OrgName      string
+	IsAdmin      bool
+	Status       string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
@@ -113,6 +119,8 @@ func (q *Queries) GetUserByPhoneInOrg(ctx context.Context, arg GetUserByPhoneInO
 		&i.Name,
 		&i.ExternalID,
 		&i.OrgName,
+		&i.IsAdmin,
+		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)

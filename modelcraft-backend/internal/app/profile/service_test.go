@@ -53,6 +53,10 @@ func (m *mockUserRepository) ExistsByName(_ context.Context, _, _ string) (bool,
 	return false, nil
 }
 
+func (m *mockUserRepository) ListByOrg(_ context.Context, _ string) ([]*domainUser.User, error) {
+	return nil, nil
+}
+
 type mockProfileRepository struct {
 	profile          *domainProfile.Profile
 	err              error

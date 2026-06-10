@@ -34,4 +34,7 @@ type UserRepository interface {
 
 	// ExistsByName 检查 org 内用户名是否已被占用 (Pattern B: 不存在返回 false)
 	ExistsByName(ctx context.Context, orgName, name string) (bool, error)
+
+	// ListByOrg 返回 org 下所有用户列表
+	ListByOrg(ctx context.Context, orgName string) ([]*User, error)
 }

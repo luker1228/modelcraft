@@ -200,6 +200,10 @@ func (m *mockUserRepo) ExistsByName(_ context.Context, _, name string) (bool, er
 	return ok, nil
 }
 
+func (m *mockUserRepo) ListByOrg(_ context.Context, _ string) ([]*domainUser.User, error) {
+	return nil, nil
+}
+
 // mockPasswordHasher is an in-memory password hasher for testing.
 type mockPasswordHasher struct{}
 

@@ -77,8 +77,8 @@ func TestSchemaContract_DeleteTokenUniqueIndexesExist(t *testing.T) {
 			"`idx_model_enums_name` (`org_name`, `project_slug`, `name`, `delete_token`)",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "06_users.sql"): {
-			"`uk_phone` (`phone`, `delete_token`)",
-			"`uk_user_name` (`name`, `delete_token`)",
+			"`uk_org_user_phone` (`org_name`, `phone`, `delete_token`)",
+			"`uk_org_user_name` (`org_name`, `name`, `delete_token`)",
 			"`uk_profile_user_id` (`user_id`, `delete_token`)",
 		},
 		filepath.Join("..", "..", "..", "db", "schema", "mysql", "07_roles_permissions.sql"): {

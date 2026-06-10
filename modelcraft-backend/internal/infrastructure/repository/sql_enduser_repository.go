@@ -7,14 +7,13 @@ import (
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/sqlerr"
-	"modelcraft/pkg/bizutils"
 	"time"
 )
 
 const endUserStatusActive = "active"
 
 // SqlEndUserOrgRepository 是 enduser.EndUserRepository 的 MySQL 实现。
-// 统一用户体系后，end-user 数据存储在统一的 users + user_orgs 表中。
+// 统一用户体系后，end-user 数据存储在统一的 users 表中（is_admin/status 已合并）。
 // Project 级角色访问控制通过 project_role_users + project_roles 表管理。
 type endUserDBTX interface {
 	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
@@ -40,93 +39,27 @@ func NewSqlEndUserRepository(db endUserDBTX, orgName, projectSlug string) enduse
 	return NewSqlEndUserOrgRepository(db, orgName, projectSlug)
 }
 
-// Save creates a new end-user in users + user_orgs (is_admin=false).
-// Both INSERTs are wrapped in a transaction to prevent orphaned users records.
+// Save creates a new end-user directly in the users table (is_admin=0, status='active').
 func (r *SqlEndUserOrgRepository) Save(ctx context.Context, user *enduser.EndUser) error {
 	orgName := user.OrgName
 	if orgName == "" {
 		orgName = r.orgName
 	}
 
-	userOrgID, err := bizutils.GenerateUUIDV7()
-	if err != nil {
-		return fmt.Errorf("failed to generate user_orgs id: %w", err)
-	}
-
-	// Use a transaction so that a failure on user_orgs INSERT rolls back the users INSERT,
-	// preventing orphaned users rows (no corresponding user_orgs record).
-	db, ok := r.db.(*sql.DB)
-	if !ok {
-		// Already inside a transaction (sql.Tx) — execute directly without wrapping.
-		return r.saveExec(ctx, user.ID, user.Username, user.Phone, user.Password.Hash, userOrgID, orgName)
-	}
-
-	tx, err := db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin transaction: %w", err)
-	}
-	defer func() {
-		if p := recover(); p != nil {
-			_ = tx.Rollback()
-			panic(p)
-		}
-	}()
-	if err := r.saveExecTx(
-		ctx, tx, user.ID, user.Username, user.Phone, user.Password.Hash, userOrgID, orgName,
-	); err != nil {
-		_ = tx.Rollback()
-		return err
-	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit transaction: %w", err)
-	}
-	return nil
+	return r.saveExec(ctx, user.ID, user.Username, user.Phone, user.Password.Hash, orgName)
 }
 
 func (r *SqlEndUserOrgRepository) saveExec(
 	ctx context.Context,
-	userID, username, phone, passwordHash, userOrgID, orgName string,
+	userID, username, phone, passwordHash, orgName string,
 ) error {
 	const insertUser = `
-		INSERT INTO users (id, name, phone, password_hash, deleted_at, delete_token, created_at, updated_at)
-		VALUES (?, ?, ?, ?, 0, 0, NOW(3), NOW(3))
+		INSERT INTO users
+			(id, name, phone, password_hash, org_name, is_admin,
+			status, deleted_at, delete_token, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, 0, 'active', 0, 0, NOW(3), NOW(3))
 	`
-	if _, err := r.db.ExecContext(ctx, insertUser, userID, username, phone, passwordHash); err != nil {
-		return sqlerr.WrapSQLError(err)
-	}
-	const insertUserOrg = `
-		INSERT INTO user_orgs
-		  (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
-		VALUES (?, ?, ?, 0, 'active', 0, 0, NOW(3), NOW(3))
-	`
-	if _, err := r.db.ExecContext(ctx, insertUserOrg, userOrgID, userID, orgName); err != nil {
-		return sqlerr.WrapSQLError(err)
-	}
-	return nil
-}
-
-type txExecer interface {
-	ExecContext(ctx context.Context, query string, args ...any) (sql.Result, error)
-}
-
-func (r *SqlEndUserOrgRepository) saveExecTx(
-	ctx context.Context,
-	tx txExecer,
-	userID, username, phone, passwordHash, userOrgID, orgName string,
-) error {
-	const insertUser = `
-		INSERT INTO users (id, name, phone, password_hash, deleted_at, delete_token, created_at, updated_at)
-		VALUES (?, ?, ?, ?, 0, 0, NOW(3), NOW(3))
-	`
-	if _, err := tx.ExecContext(ctx, insertUser, userID, username, phone, passwordHash); err != nil {
-		return sqlerr.WrapSQLError(err)
-	}
-	const insertUserOrg = `
-		INSERT INTO user_orgs
-		  (id, user_id, org_name, is_admin, status, deleted_at, delete_token, created_at, updated_at)
-		VALUES (?, ?, ?, 0, 'active', 0, 0, NOW(3), NOW(3))
-	`
-	if _, err := tx.ExecContext(ctx, insertUserOrg, userOrgID, userID, orgName); err != nil {
+	if _, err := r.db.ExecContext(ctx, insertUser, userID, username, phone, passwordHash, orgName); err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
 	return nil
@@ -139,22 +72,19 @@ func (r *SqlEndUserOrgRepository) GetByID(ctx context.Context, orgName, id strin
 		orgName = r.orgName
 	}
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
-		WHERE u.id = ? AND u.deleted_at = 0
+		SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name
+		FROM users
+		WHERE org_name = ? AND id = ? AND deleted_at = 0
 	`
 	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, id))
 }
 
 // GetByIDGlobal retrieves an end-user by ID without an org filter.
-// The single-org-per-user invariant ensures the returned row carries the owning org.
 func (r *SqlEndUserOrgRepository) GetByIDGlobal(ctx context.Context, id string) (*enduser.EndUser, error) {
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.deleted_at = 0
-		WHERE u.id = ? AND u.deleted_at = 0
+		SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name
+		FROM users
+		WHERE id = ? AND deleted_at = 0
 		LIMIT 1
 	`
 	return scanEndUser(r.db.QueryRowContext(ctx, q, id))
@@ -169,10 +99,9 @@ func (r *SqlEndUserOrgRepository) GetByUsername(
 		orgName = r.orgName
 	}
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
-		WHERE u.name = ? AND u.deleted_at = 0
+		SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name
+		FROM users
+		WHERE org_name = ? AND name = ? AND deleted_at = 0
 	`
 	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, username))
 }
@@ -184,35 +113,30 @@ func (r *SqlEndUserOrgRepository) GetByPhone(ctx context.Context, orgName, phone
 		orgName = r.orgName
 	}
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
-		WHERE u.phone = ? AND u.deleted_at = 0
+		SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name
+		FROM users
+		WHERE org_name = ? AND phone = ? AND deleted_at = 0
 	`
 	return scanEndUser(r.db.QueryRowContext(ctx, q, orgName, phone))
 }
 
 // GetByPhoneGlobal retrieves an end-user by phone without an org filter.
-// Phone numbers are globally unique (uk_phone), so no org scope is needed.
 func (r *SqlEndUserOrgRepository) GetByPhoneGlobal(ctx context.Context, phone string) (*enduser.EndUser, error) {
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.deleted_at = 0
-		WHERE u.phone = ? AND u.deleted_at = 0
+		SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name
+		FROM users
+		WHERE phone = ? AND deleted_at = 0
 		LIMIT 1
 	`
 	return scanEndUser(r.db.QueryRowContext(ctx, q, phone))
 }
 
 // GetByUsernameGlobal retrieves an end-user by username without an org filter.
-// The single-org-per-user invariant ensures the returned row carries the owning org.
 func (r *SqlEndUserOrgRepository) GetByUsernameGlobal(ctx context.Context, username string) (*enduser.EndUser, error) {
 	const q = `
-		SELECT u.id, u.name, u.password_hash, uo.status, uo.is_admin, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.deleted_at = 0
-		WHERE u.name = ? AND u.deleted_at = 0
+		SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name
+		FROM users
+		WHERE name = ? AND deleted_at = 0
 		LIMIT 1
 	`
 	return scanEndUser(r.db.QueryRowContext(ctx, q, username))
@@ -262,7 +186,7 @@ func (r *SqlEndUserOrgRepository) UpdatePassword(
 	return nil
 }
 
-// UpdateStatus updates user status via user_orgs.status.
+// UpdateStatus updates user status via users.status.
 func (r *SqlEndUserOrgRepository) UpdateStatus(ctx context.Context, orgName, id string, isForbidden bool) error {
 	if orgName == "" {
 		orgName = r.orgName
@@ -271,11 +195,7 @@ func (r *SqlEndUserOrgRepository) UpdateStatus(ctx context.Context, orgName, id 
 	if isForbidden {
 		status = "suspended"
 	}
-	const q = `
-		UPDATE user_orgs
-		SET status = ?, updated_at = NOW(3)
-		WHERE user_id = ? AND org_name = ? AND deleted_at = 0
-	`
+	const q = `UPDATE users SET status = ?, updated_at = NOW(3) WHERE id = ? AND org_name = ? AND deleted_at = 0`
 	result, err := r.db.ExecContext(ctx, q, status, id, orgName)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
@@ -286,29 +206,19 @@ func (r *SqlEndUserOrgRepository) UpdateStatus(ctx context.Context, orgName, id 
 	return nil
 }
 
-// Delete soft-deletes the user from users + user_orgs.
+// Delete soft-deletes the user from the users table.
 func (r *SqlEndUserOrgRepository) Delete(ctx context.Context, orgName, id string) error {
 	if orgName == "" {
 		orgName = r.orgName
-	}
-	const softDeleteOrg = `
-		UPDATE user_orgs
-		SET deleted_at   = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED),
-		    delete_token = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED),
-		    updated_at   = NOW(3)
-		WHERE user_id = ? AND org_name = ? AND deleted_at = 0
-	`
-	if _, err := r.db.ExecContext(ctx, softDeleteOrg, id, orgName); err != nil {
-		return sqlerr.WrapSQLError(err)
 	}
 	const softDeleteUser = `
 		UPDATE users
 		SET deleted_at   = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(3)) * 1000 AS UNSIGNED),
 		    delete_token = CAST(UNIX_TIMESTAMP(CURRENT_TIMESTAMP(6)) * 1000000 AS UNSIGNED),
 		    updated_at   = NOW(3)
-		WHERE id = ? AND deleted_at = 0
+		WHERE id = ? AND org_name = ? AND deleted_at = 0
 	`
-	result, err := r.db.ExecContext(ctx, softDeleteUser, id)
+	result, err := r.db.ExecContext(ctx, softDeleteUser, id, orgName)
 	if err != nil {
 		return sqlerr.WrapSQLError(err)
 	}
@@ -335,15 +245,10 @@ func (r *SqlEndUserOrgRepository) ListWithTotal(
 		orgName = r.orgName
 	}
 
-	countSQL := `
-		SELECT COUNT(*)
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
-		WHERE u.deleted_at = 0
-	`
+	countSQL := `SELECT COUNT(*) FROM users WHERE org_name = ? AND deleted_at = 0`
 	countArgs := []interface{}{orgName}
 	if q.Search != "" {
-		countSQL += ` AND u.name LIKE CONCAT('%', ?, '%')`
+		countSQL += ` AND name LIKE CONCAT('%', ?, '%')`
 		countArgs = append(countArgs, q.Search)
 	}
 	var total int64
@@ -352,13 +257,13 @@ func (r *SqlEndUserOrgRepository) ListWithTotal(
 	}
 
 	listSQL := `
-		SELECT u.id, u.name, u.password_hash, uo.status, u.created_at, u.updated_at, uo.org_name
-		FROM users u
-		JOIN user_orgs uo ON uo.user_id = u.id AND uo.org_name = ? AND uo.deleted_at = 0
-		WHERE u.deleted_at = 0
-		  AND (? = '' OR u.name LIKE CONCAT('%', ?, '%'))
-		  AND (? = '' OR u.id > ?)
-		ORDER BY u.id ASC
+		SELECT id, name, password_hash, status, created_at, updated_at, org_name
+		FROM users
+		WHERE org_name = ?
+		  AND deleted_at = 0
+		  AND (? = '' OR name LIKE CONCAT('%', ?, '%'))
+		  AND (? = '' OR id > ?)
+		ORDER BY id ASC
 		LIMIT ?
 	`
 	rows, err := r.db.QueryContext(ctx, listSQL, orgName, q.Search, q.Search, q.After, q.After, first)

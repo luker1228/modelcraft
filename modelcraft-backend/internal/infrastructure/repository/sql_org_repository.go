@@ -4,7 +4,6 @@ package repository
 import (
 	"context"
 	"database/sql"
-	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/organization"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/domain/user"
@@ -62,6 +61,8 @@ func UserToDomain(row dbgen.User) *user.User {
 		Phone:        phone,
 		PasswordHash: row.PasswordHash,
 		OrgName:      row.OrgName,
+		IsAdmin:      row.IsAdmin,
+		Status:       row.Status,
 		CreatedAt:    row.CreatedAt,
 		UpdatedAt:    row.UpdatedAt,
 	}
@@ -87,6 +88,8 @@ func userPhoneRowToDomain(row dbgen.GetUserByPhoneInOrgRow) *user.User {
 		Phone:        phone,
 		PasswordHash: row.PasswordHash,
 		OrgName:      row.OrgName,
+		IsAdmin:      row.IsAdmin,
+		Status:       row.Status,
 		CreatedAt:    row.CreatedAt,
 		UpdatedAt:    row.UpdatedAt,
 	}
@@ -112,21 +115,10 @@ func userNameRowToDomain(row dbgen.GetUserByNameInOrgRow) *user.User {
 		Phone:        phone,
 		PasswordHash: row.PasswordHash,
 		OrgName:      row.OrgName,
+		IsAdmin:      row.IsAdmin,
+		Status:       row.Status,
 		CreatedAt:    row.CreatedAt,
 		UpdatedAt:    row.UpdatedAt,
-	}
-}
-
-// MembershipToDomain converts a dbgen.UserOrg row to a domain Membership entity.
-func MembershipToDomain(row dbgen.UserOrg) *membership.Membership {
-	return &membership.Membership{
-		ID:        row.ID,
-		UserID:    row.UserID,
-		OrgName:   row.OrgName,
-		IsAdmin:   row.IsAdmin,
-		Status:    membership.MembershipStatus(row.Status),
-		CreatedAt: row.CreatedAt,
-		UpdatedAt: row.UpdatedAt,
 	}
 }
 
@@ -257,6 +249,8 @@ func (r *SqlUserRepository) Create(ctx context.Context, u *user.User) error {
 		// DisplayName is not part of the domain User entity; stored as NULL.
 		DisplayName: sql.NullString{},
 		OrgName:     u.OrgName,
+		IsAdmin:     u.IsAdmin,
+		Status:      u.Status,
 	}
 
 	return r.q.CreateUser(ctx, params)
@@ -358,191 +352,27 @@ func (r *SqlUserRepository) ExistsByName(ctx context.Context, orgName, name stri
 	return exists, nil
 }
 
-// SqlMembershipRepository is the sqlc-based implementation of membership.MembershipRepository.
-type SqlMembershipRepository struct {
-	q dbgen.Querier
-}
-
-// NewSqlMembershipRepository creates a new SqlMembershipRepository backed by the given sqlc Querier.
-func NewSqlMembershipRepository(q dbgen.Querier) membership.MembershipRepository {
-	return &SqlMembershipRepository{q: dbgenwrap.NewSafeQuerier(q)}
-}
-
-// Create persists a new membership to the database.
-func (r *SqlMembershipRepository) Create(ctx context.Context, m *membership.Membership) error {
-	params := dbgen.CreateMembershipParams{
-		ID:      m.ID,
-		UserID:  m.UserID,
-		OrgName: m.OrgName,
-		IsAdmin: m.IsAdmin,
-		Status:  string(m.Status),
-	}
-
-	return r.q.CreateMembership(ctx, params)
-}
-
-// GetByID retrieves a membership by its UUID.
-// Returns nil, shared.NewNotFoundError when the membership is not found.
-func (r *SqlMembershipRepository) GetByID(ctx context.Context, id string) (*membership.Membership, error) {
-	row, err := r.q.GetMembershipByID(ctx, id)
+// ListByOrg returns all active users belonging to the given org.
+func (r *SqlUserRepository) ListByOrg(ctx context.Context, orgName string) ([]*user.User, error) {
+	rows, err := r.q.ListUsersByOrgWithName(ctx, orgName)
 	if err != nil {
-		if sqlerr.IsNotFoundError(err) {
-			return nil, shared.NewNotFoundError("membership not found by id: " + id)
-		}
-		return nil, bizerrors.Wrapf(err, "failed to get membership by id: %s", id)
+		return nil, bizerrors.Wrapf(err, "failed to list users by org: %s", orgName)
 	}
-
-	return MembershipToDomain(row), nil
-}
-
-// GetByUserAndOrg retrieves a membership by user ID and organization name.
-// Returns ErrRecordNotFound when no matching membership exists.
-func (r *SqlMembershipRepository) GetByUserAndOrg(
-	ctx context.Context, userID, orgName string,
-) (*membership.Membership, error) {
-	row, err := r.q.GetMembershipByUserAndOrg(ctx, dbgen.GetMembershipByUserAndOrgParams{
-		UserID:  userID,
-		OrgName: orgName,
-	})
-	if err != nil {
-		if sqlerr.IsNotFoundError(err) {
-			return nil, shared.NewNotFoundError("membership not found for user " + userID + " in org " + orgName)
-		}
-		return nil, bizerrors.Wrapf(err, "failed to get membership for user %s in org %s", userID, orgName)
-	}
-
-	return MembershipToDomain(row), nil
-}
-
-// ListByOrg returns all memberships for the given organization.
-func (r *SqlMembershipRepository) ListByOrg(ctx context.Context, orgName string) ([]*membership.Membership, error) {
-	rows, err := r.q.ListMembershipsByOrg(ctx, orgName)
-	if err != nil {
-		return nil, bizerrors.Wrapf(err, "failed to list memberships by org: %s", orgName)
-	}
-
-	memberships := make([]*membership.Membership, len(rows))
+	result := make([]*user.User, len(rows))
 	for i, row := range rows {
-		memberships[i] = MembershipToDomain(row)
-	}
-
-	return memberships, nil
-}
-
-// ListByOrgWithUserName returns all memberships for the given organization, with user names joined
-// from the users table via a LEFT JOIN.
-func (r *SqlMembershipRepository) ListByOrgWithUserName(
-	ctx context.Context, orgName string,
-) ([]*membership.MembershipWithUserName, error) {
-	rows, err := r.q.ListMembershipsWithUserName(ctx, orgName)
-	if err != nil {
-		return nil, bizerrors.Wrapf(err, "failed to list memberships with user name for org: %s", orgName)
-	}
-
-	result := make([]*membership.MembershipWithUserName, len(rows))
-	for i, row := range rows {
-		// Reconstruct the canonical UserOrg row from the joined result fields.
-		uOrg := dbgen.UserOrg{
-			ID:        row.ID,
-			UserID:    row.UserID,
-			OrgName:   row.OrgName,
-			Status:    row.Status,
-			CreatedAt: row.CreatedAt,
-			UpdatedAt: row.UpdatedAt,
-		}
-
-		result[i] = &membership.MembershipWithUserName{
-			Membership: MembershipToDomain(uOrg),
-			UserName:   row.UserName,
+		result[i] = &user.User{
+			ID:      row.ID,
+			Name:    row.Name,
+			OrgName: row.OrgName,
+			IsAdmin: row.IsAdmin,
+			Status:  row.Status,
 		}
 	}
-
 	return result, nil
-}
-
-// ListByUser returns all memberships for the given user.
-func (r *SqlMembershipRepository) ListByUser(ctx context.Context, userID string) ([]*membership.Membership, error) {
-	rows, err := r.q.ListMembershipsByUser(ctx, userID)
-	if err != nil {
-		return nil, bizerrors.Wrapf(err, "failed to list memberships by user: %s", userID)
-	}
-
-	memberships := make([]*membership.Membership, len(rows))
-	for i, row := range rows {
-		memberships[i] = MembershipToDomain(row)
-	}
-
-	return memberships, nil
-}
-
-// CountByUser returns the total number of memberships (organizations) the user belongs to.
-func (r *SqlMembershipRepository) CountByUser(ctx context.Context, userID string) (int64, error) {
-	count, err := r.q.CountMembershipsByUser(ctx, userID)
-	if err != nil {
-		return 0, bizerrors.Wrapf(err, "failed to count memberships by user: %s", userID)
-	}
-
-	return count, nil
-}
-
-// ListByUserWithDetails returns active memberships for the given user with organization display
-// names included. Results are ordered by joined_at descending and limited to limit entries.
-// RoleName is intentionally left empty; it is managed via a separate user_roles table.
-func (r *SqlMembershipRepository) ListByUserWithDetails(
-	ctx context.Context,
-	userID string,
-	limit int,
-) ([]*membership.MembershipWithDetails, error) {
-	if limit <= 0 {
-		return nil, bizerrors.Errorf("limit must be greater than 0, got %d", limit)
-	}
-	rows, err := r.q.ListMembershipsWithOrgDetails(ctx, dbgen.ListMembershipsWithOrgDetailsParams{
-		UserID: userID,
-		Limit:  int32(limit),
-	})
-	if err != nil {
-		return nil, bizerrors.Wrapf(err, "failed to list memberships with details for user: %s", userID)
-	}
-
-	details := make([]*membership.MembershipWithDetails, len(rows))
-	for i, row := range rows {
-		var displayName string
-		if row.OrgDisplayName.Valid {
-			displayName = row.OrgDisplayName.String
-		}
-
-		joinedAt := row.CreatedAt
-
-		details[i] = &membership.MembershipWithDetails{
-			OrgName:     row.OrgName,
-			DisplayName: displayName,
-			RoleName:    "",
-			IsAdmin:     row.IsAdmin,
-			JoinedAt:    joinedAt,
-		}
-	}
-
-	return details, nil
-}
-
-// Update persists changes to an existing membership: status.
-func (r *SqlMembershipRepository) Update(ctx context.Context, m *membership.Membership) error {
-	params := dbgen.UpdateMembershipParams{
-		Status: string(m.Status),
-		ID:     m.ID,
-	}
-
-	return r.q.UpdateMembership(ctx, params)
-}
-
-// Delete removes the membership identified by id from the database.
-func (r *SqlMembershipRepository) Delete(ctx context.Context, id string) error {
-	return r.q.DeleteMembership(ctx, id)
 }
 
 // Compile-time interface satisfaction checks.
 var (
 	_ organization.OrganizationRepository = (*SqlOrganizationRepository)(nil)
 	_ user.UserRepository                 = (*SqlUserRepository)(nil)
-	_ membership.MembershipRepository     = (*SqlMembershipRepository)(nil)
 )

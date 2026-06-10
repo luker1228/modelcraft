@@ -1,6 +1,6 @@
 -- =============================================================================
 -- 用户管理 (User Management)
--- 包含：用户表、用户-组织关联表
+-- 包含：用户表（含 is_admin / status，已合并原 user_orgs 表）
 -- 混合认证：支持手机号+密码本地注册，同时兼容外部认证提供者（AuthProvider）
 -- =============================================================================
 
@@ -8,6 +8,7 @@
 -- 1. 用户表 (Users)
 -- 混合认证设计：支持手机号+密码本地注册登录，同时兼容外部认证提供者（AuthProvider）
 -- external_id 可为 NULL（本地注册用户无外部 ID）
+-- is_admin / status 原存于 user_orgs 表，因每用户仅属一个 Org 故合并至此
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `users` (
   `id` VARCHAR(36) NOT NULL PRIMARY KEY COMMENT '内部 UUID',
@@ -17,6 +18,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `password_hash` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'bcrypt 密码哈希（本地注册用户有值，AuthProvider 用户为空）',
   `display_name` VARCHAR(255) COMMENT '用于 UI 显示的名称',
   `org_name` VARCHAR(36) NOT NULL DEFAULT '' COMMENT '所属 Org，创建时绑定（引用 organizations.name）',
+  `is_admin` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否为管理员',
+  `status` VARCHAR(20) NOT NULL DEFAULT 'active' COMMENT '状态：active | suspended',
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
@@ -31,29 +34,7 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- -----------------------------------------------------------------------------
--- 2. 用户-组织绑定表 (User Orgs)
--- 每个用户只能属于一个 Org，通过 uk_user_orgs_user 唯一约束保证
--- -----------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS `user_orgs` (
-  `id`           VARCHAR(36)     NOT NULL PRIMARY KEY COMMENT 'UUID',
-  `user_id`      VARCHAR(36)     NOT NULL COMMENT '用户 ID（引用 users.id）',
-  `org_name`     VARCHAR(36)     NOT NULL COMMENT '组织名称（引用 organizations.name）',
-  `is_admin`     TINYINT(1)      NOT NULL DEFAULT 0 COMMENT '是否为管理员',
-  `status`       VARCHAR(20)     NOT NULL DEFAULT 'active' COMMENT '状态：active | suspended',
-  `created_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
-  `updated_at`   DATETIME(3)     NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
-  `deleted_at`   BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳',
-  `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位',
-
-  CONSTRAINT `fk_user_orgs_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE,
-  CONSTRAINT `fk_user_orgs_org`  FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON DELETE CASCADE ON UPDATE CASCADE,
-  UNIQUE KEY `uk_user_orgs_user` (`user_id`, `delete_token`) COMMENT '每个用户只能属于一个 Org',
-  UNIQUE KEY `uk_user_orgs_user_org` (`user_id`, `org_name`, `delete_token`) COMMENT '用户在同一 Org 中不能重复绑定',
-  INDEX `idx_user_orgs_org_status` (`org_name`, `status`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户-组织绑定表（每人只属于一个 Org）';
-
--- -----------------------------------------------------------------------------
--- 3. 用户资料表 (Profile)
+-- 2. 用户资料表 (Profile)
 -- user 与 profile 为 1:1 关系：profile.user_id UNIQUE + FK(users.id)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `profile` (
@@ -74,7 +55,7 @@ CREATE TABLE IF NOT EXISTS `profile` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户资料表';
 
 -- -----------------------------------------------------------------------------
--- 4. 更新组织表的外键约束
+-- 3. 更新组织表的外键约束
 -- 现在 users 表已存在，可以为 organizations.owner_id 添加外键
 -- -----------------------------------------------------------------------------
 ALTER TABLE `organizations`

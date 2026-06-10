@@ -28,13 +28,13 @@ func TestSqlEndUserRepository_Save_DuplicateKey(t *testing.T) {
 		IsForbidden: false,
 	}
 
-	mock.ExpectExec("INSERT INTO end_user_users").
+	mock.ExpectExec("INSERT INTO users").
 		WithArgs(
 			user.ID,
-			user.OrgName,
 			user.Username,
+			"", // phone
 			user.Password.Hash,
-			0,
+			user.OrgName,
 		).
 		WillReturnError(&sqldriver.MySQLError{Number: 1062, Message: "Duplicate entry"})
 
@@ -52,16 +52,11 @@ func TestSqlEndUserRepository_GetByUsername_NotFound(t *testing.T) {
 	repo := NewSqlEndUserRepository(db, "org-a", "project-a")
 
 	rows := sqlmock.NewRows([]string{
-		"id",
-		"username",
-		"password",
-		"is_forbidden",
-		"created_at",
-		"updated_at",
+		"id", "name", "password_hash", "status", "is_admin", "created_at", "updated_at", "org_name",
 	})
 
-	mock.ExpectQuery("SELECT id, username, password, is_forbidden, created_at, updated_at").
-		WithArgs("alice", "org-a").
+	mock.ExpectQuery("SELECT id, name, password_hash, status, is_admin, created_at, updated_at, org_name FROM users").
+		WithArgs("org-a", "alice").
 		WillReturnRows(rows)
 
 	user, err := repo.GetByUsername(context.Background(), "org-a", "alice")
@@ -77,7 +72,7 @@ func TestSqlEndUserRepository_Delete_NoRowsAffected(t *testing.T) {
 
 	repo := NewSqlEndUserRepository(db, "org-a", "project-a")
 
-	mock.ExpectExec("UPDATE end_user_users").
+	mock.ExpectExec("UPDATE users").
 		WithArgs("user-404", "org-a").
 		WillReturnResult(sqlmock.NewResult(0, 0))
 

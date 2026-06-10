@@ -6,6 +6,7 @@ package orggraphql
 
 import (
 	"context"
+
 	appRole "modelcraft/internal/app/role"
 	"modelcraft/internal/interfaces/graphql/org/adapter"
 	"modelcraft/internal/interfaces/graphql/org/generated"
@@ -176,14 +177,14 @@ func (r *queryResolver) OrganizationMembers(ctx context.Context) ([]*generated.O
 	result := make([]*generated.OrganizationMember, len(members))
 	for i, m := range members {
 		result[i] = &generated.OrganizationMember{
-			ID:        m.Membership.ID,
-			UserID:    m.Membership.UserID,
+			ID:        m.User.ID,
+			UserID:    m.User.ID,
 			UserName:  m.UserName,
-			OrgID:     m.Membership.OrgName,
+			OrgID:     m.User.OrgName,
 			Role:      adapter.UserManagementMapperInstance.ConvertCasbinRoleToGraphQL(m.Role),
-			Status:    generated.MembershipStatus(m.Membership.Status),
+			Status:    generated.MembershipStatus(m.User.Status),
 			JoinedAt:  nil,
-			CreatedAt: m.Membership.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
+			CreatedAt: m.User.CreatedAt.Format("2006-01-02T15:04:05Z07:00"),
 		}
 	}
 

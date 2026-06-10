@@ -3,7 +3,6 @@ package organization
 import (
 	"context"
 	"fmt"
-	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/organization"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/domain/user"
@@ -15,8 +14,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/google/uuid"
-
 	domainPermission "modelcraft/internal/domain/permission"
 )
 
@@ -26,6 +23,9 @@ type CreateOrganizationInput struct {
 	OrganizationName string // Optional: slug (auto-generated if empty)
 	OwnerUserID      string
 	Phone            string // Org 注册手机号
+	// IsNewUser indicates the owner user has not been persisted yet (registration flow).
+	// When true, resolveUserAndCheckOrg is skipped; OwnerUserID is used directly.
+	IsNewUser bool
 }
 
 // CreateOrganizationOutput 创建组织的输出结果
@@ -40,13 +40,12 @@ type CreateOrganizationOutput struct {
 }
 
 // CreateOrganizationService 创建组织的应用服务
-// 负责编排组织创建的完整流程：组织、成员关系、角色分配
+// 负责编排组织创建的完整流程：组织、角色分配
 type CreateOrganizationService struct {
-	txManager      repository.TxManager
-	userRepo       user.UserRepository
-	orgRepo        organization.OrganizationRepository
-	roleRepo       domainPermission.RoleRepository
-	membershipRepo membership.MembershipRepository
+	txManager repository.TxManager
+	userRepo  user.UserRepository
+	orgRepo   organization.OrganizationRepository
+	roleRepo  domainPermission.RoleRepository
 }
 
 // NewCreateOrganizationService 创建组织服务实例
@@ -55,24 +54,16 @@ func NewCreateOrganizationService(
 	userRepo user.UserRepository,
 	orgRepo organization.OrganizationRepository,
 	roleRepo domainPermission.RoleRepository,
-	membershipRepo membership.MembershipRepository,
 ) *CreateOrganizationService {
 	return &CreateOrganizationService{
-		txManager:      txManager,
-		userRepo:       userRepo,
-		orgRepo:        orgRepo,
-		roleRepo:       roleRepo,
-		membershipRepo: membershipRepo,
+		txManager: txManager,
+		userRepo:  userRepo,
+		orgRepo:   orgRepo,
+		roleRepo:  roleRepo,
 	}
 }
 
 // Execute 执行创建组织的完整流程
-// 流程包括：
-// 1. 验证并生成组织 slug（如果未提供）
-// 2. 验证用户存在
-// 3. 检查组织名是否已存在
-// 4. 获取 owner 系统角色
-// 5. 在事务中执行：创建组织 -> 创建成员关系 -> 分配角色
 func (s *CreateOrganizationService) Execute(
 	ctx context.Context, input *CreateOrganizationInput,
 ) (*CreateOrganizationOutput, error) {
@@ -80,35 +71,29 @@ func (s *CreateOrganizationService) Execute(
 	logger.Infof(ctx, "Starting organization creation: displayName=%s, orgName=%s, userID=%s",
 		input.DisplayName, input.OrganizationName, input.OwnerUserID)
 
-	// Step 1: Resolve orgSlug and displayName
 	orgSlug, displayName, err := s.resolveOrgSlugAndDisplayName(ctx, input)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 2: Validate user exists
 	existingUser, err := s.validateUser(ctx, input.OwnerUserID)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 3: Check idempotent - return existing org if user already has one.
 	if output := s.handleExistingOrganization(ctx, existingUser.ID); output != nil {
 		return output, nil
 	}
 
-	// Step 4: Check organization name doesn't exist
 	if err := s.checkOrgNameAvailable(ctx, orgSlug); err != nil {
 		return nil, err
 	}
 
-	// Step 5: Get owner system role
 	ownerRole, err := s.getOwnerRole(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	// Step 6: Execute transaction
 	output, err := s.createOrganizationInTransaction(
 		ctx, orgSlug, displayName, existingUser.ID, input.Phone, ownerRole.ID,
 	)
@@ -125,7 +110,6 @@ func (s *CreateOrganizationService) Execute(
 }
 
 // ExecuteWithQuerier executes organization creation logic on the provided transaction querier.
-// Caller controls transaction boundaries.
 func (s *CreateOrganizationService) ExecuteWithQuerier(
 	ctx context.Context, q dbgen.Querier, input *CreateOrganizationInput,
 ) (*CreateOrganizationOutput, error) {
@@ -140,16 +124,19 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 
 	userRepo := repository.NewSqlUserRepository(q)
 	orgRepo := repository.NewSqlOrganizationRepository(q)
-	membershipRepo := repository.NewSqlMembershipRepository(q)
 
-	existingUser, alreadyExisted, err := s.resolveUserAndCheckOrg(
-		ctx, userRepo, orgRepo, membershipRepo, input.OwnerUserID,
-	)
-	if err != nil {
-		return nil, err
-	}
-	if alreadyExisted != nil {
-		return alreadyExisted, nil
+	ownerUserID := input.OwnerUserID
+	if !input.IsNewUser {
+		existingUser, alreadyExisted, err := s.resolveUserAndCheckOrg(
+			ctx, userRepo, orgRepo, input.OwnerUserID,
+		)
+		if err != nil {
+			return nil, err
+		}
+		if alreadyExisted != nil {
+			return alreadyExisted, nil
+		}
+		ownerUserID = existingUser.ID
 	}
 
 	orgExists, err := orgRepo.ExistsByName(ctx, orgSlug)
@@ -161,103 +148,71 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 		logger.Warnf(ctx, "Organization name already exists: orgName=%s", orgSlug)
 		return nil, bizerrors.NewError(bizerrors.OrganizationAlreadyExists, orgSlug)
 	}
-	logger.Infof(ctx, "Organization name available: orgName=%s", orgSlug)
 
 	ownerRole, err := s.ensureSystemRoles(ctx)
 	if err != nil {
 		return nil, err
 	}
-	logger.Infof(ctx, "Owner role ready: roleID=%d", ownerRole.ID)
 
-	org, txErr := organization.NewOrganization(orgSlug, displayName, existingUser.ID, input.Phone)
+	org, txErr := organization.NewOrganization(orgSlug, displayName, ownerUserID, input.Phone)
 	if txErr != nil {
-		logger.Error(ctx, "Invalid organization data", logfacade.Err(txErr))
 		return nil, bizerrors.Wrap(txErr, "Invalid organization data")
 	}
 	if txErr = orgRepo.Create(ctx, org); txErr != nil {
 		if shared.IsDuplicateKeyError(txErr) {
-			logger.Warnf(ctx, "Organization name already taken (concurrent request): orgName=%s", orgSlug)
 			return nil, bizerrors.NewError(bizerrors.OrganizationAlreadyExists, orgSlug)
 		}
-		logger.Error(ctx, "Failed to create organization", logfacade.Err(txErr))
 		return nil, bizerrors.Wrap(txErr, "Failed to create organization")
 	}
-	logger.Infof(ctx, "Organization created: orgName=%s", orgSlug)
-
-	membershipID := uuid.New().String()
-	ms, txErr := membership.NewMembership(membershipID, existingUser.ID, orgSlug, true)
-	if txErr != nil {
-		logger.Error(ctx, "Invalid membership data", logfacade.Err(txErr))
-		return nil, bizerrors.Wrap(txErr, "Invalid membership data")
-	}
-	if txErr = membershipRepo.Create(ctx, ms); txErr != nil {
-		logger.Error(ctx, "Failed to create membership", logfacade.Err(txErr))
-		return nil, bizerrors.Wrap(txErr, "Failed to create membership")
-	}
-	logger.Infof(ctx, "Membership created: membershipID=%s", membershipID)
 
 	userRoleRepository := repository.NewSqlCasbinUserRoleRepository(q)
-	userRole := &domainPermission.UserRole{UserID: existingUser.ID, RoleID: ownerRole.ID, OrgName: orgSlug}
+	userRole := &domainPermission.UserRole{UserID: ownerUserID, RoleID: ownerRole.ID, OrgName: orgSlug}
 	if txErr = userRoleRepository.AssignRole(ctx, userRole); txErr != nil {
-		logger.Error(ctx, "Failed to assign owner role", logfacade.Err(txErr))
 		return nil, bizerrors.Wrap(txErr, "Failed to assign owner role")
 	}
-	logger.Infof(ctx, "Owner role assigned successfully")
 
 	return &CreateOrganizationOutput{
 		OrganizationID:   orgSlug,
 		OrganizationName: orgSlug,
 		DisplayName:      displayName,
-		OwnerUserID:      existingUser.ID,
+		OwnerUserID:      ownerUserID,
 		RoleID:           int64(ownerRole.ID),
 	}, nil
 }
 
-// resolveUserAndCheckOrg looks up the user and returns an early-exit result if they already have an org.
+// resolveUserAndCheckOrg looks up the user and returns early if they already have an org.
 func (s *CreateOrganizationService) resolveUserAndCheckOrg(
 	ctx context.Context,
 	userRepo user.UserRepository,
 	orgRepo organization.OrganizationRepository,
-	membershipRepo membership.MembershipRepository,
 	ownerUserID string,
 ) (*user.User, *CreateOrganizationOutput, error) {
 	logger := logfacade.GetLogger(ctx)
 	existingUser, err := userRepo.GetByID(ctx, ownerUserID)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
-			logger.Warnf(ctx, "User not found: userID=%s", ownerUserID)
 			return nil, nil, bizerrors.NewError(bizerrors.UserNotFound, ownerUserID)
 		}
-		logger.Error(ctx, "Failed to look up user", logfacade.Err(err))
 		return nil, nil, bizerrors.Wrap(err, "Failed to look up user")
 	}
 	if existingUser == nil {
-		logger.Warnf(ctx, "User not found: userID=%s", ownerUserID)
 		return nil, nil, bizerrors.NewError(bizerrors.UserNotFound, ownerUserID)
 	}
 	logger.Infof(ctx, "User validated: userID=%s", existingUser.ID)
 
-	orgCount, err := membershipRepo.CountByUser(ctx, existingUser.ID)
+	existingOrgs, err := orgRepo.ListByUser(ctx, existingUser.ID)
 	if err != nil {
-		logger.Error(ctx, "Failed to count user organizations", logfacade.Err(err))
-		return nil, nil, bizerrors.Wrap(err, "Failed to count user organizations")
+		return nil, nil, bizerrors.Wrap(err, "Failed to list user organizations")
 	}
-	if orgCount > 0 {
-		existingOrgs, listErr := orgRepo.ListByUser(ctx, existingUser.ID)
-		if listErr != nil {
-			logger.Error(ctx, "Failed to list existing user organizations", logfacade.Err(listErr))
-			return nil, nil, bizerrors.Wrap(listErr, "Failed to list existing user organizations")
-		}
-		if len(existingOrgs) > 0 {
-			org := existingOrgs[0]
-			return existingUser, &CreateOrganizationOutput{
-				OrganizationID:   org.Name,
-				OrganizationName: org.Name,
-				DisplayName:      org.DisplayName,
-				OwnerUserID:      existingUser.ID,
-				AlreadyExisted:   true,
-			}, nil
-		}
+	if len(existingOrgs) > 0 {
+		org := existingOrgs[0]
+		return existingUser, &CreateOrganizationOutput{
+			OrganizationID:   org.Name,
+			OrganizationName: org.Name,
+			DisplayName:      org.DisplayName,
+			OwnerUserID:      existingUser.ID,
+			AlreadyExisted:   true,
+		}, nil
 	}
 	return existingUser, nil, nil
 }
@@ -270,7 +225,6 @@ func (s *CreateOrganizationService) ensureSystemRoles(ctx context.Context) (*dom
 		role, roleErr := s.roleRepo.GetRoleByNameAndOrg(ctx, roleName, domainPermission.SystemOrgName)
 		if roleErr != nil {
 			if !shared.IsNotFoundError(roleErr) {
-				logger.Error(ctx, "Failed to get system role", logfacade.Err(roleErr))
 				return nil, bizerrors.Wrapf(roleErr, "failed to get system role: %s", roleName)
 			}
 			role = nil
@@ -282,7 +236,6 @@ func (s *CreateOrganizationService) ensureSystemRoles(ctx context.Context) (*dom
 				OrgName:  domainPermission.SystemOrgName,
 			}
 			if createErr := s.roleRepo.CreateRole(ctx, role); createErr != nil {
-				logger.Error(ctx, "Failed to recreate system role", logfacade.Err(createErr))
 				return nil, bizerrors.Wrapf(createErr, "failed to recreate system role: %s", roleName)
 			}
 		}
@@ -290,86 +243,68 @@ func (s *CreateOrganizationService) ensureSystemRoles(ctx context.Context) (*dom
 			ownerRole = role
 		}
 	}
+	_ = logger
 	return ownerRole, nil
 }
 
-// resolveOrgSlugAndDisplayName resolves and validates orgSlug and displayName
+// resolveOrgSlugAndDisplayName resolves and validates orgSlug and displayName.
 func (s *CreateOrganizationService) resolveOrgSlugAndDisplayName(
 	ctx context.Context, input *CreateOrganizationInput,
 ) (orgSlug, displayName string, err error) {
 	logger := logfacade.GetLogger(ctx)
 
-	// Resolve orgSlug: validate if provided, otherwise auto-generate from displayName
 	if input.OrganizationName != "" {
 		if err := validateOrgSlugFormat(input.OrganizationName); err != nil {
-			logger.Warn(ctx, "Invalid organization slug format", logfacade.Err(err))
 			return "", "", err
 		}
 		orgSlug = input.OrganizationName
 	} else {
 		orgSlug = bizutils.GenerateSlugWithLength(input.DisplayName, 6, 24)
-		logger.Infof(ctx, "Auto-generated organization slug: %s from displayName: %s", orgSlug, input.DisplayName)
+		logger.Infof(ctx, "Auto-generated slug: %s", orgSlug)
 	}
 
-	// Resolve displayName: fall back to orgSlug if blank
 	displayName = strings.TrimSpace(input.DisplayName)
 	if displayName == "" {
 		displayName = orgSlug
-		logger.Infof(ctx, "Display name not provided, using organization slug: %s", orgSlug)
 	} else if len(displayName) > 255 {
 		return "", "", bizerrors.NewError(bizerrors.ParamInvalid, "display name must not exceed 255 characters")
 	}
 
-	logger.Infof(ctx, "Using organization slug: %s, displayName: %s", orgSlug, displayName)
 	return orgSlug, displayName, nil
 }
 
-// validateUser validates that the user exists
+// validateUser validates that the user exists.
 func (s *CreateOrganizationService) validateUser(ctx context.Context, userID string) (*user.User, error) {
 	logger := logfacade.GetLogger(ctx)
 	existingUser, err := s.userRepo.GetByID(ctx, userID)
 	if err != nil {
 		if shared.IsNotFoundError(err) {
-			logger.Warnf(ctx, "User not found: userID=%s", userID)
 			return nil, bizerrors.NewError(bizerrors.UserNotFound, userID)
 		}
-		logger.Error(ctx, "Failed to look up user", logfacade.Err(err))
 		return nil, bizerrors.Wrap(err, "Failed to look up user")
 	}
 	if existingUser == nil {
-		logger.Warnf(ctx, "User not found: userID=%s", userID)
 		return nil, bizerrors.NewError(bizerrors.UserNotFound, userID)
 	}
 	logger.Infof(ctx, "User validated: userID=%s", existingUser.ID)
 	return existingUser, nil
 }
 
-// handleExistingOrganization returns existing organization if user already has one (idempotent).
+// handleExistingOrganization returns existing org if user already has one (idempotent).
 func (s *CreateOrganizationService) handleExistingOrganization(
 	ctx context.Context, userID string,
 ) *CreateOrganizationOutput {
 	logger := logfacade.GetLogger(ctx)
-	orgCount, err := s.membershipRepo.CountByUser(ctx, userID)
+	existingOrgs, err := s.orgRepo.ListByUser(ctx, userID)
 	if err != nil {
-		logger.Error(ctx, "Failed to count user organizations", logfacade.Err(err))
-		return nil
-	}
-	if orgCount < 1 {
-		return nil
-	}
-
-	logger.Infof(ctx, "User already has an organization, returning existing one (idempotent): userID=%s", userID)
-	existingOrgs, listErr := s.orgRepo.ListByUser(ctx, userID)
-	if listErr != nil {
-		logger.Error(ctx, "Failed to list existing user organizations", logfacade.Err(listErr))
+		logger.Error(ctx, "Failed to list user organizations", logfacade.Err(err))
 		return nil
 	}
 	if len(existingOrgs) == 0 {
 		return nil
 	}
-
+	logger.Infof(ctx, "User already has an organization (idempotent): userID=%s", userID)
 	org := existingOrgs[0]
-
 	return &CreateOrganizationOutput{
 		OrganizationID:   org.Name,
 		OrganizationName: org.Name,
@@ -379,55 +314,43 @@ func (s *CreateOrganizationService) handleExistingOrganization(
 	}
 }
 
-// checkOrgNameAvailable checks that the organization name is available
+// checkOrgNameAvailable checks that the organization name is available.
 func (s *CreateOrganizationService) checkOrgNameAvailable(ctx context.Context, orgSlug string) error {
 	logger := logfacade.GetLogger(ctx)
 	orgExists, err := s.orgRepo.ExistsByName(ctx, orgSlug)
 	if err != nil {
-		logger.Error(ctx, "Failed to check organization name", logfacade.Err(err))
 		return bizerrors.Wrap(err, "Failed to check organization name")
 	}
 	if orgExists {
 		logger.Warnf(ctx, "Organization name already exists: orgName=%s", orgSlug)
 		return bizerrors.NewError(bizerrors.OrganizationAlreadyExists, orgSlug)
 	}
-	logger.Infof(ctx, "Organization name available: orgName=%s", orgSlug)
 	return nil
 }
 
-// getOwnerRole ensures all four system roles exist and returns the owner role.
-//
-// The startup SystemRolePermissionsSyncer creates the roles once, but if the DB is
-// reset or migrated while the server is running they can disappear. This method
-// re-creates any missing system role so that registration always succeeds.
+// getOwnerRole ensures system roles exist and returns the owner role.
 func (s *CreateOrganizationService) getOwnerRole(ctx context.Context) (*domainPermission.Role, error) {
 	logger := logfacade.GetLogger(ctx)
-
 	var ownerRole *domainPermission.Role
 
 	for _, roleName := range domainPermission.SystemRoles {
 		role, err := s.roleRepo.GetRoleByNameAndOrg(ctx, roleName, domainPermission.SystemOrgName)
 		if err != nil {
 			if !shared.IsNotFoundError(err) {
-				logger.Error(ctx, "Failed to get system role", logfacade.Err(err))
 				return nil, bizerrors.Wrapf(err, "failed to get system role: %s", roleName)
 			}
-			role = nil // treat IsNotFoundError as nil for recreation below
+			role = nil
 		}
 		if role == nil {
-			// Role absent (e.g. DB was reset after startup). Recreate it.
-			logger.Warnf(ctx, "System role %q not found in DB — recreating "+
-				"(DB may have been reset after startup)", roleName)
+			logger.Warnf(ctx, "System role %q not found — recreating", roleName)
 			role = &domainPermission.Role{
 				Name:     roleName,
 				IsSystem: true,
 				OrgName:  domainPermission.SystemOrgName,
 			}
 			if createErr := s.roleRepo.CreateRole(ctx, role); createErr != nil {
-				logger.Error(ctx, "Failed to recreate system role", logfacade.Err(createErr))
 				return nil, bizerrors.Wrapf(createErr, "failed to recreate system role: %s", roleName)
 			}
-			logger.Infof(ctx, "System role %q recreated: roleID=%d", roleName, role.ID)
 		}
 		if roleName == domainPermission.RoleOwner {
 			ownerRole = role
@@ -438,7 +361,7 @@ func (s *CreateOrganizationService) getOwnerRole(ctx context.Context) (*domainPe
 	return ownerRole, nil
 }
 
-// createOrganizationInTransaction executes the organization creation in a transaction
+// createOrganizationInTransaction executes organization creation in a transaction.
 func (s *CreateOrganizationService) createOrganizationInTransaction(
 	ctx context.Context, orgSlug, displayName, userID, phone string, roleID int,
 ) (*CreateOrganizationOutput, error) {
@@ -446,42 +369,22 @@ func (s *CreateOrganizationService) createOrganizationInTransaction(
 	var output *CreateOrganizationOutput
 
 	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
-		// Create organization
 		org, txErr := organization.NewOrganization(orgSlug, displayName, userID, phone)
 		if txErr != nil {
-			logger.Error(ctx, "Invalid organization data", logfacade.Err(txErr))
 			return bizerrors.Wrap(txErr, "Invalid organization data")
 		}
 		orgRepository := repository.NewSqlOrganizationRepository(q)
 		if txErr = orgRepository.Create(ctx, org); txErr != nil {
 			if shared.IsDuplicateKeyError(txErr) {
-				logger.Warnf(ctx, "Organization name already taken (concurrent request): orgName=%s", orgSlug)
 				return bizerrors.NewError(bizerrors.OrganizationAlreadyExists, orgSlug)
 			}
-			logger.Error(ctx, "Failed to create organization", logfacade.Err(txErr))
 			return bizerrors.Wrap(txErr, "Failed to create organization")
 		}
 		logger.Infof(ctx, "Organization created: orgName=%s", orgSlug)
 
-		// Create membership
-		membershipID := uuid.New().String()
-		ms, txErr := membership.NewMembership(membershipID, userID, orgSlug, true)
-		if txErr != nil {
-			logger.Error(ctx, "Invalid membership data", logfacade.Err(txErr))
-			return bizerrors.Wrap(txErr, "Invalid membership data")
-		}
-		membershipRepository := repository.NewSqlMembershipRepository(q)
-		if txErr = membershipRepository.Create(ctx, ms); txErr != nil {
-			logger.Error(ctx, "Failed to create membership", logfacade.Err(txErr))
-			return bizerrors.Wrap(txErr, "Failed to create membership")
-		}
-		logger.Infof(ctx, "Membership created: membershipID=%s", membershipID)
-
-		// Assign owner role
 		userRoleRepository := repository.NewSqlCasbinUserRoleRepository(q)
 		userRole := &domainPermission.UserRole{UserID: userID, RoleID: roleID, OrgName: orgSlug}
 		if txErr = userRoleRepository.AssignRole(ctx, userRole); txErr != nil {
-			logger.Error(ctx, "Failed to assign owner role", logfacade.Err(txErr))
 			return bizerrors.Wrap(txErr, "Failed to assign owner role")
 		}
 		logger.Infof(ctx, "Owner role assigned successfully")
@@ -493,36 +396,26 @@ func (s *CreateOrganizationService) createOrganizationInTransaction(
 			OwnerUserID:      userID,
 			RoleID:           int64(roleID),
 		}
-
 		return nil
 	})
 	if err != nil {
-		logger.Error(ctx, "Transaction failed", logfacade.Err(err))
 		return nil, err
 	}
 	return output, nil
 }
 
 // validateOrgSlugFormat validates the organization slug format.
-// Requirements:
-// - 6-24 characters
-// - Only lowercase letters, numbers, and underscores (no hyphens)
-// - Must start with a letter
 func validateOrgSlugFormat(slug string) error {
 	if len(slug) < 6 || len(slug) > 24 {
 		return bizerrors.NewError(bizerrors.ParamInvalid, fmt.Sprintf(
 			"organization slug must be 6-24 characters (got %d)", len(slug)))
 	}
-
-	// Pattern: start with letter, only lowercase letters/numbers/underscores, no hyphens
 	slugPattern := regexp.MustCompile(`^[a-z][a-z0-9_]*$`)
 	if !slugPattern.MatchString(slug) {
 		return bizerrors.NewError(
 			bizerrors.ParamInvalid,
-			"organization slug must start with lowercase letter and contain only letters, numbers, "+
-				"and underscores (no hyphens)",
+			"organization slug must start with lowercase letter and contain only letters, numbers, and underscores",
 		)
 	}
-
 	return nil
 }

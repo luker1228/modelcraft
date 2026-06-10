@@ -38,8 +38,8 @@ func (q *Queries) CreateInitialProfile(ctx context.Context, arg CreateInitialPro
 const getProfileByUserID = `-- name: GetProfileByUserID :one
 SELECT p.id, p.user_id, p.nickname, p.avatar_url, p.bio, p.created_at, p.updated_at
 FROM profile p
-INNER JOIN user_orgs uo ON uo.user_id = p.user_id
-WHERE p.user_id = ? AND uo.org_name = ? AND ` + "`" + `p` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 AND ` + "`" + `uo` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+INNER JOIN users u ON u.id = p.user_id
+WHERE p.user_id = ? AND u.org_name = ? AND ` + "`" + `p` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 AND ` + "`" + `u` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 type GetProfileByUserIDParams struct {
@@ -74,14 +74,14 @@ func (q *Queries) GetProfileByUserID(ctx context.Context, arg GetProfileByUserID
 
 const updateProfileByUserID = `-- name: UpdateProfileByUserID :execresult
 UPDATE profile p
-INNER JOIN user_orgs uo ON uo.user_id = p.user_id
+INNER JOIN users u ON u.id = p.user_id
 SET p.nickname = ?,
     p.avatar_url = ?,
     p.bio = ?,
     p.updated_at = NOW(3)
 WHERE p.user_id = ?
-  AND uo.org_name = ?
-  AND ` + "`" + `uo` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+  AND u.org_name = ?
+  AND ` + "`" + `u` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
 `
 
 type UpdateProfileByUserIDParams struct {

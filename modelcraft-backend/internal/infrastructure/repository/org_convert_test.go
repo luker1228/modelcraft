@@ -2,7 +2,6 @@ package repository_test
 
 import (
 	"database/sql"
-	"modelcraft/internal/domain/membership"
 	"modelcraft/internal/domain/organization"
 	"modelcraft/internal/domain/user"
 	"modelcraft/internal/infrastructure/dbgen"
@@ -66,6 +65,8 @@ func TestUserToDomain(t *testing.T) {
 			Phone:        "13800001111",
 			PasswordHash: "$2a$10$hash",
 			DisplayName:  sql.NullString{String: "Alice Wonderland", Valid: true},
+			IsAdmin:      true,
+			Status:       "active",
 			CreatedAt:    now,
 			UpdatedAt:    now,
 		}
@@ -77,6 +78,8 @@ func TestUserToDomain(t *testing.T) {
 		assert.Equal(t, "Alice", entity.Name)
 		assert.Equal(t, "13800001111", entity.Phone.String())
 		assert.Equal(t, "$2a$10$hash", entity.PasswordHash)
+		assert.True(t, entity.IsAdmin)
+		assert.Equal(t, "active", entity.Status)
 		assert.Equal(t, now, entity.CreatedAt)
 		assert.Equal(t, now, entity.UpdatedAt)
 	})
@@ -88,6 +91,8 @@ func TestUserToDomain(t *testing.T) {
 			ExternalID: sql.NullString{String: "ext-xyz", Valid: true},
 			Name:       "Bob",
 			Phone:      "",
+			IsAdmin:    false,
+			Status:     "active",
 			CreatedAt:  now,
 			UpdatedAt:  now,
 		}
@@ -97,50 +102,6 @@ func TestUserToDomain(t *testing.T) {
 		assert.IsType(t, &user.User{}, entity)
 		assert.Equal(t, "user-2", entity.ID)
 		assert.Equal(t, "Bob", entity.Name)
-	})
-}
-
-// TestMembershipToDomain verifies that dbgen.UserOrg rows are correctly converted
-// to domain Membership entities, covering all field mappings including IsAdmin.
-func TestMembershipToDomain(t *testing.T) {
-	now := time.Now().Truncate(time.Millisecond)
-
-	t.Run("all fields set with IsAdmin true", func(t *testing.T) {
-		row := dbgen.UserOrg{
-			ID:        "mem-1",
-			UserID:    "user-1",
-			OrgName:   "my-org",
-			IsAdmin:   true,
-			Status:    "active",
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-
-		entity := repository.MembershipToDomain(row)
-
-		assert.Equal(t, "mem-1", entity.ID)
-		assert.Equal(t, "user-1", entity.UserID)
-		assert.Equal(t, "my-org", entity.OrgName)
-		assert.True(t, entity.IsAdmin)
-		assert.Equal(t, membership.MembershipStatusActive, entity.Status)
-		assert.Equal(t, now, entity.CreatedAt)
-		assert.Equal(t, now, entity.UpdatedAt)
-	})
-
-	t.Run("IsAdmin false, status suspended", func(t *testing.T) {
-		row := dbgen.UserOrg{
-			ID:        "mem-2",
-			UserID:    "user-2",
-			OrgName:   "other-org",
-			IsAdmin:   false,
-			Status:    "suspended",
-			CreatedAt: now,
-			UpdatedAt: now,
-		}
-
-		entity := repository.MembershipToDomain(row)
-
 		assert.False(t, entity.IsAdmin)
-		assert.Equal(t, membership.MembershipStatusSuspended, entity.Status)
 	})
 }

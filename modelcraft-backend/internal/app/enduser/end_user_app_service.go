@@ -330,8 +330,8 @@ func (s *EndUserManagementAppService) CreateUser(
 	}
 
 	if cmd.IsAdmin {
-		const updateIsAdmin = `UPDATE user_orgs SET is_admin = 1, updated_at = NOW(3) ` +
-			`WHERE user_id = ? AND org_name = ? AND deleted_at = 0`
+		const updateIsAdmin = `UPDATE users SET is_admin = 1, updated_at = NOW(3)` +
+			` WHERE id = ? AND org_name = ? AND deleted_at = 0`
 		if _, execErr := s.db.ExecContext(ctx, updateIsAdmin, user.ID, cmd.OrgName); execErr != nil {
 			return nil, bizerrors.Wrapf(execErr, "failed to set user as admin")
 		}

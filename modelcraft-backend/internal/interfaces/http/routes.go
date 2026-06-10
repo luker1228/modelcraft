@@ -10,14 +10,12 @@ import (
 	"fmt"
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
-	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 	"modelcraft/internal/app/modeldesign"
 	"modelcraft/internal/app/modelruntime"
 	"modelcraft/internal/app/project"
 	"modelcraft/internal/app/rls"
 	"modelcraft/internal/infrastructure/database/ddl"
 	"modelcraft/internal/infrastructure/dbgen"
-	rlsRepo "modelcraft/internal/infrastructure/persistence/rls"
 	"modelcraft/internal/infrastructure/repository"
 	"modelcraft/internal/middleware"
 	"modelcraft/pkg/config"
@@ -27,6 +25,10 @@ import (
 	"os"
 	"sync"
 	"time"
+
+	appmodeldatabase "modelcraft/internal/app/modeldatabase"
+
+	rlsRepo "modelcraft/internal/infrastructure/persistence/rls"
 
 	orggraphql "modelcraft/internal/interfaces/graphql/org"
 	projectgraphql "modelcraft/internal/interfaces/graphql/project"
@@ -258,8 +260,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	profileRepo := repository.NewSqlProfileRepository(dbgen.New(loggingDB))
 	profileAppService := appProfile.NewAppService(userRepo, profileRepo)
 	orgRepo := repository.NewSqlOrganizationRepository(dbgen.New(loggingDB))
-	membershipRepo := repository.NewSqlMembershipRepository(dbgen.New(loggingDB))
-
 	// ============================================================
 	// Create Casbin Permission Services
 	// ============================================================
@@ -281,7 +281,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	orgAppService := appOrg.NewOrganizationAppService(
 		orgRepo,
 		userRepo,
-		membershipRepo,
 		casbinRoleRepo,
 		permUserRoleService,
 	)
@@ -303,7 +302,6 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		userRepo,
 		orgRepo,
 		casbinRoleRepo,
-		membershipRepo,
 	)
 
 	passwordHasher := infraAuth.NewBcryptPasswordHasher()
@@ -357,7 +355,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 
 	return &DesignHandlers{
 		AuthHandler:                 authHandler,
-		UserHandler:                 userHandlers.NewHandler(membershipRepo, logger),
+		UserHandler:                 userHandlers.NewHandler(userRepo, logger),
 		ModelAppService:             appService,
 		ClusterAppService:           clusterAppService,
 		ReverseEngineerAppService:   reverseEngineerApp,
