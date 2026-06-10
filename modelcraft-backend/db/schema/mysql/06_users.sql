@@ -16,16 +16,18 @@ CREATE TABLE IF NOT EXISTS `users` (
   `phone` VARCHAR(32) NOT NULL DEFAULT '' COMMENT '用户手机号',
   `password_hash` VARCHAR(255) NOT NULL DEFAULT '' COMMENT 'bcrypt 密码哈希（本地注册用户有值，AuthProvider 用户为空）',
   `display_name` VARCHAR(255) COMMENT '用于 UI 显示的名称',
+  `org_name` VARCHAR(36) NOT NULL DEFAULT '' COMMENT '所属 Org，创建时绑定（引用 organizations.name）',
 
   `created_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
   `deleted_at` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '软删除时间戳，0 表示活跃',
   `delete_token` BIGINT UNSIGNED NOT NULL DEFAULT 0 COMMENT '唯一键避让位，0 表示活跃',
 
-  UNIQUE INDEX `uk_phone` (`phone`, `delete_token`) COMMENT '手机号唯一约束（用于本地登录）',
-  UNIQUE INDEX `uk_user_name` (`name`, `delete_token`) COMMENT '用户名（userName）唯一约束',
+  UNIQUE INDEX `uk_org_user_phone` (`org_name`, `phone`, `delete_token`) COMMENT 'Org 内手机号唯一',
+  UNIQUE INDEX `uk_org_user_name` (`org_name`, `name`, `delete_token`) COMMENT 'Org 内用户名唯一',
   INDEX `idx_external_id` (`external_id`) COMMENT '按外部 ID 快速查找',
-  INDEX `idx_users_live_name` (`deleted_at`, `name`) COMMENT '活跃用户查询索引'
+  INDEX `idx_users_live_name` (`deleted_at`, `org_name`, `name`) COMMENT '活跃用户查询索引',
+  CONSTRAINT `fk_users_org` FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- -----------------------------------------------------------------------------
