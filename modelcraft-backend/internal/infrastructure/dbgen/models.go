@@ -776,6 +776,8 @@ type Organization struct {
 	DisplayName sql.NullString
 	// 组织创建者/所有者（引用 users.id）
 	OwnerID sql.NullString
+	// Org 注册手机号，全局唯一
+	Phone string
 	// 状态：active、suspended、deleted
 	Status string
 	// 创建时间
@@ -980,6 +982,8 @@ type User struct {
 	PasswordHash string
 	// 用于 UI 显示的名称
 	DisplayName sql.NullString
+	// 所属 Org，创建时绑定（引用 organizations.name）
+	OrgName string
 	// 创建时间
 	CreatedAt time.Time
 	// 更新时间

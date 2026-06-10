@@ -1,6 +1,6 @@
 -- name: CreateOrganization :exec
-INSERT INTO organizations (name, display_name, owner_id, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO organizations (name, display_name, owner_id, phone, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetOrganizationByName :one
 SELECT * FROM organizations WHERE name = ? AND `organizations`.`deleted_at` = 0 LIMIT 1;
@@ -19,8 +19,8 @@ WHERE name = ?;
 SELECT COUNT(*) FROM organizations WHERE name = ? AND `organizations`.`deleted_at` = 0 ;
 
 -- name: CreateUser :exec
-INSERT INTO users (id, external_id, name, phone, password_hash, display_name, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
+INSERT INTO users (id, external_id, name, phone, password_hash, display_name, org_name, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3));
 
 -- name: GetUserByID :one
 SELECT * FROM users WHERE id = ? AND `users`.`deleted_at` = 0 LIMIT 1;
@@ -96,3 +96,9 @@ VALUES (?, ?, ?, ?, 'active', 0, 0, NOW(3), NOW(3));
 UPDATE user_orgs
 SET is_admin = ?, updated_at = CURRENT_TIMESTAMP(3)
 WHERE user_id = ? AND org_name = ? AND deleted_at = 0;
+
+-- name: GetOrganizationByPhone :one
+SELECT * FROM organizations WHERE phone = ? AND `organizations`.`deleted_at` = 0 LIMIT 1;
+
+-- name: ExistsOrganizationByPhone :one
+SELECT COUNT(*) FROM organizations WHERE phone = ? AND `organizations`.`deleted_at` = 0;

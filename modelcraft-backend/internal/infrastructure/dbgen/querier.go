@@ -64,13 +64,14 @@ type Querier interface {
 	DeleteRole(ctx context.Context, id int64) error
 	DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
 	DeleteUserRolesByRole(ctx context.Context, roleID int64) error
-	ExistsByPhone(ctx context.Context, phone string) (bool, error)
-	ExistsByUserName(ctx context.Context, name string) (bool, error)
+	ExistsByPhoneInOrg(ctx context.Context, arg ExistsByPhoneInOrgParams) (bool, error)
+	ExistsByUserNameInOrg(ctx context.Context, arg ExistsByUserNameInOrgParams) (bool, error)
 	ExistsDatabaseClusterByProjectKey(ctx context.Context, arg ExistsDatabaseClusterByProjectKeyParams) (int64, error)
 	ExistsEnumByName(ctx context.Context, arg ExistsEnumByNameParams) (int64, error)
 	ExistsFieldByName(ctx context.Context, arg ExistsFieldByNameParams) (int64, error)
 	ExistsModelRLSPolicy(ctx context.Context, modelID string) (bool, error)
 	ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
+	ExistsOrganizationByPhone(ctx context.Context, phone string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
 	ExistsUserByExternalID(ctx context.Context, externalID sql.NullString) (int64, error)
 	FailStaleSyncJobs(ctx context.Context, updatedAt time.Time) error
@@ -131,6 +132,7 @@ type Querier interface {
 	// ----------------------------------------
 	GetModelRLSPolicy(ctx context.Context, modelID string) (ModelRlsPolicy, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
+	GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
 	// ----------------------------------------
 	// Project Auth Schema Queries
@@ -147,8 +149,8 @@ type Querier interface {
 	GetTailModelGroupDisplayOrder(ctx context.Context, arg GetTailModelGroupDisplayOrderParams) (string, error)
 	GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error)
 	GetUserByID(ctx context.Context, id string) (User, error)
-	GetUserByName(ctx context.Context, name string) (GetUserByNameRow, error)
-	GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error)
+	GetUserByNameInOrg(ctx context.Context, arg GetUserByNameInOrgParams) (GetUserByNameInOrgRow, error)
+	GetUserByPhoneInOrg(ctx context.Context, arg GetUserByPhoneInOrgParams) (GetUserByPhoneInOrgRow, error)
 	GetUserOrgByUserID(ctx context.Context, userID string) (GetUserOrgByUserIDRow, error)
 	GetUserRole(ctx context.Context, arg GetUserRoleParams) (UserRole, error)
 	GrantBundleToUser(ctx context.Context, arg GrantBundleToUserParams) error

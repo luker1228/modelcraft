@@ -47,14 +47,15 @@ func (q *Queries) CreateMembership(ctx context.Context, arg CreateMembershipPara
 }
 
 const createOrganization = `-- name: CreateOrganization :exec
-INSERT INTO organizations (name, display_name, owner_id, status, created_at, updated_at)
-VALUES (?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO organizations (name, display_name, owner_id, phone, status, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateOrganizationParams struct {
 	Name        string
 	DisplayName sql.NullString
 	OwnerID     sql.NullString
+	Phone       string
 	Status      string
 }
 
@@ -63,14 +64,15 @@ func (q *Queries) CreateOrganization(ctx context.Context, arg CreateOrganization
 		arg.Name,
 		arg.DisplayName,
 		arg.OwnerID,
+		arg.Phone,
 		arg.Status,
 	)
 	return err
 }
 
 const createUser = `-- name: CreateUser :exec
-INSERT INTO users (id, external_id, name, phone, password_hash, display_name, created_at, updated_at)
-VALUES (?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
+INSERT INTO users (id, external_id, name, phone, password_hash, display_name, org_name, created_at, updated_at)
+VALUES (?, ?, ?, ?, ?, ?, ?, NOW(3), NOW(3))
 `
 
 type CreateUserParams struct {
@@ -80,6 +82,7 @@ type CreateUserParams struct {
 	Phone        string
 	PasswordHash string
 	DisplayName  sql.NullString
+	OrgName      string
 }
 
 func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
@@ -90,6 +93,7 @@ func (q *Queries) CreateUser(ctx context.Context, arg CreateUserParams) error {
 		arg.Phone,
 		arg.PasswordHash,
 		arg.DisplayName,
+		arg.OrgName,
 	)
 	return err
 }
@@ -131,6 +135,17 @@ SELECT COUNT(*) FROM organizations WHERE name = ? AND ` + "`" + `organizations` 
 
 func (q *Queries) ExistsOrganizationByName(ctx context.Context, name string) (int64, error) {
 	row := q.db.QueryRowContext(ctx, existsOrganizationByName, name)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
+const existsOrganizationByPhone = `-- name: ExistsOrganizationByPhone :one
+SELECT COUNT(*) FROM organizations WHERE phone = ? AND ` + "`" + `organizations` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0
+`
+
+func (q *Queries) ExistsOrganizationByPhone(ctx context.Context, phone string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, existsOrganizationByPhone, phone)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -208,7 +223,7 @@ func (q *Queries) GetMembershipByUserAndOrg(ctx context.Context, arg GetMembersh
 }
 
 const getOrganizationByName = `-- name: GetOrganizationByName :one
-SELECT name, display_name, owner_id, status, created_at, updated_at, deleted_at, delete_token FROM organizations WHERE name = ? AND ` + "`" + `organizations` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+SELECT name, display_name, owner_id, phone, status, created_at, updated_at, deleted_at, delete_token FROM organizations WHERE name = ? AND ` + "`" + `organizations` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetOrganizationByName(ctx context.Context, name string) (Organization, error) {
@@ -218,6 +233,28 @@ func (q *Queries) GetOrganizationByName(ctx context.Context, name string) (Organ
 		&i.Name,
 		&i.DisplayName,
 		&i.OwnerID,
+		&i.Phone,
+		&i.Status,
+		&i.CreatedAt,
+		&i.UpdatedAt,
+		&i.DeletedAt,
+		&i.DeleteToken,
+	)
+	return i, err
+}
+
+const getOrganizationByPhone = `-- name: GetOrganizationByPhone :one
+SELECT name, display_name, owner_id, phone, status, created_at, updated_at, deleted_at, delete_token FROM organizations WHERE phone = ? AND ` + "`" + `organizations` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+`
+
+func (q *Queries) GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error) {
+	row := q.db.QueryRowContext(ctx, getOrganizationByPhone, phone)
+	var i Organization
+	err := row.Scan(
+		&i.Name,
+		&i.DisplayName,
+		&i.OwnerID,
+		&i.Phone,
 		&i.Status,
 		&i.CreatedAt,
 		&i.UpdatedAt,
@@ -228,7 +265,7 @@ func (q *Queries) GetOrganizationByName(ctx context.Context, name string) (Organ
 }
 
 const getUserByExternalID = `-- name: GetUserByExternalID :one
-SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at, deleted_at, delete_token FROM users WHERE external_id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+SELECT id, external_id, name, phone, password_hash, display_name, org_name, created_at, updated_at, deleted_at, delete_token FROM users WHERE external_id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetUserByExternalID(ctx context.Context, externalID sql.NullString) (User, error) {
@@ -241,6 +278,7 @@ func (q *Queries) GetUserByExternalID(ctx context.Context, externalID sql.NullSt
 		&i.Phone,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -250,7 +288,7 @@ func (q *Queries) GetUserByExternalID(ctx context.Context, externalID sql.NullSt
 }
 
 const getUserByID = `-- name: GetUserByID :one
-SELECT id, external_id, name, phone, password_hash, display_name, created_at, updated_at, deleted_at, delete_token FROM users WHERE id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+SELECT id, external_id, name, phone, password_hash, display_name, org_name, created_at, updated_at, deleted_at, delete_token FROM users WHERE id = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
 func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
@@ -263,6 +301,7 @@ func (q *Queries) GetUserByID(ctx context.Context, id string) (User, error) {
 		&i.Phone,
 		&i.PasswordHash,
 		&i.DisplayName,
+		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 		&i.DeletedAt,
@@ -492,7 +531,7 @@ func (q *Queries) ListMembershipsWithUserName(ctx context.Context, orgName strin
 }
 
 const listOrganizationsByUser = `-- name: ListOrganizationsByUser :many
-SELECT o.name, o.display_name, o.owner_id, o.status, o.created_at, o.updated_at, o.deleted_at, o.delete_token FROM organizations o
+SELECT o.name, o.display_name, o.owner_id, o.phone, o.status, o.created_at, o.updated_at, o.deleted_at, o.delete_token FROM organizations o
 INNER JOIN user_orgs m ON o.name = m.org_name
 WHERE m.user_id = ? AND m.status = 'active' AND ` + "`" + `o` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 ORDER BY o.created_at DESC
 `
@@ -510,6 +549,7 @@ func (q *Queries) ListOrganizationsByUser(ctx context.Context, userID string) ([
 			&i.Name,
 			&i.DisplayName,
 			&i.OwnerID,
+			&i.Phone,
 			&i.Status,
 			&i.CreatedAt,
 			&i.UpdatedAt,

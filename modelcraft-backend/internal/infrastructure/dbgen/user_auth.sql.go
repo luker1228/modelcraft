@@ -11,84 +11,108 @@ import (
 	"time"
 )
 
-const existsByPhone = `-- name: ExistsByPhone :one
-SELECT EXISTS(SELECT 1 FROM users WHERE phone = ?) AS phone_exists
+const existsByPhoneInOrg = `-- name: ExistsByPhoneInOrg :one
+SELECT EXISTS(SELECT 1 FROM users WHERE org_name = ? AND phone = ?) AS phone_exists
 `
 
-func (q *Queries) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, existsByPhone, phone)
+type ExistsByPhoneInOrgParams struct {
+	OrgName string
+	Phone   string
+}
+
+func (q *Queries) ExistsByPhoneInOrg(ctx context.Context, arg ExistsByPhoneInOrgParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, existsByPhoneInOrg, arg.OrgName, arg.Phone)
 	var phone_exists bool
 	err := row.Scan(&phone_exists)
 	return phone_exists, err
 }
 
-const existsByUserName = `-- name: ExistsByUserName :one
-SELECT EXISTS(SELECT 1 FROM users WHERE name = ?) AS name_exists
+const existsByUserNameInOrg = `-- name: ExistsByUserNameInOrg :one
+SELECT EXISTS(SELECT 1 FROM users WHERE org_name = ? AND name = ?) AS name_exists
 `
 
-func (q *Queries) ExistsByUserName(ctx context.Context, name string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, existsByUserName, name)
+type ExistsByUserNameInOrgParams struct {
+	OrgName string
+	Name    string
+}
+
+func (q *Queries) ExistsByUserNameInOrg(ctx context.Context, arg ExistsByUserNameInOrgParams) (bool, error) {
+	row := q.db.QueryRowContext(ctx, existsByUserNameInOrg, arg.OrgName, arg.Name)
 	var name_exists bool
 	err := row.Scan(&name_exists)
 	return name_exists, err
 }
 
-const getUserByName = `-- name: GetUserByName :one
-SELECT id, phone, password_hash, name, external_id, created_at, updated_at
+const getUserByNameInOrg = `-- name: GetUserByNameInOrg :one
+SELECT id, phone, password_hash, name, external_id, org_name, created_at, updated_at
 FROM users
-WHERE name = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+WHERE org_name = ? AND name = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
-type GetUserByNameRow struct {
+type GetUserByNameInOrgParams struct {
+	OrgName string
+	Name    string
+}
+
+type GetUserByNameInOrgRow struct {
 	ID           string
 	Phone        string
 	PasswordHash string
 	Name         string
 	ExternalID   sql.NullString
+	OrgName      string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
-func (q *Queries) GetUserByName(ctx context.Context, name string) (GetUserByNameRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserByName, name)
-	var i GetUserByNameRow
+func (q *Queries) GetUserByNameInOrg(ctx context.Context, arg GetUserByNameInOrgParams) (GetUserByNameInOrgRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByNameInOrg, arg.OrgName, arg.Name)
+	var i GetUserByNameInOrgRow
 	err := row.Scan(
 		&i.ID,
 		&i.Phone,
 		&i.PasswordHash,
 		&i.Name,
 		&i.ExternalID,
+		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
 	return i, err
 }
 
-const getUserByPhone = `-- name: GetUserByPhone :one
-SELECT id, phone, password_hash, name, external_id, created_at, updated_at
+const getUserByPhoneInOrg = `-- name: GetUserByPhoneInOrg :one
+SELECT id, phone, password_hash, name, external_id, org_name, created_at, updated_at
 FROM users
-WHERE phone = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
+WHERE org_name = ? AND phone = ? AND ` + "`" + `users` + "`" + `.` + "`" + `deleted_at` + "`" + ` = 0 LIMIT 1
 `
 
-type GetUserByPhoneRow struct {
+type GetUserByPhoneInOrgParams struct {
+	OrgName string
+	Phone   string
+}
+
+type GetUserByPhoneInOrgRow struct {
 	ID           string
 	Phone        string
 	PasswordHash string
 	Name         string
 	ExternalID   sql.NullString
+	OrgName      string
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
-func (q *Queries) GetUserByPhone(ctx context.Context, phone string) (GetUserByPhoneRow, error) {
-	row := q.db.QueryRowContext(ctx, getUserByPhone, phone)
-	var i GetUserByPhoneRow
+func (q *Queries) GetUserByPhoneInOrg(ctx context.Context, arg GetUserByPhoneInOrgParams) (GetUserByPhoneInOrgRow, error) {
+	row := q.db.QueryRowContext(ctx, getUserByPhoneInOrg, arg.OrgName, arg.Phone)
+	var i GetUserByPhoneInOrgRow
 	err := row.Scan(
 		&i.ID,
 		&i.Phone,
 		&i.PasswordHash,
 		&i.Name,
 		&i.ExternalID,
+		&i.OrgName,
 		&i.CreatedAt,
 		&i.UpdatedAt,
 	)
