@@ -15,23 +15,13 @@ export default function Home() {
       subtitle="让 AI 安全、可控地使用数据库"
       showCliPromo
     >
-      <div className="flex flex-col gap-4">
-        <section className="rounded-xl border border-border bg-muted/20 p-4">
-          <div className="mb-3">
-            <h2 className="text-sm font-semibold text-foreground">组织管理员</h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              登录管理后台，管理组织、权限和数据访问。
-            </p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Button asChild className="w-full">
-              <NextLink href={TENANT_LOGIN_PATH}>管理员登录</NextLink>
-            </Button>
-            <Button asChild variant="outline" className="w-full">
-              <NextLink href={TENANT_REGISTER_PATH}>注册组织</NextLink>
-            </Button>
-          </div>
-        </section>
+      <div className="flex flex-col gap-2">
+        <Button asChild className="w-full">
+          <NextLink href={TENANT_LOGIN_PATH}>管理员登录</NextLink>
+        </Button>
+        <Button asChild variant="outline" className="w-full">
+          <NextLink href={TENANT_REGISTER_PATH}>注册组织</NextLink>
+        </Button>
       </div>
     </AuthLayout>
   )
