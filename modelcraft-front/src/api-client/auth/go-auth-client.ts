@@ -3,7 +3,6 @@
 // Gateway 负责：认证、JWT 签发、httpOnly Cookie 管理
 // 本文件运行在浏览器侧，不持有 INTERNAL_TOKEN
 import type {
-  IdentifierType,
   GoAuthError,
 } from '@/types/auth'
 
@@ -99,8 +98,7 @@ async function parseGatewayError(res: Response): Promise<Error> {
  * Gateway 处理：验证凭证（→ Backend）、签发 access JWT、设 httpOnly Cookie
  */
 export async function callGoLogin(params: {
-  identifier: string
-  identifierType: IdentifierType
+  phone: string
   password: string
 }): Promise<GoLoginResult> {
   const res = await fetch(`${GATEWAY_URL}/auth/login`, {
@@ -123,6 +121,8 @@ export async function callGoLogin(params: {
 export async function callGoRegister(params: {
   phone: string
   userName: string
+  orgDisplayName: string
+  organizationName?: string
   password: string
 }): Promise<GoRegisterResult> {
   const res = await fetch(`${GATEWAY_URL}/auth/register`, {

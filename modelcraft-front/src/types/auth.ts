@@ -1,14 +1,10 @@
-/** 登录标识符类型 */
-export type IdentifierType = 'PHONE' | 'USERNAME'
-
 // ============================================================================
 // BFF 请求/响应类型（前端 ↔ BFF）
 // ============================================================================
 
-/** BFF 登录请求 */
+/** BFF 登录请求 — 仅手机号 */
 export interface LoginRequest {
-  identifier: string
-  identifierType: IdentifierType
+  phone: string
   password: string
 }
 
@@ -25,6 +21,8 @@ export interface LoginResponse {
 export interface RegisterRequest {
   phone: string
   userName: string
+  orgDisplayName: string
+  organizationName?: string
   password: string
 }
 
@@ -50,8 +48,7 @@ export interface RegisterResponse {
 
 /** Go 后端登录请求 */
 export interface GoLoginRequest {
-  identifier: string
-  identifierType: IdentifierType
+  phone: string
   password: string
 }
 
@@ -69,6 +66,8 @@ export interface GoLoginResponse {
 export interface GoRegisterRequest {
   phone: string
   userName: string
+  orgDisplayName: string
+  organizationName?: string
   password: string
 }
 

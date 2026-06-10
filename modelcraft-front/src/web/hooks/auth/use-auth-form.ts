@@ -112,6 +112,7 @@ export function useRegister(): UseRegisterReturn {
         body: JSON.stringify({
           phone: values.phone,
           userName: values.userName,
+          orgDisplayName: values.orgDisplayName,
           password: values.password,
           organizationName: values.orgName,
         }),
@@ -130,8 +131,7 @@ export function useRegister(): UseRegisterReturn {
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
         body: JSON.stringify({
-          identifier: values.phone,
-          identifierType: 'PHONE',
+          phone: values.phone,
           password: values.password,
         }),
       })

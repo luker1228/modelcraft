@@ -37,7 +37,7 @@ export default function RegisterPage() {
 
   const form = useForm<RegisterFormValues>({
     resolver: zodResolver(registerFormSchema),
-    defaultValues: { phone: '', userName: '', orgName: '', password: '', confirmPassword: '' },
+    defaultValues: { phone: '', userName: '', orgDisplayName: '', orgName: '', password: '', confirmPassword: '' },
   })
 
   const watchedUserName = form.watch('userName')
@@ -105,6 +105,24 @@ export default function RegisterPage() {
                 <FormDescription className="text-xs">
                   3-32 位，注册后不可修改，将作为登录凭证
                 </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="orgDisplayName"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>组织名称</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder="请输入组织名称，如「我的公司」"
+                    autoComplete="organization"
+                    {...field}
+                  />
+                </FormControl>
                 <FormMessage />
               </FormItem>
             )}

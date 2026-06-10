@@ -10,7 +10,6 @@ import { AuthLayout } from '@/web/components/features/auth/auth-layout'
 import { Button } from '@web/components/ui/button'
 import { Input } from '@web/components/ui/input'
 import { PasswordInput } from '@/web/components/common/password-input'
-import { Tabs, TabsList, TabsTrigger } from '@web/components/ui/tabs'
 import {
   Form,
   FormField,
@@ -19,29 +18,18 @@ import {
   FormControl,
   FormMessage,
 } from '@web/components/ui/form'
-import type { IdentifierType } from '@/types/auth'
 
 export default function TenantLoginPage() {
   const searchParams = useSearchParams()
   const redirect = searchParams.get('redirect')
   const backHref = redirect ? `/?redirect=${encodeURIComponent(redirect)}` : '/'
 
-  const { login, isLoading, error, identifierType, setIdentifierType } =
-    useLogin()
+  const { login, isLoading, error } = useLogin()
 
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginFormSchema),
-    defaultValues: { identifier: '', identifierType: 'USERNAME', password: '' },
+    defaultValues: { phone: '', password: '' },
   })
-
-  // 切换登录类型时清空输入并更新 form 值
-  const handleTabChange = (value: string) => {
-    const type = value as IdentifierType
-    setIdentifierType(type)
-    form.setValue('identifierType', type)
-    form.setValue('identifier', '')
-    form.clearErrors('identifier')
-  }
 
   const handleSubmit = form.handleSubmit(async (values) => {
     await login(values)
@@ -63,34 +51,16 @@ export default function TenantLoginPage() {
             </div>
           )}
 
-          {/* 登录方式切换 */}
-          <Tabs
-            value={identifierType}
-            onValueChange={handleTabChange}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="USERNAME">用户名登录</TabsTrigger>
-              <TabsTrigger value="PHONE">手机号登录</TabsTrigger>
-            </TabsList>
-          </Tabs>
-
           <FormField
             control={form.control}
-            name="identifier"
+            name="phone"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>
-                  {identifierType === 'PHONE' ? '手机号' : '用户名'}
-                </FormLabel>
+                <FormLabel>手机号</FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={
-                      identifierType === 'PHONE'
-                        ? '请输入手机号'
-                        : '请输入用户名'
-                    }
-                    autoComplete={identifierType === 'PHONE' ? 'tel' : 'username'}
+                    placeholder="请输入手机号"
+                    autoComplete="tel"
                     {...field}
                   />
                 </FormControl>

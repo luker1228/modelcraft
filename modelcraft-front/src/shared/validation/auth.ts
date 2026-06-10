@@ -1,6 +1,5 @@
 import { z } from 'zod'
 import { isReservedUserName } from '@/shared/constants/reserved-usernames'
-import type { IdentifierType } from '@/types/auth'
 
 /** 手机号格式：11 位国内号码 */
 export const phoneNumberSchema = z
@@ -33,9 +32,6 @@ export const userNameSchema = z
     message: '该用户名为系统保留字，请换一个',
   })
 
-/** 登录标识符 schema（支持手机号或用户名） */
-export const identifierSchema = z.string().min(1, '请输入手机号或用户名')
-
 /** 组织名 slug：6–24 位，小写字母/数字/下划线，且必须以字母开头 */
 export const orgNameSchema = z
   .string()
@@ -43,29 +39,24 @@ export const orgNameSchema = z
   .max(24, '组织名最多 24 个字符')
   .regex(/^[a-z][a-z0-9_]*$/, '只能包含小写字母、数字和下划线，且必须以字母开头')
 
-/** 登录表单 */
-export const loginFormSchema = z
-  .object({
-    identifier: identifierSchema,
-    identifierType: z.enum(['PHONE', 'USERNAME'] as const),
-    password: z.string().min(1, '请输入密码'),
-  })
-  .superRefine((data, ctx) => {
-    const errorMessage = validateIdentifier(data.identifier, data.identifierType)
-    if (errorMessage) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: errorMessage,
-        path: ['identifier'],
-      })
-    }
-  })
+/** 组织展示名称：1–64 个字符 */
+export const orgDisplayNameSchema = z
+  .string()
+  .min(1, '请输入组织名称')
+  .max(64, '组织名称最多 64 个字符')
+
+/** 登录表单 — 仅手机号 */
+export const loginFormSchema = z.object({
+  phone: phoneNumberSchema,
+  password: z.string().min(1, '请输入密码'),
+})
 
 /** 注册表单 */
 export const registerFormSchema = z
   .object({
     phone: phoneNumberSchema,
     userName: userNameSchema,
+    orgDisplayName: orgDisplayNameSchema,
     orgName: orgNameSchema,
     password: passwordSchema,
     confirmPassword: z.string().min(1, '请确认密码'),
@@ -77,21 +68,3 @@ export const registerFormSchema = z
 
 export type LoginFormValues = z.infer<typeof loginFormSchema>
 export type RegisterFormValues = z.infer<typeof registerFormSchema>
-
-/**
- * 根据标识符类型校验输入值
- * @returns 错误消息，如果校验通过则返回 null
- */
-export function validateIdentifier(
-  identifier: string,
-  type: IdentifierType
-): string | null {
-  if (type === 'PHONE') {
-    const result = phoneNumberSchema.safeParse(identifier)
-    if (!result.success) {
-      return result.error.errors[0]?.message ?? '手机号格式不正确'
-    }
-  }
-  // USERNAME 类型不做前端强校验（允许已注册的各种格式），交给后端验证
-  return null
-}
