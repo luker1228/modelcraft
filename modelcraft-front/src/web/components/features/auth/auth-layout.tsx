@@ -11,6 +11,7 @@ interface AuthLayoutProps {
   title: string
   subtitle?: string
   showCliPromo?: boolean
+  variant?: 'default' | 'landing'
   backLink?: {
     href: string
     label: string
@@ -23,6 +24,7 @@ export function AuthLayout({
   title,
   subtitle,
   showCliPromo = false,
+  variant = 'default',
   backLink,
 }: AuthLayoutProps) {
   return (
@@ -124,44 +126,72 @@ export function AuthLayout({
 
       {/* Right form panel */}
       <div className="flex flex-1 items-center justify-center px-6 py-8">
-        <div className="flex w-full max-w-[420px] flex-col items-start">
-          {backLink && (
-            <NextLink
-              href={backLink.href}
-              onClick={backLink.onClick}
-              className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ArrowLeft className="size-3.5" />
-              <span>{backLink.label}</span>
-            </NextLink>
-          )}
-
-          <Card className="w-full rounded-xl border border-border bg-background shadow-sm">
+        {variant === 'landing' ? (
+          <div className="flex w-full max-w-sm flex-col items-stretch gap-6">
             {/* Mobile logo */}
-            <div className="flex items-center justify-center gap-2.5 px-8 pt-8 lg:hidden">
+            <div className="flex items-center justify-center gap-2.5 lg:hidden">
               <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
                 <Image src="/icons/icon-model-graphql.svg" alt="ModelCraft" width={16} height={16} />
               </div>
               <span className="text-base font-semibold text-foreground">ModelCraft</span>
             </div>
 
-            <CardHeader className="px-8 pb-2 pt-8">
-              <CardTitle className="text-2xl">{title}</CardTitle>
-              {subtitle && <CardDescription>{subtitle}</CardDescription>}
-            </CardHeader>
+            <div>
+              <h1 className="text-2xl font-semibold text-foreground">{title}</h1>
+              {subtitle && <p className="mt-1.5 text-sm text-muted-foreground">{subtitle}</p>}
+            </div>
 
-            <CardContent className="px-8 pb-8 pt-4">
+            <div className="flex flex-col gap-3">
               {children}
+            </div>
 
-              <p className="mt-6 text-center text-xs text-muted-foreground">
-                登录即表示您同意我们的{' '}
-                <a href="#" className="text-primary hover:underline">服务条款</a>
-                {' '}和{' '}
-                <a href="#" className="text-primary hover:underline">隐私政策</a>
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+            <p className="text-center text-xs text-muted-foreground">
+              登录即表示您同意我们的{' '}
+              <a href="#" className="text-primary hover:underline">服务条款</a>
+              {' '}和{' '}
+              <a href="#" className="text-primary hover:underline">隐私政策</a>
+            </p>
+          </div>
+        ) : (
+          <div className="flex w-full max-w-[420px] flex-col items-start">
+            {backLink && (
+              <NextLink
+                href={backLink.href}
+                onClick={backLink.onClick}
+                className="mb-4 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowLeft className="size-3.5" />
+                <span>{backLink.label}</span>
+              </NextLink>
+            )}
+
+            <Card className="w-full rounded-xl border border-border bg-background shadow-sm">
+              {/* Mobile logo */}
+              <div className="flex items-center justify-center gap-2.5 px-8 pt-8 lg:hidden">
+                <div className="flex size-8 items-center justify-center rounded-lg bg-primary">
+                  <Image src="/icons/icon-model-graphql.svg" alt="ModelCraft" width={16} height={16} />
+                </div>
+                <span className="text-base font-semibold text-foreground">ModelCraft</span>
+              </div>
+
+              <CardHeader className="px-8 pb-2 pt-8">
+                <CardTitle className="text-2xl">{title}</CardTitle>
+                {subtitle && <CardDescription>{subtitle}</CardDescription>}
+              </CardHeader>
+
+              <CardContent className="px-8 pb-8 pt-4">
+                {children}
+
+                <p className="mt-6 text-center text-xs text-muted-foreground">
+                  登录即表示您同意我们的{' '}
+                  <a href="#" className="text-primary hover:underline">服务条款</a>
+                  {' '}和{' '}
+                  <a href="#" className="text-primary hover:underline">隐私政策</a>
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+        )}
       </div>
     </div>
   )

@@ -11,18 +11,17 @@ import {
 export default function Home() {
   return (
     <AuthLayout
-      title="欢迎使用 ModelCraft"
-      subtitle="让 AI 安全、可控地使用数据库"
+      title="登录 ModelCraft"
+      subtitle="管理 AI 数据访问权限，从这里开始。"
+      variant="landing"
       showCliPromo
     >
-      <div className="flex flex-col gap-2">
-        <Button asChild className="w-full">
-          <NextLink href={TENANT_LOGIN_PATH}>管理员登录</NextLink>
-        </Button>
-        <Button asChild variant="outline" className="w-full">
-          <NextLink href={TENANT_REGISTER_PATH}>注册组织</NextLink>
-        </Button>
-      </div>
+      <Button asChild className="w-full">
+        <NextLink href={TENANT_LOGIN_PATH}>管理员登录</NextLink>
+      </Button>
+      <Button asChild variant="outline" className="w-full">
+        <NextLink href={TENANT_REGISTER_PATH}>注册组织</NextLink>
+      </Button>
     </AuthLayout>
   )
 }
