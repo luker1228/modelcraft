@@ -21,6 +21,7 @@ type Organization struct {
 	Name        string    // 唯一标识符（来自 AuthProvider 组织名称），也是主键
 	DisplayName string    // 可选的 UI 显示名称
 	OwnerID     string    // 组织创建者/所有者的用户 ID
+	Phone       string    // Org 注册手机号，全局唯一
 	Status      OrgStatus // 组织状态
 	CreatedAt   time.Time
 	UpdatedAt   time.Time
@@ -62,12 +63,13 @@ func (o *Organization) Validate() error {
 }
 
 // NewOrganization 创建组织实体
-func NewOrganization(name, displayName, ownerID string) (*Organization, error) {
+func NewOrganization(name, displayName, ownerID, phone string) (*Organization, error) {
 	now := time.Now()
 	org := &Organization{
 		Name:        name,
 		DisplayName: displayName,
 		OwnerID:     ownerID,
+		Phone:       phone,
 		Status:      OrgStatusActive,
 		CreatedAt:   now,
 		UpdatedAt:   now,

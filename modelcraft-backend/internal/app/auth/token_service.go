@@ -13,10 +13,11 @@ import (
 	"modelcraft/pkg/logfacade"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
 	domainauth "modelcraft/internal/domain/auth"
-
+	domainOrg "modelcraft/internal/domain/organization"
 	domainProfile "modelcraft/internal/domain/profile"
-
 	domainUser "modelcraft/internal/domain/user"
 )
 
@@ -60,6 +61,7 @@ type TxOrgCreationService interface {
 type TokenService struct {
 	refreshTokenRepo   domainauth.RefreshTokenRepository
 	userRepo           domainUser.UserRepository
+	orgRepo            domainOrg.OrganizationRepository
 	profileRepo        domainProfile.Repository
 	auditLogRepo       domainauth.SecurityAuditLogRepository
 	passwordHasher     domainauth.PasswordHasher
@@ -75,6 +77,7 @@ type TokenService struct {
 func NewTokenService(
 	refreshTokenRepo domainauth.RefreshTokenRepository,
 	userRepo domainUser.UserRepository,
+	orgRepo domainOrg.OrganizationRepository,
 	profileRepo domainProfile.Repository,
 	auditLogRepo domainauth.SecurityAuditLogRepository,
 	passwordHasher domainauth.PasswordHasher,
@@ -89,6 +92,7 @@ func NewTokenService(
 	return &TokenService{
 		refreshTokenRepo: refreshTokenRepo,
 		userRepo:         userRepo,
+		orgRepo:          orgRepo,
 		profileRepo:      profileRepo,
 		auditLogRepo:     auditLogRepo,
 		passwordHasher:   passwordHasher,
@@ -109,10 +113,8 @@ func (s *TokenService) WithEndUserSupport(factory EndUserRepositoryFactory, syst
 
 // Register 手机号+密码注册新用户。
 // 注册成功后会同事务初始化 profile，并创建用户的个人组织。
+// 流程：先建 Org（含 phone 全局唯一校验）→ 再建 User（绑定 orgName）→ 建 Profile。
 func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*RegisterResult, error) {
-	logger := logfacade.GetLogger(ctx)
-
-	// 1. 校验 userName（格式、保留字）
 	if err := domainUser.ValidateUserName(cmd.UserName); err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
 	}
@@ -128,102 +130,109 @@ func (s *TokenService) Register(ctx context.Context, cmd RegisterCommand) (*Regi
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, err.Error())
 	}
 
-	// 4. 检查 userName 是否已被占用
-	nameExists, err := s.userRepo.ExistsByName(ctx, cmd.UserName)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if nameExists {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.UserNameAlreadyExists, cmd.UserName)
-	}
-
-	// 5. 检查手机号是否已注册
-	phoneExists, err := s.userRepo.ExistsByPhone(ctx, cmd.Phone)
-	if err != nil {
-		return nil, bizerrors.ConvertRepositoryError(ctx, err)
-	}
-	if phoneExists {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, phone.Masked())
+	// 4. 检查手机号是否已注册 Org（全局唯一）
+	if s.orgRepo != nil {
+		phoneExists, err := s.orgRepo.ExistsByPhone(ctx, cmd.Phone)
+		if err != nil {
+			return nil, bizerrors.ConvertRepositoryError(ctx, err)
+		}
+		if phoneExists {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, phone.Masked())
+		}
 	}
 
-	// 6. 哈希密码
+	// 5. 哈希密码
 	hashedPassword, err := s.passwordHasher.Hash(ctx, cmd.Password)
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "hash password")
 	}
 
-	// 7. 生成用户 ID
-	id, err := bizutils.GenerateUUIDV7()
+	// 6. 生成用户 ID
+	userID, err := bizutils.GenerateUUIDV7()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate user id")
 	}
 
-	// 8. 创建用户实体（使用用户提供的 userName）
-	u, err := domainUser.NewUser(id, cmd.UserName, phone, hashedPassword)
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
-	}
-
-	// 9. 创建初始 profile
+	// 7. 生成 profile ID
 	profileID, err := bizutils.GenerateUUIDV7()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate profile id")
 	}
+
+	orgDisplayName := cmd.OrgDisplayName
+	if orgDisplayName == "" {
+		orgDisplayName = cmd.UserName // fallback
+	}
+
+	result := &RegisterResult{UserID: userID}
+
+	orgInput := &organization.CreateOrganizationInput{
+		DisplayName:      orgDisplayName,
+		OrganizationName: cmd.OrganizationName,
+		OwnerUserID:      userID,
+		Phone:            cmd.Phone,
+	}
+
+	if s.txManager != nil {
+		if txOrgService, ok := s.createOrgService.(TxOrgCreationService); ok {
+			return s.registerWithTxOrgService( //nolint:wrapcheck
+				ctx, cmd, userID, profileID, hashedPassword, phone, result, orgInput, txOrgService,
+			)
+		}
+	}
+
+	return s.registerFallback(ctx, cmd, userID, profileID, hashedPassword, phone, result, orgInput)
+}
+
+// registerFallback handles registration without a tx-aware org service. //nolint:cyclop
+func (s *TokenService) registerFallback(
+	ctx context.Context,
+	cmd RegisterCommand,
+	userID, profileID, hashedPassword string,
+	phone domainUser.PhoneNumber,
+	result *RegisterResult,
+	orgInput *organization.CreateOrganizationInput,
+) (*RegisterResult, error) {
+	logger := logfacade.GetLogger(ctx)
+
+	// Fallback path (no tx support): create org first, then user
+	orgName, err := s.resolveOrgNameForFallback(ctx, cmd, userID, orgInput)
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := domainUser.NewUser(userID, cmd.UserName, phone, hashedPassword, orgName)
+	if err != nil {
+		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create user entity")
+	}
+
 	defaultAvatarURL := "mock://avatar/default-1.png"
 	initialProfile, err := domainProfile.NewInitialProfile(profileID, u.ID, "", &defaultAvatarURL, nil)
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create profile entity")
 	}
 
-	result := &RegisterResult{
-		UserID: u.ID,
-		Profile: RegisterProfileSnapshot{
-			ID:        initialProfile.ID,
-			UserID:    initialProfile.UserID,
-			Nickname:  initialProfile.Nickname,
-			AvatarURL: initialProfile.AvatarURL,
-			Bio:       initialProfile.Bio,
-		},
-	}
-
-	orgInput := &organization.CreateOrganizationInput{
-		DisplayName:      cmd.UserName,
-		OrganizationName: cmd.OrganizationName,
-		OwnerUserID:      u.ID,
-	}
-
-	if s.txManager != nil {
-		if txOrgService, ok := s.createOrgService.(TxOrgCreationService); ok {
-			return s.registerWithTxOrgService(ctx, cmd, u, initialProfile, phone, result, orgInput, txOrgService)
-		}
-	}
-
-	// Fallback path: keep previous behavior when tx-aware org service is not available.
 	if err := s.createUserAndProfile(ctx, u, initialProfile, phone.Masked()); err != nil {
 		return nil, err
 	}
-	logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
-		u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
+	logger.Infof(ctx, "User registered: id=%s, userName=%s, phone=%s, orgName=%s",
+		u.ID, cmd.UserName, phone.Masked(), orgName)
 
-	if s.createOrgService == nil {
-		result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
-		return result, nil
+	result.OrgName = orgName
+	result.Profile = RegisterProfileSnapshot{
+		ID:        initialProfile.ID,
+		UserID:    initialProfile.UserID,
+		Nickname:  initialProfile.Nickname,
+		AvatarURL: initialProfile.AvatarURL,
+		Bio:       initialProfile.Bio,
 	}
-
-	orgOutput, err := s.createOrgService.Execute(ctx, orgInput)
-	if err != nil {
-		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "create personal organization")
-	}
-	result.OrgName = orgOutput.OrganizationName
-	logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
 	return result, nil
 }
 
 func (s *TokenService) registerWithTxOrgService(
 	ctx context.Context,
 	cmd RegisterCommand,
-	u *domainUser.User,
-	initialProfile *domainProfile.Profile,
+	userID, profileID, hashedPassword string,
 	phone domainUser.PhoneNumber,
 	result *RegisterResult,
 	orgInput *organization.CreateOrganizationInput,
@@ -231,23 +240,43 @@ func (s *TokenService) registerWithTxOrgService(
 ) (*RegisterResult, error) {
 	logger := logfacade.GetLogger(ctx)
 	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
+		// Step 1: Create Org first to get orgName
+		var orgName string
+		if s.createOrgService != nil {
+			orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
+			if txErr != nil {
+				return bizerrors.WrapError(txErr, bizerrors.SystemError, "create personal organization")
+			}
+			orgName = orgOutput.OrganizationName
+		} else {
+			orgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
+		}
+		result.OrgName = orgName
+
+		// Step 2: Create User entity (now orgName is known)
+		u, txErr := domainUser.NewUser(userID, cmd.UserName, phone, hashedPassword, orgName)
+		if txErr != nil {
+			return bizerrors.WrapError(txErr, bizerrors.SystemError, "create user entity")
+		}
+
+		// Step 3: Create Profile entity
+		defaultAvatarURL := "mock://avatar/default-1.png"
+		initialProfile, txErr := domainProfile.NewInitialProfile(profileID, u.ID, "", &defaultAvatarURL, nil)
+		if txErr != nil {
+			return bizerrors.WrapError(txErr, bizerrors.SystemError, "create profile entity")
+		}
+		result.Profile = RegisterProfileSnapshot{
+			ID:        initialProfile.ID,
+			UserID:    initialProfile.UserID,
+			Nickname:  initialProfile.Nickname,
+			AvatarURL: initialProfile.AvatarURL,
+			Bio:       initialProfile.Bio,
+		}
+
+		// Step 4: Persist user + profile
 		userRepo := repository.NewSqlUserRepository(q)
 		profileRepo := repository.NewSqlProfileRepository(q)
-		if txErr := s.persistUserAndProfile(
-			ctx, userRepo, profileRepo, u, initialProfile, phone.Masked(),
-		); txErr != nil {
-			return txErr
-		}
-		if s.createOrgService == nil {
-			result.OrgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
-			return nil
-		}
-		orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
-		if txErr != nil {
-			return bizerrors.WrapError(txErr, bizerrors.SystemError, "create personal organization")
-		}
-		result.OrgName = orgOutput.OrganizationName
-		return nil
+		return s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked())
 	})
 	if err != nil {
 		if _, ok := err.(*bizerrors.BusinessError); ok {
@@ -255,11 +284,8 @@ func (s *TokenService) registerWithTxOrgService(
 		}
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "register transaction")
 	}
-	logger.Infof(ctx, "User registered with profile: id=%s, userName=%s, phone=%s, profileID=%s",
-		u.ID, cmd.UserName, phone.Masked(), initialProfile.ID)
-	if s.createOrgService != nil {
-		logger.Infof(ctx, "Personal organization created: orgName=%s for user=%s", result.OrgName, u.ID)
-	}
+	logger.Infof(ctx, "User registered: id=%s, userName=%s, phone=%s, orgName=%s",
+		userID, cmd.UserName, phone.Masked(), result.OrgName)
 	return result, nil
 }
 
@@ -326,80 +352,57 @@ func (s *TokenService) classifyCreateUserError(
 	if !shared.IsDuplicateKeyError(createErr) {
 		return bizerrors.ConvertRepositoryError(ctx, createErr)
 	}
-	phoneExists, phoneErr := userRepo.ExistsByPhone(ctx, u.Phone.String())
+	phoneExists, phoneErr := userRepo.ExistsByPhone(ctx, u.OrgName, u.Phone.String())
 	if phoneErr == nil && phoneExists {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.PhoneAlreadyExists, maskedPhone)
 	}
-	nameExists, nameErr := userRepo.ExistsByName(ctx, u.Name)
+	nameExists, nameErr := userRepo.ExistsByName(ctx, u.OrgName, u.Name)
 	if nameErr == nil && nameExists {
 		return bizerrors.NewErrorFromContext(ctx, bizerrors.UserNameAlreadyExists, u.Name)
 	}
 	return bizerrors.NewErrorFromContext(ctx, bizerrors.Conflict, "duplicate user record")
 }
 
-// Login 登录（支持手机号或用户名），生成 Refresh Token 存入 DB，返回明文给 BFF。
-// 统一走 endUserRepoFactory，与 LoginEndUser 共用同一套 users + user_orgs 查询路径。
+// Login 管理员手机号登录：先用 org.phone 定位 org，再在 org 内查找 user。
 func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResult, error) {
 	logger := logfacade.GetLogger(ctx)
 
-	if s.endUserRepoFactory == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "endUserRepoFactory not configured")
-	}
-	// orgName 为空时走全局查询，登录成功后从 user.OrgName 取
-	userRepo := s.endUserRepoFactory.NewEndUserRepository(s.systemDB, "")
-
-	// Resolve identifier
-	identifier := cmd.Identifier
-	idType := cmd.IdentifierType
-	// 默认 USERNAME
-	if idType == "" {
-		idType = IdentifierTypeUsername
+	if cmd.Phone == "" {
+		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "phone is required")
 	}
 
-	var u *enduser.EndUser
-	var err error
-
-	switch idType {
-	case IdentifierTypePhone:
-		if identifier == "" {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "phone is required")
-		}
-		u, err = userRepo.GetByPhoneGlobal(ctx, identifier)
-	case IdentifierTypeUsername:
-		if identifier == "" {
-			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthParamInvalid, "username is required")
-		}
-		u, err = userRepo.GetByUsernameGlobal(ctx, identifier)
-	default:
-		return nil, bizerrors.NewErrorFromContext(
-			ctx, bizerrors.AuthParamInvalid,
-			"invalid identifier type: "+string(idType),
-		)
-	}
-
+	// Step 1: 用手机号定位 org（全局唯一）
+	org, err := s.orgRepo.GetByPhone(ctx, cmd.Phone)
 	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "phone not registered")
+		}
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
-	if u == nil {
-		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "user not found")
+
+	// Step 2: 在 org 内查找 user
+	u, err := s.userRepo.GetByPhone(ctx, org.Name, cmd.Phone)
+	if err != nil {
+		if shared.IsNotFoundError(err) {
+			return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "user not found")
+		}
+		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// Verify password（EndUser 使用 bcrypt，与 tenant user 相同存储）
-	if !u.VerifyPassword(cmd.Password) {
+	// Step 3: 验证密码
+	if u.PasswordHash == "" || bcrypt.CompareHashAndPassword([]byte(u.PasswordHash), []byte(cmd.Password)) != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.AuthenticationFailed, "incorrect password")
 	}
 
-	// Generate opaque refresh token
+	// Step 4: 签发 refresh token
 	plaintext, hash, err := GenerateRefreshToken()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate refresh token")
 	}
-
 	tokenID, err := bizutils.GenerateUUIDV7()
 	if err != nil {
 		return nil, bizerrors.WrapError(err, bizerrors.SystemError, "generate token id")
 	}
-
 	expiresAt := time.Now().Add(s.refreshTTL)
 	token := &domainauth.RefreshToken{
 		ID:        tokenID,
@@ -412,21 +415,18 @@ func (s *TokenService) Login(ctx context.Context, cmd LoginCommand) (*LoginResul
 		return nil, bizerrors.ConvertRepositoryError(ctx, err)
 	}
 
-	// orgName 和 isAdmin 直接从 user_orgs JOIN 结果取（由 GetByUsernameGlobal 填充）
-	orgName := u.OrgName
-	isAdmin := u.IsAdmin
-
-	logger.Infof(ctx, "Login success: user_id=%s, identifier_type=%s", u.ID, idType)
-
-	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, orgName, isAdmin)
+	// Step 5: 签发 JWT（is_admin=true for Admin login）
+	accessToken, err := s.jwtSigner.IssueAccessToken(u.ID, u.OrgName, true)
 	if err != nil {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.SystemError, "failed to issue access token")
 	}
 
+	logger.Infof(ctx, "Admin login success: user_id=%s, org_name=%s", u.ID, u.OrgName)
+
 	return &LoginResult{
 		UserID:       u.ID,
-		UserName:     u.Username,
-		OrgName:      orgName,
+		UserName:     u.Name,
+		OrgName:      u.OrgName,
 		AccessToken:  accessToken,
 		RefreshToken: plaintext,
 		ExpiresIn:    s.jwtSigner.TTLSeconds(),
@@ -532,6 +532,31 @@ func (s *TokenService) Logout(ctx context.Context, cmd LogoutCommand) error {
 		return nil // 已不存在的 token 无需吊销
 	}
 	return s.refreshTokenRepo.Revoke(ctx, token.ID)
+}
+
+// resolveOrgNameForFallback resolves or creates the org name when no tx-aware org service is available.
+func (s *TokenService) resolveOrgNameForFallback(
+	ctx context.Context,
+	cmd RegisterCommand,
+	userID string,
+	orgInput *organization.CreateOrganizationInput,
+) (string, error) {
+	if s.createOrgService != nil {
+		orgOutput, err := s.createOrgService.Execute(ctx, orgInput)
+		if err != nil {
+			return "", bizerrors.WrapError(err, bizerrors.SystemError, "create personal organization")
+		}
+		return orgOutput.OrganizationName, nil
+	}
+	orgName := bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
+	// When no org creation service (e.g. tests), create a minimal org in orgRepo
+	// so the phone-based login lookup works.
+	if s.orgRepo != nil {
+		if minOrg, orgErr := domainOrg.NewOrganization(orgName, cmd.UserName, userID, cmd.Phone); orgErr == nil {
+			_ = s.orgRepo.Create(ctx, minOrg)
+		}
+	}
+	return orgName, nil
 }
 
 // mustGenerateID 用于审计日志等非关键路径的 ID 生成，忽略错误。

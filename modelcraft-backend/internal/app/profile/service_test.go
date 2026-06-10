@@ -37,19 +37,19 @@ func (m *mockUserRepository) FindIDByExternalID(_ context.Context, _ string) (st
 	return "", false, nil
 }
 
-func (m *mockUserRepository) GetByPhone(_ context.Context, _ string) (*domainUser.User, error) {
+func (m *mockUserRepository) GetByPhone(_ context.Context, _, _ string) (*domainUser.User, error) {
 	return nil, nil
 }
 
-func (m *mockUserRepository) GetByName(_ context.Context, _ string) (*domainUser.User, error) {
+func (m *mockUserRepository) GetByName(_ context.Context, _, _ string) (*domainUser.User, error) {
 	return nil, nil
 }
 
-func (m *mockUserRepository) ExistsByPhone(_ context.Context, _ string) (bool, error) {
+func (m *mockUserRepository) ExistsByPhone(_ context.Context, _, _ string) (bool, error) {
 	return false, nil
 }
 
-func (m *mockUserRepository) ExistsByName(_ context.Context, _ string) (bool, error) {
+func (m *mockUserRepository) ExistsByName(_ context.Context, _, _ string) (bool, error) {
 	return false, nil
 }
 
@@ -91,7 +91,7 @@ func TestAppServiceGetMyUserProfile(t *testing.T) {
 	phone, err := domainUser.NewPhoneNumber("13812345678")
 	require.NoError(t, err)
 
-	userEntity, err := domainUser.NewUser("user-1", "test_user", phone, "hashed")
+	userEntity, err := domainUser.NewUser("user-1", "test_user", phone, "hashed", "test-org")
 	require.NoError(t, err)
 
 	avatar := "mock://avatar/default-1.png"

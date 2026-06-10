@@ -12,7 +12,7 @@ func TestNewUser(t *testing.T) {
 	require.NoError(t, err)
 
 	t.Run("should create user with valid username phone and password hash", func(t *testing.T) {
-		user, err := NewUser("uuid-123", "john_doe", validPhone, "$2a$10$hashedpassword")
+		user, err := NewUser("uuid-123", "john_doe", validPhone, "$2a$10$hashedpassword", "test-org")
 		require.NoError(t, err)
 		assert.NotNil(t, user)
 		assert.Equal(t, "uuid-123", user.ID)
@@ -25,35 +25,35 @@ func TestNewUser(t *testing.T) {
 	})
 
 	t.Run("should return error when ID is empty", func(t *testing.T) {
-		user, err := NewUser("", "john_doe", validPhone, "$2a$10$hashedpassword")
+		user, err := NewUser("", "john_doe", validPhone, "$2a$10$hashedpassword", "test-org")
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "user ID is required")
 	})
 
 	t.Run("should return error when username is invalid", func(t *testing.T) {
-		user, err := NewUser("uuid-123", "1invalid", validPhone, "$2a$10$hashedpassword")
+		user, err := NewUser("uuid-123", "1invalid", validPhone, "$2a$10$hashedpassword", "test-org")
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "userName")
 	})
 
 	t.Run("should return error when username is reserved", func(t *testing.T) {
-		user, err := NewUser("uuid-123", "admin", validPhone, "$2a$10$hashedpassword")
+		user, err := NewUser("uuid-123", "admin", validPhone, "$2a$10$hashedpassword", "test-org")
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "reserved")
 	})
 
 	t.Run("should return error when phone is zero", func(t *testing.T) {
-		user, err := NewUser("uuid-123", "john_doe", PhoneNumber{}, "$2a$10$hashedpassword")
+		user, err := NewUser("uuid-123", "john_doe", PhoneNumber{}, "$2a$10$hashedpassword", "test-org")
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "phone number is required")
 	})
 
 	t.Run("should return error when password hash is empty", func(t *testing.T) {
-		user, err := NewUser("uuid-123", "john_doe", validPhone, "")
+		user, err := NewUser("uuid-123", "john_doe", validPhone, "", "test-org")
 		assert.Error(t, err)
 		assert.Nil(t, user)
 		assert.Contains(t, err.Error(), "password hash is required")

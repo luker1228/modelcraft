@@ -8,7 +8,7 @@ import (
 
 func TestNewOrganization(t *testing.T) {
 	t.Run("should create organization with valid input", func(t *testing.T) {
-		org, err := NewOrganization("my-company", "My Company", "user-uuid-001")
+		org, err := NewOrganization("my-company", "My Company", "user-uuid-001", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, org)
 		assert.Equal(t, "my-company", org.Name)
@@ -19,28 +19,28 @@ func TestNewOrganization(t *testing.T) {
 	})
 
 	t.Run("should create organization with empty display name", func(t *testing.T) {
-		org, err := NewOrganization("my-company", "", "user-uuid-001")
+		org, err := NewOrganization("my-company", "", "user-uuid-001", "")
 		assert.NoError(t, err)
 		assert.NotNil(t, org)
 		assert.Equal(t, "", org.DisplayName)
 	})
 
 	t.Run("should return error when name is empty", func(t *testing.T) {
-		org, err := NewOrganization("", "My Company", "user-uuid-001")
+		org, err := NewOrganization("", "My Company", "user-uuid-001", "")
 		assert.Error(t, err)
 		assert.Nil(t, org)
 		assert.Contains(t, err.Error(), "organization name is required")
 	})
 
 	t.Run("should return error when owner ID is empty", func(t *testing.T) {
-		org, err := NewOrganization("my-company", "My Company", "")
+		org, err := NewOrganization("my-company", "My Company", "", "")
 		assert.Error(t, err)
 		assert.Nil(t, org)
 		assert.Contains(t, err.Error(), "organization owner ID is required")
 	})
 
 	t.Run("should return error when name format is invalid", func(t *testing.T) {
-		org, err := NewOrganization("INVALID-NAME", "My Company", "user-uuid-001")
+		org, err := NewOrganization("INVALID-NAME", "My Company", "user-uuid-001", "")
 		assert.Error(t, err)
 		assert.Nil(t, org)
 		assert.Contains(t, err.Error(), "organization name must be 2-64 characters")
@@ -83,7 +83,7 @@ func TestIsValidOrgName(t *testing.T) {
 
 func TestOrganization_StatusTransitions(t *testing.T) {
 	t.Run("should suspend an active organization", func(t *testing.T) {
-		org, _ := NewOrganization("my-org", "", "user-001")
+		org, _ := NewOrganization("my-org", "", "user-001", "")
 		assert.True(t, org.IsActive())
 
 		org.Suspend()
@@ -92,7 +92,7 @@ func TestOrganization_StatusTransitions(t *testing.T) {
 	})
 
 	t.Run("should activate a suspended organization", func(t *testing.T) {
-		org, _ := NewOrganization("my-org", "", "user-001")
+		org, _ := NewOrganization("my-org", "", "user-001", "")
 		org.Suspend()
 
 		org.Activate()
@@ -101,7 +101,7 @@ func TestOrganization_StatusTransitions(t *testing.T) {
 	})
 
 	t.Run("should mark organization as deleted", func(t *testing.T) {
-		org, _ := NewOrganization("my-org", "", "user-001")
+		org, _ := NewOrganization("my-org", "", "user-001", "")
 
 		org.MarkDeleted()
 		assert.Equal(t, OrgStatusDeleted, org.Status)
@@ -111,12 +111,26 @@ func TestOrganization_StatusTransitions(t *testing.T) {
 
 func TestOrganization_UpdateDisplayName(t *testing.T) {
 	t.Run("should update display name", func(t *testing.T) {
-		org, _ := NewOrganization("my-org", "Old Name", "user-001")
+		org, _ := NewOrganization("my-org", "Old Name", "user-001", "")
 		originalUpdatedAt := org.UpdatedAt
 
 		org.UpdateDisplayName("New Name")
 		assert.Equal(t, "New Name", org.DisplayName)
 		assert.True(t, org.UpdatedAt.After(originalUpdatedAt) || org.UpdatedAt.Equal(originalUpdatedAt))
+	})
+}
+
+func TestNewOrganization_WithPhone(t *testing.T) {
+	t.Run("should store phone in organization", func(t *testing.T) {
+		org, err := NewOrganization("my-company", "My Company", "user-uuid-001", "13800138000")
+		assert.NoError(t, err)
+		assert.Equal(t, "13800138000", org.Phone)
+	})
+
+	t.Run("should create organization with empty phone", func(t *testing.T) {
+		org, err := NewOrganization("my-company", "My Company", "user-uuid-001", "")
+		assert.NoError(t, err)
+		assert.Equal(t, "", org.Phone)
 	})
 }
 

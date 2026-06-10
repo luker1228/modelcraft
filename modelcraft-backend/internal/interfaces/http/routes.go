@@ -327,6 +327,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 	tokenService := auth.NewTokenService(
 		refreshTokenRepo,
 		userRepo,
+		orgRepo,
 		profileRepo,
 		auditLogRepo,
 		passwordHasher,

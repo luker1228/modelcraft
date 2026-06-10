@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	domainOrg "modelcraft/internal/domain/organization"
+
 	domainauth "modelcraft/internal/domain/auth"
 	domainProfile "modelcraft/internal/domain/profile"
 
@@ -172,7 +174,7 @@ func (m *mockUserRepo) FindIDByExternalID(_ context.Context, externalID string) 
 	return "", false, nil
 }
 
-func (m *mockUserRepo) GetByPhone(_ context.Context, phone string) (*domainUser.User, error) {
+func (m *mockUserRepo) GetByPhone(_ context.Context, _, phone string) (*domainUser.User, error) {
 	u, ok := m.usersByPhone[phone]
 	if !ok {
 		return nil, shared.NewNotFoundError("user not found by phone: " + phone)
@@ -180,12 +182,12 @@ func (m *mockUserRepo) GetByPhone(_ context.Context, phone string) (*domainUser.
 	return u, nil
 }
 
-func (m *mockUserRepo) ExistsByPhone(_ context.Context, phone string) (bool, error) {
+func (m *mockUserRepo) ExistsByPhone(_ context.Context, _, phone string) (bool, error) {
 	_, ok := m.usersByPhone[phone]
 	return ok, nil
 }
 
-func (m *mockUserRepo) GetByName(_ context.Context, name string) (*domainUser.User, error) {
+func (m *mockUserRepo) GetByName(_ context.Context, _, name string) (*domainUser.User, error) {
 	u, ok := m.usersByName[name]
 	if !ok {
 		return nil, shared.NewNotFoundError("user not found by name: " + name)
@@ -193,7 +195,7 @@ func (m *mockUserRepo) GetByName(_ context.Context, name string) (*domainUser.Us
 	return u, nil
 }
 
-func (m *mockUserRepo) ExistsByName(_ context.Context, name string) (bool, error) {
+func (m *mockUserRepo) ExistsByName(_ context.Context, _, name string) (bool, error) {
 	_, ok := m.usersByName[name]
 	return ok, nil
 }
@@ -212,6 +214,61 @@ func (m *mockPasswordHasher) Verify(_ context.Context, password, hash string) er
 	return fmt.Errorf("password mismatch")
 }
 
+// mockOrgRepo is an in-memory org repository for testing.
+type mockOrgRepo struct {
+	orgsByPhone map[string]*domainOrg.Organization // key: phone
+	orgsByName  map[string]*domainOrg.Organization // key: name
+}
+
+func newMockOrgRepo() *mockOrgRepo {
+	return &mockOrgRepo{
+		orgsByPhone: make(map[string]*domainOrg.Organization),
+		orgsByName:  make(map[string]*domainOrg.Organization),
+	}
+}
+
+func (m *mockOrgRepo) Create(_ context.Context, org *domainOrg.Organization) error {
+	m.orgsByName[org.Name] = org
+	if org.Phone != "" {
+		m.orgsByPhone[org.Phone] = org
+	}
+	return nil
+}
+
+func (m *mockOrgRepo) GetByName(_ context.Context, name string) (*domainOrg.Organization, error) {
+	org, ok := m.orgsByName[name]
+	if !ok {
+		return nil, shared.NewNotFoundError("org not found: " + name)
+	}
+	return org, nil
+}
+
+func (m *mockOrgRepo) GetByPhone(_ context.Context, phone string) (*domainOrg.Organization, error) {
+	org, ok := m.orgsByPhone[phone]
+	if !ok {
+		return nil, shared.NewNotFoundError("org not found by phone: " + phone)
+	}
+	return org, nil
+}
+
+func (m *mockOrgRepo) ListByUser(_ context.Context, _ string) ([]*domainOrg.Organization, error) {
+	return nil, nil
+}
+
+func (m *mockOrgRepo) Update(_ context.Context, _ *domainOrg.Organization) error {
+	return nil
+}
+
+func (m *mockOrgRepo) ExistsByName(_ context.Context, name string) (bool, error) {
+	_, ok := m.orgsByName[name]
+	return ok, nil
+}
+
+func (m *mockOrgRepo) ExistsByPhone(_ context.Context, phone string) (bool, error) {
+	_, ok := m.orgsByPhone[phone]
+	return ok, nil
+}
+
 // ========== Test Helper ==========
 
 func createTestService(t *testing.T) (
@@ -224,13 +281,14 @@ func createTestService(t *testing.T) (
 	t.Helper()
 	refreshRepo := newMockRefreshTokenRepo()
 	userRepo := newMockUserRepo()
+	orgRepo := newMockOrgRepo()
 	profileRepo := newMockProfileRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
 	jwtSigner, err := domainauth.GenerateDevSigner()
 	require.NoError(t, err)
 	svc := NewTokenService(
-		refreshRepo, userRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, jwtSigner,
+		refreshRepo, userRepo, orgRepo, profileRepo, auditRepo, hasher, 7*24*time.Hour, nil, nil, jwtSigner,
 	)
 	return svc, refreshRepo, userRepo, profileRepo, auditRepo
 }
@@ -350,9 +408,8 @@ func TestTokenService_Login_Success(t *testing.T) {
 
 	// Login
 	result, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13800138000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
+		Phone:    "13800138000",
+		Password: "securePassword1",
 	})
 
 	require.NoError(t, err)
@@ -366,9 +423,8 @@ func TestTokenService_Login_PhoneNotFound(t *testing.T) {
 	ctx := context.Background()
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13900139000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
+		Phone:    "13900139000",
+		Password: "securePassword1",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "AUTHENTICATION_FAILED")
@@ -381,9 +437,8 @@ func TestTokenService_Login_WrongPassword(t *testing.T) {
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 
 	_, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13800138000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "wrongPassword",
+		Phone:    "13800138000",
+		Password: "wrongPassword",
 	})
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "AUTHENTICATION_FAILED")
@@ -398,9 +453,8 @@ func TestTokenService_Refresh_Rotation(t *testing.T) {
 	// Register and login to get a refresh token
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13800138000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
+		Phone:    "13800138000",
+		Password: "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -419,9 +473,8 @@ func TestTokenService_Refresh_ReuseDetection(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13800138000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
+		Phone:    "13800138000",
+		Password: "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -451,9 +504,8 @@ func TestTokenService_Refresh_ExpiredToken(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13800138000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
+		Phone:    "13800138000",
+		Password: "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -482,9 +534,8 @@ func TestTokenService_Logout(t *testing.T) {
 
 	registerTestUser(t, svc, "13800138000", "securePassword1")
 	loginResult, err := svc.Login(ctx, LoginCommand{
-		Identifier:     "13800138000",
-		IdentifierType: IdentifierTypePhone,
-		Password:       "securePassword1",
+		Phone:    "13800138000",
+		Password: "securePassword1",
 	})
 	require.NoError(t, err)
 
@@ -534,13 +585,14 @@ func createTestServiceWithOrgSpy(t *testing.T) (*TokenService, *spyOrgCreationSe
 	spy := &spyOrgCreationService{}
 	refreshRepo := newMockRefreshTokenRepo()
 	userRepo := newMockUserRepo()
+	orgRepo := newMockOrgRepo()
 	profileRepo := newMockProfileRepo()
 	auditRepo := &mockAuditLogRepo{}
 	hasher := &mockPasswordHasher{}
 	jwtSigner, err := domainauth.GenerateDevSigner()
 	require.NoError(t, err)
 	svc := NewTokenService(
-		refreshRepo, userRepo, profileRepo, auditRepo, hasher,
+		refreshRepo, userRepo, orgRepo, profileRepo, auditRepo, hasher,
 		7*24*time.Hour, spy, nil, jwtSigner,
 	)
 	return svc, spy

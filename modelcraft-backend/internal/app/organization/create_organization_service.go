@@ -25,6 +25,7 @@ type CreateOrganizationInput struct {
 	DisplayName      string // Required: human-readable display name
 	OrganizationName string // Optional: slug (auto-generated if empty)
 	OwnerUserID      string
+	Phone            string // Org 注册手机号
 }
 
 // CreateOrganizationOutput 创建组织的输出结果
@@ -109,7 +110,7 @@ func (s *CreateOrganizationService) Execute(
 
 	// Step 6: Execute transaction
 	output, err := s.createOrganizationInTransaction(
-		ctx, orgSlug, displayName, existingUser.ID, ownerRole.ID,
+		ctx, orgSlug, displayName, existingUser.ID, input.Phone, ownerRole.ID,
 	)
 	if err != nil {
 		return nil, err
@@ -168,7 +169,7 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 	}
 	logger.Infof(ctx, "Owner role ready: roleID=%d", ownerRole.ID)
 
-	org, txErr := organization.NewOrganization(orgSlug, displayName, existingUser.ID)
+	org, txErr := organization.NewOrganization(orgSlug, displayName, existingUser.ID, input.Phone)
 	if txErr != nil {
 		logger.Error(ctx, "Invalid organization data", logfacade.Err(txErr))
 		return nil, bizerrors.Wrap(txErr, "Invalid organization data")
@@ -439,14 +440,14 @@ func (s *CreateOrganizationService) getOwnerRole(ctx context.Context) (*domainPe
 
 // createOrganizationInTransaction executes the organization creation in a transaction
 func (s *CreateOrganizationService) createOrganizationInTransaction(
-	ctx context.Context, orgSlug, displayName, userID string, roleID int,
+	ctx context.Context, orgSlug, displayName, userID, phone string, roleID int,
 ) (*CreateOrganizationOutput, error) {
 	logger := logfacade.GetLogger(ctx)
 	var output *CreateOrganizationOutput
 
 	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		// Create organization
-		org, txErr := organization.NewOrganization(orgSlug, displayName, userID)
+		org, txErr := organization.NewOrganization(orgSlug, displayName, userID, phone)
 		if txErr != nil {
 			logger.Error(ctx, "Invalid organization data", logfacade.Err(txErr))
 			return bizerrors.Wrap(txErr, "Invalid organization data")

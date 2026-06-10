@@ -17,6 +17,7 @@ type RegisterCommand struct {
 	Phone            string
 	Password         string
 	UserName         string // 用户名（3-32字符，以字母/下划线/连字符开头）
+	OrgDisplayName   string // Org 展示名称（新增）
 	OrganizationName string // 可选，组织名 slug（6-24字符，小写字母/数字/下划线），为空时自动生成
 }
 
@@ -36,12 +37,10 @@ type RegisterResult struct {
 	Profile RegisterProfileSnapshot
 }
 
-// LoginCommand 登录命令 - 支持手机号或用户名
+// LoginCommand 管理员登录命令 — 仅手机号
 type LoginCommand struct {
-	// Identifier 登录标识符（手机号或用户名）
-	Identifier string
-	// IdentifierType 标识符类型：PHONE 或 USERNAME，默认为 USERNAME
-	IdentifierType IdentifierType
+	// Phone 手机号（唯一登录标识符）
+	Phone string
 	// Password 密码
 	Password string
 }

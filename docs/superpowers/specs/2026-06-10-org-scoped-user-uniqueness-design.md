@@ -62,6 +62,14 @@ Add `org_name` field, replace global unique indexes with org-scoped ones:
 -- Add
 UNIQUE INDEX `uk_org_user_phone` (`org_name`, `phone`, `delete_token`)  -- org 内手机唯一
 UNIQUE INDEX `uk_org_user_name`  (`org_name`, `name`,  `delete_token`)  -- org 内用户名唯一
+
+-- Update existing index (name is now org-scoped, include org_name)
+-- Remove: INDEX `idx_users_live_name` (`deleted_at`, `name`)
+-- Add:
+INDEX `idx_users_live_name` (`deleted_at`, `org_name`, `name`)
+
+-- Add FK constraint
+CONSTRAINT `fk_users_org` FOREIGN KEY (`org_name`) REFERENCES `organizations`(`name`) ON UPDATE CASCADE
 ```
 
 `user_orgs` table: **no change**. Retains its role as Admin ↔ Org membership record.

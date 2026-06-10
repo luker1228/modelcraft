@@ -31,6 +31,7 @@ func OrganizationToDomain(row dbgen.Organization) *organization.Organization {
 		Name:        row.Name,
 		DisplayName: displayName,
 		OwnerID:     ownerID,
+		Phone:       row.Phone,
 		Status:      organization.OrgStatus(row.Status),
 		CreatedAt:   row.CreatedAt,
 		UpdatedAt:   row.UpdatedAt,
@@ -60,6 +61,57 @@ func UserToDomain(row dbgen.User) *user.User {
 		Name:         row.Name,
 		Phone:        phone,
 		PasswordHash: row.PasswordHash,
+		OrgName:      row.OrgName,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+}
+
+// userPhoneRowToDomain converts GetUserByPhoneInOrgRow to domain User.
+func userPhoneRowToDomain(row dbgen.GetUserByPhoneInOrgRow) *user.User {
+	var externalID string
+	if row.ExternalID.Valid {
+		externalID = row.ExternalID.String
+	}
+	var phone user.PhoneNumber
+	if row.Phone != "" {
+		p, err := user.NewPhoneNumber(row.Phone)
+		if err == nil {
+			phone = p
+		}
+	}
+	return &user.User{
+		ID:           row.ID,
+		ExternalID:   externalID,
+		Name:         row.Name,
+		Phone:        phone,
+		PasswordHash: row.PasswordHash,
+		OrgName:      row.OrgName,
+		CreatedAt:    row.CreatedAt,
+		UpdatedAt:    row.UpdatedAt,
+	}
+}
+
+// userNameRowToDomain converts GetUserByNameInOrgRow to domain User.
+func userNameRowToDomain(row dbgen.GetUserByNameInOrgRow) *user.User {
+	var externalID string
+	if row.ExternalID.Valid {
+		externalID = row.ExternalID.String
+	}
+	var phone user.PhoneNumber
+	if row.Phone != "" {
+		p, err := user.NewPhoneNumber(row.Phone)
+		if err == nil {
+			phone = p
+		}
+	}
+	return &user.User{
+		ID:           row.ID,
+		ExternalID:   externalID,
+		Name:         row.Name,
+		Phone:        phone,
+		PasswordHash: row.PasswordHash,
+		OrgName:      row.OrgName,
 		CreatedAt:    row.CreatedAt,
 		UpdatedAt:    row.UpdatedAt,
 	}
@@ -100,6 +152,7 @@ func (r *SqlOrganizationRepository) Create(ctx context.Context, org *organizatio
 		Name:        org.Name,
 		DisplayName: StrToNullStr(org.DisplayName),
 		OwnerID:     StrToNullStr(org.OwnerID),
+		Phone:       org.Phone,
 		Status:      string(org.Status),
 	}
 
@@ -115,6 +168,20 @@ func (r *SqlOrganizationRepository) GetByName(ctx context.Context, name string) 
 			return nil, shared.NewNotFoundError("organization not found by name: " + name)
 		}
 		return nil, bizerrors.Wrapf(err, "failed to get organization by name: %s", name)
+	}
+
+	return OrganizationToDomain(row), nil
+}
+
+// GetByPhone retrieves an organization by its registered phone number (globally unique).
+// Returns nil, shared.NewNotFoundError when no organization matches the given phone.
+func (r *SqlOrganizationRepository) GetByPhone(ctx context.Context, phone string) (*organization.Organization, error) {
+	row, err := r.q.GetOrganizationByPhone(ctx, phone)
+	if err != nil {
+		if sqlerr.IsNotFoundError(err) {
+			return nil, shared.NewNotFoundError("organization not found by phone: " + phone)
+		}
+		return nil, bizerrors.Wrapf(err, "failed to get organization by phone: %s", phone)
 	}
 
 	return OrganizationToDomain(row), nil
@@ -159,6 +226,16 @@ func (r *SqlOrganizationRepository) ExistsByName(ctx context.Context, name strin
 	return count > 0, nil
 }
 
+// ExistsByPhone checks whether an organization with the given phone already exists.
+func (r *SqlOrganizationRepository) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
+	count, err := r.q.ExistsOrganizationByPhone(ctx, phone)
+	if err != nil {
+		return false, bizerrors.Wrapf(err, "failed to check organization phone existence: %s", phone)
+	}
+
+	return count > 0, nil
+}
+
 // SqlUserRepository is the sqlc-based implementation of user.UserRepository.
 type SqlUserRepository struct {
 	q dbgen.Querier
@@ -179,6 +256,7 @@ func (r *SqlUserRepository) Create(ctx context.Context, u *user.User) error {
 		PasswordHash: u.PasswordHash,
 		// DisplayName is not part of the domain User entity; stored as NULL.
 		DisplayName: sql.NullString{},
+		OrgName:     u.OrgName,
 	}
 
 	return r.q.CreateUser(ctx, params)
@@ -236,95 +314,47 @@ func (r *SqlUserRepository) FindIDByExternalID(ctx context.Context, externalID s
 	return userID, true, nil
 }
 
-// GetByPhone retrieves a user by phone number.
-// Returns nil, shared.NewNotFoundError when no user matches the given phone.
-func (r *SqlUserRepository) GetByPhone(ctx context.Context, phone string) (*user.User, error) {
-	row, err := r.q.GetUserByPhone(ctx, phone)
+// GetByPhone retrieves a user by org and phone number.
+// Returns nil, shared.NewNotFoundError when no user matches.
+func (r *SqlUserRepository) GetByPhone(ctx context.Context, orgName, phone string) (*user.User, error) {
+	row, err := r.q.GetUserByPhoneInOrg(ctx, dbgen.GetUserByPhoneInOrgParams{OrgName: orgName, Phone: phone})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
-			return nil, shared.NewNotFoundError("user not found by phone: " + phone)
+			return nil, shared.NewNotFoundError("user not found by phone in org: " + orgName)
 		}
-		return nil, bizerrors.Wrapf(err, "failed to get user by phone: %s", phone)
+		return nil, bizerrors.Wrapf(err, "failed to get user by phone in org: %s", orgName)
 	}
-
-	// Convert GetUserByPhoneRow to domain User.
-	var externalID string
-	if row.ExternalID.Valid {
-		externalID = row.ExternalID.String
-	}
-
-	var phoneVO user.PhoneNumber
-	if row.Phone != "" {
-		p, err := user.NewPhoneNumber(row.Phone)
-		if err == nil {
-			phoneVO = p
-		}
-	}
-
-	return &user.User{
-		ID:           row.ID,
-		ExternalID:   externalID,
-		Name:         row.Name,
-		Phone:        phoneVO,
-		PasswordHash: row.PasswordHash,
-		CreatedAt:    row.CreatedAt,
-		UpdatedAt:    row.UpdatedAt,
-	}, nil
+	return userPhoneRowToDomain(row), nil
 }
 
-// ExistsByPhone checks whether a user with the given phone number already exists.
-func (r *SqlUserRepository) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
-	exists, err := r.q.ExistsByPhone(ctx, phone)
+// ExistsByPhone checks whether a user with the given phone exists within the org.
+func (r *SqlUserRepository) ExistsByPhone(ctx context.Context, orgName, phone string) (bool, error) {
+	exists, err := r.q.ExistsByPhoneInOrg(ctx, dbgen.ExistsByPhoneInOrgParams{OrgName: orgName, Phone: phone})
 	if err != nil {
-		return false, bizerrors.Wrapf(err, "failed to check phone existence: %s", phone)
+		return false, bizerrors.Wrapf(err, "failed to check phone existence in org: %s", orgName)
 	}
-
 	return exists, nil
 }
 
-// GetByName retrieves a user by username.
-// Returns nil, shared.NewNotFoundError when no user matches the given name.
-func (r *SqlUserRepository) GetByName(ctx context.Context, name string) (*user.User, error) {
-	row, err := r.q.GetUserByName(ctx, name)
+// GetByName retrieves a user by org and username.
+// Returns nil, shared.NewNotFoundError when no user matches.
+func (r *SqlUserRepository) GetByName(ctx context.Context, orgName, name string) (*user.User, error) {
+	row, err := r.q.GetUserByNameInOrg(ctx, dbgen.GetUserByNameInOrgParams{OrgName: orgName, Name: name})
 	if err != nil {
 		if sqlerr.IsNotFoundError(err) {
-			return nil, shared.NewNotFoundError("user not found by name: " + name)
+			return nil, shared.NewNotFoundError("user not found by name in org: " + orgName)
 		}
-		return nil, bizerrors.Wrapf(err, "failed to get user by name: %s", name)
+		return nil, bizerrors.Wrapf(err, "failed to get user by name in org: %s", orgName)
 	}
-
-	// Convert GetUserByNameRow to domain User.
-	var externalID string
-	if row.ExternalID.Valid {
-		externalID = row.ExternalID.String
-	}
-
-	var phoneVO user.PhoneNumber
-	if row.Phone != "" {
-		p, err := user.NewPhoneNumber(row.Phone)
-		if err == nil {
-			phoneVO = p
-		}
-	}
-
-	return &user.User{
-		ID:           row.ID,
-		ExternalID:   externalID,
-		Name:         row.Name,
-		Phone:        phoneVO,
-		PasswordHash: row.PasswordHash,
-		CreatedAt:    row.CreatedAt,
-		UpdatedAt:    row.UpdatedAt,
-	}, nil
+	return userNameRowToDomain(row), nil
 }
 
-// ExistsByName checks whether a user with the given name already exists.
-func (r *SqlUserRepository) ExistsByName(ctx context.Context, name string) (bool, error) {
-	exists, err := r.q.ExistsByUserName(ctx, name)
+// ExistsByName checks whether a user with the given name exists within the org.
+func (r *SqlUserRepository) ExistsByName(ctx context.Context, orgName, name string) (bool, error) {
+	exists, err := r.q.ExistsByUserNameInOrg(ctx, dbgen.ExistsByUserNameInOrgParams{OrgName: orgName, Name: name})
 	if err != nil {
-		return false, bizerrors.Wrapf(err, "failed to check user name existence: %s", name)
+		return false, bizerrors.Wrapf(err, "failed to check user name existence in org: %s", orgName)
 	}
-
 	return exists, nil
 }
 

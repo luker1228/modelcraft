@@ -67,29 +67,29 @@ func (m *mockUserRepo) FindIDByExternalID(ctx context.Context, externalID string
 	return args.String(0), args.Bool(1), args.Error(2)
 }
 
-func (m *mockUserRepo) GetByPhone(ctx context.Context, phone string) (*user.User, error) {
-	args := m.Called(ctx, phone)
+func (m *mockUserRepo) GetByPhone(ctx context.Context, orgName, phone string) (*user.User, error) {
+	args := m.Called(ctx, orgName, phone)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*user.User), args.Error(1)
 }
 
-func (m *mockUserRepo) GetByName(ctx context.Context, name string) (*user.User, error) {
-	args := m.Called(ctx, name)
+func (m *mockUserRepo) GetByName(ctx context.Context, orgName, name string) (*user.User, error) {
+	args := m.Called(ctx, orgName, name)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*user.User), args.Error(1)
 }
 
-func (m *mockUserRepo) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
-	args := m.Called(ctx, phone)
+func (m *mockUserRepo) ExistsByPhone(ctx context.Context, orgName, phone string) (bool, error) {
+	args := m.Called(ctx, orgName, phone)
 	return args.Bool(0), args.Error(1)
 }
 
-func (m *mockUserRepo) ExistsByName(ctx context.Context, name string) (bool, error) {
-	args := m.Called(ctx, name)
+func (m *mockUserRepo) ExistsByName(ctx context.Context, orgName, name string) (bool, error) {
+	args := m.Called(ctx, orgName, name)
 	return args.Bool(0), args.Error(1)
 }
 
@@ -121,6 +121,19 @@ func (m *mockOrgRepo) Update(ctx context.Context, org *domainOrg.Organization) e
 
 func (m *mockOrgRepo) ExistsByName(ctx context.Context, name string) (bool, error) {
 	args := m.Called(ctx, name)
+	return args.Bool(0), args.Error(1)
+}
+
+func (m *mockOrgRepo) GetByPhone(ctx context.Context, phone string) (*domainOrg.Organization, error) {
+	args := m.Called(ctx, phone)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*domainOrg.Organization), args.Error(1)
+}
+
+func (m *mockOrgRepo) ExistsByPhone(ctx context.Context, phone string) (bool, error) {
+	args := m.Called(ctx, phone)
 	return args.Bool(0), args.Error(1)
 }
 

@@ -15,6 +15,7 @@ type User struct {
 	Name         string      // 用户姓名
 	Phone        PhoneNumber // 用户手机号（值对象）
 	PasswordHash string      // 密码哈希（仅手机号+密码注册的用户有值）
+	OrgName      string      // 所属 Org，创建时绑定
 	CreatedAt    time.Time   // 创建时间
 	UpdatedAt    time.Time   // 更新时间
 }
@@ -76,12 +77,15 @@ var registerNameNouns = [...]string{
 
 // NewUser 通过手机号+密码创建用户实体
 // userName 为用户自定义的用户名，在注册时由用户提供
-func NewUser(id, userName string, phone PhoneNumber, passwordHash string) (*User, error) {
+func NewUser(id, userName string, phone PhoneNumber, passwordHash, orgName string) (*User, error) {
 	if phone.IsZero() {
 		return nil, fmt.Errorf("phone number is required")
 	}
 	if passwordHash == "" {
 		return nil, fmt.Errorf("password hash is required")
+	}
+	if orgName == "" {
+		return nil, fmt.Errorf("org name is required")
 	}
 	if err := ValidateUserName(userName); err != nil {
 		return nil, err
@@ -92,6 +96,7 @@ func NewUser(id, userName string, phone PhoneNumber, passwordHash string) (*User
 		Name:         userName,
 		Phone:        phone,
 		PasswordHash: passwordHash,
+		OrgName:      orgName,
 		CreatedAt:    now,
 		UpdatedAt:    now,
 	}
