@@ -48,7 +48,8 @@
       "mcp__codegraph__codegraph_search",
       "Bash(paru *)",
       "Skill(update-config)",
-      "Bash(atlas version *)"
+      "Bash(atlas version *)",
+      "mcp__codegraph__codegraph_callers"
     ]
   },
   "enabledMcpjsonServers": [

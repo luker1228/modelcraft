@@ -55,9 +55,8 @@ CREATE TABLE IF NOT EXISTS `profile` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户资料表';
 
 -- -----------------------------------------------------------------------------
--- 3. 更新组织表的外键约束
--- 现在 users 表已存在，可以为 organizations.owner_id 添加外键
--- -----------------------------------------------------------------------------
-ALTER TABLE `organizations`
-  ADD CONSTRAINT `fk_org_owner`
-  FOREIGN KEY (`owner_id`) REFERENCES `users`(`id`) ON DELETE RESTRICT;
+-- 3. organizations.owner_id 与 users.id 之间不设外键约束
+-- 原因：注册流程中 organizations 先于 users 创建（同一事务内），
+-- 若设 FK 会导致循环依赖（organizations.owner_id → users.id，
+-- users.org_name → organizations.name）。
+-- 引用完整性由应用层保证。

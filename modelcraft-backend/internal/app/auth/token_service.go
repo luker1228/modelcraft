@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"modelcraft/internal/app/organization"
 	"modelcraft/internal/domain/enduser"
 	"modelcraft/internal/domain/shared"
@@ -15,6 +16,7 @@ import (
 
 	domainauth "modelcraft/internal/domain/auth"
 	domainOrg "modelcraft/internal/domain/organization"
+	domainPermission "modelcraft/internal/domain/permission"
 	domainProfile "modelcraft/internal/domain/profile"
 	domainUser "modelcraft/internal/domain/user"
 )
@@ -241,12 +243,17 @@ func (s *TokenService) registerWithTxOrgService(
 	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		// Step 1: Create Org first to get orgName
 		var orgName string
+			var ownerRoleID int
 		if s.createOrgService != nil {
 			orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
 			if txErr != nil {
-				return bizerrors.WrapError(txErr, bizerrors.SystemError, "create personal organization")
+				return bizerrors.WrapError(
+					txErr, bizerrors.SystemError,
+					fmt.Sprintf("create personal organization: %v", txErr),
+				)
 			}
 			orgName = orgOutput.OrganizationName
+				ownerRoleID = int(orgOutput.RoleID)
 		} else {
 			orgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
 		}
@@ -275,7 +282,21 @@ func (s *TokenService) registerWithTxOrgService(
 		// Step 4: Persist user + profile
 		userRepo := repository.NewSqlUserRepository(q)
 		profileRepo := repository.NewSqlProfileRepository(q)
-		return s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked())
+			if err := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); err != nil {
+				return err
+			}
+
+			// Step 5: Assign owner role (user must exist first for fk_user_roles_user FK)
+			if ownerRoleID != 0 {
+				userRoleRepo := repository.NewSqlCasbinUserRoleRepository(q)
+				userRole := &domainPermission.UserRole{
+					UserID: userID, RoleID: ownerRoleID, OrgName: orgName,
+				}
+				if err := userRoleRepo.AssignRole(ctx, userRole); err != nil {
+					return bizerrors.WrapError(err, bizerrors.SystemError, "assign owner role")
+				}
+			}
+			return nil
 	})
 	if err != nil {
 		if _, ok := err.(*bizerrors.BusinessError); ok {

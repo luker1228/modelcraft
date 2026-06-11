@@ -165,11 +165,10 @@ func (s *CreateOrganizationService) ExecuteWithQuerier(
 		return nil, bizerrors.Wrap(txErr, "Failed to create organization")
 	}
 
-	userRoleRepository := repository.NewSqlCasbinUserRoleRepository(q)
-	userRole := &domainPermission.UserRole{UserID: ownerUserID, RoleID: ownerRole.ID, OrgName: orgSlug}
-	if txErr = userRoleRepository.AssignRole(ctx, userRole); txErr != nil {
-		return nil, bizerrors.Wrap(txErr, "Failed to assign owner role")
-	}
+	// Role assignment is deferred to the caller so that the user row exists first.
+	// Caller should use NewSqlCasbinUserRoleRepository(q) with output.RoleID after
+	// creating the user. This avoids FK violations on user_roles.user_id → users.id
+	// when org and user are created in the same transaction.
 
 	return &CreateOrganizationOutput{
 		OrganizationID:   orgSlug,
