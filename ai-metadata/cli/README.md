@@ -51,7 +51,7 @@ mc auth login --token mc_pat_xxx --server http://gateway:9080
 | 字段 | 说明 |
 |------|------|
 | `server` | Gateway 地址，后续命令从此读取，无需重复传 |
-| `orgName` | Org 标识，用于构建所有请求 URL（`/end-user/graphql/org/{orgName}/...`） |
+| `orgName` | Org 标识，用于构建所有请求 URL |
 | `userId` | End User ID |
 | `accessToken` | PAT 原文，直接用于 Bearer 认证 |
 | `currentProject` | 默认 project 上下文，可被 `--project` 临时覆盖 |

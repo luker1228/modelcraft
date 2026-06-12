@@ -161,7 +161,6 @@ export function AppLayout({
       header: '工作区',
       items: [
         { label: '项目', icon: '/icons/icon-folder-open.svg', href: `/org/${orgName}/dashboard` },
-        { label: '终端用户', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/end-users` },
       ],
     },
     {
@@ -192,7 +191,6 @@ export function AppLayout({
           { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=bundles`, tabParam: 'tab=bundles' },
           { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=permissions`, tabParam: 'tab=permissions' },
         ]},
-        { label: '用户授权', icon: '/icons/icon-key-round.svg', href: `/org/${orgName}/project/${projectSlug}/end-user-access` },
       ],
     },
     {

@@ -26,7 +26,6 @@ src/api-client/
 │   ├── org/init.ts              # POST /api/org/init 处理器
 │   └── user/memberships.ts      # GET /api/user/memberships 处理器
 │
-├── end-user/                    # 终端用户模块
 ├── model-enum/                  # 枚举字段特化模块
 │
 │ ── 各业务模块（GraphQL 文档 + mock handlers）──
@@ -247,9 +246,6 @@ Next.js API Routes 作为代理层，将请求先转发至 Gateway，再由 Gate
 |------|---------------|--------------|------|
 | Developer | `/api/auth/*` | `/auth/*` | 管理端登录/刷新/登出等认证链路 |
 | Developer | `/api/bff/graphql/org/{orgName}[/...]` | `/graphql/org/{orgName}[/...]` | 设计态 Org/Project GraphQL |
-| EndUser | `/api/bff/org/{orgName}/end-user/auth/*` | `/api/end-user/auth/*` | 终端用户登录/刷新/select-project |
-| EndUser | `/api/bff/graphql/org/{orgName}/project/{projectSlug}` | `/graphql/org/{orgName}/project/{projectSlug}` | 终端用户 GraphQL（与 Developer 共用同一端点） |
-
 - 前端 `BACKEND_URL` 必须配置为 Gateway 地址。
 - 禁止浏览器侧或前端服务侧直接请求 Backend 业务端口。
 
@@ -299,8 +295,6 @@ src/mocks/
 │   │   └── handlers.ts      # model 模块 mock handlers
 │   ├── enum/
 │   │   └── handlers.ts      # enum 模块 mock handlers
-│   ├── end-user/
-│   │   └── auth-handlers.ts # 终端用户认证 handlers（始终激活）
 │   ├── project/
 │   │   ├── rbac-handlers.ts # RBAC handlers
 │   │   └── generated.ts     # codegen 自动生成，禁止手动编辑
