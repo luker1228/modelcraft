@@ -137,19 +137,6 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
     requiresProject: true,
   },
   {
-    routeTemplate: '/org/:orgName/project/:projectSlug/end-users',
-    title: '终端用户管理',
-    description: '管理访问本项目的终端用户账号',
-    keywords: ['终端用户', 'end user', '用户管理', '外部用户'],
-    examples: [
-      '查看这个项目的终端用户',
-      '帮我给项目添加一个用户',
-      '终端用户在哪里管理',
-      '禁用某个用户的访问',
-    ],
-    requiresProject: true,
-  },
-  {
     routeTemplate: '/org/:orgName/project/:projectSlug/settings',
     title: '项目设置',
     description: '修改项目基本信息、归档或删除项目；配置数据库集群连接（MySQL 主机、端口、账号密码），是使用数据库接管功能的前提',
@@ -174,18 +161,6 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
       '查看组织里有哪些开发者',
       '我要把某人的角色改成 Admin',
       '移除一个成员',
-    ],
-    requiresProject: false,
-  },
-  {
-    routeTemplate: '/org/:orgName/end-users',
-    title: '终端用户（Org 级）',
-    description: '管理组织下所有终端用户账号',
-    keywords: ['终端用户', 'org 级用户', '用户账号'],
-    examples: [
-      '查看组织下所有终端用户',
-      '帮我新建一个终端用户账号',
-      '终端用户账号在哪里管理',
     ],
     requiresProject: false,
   },

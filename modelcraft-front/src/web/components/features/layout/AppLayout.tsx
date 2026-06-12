@@ -20,10 +20,6 @@ import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
 import {
-  refreshEndUserAccessToken,
-} from '@api-client/end-user/end-user-auth-client'
-import { useEndUserAuthStore } from '@shared/stores/end-user-auth-store'
-import {
   Search,
   HelpCircle,
   ChevronRight,
@@ -74,20 +70,6 @@ export function AppLayout({
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
-  const [hasEndUserSession, setHasEndUserSession] = useState(() => {
-    const s = useEndUserAuthStore.getState()
-    return !!s.accessToken && !s.isTokenExpired()
-  })
-
-  // Attempt silent refresh only when no valid session was found synchronously
-  useEffect(() => {
-    if (hasEndUserSession) return
-    // Attempt silent refresh — fire-and-forget, no redirect
-    refreshEndUserAccessToken({ orgName }).then((token) => {
-      if (token) setHasEndUserSession(true)
-    }).catch(() => { /* ignore */ })
-  }, [orgName, hasEndUserSession])
-
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
 
@@ -312,23 +294,6 @@ export function AppLayout({
 
         {/* Right actions: Help + User only */}
         <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 px-3 text-xs"
-            onClick={() => {
-              const s = useEndUserAuthStore.getState()
-              if (s.accessToken && !s.isTokenExpired()) {
-                router.push(`/end-user/${orgName}/dashboard`)
-                return
-              }
-              void refreshEndUserAccessToken({ orgName }).then((token) => {
-                router.push(token ? `/end-user/${orgName}/dashboard` : `/end-user/${orgName}/login`)
-              })
-            }}
-          >
-            切换到用户视图
-          </Button>
           <Button
             variant="ghost"
             size="sm"

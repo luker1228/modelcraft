@@ -51,7 +51,7 @@ import {
 import { getXMC } from '@/types/xmc'
 import { RecordAccessAdapterProvider, type RecordAccessAdapter } from './access-adapter'
 import { useWorkspaceAIRef } from '@web/contexts/workspace-ai-ref-context'
-import { FilterBar } from '@web/components/features/end-user-data/FilterPanel'
+import { FilterBar } from '@web/components/shared/data-workspace/FilterBar'
 import { getRecordPageCountText } from '@web/components/shared/data-workspace/recordPageCount'
 import { useRuntimeListByPage } from '@web/components/shared/data-workspace/useRuntimeListByPage'
 

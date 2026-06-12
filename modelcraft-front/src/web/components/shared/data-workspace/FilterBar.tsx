@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import { Search, X } from 'lucide-react'
 import type { FieldDefinition } from '@api-client/cms/public'
-import { RecordQueryBar } from '@web/components/shared/data-workspace/RecordQueryBar'
+import { RecordQueryBar } from './RecordQueryBar'
 import type { FilterRow } from './filter-utils'
 import { filterRowsToWhereJson } from './filter-utils'
 import { StructuredFilterTab } from './StructuredFilterTab'

@@ -18,12 +18,6 @@ import {
   buildXAction,
 } from './clients'
 
-/** Returns true when the current page is an end-user route (vs. developer route). */
-function isEndUserPath(): boolean {
-  if (typeof window === 'undefined') return false
-  return window.location.pathname.startsWith('/end-user/')
-}
-
 /**
  * Creates an Apollo Link that injects the X-Action header required by the backend middleware.
  * Format: "{type}:{operationName}", e.g. "query:EndUserProjects", "mutation:CreateEndUser".
@@ -36,7 +30,7 @@ function createAuthLink() {
       let token = store?.accessToken ?? null
 
       // Proactively refresh if token is missing or expired (before sending)
-      if (typeof window !== 'undefined' && !isEndUserPath()) {
+      if (typeof window !== 'undefined') {
         if (!token || store!.isTokenExpired()) {
           token = await refreshAccessToken()
         }

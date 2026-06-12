@@ -3,8 +3,7 @@
  *
  * RULES (enforced by ESLint):
  * - ALL BFF route files MUST import upstream paths from this file.
- * - End-user BFF routes MUST use endUser* builders (prefix: /end-user/graphql/).
- * - Tenant BFF routes MUST use tenant* builders (prefix: /graphql/).
+ * - ALL routes MUST use tenant* builders (prefix: /graphql/).
  * - Never write /graphql/ path strings directly in BFF route files.
  */
 
@@ -29,28 +28,6 @@ export const tenantRuntimeGraphQL = (
   db: string,
   model: string,
 ) => `${gatewayUrl()}/graphql/org/${orgName}/project/${projectSlug}/db/${db}/model/${model}`
-
-// ── End-User GraphQL ────────────────────────────────────────────────────────
-// Only end-user tokens may call these endpoints.
-// APISIX route: enduser-graphql → enforces aud=end_user, injects X-User-ID + X-User-Type:end_user
-
-export const endUserOrgGraphQL = (orgName: string) =>
-  `${gatewayUrl()}/end-user/graphql/org/${orgName}/`
-
-export const endUserProjectGraphQL = (orgName: string, projectSlug: string) =>
-  `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}/`
-
-export const endUserRuntimeGraphQL = (
-  orgName: string,
-  projectSlug: string,
-  db: string,
-  model: string,
-) => `${gatewayUrl()}/end-user/graphql/org/${orgName}/project/${projectSlug}/db/${db}/model/${model}`
-
-// ── End-User Auth ───────────────────────────────────────────────────────────
-
-export const endUserAuthPath = (path: string) =>
-  `${gatewayUrl()}/api/end-user/auth/${path}`
 
 // ── Tenant Auth ─────────────────────────────────────────────────────────────
 

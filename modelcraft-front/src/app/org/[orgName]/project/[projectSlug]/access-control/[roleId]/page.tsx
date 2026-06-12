@@ -49,7 +49,7 @@ import { PageLayout } from '@web/components/features/layout'
 import { useRoleEdit } from '@/app/org/[orgName]/project/[projectSlug]/access-control/_hooks/roles/useRoleEdit'
 import { useRoleList } from '@/app/org/[orgName]/project/[projectSlug]/access-control/_hooks/roles/useRoleList'
 import { useProjectScopedClient } from '@api-client/apollo/develop-client'
-import { LIST_END_USERS } from '@/api-client/end-user'
+import { LIST_END_USERS } from '@/api-client/rbac'
 import {
   ASSIGN_END_USER_ROLE_TO_USER,
   REVOKE_END_USER_ROLE_FROM_USER,

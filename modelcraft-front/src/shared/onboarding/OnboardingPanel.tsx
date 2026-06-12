@@ -308,19 +308,9 @@ export function OnboardingPanel({ orgName, className }: { orgName: string; class
                           </div>
                         )
                       }
-                      // end_user_login: show login URL before confirm button
-                      const isLoginStep = step.id === 'end_user_login'
                       return (
                         <div key={step.id} className="py-1">
                           <div className="rounded-md border border-border bg-[#F6F8FA] px-2.5 py-2">
-                            {isLoginStep && (
-                              <>
-                                <p className="mb-1 text-[10px] text-muted-foreground">终端用户登录地址：</p>
-                                <code className="mb-2 block break-all font-mono text-[10px] text-foreground">
-                                  /end-user/{orgName}/login
-                                </code>
-                              </>
-                            )}
                             <Button
                               size="sm"
                               variant="outline"
