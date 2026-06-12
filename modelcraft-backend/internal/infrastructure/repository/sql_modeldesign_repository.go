@@ -50,6 +50,7 @@ func ModelToDomain(row dbgen.Model) *modeldesign.DataModel {
 			SyncError:           row.SyncError.String,
 			CreatedAt:           createdAt,
 			CreatedVia:          modeldesign.ModelCreationSource(row.CreatedVia),
+			IsReadOnly:          row.IsReadOnly,
 			UpdatedAt:           updatedAt,
 		},
 	}
@@ -76,6 +77,7 @@ func ModelToCreateParams(m *modeldesign.DataModel, orgName string) dbgen.CreateM
 		Status:           sql.NullString{String: m.Status, Valid: m.Status != ""},
 		GroupID:          sqlerr.PtrToNullStr(m.GroupID),
 		CreatedVia:       dbgen.ModelsCreatedVia(createdVia),
+		IsReadOnly:       m.IsReadOnly,
 		DeploymentStatus: sql.NullString{String: string(m.DeploymentStatus), Valid: string(m.DeploymentStatus) != ""},
 		LastSyncAt:       sqlerr.PtrToNullTime(m.LastSyncAt),
 		SyncError:        sql.NullString{String: m.SyncError, Valid: m.SyncError != ""},

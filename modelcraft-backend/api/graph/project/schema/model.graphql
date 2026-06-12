@@ -60,7 +60,8 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
-  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入(托管)
+  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入（纯统计用途）
+  isReadOnly: Boolean!  # 是否只读（禁止结构修改），由数据库 mode 决定
   displayField: String  # 用于 runtime _label 解析的字段名
   insertionOrderField: String  # 用于 listPage cursor 分页的插入序字段名（未配置时 listPage 稳定性无法保证）
   fields: [Field!]!

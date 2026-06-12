@@ -33,6 +33,7 @@ func TestBuildModelFromTable_DoesNotInjectSystemFieldsButKeepsPrimaryKeyFlags(t 
 		"org",
 		"project",
 		"mc_private_project",
+		false,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)
@@ -83,6 +84,7 @@ func TestBuildModelFromTable_SetsCreatedViaImported(t *testing.T) {
 		"org",
 		"project",
 		"db_1",
+		false,
 	)
 	require.NoError(t, err)
 	require.NotNil(t, result)

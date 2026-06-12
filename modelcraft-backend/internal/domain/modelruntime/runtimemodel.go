@@ -18,6 +18,7 @@ type RuntimeModel struct {
 	Description         string                          `json:"description"`
 	DatabaseName        string                          `json:"databaseName"`
 	CreatedVia          modeldesign.ModelCreationSource `json:"createdVia"`
+	IsReadOnly          bool                            `json:"isReadOnly"`
 	DisplayField        *string                         `json:"displayField"`        // 用于 _displayName 解析的字段名
 	InsertionOrderField *string                         `json:"insertionOrderField"` // 用于 listByCursor 的插入序字段名
 	Fields              map[string]*RuntimeField        `json:"fields"`

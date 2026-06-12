@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS `models` (
   `last_sync_at` DATETIME(3) NULL COMMENT '最后同步时间',
   `sync_error` TEXT NULL COMMENT '同步错误信息',
 
+  -- 只读控制字段（与 createdVia 解耦，由数据库 mode 决定）
+  `is_read_only` TINYINT(1) NOT NULL DEFAULT 0 COMMENT '是否只读：1=只读（禁止结构修改），0=可编辑',
+
   -- 时间戳字段
   `created_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) COMMENT '创建时间',
   `updated_at` DATETIME(3) NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3) COMMENT '更新时间',
@@ -48,7 +51,8 @@ CREATE TABLE IF NOT EXISTS `models` (
 
   -- 普通索引
   KEY `idx_models_project` (`org_name`, `project_slug`) COMMENT '项目查询索引',
-  KEY `idx_models_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃模型查询索引'
+  KEY `idx_models_live_project` (`org_name`, `project_slug`, `deleted_at`) COMMENT '项目活跃模型查询索引',
+  KEY `idx_models_is_read_only` (`is_read_only`) COMMENT '只读模型查询索引'
 
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='模型定义主表';
 

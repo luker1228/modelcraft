@@ -290,7 +290,7 @@ export function ModelSidebar({
                   {model.name}
                 </span>
 
-                {model.createdVia === 'IMPORTED' && (
+                {model.isReadOnly === true && (
                   <span className="border-warning/30 bg-warning/10 text-warning rounded border px-1 py-0 text-[10px]">
                     托管
                   </span>
@@ -325,19 +325,19 @@ export function ModelSidebar({
                     <DropdownMenuItem
                       className={cn(
                         'text-xs focus:bg-accent',
-                        model.createdVia === 'IMPORTED'
+                        model.isReadOnly === true
                           ? 'cursor-not-allowed text-muted-foreground/50 focus:text-muted-foreground/50'
                           : 'cursor-pointer text-destructive focus:text-destructive'
                       )}
                       onClick={(e) => {
                         e.stopPropagation()
-                        if (model.createdVia === 'IMPORTED') {
+                        if (model.isReadOnly === true) {
                           return
                         }
                         state.setModelToDelete(model)
                         state.setDeleteModelDialogOpen(true)
                       }}
-                      disabled={model.createdVia === 'IMPORTED'}
+                      disabled={model.isReadOnly === true}
                     >
                       删除模型
                     </DropdownMenuItem>

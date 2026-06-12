@@ -209,6 +209,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		clusterManager,
 		clusterRepository,
 		modelRepository,
+		modelDatabaseRepo,
 	)
 
 	// Create project related services

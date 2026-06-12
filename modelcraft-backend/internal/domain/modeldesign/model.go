@@ -78,7 +78,8 @@ type ModelMeta struct {
 	Status              string              `json:"status"`
 	GroupID             *string             `json:"groupId"`
 	DeploymentStatus    DeploymentStatus    `json:"deploymentStatus"`
-	CreatedVia          ModelCreationSource `json:"createdVia"` // 模型创建来源：NEW/IMPORTED
+	CreatedVia          ModelCreationSource `json:"createdVia"` // 模型创建来源：NEW/IMPORTED（纯统计用途）
+	IsReadOnly          bool                `json:"isReadOnly"` // 是否只读（禁止结构修改），由数据库 mode 决定
 	LastSyncAt          *time.Time          `json:"lastSyncAt"`
 	SyncError           string              `json:"syncError"`
 	CreatedAt           time.Time           `json:"createdAt"`
@@ -153,15 +154,6 @@ func (m *DataModel) IsProtectedSystemModel() bool {
 	}
 
 	return m.ModelName == "end_user_users" || m.ModelName == "end_user_accounts"
-}
-
-// IsManagedReadOnlyModel returns true when model is imported from external schema
-// and should be treated as managed read-only model.
-func (m *DataModel) IsManagedReadOnlyModel() bool {
-	if m == nil {
-		return false
-	}
-	return m.CreatedVia == ModelCreationSourceImported
 }
 
 // GetModelLocator 获取模型定位器

@@ -66,7 +66,7 @@ export function ModelDetailPanel({
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
   const insertionOrderFieldSelectValue = state.metaInsertionOrderField || '__insertion_order_field_none__'
-  const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
+  const isManagedReadOnlyModel = state.editModelData?.isReadOnly === true
 
   return (
     <Drawer open={state.editModelOpen} onOpenChange={crud.handleCloseEditModel} direction="right">

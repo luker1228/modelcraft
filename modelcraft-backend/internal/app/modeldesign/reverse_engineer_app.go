@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"modelcraft/internal/domain/cluster"
+	"modelcraft/internal/domain/modeldatabase"
 	"modelcraft/internal/domain/modeldesign"
 	"modelcraft/internal/domain/shared"
 	"modelcraft/internal/infrastructure/database/ddl"
@@ -20,6 +21,7 @@ type ReverseEngineerAppService struct {
 	clusterManager     *repository.ClusterConnectionManager
 	clusterRepo        cluster.DatabaseClusterRepository
 	modelRepo          modeldesign.ModelRepository
+	modelDatabaseRepo  modeldatabase.ModelDatabaseRepository
 }
 
 // NewReverseEngineerAppService 创建反向工程应用服务实例
@@ -28,6 +30,7 @@ func NewReverseEngineerAppService(
 	clusterManager *repository.ClusterConnectionManager,
 	clusterRepo cluster.DatabaseClusterRepository,
 	modelRepo modeldesign.ModelRepository,
+	modelDatabaseRepo modeldatabase.ModelDatabaseRepository,
 ) *ReverseEngineerAppService {
 	return &ReverseEngineerAppService{
 		modelAppService:    modelAppService,
@@ -35,6 +38,7 @@ func NewReverseEngineerAppService(
 		clusterManager:     clusterManager,
 		clusterRepo:        clusterRepo,
 		modelRepo:          modelRepo,
+		modelDatabaseRepo:  modelDatabaseRepo,
 	}
 }
 
@@ -72,7 +76,6 @@ func (s *ReverseEngineerAppService) ImportModel(
 	}
 
 	// 2. 获取表定义
-
 	tableDef, err := s.getTableDefinition(ctx, cmd)
 	if err != nil {
 		return nil, err
@@ -91,8 +94,17 @@ func (s *ReverseEngineerAppService) ImportModel(
 		return nil, err
 	}
 
+	// 3.5 查询数据库 mode 决定 isReadOnly
+	isReadOnly := false
+	if s.modelDatabaseRepo != nil {
+		db, err := s.modelDatabaseRepo.GetByName(ctx, cmd.OrgName, cmd.ProjectSlug, cmd.DatabaseName)
+		if err == nil && db != nil && db.Mode == modeldatabase.DatabaseModeManaged {
+			isReadOnly = true
+		}
+	}
+
 	// 4. 从表定义构建模型
-	buildResult, err := s.buildModelFromTable(tableDef, cmd)
+	buildResult, err := s.buildModelFromTable(tableDef, cmd, isReadOnly)
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +143,7 @@ func (s *ReverseEngineerAppService) BuildSchemaForTable(
 		return nil, err
 	}
 
-	buildResult, err := s.buildModelFromTable(tableDef, cmd)
+	buildResult, err := s.buildModelFromTable(tableDef, cmd, false)
 	if err != nil {
 		return nil, err
 	}
@@ -218,6 +230,7 @@ func (s *ReverseEngineerAppService) checkModelNameConflict(
 func (s *ReverseEngineerAppService) buildModelFromTable(
 	tableDef *ddl.TableDefinition,
 	cmd ImportModelCommand,
+	isReadOnly bool,
 ) (*BuildModelFromTableResult, error) {
 	// 转换 ddl.ColumnDefinition 到 modeldesign.TableColumn
 	columns := make([]modeldesign.TableColumn, 0, len(tableDef.Columns))
@@ -244,6 +257,7 @@ func (s *ReverseEngineerAppService) buildModelFromTable(
 		cmd.OrgName,
 		cmd.ProjectSlug,
 		cmd.DatabaseName,
+		isReadOnly,
 	)
 }
 

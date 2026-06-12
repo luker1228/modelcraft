@@ -649,6 +649,8 @@ type Model struct {
 	LastSyncAt sql.NullTime
 	// 同步错误信息
 	SyncError sql.NullString
+	// 是否只读：1=只读（禁止结构修改），0=可编辑
+	IsReadOnly bool
 	// 创建时间
 	CreatedAt sql.NullTime
 	// 更新时间

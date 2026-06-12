@@ -13,6 +13,8 @@ export const GET_MODELS = gql`
         description
         databaseName
         storageType
+        createdVia
+        isReadOnly
         fields {
           name
           title
@@ -90,6 +92,8 @@ export const GET_MODEL = gql`
         insertionOrderField
         databaseName
         storageType
+        createdVia
+        isReadOnly
         fields {
           name
           title
@@ -179,6 +183,8 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
         title
         description
         databaseName
+        createdVia
+        isReadOnly
         jsonSchema
         fields {
           name

@@ -84,6 +84,7 @@ interface GetModelQueryData {
       description?: string | null
       databaseName?: string | null
       createdVia?: 'NEW' | 'IMPORTED' | null
+      isReadOnly?: boolean | null
       jsonSchema?: string | null
       fields?: Array<{
         name: string
@@ -201,7 +202,7 @@ export default function DevelopRecordWorkspace({
   const model = modelData?.model?.model
   const modelError = modelData?.model?.error
   const modelName = model?.name
-  const isManagedReadOnlyModel = model?.createdVia === 'IMPORTED'
+  const isManagedReadOnlyModel = model?.isReadOnly === true
 
   // develop workspace 始终拥有字段生命周期能力（托管模型除外）
   const canManageFieldLifecycle = !isManagedReadOnlyModel

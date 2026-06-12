@@ -1428,6 +1428,7 @@ export type Model = Node & {
   group: ModelGroup;
   id: Scalars['ID']['output'];
   insertionOrderField?: Maybe<Scalars['String']['output']>;
+  isReadOnly: Scalars['Boolean']['output'];
   jsonSchema?: Maybe<Scalars['String']['output']>;
   name: Scalars['String']['output'];
   projectSlug: Scalars['String']['output'];
@@ -3344,7 +3345,7 @@ export type GetModelsQueryVariables = Exact<{
 }>;
 
 
-export type GetModelsQuery = { __typename?: 'Query', models: { __typename?: 'ModelListResult', hasNextPage: boolean, items: Array<{ __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } }> } };
+export type GetModelsQuery = { __typename?: 'Query', models: { __typename?: 'ModelListResult', hasNextPage: boolean, items: Array<{ __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, databaseName: string, storageType: string, createdVia: string, isReadOnly: boolean, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } }> } };
 
 export type GetModelsByDatabaseQueryVariables = Exact<{
   input?: InputMaybe<ModelQueryInput>;
@@ -3359,7 +3360,7 @@ export type GetModelQueryVariables = Exact<{
 }>;
 
 
-export type GetModelQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, displayField?: string | null, insertionOrderField?: string | null, databaseName: string, storageType: string, jsonSchema?: string | null, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, isDeprecated: boolean, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, dbColumn?: { __typename?: 'DbColumnInfo', columnType: string, unique: boolean, nonNull: boolean, defaultValue?: string | null, constraints: Array<ActualConstraintType>, foreignKey?: { __typename?: 'ActualForeignKey', referencedTable: string, referencedColumn: string, constraintName: string } | null, conflicts: Array<{ __typename?: 'FieldConflict', aspect: FieldConflictAspect, expected: string, actual: string }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
+export type GetModelQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, projectSlug: string, name: string, title: string, description: string, displayField?: string | null, insertionOrderField?: string | null, databaseName: string, storageType: string, createdVia: string, isReadOnly: boolean, jsonSchema?: string | null, dbTable?: DbTableStatus | null, createdAt: string, updatedAt: string, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, nonNull: boolean, required: boolean, isPrimary: boolean, isUnique: boolean, description?: string | null, isDeprecated: boolean, relateFkId?: string | null, belongsToFkId?: string | null, createdAt: string, updatedAt: string, enum?: { __typename?: 'EnumDefinition', id: string, name: string, displayName: string, description?: string | null, isMultiSelect: boolean, options: Array<{ __typename?: 'EnumOption', code: string, label: string, order: number, description?: string | null }> } | null, dbColumn?: { __typename?: 'DbColumnInfo', columnType: string, unique: boolean, nonNull: boolean, defaultValue?: string | null, constraints: Array<ActualConstraintType>, foreignKey?: { __typename?: 'ActualForeignKey', referencedTable: string, referencedColumn: string, constraintName: string } | null, conflicts: Array<{ __typename?: 'FieldConflict', aspect: FieldConflictAspect, expected: string, actual: string }> } | null, validationConfig?: { __typename?: 'ValidationConfig', minLength?: any | null, maxLength?: any | null, pattern?: string | null, minimum?: number | null, maximum?: number | null } | null }>, group: { __typename?: 'ModelGroup', id: string, name: string, isVirtual: boolean, displayOrder: string } } | null, error?:
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
@@ -3369,7 +3370,7 @@ export type GetModelRecordWorkspaceQueryVariables = Exact<{
 }>;
 
 
-export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
+export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, isReadOnly: boolean, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
       | { __typename: 'InvalidInput', message: string }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
@@ -3996,6 +3997,31 @@ export type GetVirtualPresetsByModelQueryVariables = Exact<{
 
 
 export type GetVirtualPresetsByModelQuery = { __typename?: 'Query', virtualPresetsByModel: Array<EndUserPermissionPreset> };
+
+export type GetRlsPoliciesQueryVariables = Exact<{
+  modelId: Scalars['ID']['input'];
+}>;
+
+
+export type GetRlsPoliciesQuery = { __typename?: 'Query', rlsPolicies: Array<{ __typename?: 'RlsPolicy', id: string, policyName: string, action: RlsAction, role: string, usingExpr?: string | null, withCheckExpr?: string | null, createdAt: string, updatedAt: string }> };
+
+export type UpsertRlsPolicyMutationVariables = Exact<{
+  modelId: Scalars['ID']['input'];
+  input: RlsPolicyInput;
+}>;
+
+
+export type UpsertRlsPolicyMutation = { __typename?: 'Mutation', upsertRlsPolicy: { __typename?: 'UpsertRlsPolicyPayload', policy?: { __typename?: 'RlsPolicy', id: string, policyName: string, action: RlsAction, role: string, usingExpr?: string | null, withCheckExpr?: string | null, createdAt: string, updatedAt: string } | null, error?:
+      | { __typename: 'InvalidInput', message: string }
+      | { __typename: 'ResourceNotFound', message: string }
+     | null } };
+
+export type DeleteRlsPolicyMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type DeleteRlsPolicyMutation = { __typename?: 'Mutation', deleteRlsPolicy: { __typename?: 'DeleteRlsPolicyPayload', success: boolean, error?: { __typename: 'ResourceNotFound', message: string } | null } };
 
 export type GetMeQueryVariables = Exact<{ [key: string]: never; }>;
 

@@ -46,6 +46,7 @@ func (m *modelMapper) ConvertToGraphQLModelWithActualSchema(
 		DatabaseName:        modelEntity.DatabaseName,
 		StorageType:         modelEntity.StorageType,
 		CreatedVia:          string(modelEntity.CreatedVia),
+		IsReadOnly:          modelEntity.IsReadOnly,
 		DisplayField:        modelEntity.DisplayField,
 		InsertionOrderField: modelEntity.InsertionOrderField,
 		Fields:              graphqlFields,

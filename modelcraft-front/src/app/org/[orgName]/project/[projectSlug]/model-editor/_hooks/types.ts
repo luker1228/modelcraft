@@ -20,6 +20,7 @@ export interface EditorModel {
   databaseName: string
   storageType?: string
   createdVia?: 'NEW' | 'IMPORTED'
+  isReadOnly?: boolean
 }
 
 export interface EditorModelField {

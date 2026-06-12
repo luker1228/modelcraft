@@ -59,7 +59,7 @@ func (s *RepairModelUseCase) RepairModel(
 	if model == nil {
 		return nil, fmt.Errorf("model not found: %s", modelID)
 	}
-	if model.IsManagedReadOnlyModel() {
+	if model.IsReadOnly {
 		return nil, bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, model.ModelName)
 	}
 

@@ -62,7 +62,7 @@ func (s *ModelDesignAppService) getLogger(ctx context.Context) logfacade.Logger 
 }
 
 func (s *ModelDesignAppService) denyIfManagedModelReadOnly(ctx context.Context, model *modeldesign.DataModel) error {
-	if model == nil || !model.IsManagedReadOnlyModel() {
+	if model == nil || !model.IsReadOnly {
 		return nil
 	}
 	return bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, model.ModelName)

@@ -139,6 +139,7 @@ func DbgenModelToRuntimeModel(row dbgen.Model) *modelruntime.RuntimeModel {
 		Description:         row.Description.String,
 		DatabaseName:        row.DatabaseName,
 		CreatedVia:          modeldesign.ModelCreationSource(row.CreatedVia),
+		IsReadOnly:          row.IsReadOnly,
 		DisplayField:        displayField,
 		InsertionOrderField: insertionOrderField,
 	}

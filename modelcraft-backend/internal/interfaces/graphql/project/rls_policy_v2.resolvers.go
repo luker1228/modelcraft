@@ -129,5 +129,3 @@ func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string) ([]*gen
 	}
 	return result, nil
 }
-
-

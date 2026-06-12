@@ -21,6 +21,14 @@ export interface Role {
   updatedAt: string
 }
 
+export interface ApiToken {
+  id: string
+  name: string
+  createdAt: string
+  expiresAt?: string | null
+  lastUsedAt?: string | null
+}
+
 export interface OrganizationMember {
   id: string
   userID: string

@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import {
   Loader2,
   Edit,
@@ -12,6 +13,7 @@ import {
   AlertTriangle,
 } from 'lucide-react'
 import { Button } from '@web/components/ui/button'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
 import { Input } from '@web/components/ui/input'
 import { Alert, AlertDescription } from '@web/components/ui/alert'
 import {
@@ -62,7 +64,8 @@ export function ModelSchemaPanel({
   )
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
-  const isManagedReadOnlyModel = state.editModelData?.createdVia === 'IMPORTED'
+  const isManagedReadOnlyModel = state.editModelData?.isReadOnly === true
+  const router = useRouter()
 
   if (!state.editModelData) {
     return (
@@ -92,7 +95,7 @@ export function ModelSchemaPanel({
 
       {/* Header */}
       <div className="flex shrink-0 items-start border-b border-border px-6 py-4">
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <h2 className="text-base font-semibold text-foreground">
             {state.editModelData?.title || state.editModelData?.name || '模型详情'}
           </h2>
@@ -100,6 +103,20 @@ export function ModelSchemaPanel({
             {state.editModelData?.name}
           </p>
         </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-7 text-xs text-muted-foreground hover:text-foreground"
+          onClick={() =>
+            router.push(buildModelEditorPath(orgName, projectSlug, {
+              view: 'data',
+              databaseName: state.selectedDatabase || null,
+            }))
+          }
+        >
+          <Table2 className="mr-1.5 size-3.5" />
+          前往数据表
+        </Button>
       </div>
 
       {/* Scrollable body */}

@@ -704,6 +704,7 @@ type ComplexityRoot struct {
 		Group               func(childComplexity int) int
 		ID                  func(childComplexity int) int
 		InsertionOrderField func(childComplexity int) int
+		IsReadOnly          func(childComplexity int) int
 		JSONSchema          func(childComplexity int) int
 		Name                func(childComplexity int) int
 		ProjectSlug         func(childComplexity int) int
@@ -3389,6 +3390,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.complexity.Model.InsertionOrderField(childComplexity), true
+	case "Model.isReadOnly":
+		if e.complexity.Model.IsReadOnly == nil {
+			break
+		}
+
+		return e.complexity.Model.IsReadOnly(childComplexity), true
 	case "Model.jsonSchema":
 		if e.complexity.Model.JSONSchema == nil {
 			break
@@ -6646,7 +6653,8 @@ type Model implements Node {
   description: String!
   databaseName: String!
   storageType: String!
-  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入(托管)
+  createdVia: String!  # 模型创建来源：NEW=自建，IMPORTED=导入（纯统计用途）
+  isReadOnly: Boolean!  # 是否只读（禁止结构修改），由数据库 mode 决定
   displayField: String  # 用于 runtime _label 解析的字段名
   insertionOrderField: String  # 用于 listPage cursor 分页的插入序字段名（未配置时 listPage 稳定性无法保证）
   fields: [Field!]!
@@ -9630,6 +9638,8 @@ func (ec *executionContext) fieldContext_AddFieldsPayload_model(_ context.Contex
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -11390,6 +11400,8 @@ func (ec *executionContext) fieldContext_CreateModelFromSchemaPayload_model(_ co
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -11455,6 +11467,8 @@ func (ec *executionContext) fieldContext_CreateModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -18790,6 +18804,8 @@ func (ec *executionContext) fieldContext_GetModelPayload_model(_ context.Context
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -19978,6 +19994,35 @@ func (ec *executionContext) fieldContext_Model_createdVia(_ context.Context, fie
 		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Model_isReadOnly(ctx context.Context, field graphql.CollectedField, obj *Model) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		ec.fieldContext_Model_isReadOnly,
+		func(ctx context.Context) (any, error) {
+			return obj.IsReadOnly, nil
+		},
+		nil,
+		ec.marshalNBoolean2bool,
+		true,
+		true,
+	)
+}
+
+func (ec *executionContext) fieldContext_Model_isReadOnly(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Model",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
 		},
 	}
 	return fc, nil
@@ -21298,6 +21343,8 @@ func (ec *executionContext) fieldContext_ModelGroup_models(_ context.Context, fi
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -21508,6 +21555,8 @@ func (ec *executionContext) fieldContext_ModelListResult_items(_ context.Context
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -22827,6 +22876,8 @@ func (ec *executionContext) fieldContext_Mutation_deprecateField(ctx context.Con
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -22927,6 +22978,8 @@ func (ec *executionContext) fieldContext_Mutation_undeprecateField(ctx context.C
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -29335,6 +29388,8 @@ func (ec *executionContext) fieldContext_RemoveFieldPayload_model(_ context.Cont
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -29557,6 +29612,8 @@ func (ec *executionContext) fieldContext_RepairModelPayload_model(_ context.Cont
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -30913,6 +30970,8 @@ func (ec *executionContext) fieldContext_SyncModelSchemaPayload_model(_ context.
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -31744,6 +31803,8 @@ func (ec *executionContext) fieldContext_UpdateFieldPayload_model(_ context.Cont
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -31867,6 +31928,8 @@ func (ec *executionContext) fieldContext_UpdateModelMetaPayload_model(_ context.
 				return ec.fieldContext_Model_storageType(ctx, field)
 			case "createdVia":
 				return ec.fieldContext_Model_createdVia(ctx, field)
+			case "isReadOnly":
+				return ec.fieldContext_Model_isReadOnly(ctx, field)
 			case "displayField":
 				return ec.fieldContext_Model_displayField(ctx, field)
 			case "insertionOrderField":
@@ -43208,6 +43271,11 @@ func (ec *executionContext) _Model(ctx context.Context, sel ast.SelectionSet, ob
 			}
 		case "createdVia":
 			out.Values[i] = ec._Model_createdVia(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "isReadOnly":
+			out.Values[i] = ec._Model_isReadOnly(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}

@@ -1361,6 +1361,7 @@ type Model struct {
 	DatabaseName        string         `json:"databaseName"`
 	StorageType         string         `json:"storageType"`
 	CreatedVia          string         `json:"createdVia"`
+	IsReadOnly          bool           `json:"isReadOnly"`
 	DisplayField        *string        `json:"displayField,omitempty"`
 	InsertionOrderField *string        `json:"insertionOrderField,omitempty"`
 	Fields              []*Field       `json:"fields"`

@@ -7,7 +7,7 @@ import { getXMC, type XMCWidget } from '@/types/xmc'
 const WIDGET_MAP: Partial<Record<XMCWidget, string>> = {
   'enum-select': 'EnumSelect',
   'date': 'date',
-  'datetime-local': 'datetime-local',
+  'datetime-local': 'datetime',
   'time': 'time',
   'textarea': 'textarea',
   'relation-selector': 'RelationSelector',
