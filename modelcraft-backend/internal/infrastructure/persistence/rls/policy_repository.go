@@ -138,7 +138,7 @@ func (r *SqlPolicyRepository) Upsert(ctx context.Context, orgName, projectSlug s
 }
 
 // Delete 删除指定策略
-func (r *SqlPolicyRepository) Delete(ctx context.Context, id int64, orgName, projectSlug string) error {
+func (r *SqlPolicyRepository) Delete(ctx context.Context, orgName, projectSlug string, id int64) error {
 	err := r.q.DeletePolicy(ctx, dbgen.DeletePolicyParams{
 		ID:          uint64(id),
 		OrgName:     orgName,

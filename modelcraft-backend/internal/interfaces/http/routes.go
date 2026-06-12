@@ -8,6 +8,11 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
+	"net/http"
+	"os"
+	"sync"
+	"time"
+
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/modeldesign"
@@ -21,10 +26,6 @@ import (
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
-	"net/http"
-	"os"
-	"sync"
-	"time"
 
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 
@@ -236,13 +237,13 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		},
 	)
 
-		// Create RLS related services (V2: multi-policy matching)
-		policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))
-		authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
-		rlsPolicyCompiler := rls.NewPolicyCompiler()
-		rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsPolicyCompiler)
-		_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
-		authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
+	// Create RLS related services (V2: multi-policy matching)
+	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))
+	authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
+	rlsPolicyCompiler := rls.NewPolicyCompiler()
+	rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsPolicyCompiler)
+	_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
+	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 
 	// Create RBAC (Data-Level Row & Column Permission) services
 	rbacRepo := repository.NewSqlEndUserDataPermissionRepository(dbgen.New(loggingDB))
@@ -441,6 +442,10 @@ func SetupProjectGraphQLRoutesOnChi(
 	actualSchemaService := ddl.NewActualSchemaService()
 	actualSchemaQueryUseCase := modeldesign.NewActualSchemaQueryUseCase(actualSchemaService, handlers.ClusterManager)
 
+	// Create RLS policy CRUD service
+	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(handlers.SystemDB))
+	policyCRUDService := rls.NewPolicyCRUDService(policyRepo)
+
 	// Create project resolver
 	projectResolver := &projectgraphql.Resolver{
 		ClusterAppService:           handlers.ClusterAppService,
@@ -462,6 +467,7 @@ func SetupProjectGraphQLRoutesOnChi(
 		RBACAuthzSvc:                handlers.RBACAuthzSvc,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
+		PolicyCRUDService:           policyCRUDService,
 	}
 
 	// Register project endpoint: /graphql/org/{orgName}/project/{projectSlug}
@@ -531,6 +537,10 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 	actualSchemaService := ddl.NewActualSchemaService()
 	actualSchemaQueryUseCase := modeldesign.NewActualSchemaQueryUseCase(actualSchemaService, handlers.ClusterManager)
 
+	// Create RLS policy CRUD service
+	policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(handlers.SystemDB))
+	policyCRUDService := rls.NewPolicyCRUDService(policyRepo)
+
 	projectResolver := &projectgraphql.Resolver{
 		ClusterAppService:           handlers.ClusterAppService,
 		ModelDesignService:          handlers.ModelAppService,
@@ -551,6 +561,7 @@ func SetupEndUserProjectGraphQLRoutesOnChi(
 		RBACAuthzSvc:                handlers.RBACAuthzSvc,
 		ModelDatabaseAppService:     handlers.ModelDatabaseAppService,
 		ModelDatabaseSyncAppService: handlers.ModelDatabaseSyncAppService,
+		PolicyCRUDService:           policyCRUDService,
 	}
 
 	router.Route("/end-user/graphql/org/{orgName}/project/{projectSlug}", func(r chi.Router) {

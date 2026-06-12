@@ -18,6 +18,7 @@ import { useOrganizationStore } from '@shared/stores/organization'
 import { TENANT_LOGIN_PATH } from '@shared/constants/routes'
 import { getCachedMemberships } from '@shared/cache/memberships-cache'
 import { useProjectStore } from '@web/stores/project'
+import { useAppStore } from '@web/stores/app'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
 import {
   Search,
@@ -27,6 +28,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
+import { buildModelEditorPath } from '@/app/org/[orgName]/project/[projectSlug]/model-editor/_components/model-editor-path'
 
 interface AppLayoutProps {
   children: ReactNode
@@ -99,6 +101,7 @@ export function AppLayout({
 
   const storeProjects = useProjectStore((state) => state.projects)
   const selectedProject = useProjectStore((state) => state.selectedProject)
+  const selectedDatabase = useAppStore((state) => state.selectedDatabase)
 
   const filteredOrgs = useMemo(() => {
     if (!orgSearchQuery) return memberships
@@ -177,7 +180,14 @@ export function AppLayout({
       items: [
         { label: '数据模型', icon: '/icons/icon-table2.svg', href: `/org/${orgName}/project/${projectSlug}/model-editor`, children: [
           { label: '模型管理', href: `/org/${orgName}/project/${projectSlug}/model-editor`, tabParam: 'view=schema' },
-          { label: '数据管理', href: `/org/${orgName}/project/${projectSlug}/model-editor?view=data`, tabParam: 'view=data' },
+          {
+            label: '数据管理',
+            href: buildModelEditorPath(orgName, projectSlug, {
+              view: 'data',
+              databaseName: selectedDatabase,
+            }),
+            tabParam: 'view=data',
+          },
         ]},
         { label: '数据库', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/databases` },
         { label: '枚举管理', icon: '/icons/icon-list.svg', href: `/org/${orgName}/project/${projectSlug}/enums` },

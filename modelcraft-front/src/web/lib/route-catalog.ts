@@ -57,7 +57,7 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
     requiresProject: true,
   },
   {
-    routeTemplate: '/org/:orgName/project/:projectSlug/model-editor?view=data',
+    routeTemplate: '/org/:orgName/project/:projectSlug/model-editor?view=data&db=:databaseName',
     title: '数据管理',
     description: '查看、查询和管理模型数据记录',
     keywords: ['数据管理', '数据记录', '记录管理', '查看数据', '查询数据', '模型数据'],

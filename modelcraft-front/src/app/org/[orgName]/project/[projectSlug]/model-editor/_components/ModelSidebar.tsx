@@ -2,7 +2,7 @@
 
 import { useRef } from 'react'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
 import { useRegisterAICapability } from '@web/hooks/ai/use-register-ai-capability'
 import {
   Table2,
@@ -34,6 +34,7 @@ import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import { buildDatabaseManagementPath } from './database-management-path'
+import { buildModelEditorPath } from './model-editor-path'
 
 interface DatabaseOption {
   name: string
@@ -60,9 +61,12 @@ export function ModelSidebar({
   viewMode,
 }: ModelSidebarProps) {
   const { pendingAction, setPendingAction } = useOnboarding()
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const params = useParams<{ orgName: string; projectSlug: string }>()
   const hasDatabases = databases.length > 0
   const databaseManagementPath = buildDatabaseManagementPath(params.orgName, params.projectSlug)
+  const viewMode = (searchParams.get('view') === 'data' ? 'data' : 'schema') as 'schema' | 'data'
 
   // AI capability refs for chip highlighting
   const createModelBtnRef = useRef<HTMLButtonElement>(null)
@@ -89,6 +93,12 @@ export function ModelSidebar({
     state.setSelectedDatabase(dbName)
     state.setSelectedModelId(null)
     state.setDatabaseOpen(false)
+    router.replace(
+      buildModelEditorPath(params.orgName, params.projectSlug, {
+        view: viewMode,
+        databaseName: dbName,
+      })
+    )
   }
 
   const handleCreateModelClick = () => {
