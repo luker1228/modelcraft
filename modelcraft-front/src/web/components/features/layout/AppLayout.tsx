@@ -196,11 +196,7 @@ export function AppLayout({
     {
       header: '权限管理',
       items: [
-        { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/access-control`, children: [
-          { label: '角色', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=roles`, tabParam: 'tab=roles' },
-          { label: '权限包', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=bundles`, tabParam: 'tab=bundles' },
-          { label: '权限点', href: `/org/${orgName}/project/${projectSlug}/access-control?tab=permissions`, tabParam: 'tab=permissions' },
-        ]},
+        { label: '访问控制', icon: '/icons/icon-shield.svg', href: `/org/${orgName}/project/${projectSlug}/access-control` },
       ],
     },
     {
