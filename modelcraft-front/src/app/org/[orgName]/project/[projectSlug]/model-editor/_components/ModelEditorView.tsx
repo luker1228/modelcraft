@@ -25,7 +25,7 @@ import {
   DataWorkspacePanel,
   type DataWorkspaceTab,
 } from '@web/components/features/model-editor/DataWorkspacePanel'
-import { buildModelEditorPath } from './model-editor-path'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
   // Onboarding: pendingAction is consumed by ModelSidebar directly via useOnboarding
 
 const DevelopRecordWorkspace = lazy(() => import('@web/components/features/model-editor/model-record-form/DevelopRecordWorkspace'))

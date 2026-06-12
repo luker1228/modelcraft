@@ -28,7 +28,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
-import { buildModelEditorPath } from '@/app/org/[orgName]/project/[projectSlug]/model-editor/_components/model-editor-path'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
 
 interface AppLayoutProps {
   children: ReactNode

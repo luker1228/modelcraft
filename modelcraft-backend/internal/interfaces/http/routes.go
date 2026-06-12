@@ -8,11 +8,6 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"net/http"
-	"os"
-	"sync"
-	"time"
-
 	"modelcraft/internal/app/auth"
 	"modelcraft/internal/app/cluster"
 	"modelcraft/internal/app/modeldesign"
@@ -26,6 +21,10 @@ import (
 	"modelcraft/pkg/config"
 	"modelcraft/pkg/ctxutils"
 	"modelcraft/pkg/logfacade"
+	"net/http"
+	"os"
+	"sync"
+	"time"
 
 	appmodeldatabase "modelcraft/internal/app/modeldatabase"
 

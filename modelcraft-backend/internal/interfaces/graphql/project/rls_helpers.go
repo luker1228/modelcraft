@@ -14,6 +14,14 @@ import (
 	domainRLS "modelcraft/internal/domain/rls"
 )
 
+// stringPtr returns nil for empty string, otherwise a pointer to s.
+func stringPtr(s string) *string {
+	if s == "" {
+		return nil
+	}
+	return &s
+}
+
 // getOrgAndProjectFromContext extracts orgName and projectSlug from GraphQL context.
 func getOrgAndProjectFromContext(ctx context.Context) (orgName, projectSlug string, err error) {
 	orgName, err = ctxutils.GetOrgNameFromContext(ctx)

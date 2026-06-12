@@ -243,7 +243,7 @@ func (s *TokenService) registerWithTxOrgService(
 	err := s.txManager.WithTx(ctx, func(ctx context.Context, q dbgen.Querier) error {
 		// Step 1: Create Org first to get orgName
 		var orgName string
-			var ownerRoleID int
+		var ownerRoleID int
 		if s.createOrgService != nil {
 			orgOutput, txErr := txOrgService.ExecuteWithQuerier(ctx, q, orgInput)
 			if txErr != nil {
@@ -253,7 +253,7 @@ func (s *TokenService) registerWithTxOrgService(
 				)
 			}
 			orgName = orgOutput.OrganizationName
-				ownerRoleID = int(orgOutput.RoleID)
+			ownerRoleID = int(orgOutput.RoleID)
 		} else {
 			orgName = bizutils.GenerateSlugWithLength(cmd.UserName, 6, 24)
 		}
@@ -282,21 +282,21 @@ func (s *TokenService) registerWithTxOrgService(
 		// Step 4: Persist user + profile
 		userRepo := repository.NewSqlUserRepository(q)
 		profileRepo := repository.NewSqlProfileRepository(q)
-			if err := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); err != nil {
-				return err
-			}
+		if err := s.persistUserAndProfile(ctx, userRepo, profileRepo, u, initialProfile, phone.Masked()); err != nil {
+			return err
+		}
 
-			// Step 5: Assign owner role (user must exist first for fk_user_roles_user FK)
-			if ownerRoleID != 0 {
-				userRoleRepo := repository.NewSqlCasbinUserRoleRepository(q)
-				userRole := &domainPermission.UserRole{
-					UserID: userID, RoleID: ownerRoleID, OrgName: orgName,
-				}
-				if err := userRoleRepo.AssignRole(ctx, userRole); err != nil {
-					return bizerrors.WrapError(err, bizerrors.SystemError, "assign owner role")
-				}
+		// Step 5: Assign owner role (user must exist first for fk_user_roles_user FK)
+		if ownerRoleID != 0 {
+			userRoleRepo := repository.NewSqlCasbinUserRoleRepository(q)
+			userRole := &domainPermission.UserRole{
+				UserID: userID, RoleID: ownerRoleID, OrgName: orgName,
 			}
-			return nil
+			if err := userRoleRepo.AssignRole(ctx, userRole); err != nil {
+				return bizerrors.WrapError(err, bizerrors.SystemError, "assign owner role")
+			}
+		}
+		return nil
 	})
 	if err != nil {
 		if _, ok := err.(*bizerrors.BusinessError); ok {

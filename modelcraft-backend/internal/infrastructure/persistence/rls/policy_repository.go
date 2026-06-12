@@ -3,7 +3,6 @@ package rls
 import (
 	"context"
 	"encoding/json"
-
 	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/infrastructure/dbgen"
 	"modelcraft/internal/infrastructure/dbgenwrap"

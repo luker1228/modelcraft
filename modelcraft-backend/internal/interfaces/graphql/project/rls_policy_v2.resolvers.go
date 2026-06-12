@@ -7,12 +7,11 @@ package projectgraphql
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"time"
-
 	appRLS "modelcraft/internal/app/rls"
 	domainRLS "modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/graphql/project/generated"
+	"strconv"
+	"time"
 )
 
 // UpsertRlsPolicy is the resolver for the upsertRlsPolicy field.
@@ -131,10 +130,4 @@ func (r *queryResolver) RlsPolicies(ctx context.Context, modelID string) ([]*gen
 	return result, nil
 }
 
-// stringPtr returns a pointer to the string, or nil if the string is empty.
-func stringPtr(s string) *string {
-	if s == "" {
-		return nil
-	}
-	return &s
-}
+

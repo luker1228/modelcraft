@@ -34,7 +34,7 @@ import type { ModelEditorState, EditorModel } from '../_hooks'
 import type { ModelCRUD } from '../_hooks'
 import { useOnboarding } from '@shared/onboarding/OnboardingContext'
 import { buildDatabaseManagementPath } from './database-management-path'
-import { buildModelEditorPath } from './model-editor-path'
+import { buildModelEditorPath } from '@shared/routes/model-editor-path'
 
 interface DatabaseOption {
   name: string
@@ -66,7 +66,9 @@ export function ModelSidebar({
   const params = useParams<{ orgName: string; projectSlug: string }>()
   const hasDatabases = databases.length > 0
   const databaseManagementPath = buildDatabaseManagementPath(params.orgName, params.projectSlug)
-  const viewMode = (searchParams.get('view') === 'data' ? 'data' : 'schema') as 'schema' | 'data'
+  const currentViewMode = (searchParams.get('view') === 'data' ? 'data' : 'schema') as
+    | 'schema'
+    | 'data'
 
   // AI capability refs for chip highlighting
   const createModelBtnRef = useRef<HTMLButtonElement>(null)
@@ -95,7 +97,7 @@ export function ModelSidebar({
     state.setDatabaseOpen(false)
     router.replace(
       buildModelEditorPath(params.orgName, params.projectSlug, {
-        view: viewMode,
+        view: currentViewMode,
         databaseName: dbName,
       })
     )
