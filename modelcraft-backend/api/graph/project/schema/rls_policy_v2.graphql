@@ -1,0 +1,87 @@
+# ============================================
+# RLS Policy V2 — Multi-Policy CRUD
+# Each model can have multiple policies, matched by action + role
+# ============================================
+
+# ----------------------------------------
+# Enums
+# ----------------------------------------
+
+enum RlsAction {
+  read
+  create
+  update
+  delete
+}
+
+# ----------------------------------------
+# Types
+# ----------------------------------------
+
+type RlsPolicy {
+  id: ID!
+  policyName: String!
+  action: RlsAction!
+  role: String!
+  usingExpr: String
+  withCheckExpr: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+# ----------------------------------------
+# Input Types
+# ----------------------------------------
+
+input RlsPolicyInput {
+  policyName: String!
+  action: RlsAction!
+  role: String!
+  usingExpr: String
+  withCheckExpr: String
+}
+
+# ----------------------------------------
+# Error Types
+# ----------------------------------------
+
+type RlsPolicyNotFound implements Error {
+  message: String!
+}
+
+union UpsertRlsPolicyError = InvalidInput | ResourceNotFound
+union DeleteRlsPolicyError = ResourceNotFound
+
+# ----------------------------------------
+# Payload Types
+# ----------------------------------------
+
+type UpsertRlsPolicyPayload {
+  policy: RlsPolicy
+  error: UpsertRlsPolicyError
+}
+
+type DeleteRlsPolicyPayload {
+  success: Boolean!
+  error: DeleteRlsPolicyError
+}
+
+# ----------------------------------------
+# Queries & Mutations
+# ----------------------------------------
+
+extend type Query {
+  """List all RLS policies for a model"""
+  rlsPolicies(modelId: ID!): [RlsPolicy!]! @hasPermission(action: "model:read")
+}
+
+extend type Mutation {
+  """Create or update an RLS policy"""
+  upsertRlsPolicy(modelId: ID!, input: RlsPolicyInput!): UpsertRlsPolicyPayload! @hasPermission(action: "model:update")
+
+  """Delete a single RLS policy by ID"""
+  deleteRlsPolicy(id: ID!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
+
+  """Delete all RLS policies for a model"""
+  deleteRlsPoliciesByModel(modelId: ID!): DeleteRlsPolicyPayload! @hasPermission(action: "model:update")
+}

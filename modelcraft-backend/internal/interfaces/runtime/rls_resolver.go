@@ -3,345 +3,140 @@ package runtime
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"modelcraft/internal/domain/modeldesign"
+	"modelcraft/internal/domain/rls"
 	"modelcraft/internal/interfaces/http/middleware"
 	"modelcraft/pkg/logfacade"
 )
 
-// RLSFilter represents the resolved RLS filter for a query.
-type RLSFilter struct {
-	SelectPredicate JSONExpr `json:"selectPredicate"`
-	InsertCheck     JSONExpr `json:"insertCheck"`
-	UpdatePredicate JSONExpr `json:"updatePredicate"`
-	UpdateCheck     JSONExpr `json:"updateCheck"`
-	DeletePredicate JSONExpr `json:"deletePredicate"`
-	FieldName       string   `json:"fieldName"` // Fixed as "owner"
-	EndUserID       string   `json:"endUserId"`
+// MatchingService 匹配引擎接口（app/rls.PolicyMatchingService 实现）
+type MatchingService interface {
+	ResolveUsing(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, userCtx *rls.UserContext) (string, []interface{}, error)
+	ResolveCheck(ctx context.Context, orgName, projectSlug, modelID string, action rls.Action, userCtx *rls.UserContext) (string, []interface{}, error)
 }
 
-// JSONExpr represents a JSON expression for RLS predicates.
-type JSONExpr string
-
-// IsTrue returns true if the expression is a JSON boolean true.
-func (e JSONExpr) IsTrue() bool {
-	var v interface{}
-	if err := json.Unmarshal([]byte(e), &v); err != nil {
-		return false
-	}
-	if b, ok := v.(bool); ok {
-		return b
-	}
-	// Check {"_const": true}
-	var obj map[string]interface{}
-	if err := json.Unmarshal([]byte(e), &obj); err == nil {
-		if v, ok := obj["_const"]; ok {
-			if b, ok := v.(bool); ok {
-				return b
-			}
-		}
-	}
-	return false
-}
-
-// IsFalse returns true if the expression is a JSON boolean false.
-func (e JSONExpr) IsFalse() bool {
-	var v interface{}
-	if err := json.Unmarshal([]byte(e), &v); err != nil {
-		return false
-	}
-	if b, ok := v.(bool); ok {
-		return !b
-	}
-	// Check {"_const": false}
-	var obj map[string]interface{}
-	if err := json.Unmarshal([]byte(e), &obj); err == nil {
-		if v, ok := obj["_const"]; ok {
-			if b, ok := v.(bool); ok {
-				return !b
-			}
-		}
-	}
-	return false
-}
-
-// IsOwnerEqualsUser returns true if the expression matches {"owner":{"_eq":{"_auth":"uid"}}}
-func (e JSONExpr) IsOwnerEqualsUser() bool {
-	var obj map[string]interface{}
-	if err := json.Unmarshal([]byte(e), &obj); err != nil {
-		return false
-	}
-	owner, ok := obj["owner"].(map[string]interface{})
-	if !ok {
-		return false
-	}
-	eq, ok := owner["_eq"].(map[string]interface{})
-	if !ok {
-		return false
-	}
-	auth, ok := eq["_auth"].(string)
-	return ok && auth == "uid"
-}
-
-// IsDenyAll returns true if all predicates are false (DENY ALL policy).
-func (f *RLSFilter) IsDenyAll() bool {
-	return f.SelectPredicate.IsFalse() &&
-		f.UpdatePredicate.IsFalse() &&
-		f.DeletePredicate.IsFalse()
-}
-
-// ShouldInjectWhere returns true if WHERE clause injection is needed.
-// Returns false when SELECT predicate is true (full access) or false (DENY ALL).
-func (f *RLSFilter) ShouldInjectWhere() bool {
-	return !f.SelectPredicate.IsTrue() && !f.SelectPredicate.IsFalse()
-}
-
-// RLSResolver resolves RLS filters for runtime queries.
+// RLSResolver resolves RLS policies using the multi-policy matching engine.
 type RLSResolver struct {
-	logger     logfacade.Logger
-	policyRepo modeldesign.ModelRLSPolicyRepository
+	logger      logfacade.Logger
+	matchingSvc MatchingService
 }
 
 // NewRLSResolver creates a new RLSResolver.
-func NewRLSResolver(logger logfacade.Logger, policyRepo modeldesign.ModelRLSPolicyRepository) *RLSResolver {
+func NewRLSResolver(logger logfacade.Logger, matchingSvc MatchingService) *RLSResolver {
 	return &RLSResolver{
-		logger:     logger,
-		policyRepo: policyRepo,
+		logger:      logger,
+		matchingSvc: matchingSvc,
 	}
 }
 
 // ResolveResult represents the result of RLS resolution.
 type ResolveResult struct {
-	// Filter is the resolved RLS filter. Nil means no filtering (Developer access).
-	Filter *RLSFilter
-	// ShouldApply indicates whether RLS should be applied.
+	UsingSQL    string
+	UsingParams []interface{}
+	CheckSQL    string
+	CheckParams []interface{}
 	ShouldApply bool
-	// DenyAll indicates if all access should be denied.
-	DenyAll bool
+	DenyAll     bool
 }
 
-// Resolve resolves the RLS filter based on the context and model.
-// Returns nil filter for Developer JWT access (no RLS).
-// Returns DENY ALL filter for EndUser when no policy exists.
-func (r *RLSResolver) Resolve(ctx context.Context, modelID string) (*ResolveResult, error) {
-	logger := r.logger
-
+// Resolve resolves the RLS policy for the given action and model.
+// Returns nil DenyAll=false ShouldApply=false for Developer access (no RLS).
+// Returns DenyAll=true when no matching policy exists (default deny).
+func (r *RLSResolver) Resolve(ctx context.Context, action rls.Action, modelID string) (*ResolveResult, error) {
 	// Get end-user identity from context
 	identity := middleware.GetEndUserIdentity(ctx)
 
-	// No identity found - this shouldn't happen for Runtime endpoints
-	// but we return deny-all to be safe
+	// No identity found - deny all to be safe
 	if identity == nil {
-		logger.Warn(ctx, "No end-user identity found in context")
-		return &ResolveResult{
-			Filter:      nil,
-			ShouldApply: true,
-			DenyAll:     true,
-		}, nil
+		r.logger.Warn(ctx, "No end-user identity found in context")
+		return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 	}
 
-	// Developer JWT should not reach Runtime endpoints (rejected by middleware)
-	// But if it does, we return deny-all as a safety measure
+	// Developer JWT — no RLS applied
 	if identity.IsDeveloper() {
-		logger.Warn(ctx, "Developer JWT detected in Runtime endpoint")
-		return &ResolveResult{
-			Filter:      nil,
-			ShouldApply: true,
-			DenyAll:     true,
-		}, nil
+		return &ResolveResult{ShouldApply: false}, nil
 	}
 
-	// EndUser JWT - apply RLS
+	// EndUser JWT — apply RLS
 	if identity.IsEndUser() {
-		// Fetch model policy from repository
-		// Get orgName and projectSlug from context
 		rctx, ok := getRuntimeContext(ctx)
 		if !ok {
-			logger.Warn(ctx, "No runtime context found")
-			return &ResolveResult{
-				Filter:      nil,
-				ShouldApply: true,
-				DenyAll:     true,
-			}, nil
+			r.logger.Warn(ctx, "No runtime context found")
+			return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 		}
 
-		// Fetch policy from repository
-		policy, err := r.policyRepo.GetByModelID(ctx, rctx.OrgName, rctx.ProjectSlug, modelID)
+		// Get UserContext from headers
+		userCtx := middleware.GetUserContext(ctx)
+		if userCtx == nil {
+			userCtx = &rls.UserContext{}
+		}
+
+		// Resolve USING expression
+		usingSQL, usingParams, err := r.matchingSvc.ResolveUsing(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, action, userCtx)
 		if err != nil {
-			logger.Error(ctx, "Failed to fetch RLS policy", logfacade.Err(err))
-			// On error, deny all to be safe
-			return &ResolveResult{
-				Filter:      nil,
-				ShouldApply: true,
-				DenyAll:     true,
-			}, nil
+			r.logger.Debug(ctx, "RLS policy denied", logfacade.Err(err))
+			return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 		}
 
-		// No policy found - DENY ALL (default deny)
-		if policy == nil {
-			logger.Debug(ctx, "No RLS policy found for model, denying all access",
-				logfacade.String("modelID", modelID))
-			return &ResolveResult{
-				Filter:      nil,
-				ShouldApply: true,
-				DenyAll:     true,
-			}, nil
-		}
-
-		// Convert domain policy to runtime filter
-		filter := &RLSFilter{
-			SelectPredicate: JSONExpr(policy.SelectPredicate),
-			InsertCheck:     JSONExpr(policy.InsertCheck),
-			UpdatePredicate: JSONExpr(policy.UpdatePredicate),
-			UpdateCheck:     JSONExpr(policy.UpdateCheck),
-			DeletePredicate: JSONExpr(policy.DeletePredicate),
-			FieldName:       "owner",
-			EndUserID:       identity.EndUserID,
-		}
-
-		// Check if this is DENY ALL (all predicates are false)
-		isDenyAll := filter.SelectPredicate.IsFalse() &&
-			filter.UpdatePredicate.IsFalse() &&
-			filter.DeletePredicate.IsFalse()
+		// Resolve CHECK expression (for create/update)
+		checkSQL, checkParams, _ := r.matchingSvc.ResolveCheck(ctx, rctx.OrgName, rctx.ProjectSlug, modelID, action, userCtx)
 
 		return &ResolveResult{
-			Filter:      filter,
+			UsingSQL:    usingSQL,
+			UsingParams: usingParams,
+			CheckSQL:    checkSQL,
+			CheckParams: checkParams,
 			ShouldApply: true,
-			DenyAll:     isDenyAll,
 		}, nil
 	}
 
 	// Unknown issuer - deny all
-	logger.Warn(ctx, "Unknown JWT issuer", logfacade.String("issuer", identity.Issuer))
-	return &ResolveResult{
-		Filter:      nil,
-		ShouldApply: true,
-		DenyAll:     true,
-	}, nil
+	r.logger.Warn(ctx, "Unknown JWT issuer", logfacade.String("issuer", identity.Issuer))
+	return &ResolveResult{ShouldApply: true, DenyAll: true}, nil
 }
 
-// CompileToWhereClause compiles the RLS filter to a SQL WHERE clause.
-// Returns the WHERE clause and parameters.
-func (r *RLSResolver) CompileToWhereClause(filter *RLSFilter) (string, []interface{}, error) {
-	if filter == nil {
-		return "", nil, nil
+// ValidateInsert validates an insert operation against the RLS check expression.
+func (r *RLSResolver) ValidateInsert(ctx context.Context, modelID string, _ map[string]interface{}) error {
+	result, err := r.Resolve(ctx, rls.ActionCreate, modelID)
+	if err != nil {
+		return err
 	}
-
-	// Handle true constant - no filtering needed
-	if filter.SelectPredicate.IsTrue() {
-		return "", nil, nil
-	}
-
-	// Handle false constant - return a condition that's always false
-	if filter.SelectPredicate.IsFalse() {
-		return "1=0", nil, nil
-	}
-
-	// Handle owner equals current user
-	if filter.SelectPredicate.IsOwnerEqualsUser() {
-		return "owner = ?", []interface{}{filter.EndUserID}, nil
-	}
-
-	// TODO: Implement full JSON expression compilation
-	// For now, return an error for unsupported expressions
-	return "", nil, fmt.Errorf("unsupported RLS expression: %s", filter.SelectPredicate)
-}
-
-// ValidateInsert validates an insert operation against the RLS policy.
-func (r *RLSResolver) ValidateInsert(filter *RLSFilter, data map[string]interface{}) error {
-	if filter == nil {
-		return nil
-	}
-
-	// Handle true constant - allow all
-	if filter.InsertCheck.IsTrue() {
-		return nil
-	}
-
-	// Handle false constant - deny all
-	if filter.InsertCheck.IsFalse() {
+	if result.DenyAll {
 		return fmt.Errorf("RLS CHECK violation: INSERT not allowed")
 	}
-
-	// Handle owner equals current user
-	if filter.InsertCheck.IsOwnerEqualsUser() {
-		owner, ok := data["owner"]
-		if !ok || owner == nil {
-			// No owner specified - will be auto-filled
-			return nil
-		}
-		ownerStr, ok := owner.(string)
-		if !ok || ownerStr != filter.EndUserID {
-			return fmt.Errorf("RLS CHECK violation: owner must be the current user")
-		}
-		return nil
+	if !result.ShouldApply {
+		return nil // Developer, no RLS
 	}
 
-	// TODO: Implement full JSON expression validation
-	return fmt.Errorf("unsupported RLS expression for INSERT: %s", filter.InsertCheck)
+	if result.CheckSQL == "1=0" {
+		return fmt.Errorf("RLS CHECK violation: INSERT not allowed (no check policy)")
+	}
+
+	return nil
 }
 
-// ValidateUpdate validates an update operation against the RLS policy.
-func (r *RLSResolver) ValidateUpdate(filter *RLSFilter, data map[string]interface{}) error {
-	if filter == nil {
-		return nil
+// ValidateUpdate validates an update operation against the RLS check expression.
+func (r *RLSResolver) ValidateUpdate(ctx context.Context, modelID string, _ map[string]interface{}) error {
+	result, err := r.Resolve(ctx, rls.ActionUpdate, modelID)
+	if err != nil {
+		return err
 	}
-
-	// Handle true constant - allow all
-	if filter.UpdateCheck.IsTrue() {
-		return nil
-	}
-
-	// Handle false constant - deny all
-	if filter.UpdateCheck.IsFalse() {
+	if result.DenyAll {
 		return fmt.Errorf("RLS CHECK violation: UPDATE not allowed")
 	}
-
-	// Handle owner equals current user
-	if filter.UpdateCheck.IsOwnerEqualsUser() {
-		// Check if trying to change owner to another user
-		if newOwner, ok := data["owner"]; ok {
-			newOwnerStr, ok := newOwner.(string)
-			if ok && newOwnerStr != filter.EndUserID {
-				return fmt.Errorf("RLS CHECK violation: cannot change owner to another user")
-			}
-		}
+	if !result.ShouldApply {
 		return nil
 	}
 
-	// TODO: Implement full JSON expression validation
-	return fmt.Errorf("unsupported RLS expression for UPDATE: %s", filter.UpdateCheck)
+	if result.CheckSQL == "1=0" {
+		return fmt.Errorf("RLS CHECK violation: UPDATE not allowed (no check policy)")
+	}
+
+	return nil
 }
 
 // getRuntimeContext retrieves the runtime context from context.
 func getRuntimeContext(ctx context.Context) (*runtimeContext, bool) {
 	rctx, ok := ctx.Value(runtimeContextKey{}).(*runtimeContext)
 	return rctx, ok
-}
-
-// AutoFillOwner adds the owner field to data if not present.
-// Returns true if the field was added.
-func (r *RLSResolver) AutoFillOwner(filter *RLSFilter, data map[string]interface{}) bool {
-	if filter == nil {
-		return false
-	}
-
-	// Only auto-fill if insert check requires owner equals current user
-	if !filter.InsertCheck.IsOwnerEqualsUser() && !filter.InsertCheck.IsTrue() {
-		return false
-	}
-
-	if _, ok := data["owner"]; !ok {
-		data["owner"] = filter.EndUserID
-		return true
-	}
-
-	// Override if different
-	if data["owner"] != filter.EndUserID {
-		data["owner"] = filter.EndUserID
-		return true
-	}
-
-	return false
 }

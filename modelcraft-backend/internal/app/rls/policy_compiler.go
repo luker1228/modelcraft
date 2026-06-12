@@ -8,15 +8,16 @@ import (
 	"strings"
 )
 
-// RLS expression operator constants.
+// RLS expression operator constants (backward-compatible).
 const (
-	opAnd   = "_and"
-	opOr    = "_or"
-	opNot   = "_not"
-	opConst = "_const"
+	oldOpAnd   = "_and"
+	oldOpOr    = "_or"
+	oldOpNot   = "_not"
+	oldOpConst = "_const"
+	oldOpAuth  = "_auth"
 )
 
-// PolicyCompiler PolicyCompiler 实现
+// PolicyCompiler RLS 表达式编译器实现
 type PolicyCompiler struct{}
 
 // NewPolicyCompiler 创建 PolicyCompiler
@@ -25,7 +26,8 @@ func NewPolicyCompiler() *PolicyCompiler {
 }
 
 // Compile 将 JSON 表达式编译为 CompiledPolicy
-func (c *PolicyCompiler) Compile(ctx context.Context, expr rls.JsonExpr) (*rls.CompiledPolicy, error) {
+// 支持新旧两种操作符命名，支持 {{user_id}} / {{user_name}} 变量替换
+func (c *PolicyCompiler) Compile(ctx context.Context, expr rls.JsonExpr, userCtx *rls.UserContext) (*rls.CompiledPolicy, error) {
 	var root interface{}
 	if err := json.Unmarshal([]byte(expr), &root); err != nil {
 		return nil, fmt.Errorf("invalid JSON: %w", err)
@@ -44,74 +46,72 @@ func (c *PolicyCompiler) Compile(ctx context.Context, expr rls.JsonExpr) (*rls.C
 		return nil, fmt.Errorf("expression must be an object or boolean constant")
 	}
 
-	return c.compileNode(ctx, obj, "")
+	return c.compileNode(ctx, obj, userCtx)
 }
 
-func (c *PolicyCompiler) compileNode( //nolint:gocognit,funlen // recursive tree-walk compiler is inherently complex
-	ctx context.Context, node map[string]interface{}, path string,
-) (*rls.CompiledPolicy, error) {
+func (c *PolicyCompiler) compileNode(ctx context.Context, node map[string]interface{}, userCtx *rls.UserContext) (*rls.CompiledPolicy, error) {
 	var conditions []string
 	var params []interface{}
 
 	for key, value := range node {
-		switch key {
-		case opAnd:
+		switch c.normalizeOp(key) {
+		case "AND":
 			arr, ok := value.([]interface{})
 			if !ok {
-				return nil, fmt.Errorf("_and value must be an array")
+				return nil, fmt.Errorf("AND value must be an array")
 			}
-			var andConditions []string
+			var andConds []string
 			for _, item := range arr {
 				itemObj, ok := item.(map[string]interface{})
 				if !ok {
-					return nil, fmt.Errorf("_and array item must be an object")
+					return nil, fmt.Errorf("AND array item must be an object")
 				}
-				compiled, err := c.compileNode(ctx, itemObj, path)
+				compiled, err := c.compileNode(ctx, itemObj, userCtx)
 				if err != nil {
 					return nil, err
 				}
-				andConditions = append(andConditions, "("+compiled.SQL+")")
+				andConds = append(andConds, compiled.SQL)
 				params = append(params, compiled.Params...)
 			}
-			if len(andConditions) > 0 {
-				conditions = append(conditions, "("+strings.Join(andConditions, " AND ")+")")
+			if len(andConds) > 0 {
+				conditions = append(conditions, "("+strings.Join(andConds, " AND ")+")")
 			}
 
-		case opOr:
+		case "OR":
 			arr, ok := value.([]interface{})
 			if !ok {
-				return nil, fmt.Errorf("_or value must be an array")
+				return nil, fmt.Errorf("OR value must be an array")
 			}
-			var orConditions []string
+			var orConds []string
 			for _, item := range arr {
 				itemObj, ok := item.(map[string]interface{})
 				if !ok {
-					return nil, fmt.Errorf("_or array item must be an object")
+					return nil, fmt.Errorf("OR array item must be an object")
 				}
-				compiled, err := c.compileNode(ctx, itemObj, path)
+				compiled, err := c.compileNode(ctx, itemObj, userCtx)
 				if err != nil {
 					return nil, err
 				}
-				orConditions = append(orConditions, "("+compiled.SQL+")")
+				orConds = append(orConds, compiled.SQL)
 				params = append(params, compiled.Params...)
 			}
-			if len(orConditions) > 0 {
-				conditions = append(conditions, "("+strings.Join(orConditions, " OR ")+")")
+			if len(orConds) > 0 {
+				conditions = append(conditions, "("+strings.Join(orConds, " OR ")+")")
 			}
 
-		case opNot:
+		case "NOT":
 			obj, ok := value.(map[string]interface{})
 			if !ok {
-				return nil, fmt.Errorf("_not value must be an object")
+				return nil, fmt.Errorf("NOT value must be an object")
 			}
-			compiled, err := c.compileNode(ctx, obj, path)
+			compiled, err := c.compileNode(ctx, obj, userCtx)
 			if err != nil {
 				return nil, err
 			}
 			conditions = append(conditions, "NOT ("+compiled.SQL+")")
 			params = append(params, compiled.Params...)
 
-		case opConst:
+		case oldOpConst:
 			if b, ok := value.(bool); ok {
 				if b {
 					conditions = append(conditions, "1=1")
@@ -124,9 +124,18 @@ func (c *PolicyCompiler) compileNode( //nolint:gocognit,funlen // recursive tree
 			// 字段比较
 			compObj, ok := value.(map[string]interface{})
 			if !ok {
-				return nil, fmt.Errorf("field comparison must be an object")
+				// 尝试简单布尔常量
+				if b, ok := value.(bool); ok {
+					if b {
+						conditions = append(conditions, "1=1")
+					} else {
+						conditions = append(conditions, "1=0")
+					}
+					continue
+				}
+				return nil, fmt.Errorf("field comparison must be an object for field %q", key)
 			}
-			fieldCond, fieldParams, err := c.compileFieldComparison(key, compObj)
+			fieldCond, fieldParams, err := c.compileFieldComparison(key, compObj, userCtx)
 			if err != nil {
 				return nil, err
 			}
@@ -145,66 +154,112 @@ func (c *PolicyCompiler) compileNode( //nolint:gocognit,funlen // recursive tree
 	}, nil
 }
 
+// normalizeOp 统一逻辑操作符名（兼容旧 _and/_or/_not 和新 AND/OR/NOT）
+func (c *PolicyCompiler) normalizeOp(op string) string {
+	switch op {
+	case oldOpAnd:
+		return "AND"
+	case oldOpOr:
+		return "OR"
+	case oldOpNot:
+		return "NOT"
+	default:
+		return op
+	}
+}
+
 func (c *PolicyCompiler) compileFieldComparison(
-	fieldName string, compObj map[string]interface{},
+	fieldName string, compObj map[string]interface{}, userCtx *rls.UserContext,
 ) (string, []interface{}, error) {
+	// 处理旧 _auth 引用: {"owner_id": {"_auth": "uid"}} → owner_id = ?
+	if authVar, ok := compObj[oldOpAuth].(string); ok {
+		resolved := userCtx.ResolveVariable(authVar)
+		return fmt.Sprintf("%s = ?", fieldName), []interface{}{resolved}, nil
+	}
+
 	var conditions []string
 	var params []interface{}
 
 	for op, value := range compObj {
-		switch op {
-		case "_eq":
-			sql, param := c.compileValue(fieldName, value)
-			conditions = append(conditions, sql)
-			if param != nil {
-				params = append(params, param)
+		switch c.normalizeFieldOp(op) {
+		case "equals":
+			if value == nil {
+				conditions = append(conditions, fmt.Sprintf("%s IS NULL", fieldName))
+			} else {
+				resolved := c.resolveValue(value, userCtx)
+				conditions = append(conditions, fmt.Sprintf("%s = ?", fieldName))
+				params = append(params, resolved)
 			}
-		case "_neq":
-			sql, param := c.compileValue(fieldName, value)
-			conditions = append(conditions, "NOT "+sql)
-			if param != nil {
-				params = append(params, param)
-			}
-		case "_gt":
+
+		case "not":
+			resolved := c.resolveValue(value, userCtx)
+			conditions = append(conditions, fmt.Sprintf("%s != ?", fieldName))
+			params = append(params, resolved)
+
+		case "gt":
 			conditions = append(conditions, fmt.Sprintf("%s > ?", fieldName))
-			params = append(params, value)
-		case "_gte":
+			params = append(params, c.resolveValue(value, userCtx))
+
+		case "gte":
 			conditions = append(conditions, fmt.Sprintf("%s >= ?", fieldName))
-			params = append(params, value)
-		case "_lt":
+			params = append(params, c.resolveValue(value, userCtx))
+
+		case "lt":
 			conditions = append(conditions, fmt.Sprintf("%s < ?", fieldName))
-			params = append(params, value)
-		case "_lte":
+			params = append(params, c.resolveValue(value, userCtx))
+
+		case "lte":
 			conditions = append(conditions, fmt.Sprintf("%s <= ?", fieldName))
-			params = append(params, value)
-		case "_is_null":
+			params = append(params, c.resolveValue(value, userCtx))
+
+		case "in":
+			arr, ok := value.([]interface{})
+			if !ok {
+				return "", nil, fmt.Errorf("in value must be an array")
+			}
+			placeholders := make([]string, len(arr))
+			for i := range arr {
+				placeholders[i] = "?"
+				params = append(params, c.resolveValue(arr[i], userCtx))
+			}
+			conditions = append(conditions, fmt.Sprintf("%s IN (%s)", fieldName, strings.Join(placeholders, ", ")))
+
+		case "nin":
+			arr, ok := value.([]interface{})
+			if !ok {
+				return "", nil, fmt.Errorf("nin value must be an array")
+			}
+			placeholders := make([]string, len(arr))
+			for i := range arr {
+				placeholders[i] = "?"
+				params = append(params, c.resolveValue(arr[i], userCtx))
+			}
+			conditions = append(conditions, fmt.Sprintf("%s NOT IN (%s)", fieldName, strings.Join(placeholders, ", ")))
+
+		case "isNull":
 			if b, ok := value.(bool); ok && b {
 				conditions = append(conditions, fmt.Sprintf("%s IS NULL", fieldName))
 			} else {
 				conditions = append(conditions, fmt.Sprintf("%s IS NOT NULL", fieldName))
 			}
-		case "_in":
-			arr, ok := value.([]interface{})
-			if !ok {
-				return "", nil, fmt.Errorf("_in value must be an array")
-			}
-			placeholders := make([]string, len(arr))
-			for i := range arr {
-				placeholders[i] = "?"
-				params = append(params, arr[i])
-			}
-			conditions = append(conditions, fmt.Sprintf("%s IN (%s)", fieldName, strings.Join(placeholders, ", ")))
-		case "_nin":
-			arr, ok := value.([]interface{})
-			if !ok {
-				return "", nil, fmt.Errorf("_nin value must be an array")
-			}
-			placeholders := make([]string, len(arr))
-			for i := range arr {
-				placeholders[i] = "?"
-				params = append(params, arr[i])
-			}
-			conditions = append(conditions, fmt.Sprintf("%s NOT IN (%s)", fieldName, strings.Join(placeholders, ", ")))
+
+		case "contains":
+			resolved := c.resolveValue(value, userCtx)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", fieldName))
+			params = append(params, "%"+fmt.Sprint(resolved)+"%")
+
+		case "startsWith":
+			resolved := c.resolveValue(value, userCtx)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", fieldName))
+			params = append(params, fmt.Sprint(resolved)+"%")
+
+		case "endsWith":
+			resolved := c.resolveValue(value, userCtx)
+			conditions = append(conditions, fmt.Sprintf("%s LIKE ?", fieldName))
+			params = append(params, "%"+fmt.Sprint(resolved))
+
+		default:
+			return "", nil, fmt.Errorf("unknown field operator: %s", op)
 		}
 	}
 
@@ -215,19 +270,52 @@ func (c *PolicyCompiler) compileFieldComparison(
 	return strings.Join(conditions, " AND "), params, nil
 }
 
-func (c *PolicyCompiler) compileValue(fieldName string, value interface{}) (string, interface{}) {
-	switch v := value.(type) {
-	case map[string]interface{}:
-		// 特殊值引用，如 {"_auth": "uid"}
-		if authVar, ok := v["_auth"].(string); ok {
-			return fmt.Sprintf("%s = ?", fieldName), map[string]string{"_auth": authVar}
-		}
-		if ref, ok := v["_ref"].(string); ok {
-			return fmt.Sprintf("%s = %s", fieldName, ref), nil
-		}
-		return fmt.Sprintf("%s = ?", fieldName), v
+// normalizeFieldOp 统一字段操作符名（兼容旧 _eq/_neq/... 和新 equals/not/...）
+func (c *PolicyCompiler) normalizeFieldOp(op string) string {
+	switch op {
+	case "_eq":
+		return "equals"
+	case "_neq":
+		return "not"
+	case "_gt":
+		return "gt"
+	case "_gte":
+		return "gte"
+	case "_lt":
+		return "lt"
+	case "_lte":
+		return "lte"
+	case "_in":
+		return "in"
+	case "_nin":
+		return "nin"
+	case "_is_null":
+		return "isNull"
 	default:
-		return fmt.Sprintf("%s = ?", fieldName), v
+		return op
+	}
+}
+
+// resolveValue 解析值中的变量占位符
+// 支持 {{user_id}} / {{user_name}} 字符串替换和 old _auth 引用
+func (c *PolicyCompiler) resolveValue(value interface{}, userCtx *rls.UserContext) interface{} {
+	if userCtx == nil {
+		return value
+	}
+	switch v := value.(type) {
+	case string:
+		// {{user_id}} / {{user_name}} 替换
+		v = strings.ReplaceAll(v, "{{user_id}}", userCtx.UserID)
+		v = strings.ReplaceAll(v, "{{user_name}}", userCtx.UserName)
+		return v
+	case map[string]interface{}:
+		// 兼容旧 _auth 引用: {"_auth": "uid"} → UserContext 解析
+		if authVar, ok := v["_auth"].(string); ok {
+			return userCtx.ResolveVariable(authVar)
+		}
+		return v
+	default:
+		return v
 	}
 }
 

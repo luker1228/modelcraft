@@ -6,7 +6,6 @@ package orggraphql
 
 import (
 	"context"
-
 	appRole "modelcraft/internal/app/role"
 	"modelcraft/internal/interfaces/graphql/org/adapter"
 	"modelcraft/internal/interfaces/graphql/org/generated"

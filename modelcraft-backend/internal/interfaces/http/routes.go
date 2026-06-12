@@ -236,17 +236,13 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		},
 	)
 
-	// Create RLS related services
-	modelRLSPolicyRepo := rlsRepo.NewSqlModelRLSPolicyRepository(dbgen.New(loggingDB))
-	authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
-	rlsPolicyValidator := rls.NewPolicyValidator()
-	rlsPolicyAppService := rls.NewModelRLSPolicyAppService(
-		modelRLSPolicyRepo,
-		modelRepository,
-		authSchemaRepo,
-		rlsPolicyValidator,
-	)
-	authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
+		// Create RLS related services (V2: multi-policy matching)
+		policyRepo := rlsRepo.NewSqlPolicyRepository(dbgen.New(loggingDB))
+		authSchemaRepo := rlsRepo.NewSqlAuthSchemaRepository(dbgen.New(loggingDB))
+		rlsPolicyCompiler := rls.NewPolicyCompiler()
+		rlsMatchingSvc := rls.NewPolicyMatchingService(policyRepo, rlsPolicyCompiler)
+		_ = rlsMatchingSvc // Wired into RLSResolver when runtime handler integration completes
+		authSchemaAppService := rls.NewAuthSchemaAppService(authSchemaRepo, projectRepository)
 
 	// Create RBAC (Data-Level Row & Column Permission) services
 	rbacRepo := repository.NewSqlEndUserDataPermissionRepository(dbgen.New(loggingDB))
@@ -373,7 +369,7 @@ func CreateDesignHandlers( //nolint:funlen // wiring entrypoint intentionally co
 		SystemDB:                    repoFactory.SqlDB,
 		GroupAppService:             groupAppService,
 		LogicalFKAppService:         logicalFKAppService,
-		RLSPolicyAppService:         rlsPolicyAppService,
+		RLSPolicyAppService:         nil, // TODO: replace with V2 policy CRUD in task 9
 		AuthSchemaAppService:        authSchemaAppService,
 		EndUserAppService:           endUserAppService,
 		EndUserAuthHandler:          endUserAuthHandler,

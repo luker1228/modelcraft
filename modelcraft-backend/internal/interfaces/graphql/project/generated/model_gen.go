@@ -114,6 +114,10 @@ type DeleteModelError interface {
 	IsDeleteModelError()
 }
 
+type DeleteRlsPolicyError interface {
+	IsDeleteRlsPolicyError()
+}
+
 type Error interface {
 	IsError()
 	GetMessage() string
@@ -238,6 +242,10 @@ type UpdateFieldError interface {
 
 type UpdateModelError interface {
 	IsUpdateModelError()
+}
+
+type UpsertRlsPolicyError interface {
+	IsUpsertRlsPolicyError()
 }
 
 type ValidateRLSExprError interface {
@@ -701,6 +709,11 @@ func (DeleteLogicalForeignKeySuccess) IsDeleteLogicalForeignKeyResult() {}
 type DeleteModelPayload struct {
 	Success bool             `json:"success"`
 	Error   DeleteModelError `json:"error,omitempty"`
+}
+
+type DeleteRlsPolicyPayload struct {
+	Success bool                 `json:"success"`
+	Error   DeleteRlsPolicyError `json:"error,omitempty"`
 }
 
 type EffectiveGrant struct {
@@ -1264,6 +1277,8 @@ func (InvalidInput) IsListProjectEndUserRoleUsersError() {}
 
 func (InvalidInput) IsSetProjectAuthSchemaError() {}
 
+func (InvalidInput) IsUpsertRlsPolicyError() {}
+
 type InvalidRLSExpression struct {
 	Message    string  `json:"message"`
 	Suggestion *string `json:"suggestion,omitempty"`
@@ -1741,6 +1756,10 @@ func (ResourceNotFound) IsSetModelRLSPolicyError() {}
 
 func (ResourceNotFound) IsValidateRLSExprError() {}
 
+func (ResourceNotFound) IsUpsertRlsPolicyError() {}
+
+func (ResourceNotFound) IsDeleteRlsPolicyError() {}
+
 type RestoreEndUserPermissionBundleInput struct {
 	BundleID      string `json:"bundleId"`
 	TargetVersion int32  `json:"targetVersion"`
@@ -1782,6 +1801,32 @@ type RevokeEndUserRolePayload struct {
 	Success bool                   `json:"success"`
 	Error   RevokeEndUserRoleError `json:"error,omitempty"`
 }
+
+type RlsPolicy struct {
+	ID            string    `json:"id"`
+	PolicyName    string    `json:"policyName"`
+	Action        RlsAction `json:"action"`
+	Role          string    `json:"role"`
+	UsingExpr     *string   `json:"usingExpr,omitempty"`
+	WithCheckExpr *string   `json:"withCheckExpr,omitempty"`
+	CreatedAt     string    `json:"createdAt"`
+	UpdatedAt     string    `json:"updatedAt"`
+}
+
+type RlsPolicyInput struct {
+	PolicyName    string    `json:"policyName"`
+	Action        RlsAction `json:"action"`
+	Role          string    `json:"role"`
+	UsingExpr     *string   `json:"usingExpr,omitempty"`
+	WithCheckExpr *string   `json:"withCheckExpr,omitempty"`
+}
+
+type RlsPolicyNotFound struct {
+	Message string `json:"message"`
+}
+
+func (RlsPolicyNotFound) IsError()                {}
+func (this RlsPolicyNotFound) GetMessage() string { return this.Message }
 
 type RowScopeFieldMissing struct {
 	Message            string       `json:"message"`
@@ -1964,6 +2009,11 @@ type UpdateModelMetaPayload struct {
 	Success bool             `json:"success"`
 	Model   *Model           `json:"model,omitempty"`
 	Error   UpdateModelError `json:"error,omitempty"`
+}
+
+type UpsertRlsPolicyPayload struct {
+	Policy *RlsPolicy           `json:"policy,omitempty"`
+	Error  UpsertRlsPolicyError `json:"error,omitempty"`
 }
 
 type UserBundleAlreadyAssigned struct {
@@ -3256,6 +3306,65 @@ func (e *ResourceType) UnmarshalJSON(b []byte) error {
 }
 
 func (e ResourceType) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type RlsAction string
+
+const (
+	RlsActionRead   RlsAction = "read"
+	RlsActionCreate RlsAction = "create"
+	RlsActionUpdate RlsAction = "update"
+	RlsActionDelete RlsAction = "delete"
+)
+
+var AllRlsAction = []RlsAction{
+	RlsActionRead,
+	RlsActionCreate,
+	RlsActionUpdate,
+	RlsActionDelete,
+}
+
+func (e RlsAction) IsValid() bool {
+	switch e {
+	case RlsActionRead, RlsActionCreate, RlsActionUpdate, RlsActionDelete:
+		return true
+	}
+	return false
+}
+
+func (e RlsAction) String() string {
+	return string(e)
+}
+
+func (e *RlsAction) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = RlsAction(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid RlsAction", str)
+	}
+	return nil
+}
+
+func (e RlsAction) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *RlsAction) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e RlsAction) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

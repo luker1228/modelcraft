@@ -227,6 +227,50 @@ func (ns NullModelDatabaseSyncJobStatus) Value() (driver.Value, error) {
 	return string(ns.ModelDatabaseSyncJobStatus), nil
 }
 
+type ModelRlsPoliciesAction string
+
+const (
+	ModelRlsPoliciesActionRead   ModelRlsPoliciesAction = "read"
+	ModelRlsPoliciesActionCreate ModelRlsPoliciesAction = "create"
+	ModelRlsPoliciesActionUpdate ModelRlsPoliciesAction = "update"
+	ModelRlsPoliciesActionDelete ModelRlsPoliciesAction = "delete"
+)
+
+func (e *ModelRlsPoliciesAction) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = ModelRlsPoliciesAction(s)
+	case string:
+		*e = ModelRlsPoliciesAction(s)
+	default:
+		return fmt.Errorf("unsupported scan type for ModelRlsPoliciesAction: %T", src)
+	}
+	return nil
+}
+
+type NullModelRlsPoliciesAction struct {
+	ModelRlsPoliciesAction ModelRlsPoliciesAction
+	Valid                  bool // Valid is true if ModelRlsPoliciesAction is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullModelRlsPoliciesAction) Scan(value interface{}) error {
+	if value == nil {
+		ns.ModelRlsPoliciesAction, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.ModelRlsPoliciesAction.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullModelRlsPoliciesAction) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.ModelRlsPoliciesAction), nil
+}
+
 type ModelsCreatedVia string
 
 const (
@@ -749,23 +793,27 @@ type ModelGroup struct {
 	DeleteToken uint64
 }
 
-// Model RLS 策略配置
+// RLS 策略表（多策略存储）
 type ModelRlsPolicy struct {
 	ID uint64
+	// 组织名
+	OrgName string
+	// 项目标识
+	ProjectSlug string
 	// 模型 ID
 	ModelID string
-	// SELECT USING 谓词 JSON
-	SelectPredicate string
-	// INSERT WITH CHECK 谓词 JSON
-	InsertCheck string
-	// UPDATE USING 谓词 JSON
-	UpdatePredicate string
-	// UPDATE WITH CHECK 谓词 JSON
-	UpdateCheck string
-	// DELETE USING 谓词 JSON
-	DeletePredicate string
-	CreatedAt       time.Time
-	UpdatedAt       time.Time
+	// 策略名称（model 内唯一）
+	PolicyName string
+	// 操作类型
+	Action ModelRlsPoliciesAction
+	// 匹配角色（空=默认策略）
+	Role string
+	// USING 表达式（read/update/delete）
+	UsingExpr *json.RawMessage
+	// WITH CHECK 表达式（create/update）
+	WithCheckExpr *json.RawMessage
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
 }
 
 // 组织表（多租户容器）

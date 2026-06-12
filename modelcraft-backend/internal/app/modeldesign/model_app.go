@@ -17,7 +17,6 @@ import (
 	"modelcraft/pkg/logfacade"
 	"strings"
 
-	rlsdomain "modelcraft/internal/domain/rls"
 
 	"github.com/samber/lo"
 	"golang.org/x/sync/errgroup"
@@ -154,20 +153,8 @@ func (s *ModelDesignAppService) transactionDeployModel(
 			return bizerrors.NewErrorFromContext(ctx, bizerrors.ModelNotFound, model.ID)
 		}
 
-		if hasOwnerField {
-			policy := &modeldesign.ModelRLSPolicy{ModelID: model.ID}
-			policy.ApplyPreset(rlsdomain.RLSPresetReadWriteOwner)
-			if err := q.UpsertModelRLSPolicy(ctx, dbgen.UpsertModelRLSPolicyParams{
-				ModelID:         model.ID,
-				SelectPredicate: string(policy.SelectPredicate),
-				InsertCheck:     string(policy.InsertCheck),
-				UpdatePredicate: string(policy.UpdatePredicate),
-				UpdateCheck:     string(policy.UpdateCheck),
-				DeletePredicate: string(policy.DeletePredicate),
-			}); err != nil {
-				return fmt.Errorf("failed to upsert default rls policy: %w", err)
-			}
-		}
+		// RLS V2: Default policy auto-creation removed. Use new multi-policy CRUD API.
+		_ = hasOwnerField
 
 		return s.deployRepo.DeployModelToCreate(ctx, createdModel)
 	})

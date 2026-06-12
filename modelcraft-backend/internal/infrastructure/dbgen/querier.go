@@ -53,10 +53,11 @@ type Querier interface {
 	DeleteModel(ctx context.Context, id string) error
 	DeleteModelDatabase(ctx context.Context, arg DeleteModelDatabaseParams) error
 	DeleteModelGroup(ctx context.Context, id string) error
-	DeleteModelRLSPolicy(ctx context.Context, modelID string) error
 	DeleteOldBundleSnapshots(ctx context.Context, arg DeleteOldBundleSnapshotsParams) error
 	DeletePermission(ctx context.Context, arg DeletePermissionParams) error
 	DeletePermissionsByRole(ctx context.Context, roleID int64) error
+	DeletePoliciesByModel(ctx context.Context, arg DeletePoliciesByModelParams) error
+	DeletePolicy(ctx context.Context, arg DeletePolicyParams) error
 	DeleteProjectAuthSchema(ctx context.Context, arg DeleteProjectAuthSchemaParams) error
 	DeleteRole(ctx context.Context, id int64) error
 	DeleteUserRole(ctx context.Context, arg DeleteUserRoleParams) error
@@ -66,7 +67,6 @@ type Querier interface {
 	ExistsDatabaseClusterByProjectKey(ctx context.Context, arg ExistsDatabaseClusterByProjectKeyParams) (int64, error)
 	ExistsEnumByName(ctx context.Context, arg ExistsEnumByNameParams) (int64, error)
 	ExistsFieldByName(ctx context.Context, arg ExistsFieldByNameParams) (int64, error)
-	ExistsModelRLSPolicy(ctx context.Context, modelID string) (bool, error)
 	ExistsOrganizationByName(ctx context.Context, name string) (int64, error)
 	ExistsOrganizationByPhone(ctx context.Context, phone string) (int64, error)
 	ExistsProjectBySlug(ctx context.Context, arg ExistsProjectBySlugParams) (int64, error)
@@ -119,16 +119,15 @@ type Querier interface {
 	GetModelGroupByID(ctx context.Context, id string) (ModelGroup, error)
 	GetModelGroupByName(ctx context.Context, arg GetModelGroupByNameParams) (ModelGroup, error)
 	GetModelMetaByIDs(ctx context.Context, arg GetModelMetaByIDsParams) ([]Model, error)
-	// ============================================
-	// RLS (Row Level Security) Queries
-	// ============================================
-	// ----------------------------------------
-	// Model RLS Policy Queries
-	// ----------------------------------------
-	GetModelRLSPolicy(ctx context.Context, modelID string) (ModelRlsPolicy, error)
 	GetOrganizationByName(ctx context.Context, name string) (Organization, error)
 	GetOrganizationByPhone(ctx context.Context, phone string) (Organization, error)
 	GetProfileByUserID(ctx context.Context, arg GetProfileByUserIDParams) (GetProfileByUserIDRow, error)
+	// ============================================
+	// RLS (Row Level Security) Queries
+	// ============================================
+	// NOTE: model_rls_policies queries moved to rls_policy_v2.sql
+	// Old single-policy queries (GetModelRLSPolicy, UpsertModelRLSPolicy,
+	// DeleteModelRLSPolicy, ExistsModelRLSPolicy) removed.
 	// ----------------------------------------
 	// Project Auth Schema Queries
 	// ----------------------------------------
@@ -171,6 +170,11 @@ type Querier interface {
 	ListOrganizationsByUser(ctx context.Context, id string) ([]Organization, error)
 	ListPermissionsByRole(ctx context.Context, roleID int64) ([]RolePermission, error)
 	ListPermissionsByRoleAndOrg(ctx context.Context, arg ListPermissionsByRoleAndOrgParams) ([]RolePermission, error)
+	// ============================================
+	// RLS Policy V2 Queries — 多策略存储查询
+	// ============================================
+	ListPoliciesByAction(ctx context.Context, arg ListPoliciesByActionParams) ([]ModelRlsPolicy, error)
+	ListPoliciesByModel(ctx context.Context, arg ListPoliciesByModelParams) ([]ModelRlsPolicy, error)
 	// 分页查询 Project 下有角色分配的用户列表（支持用户名搜索和角色过滤）
 	ListProjectEndUserRoleUsers(ctx context.Context, arg ListProjectEndUserRoleUsersParams) ([]ListProjectEndUserRoleUsersRow, error)
 	// 统计 Project 下有角色分配的用户总数（支持用户名搜索和角色过滤）
@@ -185,6 +189,7 @@ type Querier interface {
 	ListUserRoles(ctx context.Context, arg ListUserRolesParams) ([]UserRole, error)
 	ListUsersByOrgWithName(ctx context.Context, orgName string) ([]ListUsersByOrgWithNameRow, error)
 	ListUsersWithOrgDetails(ctx context.Context, arg ListUsersWithOrgDetailsParams) ([]ListUsersWithOrgDetailsRow, error)
+	PolicyExists(ctx context.Context, arg PolicyExistsParams) (bool, error)
 	RemoveBundleDataPermissionItem(ctx context.Context, arg RemoveBundleDataPermissionItemParams) (sql.Result, error)
 	RevokeAllRefreshTokensByUserID(ctx context.Context, userID string) error
 	RevokeBundleFromRole(ctx context.Context, arg RevokeBundleFromRoleParams) (sql.Result, error)
@@ -216,7 +221,7 @@ type Querier interface {
 	UpdateUserStatus(ctx context.Context, arg UpdateUserStatusParams) error
 	// Replace 语义：同一 bundle+model 最多一个 item
 	UpsertBundleDataPermissionItem(ctx context.Context, arg UpsertBundleDataPermissionItemParams) error
-	UpsertModelRLSPolicy(ctx context.Context, arg UpsertModelRLSPolicyParams) error
+	UpsertPolicy(ctx context.Context, arg UpsertPolicyParams) error
 	UpsertProjectAuthSchema(ctx context.Context, arg UpsertProjectAuthSchemaParams) error
 }
 

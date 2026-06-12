@@ -10,16 +10,6 @@ import (
 	"encoding/json"
 )
 
-const deleteModelRLSPolicy = `-- name: DeleteModelRLSPolicy :exec
-DELETE FROM model_rls_policies
-WHERE model_id = ?
-`
-
-func (q *Queries) DeleteModelRLSPolicy(ctx context.Context, modelID string) error {
-	_, err := q.db.ExecContext(ctx, deleteModelRLSPolicy, modelID)
-	return err
-}
-
 const deleteProjectAuthSchema = `-- name: DeleteProjectAuthSchema :exec
 DELETE FROM project_auth_schemas
 WHERE org_name = ? AND project_slug = ?
@@ -35,51 +25,9 @@ func (q *Queries) DeleteProjectAuthSchema(ctx context.Context, arg DeleteProject
 	return err
 }
 
-const existsModelRLSPolicy = `-- name: ExistsModelRLSPolicy :one
-SELECT EXISTS(
-    SELECT 1 FROM model_rls_policies
-    WHERE model_id = ?
-) AS exists_flag
-`
-
-func (q *Queries) ExistsModelRLSPolicy(ctx context.Context, modelID string) (bool, error) {
-	row := q.db.QueryRowContext(ctx, existsModelRLSPolicy, modelID)
-	var exists_flag bool
-	err := row.Scan(&exists_flag)
-	return exists_flag, err
-}
-
-const getModelRLSPolicy = `-- name: GetModelRLSPolicy :one
-
-
-SELECT id, model_id, select_predicate, insert_check, update_predicate, update_check, delete_predicate, created_at, updated_at FROM model_rls_policies
-WHERE model_id = ?
-`
-
-// ============================================
-// RLS (Row Level Security) Queries
-// ============================================
-// ----------------------------------------
-// Model RLS Policy Queries
-// ----------------------------------------
-func (q *Queries) GetModelRLSPolicy(ctx context.Context, modelID string) (ModelRlsPolicy, error) {
-	row := q.db.QueryRowContext(ctx, getModelRLSPolicy, modelID)
-	var i ModelRlsPolicy
-	err := row.Scan(
-		&i.ID,
-		&i.ModelID,
-		&i.SelectPredicate,
-		&i.InsertCheck,
-		&i.UpdatePredicate,
-		&i.UpdateCheck,
-		&i.DeletePredicate,
-		&i.CreatedAt,
-		&i.UpdatedAt,
-	)
-	return i, err
-}
-
 const getProjectAuthSchema = `-- name: GetProjectAuthSchema :one
+
+
 
 SELECT id, org_name, project_slug, variables, created_at, updated_at FROM project_auth_schemas
 WHERE org_name = ? AND project_slug = ?
@@ -90,6 +38,12 @@ type GetProjectAuthSchemaParams struct {
 	ProjectSlug string
 }
 
+// ============================================
+// RLS (Row Level Security) Queries
+// ============================================
+// NOTE: model_rls_policies queries moved to rls_policy_v2.sql
+// Old single-policy queries (GetModelRLSPolicy, UpsertModelRLSPolicy,
+// DeleteModelRLSPolicy, ExistsModelRLSPolicy) removed.
 // ----------------------------------------
 // Project Auth Schema Queries
 // ----------------------------------------
@@ -105,40 +59,6 @@ func (q *Queries) GetProjectAuthSchema(ctx context.Context, arg GetProjectAuthSc
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const upsertModelRLSPolicy = `-- name: UpsertModelRLSPolicy :exec
-INSERT INTO model_rls_policies (
-    model_id, select_predicate, insert_check,
-    update_predicate, update_check, delete_predicate
-) VALUES (?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE
-    select_predicate = VALUES(select_predicate),
-    insert_check = VALUES(insert_check),
-    update_predicate = VALUES(update_predicate),
-    update_check = VALUES(update_check),
-    delete_predicate = VALUES(delete_predicate)
-`
-
-type UpsertModelRLSPolicyParams struct {
-	ModelID         string
-	SelectPredicate string
-	InsertCheck     string
-	UpdatePredicate string
-	UpdateCheck     string
-	DeletePredicate string
-}
-
-func (q *Queries) UpsertModelRLSPolicy(ctx context.Context, arg UpsertModelRLSPolicyParams) error {
-	_, err := q.db.ExecContext(ctx, upsertModelRLSPolicy,
-		arg.ModelID,
-		arg.SelectPredicate,
-		arg.InsertCheck,
-		arg.UpdatePredicate,
-		arg.UpdateCheck,
-		arg.DeletePredicate,
-	)
-	return err
 }
 
 const upsertProjectAuthSchema = `-- name: UpsertProjectAuthSchema :exec

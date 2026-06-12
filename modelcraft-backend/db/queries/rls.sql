@@ -2,35 +2,9 @@
 -- RLS (Row Level Security) Queries
 -- ============================================
 
--- ----------------------------------------
--- Model RLS Policy Queries
--- ----------------------------------------
-
--- name: GetModelRLSPolicy :one
-SELECT * FROM model_rls_policies
-WHERE model_id = ?;
-
--- name: UpsertModelRLSPolicy :exec
-INSERT INTO model_rls_policies (
-    model_id, select_predicate, insert_check,
-    update_predicate, update_check, delete_predicate
-) VALUES (?, ?, ?, ?, ?, ?)
-ON DUPLICATE KEY UPDATE
-    select_predicate = VALUES(select_predicate),
-    insert_check = VALUES(insert_check),
-    update_predicate = VALUES(update_predicate),
-    update_check = VALUES(update_check),
-    delete_predicate = VALUES(delete_predicate);
-
--- name: DeleteModelRLSPolicy :exec
-DELETE FROM model_rls_policies
-WHERE model_id = ?;
-
--- name: ExistsModelRLSPolicy :one
-SELECT EXISTS(
-    SELECT 1 FROM model_rls_policies
-    WHERE model_id = ?
-) AS exists_flag;
+-- NOTE: model_rls_policies queries moved to rls_policy_v2.sql
+-- Old single-policy queries (GetModelRLSPolicy, UpsertModelRLSPolicy,
+-- DeleteModelRLSPolicy, ExistsModelRLSPolicy) removed.
 
 -- ----------------------------------------
 -- Project Auth Schema Queries
