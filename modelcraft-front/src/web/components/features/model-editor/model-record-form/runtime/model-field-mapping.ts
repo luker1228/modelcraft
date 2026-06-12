@@ -35,6 +35,7 @@ export function mapModelFieldsToTableFieldInfos(
     title: typeof field.title === 'string' ? field.title : null,
     isPrimary: field.isPrimary === true,
     isDeprecated: field.isDeprecated === true,
+    format: typeof field.format === 'string' ? field.format : null,
     storageHint: typeof field.storageHint === 'string' ? field.storageHint : null,
     schemaType: typeof field.schemaType === 'string' ? field.schemaType : null,
   }))

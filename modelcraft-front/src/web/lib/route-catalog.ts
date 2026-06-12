@@ -152,4 +152,17 @@ export const ROUTE_CATALOG: RouteCatalogEntry[] = [
     ],
     requiresProject: false,
   },
+  {
+    routeTemplate: '/org/:orgName/settings/api-tokens',
+    title: 'API Token',
+    description: '管理组织下 developer 调用 ModelCraft API 使用的长期凭证',
+    keywords: ['API Token', 'PAT', 'token', '访问令牌', '开发者令牌', 'API 凭证'],
+    examples: [
+      '去 API Token 管理页',
+      '创建一个 API Token',
+      '查看组织 API Token',
+      '撤销开发者 token',
+    ],
+    requiresProject: false,
+  },
 ]

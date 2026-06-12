@@ -1,15 +1,9 @@
 'use client'
 
-import { useParams, usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useRequireAuth } from '@web/hooks/auth/use-auth'
 import { AppLayout } from '@web/components/features/layout/AppLayout'
 import { PageLayout, PageHeader } from '@web/components/features/layout'
-import { cn } from '@/shared/utils'
-import { Settings2 } from 'lucide-react'
-
-const tabs = [
-  { id: 'general', label: '通用', icon: Settings2 },
-]
 
 export default function SettingsLayout({
   children,
@@ -17,10 +11,7 @@ export default function SettingsLayout({
   children: React.ReactNode
 }) {
   const { isLoading } = useRequireAuth()
-  const params = useParams()
   const pathname = usePathname()
-  const router = useRouter()
-  const orgName = params.orgName as string
 
   if (isLoading) {
     return (
@@ -30,46 +21,18 @@ export default function SettingsLayout({
     )
   }
 
-  const activeTab = tabs.find((tab) =>
-    pathname?.endsWith(`/settings/${tab.id}`)
-  )?.id || 'general'
+  const title = pathname?.endsWith('/settings/api-tokens')
+    ? 'API Token'
+    : '组织设置'
 
   return (
-    <AppLayout pageTitle="组织设置">
+    <AppLayout pageTitle={title}>
       <PageLayout maxWidth="5xl">
         <PageHeader
-          title="组织设置"
+          title={title}
           spacing="compact"
         />
 
-        {/* Tab Navigation */}
-        <div className="mb-6 border-b border-border">
-          <nav className="flex gap-6" aria-label="Settings tabs">
-            {tabs.map((tab) => {
-              const Icon = tab.icon
-              const isActive = activeTab === tab.id
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() =>
-                    router.push(`/org/${orgName}/settings/${tab.id}`)
-                  }
-                  className={cn(
-                    'flex items-center gap-2 py-3 px-1 text-sm font-medium border-b-2 transition-colors',
-                    isActive
-                      ? 'border-primary text-primary'
-                      : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
-                  )}
-                >
-                  <Icon className="size-4" />
-                  {tab.label}
-                </button>
-              )
-            })}
-          </nav>
-        </div>
-
-        {/* Tab Content */}
         {children}
       </PageLayout>
     </AppLayout>

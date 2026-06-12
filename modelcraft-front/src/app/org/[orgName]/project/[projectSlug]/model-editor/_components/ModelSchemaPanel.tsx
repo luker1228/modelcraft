@@ -62,6 +62,9 @@ export function ModelSchemaPanel({
   const displayFieldOptions = (state.editModelData?.fields || []).filter(
     (field) => field.format !== 'RELATION'
   )
+  const orderedFields = [...(state.editModelData?.fields ?? [])].sort(
+    (a, b) => Number(b.isPrimary === true) - Number(a.isPrimary === true)
+  )
   const displayFieldSelectValue = state.metaDisplayField || '__display_field_none__'
   const isDisplayFieldUnset = state.metaDisplayField.trim() === ''
   const isManagedReadOnlyModel = state.editModelData?.isReadOnly === true
@@ -324,7 +327,7 @@ export function ModelSchemaPanel({
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-border">
-                        {state.editModelData.fields.map((field) => {
+                        {orderedFields.map((field) => {
                           const enumDisplayFieldName = getEnumDisplayFieldName(field)
                           const isSystemField = isSystemGeneratedLabelField(
                             field,

@@ -23,7 +23,20 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@web/components/ui/dropdown-menu'
-import { Archive, Check, Copy, Edit, Key, Link2, Loader2, Plus, Trash2 } from 'lucide-react'
+import {
+  Archive,
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Check,
+  Copy,
+  Edit,
+  Key,
+  Link2,
+  Loader2,
+  Plus,
+  Trash2,
+} from 'lucide-react'
 import { toast } from 'sonner'
 import { renderCellValue } from '@web/components/features/model-editor/model-record-form/runtime/field-protocol'
 import { getXMC } from '@/types/xmc'
@@ -33,12 +46,20 @@ export interface ModelRecordTableFieldInfo {
   title?: string | null
   isPrimary?: boolean
   isDeprecated?: boolean
+  format?: string | null
   storageHint?: string | null
   schemaType?: string | null
 }
 
 export type ModelRecordTableRow = Record<string, unknown> & {
   id?: string | number | null
+}
+
+export type ModelRecordSortDirection = 'asc' | 'desc'
+
+export interface ModelRecordSort {
+  field: string
+  direction: ModelRecordSortDirection
 }
 
 interface ModelRecordTableProps {
@@ -62,6 +83,8 @@ interface ModelRecordTableProps {
   highlightedIds?: string[]
   /** 高亮原因 map，key 为 record id，value 为原因文字 */
   highlightReasons?: Record<string, string>
+  sort?: ModelRecordSort | null
+  onSortChange?: (sort: ModelRecordSort) => void
   pagination?: {
     currentPage: number
     pageSize: number
@@ -101,6 +124,8 @@ export function ModelRecordTable({
   canDeleteRecord = true,
   highlightedIds,
   highlightReasons,
+  sort,
+  onSortChange,
   pagination,
 }: ModelRecordTableProps) {
   const [copiedCell, setCopiedCell] = useState<string | null>(null)
@@ -254,6 +279,16 @@ export function ModelRecordTable({
     setPageInput(String(pagination.currentPage))
   }, [pagination, paginationCurrentPage])
 
+  const handleSortClick = useCallback(
+    (field: string) => {
+      if (!onSortChange) return
+      const nextDirection: ModelRecordSortDirection =
+        sort?.field === field && sort.direction === 'asc' ? 'desc' : 'asc'
+      onSortChange({ field, direction: nextDirection })
+    },
+    [onSortChange, sort]
+  )
+
   return (
     <TooltipProvider>
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden bg-card">
@@ -290,11 +325,18 @@ export function ModelRecordTable({
                   const isPairedLabel = pairMeta?.role === 'label'
                   const isPairedCode = pairMeta?.role === 'code'
                   const isDerivedLabelField = isPairedLabel
+                  const isCurrentSort = sort?.field === field
+                  const SortIcon = isCurrentSort
+                    ? sort.direction === 'asc'
+                      ? ArrowUp
+                      : ArrowDown
+                    : ArrowUpDown
                   const headerFieldInfo: ModelRecordTableFieldInfo = {
                     name: field,
                     title: fieldInfo?.title ?? null,
                     isPrimary: fieldInfo?.isPrimary,
                     isDeprecated: fieldInfo?.isDeprecated,
+                    format: fieldInfo?.format ?? null,
                     storageHint: fieldInfo?.storageHint ?? null,
                     schemaType: fieldInfo?.schemaType ?? null,
                   }
@@ -364,7 +406,7 @@ export function ModelRecordTable({
                           <DropdownMenuTrigger asChild>
                             <button
                               type="button"
-                              className="flex min-w-0 flex-col items-start gap-1 pr-3 text-left"
+                              className="flex min-w-0 flex-col items-start gap-1 pr-8 text-left"
                               title={`${headerLabel}（点击管理字段）`}
                             >
                               {triggerContent}
@@ -396,9 +438,27 @@ export function ModelRecordTable({
                           </DropdownMenuContent>
                         </DropdownMenu>
                       ) : (
-                        <div className="flex min-w-0 flex-col items-start gap-1 pr-3 text-left" title={headerLabel}>
+                        <div className="flex min-w-0 flex-col items-start gap-1 pr-8 text-left" title={headerLabel}>
                           {triggerContent}
                         </div>
+                      )}
+                      {onSortChange && (
+                        <button
+                          type="button"
+                          className={cn(
+                            'absolute right-2 top-2 flex size-5 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-accent hover:text-foreground',
+                            isCurrentSort && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
+                          )}
+                          aria-label={`按 ${fieldTitle} 排序`}
+                          title={`按 ${fieldTitle} 排序`}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            handleSortClick(field)
+                          }}
+                        >
+                          <SortIcon className="size-3.5" />
+                        </button>
                       )}
                       <div
                         className="absolute right-0 top-0 h-full w-1 cursor-col-resize transition-colors hover:bg-primary/40 group-hover:bg-primary/20"

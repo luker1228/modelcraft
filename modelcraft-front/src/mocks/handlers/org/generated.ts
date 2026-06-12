@@ -3398,7 +3398,7 @@ export type GetModelRecordWorkspaceQueryVariables = Exact<{
 }>;
 
 
-export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, isReadOnly: boolean, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
+export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, isReadOnly: boolean, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, isPrimary: boolean, isDeprecated: boolean }> } | null, error?:
       | { __typename: 'InvalidInput', message: string }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
@@ -4086,6 +4086,11 @@ export type GetRolePermissionsListQueryVariables = Exact<{
 
 export type GetRolePermissionsListQuery = { __typename?: 'Query', rolePermissionsList: Array<{ __typename?: 'PermissionDef', obj: string, act: string }> };
 
+export type GetApiTokensQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetApiTokensQuery = { __typename?: 'Query', endUserAPITokens: Array<{ __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null }> };
+
 export type UpdateOrganizationMutationVariables = Exact<{
   input: UpdateOrganizationInput;
 }>;
@@ -4137,6 +4142,28 @@ export type RemovePermissionFromRoleMutation = { __typename?: 'Mutation', remove
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'PermissionSystemRoleCannotBeModified', message: string, suggestion?: string | null }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
+     | null } };
+
+export type CreateApiTokenMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  expiresAt?: InputMaybe<Scalars['Time']['input']>;
+}>;
+
+
+export type CreateApiTokenMutation = { __typename?: 'Mutation', createEndUserAPIToken: { __typename?: 'CreateAPITokenPayload', plaintext?: string | null, token?: { __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null } | null, error?:
+      | { __typename: 'APITokenLimitReached', message: string, limit: number }
+      | { __typename: 'APITokenNameConflict', message: string }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+     | null } };
+
+export type RevokeApiTokenMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type RevokeApiTokenMutation = { __typename?: 'Mutation', revokeEndUserAPIToken: { __typename?: 'RevokeAPITokenPayload', success?: boolean | null, error?:
+      | { __typename: 'APITokenNotFound', message: string }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
      | null } };
 
 
@@ -6266,6 +6293,27 @@ export const mockGetRolePermissionsListQuery = (resolver: GraphQLResponseResolve
  * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
  * @see https://mswjs.io/docs/basics/response-resolver
  * @example
+ * mockGetApiTokensQuery(
+ *   ({ query, variables }) => {
+ *     return HttpResponse.json({
+ *       data: { endUserAPITokens }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockGetApiTokensQuery = (resolver: GraphQLResponseResolver<GetApiTokensQuery, GetApiTokensQueryVariables>, options?: RequestHandlerOptions) =>
+  graphql.query<GetApiTokensQuery, GetApiTokensQueryVariables>(
+    'GetApiTokens',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
  * mockUpdateOrganizationMutation(
  *   ({ query, variables }) => {
  *     const { input } = variables;
@@ -6367,6 +6415,50 @@ export const mockAddPermissionToRoleMutation = (resolver: GraphQLResponseResolve
 export const mockRemovePermissionFromRoleMutation = (resolver: GraphQLResponseResolver<RemovePermissionFromRoleMutation, RemovePermissionFromRoleMutationVariables>, options?: RequestHandlerOptions) =>
   graphql.mutation<RemovePermissionFromRoleMutation, RemovePermissionFromRoleMutationVariables>(
     'RemovePermissionFromRole',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockCreateApiTokenMutation(
+ *   ({ query, variables }) => {
+ *     const { name, expiresAt } = variables;
+ *     return HttpResponse.json({
+ *       data: { createEndUserAPIToken }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockCreateApiTokenMutation = (resolver: GraphQLResponseResolver<CreateApiTokenMutation, CreateApiTokenMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<CreateApiTokenMutation, CreateApiTokenMutationVariables>(
+    'CreateApiToken',
+    resolver,
+    options
+  )
+
+/**
+ * @param resolver A function that accepts [resolver arguments](https://mswjs.io/docs/api/graphql#resolver-argument) and must always return the instruction on what to do with the intercepted request. ([see more](https://mswjs.io/docs/concepts/response-resolver#resolver-instructions))
+ * @param options Options object to customize the behavior of the mock. ([see more](https://mswjs.io/docs/api/graphql#handler-options))
+ * @see https://mswjs.io/docs/basics/response-resolver
+ * @example
+ * mockRevokeApiTokenMutation(
+ *   ({ query, variables }) => {
+ *     const { id } = variables;
+ *     return HttpResponse.json({
+ *       data: { revokeEndUserAPIToken }
+ *     })
+ *   },
+ *   requestOptions
+ * )
+ */
+export const mockRevokeApiTokenMutation = (resolver: GraphQLResponseResolver<RevokeApiTokenMutation, RevokeApiTokenMutationVariables>, options?: RequestHandlerOptions) =>
+  graphql.mutation<RevokeApiTokenMutation, RevokeApiTokenMutationVariables>(
+    'RevokeApiToken',
     resolver,
     options
   )

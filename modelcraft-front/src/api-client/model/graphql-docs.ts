@@ -188,6 +188,11 @@ export const GET_MODEL_RECORD_WORKSPACE = gql`
         jsonSchema
         fields {
           name
+          title
+          format
+          schemaType
+          storageHint
+          isPrimary
           isDeprecated
         }
       }

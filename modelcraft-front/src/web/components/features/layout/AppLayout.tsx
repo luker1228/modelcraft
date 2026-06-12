@@ -22,9 +22,11 @@ import { useAppStore } from '@web/stores/app'
 import { getToken, getUserInfoFromToken, removeToken } from '@api-client/auth/public'
 import {
   Search,
+  RefreshCw,
   HelpCircle,
   ChevronRight,
   Check,
+  KeyRound,
 } from 'lucide-react'
 import { cn } from '@/shared/utils'
 import { buildAppLayoutBreadcrumbs } from './app-layout-breadcrumbs'
@@ -72,6 +74,7 @@ export function AppLayout({
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [orgSearchQuery, setOrgSearchQuery] = useState('')
+  const [contentRefreshKey, setContentRefreshKey] = useState(0)
   const storedMemberships = useOrganizationStore((state) => state.memberships)
   const loadMembershipsStore = useOrganizationStore((state) => state.loadMemberships)
 
@@ -157,6 +160,11 @@ export function AppLayout({
     setSidebarCollapsed((prev) => !prev)
   }, [])
 
+  const handleRefreshContent = useCallback(() => {
+    setContentRefreshKey((prev) => prev + 1)
+    router.refresh()
+  }, [router])
+
   // ── Navigation structure ──────────────────────────────────────────────────
 
   const workspaceNavSections: NavSection[] = [
@@ -169,7 +177,8 @@ export function AppLayout({
     {
       header: '设置',
       items: [
-        { label: '组织设置', icon: '/icons/icon-settings.svg', href: `/org/${orgName}/settings` },
+        { label: '组织设置', icon: '/icons/icon-settings.svg', href: `/org/${orgName}/settings/general` },
+        { label: 'API Token', icon: KeyRound, href: `/org/${orgName}/settings/api-tokens` },
       ],
     },
   ]
@@ -296,8 +305,18 @@ export function AppLayout({
         {/* Spacer */}
         <div className="flex-1" />
 
-        {/* Right actions: Help + User only */}
+        {/* Right actions */}
         <div className="flex items-center gap-1">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="size-8 p-0 text-muted-foreground hover:bg-accent hover:text-foreground"
+            title="刷新"
+            onClick={handleRefreshContent}
+          >
+            <RefreshCw className="size-4" strokeWidth={1.5} />
+          </Button>
+
           <Button
             variant="ghost"
             size="sm"
@@ -328,7 +347,7 @@ export function AppLayout({
 
         {/* Content area */}
         <main className="flex-1 overflow-hidden bg-card">
-          <div className="h-full overflow-y-auto">
+          <div key={contentRefreshKey} className="h-full overflow-y-auto">
             {children}
           </div>
         </main>

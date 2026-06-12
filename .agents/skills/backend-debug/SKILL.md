@@ -1,16 +1,16 @@
 ---
 name: backend-debug
 description: >
-  排查和修复 ModelCraft 服务端错误（backend + gateway）。仅在“明确服务端排错”场景触发，必须同时满足：
+  排查和修复 ModelCraft 服务端错误（backend + gateway）。仅在"明确服务端排错"场景触发，必须同时满足：
   (A) 服务端上下文明确（如：后端 / backend / modelcraft-backend / gateway / API / GraphQL resolver / Go 服务）；
   (B) 排错意图明确（如：报错 / 异常 / requestId / logs / debug / 定位原因 / 修复错误）。
   典型触发：
   (1) 用户粘贴了带 errors/requestId 的后端或 gateway 响应/日志；
-  (2) 明确说“后端报错了”“gateway 报错了”“接口返回错误”“帮我定位服务端问题”；
+  (2) 明确说"后端报错了""gateway 报错了""接口返回错误""帮我定位服务端问题"；
   (3) 明确要求查看 backend/gateway 日志并定位根因。
   不触发：
   - 纯功能开发、重构、代码讲解、部署配置修改、前端问题；
-  - 仅出现“日志”“错误”等泛词但未指向服务端。
+  - 仅出现"日志""错误"等泛词但未指向服务端。
   规则：默认不自动触发；只有在满足 A+B 时才使用本 skill。
 ---
 
@@ -20,19 +20,23 @@ description: >
 
 ---
 
-## 0）先识别环境（必须）
+## 0）环境说明
 
-排查前先判断运行环境，后续命令按环境分支执行：
+排查前先判断当前运行模式，后续命令按对应环境执行。
 
-- `dev`：服务在宿主机通过 `just run` 运行，日志通常在项目目录 `logs/` 或终端输出。
-- `docker`：服务在容器里运行，日志在容器文件或 `docker logs`。
+| 环境 | 运行方式 | 日志位置 | 查日志命令 |
+|------|---------|---------|-----------|
+| **docker**（默认） | `docker-compose up` | 容器内 `/app/logs/server.log` | `docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"` |
+| **dev**（本地调试） | `just run` | 宿主机 `logs/server.log` | `cd modelcraft-backend && just log-cat <requestId>` |
 
-建议先做一次快速识别：
+快速确认当前状态：
 
 ```bash
-# 是否有容器在跑
-docker ps --format '{{.Names}}'
+docker ps --format '{{.Names}}' | grep modelcraft
 ```
+
+- 如果 `modelcraft-backend` 容器在跑 → **docker 模式**
+- 如果容器不在、但服务能访问 → 可能是 **dev 模式**（`just run`）
 
 ---
 
@@ -56,12 +60,30 @@ docker ps --format '{{.Names}}'
 
 ## 第二步：用 requestId 查日志链（优先 grep）
 
+### docker 模式（默认）
+
+```bash
+# backend — 容器内 grep file log
+docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
+
+# 备选：容器标准输出
+docker logs modelcraft-backend 2>&1 | grep "<requestId>"
+```
+
+### dev 模式（本地 `just run` 调试）
+
 ```bash
 cd modelcraft-backend
 just log-cat <requestId>
 ```
 
-这会从 `logs/server.log` 中按 `request_id` 字段精确匹配，过滤出该请求的全部日志行，完整还原请求生命周期。
+这会从 `logs/server.log` 中按 `request_id` 字段精确匹配，过滤出该请求的全部日志行。
+
+### gateway（始终是容器）
+
+```bash
+docker logs modelcraft-apisix 2>&1 | grep "<requestId>"
+```
 
 ### 日志格式
 
@@ -84,36 +106,6 @@ just log-cat <requestId>
 - **找最早的 error/panic**——这是根本原因，后续的 error 通常是它的传播
 - **看 `stack` 字段**——只有 Interfaces 层才打 stack，能定位到精确的代码路径
 - **看 SQL 日志**——`[SQLC] query ok` 行带有 `sql` 和 `sql_args` 字段，可以直接拿去数据库重现查询
-
-日志检索规范：
-
-- **优先使用 `grep`**（含容器内 `grep`），先精确命中 requestId，再扩展上下文。
-- 无 `grep` 再考虑其它工具。
-
-按环境查日志：
-
-```bash
-# dev: backend
-cd modelcraft-backend
-grep -n "<requestId>" logs/server.log
-
-# dev: gateway
-cd modelcraft-gateway
-grep -n "<requestId>" log/server.log
-
-# docker: backend
-docker exec modelcraft-backend sh -lc "grep -n '<requestId>' /app/logs/server.log"
-
-# docker: gateway
-docker exec modelcraft-gateway sh -lc "grep -n '<requestId>' /app/logs/server.log"
-```
-
-如果 requestId 不在 file log，再查容器标准日志：
-
-```bash
-docker logs modelcraft-backend 2>&1 | grep "<requestId>"
-docker logs modelcraft-gateway 2>&1 | grep "<requestId>"
-```
 
 ---
 
@@ -231,6 +223,10 @@ just db login .env.autotest
 
 **适用**：问题发生在鉴权、代理转发、请求头注入、跨服务 requestId 传递。
 
+```bash
+docker logs modelcraft-apisix 2>&1 | grep "<requestId>"
+```
+
 重点检查：
 
 - gateway `request_start/request_end` 是否成对，状态码是否符合预期。
@@ -252,11 +248,17 @@ just build
 # 2. 跑相关包的单元测试（如果 Domain 层有改动）
 just test-unit-pkg ./internal/domain/<domain>/...
 
-# 3. 重启服务，用原请求复现
+# 3. 重启服务
+# docker 模式：
+cd ../deploy && docker-compose -f compose/docker-compose.local.yml restart modelcraft
+# dev 模式：
 just run force=true
 
 # 4. 确认问题消失
-just log-cat <requestId>   # 跑新请求后用新 requestId 查
+# docker 模式：
+docker exec modelcraft-backend sh -c "grep '<requestId>' /app/logs/server.log"
+# dev 模式：
+just log-cat <requestId>
 ```
 
 ---
@@ -278,8 +280,10 @@ just log-cat <requestId>   # 跑新请求后用新 requestId 查
 
 ## 注意事项
 
-- `just log-cat` 依赖 `logs/server.log` 存在。服务未运行过或日志被清理时，直接看 `just logs`
-- 某些启动错误（配置缺失、DB 连不上）没有 requestId，直接读 `just logs` 即可
+- **docker 模式**（默认）：日志在容器内 `/app/logs/server.log`，用 `docker exec` grep 查看。
+- **dev 模式**（本地 `just run`）：日志在宿主机 `modelcraft-backend/logs/server.log`，用 `just log-cat` 或 `just logs` 查看。
+- Gateway 日志始终在容器 stdout/stderr，用 `docker logs modelcraft-apisix`。
+- 某些启动错误（配置缺失、DB 连不上）没有 requestId，直接看对应环境的日志流（`docker logs` 或 `just logs`）。
 - 修复时遵守分层规则（避免引入新问题）：
   - **Repository 层**只返回 `shared.RepositoryError`，不返回 `*BusinessError`
   - **Application 层**把 nil 结果转成 `bizerrors.NewErrorFromContext()`，把 DB 错误转成 `bizerrors.ConvertRepositoryError()`

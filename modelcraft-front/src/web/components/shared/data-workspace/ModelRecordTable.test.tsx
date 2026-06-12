@@ -81,3 +81,29 @@ describe('ModelRecordTable pagination', () => {
     expect(screen.getByRole('button', { name: '下一页' })).toBeDisabled()
   })
 })
+
+describe('ModelRecordTable sorting', () => {
+  it('requests descending sort when the active ascending column is clicked', () => {
+    const onSortChange = vi.fn()
+
+    render(
+      <ModelRecordTable
+        contentLoading={false}
+        contentList={[{ id: 'p001', name: 'Row 1' }]}
+        displayFields={['name']}
+        getFieldInfo={() => fieldInfo}
+        getFieldTypeDisplay={() => 'TEXT'}
+        propByName={{}}
+        onCreate={vi.fn()}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        sort={{ field: 'name', direction: 'asc' }}
+        onSortChange={onSortChange}
+      />,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: '按 Name 排序' }))
+
+    expect(onSortChange).toHaveBeenCalledWith({ field: 'name', direction: 'desc' })
+  })
+})

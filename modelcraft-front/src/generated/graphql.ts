@@ -3370,7 +3370,7 @@ export type GetModelRecordWorkspaceQueryVariables = Exact<{
 }>;
 
 
-export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, isReadOnly: boolean, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, isDeprecated: boolean }> } | null, error?:
+export type GetModelRecordWorkspaceQuery = { __typename?: 'Query', model: { __typename?: 'GetModelPayload', model?: { __typename?: 'Model', id: string, name: string, title: string, description: string, databaseName: string, createdVia: string, isReadOnly: boolean, jsonSchema?: string | null, fields: Array<{ __typename?: 'Field', name: string, title: string, format: FormatType, schemaType: SchemaType, storageHint: string, isPrimary: boolean, isDeprecated: boolean }> } | null, error?:
       | { __typename: 'InvalidInput', message: string }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
      | null } };
@@ -4058,6 +4058,11 @@ export type GetRolePermissionsListQueryVariables = Exact<{
 
 export type GetRolePermissionsListQuery = { __typename?: 'Query', rolePermissionsList: Array<{ __typename?: 'PermissionDef', obj: string, act: string }> };
 
+export type GetApiTokensQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetApiTokensQuery = { __typename?: 'Query', endUserAPITokens: Array<{ __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null }> };
+
 export type UpdateOrganizationMutationVariables = Exact<{
   input: UpdateOrganizationInput;
 }>;
@@ -4109,4 +4114,26 @@ export type RemovePermissionFromRoleMutation = { __typename?: 'Mutation', remove
       | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
       | { __typename: 'PermissionSystemRoleCannotBeModified', message: string, suggestion?: string | null }
       | { __typename: 'ResourceNotFound', message: string, resourceType: ResourceType }
+     | null } };
+
+export type CreateApiTokenMutationVariables = Exact<{
+  name: Scalars['String']['input'];
+  expiresAt?: InputMaybe<Scalars['Time']['input']>;
+}>;
+
+
+export type CreateApiTokenMutation = { __typename?: 'Mutation', createEndUserAPIToken: { __typename?: 'CreateAPITokenPayload', plaintext?: string | null, token?: { __typename?: 'EndUserAPIToken', id: string, name: string, createdAt: any, expiresAt?: any | null, lastUsedAt?: any | null } | null, error?:
+      | { __typename: 'APITokenLimitReached', message: string, limit: number }
+      | { __typename: 'APITokenNameConflict', message: string }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
+     | null } };
+
+export type RevokeApiTokenMutationVariables = Exact<{
+  id: Scalars['ID']['input'];
+}>;
+
+
+export type RevokeApiTokenMutation = { __typename?: 'Mutation', revokeEndUserAPIToken: { __typename?: 'RevokeAPITokenPayload', success?: boolean | null, error?:
+      | { __typename: 'APITokenNotFound', message: string }
+      | { __typename: 'InvalidInput', message: string, suggestion?: string | null }
      | null } };

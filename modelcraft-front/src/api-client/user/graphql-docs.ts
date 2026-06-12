@@ -104,6 +104,18 @@ export const GET_ROLE_PERMISSIONS_LIST = gql`
   }
 `
 
+export const GET_API_TOKENS = gql`
+  query GetApiTokens {
+    endUserAPITokens {
+      id
+      name
+      createdAt
+      expiresAt
+      lastUsedAt
+    }
+  }
+`
+
 // ── Mutations ──────────────────────────────────────────────────────────────────
 
 export const UPDATE_ORGANIZATION = gql`
@@ -209,6 +221,53 @@ export const REMOVE_PERMISSION_FROM_ROLE = gql`
         ... on PermissionSystemRoleCannotBeModified {
           message
           suggestion
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+export const CREATE_API_TOKEN = gql`
+  mutation CreateApiToken($name: String!, $expiresAt: Time) {
+    createEndUserAPIToken(name: $name, expiresAt: $expiresAt) {
+      token {
+        id
+        name
+        createdAt
+        expiresAt
+        lastUsedAt
+      }
+      plaintext
+      error {
+        __typename
+        ... on APITokenNameConflict {
+          message
+        }
+        ... on APITokenLimitReached {
+          message
+          limit
+        }
+        ... on InvalidInput {
+          message
+          suggestion
+        }
+      }
+    }
+  }
+`
+
+export const REVOKE_API_TOKEN = gql`
+  mutation RevokeApiToken($id: ID!) {
+    revokeEndUserAPIToken(id: $id) {
+      success
+      error {
+        __typename
+        ... on APITokenNotFound {
+          message
         }
         ... on InvalidInput {
           message

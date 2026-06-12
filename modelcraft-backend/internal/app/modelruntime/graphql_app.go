@@ -16,9 +16,6 @@ import (
 	"modelcraft/pkg/requestcontext"
 
 	"github.com/graphql-go/graphql"
-	"github.com/graphql-go/graphql/language/ast"
-	"github.com/graphql-go/graphql/language/parser"
-	"github.com/graphql-go/graphql/language/source"
 )
 
 // GraphqlAppService graphql应用服务
@@ -73,10 +70,6 @@ func (s *GraphqlAppService) Execute(ctx context.Context, orgName, projectSlug, n
 	ctx = requestcontext.WithMetadata(ctx)
 	modelLocator, err := modeldesign.NewModelLocator(orgName, projectSlug, databaseName, name)
 	if err != nil {
-		return nil, err
-	}
-
-	if err = s.denyManagedModelMutation(ctx, modelLocator, cmd); err != nil {
 		return nil, err
 	}
 
@@ -164,57 +157,6 @@ func (s *GraphqlAppService) resolveEndUserPerms(
 		return nil, fmt.Errorf("解析权限失败")
 	}
 	return perms, nil
-}
-
-func (s *GraphqlAppService) denyManagedModelMutation(
-	ctx context.Context,
-	modelLocator *modeldesign.ModelLocator,
-	cmd ExecuteGraphQLCommand,
-) error {
-	logger := logfacade.GetLogger(ctx)
-
-	isMutation, err := isMutationOperation(cmd.Query, cmd.OperationName)
-	if err != nil {
-		return bizerrors.NewError(bizerrors.ParamInvalid, fmt.Sprintf("invalid graphql operation: %v", err))
-	}
-	if !isMutation {
-		return nil
-	}
-
-	model, modelErr := s.modelRepo.GetByName(ctx, modelLocator)
-	if modelErr != nil {
-		logger.Errorf(ctx, "get model fail: %v", modelErr)
-		return fmt.Errorf("获取模型失败 %s", modelLocator.GetFullPath())
-	}
-	if model != nil && model.CreatedVia == modeldesign.ModelCreationSourceImported {
-		return bizerrors.NewErrorFromContext(ctx, bizerrors.ManagedModelReadOnly, modelLocator.ModelName)
-	}
-	return nil
-}
-
-func isMutationOperation(query, operationName string) (bool, error) {
-	doc, err := parser.Parse(parser.ParseParams{
-		Source: source.NewSource(&source.Source{Body: []byte(query), Name: "RuntimeGraphQLRequest"}),
-	})
-	if err != nil {
-		return false, err
-	}
-
-	for _, definition := range doc.Definitions {
-		opDef, ok := definition.(*ast.OperationDefinition)
-		if !ok {
-			continue
-		}
-		if operationName != "" {
-			if opDef.Name == nil || opDef.Name.Value != operationName {
-				continue
-			}
-		}
-		if opDef.Operation == "mutation" {
-			return true, nil
-		}
-	}
-	return false, nil
 }
 
 // NewGraphqlAppService 创建graphql应用服务
