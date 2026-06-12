@@ -11,17 +11,51 @@
 ModelCraft 是一个低代码平台。客户（开发者）有自己的用户体系，不需要 ModelCraft 管理用户、角色、权限。他们只需要：
 
 1. 用 API Token 认证
-2. 传当前用户上下文（user_id / user_name / user_role）
-3. ModelCraft 按客户配置的 RLS 规则过滤数据行
+2. 传当前用户上下文（user_id / user_name / user_roles）
+3. ModelCraft 按角色匹配 RLS 策略，过滤数据行
 4. 拿到过滤后的数据，返回给自己的用户
 
 ### 与现有 RBAC 的关系
 
-现有 [End-User Runtime 数据权限体系](./2026-05-06-enduser-runtime-data-permission-design.md) 假设 ModelCraft 管理用户和角色（EndUser + Permission Bundle + Role）。本设计面向的是**另一种场景**：客户自有用户体系，ModelCraft 不感知用户。两者互补，不互相替代。
+现有 [End-User Runtime 数据权限体系](./2026-05-06-enduser-runtime-data-permission-design.md) 假设 ModelCraft 管理用户和角色。本设计面向**客户自有用户体系**的场景，两者互补。
 
 ---
 
-## 2. 架构
+## 2. 核心设计
+
+### 2.1 三层模型
+
+```
+Header                               策略存储                  请求执行
+──────                               ────────                  ────────
+X-MC-User-ID: 123                    ┌──────────────────┐     
+X-MC-User-Name: zhangsan             │ policyName        │     action = "read"
+X-MC-User-Roles: admin,manager       │ action: read      │     roles = [admin, manager]
+                                     │ role: admin       │───→ 匹配 policy (action=read AND role IN roles)
+                                     │ using: {...}      │          ↓
+                                     └──────────────────┘     OR 合并所有匹配策略的 expression
+                                     ┌──────────────────┐          ↓
+                                     │ policyName        │     注入 SQL WHERE
+                                     │ action: read      │
+                                     │ role: manager     │
+                                     │ using: {...}      │
+                                     └──────────────────┘
+```
+
+### 2.2 role 职责分离
+
+| role 做的事 | role 不做的事 |
+|------------|-------------|
+| 决定哪些策略生效（匹配键） | 不参与表达式内的行过滤 |
+| 多条匹配的策略 OR 合并 | 不在 `{{...}}` 变量中出现 |
+
+### 2.3 空 roles
+
+客户端不传 `X-MC-User-Roles` → 只匹配 `role = ""` 的策略。无匹配时默认拒绝。
+
+---
+
+## 3. 架构
 
 ```
 客户后端（自有用户体系）
@@ -29,16 +63,16 @@ ModelCraft 是一个低代码平台。客户（开发者）有自己的用户体
     │  Authorization: Bearer mc_pat_xxx
     │  X-MC-User-ID: customer_user_123
     │  X-MC-User-Name: zhangsan
-    │  X-MC-User-Role: manager
+    │  X-MC-User-Roles: admin, manager          ← 逗号分隔
     │
     ▼
 ModelCraft 数据 API
     │
     │  1. PAT 验证（复用现有 ChiPATAuthMiddleware）
-    │  2. 提取 RLS context header → 注入 context
-    │  3. RLS 引擎：将 {{user_id}} 替换为 "customer_user_123"
-    │     WHERE tenant_id = {{user_id}}
-    │     → WHERE tenant_id = 'customer_user_123'
+    │  2. RLSContextMiddleware：提取 Header → context
+    │  3. 匹配策略：action + role IN (roles)
+    │  4. 表达式编译：{{user_id}} → "customer_user_123"
+    │  5. 注入 SQL WHERE / CHECK
     │
     ▼
 过滤后的数据 → 返回客户后端
@@ -49,7 +83,7 @@ ModelCraft 数据 API
 ```
 Request
   ↓
-ApiTokenToIdentityMiddleware    ← 已有（2026-06-04 设计），验证 mc_pat_xxx
+ApiTokenToIdentityMiddleware    ← 已有，验证 mc_pat_xxx
   ↓
 RLSContextMiddleware             ← 新增，提取 X-MC-User-* → context
   ↓
@@ -58,266 +92,300 @@ ModelRuntimeHandler             ← 已有，执行 GraphQL + RLS 过滤
 
 ---
 
-## 3. RLS Context Header
+## 4. RLS Context Header
 
-客户后端通过 HTTP Header 传递当前用户信息。三个关键字全部可选。
+客户后端通过 HTTP Header 传递当前用户信息。
 
-| Header | RLS 变量 | 示例 |
-|--------|---------|------|
-| `X-MC-User-ID` | `{{user_id}}` | `customer_user_123` |
-| `X-MC-User-Name` | `{{user_name}}` | `zhangsan` |
-| `X-MC-User-Role` | `{{user_role}}` | `manager` |
+| Header | 类型 | 示例 |
+|--------|------|------|
+| `X-MC-User-ID` | string | `customer_user_123` |
+| `X-MC-User-Name` | string | `zhangsan` |
+| `X-MC-User-Roles` | comma-separated list | `admin, manager` |
 
 ### 安全边界
 
-Header 值由客户后端控制。ModelCraft 不做校验、不定义语义——只是透传变量。信任边界在 PAT 层：客户持有 PAT 即拥有对 project 数据的全部访问权。Header 的作用是**缩小**数据范围（通过 RLS），而非扩大。
-
-不存在"客户篡改 header 骗自己"的场景——客户全权控制自己的后端。
+Header 值由客户后端控制。ModelCraft 不做校验——只是透传。信任边界在 PAT 层：客户持有 PAT 即拥有 project 数据访问权，Header 的作用是**缩小**范围。
 
 ---
 
-## 4. 认证 — 复用现有 PAT
+## 5. 认证 — 复用现有 PAT
 
 无需新增认证机制。客户后端使用现有 `mc_pat_xxx` 格式的 API Token。
 
 已有组件：
 - `end_user_api_tokens` 表
-- `ChiPATAuthMiddleware`（PAT 验证 + EndUser 身份注入）
-- PAT 管理接口（GraphQL createEndUserAPIToken / revokeEndUserAPIToken）
+- `ApiTokenToIdentityMiddleware`（PAT 验证 + EndUser 身份注入）
+- PAT 管理接口
 
 ### 两层身份
 
 | 身份层 | 来源 | 含义 |
 |--------|------|------|
-| PAT 的 EndUserID | `mc_pat_xxx` token → DB 查询 | 客户在 ModelCraft 的"服务账号"，决定能访问哪些 project |
-| RLS Context | `X-MC-User-*` headers | 客户的终端用户，PAT 代表客户后端，RLS context 代表客户后端正在服务的那个人 |
-
-两个身份互不干扰：
-- PAT 决定"能不能访问这个 project"
-- RLS context 决定"能访问哪些数据行"
+| PAT 的 EndUserID | `mc_pat_xxx` → DB | 客户在 ModelCraft 的"服务账号"，决定能访问哪些 project |
+| RLS Context | `X-MC-User-*` headers | 客户的终端用户，决定能看/写哪些数据行 |
 
 ---
 
-## 5. RLS 策略 DSL
+## 6. RLS 策略模型
 
-语义上对齐 PostgreSQL RLS（USING / WITH CHECK / PERMISSIVE / RESTRICTIVE），但使用 ModelCraft 自己的 DSL，不与 PG SQL 语法绑定。底层数据库为 MySQL，ModelCraft 在应用层实现 RLS。
+### 6.1 数据结构
 
-### 5.1 DSL 结构
-
-每条策略包含以下字段：
+每条策略 = `policyName` + `action` + `role` + 表达式。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
 | `policyName` | string | 策略名称，model 内唯一 |
 | `action` | enum | `read` / `create` / `update` / `delete` |
-| `using` | string? | 行过滤表达式（SQL WHERE 片段） |
-| `withCheck` | string? | 新行校验表达式（SQL WHERE 片段） |
-| `mode` | enum | `PERMISSIVE`（默认）/ `RESTRICTIVE` |
+| `role` | string | 匹配键，和 Header `X-MC-User-Roles` 比对。空字符串 = 默认策略 |
+| `using` | JSON object | 行过滤表达式（read / update / delete） |
+| `withCheck` | JSON object | 新行校验表达式（create / update） |
 
-### 5.2 action 与 USING / WITH CHECK 的关系
+### 6.2 action 与表达式的对应
 
 | action | using | withCheck |
 |--------|-------|-----------|
-| `read` | ✅ 必须 | ❌ 不可配置 |
-| `create` | ❌ 不可配置 | ✅ 必须 |
+| `read` | ✅ 必须 | — |
+| `create` | — | ✅ 必须 |
 | `update` | ✅ 必须 | ✅ 必须 |
-| `delete` | ✅ 必须 | ❌ 不可配置 |
+| `delete` | ✅ 必须 | — |
 
-- **using**：过滤已有行，不满足的行**静默忽略**
-- **withCheck**：校验新行，不满足则**报错拒绝**
+- **using**：已有行过滤，不满足的**静默忽略**
+- **withCheck**：新行校验，不满足的**报错拒绝**
 
-### 5.3 DSL 示例
+### 6.3 表达式格式 — 对齐现有 Condition DSL
+
+使用和现有 `domain/query/field_conditions.go` 一致的 Prisma 风格 JSON，统一全项目查询语法。
+
+**操作符**：`equals`, `not`, `in`, `gt`, `gte`, `lt`, `lte`, `contains`, `startsWith`, `endsWith`
+
+**逻辑**：`AND`, `OR`, `NOT`
+
+**变量**：`"{{user_id}}"`, `"{{user_name}}"` — 字符串模板占位
+
+**NULL**：`{"equals": null}`
+
+```json
+// 简单等式
+{"tenant_id": {"equals": "{{user_id}}"}}
+
+// 逻辑组合
+{
+  "AND": [
+    {"tenant_id": {"equals": "{{user_id}}"}},
+    {"deleted_at": {"equals": null}},
+    {"OR": [
+      {"status": {"equals": "active"}},
+      {"status": {"equals": "draft"}}
+    ]}
+  ]
+}
+
+// 范围 + 变量
+{
+  "amount": {"gte": 100, "lte": 1000},
+  "owner": {"equals": "{{user_name}}"}
+}
+```
+
+### 6.4 完整示例
 
 ```json
 [
   {
-    "policyName": "user_own_orders",
+    "policyName": "admin_all",
     "action": "read",
-    "mode": "PERMISSIVE",
-    "using": "tenant_id = '{{user_id}}'"
+    "role": "admin",
+    "using": {"equals": 1}
   },
   {
-    "policyName": "user_own_orders",
+    "policyName": "admin_all",
     "action": "create",
-    "mode": "PERMISSIVE",
-    "withCheck": "tenant_id = '{{user_id}}'"
+    "role": "admin",
+    "withCheck": {"equals": 1}
   },
   {
-    "policyName": "user_own_orders",
+    "policyName": "manager_own",
+    "action": "read",
+    "role": "manager",
+    "using": {
+      "AND": [
+        {"tenant_id": {"equals": "{{user_id}}"}},
+        {"deleted_at": {"equals": null}}
+      ]
+    }
+  },
+  {
+    "policyName": "manager_own",
+    "action": "create",
+    "role": "manager",
+    "withCheck": {"tenant_id": {"equals": "{{user_id}}"}}
+  },
+  {
+    "policyName": "manager_own",
     "action": "update",
-    "mode": "PERMISSIVE",
-    "using": "tenant_id = '{{user_id}}'",
-    "withCheck": "tenant_id = '{{user_id}}'"
+    "role": "manager",
+    "using": {"tenant_id": {"equals": "{{user_id}}"}},
+    "withCheck": {"tenant_id": {"equals": "{{user_id}}"}}
   },
   {
-    "policyName": "user_own_orders",
+    "policyName": "manager_own",
     "action": "delete",
-    "mode": "PERMISSIVE",
-    "using": "tenant_id = '{{user_id}}'"
-  },
-  {
-    "policyName": "admin_all_orders",
-    "action": "read",
-    "mode": "PERMISSIVE",
-    "using": "'{{user_role}}' = 'admin'"
-  },
-  {
-    "policyName": "hide_deleted",
-    "action": "read",
-    "mode": "RESTRICTIVE",
-    "using": "deleted_at IS NULL"
+    "role": "manager",
+    "using": {"tenant_id": {"equals": "{{user_id}}"}}
   }
 ]
 ```
 
-> 同一个 `policyName` 可以出现在多个 action 中（如 `user_own_orders` 覆盖了 read / create / update / delete）。每个 action 独立定义 using / withCheck。
+---
 
-### 5.4 策略合并逻辑
+## 7. 策略匹配与合并
 
-```
-请求 action = "read"
-  ↓
-匹配 action 为 "read" 的所有策略
-  ↓
-PERMISSIVE 策略之间 → OR
-    user_own_orders                    OR  admin_all_orders
-    (tenant_id = '123')                OR  ('manager' = 'admin')
-    → true                                       → false
-    → 最终: true
-  ↓
-RESTRICTIVE 策略之间 → AND
-    hide_deleted
-    (deleted_at IS NULL)
-    → true
-  ↓
-最终 → PERMISSIVE 结果 AND RESTRICTIVE 结果 → 放行
-```
-
-### 5.5 默认拒绝
-
-当 model 开启 RLS 但没有配置任何策略时，所有操作被拒绝。
-
-### 5.6 变量替换
-
-RLS 引擎执行前，将模板变量替换为 Header 实际值：
-
-| 模板变量 | Header 来源 | 未传时的行为 |
-|---------|------------|-------------|
-| `{{user_id}}` | `X-MC-User-ID` | 空字符串 `''` |
-| `{{user_name}}` | `X-MC-User-Name` | 空字符串 `''` |
-| `{{user_role}}` | `X-MC-User-Role` | 空字符串 `''` |
-
-替换后的表达式拼入 SQL WHERE / CHECK 子句。
-
-### 5.7 策略执行流程
+### 7.1 匹配逻辑
 
 ```
-请求进入（action = read / create / update / delete）
+请求 action = "read", roles = ["admin", "manager"]
   ↓
-RLS 是否开启？ → 否 → 跳过，正常执行
+查 model 的所有策略 WHERE action = "read"
+  ↓
+过滤：role IN ("admin", "manager", "")
+       → role="" 总是被匹配（默认策略，代表所有角色）
+  ↓
+收集所有匹配策略的 using 表达式
+  ↓
+所有 using OR 合并 → 注入 SQL WHERE
+```
+
+### 7.2 默认拒绝
+
+- model 开启 RLS + 无匹配策略 → 所有操作拒绝
+- model 未开启 RLS → 不检查，正常执行
+
+### 7.3 执行流程
+
+```
+请求进入
+  ↓
+PAT 验证 → EndUser 身份
+  ↓
+提取 X-MC-User-* headers → RLS context
+  ↓
+RLS 是否开启？ → 否 → 正常执行
   ↓ 是
-提取 RLS context（从 Header）
+查询策略：WHERE model=xxx AND action=xxx AND role IN (roles, "")
   ↓
-匹配当前 action 的所有策略
-  ├── PERMISSIVE → 替换变量 → using 表达式 OR 合并
-  └── RESTRICTIVE → 替换变量 → using 表达式 AND 合并
+匹配数 = 0 → 拒绝
   ↓
-USING 表达式 → 注入 SQL WHERE（静默过滤）
+匹配的 using 表达式 替换变量 → OR 合并 → 注入 SQL WHERE
   ↓
-WITH CHECK 表达式（create / update）→ 注入 SQL CHECK（不满足则报错）
+（create/update）withCheck 替换变量 → SQL CHECK
   ↓
-执行查询 → 返回过滤后的数据
+执行查询 → 返回过滤数据
 ```
 
 ---
 
-## 6. 数据 SDK
+## 8. 表达式编译
 
-为客户后端提供轻量 SDK，封装 HTTP 调用和 Header 设置。
+### 8.1 变量替换
 
-### 6.1 SDK 形态（Python 示例）
+| 模板 | Header 来源 | 未传 |
+|------|-----------|------|
+| `{{user_id}}` | `X-MC-User-ID` | `""` |
+| `{{user_name}}` | `X-MC-User-Name` | `""` |
+
+替换后通过参数化查询拼入 SQL，防止注入。
+
+### 8.2 与现有 PolicyCompiler 的关系
+
+现有 `internal/app/rls/policy_compiler.go` 已实现 JSON → SQL 编译，支持 `_and/_or/_not/_eq/_neq/_gt/_gte/_lt/_lte/_is_null/_in/_nin`。需要扩展：
+
+1. **对齐操作符命名**：`_eq` → `equals`, `_and` → `AND` 等（统一 Condition DSL）
+2. **新增操作符**：`contains` → `LIKE '%x%'`, `startsWith` → `LIKE 'x%'`, `endsWith` → `LIKE '%x'`
+3. **变量支持**：`{{user_id}}` / `{{user_name}}` → 从 context 查值 → `?` 参数化
+4. **AND/OR 合并**：多条匹配策略的表达式 OR 合并为一条 WHERE
+
+---
+
+## 9. SDK
+
+### 9.1 Python 示例
 
 ```python
 from modelcraft import Client
 
 client = Client(
-    endpoint="https://your-modelcraft/api/data",
+    endpoint="https://modelcraft/api/data",
     api_token="mc_pat_xxx",
-    org_name="my-org",
-    project_slug="my-project",
+    org="my-org",
+    project="my-project",
 )
 
-# 查询数据 — 一行代码，RLS 自动生效
-orders = client.query(
+# 查询 + RLS
+orders = client.model("orders").list(
     db="main",
-    model="orders",
-    user_context={
-        "user_id": "customer_123",
-        "user_name": "zhangsan",
-        "user_role": "manager",
-    }
-).list(limit=10)
+    limit=10,
+    user_id="customer_123",
+    user_name="zhangsan",
+    user_roles="admin,manager",
+)
 
-# 创建数据 — RLS force 字段自动注入
-client.query(
+# 创建
+client.model("orders").create(
     db="main",
-    model="orders",
-    user_context={"user_id": "customer_123"}
-).create({"amount": 100, "product": "widget"})
+    data={"amount": 100},
+    user_id="customer_123",
+    user_roles="manager",
+)
 ```
 
-### 6.2 SDK 职责
+### 9.2 SDK 职责
 
 - 封装 `Authorization: Bearer mc_pat_xxx`
 - 自动设置 `X-MC-User-*` headers
-- 封装数据 API 端点 URL 构造
-- V1 支持 Python，后续按需扩展 Node.js / Go
+- V1 支持 Python
 
 ---
 
-## 7. 数据 API 端点
+## 10. 数据 API 端点
 
-V1 使用现有 Runtime GraphQL 端点（复用现有 modelruntime 执行引擎）：
+复用现有 Runtime GraphQL 端点：
 
 ```
 POST /end-user/graphql/org/{orgName}/project/{projectSlug}/db/{db}/model/{model}
 ```
 
-SDK 封装此端点。客户也可直接调 HTTP。
-
 ---
 
-## 8. 不在本次范围内
+## 11. 不在本次范围
 
 | 排除项 | 说明 |
 |--------|------|
-| OIDC / 社交登录 | 客户自有用户体系，ModelCraft 不需要 |
-| 自建角色权限系统 | 客户管理自己的 RBAC |
-| EndUser 管理 | 客户不通过 ModelCraft 创建用户 |
-| Column-level RLS | V1 仅行级过滤 |
-| DEPT / DEPT_AND_CHILDREN rowScope | 客户通过 RLS 表达式自行实现 |
-| Webhook / 事件通知 | 后续迭代 |
+| OIDC / 社交登录 | 客户自有用户体系 |
+| 自建用户/角色系统 | ModelCraft 不管理用户 |
+| EndUser 管理界面 | 客户自行管理 |
+| Column-level RLS | V1 仅行级 |
+| PERMISSIVE / RESTRICTIVE | role 匹配替代，不需要双层合并 |
 
 ---
 
-## 9. 与现有设计的差异
+## 12. 与现有设计的差异
 
-| 维度 | 现有 RBAC 设计 (2026-05-06) | 本设计 |
-|------|---------------------------|--------|
+| 维度 | 现有 RBAC (2026-05-06) | 本设计 |
+|------|----------------------|--------|
 | 用户管理 | ModelCraft 管理 EndUser | 客户自行管理 |
-| 权限模型 | Role → Bundle → Permission | RLS 策略（USING / WITH CHECK），对齐 PG RLS |
-| 行过滤 | SELF / ALL（固定 scope） | 自定义 SQL 表达式 + PERMISSIVE / RESTRICTIVE |
-| 策略合并 | 取最宽 rowScope（ALL > SELF） | PERMISSIVE OR / RESTRICTIVE AND |
-| 写校验 | 无 | WITH CHECK 表达式 |
+| 策略匹配 | Role → Bundle → Permission | action + role 直接匹配 |
+| 策略合并 | 取最宽 rowScope | 匹配上的全部 OR 合并 |
+| 表达式 | SELF / ALL 固定 scope | 自由表达式 + 变量 |
+| 角色定义 | ModelCraft 定义 role | 客户自定义 role 字符串 |
 | 适用场景 | 客户无自有用户体系 | 客户有自有用户体系 |
-| 用户标识 | EndUserID（ModelCraft 内部 ID） | Header 透传变量（客户定义） |
 
 ---
 
-## 10. 实现顺序
+## 13. 实现顺序
 
-1. RLS Context Middleware（提取 Header → context）
-2. RLS 策略存储（DB schema + domain + CRUD API）
-3. RLS 引擎（策略匹配 + 变量替换 + WHERE 注入）
-4. 接入 modelruntime（现有 GraphQL 执行引擎）
-5. Python SDK
+1. RLS Context Middleware（Header → context）
+2. 表达式编译器（对齐 Condition DSL + 变量替换 + SQL 编译）
+3. 策略存储（DB migration + CRUD API）
+4. 策略匹配 + 合并引擎
+5. 接入 modelruntime 执行链路
+6. Python SDK
